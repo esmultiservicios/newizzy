@@ -2056,7 +2056,7 @@
 /* ==================== */
 .footer1 {
     position: fixed;
-    left: 240px; /* Ancho inicial igual al sidebar expandido */
+    left: 0; /* Ancho inicial del sidebar expandido */
     right: 0;
     bottom: 0;
     height: auto;
@@ -2066,34 +2066,72 @@
     box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.1);
     border-top: 1px solid #e0e0e0;
     transition: all 0.3s ease;
-    width: calc(100% - 240px); /* Ocupa todo el espacio menos el sidebar */
-  }
-  
-  /* Cuando el sidebar está colapsado */
-  .sb-sidenav.collapsed ~ .footer1 {
+    width: 100%; /* Ocupa todo el espacio menos el sidebar */
+}
+
+/* Cuando el sidebar está colapsado */
+.sb-sidenav.collapsed ~ .footer1 {
     left: 70px; /* Ancho del sidebar colapsado */
-    width: calc(100% - 70px); /* Ocupa todo el espacio restante */
-  }
-  
-  /* Contenedor principal que siempre está centrado */
-  .footer1 .form-row {
+    width: calc(100% - 70px); /* Ajuste del ancho */
+}
+
+/* Contenedor principal que siempre está centrado */
+.footer1 .form-row {
     max-width: 1200px;
     margin: 0 auto;
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     padding: 0 15px;
-  }
-  
-  /* Ajustes para el contenido del footer */
-  .footer1 .col-md-3 {
-    flex: 1 1 200px; /* Flexibilidad para adaptarse */
+}
+
+/* Ajustes para el contenido del footer */
+.footer1 .col-md-3 {
+    flex: 1 1 200px;
     max-width: 23%;
     margin: 0 1%;
     padding: 0 10px;
-    min-width: 200px; /* Ancho mínimo para cada elemento */
-  }
-  
+    min-width: 200px;
+}
+
+/* ==================== */
+/* AJUSTES RESPONSIVE */
+/* ==================== */
+@media (max-width: 992px) {
+    /* Para pantallas medianas (tablets) */
+    .footer1 {
+        left: 70px !important; /* Mantiene el espacio del sidebar colapsado */
+        width: calc(100% - 70px) !important;
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
+    .footer1 .col-md-3 {
+        max-width: 48%;
+        margin-bottom: 15px;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Para pantallas pequeñas (móviles) */
+    .footer1 {
+        left: 0 !important;
+        width: 100% !important;
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
+    .footer1 .col-md-3 {
+        max-width: 100%;
+        margin: 0 0 15px 0;
+    }
+    
+    /* Ajuste adicional para el contenido en móviles */
+    .footer1 .form-row {
+        flex-direction: column;
+        align-items: center;
+    }
+}  
   /* ==================== */
   /* ESTILO PARA FORMATO DE MONEDA (LEMPIRAS) */
   /* ==================== */
@@ -2154,3 +2192,146 @@
       padding: 0.25rem 0.5rem;
     }
   }
+
+/* MODO SOPORTE */
+.modo_soporte {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%);
+    color: white;
+    padding: 5px 20px;
+    font-weight: 500;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    font-size: 0.88rem;
+    z-index: 1035;
+    letter-spacing: 0.5px;
+    height: 28px;
+    overflow: hidden;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    animation: pulse-soporte 2s infinite; /* Efecto de pulso */
+}
+
+@keyframes pulse-soporte {
+    0% {
+        box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.5);
+    }
+    70% {
+        box-shadow: 0 0 0 8px rgba(52, 152, 219, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(52, 152, 219, 0);
+    }
+}
+
+/* Efecto de pulso sutil */
+.soporte-pulse {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, rgba(255,255,255,0.15) 0%, transparent 70%);
+    opacity: 0;
+    animation: pulseEffect 3s infinite;
+}
+
+@keyframes pulseEffect {
+    0% { transform: scale(0.8); opacity: 0; }
+    50% { transform: scale(1.1); opacity: 0.4; }
+    100% { transform: scale(1.3); opacity: 0; }
+}
+
+/* Subrayado animado */
+.soporte-underline {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent);
+    background-size: 200% auto;
+    animation: shine 2s linear infinite;
+}
+
+@keyframes shine {
+    0% { background-position: -100% 0; }
+    100% { background-position: 100% 0; }
+}
+
+.modo_soporte i {
+    font-size: 1em;
+    position: relative;
+    animation: float 3s ease-in-out infinite;
+    color: #f1c40f;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-2px); } /* Animación más sutil */
+}
+
+/* Ajuste cuando sidebar está colapsado */
+.sb-sidenav.collapsed ~ .modo_soporte {
+    left: 70px;
+    width: calc(100% - 70px); /* Asegura el 100% del ancho disponible */
+}
+
+/* Ajustes responsive */
+@media (max-width: 992px) {
+    .modo_soporte {
+        left: 70px !important;
+        width: calc(100% - 70px) !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .modo_soporte {
+        top: 56px;
+        left: 0 !important;
+        width: 100% !important;
+        font-size: 0.82rem;
+        padding: 4px 15px; /* Más compacto en móviles */
+        height: 26px; /* Altura reducida en móviles */
+    }
+}
+
+/* Efecto hover adicional */
+.modo_soporte:hover {
+    background: linear-gradient(135deg, #2980b9 0%, #1a252f 100%);
+}
+
+/* Efecto de respiración para el texto */
+.modo_soporte span {
+    animation: textBreath 4s ease-in-out infinite;
+}
+
+@keyframes textBreath {
+    0%, 100% { opacity: 0.9; text-shadow: 0 0 0 rgba(255,255,255,0); }
+    50% { opacity: 1; text-shadow: 0 0 8px rgba(255,255,255,0.3); }
+}
+
+/* Efecto de brillo en el gradiente */
+.modo_soporte {
+    animation: gradientGlow 6s ease infinite;
+    background-size: 200% 200%;
+}
+
+@keyframes gradientGlow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Efecto de vibración sutil */
+@keyframes gentleVibration {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-1px); }
+    75% { transform: translateX(1px); }
+}
+
+.modo_soporte:hover {
+    animation: gentleVibration 0.3s linear infinite, gradientGlow 6s ease infinite;
+}

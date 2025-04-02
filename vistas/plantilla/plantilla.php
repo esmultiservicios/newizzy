@@ -58,11 +58,15 @@ if(!isset($_SESSION)){
 
     <!-- Navbar Top -->
     <?php
+    // Procesamiento del nombre de la base de datos
     $prefixes = array("clinicarehn_", "clientes_");
     $nombre_db_final = str_replace($prefixes, "", $GLOBALS['db']);
-    echo htmlspecialchars($_SESSION['modo_soporte'], ENT_QUOTES, 'UTF-8') ."***";
-    if ($_SESSION['modo_soporte'] === "SI") {
-        echo '<span class="modo_soporte"> <i class="fas fa-headset"></i> Usted está en modo soporte para el cliente: '.htmlspecialchars($nombre_db_final, ENT_QUOTES, 'UTF-8').'</span>';
+    // Mostrar banner de modo soporte si está activo
+    if (isset($_SESSION['modo_soporte']) && $_SESSION['modo_soporte'] === "SI") {
+        echo '<div class="modo_soporte">
+                <i class="fas fa-headset fa-lg"></i>
+                <span>MODO SOPORTE ACTIVO - CLIENTE: '.htmlspecialchars($nombre_db_final, ENT_QUOTES, 'UTF-8').'</span>
+            </div>';
     }
     ?>
 

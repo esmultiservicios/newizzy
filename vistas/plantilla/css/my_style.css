@@ -1,0 +1,2156 @@
+/* ====================== */
+/* BOTONES GENERALES */
+/* ====================== */
+.btn {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    font-weight: 500;
+    border: none;
+    white-space: nowrap;
+    margin: 0 2px;
+    gap: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    font-size: 0.875rem;
+    border-radius: 4px;
+    min-width: 80px;
+    height: 38px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Tamaños alternativos */
+.btn-lg {
+    padding: 0.65rem 1.5rem;
+    font-size: 1rem;
+    height: 46px;
+    min-width: 100px;
+    gap: 0.6rem;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8125rem;
+    height: 32px;
+    min-width: 70px;
+    gap: 0.4rem;
+}
+
+/* Variantes de color */
+.btn-primary { background-color: var(--primary); color: white; }
+.btn-secondary { background-color: var(--secondary); color: white; }
+.btn-success { background-color: var(--success); color: white; }
+.btn-danger { background-color: var(--danger); color: white; }
+.btn-warning { background-color: var(--warning); color: var(--dark); }
+.btn-info { background-color: var(--info); color: white; }
+
+/* Efectos hover */
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+.btn-primary:hover { background-color: #1a252f; }
+.btn-secondary:hover { background-color: #2980b9; }
+
+/* ====================== */
+/* TABLAS */
+/* ====================== */
+/* Botones dentro de tablas */
+.table_editar,
+.table_eliminar,
+.table_crear {
+    padding: 0.35rem 0.7rem;
+    font-size: 0.82rem;
+    height: 40px;
+    min-width: 50px;
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.table_editar { background-color: var(--secondary); color: white; }
+.table_eliminar { background-color: var(--danger); color: white; }
+.table_crear { background-color: var(--primary); color: white; }
+
+/* Estilos generales para todos los botones */
+.table_info, .table_success, .table_warning, .table_dark, .table_primary, .table_secondary, .table_danger {
+    padding: 0.35rem 0.7rem;
+    font-size: 0.82rem;
+    height: 40px;
+    min-width: 50px;
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    color: white;
+}
+
+/* Estilo específico para cada color */
+.table_info { background-color: var(--info); }
+.table_success { background-color: var(--success); }
+.table_warning { background-color: var(--warning); }
+.table_dark { background-color: var(--dark); }
+.table_primary { background-color: var(--primary); }
+.table_secondary { background-color: var(--secondary); }
+.table_danger { background-color: var(--danger); }
+
+/* Hover (sin cambio de color en hover) */
+.table_info:hover, .table_success:hover, .table_warning:hover, .table_dark:hover, .table_primary:hover, .table_secondary:hover, .table_danger:hover {
+    background-color: inherit;
+    color: white;
+}
+
+/* Excepción para botón crear con estilo primario */
+.btn-primary.table_crear {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.875rem;
+    height: 38px;
+    min-width: 80px;
+}
+
+/* ====================== */
+/* HEADER PROFESIONAL */
+/* ====================== */
+.table-header-pro thead th {
+    background: linear-gradient(to bottom, #3a4f6b, #2c3e50);
+    color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: relative;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    padding: 12px 15px;
+    border: none;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.table-header-pro thead th:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(to right, #3498db, #2ecc71);
+}
+
+.table-header-pro tbody td {
+    font-weight: 500;
+}
+
+/* ====================== */
+/* CLASE REUTILIZABLE */
+/* ====================== */
+.table-header-gradient {
+    width: 100%;
+    margin-bottom: 1rem;
+    color: #212529;
+    border-collapse: collapse;
+}
+
+.table-header-gradient thead th {
+    background: linear-gradient(to bottom, #3a4f6b, #2c3e50);
+    color: white;
+    position: relative;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    padding: 12px 15px;
+    border: none;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.table-header-gradient thead {
+    position: relative;
+}
+
+.table-header-gradient thead:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(to right, #3498db, #2ecc71);
+    z-index: 2;
+}
+
+/* ====================== */
+/* FOOTER DE TABLA */
+/* ====================== */
+.table-footer-pro tfoot td {
+    background: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    border-bottom: 3px solid #3a4f6b;
+}
+
+/* ====================== */
+/* ICONOS */
+/* ====================== */
+.table-hover tbody tr:hover td i {
+    color: #3498db;
+    transition: color 0.2s ease-in-out;
+}
+
+/* CORRECCIÓN PARA BOTONES EN TABLAS (SOLUCIÓN DEFINITIVA) */
+.table_editar:hover { 
+    background-color: var(--secondary) !important; /* Mantiene el color original */
+}
+
+.table_eliminar:hover { 
+    background-color: var(--danger) !important; /* Mantiene el color original */
+}
+
+.table_crear:hover { 
+    background-color: var(--primary) !important; /* Mantiene el color original */
+}
+
+/* Excepción para botón crear con estilo primario */
+.btn-primary.table_crear:hover {
+    background-color: var(--primary) !important;
+}
+
+.table_editar i,
+.table_eliminar i,
+.table_crear i {
+    transition: all 0.2s ease;
+}
+
+.table_editar:hover i {
+    color: white !important;
+    transform: scale(1.1);
+}
+
+.table_eliminar:hover i {
+    color: white !important;
+    transform: scale(1.1);
+}
+
+.table_crear:hover i {
+    color: white !important;
+    transform: scale(1.1);
+}
+
+.table-header-gradient thead th i,
+.table-header-pro thead th i {
+    transition: all 0.2s ease;
+}
+
+.table-header-gradient thead th:hover i,
+.table-header-pro thead th:hover i {
+    color: #2ecc71 !important;
+    transform: scale(1.1);
+}
+
+/* ====================== */
+/* RESPONSIVIDAD */
+/* ====================== */
+@media (max-width: 768px) {
+    .tableFixHead {
+        height: auto;
+        max-height: 340px;
+    }
+    
+    .tableFixHead td i {
+        font-size: 1.1em;
+    }
+    
+    .table_editar,
+    .table_eliminar,
+    .table_crear {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.75rem;
+        height: 28px;
+        min-width: 28px;
+    }
+}
+
+/* =================================== */
+/* BADGES PREMIUM CON HOVER ELEGANTE */
+/* =================================== */
+.status-badge {
+    border-radius: 24px;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    min-width: 125px;
+    width: 125px;
+    text-transform: uppercase;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-sizing: border-box;
+    text-align: center;
+    line-height: 1.2;
+    cursor: default;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
+    overflow: hidden;
+    border: none;
+    z-index: 1;
+}
+
+/* Efecto hover mejorado */
+.status-badge:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+}
+
+/* Efecto de profundidad al hacer hover */
+.status-badge:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.05);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: -1;
+}
+
+.status-badge:hover:before {
+    opacity: 1;
+}
+
+/* Estados con gradientes mejorados */
+.status-active {
+    background: linear-gradient(135deg, #28a745 0%, #5cb85c 100%);
+    color: white;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+}
+
+.status-active:hover {
+    background: linear-gradient(135deg, #218838 0%, #4cae4c 100%);
+}
+
+.status-inactive {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+}
+
+.status-inactive:hover {
+    background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+}
+
+/* Iconos con efecto premium */
+.status-badge i {
+    font-size: 0.95em;
+    min-width: 16px;
+    text-align: center;
+    transition: all 0.3s ease;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
+}
+
+.status-badge:hover i {
+    transform: scale(1.15);
+}
+
+/* Efecto ripple refinado */
+.status-badge:after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.4);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(0) translate(-50%, -50%);
+    transform-origin: 50% 50%;
+    z-index: -1;
+}
+
+.status-badge:hover:after {
+    animation: ripple 0.6s ease-out;
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(0);
+        opacity: 0.4;
+    }
+    100% {
+        transform: scale(12);
+        opacity: 0;
+    }
+}
+
+/* Responsividad mejorada */
+@media (max-width: 768px) {
+    .status-badge {
+        min-width: 110px;
+        width: 110px;
+        padding: 0.5rem 1rem !important;
+        font-size: 0.9rem;
+        box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    }
+    
+    .status-badge:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 10px rgba(0,0,0,0.15);
+    }
+    
+    .status-badge i {
+        font-size: 0.9em;
+    }
+    
+    .badges-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
+    }
+}
+  
+/* =================================== */
+/* ESTILOS PARA EJEMPLOS */
+/* =================================== */
+#ejemplo_calculo .ejemplo-contenedor {
+    background-color: var(--primary);
+    border: 2px solid var(--secondary);
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* ==================== */
+/* ESTILOS PARA TOPBAR - REVISADO */
+/* ==================== */
+.sb-topnav {
+    background-color: var(--topnav-bg);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 0.5rem 1.5rem;
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 60px;
+    z-index: 1060; /* Alto pero por debajo del sidebar cuando está abierto */
+    display: flex;
+    align-items: center;
+    transition: all var(--transition-speed) ease;
+}
+
+/* Logo en topbar - Aseguramos que esté siempre visible */
+.sb-topnav .navbar-brand {
+    margin-right: 1.5rem;
+    display: flex;
+    align-items: center;
+    z-index: 1070; /* Más alto que el sidebar */
+    position: relative; /* Necesario para z-index */
+}
+
+.sb-topnav .navbar-brand .logo {
+    max-height: 40px;
+    transition: all var(--transition-speed) ease;
+    z-index: inherit;
+}
+
+.sb-topnav .navbar-brand:hover .logo {
+    transform: scale(1.05);
+}
+
+/* Botón del sidebar toggle */
+#sidebarToggle {
+    color: var(--topnav-text) !important;
+    margin-right: 1rem;
+    margin-left: 0;
+    font-size: 1.25rem;
+    transition: all var(--transition-speed) ease;
+    background: transparent;
+    border: none;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1070; /* Igual que el logo */
+    position: relative;
+}
+
+.sb-topnav #global-fullscreen-btn {
+    color: var(--topnav-text);
+    margin-right: 1rem;
+    font-size: 1.25rem;
+    transition: all var(--transition-speed) ease;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 0.5rem 0.7rem;
+}
+
+.sb-topnav #sidebarToggle:hover,
+.sb-topnav #global-fullscreen-btn:hover {
+    color: var(--topnav-text-hover);
+    text-decoration: none;
+}
+
+#sidebarToggle i.fa-lg {
+    font-size: 1.1rem;
+    color: inherit !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+#sidebarToggle:hover {
+    background-color: var(--topnav-hover-bg);
+    color: var(--topnav-text-hover) !important;
+    transform: rotate(90deg);
+}
+
+.sb-topnav #global-fullscreen-btn:hover {
+    transform: scale(1.1);
+}
+
+/* Iconos en el topbar */
+.sb-topnav .fa-lg {
+    color: var(--topnav-text);
+    transition: all var(--transition-speed) ease;
+}
+
+.sb-topnav .nav-link:hover .fa-lg,
+.sb-topnav .dropdown-item:hover .fa-lg {
+    color: var(--topnav-text-hover);
+}
+
+/* Menú principal del topbar */
+.sb-topnav .navbar-nav {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-right: auto;
+}
+
+.sb-topnav .navbar-nav .nav-item {
+    margin: 0 0.1rem;
+}
+
+.sb-topnav .navbar-nav .nav-link {
+    color: var(--topnav-text);
+    padding: 0.5rem 0.6rem;
+    border-radius: 6px;
+    transition: all var(--transition-speed) ease;
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.sb-topnav .navbar-nav .nav-link i {
+    margin-right: 0.25rem;
+    font-size: 1.1rem;
+    color: inherit;
+}
+
+.sb-topnav .navbar-nav .nav-link:hover {
+    background-color: var(--topnav-hover-bg);
+    color: var(--topnav-text-hover);
+    transform: translateY(-2px);
+}
+
+.sb-topnav .navbar-nav .nav-link.active {
+    background-color: var(--topnav-active-bg);
+    color: var(--topnav-text-hover);
+    font-weight: 600;
+}
+
+.sb-topnav .navbar-nav .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 2px;
+    background-color: var(--secondary);
+    transition: all var(--transition-speed) ease;
+}
+
+.sb-topnav .navbar-nav .nav-link:hover::after,
+.sb-topnav .navbar-nav .nav-link.active::after {
+    width: 70%;
+}
+
+/* Menú desplegable en topbar */
+.sb-topnav .dropdown-menu {
+    border: none;
+    border-radius: 8px;
+    box-shadow: var(--deep-shadow);
+    margin-top: 0.5rem;
+    animation: dropdownFadeIn var(--transition-speed) ease;
+    background-color: white;
+    z-index: 1070; /* Más alto que el sidebar */
+}
+
+@keyframes dropdownFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.sb-topnav .dropdown-item {
+    padding: 0.5rem 1.25rem;
+    transition: all var(--transition-speed) ease;
+    color: var(--dark);
+    display: flex;
+    align-items: center;
+}
+
+.sb-topnav .dropdown-item i {
+    margin-right: 0.5rem;
+    color: var(--gray-600);
+    width: 1.25rem;
+    text-align: center;
+}
+
+.sb-topnav .dropdown-item:hover,
+.sb-topnav .dropdown-item:focus {
+    background-color: var(--secondary);
+    color: white;
+}
+
+.sb-topnav .dropdown-item:hover i,
+.sb-topnav .dropdown-item:focus i {
+    color: white;
+}
+
+.sb-topnav .dropdown-divider {
+    border-color: var(--gray-300);
+}
+
+/* Menú de usuario en topbar */
+.navbar-nav-user {
+    margin-left: auto;
+    padding-right: 0.5rem;
+}
+
+.navbar-nav-user .nav-item.dropdown {
+    margin-left: 0.5rem;
+}
+
+.navbar-nav-user .nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    border-radius: 30px;
+    transition: all var(--transition-speed) ease;
+    color: var(--topnav-text) !important;
+    background: transparent;
+}
+
+.navbar-nav-user .nav-link:hover {
+    background-color: var(--topnav-hover-bg) !important;
+    color: var(--topnav-text-hover) !important;
+}
+
+.navbar-nav-user .nav-link i {
+    margin-right: 0.25rem;
+    color: inherit !important;
+}
+
+.navbar-nav-user .dropdown-menu {
+    right: 10px;
+    left: auto;
+}
+
+.navbar-nav-user .dropdown-item {
+    color: var(--dark) !important;
+}
+
+.navbar-nav-user .dropdown-item i {
+    color: var(--gray-600) !important;
+}
+
+.navbar-nav-user .dropdown-item:hover,
+.navbar-nav-user .dropdown-item:focus {
+    color: white !important;
+}
+
+.navbar-nav-user .dropdown-item:hover i,
+.navbar-nav-user .dropdown-item:focus i {
+    color: white !important;
+}
+
+/* Menú rápido para móviles en topbar */
+.sb-topnav .dropdown.d-md-none .dropdown-menu {
+    min-width: 250px;
+    z-index: 1070;
+}
+
+.sb-topnav .dropdown.d-md-none .dropdown-item {
+    padding: 0.75rem 1.25rem;
+}
+
+/* ESTILOS ESPECÍFICOS PARA EL LOGO - solución */
+.logo-container .logo {
+    filter: none !important; /* Elimina cualquier filtro que lo haga blanco */
+    -webkit-filter: none !important; /* Para navegadores WebKit */
+    width: auto !important; /* Asegura que mantenga proporciones */
+    height: 40px !important; /* Altura fija (ajusta según necesites) */
+    opacity: 1 !important; /* Asegura visibilidad completa */
+}
+
+/* Si el SVG tiene elementos internos con fill */
+.logo-container .logo path,
+.logo-container .logo polygon {
+    fill: inherit !important; /* Respeta colores originales */
+}
+/* ==================== */
+/* ESTILOS PARA SIDEBAR - REVISADO */
+/* ==================== */
+.sb-sidenav {
+    background-color: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    transition: all var(--transition-speed) ease;
+    overflow-y: auto;
+    height: 100vh;
+    position: fixed;
+    z-index: 1050; /* Por debajo del topbar normalmente */
+    box-shadow: 2px 0 15px rgba(0, 0, 0, 0.2);
+    font-size: 0.9rem;
+    width: 240px;
+    top: 0;
+    left: 0;
+    transform: translateX(0);
+}
+
+/* Sidebar cuando está activo en móviles */
+.sb-sidenav.show-mobile {
+    z-index: 1065 !important; /* Por encima del topbar cuando está abierto */
+    transform: translateX(0);
+    box-shadow: 5px 0 25px rgba(0, 0, 0, 0.3);
+}
+
+.sb-sidenav .custom-header {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.sb-sidenav .custom-header .logo {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+.sb-sidenav-menu {
+    padding: 0.75rem 0;
+    margin-top: 0;
+    height: calc(100vh - 120px);
+    overflow-y: auto;
+}
+
+.sb-sidenav-menu .nav {
+    flex-direction: column;
+    padding: 0 0.6rem;
+}
+
+/* Enlaces del sidebar */
+.sb-sidenav-menu .nav-link {
+    color: var(--sidebar-text);
+    padding: 0.55rem 0.8rem;
+    margin: 0.15rem 0;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    transition: all var(--transition-speed) ease;
+    position: relative;
+    font-size: 0.88rem;
+}
+
+.sb-sidenav-menu .nav-link:hover {
+    background-color: var(--sidebar-hover-bg);
+    color: var(--sidebar-text-hover);
+    transform: translateX(3px);
+}
+
+.sb-sidenav-menu .nav-link.active {
+    background-color: var(--sidebar-active-bg);
+    color: var(--sidebar-text-hover);
+    font-weight: 600;
+    border-left: 2px solid var(--secondary);
+}
+
+/* Iconos del sidebar */
+.sb-sidenav-menu .nav-link .sb-nav-link-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.5rem;
+    min-width: 1.2rem;
+    font-size: 0.85rem;
+    color: inherit;
+    transition: all var(--transition-speed) ease;
+}
+
+.sb-sidenav-menu .nav-link .sb-nav-link-icon i {
+    font-size: 0.9em;
+    width: 1em;
+    height: 1em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Flecha de colapso */
+.sb-sidenav-menu .nav-link .sb-sidenav-collapse-arrow {
+    margin-left: auto;
+    font-size: 0.8rem;
+    transition: transform var(--transition-speed) ease;
+    color: inherit;
+    opacity: 0.7;
+}
+
+.sb-sidenav-menu .nav-link[aria-expanded="true"] .sb-sidenav-collapse-arrow {
+    transform: rotate(180deg);
+}
+
+/* Submenús del sidebar */
+.sb-sidenav-menu .collapse {
+    padding-left: 1rem;
+}
+
+.sb-sidenav-menu .collapse .nav-link {
+    padding: 0.4rem 0.7rem;
+    margin: 0.1rem 0;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+.sb-sidenav-menu .collapse .nav-link.active {
+    background-color: rgba(0, 0, 0, 0.1);
+    border-left: 2px solid var(--secondary);
+}
+
+/* Footer del sidebar */
+.sb-sidenav-footer {
+    padding: 0.75rem;
+    font-size: 0.8rem;
+    text-align: center;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.1);
+    color: var(--sidebar-text);
+}
+
+/* ==================== */
+/* SIDEBAR COLAPSADO */
+/* ==================== */
+.sb-sidenav.collapsed {
+    width: 70px;
+    overflow: hidden;
+}
+
+.sb-sidenav.collapsed .custom-header {
+    padding: 0.5rem;
+    text-align: center;
+}
+
+.sb-sidenav.collapsed .custom-header .logo {
+    max-width: 40px;
+    height: auto;
+}
+
+.sb-sidenav.collapsed .nav-link {
+    justify-content: center;
+    padding: 0.6rem 0;
+    margin: 0.15rem 0;
+    position: relative;
+}
+
+.sb-sidenav.collapsed .nav-link > :not(.sb-nav-link-icon),
+.sb-sidenav.collapsed .sb-sidenav-collapse-arrow {
+    display: none !important;
+}
+
+.sb-sidenav.collapsed .nav-link .sb-nav-link-icon {
+    font-size: 1.1rem;
+    background: rgba(0, 0, 0, 0.1);
+    padding: 0.4rem;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 5px;
+    margin: 0 auto;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+.sb-sidenav.collapsed .nav-link .sb-nav-link-icon i {
+    font-size: 1em !important;
+    display: inline-block !important;
+    width: auto;
+    height: auto;
+}
+
+.sb-sidenav.collapsed .nav-link.active .sb-nav-link-icon {
+    background-color: var(--sidebar-active-bg);
+    color: var(--sidebar-text-hover);
+}
+
+.sb-sidenav.collapsed .nav-link:hover .sb-nav-link-icon {
+    transform: scale(1.08);
+    background-color: var(--sidebar-hover-bg);
+    color: var(--sidebar-text-hover);
+}
+
+.sb-sidenav.collapsed .sb-sidenav-footer {
+    padding: 0.5rem;
+    font-size: 0.7rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Tooltips para modo colapsado */
+.sb-sidenav.collapsed .nav-link::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: calc(100% + 10px);
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: var(--dark);
+    color: white;
+    border-radius: 4px;
+    padding: 0.5rem 0.8rem;
+    font-size: 0.82rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: all var(--transition-speed) ease;
+    z-index: 1050;
+    box-shadow: var(--deep-shadow);
+}
+
+.sb-sidenav.collapsed .nav-link:hover::after {
+    opacity: 1;
+    left: calc(100% + 8px);
+}
+
+/* Submenús en modo colapsado */
+.sb-sidenav.collapsed .collapse {
+    position: absolute;
+    left: 100%;
+    top: 0;
+    min-width: 210px;
+    background-color: var(--sidebar-bg);
+    border-radius: 0 6px 6px 0;
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.12);
+    padding: 0.5rem 0;
+    z-index: 1040;
+    display: none;
+}
+
+.sb-sidenav.collapsed .nav-link[aria-expanded="true"] + .collapse {
+    display: block;
+    animation: smoothFadeIn 0.15s ease-out;
+}
+
+@keyframes smoothFadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+/* ==================== */
+/* OVERLAY PARA MÓVILES */
+/* ==================== */
+.sb-content-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1060 !important; /* Por debajo del sidebar pero encima de todo lo demás */
+    display: none;
+    transition: opacity var(--transition-speed) ease;
+}
+
+.sb-content-overlay.active {
+    display: block;
+    opacity: 1;
+}
+
+/* ==================== */
+/* COMPORTAMIENTO RESPONSIVE */
+/* ==================== */
+@media (max-width: 992px) {
+    /* Sidebar en móviles */
+    .sb-sidenav {
+        transform: translateX(-100%);
+        z-index: 1070 !important;
+        width: 280px !important;
+        transition: transform var(--transition-speed) ease;
+    }
+    
+    .sb-sidenav.show-mobile {
+        transform: translateX(0);
+    }
+    
+    /* Topbar en móviles */
+    .sb-topnav {
+        z-index: 1065 !important;
+    }
+    
+    /* Ajustes para el logo en móviles */
+    .sb-topnav .navbar-brand {
+        z-index: 1075 !important; /* Más alto que el sidebar */
+    }
+    
+    /* Ajuste para el botón de toggle en móviles */
+    #sidebarToggle {
+        z-index: 1075 !important;
+    }
+}
+
+@media (min-width: 993px) {
+    .sb-content-overlay {
+        display: none !important;
+    }
+    
+    /* Comportamiento desktop */
+    .sb-sidenav:not(.collapsed) {
+        width: 240px;
+    }
+    
+    .sb-sidenav.collapsed {
+        width: 70px;
+    }
+    
+    /* Ajuste del topbar cuando sidebar está colapsado */
+    .sb-sidenav.collapsed ~ .sb-topnav {
+        left: 70px;
+    }
+    
+    /* Ajuste del topbar cuando sidebar está expandido */
+    .sb-sidenav:not(.collapsed) ~ .sb-topnav {
+        left: 240px;
+    }
+}
+
+/* Botón de WhatsApp - CORREGIDO (color hover) */
+.float-ws {
+    position: fixed;
+    bottom: 50px;
+    right: 30px;
+    width: 56px;
+    height: 56px;
+    background-color: #25D366;
+    color: white !important; /* Forzar color blanco */
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 1040;
+    transition: all 0.3s ease;
+    animation: pulse-ws 2s infinite;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.float-ws i {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    line-height: 1;
+    color: inherit !important; /* Heredar color del contenedor */
+}
+
+.float-ws:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+    background-color: #25D366 !important; /* Mantener color de fondo en hover */
+    color: white !important; /* Mantener color blanco en hover */
+    text-decoration: none;
+}
+
+/* Animación se mantiene igual */
+@keyframes pulse-ws {
+    0% {
+        box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 15px rgba(37, 211, 102, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
+    }
+}
+
+/* ==================== */
+/* MEDIA QUERIES RESPONSIVE */
+/* ==================== */
+@media (max-width: 992px) {
+    .sb-sidenav {
+        transform: translateX(-100%);
+        z-index: 1040;
+    }
+    
+    .sb-sidenav.show {
+        transform: translateX(0);
+    }
+    
+    .sb-topnav .navbar-nav {
+        display: none;
+    }
+    
+    .sb-topnav .dropdown.d-md-none {
+        display: block;
+        margin-right: auto;
+    }
+}
+
+@media (min-width: 992px) {
+    .sb-sidenav:not(.collapsed) + .sb-topnav,
+    .sb-sidenav:not(.collapsed) + .sb-topnav + #layoutSidenav_content {
+        margin-left: 225px;
+        transition: margin var(--transition-speed) ease;
+    }
+    
+    .sb-sidenav.collapsed + .sb-topnav,
+    .sb-sidenav.collapsed + .sb-topnav + #layoutSidenav_content {
+        margin-left: 80px;
+        transition: margin var(--transition-speed) ease;
+    }
+    
+    .sb-topnav .dropdown.d-md-none {
+        display: none;
+    }
+}
+
+@media (max-width: 576px) {
+    .sb-topnav {
+        padding: 0.5rem;
+    }
+    
+    .sb-topnav .navbar-brand {
+        margin-right: 0.5rem;
+    }
+    
+    .sb-topnav .navbar-brand .logo {
+        max-height: 30px;
+    }
+    
+    .float-ws {
+        width: 50px;
+        height: 50px;
+        font-size: 1.75rem;
+        bottom: 15px;
+        right: 15px;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ====================== */
+/* ESTILO PREMIUM UNIVERSAL PARA TABLAS EN MODALES */
+/* ====================== */
+
+/* ENCABEZADO DEL MODAL (general para todos) */
+.modal-header {
+    background: linear-gradient(135deg, #1a2a3a 0%, #0d1620 100%);
+    color: white;
+    border-bottom: none;
+    padding: 1.25rem 1.75rem;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.modal-header:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #3498db, #2ecc71, #3498db);
+    background-size: 200% auto;
+    animation: gradientFlow 3s linear infinite;
+}
+
+@keyframes gradientFlow {
+    0% { background-position: 0% center; }
+    100% { background-position: 200% center; }
+}
+
+/* CONTENIDO DEL MODAL (general) */
+.modal-content {
+    border: none;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+
+/* ESTILOS GENERALES PARA TABLAS EN MODALES */
+/* Footer de tabla */
+.modal-body .card-footer {
+    background: rgba(0,0,0,0.02);
+    border-top: 1px solid rgba(0,0,0,0.05);
+    padding: 0.75rem 1.5rem;
+    font-size: 0.8rem;
+}
+
+/* Botón cerrar mejorado */
+.modal-header .close {
+    opacity: 0.8;
+    color: rgba(255,255,255,0.9);
+    transition: all 0.3s;
+    font-size: 1.5rem;
+    padding: 0.5rem;
+    margin: -0.8rem -0.8rem -0.8rem auto;
+}
+
+.modal-header .close:hover {
+    opacity: 1;
+    transform: rotate(90deg);
+    color: #e74c3c;
+}
+
+/* =================================== */
+/* ESTILOS PARA ICONOS EN TABLAS */
+/* =================================== */
+
+/* Contenedores de iconos */
+.btn.btn-link, .btn-outline-success {
+    padding: 0.25rem !important;
+    min-width: 30px !important;
+    height: 30px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+  }
+  
+  /* Iconos principales */
+  .fa-search, 
+  .aplicar_precio, 
+  .aplicar_descuento,
+  .aplicar_precio_cotizacion, 
+  .aplicar_descuento_cotizacion {
+    font-size: 1rem !important;
+    width: 1rem !important;
+    height: 1rem !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1 !important;
+  }
+  
+  /* Grupos de input con iconos */
+  .input-group-append {
+    width: auto !important;
+    margin-left: 0.25rem !important;
+  }
+  
+  /* Alineación vertical */
+  .input-group {
+    align-items: center !important;
+  }
+  
+  /* Efectos hover */
+  .btn-link:hover .fa-search, 
+  .btn-outline-success:hover .aplicar_precio,
+  .btn-outline-success:hover .aplicar_descuento,
+  .btn-outline-success:hover .aplicar_precio_cotizacion,
+  .btn-outline-success:hover .aplicar_descuento_cotizacion {
+    transform: scale(1.1) !important;
+    transition: transform 0.2s ease !important;
+  }
+  
+  /* Tooltips */
+  [data-toggle="tooltip"] {
+    cursor: pointer;
+  }
+  
+  /* Colores específicos */
+  .icon-color {
+    color: #6c757d !important;
+  }
+  
+  .btn-outline-success .fas {
+    color: #28a745 !important;
+  }
+  
+  .btn-outline-success:hover .fas {
+    color: white !important;
+  }
+  
+  /* =================================== */
+  /* RESPONSIVE PARA DISPOSITIVOS MÓVILES */
+  /* =================================== */
+  @media (max-width: 768px) {
+    .btn.btn-link, .btn-outline-success {
+      padding: 0.2rem !important;
+      min-width: 26px !important;
+      height: 26px !important;
+    }
+    
+    .fa-search, 
+    .aplicar_precio, 
+    .aplicar_descuento,
+    .aplicar_precio_cotizacion, 
+    .aplicar_descuento_cotizacion {
+      font-size: 0.9rem !important;
+    }
+    
+    .input-group-append {
+      margin-left: 0.15rem !important;
+    }
+  }
+  
+/* ====================== */
+/* ESTILOS DASHBOARD PREMIUM */
+/* ====================== */
+
+/* Cards de Métricas - Estilo Blanco Premium */
+.dashboard-card {
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    background-color: #fff;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+.dashboard-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 100%);
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+    border-color: rgba(0, 0, 0, 0.05);
+}
+
+.dashboard-card:hover::before {
+    opacity: 1;
+}
+
+/* Borde superior de color */
+.dashboard-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+}
+
+/* Colores para los bordes superiores */
+.bg-gradient-primary::after {
+    background: linear-gradient(90deg, #4e73df 0%, #224abe 100%);
+}
+
+.bg-gradient-success::after {
+    background: linear-gradient(90deg, #1cc88a 0%, #13855c 100%);
+}
+
+.bg-gradient-warning::after {
+    background: linear-gradient(90deg, #f6c23e 0%, #dda20a 100%);
+}
+
+.bg-gradient-danger::after {
+    background: linear-gradient(90deg, #e74a3b 0%, #be2617 100%);
+}
+
+/* Iconos en las cards - Estilo Moderno */
+.icon-circle {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.icon-circle::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.1;
+    z-index: 0;
+}
+
+.bg-gradient-primary .icon-circle::before {
+    background-color: #4e73df;
+}
+
+.bg-gradient-success .icon-circle::before {
+    background-color: #1cc88a;
+}
+
+.bg-gradient-warning .icon-circle::before {
+    background-color: #f6c23e;
+}
+
+.bg-gradient-danger .icon-circle::before {
+    background-color: #e74a3b;
+}
+
+.icon-circle i {
+    position: relative;
+    z-index: 1;
+}
+
+/* Colores para los iconos */
+.bg-gradient-primary .icon-circle i {
+    color: #4e73df;
+}
+
+.bg-gradient-success .icon-circle i {
+    color: #1cc88a;
+}
+
+.bg-gradient-warning .icon-circle i {
+    color: #f6c23e;
+}
+
+.bg-gradient-danger .icon-circle i {
+    color: #e74a3b;
+}
+
+/* Textos en las cards */
+.dashboard-card h6 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+}
+
+.dashboard-card h2 {
+    font-size: 2.25rem;
+    font-weight: 700;
+    margin: 0.75rem 0;
+    color: #2d3748;
+    position: relative;
+    display: inline-block;
+}
+
+.dashboard-card h2::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 0;
+    width: 40px;
+    height: 3px;
+    border-radius: 3px;
+}
+
+.bg-gradient-primary h2::after {
+    background-color: #4e73df;
+}
+
+.bg-gradient-success h2::after {
+    background-color: #1cc88a;
+}
+
+.bg-gradient-warning h2::after {
+    background-color: #f6c23e;
+}
+
+.bg-gradient-danger h2::after {
+    background-color: #e74a3b;
+}
+
+.card-footer-text {
+    font-size: 0.8125rem;
+    color: #718096;
+    display: inline-flex;
+    align-items: center;
+    transition: color 0.3s ease;
+}
+
+.card-footer-text i {
+    margin-right: 6px;
+    font-size: 0.9em;
+}
+
+.bg-gradient-primary .card-footer-text i {
+    color: #4e73df;
+}
+
+.bg-gradient-success .card-footer-text i {
+    color: #1cc88a;
+}
+
+.bg-gradient-warning .card-footer-text i {
+    color: #f6c23e;
+}
+
+.bg-gradient-danger .card-footer-text i {
+    color: #e74a3b;
+}
+
+/* Efectos hover */
+.dashboard-card:hover .icon-circle {
+    transform: scale(1.05);
+}
+
+.dashboard-card:hover h2 {
+    color: #1a202c;
+}
+
+.dashboard-card:hover .card-footer-text {
+    color: #4a5568;
+}
+
+/* Contenedor del card body */
+.card-body {
+    padding: 1.5rem;
+    position: relative;
+}
+
+/* Layout interno de la card */
+.card-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.card-text {
+    flex: 1;
+}
+
+/* Cabeceras de cards */
+.card-header.bg-white {
+    background-color: white;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    padding: 1rem 1.5rem;
+}
+
+/* Ajustes para gráficos */
+.card-body canvas {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 250px;
+}
+
+/* Tabla */
+.table-responsive {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+}
+
+/* Efecto hover para cards */
+.hover-effect:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .dashboard-card h2 {
+        font-size: 1.875rem;
+    }
+    
+    .icon-circle {
+        width: 48px;
+        height: 48px;
+        font-size: 1.3rem;
+    }
+    
+    .card-body {
+        padding: 1.25rem;
+    }
+}
+
+/* Animación sutil al cargar */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dashboard-card {
+    animation: fadeInUp 0.5s ease forwards;
+}
+
+.dashboard-card:nth-child(1) { animation-delay: 0.1s; }
+.dashboard-card:nth-child(2) { animation-delay: 0.2s; }
+.dashboard-card:nth-child(3) { animation-delay: 0.3s; }
+.dashboard-card:nth-child(4) { animation-delay: 0.4s; }
+
+/* ====================== */
+/* ESTILOS PARA GRÁFICOS PREMIUM */
+/* ====================== */
+
+/* Contenedor principal del gráfico */
+.chart-container {
+    position: relative;
+    padding: 1rem;
+    margin: -0.5rem; /* Compensa el padding del card */
+}
+
+/* Canvas del gráfico */
+.chartjs-render-monitor {
+    animation: chartFadeIn 1s ease;
+    transition: all 0.3s ease;
+}
+
+@keyframes chartFadeIn {
+    from { opacity: 0.4; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* Estilos generales para todos los gráficos */
+.chart-card {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    background: white;
+}
+
+.chart-card:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+}
+
+.chart-header {
+    padding: 1.25rem 1.5rem 0.75rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+    background: linear-gradient(to right, #f8f9fa, white);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chart-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.chart-title i {
+    margin-right: 10px;
+    color: #4e73df;
+    font-size: 1.1em;
+}
+
+.chart-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.chart-btn {
+    background: rgba(0, 0, 0, 0.03);
+    border: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #718096;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.chart-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: #4a5568;
+}
+
+.chart-btn i {
+    font-size: 0.9em;
+}
+
+/* Personalización específica para Chart.js */
+.chartjs-tooltip {
+    opacity: 1 !important;
+    position: absolute;
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    border-radius: 8px !important;
+    padding: 8px 12px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    transition: all 0.2s ease !important;
+    pointer-events: none !important;
+    backdrop-filter: blur(4px);
+}
+
+.chartjs-tooltip-key {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+/* Leyenda personalizada */
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    gap: 12px;
+    margin-top: -10px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.75rem;
+    color: #718096;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 4px 8px;
+    border-radius: 20px;
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.legend-item:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    margin-right: 6px;
+    transition: all 0.2s ease;
+}
+
+.legend-item:hover .legend-color {
+    transform: scale(1.2);
+}
+
+/* Estilos específicos para gráficos de barras */
+.bar-chart {
+    padding: 0.5rem 1rem 1rem;
+}
+
+.bar-chart .chart-container {
+    padding-bottom: 0;
+}
+
+/* Estilos específicos para gráficos de líneas */
+.line-chart {
+    padding: 0.5rem 1rem 1rem;
+}
+
+.line-chart .chart-container {
+    padding-bottom: 0;
+}
+
+/* Efecto hover para elementos del gráfico */
+.chart-element-hover {
+    transition: all 0.2s ease;
+}
+
+.chart-element-hover:hover {
+    opacity: 0.8;
+    transform: translateY(-1px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .chart-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 1rem;
+    }
+    
+    .chart-actions {
+        align-self: flex-end;
+    }
+    
+    .chart-legend {
+        justify-content: flex-start;
+        padding: 0.75rem 1rem;
+    }
+}
+
+/* Colores personalizados para datasets */
+.chart-primary {
+    background-color: #4e73df !important;
+    border-color: #3a56b5 !important;
+}
+
+.chart-success {
+    background-color: #1cc88a !important;
+    border-color: #17a673 !important;
+}
+
+.chart-warning {
+    background-color: #f6c23e !important;
+    border-color: #dda20a !important;
+}
+
+.chart-danger {
+    background-color: #e74a3b !important;
+    border-color: #be2617 !important;
+}
+
+.chart-info {
+    background-color: #36b9cc !important;
+    border-color: #2a96a5 !important;
+}
+
+.chart-secondary {
+    background-color: #858796 !important;
+    border-color: #6b6d7d !important;
+}
+
+/* Animación de carga para gráficos */
+@keyframes chartLoading {
+    0% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.chart-loading {
+    background: linear-gradient(90deg, #f0f2f5 25%, #e5e8ec 50%, #f0f2f5 75%);
+    background-size: 400% 100%;
+    animation: chartLoading 1.5s ease infinite;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+
+/*BOTON PANTALLA COMPLETA*/
+#global-fullscreen-btn {
+    color: #333; /* Color oscuro (casi negro) */
+    padding: 0.5rem 0.75rem;
+    margin: 0 0.25rem;
+    transition: all 0.3s ease;
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.1); /* Fondo oscuro semi-transparente */
+    border: none;
+    outline: none;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+/* Hover (mantiene colores oscuros) */
+#global-fullscreen-btn:hover {
+    color: #000; /* Negro sólido al pasar el cursor */
+    background-color: rgba(0, 0, 0, 0.2); /* Fondo un poco más oscuro */
+    transform: scale(1.05);
+}
+
+/* Efecto al hacer clic */
+#global-fullscreen-btn:active {
+    transform: scale(0.95);
+}
+
+/* Icono (siempre hereda el color del botón) */
+#global-fullscreen-btn i {
+    transition: all 0.3s ease;
+    color: inherit;
+}
+
+/* Estado en pantalla completa (mantiene colores oscuros) */
+#global-fullscreen-btn.fullscreen-active {
+    color: #000; /* Negro sólido */
+    background-color: rgba(0, 0, 0, 0.2); /* Fondo más oscuro */
+}
+
+/* Hover en pantalla completa */
+#global-fullscreen-btn.fullscreen-active:hover {
+    background-color: rgba(0, 0, 0, 0.3); /* Fondo más oscuro al pasar el cursor */
+}
+
+/* Ajuste de posición para alinear con otros elementos */
+.navbar .btn-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+/* Asegurar que los botones estén alineados verticalmente */
+.navbar > .btn-link {
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+/* ====================== */
+/* ESTILOS PARA ICONOS EN MENÚ */
+/* ====================== */
+
+/* Iconos en el menú principal */
+.navbar-nav .nav-link i {
+    width: 20px;
+    text-align: center;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    margin-right: 0.5rem;
+}
+
+/* Efecto hover para iconos del menú */
+.navbar-nav .nav-link:hover i {
+    transform: scale(1.1);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Iconos en el menú desplegable */
+.dropdown-menu .dropdown-item i {
+    width: 20px;
+    text-align: center;
+    font-size: 0.9rem;
+    margin-right: 0.5rem;
+    color: #6c757d;
+    transition: all 0.2s ease;
+}
+
+/* Efecto hover para iconos del menú desplegable */
+.dropdown-menu .dropdown-item:hover i {
+    color: #fff;
+    transform: scale(1.1);
+}
+
+/* Ajuste de espaciado para menú de usuario */
+.navbar-nav-user .nav-link i {
+    margin-right: 0.5rem;
+}
+
+/* Iconos en el menú de usuario desplegable */
+.dropdown-menu-right .dropdown-item i {
+    width: 20px;
+    text-align: center;
+    margin-right: 0.75rem;
+}
+
+/* Asegurar que los iconos no distorsionen el diseño */
+.navbar-nav .nav-link,
+.dropdown-menu .dropdown-item {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
+/* Ajuste para pantallas pequeñas */
+@media (max-width: 768px) {
+    .navbar-nav .nav-link i,
+    .dropdown-menu .dropdown-item i {
+        font-size: 0.85rem;
+        margin-right: 0.4rem;
+    }
+    
+    .dropdown-toggle i {
+        margin-right: 0.5rem;
+    }
+}
+
+/* Añade esto al final de tu CSS */
+
+/* Estado activo para menú superior */
+.navbar-nav .nav-item .nav-link.top-active {
+    color: #ffffff !important;
+    font-weight: 600;
+    background-color: rgba(52, 152, 219, 0.2) !important;
+}
+
+.navbar-nav .nav-item .nav-link.top-active::after {
+    width: 70% !important;
+}
+
+/* Estado activo para menú lateral */
+.sb-sidenav .nav-link.side-active {
+    background-color: rgba(0, 0, 0, 0.2) !important;
+    color: #fff !important;
+    font-weight: bold !important;
+    border-left: 4px solid #3498db !important;
+}
+
+/* Cuando el sidebar está colapsado */
+.sb-sidenav.collapsed .nav-link.side-active {
+    border-left: none !important;
+    border-right: 4px solid #3498db !important;
+}
+
+/* Para submenús activos */
+.sb-sidenav .collapse .nav-link.side-active {
+    background-color: rgba(0, 0, 0, 0.15) !important;
+    padding-left: 2.5rem !important;
+}
+
+/* ==================== */
+/* FOOTER RESPONSIVO QUE SE AJUSTA AL NAVBAR */
+/* ==================== */
+.footer1 {
+    position: fixed;
+    left: 240px; /* Ancho inicial igual al sidebar expandido */
+    right: 0;
+    bottom: 0;
+    height: auto;
+    background-color: white;
+    padding: 15px 0;
+    z-index: 1000;
+    box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.1);
+    border-top: 1px solid #e0e0e0;
+    transition: all 0.3s ease;
+    width: calc(100% - 240px); /* Ocupa todo el espacio menos el sidebar */
+  }
+  
+  /* Cuando el sidebar está colapsado */
+  .sb-sidenav.collapsed ~ .footer1 {
+    left: 70px; /* Ancho del sidebar colapsado */
+    width: calc(100% - 70px); /* Ocupa todo el espacio restante */
+  }
+  
+  /* Contenedor principal que siempre está centrado */
+  .footer1 .form-row {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 0 15px;
+  }
+  
+  /* Ajustes para el contenido del footer */
+  .footer1 .col-md-3 {
+    flex: 1 1 200px; /* Flexibilidad para adaptarse */
+    max-width: 23%;
+    margin: 0 1%;
+    padding: 0 10px;
+    min-width: 200px; /* Ancho mínimo para cada elemento */
+  }
+  
+  /* ==================== */
+  /* ESTILO PARA FORMATO DE MONEDA (LEMPIRAS) */
+  /* ==================== */
+  .input-group-prepend .input-group-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%; /* Misma altura que el elemento adyacente */
+    font-size: 1.25rem; /* Tamaño más apropiado */
+    padding: 0.375rem 0.75rem; /* Padding estándar de inputs */
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem 0 0 0.25rem;
+  }
+  
+  /* Asegurar que el símbolo de moneda esté alineado verticalmente */
+  .input-group-prepend .input-group-text[for="basic-addon1"] {
+    line-height: 1.5; /* Igual que los inputs */
+  }
+  
+  /* Ajuste para inputs específicos */
+  .input-group > .form-control,
+  .input-group > .form-select {
+    height: calc(1.5em + 0.75rem + 2px); /* Altura estándar de Bootstrap */
+  }
+  
+  /* Responsive para pantallas más pequeñas */
+  @media (max-width: 992px) {
+    .footer1 {
+      left: 0 !important;
+      width: 100% !important;
+      padding-left: 70px; /* Respeta el sidebar colapsado */
+    }
+    
+    .sb-sidenav.collapsed ~ .footer1 {
+      padding-left: 70px;
+    }
+    
+    .footer1 .col-md-3 {
+      max-width: 48%;
+      margin-bottom: 15px;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .footer1 {
+      padding-left: 15px !important;
+    }
+    
+    .footer1 .col-md-3 {
+      max-width: 100%;
+      margin: 0 0 15px 0;
+    }
+    
+    /* Ajuste para moneda en móviles */
+    .input-group-prepend .input-group-text {
+      font-size: 1rem;
+      padding: 0.25rem 0.5rem;
+    }
+  }

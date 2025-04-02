@@ -1,0 +1,149 @@
+@import url('fonts/BrixSansRegular.css');
+@import url('fonts/Helvetica.css');
+
+*{
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+p, label, span, table{
+	font-family: verdana;
+	font-size: 8pt;
+}
+.h1{
+	font-family: verdana;
+	font-size: 15pt;
+}
+.h2{
+	font-family: verdana;
+	font-size: 10pt;
+}
+.h3{
+	font-family: verdana;
+	font-size: 11pt;
+	display: block;
+	background: #649bcc;
+	color: #FFF;
+	text-align: center;
+	padding: 3px;
+	margin-bottom: 5px;
+}
+#page_pdf{
+	width: 95%;
+	margin: 15px auto 10px auto;
+}
+
+#factura_head, #factura_cliente, #factura_detalle{
+	width: 100%;
+	margin-bottom: 10px;
+}
+.logo_factura{
+	width: 32%;
+}
+.info_empresa{
+	width: 28%;
+	text-align: center;
+}
+.info_factura{
+	width: 40%;
+}
+.info_cliente{
+	width: 100%;
+}
+.datos_cliente{
+	width: 100%;
+}
+.datos_cliente tr td{
+	width: 50%;
+}
+.datos_cliente{
+	padding: 10px 10px 0 10px;
+}
+.datos_cliente label{
+	width: 75px;
+	display: inline-block;
+}
+.datos_cliente p{
+	display: inline-block;
+}
+
+.textright{
+	text-align: right;
+}
+.textleft{
+	text-align: left;
+}
+.textcenter{
+	text-align: center;
+}
+.round{
+	border-radius: 10px;
+	border: 1px solid #0a4661;
+	overflow: hidden;
+	padding-bottom: 15px;
+}
+.round p{
+	padding: 0 15px;
+}
+
+#factura_detalle{
+	border-collapse: collapse;
+}
+#factura_detalle thead th{
+	background: #254e73;
+	color: #FFF;
+	padding: 5px;
+}
+#detalle_productos tr:nth-child(even) {
+    background: #ededed;
+}
+#detalle_totales span{
+	margin-top: 20px;
+	font-family: 'Helvetica';
+}
+.nota{
+	font-size: 8pt;
+}
+.label_gracias{
+	font-family: verdana;
+	font-weight: bold;
+	font-style: italic;
+	text-align: center;
+	margin-top: 20px;
+}
+.anulada{
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translateX(-50%) translateY(-50%);
+}
+
+.center-align{
+	display: flex;
+  justify-content: center;
+	width: 100%;
+}
+
+.prueba-sistema{
+	position: absolute;
+	text-align: center;
+	left: 20%;
+	top: 50%;
+	/*transform: translateX(-70%) translateY(-40%);*/
+	font-size: 50px;
+	z-index: 1;
+    transform: rotate(-45deg);
+  color: #ecb4b4
+}
+
+.texto-td {
+    font-size: 12pt; /* Tamaño de texto deseado, ajusta según tus necesidades */
+}
+
+.nombre-producto {
+    font-weight: bold;
+    color: black;
+    font-size: 8pt;
+    word-wrap: break-word; /* Agrega esta línea para permitir el ajuste de línea */
+    /* Otros estilos que desees aplicar */
+}

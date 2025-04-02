@@ -15,7 +15,7 @@
 	}
 	
 	if ($totalSuppliers !== null) {
-		$formattedValue = number_format($totalSuppliers, 2);
+		$formattedValue = $totalSuppliers;
 	} else {
 		$formattedValue = 0;
 	}

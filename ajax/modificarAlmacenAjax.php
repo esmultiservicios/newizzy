@@ -1,0 +1,21 @@
+<?php	
+	$peticionAjax = true;
+	require_once "../core/configGenerales.php";
+	
+	if(isset($_POST['almacen_id']) && isset($_POST['almacen_almacen'])){
+		require_once "../controladores/almacenControlador.php";
+		$insVarios = new almacenControlador();
+		
+		echo $insVarios->edit_almacen_controlador();
+	}else{
+		echo "
+			<script>
+				swal({
+					title: 'Error', 
+					text: 'Los datos son incorrectos por favor corregir',
+					type: 'error', 
+					confirmButtonClass: 'btn-danger'
+				});			
+			</script>";
+	}
+?>	

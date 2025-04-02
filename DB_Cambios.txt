@@ -1,0 +1,322 @@
+####30/10/2024####
+tabla => apertura
+empresa_id		int se agrego despúes de fecha_registro
+
+####16/01/2024####
+tabla => menu_plan
+menu_plan_id	 	int
+planes_id		int
+
+tabla => submenu_plan
+submenu_plan	 	int
+submenu_id		int
+planes_id		int
+
+tabla => submenu1_plan
+submenu1_plan_id 	int
+submenu1_id		int
+planes_id		int
+
+####15/01/2024####
+tabla => contrato
+semanal		 	int (0. No 1. Sí) se agrego despúes de fecha_registro
+
+####14/01/2024####
+tabla => notificaciones
+notificaciones_id 	int
+correo			char(100)
+nombre			char(100)
+
+####14/01/2024####
+tabla => compras
+cuentas_id		int despues de fecha_registro
+recordatorio 		int
+
+####13/01/2024####
+tabla => nomina_detalles
+salario_mensual		decimal(12,2) se cambio antes era salario
+hrse25_valor		decimal(12,2) se agrego despues de fecha_registro e igual los siguientes campos
+hrse50_valor		decimal(12,2)
+hrse75_valor		decimal(12,2)
+hrse100_valor		decimal(12,2)
+salario			decimal(12,2)
+
+####13/01/2024####
+tabla => nomina
+vales			decimal(12,2) sse agrego despues de isr
+
+####12/01/2024####
+tabla => vale
+vale_id			int 
+nomina_id		int
+colaboradores_id	int
+monto			decimal(12,2)
+fecha			date
+nota			varchar(254)
+usuario			int
+estado			int
+empresa_id		int
+fecha_registro		datetime
+
+####11/01/2024####
+tabla => nomina
+cuentas_id		int se agrfego despues de fecha_registro
+
+####06/01/2024####
+tabla => categoria_gastos
+categoria_gastos_id  	int 
+nombre			char(30)
+estado			int(1)
+usuario 		int
+date_write		datetime
+
+tabla => egresos
+categoria_gastos_id 	int se agrego despues de fecha_registro
+
+####12/11/2023####
+tabla => config
+config_id		int 
+accion			char(40)
+activar			int(1)
+
+tabla => pin
+pin_id 			int
+server_customers_id	int
+codigo_cliente		int
+pin			int
+fecha_hora_inicio	datetime
+fecha_hora_fin		datetime
+
+
+####10/03/2023####
+tabla => server_customers
+codigo_cliente		int se agrego despues de clientes_id
+
+tabla => pin
+pin_id 			int
+server_customers_id	int
+codigo_cliente		int
+pin			int
+fecha_hora_inicio	datetime
+fecha_hora_fin		datetime
+
+####09/15/2023####
+tabla => users
+server_customers_id	int se agrego al final de empresa_id
+
+####09/15/2023####
+tabla => sistema
+sistema_id		int
+nombre			char(30)
+estado   		int
+
+tabla => planes
+planes_id		int
+nombre			char(40)
+usuarios		int
+estado			int
+fecha_registro		datetime
+
+tabla => server_customers
+Se agregaron los siguientes campos luego de db y antes de validar
+planes_id		int
+sistema_id		int
+estado			int se agrego luego de validar
+
+tabla => plan
+Se cambio el campo tipo_plan por otro
+planes_id		int
+
+tabla => clientes
+Se agrego un campo al final de fecha_registro
+empresa			char(30)
+eslogan			char(50)
+otra_informacion	char(50)
+whatsapp		char(8)
+
+####07/04/2023####
+tabla => asistencia
+se agrego al final los siguientes campos
+historial_id		int
+modulo			char(30)
+colaboradores_id	int
+status			char(10)
+observacion		char(254)
+fecha_registro		datetime
+
+####05/02/2023####
+tabla => asistencia
+se agrego al final los siguientes campos
+asistencia_id		int
+fecha				date
+hora_entrada		time
+hora_salida			time
+estado			int
+fecha_registro		datetime
+
+####12/12/2022####
+tabla => colaboradores
+se agrego al final los siguientes campos
+fecha_ingreso		date
+fecha_ingreso		varchar(30)
+
+####04/12/2022####
+tabla => nomina
+nomina_id			int
+empresa_id			int
+pago_planificado_id	int
+tipo_nomina_id		int
+fecha_inicio		date
+fecha_fin			date
+detalle                 char(100)
+importe			decimal(12,2)
+notas				varchar(254)
+usuario			int
+estado			int
+fecha_registro		datetime
+
+tabla => nomina_detalles
+nomina_detalles_id
+nomina_id			int
+colaboradores_id		int
+salario			decimal(12,2)
+dias_trabajados		decimal(12,2)
+hrse25			decimal(12,2)
+hrse50			decimal(12,2)
+hrse75			decimal(12,2)
+hrse100			decimal(12,2)
+retroactivo			decimal(12,2)
+bono				decimal(12,2)
+otros_ingresos 		decimal(12,2)
+deducciones			decimal(12,2)
+prestamo			decimal(12,2)
+ihss				decimal(12,2)
+rap				decimal(12,2)
+isr				decimal(12,2)
+incapacidad_ihss		decimal(12,2)
+neto_ingresos		decimal(12,2)
+neto_egresos		decimal(12,2)
+neto				decimal(12,2)
+usuario			int
+estado			int
+notas				varchar(254)
+fecha_registro		datetime
+
+
+Se edito el la tabla submenu el submenu_id 16 cambiando menu_id de 7 a 8 para el campo nombre
+
+####29/11/2022####
+Se insertaron los siguiente valores en las siguientes tablas:
+menu
+recursosHumanos
+
+submenu
+contrato
+nomina
+
+tabla => tipo_contrato
+tipo_contrato_id		int
+nombre			varchar(50)
+
+tabla => pago_planificado
+pago_planificado_id	int
+nombre			varchar(50)
+
+tabla => tipo_empleado
+tipo_empleado_id		int
+nombre			varchar(30)
+
+tabla => contrato
+contrato_id        	int
+colaborador_id  		int
+tipo_contrato_id		int
+pago_planificado_id	int
+salario			decimal(12,2)
+fecha_inicio		date
+fecha_fin			varchar(30)
+notas				varchar(256)
+usuario			int
+estado			int
+fecha_registro		datetime
+
+####20/11/2022####
+se cambiaron de INT a Float
+cantidad_entrada float(12,2)
+cantidad_salida  float(12,2)
+saldo		     float(12,2)
+
+####20/11/2022####
+tabla => documento
+documento_id   int
+nombre         char(30)
+estado         int
+
+secuencia_facturacion
+documento_id   int  Despues de fecha_registro
+
+####11/11/2022####
+tabla => server_customers
+server_customers_id int pk
+clientes_id         int
+db                  char(40)
+validar             int
+
+data_table: server_customers
+Nota: Esta tabla no va en los clientes solo en el programa principal de la empresa, los clientes se conectan ahí
+
+####10/11/2022####
+cantidad -> se elimino de productos
+
+####25/10/2022####
+fecha_registro date_time -> despues de tipo
+
+####16/10/2022####
+Se elimino de la tabla secuencia_facturacion el campo comentario
+
+####24/8/2022####
+tabla => movimientos
+clientes_id int
+comentario  char 255
+
+tabla => productos
+p.id_producto_superior int
+
+####31/8/2022####
+productos
+barCode varchar(256)
+
+
+#12/09/2022#
+*tabla movimientos
+-almacen_id 
+
+# Nuevo query para la vista INVENTARIO ARCHIVO llenarDataTableInventarioTrasnferencia.php
+SELECT
+	m.almacen_id,
+	m.movimientos_id AS 'movimientos_id',
+	p.barCode AS 'barCode',
+	p.nombre AS 'producto',
+	me.nombre AS 'medida',
+	SUM(m.cantidad_entrada) AS 'entrada',
+	SUM(m.cantidad_salida) AS 'salida',
+	(
+		SUM(m.cantidad_entrada) - SUM(m.cantidad_salida)
+	) AS 'saldo',
+	bo.nombre AS 'bodega',
+	DATE_FORMAT(
+		p.fecha_registro,
+		'%d/%m/%Y %H:%i:%s'
+	) AS 'fecha_registro',
+	p.productos_id AS 'productos_id',
+	p.id_producto_superior
+FROM
+	movimientos AS m
+RIGHT JOIN productos AS p ON m.productos_id = p.productos_id
+LEFT JOIN medida AS me ON p.medida_id = me.medida_id
+LEFT JOIN almacen AS bo ON m.almacen_id = bo.almacen_id
+WHERE
+	p.estado = 1
+GROUP BY
+	p.productos_id, m.almacen_id
+ORDER BY
+	p.fecha_registro ASC

@@ -1,0 +1,103 @@
+<?php
+	header("Content-Type: text/html;charset=utf-8");
+	
+	$peticionAjax = true;
+	require_once "configGenerales.php";
+	require_once "mainModel.php";
+	require_once "Database.php";
+	require_once "sendEmail.php";
+	
+	if(!isset($_SESSION['user_sd'])){ 
+		session_start(['name'=>'SD']); 
+	}
+
+	$insMainModel = new mainModel();
+
+	$database = new Database();
+	$sendEmail = new sendEmail();
+		
+	date_default_timezone_set('America/Tegucigalpa');
+	$cotizacion_id = $_POST['cotizacion_id'];
+
+	//CONSULTAR DATOS DE FACTURA
+	$result_factura = $insMainModel->getCotizacionCorreo($cotizacion_id);	
+
+	$no_factura = "";
+	$nombre = "";
+	$para = "";	
+	 
+	if($result_factura->num_rows>=0){
+		$factura = $result_factura->fetch_assoc();
+		$no_factura = $factura['numero'];
+		$nombre = $factura['cliente'];	
+		$para = $factura['correo'];		
+	}
+		   
+	$factura_documento = "cotizacion_".$no_factura;
+	$URL = dirname('__FILE__').'/cotizaciones/'.$factura_documento.'.pdf';
+	   
+	$users_id = $_SESSION['users_id_sd'];
+	$empresa_id = $_SESSION['empresa_id_sd'];
+
+	//OBTENEMOS EL NOMBRE DE LA EMPRESA
+	$tablaEmpresa = "empresa";
+	$camposEmpresa = ["nombre"];
+	$condicionesEmpresa = ["empresa_id" => $empresa_id];
+	$orderBy = "";
+	$tablaJoin = "";
+	$condicionesJoin = [];
+	$resultadoEmpresa = $database->consultarTabla($tablaEmpresa, $camposEmpresa, $condicionesEmpresa, $orderBy, $tablaJoin, $condicionesJoin);
+
+	$empresa_nombre = "";
+
+	if (!empty($resultadoEmpresa)) {
+		$empresa_nombre = strtoupper(trim($resultadoEmpresa[0]['nombre']));
+	}
+
+	$urlFactura = SERVERURL.'core/generaCotizacion.php?cotizacion_id='.$cotizacion_id;
+	$factura_documento = "factura_".$no_factura;
+	$URL = dirname('__FILE__').'/facturas/'.$factura_documento.'.pdf';	
+
+	$correo_tipo_id = "3";//Facturas
+	$destinatarios = array($para => $nombre);
+
+	// Destinatarios en copia oculta (Bcc)
+	$bccDestinatarios = [];
+
+	$asunto = "Envío de Cotización ".$numero_documento;
+	$mensaje = '
+		<div style="padding: 20px;">
+			<p style="margin-bottom: 10px;">
+				¡Hola '.$nombre.'!
+			</p>
+			
+			<p style="margin-bottom: 10px;">
+				Espero que esté teniendo un día excelente. Queremos comunicarle que hemos procedido a enviarle su cotización <b>'.$numero_documento.'</b>. Esta cotización contiene los detalles solicitados y estamos seguros de que será de su interés.
+			</p>								
+			
+			<p style="margin-bottom: 10px;">
+				Para revisar minuciosamente los detalles de su cotización, le instamos a descargar el archivo adjunto a este correo electrónico. Además, para mayor comodidad, puede hacer uso del siguiente enlace para verificar su cotización: <a href='.$urlFactura.'>Mi Cotización '.$numero_documento.'<a>.
+			</p>
+			
+			<p style="margin-bottom: 10px;">
+				Si requiere aclaraciones adicionales respecto a la cotización o cualquier otra consulta, no dude en contactarnos. Estamos aquí para garantizar su completa satisfacción.
+			</p>
+			
+			<p style="margin-bottom: 10px;">
+				Agradecemos enormemente su continua confianza en '.$empresa_nombre.'. Esperamos seguir siendo su elección preferida en futuras oportunidades.
+			</p>
+			
+			<p style="margin-bottom: 10px;">
+				Saludos cordiales,
+			</p>
+			
+			<p>
+				<b>El Equipo de '.$empresa_nombre.'</b>
+			</p>                
+		</div>
+	';
+
+	$archivos_adjuntos = [$URL];
+	
+	echo $sendEmail->enviarCorreo($destinatarios, $bccDestinatarios, $asunto, $mensaje, $correo_tipo_id, $users_id, $archivos_adjuntos);	
+?>

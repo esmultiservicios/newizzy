@@ -422,23 +422,102 @@ body {
 /* ==================== */
 /* RESPONSIVE (Ajustes para móviles) */
 /* ==================== */
+@media (max-width: 768px) {
+    /* Reducción de padding en formularios */
+    #logreg-forms .form-signin,
+    #logreg-forms .form-reset,
+    #logreg-forms .form-signup {
+        padding: 2.5rem;
+    }
+    
+    /* Ajustes para botones en tablets */
+    #logreg-forms .btn {
+        font-size: 1rem;
+        padding: 0.5rem 1.5rem;
+    }
+    
+    #logreg-forms .btn i {
+        font-size: 1.2rem;
+    }
+}
+
 @media (max-width: 576px) {
     /* Reducción de padding en formularios */
     #logreg-forms .form-signin,
     #logreg-forms .form-reset,
     #logreg-forms .form-signup {
-        padding: 2rem; /* Aumentado de 1.5rem */
+        padding: 2rem;
         font-size: 0.95rem;
-        padding: 0.5rem 0.6rem;  /* Menos padding en móviles */        
     }
     
     /* Menos padding en el body para móviles */
     body {
-        padding: 15px; /* Aumentado de 10px */
+        padding: 15px;
     }
     
     /* Ajustes para el logo en móviles */
     #logreg-forms img {
-        max-width: 160px; /* Reducido de 200px para móviles */
+        max-width: 160px;
+    }
+    
+    /* Ajustes específicos para botones en móviles */
+    #logreg-forms .btn {
+        height: 48px; /* Altura ligeramente menor */
+        font-size: 0.95rem; /* Tamaño de fuente más pequeño */
+        padding: 0.5rem 1rem; /* Padding más ajustado */
+        gap: 6px; /* Menor espacio entre icono y texto */
+    }
+    
+    #logreg-forms .btn i {
+        font-size: 1.1rem; /* Iconos ligeramente más pequeños */
+    }
+    
+    /* Ajustes para inputs en móviles */
+    #logreg-forms .form-control {
+        height: 48px;
+        font-size: 0.95rem;
+        padding: 0.75rem 1rem;
+    }
+    
+    /* Ajustes para iconos de inputs */
+    #logreg-forms .input-group-prepend .input-group-text,
+    #logreg-forms .input-group-append .input-group-text {
+        height: 48px;
+        min-width: 48px;
+    }
+    
+    #logreg-forms .input-group-text i {
+        font-size: 1.4rem;
+    }
+    
+    /* Botones mostrar contraseña */
+    #show_password, 
+    #show_password1, 
+    #show_password2 {
+        height: 48px;
+        width: 56px;
+    }
+    
+    #show_password i,
+    #show_password1 i,
+    #show_password2 i {
+        font-size: 1.2rem;
+    }
+}
+
+/* Ajuste adicional para pantallas muy pequeñas (menos de 400px) */
+@media (max-width: 400px) {
+    #logreg-forms .btn {
+        font-size: 0.9rem; /* Tamaño de fuente aún más pequeño */
+        padding: 0.4rem 0.8rem; /* Padding más ajustado */
+    }
+    
+    #logreg-forms .btn i {
+        font-size: 1rem; /* Iconos más pequeños */
+    }
+    
+    /* Hacer que los botones ocupen todo el ancho en pantallas muy pequeñas */
+    #logreg-forms .btn-block {
+        width: 100%;
     }
 }

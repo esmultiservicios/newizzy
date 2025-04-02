@@ -100,72 +100,113 @@ $('.FormularioAjax').submit(function (e) {
 });
 //FIN LOGIN FORM
 
-// Create an instance of Notyf
-var notyf = new Notyf({
-    duration: 3000,
-    dismissible: true,
+const notyf = new Notyf({
     position: {
         x: 'right',
         y: 'top',
     },
+    dismissible: true, // Permite cerrar manualmente
+    closeOnClick: true, // Cierra al hacer clic
     types: [
         {
-            type: 'success',
-            background: '#4CAF50', // Verde minimalista
+            type: 'warning',
+            background: 'orange',
+            duration: 5000, // 5 segundos
             icon: {
-                className: 'fas fa-check-circle',
-                tagName: 'i'
+                className: 'fas fa-exclamation-triangle fa-lg',
+                tagName: 'i',
+                color: 'white',
+            },
+            closeIcon: {
+                className: 'fas fa-times',
+                color: 'white',
+                tagName: 'span',
+                position: 'right',
+				style: 'margin-right: 15px;'
             }
         },
         {
             type: 'error',
-            background: '#F44336', // Rojo minimalista
-            duration: 2000,
+            background: 'indianred',
+            duration: 10000, // 10 segundos (más tiempo para errores)
             dismissible: true,
             icon: {
-                className: 'fas fa-times-circle',
-                tagName: 'i'
-            }
-        },
-        {
-            type: 'warning',
-            background: '#FFC107', // Amarillo minimalista
-            icon: {
-                className: 'fas fa-exclamation-circle',
-                tagName: 'i'
+                className: 'fas fa-times-circle fa-lg',
+                tagName: 'i',
+                color: 'white'
+            },
+            closeIcon: {
+                className: 'fas fa-times',
+                color: 'white',
+                tagName: 'span',
+                position: 'right'
             }
         },
         {
             type: 'info',
-            background: '#2196F3', // Azul minimalista
+            background: '#1e88e5',
+            duration: 5000, // 5 segundos
+            dismissible: true,
             icon: {
-                className: 'fas fa-info-circle',
-                tagName: 'i'
+                className: 'fas fa-info-circle fa-lg',
+                tagName: 'i',
+                color: 'white'
+            },
+            closeIcon: {
+                className: 'fas fa-times',
+                color: 'white',
+                tagName: 'span',
+                position: 'right'
+            }
+        },
+        {
+            type: 'success',
+            background: '#4caf50',
+            duration: 5000, // 5 segundos
+            dismissible: true,
+            icon: {
+                className: 'fas fa-check-circle fa-lg',
+                tagName: 'i',
+                color: 'white'
+            },
+            closeIcon: {
+                className: 'fas fa-times',
+                color: 'white',
+                tagName: 'span',
+                position: 'right'
             }
         }
     ]
 });
 
 /**
- * Muestra una notificación usando Notyf.
- * 
- * @param {string} type - El tipo de notificación ('success', 'error', 'warning', 'info').
- * @param {string} message - El mensaje que deseas mostrar.
- * @param {string} title - El título de la notificación.
+ * Muestra una notificación estilizada al usuario.
+ * @param {string} title - El título de la notificación (ej: 'Éxito', 'Error', 'Advertencia')
+ * @param {string} message - El mensaje detallado a mostrar (ej: 'Los datos se guardaron correctamente')
+ * @param {'success'|'error'|'warning'|'info'} type - Tipo de notificación (valores válidos: 'success', 'error', 'warning', 'info')
+ * @example
+ * // Muestra una notificación de éxito
+ * showNotify('Éxito', 'Los datos se guardaron correctamente', 'success');
+ * @example
+ * // Muestra una notificación de error
+ * showNotify('Error', 'No se pudo conectar al servidor', 'error');
  */
-function showNotify(type, message, title) {
+function showNotify(type, title, message) {
     const validTypes = ['success', 'error', 'warning', 'info'];
 
     if (validTypes.includes(type)) {
         notyf.open({
             type: type,
-            message: `${title}: ${message}`,
+            message: `<strong>${title}</strong><br>${message}`,
+            settings: {
+                ripple: true,
+                allowHtml: true, // Permite HTML
+            }
         });
     } else {
         console.error('Tipo de notificación no válido');
     }
 }
-
 
 //INICIO BUSCAR DATOS EN TABLA
 $(document).ready(function () {

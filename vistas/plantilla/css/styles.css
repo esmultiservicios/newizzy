@@ -12030,18 +12030,6 @@ input:checked+.slider:before {
   /* Asegura que el ancho del elemento sea 100% */
 }
 
-.prueba-sistema {
-  position: absolute;
-  text-align: center;
-  /*left: 25%;*/
-  top: 4%;
-  /*transform: translateX(-70%) translateY(-40%);*/
-  font-size: 50px;
-  z-index: 1;
-  /*transform: rotate(-45deg);*/
-  color: #ecb4b4
-}
-
 .prueba-sistema-footer {
   position: absolute;
   text-align: center;

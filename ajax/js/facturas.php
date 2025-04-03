@@ -2360,97 +2360,117 @@ var ver_abono_cxp_proveedor_dataTable = function(tbody, table) {
 }
 //FIN CUENTAS POR COBRAR CLIENTES
 
-function getTotalFacturasDisponibles() {
-    var url = '<?php echo SERVERURL; ?>core/getTotalFacturasDisponibles.php';
+// Intervalo de actualización
+const facturasInterval = setInterval(getTotalFacturasDisponibles, 1000);
+let lastState = null;
 
+$(function() {
+    // Inicialización
+    getTotalFacturasDisponibles();
+});
+
+function getTotalFacturasDisponibles() {
     $.ajax({
         type: 'POST',
-        url: url,
-        async: false,
-        success: function(registro) {
-                var datos = JSON.parse(registro);  // Parseamos el JSON recibido
-                var mensaje = "";
-                var facturasDisponibles = datos.facturasPendientes;
-                var diasTranscurridos = datos.contador;
-                var fechaLimite = datos.fechaLimite;
-
-                // Habilitar/deshabilitar el botón de facturación según el número de facturas
-                if (facturasDisponibles >= 10 && facturasDisponibles <= 30) {
-                    mensaje = "Total Facturas disponibles: " + facturasDisponibles;
-                    $("#mensajeFacturas").html(mensaje).addClass("alert alert-warning");
-                    $("#mensajeFacturas").removeClass("alert alert-danger");
-                    $("#mensajeFacturas").attr("disabled", true);
-                    //$("#invoice-form #reg_factura").attr("disabled", false);
-                } else if (facturasDisponibles >= 0 && facturasDisponibles <= 9) {
-                    mensaje = "Total Facturas disponibles: " + facturasDisponibles;
-                    $("#mensajeFacturas").html(mensaje).addClass("alert alert-danger");
-                    $("#mensajeFacturas").removeClass("alert alert-warning");
-                    $("#mensajeFacturas").attr("disabled", true);
-                    $("#invoice-form #reg_factura").attr("disabled", false);
-                } else {
-                    mensaje = "";
-                    //$("#invoice-form #reg_factura").attr("disabled", false);
-                    $("#mensajeFacturas").html(mensaje).addClass("alert alert-danger");
-                    $("#mensajeFacturas").removeClass("alert alert-warning");
-                }
-
-                if (facturasDisponibles == 0) {
-                    mensaje = "Total Facturas disponibles: " + facturasDisponibles;
-                    mensaje += "<br/>Solo esta factura puede realizar";
-                    $("#mensajeFacturas").html(mensaje).addClass("alert alert-danger");
-                    $("#mensajeFacturas").removeClass("alert alert-warning");
-                    $("#mensajeFacturas").attr("disabled", true);
-                    //$("#invoice-form #reg_factura").attr("disabled", false);
-                }
-
-                if (facturasDisponibles < 0) {
-                    mensaje = "No puede seguir facturando. La secuencia de facturación proporcionada por la SAR no ha sido habilitada aún. Dirígete al módulo de configuración de <a href='" + "<?php echo SERVERURL; ?>" + "secuencia/' target='_blank' class='no-hover-link'>Secuencias</a> para completar la configuración necesaria.";
-
-                    $("#invoice-form #reg_factura").attr("disabled", true);
-                    $("#mensajeFacturas").html(mensaje).addClass("alert alert-danger");
-                    $("#mensajeFacturas").removeClass("alert alert-warning");
-                }
-
-				// Si la fecha límite no está definida, deshabilitamos ambos botones (facturación y apertura)
-				if (fechaLimite.trim() !== "Sin definir") {
-					// Procesamiento si fechaLimite tiene un valor definido
-					if (diasTranscurridos == 1) {
-						mensaje += "<br/>Su fecha límite es: " + fechaLimite;
-						mensaje += "<br/>Le queda un día más, para seguir facturando";
-						//$("#invoice-form #reg_factura").attr("disabled", false);
-						$("#mensajeFacturas").html(mensaje).addClass("alert alert-warning");
-						$("#mensajeFacturas").removeClass("alert alert-danger");
-					} else if (diasTranscurridos === 0) {
-						mensaje += "<br/>Su fecha limite de facturación es hoy";
-						$("#mensajeFacturas").html(mensaje).addClass("alert alert-danger");
-						$("#mensajeFacturas").removeClass("alert alert-warning");
-					} else if (diasTranscurridos < 0) {
-						mensaje += "<br/>Ya alcanzó su fecha límite de facturación.";
-						//$("#invoice-form #reg_factura").attr("disabled", true);
-						$("#mensajeFacturas").html(mensaje).addClass("alert alert-danger");
-						$("#mensajeFacturas").removeClass("alert alert-warning");
-					}
-				} else {
-					// En caso de que la fecha límite esté como 'Sin definir'
-					mensaje = "La secuencia de facturación y la fecha límite de facturación no están definidas. Dirígete al módulo de configuración de <a href='" + "<?php echo SERVERURL; ?>" + "secuencia/' target='_blank' class='no-hover-link'>Secuencias</a> para completar la configuración necesaria.";
-					$("#mensajeFacturas").html(mensaje).addClass("alert alert-warning");
-					$("#mensajeFacturas").removeClass("alert alert-danger");
-
-					// Bloqueamos el botón de facturación y apertura
-					$("#invoice-form #reg_factura").attr("disabled", true);
-					$("#invoice-form #btn_apertura").attr("disabled", true);
-				}
-
-                // Si ya hay facturas disponibles, habilitar el botón de apertura
-                if (facturasDisponibles > 0) {
-                    $("#invoice-form #btn_apertura").attr("disabled", false);
-                }
-        }
+        url: '<?php echo SERVERURL; ?>core/getTotalFacturasDisponibles.php',
+        dataType: 'json'
+    }).done(function(datos) {
+        updateCounterUI(datos);
+    }).fail(function() {
+        showErrorState();
     });
 }
 
+function updateCounterUI(datos) {
+    const { facturasPendientes, contador, fechaLimite } = datos;
+    const counter = $("#mensajeFacturas");
+    
+    // Determinar el estado actual
+    const currentState = getCurrentState(facturasPendientes, fechaLimite);
+    
+    // Solo actualizar si cambió el estado
+    if (currentState !== lastState) {
+        lastState = currentState;
+        
+        // Aplicar efecto de cambio
+        counter.addClass('state-change');
+        setTimeout(() => counter.removeClass('state-change'), 300);
+        
+        // Configurar según estado
+        const config = getStateConfig(currentState, facturasPendientes, contador, fechaLimite);
+        
+        // Actualizar DOM
+        counter.html(`<i class="${config.icon}"></i> <span class="counter-text">${config.text}</span>`)
+              .removeClass('alert-normal alert-warning alert-danger')
+              .addClass(config.class);
+    }
+    
+    // Controlar botones
+    updateButtonsState(facturasPendientes, fechaLimite);
+}
 
-setInterval('getTotalFacturasDisponibles()',1000);
+function getCurrentState(facturasPendientes, fechaLimite) {
+    if (fechaLimite.trim() === "Sin definir") return 'no-config';
+    if (facturasPendientes < 0) return 'blocked';
+    if (facturasPendientes <= 9) return 'danger';
+    if (facturasPendientes <= 30) return 'warning';
+    return 'normal';
+}
+
+function getStateConfig(state, facturasPendientes, contador, fechaLimite) {
+    const configs = {
+        'normal': {
+            icon: 'fas fa-file-invoice',
+            class: 'alert-normal',
+            text: `<strong>${facturasPendientes}</strong> facturas disponibles`
+        },
+        'warning': {
+            icon: 'fas fa-hourglass-half',
+            class: 'alert-warning',
+            text: `<strong>${facturasPendientes}</strong> facturas restantes` + 
+                  (contador <= 3 ? ` | <strong>${contador}</strong> días pendientes` : '')
+        },
+        'danger': {
+            icon: 'fas fa-exclamation-triangle',
+            class: 'alert-danger',
+            text: `¡ÚLTIMAS <strong>${facturasPendientes}</strong> FACTURAS!` +
+                  (contador === 0 ? ` | Vence hoy` : ` | <strong>${contador}</strong> días restantes`)
+        },
+        'blocked': {
+            icon: 'fas fa-ban',
+            class: 'alert-danger',
+            text: `LÍMITE ALCANZADO | <a href="<?php echo SERVERURL; ?>secuencia/" target="_blank" class="counter-link">Configurar</a>`
+        },
+        'no-config': {
+            icon: 'fas fa-calendar-times',
+            class: 'alert-warning',
+            text: `FECHA NO CONFIGURADA | <a href="<?php echo SERVERURL; ?>secuencia/" target="_blank" class="counter-link">Definir límite</a>`
+        }
+    };
+    
+    return configs[state] || configs['normal'];
+}
+
+function updateButtonsState(facturasPendientes, fechaLimite) {
+    const facturarBtn = $("#invoice-form #reg_factura");
+    const aperturaBtn = $("#invoice-form #btn_apertura");
+    
+    facturarBtn.attr("disabled", facturasPendientes < 0);
+    aperturaBtn.attr("disabled", facturasPendientes <= 0 || fechaLimite.trim() === "Sin definir");
+    
+    // Estilo adicional para botón deshabilitado
+    if (facturasPendientes <= 0) {
+        facturarBtn.addClass("btn-outline-danger").removeClass("btn-secondary");
+    } else {
+        facturarBtn.removeClass("btn-outline-danger").addClass("btn-secondary");
+    }
+}
+
+function showErrorState() {
+    $("#mensajeFacturas").html(
+        `<i class="fas fa-exclamation-circle"></i> <span class="counter-text">Error al cargar disponibilidad</span>`
+    ).addClass('alert-danger');
+}
 
 function getReporteCotizacion() {
     var url = '<?php echo SERVERURL; ?>core/getTipoFacturaReporte.php';

@@ -22,6 +22,17 @@
 
                         </div>
                     </div>
+
+                    <!-- Después del card-header y antes del customer-bill-box-left -->
+                    <div class="form-group row customer-bill-box-center">
+                        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+                            <div id="mensajeFacturas" class="facturas-counter alert-normal">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <span class="counter-text">Verificando estado de facturas...</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-group row customer-bill-box-right">
                         <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
                             <span id="fecha-customers-bill"></span>

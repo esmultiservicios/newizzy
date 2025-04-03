@@ -48,9 +48,4 @@
             </div>
         </div>
     </div>
-    <div class="form-row col-xs-12 col-sm-12 col-md-8 col-lg-8">
-        <div class="col-md-12">
-            <div id="mensajeFacturas"></div>
-        </div>
-    </div>
 </div>

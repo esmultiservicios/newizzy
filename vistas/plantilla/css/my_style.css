@@ -1053,101 +1053,7 @@
     }
 }
 
-/* ====================== */
-/* BOTÓN WHATSAPP MEJORADO (IZQUIERDA) */
-/* ====================== */
-.float-ws {
-    position: fixed;
-    width: 60px;
-    height: 60px;
-    bottom: 40px;
-    left: 30px; /* Mantenemos izquierda como en tu versión original */
-    background-color: #25D366;
-    color: white !important;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.8rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    z-index: 1040;
-    transition: all 0.3s ease;
-    animation: pulse-ws 2s infinite;
-    border: none;
-    outline: none;
-    cursor: pointer;
-    padding: 0;
-}
 
-.float-ws i {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    line-height: 1;
-    color: inherit !important;
-}
-
-.float-ws:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-    background-color: #25D366 !important;
-    color: white !important;
-    text-decoration: none;
-}
-
-/* Animación de pulso */
-@keyframes pulse-ws {
-    0% {
-        box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7);
-    }
-    70% {
-        box-shadow: 0 0 0 15px rgba(37, 211, 102, 0);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
-    }
-}
-
-/* ====================== */
-/* AJUSTES PARA MÓVILES */
-/* ====================== */
-@media (max-width: 768px) {
-    .float-ws {
-        bottom: 80px; /* Sube el botón en móviles */
-        left: 20px; /* Mantenemos izquierda */
-        width: 55px;
-        height: 55px;
-        font-size: 1.7rem;
-    }
-
-    /* Animación más rápida en móviles */
-    @keyframes pulse-ws {
-        0% {
-            box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7);
-        }
-        70% {
-            box-shadow: 0 0 0 12px rgba(37, 211, 102, 0);
-        }
-        100% {
-            box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
-        }
-    }
-}
-
-/* Ajuste extra para pantallas muy pequeñas */
-@media (max-width: 480px) {
-    .float-ws {
-        bottom: 75px;
-        left: 15px; /* Mantenemos izquierda */
-        width: 50px;
-        height: 50px;
-        font-size: 1.6rem;
-    }
-}
 /* ==================== */
 /* MEDIA QUERIES RESPONSIVE */
 /* ==================== */
@@ -2851,5 +2757,88 @@
     /* En móviles muy pequeños, 1 columna */
     .btn.btn-secondary {
         flex-basis: 100%;
+    }
+}
+
+/* ====================== */
+/* BOTÓN WHATSAPP PERFECTO */
+/* ====================== */
+.float-ws {
+    position: fixed;
+    width: 56px;
+    height: 56px;
+    bottom: 70px; /* Posición ideal arriba del footer */
+    left: 25px;
+    background-color: #25D366;
+    color: white !important;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.7rem;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    z-index: 100;
+    transition: all 0.2s ease;
+    animation: pulse-ws 2s infinite;
+    border: none;
+    outline: none;
+    cursor: pointer;
+}
+
+.float-ws:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes pulse-ws {
+    0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.6); }
+    70% { box-shadow: 0 0 0 10px rgba(37, 211, 102, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
+}
+
+/* ====================== */
+/* FOOTER PROFESIONAL */
+/* ====================== */
+.footer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    background: linear-gradient(135deg, #1a2a3a 0%, #0d1620 100%);
+    color: white;
+    padding: 10px 0;
+    z-index: 99;
+    box-shadow: 0 -1px 8px rgba(0, 0, 0, 0.15);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ====================== */
+/* AJUSTES RESPONSIVE */
+/* ====================== */
+@media (max-width: 768px) {
+    .float-ws {
+        bottom: 65px;
+        left: 20px;
+        width: 52px;
+        height: 52px;
+        font-size: 1.6rem;
+    }
+    
+    .footer {
+        padding: 8px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .float-ws {
+        bottom: 60px;
+        left: 15px;
+        width: 48px;
+        height: 48px;
+        font-size: 1.5rem;
+    }
+    
+    body {
+        padding-bottom: 50px;
     }
 }

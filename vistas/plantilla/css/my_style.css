@@ -2446,6 +2446,43 @@
     animation: pulse-facturas-danger 1.5s infinite;
 }
 
+/* Animaciones para cada estado */
+@keyframes pulse-facturas-normal {
+    0% { box-shadow: 0 0 0 0 rgba(58, 79, 107, 0.2); }
+    70% { box-shadow: 0 0 0 10px rgba(58, 79, 107, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(58, 79, 107, 0); }
+}
+
+@keyframes pulse-facturas-warning {
+    0% { 
+        transform: translateY(0) translateX(-50%);
+        box-shadow: 0 0 0 0 rgba(246, 194, 62, 0.3);
+    }
+    50% { 
+        transform: translateY(-2px) translateX(-50%);
+        box-shadow: 0 0 0 8px rgba(246, 194, 62, 0);
+    }
+    100% { 
+        transform: translateY(0) translateX(-50%);
+        box-shadow: 0 0 0 0 rgba(246, 194, 62, 0);
+    }
+}
+
+@keyframes pulse-facturas-danger {
+    0% { 
+        transform: translateY(0) translateX(-50%);
+        box-shadow: 0 0 0 0 rgba(231, 74, 59, 0.3);
+    }
+    50% { 
+        transform: translateY(-3px) translateX(-50%);
+        box-shadow: 0 0 0 10px rgba(231, 74, 59, 0);
+    }
+    100% { 
+        transform: translateY(0) translateX(-50%);
+        box-shadow: 0 0 0 0 rgba(231, 74, 59, 0);
+    }
+}
+
 /* Responsive */
 @media (max-width: 992px) {
     .customer-bill-box-center {
@@ -2457,5 +2494,325 @@
         top: 0;
         margin: 0 0 15px 0;
         order: 1;
+    }
+}
+
+/* ====================== */
+/* ESTILOS ORIGINALES (SE MANTIENEN EXACTAMENTE IGUAL) */
+/* ====================== */
+.customer-bill-box-left {
+    padding-left: 10px;
+    padding-top: 10px;
+    margin-left: 10px;
+    float: left;
+    position: relative;
+    width: 600px;
+    height: 82px;
+    word-wrap: break-word;
+    background-color: #e9ecef;
+}
+
+.customer-bill-box-right {
+    padding-top: 10px;
+    padding-left: 10px;
+    margin-right: 10px;
+    position: relative;
+    float: right;
+    width: 300px;
+    height: 82px;
+    word-wrap: break-word;
+    background-color: #e9ecef;
+}
+
+.bill {
+    padding-left: 10px;
+    margin-left: 10px;
+    position: relative;
+    float: left;
+}
+
+/* ====================== */
+/* ESTILOS ORIGINALES (SE MANTIENEN EXACTAMENTE IGUAL) */
+/* ====================== */
+.customer-bill-box-left {
+    padding-left: 10px;
+    padding-top: 10px;
+    margin-left: 10px;
+    float: left;
+    position: relative;
+    width: 600px;
+    height: 82px;
+    word-wrap: break-word;
+    background-color: #e9ecef;
+}
+
+.customer-bill-box-right {
+    padding-top: 10px;
+    padding-left: 10px;
+    margin-right: 10px;
+    position: relative;
+    float: right;
+    width: 300px;
+    height: 82px;
+    word-wrap: break-word;
+    background-color: #e9ecef;
+}
+
+.bill {
+    padding-left: 10px;
+    margin-left: 10px;
+    position: relative;
+    float: left;
+}
+
+/* ====================== */
+/* ESTILOS PARA CONTENEDORES PRINCIPALES */
+/* ====================== */
+.customer-bill-box-left {
+    padding: 15px;
+    margin-left: 10px;
+    float: left;
+    position: relative;
+    width: 600px;
+    min-height: 82px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    border-left: 4px solid #3498db;
+}
+
+.customer-bill-box-right {
+    padding: 15px;
+    margin-right: 10px;
+    position: relative;
+    float: right;
+    width: 300px;
+    min-height: 82px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    border-left: 4px solid #2ecc71;
+}
+
+/* ====================== */
+/* ESTILOS PARA CONTENEDORES PRINCIPALES */
+/* ====================== */
+.customer-bill-box-left {
+    padding: 15px;
+    margin-left: 10px;
+    float: left;
+    position: relative;
+    width: 600px;
+    min-height: 82px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    border-left: 4px solid #3498db;
+}
+
+.customer-bill-box-right {
+    padding: 15px;
+    margin-right: 10px;
+    position: relative;
+    float: right;
+    width: 300px;
+    min-height: 82px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    border-left: 4px solid #2ecc71;
+}
+
+/* ====================== */
+/* ESTILOS PARA CONTENEDORES PRINCIPALES */
+/* ====================== */
+.customer-bill-box-left {
+    padding: 15px;
+    margin-left: 10px;
+    float: left;
+    position: relative;
+    width: 600px;
+    min-height: 82px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    border-left: 4px solid #3498db;
+}
+
+.customer-bill-box-right {
+    padding: 15px;
+    margin-right: 10px;
+    position: relative;
+    float: right;
+    width: 300px;
+    min-height: 82px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    border-left: 4px solid #2ecc71;
+}
+
+/* ====================== */
+/* ORGANIZACIÓN DE CAMPOS - VERSIÓN FINAL */
+/* ====================== */
+
+/* Contenedor para RTN + Cliente en misma línea */
+.bill-main-fields {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 8px;
+}
+
+/* Contenedor para Vendedor (opcional, debajo) */
+.bill-secondary-fields {
+    margin-bottom: 8px;
+}
+
+/* Estilos base para texto */
+.customer-bill-box-left span,
+.customer-bill-box-right span {
+    font-size: 0.9rem;
+    color: #4a5568;
+    position: relative;
+    padding-left: 22px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Ajuste específico para el campo Cliente */
+#client-customers-bill,
+#client-customers-quote {
+    font-weight: 600;
+    color: #2c3e50;
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+}
+
+/* ====================== */
+/* ESTILOS DE ICONOS */
+/* ====================== */
+
+/* Iconos solo cuando hay contenido */
+#rtn-customers-bill:not(:empty)::before,
+#vendedor-customers-bill:not(:empty)::before,
+#comentario-customers-bill:not(:empty)::before,
+#fecha-customers-bill:not(:empty)::before,
+#hora-customers-bill:not(:empty)::before,
+#rtn-customers-quote:not(:empty)::before,
+#vendedor-customers-quote:not(:empty)::before,
+#comentario-customers-quote:not(:empty)::before,
+#fecha-customers-quote:not(:empty)::before,
+#hora-customers-quote:not(:empty)::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    color: #3498db;
+    font-size: 0.9em;
+}
+
+/* Colores específicos para iconos */
+#rtn-customers-bill:not(:empty)::before,
+#rtn-customers-quote:not(:empty)::before { 
+    content: '\f2bb';
+    color: #3a4f6b;
+}
+
+#vendedor-customers-bill:not(:empty)::before,
+#vendedor-customers-quote:not(:empty)::before { 
+    content: '\f0c0';
+    color: #2980b9;
+}
+
+#comentario-customers-bill:not(:empty)::before,
+#comentario-customers-quote:not(:empty)::before { 
+    content: '\f075';
+    color: #e67e22;
+}
+
+#fecha-customers-bill:not(:empty)::before,
+#fecha-customers-quote:not(:empty)::before { 
+    content: '\f073';
+    color: #27ae60;
+}
+
+#hora-customers-bill:not(:empty)::before,
+#hora-customers-quote:not(:empty)::before { 
+    content: '\f017';
+    color: #9b59b6;
+}
+
+/* Icono para Cliente (siempre visible) */
+#client-customers-bill::before,
+#client-customers-quote::before {
+    content: '\f007';
+    position: absolute;
+    left: 0;
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    color: #3498db;
+    font-size: 0.9em;
+}
+
+/* ====================== */
+/* RESPONSIVIDAD */
+/* ====================== */
+@media (max-width: 768px) {
+    .customer-bill-box-left,
+    .customer-bill-box-right {
+        width: 100%;
+        float: none;
+        margin: 10px 0;
+    }
+    
+    .bill-main-fields {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    .customer-bill-box-left span,
+    .customer-bill-box-right span {
+        white-space: normal;
+    }
+}
+
+/* ====================== */
+/* REORGANIZACIÓN RESPONSIVE DE BOTONES */
+/* ====================== */
+@media (max-width: 992px) {
+    /* Contenedores principales */
+    .form-group.row > .col-xs-12.col-sm-12.col-md-12.col-lg-12,
+    .col-xs-12.col-sm-12.col-md-12.col-lg-12:not(.form-group) {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    /* Botones - mantienen todos sus estilos originales */
+    .btn.btn-secondary {
+        flex-grow: 1;
+        flex-basis: calc(50% - 4px); /* 2 columnas con gap */
+    }
+    
+    /* Labels y switches - mantienen su alineación */
+    .col-form-label, 
+    .switch, 
+    .question {
+        flex-shrink: 0; /* Evita que se compriman */
+    }
+}
+
+@media (max-width: 576px) {
+    /* En móviles muy pequeños, 1 columna */
+    .btn.btn-secondary {
+        flex-basis: 100%;
     }
 }

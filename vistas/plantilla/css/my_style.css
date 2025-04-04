@@ -1053,15 +1053,17 @@
     }
 }
 
-/* Botón de WhatsApp - CORREGIDO (color hover) */
+/* ====================== */
+/* BOTÓN WHATSAPP MEJORADO (IZQUIERDA) */
+/* ====================== */
 .float-ws {
     position: fixed;
-    bottom: 50px;
-    right: 30px;
-    width: 56px;
-    height: 56px;
+    width: 60px;
+    height: 60px;
+    bottom: 40px;
+    left: 30px; /* Mantenemos izquierda como en tu versión original */
     background-color: #25D366;
-    color: white !important; /* Forzar color blanco */
+    color: white !important;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -1086,18 +1088,18 @@
     margin: 0;
     padding: 0;
     line-height: 1;
-    color: inherit !important; /* Heredar color del contenedor */
+    color: inherit !important;
 }
 
 .float-ws:hover {
     transform: scale(1.1);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-    background-color: #25D366 !important; /* Mantener color de fondo en hover */
-    color: white !important; /* Mantener color blanco en hover */
+    background-color: #25D366 !important;
+    color: white !important;
     text-decoration: none;
 }
 
-/* Animación se mantiene igual */
+/* Animación de pulso */
 @keyframes pulse-ws {
     0% {
         box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7);
@@ -1110,7 +1112,42 @@
     }
 }
 
+/* ====================== */
+/* AJUSTES PARA MÓVILES */
+/* ====================== */
+@media (max-width: 768px) {
+    .float-ws {
+        bottom: 80px; /* Sube el botón en móviles */
+        left: 20px; /* Mantenemos izquierda */
+        width: 55px;
+        height: 55px;
+        font-size: 1.7rem;
+    }
 
+    /* Animación más rápida en móviles */
+    @keyframes pulse-ws {
+        0% {
+            box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7);
+        }
+        70% {
+            box-shadow: 0 0 0 12px rgba(37, 211, 102, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
+        }
+    }
+}
+
+/* Ajuste extra para pantallas muy pequeñas */
+@media (max-width: 480px) {
+    .float-ws {
+        bottom: 75px;
+        left: 15px; /* Mantenemos izquierda */
+        width: 50px;
+        height: 50px;
+        font-size: 1.6rem;
+    }
+}
 /* ==================== */
 /* MEDIA QUERIES RESPONSIVE */
 /* ==================== */

@@ -10,16 +10,13 @@
                     enctype="multipart/form-data">
                     <div class="form-group row customer-bill-box-left">
                         <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-                            <span id="rtn-customers-bill"></span> <span id="client-customers-bill"></span>
-                        </div>
-                        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-                            </span> <span id="vendedor-customers-bill"></span>
-                        </div>
-                        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-                            <span id="comentario-customers-bill"></span>
-                        </div>
-                        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-
+                            <div class="bill-header-row">
+                                <span id="rtn-customers-bill"></span>
+                                <span id="client-customers-bill"></span>
+                            </div>
+                            <div class="bill-row"> <!-- Si necesitas otra fila para Vendedor -->
+                                <span id="vendedor-customers-bill"></span>
+                            </div>
                         </div>
                     </div>
 

@@ -11801,37 +11801,6 @@ input:focus+label {
 
 /*INICIO FORM PAGOS*/
 
-.customer-bill-box-left {
-  padding-left: 10px;
-  padding-top: 10px;
-  margin-left: 10px;
-  float: left;
-  position: relative;
-  width: 600px;
-  height: 82px;
-  word-wrap: break-word;
-  background-color: #e9ecef;
-}
-
-.customer-bill-box-right {
-  padding-top: 10px;
-  padding-left: 10px;
-  margin-right: 10px;
-  position: relative;
-  float: right;
-  width: 300px;
-  height: 82px;
-  word-wrap: break-word;
-  background-color: #e9ecef;
-}
-
-.bill {
-  padding-left: 10px;
-  margin-left: 10px;
-  position: relative;
-  float: left;
-}
-
 .file {
   visibility: hidden;
   position: absolute;

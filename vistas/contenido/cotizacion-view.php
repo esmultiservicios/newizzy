@@ -10,16 +10,13 @@
                     method="POST" data-form="save" autocomplete="off" enctype="multipart/form-data">
                     <div class="form-group row customer-bill-box-left">
                         <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-                            <span id="rtn-customers-quote"></span> <span id="client-customers-quote"></span>
-                        </div>
-                        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-                            </span> <span id="vendedor-customers-quote"></span>
-                        </div>
-                        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-                            <span id="comentario-customers-quote"></span>
-                        </div>
-                        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-
+                            <div class="bill-header-row">
+                                <span id="rtn-customers-quote"></span>
+                                <span id="client-customers-quote"></span>
+                            </div>
+                            <div class="bill-row"> <!-- Si necesitas otra fila para Vendedor -->
+                                <span id="vendedor-customers-quote"></span>
+                            </div>
                         </div>
                     </div>
                     <div class="form-group row customer-bill-box-right">

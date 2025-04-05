@@ -2426,7 +2426,7 @@
     }
 }
 
-/* Responsive (Móvil) */
+/* Responsive (Móvil) - Ajustes específicos para el contador */
 @media (max-width: 992px) {
     .customer-bill-box-center {
         position: relative;
@@ -2435,10 +2435,22 @@
         width: 100%;
         max-width: 100%;
         top: 0;
-        margin: 0 0 15px 0;
+        margin: 15px 0;
         order: 1;
+        display: flex;
+        justify-content: center;
     }
-
+    
+    .facturas-counter {
+        width: 90%;
+        max-width: 400px;
+        white-space: normal;
+        text-align: center;
+        padding: 10px 15px;
+        font-size: 1rem;
+        animation: none; /* Opcional: puedes mantener las animaciones quitando esta línea */
+    }
+    
     /* Mantenemos los mismos estilos visuales en móvil */
     .facturas-counter {
         background: #ffffff !important;
@@ -2463,6 +2475,20 @@
         background: rgba(255, 238, 238, 0.9) !important;
         border-left-color: #e74a3b !important;
         color: #721c24 !important;
+    }
+}
+
+/* Ajustes para pantallas muy pequeñas */
+@media (max-width: 576px) {
+    .facturas-counter {
+        width: 95%;
+        padding: 8px 12px;
+        font-size: 0.95rem;
+    }
+    
+    .facturas-counter .counter-text {
+        white-space: normal;
+        word-break: break-word;
     }
 }
 

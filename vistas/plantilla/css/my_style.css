@@ -2364,7 +2364,7 @@
     transition: all 0.3s ease;
     white-space: nowrap;
     border-left: 4px solid #3a4f6b;
-    animation: pulse-facturas 3s infinite;
+    animation: pulse-facturas-normal 3s infinite;
     backdrop-filter: blur(2px);
     gap: 12px;
 }
@@ -2398,35 +2398,35 @@
 
 @keyframes pulse-facturas-warning {
     0% { 
-        transform: translateY(0) translateX(-50%);
+        transform: translateY(0);
         box-shadow: 0 0 0 0 rgba(246, 194, 62, 0.3);
     }
     50% { 
-        transform: translateY(-2px) translateX(-50%);
+        transform: translateY(-2px);
         box-shadow: 0 0 0 8px rgba(246, 194, 62, 0);
     }
     100% { 
-        transform: translateY(0) translateX(-50%);
+        transform: translateY(0);
         box-shadow: 0 0 0 0 rgba(246, 194, 62, 0);
     }
 }
 
 @keyframes pulse-facturas-danger {
     0% { 
-        transform: translateY(0) translateX(-50%);
+        transform: translateY(0);
         box-shadow: 0 0 0 0 rgba(231, 74, 59, 0.3);
     }
     50% { 
-        transform: translateY(-3px) translateX(-50%);
+        transform: translateY(-3px);
         box-shadow: 0 0 0 10px rgba(231, 74, 59, 0);
     }
     100% { 
-        transform: translateY(0) translateX(-50%);
+        transform: translateY(0);
         box-shadow: 0 0 0 0 rgba(231, 74, 59, 0);
     }
 }
 
-/* Responsive */
+/* Responsive (Móvil) */
 @media (max-width: 992px) {
     .customer-bill-box-center {
         position: relative;
@@ -2437,6 +2437,32 @@
         top: 0;
         margin: 0 0 15px 0;
         order: 1;
+    }
+
+    /* Mantenemos los mismos estilos visuales en móvil */
+    .facturas-counter {
+        background: #ffffff !important;
+        border: 1px solid #e0e0e0 !important;
+        border-left: 4px solid #3a4f6b !important;
+        color: #3a4f6b !important;
+    }
+    
+    .facturas-counter.alert-normal {
+        background: rgba(235, 241, 248, 0.9) !important;
+        border-left-color: #3a4f6b !important;
+        color: #3a4f6b !important;
+    }
+    
+    .facturas-counter.alert-warning {
+        background: rgba(255, 248, 230, 0.9) !important;
+        border-left-color: #f6c23e !important;
+        color: #856404 !important;
+    }
+    
+    .facturas-counter.alert-danger {
+        background: rgba(255, 238, 238, 0.9) !important;
+        border-left-color: #e74a3b !important;
+        color: #721c24 !important;
     }
 }
 

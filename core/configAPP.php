@@ -4,8 +4,18 @@
  * Parametros de conexión a la DB
  */
 
+// Reemplaza esto:
 if (!isset($_SESSION['user_sd'])) {
     session_start(['name' => 'SD']);
+}
+
+// Por esto:
+if (!isset($_SESSION['user_sd'])) {
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        session_start(['name' => 'SD']);
+    }
+    // Si la sesión está activa pero no tiene 'user_sd'
+    $_SESSION['user_sd'] = null; // O el valor inicial que necesites
 }
 
 // DATOS DE CONEXION DEL CLIENTE
@@ -16,6 +26,11 @@ const PASS = 'o8lXA0gtIO$@';
 // DATOS DE CONEXION SERVIDOR PRINCIPAL
 const SERVER_MAIN = 'localhost';
 const DB_MAIN = 'esmultiservicios_izzy';
+
+// Versión mejorada para definir constantes de nombre de BD
+define('DB_PREFIX', 'smultiservicios_');
+define('DB_SUFFIX', '_izzy');
+define('DB_MAX_LENGTH', 10); // Longitud máxima para el identificador único
 
 $GLOBALS['DB_MAIN'] = DB_MAIN;
 

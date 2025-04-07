@@ -1,5 +1,11 @@
 jQuery(function($) {
-    // Configuración inicial
+
+    $(function () {
+        $('[data-toggle="tooltip"]').tooltip({
+            trigger: "hover"
+        });
+    });
+        // Configuración inicial
     const $forms = {
         signin: $('#logreg-forms .form-signin'),
         reset: $('#logreg-forms .form-reset'),

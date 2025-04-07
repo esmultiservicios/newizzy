@@ -1,20 +1,20 @@
 /*!
-    * Start Bootstrap - SB Admin v6.0.1 (https://startbootstrap.com/templates/sb-admin)
-    * Copyright 2013-2020 Start Bootstrap
-    * Licensed under MIT (https://github.com/StartBootstrap/startbootstrap-sb-admin/blob/master/LICENSE)
-    */
+ * Start Bootstrap - SB Admin v6.0.1 (https://startbootstrap.com/templates/sb-admin)
+ * Copyright 2013-2020 Start Bootstrap
+ * Licensed under MIT (https://github.com/StartBootstrap/startbootstrap-sb-admin/blob/master/LICENSE)
+ */
 
 (function($) {
     "use strict";
 
-    // Add active state to sidbar nav links
+    // Add active state to sidebar nav links
     var path = window.location.href; // because the 'href' property of the DOM element is the absolute path
-        $("#layoutSidenav_nav .sb-sidenav a.nav-link").each(function() {
-            if (this.href === path) {
-                $(this).addClass("active");
-            }
-        });
-    
+    $("#layoutSidenav_nav .sb-sidenav a.nav-link").each(function() {
+        if (this.href === path) {
+            $(this).addClass("active");
+        }
+    });
+
     // Toggle the side navigation
     $("#sidebarToggle").on("click", function(e) {
         e.preventDefault();
@@ -22,15 +22,17 @@
     });
 })(jQuery);
 
-// Inicio Función para manejar pantalla completa
+// Función para manejar pantalla completa
 function toggleFullscreen() {
+    const elem = document.documentElement;
+
     if (!document.fullscreenElement) {
-        if (document.documentElement.requestFullscreen) {
-            document.documentElement.requestFullscreen();
-        } else if (document.documentElement.webkitRequestFullscreen) {
-            document.documentElement.webkitRequestFullscreen();
-        } else if (document.documentElement.msRequestFullscreen) {
-            document.documentElement.msRequestFullscreen();
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen();
+        } else if (elem.webkitRequestFullscreen) {
+            elem.webkitRequestFullscreen();
+        } else if (elem.msRequestFullscreen) {
+            elem.msRequestFullscreen();
         }
     } else {
         if (document.exitFullscreen) {
@@ -43,13 +45,34 @@ function toggleFullscreen() {
     }
 }
 
-$(document).ready(function() {
+// Guardar el estado de pantalla completa
+function saveFullscreenState(isFullscreen) {
+    localStorage.setItem('isFullscreen', isFullscreen);
+}
+
+// Cargar el estado de pantalla completa
+function loadFullscreenState() {
+    return localStorage.getItem('isFullscreen') === 'true';
+}
+
+// Restaurar el modo de pantalla completa al cargar la página
+function restoreFullscreenIfNeeded() {
+    const shouldRestoreFullscreen = loadFullscreenState();
+    if (shouldRestoreFullscreen) {
+        // Activar el modo de pantalla completa inmediatamente
+        toggleFullscreen();
+    }
+}
+
+$(function() {
     const fullscreenBtn = $('#global-fullscreen-btn');
-    
+
+    // Manejar el clic en el botón de pantalla completa
     fullscreenBtn.click(function() {
         toggleFullscreen();
     });
 
+    // Escuchar cambios en el modo de pantalla completa
     function updateFullscreenButton() {
         const isFullscreen = document.fullscreenElement || 
                             document.webkitFullscreenElement || 
@@ -65,14 +88,19 @@ $(document).ready(function() {
             fullscreenBtn.attr('title', 'Pantalla completa');
             fullscreenBtn.removeClass('fullscreen-active');
         }
+
+        // Guardar el estado actual
+        saveFullscreenState(isFullscreen);
     }
 
     document.addEventListener('fullscreenchange', updateFullscreenButton);
     document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
     document.addEventListener('msfullscreenchange', updateFullscreenButton);
-});
-/*fIN Función para manejar pantalla completa*/
 
+    // Restaurar el modo de pantalla completa tan pronto como sea posible
+    restoreFullscreenIfNeeded();
+});
+// Función para manejar la barra lateral
 document.addEventListener('DOMContentLoaded', function() {
     const sidebar = document.querySelector('.sb-sidenav');
     const topbar = document.querySelector('.sb-topnav');

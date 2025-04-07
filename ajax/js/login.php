@@ -60,25 +60,18 @@ $(document).ready(function() {
             url: '<?php echo SERVERURL; ?>ajax/iniciarSesionAjax.php',
             data: $(this).serialize(),
             beforeSend: function() {
-                swal({
-                    title: "",
-                    text: "Por favor espere...",
-                    icon: '<?php echo SERVERURL; ?>vistas/plantilla/img/gif-load.gif',
-                    buttons: false,
-                    closeOnEsc: false,
-                    closeOnClickOutside: false
-                });
+                showLoading("Por favor espere...");
             },
             success: function(resp) {
                 var datos = eval(resp);
                 if (datos[0]) {
                     setTimeout(() => window.location = datos[0], 1200);
                 } else {
-                    handleLoginError(datos[1]);
+                    handleLoginError(datos[1]);                    
                 }
             },
             error: function() {
-                showErrorModal("Error Inesperado", "Ocurrió un error inesperado");
+                showNotify('error', 'Error Inesperado', "Ocurrió un error inesperado");
             }
         });
         return false;
@@ -92,17 +85,17 @@ $(document).ready(function() {
             url: '<?php echo SERVERURL; ?>ajax/resetearContrasenaLoginAjax.php',
             data: $(this).serialize(),
             beforeSend: function() {
-                swal({ /* Configuración de carga */ });
+                showLoading("Registrando usuario...");
             },
             success: function(resp) {
                 if (resp == 1) {
-                    showSuccessModal("¡Éxito!", "Contraseña reseteada exitosamente");
+                    showNotify('success', 'Contraseña Reseteada', "Contraseña reseteada exitosamente");
                 } else {
-                    showErrorModal("Error", getErrorMessage(resp));
+                    showNotify('error', 'Error', resp);
                 }
             },
             error: function() {
-                showErrorModal("Error", "Problema al procesar la solicitud");
+                showNotify('error', 'Error', "Problema al procesar la solicitud");
             }
         });
         return false;
@@ -115,17 +108,149 @@ $(document).ready(function() {
             "ErrorP": "Problemas con el pago",
             "ErrorVacio": "Campos vacíos",
             "ErrorPinInvalido": "PIN inválido",
-            "ErrorC": "Cuenta no encontrada"
+            "ErrorC": "Cuenta no encontrada, por favor realice el registro en el sistema"
         };
-        showErrorModal("Error", errors[errorType] || "Error desconocido");
+
+        showNotify('error', 'Error', errors[errorType] || "Error desconocido");
+    }
+});
+
+// Validación de contraseñas en tiempo real
+$('#user-pass, #user-repeatpass').on('blur', function() {
+    const pass1 = $('#user-pass').val();
+    const pass2 = $('#user-repeatpass').val();
+    
+    if (pass1 && pass2) {
+        if (pass1 !== pass2) {
+            $('#user-pass, #user-repeatpass').addClass('is-invalid');
+            showNotify('error', 'Error', 'Las contraseñas no coinciden');
+        } else {
+            $('#user-pass, #user-repeatpass').removeClass('is-invalid');
+            if(pass1.length < 8) {
+                showNotify('warning', 'Advertencia', 'La contraseña debe tener al menos 8 caracteres');
+            }
+        }
+    }
+});
+    
+// Validación de email en tiempo real
+$('#mail').on('blur', function() {
+    const email = $(this).val();
+    if(email && !isValidEmail(email)) {
+        $(this).addClass('is-invalid');
+        showNotify('error', 'Error', 'Ingrese un correo electrónico válido');
+    } else {
+        $(this).removeClass('is-invalid');
+    }
+});
+
+// Función para validar email
+function isValidEmail(email) {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+}
+
+// Función para validar teléfono
+function isValidPhone(phone) {
+    const re = /^[0-9]{8,12}$/;
+    return re.test(phone);
+}
+
+// Proceso de registro
+$("#registrarse").click(function(e) {
+    e.preventDefault();
+    
+    // Validar campos
+    const empresa = $('#user_empresa').val().trim();
+    const nombre = $('#user_name').val().trim();
+    const telefono = $('#user_telefono').val().trim();
+    const email = $('#mail').val().trim();
+    const pass1 = $('#user-pass').val();
+    const pass2 = $('#user-repeatpass').val();
+    
+    // Resetear clases de error
+    $('.form-control').removeClass('is-invalid');
+    
+    // Validaciones básicas
+    if (!empresa) {
+        $('#user_empresa').addClass('is-invalid').focus();
+        showNotify('error', 'Error', 'El nombre de la empresa es obligatorio');
+        return;
     }
 
-    function showErrorModal(title, message) {
-        swal({ /* Configuración del modal de error */ });
+    if (!nombre) {
+        $('#user_name').addClass('is-invalid').focus();
+        showNotify('error', 'Error', 'El nombre es obligatorio');
+        return;
     }
-
-    function showSuccessModal(title, message) {
-        swal({ /* Configuración del modal de éxito */ });
+    
+    if (!telefono || !isValidPhone(telefono)) {
+        $('#user_telefono').addClass('is-invalid').focus();
+        showNotify('error', 'Error', 'Ingrese un teléfono válido (8-12 dígitos)');
+        return;
     }
+    
+    if (!email || !isValidEmail(email)) {
+        $('#mail').addClass('is-invalid').focus();
+        showNotify('error', 'Error', 'Ingrese un correo electrónico válido');
+        return;
+    }
+    
+    if (!pass1 || pass1.length < 8) {
+        $('#user-pass').addClass('is-invalid').focus();
+        showNotify('error', 'Error', 'La contraseña debe tener al menos 8 caracteres');
+        return;
+    }
+    
+    if (pass1 !== pass2) {
+        $('#user-pass, #user-repeatpass').addClass('is-invalid');
+        $('#user-repeatpass').focus();
+        showNotify('error', 'Error', 'Las contraseñas no coinciden');
+        return;
+    }
+    
+    // Enviar datos al servidor
+    $.ajax({
+        type: 'POST',
+        url: '<?php echo SERVERURL; ?>ajax/registrarClienteAutonomoAjax.php',
+        dataType: 'json',
+        data: {
+            user_empresa: empresa,
+            user_name: nombre,
+            user_telefono: telefono,
+            email: email,
+            user_pass: pass1
+        },
+        beforeSend: function() {
+            showLoading("Registrando usuario...");
+        },
+        success: function(resp) {           
+            if (resp.estado) {
+                showNotify(resp.type, resp.title, resp.mensaje);
+                
+                // Limpiar formulario
+                $('#form_registro')[0].reset();
+                
+                // Redirigir al login después de 2 segundos
+                setTimeout(function() {
+                    $('#cancel_signup').click(); // Activa el botón de volver al login
+                    $('#inputEmail').val(email).focus(); // Rellena el email en el login
+                }, 2000);
+            } else {
+                showNotify(resp.type, resp.title, resp.mensaje);
+            }
+        },
+        error: function(xhr, status, error) {          
+            try {
+                const errResponse = JSON.parse(xhr.responseText);
+                showNotify('error', 'Error', errResponse.mensaje || 'Error en el servidor');
+            } catch (e) {
+                showNotify('error', 'Error', 'Error de conexión: ' + error);
+            }
+        },
+        complete: function() {
+            hideLoading(); // Asegurar que el loading se cierre
+        }
+    });
 });
 </script>

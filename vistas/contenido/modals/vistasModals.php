@@ -31,6 +31,7 @@
         </div>
     </div>
 </div>
+
 <!--INICIO MODAL BUSQUEDA DE CUENTAS CONTABLES-->
 <div class="modal fade" id="modal_buscar_cuentas_contables">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
@@ -1424,6 +1425,311 @@
 </div>
 <!--FIN MODAL PAGOS FACTURACION-->
 
+<!-- MODAL PAGOS UNIFICADO MEJORADO -->
+<div class="modal fade" id="modal_pagos_unificado" tabindex="-1" aria-hidden="true" data-keyboard="false" data-backdrop="static">
+  <div class="modal-dialog modal-xl modal-dialog-centered payment-modal">
+    <div class="modal-content payment-content">
+      <!-- Header con progreso -->
+      <div class="modal-header payment-header">
+        <div class="payment-steps">
+          <div class="step active" data-step="1">
+            <div class="step-icon"><i class="fas fa-wallet"></i></div>
+            <div class="step-label">Método</div>
+          </div>
+          <div class="step" data-step="2">
+            <div class="step-icon"><i class="fas fa-edit"></i></div>
+            <div class="step-label">Detalles</div>
+          </div>
+          <div class="step" data-step="3">
+            <div class="step-icon"><i class="fas fa-check"></i></div>
+            <div class="step-label">Confirmar</div>
+          </div>
+        </div>
+        <button type="button" class="btn-close payment-close" data-dismiss="modal" aria-label="Close">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <!-- Cuerpo del modal -->
+      <div class="modal-body payment-body">
+        <!-- Información de pago común -->
+        <div class="payment-info-card">
+          <div class="customer-info">
+            <span id="customer-name-payment"></span>
+            <input type="hidden" name="customer_payment_id" id="customer_payment_id">
+          </div>
+          <div class="amount-info">
+            <span>Total a pagar:</span>
+            <span class="amount" id="payment-amount">L 0.00</span>
+          </div>
+        </div>
+        <!-- Paso 1: Selección de método -->
+        <div class="payment-step active" data-step-content="1">
+          <div class="payment-methods-container">
+            <div class="payment-methods-grid">
+              <!-- Efectivo -->
+              <div class="method-card selected" data-method="cash">
+                <div class="method-icon">
+                  <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div class="method-name">Efectivo</div>
+                <div class="method-badge">Rápido</div>
+                <i class="fas fa-info-circle info-icon" id="cash-info"></i>
+              </div>
+              <!-- Tarjeta -->
+              <div class="method-card" data-method="card">
+                <div class="method-icon">
+                  <i class="far fa-credit-card"></i>
+                </div>
+                <div class="method-name">Tarjeta</div>
+                <div class="method-badge">Seguro</div>
+                <i class="fas fa-info-circle info-icon" id="card-info"></i>
+              </div>
+              <!-- Transferencia -->
+              <div class="method-card" data-method="transfer">
+                <div class="method-icon">
+                  <i class="fas fa-exchange-alt"></i>
+                </div>
+                <div class="method-name">Transferencia</div>
+                <i class="fas fa-info-circle info-icon" id="transfer-info"></i>
+              </div>
+              <!-- Cheque -->
+              <div class="method-card" data-method="check">
+                <div class="method-icon">
+                  <i class="fas fa-money-check"></i>
+                </div>
+                <div class="method-name">Cheque</div>
+                <i class="fas fa-info-circle info-icon" id="check-info"></i>
+              </div>
+              <!-- Puntos -->
+              <div class="method-card premium" data-method="points" style="display: none;">
+                <div class="method-icon">
+                  <i class="fas fa-coins"></i>
+                </div>
+                <div class="method-name">Puntos</div>
+                <div class="method-badge">Exclusivo</div>
+                <i class="fas fa-info-circle info-icon" id="points-info"></i>
+              </div>
+            </div>
+          </div>
+          <!-- Configuración adicional -->
+          <div class="payment-options-card" id="factura-options" style="display: none;">
+            <div class="option-item">
+              <label class="payment-switch">
+                <input type="checkbox" id="pagos_multiples_switch" name="pagos_multiples_switch">
+                <div class="payment-slider round"></div>
+                <span class="switch-label">Pagos múltiples</span>
+              </label>
+            </div>
+            <div class="option-item">
+              <label class="payment-switch">
+                <input type="checkbox" id="comprobante_print_switch" name="comprobante_print_switch">
+                <div class="payment-slider round"></div>
+                <span class="switch-label">Imprimir comprobante</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <!-- Paso 2: Detalles de pago -->
+        <div class="payment-step" data-step-content="2">
+          <!-- Contenido dinámico -->
+          <div class="payment-details-container">
+            <!-- Efectivo -->
+            <div class="payment-details active" data-method="cash">
+              <div class="detail-header">
+                <div class="method-display">
+                  <i class="fas fa-money-bill-wave"></i>
+                  <span>Pago en Efectivo</span>
+                </div>
+              </div>
+              <form id="form-efectivo" class="detail-form">
+                <div class="payment-form-group">
+                  <input type="number" id="cash_amount" class="payment-form-control" placeholder=" " step="0.01" required>
+                  <label for="cash_amount">Monto recibido</label>
+                  <div class="currency-symbol">L</div>
+                </div>
+                <div class="change-display">
+                  <span>Cambio:</span>
+                  <span class="change-amount">L 0.00</span>
+                </div>
+              </form>
+            </div>
+            <!-- Tarjeta -->
+            <div class="payment-details" data-method="card">
+              <div class="detail-header">
+                <div class="method-display">
+                  <i class="far fa-credit-card"></i>
+                  <span>Pago con Tarjeta</span>
+                </div>
+              </div>
+              <form id="form-tarjeta" class="detail-form">
+                <div class="payment-form-group">
+                  <select id="card_type" class="payment-form-control" required>
+                    <option value=""></option>
+                    <option value="visa">Visa</option>
+                    <option value="mastercard">Mastercard</option>
+                    <option value="amex">American Express</option>
+                  </select>
+                  <label for="card_type">Tipo de tarjeta</label>
+                </div>
+                <div class="payment-form-group">
+                  <input type="text" id="card_last_four" class="payment-form-control" placeholder=" " maxlength="4" required>
+                  <label for="card_last_four">Últimos 4 dígitos</label>
+                </div>
+                <div class="payment-form-group">
+                  <input type="text" id="card_auth_code" class="payment-form-control" placeholder=" " required>
+                  <label for="card_auth_code">Código de autorización</label>
+                </div>
+                <div class="payment-form-group">
+                  <input type="number" id="card_amount" class="payment-form-control" placeholder=" " step="0.01" required>
+                  <label for="card_amount">Monto</label>
+                  <div class="currency-symbol">L</div>
+                </div>
+              </form>
+            </div>
+            <!-- Transferencia -->
+            <div class="payment-details" data-method="transfer">
+              <div class="detail-header">
+                <div class="method-display">
+                  <i class="fas fa-exchange-alt"></i>
+                  <span>Transferencia Bancaria</span>
+                </div>
+              </div>
+              <form id="form-transferencia" class="detail-form">
+                <div class="payment-form-group">
+                  <select id="transfer_bank" class="payment-form-control" required>
+                    <option value=""></option>
+                    <option value="BAC">BAC</option>
+                    <option value="Ficohsa">Ficohsa</option>
+                    <option value="Lafise">Lafise</option>
+                  </select>
+                  <label for="transfer_bank">Banco</label>
+                </div>
+                <div class="payment-form-group">
+                  <input type="text" id="transfer_reference" class="payment-form-control" placeholder=" " required>
+                  <label for="transfer_reference">Número de referencia</label>
+                </div>
+                <div class="payment-form-group">
+                  <input type="number" id="transfer_amount" class="payment-form-control" placeholder=" " step="0.01" required>
+                  <label for="transfer_amount">Monto</label>
+                  <div class="currency-symbol">L</div>
+                </div>
+              </form>
+            </div>
+            <!-- Cheque -->
+            <div class="payment-details" data-method="check">
+              <div class="detail-header">
+                <div class="method-display">
+                  <i class="fas fa-money-check"></i>
+                  <span>Pago con Cheque</span>
+                </div>
+              </div>
+              <form id="form-cheque" class="detail-form">
+                <div class="payment-form-group">
+                  <select id="check_bank" class="payment-form-control" required>
+                    <option value=""></option>
+                    <option value="BAC">BAC</option>
+                    <option value="Ficohsa">Ficohsa</option>
+                    <option value="Lafise">Lafise</option>
+                  </select>
+                  <label for="check_bank">Banco</label>
+                </div>
+                <div class="payment-form-group">
+                  <input type="text" id="check_number" class="payment-form-control" placeholder=" " required>
+                  <label for="check_number">Número de cheque</label>
+                </div>
+                <div class="payment-form-group">
+                  <input type="number" id="check_amount" class="payment-form-control" placeholder=" " step="0.01" required>
+                  <label for="check_amount">Monto</label>
+                  <div class="currency-symbol">L</div>
+                </div>
+              </form>
+            </div>
+            <!-- Puntos -->
+            <div class="payment-details" data-method="points">
+              <div class="detail-header">
+                <div class="method-display">
+                  <i class="fas fa-coins"></i>
+                  <span>Pago con Puntos</span>
+                </div>
+              </div>
+              <form id="form-puntos" class="detail-form">
+                <div class="points-balance">
+                  <span>Puntos disponibles:</span>
+                  <span class="points-amount">0 pts (L 0.00)</span>
+                </div>
+                <div class="payment-form-group">
+                  <input type="number" id="points_amount" class="payment-form-control" placeholder=" " step="100" required>
+                  <label for="points_amount">Puntos a usar</label>
+                  <div class="points-symbol">pts</div>
+                </div>
+                <div class="points-conversion">
+                  <span>Equivalente:</span>
+                  <span class="converted-amount">L 0.00</span>
+                </div>
+              </form>
+            </div>
+          </div>
+          <!-- Sección común -->
+          <div class="payment-receiver-section">
+            <div class="payment-form-group">
+              <select id="payment_receiver" name="payment_receiver" class="payment-form-control" required>
+                <option value=""></option>
+                <option value="1">Cajero Principal</option>
+                <option value="2">Asistente de Ventas</option>
+                <option value="3">Gerente</option>
+              </select>
+              <label for="payment_receiver">Quien recibe</label>
+            </div>
+          </div>
+        </div>
+        <!-- Paso 3: Confirmación -->
+        <div class="payment-step" data-step-content="3">
+          <div class="payment-complete">
+            <div class="complete-icon">
+              <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+                <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+              </svg>
+            </div>
+            <h3 class="complete-title">¡Pago completado!</h3>
+            <p class="receipt-amount">L 0.00</p>
+            <div class="receipt-details">
+              <div class="detail">
+                <span>Método:</span>
+                <span class="method-used">-</span>
+              </div>
+              <div class="detail">
+                <span>Transacción:</span>
+                <span class="transaction-id">#PAY-0000</span>
+              </div>
+              <div class="detail">
+                <span>Fecha:</span>
+                <span class="transaction-date">-</span>
+              </div>
+              <div class="detail">
+                <span>Recibido por:</span>
+                <span class="receiver-name">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Footer del modal -->
+      <div class="modal-footer payment-actions">
+        <button type="button" class="btn payment-btn payment-btn-prev" disabled>
+          <i class="fas fa-arrow-left"></i> Atrás
+        </button>
+        <button type="button" class="btn payment-btn payment-btn-next">
+          Continuar <i class="fas fa-arrow-right"></i>
+        </button>
+        <button type="submit" class="btn payment-btn payment-btn-complete" style="display: none;">
+          Finalizar pago <i class="fas fa-check"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!--INICIO MODAL CLIENTES-->
 <div class="modal fade" id="modal_registrar_clientes">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
@@ -1438,19 +1744,8 @@
             <div class="modal-body">
                 <form class="FormularioAjax" id="formClientes" action="" method="POST" data-form="" autocomplete="off"
                     enctype="multipart/form-data">
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <div class="input-group mb-3">
-                                <input type="hidden" id="clientes_id" name="clientes_id" class="form-control">
-                                <input type="text" id="proceso_clientes" class="form-control" readonly>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fa fa-plus-square fa-lg"></i>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <input type="hidden" id="clientes_id" name="clientes_id" class="form-control">
+                    
                     <div class="form-row">
                         <div class="col-md-8 mb-3">
                             <label for="nombre_clientes">Cliente <span class="priority">*<span /></label>

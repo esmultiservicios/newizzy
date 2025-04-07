@@ -45,9 +45,9 @@
 					$colaborador_nombre = trim($resultadoColaborador[0]['nombre'].' '.$resultadoColaborador[0]['apellido']);
 				}
 			
-				//OBTENEMOS EL CORREO DEL USUARUIO
+				//OBTENEMOS EL CORREO DEL USUARIO
 				$tablaUsuario = "users";
-				$camposUsuario = ["email"];
+				$camposUsuario = ["email", "server_customers_id"];
 				$condicionesUsuario = ["users_id" => $users_id];
 				$orderBy = "";
 				$tablaJoin = "";
@@ -55,9 +55,10 @@
 				$resultadoUsuario = $database->consultarTabla($tablaUsuario, $camposUsuario, $condicionesUsuario, $orderBy, $tablaJoin, $condicionesJoin);
 
 				$correo_usuario = "";
-
+				$estado = 1;
 				if (!empty($resultadoUsuario)) {
 					$correo_usuario = trim($resultadoUsuario[0]['email']);
+					$server_customers_id = trim($resultadoUsuario[0]['server_customers_id']);
 				}
 				
 				if($GLOBALS['db'] !== $GLOBALS['DB_MAIN']) {

@@ -244,14 +244,42 @@
 		}		
 		
 		public function forzar_cierre_sesion_controlador(){
-			if(!isset($_SESSION['user_sd'])){ 
-				session_start(['name'=>'SD']); 
+			// Verificar si la sesión no está activa
+			if(session_status() !== PHP_SESSION_ACTIVE) {
+				session_start(['name'=>'SD']);
 			}
 			
-			mainModel::guardar_historial_accesos("Cierre de Sesion Forzado");
+			// Registrar el cierre forzado en el historial
+			$colaborador_id = isset($_SESSION['colaborador_id_sd']) ? intval($_SESSION['colaborador_id_sd']) : 0;
+			$usuario = isset($_SESSION['user_sd']) ? $_SESSION['user_sd'] : 'Desconocido';
+			
+			// Guardar en el historial con datos seguros
+			mainModel::guardar_historial_accesos("Cierre de Sesión Forzado - Usuario: $usuario", $colaborador_id);
+			
+			// Limpiar completamente la sesión
+			$_SESSION = array();
+			
+			// Eliminar la cookie de sesión
+			if (ini_get("session.use_cookies")) {
+				$params = session_get_cookie_params();
+				setcookie(
+					session_name(), 
+					'', 
+					time() - 42000,
+					$params["path"], 
+					$params["domain"],
+					$params["secure"], 
+					$params["httponly"]
+				);
+			}
+			
+			// Destruir la sesión
 			session_destroy();
-			return header("Location: ".SERVERURL."login/");
-		}	
+			
+			// Redirección segura
+			header("Location: ".SERVERURL."login/");
+			exit(); // Asegura que el script termine aquí
+		}
 		
 		public function validar_pago_pendiente_main_server_controlador(){
 			$username = mainModel::cleanString($_POST['inputEmail']);

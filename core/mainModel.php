@@ -130,6 +130,89 @@ class mainModel
 		return $numero;
 	}
 
+    // Ejecutar consulta simple (SELECT)
+	public static function ejecutar_consulta($query) {
+		// Abrir conexión a la base de datos
+		$conexion = (new mainModel())->connection();
+	
+		// Ejecutar la consulta
+		$resultado = $conexion->query($query);
+	
+		// Verificar si la consulta fue exitosa
+		if (!$resultado) {
+			throw new Exception('Error en la consulta: ' . $conexion->error);
+		}
+	
+		// Cerrar la conexión
+		$conexion->close();
+	
+		// Devolver el resultado
+		return $resultado;
+	}
+
+	// Función para generar código único basado en fecha y cliente_id
+	public function generarCodigoUnico($clientes_id) {
+		$fecha = date('Ymd'); // Fecha en formato AAAAMMDD
+		$hash = substr(md5($clientes_id . microtime()), 0, 4); // 4 caracteres únicos
+		$codigo = substr($fecha . $hash, 0, 8); // Combinación de 8 dígitos
+		
+		// Aseguramos que sea numérico
+		return (int)preg_replace('/[^0-9]/', '', $codigo);
+	}
+	
+    // Insertar datos
+    public static function insertar_datos($tabla, $datos) {
+        $campos = implode(", ", array_keys($datos));
+        $valores = "'" . implode("', '", array_values($datos)) . "'";
+        $query = "INSERT INTO $tabla ($campos) VALUES ($valores)";
+
+        $conexion = (new mainModel())->connection();
+        $resultado = $conexion->query($query);
+
+        if (!$resultado) {
+            throw new Exception('Error al insertar datos: ' . $conexion->error);
+        }
+
+        $conexion->close();
+        return $resultado;
+    }
+
+    // Actualizar datos
+    public static function actualizar_datos($tabla, $datos, $condicion) {
+        $updates = [];
+        foreach ($datos as $campo => $valor) {
+            $updates[] = "$campo = '$valor'";
+        }
+        $updates = implode(", ", $updates);
+
+        $query = "UPDATE $tabla SET $updates WHERE $condicion";
+
+        $conexion = (new mainModel())->connection();
+        $resultado = $conexion->query($query);
+
+        if (!$resultado) {
+            throw new Exception('Error al actualizar datos: ' . $conexion->error);
+        }
+
+        $conexion->close();
+        return $resultado;
+    }
+
+    // Eliminar datos
+    public static function eliminar_datos($tabla, $condicion) {
+        $query = "DELETE FROM $tabla WHERE $condicion";
+
+        $conexion = (new mainModel())->connection();
+        $resultado = $conexion->query($query);
+
+        if (!$resultado) {
+            throw new Exception('Error al eliminar datos: ' . $conexion->error);
+        }
+
+        $conexion->close();
+        return $resultado;
+    }
+		
 	protected function guardar_bitacora($datos)
 	{
 		$bitacora_id = self::correlativo('bitacora_id', 'bitacora');
@@ -182,6 +265,22 @@ class mainModel
 		$sql = mainModel::connection()->query($delete) or die(mainModel::connection()->error);
 
 		return $sql;
+	}
+
+	// Función de generación compatible
+	function generateDatabaseName($companyName) {
+		$cleanName = preg_replace('/[^a-z0-9]/', '', 
+					strtolower(
+						iconv('UTF-8', 'ASCII//TRANSLIT', $companyName)
+					));
+		
+		$uniqueId = substr($cleanName, 0, DB_MAX_LENGTH);
+		
+		if(empty($uniqueId)) {
+			$uniqueId = 'cmp' . rand(100, 999);
+		}
+		
+		return DB_PREFIX . $uniqueId . DB_SUFFIX;
 	}
 
 	public function updateSalidaAsistenciaColaborador($asistencia_id)
@@ -290,7 +389,7 @@ class mainModel
 		$nombre_host = self::getRealIP();
 		$fecha = date('Y-m-d H:i:s');
 		$comentario = $comentario_;
-		$usuario = $_SESSION['colaborador_id_sd'];
+		$usuario = $_SESSION['colaborador_id_sd'] ?? 0;
 
 		$historial_acceso_id = self::correlativo('historial_acceso_id ', 'historial_acceso');
 		$insert = "INSERT INTO historial_acceso VALUES('$historial_acceso_id','$fecha','$usuario','$nombre_host','$comentario')";
@@ -600,7 +699,7 @@ class mainModel
 		return $string;
 	}
 
-	protected function cleanStringConverterCase($string)
+	public function cleanStringConverterCase($string)
 	{
 		// Limpia espacios al inicio y al final
 		$string = trim($string);
@@ -806,6 +905,46 @@ class mainModel
 		}
 
 		return $alerta;
+	}
+
+	public function showNotification($alert) {
+		// Validar y establecer valores por defecto
+		$type = isset($alert['type']) ? $alert['type'] : 'error';
+		$title = isset($alert['title']) ? $alert['title'] : 'Notificación';
+		$message = isset($alert['text']) ? $alert['text'] : '';
+		
+		// Determinar el estado basado en el tipo
+		$status = ($type === 'success') ? 'success' : 'error';
+		
+		// Inicializar array de acciones
+		$actions = [];
+		
+		// Procesar acciones comunes
+		if(isset($alert['form'])) {
+			$actions['resetForm'] = $alert['form'];
+		}
+		
+		if(isset($alert['funcion'])) {
+			$actions['execute'] = $alert['funcion'];
+		}
+		
+		// Para acciones específicas de delete (cerrar modal)
+		if(isset($alert['alert']) && $alert['alert'] === 'delete') {
+			$actions['closeModal'] = true;
+		}
+		
+		// Construir el script JavaScript
+		$script = "<script>
+			// Mostrar notificación Notyf
+			showNotify('{$status}', '".addslashes($title)."', '".addslashes($message)."');
+			
+			// Acciones adicionales
+			".(!empty($actions['resetForm']) ? "$('#{$actions['resetForm']}')[0].reset();" : "")."
+			".(!empty($actions['execute']) ? $actions['execute'] : "")."
+			".(!empty($actions['closeModal']) ? "$('.modal').modal('hide');" : "")."
+		</script>";
+		
+		return $script;
 	}
 
 	function cerrar_sesion()

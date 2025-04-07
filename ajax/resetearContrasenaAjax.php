@@ -10,12 +10,6 @@
 	}else{
 		echo "
 			<script>
-				swal({
-					title: 'Error', 
-					text: 'Los datos son incorrectos por favor corregir',
-					type: 'error', 
-					confirmButtonClass: 'btn-danger'
-				});			
+				showNotify('error', 'Error', 'Los datos son incorrectos por favor corregir');
 			</script>";
 	}
-?>	

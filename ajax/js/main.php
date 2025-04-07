@@ -2616,6 +2616,8 @@ var registrar_abono_cxc_clientes_dataTable = function(tbody, table) {
         } else {
             $("#GrupoPagosMultiplesFacturas").hide();
             pago(data.facturas_id, 2);
+            // Para facturas
+            //openPaymentModal('factura', 1250.00, 'Cliente Ejemplo', 12345);
         }
     });
 }
@@ -3711,63 +3713,76 @@ var eliminar_clientes_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.table_eliminar");
     $(tbody).on("click", "button.table_eliminar", function() {
         var data = table.row($(this).parents("tr")).data();
-        var url = '<?php echo SERVERURL;?>core/editarClientes.php';
-        $('#formClientes #clientes_id').val(data.clientes_id);
-
-        $.ajax({
-            type: 'POST',
-            url: url,
-            data: $('#formClientes').serialize(),
-            success: function(registro) {
-                var valores = eval(registro);
-                $('#formClientes').attr({
-                    'data-form': 'delete'
-                });
-                $('#formClientes').attr({
-                    'action': '<?php echo SERVERURL;?>ajax/eliminarClientesAjax.php'
-                });
-                $('#formClientes')[0].reset();
-                $('#reg_cliente').hide();
-                $('#edi_cliente').hide();
-                $('#delete_cliente').show();
-
-                $('#formClientes #nombre_clientes').val(valores[0]);
-                $('#formClientes #identidad_clientes').val(valores[1]);
-                $('#formClientes #fecha_clientes').attr('disabled', true);
-                $('#formClientes #fecha_clientes').val(valores[2]);
-                $('#formClientes #departamento_cliente').val(valores[3]);
-                $('#formClientes #departamento_cliente').selectpicker('refresh');
-                getMunicipiosClientes(valores[4]);
-                $('#formClientes #municipio_cliente').val(valores[4]);
-                $('#formClientes #municipio_cliente').selectpicker('refresh');
-                $('#formClientes #dirección_clientes').val(valores[5]);
-                $('#formClientes #telefono_clientes').val(valores[6]);
-                $('#formClientes #correo_clientes').val(valores[7]);
-
-                if (valores[8] == 1) {
-                    $('#formClientes #clientes_activo').attr('checked', true);
-                } else {
-                    $('#formClientes #clientes_activo').attr('checked', false);
+        var clientes_id = data.clientes_id;
+        var nombreCliente = data.cliente; 
+        var rtnCliente = data.rtn || 'No registrado'; // Manejo de RTN vacío
+        
+        // Construir el mensaje de confirmación con HTML
+        var mensajeHTML = `¿Desea eliminar permanentemente al cliente?<br><br>
+                        <strong>Nombre:</strong> ${nombreCliente}<br>
+                        <strong>RTN:</strong> ${rtnCliente}`;
+        
+        swal({
+            title: "Confirmar eliminación",
+            content: {
+                element: "span",
+                attributes: {
+                    innerHTML: mensajeHTML
                 }
-
-                //DESHABILITAR OBJETOS
-                $('#formClientes #nombre_clientes').attr("readonly", true);
-                $('#formClientes #identidad_clientes').attr("readonly", true);
-                $('#formClientes #fecha_clientes').attr("readonly", true);
-                $('#formClientes #departamento_cliente').attr("disabled", true);
-                $('#formClientes #municipio_cliente').attr("disabled", true);
-                $('#formClientes #dirección_clientes').attr("disabled", true);
-                $('#formClientes #telefono_clientes').attr("readonly", true);
-                $('#formClientes #correo_clientes').attr("readonly", true);
-                $('#formClientes #clientes_activo').attr("disabled", true);
-                $('#formClientes #estado_clientes').hide();
-                $('#formClientes #grupo_editar_rtn').hide();
-
-                $('#formClientes #proceso_clientes').val("Eliminar");
-                $('#modal_registrar_clientes').modal({
-                    show: true,
-                    keyboard: false,
-                    backdrop: 'static'
+            },
+            icon: "warning",
+            buttons: {
+                cancel: {
+                    text: "Cancelar",
+                    value: null,
+                    visible: true,
+                    className: "btn-light"
+                },
+                confirm: {
+                    text: "Sí, eliminar",
+                    value: true,
+                    className: "btn-danger",
+                    closeModal: false
+                }
+            },
+            dangerMode: true,
+            closeOnEsc: false,
+            closeOnClickOutside: false
+        }).then((confirmar) => {
+            if (confirmar) {
+                // Mostrar carga mientras se procesa
+                swal({
+                    title: "Procesando eliminación...",
+                    text: "Por favor espere",
+                    icon: "info",
+                    buttons: false,
+                    closeOnClickOutside: false,
+                    closeOnEsc: false
+                });
+                
+                $.ajax({
+                    type: 'POST',
+                    url: '<?php echo SERVERURL;?>ajax/eliminarClientesAjax.php',
+                    data: {
+                        clientes_id: clientes_id
+                    },
+                    dataType: 'json', // Esperamos respuesta JSON
+                    success: function(response) {
+                        swal.close();
+                        
+                        if(response.status === "success") {
+                            showNotify("success", response.title, response.message);
+                            table.ajax.reload(null, false); // Recargar tabla sin resetear paginación
+                            table.search('').draw();                    
+                        } else {
+                            showNotify("error", response.title, response.message);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        swal.close();
+                        showNotify("error", "Error", "Ocurrió un error al procesar la solicitud");
+                        console.error("Error en la solicitud AJAX:", error);
+                    }
                 });
             }
         });

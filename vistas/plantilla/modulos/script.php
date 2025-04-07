@@ -43,7 +43,7 @@
 
 <!-- 11. Moment.js y Notyf (si no son críticos) -->
 <script async src="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/librerias/moment-with-locales.js" crossorigin="anonymous"></script>
-<script async src="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/librerias/notyf.min.js" crossorigin="anonymous"></script>
+<script defer src="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/librerias/notyf.min.js" crossorigin="anonymous"></script>
 
 <!-- ========== SCRIPTS PERSONALIZADOS (con defer si usan jQuery/DOM) ========== -->
 <!-- 12. main.js y scripts.js (dependen de jQuery?) -->

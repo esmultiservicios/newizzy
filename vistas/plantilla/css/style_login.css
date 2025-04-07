@@ -550,3 +550,34 @@ body {
     color: #6c757d;
     opacity: 1;
 }
+
+/* ==================== */
+/* CURSORES INTERACTIVOS */
+/* ==================== */
+
+/* Botones principales */
+#logreg-forms .btn {
+    cursor: pointer;
+}
+
+/* Botones de mostrar/ocultar contraseña */
+#show_password, 
+#show_password1, 
+#show_password2 {
+    cursor: pointer;
+}
+
+/* Campos de formulario (cursor de texto) */
+#logreg-forms .form-control {
+    cursor: text;
+}
+
+/* Iconos de inputs (no clickeables) */
+#logreg-forms .input-group-text {
+    cursor: default;
+}
+
+/* Enlaces */
+#logreg-forms a {
+    cursor: pointer;
+}

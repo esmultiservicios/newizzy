@@ -3620,3 +3620,65 @@ input:checked + .payment-slider:before {
     border-color: #3498db;
     box-shadow: 0 4px 15px rgba(52,152,219,0.2);
 }
+
+/* ====================== */
+/* ESTILOS PARA INPUT GROUPS CON ICONOS */
+/* ====================== */
+.input-group-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 38px; /* Altura estándar de inputs Bootstrap */
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #495057;
+    background-color: #e9ecef;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+}
+
+/* Ajuste específico para iconos dentro del input-group-text */
+.input-group-text i {
+    font-size: 1rem;
+    width: 1em;
+    height: 1em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Asegurar que los inputs tengan la misma altura */
+.form-control {
+    height: calc(1.5em + 0.75rem + 2px);
+}
+
+/* Ajuste para tamaños alternativos */
+.input-group-lg .input-group-text,
+.input-group-lg .form-control {
+    min-height: 46px; /* Altura para inputs grandes */
+    font-size: 1.25rem;
+}
+
+.input-group-sm .input-group-text,
+.input-group-sm .form-control {
+    min-height: 32px; /* Altura para inputs pequeños */
+    font-size: 0.875rem;
+}
+
+/* Alinear correctamente el grupo completo */
+.input-group {
+    align-items: stretch;
+}
+
+/* Corrección para bordes redondeados cuando hay iconos */
+.input-group > .input-group-prepend > .input-group-text {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.input-group > .input-group-append > .input-group-text {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}

@@ -1,0 +1,10 @@
+# scripts/.htaccess
+<FilesMatch "\.(php)$">
+    Order Deny,Allow
+    Deny from all
+    
+    # Solo permitir acceso local (por si necesitas debug)
+    Allow from 127.0.0.1
+</FilesMatch>
+
+Options -Indexes

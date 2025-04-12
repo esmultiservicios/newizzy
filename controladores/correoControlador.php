@@ -10,7 +10,7 @@
 			$correo_id = $_POST['correo_id'];
 			$puserverConfEmailsto = mainModel::cleanString($_POST['serverConfEmail']);
 			$correoConfEmail = mainModel::cleanString($_POST['correoConfEmail']);
-			$passConfEmail = mainModel::encryption(mainModel::cleanString($_POST['passConfEmail']));
+			$passConfEmail = mainModel::cleanString($_POST['passConfEmail']);
 			$puertoConfEmail = mainModel::cleanString($_POST['puertoConfEmail']);
 			$smtpSecureConfEmail = mainModel::cleanString($_POST['smtpSecureConfEmail']);
 		

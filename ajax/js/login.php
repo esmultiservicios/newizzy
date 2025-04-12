@@ -249,7 +249,7 @@ $("#registrarse").click(function(e) {
             }
         },
         complete: function() {
-            hideLoading(); // Asegurar que el loading se cierre
+            
         }
     });
 });

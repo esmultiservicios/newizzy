@@ -52,7 +52,7 @@ class facturasControlador extends facturasModelo {
                 $facturas_id = mainModel::correlativo("facturas_id", "facturas");
             }                    
 
-            $estado = 2;
+            $estado = 2;//PROCESADAS
     
             //CONSULTAMOS LA APERTURA
             $datos_apertura = [
@@ -267,7 +267,7 @@ class facturasControlador extends facturasModelo {
         $datos_detalles_facturas = [
             "facturas_id" => $facturas_id,
             "productos_id" => $producto['productos_id'],
-            "cantidad" => $producto['quantity'],                
+            "cantidad" => $producto['quantity'],                 
             "precio" => $producto['price'],
             "isv_valor" => $producto['isv_valor'],
             "descuento" => $producto['discount'],

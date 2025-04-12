@@ -1208,6 +1208,88 @@
     color: #e74c3c;
 }
 
+/* ====================== */
+/* ESTILOS PARA SELECTORES DE AÑO/MESES EN GRÁFICOS */
+/* ====================== */
+
+/* Estilos base para los botones de selector */
+.year-selector .btn {
+    background-color: #f8f9fa;
+    color: #495057;
+    border: 1px solid #dee2e6;
+    transition: all 0.2s ease;
+}
+
+/* Estado activo */
+.year-selector .btn.active {
+    background-color: #3a4f6b;
+    color: white;
+    border-color: #2c3e50;
+}
+
+/* Hover - Mantiene el color del texto original */
+.year-selector .btn:hover {
+    color: #495057 !important; /* Sobreescribe el color blanco */
+    background-color: #e9ecef;
+    transform: translateY(0); /* Elimina el efecto de movimiento */
+    box-shadow: none; /* Elimina la sombra */
+}
+
+/* Hover para botón activo */
+.year-selector .btn.active:hover {
+    color: white !important;
+    background-color: #2c3e50;
+}
+
+/* Efecto al hacer clic */
+.year-selector .btn:active {
+    transform: scale(0.98);
+}
+
+/* Tamaño pequeño consistente */
+.year-selector.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    border-radius: 0.2rem;
+}
+
+/* Bordes para el grupo de botones */
+.year-selector.btn-group {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Estilo específico para ventas */
+.btn-year-ventas.active {
+    background-color: #1cc88a;
+    border-color: #17a673;
+}
+
+.btn-year-ventas.active:hover {
+    background-color: #17a673;
+}
+
+/* Estilo específico para compras */
+.btn-year-compras.active {
+    background-color: #36b9cc;
+    border-color: #2a96a5;
+}
+
+.btn-year-compras.active:hover {
+    background-color: #2a96a5;
+}
+
+/* Estilo específico para productos */
+.btn-year-productos.active {
+    background-color: #f6c23e;
+    border-color: #dda20a;
+    color: #212529;
+}
+
+.btn-year-productos.active:hover {
+    background-color: #dda20a;
+    color: #212529 !important;
+}
 /* =================================== */
 /* ESTILOS PARA ICONOS EN TABLAS */
 /* =================================== */

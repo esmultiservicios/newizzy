@@ -10,7 +10,6 @@ $camposObligatorios = [
     'user_name' => 'Nombre',
     'user_telefono' => 'Teléfono',
     'email' => 'Correo electrónico',
-    'user_pass' => 'Contraseña'
 ];
 
 $missingFields = [];
@@ -26,7 +25,7 @@ foreach ($camposObligatorios as $campo => $nombre) {
 if (empty($missingFields)) {
     require_once "../controladores/clientesControlador.php";
     $insVarios = new clientesControlador();
-    echo $insVarios->registrar_cliente_autonomo_controlador();
+    echo json_encode($insVarios->registrar_cliente_autonomo_controlador());
 } else {
     http_response_code(400); // Bad Request
     echo json_encode([

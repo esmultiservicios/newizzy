@@ -156,6 +156,55 @@ function isValidPhone(phone) {
     return re.test(phone);
 }
 
+$('.form-control').on('input change', function () {
+    if ($(this).val().trim() !== '') {
+        $(this).removeClass('is-invalid');
+    }
+});
+
+// Empresa
+$('#user_empresa').on('input', function () {
+    if ($(this).val().trim() !== '') {
+        $(this).removeClass('is-invalid');
+    }
+});
+
+// Nombre
+$('#user_name').on('input', function () {
+    if ($(this).val().trim() !== '') {
+        $(this).removeClass('is-invalid');
+    }
+});
+
+// Teléfono
+$('#user_telefono').on('input', function () {
+    if (isValidPhone($(this).val())) {
+        $(this).removeClass('is-invalid');
+    }
+});
+
+// Correo
+$('#mail').on('input', function () {
+    if (isValidEmail($(this).val())) {
+        $(this).removeClass('is-invalid');
+    }
+});
+
+// Contraseña
+$('#user-pass, #user-repeatpass').on('input', function () {
+    const pass1 = $('#user-pass').val();
+    const pass2 = $('#user-repeatpass').val();
+
+    if (pass1.length >= 8) {
+        $('#user-pass').removeClass('is-invalid');
+    }
+
+    if (pass1 === pass2 && pass2.length >= 8) {
+        $('#user-pass, #user-repeatpass').removeClass('is-invalid');
+    }
+});
+
+
 // Proceso de registro
 $("#registrarse").click(function(e) {
     e.preventDefault();
@@ -167,6 +216,15 @@ $("#registrarse").click(function(e) {
     const email = $('#mail').val().trim();
     const pass1 = $('#user-pass').val();
     const pass2 = $('#user-repeatpass').val();
+    const clientes_id = 0;
+    const sistema_id = 1;
+    const planes_id = 1;
+    const eslogan = '';
+    const otra_informacion = '';
+    const celular = '';
+    const ubicacion = '';
+    const validar = 0;
+    const rtn = '';
     
     // Resetear clases de error
     $('.form-control').removeClass('is-invalid');
@@ -215,11 +273,20 @@ $("#registrarse").click(function(e) {
         url: '<?php echo SERVERURL; ?>ajax/registrarClienteAutonomoAjax.php',
         dataType: 'json',
         data: {
+            clientes_id: clientes_id,
             user_empresa: empresa,
             user_name: nombre,
             user_telefono: telefono,
             email: email,
-            user_pass: pass1
+            user_pass: pass1,
+            sistema_id: sistema_id,
+            planes_id: planes_id,
+            eslogan: eslogan,
+            otra_informacion: otra_informacion,
+            celular: celular,
+            ubicacion: ubicacion,
+            validar: validar,
+            rtn: rtn,          
         },
         beforeSend: function() {
             showLoading("Registrando usuario...");

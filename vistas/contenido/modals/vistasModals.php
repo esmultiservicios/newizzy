@@ -3572,7 +3572,7 @@
                     <div class="form-row">
                         <div class="col-md-12 mb-3">
                             <div class="input-group mb-3">
-                                <input type="hidden" id="clientes_id" name="clientes_id" class="form-control">
+                                <input type="text" id="clientes_id" name="clientes_id" class="form-control">
                                 <input type="hidden" id="clientes_telefono" name="clientes_telefono"
                                     class="form-control">
                                 <input type="hidden" id="clientes_correo" name="clientes_correo" class="form-control">
@@ -3626,48 +3626,39 @@
                                 oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
                         </div>
                     </div>
+
                     <div class="form-row">
-                        <div class="col-md-3 mb-3">
-                            <label for="sistema">Sistema <span class="priority">*<span /></label>
-                            <div class="input-group">
-                                <div class="input-group-append">
-                                    <select id="sistema" name="sistema" class="selectpicker" title="Sistema"
-                                        data-width="100%" data-size="5" data-live-search="true" required>
-                                    </select>
-                                </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="sistema">Sistema</label>
+                            <div class="input-group mb-3">
+                                <select class="selectpicker" id="sistema" name="sistema" data-width="100%" data-size="7" data-live-search="true"
+                                    title="Sistema">
+                                </select>
                             </div>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="plan">Plan <span class="priority">*<span /></label>
-                            <div class="input-group">
-                                <div class="input-group-append">
-                                    <select id="plan" name="plan" class="selectpicker" title="Plan" data-size="5"
-                                        data-width="100%" data-live-search="true" required>
-                                    </select>
-                                </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="plan">Plan</label>
+                            <div class="input-group mb-3">
+                                <select class="selectpicker" id="plan" name="plan" data-width="100%" data-size="7" data-live-search="true"
+                                    title="Plan">
+                                </select>
                             </div>
                         </div>
-                        <div class="col-md-3 mb-4">
-                            <label for="asistencia_empleado">Base de Datos <span class="priority">*<span /></label>
-                            <input type="text" class="form-control" id="db" name="db" placeholder="Base de Datos">
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="validar">Validar Facturacón <span class="priority">*<span /></label>
-                            <div class="input-group">
-                                <div class="input-group-append">
-                                    <select id="validar" name="validar" class="selectpicker" title="Validar Facturación"
-                                        data-width="100%" data-size="5" data-live-search="true" required>
-                                    </select>
-                                </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="validar">Validar Facturación</label>
+                            <div class="input-group mb-3">
+                                <select class="selectpicker" id="validar" name="validar" data-width="100%" data-size="7" data-live-search="true"
+                                    title="Validar Facturación">
+                                </select>
                             </div>
-                        </div>
+                        </div> 
                     </div>
 
                     <div class="form-row">
                         <div class="col-md-12">
                             <div class="overflow-auto">
                                 <table id="DatatableGenerarSistema"
-                                    class="table table-striped table-condensed table-hover" style="width:100%">
+                                    class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
                                     <thead>
                                         <tr>
                                             <th>Cliente</th>

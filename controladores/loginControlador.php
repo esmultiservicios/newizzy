@@ -254,7 +254,7 @@
 			$usuario = isset($_SESSION['user_sd']) ? $_SESSION['user_sd'] : 'Desconocido';
 			
 			// Guardar en el historial con datos seguros
-			mainModel::guardar_historial_accesos("Cierre de Sesión Forzado - Usuario: $usuario", $colaborador_id);
+			mainModel::guardar_historial_accesos("Cierre de Sesión Forzado - Usuario: $usuario");
 			
 			// Limpiar completamente la sesión
 			$_SESSION = array();

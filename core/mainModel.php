@@ -14,8 +14,8 @@ class mainModel
 	/* FUNCTION QUE PERMITE REALIZAR LA CONEXIÓN A LA DB */
 	public function connection()
 	{
-		// Usamos conexiones persistentes con 'p:'
-		$mysqli = new mysqli('p:' . SERVER, USER, PASS);
+		// Desactiva la conexión persistente removiendo 'p:'
+		$mysqli = new mysqli(SERVER, USER, PASS);
 	
 		if ($mysqli->connect_errno) {
 			throw new Exception('Fallo al conectar a MySQL, connection: ' . $mysqli->connect_error);
@@ -129,6 +129,55 @@ class mainModel
 
 		return $numero;
 	}
+
+	// Función para generar username único según las reglas especificadas
+	public function generarUsernameUnico($nombre_completo) {
+		// Separar el nombre completo en partes
+		$partes_nombre = explode(' ', trim($nombre_completo));
+		
+		// Obtener primera letra del primer nombre (en minúscula)
+		$primera_letra = strtolower(substr($partes_nombre[0], 0, 1));
+		
+		// Buscar el primer apellido (el siguiente elemento después del primer nombre)
+		$primer_apellido = '';
+		for ($i = 1; $i < count($partes_nombre); $i++) {
+			if (!empty($partes_nombre[$i])) {
+				$primer_apellido = strtolower($partes_nombre[$i]);
+				break;
+			}
+		}
+		
+		// Si no hay apellido, usar solo la primera letra
+		if (empty($primer_apellido)) {
+			$username_base = $primera_letra;
+		} else {
+			$username_base = $primera_letra . $primer_apellido;
+		}
+		
+		// Verificar si el username ya existe
+		$username_final = $username_base;
+		$contador = 1;
+		
+		while (true) {
+			$check = mainModel::ejecutar_consulta_simple("SELECT users_id FROM users WHERE username = '$username_final'");
+			
+			if ($check->num_rows == 0) {
+				break; // Username disponible
+			}
+			
+			// Si existe, agregar número consecutivo
+			$username_final = $username_base . str_pad($contador, 2, '0', STR_PAD_LEFT);
+			$contador++;
+			
+			// Prevención por si acaso (nunca debería llegar a esto)
+			if ($contador > 100) {
+				$username_final = $username_base . uniqid();
+				break;
+			}
+		}
+		
+		return $username_final;
+	}	
 
     // Ejecutar consulta simple (SELECT)
 	public static function ejecutar_consulta($query) {
@@ -267,20 +316,35 @@ class mainModel
 		return $sql;
 	}
 
-	// Función de generación compatible
+	/**
+	 * Genera nombres de base de datos a partir del nombre de una compañía
+	 * 
+	 * @param string $companyName Nombre de la compañía
+	 * @return array Devuelve un array con ambos formatos requeridos
+	 */
 	function generateDatabaseName($companyName) {
+		// Normalizar el nombre: eliminar acentos, caracteres especiales y convertir a minúsculas
 		$cleanName = preg_replace('/[^a-z0-9]/', '', 
 					strtolower(
 						iconv('UTF-8', 'ASCII//TRANSLIT', $companyName)
 					));
 		
+		// Obtener una versión corta del nombre limpio
 		$uniqueId = substr($cleanName, 0, DB_MAX_LENGTH);
 		
+		// Si el nombre queda vacío después de la limpieza, usar un valor aleatorio
 		if(empty($uniqueId)) {
 			$uniqueId = 'cmp' . rand(100, 999);
 		}
 		
-		return DB_PREFIX . $uniqueId . DB_SUFFIX;
+		// Asegurar que el prefijo usado sea el de cPanel (CPANEL_USERNAME)
+		$cpanelPrefix = defined('CPANEL_USERNAME') ? CPANEL_USERNAME : DB_PREFIX;
+		
+		// Devolver ambos formatos requeridos
+		return [
+			'prefixed' => $cpanelPrefix . '_' . $uniqueId . DB_SUFFIX,  // ej: "esmultiservicios_izzy"
+			'unprefixed' => $uniqueId . DB_SUFFIX                       // ej: "izzy"
+		];
 	}
 
 	public function updateSalidaAsistenciaColaborador($asistencia_id)

@@ -1,10 +1,10 @@
 <?php
 if($peticionAjax){
     require_once "../core/configAPP.php";
-    require_once "../core/Database.php";
+    require_once "../core/mainModel.php";
 }else{
     require_once "./core/configAPP.php";
-    require_once "./core/Database.php";    
+    require_once "./core/mainModel.php";    
 }
 
 require 'phpmailer/Exception.php';
@@ -12,215 +12,200 @@ require 'phpmailer/PHPMailer.php';
 require 'phpmailer/SMTP.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception; 
+use PHPMailer\PHPMailer\Exception;
 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 class sendEmail {
+    protected $mainModel;
 
     public function __construct() {
-
+        $this->mainModel = new mainModel();
     }
 
-    public function decryptionEmail($string){
+    public function decryptionEmail($string) {
         $key = hash('sha256', SECRET_KEY);
         $iv = substr(hash('sha256', SECRET_IV), 0, 16);
-        $output = openssl_decrypt(base64_decode($string), METHOD, $key, 0, $iv);
+        return openssl_decrypt(base64_decode($string), METHOD, $key, 0, $iv);
+    }
 
-        return $output;
-    }    
+    private function formatearTelefono($numero) {
+        if (empty($numero)) return "";
+        $parte1 = substr($numero, 0, 4);
+        $parte2 = substr($numero, 4);
+        return '+504 ' . $parte1 . '-' . $parte2;
+    }
+
+    public function obtenerDatosEmpresa($empresa_id) {
+        $consulta = "SELECT razon_social, nombre, eslogan, celular, telefono, correo, 
+                    logotipo, rtn, ubicacion, facebook, sitioweb, horario, firma_documento 
+                    FROM empresa WHERE empresa_id = '$empresa_id'";
+        
+        $resultado = $this->mainModel->ejecutar_consulta_simple($consulta);
+        
+        if ($resultado->num_rows == 0) {
+            return $this->datosEmpresaPorDefecto();
+        }
+        
+        $empresa = $resultado->fetch_assoc();
+        
+        return [
+            "empresa_id" => $empresa_id,
+            "razon_social" => $empresa['razon_social'],
+            "nombre" => strtoupper(trim($empresa['nombre'])),
+            "nombre_completo" => $empresa['razon_social'] . " (" . $empresa['nombre'] . ")",
+            "eslogan" => $empresa['eslogan'],
+            "telefono" => $this->formatearTelefono($empresa['telefono']),
+            "celular" => $this->formatearTelefono($empresa['celular']),
+            "correo" => $empresa['correo'],
+            "logotipo" => $empresa['logotipo'],
+            "rtn" => $empresa['rtn'],
+            "ubicacion" => $empresa['ubicacion'],
+            "facebook" => $empresa['facebook'],
+            "sitioweb" => $empresa['sitioweb'],
+            "horario" => $empresa['horario'],
+            "firma_documento" => $empresa['firma_documento'],
+            "url_logo" => SERVERURL."vistas/plantilla/img/logos/".$empresa['logotipo'],
+            "url_firma" => SERVERURL."vistas/plantilla/img/firmas/".$empresa['firma_documento']
+        ];
+    }
+
+    private function datosEmpresaPorDefecto() {
+        return [
+            "empresa_id" => 0,
+            "razon_social" => "Edwin Javier Velasquez Cortes",
+            "nombre" => "E.S MULTISERVICIOS",
+            "nombre_completo" => "E.S MULTISERVICIOS",
+            "eslogan" => "Mas que servicios, construimos soluciones",
+            "telefono" => "",
+            "celular" => "+504 8913-6844",
+            "correo" => "edwin.velasquez@esmultiservicios.com",
+            "logotipo" => "logo.png",
+            "rtn" => "18041991043390",
+            "ubicacion" => "San Jose V Calle: Principal Esquina Opuesta A Canchas De Majoncho Sosa",
+            "facebook" => "#",
+            "sitioweb" => "#",
+            "horario" => "Lunes a Viernes: 8:00 AM - 5:00 PM",
+            "firma_documento" => "firma.png",
+            "url_logo" => SERVERURL."vistas/plantilla/img/logos/logo.png",
+            "url_firma" => SERVERURL."vistas/plantilla/img/firmas/firma.png"
+        ];
+    }
 
     public function enviarCorreo($destinatarios, $bccDestinatarios, $asunto, $mensaje, $correo_tipo_id, $empresa_id, $archivos_adjuntos = []) {
-        ini_set('max_execution_time', 300); // Establece el tiempo máximo de ejecución a 300 segundos (5 minutos)
-
+        ini_set('max_execution_time', 300);
         $mail = new PHPMailer(true);
 
-        $database = new Database();
-
-        //Consultamos el correo de donde enviaremos la información
-        $tablaCorreos = "correo";
-        $camposCorreos = ["server", "correo", "password"];
-        $condicionesCorreos = ["correo_tipo_id" => $correo_tipo_id];
-        $orderBy = "";
-        $tablaJoin = "";
-		$condicionesJoin = [];
-        $resultadoCorreos = $database->consultarTabla($tablaCorreos, $camposCorreos, $condicionesCorreos, $orderBy, $tablaJoin, $condicionesJoin);
-
-        $correo_empresa = '';
-        $pass_empresa = '';
-        $de_empresa = '';
-        $smtp = '';
-        $nombre = '';
-        $logotipo = '';			
-        $ubicacion = '';
-        $telefono = '';	
-        $sitioweb = '';		
-        $correo = '';
-        $rtn = '';
-        $numero = '';
-        $parte1 = '';
-        $parte2 = '';
-
-        if (!empty($resultadoCorreos)) {
-            //CONSULTAMOS LOS DATOS DE LA EMPREA PARA ENVIAR EL CORREO
-            $smtp = $resultadoCorreos[0]['server']; 
-            $correo_empresa = $resultadoCorreos[0]['correo'];
+        try {
+            // 1. Obtener configuración SMTP
+            $consultaCorreo = "SELECT server, correo, password FROM correo WHERE correo_tipo_id = '$correo_tipo_id'";
+            $resultadoCorreo = $this->mainModel->ejecutar_consulta_simple($consultaCorreo);
             
-            $pass_empresa = $this->decryptionEmail($resultadoCorreos[0]['password']);
-            
-            //Consultamos el nombre de la empresa
-            $tablaEmpresa = "empresa";
-            $camposEmpresa = ["nombre", "logotipo", "ubicacion", "telefono", "sitioweb", "correo", "rtn"];
-            $condicionesEmpresa = ["empresa_id" => $empresa_id];
-            $orderBy = "";
-            $tablaJoin = "";
-		    $condicionesJoin = [];
-            $resultadoEmpresa = $database->consultarTabla($tablaEmpresa, $camposEmpresa, $condicionesEmpresa, $orderBy, $tablaJoin, $condicionesJoin);
-
-            if (!empty($resultadoEmpresa)) {
-                $de_empresa = $resultadoEmpresa[0]['nombre'];
-                $nombre = $resultadoEmpresa[0]['nombre'];
-                $logotipo = $resultadoEmpresa[0]['logotipo'];		
-                $ubicacion = $resultadoEmpresa[0]['ubicacion'];
-                $numero_formateado = "";
-
-                $numero = $resultadoEmpresa[0]['telefono'];
-                
-                if($numero != "") {
-                    $parte1 = substr($numero, 0, 4);
-                    $parte2 = substr($numero, 4);
-                    $numero_formateado = '+504 ' . $parte1 . '-' . $parte2;
-                }
-
-                $telefono = $numero_formateado;	
-                $sitioweb = $resultadoEmpresa[0]['sitioweb'];		
-                $correo = $resultadoEmpresa[0]['correo'];
-                $rtn = $resultadoEmpresa[0]['rtn'];        
-            }else{
-                $de_empresa = "CLINICARE";
-                $nombre = "CLINICARE";
-                $logotipo = "logo.png";	
-                $ubicacion = "Col. Monte Carlo, 6-7 , 22 AVENIDA B Casa #17 San Pedro Sula, Cortes";
-                $telefono = "+504 25035517";	
-                $sitioweb = "https://clinicarehn.com";	
-                $correo = "clinicare@clinicarehn.com";
-                $rtn = "05019021318813";                
+            if ($resultadoCorreo->num_rows == 0) {
+                error_log("No se encontró configuración de correo para tipo: $correo_tipo_id");
+                return false;
             }
             
-			$datos_empresa = [
-				"empresa" => strtoupper(trim($nombre)),
-				"logotipo" => $logotipo,				
-				"ubicacion" => $ubicacion,
-				"telefono" => $telefono,				
-				"sitioweb" => $sitioweb,				
-				"correo" => $correo,
-                "rtn" => $rtn		
-			];            
+            $configCorreo = $resultadoCorreo->fetch_assoc();
+            $smtp = $configCorreo['server'];
+            $correo_empresa = $configCorreo['correo'];
+            $pass_empresa = $this->decryptionEmail($configCorreo['password']);
 
-            try {
-                // Configuración del servidor de correo saliente (SMTP)
-                $mail->isSMTP();
-                $mail->SMTPKeepAlive = true;
-                $mail->Host          = $smtp; // Cambiar por el servidor de correo saliente
-                $mail->SMTPAuth      = true;
-                $mail->Username      = $correo_empresa; // Cambiar por tu correo electrónico
-                $mail->Password      = $pass_empresa; // Cambiar por tu contraseña de correo
-                $mail->SMTPSecure    = PHPMailer::ENCRYPTION_STARTTLS;//SSL - 587
-                $mail->Port          = 587;//SSL
-        
-                // Configuración del correo
-                $mail->setFrom($correo_empresa, $de_empresa);
-                $mail->isHTML(true);
-                // Especificamos el conjunto de caracteres para el mensaje y los encabezados
-                $mail->CharSet = 'UTF-8';
-                $mail->ContentType = 'text/html; charset=UTF-8';
-        
-                foreach ($destinatarios as $email => $nombre) {
-                    $mail->addAddress($email, $nombre);
+            // 2. Obtener datos de la empresa
+            $datos_empresa = $this->obtenerDatosEmpresa($empresa_id);
 
-                    // Agregar destinatarios en copia oculta (Bcc)
-                    foreach ($bccDestinatarios as $bccEmail => $bccNombre) {
-                        $mail->addBCC($bccEmail, $bccNombre);
-                    }                       
-                
-                    // Asunto y cuerpo del correo con la plantilla HTML
-                    $mail->Subject = $asunto;
-    
-                    // Cuerpo del mensaje utilizando la plantilla
-                    $htmlMensaje = $this->getCorreoPlantilla($asunto, $mensaje, $datos_empresa);
-    
-                    $mail->Body = $htmlMensaje;
-                    $mail->Encoding = 'base64';
-        
-                    // Adjuntar archivos
-                    //$archivos_adjuntos = ['ruta/archivo1.pdf', 'ruta/archivo2.jpg'];
-                    foreach ($archivos_adjuntos as $archivo) {
-                        $mail->addAttachment($archivo);
-                    }
+            // 3. Configurar PHPMailer
+            $mail->isSMTP();
+            $mail->SMTPKeepAlive = true;
+            $mail->Host = $smtp;
+            $mail->SMTPAuth = true;
+            $mail->Username = $correo_empresa;
+            $mail->Password = $pass_empresa;
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port = 587;
+            $mail->CharSet = 'UTF-8';
+            $mail->ContentType = 'text/html; charset=UTF-8';
+            $mail->setFrom($correo_empresa, $datos_empresa['nombre_completo']);
+            $mail->addReplyTo($datos_empresa['correo'], $datos_empresa['nombre']);
 
-                    $success = false; // Variable para almacenar el estado del envío
+            // 4. Configurar destinatarios
+            foreach ($destinatarios as $email => $nombre) {
+                $mail->addAddress($email, $nombre);
 
-                    if ($mail->send()) {                                    
-                        $success = true; // Envío exitoso
-                    } else {
-                        echo 'Error al enviar el correo: ' . $mail->ErrorInfo;
-                    }                    
-                    
-                    // Limpiar los destinatarios y adjuntos
-                    $mail->clearAddresses();
-                    $mail->ClearAttachments();
-                    
-                    // Retornar el resultado después de limpiar
-                    return $success ? 1 : 0;
-                } 
-            } catch (Exception $e) {
-                //return 0; // Error en el envío
-                echo 'Error al enviar el correo: ' . $e->getMessage();
-            }            
+                foreach ($bccDestinatarios as $bccEmail => $bccNombre) {
+                    $mail->addBCC($bccEmail, $bccNombre);
+                }
+
+                // 5. Configurar contenido
+                $mail->Subject = $asunto;
+                $mail->Body = $mensaje;
+                $mail->Encoding = 'base64';
+
+                // 6. Adjuntar archivos
+                foreach ($archivos_adjuntos as $archivo) {
+                    $mail->addAttachment($archivo);
+                }
+
+                // 7. Enviar correo
+                $success = $mail->send();
+                $mail->clearAddresses();
+                $mail->ClearAttachments();
+
+                if (!$success) {
+                    error_log("Error al enviar correo a $email: " . $mail->ErrorInfo);
+                    return false;
+                }
+
+                return true;
+            }
+        } catch (Exception $e) {
+            error_log("Excepción al enviar correo: " . $e->getMessage());
+            return false;
         }
     }
 
-    public function getCorreoPlantilla($asunto, $mensaje, $datos_empresa) {
-        // Datos de tu empresa
-        $nombreEmpresa = $datos_empresa['empresa'];
-        $direccionEmpresa = $datos_empresa['ubicacion'];
-        $telefonoEmpresa = $datos_empresa['telefono'];
-        $rtnEmpresa = $datos_empresa['rtn'];
-        $sitioWebEmpresa = $datos_empresa['sitioweb'];
-        $urlLogoEmpresa = SERVERURL."vistas/plantilla/img/logos/".$datos_empresa['logotipo'];
-    
-        // Encabezado del correo
-        $encabezado = '
-            <div style="background-color: #f2f2f2; padding: 20px; text-align: center;">
-                <img src="'.$urlLogoEmpresa.'" alt="Logo de '.$nombreEmpresa.'" style="max-width: 70%;">
-                <h1>'.$nombreEmpresa.'</h1>
-                <p>'.$direccionEmpresa.'</p>
-                <p>Teléfono: '.$telefonoEmpresa.'</p>
-                <p>RTN: '.$rtnEmpresa.'</p>
-                <p>Sitio Web: '.$sitioWebEmpresa.'</p>
-            </div>';
-    
-        // Pie de página del correo
-        $pieDePagina = '<div style="background-color: #f2f2f2; padding: 20px; text-align: center;">
-            <p><b>Este correo fue enviado por '.$nombreEmpresa.', por favor no respondas a este correo</b>.</p>
-        </div>';
-    
-        // Cuerpo del mensaje
-        $htmlMensaje = '<html>
-        <head>
-        <title>'.$asunto.'</title>
-        </head>
-        <body>
-        '.$encabezado.'
-        <div style="padding: 20px;">
-            <h1>'.$asunto.'</h1>
-            '.$mensaje.'
-        </div>
-        '.$pieDePagina.'
-        </body>
-        </html>';
-    
-        return $htmlMensaje;
-    }
+    public function testingMail($servidor, $correo, $contraseña, $puerto, $SMTPSecure, $CharSet) {
+        $mail = new PHPMailer(true);
+
+        try {
+            // Configuración SMTP
+            $mail->SMTPDebug = 2;
+            $mail->isSMTP();
+            $mail->Host = $servidor;
+            $mail->SMTPAuth = true;
+            $mail->Username = $correo;
+            $mail->Password = $contraseña;
+            $mail->SMTPSecure = $SMTPSecure === 'tls' ? PHPMailer::ENCRYPTION_STARTTLS : PHPMailer::ENCRYPTION_SMTPS;
+            $mail->Port = $puerto;
+            $mail->CharSet = $CharSet;
+            
+            // Opciones SSL para evitar problemas con certificados
+            $mail->SMTPOptions = [
+                'ssl' => [
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                    'allow_self_signed' => true
+                ]
+            ];
+
+            // Configuración del correo
+            $mail->setFrom($correo, 'Prueba de conexión SMTP');
+            $mail->addAddress($correo);
+            $mail->Subject = 'Prueba de conexión SMTP';
+            $mail->Body = '<h1>Prueba de conexión exitosa</h1><p>Este correo confirma que la configuración SMTP es correcta.</p>';
+            $mail->AltBody = 'Prueba de conexión exitosa - Configuración SMTP correcta';
+
+            // Intenta enviar el correo
+            if ($mail->send()) {
+                return 1;  // Éxito
+            } else {
+                error_log("Error al enviar prueba: " . $mail->ErrorInfo);
+                return 2;  // Fallo
+            }
+        } catch (Exception $e) {
+            error_log("Excepción en prueba SMTP: " . $e->getMessage());
+            return 2;  // Fallo
+        }
+    }    
 }

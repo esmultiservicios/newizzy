@@ -1,5 +1,4 @@
 <?php
-
 /*
  * Parametros de conexión a la DB
  */
@@ -27,21 +26,29 @@ const PASS = 'o8lXA0gtIO$@';
 const SERVER_MAIN = 'localhost';
 const DB_MAIN = 'esmultiservicios_izzy';
 
-// Versión mejorada para definir constantes de nombre de BD
-define('DB_PREFIX', 'smultiservicios_');
+// Credenciales de cPanel API
+define('CPANEL_TOKEN', 'YDBIN7O9JZMUWZU8JRWZZORJZL6GHZS7');
+define('CPANEL_USERNAME', 'esmultiservicios');
+define('CPANEL_PASSWORD', 'CEdwin82003%*');
+define('CPANEL_HOST', 'esmultiservicios.com');
+define('CPANEL_PORT', '2083');
+define('CPANEL_DB_USERNAME', USER);
+define('CPANEL_DB_PASSWORD', PASS);
+define('CPANEL_DOMINIO', "izzycloud.app");
+
+// Configuración para nombres de base de datos
+define('DB_PREFIX', CPANEL_USERNAME);
 define('DB_SUFFIX', '_izzy');
 define('DB_MAX_LENGTH', 10); // Longitud máxima para el identificador único
+
+// Configuración de seguridad
+define('API_TIMEOUT', 60);
+define('SSL_VERIFICATION', false); // true en producción
 
 $GLOBALS['DB_MAIN'] = DB_MAIN;
 
 const USER_MAIN = 'esmultiservicios_root';
 const PASS_MAIN = 'o8lXA0gtIO$@';
-
-// cPanel
-// const tokencPanel = 'cpsessCPBCU71RXAL9R3908OM444JE0OECS6LM';
-const tokencPanel = 'EGUW3PINSFSEVRMMBP7BU6D4DJ78OP0B';
-const usernamecPanel = 'esmultiservicios';
-const passwordcPanel = 'CEdwin82003%*';
 
 // BASE DE DATOS EXCEPTION LOGIN CONTROLADOR
 const DB_MAIN_LOGIN_CONTROLADOR = DB_MAIN;  // LA BASE DE DATOS QUE ESTE AQUÍ SE EXCEPTÚA EN EL LOGIN CONTROLADOR

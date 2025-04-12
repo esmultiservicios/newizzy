@@ -322,7 +322,7 @@ class mainModel
 	 * @param string $companyName Nombre de la compañía
 	 * @return array Devuelve un array con ambos formatos requeridos
 	 */
-	function generateDatabaseName($companyName) {
+	function generateDatabaseName($companyName, $sistema) {
 		// Normalizar el nombre: eliminar acentos, caracteres especiales y convertir a minúsculas
 		$cleanName = preg_replace('/[^a-z0-9]/', '', 
 					strtolower(
@@ -342,8 +342,8 @@ class mainModel
 		
 		// Devolver ambos formatos requeridos
 		return [
-			'prefixed' => $cpanelPrefix . '_' . $uniqueId . DB_SUFFIX,  // ej: "esmultiservicios_izzy"
-			'unprefixed' => $uniqueId . DB_SUFFIX                       // ej: "izzy"
+			'prefixed' => $cpanelPrefix . '_' . $uniqueId . '_' . $sistema ,  // ej: "esmultiservicios_banbuclic_izzy"
+			'unprefixed' => $uniqueId . '_' . $sistema                       // ej: "banbuclic_izzy"
 		];
 	}
 
@@ -2146,8 +2146,8 @@ class mainModel
 				d.nombre AS 'departamento', 
 				m.nombre AS 'municipio', 
 				c.rtn AS 'rtn', 
-				GROUP_CONCAT(s.sistema_id) AS 'sistema_ids', 
-				GROUP_CONCAT(si.nombre) AS 'db_values', 
+				GROUP_CONCAT(DISTINCT  s.sistema_id) AS 'sistema_ids', 
+				GROUP_CONCAT(DISTINCT  si.nombre) AS 'db_values', 
 				c.eslogan, 
 				c.otra_informacion, 
 				c.whatsapp, 

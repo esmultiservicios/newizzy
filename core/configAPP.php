@@ -35,10 +35,14 @@ define('CPANEL_PORT', '2083');
 define('CPANEL_DB_USERNAME', USER);
 define('CPANEL_DB_PASSWORD', PASS);
 define('CPANEL_DOMINIO', "izzycloud.app");
+define('WHM_HOST', 'tu.servidor.whm');  // Ej: server.midominio.com
+define('WHM_PORT', 2087);               // Puerto WHM (2086 para SSL, 2087 para no SSL)
+define('WHM_USERNAME', 'root');         // Usuario WHM (normalmente root)
+define('WHM_TOKEN', 'CTON6YOX1L4U50RAV7HT8EX10A94RAZS'); // Token de acceso WHM (opcional, o usa password)
+define('WHM_TIMEOUT', 30);              // Timeout para conexiones WHM
 
 // Configuración para nombres de base de datos
 define('DB_PREFIX', CPANEL_USERNAME);
-define('DB_SUFFIX', '_izzy');
 define('DB_MAX_LENGTH', 10); // Longitud máxima para el identificador único
 
 // Configuración de seguridad

@@ -6,36 +6,105 @@
     }
 	
 	class correoModelo extends mainModel{		
-		protected function edit_correo_modelo($datos){
-			$update = "UPDATE correo
-			SET 
-				server = '".$datos['server']."',
-				correo = '".$datos['correo']."',
-				password = '".$datos['password']."',
-				port = '".$datos['port']."',
-				smtp_secure = '".$datos['smtp_secure']."'
-			WHERE correo_id = '".$datos['correo_id']."'";
-
-			$sql = mainModel::connection()->query($update) or die(mainModel::connection()->error);
-			
-			return $sql;			
-		}
-
-		protected function agregar_destinatarios_modelo($datos){
-			$notificaciones_id = mainModel::correlativo("notificaciones_id", "notificaciones");
+		protected function edit_correo_modelo($datos) {
+			$conexion = mainModel::connection();
 		
-			$insert = "INSERT INTO `notificaciones`(`notificaciones_id`, `correo`, `nombre`) VALUES ('{$notificaciones_id}','{$datos['correo']}','{$datos['nombre']}')";
-			$sql = mainModel::connection()->query($insert) or die(mainModel::connection()->error);
-			
-			return $sql;
+			try {
+				// Iniciar transacción
+				$conexion->autocommit(false);
+		
+				// Preparar la sentencia UPDATE
+				$stmt = $conexion->prepare("
+					UPDATE correo SET 
+						server = ?, 
+						correo = ?, 
+						password = ?, 
+						port = ?, 
+						smtp_secure = ?
+					WHERE correo_id = ?
+				");
+		
+				$stmt->bind_param("sssssi", 
+					$datos['server'],
+					$datos['correo'],
+					$datos['password'],
+					$datos['port'],
+					$datos['smtp_secure'],
+					$datos['correo_id']
+				);
+		
+				$ejecutado = $stmt->execute();
+		
+				if (!$ejecutado) {
+					throw new Exception($stmt->error);
+				}
+		
+				// Confirmar la transacción
+				$conexion->commit();
+		
+				return true;
+		
+			} catch (Exception $e) {
+				// Revertir en caso de error
+				$conexion->rollback();
+				return false;
+			}
 		}		
 
-		protected function valid_pdestinatarios_modelo($correo){
-			$query = "SELECT notificaciones_id FROM notificaciones WHERE correo = '$correo'";
-			
-			$sql = mainModel::connection()->query($query) or die(mainModel::connection()->error);
-			
-			return $sql;			
-		}
+		protected function agregar_destinatarios_modelo($datos) {
+			$conexion = mainModel::connection();
+		
+			try {
+				// Desactivar autocommit para iniciar transacción
+				$conexion->autocommit(false);
+		
+				// Obtener el próximo ID disponible
+				$notificaciones_id = mainModel::correlativo("notificaciones_id", "notificaciones");
+		
+				// Sentencia preparada
+				$stmt = $conexion->prepare("INSERT INTO notificaciones (notificaciones_id, correo, nombre, activo) VALUES (?, ?, ?, ?)");
+		
+				$activo = 1; // valor por defecto como en tu estructura
+		
+				$stmt->bind_param("isss",
+					$notificaciones_id,
+					$datos['correo'],
+					$datos['nombre'],
+					$activo
+				);
+		
+				$ejecutado = $stmt->execute();
+		
+				if (!$ejecutado) {
+					throw new Exception($stmt->error);
+				}
+		
+				// Confirmar la transacción
+				$conexion->commit();
+		
+				return $notificaciones_id;
+		
+			} catch (Exception $e) {
+				// Revertir si hay error
+				$conexion->rollback();
+				return false;
+			}
+		}			
+
+		protected function valid_pdestinatarios_modelo($correo) {
+			$conexion = mainModel::connection();
+		
+			try {
+				$stmt = $conexion->prepare("SELECT notificaciones_id FROM notificaciones WHERE correo = ?");
+				$stmt->bind_param("s", $correo);
+		
+				$stmt->execute();
+				$resultado = $stmt->get_result();
+		
+				return $resultado;
+		
+			} catch (Exception $e) {
+				return false;
+			}
+		}		
 	}
-?>

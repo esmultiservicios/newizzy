@@ -65,22 +65,34 @@ class clientesControlador extends clientesModelo {
     /* Método para registrar clientes autónomos */
     public function registrar_cliente_autonomo_controlador() {
         // Validar campos requeridos
-        $required = ['user_empresa', 'user_name', 'user_telefono', 'email', 'user_pass'];
+        $required = ['user_empresa', 'user_name', 'user_telefono', 'email'];
         foreach ($required as $field) {
             if (!isset($_POST[$field])) {
                 $this->responderError('Campos faltantes', 'Faltan campos obligatorios', 400);
             }
-        }
-        
+        }        
+
         // Limpiar y validar datos
         $datos = [
-            'empresa' => mainModel::cleanString($_POST['user_empresa']),
-            'nombre' => mainModel::cleanString($_POST['user_name']),
-            'telefono' => mainModel::cleanString($_POST['user_telefono']),
-            'correo' => mainModel::cleanStringStrtolower($_POST['email']),
-            'password' => mainModel::cleanString($_POST['user_pass'])
+            'empresa' => mainModel::cleanString($_POST['user_empresa'] ?? ''),
+            'nombre' => mainModel::cleanString($_POST['user_name'] ?? ''),
+            'telefono' => mainModel::cleanString($_POST['user_telefono'] ?? ''),
+            'correo' => mainModel::cleanStringStrtolower($_POST['email'] ?? ''),
+            'password' => mainModel::cleanString(empty($_POST['user_pass']) ? mainModel::generar_password_complejo() : $_POST['user_pass']),
+            'sistema_id' => mainModel::cleanStringStrtolower($_POST['sistema_id'] ?? 1),
+            'planes_id' => mainModel::cleanString($_POST['planes_id'] ?? ''),
+            'eslogan' => mainModel::cleanStringStrtolower($_POST['eslogan'] ?? ''),
+            'otra_informacion' => mainModel::cleanString($_POST['otra_informacion'] ?? ''),
+            'ubicacion' => mainModel::cleanString($_POST['ubicacion'] ?? ''),
+            'celular' => mainModel::cleanString($_POST['celular'] ?? ''),  
+            'validar' => mainModel::cleanString($_POST['validar'] ?? 0), 
+            'rtn' => mainModel::cleanString($_POST['rtn'] ?? ''), 
+            'clientes_id' => mainModel::cleanString($_POST['clientes_id'] ?? 0),  
         ];
-        
+                
+        $empresa_id = 1; 
+        $clientes_id = $datos['clientes_id'];  
+
         // Validaciones básicas
         if (empty($datos['nombre']) || empty($datos['empresa']) || empty($datos['telefono']) || 
             empty($datos['correo']) || empty($datos['password'])) {
@@ -89,21 +101,39 @@ class clientesControlador extends clientesModelo {
         
         if (!filter_var($datos['correo'], FILTER_VALIDATE_EMAIL)) {
             $this->responderError('Correo inválido', 'El formato del correo no es válido', 400);
-        }
-        
-        if ($this->correoYaRegistrado($datos['correo'])) {
-            $this->responderError('Correo existente', 'Este correo ya está registrado', 400);
-        }
-        
+        }        
+
         // Registrar cliente principal
-        $clientes_id = $this->registrarCliente($datos['nombre'], $datos['telefono'], $datos['correo'], $datos['empresa']);
-        if (!$clientes_id) {
-            $this->responderError('Error', 'No se pudo registrar el cliente principal', 500);
+        if($clientes_id === "0") {
+            if ($this->correoYaRegistrado($datos['correo'])) {
+                $this->responderError('Correo existente', 'Este correo ya está registrado', 400);
+            }
+
+            $clientes_id = $this->registrarCliente(
+                $datos['nombre'], 
+                $datos['telefono'], 
+                $datos['correo'], 
+                $datos['empresa'], 
+                $datos['rtn']);
+            if (!$clientes_id) {
+                $this->responderError('Error', 'No se pudo registrar el cliente principal', 500);
+            }
         }
-        
+
+        //CONSULTAMOS EL NOMBRE DEL SISTEMA
+        $sistema_nombre = $this->getNombreSistema(
+            $datos['sistema_id']
+        );
+
         // Generar nombres para la base de datos
-        $dbNames = mainModel::generateDatabaseName($datos['empresa']);
-        $codigo_cliente = $this->generarCodigoCliente($clientes_id);
+        $dbNames = mainModel::generateDatabaseName(
+            $datos['empresa'], 
+            $sistema_nombre
+        );
+
+        $codigo_cliente = $this->generarCodigoCliente(
+            $clientes_id
+        );
 
         $dataBaseCliente = $dbNames['prefixed'];
         
@@ -129,8 +159,12 @@ class clientesControlador extends clientesModelo {
             // Registrar en server_customers con el nombre real de la DB
             $server_customers_id = $this->registrarServerCustomer(
                 $clientes_id,
+                $empresa_id,
                 $codigo_cliente,
-                $dbSetup['database']['db_name']
+                $dbSetup['database']['db_name'],
+                $datos['validar'],
+                $datos['planes_id'],
+                $datos['sistema_id']
             );
             
             if (!$server_customers_id) {
@@ -171,6 +205,7 @@ class clientesControlador extends clientesModelo {
 
             // Respuesta exitosa consolidada
             $this->responderExito([
+                'estado' => true,
                 'cliente' => [
                     'id' => $clientes_id,
                     'nombre' => $datos['nombre'],
@@ -264,6 +299,7 @@ class clientesControlador extends clientesModelo {
         
         $nombre = $cliente[0]['nombre'] ?? '';
         $rtn = $cliente[0]['rtn'] ?? '';
+        $empresa_id = 1;
                         
         if(clientesModelo::valid_clientes_facturas_modelo($clientes_id)->num_rows > 0){
             header('Content-Type: application/json');
@@ -332,10 +368,10 @@ class clientesControlador extends clientesModelo {
         return ($check_email->num_rows > 0 || $check_email_user->num_rows > 0);
     }
     
-    private function registrarCliente($nombre, $telefono, $correo, $empresa) {
+    private function registrarCliente($nombre, $telefono, $correo, $empresa, $rtn) {
         $datos = [
             "nombre" => $nombre,
-            "rtn" => "",
+            "rtn" => $rtn,
             "fecha" => date("Y-m-d"),
             "departamento_id" => 0,
             "municipio_id" => 0,
@@ -345,7 +381,7 @@ class clientesControlador extends clientesModelo {
             "estado_clientes" => 1,
             "colaborador_id" => 1,
             "fecha_registro" => date("Y-m-d H:i:s"),
-            "empresa" => $empresa
+            "empresa" => $empresa,
         ];
         return clientesModelo::agregar_clientes_modelo($datos);
     }
@@ -356,7 +392,7 @@ class clientesControlador extends clientesModelo {
         return ($existe->fetch_assoc()['total'] > 0) ? (int)(date('Ymd') . substr($clientes_id, -4)) : $codigo;
     }
     
-    private function registrarServerCustomer($clientes_id, $codigo_cliente, $nombre_db) {
+    private function registrarServerCustomer($clientes_id, $empresa_id, $codigo_cliente, $nombre_db, $validar, $planes_id, $sistema_id) {
         $conexion = mainModel::connection();
     
         try {
@@ -371,13 +407,13 @@ class clientesControlador extends clientesModelo {
             $stmt = $conexion->prepare(
                 "INSERT INTO server_customers 
                 (server_customers_id, clientes_id, codigo_cliente, db, planes_id, sistema_id, validar, estado, db_imported) 
-                VALUES (?, ?, ?, ?, 1, 1, 1, 1, 0)"
+                VALUES (?, ?, ?, ?, ?, ?, ?, 1, 0)"
             );
             if (!$stmt) {
                 throw new Exception("Prepare failed: " . $conexion->error);
             }
     
-            $stmt->bind_param("iiss", $server_customers_id, $clientes_id, $codigo_cliente, $nombre_db);
+            $stmt->bind_param("iissiii", $server_customers_id, $clientes_id, $codigo_cliente, $nombre_db, $planes_id, $sistema_id, $validar);
             if (!$stmt->execute()) {
                 throw new Exception("Execute failed: " . $stmt->error);
             }
@@ -391,8 +427,7 @@ class clientesControlador extends clientesModelo {
             ];
             
             $stmtJob = $conexion->prepare(
-                "INSERT INTO jobs_queue 
-                (job_type, data, status, created_at) 
+                "INSERT INTO jobs_queue (job_type, data, status, created_at) 
                 VALUES ('db_import', ?, 'pending', NOW())"
             );
             $jsonData = json_encode($jobData);
@@ -488,6 +523,45 @@ class clientesControlador extends clientesModelo {
             );
         } catch (Exception $e) {
             error_log("Error al enviar correo: " . $e->getMessage());
+        }
+    }
+
+    private function getNombreSistema($sistema_id) {
+        // Obtener la conexión a la base de datos
+        $conexion = mainModel::connection();
+    
+        try {
+            // Consulta para obtener el nombre del sistema basado en el sistema_id
+            $stmt = $conexion->prepare("SELECT LOWER(nombre) AS nombre FROM sistema WHERE sistema_id = ? AND estado = 1");
+            if (!$stmt) {
+                throw new Exception("Error al preparar la consulta: " . $conexion->error);
+            }
+    
+            // Vincular el parámetro
+            $stmt->bind_param("i", $sistema_id);
+    
+            // Ejecutar la consulta
+            $stmt->execute();
+    
+            // Obtener el resultado
+            $result = $stmt->get_result();
+    
+            // Verificar si se encontró un registro
+            if ($result->num_rows > 0) {
+                $row = $result->fetch_assoc();
+                return $row['nombre']; // Devuelve el nombre en minúsculas
+            } else {
+                throw new Exception("No se encontró un sistema con el ID proporcionado o está inactivo.");
+            }
+        } catch (Exception $e) {
+            // Registrar el error y lanzar una excepción
+            error_log("Error en getNombreSistema: " . $e->getMessage());
+            throw $e;
+        } finally {
+            // Cerrar la declaración preparada
+            if (isset($stmt)) {
+                $stmt->close();
+            }
         }
     }
 }

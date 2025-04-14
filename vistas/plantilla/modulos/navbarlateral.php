@@ -240,7 +240,7 @@
                         <div class="sb-nav-link-icon"><i class="fa-solid fa-ranking-star fa-lg"></i></div><span class="menu-text">Planes</span>
                     </a>                                      
                     <a class="nav-link link" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>programaPuntos/" id="programaPuntos" style="display:none">
-                        <div class="sb-nav-link-icon"><i class="fa-solid fa-money-bill-trend-up fa-lg"></i></div><span class="menu-text">Programa Puntos</span>
+                        <div class="sb-nav-link-icon"><i class="fa-solid fa-money-bill-trend-up fa-lg"></i></div><span class="menu-text">Puntos</span>
                     </a>                    
                     <a class="nav-link link" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>puestos/" id="puestos" style="display:none">
                         <div class="sb-nav-link-icon"><i class="fas fa-briefcase fa-lg"></i></div><span class="menu-text">Puestos</span>

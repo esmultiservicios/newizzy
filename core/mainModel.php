@@ -129,7 +129,19 @@ class mainModel
 
 		return $numero;
 	}
-
+	
+	public function obtener_planes_id_por_plan_id(){
+		$query = "SELECT planes_id FROM plan"; // ejemplo con ID fijo
+	
+		$result = $this->ejecutar_consulta_simple($query); // sin pasar parámetros
+	
+		if($result && $result->num_rows > 0){
+			$row = $result->fetch_assoc();
+			return $row['planes_id'];
+		}
+		return null;
+	}
+	
 	// Función para generar username único según las reglas especificadas
 	public function generarUsernameUnico($nombre_completo) {
 		// Separar el nombre completo en partes
@@ -179,11 +191,235 @@ class mainModel
 		return $username_final;
 	}	
 
+	// En tu mainModel.php
+	public function obtener_plan_modelo($plan_id) {
+		$mainModel = new mainModel();
+		$conexion = $mainModel->connection();
+		
+		try {
+			$stmt = $conexion->prepare("SELECT * FROM planes WHERE planes_id = ?");
+			$stmt->bind_param("i", $plan_id);
+			$stmt->execute();
+			
+			$resultado = $stmt->get_result();
+			
+			if($resultado->num_rows == 1) {
+				$plan = $resultado->fetch_assoc();
+				
+				// Limpiar datos de salida
+				$plan['nombre'] = $this->cleanStringConverterCase($plan['nombre']);
+				
+				return [
+					"success" => true,
+					"data" => $plan
+				];
+			} else {
+				return [
+					"success" => false,
+					"error" => "Plan no encontrado"
+				];
+			}
+			
+		} catch(Exception $e) {
+			error_log("Error en obtener_plan_modelo: " . $e->getMessage());
+			return [
+				"success" => false,
+				"error" => $e->getMessage()
+			];
+		} finally {
+			$conexion->close();
+		}
+	}	
+
+	public function registrar_plan_modelo($datos) {
+		$conexion = $this->connection();
+		
+		try {
+			$stmt = $conexion->prepare("INSERT INTO planes (
+									  nombre,
+									  estado,
+									  fecha_registro,
+									  configuraciones
+									  ) VALUES (?, ?, ?, ?)");
+			
+			$stmt->bind_param("siss", 
+				$datos['nombre'],
+				$datos['estado'],
+				$datos['fecha_registro'],
+				$datos['configuraciones']
+			);
+			
+			$stmt->execute();
+			
+			return [
+				'success' => true,
+				'insert_id' => $stmt->insert_id,
+				'affected_rows' => $stmt->affected_rows,
+				'message' => 'Plan registrado correctamente'
+			];
+			
+		} catch (Exception $e) {
+			return [
+				'success' => false,
+				'error' => $e->getMessage()
+			];
+		} finally {
+			if(isset($stmt)) $stmt->close();
+			$conexion->close();
+		}
+	}
+
+	public function actualizar_plan_modelo($datos) {
+		// Verificar conexión
+		$mainModel = new mainModel();
+		$conexion = $mainModel->connection();
+		
+		try {
+			$stmt = $conexion->prepare("UPDATE planes SET 
+									  nombre = ?,
+									  estado = ?,
+									  configuraciones = ?
+									  WHERE planes_id = ?");
+			
+			$stmt->bind_param("sisi", 
+				$datos['nombre'],
+				$datos['estado'],
+				$datos['configuraciones'],
+				$datos['plan_id']
+			);
+			
+			$stmt->execute();
+			
+			return [
+				'success' => true,
+				'affected_rows' => $stmt->affected_rows,
+				'message' => 'Plan actualizado correctamente'
+			];
+			
+		} catch (Exception $e) {
+			return [
+				'success' => false,
+				'error' => $e->getMessage()
+			];
+		} finally {
+			if(isset($stmt)) $stmt->close();
+			$conexion->close();
+		}
+	}	
+
+	public function guardar_o_actualizar_modulo_lista_blanca($nombre_config, $moduloNuevo) {
+		$mainModel = new mainModel();
+		$conexion = $mainModel->connection();
+	
+		try {
+			$conexion->autocommit(false);
+	
+			// Obtener la lista actual
+			$stmt = $conexion->prepare("SELECT modulos FROM config_lista_blanca WHERE nombre_config = ?");
+			$stmt->bind_param("s", $nombre_config);
+			$stmt->execute();
+			$result = $stmt->get_result();
+	
+			if ($result->num_rows > 0) {
+				// Ya existe, obtener y actualizar si es necesario
+				$row = $result->fetch_assoc();
+				$listaModulos = json_decode($row['modulos'], true);
+	
+				if (!in_array($moduloNuevo, $listaModulos)) {
+					$listaModulos[] = $moduloNuevo;
+					$listaModulos = array_unique($listaModulos);
+					$modulosJson = json_encode($listaModulos, JSON_UNESCAPED_UNICODE);
+	
+					$stmt = $conexion->prepare("UPDATE config_lista_blanca SET modulos = ? WHERE nombre_config = ?");
+					$stmt->bind_param("ss", $modulosJson, $nombre_config);
+					if (!$stmt->execute()) throw new Exception($stmt->error);
+				}
+			} else {
+				// No existe, insertar nuevo
+				$listaModulos = [$moduloNuevo];
+				$modulosJson = json_encode($listaModulos, JSON_UNESCAPED_UNICODE);
+	
+				$stmt = $conexion->prepare("INSERT INTO config_lista_blanca (nombre_config, modulos) VALUES (?, ?)");
+				$stmt->bind_param("ss", $nombre_config, $modulosJson);
+				if (!$stmt->execute()) throw new Exception($stmt->error);
+			}
+	
+			$conexion->commit();
+			return true;
+	
+		} catch(Exception $e) {
+			$conexion->rollback();
+			return false;
+		}
+	}	
+
+	public function eliminar_modulo_lista_blanca($nombre_config, $moduloEliminar) {
+		// Crear una instancia de mainModel
+		$mainModel = new mainModel();
+	
+		// Llamamos al método 'connection' desde la instancia de mainModel
+		$conexion = $mainModel->connection();
+	
+		try {
+			// Desactivamos autocommit para asegurar que la transacción sea segura
+			$conexion->autocommit(false);
+	
+			// 1. Obtener la lista actual de módulos desde la base de datos
+			$stmt = $conexion->prepare("SELECT modulos FROM config_lista_blanca WHERE nombre_config = ?");
+			$stmt->bind_param("s", $nombre_config);
+			$stmt->execute();
+			$result = $stmt->get_result();
+	
+			// Verificamos si encontramos el registro
+			if ($result->num_rows > 0) {
+				$row = $result->fetch_assoc();
+				$listaModulos = json_decode($row['modulos'], true);
+			} else {
+				// Si no existe, inicializamos una lista vacía
+				$listaModulos = [];
+			}
+	
+			// 2. Verificar si el módulo está en la lista y eliminarlo
+			if (($key = array_search($moduloEliminar, $listaModulos)) !== false) {
+				unset($listaModulos[$key]);
+	
+				// Eliminar duplicados en la lista
+				$listaModulos = array_values($listaModulos); // Re-indexa el array
+	
+				// Convertimos el array a JSON
+				$modulosJson = json_encode($listaModulos, JSON_UNESCAPED_UNICODE);
+	
+				// Preparamos la consulta para actualizar
+				$stmt = $conexion->prepare("UPDATE config_lista_blanca SET modulos = ? WHERE nombre_config = ?");
+				$stmt->bind_param("ss", $modulosJson, $nombre_config);
+	
+				// Ejecutamos la consulta
+				$ejecutado = $stmt->execute();
+	
+				if (!$ejecutado) {
+					throw new Exception($stmt->error);
+				}
+	
+				// Confirmamos la transacción
+				$conexion->commit();
+				return true;
+			} else {
+				// El módulo no existe en la lista
+				return false;
+			}
+	
+		} catch(Exception $e) {
+			// Si algo falla, hacemos rollback
+			$conexion->rollback();
+			return false;
+		}
+	}
+	
     // Ejecutar consulta simple (SELECT)
 	public static function ejecutar_consulta($query) {
 		// Abrir conexión a la base de datos
 		$conexion = (new mainModel())->connection();
-	
+
 		// Ejecutar la consulta
 		$resultado = $conexion->query($query);
 	
@@ -703,7 +939,7 @@ class mainModel
 
 	/* Funcion que permite limpiar valores de los string (Inyección SQL) */
 
-	protected function cleanString($string)
+	public function cleanString($string)
 	{
 		// Limpia espacios al inicio y al final
 		$string = trim($string);
@@ -1756,44 +1992,61 @@ class mainModel
 
 	public function getMenuAccesosDataTable($privilegio_id)
 	{
-		$query = "SELECT am.acceso_menu_id AS 'acceso_menu_id', m.name AS 'menu', p.nombre AS 'privilegio', p.privilegio_id AS 'privilegio_id', m.menu_id AS 'menu_id'
+		$query = "SELECT 
+					am.acceso_menu_id AS 'acceso_menu_id', 
+					m.name AS 'menu', 
+					p.nombre AS 'privilegio', 
+					p.privilegio_id AS 'privilegio_id', 
+					m.menu_id AS 'menu_id',
+					am.estado AS 'estado' 
 				FROM acceso_menu AS am
 				INNER JOIN menu AS m ON am.menu_id = m.menu_id
 				INNER JOIN privilegio AS p ON am.privilegio_id = p.privilegio_id
 				WHERE am.privilegio_id = '$privilegio_id'";
-
-		$result = self::connection()->query($query);
-
-		return $result;
+	
+		return self::connection()->query($query);
 	}
+	
 
 	public function getSubMenuAccesosDataTable($privilegio_id)
 	{
-		$query = "SELECT asm.acceso_submenu_id AS 'acceso_submenu_id', m.name AS 'menu', sm.name AS 'submenu', p.nombre AS 'privilegio', p.privilegio_id AS 'privilegio_id', sm.submenu_id AS 'submenu_id'
+		$query = "SELECT 
+					asm.acceso_submenu_id AS 'acceso_submenu_id', 
+					m.name AS 'menu', 
+					sm.name AS 'submenu', 
+					p.nombre AS 'privilegio', 
+					p.privilegio_id AS 'privilegio_id', 
+					sm.submenu_id AS 'submenu_id',
+					asm.estado AS 'estado'
 				FROM acceso_submenu AS asm
 				INNER JOIN submenu AS sm ON asm.submenu_id = sm.submenu_id
 				INNER JOIN menu AS m ON sm.menu_id = m.menu_id
 				INNER JOIN privilegio AS p ON asm.privilegio_id = p.privilegio_id
 				WHERE asm.privilegio_id = '$privilegio_id'";
-
-		$result = self::connection()->query($query);
-
-		return $result;
+	
+		return self::connection()->query($query);
 	}
+	
 
 	public function getSubMenu1AccesosDataTable($privilegio_id)
 	{
-		$query = "SELECT asm1.acceso_submenu1_id AS 'acceso_submenu_id', sm1.submenu_id AS 'submenu_id', sm.name AS 'submenu', sm1.name AS 'submenu1', p.nombre AS 'privilegio', p.privilegio_id AS 'privilegio_id'
+		$query = "SELECT 
+					asm1.acceso_submenu1_id AS 'acceso_submenu_id', 
+					sm1.submenu_id AS 'submenu_id', 
+					sm.name AS 'submenu', 
+					sm1.name AS 'submenu1', 
+					p.nombre AS 'privilegio', 
+					p.privilegio_id AS 'privilegio_id',
+					asm1.estado AS 'estado' 
 				FROM acceso_submenu1 AS asm1
 				INNER JOIN submenu1 AS sm1 ON asm1.submenu1_id = sm1.submenu1_id
 				INNER JOIN submenu AS sm ON sm1.submenu_id = sm.submenu_id
 				INNER JOIN privilegio AS p ON asm1.privilegio_id = p.privilegio_id
 				WHERE asm1.privilegio_id = '$privilegio_id'";
-
-		$result = self::connection()->query($query);
-
-		return $result;
+	
+		return self::connection()->query($query);
 	}
+	
 
 	public function valid_menu_on_submenu_acceso($datos)
 	{

@@ -15,8 +15,8 @@
 						<tr>
 							<th>Privilegio</th>
 							<th>Menu</th>
-							<th>Submenu</th>
-							<th>Submenu1</th>
+							<th>Submenu N1</th>
+							<th>Submenu N2</th>
 							<th>Editar</th>	
 							<th>Eliminar</th>
 						</tr>

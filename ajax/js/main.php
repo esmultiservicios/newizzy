@@ -3610,7 +3610,7 @@ var eliminar_clientes_dataTable = function(tbody, table) {
             if (confirmar) {
                 // Mostrar carga mientras se procesa
                 swal({
-                    title: "Procesando eliminación...",
+                    title: "Eliminando registro...",
                     text: "Por favor espere",
                     icon: "info",
                     buttons: false,
@@ -3644,6 +3644,7 @@ var eliminar_clientes_dataTable = function(tbody, table) {
                 });
             }
         });
+
     });
 }
 

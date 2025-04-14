@@ -1,8 +1,6 @@
 <script>
 $(document).ready(function() {
     listar_privilegio(); 
-	getMenusPrivilegios();
-	getSubMenusPrivilegios();
 });
 
 //INICIO ACCIONES FROMULARIO PRIVILEGIOS
@@ -14,12 +12,58 @@ var listar_privilegio = function(){
 			"url":"<?php echo SERVERURL;?>core/llenarDataTablePrivilegio.php"
 		},
 		"columns":[
-			{"data":"nombre"},
-			{"defaultContent":"<button class='table_accesos menu btn btn-dark'><span class='fas fa-bars fa-lg'></span></button>"},
-			{"defaultContent":"<button class='table_accesos submenu btn btn-dark'><span class='fas fa-bars fa-lg'></span></button>"},
-			{"defaultContent":"<button class='table_accesos submenu1 btn btn-dark'><span class='fas fa-bars fa-lg'></span></button>"},
-			{"defaultContent":"<button class='table_editar1 btn btn-dark'><span class='fas fa-edit fa-lg'></span></button>"},
-			{"defaultContent":"<button class='table_eliminar1 btn btn-dark'><span class='fa fa-trash fa-lg'></span></button>"}
+			{
+				"data":"nombre"
+			},
+			{
+				data: null,
+				render: (data, type, row) => {
+					const count = row.menus_asignados || 0;
+					return `
+						<button class="btn btn-sm btn-dark table_accesos menu" 
+								data-plan-id="${row.planes_id}" 
+								data-plan-nombre="${row.nombre}">
+							<i class="fas fa-link"></i> Asignar
+						</button>
+						<div class="mt-1 small" id="contador-menus-${row.planes_id}">${count} asignados</div>
+					`;
+				}
+			},
+			{
+				data: null,
+				render: (data, type, row) => {
+					const count = row.submenus_asignados || 0;
+					return `
+						<button class="btn btn-sm btn-dark table_accesos submenu" 
+								data-plan-id="${row.planes_id}" 
+								data-plan-nombre="${row.nombre}">
+							<i class="fas fa-link"></i> Asignar
+						</button>
+						<div class="mt-1 small" id="contador-submenus-${row.planes_id}">${count} asignados</div>
+					`;
+				}
+			},
+			{
+				data: null,
+				render: (data, type, row) => {
+					const count = row.submenus1_asignados || 0;
+					return `
+						<button class="btn btn-sm btn-dark table_accesos submenu1" 
+								data-plan-id="${row.planes_id}" 
+								data-plan-nombre="${row.nombre}">
+							<i class="fas fa-link"></i> Asignar
+						</button>
+						<div class="mt-1 small" id="contador-submenus1-${row.planes_id}">${count} asignados</div>
+					`;
+				}
+			},
+			{
+				"defaultContent":"<button class='table_editar1 table_editar btn btn-dark'><span class='fas fa-edit fa-lg'></span></button>"
+
+			},
+			{
+				"defaultContent":"<button class='table_eliminar1 table_eliminar btn btn-dark'><span class='fa fa-trash fa-lg'></span></button>"
+			}
 		],
         "lengthMenu": lengthMenu,
 		"stateSave": true,
@@ -99,9 +143,9 @@ var accesos_privilegio_menu_dataTable = function(tbody, table){
 	$(tbody).off("click", "button.menu");
 	$(tbody).on("click", "button.menu", function(){
 		var data = table.row( $(this).parents("tr") ).data();		
-		getAccesoControlMenus(data.privilegio_id, data.nombre);
+		$('#formMenuAccesos #privilegio_id_accesos').val(data.privilegio_id);
+		$('#modal_registrar_menuaccesos .modal-title').text(`Privilegios - Menús: ${data.nombre}`);
 		listar_menuaccesos();
-		getMenusPrivilegios();
 
 		$('#formMenuAccesos').attr({ 'data-form': 'save' });
 		$('#formMenuAccesos').attr({ 'action': '<?php echo SERVERURL;?>ajax/addMenuAccesosAjax.php' });
@@ -117,10 +161,10 @@ var accesos_privilegio_menu_dataTable = function(tbody, table){
 var accesos_privilegio_submenu_dataTable = function(tbody, table){
 	$(tbody).off("click", "button.submenu");
 	$(tbody).on("click", "button.submenu", function(){
-		var data = table.row( $(this).parents("tr") ).data();		
-		getAccesoControlSubMenus(data.privilegio_id, data.nombre);	
-		getMenusparaSubmenuPrivilegios(data.privilegio_id);		
-		getSubMenusPrivilegios();
+		var data = table.row( $(this).parents("tr") ).data();
+		$('#formSubMenuAccesos #privilegio_id_accesos').val(data.privilegio_id);
+		$('#modal_registrar_submenuaccesos  .modal-title').text(`Privilegios - Submenus de nivel 1: ${data.nombre}`);
+			
 		listar_submenuaccesos();
 
 		$('#formSubMenuAccesos').attr({ 'data-form': 'save' });
@@ -137,10 +181,9 @@ var accesos_privilegio_submenu_dataTable = function(tbody, table){
 var accesos_privilegio_submenu1_dataTable = function(tbody, table){
 	$(tbody).off("click", "button.submenu1");
 	$(tbody).on("click", "button.submenu1", function(){
-		var data = table.row( $(this).parents("tr") ).data();		
-		getAccesoControlSubMenus1(data.privilegio_id, data.nombre);
-		getSubMenu1Privilegios(data.privilegio_id);
-		getSubMenusConsulta();
+		var data = table.row( $(this).parents("tr") ).data();
+		$('#formSubMenu1Accesos #privilegio_id_accesos').val(data.privilegio_id);
+		$('#modal_registrar_submenu1accesos  .modal-title').text(`Privilegios - Menús: ${data.nombre}`);		
 		listar_submenu1accesos();
 
 		$('#formSubMenu1Accesos').attr({ 'data-form': 'save' });
@@ -154,590 +197,178 @@ var accesos_privilegio_submenu1_dataTable = function(tbody, table){
 	});
 }
 
-/*INCIO MENU ACCESOS*/
-function deleteMenuAcceso(menu_id, privilegio_id, menu, acceso_menu_id){
-	swal({
-		title: "¿Estas seguro?",
-		text: "¿Desea eliminar el menu: " + menu + "?",
-		icon: "warning",
-		buttons: {
-			cancel: {
-				text: "Cancelar",
-				visible: true
-			},
-			confirm: {
-				text: "!Sí, Eliminar el menu!",
-			}
-		},
-		dangerMode: true,
-		closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-		closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-	}).then((willConfirm) => {
-		if (willConfirm === true) {
-			deleteMenu(menu_id, privilegio_id, acceso_menu_id);
-		}
-	});
-}
-
-function deleteMenu(menu_id, privilegio_id, acceso_menu_id){
-	var url = '<?php echo SERVERURL; ?>core/deleteMenuAcceso.php';
-
-	$.ajax({
-	   type:'POST',
-	   url:url,
-	   async: false,
-	   data:'menu_id='+menu_id+'&privilegio_id='+privilegio_id+'&acceso_menu_id='+acceso_menu_id,
-	   success:function(data){
-	      if(data == 1){
-			swal({
-				title: "Success",
-				text: "El acceso al menu ha sido eliminado correctamente",
-				icon: "success",
-				closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-				closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera				
-			});
-			listar_menuaccesos();
-			
-		  }else if(data == 2){
-            swal({
-                title: "Error",
-                text: "Error el acceso al menu no se puede eliminar",
-                icon: "error",
-				dangerMode: true,
-				closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-				closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-            });			
-		  }else{
-            swal({
-                title: "Error",
-                text: "Error no se puede eliminar este menu, ya que tiene registros en accesos del submenu",
-                icon: "error",
-				dangerMode: true,
-				closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-				closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-            });
-		  }
-	  }
-	});
-}
-
 var listar_menuaccesos = function(){
 	var privilegio_id_accesos = $("#formMenuAccesos #privilegio_id_accesos").val();
 
-	var table_menuaccesos  = $("#dataTableMenuAccesos").DataTable({
-		"destroy":true,
-		"ajax":{
-			"method":"POST",
-			"url":"<?php echo SERVERURL;?>core/llenarDataTableMenuAccesos.php",
-			"data":{
-				"privilegio_id_accesos":privilegio_id_accesos,
+	var table_menuaccesos = $("#dataTableMenuAccesos").DataTable({
+		destroy: true,
+		ajax: {
+			method: "POST",
+			url: "<?php echo SERVERURL;?>core/llenarDataTableMenuAccesos.php",
+			data: { 
+				privilegio_id_accesos: privilegio_id_accesos 
+			},
+			dataSrc: function(json) {
+				let contador = 0;
+				json.data.forEach(d => { if(d.asignado) contador++; });
+				$(`#contador-menuaccesos-${privilegio_id_accesos}`).text(`${contador} asignados`);
+
+				// Verifica si la tabla está vacía
+				if (json.data.length === 0) {
+					showNotify('warning', 'Sin Plan Asignado', 'No tiene un plan asignado');
+
+					return; // Detener el proceso, no cargar la tabla
+				}
+
+				return json.data.map((menu, index) => ({
+					"#": index + 1,
+					"menu": menu.menu_name,
+					"asignado": menu.asignado 
+						? '<span class="badge badge-success">Asignado</span>' 
+						: '<span class="badge badge-secondary">No asignado</span>',
+					"acciones": `<button class="btn btn-sm ${menu.asignado ? 'btn-danger' : 'btn-success'} btn-toggle-menuacceso"
+						data-menu-id="${menu.menu_id}" data-asignado="${menu.asignado}">
+						${menu.asignado ? '<i class="fas fa-times"></i> Quitar' : '<i class="fas fa-plus"></i> Asignar'}
+					</button>`
+				}));
 			}
 		},
-		"columns":[
-			{"data":"privilegio"},
-			{"data":"menu"},
-			{"defaultContent":"<button class='table_eliminar eliminar_menu btn btn-dark'><span class='fa fa-trash fa-lg'></span></button>"}
+		columns: [
+			{ data: "#" },
+			{ data: "menu" },
+			{ data: "asignado" },
+			{ data: "acciones" }
 		],
-        "lengthMenu": lengthMenu20,
-		"stateSave": true,
-		"bDestroy": true,
-		"language": idioma_español,
-		"dom": dom,
-		"columnDefs": [
-		  { width: "48.33%", targets: 0 },
-		  { width: "49.33%", targets: 1 },
-		  { width: "2.33%", targets: 2 }
-		],		
-		"buttons":[
-			{
-				text:      '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-				titleAttr: 'Actualizar Acceso Menus',
-				className: 'btn btn-secondary',
-				action: 	function(){
-					listar_menuaccesos();
-				}
-			},
-			{
-				extend:    'excelHtml5',
-				text:      '<i class="fas fa-file-excel fa-lg"></i> Excel',
-				titleAttr: 'Excel',
-				title: 'Reporte Acceso Menus',
-				messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-				className: 'btn btn-success',
-				exportOptions: {
-						columns: [0]
-				},
-			},
-			{
-				extend:    'pdf',
-				text:      '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-				titleAttr: 'PDF',
-				title: 'Reporte Acceso Menus',
-				messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-				className: 'btn btn-danger',
-				exportOptions: {
-						columns: [0]
-				},
-				customize: function ( doc ) {
-					doc.content.splice( 1, 0, {
-						margin: [ 0, 0, 0, 12 ],
-						alignment: 'left',
-						image: imagen,
-						width:100,
-                        height:45
-					} );
-				}
-			}
-		],
-		"drawCallback": function( settings ) {
-        	getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-    	}
+		lengthMenu: lengthMenu20,
+		stateSave: true,
+		language: idioma_español,
+		dom: dom,
+		buttons: []
 	});
-	table_menuaccesos.search('').draw();
-	$('#buscar').focus();
-
-	eliminar_menuAcceso_dataTable("#dataTableMenuAccesos tbody", table_menuaccesos);
-}
-
-var eliminar_menuAcceso_dataTable = function(tbody, table){
-	$(tbody).off("click", "button.eliminar_menu");
-	$(tbody).on("click", "button.eliminar_menu", function(e){
-		e.preventDefault();
-		var data = table.row( $(this).parents("tr") ).data();
-		deleteMenuAcceso(data.menu_id, data.privilegio_id, data.menu, data.acceso_menu_id);
-	});
-}
+};
 
 $(document).ready(function(){
 	$("#modal_registrar_menuaccesos").on('shown.bs.modal', function(){
 		$(this).find('#formMenuAccesos #buscar').focus();
 	});
 });	
-
-function getAccesoControlMenus(privilegio_id, nombre){
-	var url = '<?php echo SERVERURL;?>core/getMenuPrivilegios.php';	
-	$('#formMenuAccesos #proceso_privilegios').val("Registrar");
-	$('#formMenuAccesos #privilegio_id_accesos').val(privilegio_id);
-	$('#formMenuAccesos #privilegio').val(nombre);
-}
-
-function getMenusPrivilegios(){
-    var url = '<?php echo SERVERURL;?>core/getMenusAcceso.php';
-
-	$.ajax({
-        type: "POST",
-        url: url,
-	    async: true,
-        success: function(data){
-		    $('#formMenuAccesos #menus').html("");
-			$('#formMenuAccesos #menus').html(data);
-			$('#formMenuAccesos #menus').selectpicker('refresh');			
-		}
-     });
-}
 /*FIN MENU ACCESOS*/
 
 /*INCIO SUBMENU ACCESOS*/
-function deleteSubMenuAcceso(submenu_id, privilegio_id, submenu, acceso_submenu_id){
-	swal({
-		title: "¿Estas seguro?",
-		text: "¿Desea eliminar el submenu: " + submenu + "?",
-		icon: "warning",
-		buttons: {
-			cancel: {
-				text: "Cancelar",
-				visible: true
-			},
-			confirm: {
-				text: "¡Sí, Eliminar el submenu!",
-			}
-		},
-		dangerMode: true,
-		closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-		closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-	}).then((willConfirm) => {
-		if (willConfirm === true) {
-			deleteSubMenu(submenu_id, privilegio_id, acceso_submenu_id);
-		}
-	});
-}
-
-function deleteSubMenu(submenu_id, privilegio_id, acceso_submenu_id){
-	var url = '<?php echo SERVERURL; ?>core/deleteSubMenuAcceso.php';
-
-	$.ajax({
-	   type:'POST',
-	   url:url,
-	   async: false,
-	   data:'submenu_id='+submenu_id+'&privilegio_id='+privilegio_id+'&acceso_submenu_id='+acceso_submenu_id,
-	   success:function(data){
-	      if(data == 1){
-			swal({
-				title: "Success",
-				text: "El acceso al menu ha sido eliminado correctamente",
-				icon: "success",
-				closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-				closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera				
-			});
-			listar_submenuaccesos();
-		  }else if(data == 2){
-            swal({
-                title: "Error",
-                text: "Error el acceso al menu no se puede eliminar",
-                icon: "error",
-				dangerMode: true,
-				closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-				closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-            });			
-		  }else{
-            swal({
-                title: "Error",
-                text: "Error no se puede eliminar este submenu, ya que tiene registros en accesos del submenu1",
-                icon: "error",
-				dangerMode: true,
-				closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-				closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-            });
-		  }
-	  }
-	});
-}
-
 var listar_submenuaccesos = function(){
 	var privilegio_id_accesos = $("#formSubMenuAccesos #privilegio_id_accesos").val();
 
-	var table_submenuaccesos  = $("#dataTableSubMenuAccesos").DataTable({
-		"destroy":true,
-		"ajax":{
-			"method":"POST",
-			"url":"<?php echo SERVERURL;?>core/llenarDataTableSubMenuAccesos.php",
-			"data":{
-				"privilegio_id_accesos":privilegio_id_accesos,
+	var table_submenuaccesos = $("#dataTableSubMenuAccesos").DataTable({
+		destroy: true,
+		ajax: {
+			method: "POST",
+			url: "<?php echo SERVERURL;?>core/llenarDataTableSubMenuAccesos.php",
+			data: { privilegio_id_accesos: privilegio_id_accesos },
+			dataSrc: function(json) {
+				let contador = 0;
+				json.data.forEach(d => { if(d.asignado) contador++; });
+				$(`#contador-submenuaccesos-${privilegio_id_accesos}`).text(`${contador} asignados`);
+
+				// Verifica si la tabla está vacía
+				if (json.data.length === 0) {
+					showNotify('warning', 'Sin Plan Asignado', 'No tiene un plan asignado');
+
+					return; // Detener el proceso, no cargar la tabla
+				}
+
+				return json.data.map((submenu, index) => ({
+					"#": index + 1,
+					"menu": submenu.menu,
+					"submenu": submenu.submenu,
+					"asignado": submenu.asignado 
+						? '<span class="badge badge-success">Asignado</span>' 
+						: '<span class="badge badge-secondary">No asignado</span>',
+					"acciones": `<button class="btn btn-sm ${submenu.asignado ? 'btn-danger' : 'btn-success'} btn-toggle-submenuacceso"
+						data-submenu-id="${submenu.submenu_id}" data-asignado="${submenu.asignado}">
+						${submenu.asignado ? '<i class="fas fa-times"></i> Quitar' : '<i class="fas fa-plus"></i> Asignar'}
+					</button>`
+				}));
 			}
 		},
-		"columns":[
-			{"data":"privilegio"},
-			{"data":"menu"},
-			{"data":"submenu"},
-			{"defaultContent":"<button class='table_eliminar eliminar_submenu btn btn-dark'><span class='fa fa-trash fa-lg'></span></button>"}
+		columns: [
+			{ data: "#" },
+			{ data: "menu" },
+			{ data: "submenu" },
+			{ data: "asignado" },
+			{ data: "acciones" }
 		],
-        "lengthMenu": lengthMenu20,
-		"stateSave": true,
-		"bDestroy": true,
-		"language": idioma_español,
-		"dom": dom,
-		"columnDefs": [
-		  { width: "31%", targets: 0 },
-		  { width: "31%", targets: 1 },
-		  { width: "36%", targets: 2 },
-		  { width: "2%", targets: 3 }
-		],		
-		"buttons":[
-			{
-				text:      '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-				titleAttr: 'Actualizar Sub Acceso Menus',
-				className: 'btn btn-secondary',
-				action: 	function(){
-					listar_submenuaccesos();
-				}
-			},
-			{
-				extend:    'excelHtml5',
-				text:      '<i class="fas fa-file-excel fa-lg"></i> Excel',
-				titleAttr: 'Excel',
-				title: 'Reporte Acceso Sub Menus',
-				messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-				className: 'btn btn-success',
-				exportOptions: {
-						columns: [0]
-				},
-			},
-			{
-				extend:    'pdf',
-				text:      '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-				titleAttr: 'PDF',
-				title: 'Reporte Acceso Sub Menus',
-				messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-				className: 'btn btn-danger',
-				exportOptions: {
-						columns: [0]
-				},
-				customize: function ( doc ) {
-					doc.content.splice( 1, 0, {
-						margin: [ 0, 0, 0, 12 ],
-						alignment: 'left',
-						image: imagen,
-						width:100,
-                        height:45
-					} );
-				}
-			}
-		],
-		"drawCallback": function( settings ) {
-        	getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-    	}
+		lengthMenu: lengthMenu20,
+		stateSave: true,
+		language: idioma_español,
+		dom: dom,
+		buttons: []
 	});
-	table_submenuaccesos.search('').draw();
-	$('#buscar').focus();
-
-	eliminar_submenuAcceso_dataTable("#dataTableSubMenuAccesos tbody", table_submenuaccesos);
-}
-
-var eliminar_submenuAcceso_dataTable = function(tbody, table){
-	$(tbody).off("click", "button.eliminar_submenu");
-	$(tbody).on("click", "button.eliminar_submenu", function(e){
-		e.preventDefault();
-		var data = table.row( $(this).parents("tr") ).data();
-		deleteSubMenuAcceso(data.submenu_id, data.privilegio_id, data.submenu, data.acceso_submenu_id);
-	});
-}
+};
 
 $(document).ready(function(){
 	$("#modal_registrar_submenuaccesos").on('shown.bs.modal', function(){
 		$(this).find('#formSubMenuAccesos #buscar').focus();
 	});
 });	
-
-function getAccesoControlSubMenus(privilegio_id, nombre){
-	var url = '<?php echo SERVERURL;?>core/getMenuPrivilegios.php';	
-	$('#formSubMenuAccesos #proceso_privilegios').val("Registrar");
-	$('#formSubMenuAccesos #privilegio_id_accesos').val(privilegio_id);
-	$('#formSubMenuAccesos #privilegio').val(nombre);
-}
-
-function getMenusparaSubmenuPrivilegios(privilegio_id){
-    var url = '<?php echo SERVERURL;?>core/getMenusparaSubmenuAccesos.php';
-
-	$.ajax({
-        type: "POST",
-        url: url,
-	    async: true,
-		data:'privilegio_id='+privilegio_id,
-        success: function(data){	
-		    $('#formSubMenuAccesos #menus').html("");
-			$('#formSubMenuAccesos #menus').html(data);
-			$('#formSubMenuAccesos #menus').selectpicker('refresh');			
-		}
-     });
-}
-
-function getSubMenusPrivilegios(){
-    var url = '<?php echo SERVERURL;?>core/getSubMenusAcceso.php';
-	var menu_id = $('#formSubMenuAccesos #menus').val();
-
-	$.ajax({
-        type: "POST",
-        url: url,
-	    async: true,
-		data:'menu_id='+menu_id,
-        success: function(data){
-		    $('#formSubMenuAccesos #submenus').html("");
-			$('#formSubMenuAccesos #submenus').html(data);
-			$('#formSubMenuAccesos #submenus').selectpicker('refresh');				
-		}
-     });
-}
-
-$("#formSubMenuAccesos #menus").on("change", function(){
-	getSubMenusPrivilegios();
-});
 /*FIN SUBMENU ACCESOS*/
 
 /*INCIO SUBMENU1 ACCESOS*/
-function deleteSubMenu1Acceso(submenu_id, privilegio_id, submenu){
-	swal({
-		title: "¿Estas seguro?",
-		text: "¿Desea eliminar el menu: " + submenu + "?",
-		icon: "warning",
-		buttons: {
-			cancel: {
-				text: "Cancelar",
-				visible: true
-			},
-			confirm: {
-				text: "¡Sí, Eliminar el submenu!",
-			}
-		},
-		dangerMode: true,
-		closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-		closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-	}).then((willConfirm) => {
-		if (willConfirm === true) {
-			deleteSubMenu1(submenu_id, privilegio_id);
-		}
-	});
-}
-
-function deleteSubMenu1(submenu_id, privilegio_id){
-	var url = '<?php echo SERVERURL; ?>core/deleteSubMenu1Acceso.php';
-
-	$.ajax({
-	   type:'POST',
-	   url:url,
-	   async: false,
-	   data:'submenu_id='+submenu_id+'&privilegio_id='+privilegio_id,
-	   success:function(data){
-	      if(data == 1){
-			swal({
-				title: "Success",
-				text: "El acceso al submenu ha sido eliminado correctamente",
-				icon: "success",
-				closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-				closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera				
-			});
-			listar_submenu1accesos();
-		  }else{
-            swal({
-                title: "Error",
-                text: "Error el acceso al submenu no se puede eliminar",
-                icon: "error",
-				dangerMode: true,
-				closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-				closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-            });			
-		  }
-	  }
-	});
-}
-
 var listar_submenu1accesos = function(){
 	var privilegio_id_accesos = $("#formSubMenu1Accesos #privilegio_id_accesos").val();
 
-	var table_submenu1accesos  = $("#dataTableSubMenu1Accesos").DataTable({
-		"destroy":true,
-		"ajax":{
-			"method":"POST",
-			"url":"<?php echo SERVERURL;?>core/llenarDataTableSubMenu1Accesos.php",
-			"data":{
-				"privilegio_id_accesos":privilegio_id_accesos,
+	var table_submenu1accesos = $("#dataTableSubMenu1Accesos").DataTable({
+		destroy: true,
+		ajax: {
+			method: "POST",
+			url: "<?php echo SERVERURL;?>core/llenarDataTableSubMenu1Accesos.php",
+			data: { privilegio_id_accesos: privilegio_id_accesos },
+			dataSrc: function(json) {
+				console.log(json);
+				let contador = 0;
+				json.data.forEach(d => { if(d.asignado) contador++; });
+				$(`#contador-submenu1accesos-${privilegio_id_accesos}`).text(`${contador} asignados`);
+
+				// Verifica si la tabla está vacía
+				if (json.data.length === 0) {
+					showNotify('warning', 'Sin Plan Asignado', 'No tiene un plan asignado');
+
+					return; // Detener el proceso, no cargar la tabla
+				}
+
+				return json.data.map((s1, index) => ({
+					"#": index + 1,
+					"submenu": s1.menu,
+					"submenu1": s1.submenu,
+					"asignado": s1.asignado 
+						? '<span class="badge badge-success">Asignado</span>' 
+						: '<span class="badge badge-secondary">No asignado</span>',
+					"acciones": `<button class="btn btn-sm ${s1.asignado ? 'btn-danger' : 'btn-success'} btn-toggle-submenu1acceso"
+						data-submenu1-id="${s1.submenu_id}" data-asignado="${s1.asignado}">
+						${s1.asignado ? '<i class="fas fa-times"></i> Quitar' : '<i class="fas fa-plus"></i> Asignar'}
+					</button>`
+				}));
 			}
 		},
-		"columns":[
-			{"data":"privilegio"},
-			{"data":"submenu"},
-			{"data":"submenu1"},
-			{"defaultContent":"<button class='table_eliminar eliminar_submenu1 btn btn-dark'><span class='fa fa-trash fa-lg'></span></button>"}
+		columns: [
+			{ data: "#" },
+			{ data: "submenu" },
+			{ data: "submenu1" },
+			{ data: "asignado" },
+			{ data: "acciones" }
 		],
-        "lengthMenu": lengthMenu20,
-		"stateSave": true,
-		"bDestroy": true,
-		"language": idioma_español,
-		"dom": dom,
-		"columnDefs": [
-		  { width: "31%", targets: 0 },
-		  { width: "31%", targets: 1 },
-		  { width: "36%", targets: 2 },
-		  { width: "2%", targets: 3 }
-		],		
-		"buttons":[
-			{
-				text:      '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-				titleAttr: 'Actualizar Acceso Sub Menus',
-				className: 'btn btn-secondary',
-				action: 	function(){
-					listar_submenu1accesos();
-				}
-			},
-			{
-				extend:    'excelHtml5',
-				text:      '<i class="fas fa-file-excel fa-lg"></i> Excel',
-				titleAttr: 'Excel',
-				title: 'Reporte Acceso Sub Menus',
-				messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-				className: 'btn btn-success',
-				exportOptions: {
-						columns: [0]
-				},
-			},
-			{
-				extend:    'pdf',
-				text:      '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-				titleAttr: 'PDF',
-				title: 'Reporte Acceso Sub Menus',
-				messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-				className: 'btn btn-danger',
-				exportOptions: {
-						columns: [0]
-				},
-				customize: function ( doc ) {
-					doc.content.splice( 1, 0, {
-						margin: [ 0, 0, 0, 12 ],
-						alignment: 'left',
-						image: imagen,
-						width:100,
-                        height:45
-					} );
-				}
-			}
-		],
-		"drawCallback": function( settings ) {
-        	getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-    	}
+		lengthMenu: lengthMenu20,
+		stateSave: true,
+		language: idioma_español,
+		dom: dom,
+		buttons: []
 	});
-	table_submenu1accesos.search('').draw();
-	$('#buscar').focus();
-
-	eliminar_submenu1Acceso_dataTable("#dataTableSubMenu1Accesos tbody", table_submenu1accesos);
-}
-
-var eliminar_submenu1Acceso_dataTable = function(tbody, table){
-	$(tbody).off("click", "button.eliminar_submenu1");
-	$(tbody).on("click", "button.eliminar_submenu1", function(e){
-		e.preventDefault();
-		var data = table.row( $(this).parents("tr") ).data();
-		deleteSubMenu1Acceso(data.acceso_submenu_id, data.privilegio_id, data.submenu1);
-	});
-}
+};
 
 $(document).ready(function(){
 	$("#modal_registrar_submenu1accesos").on('shown.bs.modal', function(){
 		$(this).find('#formSubMenu1Accesos #buscar').focus();
 	});
 });	
-
-function getAccesoControlSubMenus1(privilegio_id, nombre){
-	var url = '<?php echo SERVERURL;?>core/getMenuPrivilegios.php';	
-	$('#formSubMenu1Accesos #proceso_privilegios').val("Registrar");
-	$('#formSubMenu1Accesos #privilegio_id_accesos').val(privilegio_id);
-	$('#formSubMenu1Accesos #privilegio').val(nombre);
-}
-
-function getSubMenu1Privilegios(privilegio_id){
-    var url = '<?php echo SERVERURL;?>core/getSubMenus1Acceso.php';
-
-	$.ajax({
-        type: "POST",
-        url: url,
-	    async: true,
-		data:'privilegio_id='+privilegio_id,
-        success: function(data){
-		    $('#formSubMenu1Accesos #menus').html("");
-			$('#formSubMenu1Accesos #menus').html(data);
-			$('#formSubMenu1Accesos #menus').selectpicker('refresh');				
-		}
-     });
-}
-
-function getSubMenusConsulta(){
-    var url = '<?php echo SERVERURL;?>core/getSubMenusConsultaAccesos.php';
-	var menu_id = $('#formSubMenu1Accesos #menus').val();
-
-	$.ajax({
-        type: "POST",
-        url: url,
-	    async: true,
-		data:'menu_id='+menu_id,
-        success: function(data){
-		    $('#formSubMenu1Accesos #submenus').html("");
-			$('#formSubMenu1Accesos #submenus').html(data);
-			$('#formSubMenu1Accesos #submenus').selectpicker('refresh');				
-		}
-     });
-}
-
-$("#formSubMenu1Accesos #menus").on("change", function(){
-	getSubMenusConsulta();
-});
 /*FIN SUBMENU1 ACCESOS*/
 
 var editar_privilegio_dataTable = function(tbody, table){
@@ -868,4 +499,83 @@ $('#formPrivilegios .switch').change(function() {
 		return false;
 	}
 });
+
+$(document).on('click', '.btn-toggle-menuacceso', function(e) {
+	e.preventDefault();
+    const btn = $(this);
+    const menu_id = btn.data('menu-id');
+    const asignado = btn.data('asignado'); // booleano o 0/1
+    const privilegio_id = $("#formMenuAccesos #privilegio_id_accesos").val();
+
+    const nuevoEstado = asignado ? 0 : 1;
+
+    $.ajax({
+        type: 'POST',
+        url: '<?php echo SERVERURL;?>core/asignarMenuAcceso.php',
+        data: {
+            menu_id: menu_id,
+            privilegio_id: privilegio_id,
+            estado: nuevoEstado
+        },
+        success: function(response) {
+            const res = JSON.parse(response);  // Parsear la respuesta JSON
+            showNotify(res.type, res.title, res.message);  // Mostrar la notificación
+            listar_menuaccesos();
+			listar_privilegio();
+        }
+    });
+});
+
+$(document).on('click', '.btn-toggle-submenuacceso', function(e) {
+	e.preventDefault();
+    const btn = $(this);
+    const submenu_id = btn.data('submenu-id');
+    const asignado = btn.data('asignado');
+    const privilegio_id = $("#formSubMenuAccesos #privilegio_id_accesos").val();
+
+	const nuevoEstado = asignado ? 0 : 1;
+
+    $.ajax({
+        type: 'POST',
+        url: '<?php echo SERVERURL;?>core/asignarSubMenuAcceso.php',
+        data: {
+            submenu_id: submenu_id,
+            privilegio_id: privilegio_id,
+            estado: nuevoEstado
+        },
+        success: function(response) {
+            const res = JSON.parse(response);  // Parsear la respuesta JSON
+            showNotify(res.type, res.title, res.message);  // Mostrar la notificación
+            listar_submenuaccesos();
+			listar_privilegio();
+        }
+    });
+});
+
+$(document).on('click', '.btn-toggle-submenu1acceso', function(e) {
+	e.preventDefault();
+    const btn = $(this);
+    const submenu1_id = btn.data('submenu1-id');
+    const asignado = btn.data('asignado');
+    const privilegio_id = $("#formSubMenu1Accesos #privilegio_id_accesos").val();
+
+    const nuevoEstado = asignado ? 0 : 1;
+
+    $.ajax({
+        type: 'POST',
+        url: '<?php echo SERVERURL;?>core/asignarSubMenu1Acceso.php',
+        data: {
+            submenu1_id: submenu1_id,
+            privilegio_id: privilegio_id,
+            estado: nuevoEstado
+        },
+        success: function(response) {			
+            const res = JSON.parse(response);  // Parsear la respuesta JSON
+            showNotify(res.type, res.title, res.message);  // Mostrar la notificación
+            listar_submenu1accesos();
+			listar_privilegio();
+        }
+    });
+});
+
 </script>

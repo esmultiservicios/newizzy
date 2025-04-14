@@ -127,7 +127,7 @@
     </form>
 
     <!-- ===================== FORMULARIO DE REGISTRO ===================== -->
-    <form class="form-signup" id="form_registro" autocomplete="off">
+    <form class="form-signup" id="form_registro">
         <h1 class="h3 mb-3 font-weight-normal text-center">Registro de Nuevo Cliente</h1>
         <p class="text-center text-muted small">Completa tus datos para crear una nueva cuenta</p>
 

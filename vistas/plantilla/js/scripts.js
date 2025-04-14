@@ -100,6 +100,7 @@ $(function() {
     // Restaurar el modo de pantalla completa tan pronto como sea posible
     restoreFullscreenIfNeeded();
 });
+
 // Función para manejar la barra lateral
 document.addEventListener('DOMContentLoaded', function() {
     const sidebar = document.querySelector('.sb-sidenav');

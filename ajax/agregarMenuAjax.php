@@ -34,6 +34,7 @@ if (isset($_POST['tipo']) && isset($_POST['nombre'])) {
     }
 
     if ($check->num_rows == 0) {
+        // Insertar el nuevo registro
         if ($tipo == 'menu') {
             $sql = "INSERT INTO menu (menu_id, name, fecha_registro) VALUES ('$nextId', '$nombre', '$fecha_registro')";
         } elseif ($tipo == 'submenu') {
@@ -43,6 +44,13 @@ if (isset($_POST['tipo']) && isset($_POST['nombre'])) {
         }
 
         if ($insMainModel->ejecutar_consulta_simple($sql)) {
+            // Aquí llamamos a actualizar_lista_blanca_modelo después de insertar el nuevo registro
+            $nombre_config = 'configuracion_principal'; // O el nombre que desees
+            $moduloNuevo = $nombre;
+
+            // Llamar al método de actualización para agregar el módulo
+            $insMainModel->guardar_o_actualizar_modulo_lista_blanca($nombre_config, $moduloNuevo);
+
             echo json_encode([
                 "type" => "success",
                 "title" => "Éxito",

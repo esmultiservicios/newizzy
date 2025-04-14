@@ -93,41 +93,19 @@
                             <div class="input-group mb-3">
                                 <input type="hidden" id="privilegio_id_accesos" name="privilegio_id_accesos"
                                     class="form-control">
-                                <input type="text" id="proceso_privilegios" class="form-control" readonly>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fa fa-plus-square fa-lg"></i>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="server">Privilegio </label>
-                            <input type="text" class="form-control" id="privilegio" name="privilegio" readonly>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="col-md-4 mb-3">
-                            <label>Menu <span class="priority">*<span /></label>
-                            <div class="input-group mb-3">
-                                <select id="menus" name="menus[] class=" selectpicker" data-width="100%" multiple
-                                    data-live-search="true" title="Menu" required>
-                                </select>
                             </div>
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="col-md-12 mb-3">
                             <div class="table-responsive">
-                                <table id="dataTableMenuAccesos" class="table table-striped table-condensed table-hover"
-                                    style="width:100%">
+                                <table id="dataTableMenuAccesos" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
                                     <thead>
                                         <tr>
-                                            <th>Privilegio</th>
-                                            <th>Menu</th>
-                                            <th>Eliminar</th>
+                                            <th>#</th>
+                                            <th>Menú</th>
+                                            <th>Estado</th>
+                                            <th>Acciones</th>
                                         </tr>
                                     </thead>
                                 </table>
@@ -138,10 +116,7 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="guardar btn btn-primary ml-2" type="submit" style="display: none;" id="reg_menuAccesos"
-                    form="formMenuAccesos">
-                    <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
-                </button>
+
             </div>
         </div>
     </div>
@@ -160,58 +135,27 @@
             </div>
             <div class="container"></div>
             <div class="modal-body">
-                <form class="FormularioAjax" id="formSubMenuAccesos" action="" method="POST" data-form=""
-                    autocomplete="off" enctype="multipart/form-data">
+                <form class="FormularioAjax" id="formSubMenuAccesos" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
                     <div class="form-row">
                         <div class="col-md-12 mb-3">
                             <div class="input-group mb-3">
                                 <input type="hidden" id="privilegio_id_accesos" name="privilegio_id_accesos"
                                     class="form-control">
                                 <input type="hidden" id="menu_id_accesos" name="menu_id_accesos" class="form-control">
-                                <input type="text" id="proceso_privilegios" class="form-control" readonly>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fa fa-plus-square fa-lg"></i>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="server">Privilegio </label>
-                            <input type="text" class="form-control" id="privilegio" name="privilegio" readonly>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="col-md-4 mb-3">
-                            <label>Menu <span class="priority">*<span /></label>
-                            <div class="input-group mb-3">
-                                <select id="menus" name="menus" class="selectpicker" data-width="100%"
-                                    data-live-search="true" title="Menu" required>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label>SubMenu <span class="priority">*<span /></label>
-                            <div class="input-group mb-3">
-                                <select id="submenus" name="submenus[]" class="selectpicker" data-width="100%" multiple
-                                    data-live-search="true" title="SubMenu" required>
-                                </select>
                             </div>
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="col-md-12 mb-3">
                             <div class="table-responsive">
-                                <table id="dataTableSubMenuAccesos"
-                                    class="table table-striped table-condensed table-hover" style="width:100%">
+                                <table id="dataTableSubMenuAccesos" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
                                     <thead>
                                         <tr>
-                                            <th>Privilegio</th>
-                                            <th>Menu</th>
-                                            <th>SubMenu</th>
-                                            <th>Eliminar</th>
+                                            <th>#</th>
+                                            <th>Menú</th>
+                                            <th>Submenú</th>
+                                            <th>Estado</th>
+                                            <th>Acciones</th>
                                         </tr>
                                     </thead>
                                 </table>
@@ -222,10 +166,7 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="guardar btn btn-primary ml-2" type="submit" style="display: none;"
-                    id="reg_SubmenuAccesos" form="formSubMenuAccesos">
-                    <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
-                </button>
+
             </div>
         </div>
     </div>
@@ -244,57 +185,26 @@
             </div>
             <div class="container"></div>
             <div class="modal-body">
-                <form class="FormularioAjax" id="formSubMenu1Accesos" action="" method="POST" data-form=""
-                    autocomplete="off" enctype="multipart/form-data">
+                <form class="FormularioAjax" id="formSubMenu1Accesos" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
                     <div class="form-row">
-                        <div class="col-md-12 mb-3">
+                        <divdiv class="col-md-12 mb-3">
                             <div class="input-group mb-3">
                                 <input type="hidden" id="privilegio_id_accesos" name="privilegio_id_accesos"
                                     class="form-control">
-                                <input type="text" id="proceso_privilegios" class="form-control" readonly>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fa fa-plus-square fa-lg"></i>
-                                    </span>
-                                </div>
                             </div>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="server">Privilegio </label>
-                            <input type="text" class="form-control" id="privilegio" name="privilegio" readonly>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="col-md-4 mb-3">
-                            <label>Menu <span class="priority">*<span /></label>
-                            <div class="input-group mb-3">
-                                <select id="menus" name="menus" class="selectpicker" data-width="100%" multiple
-                                    data-live-search="true" title="Menu" required>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label>SubMenu <span class="priority">*<span /></label>
-                            <div class="input-group mb-3">
-                                <select id="submenus" name="submenus[]" class="selectpicker" multiple data-width="100%"
-                                    data-live-search="true" title="SubMenu" required>
-                                </select>
-                            </div>
-                        </div>
+                        </divdiv>
                     </div>
                     <div class="form-row">
                         <div class="col-md-12 mb-3">
                             <div class="table-responsive">
-                                <table id="dataTableSubMenu1Accesos"
-                                    class="table table-striped table-condensed table-hover" style="width:100%">
+                                <table id="dataTableSubMenu1Accesos" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
                                     <thead>
                                         <tr>
-                                            <th>Privilegio</th>
-                                            <th>Menu</th>
-                                            <th>SubMenu</th>
-                                            <th>Eliminar</th>
+                                            <th>#</th>
+                                            <th>Submenú</th>
+                                            <th>Submenú Nivel 2</th>
+                                            <th>Estado</th>
+                                            <th>Acciones</th>
                                         </tr>
                                     </thead>
                                 </table>
@@ -305,10 +215,7 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="guardar btn btn-primary ml-2" type="submit" style="display: none;"
-                    id="reg_Submenu1Accesos" form="formSubMenu1Accesos">
-                    <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
-                </button>
+
             </div>
         </div>
     </div>

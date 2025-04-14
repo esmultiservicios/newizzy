@@ -1,56 +1,86 @@
 <?php	
-	$peticionAjax = true;
-	require_once "configGenerales.php";
-	require_once "mainModel.php";
-	require_once "Database.php";
-	
-	$insMainModel = new mainModel();
-	
-	if(!isset($_SESSION['user_sd'])){ 
-		session_start(['name'=>'SD']); 
+$peticionAjax = true;
+require_once "configGenerales.php";
+require_once "mainModel.php";
+
+$insMainModel = new mainModel();
+
+if(!isset($_SESSION['user_sd'])){ 
+	session_start(['name'=>'SD']); 
+}
+
+$privilegio_id = $_SESSION['privilegio_sd'];
+$colaborador_id = $_SESSION['colaborador_id_sd'];
+$db_cliente = $_SESSION['db_cliente'];
+
+// Obtener el nombre del privilegio
+$queryPrivilegio = "SELECT nombre FROM privilegio WHERE privilegio_id = '$privilegio_id'";
+$resultadoPrivilegio = $insMainModel->ejecutar_consulta_simple($queryPrivilegio);
+
+$privilegio_colaborador = "";
+
+if ($resultadoPrivilegio && $resultadoPrivilegio->num_rows > 0) {
+	$row = $resultadoPrivilegio->fetch_assoc();
+	$privilegio_colaborador = $row['nombre'];
+}
+
+$datos = [
+	"privilegio_id" => $privilegio_id,
+	"colaborador_id" => $colaborador_id,
+	"privilegio_colaborador" => $privilegio_colaborador,
+	"DB_MAIN" => $db_cliente,	
+];
+
+$result = $insMainModel->getPrivilegio($datos);
+
+$data = [];
+
+while ($row = $result->fetch_assoc()) {
+	$privilegioActual = $row['privilegio_id'];
+
+	// Contar cada tipo de acceso por separado
+	$queryCounts = "
+    SELECT 
+        (SELECT COUNT(DISTINCT m.menu_id) FROM acceso_menu am
+            INNER JOIN menu m ON am.menu_id = m.menu_id
+            WHERE am.privilegio_id = '$privilegioActual' AND am.estado = 1) AS menus,
+        
+        (SELECT COUNT(DISTINCT sm.submenu_id) FROM acceso_submenu asm
+            INNER JOIN submenu sm ON asm.submenu_id = sm.submenu_id
+            WHERE asm.privilegio_id = '$privilegioActual' AND asm.estado = 1) AS submenus,
+        
+        (SELECT COUNT(DISTINCT sm1.submenu1_id) FROM acceso_submenu1 assm1
+            INNER JOIN submenu1 sm1 ON assm1.submenu1_id = sm1.submenu1_id
+            WHERE assm1.privilegio_id = '$privilegioActual' AND assm1.estado = 1) AS submenus1";
+
+	$countResult = $insMainModel->ejecutar_consulta_simple($queryCounts);
+
+	$menus = 0;
+	$submenus = 0;
+	$submenus1 = 0;
+
+	if ($countResult && $countResult->num_rows > 0) {
+		$countRow = $countResult->fetch_assoc();
+		$menus = $countRow['menus'];
+		$submenus = $countRow['submenus'];
+		$submenus1 = $countRow['submenus1'];
 	}
-	
-	$database = new Database();
 
-	$tablaPrivilegio = "privilegio";
-	$camposPrivilegio = ["nombre"];
-	$condicionesPrivilegio = ["privilegio_id" => $_SESSION['privilegio_sd']];
-	$orderBy = "";
-	$tablaJoin = "";
-	$condicionesJoin = [];
-	$resultadoPrivilegio = $database->consultarTabla($tablaPrivilegio, $camposPrivilegio, $condicionesPrivilegio, $orderBy, $tablaJoin, $condicionesJoin);
+	$data[] = [
+		"privilegio_id" => $row['privilegio_id'],
+		"planes_id" => $row['privilegio_id'], // si este campo lo necesitas para los botones
+		"nombre" => $row['nombre'],
+		"menus_asignados" => $menus,
+		"submenus_asignados" => $submenus,
+		"submenus1_asignados" => $submenus1
+	];
+}
 
-	$privilegio_colaborador = "";
+$arreglo = [
+	"echo" => 1,
+	"totalrecords" => count($data),
+	"totaldisplayrecords" => count($data),
+	"data" => $data
+];
 
-	if (!empty($resultadoPrivilegio)) {
-		$privilegio_colaborador = $resultadoPrivilegio[0]['nombre'];
-	}
-
-	$datos = [
-		"privilegio_id" => $_SESSION['privilegio_sd'],
-		"colaborador_id" => $_SESSION['colaborador_id_sd'],
-		"privilegio_colaborador" => $privilegio_colaborador,
-		"DB_MAIN" => $_SESSION['db_cliente'],	
-	];	
-
-	$result = $insMainModel->getPrivilegio($datos);
-	
-	$arreglo = array();
-	$data = array();
-	
-	while($row = $result->fetch_assoc()){				
-		$data[] = array( 
-			"privilegio_id"=>$row['privilegio_id'],
-			"nombre"=>$row['nombre']		  
-		);	
-	}
-	
-	$arreglo = array(
-		"echo" => 1,
-		"totalrecords" => count($data),
-		"totaldisplayrecords" => count($data),
-		"data" => $data
-	);
-
-	echo json_encode($arreglo);
-?>
+echo json_encode($arreglo);

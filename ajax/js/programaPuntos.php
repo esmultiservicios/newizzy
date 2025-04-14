@@ -199,91 +199,140 @@ var listar_programa_puntos = function(){
 	table_programa_puntos.search('').draw();
 	$('#buscar').focus();
 
-	editar_puestos_dataTable("#dataTableProgramaPuntos tbody", table_programa_puntos);
-	eliminar_puestos_dataTable("#dataTableProgramaPuntos tbody", table_programa_puntos);
+	editar_programa_puntos_dataTable("#dataTableProgramaPuntos tbody", table_programa_puntos);
+	eliminar_programa_puntos_dataTable("#dataTableProgramaPuntos tbody", table_programa_puntos);
 }
 
-var editar_puestos_dataTable = function(tbody, table){
+var editar_programa_puntos_dataTable = function(tbody, table){
 	$(tbody).off("click", "button.table_editar");
 	$(tbody).on("click", "button.table_editar", function(){
-		var data = table.row( $(this).parents("tr") ).data();
-		var url = '<?php echo SERVERURL;?>core/editarPuestos.php';
+		var data = table.row($(this).parents("tr")).data();
+		var url = '<?php echo SERVERURL;?>core/editarProgramaPuntos.php';
 		$('#formProgramaPuntos #programa_puntos_id').val(data.id);
 
 		$.ajax({
-			type:'POST',
-			url:url,
-			data:$('#formProgramaPuntos').serialize(),
+			type: 'POST',
+			url: url,
+			data: { id: data.id },
 			success: function(registro){
-				var valores = eval(registro);
+				var valores = JSON.parse(registro); // Usamos JSON.parse aquí
+
 				$('#formProgramaPuntos').attr({ 'data-form': 'update' });
 				$('#formProgramaPuntos').attr({ 'action': '<?php echo SERVERURL;?>ajax/modificarPuestosAjax.php' });
 				$('#formProgramaPuntos')[0].reset();
 				$('#reg_ProgramaPuntos').hide();
 				$('#edi_ProgramaPuntos').show();
 				$('#delete_ProgramaPuntos').hide();
-				$('#formProgramaPuntos #puesto').val(valores[0]);
 
-				if(valores[1] == 1){
-					$('#formProgramaPuntos #ProgramaPuntos_activo').attr('checked', true);
-				}else{
-					$('#formProgramaPuntos #ProgramaPuntos_activo').attr('checked', false);
+				$('#formProgramaPuntos #nombre').val(valores.nombre);
+				$('#formProgramaPuntos #tipo_calculo').val(valores.tipo_calculo).selectpicker('refresh').trigger("change");
+				$('#formProgramaPuntos #monto').val(valores.monto).trigger("input");
+				$('#formProgramaPuntos #porcentaje').val(valores.porcentaje).trigger("input");
+				$('#formProgramaPuntos #estado').val(valores.estado).selectpicker('refresh');
+
+				if(valores.estado == 1){
+					$('#formProgramaPuntos #ProgramaPuntos_activo').prop('checked', true);
+					$('#formProgramaPuntos #label_ProgramaPuntos_activo').html("Activo");
+				} else {
+					$('#formProgramaPuntos #ProgramaPuntos_activo').prop('checked', false);
+					$('#formProgramaPuntos #label_ProgramaPuntos_activo').html("Inactivo");
 				}
 
-				//HABILITAR OBJETOS
-				$('#formProgramaPuntos #puesto').attr('readonly', false);
-				$('#formProgramaPuntos #ProgramaPuntos_activo').attr('disabled', false);
+				// HABILITAR OBJETOS
+				$('#formProgramaPuntos #ProgramaPuntos_activo').prop('disabled', false);
 				$('#formProgramaPuntos #estadoProgramaPuntos').show();
 
 				$('#modalProgramaPuntos').modal({
-					show:true,
+					show: true,
 					keyboard: false,
-					backdrop:'static'
+					backdrop: 'static'
 				});
 			}
 		});
 	});
 }
 
-var eliminar_puestos_dataTable = function(tbody, table){
+
+var eliminar_programa_puntos_dataTable = function(tbody, table){
 	$(tbody).off("click", "button.table_eliminar");
 	$(tbody).on("click", "button.table_eliminar", function(){
 		var data = table.row( $(this).parents("tr") ).data();
 		var url = '<?php echo SERVERURL;?>core/editarPuestos.php';
-		$('#formProgramaPuntos #programa_puntos_id').val(data.id);
 
-		$.ajax({
-			type:'POST',
-			url:url,
-			data:$('#formProgramaPuntos').serialize(),
-			success: function(registro){
-				var valores = eval(registro);
-				$('#formProgramaPuntos').attr({ 'data-form': 'delete' });
-				$('#formProgramaPuntos').attr({ 'action': '<?php echo SERVERURL;?>ajax/eliminarPuestosAjax.php' });
-				$('#formProgramaPuntos')[0].reset();
-				$('#reg_ProgramaPuntos').hide();
-				$('#edi_ProgramaPuntos').hide();
-				$('#delete_ProgramaPuntos').show();
-				$('#formProgramaPuntos #nombre').val(valores[0]);
+		var programaPuntos = data.nombre;
+		var tipoCalculo = data.tipo_calculo;
 
-				if(valores[1] == 1){
-					$('#formProgramaPuntos #ProgramaPuntos_activo').attr('checked', true);
-				}else{
-					$('#formProgramaPuntos #ProgramaPuntos_activo').attr('checked', false);
-				}
 
-				//DESHABILITAR OBJETOS
-				$('#formProgramaPuntos #nombre').attr('readonly', true);
-				$('#formProgramaPuntos #ProgramaPuntos_activo').attr('disabled', true);
-				$('#formProgramaPuntos #estadoProgramaPuntos').hide();
+        // Construir el mensaje de confirmación con HTML
+        var mensajeHTML = `¿Desea eliminar permanentemente el programa de puntos?<br><br>
+                        <strong>Programa:</strong> ${programaPuntos}<br>
+                        <strong>Tipo Calculo:</strong> ${tipoCalculo}`;
+        
+        swal({
+            title: "Confirmar eliminación",
+            content: {
+                element: "span",
+                attributes: {
+                    innerHTML: mensajeHTML
+                }
+            },
+            icon: "warning",
+            buttons: {
+                cancel: {
+                    text: "Cancelar",
+                    value: null,
+                    visible: true,
+                    className: "btn-light"
+                },
+                confirm: {
+                    text: "Sí, eliminar",
+                    value: true,
+                    className: "btn-danger",
+                    closeModal: false
+                }
+            },
+            dangerMode: true,
+            closeOnEsc: false,
+            closeOnClickOutside: false
+        }).then((confirmar) => {
+            if (confirmar) {
+                // Mostrar carga mientras se procesa
+                swal({
+                    title: "Eliminando registro...",
+                    text: "Por favor espere",
+                    icon: "info",
+                    buttons: false,
+                    closeOnClickOutside: false,
+                    closeOnEsc: false
+                });
+                
+                $.ajax({
+                    type: 'POST',
+                    url: '<?php echo SERVERURL;?>ajax/eliminarProgramaPuntosAjax.php',
+                    data: {
+                        clientes_id: clientes_id
+                    },
+                    dataType: 'json', // Esperamos respuesta JSON
+                    success: function(response) {
+                        swal.close();
+                        
+                        if(response.status === "success") {
+                            showNotify("success", response.title, response.message);
+                            table.ajax.reload(null, false); // Recargar tabla sin resetear paginación
+                            table.search('').draw();                    
+                        } else {
+                            showNotify("error", response.title, response.message);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        swal.close();
+                        showNotify("error", "Error", "Ocurrió un error al procesar la solicitud");
+                        console.error("Error en la solicitud AJAX:", error);
+                    }
+                });
+            }
+        });		
 
-				$('#modalProgramaPuntos').modal({
-					show:true,
-					keyboard: false,
-					backdrop:'static'
-				});
-			}
-		});
 	});
 }
 //FIN ACCIONES FROMULARIO PUESTOS
@@ -291,7 +340,7 @@ var eliminar_puestos_dataTable = function(tbody, table){
 /*INICIO FORMULARIO PUESTO DE COLABORADORES*/
 function modal_puestos(){
 	  $('#formProgramaPuntos').attr({ 'data-form': 'save' });
-	  $('#formProgramaPuntos').attr({ 'action': '<?php echo SERVERURL;?>ajax/agregarPuestosAjax.php' });
+	  $('#formProgramaPuntos').attr({ 'action': '<?php echo SERVERURL;?>ajax/agregarProgramaPuntosAjax.php' });
 	  $('#formProgramaPuntos')[0].reset();
 	  $('#reg_ProgramaPuntos').show();
 	  $('#edi_ProgramaPuntos').hide();

@@ -22,7 +22,7 @@ var getImpresora = function(){
 	"columns":[
 		{"data":"descripcion"},
 		{"data":"activo"},
-		{ "defaultContent":"<button class='table_impresora btn btn-dark'><span class='fas fa-edit'></span></button>"}
+		{ "defaultContent":"<button class='table_impresora table_editar btn btn-dark'><span class='fas fa-edit'></span></button>"}
 
 	],
 	"lengthMenu": lengthMenu,

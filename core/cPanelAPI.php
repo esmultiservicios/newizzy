@@ -264,7 +264,7 @@ class cPanelAPI {
             // 1. Crear base de datos
             $dbResult = $this->createDatabase($dbConfig['db_name']);
             // 2. Crear usuario
-            $userResult = $this->createDatabaseUser($dbConfig['db_user'], $dbConfig['db_password']);
+            //$userResult = $this->createDatabaseUser($dbConfig['db_user'], $dbConfig['db_password']);
             // 3. Asignar privilegios
             $privilegesResult = $this->grantAllPrivileges($dbConfig['db_name'], $dbConfig['db_user']);
             // 4. Actualizar privilegios
@@ -276,7 +276,6 @@ class cPanelAPI {
             return [
                 'success' => true,
                 'database' => $dbResult,
-                'user' => $userResult,
                 'privileges' => $privilegesResult,
                 'connection' => [
                     'host' => 'localhost',

@@ -22,24 +22,7 @@ $('.btn-exit-system').on('click', (e) => {
 		dangerMode: true,
 	}).then((willExit) => {
 		if (willExit) {
-			swal({
-				content: {
-					element: "div",
-					attributes: {
-						innerHTML: `
-							<h2 style="color: #28a745; font-size: 22px; margin-bottom: 15px;">
-								✔️ ¡Has salido del sistema!
-							</h2>
-							<p style="font-size: 16px; color: #555;">
-								Salió con éxito. ¡Hasta pronto! 👋
-							</p>
-						`
-					}
-				},
-				icon: "success",
-			}).then(() => {
-				salir(token);  // Llamada a la función salir()
-			});
+			salir(token);  // Llamada a la función salir()
 		}
 	});
 });

@@ -1,4 +1,5 @@
 <?php	
+	//addSubMenu1AccesosAjax.php
 	$peticionAjax = true;
 	require_once "../core/configGenerales.php";
 	

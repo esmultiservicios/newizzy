@@ -165,7 +165,7 @@ class clientesControlador extends clientesModelo {
                 $datos['validar'],
                 $datos['planes_id'],
                 $datos['sistema_id']
-            );
+            );            
             
             if (!$server_customers_id) {
                 $this->responderError(
@@ -193,6 +193,8 @@ class clientesControlador extends clientesModelo {
                 return;
             }
             
+            //Enviar correo electronico - Procedimiento Almacenado
+
             // Enviar correo de bienvenida
             $this->enviarCorreoBienvenida([
                 'nombre' => $datos['nombre'],
@@ -221,7 +223,8 @@ class clientesControlador extends clientesModelo {
                     'username' => $usuario['username']
                 ]
             ], $dbNames['prefixed']);
-            
+
+            //IMPORTAR BASE DE DATOS A cPanel - Procedimiento Almacenado            
         } catch (Exception $e) {
             error_log("Error en registro autónomo: " . $e->getMessage());
             

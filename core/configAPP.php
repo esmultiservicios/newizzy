@@ -26,7 +26,7 @@ const PASS = 'o8lXA0gtIO$@';
 const SERVER_MAIN = 'localhost';
 const DB_MAIN = 'esmultiservicios_izzy';
 
-// Credenciales de cPanel API
+// cPanel
 define('CPANEL_TOKEN', 'YDBIN7O9JZMUWZU8JRWZZORJZL6GHZS7');
 define('CPANEL_USERNAME', 'esmultiservicios');
 define('CPANEL_PASSWORD', 'CEdwin82003%*');
@@ -35,6 +35,9 @@ define('CPANEL_PORT', '2083');
 define('CPANEL_DB_USERNAME', USER);
 define('CPANEL_DB_PASSWORD', PASS);
 define('CPANEL_DOMINIO', "izzycloud.app");
+
+
+//WHM
 define('WHM_HOST', 'tu.servidor.whm');  // Ej: server.midominio.com
 define('WHM_PORT', 2087);               // Puerto WHM (2086 para SSL, 2087 para no SSL)
 define('WHM_USERNAME', 'root');         // Usuario WHM (normalmente root)

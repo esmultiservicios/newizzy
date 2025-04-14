@@ -279,108 +279,87 @@
 }
 
 /* =================================== */
-/* BADGES PREMIUM CON HOVER ELEGANTE */
+/* BADGES PREMIUM CON HOVER CORREGIDO */
 /* =================================== */
 .status-badge {
-    border-radius: 24px;
-    padding: 0.6rem 1.2rem;
-    font-size: 0.95rem;
-    font-weight: 600;
-    min-width: 125px;
-    width: 125px;
-    text-transform: uppercase;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    box-sizing: border-box;
-    text-align: center;
-    line-height: 1.2;
-    cursor: default;
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    position: relative;
-    overflow: hidden;
-    border: none;
-    z-index: 1;
+    border-radius: 24px !important;
+    padding: 0.6rem 1.2rem !important;
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+    min-width: 125px !important;
+    width: 125px !important;
+    text-transform: uppercase !important;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    box-sizing: border-box !important;
+    text-align: center !important;
+    line-height: 1.2 !important;
+    cursor: default !important;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    position: relative !important;
+    overflow: hidden !important;
+    border: none !important;
+    z-index: 1 !important;
 }
 
-/* Efecto hover mejorado */
+/* Efecto hover mejorado - CORREGIDO */
 .status-badge:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+    transform: translateY(-3px) !important;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.15) !important;
+    filter: brightness(0.95) !important; /* Reemplaza el overlay por un filtro más fiable */
 }
 
-/* Efecto de profundidad al hacer hover */
-.status-badge:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.05);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    z-index: -1;
-}
+/* ELIMINADO el :before que causaba problemas de color */
 
-.status-badge:hover:before {
-    opacity: 1;
-}
-
-/* Estados con gradientes mejorados */
+/* Estados con gradientes - versión optimizada */
 .status-active {
-    background: linear-gradient(135deg, #28a745 0%, #5cb85c 100%);
-    color: white;
-    text-shadow: 0 1px 1px rgba(0,0,0,0.2);
-}
-
-.status-active:hover {
-    background: linear-gradient(135deg, #218838 0%, #4cae4c 100%);
+    background: linear-gradient(135deg, #28a745 0%, #5cb85c 100%) !important;
+    color: white !important;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.2) !important;
 }
 
 .status-inactive {
-    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-    color: white;
-    text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
+    color: white !important;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.2) !important;
 }
 
-.status-inactive:hover {
-    background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
-}
-
-/* Iconos con efecto premium */
+/* Iconos con efecto - versión mejorada */
 .status-badge i {
-    font-size: 0.95em;
-    min-width: 16px;
-    text-align: center;
-    transition: all 0.3s ease;
-    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
+    font-size: 0.95em !important;
+    min-width: 16px !important;
+    text-align: center !important;
+    transition: transform 0.3s ease !important;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2)) !important;
+    display: inline-block !important;
 }
 
 .status-badge:hover i {
-    transform: scale(1.15);
+    transform: scale(1.15) translateZ(0) !important;
 }
 
-/* Efecto ripple refinado */
+/* Efecto ripple optimizado */
 .status-badge:after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 8px;
-    height: 8px;
-    background: rgba(255, 255, 255, 0.4);
-    opacity: 0;
-    border-radius: 100%;
-    transform: scale(0) translate(-50%, -50%);
-    transform-origin: 50% 50%;
-    z-index: -1;
+    content: '' !important;
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    width: 8px !important;
+    height: 8px !important;
+    background: rgba(255, 255, 255, 0.4) !important;
+    opacity: 0 !important;
+    border-radius: 100% !important;
+    transform: scale(0) translate(-50%, -50%) !important;
+    transform-origin: 50% 50% !important;
+    z-index: -1 !important;
+    pointer-events: none !important;
 }
 
 .status-badge:hover:after {
-    animation: ripple 0.6s ease-out;
+    animation: ripple 0.6s ease-out forwards !important;
 }
 
 @keyframes ripple {
@@ -397,27 +376,14 @@
 /* Responsividad mejorada */
 @media (max-width: 768px) {
     .status-badge {
-        min-width: 110px;
-        width: 110px;
+        min-width: 110px !important;
+        width: auto !important;
         padding: 0.5rem 1rem !important;
-        font-size: 0.9rem;
-        box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        font-size: 0.9rem !important;
     }
     
     .status-badge:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 10px rgba(0,0,0,0.15);
-    }
-    
-    .status-badge i {
-        font-size: 0.9em;
-    }
-    
-    .badges-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        justify-content: center;
+        transform: translateY(-2px) !important;
     }
 }
   
@@ -861,122 +827,91 @@
     color: var(--sidebar-text);
 }
 
-/* ==================== */
-/* SIDEBAR COLAPSADO */
-/* ==================== */
+/* ===== ESTADO NORMAL (expandido) ===== */
+.sb-sidenav:not(.collapsed) {
+    width: 240px;
+    transition: width 0.3s ease;
+}
+
+.sb-sidenav:not(.collapsed) .nav-link {
+    padding: 0.75rem 1rem;
+    justify-content: flex-start;
+}
+
+.sb-sidenav:not(.collapsed) .sb-nav-link-icon {
+    margin-right: 0.5rem;
+}
+
+/* ===== ESTADO COLAPSADO ===== */
 .sb-sidenav.collapsed {
-    width: 70px;
-    overflow: hidden;
-}
-
-.sb-sidenav.collapsed .custom-header {
-    padding: 0.5rem;
-    text-align: center;
-}
-
-.sb-sidenav.collapsed .custom-header .logo {
-    max-width: 40px;
-    height: auto;
+    width: 70px !important;
+    overflow: visible;
 }
 
 .sb-sidenav.collapsed .nav-link {
-    justify-content: center;
-    padding: 0.6rem 0;
-    margin: 0.15rem 0;
+    justify-content: center !important;
+    padding: 0.75rem 0 !important;
     position: relative;
 }
 
-.sb-sidenav.collapsed .nav-link > :not(.sb-nav-link-icon),
+.sb-sidenav.collapsed .menu-text,
 .sb-sidenav.collapsed .sb-sidenav-collapse-arrow {
     display: none !important;
 }
 
-.sb-sidenav.collapsed .nav-link .sb-nav-link-icon {
-    font-size: 1.1rem;
-    background: rgba(0, 0, 0, 0.1);
-    padding: 0.4rem;
-    width: 2rem;
-    height: 2rem;
-    border-radius: 5px;
-    margin: 0 auto;
+.sb-sidenav.collapsed .sb-nav-link-icon {
+    margin: 0 auto !important;
+    font-size: 1.25rem;
+    width: 40px;
+    height: 40px;
     display: flex !important;
     align-items: center;
     justify-content: center;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
 }
 
-.sb-sidenav.collapsed .nav-link .sb-nav-link-icon i {
-    font-size: 1em !important;
-    display: inline-block !important;
-    width: auto;
-    height: auto;
-}
-
-.sb-sidenav.collapsed .nav-link.active .sb-nav-link-icon {
-    background-color: var(--sidebar-active-bg);
-    color: var(--sidebar-text-hover);
-}
-
-.sb-sidenav.collapsed .nav-link:hover .sb-nav-link-icon {
-    transform: scale(1.08);
-    background-color: var(--sidebar-hover-bg);
-    color: var(--sidebar-text-hover);
-}
-
-.sb-sidenav.collapsed .sb-sidenav-footer {
-    padding: 0.5rem;
-    font-size: 0.7rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* Tooltips para modo colapsado */
+/* Tooltips */
 .sb-sidenav.collapsed .nav-link::after {
     content: attr(data-tooltip);
     position: absolute;
-    left: calc(100% + 10px);
+    left: calc(100% + 15px);
     top: 50%;
     transform: translateY(-50%);
-    background-color: var(--dark);
+    background: #2c3e50;
     color: white;
+    padding: 0.5rem 1rem;
     border-radius: 4px;
-    padding: 0.5rem 0.8rem;
-    font-size: 0.82rem;
+    font-size: 0.85rem;
     white-space: nowrap;
     opacity: 0;
     pointer-events: none;
-    transition: all var(--transition-speed) ease;
-    z-index: 1050;
-    box-shadow: var(--deep-shadow);
+    transition: opacity 0.2s;
+    z-index: 1000;
+    min-width: 120px;
+    text-align: center;
 }
 
 .sb-sidenav.collapsed .nav-link:hover::after {
     opacity: 1;
-    left: calc(100% + 8px);
 }
 
-/* Submenús en modo colapsado */
-.sb-sidenav.collapsed .collapse {
+/* Flecha del tooltip */
+.sb-sidenav.collapsed .nav-link::before {
+    content: '';
     position: absolute;
     left: 100%;
-    top: 0;
-    min-width: 210px;
-    background-color: var(--sidebar-bg);
-    border-radius: 0 6px 6px 0;
-    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.12);
-    padding: 0.5rem 0;
-    z-index: 1040;
-    display: none;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 6px solid transparent;
+    border-right-color: #2c3e50;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 1001;
 }
 
-.sb-sidenav.collapsed .nav-link[aria-expanded="true"] + .collapse {
-    display: block;
-    animation: smoothFadeIn 0.15s ease-out;
-}
-
-@keyframes smoothFadeIn {
-    0% { opacity: 0; }
-    100% { opacity: 1; }
+.sb-sidenav.collapsed .nav-link:hover::before {
+    opacity: 1;
 }
 
 /* ==================== */
@@ -3764,3 +3699,55 @@ input:checked + .payment-slider:before {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
 }
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;  /* Más estrecho */
+    height: 24px; /* Más bajo */
+    margin-bottom: 0; /* Elimina espacio inferior */
+  }
+  
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+  }
+  
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;  /* Más pequeño */
+    width: 16px;   /* Más pequeño */
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+  }
+  
+  .slider.round {
+    border-radius: 24px;
+  }
+  
+  .slider.round:before {
+    border-radius: 50%;
+  }
+  
+  input:checked + .slider {
+    background-color: #2196F3;
+  }
+  
+  input:checked + .slider:before {
+    transform: translateX(26px);
+  }

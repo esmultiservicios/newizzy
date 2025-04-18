@@ -17,8 +17,9 @@ try {
             SELECT 
                 m.menu_id,
                 m.name,
+                m.descripcion,
                 CASE 
-                    WHEN mp.menu_id IS NOT NULL THEN 1 
+                    WHEN mp.menu_id IS NOT NULL AND mp.estado = 1 THEN 1 
                     ELSE 0 
                 END AS asignado
             FROM 
@@ -40,7 +41,7 @@ try {
         while ($row = $result->fetch_assoc()) {
             $data[] = [
                 'menu_id' => (int)$row['menu_id'],
-                'name' => $row['name'],
+                'name' => $row['descripcion'] ?? '',
                 'asignado' => (bool)$row['asignado']
             ];
         }

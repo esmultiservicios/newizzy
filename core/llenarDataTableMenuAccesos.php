@@ -22,7 +22,7 @@ try {
     if ($planes_id !== null) {
         // Ahora consultamos los menús disponibles para este 'planes_id'
         $queryMenu = "
-            SELECT DISTINCT m.menu_id, m.name AS menu_name, COALESCE(am.estado, 2) AS menu_estado
+            SELECT DISTINCT m.menu_id, m.name AS menu_name, COALESCE(am.estado, 2) AS menu_estado, m.descripcion
             FROM plan p
             INNER JOIN menu_plan mp ON p.planes_id = mp.planes_id
             INNER JOIN menu m ON mp.menu_id = m.menu_id
@@ -53,6 +53,7 @@ try {
             $data[] = array(
                 "menu_id"      => $row['menu_id'],
                 "menu_name"    => $row['menu_name'],
+                "descripcion"    => $row['descripcion'],
                 "estado"       => $row['menu_estado'],  // Estado (1 = Mostrar, 2 = Ocultar)
                 "asignado"     => $asignado  // Si está asignado o no
             );

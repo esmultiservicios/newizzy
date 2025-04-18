@@ -41,6 +41,7 @@ if(!isset($_SESSION)){
     require_once "./controladores/vitasControlador.php";
     $vt = new vistasControlador();
     $vistasR = $vt->getVistasControlador();
+    
     if($vistasR=="login" || $vistasR=="404"):
         if($vistasR=="login"){
             require_once "./vistas/contenido/login-view.php";

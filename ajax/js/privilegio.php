@@ -58,11 +58,11 @@ var listar_privilegio = function(){
 				}
 			},
 			{
-				"defaultContent":"<button class='table_editar1 table_editar btn btn-dark'><span class='fas fa-edit fa-lg'></span></button>"
+				"defaultContent":"<button class='table_editar btn btn-dark'><span class='fas fa-edit fa-lg'></span>Editar</button>"
 
 			},
 			{
-				"defaultContent":"<button class='table_eliminar1 table_eliminar btn btn-dark'><span class='fa fa-trash fa-lg'></span></button>"
+				"defaultContent":"<button class='table_eliminar1 table_eliminar btn btn-dark'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"
 			}
 		],
         "lengthMenu": lengthMenu,
@@ -222,7 +222,7 @@ var listar_menuaccesos = function(){
 
 				return json.data.map((menu, index) => ({
 					"#": index + 1,
-					"menu": menu.menu_name,
+					"menu": menu.descripcion,
 					"asignado": menu.asignado 
 						? '<span class="badge badge-success">Asignado</span>' 
 						: '<span class="badge badge-secondary">No asignado</span>',
@@ -278,8 +278,8 @@ var listar_submenuaccesos = function(){
 
 				return json.data.map((submenu, index) => ({
 					"#": index + 1,
-					"menu": submenu.menu,
-					"submenu": submenu.submenu,
+					"menu": submenu.descripcion_padre,
+					"submenu": submenu.descripcion,
 					"asignado": submenu.asignado 
 						? '<span class="badge badge-success">Asignado</span>' 
 						: '<span class="badge badge-secondary">No asignado</span>',
@@ -337,8 +337,8 @@ var listar_submenu1accesos = function(){
 
 				return json.data.map((s1, index) => ({
 					"#": index + 1,
-					"submenu": s1.menu,
-					"submenu1": s1.submenu,
+					"submenu": s1.descripcion,
+					"submenu1": s1.submenu_descripcion,
 					"asignado": s1.asignado 
 						? '<span class="badge badge-success">Asignado</span>' 
 						: '<span class="badge badge-secondary">No asignado</span>',
@@ -372,8 +372,8 @@ $(document).ready(function(){
 /*FIN SUBMENU1 ACCESOS*/
 
 var editar_privilegio_dataTable = function(tbody, table){
-	$(tbody).off("click", "button.table_editar1");
-	$(tbody).on("click", "button.table_editar1", function(){
+	$(tbody).off("click", "button.table_editar");
+	$(tbody).on("click", "button.table_editar", function(){
 		var data = table.row( $(this).parents("tr") ).data();
 		var url = '<?php echo SERVERURL;?>core/editarPrivilegios.php';
 		$('#formPrivilegios #privilegio_id_').val(data.privilegio_id);
@@ -501,12 +501,11 @@ $('#formPrivilegios .switch').change(function() {
 });
 
 $(document).on('click', '.btn-toggle-menuacceso', function(e) {
-	e.preventDefault();
+    e.preventDefault();
     const btn = $(this);
     const menu_id = btn.data('menu-id');
-    const asignado = btn.data('asignado'); // booleano o 0/1
+    const asignado = btn.data('asignado');
     const privilegio_id = $("#formMenuAccesos #privilegio_id_accesos").val();
-
     const nuevoEstado = asignado ? 0 : 1;
 
     $.ajax({
@@ -518,22 +517,37 @@ $(document).on('click', '.btn-toggle-menuacceso', function(e) {
             estado: nuevoEstado
         },
         success: function(response) {
-            const res = JSON.parse(response);  // Parsear la respuesta JSON
-            showNotify(res.type, res.title, res.message);  // Mostrar la notificación
-            listar_menuaccesos();
-			listar_privilegio();
+            const res = JSON.parse(response);
+            showNotify(res.type, res.title, res.message);
+            
+            // Actualización suave sin recargar toda la tabla
+            btn.data('asignado', !asignado);
+            btn.toggleClass('btn-success btn-danger');
+            btn.html(asignado ? '<i class="fas fa-plus"></i> Asignar' : '<i class="fas fa-times"></i> Quitar');
+            
+            // Actualizar el badge
+            const badge = btn.closest('tr').find('span.badge');
+            badge.toggleClass('badge-success badge-secondary');
+            badge.text(asignado ? 'No asignado' : 'Asignado');
+            
+            // Actualizar contador
+            const currentCount = parseInt($(`#contador-menuaccesos-${privilegio_id}`).text());
+            $(`#contador-menuaccesos-${privilegio_id}`).text(asignado ? currentCount - 1 : currentCount + 1);
+            
+            // Actualizar contador en la tabla principal
+            const currentMainCount = parseInt($(`#contador-menus-${privilegio_id}`).text());
+            $(`#contador-menus-${privilegio_id}`).text(asignado ? currentMainCount - 1 : currentMainCount + 1);
         }
     });
 });
 
 $(document).on('click', '.btn-toggle-submenuacceso', function(e) {
-	e.preventDefault();
+    e.preventDefault();
     const btn = $(this);
     const submenu_id = btn.data('submenu-id');
     const asignado = btn.data('asignado');
     const privilegio_id = $("#formSubMenuAccesos #privilegio_id_accesos").val();
-
-	const nuevoEstado = asignado ? 0 : 1;
+    const nuevoEstado = asignado ? 0 : 1;
 
     $.ajax({
         type: 'POST',
@@ -544,21 +558,34 @@ $(document).on('click', '.btn-toggle-submenuacceso', function(e) {
             estado: nuevoEstado
         },
         success: function(response) {
-            const res = JSON.parse(response);  // Parsear la respuesta JSON
-            showNotify(res.type, res.title, res.message);  // Mostrar la notificación
-            listar_submenuaccesos();
-			listar_privilegio();
+            const res = JSON.parse(response);
+            showNotify(res.type, res.title, res.message);
+            
+            // Actualización suave
+            btn.data('asignado', !asignado);
+            btn.toggleClass('btn-success btn-danger');
+            btn.html(asignado ? '<i class="fas fa-plus"></i> Asignar' : '<i class="fas fa-times"></i> Quitar');
+            
+            const badge = btn.closest('tr').find('span.badge');
+            badge.toggleClass('badge-success badge-secondary');
+            badge.text(asignado ? 'No asignado' : 'Asignado');
+            
+            // Actualizar contadores
+            const currentCount = parseInt($(`#contador-submenuaccesos-${privilegio_id}`).text());
+            $(`#contador-submenuaccesos-${privilegio_id}`).text(asignado ? currentCount - 1 : currentCount + 1);
+            
+            const currentMainCount = parseInt($(`#contador-submenus-${privilegio_id}`).text());
+            $(`#contador-submenus-${privilegio_id}`).text(asignado ? currentMainCount - 1 : currentMainCount + 1);
         }
     });
 });
 
 $(document).on('click', '.btn-toggle-submenu1acceso', function(e) {
-	e.preventDefault();
+    e.preventDefault();
     const btn = $(this);
     const submenu1_id = btn.data('submenu1-id');
     const asignado = btn.data('asignado');
     const privilegio_id = $("#formSubMenu1Accesos #privilegio_id_accesos").val();
-
     const nuevoEstado = asignado ? 0 : 1;
 
     $.ajax({
@@ -569,13 +596,26 @@ $(document).on('click', '.btn-toggle-submenu1acceso', function(e) {
             privilegio_id: privilegio_id,
             estado: nuevoEstado
         },
-        success: function(response) {			
-            const res = JSON.parse(response);  // Parsear la respuesta JSON
-            showNotify(res.type, res.title, res.message);  // Mostrar la notificación
-            listar_submenu1accesos();
-			listar_privilegio();
+        success: function(response) {
+            const res = JSON.parse(response);
+            showNotify(res.type, res.title, res.message);
+            
+            // Actualización suave
+            btn.data('asignado', !asignado);
+            btn.toggleClass('btn-success btn-danger');
+            btn.html(asignado ? '<i class="fas fa-plus"></i> Asignar' : '<i class="fas fa-times"></i> Quitar');
+            
+            const badge = btn.closest('tr').find('span.badge');
+            badge.toggleClass('badge-success badge-secondary');
+            badge.text(asignado ? 'No asignado' : 'Asignado');
+            
+            // Actualizar contadores
+            const currentCount = parseInt($(`#contador-submenu1accesos-${privilegio_id}`).text());
+            $(`#contador-submenu1accesos-${privilegio_id}`).text(asignado ? currentCount - 1 : currentCount + 1);
+            
+            const currentMainCount = parseInt($(`#contador-submenus1-${privilegio_id}`).text());
+            $(`#contador-submenus1-${privilegio_id}`).text(asignado ? currentMainCount - 1 : currentMainCount + 1);
         }
     });
 });
-
 </script>

@@ -13,9 +13,9 @@ var listar_tipo_usuario = function(){
 		},
 		"columns":[
 			{"data":"nombre"},
-			{"defaultContent":"<button class='table_permisos btn btn-dark'><span class='fas fa-users-cog fa-lg'></span></button>"},
-			{"defaultContent":"<button class='table_editar1 table_editar btn btn-dark'><span class='fas fa-edit fa-lg'></span></button>"},
-			{"defaultContent":"<button class='table_eliminar1 table_eliminar btn btn-dark'><span class='fa fa-trash fa-lg'></span></button>"}
+			{"defaultContent":"<button class='table_permisos btn btn-dark'><span class='fas fa-users-cog fa-lg'></span>Asignar</button>"},
+			{"defaultContent":"<button class='table_editar1 table_editar btn btn-dark'><span class='fas fa-edit fa-lg'></span>Editar</button>"},
+			{"defaultContent":"<button class='table_eliminar1 table_eliminar btn btn-dark'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"}
 		],
         "lengthMenu": lengthMenu,
 		"stateSave": true,

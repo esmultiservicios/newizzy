@@ -2375,6 +2375,23 @@ var listar_cuentas_por_cobrar_clientes = function() {
                 "data": "cliente"
             },
             {
+                "data": "estado",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        var text = data == 1 ? 'Crédito' : 'Contado';
+                        var icon = data == 1 
+                            ? '<i class="fas fa-clock mr-1"></i>' 
+                            : '<i class="fas fa-check-circle mr-1"></i>';
+                        var badgeClass = data == 1 
+                            ? 'badge badge-pill badge-warning' 
+                            : 'badge badge-pill badge-success';
+                        return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' + 
+                            icon + text + '</span>';
+                    }
+                    return data;
+                }
+            },        
+            {
                 "data": "numero"
             },
             {
@@ -2438,13 +2455,13 @@ var listar_cuentas_por_cobrar_clientes = function() {
                 "data": "vendedor"
             },
             {
-                "defaultContent": "<button class='table_abono btn btn-dark table_secondary'><span class='fas fa-cash-register fa-lg'></span></button>"
+                "defaultContent": "<button class='table_abono btn btn-dark table_secondary'><span class='fas fa-cash-register fa-lg'></span>Abonar</button>"
             },
             {
-                "defaultContent": "<button class='table_reportes abono_factura btn btn-dark table_success ocultar'><span class='fa fa-money-bill-wave fa-solid'></span></button>"
+                "defaultContent": "<button class='table_reportes abono_factura btn btn-dark table_success ocultar'><span class='fa fa-money-bill-wave fa-solid'></span>Abonos</button>"
             },
             {
-                "defaultContent": "<button class='table_reportes print_factura btn btn-dark table_info ocultar'><span class='fas fa-file-download fa-lg'></span></button>"
+                "defaultContent": "<button class='table_reportes print_factura btn btn-dark table_info ocultar'><span class='fas fa-file-download fa-lg'></span>Factura</button>"
             }
         ],
         "pageLength": 10,
@@ -2453,57 +2470,57 @@ var listar_cuentas_por_cobrar_clientes = function() {
         "bDestroy": true,
         "language": idioma_español,
         "dom": dom,
-        "columnDefs": [{
+        "columnDefs": [
+            {
                 width: "10%",
-                targets: 0
+                targets: 0 // Fecha
             },
             {
-                width: "16%",
-                targets: 1
+                width: "14%", // Reduje este ancho para hacer espacio
+                targets: 1 // Cliente
             },
             {
-                width: "16%",
-                targets: 2
+                width: "8%", // Nueva columna para el badge
+                targets: 2, // Estado (Crédito/Contado)
+                className: "text-center" // Centramos el badge
             },
             {
                 width: "12%",
-                targets: 3,
+                targets: 3, // Número
                 className: "text-center"
             },
             {
                 width: "12%",
-                targets: 4,
+                targets: 4, // Crédito
                 className: "text-center"
             },
             {
                 width: "12%",
-                targets: 5,
+                targets: 5, // Abono
                 className: "text-center"
             },
             {
-                width: "16%",
-                targets: 6
+                width: "12%",
+                targets: 6, // Saldo
+                className: "text-center"
+            },
+            {
+                width: "14%", // Ajusté este ancho
+                targets: 7 // Vendedor
             },
             {
                 width: "2%",
-                targets: 7
+                targets: 8 // Botón abono
             },
             {
                 width: "2%",
-                targets: 8
+                targets: 9 // Botón abono factura
             },
             {
                 width: "2%",
-                targets: 9
+                targets: 10 // Botón imprimir factura
             }
         ],
-        "fnRowCallback": function(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-            // Agregar clases de color a las celdas de cada fila según el valor de 'color'
-            $('td', nRow).addClass(aData['color']);
-
-            // Personalizar el color de la celda en la posición 2 (índice 2)
-            $('td:eq(2)', nRow).css('color', 'red');
-        },
         "footerCallback": function(row, data, start, end, display) {
             // Aquí puedes calcular los totales y actualizar el footer
             var totalCredito = data.reduce(function(acc, row) {
@@ -2627,7 +2644,13 @@ var ver_abono_cxc_clientes_dataTable = function(tbody, table) {
     $(tbody).on("click", "button.abono_factura", function(e) {
         e.preventDefault();
         var data = table.row($(this).parents("tr")).data();
-        $('#ver_abono_cxc').modal('show');
+        
+        // Configuración del modal para evitar cierre no deseado
+        $('#ver_abono_cxc').modal({
+            backdrop: 'static', // Evita que se cierre al hacer clic fuera
+            keyboard: false    // Evita que se cierre al presionar ESC
+        }).modal('show');
+        
         $("#formulario_ver_abono_cxc #abono_facturas_id").val(data.facturas_id);
         listar_AbonosCXC();
     });
@@ -2784,13 +2807,13 @@ var listar_cuentas_por_pagar_proveedores = function() {
                 },
             },
             {
-                "defaultContent": "<button class='table_pay btn btn-dark table_info ocultar'><span class='fas fa-hand-holding-usd fa-lg'></span></button>"
+                "defaultContent": "<button class='table_pay btn btn-dark table_info ocultar'><span class='fas fa-hand-holding-usd fa-lg'></span>Abonar</button>"
             },
             {
-                "defaultContent": "<button class='abono_proveedor btn btn-dark table_success'><span class='fa fa-money-bill-wave fa-solid'></span></button>"
+                "defaultContent": "<button class='abono_proveedor btn btn-dark table_success'><span class='fa fa-money-bill-wave fa-solid'></span>Abonos</button>"
             },
             {
-                "defaultContent": "<button class='table_reportes print_factura btn btn-dark table_info ocultar'><span class='fas fa-file-download fa-lg'></span></button>"
+                "defaultContent": "<button class='table_reportes print_factura btn btn-dark table_info ocultar'><span class='fas fa-file-download fa-lg'></span>Factura</button>"
             }
         ],
         "pageLength": 10,
@@ -3039,13 +3062,13 @@ var listar_clientes = function(estado) {
                 "data": "sistema"
             },
             {
-                "defaultContent": "<button class='table_crear btn btn-dark ocultar generar'><span class='fab fa-centos fa-lg'></span></button>"
+                "defaultContent": "<button class='table_crear btn btn-dark ocultar generar'><span class='fab fa-centos fa-lg'></span>Generar</button>"
             },
             {
-                "defaultContent": "<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit fa-lg'></span></button>"
+                "defaultContent": "<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
             },
             {
-                "defaultContent": "<button class='table_eliminar btn btn-dark ocultar'><span class='fa fa-trash fa-lg'></span></button>"
+                "defaultContent": "<button class='table_eliminar btn btn-dark ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"
             }
         ],
         "lengthMenu": lengthMenu10,
@@ -3608,16 +3631,7 @@ var eliminar_clientes_dataTable = function(tbody, table) {
             closeOnClickOutside: false
         }).then((confirmar) => {
             if (confirmar) {
-                // Mostrar carga mientras se procesa
-                swal({
-                    title: "Eliminando registro...",
-                    text: "Por favor espere",
-                    icon: "info",
-                    buttons: false,
-                    closeOnClickOutside: false,
-                    closeOnEsc: false
-                });
-                
+               
                 $.ajax({
                     type: 'POST',
                     url: '<?php echo SERVERURL;?>ajax/eliminarClientesAjax.php',
@@ -3625,6 +3639,10 @@ var eliminar_clientes_dataTable = function(tbody, table) {
                         clientes_id: clientes_id
                     },
                     dataType: 'json', // Esperamos respuesta JSON
+                    before: function(){
+                        // Mostrar carga mientras se procesa
+                        showLoading("Eliminando registro...");
+                    },
                     success: function(response) {
                         swal.close();
                         

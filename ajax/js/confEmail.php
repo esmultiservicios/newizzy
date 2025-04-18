@@ -29,7 +29,7 @@ var listar_correos_configuracion = function() {
                 "data": "smtp_secure"
             },
             {
-                "defaultContent": "<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit'></span></button>"
+                "defaultContent": "<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit'></span>Editar</button>"
             }
         ],
         "lengthMenu": lengthMenu,

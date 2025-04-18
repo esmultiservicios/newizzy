@@ -1055,32 +1055,8 @@
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* ====================== */
-/* ESTILO PREMIUM UNIVERSAL PARA TABLAS EN MODALES */
+/* ESTILO PREMIUM UNIVERSAL PARA TABLAS EN MODALES - VERSIÓN RESPONSIVE */
 /* ====================== */
 
 /* ENCABEZADO DEL MODAL (general para todos) */
@@ -1091,6 +1067,17 @@
     padding: 1.25rem 1.75rem;
     position: relative;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    /* Nuevos estilos para responsive */
+    padding-top: 3.5rem; /* Espacio para el navbar en móviles */
+    min-height: 80px; /* Altura mínima garantizada */
+}
+
+/* Ajuste específico para pantallas grandes */
+@media (min-width: 768px) {
+    .modal-header {
+        padding-top: 1.25rem; /* Vuelve al padding original en desktop */
+        min-height: auto;
+    }
 }
 
 .modal-header:after {
@@ -1103,6 +1090,7 @@
     background: linear-gradient(90deg, #3498db, #2ecc71, #3498db);
     background-size: 200% auto;
     animation: gradientFlow 3s linear infinite;
+    z-index: 1; /* Asegura que esté sobre el contenido */
 }
 
 @keyframes gradientFlow {
@@ -1116,6 +1104,17 @@
     border-radius: 0.5rem;
     overflow: hidden;
     box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    /* Nuevos estilos para responsive */
+    max-height: calc(100vh - 2rem); /* Limita la altura máxima */
+    overflow-y: auto; /* Permite scroll interno */
+    margin: 0.5rem; /* Margen mínimo en móviles */
+}
+
+@media (min-width: 576px) {
+    .modal-content {
+        margin: 1.75rem auto; /* Centrado en pantallas más grandes */
+        max-width: 95%; /* Ancho máximo */
+    }
 }
 
 /* ESTILOS GENERALES PARA TABLAS EN MODALES */
@@ -1125,9 +1124,12 @@
     border-top: 1px solid rgba(0,0,0,0.05);
     padding: 0.75rem 1.5rem;
     font-size: 0.8rem;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
 }
 
-/* Botón cerrar mejorado */
+/* Botón cerrar mejorado - Versión responsive */
 .modal-header .close {
     opacity: 0.8;
     color: rgba(255,255,255,0.9);
@@ -1135,12 +1137,52 @@
     font-size: 1.5rem;
     padding: 0.5rem;
     margin: -0.8rem -0.8rem -0.8rem auto;
+    position: absolute;
+    right: 1rem;
+    top: 1rem;
+    z-index: 1056; /* Por encima del gradiente */
+}
+
+@media (max-width: 576px) {
+    .modal-header .close {
+        top: 0.5rem; /* Posición más alta en móviles */
+        right: 0.5rem;
+        font-size: 1.25rem; /* Tamaño ligeramente menor */
+    }
 }
 
 .modal-header .close:hover {
     opacity: 1;
     transform: rotate(90deg);
     color: #e74c3c;
+}
+
+/* Ajuste adicional para el título del modal */
+.modal-title {
+    width: calc(100% - 3rem); /* Asegura que no se solape con el botón cerrar */
+    padding-right: 1rem; /* Espacio para el botón */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Corrección para el body del modal */
+.modal-body {
+    overflow-y: auto;
+    max-height: calc(100vh - 200px); /* Altura dinámica */
+}
+
+/* Ajuste para cuando el sidebar está colapsado */
+.sb-sidenav.collapsed ~ .modal {
+    left: 70px;
+    width: calc(100% - 70px);
+}
+
+@media (max-width: 992px) {
+    .sb-sidenav.collapsed ~ .modal {
+        left: 0;
+        width: 100%;
+    }
 }
 
 /* ====================== */
@@ -2856,7 +2898,7 @@
     width: 56px;
     height: 56px;
     bottom: 70px; /* Posición ideal arriba del footer */
-    left: 25px;
+    left: 10px;
     background-color: #25D366;
     color: white !important;
     border-radius: 50%;
@@ -3751,3 +3793,31 @@ input:checked + .payment-slider:before {
   input:checked + .slider:before {
     transform: translateX(26px);
   }
+
+/* Estilo profesional para el enlace de íconos */
+.icon-explorer-link {
+    color: #2962FF !important;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.875rem;
+}
+
+.icon-explorer-link:hover {
+    color: #0039CB !important;
+    text-decoration: underline;
+}
+
+.icon-explorer-link i {
+    margin-right: 6px;
+    font-size: 0.8em;
+}
+
+/* Mejora para el input group */
+.input-group-text {
+    min-width: 40px;
+    justify-content: center;
+    background-color: #f8f9fa;
+}

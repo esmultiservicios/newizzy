@@ -69,6 +69,31 @@ class mainModel
 		return $mysqliDBLocal;
 	}	
 
+	public function connectToDatabase($config) {
+		$conn = new mysqli($config['host'], $config['user'], $config['pass'], $config['name']);
+		
+		if ($conn->connect_error) {
+			error_log("Error conectando a DB cliente: " . $conn->connect_error);
+			return false;
+		}
+		
+		$conn->set_charset("utf8");
+		return $conn;
+	}
+
+	public function databaseExists($dbName) {
+		$conn = new mysqli(SERVER, USER, PASS);
+		if ($conn->connect_error) {
+			return false;
+		}
+		
+		$result = $conn->query("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '$dbName'");
+		$exists = ($result->num_rows > 0);
+		$conn->close();
+		
+		return $exists;
+	}
+
 	public function correlativoLogin($campo_id, $tabla)
 	{
 		$query = 'SELECT MAX(' . $campo_id . ') AS max, COUNT(' . $campo_id . ') AS count FROM ' . $tabla;
@@ -84,6 +109,7 @@ class mainModel
 
 		return $numero;
 	}
+	
 
 	public function consulta_total_ingreso($query)
 	{
@@ -232,15 +258,19 @@ class mainModel
 	}	
 
 	public function registrar_plan_modelo($datos) {
-		$conexion = $this->connection();
+		$conexionPrincipal = $this->connection();
 		
 		try {
-			$stmt = $conexion->prepare("INSERT INTO planes (
-									  nombre,
-									  estado,
-									  fecha_registro,
-									  configuraciones
-									  ) VALUES (?, ?, ?, ?)");
+			// Iniciar transacción
+			$conexionPrincipal->autocommit(false);
+	
+			// 1. Registrar en la base de datos principal
+			$stmt = $conexionPrincipal->prepare("INSERT INTO planes (
+											  nombre,
+											  estado,
+											  fecha_registro,
+											  configuraciones
+											  ) VALUES (?, ?, ?, ?)");
 			
 			$stmt->bind_param("siss", 
 				$datos['nombre'],
@@ -250,36 +280,93 @@ class mainModel
 			);
 			
 			$stmt->execute();
+			$insertId = $stmt->insert_id;
+			
+			// 2. Registrar en todas las bases de datos de clientes
+			$clientes = $this->ejecutar_consulta("SELECT db FROM server_customers WHERE estado = 1 AND db != ''");
+			
+			foreach ($clientes as $cliente) {
+				$dbName = $cliente['db'];
+				
+				// Verificar si la base de datos existe
+				if ($this->databaseExists($dbName)) {
+					$configCliente = [
+						'host' => SERVER,
+						'user' => USER,
+						'pass' => PASS,
+						'name' => $dbName
+					];
+					
+					$connCliente = $this->connectToDatabase($configCliente);
+					
+					if ($connCliente !== false) {
+						// Verificar si la tabla planes existe
+						$tableExists = $connCliente->query("SHOW TABLES LIKE 'planes'");
+						
+						if ($tableExists->num_rows > 0) {
+							// Insertar en la base de datos del cliente
+							$stmtCliente = $connCliente->prepare("INSERT INTO planes (
+															  planes_id,
+															  nombre,
+															  estado,
+															  fecha_registro,
+															  configuraciones
+															  ) VALUES (?, ?, ?, ?, ?)");
+							
+							$stmtCliente->bind_param("isiss", 
+								$insertId,
+								$datos['nombre'],
+								$datos['estado'],
+								$datos['fecha_registro'],
+								$datos['configuraciones']
+							);
+							
+							$stmtCliente->execute();
+							$stmtCliente->close();
+						}
+						$connCliente->close();
+					}
+				}
+			}
+			
+			// Confirmar transacción
+			$conexionPrincipal->commit();
 			
 			return [
 				'success' => true,
-				'insert_id' => $stmt->insert_id,
+				'insert_id' => $insertId,
 				'affected_rows' => $stmt->affected_rows,
-				'message' => 'Plan registrado correctamente'
+				'message' => 'Plan registrado correctamente en todas las bases de datos'
 			];
 			
 		} catch (Exception $e) {
+			// Revertir transacción en caso de error
+			$conexionPrincipal->rollback();
+			
 			return [
 				'success' => false,
 				'error' => $e->getMessage()
 			];
 		} finally {
 			if(isset($stmt)) $stmt->close();
-			$conexion->close();
+			$conexionPrincipal->autocommit(true);
+			$conexionPrincipal->close();
 		}
 	}
 
 	public function actualizar_plan_modelo($datos) {
-		// Verificar conexión
-		$mainModel = new mainModel();
-		$conexion = $mainModel->connection();
+		$conexionPrincipal = $this->connection();
 		
 		try {
-			$stmt = $conexion->prepare("UPDATE planes SET 
-									  nombre = ?,
-									  estado = ?,
-									  configuraciones = ?
-									  WHERE planes_id = ?");
+			// Iniciar transacción
+			$conexionPrincipal->autocommit(false);
+	
+			// 1. Actualizar en la base de datos principal
+			$stmt = $conexionPrincipal->prepare("UPDATE planes SET 
+											  nombre = ?,
+											  estado = ?,
+											  configuraciones = ?
+											  WHERE planes_id = ?");
 			
 			$stmt->bind_param("sisi", 
 				$datos['nombre'],
@@ -289,149 +376,552 @@ class mainModel
 			);
 			
 			$stmt->execute();
+			$affectedRows = $stmt->affected_rows;
+			
+			// 2. Actualizar en todas las bases de datos de clientes
+			$clientes = $this->ejecutar_consulta("SELECT db FROM server_customers WHERE estado = 1 AND db != ''");
+			
+			foreach ($clientes as $cliente) {
+				$dbName = $cliente['db'];
+				
+				// Verificar si la base de datos existe
+				if ($this->databaseExists($dbName)) {
+					$configCliente = [
+						'host' => SERVER,
+						'user' => USER,
+						'pass' => PASS,
+						'name' => $dbName
+					];
+					
+					$connCliente = $this->connectToDatabase($configCliente);
+					
+					if ($connCliente !== false) {
+						// Verificar si la tabla planes existe
+						$tableExists = $connCliente->query("SHOW TABLES LIKE 'planes'");
+						
+						if ($tableExists->num_rows > 0) {
+							// Verificar si el plan existe en el cliente
+							$planExists = $connCliente->query("SELECT 1 FROM planes WHERE planes_id = " . $datos['plan_id']);
+							
+							if ($planExists->num_rows > 0) {
+								// Actualizar en la base de datos del cliente
+								$stmtCliente = $connCliente->prepare("UPDATE planes SET 
+																  nombre = ?,
+																  estado = ?,
+																  configuraciones = ?
+																  WHERE planes_id = ?");
+								
+								$stmtCliente->bind_param("sisi", 
+									$datos['nombre'],
+									$datos['estado'],
+									$datos['configuraciones'],
+									$datos['plan_id']
+								);
+								
+								$stmtCliente->execute();
+							} else {
+								// Insertar si no existe
+								$stmtCliente = $connCliente->prepare("INSERT INTO planes (
+																  planes_id,
+																  nombre,
+																  estado,
+																  fecha_registro,
+																  configuraciones
+																  ) VALUES (?, ?, ?, NOW(), ?)");
+								
+								$stmtCliente->bind_param("isss", 
+									$datos['plan_id'],
+									$datos['nombre'],
+									$datos['estado'],
+									$datos['configuraciones']
+								);
+								
+								$stmtCliente->execute();
+							}
+							$stmtCliente->close();
+						}
+						$connCliente->close();
+					}
+				}
+			}
+			
+			// Confirmar transacción
+			$conexionPrincipal->commit();
 			
 			return [
 				'success' => true,
-				'affected_rows' => $stmt->affected_rows,
-				'message' => 'Plan actualizado correctamente'
+				'affected_rows' => $affectedRows,
+				'message' => 'Plan actualizado correctamente en todas las bases de datos'
 			];
 			
 		} catch (Exception $e) {
+			// Revertir transacción en caso de error
+			$conexionPrincipal->rollback();
+			
 			return [
 				'success' => false,
 				'error' => $e->getMessage()
 			];
 		} finally {
 			if(isset($stmt)) $stmt->close();
-			$conexion->close();
+			$conexionPrincipal->autocommit(true);
+			$conexionPrincipal->close();
 		}
-	}	
+	}
 
-	public function guardar_o_actualizar_modulo_lista_blanca($nombre_config, $moduloNuevo) {
-		$mainModel = new mainModel();
-		$conexion = $mainModel->connection();
+	public function eliminar_plan_modelo($planId) {
+		$response = [
+			'success' => false,
+			'message' => ''
+		];
 	
 		try {
-			$conexion->autocommit(false);
+			// Obtener conexión principal
+			$conexionPrincipal = $this->connection();
+			$conexionPrincipal->autocommit(false);
 	
-			// Obtener la lista actual
-			$stmt = $conexion->prepare("SELECT modulos FROM config_lista_blanca WHERE nombre_config = ?");
+			// 1. Verificar si el plan tiene relaciones en tablas de permisos
+			$tieneRelaciones = false;
+			
+			// Verificar en menu_plan
+			$checkMenuPlan = $conexionPrincipal->query("SELECT 1 FROM menu_plan WHERE plan_id = '$planId' LIMIT 1");
+			if ($checkMenuPlan->num_rows > 0) {
+				$tieneRelaciones = true;
+			}
+			
+			// Verificar en submenu_plan (si no se encontró en la anterior)
+			if (!$tieneRelaciones) {
+				$checkSubmenuPlan = $conexionPrincipal->query("SELECT 1 FROM submenu_plan WHERE plan_id = '$planId' LIMIT 1");
+				if ($checkSubmenuPlan->num_rows > 0) {
+					$tieneRelaciones = true;
+				}
+			}
+			
+			// Verificar en submenu1_plan (si no se encontró en las anteriores)
+			if (!$tieneRelaciones) {
+				$checkSubmenu1Plan = $conexionPrincipal->query("SELECT 1 FROM submenu1_plan WHERE plan_id = '$planId' LIMIT 1");
+				if ($checkSubmenu1Plan->num_rows > 0) {
+					$tieneRelaciones = true;
+				}
+			}
+	
+			if ($tieneRelaciones) {
+				$conexionPrincipal->rollback();
+				return [
+					'success' => false,
+					'message' => 'No se puede eliminar el plan porque tiene permisos asignados'
+				];
+			}
+	
+			// 2. Eliminar de la base principal
+			$deletePrincipal = $conexionPrincipal->query("DELETE FROM planes WHERE plan_id = '$planId'");
+			
+			if (!$deletePrincipal) {
+				$conexionPrincipal->rollback();
+				return [
+					'success' => false,
+					'message' => 'Error al eliminar el plan de la base principal'
+				];
+			}
+	
+			// 3. Eliminar de todas las bases de datos de clientes
+			$clientes = $this->ejecutar_consulta("SELECT db FROM server_customers WHERE estado = 1 AND db != ''");
+			$erroresClientes = [];
+	
+			foreach ($clientes as $cliente) {
+				$dbName = $cliente['db'];
+				
+				if ($this->databaseExists($dbName)) {
+					$configCliente = [
+						'host' => SERVER,
+						'user' => USER,
+						'pass' => PASS,
+						'name' => $dbName
+					];
+					
+					$connCliente = $this->connectToDatabase($configCliente);
+					
+					if ($connCliente !== false) {
+						try {
+							// Verificar si la tabla planes existe
+							$tableExists = $connCliente->query("SHOW TABLES LIKE 'planes'");
+							
+							if ($tableExists->num_rows > 0) {
+								// Verificar si el plan existe en el cliente
+								$planExists = $connCliente->query("SELECT 1 FROM planes WHERE plan_id = '$planId'");
+								
+								if ($planExists->num_rows > 0) {
+									// Eliminar de la base del cliente
+									$deleteCliente = $connCliente->query("DELETE FROM planes WHERE plan_id = '$planId'");
+									
+									if (!$deleteCliente) {
+										$erroresClientes[] = "Error al eliminar de $dbName: " . $connCliente->error;
+									}
+								}
+							}
+						} catch (Exception $e) {
+							$erroresClientes[] = "Error en $dbName: " . $e->getMessage();
+						} finally {
+							$connCliente->close();
+						}
+					}
+				}
+			}
+	
+			// Confirmar transacción principal
+			$conexionPrincipal->commit();
+	
+			$response = [
+				'success' => true,
+				'message' => 'Plan eliminado correctamente'
+			];
+	
+			if (!empty($erroresClientes)) {
+				$response['warnings'] = $erroresClientes;
+			}
+	
+			return $response;
+	
+		} catch (Exception $e) {
+			if (isset($conexionPrincipal)) {
+				$conexionPrincipal->rollback();
+			}
+			
+			return [
+				'success' => false,
+				'message' => 'Error en el servidor: ' . $e->getMessage()
+			];
+		} finally {
+			if (isset($conexionPrincipal)) {
+				$conexionPrincipal->autocommit(true);
+				$conexionPrincipal->close();
+			}
+		}
+	}
+		
+	public function getPlanConfiguracionMainModel(){
+        $query = "SELECT pp.configuraciones 
+		FROM planes pp
+		INNER JOIN plan p ON p.planes_id = pp.planes_id";
+        
+        $sql = mainModel::connection()->query($query) or die(mainModel::connection()->error);
+        
+        if($sql->num_rows > 0){
+            $row = $sql->fetch_assoc();
+            return json_decode($row['configuraciones'], true);
+        }
+        
+        return [];
+    }
+
+	public function guardar_o_actualizar_modulo_lista_blanca($nombre_config, $moduloNuevo) {
+		$response = [
+			'success' => false,
+			'message' => ''
+		];
+	
+		try {
+			// Obtener conexión principal
+			$conexionPrincipal = $this->connection();
+			$conexionPrincipal->autocommit(false);
+	
+			// 1. Actualizar en la base principal
+			$stmt = $conexionPrincipal->prepare("SELECT modulos FROM config_lista_blanca WHERE nombre_config = ?");
 			$stmt->bind_param("s", $nombre_config);
 			$stmt->execute();
 			$result = $stmt->get_result();
 	
 			if ($result->num_rows > 0) {
-				// Ya existe, obtener y actualizar si es necesario
 				$row = $result->fetch_assoc();
 				$listaModulos = json_decode($row['modulos'], true);
 	
 				if (!in_array($moduloNuevo, $listaModulos)) {
 					$listaModulos[] = $moduloNuevo;
-					$listaModulos = array_unique($listaModulos);
-					$modulosJson = json_encode($listaModulos, JSON_UNESCAPED_UNICODE);
+					$modulosJson = json_encode(array_values(array_unique($listaModulos)), JSON_UNESCAPED_UNICODE);
 	
-					$stmt = $conexion->prepare("UPDATE config_lista_blanca SET modulos = ? WHERE nombre_config = ?");
+					$stmt = $conexionPrincipal->prepare("UPDATE config_lista_blanca SET modulos = ? WHERE nombre_config = ?");
 					$stmt->bind_param("ss", $modulosJson, $nombre_config);
-					if (!$stmt->execute()) throw new Exception($stmt->error);
+					$stmt->execute();
+					
+					if ($stmt->affected_rows <= 0) {
+						throw new Exception("No se actualizó ningún registro en la base principal");
+					}
 				}
 			} else {
-				// No existe, insertar nuevo
-				$listaModulos = [$moduloNuevo];
-				$modulosJson = json_encode($listaModulos, JSON_UNESCAPED_UNICODE);
-	
-				$stmt = $conexion->prepare("INSERT INTO config_lista_blanca (nombre_config, modulos) VALUES (?, ?)");
+				$modulosJson = json_encode([$moduloNuevo], JSON_UNESCAPED_UNICODE);
+				$stmt = $conexionPrincipal->prepare("INSERT INTO config_lista_blanca (nombre_config, modulos) VALUES (?, ?)");
 				$stmt->bind_param("ss", $nombre_config, $modulosJson);
-				if (!$stmt->execute()) throw new Exception($stmt->error);
+				$stmt->execute();
+				
+				if ($stmt->affected_rows <= 0) {
+					throw new Exception("No se insertó ningún registro en la base principal");
+				}
 			}
 	
-			$conexion->commit();
-			return true;
+			// 2. Actualizar en todas las bases de datos de clientes
+			$clientes = $this->ejecutar_consulta("SELECT db FROM server_customers WHERE estado = 1 AND db != ''");
+			$erroresClientes = [];
+	
+			foreach ($clientes as $cliente) {
+				$dbName = $cliente['db'];
+				
+				if ($this->databaseExists($dbName)) {
+					$configCliente = [
+						'host' => SERVER,
+						'user' => USER,
+						'pass' => PASS,
+						'name' => $dbName
+					];
+					
+					$connCliente = $this->connectToDatabase($configCliente);
+					
+					if ($connCliente !== false) {
+						try {
+							$connCliente->autocommit(false);
+	
+							// Verificar si la tabla existe
+							$tableExists = $connCliente->query("SHOW TABLES LIKE 'config_lista_blanca'");
+							
+							if ($tableExists->num_rows > 0) {
+								// Verificar si la configuración existe
+								$stmtCliente = $connCliente->prepare("SELECT modulos FROM config_lista_blanca WHERE nombre_config = ?");
+								$stmtCliente->bind_param("s", $nombre_config);
+								$stmtCliente->execute();
+								$resultCliente = $stmtCliente->get_result();
+	
+								if ($resultCliente->num_rows > 0) {
+									$rowCliente = $resultCliente->fetch_assoc();
+									$listaModulosCliente = json_decode($rowCliente['modulos'], true);
+	
+									if (!in_array($moduloNuevo, $listaModulosCliente)) {
+										$listaModulosCliente[] = $moduloNuevo;
+										$modulosJsonCliente = json_encode(array_values(array_unique($listaModulosCliente)), JSON_UNESCAPED_UNICODE);
+	
+										$stmtUpdate = $connCliente->prepare("UPDATE config_lista_blanca SET modulos = ? WHERE nombre_config = ?");
+										$stmtUpdate->bind_param("ss", $modulosJsonCliente, $nombre_config);
+										$stmtUpdate->execute();
+										
+										if ($stmtUpdate->affected_rows <= 0) {
+											throw new Exception("No se actualizó ningún registro en $dbName");
+										}
+									}
+								} else {
+									$modulosJsonCliente = json_encode([$moduloNuevo], JSON_UNESCAPED_UNICODE);
+									$stmtInsert = $connCliente->prepare("INSERT INTO config_lista_blanca (nombre_config, modulos) VALUES (?, ?)");
+									$stmtInsert->bind_param("ss", $nombre_config, $modulosJsonCliente);
+									$stmtInsert->execute();
+									
+									if ($stmtInsert->affected_rows <= 0) {
+										throw new Exception("No se insertó ningún registro en $dbName");
+									}
+								}
+							}
+	
+							$connCliente->commit();
+						} catch (Exception $e) {
+							$connCliente->rollback();
+							$erroresClientes[] = "Error en $dbName: " . $e->getMessage();
+						} finally {
+							$connCliente->autocommit(true);
+							$connCliente->close();
+						}
+					}
+				}
+			}
+	
+			// Confirmar transacción principal
+			$conexionPrincipal->commit();
+	
+			$response = [
+				'success' => true,
+				'message' => 'Módulo actualizado en lista blanca correctamente'
+			];
+	
+			if (!empty($erroresClientes)) {
+				$response['warnings'] = $erroresClientes;
+			}
+	
+			return $response;
 	
 		} catch(Exception $e) {
-			$conexion->rollback();
-			return false;
+			if (isset($conexionPrincipal)) {
+				$conexionPrincipal->rollback();
+			}
+			
+			return [
+				'success' => false,
+				'message' => 'Error: ' . $e->getMessage()
+			];
+		} finally {
+			if (isset($conexionPrincipal)) {
+				$conexionPrincipal->autocommit(true);
+				$conexionPrincipal->close();
+			}
 		}
-	}	
-
-	public function eliminar_modulo_lista_blanca($nombre_config, $moduloEliminar) {
-		// Crear una instancia de mainModel
-		$mainModel = new mainModel();
+	}
 	
-		// Llamamos al método 'connection' desde la instancia de mainModel
-		$conexion = $mainModel->connection();
+	public function eliminar_modulo_lista_blanca($nombre_config, $moduloEliminar) {
+		$response = [
+			'success' => false,
+			'message' => ''
+		];
 	
 		try {
-			// Desactivamos autocommit para asegurar que la transacción sea segura
-			$conexion->autocommit(false);
+			// Obtener conexión principal
+			$conexionPrincipal = $this->connection();
+			$conexionPrincipal->autocommit(false);
 	
-			// 1. Obtener la lista actual de módulos desde la base de datos
-			$stmt = $conexion->prepare("SELECT modulos FROM config_lista_blanca WHERE nombre_config = ?");
+			// 1. Eliminar de la base principal
+			$stmt = $conexionPrincipal->prepare("SELECT modulos FROM config_lista_blanca WHERE nombre_config = ?");
 			$stmt->bind_param("s", $nombre_config);
 			$stmt->execute();
 			$result = $stmt->get_result();
 	
-			// Verificamos si encontramos el registro
 			if ($result->num_rows > 0) {
 				$row = $result->fetch_assoc();
 				$listaModulos = json_decode($row['modulos'], true);
-			} else {
-				// Si no existe, inicializamos una lista vacía
-				$listaModulos = [];
-			}
-	
-			// 2. Verificar si el módulo está en la lista y eliminarlo
-			if (($key = array_search($moduloEliminar, $listaModulos)) !== false) {
-				unset($listaModulos[$key]);
-	
-				// Eliminar duplicados en la lista
-				$listaModulos = array_values($listaModulos); // Re-indexa el array
-	
-				// Convertimos el array a JSON
-				$modulosJson = json_encode($listaModulos, JSON_UNESCAPED_UNICODE);
-	
-				// Preparamos la consulta para actualizar
-				$stmt = $conexion->prepare("UPDATE config_lista_blanca SET modulos = ? WHERE nombre_config = ?");
-				$stmt->bind_param("ss", $modulosJson, $nombre_config);
-	
-				// Ejecutamos la consulta
-				$ejecutado = $stmt->execute();
-	
-				if (!$ejecutado) {
-					throw new Exception($stmt->error);
+				
+				$nuevaLista = array_diff($listaModulos, [$moduloEliminar]);
+				
+				if (count($nuevaLista) != count($listaModulos)) {
+					$modulosJson = json_encode(array_values($nuevaLista), JSON_UNESCAPED_UNICODE);
+					$stmt = $conexionPrincipal->prepare("UPDATE config_lista_blanca SET modulos = ? WHERE nombre_config = ?");
+					$stmt->bind_param("ss", $modulosJson, $nombre_config);
+					$stmt->execute();
+					
+					if ($stmt->affected_rows <= 0) {
+						throw new Exception("No se actualizó ningún registro en la base principal");
+					}
 				}
-	
-				// Confirmamos la transacción
-				$conexion->commit();
-				return true;
 			} else {
-				// El módulo no existe en la lista
-				return false;
+				$conexionPrincipal->rollback();
+				return [
+					'success' => false,
+					'message' => 'La configuración no existe en la base principal'
+				];
 			}
+	
+			// 2. Actualizar en todas las bases de datos de clientes
+			$clientes = $this->ejecutar_consulta("SELECT db FROM server_customers WHERE estado = 1 AND db != ''");
+			$erroresClientes = [];
+	
+			foreach ($clientes as $cliente) {
+				$dbName = $cliente['db'];
+				
+				if ($this->databaseExists($dbName)) {
+					$configCliente = [
+						'host' => SERVER,
+						'user' => USER,
+						'pass' => PASS,
+						'name' => $dbName
+					];
+					
+					$connCliente = $this->connectToDatabase($configCliente);
+					
+					if ($connCliente !== false) {
+						try {
+							$connCliente->autocommit(false);
+	
+							// Verificar si la tabla existe
+							$tableExists = $connCliente->query("SHOW TABLES LIKE 'config_lista_blanca'");
+							
+							if ($tableExists->num_rows > 0) {
+								// Verificar si la configuración existe
+								$stmtCliente = $connCliente->prepare("SELECT modulos FROM config_lista_blanca WHERE nombre_config = ?");
+								$stmtCliente->bind_param("s", $nombre_config);
+								$stmtCliente->execute();
+								$resultCliente = $stmtCliente->get_result();
+	
+								if ($resultCliente->num_rows > 0) {
+									$rowCliente = $resultCliente->fetch_assoc();
+									$listaModulosCliente = json_decode($rowCliente['modulos'], true);
+									
+									$nuevaListaCliente = array_diff($listaModulosCliente, [$moduloEliminar]);
+									
+									if (count($nuevaListaCliente) != count($listaModulosCliente)) {
+										$modulosJsonCliente = json_encode(array_values($nuevaListaCliente), JSON_UNESCAPED_UNICODE);
+										$stmtUpdate = $connCliente->prepare("UPDATE config_lista_blanca SET modulos = ? WHERE nombre_config = ?");
+										$stmtUpdate->bind_param("ss", $modulosJsonCliente, $nombre_config);
+										$stmtUpdate->execute();
+										
+										if ($stmtUpdate->affected_rows <= 0) {
+											throw new Exception("No se actualizó ningún registro en $dbName");
+										}
+									}
+								}
+							}
+	
+							$connCliente->commit();
+						} catch (Exception $e) {
+							$connCliente->rollback();
+							$erroresClientes[] = "Error en $dbName: " . $e->getMessage();
+						} finally {
+							$connCliente->autocommit(true);
+							$connCliente->close();
+						}
+					}
+				}
+			}
+	
+			// Confirmar transacción principal
+			$conexionPrincipal->commit();
+	
+			$response = [
+				'success' => true,
+				'message' => 'Módulo eliminado de lista blanca correctamente'
+			];
+	
+			if (!empty($erroresClientes)) {
+				$response['warnings'] = $erroresClientes;
+			}
+	
+			return $response;
 	
 		} catch(Exception $e) {
-			// Si algo falla, hacemos rollback
-			$conexion->rollback();
-			return false;
+			if (isset($conexionPrincipal)) {
+				$conexionPrincipal->rollback();
+			}
+			
+			return [
+				'success' => false,
+				'message' => 'Error: ' . $e->getMessage()
+			];
+		} finally {
+			if (isset($conexionPrincipal)) {
+				$conexionPrincipal->autocommit(true);
+				$conexionPrincipal->close();
+			}
 		}
 	}
 	
     // Ejecutar consulta simple (SELECT)
 	public static function ejecutar_consulta($query) {
 		// Abrir conexión a la base de datos
-		$conexion = (new mainModel())->connection();
-
+		$conexion = (new self())->connection();
+		
 		// Ejecutar la consulta
 		$resultado = $conexion->query($query);
-	
+		
 		// Verificar si la consulta fue exitosa
 		if (!$resultado) {
-			throw new Exception('Error en la consulta: ' . $conexion->error);
+			$error = $conexion->error;
+			$conexion->close();
+			throw new Exception('Error en la consulta: ' . $error);
 		}
-	
-		// Cerrar la conexión
+		
+		// Para consultas SELECT, obtener y almacenar los resultados antes de cerrar
+		if (stripos(trim($query), 'SELECT') === 0) {
+			$data = [];
+			while ($row = $resultado->fetch_assoc()) {
+				$data[] = $row;
+			}
+			$resultado->free();
+			$conexion->close();
+			return $data;
+		}
+		
+		// Para otras consultas (INSERT, UPDATE, DELETE)
 		$conexion->close();
-	
-		// Devolver el resultado
 		return $resultado;
 	}
 
@@ -1208,43 +1698,52 @@ class mainModel
 	}
 
 	public function showNotification($alert) {
-		// Validar y establecer valores por defecto
-		$type = isset($alert['type']) ? $alert['type'] : 'error';
-		$title = isset($alert['title']) ? $alert['title'] : 'Notificación';
-		$message = isset($alert['text']) ? $alert['text'] : '';
-		
-		// Determinar el estado basado en el tipo
+		// Valores por defecto
+		$type = $alert['type'] ?? 'error';
+		$title = $alert['title'] ?? 'Notificación';
+		$message = $alert['text'] ?? '';
 		$status = ($type === 'success') ? 'success' : 'error';
-		
-		// Inicializar array de acciones
-		$actions = [];
-		
-		// Procesar acciones comunes
-		if(isset($alert['form'])) {
-			$actions['resetForm'] = $alert['form'];
+	
+		$scriptParts = [
+			"<script>",
+			"(function() {",
+			"  // Mostrar notificación principal",
+			"  if (typeof showNotify === 'function') {",
+			"    showNotify('{$status}', '" . addslashes($title) . "', '" . addslashes($message) . "');",
+			"  }",
+		];
+	
+		// Resetear formulario si existe
+		if (!empty($alert['form'])) {
+			$scriptParts[] = "  if (typeof jQuery !== 'undefined' && $('#{$alert['form']}').length) {";
+			$scriptParts[] = "    $('#{$alert['form']}')[0].reset();";
+			$scriptParts[] = "  }";
 		}
-		
-		if(isset($alert['funcion'])) {
-			$actions['execute'] = $alert['funcion'];
+	
+		// Ejecutar funciones solo si existen
+		if (!empty($alert['funcion'])) {
+			$functions = explode(';', $alert['funcion']);
+			foreach ($functions as $func) {
+				$func = trim($func);
+				if (!empty($func)) {
+					$scriptParts[] = "  if (typeof {$func} === 'function') {";
+					$scriptParts[] = "    {$func}();";
+					$scriptParts[] = "  }";
+				}
+			}
 		}
-		
-		// Para acciones específicas de delete (cerrar modal)
-		if(isset($alert['alert']) && $alert['alert'] === 'delete') {
-			$actions['closeModal'] = true;
+	
+		// Cerrar modales si se solicita
+		if (!empty($alert['closeAllModals'])) {
+			$scriptParts[] = "  if (typeof jQuery !== 'undefined' && typeof jQuery.fn.modal === 'function') {";
+			$scriptParts[] = "    $('.modal').modal('hide');";
+			$scriptParts[] = "  }";
 		}
-		
-		// Construir el script JavaScript
-		$script = "<script>
-			// Mostrar notificación Notyf
-			showNotify('{$status}', '".addslashes($title)."', '".addslashes($message)."');
-			
-			// Acciones adicionales
-			".(!empty($actions['resetForm']) ? "$('#{$actions['resetForm']}')[0].reset();" : "")."
-			".(!empty($actions['execute']) ? $actions['execute'] : "")."
-			".(!empty($actions['closeModal']) ? "$('.modal').modal('hide');" : "")."
-		</script>";
-		
-		return $script;
+	
+		$scriptParts[] = "})();";
+		$scriptParts[] = "</script>";
+	
+		return implode("\n", $scriptParts);
 	}
 
 	function cerrar_sesion()
@@ -5156,13 +5655,9 @@ class mainModel
 	public function getPrivilegiosAccesoSubMenu($privilegio_id)
 	{
 		$query = "SELECT asm.acceso_submenu_id AS 'acceso_menu_id ', sm.name AS 'submenu', asm.estado AS 'estado'
-
 				FROM acceso_submenu asm
-
 				INNER JOIN submenu AS sm
-
 				ON asm.submenu_id = sm.submenu_id
-
 				WHERE asm.privilegio_id = '$privilegio_id'";
 
 		$result = self::connection()->query($query);
@@ -5173,13 +5668,9 @@ class mainModel
 	public function getPrivilegiosAccesoSubMenu1($privilegio_id)
 	{
 		$query = "SELECT asm.acceso_submenu1_id AS 'acceso_menu_id ', sm.name AS 'submenu1', asm.estado AS 'estado', asm.privilegio_id
-
 				FROM acceso_submenu1 asm
-
 				INNER JOIN submenu1 AS sm
-
 				ON asm.submenu1_id = sm.submenu1_id
-
 				WHERE asm.privilegio_id = '$privilegio_id'";
 
 		$result = self::connection()->query($query);
@@ -6115,13 +6606,9 @@ class mainModel
 	protected function getMenuAccesoLoginConsulta($privilegio_id, $menu)
 	{
 		$query = "SELECT am.acceso_menu_id AS 'acceso_menu_id', m.name AS 'name'
-
 				FROM acceso_menu AS am
-
 				INNER JOIN menu AS m
-
 				ON am.menu_id = m.menu_id
-
 				WHERE am.privilegio_id = '$privilegio_id' AND m.name = '$menu' AND am.estado = 1";
 
 		$sql = mainModel::connection()->query($query) or die(mainModel::connection()->error);

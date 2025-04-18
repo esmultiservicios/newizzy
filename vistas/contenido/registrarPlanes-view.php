@@ -31,7 +31,7 @@
                     </div>
 
                     <div class="form-group col-md-2 mb-2 text-right">
-                        <button type="button" id="btn-cancelar-edicion" class="btn btn-danger" style="display: none;">
+                        <button type="button" id="btn-cancelar-edicion" class="btn btn-secondary mr-2" style="display: none;">
                             <i class="fas fa-times-circle fa-lg mr-1"></i> Cancelar
                         </button>
                     </div>
@@ -121,8 +121,10 @@
                     <table id="tablaConfiguraciones" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
                         <thead class="bg-light">
                             <tr>
+                                <th width="5%">#</th>
                                 <th>Configuración</th>
                                 <th>Cantidad</th>
+                                <th width="15%">Acciones</th>
                             </tr>
                         </thead>
                         <tbody></tbody>

@@ -1,19 +1,22 @@
-<div class="container-fluid">
+<div class="container-fluid" id="div_top">
     <ol class="breadcrumb mt-2 mb-4">
         <li class="breadcrumb-item"><a class="breadcrumb-link" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>dashboard/">Dashboard</a></li>
         <li class="breadcrumb-item active">Administrar Menús</li>
     </ol>
 
-    <!-- Formulario para registrar nuevos elementos -->
+    <!-- Formulario para registrar/editar elementos -->
     <div class="card mb-4">
         <div class="card-header">
             <i class="fas fa-plus-circle mr-1"></i>
-            Registrar Nuevo Elemento de Menú
+            <span id="form_title">Registrar Nuevo Elemento de Menú</span>
         </div>
         <div class="card-body">
             <form id="formulario_menu">
-                <div class="form-row">
-                    <div class="form-group col-md-4">
+                <input type="hidden" id="menu_id" name="menu_id" value="">
+                
+                <!-- Primera fila: Tipo y Nombre -->
+                <div class="form-row" style="margin-bottom: 0.5rem;">
+                    <div class="form-group col-md-3">
                         <label for="tipo_menu">Tipo de Elemento</label>
                         <select class="form-control selectpicker" id="tipo_menu" name="tipo_menu" required>
                             <option value="">Seleccionar...</option>
@@ -22,24 +25,65 @@
                             <option value="submenu1">Submenú Nivel 2</option>
                         </select>
                     </div>
-
-                    <div class="form-group col-md-4" id="dependencia_menu_group" style="display:none;">
+                    
+                    <div class="form-group col-md-3" id="dependencia_menu_group" style="display:none;">
                         <label id="label_dependencia">Dependencia</label>
                         <select class="form-control selectpicker" id="dependencia_menu" name="dependencia_menu" data-live-search="true">
                             <option value="">Seleccionar...</option>
                         </select>
                     </div>
-
-                    <div class="form-group col-md-4">
-                        <label for="nombre_menu">Nombre del Elemento</label>
-                        <input type="text" class="form-control" id="nombre_menu" name="nombre_menu" required maxlength="25">
+                    
+                    <div class="form-group col-md-3">
+                        <label for="nombre_menu">Nombre (Código)</label>
+                        <input type="text" class="form-control" id="nombre_menu" name="nombre_menu" required maxlength="25" placeholder="Ej: ventas, clientes">
+                        <small class="form-text text-muted" style="margin-top: 0.25rem;">Nombre interno (sin espacios)</small>
+                    </div>
+                    
+                    <div class="form-group col-md-3">
+                        <label for="descripcion_menu">Descripción</label>
+                        <input type="text" class="form-control" id="descripcion_menu" name="descripcion_menu" required maxlength="50" placeholder="Nombre visible en el menú">
                     </div>
                 </div>
                 
-                <!-- Botón de registrar colocado abajo y alineado a la derecha -->
-                <div class="form-row mt-3">
+                <!-- Segunda fila: Ícono, Orden y Visibilidad -->
+                <div class="form-row" style="margin-bottom: 0.5rem;">
+                    <div class="form-group col-md-4">
+                        <label for="icono_menu">Ícono (FontAwesome)</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i id="icono_preview" class="fas fa-question"></i></span>
+                            </div>
+                            <input type="text" class="form-control" id="icono_menu" name="icono_menu" placeholder="Ej: fas fa-home fa-lg">
+                        </div>
+                        <div style="margin-top: 0.25rem;">
+                            <a href="https://fontawesome.com/icons?d=gallery&m=free" target="_blank" 
+                            class="icon-explorer-link">
+                                <i class="fas fa-external-link-alt"></i>Explorar íconos disponibles
+                            </a>
+                        </div>
+                    </div>
+                                        
+                    <div class="form-group col-md-4">
+                        <label for="orden_menu">Orden</label>
+                        <input type="number" class="form-control" id="orden_menu" name="orden_menu" min="0" value="0">
+                        <small class="form-text text-muted" style="margin-top: 0.25rem;">Define el orden de aparición</small>
+                    </div>
+                    
+                    <div class="form-group col-md-4">
+                        <div class="form-check mt-4 pt-2">
+                            <input class="form-check-input" type="checkbox" id="visible_menu" name="visible_menu" checked>
+                            <label class="form-check-label" for="visible_menu">Mostrar en menú lateral</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Botones de acción -->
+                <div class="form-row" style="margin-top: 1rem;">
                     <div class="col-md-12 text-right">
-                        <button type="submit" class="btn btn-primary" id="btnRegistrarMenu">
+                        <button type="button" class="btn btn-secondary mr-2" id="btnCancelarEdicion" style="display:none;">
+                            <i class="fas fa-times mr-1"></i> Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary" id="btnAccionMenu">
                             <i class="fas fa-save mr-1"></i> Registrar
                         </button>
                     </div>
@@ -61,7 +105,11 @@
                         <tr>
                             <th>Tipo</th>
                             <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th>Ícono</th>
+                            <th>Orden</th>                            
                             <th>Dependencia</th>
+                            <th>Visible</th>
                             <th>Editar</th>
                             <th>Eliminar</th>
                         </tr>
@@ -88,48 +136,6 @@
                     echo "No se encontraron registros ";
                 }					
             ?>
-        </div>
-    </div>
-</div>
-
-<!-- Modal para edición (actualizado para centrarlo) -->
-<div class="modal fade" id="modalEditarMenu" tabindex="-1" role="dialog" aria-labelledby="modalEditarMenuLabel" aria-hidden="true" style="display: none;">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="modalEditarMenuLabel">
-                    <i class="fas fa-edit mr-2"></i> Editar Elemento de Menú
-                </h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="formulario_editar_menu">
-                    <input type="hidden" id="edit_id" name="edit_id">
-                    <input type="hidden" id="edit_tipo" name="edit_tipo">
-
-                    <div class="form-group">
-                        <label for="edit_nombre">Nombre</label>
-                        <input type="text" class="form-control" id="edit_nombre" name="edit_nombre" required>
-                    </div>
-
-                    <div class="form-group" id="edit_dependencia_group" style="display:none;">
-                        <label id="edit_label_dependencia"><i class="fas fa-link mr-1"></i> Dependencia</label>
-                        <select class="form-control selectpicker" id="edit_dependencia" name="edit_dependencia" data-live-search="true">
-                            <option value="">Seleccionar...</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
-                </button>
-                <button type="button" class="btn btn-primary" id="btnGuardarCambios">
-                    <i class="fas fa-save mr-1"></i> Guardar Cambios
-                </button>
-            </div>
         </div>
     </div>
 </div>

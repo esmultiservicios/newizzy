@@ -52,28 +52,260 @@ $(document).ready(function() {
         }, 300);
     });
 
-    // Login form
     $("#loginform").submit(function(e) {
         e.preventDefault();
+
+        var url = '<?php echo SERVERURL; ?>ajax/iniciarSesionAjax.php';
+
         $.ajax({
             type: 'POST',
-            url: '<?php echo SERVERURL; ?>ajax/iniciarSesionAjax.php',
-            data: $(this).serialize(),
+            url: url,
+            data: $('#loginform').serialize(),
             beforeSend: function() {
                 showLoading("Por favor espere...");
+                $("#loginform #acceso").show();
             },
             success: function(resp) {
                 var datos = eval(resp);
-                if (datos[0]) {
-                    setTimeout(() => window.location = datos[0], 1200);
+                if (datos[0] !== "") {
+                    setTimeout(window.location = datos[0], 1200);
+                } else if (datos[1] === "ErrorS") {
+                    swal({
+                    content: {
+                        element: "div",
+                        attributes: {
+                            innerHTML: `
+                                <h2 style="color: #d9534f; font-size: 22px; margin-bottom: 15px;">
+                                    ⚠️ Error de Autenticación
+                                </h2>
+                                <p style="font-size: 16px; color: #555;">
+                                    <strong>Usuario o contraseña incorrectos.</strong> Por favor, verifique los datos ingresados.
+                                </p>
+                                <p style="font-size: 16px; color: #555;">
+                                    🔑 Asegúrese de que el nombre de usuario y la contraseña sean correctos.
+                                </p>
+                            `
+                        }
+                    },
+                    icon: "error",
+                    dangerMode: true,
+                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
+                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
+                });
+                } else if (datos[1] === "ErrorP") {
+                    swal({
+                        content: {
+                            element: "div",
+                            attributes: {
+                                innerHTML: `
+                                    <h2 style="color: #f0ad4e; font-size: 22px; margin-bottom: 15px;">
+                                        ⚠️ ¡Problemas con el Pago!
+                                    </h2>
+                                    <p style="font-size: 16px; color: #555;">
+                                        😕 ¡Oops! Parece que hay un problema con su acceso al sistema debido a un inconveniente con el pago.
+                                    </p>
+                                    <p style="font-size: 16px; color: #555;">
+                                        📅 <strong>Fecha máxima de pago:</strong> El pago debe realizarse antes del <strong>día 15 de cada mes</strong>. A partir del <strong>día 16</strong>, su acceso podría verse restringido si la factura sigue pendiente.
+                                    </p>
+                                    <p style="font-size: 16px; color: #555;">
+                                        No se preocupe, solo necesita ponerse en contacto con nuestro equipo de recaudación de pagos para arreglarlo.
+                                    </p>
+                                    <p style="font-size: 16px; color: #555;">
+                                        💬 Puede escribirnos al 📞 <strong>+504 8913-6844</strong>, ¡y con gusto le ayudaremos! 😊
+                                    </p>
+                                `
+                            }
+                        },
+                        icon: "warning",
+                        dangerMode: true,
+                        closeOnEsc: false,
+                        closeOnClickOutside: false
+                    });
+                } else if (datos[1] === "ErrorVacio") {
+                    swal({
+                        content: {
+                            element: "div",
+                            attributes: {
+                                innerHTML: `
+                                    <h2 style="color: #d9534f; font-size: 22px; margin-bottom: 15px;">
+                                        ⚠️ Error
+                                    </h2>
+                                    <p style="font-size: 16px; color: #555;">
+                                        <strong>Lo sentimos</strong>, uno de los dos campos no puede ir en blanco. El sistema requiere tanto el cliente como el PIN para continuar.
+                                    </p>
+                                    <p style="font-size: 16px; color: #555;">
+                                        Si lo desea, puede dejar ambos campos en blanco, y el sistema los ignorará.
+                                        <span style="color: #5bc0de;">Por favor, complete los campos para continuar.</span>
+                                    </p>
+                                    <p style="font-size: 16px; color: #555;">
+                                        😓 Lamentamos el inconveniente, y agradecemos su comprensión. 🙏
+                                    </p>
+                                `
+                            }
+                        },
+                        icon: "error",
+                        dangerMode: true,
+                        closeOnEsc: false, // Desactiva el cierre con la tecla Esc
+                        closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
+                    });
+                } else if (datos[1] === "ErrorPinInvalido") {
+                    swal({
+                        content: {
+                            element: "div",
+                            attributes: {
+                                innerHTML: `
+                                    <h2 style="color: #d9534f; font-size: 22px; margin-bottom: 15px;">
+                                        ⚠️ Error
+                                    </h2>
+                                    <p style="font-size: 16px; color: #555;">
+                                        <strong>Lo sentimos</strong>, el código del cliente o el PIN son inválidos, o el mismo ha vencido. 
+                                    </p>
+                                    <p style="font-size: 16px; color: #555;">
+                                        Por favor, solicite un nuevo PIN al cliente para continuar con el proceso.
+                                        <span style="color: #5bc0de;">Agradecemos su comprensión.</span>
+                                    </p>
+                                    <p style="font-size: 16px; color: #555;">
+                                        😔 Si necesita asistencia adicional, no dude en ponerse en contacto con nuestro soporte. 🙏
+                                    </p>
+                                `
+                            }
+                        },
+                        icon: "error",
+                        dangerMode: true,
+                        closeOnEsc: false, // Desactiva el cierre con la tecla Esc
+                        closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
+                    });
+                } else if (datos[1] === "ErrorC") {
+                    swal({
+                        content: {
+                            element: "div",
+                            attributes: {
+                                innerHTML: `
+                                    <h2 style="color: #5bc0de; font-size: 22px; margin-bottom: 15px;">
+                                        📧 No se encontró una cuenta asociada a este correo electrónico
+                                    </h2>
+                                    <p style="font-size: 16px; color: #555;">
+                                        <strong>¿Desea registrarse o explorar nuestros productos?</strong>
+                                    </p>
+                                `
+                            }
+                        },
+                        icon: "info",
+                        buttons: {
+                            cancel: "Cerrar",
+                            register: {
+                                text: "Sí, registrarme!",
+                                value: "register",
+                            },
+                            explore: {
+                                text: "Explorar productos",
+                                value: "explore",
+                            }
+                        },
+                        closeOnClickOutside: false,
+                        closeOnEsc: false
+                    })
+                    .then((value) => {
+                        switch (value) {
+                            case "register":
+                                // El usuario eligió registrarse, muestra el formulario de registro.
+                                setTimeout(function() {
+                                    $("#form_registro").show();
+                                    $("#loginform").hide();
+                                    swal.close();
+                                }, 1000);
+                                break;
+
+                            case "explore":
+                                // El usuario eligió explorar productos, muestra el mensaje de mantenimiento.
+                                swal({
+                                    content: {
+                                        element: "div",
+                                        attributes: {
+                                            innerHTML: `
+                                                <h2 style="color: #f0ad4e; font-size: 22px; margin-bottom: 15px;">
+                                                    🔧 Mantenimiento en Curso
+                                                </h2>
+                                                <p style="font-size: 16px; color: #555;">
+                                                    Estamos trabajando para mejorar nuestros servicios. <strong>Disculpa las molestias.</strong>
+                                                </p>
+                                                <p style="font-size: 16px; color: #555;">
+                                                    ⚙️ Agradecemos tu paciencia. ¡Pronto estaremos de vuelta!
+                                                </p>
+                                            `
+                                        }
+                                    },
+                                    icon: "error",
+                                    buttons: {
+                                        confirm: {
+                                            text: "Aceptar",
+                                            closeModal: true,
+                                        }
+                                    },
+                                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
+                                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
+                                });
+                                break;
+
+                            default:
+                                // El usuario eligió cerrar el cuadro de diálogo.
+                                swal.close();
+                        }
+                    });
                 } else {
-                    handleLoginError(datos[1]);                    
+                    swal({
+                        content: {
+                            element: "div",
+                            attributes: {
+                                innerHTML: `
+                                    <h2 style="color: #d9534f; font-size: 22px; margin-bottom: 15px;">
+                                        ❌ Error
+                                    </h2>
+                                    <p style="font-size: 16px; color: #555;">
+                                        <strong>No se enviaron los datos</strong>, por favor, corrija los errores y vuelva a intentar.
+                                    </p>
+                                    <p style="font-size: 16px; color: #555;">
+                                        ⚠️ Asegúrese de verificar los campos obligatorios y los datos ingresados.
+                                    </p>
+                                `
+                            }
+                        },
+                        icon: "error",
+                        dangerMode: true,
+                        closeOnEsc: false, // Desactiva el cierre con la tecla Esc
+                        closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
+                    });
                 }
             },
             error: function() {
-                showNotify('error', 'Error Inesperado', "Ocurrió un error inesperado");
+                swal({
+                    content: {
+                        element: "div",
+                        attributes: {
+                            innerHTML: `
+                                <h2 style="color: #d9534f; font-size: 22px; margin-bottom: 15px;">
+                                    ❗ Error Inesperado
+                                </h2>
+                                <p style="font-size: 16px; color: #555;">
+                                    <strong>Ocurrió un error inesperado</strong>, o tal vez no tenga conexión con el sistema.
+                                </p>
+                                <p style="font-size: 16px; color: #555;">
+                                    🚧 Por favor, intente nuevamente más tarde.
+                                </p>
+                            `
+                        }
+                    },
+                    icon: "error",
+                    dangerMode: true,
+                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
+                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
+                });
+                $("#loginform #acceso").hide();
+                $("#loginform #acceso").html("");
+                $("#loginform #usu").focus();
             }
         });
+
         return false;
     });
 
@@ -101,18 +333,6 @@ $(document).ready(function() {
         return false;
     });
 
-    // Funciones auxiliares
-    function handleLoginError(errorType) {
-        const errors = {
-            "ErrorS": "Usuario o contraseña incorrectos",
-            "ErrorP": "Problemas con el pago",
-            "ErrorVacio": "Campos vacíos",
-            "ErrorPinInvalido": "PIN inválido",
-            "ErrorC": "Cuenta no encontrada, por favor realice el registro en el sistema"
-        };
-
-        showNotify('error', 'Error', errors[errorType] || "Error desconocido");
-    }
 });
 
 // Validación de contraseñas en tiempo real

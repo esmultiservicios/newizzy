@@ -54,9 +54,9 @@ class clientesControlador extends clientesModelo {
         ]);
         
         return mainModel::showNotification([
-            "title" => "Registro exitoso",
-            "text" => "Cliente registrado correctamente",
             "type" => "success",
+            "title" => "Registro exitoso",
+            "text" => "Cliente registrado correctamente",           
             "form" => "formClientes",
             "funcion" => "listar_clientes();getDepartamentoClientes();getMunicipiosClientes(0);listar_clientes_factura_buscar();listar_clientes_cotizacion_buscar();listar_colaboradores_buscar_compras();"
         ]);
@@ -257,9 +257,9 @@ class clientesControlador extends clientesModelo {
                     
         if(!clientesModelo::edit_clientes_modelo($datos)){
             return mainModel::showNotification([
+                "type" => "error",
                 "title" => "Error",
-                "text" => "No se pudo actualizar el cliente",
-                "type" => "error"
+                "text" => "No se pudo actualizar el cliente",                
             ]);
         }
         
@@ -273,11 +273,10 @@ class clientesControlador extends clientesModelo {
         ]);
         
         return mainModel::showNotification([
+            "type" => "success",
             "title" => "Actualización exitosa",
             "text" => "Cliente actualizado correctamente",
-            "type" => "success",
-            "form" => "formClientes",
-            "funcion" => "listar_clientes();getDepartamentoClientes();getMunicipiosClientes(0);"
+            "funcion" => "listar_clientes();"
         ]);
     }
     

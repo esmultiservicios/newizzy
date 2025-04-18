@@ -14,7 +14,7 @@ var listar_diarios_configuracion = function(){
 		"columns":[
 			{"data":"diario"},
 			{"data":"cuenta"},											
-			{"defaultContent":"<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit'></span></button>"}
+			{"defaultContent":"<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit'></span>Editar</button>"}
 		],
         "lengthMenu": lengthMenu10,
 		"stateSave": true,

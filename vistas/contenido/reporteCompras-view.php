@@ -41,7 +41,7 @@
 						
 						
 						echo $fecha_inicial;
-					?>" class="form-control" data-toggle="tooltip" data-placement="top" title="Fecha Inicio" tyle="width:165px;">
+					?>" class="form-control" data-toggle="tooltip" data-placement="top" title="Fecha Inicio" style="width:165px;">
                     </div>
                 </div>
                 <div class="form-group mx-sm-3 mb-1">
@@ -53,7 +53,7 @@
                         </div>
                         <input type="date" required id="fechaf" name="fechaf" value="<?php echo date ("Y-m-d");?>"
                             class="form-control" data-toggle="tooltip" data-placement="top" title="Fecha Fin"
-                            tyle="width:165px;">
+                            style="width:165px;">
                     </div>
                 </div>
             </form>

@@ -9,13 +9,13 @@
 
         public function getVistasControlador(){
             if(isset($_GET['views'])){
-                $ruta = explode("/", $_GET['views']);//DIVIDIMOS EN PARTES LA VARIABLE
+                $ruta = explode("/", $_GET['views']);
+                error_log("Intentando acceder a vista: " . $ruta[0]); // Log para depuración
                 $respuesta = vistasModelo::getVistasModelo($ruta[0]);
+                error_log("Respuesta del modelo: " . $respuesta); // Log para depuración
             }else{
                 $respuesta = "login";
             }
-			
             return $respuesta;
         }
     }
-?>	

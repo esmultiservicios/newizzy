@@ -17,7 +17,7 @@ while ($row = $result->fetch_assoc()) {
     if (!empty($row['configuraciones'])) {
         try {
             $configsArray = json_decode($row['configuraciones'], true);
-            if (is_array($configsArray)) {  // AQUÍ FALTABA EL PARÉNTESIS DE CIERRE
+            if (is_array($configsArray)) {
                 $configDisplay = "<ul class='list-unstyled mb-0'>";
                 foreach ($configsArray as $key => $value) {
                     $configDisplay .= "<li><strong>{$key}:</strong> {$value}</li>";
@@ -29,14 +29,14 @@ while ($row = $result->fetch_assoc()) {
         }
     }
 
-    $queryMenus = "SELECT COUNT(*) as total FROM menu_plan WHERE planes_id = '{$row['planes_id']}'";
-    $querySubmenus = "SELECT COUNT(*) as total FROM submenu_plan WHERE planes_id = '{$row['planes_id']}'";
-    $querySubmenus2 = "SELECT COUNT(*) as total FROM submenu1_plan WHERE planes_id = '{$row['planes_id']}'";
+    // Consultas corregidas que solo cuentan registros con estado = 1
+    $queryMenus = "SELECT COUNT(*) as total FROM menu_plan WHERE planes_id = '{$row['planes_id']}' AND estado = 1";
+    $querySubmenus = "SELECT COUNT(*) as total FROM submenu_plan WHERE planes_id = '{$row['planes_id']}' AND estado = 1";
+    $querySubmenus2 = "SELECT COUNT(*) as total FROM submenu1_plan WHERE planes_id = '{$row['planes_id']}' AND estado = 1";
 
     $menusCount = $insMainModel->ejecutar_consulta_simple($queryMenus)->fetch_assoc()['total'];
     $submenusCount = $insMainModel->ejecutar_consulta_simple($querySubmenus)->fetch_assoc()['total'];
     $submenus2Count = $insMainModel->ejecutar_consulta_simple($querySubmenus2)->fetch_assoc()['total'];
-
 
     $data[] = [
         "planes_id" => $row['planes_id'],

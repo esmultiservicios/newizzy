@@ -134,6 +134,11 @@
                     <i class="fas fa-id-card mr-2"></i>Mi Perfil
                 </a>
                 <div class="dropdown-divider"></div>
+                <a class="dropdown-item" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>MisFacturas/">
+                    <i class="fa-solid fa-file-invoice mr-2"></i> Mis Facturas
+                    <span id="badge-facturas-pendientes" class="badge bg-danger rounded-pill float-end" style="display: none;">0</span>
+                </a>
+                <div class="dropdown-divider"></div>                
                 <a class="dropdown-item btn-exit-system"
                     href="<?php echo $lc->encryption($_SESSION['token_sd']);?>">
                     <i class="fas fa-sign-out-alt mr-2"></i>Salir

@@ -14,8 +14,8 @@ var listar_ubicacion = function(){
 		"columns":[
 			{"data":"ubicacion"},
 			{"data":"empresa"},
-			{"defaultContent":"<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit'></span></button>"},
-			{"defaultContent":"<button class='table_eliminar btn btn-dark ocultar'><span class='fa fa-trash'></span></button>"}
+			{"defaultContent":"<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit'></span>Editar</button>"},
+			{"defaultContent":"<button class='table_eliminar btn btn-dark ocultar'><span class='fa fa-trash'></span>Eliminar</button>"}
 		],
         "lengthMenu": lengthMenu,
 		"stateSave": true,

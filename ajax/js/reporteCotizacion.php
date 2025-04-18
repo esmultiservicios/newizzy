@@ -1,4 +1,5 @@
 <script>
+//reporteCotizacio.php    
 $(document).ready(function() {
     getReporteCotizacion();
     listar_reporte_cotizaciones();
@@ -131,13 +132,13 @@ var listar_reporte_cotizaciones = function() {
                 },
             },
             {
-                "defaultContent": "<button class='table_reportes print_cotizaciones btn btn-dark table_info ocultar'><span class='fas fa-file-download fa-lg'></span></button>"
+                "defaultContent": "<button class='table_reportes print_cotizaciones btn btn-dark table_info ocultar'><span class='fas fa-file-download fa-lg'></span>Cotización</button>"
             },
             {
-                "defaultContent": "<button class='table_reportes email_cotizacion btn btn-dark table_danger ocultar'><span class='fas fa-paper-plane fa-lg'></span></button>"
+                "defaultContent": "<button class='table_reportes email_cotizacion btn btn-dark table_danger ocultar'><span class='fas fa-paper-plane fa-lg'></span>Enviar</button>"
             },
             {
-                "defaultContent": "<button class='table_cancelar cancelar_cotizaciones btn btn-dark table_primary ocultar'><span class='fas fa-ban fa-lg'></span></button>"
+                "defaultContent": "<button class='table_cancelar cancelar_cotizaciones btn btn-dark table_primary ocultar'><span class='fas fa-ban fa-lg'></span>Anular</button>"
             }
         ],
         "lengthMenu": lengthMenu10,

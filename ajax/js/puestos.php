@@ -14,8 +14,8 @@ var listar_puestos = function(){
 		"columns":[
 			{"data":"puestos_id"},
 			{"data":"nombre"},
-			{"defaultContent":"<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit fa-lg'></span></button>"},
-			{"defaultContent":"<button class='table_eliminar btn btn-dark ocultar'><span class='fa fa-trash fa-lg'></span></button>"}
+			{"defaultContent":"<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"},
+			{"defaultContent":"<button class='table_eliminar btn btn-dark ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"}
 		],
         "lengthMenu": lengthMenu,
 		"stateSave": true,

@@ -14,7 +14,7 @@ if ($planes_id !== null) {
     // Ahora consultamos los submenús de nivel 1 disponibles para este 'planes_id'
     $querySubMenu = "
         SELECT DISTINCT sm.submenu_id, sm.name AS submenu_name, m.name AS menu_name, 
-            COALESCE(asm.estado, 2) AS submenu_estado
+            COALESCE(asm.estado, 2) AS submenu_estado, sm.descripcion, m.descripcion AS descripcion_padre
         FROM plan p
         INNER JOIN submenu_plan sp ON p.planes_id = sp.planes_id
         INNER JOIN submenu sm ON sp.submenu_id = sm.submenu_id
@@ -48,6 +48,8 @@ if ($planes_id !== null) {
             "menu"         => $row['menu_name'],  // Nombre del menú
             "submenu"      => $row['submenu_name'],  // Nombre del submenú
             "submenu_id"   => $row['submenu_id'],
+            "descripcion"   => $row['descripcion'],
+            "descripcion_padre"   => $row['descripcion_padre'],
             "estado"       => $row['submenu_estado'],  // Estado (1 = Mostrar, 2 = Ocultar)
             "asignado"     => $asignado  // Si está asignado o no
         );        

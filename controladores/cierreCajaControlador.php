@@ -181,37 +181,28 @@
 				}					
 
 					$alert = [
-						"alert" => "clear",
-						"title" => "Registro almacenado",
-						"text" => "Caja cerrada correctamente",
 						"type" => "success",
-						"btn-class" => "btn-primary",
-						"btn-text" => "¡Bien Hecho!",
-						"form" => "formAperturaCaja",
-						"id" => "proceso_aperturaCaja",
-						"valor" => "Registro",
+						"title" => "Cierre de caja",
+						"text" => "El caja se ha cerrado correctamente",                
+						"form" => "formColaboradores",
 						"funcion" => "validarAperturaCajaUsuario();getCajero();printComprobanteCajas($apertura_id);listar_registro_cajas();",
-						"modal" => "modal_apertura_caja",	
+						"closeAllModals" => true,
 					];
 				}else{
 					$alert = [
-						"alert" => "simple",
-						"title" => "Ocurrio un error inesperado",
-						"text" => "No hemos podido procesar su solicitud",
 						"type" => "error",
-						"btn-class" => "btn-danger",					
+						"title" => "Ocurrió un error inesperado",
+						"text" => "No hemos podido procesar su solicitud"
 					];					
 				}
 			}else{
 				$alert = [
-					"alert" => "simple",
-					"title" => "Error al cerrar la caja",
-					"text" => "Lo sentimos, la caja no se encuentra abierta",
 					"type" => "error",
-					"btn-class" => "btn-danger",					
-				];				
+					"title" => "Error al cerrar la caja",
+					"text" => "Lo sentimos, la caja no se encuentra abierta"
+				];			
 			}
 
-			return mainModel::sweetAlert($alert);
+			return mainModel::showNotification($alert);
 		}
 	}

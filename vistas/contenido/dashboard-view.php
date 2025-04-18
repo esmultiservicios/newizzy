@@ -123,11 +123,10 @@
 							</button>
 						</div>
 						<a href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>reporteVentas/" 
-						class="chart-btn" 
-						title="Ver reporte completo">
+						class="chart-btn" data-toggle="tooltip" data-placement="top" title="Ver reporte completo">
 							<i class="fas fa-arrow-right"></i>
 						</a>
-						<button class="chart-btn download-ventas" title="Descargar gráfico">
+						<button class="chart-btn download-ventas" data-toggle="tooltip" data-placement="top" title="Descargar gráfico">
 							<i class="fas fa-download"></i>
 						</button>
 					</div>
@@ -159,11 +158,10 @@
 							</button>
 						</div>
 						<a href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>reporteCompras/" 
-						class="chart-btn" 
-						title="Ver reporte completo">
+						class="chart-btn" data-toggle="tooltip" data-placement="top" title="Ver reporte completo">
 							<i class="fas fa-arrow-right"></i>
 						</a>
-						<button class="chart-btn download-compras" title="Descargar gráfico">
+						<button class="chart-btn download-compras" data-toggle="tooltip" data-placement="top" title="Descargar gráfico">
 							<i class="fas fa-download"></i>
 						</button>
 					</div>
@@ -195,11 +193,10 @@
 							</button>
 						</div>
 						<a href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>transferencia/" 
-						class="chart-btn" 
-						title="Ver reporte completo">
+						class="chart-btn" data-toggle="tooltip" data-placement="top" title="Ver reporte completo">
 							<i class="fas fa-arrow-right"></i>
 						</a>
-						<button class="chart-btn download-top-productos" title="Descargar gráfico">
+						<button class="chart-btn download-top-productos" data-toggle="tooltip" data-placement="top" title="Descargar gráfico">
 							<i class="fas fa-download"></i>
 						</button>
 					</div>
@@ -225,9 +222,10 @@
                             <i class="fas fa-sliders-h mr-1"></i>
                             Documentos Fiscales
                         </h6>
-                        <a href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>secuencia/" class="btn btn-sm btn-link">
-                            Ver más <i class="fas fa-arrow-right"></i>
-                        </a>
+						<a href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>secuencia/" 
+						class="chart-btn" data-toggle="tooltip" data-placement="top" title="Ver reporte completo">
+							<i class="fas fa-arrow-right"></i>
+						</a>
                     </div>
                 </div>
                 <div class="card-body">
@@ -266,4 +264,5 @@
             </div>
         </div>
     </div>
+
 </div>

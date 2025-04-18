@@ -65,7 +65,7 @@ class pagoFacturaControlador extends pagoFacturaModelo
 
 		$alert = pagoFacturaModelo::agregar_pago_factura_base($datos);
 
-		return mainModel::sweetAlert($alert);
+		return mainModel::showNotification($alert);
 	}
 
 	// PAGO CON TARJETA
@@ -131,7 +131,7 @@ class pagoFacturaControlador extends pagoFacturaModelo
 
 		$alert = pagoFacturaModelo::agregar_pago_factura_base($datos);
 
-		return mainModel::sweetAlert($alert);
+		return mainModel::showNotification($alert);
 	}
 
 	// PAGO CON TRANSFERENCIA
@@ -192,7 +192,7 @@ class pagoFacturaControlador extends pagoFacturaModelo
 
 		$alert = pagoFacturaModelo::agregar_pago_factura_base($datos);
 
-		return mainModel::sweetAlert($alert);
+		return mainModel::showNotification($alert);
 	}
 
 	// PAGO CON CHEQUE
@@ -252,7 +252,7 @@ class pagoFacturaControlador extends pagoFacturaModelo
 		];
 
 		$alert = pagoFacturaModelo::agregar_pago_factura_base($datos);
-		return mainModel::sweetAlert($alert);
+		return mainModel::showNotification($alert);
 	}
 
 	public function cancelar_pago_controlador()
@@ -284,6 +284,6 @@ class pagoFacturaControlador extends pagoFacturaModelo
 			];
 		}
 
-		return mainModel::sweetAlert($alert);
+		return mainModel::showNotification($alert);
 	}
 }

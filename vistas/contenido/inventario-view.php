@@ -336,7 +336,3 @@
     <?php
 	$insMainModel->guardar_historial_accesos("Ingreso al modulo Inventario");
 ?>
-
-    <a href="https://api.whatsapp.com/send?phone=50432273380&text=Hola%20CLINICARE,%20nos%20gustar%C3%ADa%20que%20nos%20puedan%20brindar%20asistencia%20t%C3%A9cnica,%20muchas%20gracias."
-        class="float-ws" target="_blank" data-toggle="tooltip" data-placement="top" title="Soporte CLINICARE">
-        <i class="fab fa-whatsapp my-float-ws"></i></a>

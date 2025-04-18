@@ -1,4 +1,4 @@
-	<div class="container-fluid">
+<div class="container-fluid">
     <ol class="breadcrumb mt-2 mb-4">
         <li class="breadcrumb-item"><a class="breadcrumb-link" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>dashboard/">Dashboard</a></li>
         <li class="breadcrumb-item active">Cuentas por Cobrar Clientes</li>
@@ -58,6 +58,7 @@
                         <tr>
 							<th>Fecha</th>
                             <th>Cliente</th>
+							<th>Estado</th>
                             <th>Factura</th>
                             <th>Crédito</th>
                             <th>Abonos</th>
@@ -71,7 +72,7 @@
 					<tfoot class="bg-info text-white font-weight-bold">
 						<tr>
 							<td colspan='1'>Total</td>
-							<td colspan="2"></td>
+							<td colspan="3"></td>
 							<td id="credito-cxc"></td>
 							<td id="abono-cxc"></td>
 							<td colspan='1' id='total-footer-cxc'></td>

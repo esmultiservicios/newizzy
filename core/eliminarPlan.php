@@ -1,7 +1,8 @@
 <?php
+//eliminarPlan.php
 $peticionAjax = true;
-require_once "../core/configGenerales.php";
-require_once "../core/mainModel.php";
+require_once "configGenerales.php";
+require_once "mainModel.php";
 
 header('Content-Type: application/json');
 

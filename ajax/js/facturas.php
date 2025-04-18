@@ -219,7 +219,7 @@ function formCierreBill() {
         'data-form': 'save'
     });
     $('#formAperturaCaja').attr({
-        'action': '<?php echo SERVERURL; ?>ajax/addCierreCajaAjax.php'
+        'action': '<?php echo SERVERURL; ?>ajax/addCierreCajaFacturasAjax.php'
     });
 
     $('#modal_apertura_caja').modal({

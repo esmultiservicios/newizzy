@@ -1,5 +1,17 @@
 <script>
 document.addEventListener("DOMContentLoaded", function() {
+    // Definir las opciones para los selects
+    const opcionesConfiguracion = [
+        {value: 'usuarios', text: 'Usuarios'},
+        {value: 'clientes', text: 'Clientes'},
+        {value: 'proveedores', text: 'Proveedores'},
+        {value: 'productos', text: 'Productos'},
+        {value: 'facturas', text: 'Facturas'},
+        {value: 'perfiles', text: 'Perfiles'},
+        {value: 'almacenes', text: 'Almacenes'},
+        {value: 'categorias', text: 'Categorías'}
+    ];
+
     // 1. Manejo del estado del plan
     const estadoCheckbox = document.getElementById("estado_plan");
     const estadoLabel = document.getElementById("estado_label");
@@ -18,24 +30,38 @@ document.addEventListener("DOMContentLoaded", function() {
     const agregarBtn = document.getElementById("agregar-configuracion");
     const container = document.getElementById("configuraciones-container");
 
-    function agregarConfiguracion(conFoco = false) { // Cambiado a false por defecto
+    function agregarConfiguracion(conFoco = false, configuracion = null) {
+        // Generar las opciones del select
+        let opcionesHTML = '';
+        opcionesConfiguracion.forEach(opcion => {
+            const selected = configuracion && configuracion.clave === opcion.value ? 'selected' : '';
+            opcionesHTML += `<option value="${opcion.value}" ${selected}>${opcion.text}</option>`;
+        });
+
         const newItem = `
             <div class="input-group mb-3 configuracion-item">
-                <input type="text" class="form-control mr-2" name="configuracion_clave[]" placeholder="Ej: clientes">
-                <input type="number" class="form-control mr-2" name="configuracion_valor[]" placeholder="Cantidad" min="0">
+                <select class="form-control selectpicker mr-2" name="configuracion_clave[]" data-live-search="true" title="Seleccione una opción">
+                    ${opcionesHTML}
+                </select>
+                <input type="number" class="form-control mr-2" name="configuracion_valor[]" placeholder="Cantidad" min="0" 
+                    ${configuracion ? `value="${configuracion.valor}"` : ''}>
                 <div class="input-group-append">
                     <button class="btn btn-danger remover-configuracion" type="button">
-                        <i class="fas fa-trash"></i>
+                        <i class="fas fa-times fa-lg"></i> Quitar
                     </button>
                 </div>
             </div>`;
+        
         container.insertAdjacentHTML("beforeend", newItem);
+        
+        // Inicializar el selectpicker de Bootstrap
+        $('.selectpicker').selectpicker('refresh');
         
         // Solo enfocar si se solicita explícitamente
         if (conFoco) {
-            const inputs = container.querySelectorAll('.configuracion-item:last-child input[name="configuracion_clave[]"]');
-            if (inputs.length > 0) {
-                inputs[0].focus();
+            const selects = container.querySelectorAll('.configuracion-item:last-child select[name="configuracion_clave[]"]');
+            if (selects.length > 0) {
+                $(selects[0]).selectpicker('focus');
             }
         }
     }
@@ -152,11 +178,11 @@ document.addEventListener("DOMContentLoaded", function() {
                 render: function(data) {
                     return `
                         <div class="btn-group" role="group">
-                            <button class="table_editar btn btn-dark btn-editar" data-id="${data.planes_id}">
-                                <i class="fas fa-edit"></i>
+                            <button class="table_editar btn btn-dark ocultar btn-editar" data-id="${data.planes_id}">
+                                <i class="fas fa-edit"></i>Editar
                             </button>
-                            <button class="table_eliminar btn btn-dark btn-eliminar" data-id="${data.planes_id}">
-                                <i class="fas fa-trash"></i>
+                            <button class="table_eliminar btn btn-dark ocultar btn-eliminar" data-id="${data.planes_id}">
+                                <i class="fas fa-trash"></i>Eliminar
                             </button>
                         </div>
                     `;
@@ -178,9 +204,10 @@ document.addEventListener("DOMContentLoaded", function() {
         ]
     });
 
+    // Función mejorada para listar configuraciones con botón de eliminar
     var listar_configuraciones = function(plan_id, configuraciones){
         // Verifica si ya hay un DataTable activo y lo destruye
-        if ( $.fn.DataTable.isDataTable('#tablaConfiguraciones') ) {
+        if ($.fn.DataTable.isDataTable('#tablaConfiguraciones')) {
             $('#tablaConfiguraciones').DataTable().clear().destroy();
         }
 
@@ -190,34 +217,157 @@ document.addEventListener("DOMContentLoaded", function() {
         if (configuraciones && typeof configuraciones === "object" && Object.keys(configuraciones).length > 0) {
             let index = 1;
             for (const [clave, valor] of Object.entries(configuraciones)) {
+                // Encontrar el texto correspondiente al valor
+                const opcion = opcionesConfiguracion.find(op => op.value === clave);
+                const texto = opcion ? opcion.text : clave;
+                
                 dataSet.push({ 
-                    "config": clave, 
-                    "valor": valor 
+                    "id": index,
+                    "clave": clave,
+                    "config": texto, 
+                    "valor": valor,
+                    "acciones": `
+                        <button class="btn btn-sm btn-danger btn-eliminar-config" 
+                                data-clave="${clave}" 
+                                data-plan-id="${plan_id}">
+                            <i class="fas fa-times fa-lg"></i> Quitar
+                        </button>
+                    `
                 });
                 index++;
             }
         } else {
             dataSet.push({ 
+                "id": 1,
+                "clave": "",
                 "config": "Sin configuraciones", 
-                "valor": "-" 
+                "valor": "-",
+                "acciones": ""
             });
         }
 
         // Inicializar como DataTable
-        $('#tablaConfiguraciones').DataTable({
+        const table = $('#tablaConfiguraciones').DataTable({
             data: dataSet,
             columns: [
+                { data: "id", title: "#", width: "5%" },
                 { data: "config", title: "Configuración" },
-                { data: "valor", title: "Cantidad" }
+                { data: "valor", title: "Cantidad" },
+                { data: "acciones", title: "Acciones", width: "15%" }
             ],
             language: idioma_español,
-            paging: true,
+            paging: false,
+            searching: false,
             info: false,
             responsive: true
         });
 
-        $("#modalConfiguraciones").modal("show");
+        // Guardar el ID del plan en el modal para usarlo luego
+        $('#modalConfiguraciones').data('plan-id', plan_id);
+
+        // Mostrar modal con configuración para evitar cierre accidental
+        $("#modalConfiguraciones").modal({
+            show: true,
+            keyboard: false,    // Desactiva el cierre con la tecla ESC
+            backdrop: 'static'  // Desactiva el cierre al hacer clic fuera
+        });
     };
+
+    // Evento para eliminar configuración
+    $(document).on("click", ".btn-eliminar-config", function() {
+        const clave = $(this).data('clave');
+        const planId = $(this).data('plan-id');
+        const button = $(this);
+        
+        swal({
+            title: "¿Estás seguro?",
+            text: `¡Se eliminará la configuración "${clave}" del plan!`,
+            icon: "warning",
+            buttons: {
+                cancel: {
+                    text: "Cancelar",
+                    visible: true
+                },
+                confirm: {
+                    text: "Sí, eliminar",
+                }
+            },
+            dangerMode: true,
+            closeOnEsc: false,
+            closeOnClickOutside: false
+        }).then((willConfirm) => {
+            if (willConfirm === true) {
+                $.ajax({
+                    url: "<?php echo SERVERURL;?>core/eliminarConfiguracionPlan.php",
+                    type: "POST",
+                    data: { 
+                        plan_id: planId,
+                        clave: clave
+                    },
+                    dataType: "json",
+                    beforeSend: function() {
+                        button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Actualizar la tabla de configuraciones
+                            const configs = response.configuraciones || {};
+                            const table = $('#tablaConfiguraciones').DataTable();
+                            
+                            if (Object.keys(configs).length === 0) {
+                                table.clear().draw();
+                                table.row.add({
+                                    "id": 1,
+                                    "clave": "",
+                                    "config": "Sin configuraciones", 
+                                    "valor": "-",
+                                    "acciones": ""
+                                }).draw();
+                            } else {
+                                // Reconstruir los datos
+                                let newData = [];
+                                let index = 1;
+                                for (const [key, val] of Object.entries(configs)) {
+                                    const opcion = opcionesConfiguracion.find(op => op.value === key);
+                                    const texto = opcion ? opcion.text : key;
+                                    
+                                    newData.push({ 
+                                        "id": index,
+                                        "clave": key,
+                                        "config": texto, 
+                                        "valor": val,
+                                        "acciones": `
+                                            <button class="btn btn-sm btn-danger btn-eliminar-config" 
+                                                    data-clave="${key}" 
+                                                    data-plan-id="${planId}">
+                                                <i class="fas fa-trash"></i> Eliminar
+                                            </button>
+                                        `
+                                    });
+                                    index++;
+                                }
+                                
+                                table.clear().rows.add(newData).draw();
+                            }
+                            
+                            // Actualizar el DataTable principal
+                            dataTablePlanes.ajax.reload(null, false);
+                            showNotify("success", "Éxito", response.message);
+                        } else {
+                            showNotify("error", "Error", response.message);
+                        }
+                    },
+                    error: function(xhr) {
+                        console.error("Error al eliminar:", xhr.responseText);
+                        showNotify("error", "Error", "Error de conexión al eliminar configuración");
+                    },
+                    complete: function() {
+                        button.prop('disabled', false).html('<i class="fas fa-trash"></i> Eliminar');
+                    }
+                });
+            }
+        });
+    });
 
     // 4. Mostrar configuraciones en modal
     $(document).on("click", ".btn-ver-configs", function() {
@@ -239,7 +389,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const planId = $(this).data("id");
         
         $.ajax({
-            url: "<?php echo SERVERURL;?>ajax/obtenerPlanAjax.php",
+            url: "<?php echo SERVERURL;?>core/obtenerPlan.php",
             type: "POST",
             data: { 
                 plan_id: planId 
@@ -267,16 +417,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         
                         if (Object.keys(configs).length > 0) {
                             for (const [clave, valor] of Object.entries(configs)) {
-                                container.append(`
-                                    <div class="input-group mb-3 configuracion-item">
-                                        <input type="text" class="form-control mr-2" name="configuracion_clave[]" value="${clave}">
-                                        <input type="number" class="form-control mr-2" name="configuracion_valor[]" value="${valor}" min="0">
-                                        <div class="input-group-append">
-                                            <button class="btn btn-danger remover-configuracion" type="button">
-                                                <i class="fas fa-trash fa-lg"></i>
-                                            </button>
-                                        </div>
-                                    </div>`);
+                                agregarConfiguracion(false, {clave: clave, valor: valor});
                             }
                         }
                     } catch (e) {
@@ -314,28 +455,23 @@ document.addEventListener("DOMContentLoaded", function() {
         let hasEmptyConfigs = false;
         
         $(".configuracion-item").each(function() {
-            const clave = $(this).find("input[name='configuracion_clave[]']").val().trim();
+            const clave = $(this).find("select[name='configuracion_clave[]']").val();
             const valor = $(this).find("input[name='configuracion_valor[]']").val().trim();
             
             if (!clave) {
                 hasEmptyConfigs = true;
-                $(this).find("input[name='configuracion_clave[]']").addClass("is-invalid");
+                $(this).find("select[name='configuracion_clave[]']").addClass("is-invalid");
             } else {
-                $(this).find("input[name='configuracion_clave[]']").removeClass("is-invalid");
+                $(this).find("select[name='configuracion_clave[]']").removeClass("is-invalid");
                 configs[clave] = valor;
             }
-        });
-        
-        if (hasEmptyConfigs) {
-            showNotify("error", "Error", "Todas las configuraciones deben tener un nombre");
-            return;
-        }
+        });    
         
         formData.append("configuraciones_json", JSON.stringify(configs));
         
         const url = formData.get("plan_id") 
-            ? "<?php echo SERVERURL;?>ajax/actualizarPlanAjax.php" 
-            : "<?php echo SERVERURL;?>ajax/registrarPlanAjax.php";
+            ? "<?php echo SERVERURL;?>core/actualizarPlan.php" 
+            : "<?php echo SERVERURL;?>core/registrarPlan.php";
         
         $("#btn-submit").prop("disabled", true).html('<i class="fas fa-spinner fa-spin"></i> Procesando...');
         
@@ -349,6 +485,7 @@ document.addEventListener("DOMContentLoaded", function() {
             success: function(response) {
                 if (response.type === "success") {
                     resetFormulario();
+                    
                     dataTablePlanes.ajax.reload(null, false);
                     showNotify(response.type, response.title, response.message);
                 } else {
@@ -395,7 +532,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }).then((willConfirm) => {
             if (willConfirm === true) {
                 $.ajax({
-                    url: "<?php echo SERVERURL;?>ajax/eliminarPlanAjax.php",
+                    url: "<?php echo SERVERURL;?>ajax/eliminarPlan.php",
                     type: "POST",
                     data: { plan_id: planId },
                     dataType: "json",
@@ -425,6 +562,10 @@ document.addEventListener("DOMContentLoaded", function() {
         $("#btn-submit").html('<i class="fas fa-save mr-1"></i> Registrar Plan');
         $("#btn-cancelar-edicion").hide();
         $("#nombre_plan").focus();
+        
+        // Agregar una configuración vacía y refrescar los selects
+        agregarConfiguracion(false);
+        $('.selectpicker').selectpicker('refresh');
     }
 
     // Inicializar con una configuración vacía al cargar la página pero sin enfocar
@@ -509,8 +650,8 @@ document.addEventListener("DOMContentLoaded", function() {
                     return json.data.map((submenu, index) => {
                         return {
                             "#": index + 1,
-                            "menu_name": submenu.menu_name,
-                            "name": submenu.name,
+                            "menu_name": submenu.descripcion_padre,
+                            "name": submenu.descripcion,
                             "asignado": submenu.asignado ? 
                                 '<span class="badge badge-success">Asignado</span>' : 
                                 '<span class="badge badge-secondary">No asignado</span>',
@@ -563,9 +704,9 @@ document.addEventListener("DOMContentLoaded", function() {
                     return json.data.map((s2, index) => {
                         return {
                             "#": index + 1,
-                            "menu_name": s2.menu_name,
-                            "submenu_name": s2.submenu_name,
-                            "name": s2.name,
+                            "menu_name": s2.descripcion_padre,
+                            "submenu_name": s2.descripcion,
+                            "name": s2.descripcion_menu,
                             "asignado": s2.asignado ? 
                                 '<span class="badge badge-success">Asignado</span>' : 
                                 '<span class="badge badge-secondary">No asignado</span>',
@@ -602,7 +743,6 @@ document.addEventListener("DOMContentLoaded", function() {
         const menuId = button.data('menu-id');
         const asignado = button.data('asignado');
         const planId = $('#plan_id_menus').val();
-        
         const nuevoEstado = asignado ? 0 : 1;
         
         $.ajax({
@@ -614,10 +754,34 @@ document.addEventListener("DOMContentLoaded", function() {
                 estado: nuevoEstado
             },
             dataType: 'json',
+            beforeSend: function() {
+                button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+            },
             success: function(response) {
                 if (response.estado) {
-                    dataTablePlanes.ajax.reload(null, false);
-                    listar_menus_asignacion(planId);
+                    // Actualización suave sin recargar toda la tabla
+                    button.data('asignado', !asignado);
+                    button.toggleClass('btn-success btn-danger');
+                    button.html(asignado ? '<i class="fas fa-plus"></i> Asignar' : '<i class="fas fa-times"></i> Quitar');
+                    
+                    // Actualizar el badge
+                    const badge = button.closest('tr').find('span.badge');
+                    badge.toggleClass('badge-success badge-secondary');
+                    badge.text(asignado ? 'No asignado' : 'Asignado');
+                    
+                    // Actualizar contador
+                    const currentCount = parseInt($(`#contador-menus-${planId}`).text());
+                    $(`#contador-menus-${planId}`).text(asignado ? currentCount - 1 : currentCount + 1);
+                    
+                    // Actualizar DataTable principal sin recarga completa
+                    const row = dataTablePlanes.row($(`.btn-asignar-menu[data-plan-id="${planId}"]`).closest('tr'));
+                    const rowData = row.data();
+                    
+                    if (rowData) {
+                        rowData.menus_asignados = asignado ? rowData.menus_asignados - 1 : rowData.menus_asignados + 1;
+                        row.data(rowData).draw(false); // false para evitar resetear paginación
+                    }
+                    
                     showNotify(response.type, response.title, response.message);
                 } else {
                     showNotify(response.type, response.title, response.message || 'Error al actualizar menú');
@@ -627,7 +791,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 showNotify("error", "Error", 'Error de conexión al actualizar menú');
             },
             complete: function() {
-
+                button.prop('disabled', false);
             }
         });
     });
@@ -638,7 +802,6 @@ document.addEventListener("DOMContentLoaded", function() {
         const submenuId = button.data('submenu-id');
         const asignado = button.data('asignado');
         const planId = $('#plan_id_submenus').val();
-        
         const nuevoEstado = asignado ? 0 : 1;
         
         $.ajax({
@@ -650,11 +813,33 @@ document.addEventListener("DOMContentLoaded", function() {
                 estado: nuevoEstado 
             },
             dataType: 'json',
+            beforeSend: function() {
+                button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+            },
             success: function(response) {
                 if (response.estado) {
-                    cargarSubmenus(planId);
-                    dataTablePlanes.ajax.reload(null, false);
-                    listar_submenus_asignacion(planId);
+                    // Actualización suave
+                    button.data('asignado', !asignado);
+                    button.toggleClass('btn-success btn-danger');
+                    button.html(asignado ? '<i class="fas fa-plus"></i> Asignar' : '<i class="fas fa-times"></i> Quitar');
+                    
+                    const badge = button.closest('tr').find('span.badge');
+                    badge.toggleClass('badge-success badge-secondary');
+                    badge.text(asignado ? 'No asignado' : 'Asignado');
+                    
+                    // Actualizar contador
+                    const currentCount = parseInt($(`#contador-submenus-${planId}`).text());
+                    $(`#contador-submenus-${planId}`).text(asignado ? currentCount - 1 : currentCount + 1);
+                    
+                    // Actualizar DataTable principal sin recarga completa
+                    const row = dataTablePlanes.row($(`.btn-asignar-submenu[data-plan-id="${planId}"]`).closest('tr'));
+                    const rowData = row.data();
+                    
+                    if (rowData) {
+                        rowData.submenus_asignados = asignado ? rowData.submenus_asignados - 1 : rowData.submenus_asignados + 1;
+                        row.data(rowData).draw(false);
+                    }
+                    
                     showNotify(response.type, response.title, response.message);
                 } else {
                     showNotify(response.type, response.title, response.message || 'Error al actualizar submenú');
@@ -664,7 +849,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 showNotify('error', 'Error', 'Error de conexión al actualizar submenú');
             },
             complete: function() {
-
+                button.prop('disabled', false);
             }
         });
     });
@@ -675,7 +860,6 @@ document.addEventListener("DOMContentLoaded", function() {
         const submenu2Id = button.data('submenu2-id');
         const asignado = button.data('asignado');
         const planId = $('#plan_id_submenus2').val();
-        
         const nuevoEstado = asignado ? 0 : 1;
         
         $.ajax({
@@ -687,11 +871,33 @@ document.addEventListener("DOMContentLoaded", function() {
                 estado: nuevoEstado
             },
             dataType: 'json',
+            beforeSend: function() {
+                button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+            },
             success: function(response) {
                 if (response.estado) {
-                    cargarSubmenus2(planId);
-                    dataTablePlanes.ajax.reload(null, false);
-                    listar_submenus2_asignacion(planId);
+                    // Actualización suave
+                    button.data('asignado', !asignado);
+                    button.toggleClass('btn-success btn-danger');
+                    button.html(asignado ? '<i class="fas fa-plus"></i> Asignar' : '<i class="fas fa-times"></i> Quitar');
+                    
+                    const badge = button.closest('tr').find('span.badge');
+                    badge.toggleClass('badge-success badge-secondary');
+                    badge.text(asignado ? 'No asignado' : 'Asignado');
+                    
+                    // Actualizar contador
+                    const currentCount = parseInt($(`#contador-submenus2-${planId}`).text());
+                    $(`#contador-submenus2-${planId}`).text(asignado ? currentCount - 1 : currentCount + 1);
+                    
+                    // Actualizar DataTable principal sin recarga completa
+                    const row = dataTablePlanes.row($(`.btn-asignar-submenu2[data-plan-id="${planId}"]`).closest('tr'));
+                    const rowData = row.data();
+                    
+                    if (rowData) {
+                        rowData.submenus2_asignados = asignado ? rowData.submenus2_asignados - 1 : rowData.submenus2_asignados + 1;
+                        row.data(rowData).draw(false);
+                    }
+                    
                     showNotify(response.type, response.title, response.message);
                 } else {
                     showNotify(response.type, response.title, response.message || 'Error al actualizar submenú nivel 2');
@@ -701,7 +907,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 showNotify('error', 'Error', 'Error de conexión al actualizar submenú nivel 2');
             },
             complete: function() {
-
+                button.prop('disabled', false);
             }
         });
     });

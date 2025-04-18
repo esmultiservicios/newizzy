@@ -120,7 +120,7 @@ var inventario_transferencia = function() {
                 data: "bodega" 
             },
             { 
-                defaultContent: "<button data-toggle='tooltip' data-placement='top' title='Permite mover o transferir un producto de una bodega a otra' class='table_transferencia btn btn-dark table_danger'><span class='fa fa-exchange-alt fa-lg'></span></button>" 
+                defaultContent: "<button data-toggle='tooltip' data-placement='top' title='Permite mover o transferir un producto de una bodega a otra' class='table_transferencia btn btn-dark table_danger'><span class='fa fa-exchange-alt fa-lg'></span>Transferir</button>" 
             }
         ],
         lengthMenu: lengthMenu10,

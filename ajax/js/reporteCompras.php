@@ -1,4 +1,5 @@
 <script>
+//reporteCompras.php    
 $(document).ready(function() {
     getReporteCompras();
     listar_reporte_compras();
@@ -46,7 +47,20 @@ var listar_reporte_compras = function() {
                 "data": "fecha"
             },
             {
-                "data": "tipo_documento"
+                "data": "tipo_documento",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        var icon = data === 'Crédito' 
+                            ? '<i class="fas fa-clock mr-1"></i>' 
+                            : '<i class="fas fa-check-circle mr-1"></i>';
+                        var badgeClass = data === 'Crédito' 
+                            ? 'badge badge-pill badge-warning' 
+                            : 'badge badge-pill badge-success';
+                        return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' + 
+                            icon + data + '</span>';
+                    }
+                    return data;
+                }
             },
             {
                 "data": "cuenta"
@@ -134,10 +148,10 @@ var listar_reporte_compras = function() {
                 },
             },
             {
-                "defaultContent": "<button class='table_reportes print_compras btn btn-dark table_info ocultar'><span class='fas fa-file-download fa-lg'></span></button>"
+                "defaultContent": "<button class='table_reportes print_compras btn btn-dark table_info ocultar'><span class='fas fa-file-download fa-lg'></span>Factura</button>"
             },
             {
-                "defaultContent": "<button class='table_cancelar cancelar_compras btn btn-dark table_primary ocultar'><span class='fas fa-ban fa-lg'></span></button>"
+                "defaultContent": "<button class='table_cancelar cancelar_compras btn btn-dark table_primary ocultar'><span class='fas fa-ban fa-lg'></span>Anular</button>"
             }
         ],
         "lengthMenu": lengthMenu10,
@@ -190,9 +204,6 @@ var listar_reporte_compras = function() {
                 targets: 10
             }
         ],
-        "fnRowCallback": function(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-            $('td', nRow).addClass(aData['color']);
-        },
         "footerCallback": function(row, data, start, end, display) {
             var api = this.api();
 

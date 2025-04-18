@@ -13,7 +13,7 @@ $planes_id = $insMainModel->obtener_planes_id_por_plan_id();
 if ($planes_id !== null) {
     // Ahora consultamos los submenús de nivel 2 disponibles para este 'planes_id'
     $querySubMenu1 = "
-        SELECT assm1.acceso_submenu1_id, sm1.submenu1_id, sm1.submenu_id, sm1.name AS submenu1_name, sm.name AS submenu_name,
+        SELECT assm1.acceso_submenu1_id, sm1.submenu1_id, sm1.submenu_id, sm1.name AS submenu1_name, sm.name AS submenu_name, sm.descripcion, sm1.descripcion AS submenu_descripcion,
             COALESCE(assm1.estado, 2) AS submenu1_estado
         FROM plan p
         INNER JOIN submenu1_plan sp1 ON p.planes_id = sp1.planes_id
@@ -42,6 +42,8 @@ if ($planes_id !== null) {
             "menu"         => $row['submenu_name'],        // Submenú de nivel 1
             "submenu"      => $row['submenu1_name'],       // Submenú de nivel 2
             "submenu1_id"  => $row['submenu1_id'],
+            "descripcion"  => $row['descripcion'],
+            "submenu_descripcion"  => $row['submenu_descripcion'],
 			"submenu_id"  => $row['acceso_submenu1_id'],		   // id que se usara
             "estado"       => $row['submenu1_estado'],     // Estado (1 = Mostrar, 2 = Ocultar)
             "asignado"     => $asignado

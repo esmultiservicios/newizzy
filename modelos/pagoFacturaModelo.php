@@ -297,13 +297,13 @@
 					if($res['abono'] == $saldo_credito){
 						//actualizamos el estado a pagado (2)
 						$nuevo_saldo = 0;
-						pagoFacturaModelo::update_status_factura_cuentas_por_cobrar($res['facturas_id'],2,0);
+						$put_cobrar_cliente = pagoFacturaModelo::update_status_factura_cuentas_por_cobrar($res['facturas_id'],2,0);
 												
 						//ACTUALIZAMOS EL ESTADO DE LA FACTURA
 						pagoFacturaModelo::update_status_factura($res['facturas_id']);
 					}else{
 						$nuevo_saldo = $saldo_credito - $res['abono'];
-						pagoFacturaModelo::update_status_factura_cuentas_por_cobrar($res['facturas_id'],1,$nuevo_saldo);
+						$put_cobrar_cliente = pagoFacturaModelo::update_status_factura_cuentas_por_cobrar($res['facturas_id'],1,$nuevo_saldo);
 					}
 	
 					$query = pagoFacturaModelo::agregar_pago_factura_modelo($res);					
@@ -414,17 +414,10 @@
 							mainModel::guardarHistorial($datos);
 
 							$alert = [
-								"alert" => "save",
-								"title" => "Registro pago multiples almacenado",
-								"text" => "El registro se ha almacenado correctamente",
 								"type" => "success",
-								"btn-class" => "btn-primary",
-								"btn-text" => "¡Bien Hecho!",
-								"form" => "formEfectivoBill",
-								"id" => "proceso_pagos",
-								"valor" => "Registro",	
-								"funcion" => "pago(".$res['facturas_id'].");saldoFactura(".$res['facturas_id'].")",
-								"modal" => "modal_pagos",														
+								"title" => "Registro pago multiples almacenado",
+								"text" => "El registro se ha almacenado correctamente",                
+								"funcion" => "pago(".$res['facturas_id'].");saldoFactura(".$res['facturas_id'].")"
 							];
 
 							//OBTENEMOS EL DOCUMENTO ID DE LA FACTURACION
@@ -511,36 +504,27 @@
 							mainModel::guardarHistorial($datos);
 							
 							$alert = [
-								"alert" => "save_simple",
-								"title" => "Registro almacenado",
-								"text" => "El registro se ha almacenado correctamente",
 								"type" => "success",
-								"btn-class" => "btn-primary",
-								"btn-text" => "¡Bien Hecho!",
-								"form" => "formEfectivoBill",
-								"id" => "proceso_pagos",
-								"valor" => "Registro",	
+								"title" => "Registro almacenado",
+								"text" => "El registro se ha almacenado correctamente",                
 								"funcion" => "listar_cuentas_por_cobrar_clientes();getCollaboradoresModalPagoFacturas();".$accion,
-								"modal" => "modal_pagos",													
+								"form" => "formEfectivoBill",
+								"closeAllModals" => true
 							];
 						}
 					}else{
 						$alert = [
-							"alert" => "simple",
-							"title" => "Ocurrio un error inesperado",
-							"text" => "No hemos podido procesar su solicitud",
 							"type" => "error",
-							"btn-class" => "btn-danger",					
-						];				
+							"title" => "Ocurrió un error inesperado",
+							"text" => "No hemos podido procesar su solicitud"
+						];   		
 					}					
 				}else{
 					$alert = [
-						"alert" => "simple",
-						"title" => "El abono es mayor al importe",
-						"text" => "No hemos podido procesar su solicitud",
 						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];
+						"title" => "El abono es mayor al importe",
+						"text" => "No hemos podido procesar su solicitud"
+					];   
 
 					return $alert;
 				}
@@ -553,34 +537,8 @@
 					if($query){
 						//ACTUALIZAMOS EL DETALLE DEL PAGO						
 						$consulta_pago = pagoFacturaModelo::getLastInserted()->fetch_assoc();
-						$pagos_id = $consulta_pago['id'];	
-						
-						######################################################################################################################################################################################
-						//INICIO PROGRAMA PUNTOS
-						// VALIDAMOS SI EL CLIENTE TIENE EL PLAN PREMIUM, Y SI TIENE ACCESO AL PROGRAMA DE PUNTOS
-						if (mainModel::verificarProgramaPuntos(5)) {
-							// Verificamos si hay un programa de puntos activo
-							$programa_puntos = mainModel::obtenerProgramaPuntosActivo();
-
-							if ($programa_puntos) {
-								// Si hay un programa de puntos activo, asignamos el ID del programa
-								$programa_puntos_id = $programa_puntos['id']; // Asegúrate de que 'id' sea el campo correcto
-							} else {
-								// Si no hay programa de puntos activo, manejamos el caso según sea necesario
-								$programa_puntos_id = null; // O cualquier valor predeterminado que desees
-							}
-
-							if (isset($programa_puntos_id)) {
-								// Verificamos que el ID del programa de puntos sea válido antes de proceder
-								$cliente_id = mainModel::obtenerClientePorFactura($res['facturas_id']); // Asegúrate que $res['facturas_id'] esté definido
-								
-								if ($cliente_id !== false) {
-									mainModel::acumularPuntos($cliente_id, $programa_puntos_id, $res['importe']); // Asegúrate de que $res['importe'] esté definido
-								}
-							}
-						}						
-						//FIN PROGRAMA PUNTOS		
-						
+						$pagos_id = $consulta_pago['id'];						
+													
 						$datos_pago_detalle = [
 							"pagos_id" => $pagos_id,
 							"tipo_pago_id" => $res['tipo_pago_id'],
@@ -633,32 +591,34 @@
 							"type" => "success",
 							"btn-class" => "btn-primary",
 							"btn-text" => "¡Bien Hecho!",
-							"form" => "formEfectivoBill",
+							
 							"id" => "proceso_pagos",
 							"valor" => "Registro",	
-							"funcion" => "printBill(".$res['facturas_id'].",".$res['print_comprobante'].");listar_cuentas_por_cobrar_clientes();mailBill(".$res['facturas_id'].");getCollaboradoresModalPagoFacturas();",
+							"funcion" => "",
 							"modal" => "modal_pagos",
 													
 						];
+
+						$alert = [
+							"type" => "success",
+							"title" => "Registro modificado",
+							"text" => "El registro se ha modificado correctamente",                
+							"funcion" => "printBill(".$res['facturas_id'].",".$res['print_comprobante'].");listar_cuentas_por_cobrar_clientes();mailBill(".$res['facturas_id'].");getCollaboradoresModalPagoFacturas();",
+							"closeAllModals" => true
+						]; 						
 					}else{
 						$alert = [
-							"alert" => "simple",
-							"title" => "Ocurrio un error inesperado",
-							"text" => "No hemos podido procesar su solicitud",
 							"type" => "error",
-							"btn-class" => "btn-danger",					
-						];				
+							"title" => "Ocurrio un error inesperado",
+							"text" => "No hemos podido procesar su solicitud"
+						];						
 					}					
 				}else{
-					
-
 					$alert = [
-						"alert" => "simple",
-						"title" => "Error al ingresar el pago",
-						"text" => "Habilite nuevamente la seccion de Pagos Multiples",
 						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];					
+						"title" => "Error al ingresar el pago",
+						"text" => "Habilite nuevamente la seccion de Pagos Multiples"
+					]; 				
 				}						
 			}			
 			

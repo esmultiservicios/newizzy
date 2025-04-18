@@ -14,24 +14,31 @@ try {
 
     if ($planes_id !== null) {
         $query = "
-            SELECT 
-                s1.submenu1_id,
-                s1.name,
-                s1.submenu_id,
-                s.name AS submenu_name,
-                m.name AS menu_name,
-                CASE 
-                    WHEN s1p.submenu1_id IS NOT NULL THEN 1 
-                    ELSE 0 
-                END AS asignado
-            FROM 
-                submenu1 s1
-            JOIN 
-                submenu s ON s1.submenu_id = s.submenu_id
-            JOIN 
-                menu m ON s.menu_id = m.menu_id
-            LEFT JOIN 
-                submenu1_plan s1p ON s1.submenu1_id = s1p.submenu1_id AND s1p.planes_id = ?
+        SELECT 
+            s1.submenu1_id,
+            s1.submenu_id,
+            s1.name,
+            s1.descripcion,
+            s1.icon,
+            s1.orden,
+            s.name AS submenu_name,
+            s.descripcion AS descripcion_padre,
+            m.name AS menu_name,
+            m.descripcion AS descripcion_menu,
+            CASE 
+                WHEN sp.submenu1_id IS NOT NULL AND sp.estado = 1 THEN 1 
+                ELSE 0 
+            END AS asignado
+        FROM 
+            submenu1 s1
+        LEFT JOIN 
+            submenu1_plan sp ON s1.submenu1_id = sp.submenu1_id AND sp.planes_id = ?
+        LEFT JOIN
+            submenu s ON s1.submenu_id = s.submenu_id
+        LEFT JOIN
+            menu m ON s.menu_id = m.menu_id
+        ORDER BY
+            s1.orden ASC
         ";
 
         $stmt = $conexion->prepare($query);
@@ -49,9 +56,14 @@ try {
                 'submenu1_id' => (int)$row['submenu1_id'],
                 'name' => $row['name'],
                 'submenu_id' => (int)$row['submenu_id'],
-                'submenu_name' => $row['submenu_name'],
-                'menu_name' => $row['menu_name'],
-                'asignado' => (bool)$row['asignado']
+                'submenu_name' => $row['submenu_name'] ?? 'Sin submenú',
+                'menu_name' => $row['menu_name'] ?? 'Sin menú',
+                'asignado' => (bool)$row['asignado'],
+                'descripcion' => $row['descripcion'] ?? '',
+                'descripcion_padre' => $row['descripcion_padre'] ?? '',
+                'descripcion_menu' => $row['descripcion_menu'] ?? '',
+                'icon' => $row['icon'] ?? '',
+                'orden' => (int)($row['orden'] ?? 0)
             ];
         }
 
@@ -59,12 +71,12 @@ try {
         echo json_encode([
             'success' => true,
             'data' => $data
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     } else {
         echo json_encode([
             'success' => false,
             'message' => 'ID de plan no válido'
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 } catch (Exception $e) {
     if (isset($conexion)) {
@@ -73,7 +85,7 @@ try {
     echo json_encode([
         'success' => false,
         'message' => 'Error al obtener los submenús nivel 2: ' . $e->getMessage()
-    ]);
+    ], JSON_UNESCAPED_UNICODE);
 } finally {
     if (isset($conexion)) {
         $conexion->autocommit(true);

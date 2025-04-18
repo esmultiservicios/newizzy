@@ -1,11 +1,11 @@
 <?php
 $peticionAjax = true;
-require_once "../core/configGenerales.php";
-require_once "../core/mainModel.php";
+require_once "configGenerales.php";
+require_once "mainModel.php";
 
 header('Content-Type: application/json');
 
-if (!isset($_POST['plan_id']) || !isset($_POST['nombre_plan'])) {
+if (!isset($_POST['nombre_plan']) || !isset($_POST['estado_plan'])) {
     echo json_encode([
         "type" => "error",
         "title" => "Error",
@@ -19,10 +19,9 @@ $insMainModel = new mainModel();
 try {
     // Procesar datos
     $datosPlan = [
-        'plan_id' => $insMainModel->cleanStringConverterCase($_POST['plan_id']),
         'nombre' => $insMainModel->cleanStringConverterCase($_POST['nombre_plan']),
-        // Elimina la línea de usuarios o proporcióna un valor por defecto
         'estado' => intval($_POST['estado_plan']),
+        'fecha_registro' => date("Y-m-d H:i:s"),
         'configuraciones' => isset($_POST['configuraciones_json']) ? $_POST['configuraciones_json'] : null
     ];
 
@@ -50,20 +49,20 @@ try {
         $datosPlan['configuraciones'] = json_encode($configArray);
     }
 
-    $resultado = $insMainModel->actualizar_plan_modelo($datosPlan);
+    $resultado = $insMainModel->registrar_plan_modelo($datosPlan);
 
     if ($resultado['success']) {
         echo json_encode([
             "type" => "success",
             "title" => "Éxito",
-            "message" => "Plan actualizado correctamente",
-            "affected_rows" => $resultado['affected_rows']
+            "message" => $resultado['message'],
+            "id" => $resultado['insert_id']
         ]);
     } else {
         echo json_encode([
             "type" => "error",
             "title" => "Error",
-            "message" => "No se pudo actualizar el plan: " . $resultado['error']
+            "message" => "No se pudo registrar el plan: " . $resultado['error']
         ]);
     }
 } catch (Exception $e) {

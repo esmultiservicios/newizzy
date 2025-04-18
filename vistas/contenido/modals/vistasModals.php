@@ -107,7 +107,7 @@
                                 oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
                         </div>
                         <div class="col-md-12 mb-3">
-                            <label for="cuenta_nombre">Cuenta <span class="priority">*<span /></label>
+                            <label for="cuenta_nombre">Cuenta <span class="priority">*</span></label>
                             <input type="text" required id="cuenta_nombre" name="cuenta_nombre" placeholder="Cuenta"
                                 class="form-control" maxlength="30"
                                 oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
@@ -156,28 +156,15 @@
             </div>
             <div class="container"></div>
             <div class="modal-body">
-                <form class="FormularioAjax" id="formUsers" action="" method="POST" data-form="" autocomplete="off"
-                    enctype="multipart/form-data">
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <div class="input-group mb-3">
-                                <input type="hidden" id="usuarios_id" name="usuarios_id" class="form-control">
-                                <input type="hidden" id="server_customers_id" name="server_customers_id"
-                                    class="form-control">
-                                <input type="hidden" id="usuarios_colaborador_id" name="usuarios_colaborador_id"
-                                    class="form-control" required>
-                                <input type="text" id="proceso_usuarios" class="form-control" readonly>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fa fa-plus-square fa-lg"></i>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <form class="FormularioAjax" id="formUsers" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+
+                    <input type="hidden" id="usuarios_id" name="usuarios_id" class="form-control">
+                    <input type="hidden" id="server_customers_id" name="server_customers_id" class="form-control">
+                    <input type="hidden" id="usuarios_colaborador_id" name="usuarios_colaborador_id" class="form-control" required>
+
                     <div class="form-row">
                         <div class="col-md-3 mb-3">
-                            <label for="colaborador_id_usuario">Colaboradores <span class="priority">*<span /></label>
+                            <label for="colaborador_id_usuario">Colaboradores <span class="priority">*</span></label>
                             <div class="input-group mb-3">
                                 <select id="colaborador_id_usuario" name="colaborador_id_usuario" data-width="100%"
                                     class="selectpicker" data-live-search="true" data-size="7" title="Colaboradores">
@@ -185,7 +172,7 @@
                             </div>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="correo_usuario">Correo <span class="priority">*<span /></label>
+                            <label for="correo_usuario">Correo <span class="priority">*</span></label>
                             <div class="input-group mb-3">
                                 <input type="email" class="form-control" placeholder="Correo" id="correo_usuario"
                                     name="correo_usuario" aria-label="Correo" aria-describedby="basic-addon2" required>
@@ -197,7 +184,7 @@
                             </div>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <label for="empresa_usuario">Empresa <span class="priority">*<span /></label>
+                            <label for="empresa_usuario">Empresa <span class="priority">*</span></label>
                             <div class="input-group mb-3">
                                 <select id="empresa_usuario" name="empresa_usuario" class="selectpicker"
                                     data-width="100%" data-live-search="true" title="Empresa">
@@ -210,7 +197,7 @@
                         <div class="col-md-3 mb-3">
                             <label for="tipo_user" data-toggle="tooltip" data-placement="top"
                                 title="'Permisos' definen lo que puedes hacer: guardar, crear, modificar, eliminar, etc. Son las acciones que tienes permitidas en el sistema.">Perrmisos
-                                <span class="priority">*<span /></label>
+                                <span class="priority">*</span></label>
                             <div class="input-group mb-3">
                                 <select id="tipo_user" name="tipo_user" class="selectpicker" data-live-search="true"
                                     data-width="100%" title="Tipo Usuario">
@@ -220,7 +207,7 @@
                         <div class="col-md-3 mb-3">
                             <label for="privilegio_id" data-toggle="tooltip" data-placement="top"
                                 title="'Privilegio' determina qué áreas y menús puedes acceder. Es tu permiso para entrar a distintas partes.">Privilegio
-                                <span class="priority">*<span /></label>
+                                <span class="priority">*</span></label>
                             <div class="input-group mb-3">
                                 <select id="privilegio_id" name="privilegio_id" class="selectpicker" data-width="100%"
                                     data-live-search="true" title="Tipo Usuario">
@@ -1748,7 +1735,7 @@
                     
                     <div class="form-row">
                         <div class="col-md-8 mb-3">
-                            <label for="nombre_clientes">Cliente <span class="priority">*<span /></label>
+                            <label for="nombre_clientes">Cliente <span class="priority">*</span></label>
                             <input type="text" class="form-control" id="nombre_clientes" name="nombre_clientes"
                                 placeholder="Nombre" maxlength="100" required data-toggle="tooltip" data-placement="top"
                                 title="Razón Social (Como aparece en el RTN)">
@@ -1771,7 +1758,7 @@
                     </div>
                     <div class="form-row">
                         <div class="col-md-3 mb-3">
-                            <label for="fecha_clientes">Fecha <span class="priority">*<span /></label>
+                            <label for="fecha_clientes">Fecha <span class="priority">*</span></label>
                             <div class="input-group mb-3">
                                 <input type="date" required id="fecha_clientes" name="fecha_clientes"
                                     value="<?php echo date('Y-m-d'); ?>" class="form-control" />
@@ -1885,7 +1872,7 @@
                     </div>
                     <div class="form-row">
                         <div class="col-md-8 mb-3">
-                            <label for="nombre_proveedores">Proveedor <span class="priority">*<span /></label>
+                            <label for="nombre_proveedores">Proveedor <span class="priority">*</span></label>
                             <input type="text" class="form-control" id="nombre_proveedores" name="nombre_proveedores"
                                 placeholder="Proveedor" required maxlength="150" placeholder="RTN"
                                 oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
@@ -1908,7 +1895,7 @@
                     </div>
                     <div class="form-row">
                         <div class="col-md-3 mb-3">
-                            <label for="fecha_proveedores">Fecha <span class="priority">*<span /></label>
+                            <label for="fecha_proveedores">Fecha <span class="priority">*</span></label>
                             <div class="input-group mb-3">
                                 <input type="date" required id="fecha_proveedores" name="fecha_proveedores"
                                     value="<?php echo date('Y-m-d'); ?>" class="form-control" />
@@ -2195,22 +2182,10 @@
             </div>
             <div class="container"></div>
             <div class="modal-body">
-                <form class="FormularioAjax" id="formColaboradores" action="" method="POST" data-form=""
-                    autocomplete="off" enctype="multipart/form-data">
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <div class="input-group mb-3">
-                                <input type="hidden" id="colaborador_id" name="colaborador_id" class="form-control"
-                                    placeholder="Colaborador">
-                                <input type="text" id="proceso_colaboradores" class="form-control" readonly>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fa fa-plus-square fa-lg"></i>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <form class="FormularioAjax" id="formColaboradores" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+
+                    <input type="hidden" id="colaborador_id" name="colaborador_id" class="form-control" placeholder="Colaborador">
+
                     <div class="form-row" id="datosClientes" style="display: none;">
                         <div class="col-md-6 mb-3">
                             <label for="cliente_codigo_colaborador">Código Cliente</label>
@@ -2232,26 +2207,26 @@
                     </div>
                     <div class="form-row">
                         <div class="col-md-6 mb-3">
-                            <label for="nombre">Nombre <span class="priority">*<span /></label>
+                            <label for="nombre">Nombre <span class="priority">*</span></label>
                             <input type="text" class="form-control" id="nombre_colaborador" name="nombre_colaborador"
                                 placeholder="Nombre" required>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="apellido">Apellido <span class="priority">*<span /></label>
+                            <label for="apellido">Apellido <span class="priority">*</span></label>
                             <input type="text" class="form-control" id="apellido_colaborador"
                                 name="apellido_colaborador" placeholder="Apellido" required>
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="col-md-6 mb-3">
-                            <label for="identidad_colaborador">Identidad <span class="priority">*<span /></label>
+                            <label for="identidad_colaborador">Identidad <span class="priority">*</span></label>
                             <input type="number" class="form-control" id="identidad_colaborador"
                                 name="identidad_colaborador" placeholder="Identidad" maxlength="13"
                                 oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);"
                                 required>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="telefono">Teléfono <span class="priority">*<span /></label>
+                            <label for="telefono">Teléfono <span class="priority">*</span></label>
                             <input type="number" class="form-control" id="telefono_colaborador"
                                 name="telefono_colaborador" placeholder="Teléfono" maxlength="8"
                                 oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);"
@@ -2261,7 +2236,7 @@
                     <div class="form-row">
                         <div class="col-md-6 mb-3">
                             <label for="fecha_ingreso_colaborador">Fecha Ingreso <span
-                                    class="priority">*<span /></label>
+                                    class="priority">*</span></label>
                             <input type="date" class="form-control" id="fecha_ingreso_colaborador"
                                 name="fecha_ingreso_colaborador" value="<?php echo date('Y-m-d'); ?>"
                                 placeholder="Fecha Ingreso" required>
@@ -2274,7 +2249,7 @@
                     </div>
                     <div class="form-row">
                         <div class="col-md-6 mb-3">
-                            <label>Puesto <span class="priority">*<span /></label>
+                            <label>Puesto <span class="priority">*</span></label>
                             <div class="input-group mb-3">
                                 <select id="puesto_colaborador" name="puesto_colaborador" class="selectpicker"
                                     data-width="100%" title="Puesto" data-live-search="true" required>
@@ -2283,7 +2258,7 @@
                             </div>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label>Empresa <span class="priority">*<span /></label>
+                            <label>Empresa <span class="priority">*</span></label>
                             <div class="input-group mb-3">
                                 <select id="colaborador_empresa_id" name="colaborador_empresa_id" class="selectpicker"
                                     data-width="100%" title="Empresa" data-live-search="true" required>
@@ -2398,7 +2373,7 @@
                     </div>
                     <div class="form-row">
                         <div class="col-md-6 mb-3">
-                            <label>Razón Social <span class="priority">*<span /></label>
+                            <label>Razón Social <span class="priority">*</span></label>
                             <div class="input-group mb-3">
                                 <input type="text" name="empresa_razon_social" id="empresa_razon_social"
                                     class="form-control" placeholder="Razón Social" maxlength="100"
@@ -2412,7 +2387,7 @@
                             </div>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label>Empresa <span class="priority">*<span /></label>
+                            <label>Empresa <span class="priority">*</span></label>
                             <div class="input-group mb-3">
                                 <input type="text" name="empresa_empresa" id="empresa_empresa" class="form-control"
                                     placeholder="Empresa" maxlength="50"
@@ -2428,7 +2403,7 @@
                     </div>
                     <div class="form-row">
                         <div class="col-md-6 mb-3">
-                            <label for="prefijo">RTN <span class="priority">*<span /></label>
+                            <label for="prefijo">RTN <span class="priority">*</span></label>
                             <div class="input-group mb-3">
                                 <input type="text" name="rtn_empresa" id="rtn_empresa" class="form-control"
                                     placeholder="RTN" maxlength="14"
@@ -2457,7 +2432,7 @@
                     </div>
                     <div class="form-row">
                         <div class="col-md-6 mb-3">
-                            <label>Teléfono <span class="priority">*<span /></label>
+                            <label>Teléfono <span class="priority">*</span></label>
                             <div class="input-group mb-3">
                                 <input type="text" name="telefono_empresa" id="telefono_empresa" class="form-control"
                                     placeholder="Teléfono" maxlength="8"
@@ -2666,7 +2641,7 @@
 
                     <div class="form-row">
                         <div class="col-md-12 mb-3">
-                            <label for="prefijo">Caja <span class="priority">*<span /></label>
+                            <label for="prefijo">Caja <span class="priority">*</span></label>
                             <div class="input-group mb-3">
                                 <input type="text" class="form-control" placeholder="Caja" id="nombre_caja"
                                     name="nombre_caja" aria-label="Colaborador" aria-describedby="basic-addon2" readonly
@@ -2682,7 +2657,7 @@
 
                     <div class="form-row">
                         <div class="col-md-12 mb-3">
-                            <label for="prefijo">Descripción <span class="priority">*<span /></label>
+                            <label for="prefijo">Descripción <span class="priority">*</span></label>
                             <div class="input-group mb-3">
                                 <input type="text" name="descripcion_caja" id="descripcion_caja" class="form-control"
                                     placeholder="Descripción" maxlength="50"
@@ -3169,7 +3144,7 @@
                         <input type="hidden" name="abono_facturas_id" id="abono_facturas_id" class="form-control">
                         <div class="col-md-12">
                             <div class="overflow-auto">
-                                <table id="table-modal-abonos" class="table table-striped table-condensed table-hover"
+                                <table id="table-modal-abonos" class="table table-striped table-header-gradient table-condensed table-hover"
                                     style="width:100%">
                                     <h5 id="ver_abono_cxcTitle"></h5>
                                     <thead>
@@ -3291,7 +3266,7 @@
                     </div>
                     <div class="form-row">
                         <div class="col-md-12 mb-3">
-                            <label for="cuenta_nombre">RTN <span class="priority">*<span /></label>
+                            <label for="cuenta_nombre">RTN <span class="priority">*</span></label>
                             <input type="number" required id="rtn_cliente" name="rtn_cliente" placeholder="RTN"
                                 class="form-control" maxlength="14"
                                 oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
@@ -3342,14 +3317,14 @@
                     </div>
                     <div class="form-row">
                         <div class="col-md-12 mb-3">
-                            <label for="cuenta_nombre">Proveedor <span class="priority">*<span /></label>
+                            <label for="cuenta_nombre">Proveedor <span class="priority">*</span></label>
                             <input type="text" required id="proveedor" name="proveedor" readonly placeholder="Proveedor"
                                 class="form-control" />
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="col-md-12 mb-3">
-                            <label for="cuenta_nombre">RTN <span class="priority">*<span /></label>
+                            <label for="cuenta_nombre">RTN <span class="priority">*</span></label>
                             <input type="number" required id="rtn_proveedor" name="rtn_proveedor" placeholder="RTN"
                                 class="form-control" maxlength="14"
                                 oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
@@ -3399,14 +3374,14 @@
                     </div>
                     <div class="form-row">
                         <div class="col-md-12 mb-3">
-                            <label for="cuenta_nombre">Producto <span class="priority">*<span /></label>
+                            <label for="cuenta_nombre">Producto <span class="priority">*</span></label>
                             <input type="text" required id="producto" name="producto" readonly placeholder="Producto"
                                 class="form-control" />
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="col-md-12 mb-3">
-                            <label for="cuenta_nombre">Código de Barra <span class="priority">*<span /></label>
+                            <label for="cuenta_nombre">Código de Barra <span class="priority">*</span></label>
                             <input type="text" required id="barcode" name="barcode" placeholder="Código de Barra"
                                 class="form-control" maxlength="20"
                                 oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
@@ -3497,7 +3472,7 @@
 
                     <div class="form-row">
                         <div class="col-md-4 mb-3">
-                            <label for="asistencia_empleado">Empleado <span class="priority">*<span /></label>
+                            <label for="asistencia_empleado">Empleado <span class="priority">*</span></label>
                             <div class="input-group mb-3">
                                 <select id="asistencia_empleado" name="asistencia_empleado" class="selectpicker"
                                     data-size="7" data-width="100%" data-live-search="true" title="Empleado">
@@ -3506,23 +3481,23 @@
                             </div>
                         </div>
                         <div class="col-md-3 mb-3" id="fechaAsistencia">
-                            <label for="fecha">Fecha <span class="priority">*<span /></label>
+                            <label for="fecha">Fecha <span class="priority">*</span></label>
                             <input type="date" class="form-control" id="fecha" name="fecha"
                                 value="<?php echo date('Y-m-d'); ?>" placeholder="Fecha">
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="col-md-3 mb-3" id="grupoHora">
-                            <label for="fecha" id="registro_hora">Hora Entrada <span class="priority">*<span /></label>
+                            <label for="fecha" id="registro_hora">Hora Entrada <span class="priority">*</span></label>
                             <input type="time" class="form-control" id="hora" name="hora" step="any">
                         </div>
                         <div class="col-md-3 mb-3" id="grupoHorai">
-                            <label for="fecha" id="registro_horai">Hora Entrada <span class="priority">*<span /></label>
+                            <label for="fecha" id="registro_horai">Hora Entrada <span class="priority">*</span></label>
                             <input type="time" class="form-control" id="horagi" name="horagi"
                                 value="<?php echo date('H:i'); ?>" step="any">
                         </div>
                         <div class="col-md-3 mb-3" id="grupoHoraf">
-                            <label for="fecha">Hora Salida <span class="priority">*<span /></label>
+                            <label for="fecha">Hora Salida <span class="priority">*</span></label>
                             <input type="time" class="form-control" id="horagf" name="horagf" step="any">
                         </div>
                     </div>
@@ -3591,16 +3566,16 @@
                     </div>
                     <div class="form-row">
                         <div class="col-md-5 mb-4">
-                            <label for="asistencia_empleado">Cliente <span class="priority">*<span /></label>
+                            <label for="asistencia_empleado">Cliente <span class="priority">*</span></label>
                             <input type="text" class="form-control" id="cliente" name="cliente" placeholder="Cliente"
                                 required>
                         </div>
                         <div class="col-md-4 mb-4">
-                            <label for="rtn">RTN <span class="priority">*<span /></label>
+                            <label for="rtn">RTN <span class="priority">*</span></label>
                             <input type="text" class="form-control" id="rtn" name="rtn" placeholder="RTN" required>
                         </div>
                         <div class="col-md-3 mb-4">
-                            <label for="empresa">Empresa <span class="priority">*<span /></label>
+                            <label for="empresa">Empresa <span class="priority">*</span></label>
                             <input type="text" class="form-control" id="empresa" name="empresa" placeholder="Empresa"
                                 data-width="100%" required maxlength="30"
                                 oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">

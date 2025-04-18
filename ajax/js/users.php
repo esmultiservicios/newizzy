@@ -35,13 +35,13 @@ var listar_usuarios = function() {
                 "data": "empresa"
             },
             {
-                "defaultContent": "<button class='table_actualizar btn btn-dark ocultar'><span class='fas fa-sync-alt fa-lg'></span></button>"
+                "defaultContent": "<button class='table_actualizar btn btn-dark ocultar'><span class='fas fa-sync-alt fa-lg'></span>Restablecer</button>"
             },
             {
-                "defaultContent": "<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit fa-lg'></span></button>"
+                "defaultContent": "<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
             },
             {
-                "defaultContent": "<button class='table_eliminar btn btn-dark ocultar'><span class='fa fa-trash fa-lg'></span></button>"
+                "defaultContent": "<button class='table_eliminar btn btn-dark ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"
             }
         ],
         "lengthMenu": lengthMenu10,
@@ -247,64 +247,75 @@ var eliminar_usuarios_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.table_eliminar");
     $(tbody).on("click", "button.table_eliminar", function() {
         var data = table.row($(this).parents("tr")).data();
-        var url = '<?php echo SERVERURL; ?>core/editarUsuarios.php';
-        $('#formUsers #usuarios_id').val(data.users_id);
 
-        $.ajax({
-            type: 'POST',
-            url: url,
-            data: $('#formUsers').serialize(),
-            success: function(registro) {
-                var valores = eval(registro);
-                $('#formUsers').attr({
-                    'data-form': 'delete'
-                });
-                $('#formUsers').attr({
-                    'action': '<?php echo SERVERURL; ?>ajax/eliminarUsersAjax.php'
-                });
-                $('#formUsers')[0].reset();
-                $('#reg_usuario').hide();
-                $('#edi_usuario').hide();
-                $('#delete_usuario').show();
-                $('#formUsers #usuarios_colaborador_id').val(valores[0]);
-                $('#formUsers #colaborador_id_usuario').val(valores[1]);
-                $('#formUsers #empresa_uscolaborador_id_usuariouario').selectpicker('refresh');
-                $('#formUsers #nickname').val(valores[2]);
-                $('#formUsers #pass').attr('disabled', true);
-                $('#formUsers #correo_usuario').val(valores[3]);
-                $('#formUsers #empresa_usuario').val(valores[4]);
-                $('#formUsers #empresa_usuario').selectpicker('refresh');
-                $('#formUsers #tipo_user').val(valores[5]);
-                $('#formUsers #tipo_user').selectpicker('refresh');
-                $('#formUsers #privilegio_id').val(valores[7]);
-                $('#formUsers #privilegio_id').selectpicker('refresh');
+        var users_id = data.users_id;
+        var nombre = data.colaborador; 
+        var correo = data.correo;
 
-                if (valores[6] == 1) {
-                    $('#formUsers #usuarios_activo').attr('checked', true);
-                } else {
-                    $('#formUsers #usuarios_activo').attr('checked', false);
+        // Construir el mensaje de confirmación con HTML
+        var mensajeHTML = `¿Desea eliminar permanentemente el usuario?<br><br>
+                        <strong>Nombre:</strong> ${nombre}<br>
+                        <strong>Correo:</strong> ${correo}`;
+                                                
+        swal({
+            title: "Confirmar eliminación",
+            content: {
+                element: "span",
+                attributes: {
+                    innerHTML: mensajeHTML
                 }
-
-                //DESHABILITAR OBJETOS
-                $('#formUsers #nickname').attr('readonly', true);
-                $('#formUsers #pass').attr('readonly', true);
-                $('#formUsers #correo_usuario').attr('readonly', true);
-                $('#formUsers #empresa_usuario').attr('disabled', true);
-                $('#formUsers #tipo_user').attr('disabled', true);
-                $('#formUsers #estado_usuario').attr('disabled', true);
-                $('#formUsers #privilegio_id').attr('disabled', true);
-                $('#formUsers #usuarios_activo').attr('disabled', true);
-                $('#formUsers #estado_usuarios').hide();
-
-                $('#formUsers #proceso_usuarios').val("Eliminar");
-                $('#formUsers #grupo_buscar_colaboradores').attr('disabled', true);
-                $('#modal_registrar_usuarios').modal({
-                    show: true,
-                    keyboard: false,
-                    backdrop: 'static'
+            },
+            icon: "warning",
+            buttons: {
+                cancel: {
+                    text: "Cancelar",
+                    value: null,
+                    visible: true,
+                    className: "btn-light"
+                },
+                confirm: {
+                    text: "Sí, eliminar",
+                    value: true,
+                    className: "btn-danger",
+                    closeModal: false
+                }
+            },
+            dangerMode: true,
+            closeOnEsc: false,
+            closeOnClickOutside: false
+        }).then((confirmar) => {
+            if (confirmar) {
+                $.ajax({
+                    type: 'POST',
+                    url: '<?php echo SERVERURL;?>ajax/eliminarUsersAjax.php',
+                    data: {
+                        users_id: users_id
+                    },
+                    dataType: 'json', // Esperamos respuesta JSON
+                    before: function(){
+                        // Mostrar carga mientras se procesa
+                        showLoading("Eliminando registro...");
+                    },                    
+                    success: function(response) {
+                        swal.close();
+                        
+                        if(response.status === "success") {
+                            showNotify("success", response.title, response.message);
+                            table.ajax.reload(null, false); // Recargar tabla sin resetear paginación
+                            table.search('').draw();                    
+                        } else {
+                            showNotify("error", response.title, response.message);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        swal.close();
+                        showNotify("error", "Error", "Ocurrió un error al procesar la solicitud");
+                        console.error("Error en la solicitud AJAX:", error);
+                    }
                 });
             }
         });
+
     });
 }
 

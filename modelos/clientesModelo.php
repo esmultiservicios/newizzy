@@ -51,6 +51,59 @@
 				return false;
 			}
 		}
+
+		protected function agregar_colaboradores_modelo($datos) {
+			$conexion = mainModel::connection();
+			
+			try {
+				// Desactivar autocommit para la transacción
+				$conexion->autocommit(false);
+				
+				// Obtener el próximo ID disponible
+				$colaborador_id = mainModel::correlativo("colaboradores_id", "colaboradores");
+				
+				// Sentencia preparada para seguridad
+				$stmt = $conexion->prepare("INSERT INTO colaboradores 
+										   (colaboradores_id, puestos_id, nombre, apellido, identidad, estado, telefono, empresa_id, fecha_registro, fecha_ingreso, fecha_egreso) 
+										   VALUES (?, ?, ?, '', ?, ?, ?, ?, ?, ?, '')");
+				
+				$stmt->bind_param("iissiisiss", 
+					$colaborador_id,
+					$datos['puestos_id'],
+					$datos['nombre'],
+					$datos['identidad'],
+					$datos['estado'],
+					$datos['telefono'],
+					$datos['empresa_id'],
+					$datos['fecha_registro'],
+					$datos['fecha_ingreso']
+				);
+				
+				$ejecutado = $stmt->execute();
+				
+				if(!$ejecutado) {
+					throw new Exception($stmt->error);
+				}
+				
+				// Obtener el ID insertado
+				$id_insertado = $conexion->insert_id ?: $colaborador_id;
+				
+				// Confirmar la transacción
+				$conexion->commit();
+				
+				return $id_insertado;
+				
+			} catch(Exception $e) {
+				$conexion->rollback();
+				error_log("Error al insertar colaborador: " . $e->getMessage());
+				return false;
+			} finally {
+				if(isset($stmt)) {
+					$stmt->close();
+				}
+				$conexion->autocommit(true);
+			}
+		}
 		
 		protected function valid_clientes_modelo($rtn){
 			$query = "SELECT clientes_id FROM clientes WHERE rtn = '$rtn'";

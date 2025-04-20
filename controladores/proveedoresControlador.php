@@ -7,8 +7,15 @@
 	
 	class proveedoresControlador extends proveedoresModelo{
 		public function agregar_proveedores_controlador(){
-			if(!isset($_SESSION['user_sd'])){ 
-				session_start(['name'=>'SD']); 
+			// Validar sesión primero
+			$validacion = mainModel::validarSesion();
+			if($validacion['error']) {
+				return mainModel::showNotification([
+					"title" => "Error de sesión",
+					"text" => $validacion['mensaje'],
+					"type" => "error",
+					"funcion" => "window.location.href = '".$validacion['redireccion']."'"
+				]);
 			}
 			
 			$nombre = mainModel::cleanString($_POST['nombre_proveedores']);
@@ -37,44 +44,30 @@
 				"estado" => $estado,				
 			];
 			
-			$query = proveedoresModelo::agregar_proveedores_model($datos);
-			
-			if($query){
-				//GUARDAR HISTORIAL
-				$datos = [
-					"modulo" => 'Proveedor',
-					"colaboradores_id" => $_SESSION['colaborador_id_sd'],		
-					"status" => "Registro",
-					"observacion" => "Se registro el proveedor {$nombre} con el RTN {$rtn}",
-					"fecha_registro" => date("Y-m-d H:i:s")
-				];	
-				
-				mainModel::guardarHistorial($datos);
-								
-				$alert = [
-					"alert" => "clear",
-					"title" => "Registro almacenado",
-					"text" => "El registro se ha almacenado correctamente",
-					"type" => "success",
-					"btn-class" => "btn-primary",
-					"btn-text" => "¡Bien Hecho!",
-					"form" => "formProveedores",
-					"id" => "proceso_proveedores",
-					"valor" => "Registro",	
-					"funcion" => "listar_proveedores();getDepartamentoProveedores();getMunicipiosProveedores(0);getProveedorIngresos();getProveedorEgresos();listar_proveedores_ingresos_contabilidad_buscar();listar_proveedores_compras_buscar();listar_proveedores_egresos_contabilidad_buscar();",
-					"modal" => "",						
-				];
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Ocurrio un error inesperado",
-					"text" => "No hemos podido procesar su solicitud",
-					"type" => "error",
-					"btn-class" => "btn-danger",					
-				];				
+			if(!proveedoresModelo::agregar_proveedores_model($datos)){
+				return mainModel::showNotification([
+					"title" => "Error",
+					"text" => "No se pudo registrar el provoeedor",
+					"type" => "error"
+				]);
 			}
+
+			// Registrar en historial
+			mainModel::guardarHistorial([
+				"modulo" => 'Clientes',
+				"colaboradores_id" => $_SESSION['colaborador_id_sd'],
+				"status" => "Registro",
+				"observacion" => "Se registró el cliente {$datos['nombre']} con RTN {$datos['rtn']}",
+				"fecha_registro" => date("Y-m-d H:i:s")
+			]);
 			
-			return mainModel::sweetAlert($alert);				
+			return mainModel::showNotification([
+				"type" => "success",
+				"title" => "Registro exitoso",
+				"text" => "Proveedor registrado correctamente",           
+				"form" => "formProveedores",
+				"funcion" => "listar_proveedores();getDepartamentoProveedores();getMunicipiosProveedores(0);getProveedorIngresos();getProveedorEgresos();listar_proveedores_ingresos_contabilidad_buscar();listar_proveedores_compras_buscar();listar_proveedores_egresos_contabilidad_buscar();"
+			]);								
 		}
 		
 		public function edit_proveedores_controlador(){
@@ -105,118 +98,79 @@
 				"rtn" => $rtn,
 			];
 
-			$query = proveedoresModelo::edit_proveedores_modelo($datos);
-			
-			if($query){		
-				//GUARDAR HISTORIAL
-				$datos = [
-					"modulo" => 'Proveedor',
-					"colaboradores_id" => $_SESSION['colaborador_id_sd'],		
-					"status" => "Edición",
-					"observacion" => "Se edito el proveedor {$nombre} con el RTN {$rtn}",
-					"fecha_registro" => date("Y-m-d H:i:s")
-				];	
-				
-				mainModel::guardarHistorial($datos);
-
-				$alert = [
-					"alert" => "edit",
-					"title" => "Registro modificado",
-					"text" => "El registro se ha modificado correctamente",
-					"type" => "success",
-					"btn-class" => "btn-primary",
-					"btn-text" => "¡Bien Hecho!",
-					"form" => "formProveedores",
-					"id" => "proceso_proveedores",
-					"valor" => "Editar",	
-					"funcion" => "listar_proveedores();getDepartamentoProveedores();getMunicipiosProveedores(0);",
-					"modal" => "",
-				];
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Ocurrio un error inesperado",
-					"text" => "No hemos podido procesar su solicitud",
+			if(!proveedoresModelo::edit_proveedores_modelo($datos)){
+				return mainModel::showNotification([
 					"type" => "error",
-					"btn-class" => "btn-danger",					
-				];				
+					"title" => "Error",
+					"text" => "No se pudo actualizar el proveedor",                
+				]);
 			}
+
+			// Registrar en historial
+			mainModel::guardarHistorial([
+				"modulo" => 'Clientes',
+				"colaboradores_id" => $_SESSION['colaborador_id_sd'],
+				"status" => "Edición",
+				"observacion" => "Se editó el proveedor {$datos['nombre']} con RTN {$datos['rtn']}",
+				"fecha_registro" => date("Y-m-d H:i:s")
+			]);
 			
-			return mainModel::sweetAlert($alert);
+			return mainModel::showNotification([
+				"type" => "success",
+				"title" => "Actualización exitosa",
+				"text" => "Proveedor actualizado correctamente",
+				"funcion" => "listar_proveedores();getDepartamentoProveedores();getMunicipiosProveedores(0);"
+			]);
 		}
 		
 		public function delete_proveedores_controlador(){
 			$proveedores_id = $_POST['proveedores_id'];
 			
 			$campos = ['nombre', 'rtn'];
-			$resultados = mainModel::consultar_tabla('proveedores', $campos, "proveedores_id = {$proveedores_id}");
-			
-			// Verifica si hay resultados antes de intentar acceder a los campos
-			if (!empty($resultados)) {
-				// Obtén el primer resultado (puedes ajustar según tus necesidades)
-				$primerResultado = $resultados[0];
-			
-				// Verifica si las claves existen antes de acceder a ellas
-				$nombre = isset($primerResultado['nombre']) ? $primerResultado['nombre'] : null;
-				$rtn = isset($primerResultado['rtn']) ? $primerResultado['rtn'] : null;
-			
-				// Ahora puedes usar $nombre y $rtn de forma segura
-			} else {
-				// No se encontraron resultados
-				$nombre = null;
-				$rtn = null;
-			}
+			$tabla = "proveedores";;
+			$condicion = "proveedores_id = {$proveedores_id}";
 
-			$result_valid_proveedores = proveedoresModelo::valid_proveedores_compras($proveedores_id);
+			$proveedor = mainModel::consultar_tabla($tabla, $campos, $condicion);
 			
-			if($result_valid_proveedores->num_rows==0){
-				$query = proveedoresModelo::delete_proveedores_modelo($proveedores_id);
-								
-				if($query){
-					//GUARDAR HISTORIAL
-					$datos = [
-						"modulo" => 'Proveedor',
-						"colaboradores_id" => $_SESSION['colaborador_id_sd'],		
-						"status" => "Eliminar",
-						"observacion" => "Se elimino el proveedor {$nombre} con el RTN {$rtn}",
-						"fecha_registro" => date("Y-m-d H:i:s")
-					];	
-					
-					mainModel::guardarHistorial($datos);
-
-					$alert = [
-						"alert" => "clear",
-						"title" => "Registro eliminado",
-						"text" => "El registro se ha eliminado correctamente",
-						"type" => "success",
-						"btn-class" => "btn-primary",
-						"btn-text" => "¡Bien Hecho!",
-						"form" => "formProveedores",
-						"id" => "proceso_proveedores",
-						"valor" => "Eliminar",	
-						"funcion" => "listar_proveedores();getDepartamentoProveedores();getMunicipiosProveedores(0);",
-						"modal" => "modal_registrar_proveedores",
-					];
-				}else{
-					$alert = [
-						"alert" => "simple",
-						"title" => "Ocurrio un error inesperado",
-						"text" => "No hemos podido procesar su solicitud",
-						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];				
-				}				
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Este registro cuenta con información almacenada",
-					"text" => "No se puede eliminar este registro",
-					"type" => "error",	
-					"btn-class" => "btn-danger",						
-				];				
+			if (empty($proveedor)) {
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "Error",
+					"message" => "Proveedor no encontrado"
+				]);
+				exit();
 			}
 			
-			return mainModel::sweetAlert($alert);
+			$nombre = $proveedor[0]['nombre'] ?? '';
+
+			// VALIDAMOS QUE EL PRODCUTO NO TENGA MOVIMIENTOS, PARA PODER ELIMINARSE
+			if(proveedoresModelo::valid_proveedores_compras($proveedores_id)->num_rows > 0){
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "No se puede eliminar",
+					"message" => "El proveedor {$nombre} tiene compras asociadas"
+				]);
+				exit();                
+			}
+
+			if(!proveedoresModelo::delete_proveedores_modelo($proveedores_id)){
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "Error",
+					"message" => "No se pudo eliminar el proveedor {$nombre}"
+				]);
+				exit();
+			}
+			
+			header('Content-Type: application/json');
+			echo json_encode([
+				"status" => "success",
+				"title" => "Eliminado",
+				"message" => "Proveedor {$nombre} eliminado correctamente"
+			]);
+			exit();					
 		}		
 	}
-?>

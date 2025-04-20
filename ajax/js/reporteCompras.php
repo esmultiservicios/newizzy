@@ -1,10 +1,23 @@
 <script>
 //reporteCompras.php    
-$(document).ready(function() {
+$(() => {
     getReporteCompras();
     listar_reporte_compras();
     $('#form_main_compras #tipo_compras_reporte').val(1);
     $('#form_main_compras #tipo_compras_reporte').selectpicker('refresh');
+
+    // Evento para el botón de Generar Reporte
+    $('#form_main_compras').on('submit', function(e) {
+        e.preventDefault();
+        listar_reporte_compras();
+    });
+
+    // Evento para el botón de Limpiar Filtros
+    $('#btn-limpiar-filtros').on('click', function() {
+        $('#form_main_compras')[0].reset();
+        $('#form_main_compras .selectpicker').selectpicker('refresh');
+        listar_reporte_compras();
+    });    
 });
 
 $('#form_main_compras #tipo_compras_reporte').on("change", function(e) {

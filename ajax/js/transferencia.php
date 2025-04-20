@@ -1,8 +1,21 @@
 <script>
-$(document).ready(function() {
+$(() => {
     inventario_transferencia();
     getTipoProductos();
     getAlmacen();
+
+    // Evento para el botón de Generar Reporte
+    $('#form_main_movimientos').on('submit', function(e) {
+        e.preventDefault();
+        inventario_transferencia();
+    });
+
+    // Evento para el botón de Limpiar Filtros
+    $('#btn-limpiar-filtros').on('click', function() {
+        $('#form_main_movimientos')[0].reset();
+        $('#form_main_movimientos .selectpicker').selectpicker('refresh');
+        inventario_transferencia();
+    });
 });
 
 
@@ -358,7 +371,7 @@ function getTipoProductos() {
 }
 //FIN OBTENER EL TIPO DE PRODUCTO
 
-$(document).ready(function() {
+$(() => {
     $('#form_main_movimientos #inventario_tipo_productos_id').on('change', function() {
         var tipo_producto_id;
 

@@ -7,99 +7,82 @@
 
         <div class="card mb-4">
             <div class="card-body">
-                <form class="form-inline" id="form_main_nominas">
-                    <div class="form-group mx-sm-3 mb-1">
-                        <div class="input-group">
-                            <div class="input-group-append">
-                                <span class="input-group-text">
-                                    <div class="sb-nav-link-icon"></div>Estado
-                                </span>
-                                <select id="estado_nomina" class="selectpicker" name="estado_nomina" data-live-search="true" title="Estado">
+                <form id="form_main_nominas">
+                    <div class="row">
+                        <!-- Primera fila con 3 campos -->
+                        <div class="col-md-4 col-sm-6 mb-3">
+                            <div class="form-group">
+                                <label class="small mb-1">Estado</label>
+                                <select id="estado_nomina" class="form-control selectpicker" name="estado_nomina" 
+                                    data-live-search="true" title="Estado">
                                     <option value="0">Sin Generar</option>
                                     <option value="1">Generada</option>
                                 </select>
                             </div>
                         </div>
-                    </div>
-                    <div class="form-group mx-sm-3 mb-1">
-                        <div class="input-group">
-                            <div class="input-group-append">
-                                <span class="input-group-text">
-                                    <div class="sb-nav-link-icon"></div>Tipo Contrato
-                                </span>
-                                <select id="tipo_contrato_nomina" name="tipo_contrato_nomina" class="selectpicker"
+                        
+                        <div class="col-md-4 col-sm-6 mb-3">
+                            <div class="form-group">
+                                <label class="small mb-1">Tipo Contrato</label>
+                                <select id="tipo_contrato_nomina" name="tipo_contrato_nomina" class="form-control selectpicker"
                                     title="Tipo Contrato" data-live-search="true">
                                     <option value="">Seleccione</option>
                                 </select>
                             </div>
                         </div>
-                    </div>
-                    <div class="form-group mx-sm-3 mb-1">
-                        <div class="input-group">
-                            <div class="input-group-append">
-                                <span class="input-group-text">
-                                    <div class="sb-nav-link-icon"></div>Pago Planificado
-                                </span>
-                                <select id="pago_planificado_nomina" name="pago_planificado_nomina" class="selectpicker"
-                                    data-live-search="true" title="Pago Planificado">
+                        
+                        <div class="col-md-4 col-sm-6 mb-3">
+                            <div class="form-group">
+                                <label class="small mb-1">Pago Planificado</label>
+                                <select id="pago_planificado_nomina" name="pago_planificado_nomina" 
+                                    class="form-control selectpicker" data-live-search="true" title="Pago Planificado">
                                     <option value="">Seleccione</option>
                                 </select>
                             </div>
                         </div>
                     </div>
-                    <div class="form-group mx-sm-3 mb-1">
-                        <div class="input-group">
-                            <div class="input-group-append">
-                                <span class="input-group-text">
-                                    <div class="sb-nav-link-icon"></div>Inicio
-                                </span>
+                    
+                    <div class="row">
+                        <!-- Segunda fila con fechas y botón -->
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="form-group">
+                                <label class="small mb-1">Fecha Inicio</label>
+                                <input type="date" required id="fechai" name="fechai" value="<?php 
+                                    $fecha = date ("Y-m-d");
+                                    $año = date("Y", strtotime($fecha));
+                                    $mes = date("m", strtotime($fecha));
+                                    $dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
+                                    $dia1 = date('d', mktime(0,0,0, $mes, 1, $año));
+                                    $dia2 = date('d', mktime(0,0,0, $mes, $dia, $año));
+                                    $fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
+                                    echo $fecha_inicial;
+                                ?>" class="form-control" data-toggle="tooltip" data-placement="top" title="Fecha Inicio">
                             </div>
-                            <input type="date" required id="fechai" name="fechai" value="<?php 
-							$fecha = date ("Y-m-d");
-							
-							$año = date("Y", strtotime($fecha));
-							$mes = date("m", strtotime($fecha));
-							$dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
-
-							$dia1 = date('d', mktime(0,0,0, $mes, 1, $año)); //PRIMER DIA DEL MES
-							$dia2 = date('d', mktime(0,0,0, $mes, $dia, $año)); // ULTIMO DIA DEL MES
-
-							$fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
-							$fecha_final = date("Y-m-d", strtotime($año."-".$mes."-".$dia2));						
-							
-							
-							echo $fecha_inicial;
-						?>" class="form-control" data-toggle="tooltip" data-placement="top" title="Fecha Inicio" style="width:165px;">
                         </div>
-                    </div>
-                    <div class="form-group mx-sm-3 mb-1">
-                        <div class="input-group">
-                            <div class="input-group-append">
-                                <span class="input-group-text">
-                                    <div class="sb-nav-link-icon"></div>Fin
-                                </span>
+                        
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="form-group">
+                                <label class="small mb-1">Fecha Fin</label>
+                                <input type="date" required id="fechaf" name="fechaf" value="<?php 
+                                    $fecha_final = date("Y-m-d", strtotime($año."-".$mes."-".$dia2));
+                                    echo $fecha_final;
+                                ?>" class="form-control" data-toggle="tooltip" data-placement="top" title="Fecha Fin">
                             </div>
-                            <input type="date" required id="fechaf" name="fechaf" value="<?php 
-							$fecha = date ("Y-m-d");
-							
-							$año = date("Y", strtotime($fecha));
-							$mes = date("m", strtotime($fecha));
-							$dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
-
-							$dia1 = date('d', mktime(0,0,0, $mes, 1, $año)); //PRIMER DIA DEL MES
-							$dia2 = date('d', mktime(0,0,0, $mes, $dia, $año)); // ULTIMO DIA DEL MES
-
-							$fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
-							$fecha_final = date("Y-m-d", strtotime($año."-".$mes."-".$dia2));						
-							
-							
-							echo $fecha_final;
-						?>" class="form-control" data-toggle="tooltip" data-placement="top" title="Fecha Fin" style="width:165px;">
+                        </div>
+                        
+                        <div class="col-md-6 col-sm-12 d-flex align-items-end justify-content-end mb-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter fa-lg mr-1"></i> Filtrar
+                            </button>
+                            <button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary">
+                                <i class="fas fa-broom fa-lg"></i> Limpiar
+                            </button>                            
                         </div>
                     </div>
                 </form>
             </div>
         </div>
+
         <div class="card mb-4">
             <div class="card mb-4">
                 <div class="card-header">
@@ -214,7 +197,7 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table id="dataTableNominaDetalles" class="table table-striped table-condensed table-hover"
+                        <table id="dataTableNominaDetalles" class="table table-header-gradient table-striped table-condensed table-hover"
                             style="width:100%">
                             <thead>
                                 <tr>
@@ -264,7 +247,7 @@
         </div>
     </div>
     <?php
-	$insMainModel->guardar_historial_accesos("Ingreso al modulo Nomna de Empleados");
+	$insMainModel->guardar_historial_accesos("Ingreso al modulo Nomina de Empleados");
 ?>
 
 </div>

@@ -24,7 +24,7 @@
                     </div>
                     <div class="form-group col-md-3">
                         <label for="tipo_factura">Tipo de Factura</label>
-                        <select class="form-control" id="tipo_factura" name="tipo_factura">
+                        <select class="form-control selectpicker" id="tipo_factura" name="tipo_factura" data-live-search="true">
                             <option value="">Todos</option>
                             <option value="1">Contado</option>
                             <option value="2">Crédito</option>
@@ -32,7 +32,8 @@
                     </div>
                     <div class="form-group col-md-3">
                         <label for="estado_factura">Estado</label>
-                        <select class="form-control" id="estado_factura" name="estado_factura">
+                        <select class="form-control selectpicker" id="estado_factura" name="estado_factura" data-live-search="true">
+                            <option value="">Todos</option>
                             <option value="2">Pagadas</option>
                             <option value="3">Crédito</option>
                             <option value="4">Canceladas</option>
@@ -46,10 +47,10 @@
                     </div>
                     <div class="form-group col-md-6 text-right align-self-end">
                         <button type="button" id="btn-limpiar-filtros" class="btn btn-secondary mr-2">
-                            <i class="fas fa-broom mr-1"></i> Limpiar
+                            <i class="fas fa-broom mr-1 fa-lg"></i> Limpiar
                         </button>
                         <button type="submit" id="btn-buscar-facturas" class="btn btn-primary">
-                            <i class="fas fa-search mr-1"></i> Buscar
+                            <i class="fas fa-search mr-1 fa-lg"></i> Buscar
                         </button>
                     </div>
                 </div>
@@ -59,13 +60,19 @@
 
     <!-- DataTable para mostrar facturas -->
     <div class="card mb-4">
-        <div class="card-header bg-gradient-primary text-white">
+        <div class="card-header">
             <i class="fas fa-file-invoice-dollar mr-1"></i>
             Facturas Registradas
+            <div class="float-right">
+                <span class="badge bg-light text-dark">
+                    <i class="fas fa-sync-alt mr-1 fa-lg"></i>
+                    <span id="contador-actualizacion"></span>
+                </span>
+            </div>
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table id="dataTableFacturas" class="table table-striped table-header-gradient table-condensed table-hover" style="width:100%">
+                <table id="dataTableFacturas" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -78,7 +85,7 @@
                             <th>ISV</th>
                             <th>Descuento</th>
                             <th>Total</th>
-                            <th>Acciones</th>
+                            <th width="20%">Acciones</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -105,12 +112,14 @@
 </div>
 
 <!-- Modal para ver detalles de factura -->
-<div class="modal fade" id="modalDetalleFactura">
+<div class="modal fade" id="modalDetalleFactura" data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header bg-info text-white">
+            <div class="modal-header">
                 <h5 class="modal-title">Detalle de Factura <span id="numero-factura-modal"></span></h5>
-                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
             <div class="modal-body">
                 <div class="row mb-4">
@@ -123,13 +132,13 @@
                         <h6><strong>Estado:</strong> <span id="estado-factura"></span></h6>
                     </div>
                     <div class="col-md-4 text-right">
-                        <h6><strong>Subtotal:</strong> $<span id="subtotal-factura"></span></h6>
-                        <h6><strong>Total:</strong> $<span id="total-factura"></span></h6>
+                        <h6><strong>Subtotal:</strong> <span id="subtotal-factura"></span></h6>
+                        <h6><strong>Total:</strong> <span id="total-factura"></span></h6>
                     </div>
                 </div>
                 
                 <div class="table-responsive">
-                    <table class="table table-bordered table-striped">
+                    <table class="table table-header-gradient table-striped table-condensed table-hover">
                         <thead class="bg-light">
                             <tr>
                                 <th>Producto/Servicio</th>
@@ -153,53 +162,12 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cerrar
+                </button>
                 <button type="button" id="btn-imprimir-factura" class="btn btn-primary">
                     <i class="fas fa-print mr-1"></i> Imprimir
                 </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal para pagos de factura (solo para crédito) -->
-<div class="modal fade" id="modalPagosFactura">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title">Pagos de Factura <span id="numero-factura-pagos"></span></h5>
-                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="factura-id-pagos">
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped">
-                        <thead class="bg-light">
-                            <tr>
-                                <th>Fecha</th>
-                                <th>Monto</th>
-                                <th>Método</th>
-                                <th>Referencia</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody id="pagos-factura-body">
-                        </tbody>
-                    </table>
-                </div>
-                
-                <div class="row mt-3">
-                    <div class="col-md-6">
-                        <div class="alert alert-info">
-                            <h6><strong>Total Factura:</strong> $<span id="total-factura-pagos"></span></h6>
-                            <h6><strong>Pagado:</strong> $<span id="pagado-factura"></span></h6>
-                            <h6><strong>Saldo Pendiente:</strong> $<span id="saldo-factura"></span></h6>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>

@@ -158,7 +158,6 @@ var editar_colaboradores_dataTable = function(tbody, table) {
                 $('#edi_colaborador').show();
                 $('#delete_colaborador').hide();
                 $('#formColaboradores #nombre_colaborador').val(valores[0]);
-                $('#formColaboradores #apellido_colaborador').val(valores[1]);
                 $('#formColaboradores #identidad_colaborador').val(valores[2]);
                 $('#formColaboradores #telefono_colaborador').val(valores[3]);
                 $('#formColaboradores #puesto_colaborador').val(valores[4]);
@@ -176,7 +175,6 @@ var editar_colaboradores_dataTable = function(tbody, table) {
 
                 //HABILITAR OBJETOS
                 $('#formColaboradores #nombre_colaborador').attr('readonly', false);
-                $('#formColaboradores #apellido_colaborador').attr('readonly', false);
                 $('#formColaboradores #identidad_colaborador').attr('readonly', false);
                 $('#formColaboradores #telefono_colaborador').attr('readonly', false);
                 $('#formColaboradores #estado_colaborador').attr('disabled', false);
@@ -187,6 +185,8 @@ var editar_colaboradores_dataTable = function(tbody, table) {
                 $('#formColaboradores #puesto_colaborador').attr('disabled', false);
                 $('#formColaboradores #colaborador_empresa_id').attr('disabled', false);
                 $('#formColaboradores #estado_colaboradores').show();
+
+                $('#datosClientes').hide();
 
                 $('#formColaboradores #proceso_colaboradores').val("Editar");
                 $('#modal_registrar_colaboradores').modal({

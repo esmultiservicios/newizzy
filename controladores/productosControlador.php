@@ -9,10 +9,15 @@ class productosControlador extends productosModelo
 {
 	public function agregar_productos_controlador()
 	{
-		if (!isset($_SESSION['user_sd'])) {
-			session_start(['name' => 'SD']);
+		// Verificar e iniciar sesión de forma segura
+		if(session_status() === PHP_SESSION_NONE) {
+			session_start(['name'=>'SD', 'cookie_lifetime' => 86400]); // con parámetros adicionales
+			// Inicializar variables de sesión necesarias
+			if(!isset($_SESSION['user_sd'])) {
+				$_SESSION['user_sd'] = null; // o valor por defecto
+			}
 		}
-
+	
 		$empresa = $_SESSION['empresa_id_sd'];
 		$almacen_id = 1;  // ALMACEN 1 POR DEFAULT
 		$medida_id = mainModel::cleanStringConverterCase($_POST['medida'] ?? 0);
@@ -29,7 +34,7 @@ class productosControlador extends productosModelo
 		$precio_mayoreo = mainModel::cleanString($_POST['precio_mayoreo'] === '' ? 0 : $_POST['precio_mayoreo']);
 		$cantidad_minima = mainModel::cleanString($_POST['cantidad_minima'] === '' ? 0 : $_POST['cantidad_minima']);
 		$cantidad_maxima = mainModel::cleanString($_POST['cantidad_maxima'] === '' ? 0 : $_POST['cantidad_maxima']);
-
+	
 		if ($_POST['bar_code_product'] == '') {
 			$flag_barcode = true;
 			while ($flag_barcode) {
@@ -44,68 +49,35 @@ class productosControlador extends productosModelo
 		} else {
 			$bar_code_product = mainModel::cleanString($_POST['bar_code_product']);
 		}
-
-		if ($cantidad == '' || $cantidad == null) {
-			$cantidad = 0;
-		}
-
-		if ($precio_compra == '') {
-			$precio_compra = 0;
-		}
-
-		if ($porcentaje_venta == '') {
-			$porcentaje_venta = 0;
-		}
-
-		if ($porcentaje_venta == '') {
-			$porcentaje_venta = 0;
-		}
-
-		if ($cantidad_minima == '') {
-			$cantidad_minima = 0;
-		}
-
-		if ($cantidad_maxima == '') {
-			$cantidad_maxima = 0;
-		}
-
-		if ($precio_mayoreo == '') {
-			$precio_mayoreo = 0;
-		}
-
+	
+		// Validaciones de campos vacíos
+		$cantidad = ($cantidad == '' || $cantidad == null) ? 0 : $cantidad;
+		$precio_compra = ($precio_compra == '') ? 0 : $precio_compra;
+		$porcentaje_venta = ($porcentaje_venta == '') ? 0 : $porcentaje_venta;
+		$cantidad_minima = ($cantidad_minima == '') ? 0 : $cantidad_minima;
+		$cantidad_maxima = ($cantidad_maxima == '') ? 0 : $cantidad_maxima;
+		$precio_mayoreo = ($precio_mayoreo == '') ? 0 : $precio_mayoreo;
+	
 		$colaborador_id = $_SESSION['colaborador_id_sd'];
 		$fecha_registro = date('Y-m-d H:i:s');
 		$file = 'image_preview.png';
 		$file_exist = 0;
-
+	
 		// FILE IMAGE
-		if (isset($_FILES['file']['name'])) {
-			if (!empty($_FILES['file']['name'])) {
-				// MOVEMOS LA IMAGEN EN LA CARPETA DE IMAGENES
-				$file = $_FILES['file']['name'];
-				$path = $_SERVER['DOCUMENT_ROOT'] . PRODUCT_PATH . $file;
-				if (file_exists($path)) {
-					$file_exist = 1;
-				} else {
-					move_uploaded_file($_FILES['file']['tmp_name'], $path);
-				}
+		if (isset($_FILES['file']['name']) && !empty($_FILES['file']['name'])) {
+			$file = $_FILES['file']['name'];
+			$path = $_SERVER['DOCUMENT_ROOT'] . PRODUCT_PATH . $file;
+			if (file_exists($path)) {
+				$file_exist = 1;
+			} else {
+				move_uploaded_file($_FILES['file']['tmp_name'], $path);
 			}
 		}
-
+	
 		$estado = 1;
-
-		if (isset($_POST['producto_isv_factura'])) {
-			$isv_venta = $_POST['producto_isv_factura'];
-		} else {
-			$isv_venta = 2;
-		}
-
-		if (isset($_POST['producto_isv_compra'])) {
-			$isv_compra = $_POST['producto_isv_compra'];
-		} else {
-			$isv_compra = 2;
-		}
-
+		$isv_venta = isset($_POST['producto_isv_factura']) ? $_POST['producto_isv_factura'] : 2;
+		$isv_compra = isset($_POST['producto_isv_compra']) ? $_POST['producto_isv_compra'] : 2;
+	
 		$datos = [
 			'bar_code_product' => $bar_code_product,
 			'almacen_id' => $almacen_id,
@@ -130,259 +102,144 @@ class productosControlador extends productosModelo
 			'file' => $file,
 			'empresa' => $empresa,
 		];
-
-		// EVALUAMOS QUE LA VARIABLE DEL ARCHIVO ESTE EN FALSE PARA ALMACENAR EL REGISTRO
-		if ($file_exist == 0) {
-			// VALIDAMOS QUE NO EXISTA EL CODIGO DE BARRA
-			$result = productosModelo::valid_bar_code_productos_modelo($bar_code_product, $empresa);
-
-			if ($result->num_rows == 0) {
-				// VALIDAMOS QUE NO EXISTA EL NOMBRE DEL PRODUCTO
-				$result_nombre = productosModelo::valid_nombre_producto_modelo($nombre, $empresa);
-
-				if ($result_nombre->num_rows == 0) {
-					$query = productosModelo::agregar_productos_modelo($datos);
-
-					if ($query) {
-						$consulta_factura = productosModelo::consultar_codigo_producto($nombre)->fetch_assoc();
-						$productos_id = $consulta_factura['productos_id'];
-
-						// CONSULTAMOS LA CATEGORIA DEL PRODUCTOS
-						$tipo_productos = '';
-
-						$result_tipo_producto = productosModelo::tipo_producto_modelo($productos_id);
-
-						if ($result_tipo_producto->num_rows > 0) {
-							$valores2 = $result_tipo_producto->fetch_assoc();
-
-							$tipo_productos = $valores2['tipo_producto'];
-						}
-
-						$datos_movimientos_productos = [
-							'productos_id' => $productos_id,
-							'documento' => 'Creacion de Producto',
-							'cantidad_entrada' => $cantidad,
-							'cantidad_salida' => 0,
-							'saldo' => 0,
-							'fecha_registro' => $fecha_registro,
-							'empresa' => $empresa,
-							'clientes_id' => 0,
-							'comentario' => '',
-							'almacen_id' => $almacen_id
-						];
-
-						if ($cantidad > 0) {
-							if ($tipo_productos == 'Producto' || $tipo_productos == 'Insumos') {
-								productosModelo::agregar_movimientos_productos_modelo($datos_movimientos_productos);
-							}
-						}
-
-						$alert = [
-							'alert' => 'save_simple',
-							'title' => 'Registro almacenado',
-							'text' => 'El registro se ha almacenado correctamente',
-							'type' => 'success',
-							'btn-class' => 'btn-primary',
-							'btn-text' => '¡Bien Hecho!',
-							'form' => 'formProductos',
-							'id' => 'proceso_productos',
-							'valor' => 'Registro',
-							'funcion' => 'listar_productos();getProductos();getCategoriaProductos();getTipoProducto();getAlmacen();getMedida(0);getEmpresaProductos();',
-							'modal' => '',
-						];
-					} else {
-						$alert = [
-							'alert' => 'simple',
-							'title' => 'Ocurrio un error inesperado',
-							'text' => 'No hemos podido procesar su solicitud',
-							'type' => 'error',
-							'btn-class' => 'btn-danger',
-						];
-					}
-				} else {
-					$alert = [
-						'alert' => 'simple',
-						'title' => 'Resgistro ya existe',
-						'text' => 'Lo sentimos este nombre de producto ya existe',
-						'type' => 'error',
-						'btn-class' => 'btn-danger',
-					];
-				}
-			} else {
-				$alert = [
-					'alert' => 'simple',
-					'title' => 'Resgistro ya existe',
-					'text' => 'Lo sentimos este código de barra ya existe',
-					'type' => 'error',
-					'btn-class' => 'btn-danger',
-				];
-			}
-		} else {
-			$alert = [
-				'alert' => 'simple',
-				'title' => 'Resgistro ya existe',
-				'text' => 'Lo sentimos el nombre de la imagen ya existe, por favor corregir',
-				'type' => 'error',
-				'btn-class' => 'btn-danger',
-			];
+	
+		// Validación de imagen existente
+		if ($file_exist == 1) {
+			return mainModel::showNotification([
+				"title" => "Error",
+				"text" => "El nombre de la imagen ya existe, por favor corregir",
+				"type" => "error"
+			]);
 		}
-
-		return mainModel::sweetAlert($alert);
-	}
-
-	public function edit_productos_controlador()
-	{
-		;
-		$productos_id = mainModel::cleanString($_POST['productos_id']);
-		$nombre = mainModel::cleanString($_POST['producto']);
-		$descripcion = mainModel::cleanString($_POST['descripcion']);
-		$precio_compra = mainModel::cleanString($_POST['precio_compra']);
-		$porcentaje_venta = mainModel::cleanString($_POST['porcentaje_venta']);
-		$precio_venta = mainModel::cleanString($_POST['precio_venta']);
-		$precio_mayoreo = mainModel::cleanString($_POST['precio_mayoreo']);
-		$cantidad_minima = mainModel::cleanString($_POST['cantidad_minima']);
-		$cantidad_maxima = mainModel::cleanString($_POST['cantidad_maxima']);
-		$file_exist = false;
-
-		if ($precio_mayoreo == '') {
-			$precio_mayoreo = 0;
+	
+		// Validación de código de barras existente
+		$result = productosModelo::valid_bar_code_productos_modelo($bar_code_product, $empresa);
+		if ($result->num_rows > 0) {
+			return mainModel::showNotification([
+				"title" => "Error",
+				"text" => "El código de barra ya existe",
+				"type" => "error"
+			]);
 		}
-
-		// FILE IMAGE
-		$cargarLogo = false;
-		$file = 'image_preview.png';
-		if (isset($_FILES['file']['name'])) {
-			if (!empty($_FILES['file']['name'])) {
-				$cargarLogo = true;
-				// MOVEMOS LA IMAGEN EN LA CARPETA DE IMAGENES
-				$file = $_FILES['file']['name'];
-				$path = $_SERVER['DOCUMENT_ROOT'] . PRODUCT_PATH . $file;
-
-				if (file_exists($path)) {
-					$file_exist = true;
-				} else {
-					move_uploaded_file($_FILES['file']['tmp_name'], $path);
-				}
-			}
+	
+		// Validación de nombre de producto existente
+		$result_nombre = productosModelo::valid_nombre_producto_modelo($nombre, $empresa);
+		if ($result_nombre->num_rows > 0) {
+			return mainModel::showNotification([
+				"title" => "Error",
+				"text" => "El nombre de producto ya existe",
+				"type" => "error"
+			]);
 		}
-
-		if (isset($_POST['producto_activo'])) {
-			$estado = $_POST['producto_activo'];
-		} else {
-			$estado = 2;
+	
+		// Registrar el producto
+		$query = productosModelo::agregar_productos_modelo($datos);
+		if (!$query) {
+			return mainModel::showNotification([
+				"title" => "Error",
+				"text" => "No se pudo registrar el producto",
+				"type" => "error"
+			]);
 		}
-
-		if (isset($_POST['producto_isv_factura'])) {
-			$isv_venta = $_POST['producto_isv_factura'];
-		} else {
-			$isv_venta = 2;
+	
+		// Proceso exitoso - registrar movimientos si es necesario
+		$consulta_factura = productosModelo::consultar_codigo_producto($nombre)->fetch_assoc();
+		$productos_id = $consulta_factura['productos_id'];
+	
+		$tipo_productos = '';
+		$result_tipo_producto = productosModelo::tipo_producto_modelo($productos_id);
+		if ($result_tipo_producto->num_rows > 0) {
+			$valores2 = $result_tipo_producto->fetch_assoc();
+			$tipo_productos = $valores2['tipo_producto'];
 		}
-
-		if (isset($_POST['producto_isv_compra'])) {
-			$isv_compra = $_POST['producto_isv_compra'];
-		} else {
-			$isv_compra = 2;
-		}
-
-		$datos = [
+	
+		$datos_movimientos_productos = [
 			'productos_id' => $productos_id,
-			'nombre' => $nombre,
-			'descripcion' => $descripcion,
-			'precio_compra' => $precio_compra,
-			'porcentaje_venta' => $porcentaje_venta,
-			'precio_venta' => $precio_venta,
-			'precio_mayoreo' => $precio_mayoreo,
-			'cantidad_minima' => $cantidad_minima,
-			'cantidad_maxima' => $cantidad_maxima,
-			'estado' => $estado,
-			'isv_venta' => $isv_venta,
-			'isv_compra' => $isv_compra,
-			'file' => $file,
-			'cargarLogo' => $cargarLogo,
+			'documento' => 'Creacion de Producto',
+			'cantidad_entrada' => $cantidad,
+			'cantidad_salida' => 0,
+			'saldo' => 0,
+			'fecha_registro' => $fecha_registro,
+			'empresa' => $empresa,
+			'clientes_id' => 0,
+			'comentario' => '',
+			'almacen_id' => $almacen_id
 		];
-
-		$query = productosModelo::edit_productos_modelo($datos);
-
-		if ($query) {
-			$alert = [
-				'alert' => 'edit',
-				'title' => 'Registro modificado',
-				'text' => 'El registro se ha modificado correctamente',
-				'type' => 'success',
-				'btn-class' => 'btn-primary',
-				'btn-text' => '¡Bien Hecho!',
-				'form' => 'formProductos',
-				'id' => 'proceso_productos',
-				'valor' => 'Editar',
-				'funcion' => 'listar_productos();getEmpresaProductos();getCategoriaProductos();getAlmacen();getTipoProducto();getMedida(1);',
-				'modal' => '',
-			];
-		} else {
-			$alert = [
-				'alert' => 'simple',
-				'title' => 'Ocurrio un error inesperado',
-				'text' => 'No hemos podido procesar su solicitud',
-				'type' => 'error',
-				'btn-class' => 'btn-danger',
-			];
+	
+		if ($cantidad > 0 && ($tipo_productos == 'Producto' || $tipo_productos == 'Insumos')) {
+			productosModelo::agregar_movimientos_productos_modelo($datos_movimientos_productos);
 		}
-
-		return mainModel::sweetAlert($alert);
+	
+		// Registrar en historial
+		mainModel::guardarHistorial([
+			"modulo" => 'Productos',
+			"colaboradores_id" => $_SESSION['colaborador_id_sd'],
+			"status" => "Registro",
+			"observacion" => "Se registró el producto {$datos['nombre']} con código {$datos['bar_code_product']}",
+			"fecha_registro" => date("Y-m-d H:i:s")
+		]);
+	
+		return mainModel::showNotification([
+			"type" => "success",
+			"title" => "Registro exitoso",
+			"text" => "Producto registrado correctamente",
+			"form" => "formProductos",
+			"funcion" => "listar_productos();getProductos();getCategoriaProductos();getTipoProducto();getAlmacen();getMedida(0);getEmpresaProductos();"
+		]);
 	}
 
 	public function edit_bodega_productos_controlador()
 	{
-		if (!isset($_SESSION['user_sd'])) {
-			session_start(['name' => 'SD']);
+		// Verificar e iniciar sesión de forma segura
+		if(session_status() === PHP_SESSION_NONE) {
+			session_start(['name'=>'SD', 'cookie_lifetime' => 86400]);
+			// Inicializar variables de sesión necesarias
+			if(!isset($_SESSION['user_sd'])) {
+				$_SESSION['user_sd'] = null;
+			}
 		}
-
+	
 		$productos_id = mainModel::cleanString($_POST['productos_id']);
 		$bodega_actual = mainModel::cleanString($_POST['id_bodega_actual']);
 		$bodega = mainModel::cleanString($_POST['id_bodega']);
 		$cantidad = mainModel::cleanString($_POST['cantidad_movimiento']);
 		$lote_id = mainModel::cleanString($_POST['lote_id_productos']);
 		$empresa_id = mainModel::cleanString($_POST['empresa_id_productos']);
-
 		$saldoProducto = 0;
-
-		if (isset($_POST['movimiento_comentario'])) {
-			$comentario = mainModel::cleanString($_POST['movimiento_comentario']);
-		} else {
-			$comentario = '';
-		}
-
+	
+		$comentario = isset($_POST['movimiento_comentario']) ? 
+			mainModel::cleanString($_POST['movimiento_comentario']) : '';
 		$clientes_id = 0;
-
+	
 		$datos = [
 			'productos_id' => $productos_id,
 			'bodega' => $bodega,
 			'cantidad' => $cantidad
 		];
-
+	
 		$fecha_registro = date('Y-m-d H:i:s');
 		$saldo = 0;
-
+	
 		// Verificamos producto hijo
 		$result_productos = mainModel::getProductoHijo($productos_id);
-
+		$procesosHijosExitosos = true;
+	
 		if ($result_productos->num_rows > 0) {
 			while ($consulta = $result_productos->fetch_assoc()) {
 				$id_producto_hijo = intval($consulta['productos_id']);
-				if ($id_producto_hijo != 0 || $id_producto_hijo != 'null') {
-					// agregos el producto hijo a la bodega de transferencia
-
+				if ($id_producto_hijo != 0 && $id_producto_hijo != 'null') {
 					// OBTENER LA MEDIDA DEL PRODUCTO PADRE
 					$medidaName = strtolower(mainModel::getMedidaProductoPadre($productos_id)->fetch_assoc());
-
+	
 					if ($medidaName == 'ton') {  // Medida en Toneladas DEL HIJO
 						$quantity = $cantidad * 2204.623;
-
-						// OTENEMOS EL SALDO DEL PRODCUTO HIJO
+	
+						// OBTENEMOS EL SALDO DEL PRODUCTO HIJO
 						$consultaSaldoProductoHijo = mainModel::getSaldoProductosMovimientosBodega($productos_id, $bodega_actual)->fetch_assoc();
 						$saldoProductoHijo = doubleval($consultaSaldoProductoHijo['saldo']);
-
+	
 						$saldoNuevoProductoHijo = $saldoProductoHijo + doubleval($quantity);
-
+	
 						$datosHijo = [
 							'productos_id' => $id_producto_hijo,
 							'cantidad_entrada' => $quantity,
@@ -395,22 +252,33 @@ class productosControlador extends productosModelo
 							'almacen_id' => $bodega,
 							'lote_id' => $lote_id
 						];
-
+	
 						$queryIngreso = mainModel::agregar_movimiento_productos_modelo($datosHijo);
+						if (!$queryIngreso) {
+							$procesosHijosExitosos = false;
+						}
 					}
 				}
 			}
 		}
-
-		// OTENEMOS EL SALDO DEL PRODCUTO
+	
+		if (!$procesosHijosExitosos) {
+			return mainModel::showNotification([
+				"title" => "Error",
+				"text" => "Error al procesar productos hijos",
+				"type" => "error"
+			]);
+		}
+	
+		// OBTENEMOS EL SALDO DEL PRODUCTO
 		$consultaSaldoBodegaActual = mainModel::getSaldoProductosMovimientosBodega($productos_id, $bodega_actual)->fetch_assoc();
 		$saldoProductoBodegaActual = doubleval($consultaSaldoBodegaActual['saldo']);
-
+	
 		$consultaSaldoBodegaNueva = mainModel::getSaldoProductosMovimientosBodega($productos_id, $bodega)->fetch_assoc();
 		$saldoProductoBodegaNueva = doubleval($consultaSaldoBodegaNueva['saldo']);
-
+	
 		$saldoBodegaNueva = $saldoProductoBodegaNueva + doubleval($cantidad);
-
+	
 		// INGRESAMOS EL NUEVO REGISTRO EN LA ENTIDAD MOVIMIENTOS
 		$datos = [
 			'productos_id' => $productos_id,
@@ -424,13 +292,12 @@ class productosControlador extends productosModelo
 			'almacen_id' => $bodega,
 			'lote_id' => $lote_id
 		];
-
+	
 		$queryIngreso = mainModel::agregar_movimiento_productos_modelo($datos);
-
+	
 		$saldoNuevo = $saldoProducto + doubleval($cantidad);
-
 		$saldoBodegaActual = $saldoProductoBodegaActual - doubleval($cantidad);
-
+	
 		// EGRESO DEL PRODUCTO DE LA BODEGA ACTUAL
 		$datosEgreso = [
 			'productos_id' => $productos_id,
@@ -444,83 +311,91 @@ class productosControlador extends productosModelo
 			'almacen_id' => $bodega_actual,
 			'lote_id' => $lote_id
 		];
-
+	
 		$queryEgreso = mainModel::agregar_movimiento_productos_modelo($datosEgreso);
-
-		if ($queryEgreso && $queryIngreso) {
-			$alert = [
-				'alert' => 'edit',
-				'title' => 'Agregar Movimiento Almacen',
-				'text' => 'El registro se ha almacenado correctamente',
-				'type' => 'success',
-				'btn-class' => 'btn-primary',
-				'btn-text' => '¡Bien Hecho!',
-				'form' => 'formMovimientos',
-				'id' => 'proceso_movimientos',
-				'valor' => 'Editar',
-				'funcion' => 'inventario_transferencia();setValoresProduco();',
-				'modal' => '',
-			];
-		} else {
-			$alert = [
-				'alert' => 'simple',
-				'title' => 'Ocurrio un error inesperado en almacen',
-				'text' => 'No hemos podido procesar su solicitud',
-				'type' => 'error',
-				'btn-class' => 'btn-danger',
-			];
+	
+		if (!$queryEgreso || !$queryIngreso) {
+			return mainModel::showNotification([
+				"title" => "Error",
+				"text" => "No se pudo completar la transferencia entre bodegas",
+				"type" => "error"
+			]);
 		}
-
-		return mainModel::sweetAlert($alert);
+	
+		// Registrar en historial
+		mainModel::guardarHistorial([
+			"modulo" => 'Productos',
+			"colaboradores_id" => $_SESSION['colaborador_id_sd'],
+			"status" => "Transferencia",
+			"observacion" => "Se transfirió producto ID: {$productos_id} de bodega {$bodega_actual} a {$bodega}",
+			"fecha_registro" => date("Y-m-d H:i:s")
+		]);
+	
+		return mainModel::showNotification([
+			"type" => "success",
+			"title" => "Transferencia exitosa",
+			"text" => "El movimiento entre bodegas se realizó correctamente",
+			"form" => "formMovimientos",
+			"funcion" => "inventario_transferencia();setValoresProduco();"
+		]);
 	}
 
 	public function delete_productos_controlador()
 	{
-		if (!isset($_SESSION['user_sd'])) {
-			session_start(['name' => 'SD']);
+		// Validar sesión primero
+		$validacion = mainModel::validarSesion();
+		if($validacion['error']) {
+			return mainModel::showNotification([
+				"title" => "Error de sesión",
+				"text" => $validacion['mensaje'],
+				"type" => "error",
+				"funcion" => "window.location.href = '".$validacion['redireccion']."'"
+			]);
 		}
 
 		$productos_id = $_POST['productos_id'];
 
+        $producto = mainModel::consultar_tabla('productos', ['nombre', 'barCode'], "productos_id = {$productos_id}");
+        
+        if (empty($producto)) {
+            header('Content-Type: application/json');
+            echo json_encode([
+                "status" => "error",
+                "title" => "Error",
+                "message" => "Producto no encontrado"
+            ]);
+            exit();
+        }
+        
+        $nombre = $producto[0]['nombre'] ?? '';
+
 		// VALIDAMOS QUE EL PRODCUTO NO TENGA MOVIMIENTOS, PARA PODER ELIMINARSE
-		$result_valid_productos_movimientos = productosModelo::valid_productos_movimientos($productos_id);
+		if(productosModelo::valid_productos_movimientos($productos_id)->num_rows > 0){
+            header('Content-Type: application/json');
+            echo json_encode([
+                "status" => "error",
+                "title" => "No se puede eliminar",
+                "message" => "El producto {$nombre} tiene movimientos asociadas"
+            ]);
+            exit();                
+        }
 
-		if ($result_valid_productos_movimientos->num_rows == 0) {
-			$query = productosModelo::delete_productos_modelo($productos_id);
+		if(!productosModelo::delete_productos_modelo($productos_id)){
+            header('Content-Type: application/json');
+            echo json_encode([
+                "status" => "error",
+                "title" => "Error",
+                "message" => "No se pudo eliminar el producto {$nombre}"
+            ]);
+            exit();
+        }
 
-			if ($query) {
-				$alert = [
-					'alert' => 'clear',
-					'title' => 'Registro eliminado',
-					'text' => 'El registro se ha eliminado correctamente',
-					'type' => 'success',
-					'btn-class' => 'btn-primary',
-					'btn-text' => '¡Bien Hecho!',
-					'form' => 'formProductos',
-					'id' => 'proceso_productos',
-					'valor' => 'Eliminar',
-					'funcion' => 'listar_productos();getProductos();getCategoriaProductos();getTipoProducto();getAlmacen();getMedida(0);getEmpresaProductos();',
-					'modal' => 'modal_registrar_productos',
-				];
-			} else {
-				$alert = [
-					'alert' => 'simple',
-					'title' => 'Ocurrio un error inesperado',
-					'text' => 'No hemos podido procesar su solicitud',
-					'type' => 'error',
-					'btn-class' => 'btn-danger',
-				];
-			}
-		} else {
-			$alert = [
-				'alert' => 'simple',
-				'title' => 'Este registro cuenta con información almacenada',
-				'text' => 'No se puede eliminar este registro',
-				'type' => 'error',
-				'btn-class' => 'btn-danger',
-			];
-		}
-
-		return mainModel::sweetAlert($alert);
+		header('Content-Type: application/json');
+        echo json_encode([
+            "status" => "success",
+            "title" => "Eliminado",
+            "message" => "Producto {$nombre} eliminado correctamente"
+        ]);
+        exit();
 	}
 }

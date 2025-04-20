@@ -30,7 +30,13 @@ class mainModel
 	
 		return $mysqli;
 	}
-	
+
+	// En tu mainModel.php agrega:
+	public static function staticConnection() {
+		$instance = new self();
+		return $instance->connection();
+	}
+		
 	public function connectionLogin()
 	{
 		// Usamos conexiones persistentes con 'p:'
@@ -93,6 +99,47 @@ class mainModel
 		
 		return $exists;
 	}
+
+	// En tu mainModel.php agregamos:
+	public static function validarSesion() {
+		// Verificar si la sesión no está iniciada
+		if(session_status() === PHP_SESSION_NONE) {
+			session_start([
+				'name' => 'SD', 
+				'cookie_lifetime' => 86400,
+				'cookie_secure' => true,
+				'cookie_httponly' => true,
+				'cookie_samesite' => 'Lax'
+			]);
+			
+			if(!isset($_SESSION['user_sd'])) {
+				$_SESSION['user_sd'] = null;
+			}
+		}
+		
+		// Verificar si el usuario está logueado
+		if($_SESSION['user_sd'] === null) {
+			return [
+				"error" => true,
+				"mensaje" => "Debe iniciar sesión para acceder a esta función",
+				"redireccion" => SERVERURL."login/"
+			];
+		}
+		
+		// Verificar variables de sesión esenciales
+		$variablesRequeridas = ['colaborador_id_sd', 'empresa_id_sd'];
+		foreach($variablesRequeridas as $variable) {
+			if(!isset($_SESSION[$variable])) {
+				return [
+					"error" => true,
+					"mensaje" => "Faltan datos esenciales en la sesión",
+					"redireccion" => SERVERURL."login/"
+				];
+			}
+		}
+		
+		return ["error" => false];
+	}	
 
 	public function correlativoLogin($campo_id, $tabla)
 	{
@@ -256,7 +303,6 @@ class mainModel
 			$conexion->close();
 		}
 	}	
-
 	public function registrar_plan_modelo($datos) {
 		$conexionPrincipal = $this->connection();
 		
@@ -2120,7 +2166,7 @@ class mainModel
 			$where = "WHERE c.estado = 1 AND c.colaboradores_id NOT IN(1) AND p.nombre NOT IN($valores)";
 		}
 
-		$query = "SELECT c.colaboradores_id, CONCAT(c.nombre, ' ', c.apellido) AS 'nombre'
+		$query = "SELECT c.colaboradores_id, c.nombre AS 'nombre', c.identidad
 			FROM colaboradores AS c
 			INNER JOIN puestos AS p ON c.puestos_id = p.puestos_id
 			" . $where . '
@@ -3341,18 +3387,15 @@ class mainModel
 
 		return $result;
 	}
-
+	
 	public function getNomina($datos)
 	{
-		$pago_planificado_id = '';  // Variable inicializada vacía
+		$tipo_contrato_condicion = "";
 	
-		// Comprobamos si 'pago_planificado' tiene un valor válido diferente a vacío o 0
 		if (isset($datos['tipo_contrato_id']) && $datos['tipo_contrato_id'] != '' && $datos['tipo_contrato_id'] != 0) {
-			// Si tiene valor, se agrega la condición para filtrar por 'pago_planificado_id'
-			$pago_planificado_id = "AND n.tipo_contrato_id = '" . $datos['tipo_contrato_id'] . "'";
+			$tipo_contrato_condicion = "AND c.tipo_contrato_id = '" . $datos['tipo_contrato_id'] . "'";
 		}
 	
-		// Creamos la consulta SQL con el filtro de estado y la posible condición de 'pago_planificado_id'
 		$query = "SELECT n.nomina_id AS 'nomina_id', 
 						 e.nombre AS 'empresa', 
 						 n.fecha_inicio AS 'fecha_inicio', 
@@ -3366,15 +3409,15 @@ class mainModel
 						 n.pago_planificado_id AS 'pago_planificado_id'
 				  FROM nomina AS n
 				  INNER JOIN empresa AS e ON n.empresa_id = e.empresa_id
-				  WHERE n.estado = '" . $datos['estado'] . "' 
-				  $pago_planificado_id
+				  INNER JOIN nomina_detalles AS nd ON n.nomina_id = nd.nomina_id
+				  INNER JOIN contrato AS c ON nd.colaboradores_id = c.colaborador_id
+				  WHERE n.estado = '" . $datos['estado'] . "'
+				  $tipo_contrato_condicion
 				  ORDER BY n.fecha_registro DESC";
-
-		// Ejecutamos la consulta y retornamos el resultado
-		$result = self::connection()->query($query);
 	
+		$result = self::connection()->query($query);
 		return $result;
-	}	
+	}
 
 	public function getImporteNominaDetalles($nomina_id)
 	{
@@ -4503,6 +4546,7 @@ class mainModel
 		$query = "SELECT *
 				FROM productos
 				WHERE tipo_producto_id = '$tipo_producto_id'";
+
 		$result = self::connection()->query($query);
 
 		return $result;
@@ -5791,11 +5835,8 @@ class mainModel
 	public function getTotalFacturasDisponiblesDB($empresa_id)
 	{
 		$query = "SELECT siguiente AS 'numero'
-
 				FROM secuencia_facturacion
-
 				WHERE activo = 1 AND empresa_id = '$empresa_id' AND documento_id = 1
-
 				ORDER BY siguiente DESC LIMIT 1";
 
 		$result = self::connection()->query($query);
@@ -5805,8 +5846,7 @@ class mainModel
 
 	public function getNumeroMaximoPermitido($empresa_id)
 	{
-		$query = "SELECT rango_final AS 'numero'
-
+		$query = "SELECT rango_final AS 'numero', rango_inicial
 				FROM secuencia_facturacion
 
 				WHERE activo = 1 AND empresa_id = '$empresa_id' AND documento_id = 1";

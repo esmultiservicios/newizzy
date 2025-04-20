@@ -1,6 +1,5 @@
 <script>
-//reporteVentas.php    
-$(document).ready(function() {
+$(() => {
     getReporteFactura();
     getFacturador();
     getVendedores();
@@ -8,8 +7,22 @@ $(document).ready(function() {
     listar_reporte_ventas();
     $('#form_main_ventas #tipo_factura_reporte').val(1);
     $('#form_main_ventas #tipo_factura_reporte').selectpicker('refresh');
+
+    // Evento para el botón de Generar Reporte
+    $('#form_main_ventas').on('submit', function(e) {
+        e.preventDefault();
+        listar_reporte_ventas();
+    });
+
+    // Evento para el botón de Limpiar Filtros
+    $('#btn-limpiar-filtros').on('click', function() {
+        $('#form_main_ventas')[0].reset();
+        $('#form_main_ventas .selectpicker').selectpicker('refresh');
+        listar_reporte_ventas();
+    });
 });
 
+// Eventos para los filtros
 $('#form_main_ventas #tipo_factura_reporte').on("change", function(e) {
     listar_reporte_ventas();
 });
@@ -34,21 +47,22 @@ $('#form_main_ventas #factura_reporte').on("change", function(e) {
     listar_reporte_ventas();
 });
 
+// Función para redondear números de manera personalizada
 function customRound(number) {
-    var truncated = Math.floor(number * 100) / 100; // Trunca a dos decimales
-    var secondDecimal = Math.floor((number * 100) % 10); // Obtiene el segundo decimal
+    var truncated = Math.floor(number * 100) / 100;
+    var secondDecimal = Math.floor((number * 100) % 10);
 
-    if (secondDecimal >= 5) { // Si el segundo decimal es mayor o igual a 5, redondea hacia arriba
-        return parseFloat((truncated + 0.01).toFixed(2)); // Redondea hacia arriba
-    } else { // Si el segundo decimal es menor que 5, no redondea
-        return parseFloat(truncated.toFixed(2)); // No redondea
+    if (secondDecimal >= 5) {
+        return parseFloat((truncated + 0.01).toFixed(2));
+    } else {
+        return parseFloat(truncated.toFixed(2));
     }
 }
 
-//INICIO REPORTE DE VENTAS
+// Función principal para listar el reporte de ventas
 var listar_reporte_ventas = function() {
     let tipo_factura_reporte = $("#form_main_ventas #tipo_factura_reporte").val();
-    tipo_factura_reporte = tipo_factura_reporte ? tipo_factura_reporte : 1; //estdo
+    tipo_factura_reporte = tipo_factura_reporte ? tipo_factura_reporte : 1;
 
     let factura = $("#form_main_ventas #factura_reporte").val();
     factura = factura ? factura : 1;
@@ -73,9 +87,8 @@ var listar_reporte_ventas = function() {
                 "factura": factura
             }
         },
-        "columns": [{
-                "data": "fecha"
-            },
+        "columns": [
+            {"data": "fecha"},
             {
                 "data": "tipo_documento",
                 "render": function(data, type, row) {
@@ -92,12 +105,8 @@ var listar_reporte_ventas = function() {
                     return data;
                 }
             },
-            {
-                "data": "cliente"
-            },
-            {
-                "data": "numero"
-            },
+            {"data": "cliente"},
+            {"data": "numero"},
             {
                 "data": "subtotal",
                 render: function(data, type) {
@@ -193,33 +202,30 @@ var listar_reporte_ventas = function() {
                     return number;
                 },
             },
+            {"data": "vendedor"},
+            {"data": "facturador"},
             {
-                "data": "vendedor"
+                "defaultContent": "<button class='table_reportes detalle_factura btn btn-dark table_info'><span class='fas fa-search fa-lg'></span> Detalle</button>"
             },
             {
-                "data": "facturador"
+                "defaultContent": "<button class='table_reportes print_factura btn btn-dark table_info ocultar'><span class='fas fa-file-download fa-lg'></span> Factura</button>"
             },
             {
-                "defaultContent": "<button class='table_reportes print_factura btn btn-dark table_info ocultar'><span class='fas fa-file-download fa-lg'></span>Factura</button>"
-                
+                "defaultContent": "<button class='table_reportes print_comprobante btn btn-dark table_success ocultar'><span class='far fa-file-pdf fa-lg'></span> Comprobante</button>"
             },
             {
-                "defaultContent": "<button class='table_reportes print_comprobante btn btn-dark table_success ocultar'><span class='far fa-file-pdf fa-lg'></span>Comprobante</button>"
+                "defaultContent": "<button class='table_reportes email_factura btn btn-dark table_danger ocultar'><span class='fas fa-paper-plane fa-lg'></span> Enviar</button>"
             },
             {
-                "defaultContent": "<button class='table_reportes email_factura btn btn-dark table_danger ocultar'><span class='fas fa-paper-plane fa-lg'></span>Enviar</button>"
-            },
-            {
-                "defaultContent": "<button class='table_cancelar cancelar_factura btn btn-dark table_primary ocultar'><span class='fas fa-ban fa-lg'></span>Anular</button>"
+                "defaultContent": "<button class='table_cancelar cancelar_factura btn btn-dark table_primary ocultar'><span class='fas fa-ban fa-lg'></span> Anular</button>"
             }
         ],
         "lengthMenu": lengthMenu10,
         "stateSave": true,
         "bDestroy": true,
-        "language": idioma_español, // esta se encuentra en el archivo main.js
+        "language": idioma_español,
         "dom": dom,
         "footerCallback": function(row, data, start, end, display) {
-            // Aquí puedes calcular los totales y actualizar el footer
             var totalSubtotal = data.reduce(function(acc, row) {
                 return acc + (parseFloat(row.subtotal) || 0);
             }, 0);
@@ -240,33 +246,25 @@ var listar_reporte_ventas = function() {
                 return acc + (parseFloat(row.ganancia) || 0);
             }, 0);
 
-            // Formatear los totales con separadores de miles y coma para decimales
             var formatter = new Intl.NumberFormat('es-HN', {
                 style: 'currency',
                 currency: 'HNL',
                 minimumFractionDigits: 2,
             });
 
-            var totalSubtotalFormatted = formatter.format(totalSubtotal);
-            var totalIsvFormatted = formatter.format(totalIsv);
-            var totalDescuentoFormatted = formatter.format(totalDescuento);
-            var totalVentasFormatted = formatter.format(totalVentas);
-            var totalGananciaFormatted = formatter.format(totalGanancia);
-
-            // Asignar los totales a los elementos HTML en el footer
-            $('#subtotal-i').html(totalSubtotalFormatted);
-            $('#impuesto-i').html(totalIsvFormatted);
-            $('#descuento-i').html(totalDescuentoFormatted);
-            $('#total-footer-ingreso').html(totalVentasFormatted);
-            $('#ganancia').html(totalGananciaFormatted);
+            $('#subtotal-i').html(formatter.format(totalSubtotal));
+            $('#impuesto-i').html(formatter.format(totalIsv));
+            $('#descuento-i').html(formatter.format(totalDescuento));
+            $('#total-footer-ingreso').html(formatter.format(totalVentas));
+            $('#ganancia').html(formatter.format(totalGanancia));
         },
-        "buttons": [{
+        "buttons": [
+            {
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                 titleAttr: 'Actualizar Reporte de Ventas',
                 className: 'table_actualizar btn btn-secondary ocultar',
                 action: function() {
                     listar_reporte_ventas();
-                    total_ingreso_footer();
                 }
             },
             {
@@ -283,8 +281,7 @@ var listar_reporte_ventas = function() {
                 text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
                 titleAttr: 'Excel',
                 title: 'Reporte de Ventas',
-                messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' +
-                    convertDateFormat(fechaf),
+                messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' + convertDateFormat(fechaf),
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 exportOptions: {
                     columns: [0, 1, 2, 3, 4, 5, 6, 7, 8]
@@ -300,15 +297,14 @@ var listar_reporte_ventas = function() {
                 orientation: 'landscape',
                 pageSize: 'LETTER',
                 title: 'Reporte de Ventas',
-                messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' +
-                    convertDateFormat(fechaf),
+                messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' + convertDateFormat(fechaf),
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-danger ocultar',
                 exportOptions: {
                     columns: [0, 1, 2, 3, 4, 5, 6, 7, 8]
                 },
                 customize: function(doc) {
-                    if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
+                    if (imagen) {
                         doc.content.splice(0, 0, {
                             image: imagen,  
                             width: 100,
@@ -327,36 +323,133 @@ var listar_reporte_ventas = function() {
     table_reporteVentas.search('').draw();
     $('#buscar').focus();
 
+    view_detalle_factura_dataTable ("#dataTablaReporteVentas tbody", table_reporteVentas);
     view_correo_facturas_dataTable("#dataTablaReporteVentas tbody", table_reporteVentas);
     view_reporte_facturas_dataTable("#dataTablaReporteVentas tbody", table_reporteVentas);
     view_reporte_comprobante_dataTable("#dataTablaReporteVentas tbody", table_reporteVentas);
     view_anular_facturas_dataTable("#dataTablaReporteVentas tbody", table_reporteVentas);
-
-    // Función para determinar el color de fondo de la fila
-    function determinarColorFila(saldo) {
-        return saldo < 0 ? 'fila-roja' : 'fila-verde'; // Puedes ajustar los nombres de las clases según tu estilo
-    }
-
-    // Callback para colorear las filas según el saldo
-    table_reporteVentas.on('draw', function() {
-        table_reporteVentas.rows().every(function(index, element) {
-            var saldo = parseFloat(this.data().saldo) || 0;
-            var color = determinarColorFila(saldo);
-
-            $(this.node()).removeClass('fila-roja fila-verde').addClass(color);
-        });
-    });
 };
 
-var view_anular_facturas_dataTable = function(tbody, table) {
-    $(tbody).off("click", "button.cancelar_factura");
-    $(tbody).on("click", "button.cancelar_factura", function(e) {
+var view_detalle_factura_dataTable = function(tbody, table) {
+    $(tbody).off("click", "button.detalle_factura");
+    $(tbody).on("click", "button.detalle_factura", function(e) {
         e.preventDefault();
         var data = table.row($(this).parents("tr")).data();
-        anularFacturas(data.facturas_id);
+        mostrarDetalleFactura(data.facturas_id);
     });
 }
 
+function mostrarDetalleFactura(facturas_id) {
+    console.log('Mostrando detalle para factura ID:', facturas_id); // Debug
+    
+    // Mostrar el modal
+    var $modal = $('#modalDetalleFactura');
+    $modal.modal('show');
+
+    // Obtener datos
+    $.ajax({
+        url: '<?php echo SERVERURL; ?>core/getDetalleFacturaReporteVentas.php',
+        type: 'POST',
+        data: { facturas_id: facturas_id },
+        dataType: 'json',
+        success: function(response) {
+            console.log('Respuesta del servidor:', response); // Debug
+            
+            if (response.success && response.data) {
+                var factura = response.data.cabecera;
+                var detalles = response.data.detalle;
+                
+                console.log('Datos de factura:', factura); // Debug
+                console.log('Detalles:', detalles); // Debug
+
+                // Llenar cabecera
+                $modal.find('#numero-factura-modal').text(factura.numero_factura || 'N/A');
+                $modal.find('#fecha-factura').text(factura.fecha || 'N/A');
+                $modal.find('#cliente-factura').text(factura.cliente || 'N/A');
+                $modal.find('#tipo-factura').text(factura.tipo_factura || 'N/A');
+                
+                // Estado
+                var estadoNum = parseInt(factura.estado) || 0;
+                var estadoBadge = '';
+                switch(estadoNum) {
+                    case 2: estadoBadge = 'badge-success">Pagada'; break;
+                    case 3: estadoBadge = 'badge-warning text-dark">Crédito'; break;
+                    case 4: estadoBadge = 'badge-danger">Anulada'; break;
+                    default: estadoBadge = 'badge-secondary">Pendiente';
+                }
+                $modal.find('#estado-factura').html('<span class="badge badge-pill ' + estadoBadge + '</span>');
+                
+                // Totales
+                $modal.find('#subtotal-factura').text(formatMoney(factura.subtotal || 0));
+                $modal.find('#total-factura').text(formatMoney(factura.total || 0));
+                $modal.find('#notas-factura').text(factura.notas || 'No hay notas');
+
+                // Llenar detalle
+                var detalleHtml = '';
+                if (detalles && detalles.length > 0) {
+                    detalles.forEach(function(item) {
+                        detalleHtml += `
+                            <tr>
+                                <td>${item.producto || 'Producto no especificado'}</td>
+                                <td class="text-center">${item.cantidad || 0} ${item.medida || ''}</td>
+                                <td class="text-right">${formatMoney(item.precio || 0)}</td>
+                                <td class="text-right">${formatMoney(item.isv_valor || 0)}</td>
+                                <td class="text-right">${formatMoney(item.descuento || 0)}</td>
+                                <td class="text-right">${formatMoney(item.subtotal || 0)}</td>
+                            </tr>`;
+                    });
+                } else {
+                    detalleHtml = `
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                No se encontraron detalles para esta factura
+                            </td>
+                        </tr>`;
+                }
+                
+                $modal.find('#detalle-factura-body').html(detalleHtml);
+                
+                // Configurar botón de imprimir
+                $modal.find('#btn-imprimir-factura').off('click').on('click', function() {
+                    if (typeof printBillReporteVentas === 'function') {
+                        printBillReporteVentas(facturas_id);
+                    }
+                });
+                
+            } else {
+                $modal.find('.modal-body').html(`
+                    <div class="alert alert-danger">
+                        ${response.message || 'Error al cargar los detalles'}
+                    </div>
+                `);
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error en AJAX:', error, xhr.responseText);
+            $modal.find('.modal-body').html(`
+                <div class="alert alert-danger">
+                    Error al cargar los datos: ${error}
+                    <button class="btn btn-sm btn-outline-primary mt-2" onclick="mostrarDetalleFactura(${facturas_id})">
+                        <i class="fas fa-sync-alt"></i> Reintentar
+                    </button>
+                </div>
+            `);
+        }
+    });
+}
+
+// Función de formato de dinero segura
+function formatMoney(amount) {
+    try {
+        var number = parseFloat(amount) || 0;
+        return 'L ' + number.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+    } catch(e) {
+        console.error('Error formateando dinero:', e);
+        return 'L 0.00';
+    }
+}
+
+// Funciones para manejar los eventos de los botones en la tabla
 var view_correo_facturas_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.email_factura");
     $(tbody).on("click", "button.email_factura", function(e) {
@@ -384,6 +477,15 @@ var view_reporte_comprobante_dataTable = function(tbody, table) {
     });
 }
 
+var view_anular_facturas_dataTable = function(tbody, table) {
+    $(tbody).off("click", "button.cancelar_factura");
+    $(tbody).on("click", "button.cancelar_factura", function(e) {
+        e.preventDefault();
+        var data = table.row($(this).parents("tr")).data();
+        anularFacturas(data.facturas_id);
+    });
+}
+
 function anularFacturas(facturas_id) {
     swal({
         title: "¿Esta seguro?",
@@ -404,8 +506,8 @@ function anularFacturas(facturas_id) {
             },
         },
         dangerMode: true,
-        closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-        closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera        
+        closeOnEsc: false,
+        closeOnClickOutside: false        
     }).then((value) => {
         if (value === null || value.trim() === "") {
             swal("¡Necesita escribir algo!", { icon: "error" });
@@ -429,8 +531,8 @@ function anular(facturas_id, comentario) {
                     title: "Success",
                     text: "La factura ha sido anulada con éxito",
                     icon: "success",
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera                    
+                    closeOnEsc: false,
+                    closeOnClickOutside: false                    
                 });
                 listar_reporte_ventas();
             } else {
@@ -439,8 +541,8 @@ function anular(facturas_id, comentario) {
                     text: "La factura no se puede anular",
                     icon: "error",
                     dangerMode: true,
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
+                    closeOnEsc: false,
+                    closeOnClickOutside: false
                 });
             }
         }
@@ -510,7 +612,6 @@ function GetProductos() {
         }
     });
 }
-//FIN REPORTE DE VENTAS
 
 function modal_detalles(){
     getVendedores();
@@ -629,7 +730,6 @@ var ListarDetalleVenas = function(){
 		"language": idioma_español,
 		"dom": dom,
         "footerCallback": function(row, data, start, end, display) {
-            // Calcular los totales
             var totalPrecio = 0;
             var totalCantidad = 0;
             var totalISV = 0;
@@ -644,25 +744,17 @@ var ListarDetalleVenas = function(){
                 totalTotal += parseFloat(row.Total) || 0;
             });
 
-            // Formatear los totales
             var formatter = new Intl.NumberFormat('es-HN', {
                 style: 'currency',
                 currency: 'HNL',
                 minimumFractionDigits: 2,
             });
 
-            var totalPrecioFormatted = formatter.format(totalPrecio);
-            var totalCantidadFormatted = formatter.format(totalCantidad);
-            var totalISVFormatted = formatter.format(totalISV);
-            var totalDescuentoFormatted = formatter.format(totalDescuento);
-            var totalTotalFormatted = formatter.format(totalTotal);
-
-            // Actualizar los elementos HTML en el footer con los totales calculados
-            $('#total-precio').html(totalPrecioFormatted);
-            $('#total-cantidad').html(totalCantidadFormatted);
-            $('#total-isv').html(totalISVFormatted);
-            $('#total-descuento').html(totalDescuentoFormatted);
-            $('#total-total').html(totalTotalFormatted);
+            $('#total-precio').html(formatter.format(totalPrecio));
+            $('#total-cantidad').html(formatter.format(totalCantidad));
+            $('#total-isv').html(formatter.format(totalISV));
+            $('#total-descuento').html(formatter.format(totalDescuento));
+            $('#total-total').html(formatter.format(totalTotal));
         },
 		"columnDefs": [
 		  { width: "5%", targets: 0 },
@@ -692,7 +784,7 @@ var ListarDetalleVenas = function(){
                 orientation: 'landscape',
 				text:      '<i class="fas fa-file-pdf fa-lg"></i> PDF',
 				titleAttr: 'PDF',
-                title: 'Reporte Detalle de Ventas', // Título en negrita
+                title: 'Reporte Detalle de Ventas',
 				messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
 				className: 'table_reportes btn btn-danger ocultar',			
 				customize: function ( doc ) {

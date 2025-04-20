@@ -1,26 +1,39 @@
-<?php	
-	$peticionAjax = true;
-	require_once "configGenerales.php";
-	require_once "mainModel.php";
-	
-	$insMainModel = new mainModel();
-	
-	if(!isset($_SESSION['user_sd'])){ 
-		session_start(['name'=>'SD']); 
-	}
+<?php
+$peticionAjax = true;
+require_once "configGenerales.php";
+require_once "mainModel.php";
 
-	$datos = [
-		"privilegio_id" => $_SESSION['privilegio_sd'],
-		"colaborador_id" => $_SESSION['colaborador_id_sd'],	
-		"db_cliente" => $_SESSION['db_cliente'],	
-	];	
+$insMainModel = new mainModel();
 
-	$result = $insMainModel->getTipoUsuario($datos);
-	
-	if($result->num_rows>0){
-		while($consulta2 = $result->fetch_assoc()){
-			 echo '<option value="'.$consulta2['tipo_user_id'].'">'.$consulta2['nombre'].'</option>';
-		}
-	}else{
-		echo '<option value="">No hay datos que mostrar</option>';
-	}
+if(!isset($_SESSION['user_sd'])){ 
+    session_start(['name'=>'SD']); 
+}
+
+$datos = [
+    "privilegio_id" => $_SESSION['privilegio_sd'],
+    "colaborador_id" => $_SESSION['colaborador_id_sd'],    
+    "db_cliente" => $_SESSION['db_cliente'],    
+];    
+
+$result = $insMainModel->getTipoUsuario($datos);
+
+$response = [
+    'success' => false,
+    'data' => [],
+    'message' => ''
+];
+
+if($result->num_rows > 0){
+    $response['success'] = true;
+    while($consulta2 = $result->fetch_assoc()){
+        $response['data'][] = [
+            'tipo_user_id' => $consulta2['tipo_user_id'],
+            'nombre' => $consulta2['nombre']
+        ];
+    }
+} else {
+    $response['message'] = 'No hay datos que mostrar';
+}
+
+header('Content-Type: application/json');
+echo json_encode($response);

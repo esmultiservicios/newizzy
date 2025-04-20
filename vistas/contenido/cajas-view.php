@@ -4,49 +4,53 @@
         </li>
         <li class="breadcrumb-item active">Cajas</li>
     </ol>
+
     <div class="card mb-4">
         <div class="card-body">
-            <form class="form-inline" id="formMainCajas" action="" method="POST" data-form="" autocomplete="off"
-                enctype="multipart/form-data">
-                <div class="form-group mx-sm-3 mb-1">
-                    <div class="form-group mx-sm-3 mb-1">
-                        <div class="input-group">
-                            <div class="input-group-append">
-                                <span class="input-group-text">
-                                    <div class="sb-nav-link-icon"></div>Estado
-                                </span>
-                            </div>
-                            <select id="estado_cajas" name="estado_cajas" class="selectpicker" data-toggle="tooltip"
-                                data-placement="top" title="Estado" data-live-search="true">
+            <form id="formMainCajas">
+                <div class="row">
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="form-group">
+                            <label class="small mb-1">Estado</label>
+                            <select id="estado_cajas" name="estado_cajas" 
+                                class="form-control selectpicker" title="Estado" data-live-search="true">
                                 <option value="1">Activas</option>
                                 <option value="2">Cerrada</option>
                             </select>
                         </div>
                     </div>
-                    <div class="input-group">
-                        <div class="input-group-append">
-                            <span class="input-group-text">
-                                <div class="sb-nav-link-icon"></div>Fecha Inicial
-                            </span>
+                    
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="form-group">
+                            <label class="small mb-1">Fecha Inicial</label>
+                            <input type="date" class="form-control" id="fecha_cajas" name="fecha_cajas"
+                                value="<?php echo date('Y-m-d');?>">
                         </div>
-                        <input type="date" class="form-control" id="fecha_cajas" name="fecha_cajas"
-                            value="<?php echo date('Y-m-d');?>">
+                    </div>
+                    
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="form-group">
+                            <label class="small mb-1">Fecha Final</label>
+                            <input type="date" class="form-control" id="fecha_cajas_f" name="fecha_cajas_f"
+                                value="<?php echo date('Y-m-d');?>">
+                        </div>
                     </div>
                 </div>
-                <div class="form-group mx-sm-3 mb-1">
-                    <div class="input-group">
-                        <div class="input-group-append">
-                            <span class="input-group-text">
-                                <div class="sb-nav-link-icon"></div>Fecha Final
-                            </span>
-                        </div>
-                        <input type="date" class="form-control" id="fecha_cajas_f" name="fecha_cajas_f"
-                            value="<?php echo date('Y-m-d');?>">
+                
+                <div class="row">
+                    <div class="col-12 text-right">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search fa-lg mr-1"></i> Buscar
+                        </button>
+                        <button type="reset" class="btn btn-secondary">
+                            <i class="fas fa-broom fa-lg"></i> Limpiar
+                        </button>                        
                     </div>
                 </div>
             </form>
         </div>
     </div>
+
     <div class="card mb-4">
         <div class="card-header">
             <i class="fas fa-cash-register fa-lg mr-1"></i>

@@ -1,154 +1,156 @@
+
 <!--INICIO MODAL CONTRATO-->
 <div class="modal fade" id="modal_registrar_contrato">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Registro de Contrato a Empleados</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-file-contract mr-2"></i>Registro de Contrato a Empleados</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="container"></div>
             <div class="modal-body">
-                <form class="FormularioAjax" id="formContrato" action="" method="POST" data-form="" autocomplete="off"
-                    enctype="multipart/form-data">
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <div class="input-group mb-3">
-                                <input type="hidden" id="contrato_id" name="contrato_id" class="form-control">
-                                <input type="hidden" id="colaborador_id" name="colaborador_id" class="form-control">
-                                <input type="text" id="proceso_contrato" class="form-control" readonly>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fa fa-plus-square fa-lg"></i>
-                                    </span>
+                <form class="FormularioAjax" id="formContrato" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+					<input type="hidden" id="contrato_id" name="contrato_id" class="form-control">
+                    <input type="hidden" id="colaborador_id" name="colaborador_id" class="form-control">								
+                    
+                    <!-- Sección de Datos del Contrato -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-id-card mr-2"></i>Datos del Contrato</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-3 mb-3">
+                                    <label for="contrato_colaborador_id"><i class="fas fa-user-tie mr-1"></i>Empleado <span class="priority">*</span></label>
+                                    <select id="contrato_colaborador_id" name="contrato_colaborador_id" class="selectpicker form-control" data-live-search="true" title="Seleccione empleado" required>
+                                        <option value="">Seleccione</option>
+                                    </select>
+                                    <small class="form-text text-muted">Empleado para el contrato</small>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="contrato_tipo_contrato_id"><i class="fas fa-file-signature mr-1"></i>Tipo Contrato <span class="priority">*</span></label>
+                                    <select id="contrato_tipo_contrato_id" name="contrato_tipo_contrato_id" class="selectpicker form-control" data-live-search="true" title="Seleccione tipo de contrato" required>
+                                        <option value="">Seleccione</option>
+                                    </select>
+                                    <small class="form-text text-muted">Tipo de contrato laboral</small>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="contrato_pago_planificado_id"><i class="fas fa-calendar-alt mr-1"></i>Pago Planificado <span class="priority">*</span></label>
+                                    <select id="contrato_pago_planificado_id" name="contrato_pago_planificado_id" class="selectpicker form-control" data-live-search="true" title="Seleccione pago planificado" required>
+                                        <option value="">Seleccione</option>
+                                    </select>
+                                    <small class="form-text text-muted">Frecuencia de pago del contrato</small>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="contrato_tipo_empleado_id"><i class="fas fa-users mr-1"></i>Tipo Empleado <span class="priority">*</span></label>
+                                    <select id="contrato_tipo_empleado_id" name="contrato_tipo_empleado_id" class="selectpicker form-control" data-live-search="true" title="Seleccione tipo empleado" required>
+                                        <option value="">Seleccione</option>
+                                    </select>
+                                    <small class="form-text text-muted">Clasificación del empleado</small>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="col-md-3 mb-3">
-                            <label for="contrato_colaborador_id">Empleado <span class="priority">*<span /></label>
-                            <div class="input-group mb-3">
-                                <select id="contrato_colaborador_id" name="contrato_colaborador_id" class="selectpicker"
-                                    data-size="7" data-width="100%" data-live-search="true" title="Empleado">
-                                    <option value="">Seleccione</option>
-                                </select>
-                            </div>
+                    
+                    <!-- Sección de Detalles del Contrato -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-file-invoice-dollar mr-2"></i>Detalles del Contrato</h5>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="contrato_tipo_contrato_id">Tipo Contrato <span
-                                    class="priority">*<span /></label>
-                            <div class="input-group mb-3">
-                                <select id="contrato_tipo_contrato_id" name="contrato_tipo_contrato_id"
-                                    class="selectpicker" data-width="100%" data-live-search="true"
-                                    title="Tipo de Contrato">
-                                    <option value="">Seleccione</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="contrato_pago_planificado_id">Pago Planificado <span
-                                    class="priority">*<span /></label>
-                            <div class="input-group mb-3">
-                                <select id="contrato_pago_planificado_id" name="contrato_pago_planificado_id"
-                                    class="selectpicker" data-width="100%" data-live-search="true"
-                                    title="Pago Planificado">
-                                    <option value="">Seleccione</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="contrato_tipo_empleado_id">Tipo Empleado <span
-                                    class="priority">*<span /></label>
-                            <div class="input-group mb-3">
-                                <select id="contrato_tipo_empleado_id" name="contrato_tipo_empleado_id"
-                                    class="selectpicker" data-width="100%" data-live-search="true" data-size="7"
-                                    title="Tipo Empleado">
-                                    <option value="">Seleccione</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="col-md-3 mb-3">
-                            <label for="contrato_salario">Salario Mensual <span class="priority">*<span /></label>
-                            <input type="number" required id="contrato_salario_mensual" name="contrato_salario_mensual"
-                                placeholder="Salario" class="form-control" step="0.01" />
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="contrato_salario">Salario</label>
-                            <input type="number" required id="contrato_salario" name="contrato_salario" readonly
-                                placeholder="Salario" class="form-control" step="0.01" />
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="contrato_fecha_inicio">Fecha Inicio <span class="priority">*<span /></label>
-                            <input type="date" required id="contrato_fecha_inicio" name="contrato_fecha_inicio"
-                                value="<?php echo date("Y-m-d"); ?>" class="form-control" />
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="contrato_fecha_fin">Fecha Fin</label>
-                            <input type="date" id="contrato_fecha_fin" name="contrato_fecha_fin" value=""
-                                class="form-control" />
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="contrato_notas">Notas</label>
-                            <div class="input-group">
-                                <textarea id="contrato_notas" name="contrato_notas" placeholder="Notas"
-                                    class="form-control" maxlength="1000" rows="3"></textarea>
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text">
-                                        <i class="btn btn-outline-success fas fa-microphone-alt"
-                                            id="search_contrato_notas_start"></i>
-                                        <i class="btn btn-outline-success fas fa-microphone-slash"
-                                            id="search_contrato_notas_stop"></i>
-                                    </span>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-3 mb-3">
+                                    <label for="contrato_salario_mensual"><i class="fas fa-money-bill-wave mr-1"></i>Salario Mensual <span class="priority">*</span></label>
+                                    <input type="number" required id="contrato_salario_mensual" name="contrato_salario_mensual" placeholder="Salario" class="form-control" step="0.01">
+                                    <small class="form-text text-muted">Salario mensual acordado</small>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="contrato_salario"><i class="fas fa-calculator mr-1"></i>Salario Calculado</label>
+                                    <input type="number" required id="contrato_salario" name="contrato_salario" readonly placeholder="Salario" class="form-control" step="0.01">
+                                    <small class="form-text text-muted">Salario según frecuencia de pago</small>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="contrato_fecha_inicio"><i class="fas fa-calendar-day mr-1"></i>Fecha Inicio <span class="priority">*</span></label>
+                                    <input type="date" required id="contrato_fecha_inicio" name="contrato_fecha_inicio" value="<?php echo date("Y-m-d"); ?>" class="form-control">
+                                    <small class="form-text text-muted">Fecha de inicio del contrato</small>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="contrato_fecha_fin"><i class="fas fa-calendar-times mr-1"></i>Fecha Fin</label>
+                                    <input type="date" id="contrato_fecha_fin" name="contrato_fecha_fin" value="" class="form-control">
+                                    <small class="form-text text-muted">Fecha de finalización (si aplica)</small>
                                 </div>
                             </div>
-                            <p id="charNum_contrato_notas">254 Caracteres</p>
                         </div>
                     </div>
-
-                    <div class="form-group custom-control custom-checkbox custom-control-inline" id="estado_contrato">
-                        <div class="col-md-12">
-                            <label class="form-check-label mr-1" for="defaultCheck1">Estado</label>
-                            <label class="switch">
-                                <input type="checkbox" id="contrato_activo" name="contrato_activo" value="1" checked>
-                                <div class="slider round"></div>
-                            </label>
-                            <span class="question mb-2" id="label_contrato_activo"></span>
+                    
+                    <!-- Sección de Notas -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-sticky-note mr-2"></i>Notas</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="contrato_notas"><i class="fas fa-align-left mr-1"></i>Notas</label>
+                                    <div class="input-group">
+                                        <textarea id="contrato_notas" name="contrato_notas" placeholder="Notas" class="form-control" maxlength="1000" rows="3"></textarea>
+                                        <div class="input-group-append">
+                                            <button class="btn btn-outline-success" type="button" id="search_contrato_notas_start">
+                                                <i class="fas fa-microphone-alt"></i>
+                                            </button>
+                                            <button class="btn btn-outline-success" type="button" id="search_contrato_notas_stop" style="display: none;">
+                                                <i class="fas fa-microphone-slash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <p id="charNum_contrato_notas" class="text-muted">254 Caracteres restantes</p>
+                                    <small class="form-text text-muted">Notas adicionales sobre el contrato</small>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="form-group custom-control custom-checkbox custom-control-inline" style="display: none"
-                        id="estado_base_semanal">
-                        <div class="col-md-12">
-                            <label class="form-check-label mr-1" for="defaultCheck1">¿Basado en la semana?</label>
-                            <label class="switch">
-                                <input type="checkbox" id="calculo_semanal" name="calculo_semanal" value="1">
-                                <div class="slider round"></div>
-                            </label>
-                            <span class="question mb-2" id="label_calculo_semanal"></span>
+                    
+                    <!-- Sección de Configuración -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-cogs mr-2"></i>Configuración</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-6 mb-3" id="estado_contrato">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="contrato_activo" name="contrato_activo" value="1" checked>
+                                        <label class="custom-control-label" for="contrato_activo"><i class="fas fa-power-off mr-1"></i>Estado del Contrato</label>
+                                    </div>
+                                    <small class="form-text text-muted">Activar/Desactivar este contrato</small>
+                                </div>
+                                <div class="col-md-6 mb-3" id="estado_base_semanal" style="display: none">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="calculo_semanal" name="calculo_semanal" value="1">
+                                        <label class="custom-control-label" for="calculo_semanal"><i class="fas fa-calendar-week mr-1"></i>¿Basado en la semana?</label>
+                                    </div>
+                                    <small class="form-text text-muted">Calcular salario semanalmente</small>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                    
                     <div class="RespuestaAjax"></div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="guardar btn btn-primary ml-2" type="submit" style="display: none;" id="reg_contrato"
-                    form="formContrato">
-                    <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
+                <button class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
                 </button>
-                <button class="editar btn btn-warning ml-2" type="submit" style="display: none;" id="edi_contrato"
-                    form="formContrato">
-                    <div class="sb-nav-link-icon"></div><i class="fas fa-edit fa-lg"></i> Editar
+                <button class="btn btn-primary" type="submit" style="display: none;" id="reg_contrato" form="formContrato">
+                    <i class="far fa-save mr-1"></i> Registrar
                 </button>
-                <button class="eliminar btn btn-danger ml-2" type="submit" style="display: none;" id="delete_contrato"
-                    form="formContrato">
-                    <div class="sb-nav-link-icon"></div><i class="fa fa-trash fa-lg"></i> Eliminar
+                <button class="btn btn-warning" type="submit" style="display: none;" id="edi_contrato" form="formContrato">
+                    <i class="fas fa-edit mr-1"></i> Editar
+                </button>
+                <button class="btn btn-danger" type="submit" style="display: none;" id="delete_contrato" form="formContrato">
+                    <i class="fas fa-trash mr-1"></i> Eliminar
                 </button>
             </div>
         </div>

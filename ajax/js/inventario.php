@@ -1,12 +1,25 @@
 <script>
 var registro = false;
 
-$(document).ready(function() {
+$(() => {
     funciones();
     listar_movimientos();
 
     $('#movimientos').css('cursor', 'pointer');
     $('#registroMovimientos').css('cursor', 'pointer');
+
+    // Evento para el botón de Generar Reporte
+    $('#form_main_movimientos').on('submit', function(e) {
+        e.preventDefault();
+        listar_movimientos();
+    });
+
+    // Evento para el botón de Limpiar Filtros
+    $('#btn-limpiar-filtros').on('click', function() {
+        $('#form_main_movimientos')[0].reset();
+        $('#form_main_movimientos .selectpicker').selectpicker('refresh');
+        listar_movimientos();
+    });    
 });
 
 function funciones() {

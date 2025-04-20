@@ -1,7 +1,62 @@
 <script>
+$(() => {
+    // Evento para el botón de Generar Reporte
+    $('#formulario_busqueda_cotizaciones').on('submit', function(e) {
+        e.preventDefault();
+        listar_busqueda_cotizaciones();
+    });
+
+    // Evento para el botón de Limpiar Filtros
+    $('#btn-limpiar-filtros').on('click', function() {
+        $('#formulario_busqueda_cotizaciones')[0].reset();
+        $('#formulario_busqueda_cotizaciones .selectpicker').selectpicker('refresh');
+        listar_busqueda_cotizaciones();
+    });  
+
+    // Evento para el botón de Generar Reporte
+    $('#formulario_busqueda_cuentas_cobrar_clientes').on('submit', function(e) {
+        e.preventDefault();
+        listar_busqueda_cuentas_por_cobrar_clientes();
+    });
+
+    // Evento para el botón de Limpiar Filtros
+    $('#btn-limpiar-filtros').on('click', function() {
+        $('#formulario_busqueda_cuentas_cobrar_clientes')[0].reset();
+        $('#formulario_busqueda_cuentas_cobrar_clientes .selectpicker').selectpicker('refresh');
+        listar_busqueda_cuentas_por_cobrar_clientes();
+    });   
+
+    // Evento para el botón de Generar Reporte
+    $('#formulario_bill_draft').on('submit', function(e) {
+        e.preventDefault();
+        listar_busqueda_bill_draf();
+    });
+
+    // Evento para el botón de Limpiar Filtros
+    $('#btn-limpiar-filtros').on('click', function() {
+        $('#formulario_bill_draft')[0].reset();
+        $('#formulario_bill_draft .selectpicker').selectpicker('refresh');
+        listar_busqueda_bill_draf();
+    });
+
+    // Evento para el botón de Generar Reporte
+    $('#formulario_bill').on('submit', function(e) {
+        e.preventDefault();
+        listar_busqueda_bill();
+    });
+
+    // Evento para el botón de Limpiar Filtros
+    $('#btn-limpiar-filtros').on('click', function() {
+        $('#formulario_bill')[0].reset();
+        $('#formulario_bill .selectpicker').selectpicker('refresh');
+        listar_busqueda_bill();
+    });
+
+});
+
 var row = 0;
 
-$(document).ready(function() {
+$(() => {
     getCajero();
     getConsumidorFinal();
     getConsultarAperturaCaja();
@@ -81,7 +136,7 @@ function getVendedores() {
 }
 
 //INICIO CONSULTA FACTURAS BORRADOR
-$(document).ready(function() {
+$(() => {
     $("#modal_buscar_bill_draft").on('shown.bs.modal', function() {
         $(this).find('#formulario_bill_draft #buscar').focus();
     });
@@ -89,7 +144,7 @@ $(document).ready(function() {
 //FIN CONSULTA FACTURAS BORRADOR
 
 //INIICO CONSULTA DE FACTURAS
-$(document).ready(function() {
+$(() => {
     $("#modal_buscar_bill").on('shown.bs.modal', function() {
         $(this).find('#formulario_bill #buscar').focus();
     });
@@ -120,6 +175,7 @@ $('#formulario_bill #fechaf').on("change", function(e) {
 $('#formulario_busqueda_cuentas_cobrar_clientes #cobrar_clientes_estado').on("change", function(e) {
     listar_busqueda_bill();
 });
+
 
 $('#formulario_busqueda_cuentas_cobrar_clientes #cobrar_clientes').on("change", function(e) {
     listar_busqueda_cuentas_por_cobrar_clientes();
@@ -412,7 +468,7 @@ var view_colaboradores_busqueda_factura_dataTable = function(tbody, table) {
 //FIN BUSQUEDA COLABORADORES EN FACTURACION
 
 //INICIO BUSQUEDA PRODUCTOS FACTURA
-$(document).ready(function() {
+$(() => {
     $("#invoice-form #invoiceItem").on('click', '.buscar_productos', function(e) {
         e.preventDefault();
         listar_productos_factura_buscar();
@@ -735,7 +791,7 @@ var view_productos_busqueda_factura_dataTable = function(tbody, table) {
 }
 //FIN BUSQUEDA PRODUCTOS FACTURA
 
-$(document).ready(function() {
+$(() => {
     $("#invoice-form #invoiceItem").on('blur', '.buscar_cantidad', function() {
         var row_index = $(this).closest("tr").index();
         var col_index = $(this).closest("td").index();
@@ -789,7 +845,7 @@ $(document).ready(function() {
     });
 });
 
-$(document).ready(function() {
+$(() => {
     $("#invoice-form #invoiceItem").on('keyup', '.buscar_cantidad', function() {
         var row_index = $(this).closest("tr").index();
         var col_index = $(this).closest("td").index();
@@ -984,7 +1040,7 @@ function addRowFacturas() {
     $("#invoice-form #bill_row").val(count);
 }
 
-$(document).ready(function() {
+$(() => {
     $("#invoice-form #invoiceItem #bar-code-id_0").focus();
 
     $(document).on('click', '#checkAll', function() {
@@ -1176,7 +1232,7 @@ function redondearEnteroCercano(numero) {
     }
 }
 
-$(document).ready(function() {
+$(() => {
     $("#invoice-form #invoiceItem").on('keypress', '.product-bar-code', function(event) {
         var row_index = $(this).closest("tr").index();
 
@@ -1380,7 +1436,7 @@ function manejarPresionTeclaMasMenos(codigoTecla, row_index) {
     calculateTotalFacturas();
 }
 
-$(document).ready(function() {
+$(() => {
     $('#view_bill').on("keydown", function(e) {
         if (e.which === 118) { //TECLA F7 (COBRAR)
             $("#invoice-form").submit();
@@ -1432,7 +1488,7 @@ $(document).ready(function() {
 });
 
 //INICIO ADD TASA DE CAMBIO
-$(document).ready(function() {
+$(() => {
     $("#modalTasaCambio").on('shown.bs.modal', function() {
         $(this).find('#formTasaCambio #tasa_compra').focus();
     });
@@ -1487,7 +1543,7 @@ $("#invoice-form #help_factura").on("click", function(e) {
 });
 
 //INICIO DESCUENTO PRODUCTO EN FACTURACION
-$(document).ready(function() {
+$(() => {
     $("#formDescuentoFacturacion #porcentaje_descuento_fact").on("keyup", function() {
         var precio;
         var porcentaje;
@@ -1571,7 +1627,7 @@ $("#reg_DescuentoFacturacion").on("click", function(e) {
 //FIN DESCUENTO PRODUCTO EN FACTURACION
 
 //INICIO CAMBIAR PRECIO A PRODUCTO EN FACTURACION
-$(document).ready(function() {
+$(() => {
     $('#invoice-form #invoiceItem').on("keydown", '.product-bar-code', function(e) {
         if (e.which === 112) { //TECLA F1
             //modalLogin();
@@ -1791,7 +1847,7 @@ function getEstadoFactura() {
     $('#invoice-form #facturas_activo').attr('checked', true);
 }
 
-$(document).ready(function() {
+$(() => {
     //INICIO FACTURA
     $('#invoice-form #label_facturas_activo').html("Contado");
 
@@ -1821,31 +1877,23 @@ $(document).ready(function() {
 
 });
 
-$(document).ready(function() {
+$(() => {
     $("#modalDescuentoFacturacion").on('shown.bs.modal', function() {
         $(this).find('#formDescuentoFacturacion #porcentaje_descuento_fact').focus();
     });
-});
 
-$(document).ready(function() {
     $("#modalModificarPrecioFacturacion").on('shown.bs.modal', function() {
         $(this).find('#formModificarPrecioFacturacion #referencia_modificar_precio_fact').focus();
     });
-});
 
-$(document).ready(function() {
     $("#modal_buscar_productos_facturacion").on('shown.bs.modal', function() {
         $(this).find('#formulario_busqueda_productos_facturacion #buscar').focus();
     });
-});
 
-$(document).ready(function() {
     $("#modal_buscar_colaboradores_facturacion").on('shown.bs.modal', function() {
         $(this).find('#formulario_busqueda_colaboradores_facturacion #buscar').focus();
     });
-});
 
-$(document).ready(function() {
     $("#modal_buscar_clientes_facturacion").on('shown.bs.modal', function() {
         $(this).find('#formulario_busqueda_clientes_facturacion #buscar').focus();
     });
@@ -1895,7 +1943,7 @@ $("#invoice-form #cambioBill").on('blur', function(event) {
 });
 
 //INICIO CONVERTIR COTIZACION EN FACTURAS
-$(document).ready(function() {
+$(() => {
     $("#modal_buscar_cotizaciones").on('shown.bs.modal', function() {
         $(this).find('#formulario_busqueda_cotizaciones #buscar').focus();
     });
@@ -2115,7 +2163,7 @@ var view_factura_cotizaciones_dataTable = function(tbody, table) {
 //FIN CONVERTIR COTIZACION EN FACTURAS
 
 //INICIO CUENTAS POR COBRAR CLIENTES
-$(document).ready(function() {
+$(() => {
     $("#modal_buscar_cuentas_cobrar_clientes").on('shown.bs.modal', function() {
         $(this).find('#formulario_busqueda_cuentas_cobrar_clientes #buscar').focus();
     });
@@ -2360,14 +2408,14 @@ var ver_abono_cxp_proveedor_dataTable = function(tbody, table) {
 }
 //FIN CUENTAS POR COBRAR CLIENTES
 
-// Intervalo de actualización
-const facturasInterval = setInterval(getTotalFacturasDisponibles, 1000);
-let lastState = null;
-
 $(function() {
     // Inicialización
     getTotalFacturasDisponibles();
+    // Actualizar cada minuto
+    setInterval(getTotalFacturasDisponibles, 60000);
 });
+
+let lastState = null;
 
 function getTotalFacturasDisponibles() {
     $.ajax({
@@ -2384,9 +2432,10 @@ function getTotalFacturasDisponibles() {
 function updateCounterUI(datos) {
     const { facturasPendientes, contador, fechaLimite } = datos;
     const counter = $("#mensajeFacturas");
+    const daysLeft = parseInt(contador);
     
     // Determinar el estado actual
-    const currentState = getCurrentState(facturasPendientes, fechaLimite);
+    const currentState = getCurrentState(facturasPendientes, daysLeft, fechaLimite);
     
     // Solo actualizar si cambió el estado
     if (currentState !== lastState) {
@@ -2397,69 +2446,105 @@ function updateCounterUI(datos) {
         setTimeout(() => counter.removeClass('state-change'), 300);
         
         // Configurar según estado
-        const config = getStateConfig(currentState, facturasPendientes, contador, fechaLimite);
+        const config = getStateConfig(currentState, facturasPendientes, daysLeft, fechaLimite);
         
         // Actualizar DOM
-        counter.html(`<i class="${config.icon}"></i> <span class="counter-text">${config.text}</span>`)
+        counter.html(`<i class="${config.icon}"></i> <div class="counter-content">${config.text}</div>`)
               .removeClass('alert-normal alert-warning alert-danger')
               .addClass(config.class);
     }
     
     // Controlar botones
-    updateButtonsState(facturasPendientes, fechaLimite);
+    updateButtonsState(facturasPendientes, fechaLimite, daysLeft);
 }
 
-function getCurrentState(facturasPendientes, fechaLimite) {
-    if (fechaLimite.trim() === "Sin definir") return 'no-config';
+function getCurrentState(facturasPendientes, daysLeft, fechaLimite) {
+    if (!fechaLimite || fechaLimite.trim() === "Sin definir") return 'no-config';
     if (facturasPendientes < 0) return 'blocked';
+    
+    if (daysLeft < 0) return 'expired';
+    if (daysLeft <= 5) return 'danger';
     if (facturasPendientes <= 9) return 'danger';
     if (facturasPendientes <= 30) return 'warning';
+    
     return 'normal';
 }
 
-function getStateConfig(state, facturasPendientes, contador, fechaLimite) {
+function getStateConfig(state, facturasPendientes, daysLeft, fechaLimite) {
+    // Formatear número con separadores de mil
+    const facturasFormateadas = facturasPendientes.toLocaleString('es-HN');
+
+    // Mensaje de vencimiento solo cuando daysLeft <= 5 o ya venció
+    const vencimientoMsg = (daysLeft <= 5) ? 
+        `<div class="counter-line days-left">
+            ${daysLeft < 0 
+                ? 'Las autorizaciones del SAR han vencido.' 
+                : (daysLeft === 0 
+                    ? '<strong>Las autorizaciones del SAR vencen hoy.</strong>' 
+                    : `Las autorizaciones del SAR vencen en <strong>${daysLeft}</strong> día(s).`)}
+        </div>` 
+        : '';
+
+    const facturasMsg = `<div class="counter-line facturas-count">
+                            Quedan <strong>${facturasFormateadas}</strong> factura(s) autorizada(s) por el SAR.
+                         </div>`;
+
     const configs = {
         'normal': {
             icon: 'fas fa-file-invoice',
             class: 'alert-normal',
-            text: `<strong>${facturasPendientes}</strong> facturas disponibles`
+            text: facturasMsg
         },
         'warning': {
             icon: 'fas fa-hourglass-half',
             class: 'alert-warning',
-            text: `<strong>${facturasPendientes}</strong> facturas restantes` + 
-                  (contador <= 3 ? ` | <strong>${contador}</strong> días pendientes` : '')
+            text: facturasMsg + vencimientoMsg
         },
         'danger': {
             icon: 'fas fa-exclamation-triangle',
             class: 'alert-danger',
-            text: `¡ÚLTIMAS <strong>${facturasPendientes}</strong> FACTURAS!` +
-                  (contador === 0 ? ` | Vence hoy` : ` | <strong>${contador}</strong> días restantes`)
+            text: facturasMsg + vencimientoMsg
+        },
+        'expired': {
+            icon: 'fas fa-calendar-times',
+            class: 'alert-danger',
+            text: `<div class="counter-line">Las autorizaciones del SAR han vencido.</div>
+                   <div class="counter-line">
+                     <a href="<?php echo SERVERURL; ?>secuencia/" target="_blank" class="counter-link">Actualizar ahora</a>
+                   </div>`
         },
         'blocked': {
             icon: 'fas fa-ban',
             class: 'alert-danger',
-            text: `LÍMITE ALCANZADO | <a href="<?php echo SERVERURL; ?>secuencia/" target="_blank" class="counter-link">Configurar</a>`
+            text: `<div class="counter-line">Ha alcanzado el límite de facturas autorizado por el SAR.</div>
+                   <div class="counter-line">
+                     <a href="<?php echo SERVERURL; ?>secuencia/" target="_blank" class="counter-link">Configurar secuencia</a>
+                   </div>`
         },
         'no-config': {
             icon: 'fas fa-calendar-times',
             class: 'alert-warning',
-            text: `FECHA NO CONFIGURADA | <a href="<?php echo SERVERURL; ?>secuencia/" target="_blank" class="counter-link">Definir límite</a>`
+            text: `<div class="counter-line">No se ha definido una fecha límite para las autorizaciones del SAR.</div>
+                   <div class="counter-line">
+                     <a href="<?php echo SERVERURL; ?>secuencia/" target="_blank" class="counter-link">Establecer fecha</a>
+                   </div>`
         }
     };
-    
+
     return configs[state] || configs['normal'];
 }
 
-function updateButtonsState(facturasPendientes, fechaLimite) {
+function updateButtonsState(facturasPendientes, fechaLimite, daysLeft) {
     const facturarBtn = $("#invoice-form #reg_factura");
     const aperturaBtn = $("#invoice-form #btn_apertura");
-    
-    facturarBtn.attr("disabled", facturasPendientes < 0);
-    aperturaBtn.attr("disabled", facturasPendientes <= 0 || fechaLimite.trim() === "Sin definir");
-    
-    // Estilo adicional para botón deshabilitado
-    if (facturasPendientes <= 0) {
+
+    const vencimientoPasado = daysLeft < 0;
+    const isDisabled = facturasPendientes <= 0 || !fechaLimite || fechaLimite.trim() === "Sin definir" || vencimientoPasado;
+
+    facturarBtn.prop("disabled", isDisabled);
+    aperturaBtn.prop("disabled", isDisabled);
+
+    if (isDisabled) {
         facturarBtn.addClass("btn-outline-danger").removeClass("btn-secondary");
     } else {
         facturarBtn.removeClass("btn-outline-danger").addClass("btn-secondary");
@@ -2468,7 +2553,7 @@ function updateButtonsState(facturasPendientes, fechaLimite) {
 
 function showErrorState() {
     $("#mensajeFacturas").html(
-        `<i class="fas fa-exclamation-circle"></i> <span class="counter-text">Error al cargar disponibilidad</span>`
+        `<i class="fas fa-exclamation-circle"></i> <div class="counter-content">Error al cargar disponibilidad (SAR)</div>`
     ).addClass('alert-danger');
 }
 
@@ -2866,7 +2951,20 @@ var listar_busqueda_bill = function() {
                 "data": "fecha"
             },
             {
-                "data": "tipo_documento"
+                "data": "tipo_documento",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        var icon = data === 'Crédito' 
+                            ? '<i class="fas fa-clock mr-1"></i>' 
+                            : '<i class="fas fa-check-circle mr-1"></i>';
+                        var badgeClass = data === 'Crédito' 
+                            ? 'badge badge-pill badge-warning' 
+                            : 'badge badge-pill badge-success';
+                        return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' + 
+                            icon + data + '</span>';
+                    }
+                    return data;
+                }
             },
             {
                 "data": "cliente"
@@ -3013,9 +3111,6 @@ var listar_busqueda_bill = function() {
                 targets: 10
             }
         ],
-        "fnRowCallback": function(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-            $('td', nRow).addClass(aData['color']);
-        },
         "buttons": [{
             text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
             titleAttr: 'Actualizar Facturas Borrador',
@@ -3173,7 +3268,7 @@ $('#formulario_bill #search').on("click", function(e) {
 });
 
 //INICIO DESCUENTO PRODUCTO EN FACTURACION
-$(document).ready(function() {
+$(() => {
     $("#invoice-form #invoiceItem").on('click', '.aplicar_descuento', function(e) {
         e.preventDefault();
         $('#formDescuentoFacturacion')[0].reset();
@@ -3214,7 +3309,7 @@ $(document).ready(function() {
     });
 });
 
-$(document).ready(function() {
+$(() => {
     $("#formDescuentoFacturacion #porcentaje_descuento_fact").on("keyup", function() {
         var precio;
         var porcentaje;
@@ -3299,7 +3394,7 @@ $("#reg_DescuentoFacturacion").on("click", function(e) {
 //FIN DESCUENTO PRODUCTO EN FACTURACION
 
 //INICIO MODIFICAR PRECIO EN PRODUCTO FACTURACION
-$(document).ready(function() {
+$(() => {
     $("#invoice-form #invoiceItem").on('click', '.aplicar_precio', function(e) {
         e.preventDefault();
         $('#formModificarPrecioFacturacion')[0].reset();

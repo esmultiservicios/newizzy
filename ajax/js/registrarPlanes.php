@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", function() {
         {value: 'proveedores', text: 'Proveedores'},
         {value: 'productos', text: 'Productos'},
         {value: 'facturas', text: 'Facturas'},
-        {value: 'perfiles', text: 'Perfiles'},
+        {value: 'perfiles', text: 'Puntos de Venta'},
         {value: 'almacenes', text: 'Almacenes'},
         {value: 'categorias', text: 'Categorías'}
     ];

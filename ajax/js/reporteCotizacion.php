@@ -1,10 +1,23 @@
 <script>
 //reporteCotizacio.php    
-$(document).ready(function() {
+$(() => {
     getReporteCotizacion();
     listar_reporte_cotizaciones();
     $('#form_main_cotizaciones #tipo_cotizacion_reporte').val(1);
     $('#form_main_cotizaciones #tipo_cotizacion_reporte').selectpicker('refresh');
+
+    // Evento para el botón de Generar Reporte
+    $('#form_main_cotizaciones').on('submit', function(e) {
+        e.preventDefault();
+        listar_reporte_cotizaciones();
+    });
+
+    // Evento para el botón de Limpiar Filtros
+    $('#btn-limpiar-filtros').on('click', function() {
+        $('#form_main_cotizaciones')[0].reset();
+        $('#form_main_cotizaciones .selectpicker').selectpicker('refresh');
+        listar_reporte_cotizaciones();
+    }); 
 });
 
 $('#form_main_cotizaciones #tipo_cotizacion_reporte').on("change", function(e) {

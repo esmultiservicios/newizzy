@@ -9,61 +9,69 @@
 			</button>
         </div><div class="container"></div>
         <div class="modal-body">		
-			<form class="form-horizontal FormularioAjax" id="FormDetalleVentas" action="" method="POST" data-form="" enctype="multipart/form-data">				
-				<div class="form-row">
-					<div class="col-md-3 mb-3">
-						<label for="DetallesFechai">Fecha Inicio</label>
-						<div class="input-group mb-3">
-							<input type="date" id="DetallesFechai" name="DetallesFechai"
-								value="<?php 
-									$fecha = date ("Y-m-d");
-									
-									$año = date("Y", strtotime($fecha));
-									$mes = date("m", strtotime($fecha));
-									$dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
+			<form class="form-horizontal FormularioAjax" id="FormDetalleVentas" action="" method="POST" data-form="" enctype="multipart/form-data">		
 
-									$dia1 = date('d', mktime(0,0,0, $mes, 1, $año)); //PRIMER DIA DEL MES
-									$dia2 = date('d', mktime(0,0,0, $mes, $dia, $año)); // ULTIMO DIA DEL MES
-
-									$fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
-									$fecha_final = date("Y-m-d", strtotime($año."-".$mes."-".$dia2));						
-									
-									
-									echo $fecha_inicial;
-								?>" 
-							class="form-control" />
+				<div class="row">
+					<!-- Fila de filtros -->
+					<div class="col-md-3 col-sm-6 mb-3">
+						<div class="form-group">
+							<label class="small mb-1" for="DetallesFechai">Fecha Inicio</label>
+							<input type="date" id="DetallesFechai" name="DetallesFechai" value="<?php 
+								$fecha = date ("Y-m-d");
+								$año = date("Y", strtotime($fecha));
+								$mes = date("m", strtotime($fecha));
+								$dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
+								$dia1 = date('d', mktime(0,0,0, $mes, 1, $año));
+								$dia2 = date('d', mktime(0,0,0, $mes, $dia, $año));
+								$fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
+								echo $fecha_inicial;
+							?>" class="form-control">
 						</div>
 					</div>
-					<div class="col-md-3 mb-3">
-						<label for="DetallesFechaf">Fecha Fin</label>
-						<div class="input-group mb-3">
+					
+					<div class="col-md-3 col-sm-6 mb-3">
+						<div class="form-group">
+							<label class="small mb-1" for="DetallesFechaf">Fecha Fin</label>
 							<input type="date" id="DetallesFechaf" name="DetallesFechaf"
-								value="<?php echo date ("Y-m-d");?>" class="form-control" />
+								value="<?php echo date ("Y-m-d");?>" class="form-control">
 						</div>
-					</div>					
-					<div class="col-md-3 mb-3">
-						<label for="DetallesProductos">Productos</label>
-						<div class="input-group mb-3">
-							<select class="selectpicker" id="DetallesProductos" name="DetallesProductos"
-								data-width="100%" data-width="100%" data-size="7" data-live-search="true"
-								title="Productos">
+					</div>
+					
+					<div class="col-md-3 col-sm-6 mb-3">
+						<div class="form-group">
+							<label class="small mb-1" for="DetallesProductos">Productos</label>
+							<select class="form-control selectpicker" id="DetallesProductos" name="DetallesProductos"
+								data-size="7" data-live-search="true" title="Productos">
 							</select>
 						</div>
 					</div>
-					<div class="col-md-3 mb-3">
-						<label for="DetalleVendedores">Vendedores </label>
-						<div class="input-group mb-3">
-							<select class="selectpicker" id="DetalleVendedores" name="DetalleVendedores"
-								data-width="100%" data-size="7" data-live-search="true" title="Vendedores">
+					
+					<div class="col-md-3 col-sm-6 mb-3">
+						<div class="form-group">
+							<label class="small mb-1" for="DetalleVendedores">Vendedores</label>
+							<select class="form-control selectpicker" id="DetalleVendedores" name="DetalleVendedores"
+								data-size="7" data-live-search="true" title="Vendedores">
 							</select>
 						</div>
+					</div>
+				</div>
+
+				<!-- Fila de botones (si es necesario) -->
+				<div class="row">
+					<div class="col-md-12 d-flex justify-content-end mb-3">
+						<button type="submit" class="btn btn-primary mr-2">
+							<i class="fas fa-filter fa-lg mr-1"></i> Filtrar
+						</button>
+						<button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary">
+							<i class="fas fa-broom fa-lg mr-1"></i> Limpiar
+						</button>
 					</div>
 				</div>
 
 				<div class="col-md-12">
 					<div class="overflow-auto">
 						<table id="DatatableDetalleVentas"
-							class="table table-striped table-condensed table-hover" style="width:100%">
+							class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
 							<thead>
 								<tr>
 									<th>Producto</th>

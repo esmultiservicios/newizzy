@@ -1,572 +1,716 @@
 <?php
+
 if($peticionAjax){
     require_once "../modelos/facturasModelo.php";
 }else{
     require_once "./modelos/facturasModelo.php";
 }
 
-class facturasControlador extends facturasModelo{
-    // Métodos auxiliares para evitar repetición de código
-    
-    /**
-     * Registra el movimiento de productos (padres e hijos)
-     */
-    private function registrarMovimientoProducto($datos) {
-        // Registra el producto principal
-        facturasModelo::registrar_salida_lote_modelo($datos);
-        
-        $medidaName = strtolower($datos['medida']);
-        $quantity = $datos['cantidad'];
-        $productos_id = $datos['productos_id'];
-        $empresa_id = $datos['empresa_id'];
-        $clientes_id = $datos['clientes_id'] ?? 0;
-        $bodega = $datos['almacen_id'] ?? 0;
-        $documentoBase = $datos['documento'];
-        
-        // Consultamos si el producto es padre o hijo
-        $producto_padre = facturasModelo::cantidad_producto_modelo($productos_id)->fetch_assoc();
-        $producto_padre_id = $producto_padre['id_producto_superior'];
+class facturasControlador extends facturasModelo {
+    // Método para obtener el número de factura con manejo de condición de carrera
+	protected function obtenerNumeroFactura($empresa_id, $documento_id) {
+		// Obtener y bloquear la secuencia
+		$secuenciaData = facturasModelo::bloquear_y_obtener_secuencia_modelo($empresa_id, $documento_id);
+		
+		if(!$secuenciaData) {
+			return [
+				'error' => true,
+				'mensaje' => 'No se encontró una secuencia de facturación activa'
+			];
+		}
+		
+		// Verificar rango final
+		$siguiente_numero = $secuenciaData['siguiente'] + $secuenciaData['incremento'];
+		if($siguiente_numero > $secuenciaData['rango_final']) {
+			return [
+				'error' => true,
+				'mensaje' => 'Se ha alcanzado el límite del rango autorizado de facturación'
+			];
+		}
+		
+		return [
+			'error' => false,
+			'data' => [
+				'secuencia_facturacion_id' => $secuenciaData['secuencia_facturacion_id'],
+				'numero' => $secuenciaData['siguiente'],
+				'incremento' => $secuenciaData['incremento'],
+				'prefijo' => $secuenciaData['prefijo'],
+				'relleno' => $secuenciaData['relleno'],
+				'rango_final' => $secuenciaData['rango_final']
+			]
+		];
+	}
 
-        // Si es un producto padre
-        if($producto_padre_id == 0){
-            $resultTotalHijos = facturasModelo::total_hijos_segun_padre_modelo($productos_id);
-            if($resultTotalHijos->num_rows>0){
-                $valor = 0;
-                while($consultaTotalHijos = $resultTotalHijos->fetch_assoc()){
-                    $producto_id_hijo = intval($consultaTotalHijos['productos_id']);
-                    $cantidadConvertida = $this->convertirCantidad($medidaName, $quantity);
-                    
-                    $datosHijo = [
-                        "productos_id" => $producto_id_hijo,
-                        "empresa" => $empresa_id,
-                        "clientes_id" => $clientes_id,
-                        "comentario" => "Salida de inventario por venta",
-                        "almacen_id" => $bodega,
-                        "cantidad" => $cantidadConvertida,
-                        "empresa_id" => $empresa_id,
-                        "documento" => $documentoBase."_".$valor
-                    ];
-                    
-                    facturasModelo::registrar_salida_lote_modelo($datosHijo);
-                    $valor++;
-                }
-            }
-        } else { // Si es un producto hijo
-            $resultTotalPadre = facturasModelo::cantidad_producto_modelo($productos_id);
-            if($resultTotalPadre->num_rows>0){
-                $valor = 0;
-                while($consultaTotalPadre = $resultTotalPadre->fetch_assoc()){
-                    $producto_id_padre = intval($consultaTotalPadre['id_producto_superior']);
-                    $cantidadConvertida = $this->convertirCantidad($medidaName, $quantity);
-                    
-                    $datosPadre = [
-                        "productos_id" => $producto_id_padre,
-                        "empresa" => $empresa_id,
-                        "clientes_id" => $clientes_id,
-                        "comentario" => "Salida de inventario por venta",
-                        "almacen_id" => $bodega,
-                        "cantidad" => $cantidadConvertida,
-                        "empresa_id" => $empresa_id,
-                        "documento" => $documentoBase."_".$valor
-                    ];
-                    
-                    facturasModelo::registrar_salida_lote_modelo($datosPadre);
-                    $valor++;
-                }
-            }
+    // Método para preparar datos básicos de la factura
+    protected function prepararDatosFactura($tipo_factura, $tipo_documento) {
+        $usuario = $_SESSION['colaborador_id_sd'];
+        $empresa_id = $_SESSION['empresa_id_sd'];
+        
+        $documento_id = "1";
+        $documento_nombre = "Factura Electronica";
+
+        if($tipo_documento === "1"){
+            $documento_id = "4";
+            $documento_nombre = "Factura Proforma";
         }
+
+        return [
+            'usuario' => $usuario,
+            'empresa_id' => $empresa_id,
+            'documento_id' => $documento_id,
+            'documento_nombre' => $documento_nombre,
+            'estado' => ($tipo_factura == 1) ? 2 : 3 // 2 para contado, 3 para crédito
+        ];
     }
-    
-    /**
-     * Convierte cantidades entre toneladas y libras
-     */
-    private function convertirCantidad($medidaName, $quantity) {
-        if($medidaName == "ton"){
-            return $quantity * 2204.623;
-        }    
-        if($medidaName == "lbs"){
-            return $quantity / 2204.623;
+
+    // Método para validar datos básicos del formulario
+    protected function validarDatosFormulario() {
+        if(empty($_POST['cliente_id']) || empty($_POST['colaborador_id'])) {
+            return [
+                'error' => true,
+                'notification' => [
+                    "title" => "Error",
+                    "text" => "El cliente y el vendedor no pueden quedar en blanco",
+                    "type" => "error"
+                ]
+            ];
         }
-        return $quantity;
-    }
     
-    /**
-     * Registra el detalle de la factura
-     */
-    private function registrarDetalleFactura($facturas_id, $productos_id, $quantity, $price, $isv_valor, $discount, $medida) {
-        $datos_detalles_facturas = [
+        if(empty($_POST['productName']) || empty($_POST['productName'][0])) {
+            return [
+                'error' => true,
+                'notification' => [
+                    "title" => "Error",
+                    "text" => "Debe seleccionar por lo menos un producto",
+                    "type" => "error"
+                ]
+            ];
+        }
+    
+        return ['error' => false];
+    }
+
+    // Método para procesar el detalle de la factura
+    protected function procesarDetalleFactura($facturas_id, $clientes_id, $fecha, $fecha_registro, $empresa_id) {
+        $total_valor = 0;
+        $descuentos = 0;
+        $isv_neto = 0;
+        
+        for ($i = 0; $i < count($_POST['productName']); $i++) {
+            if(empty($_POST['productos_id'][$i]) || empty($_POST['productName'][$i]) || 
+               empty($_POST['quantity'][$i]) || empty($_POST['price'][$i])) {
+                continue;
+            }
+
+            $producto = $this->procesarProducto(
+                $facturas_id, 
+                $clientes_id, 
+                $fecha, 
+                $fecha_registro, 
+                $empresa_id, 
+                $i
+            );
+
+            $total_valor += $producto['subtotal'];
+            $descuentos += $producto['descuento'];
+            $isv_neto += $producto['isv_valor'];
+        }
+
+        return [
+            'total_valor' => $total_valor,
+            'descuentos' => $descuentos,
+            'isv_neto' => $isv_neto,
+            'total_despues_isv' => ($total_valor + $isv_neto) - $descuentos
+        ];
+    }
+
+    // Método para procesar cada producto individual
+    protected function procesarProducto($facturas_id, $clientes_id, $fecha, $fecha_registro, $empresa_id, $index) {
+        $discount = $_POST['discount'][$index] ?? 0;
+        $isv_valor = $_POST['valor_isv'][$index] ?? 0;
+        $productos_id = $_POST['productos_id'][$index];
+        $quantity = $_POST['quantity'][$index];
+        $price = $_POST['price'][$index];
+        $medida = $_POST['medida'][$index];
+        $bodega = $_POST['bodega'][$index] ?? 0;
+        $referenciaProducto = $_POST['referenciaProducto'][$index] ?? '';
+        $price_anterior = $_POST['precio_real'][$index] ?? 0;
+
+        // Guardar detalle de factura
+        $this->guardarDetalleFactura(
+            $facturas_id, 
+            $productos_id, 
+            $quantity, 
+            $price, 
+            $isv_valor, 
+            $discount, 
+            $medida
+        );
+
+        // Procesar producto en inventario si es necesario
+        $this->procesarInventario(
+            $facturas_id, 
+            $clientes_id, 
+            $productos_id, 
+            $quantity, 
+            $bodega, 
+            $empresa_id, 
+            $medida
+        );
+
+        // Registrar cambio de precio si hay referencia
+        if($referenciaProducto != "") {
+            $this->registrarCambioPrecio(
+                $facturas_id, 
+                $productos_id, 
+                $clientes_id, 
+                $fecha, 
+                $referenciaProducto, 
+                $price_anterior, 
+                $price, 
+                $fecha_registro
+            );
+        }
+
+        return [
+            'subtotal' => $price * $quantity,
+            'descuento' => $discount,
+            'isv_valor' => $isv_valor
+        ];
+    }
+
+    // Método para guardar detalle de factura
+    protected function guardarDetalleFactura($facturas_id, $productos_id, $quantity, $price, $isv_valor, $discount, $medida) {
+        $datos = [
             "facturas_id" => $facturas_id,
             "productos_id" => $productos_id,
             "cantidad" => $quantity,                
             "precio" => $price,
             "isv_valor" => $isv_valor,
             "descuento" => $discount,
-            "medida" => $medida,    
-        ];    
+            "medida" => $medida
+        ];
 
-        $result_factura_detalle = facturasModelo::validDetalleFactura($facturas_id, $productos_id);
-        if($result_factura_detalle->num_rows>0){
-            facturasModelo::actualizar_detalle_facturas($datos_detalles_facturas);
+        $result = facturasModelo::validDetalleFactura($facturas_id, $productos_id);
+        
+        if($result->num_rows > 0) {
+            facturasModelo::actualizar_detalle_facturas($datos);
         } else {
-            facturasModelo::agregar_detalle_facturas_modelo($datos_detalles_facturas);
+            facturasModelo::agregar_detalle_facturas_modelo($datos);
         }
     }
-    
-    /**
-     * Registra cambios de precio si hay referencia
-     */
-    private function registrarCambioPrecio($facturas_id, $productos_id, $clientes_id, $fecha, $referenciaProducto, $price_anterior, $price, $fecha_registro) {
-        if($referenciaProducto != ""){
-            $datos_precio_factura = [
-                "facturas_id" => $facturas_id,
-                "productos_id" => $productos_id,
-                "clientes_id" => $clientes_id,                
-                "fecha" => $fecha,
-                "referencia" => $referenciaProducto,
-                "precio_anterior" => $price_anterior,
-                "precio_nuevo" => $price,                                            
-                "fecha_registro" => $fecha_registro                                            
-            ];    
 
-            $resultPrecioFactura = facturasModelo::valid_precio_factura_modelo($datos_precio_factura);
-            if($resultPrecioFactura->num_rows==0){
-                facturasModelo::agregar_precio_factura_clientes($datos_precio_factura);
+    // Método para procesar inventario
+    protected function procesarInventario($facturas_id, $clientes_id, $productos_id, $quantity, $bodega, $empresa_id, $medida) {
+        $tipo_producto = facturasModelo::tipo_producto_modelo($productos_id);
+        
+        if($tipo_producto->num_rows > 0) {
+            $consulta = $tipo_producto->fetch_assoc();
+            if($consulta["tipo_producto"] == "Producto") {
+                $this->registrarSalidaInventario(
+                    $facturas_id, 
+                    $productos_id, 
+                    $clientes_id, 
+                    $quantity, 
+                    $bodega, 
+                    $empresa_id, 
+                    $medida
+                );
             }
         }
     }
-    
-    /**
-     * Procesa los productos de la factura (común para crédito y contado)
-     */
-    private function procesarProductosFactura($facturas_id, $clientes_id, $colaborador_id, $empresa_id, $fecha, $fecha_registro, &$total_valor, &$descuentos, &$isv_neto) {
-        for ($i = 0; $i < count($_POST['productName']); $i++){
-            $discount = $_POST['discount'][$i] ?? 0;
-            $isv_valor = $_POST['valor_isv'][$i] ?? 0;                                
-            $referenciaProducto = $_POST['referenciaProducto'][$i];
-            $productos_id = $_POST['productos_id'][$i];
-            $productName = $_POST['productName'][$i];
-            $quantity = $_POST['quantity'][$i];
-            $medida = $_POST['medida'][$i];
-            $price_anterior = $_POST['precio_real'][$i];
-            $price = $_POST['price'][$i];
-            $bodega = $_POST['bodega'][$i];
-            $total = $_POST['total'][$i];
 
-            if($productos_id != "" && $productName != "" && $quantity != "" && $price != "" && $total != ""){
-                // Registramos el detalle de la factura
-                $this->registrarDetalleFactura($facturas_id, $productos_id, $quantity, $price, $isv_valor, $discount, $medida);
+    // Método para registrar salida de inventario
+    protected function registrarSalidaInventario($facturas_id, $productos_id, $clientes_id, $quantity, $bodega, $empresa_id, $medida) {
+        $documento = "Factura ".$facturas_id;
+        
+        $datos = [
+            "productos_id" => $productos_id,
+            "empresa" => $empresa_id,
+            "clientes_id" => $clientes_id ?: 0,
+            "comentario" => "Salida de inventario por venta",
+            "almacen_id" => $bodega ?: 0,
+            "cantidad" => $quantity,
+            "empresa_id" => $empresa_id,
+            "documento" => $documento
+        ];
+
+        facturasModelo::registrar_salida_lote_modelo($datos);
+
+        // Procesar productos padre/hijo si es necesario
+        $this->procesarRelacionProductos($facturas_id, $productos_id, $clientes_id, $quantity, $bodega, $empresa_id, $medida);
+    }
+
+    // Método para procesar relación entre productos (padre/hijo)
+    protected function procesarRelacionProductos($facturas_id, $productos_id, $clientes_id, $quantity, $bodega, $empresa_id, $medida) {
+        $producto = facturasModelo::cantidad_producto_modelo($productos_id)->fetch_assoc();
+        $producto_padre_id = $producto['id_producto_superior'];
+        $medidaName = strtolower($medida);
+
+        if($producto_padre_id == 0) { // Es producto padre
+            $this->procesarHijos($facturas_id, $productos_id, $clientes_id, $quantity, $bodega, $empresa_id, $medidaName);
+        } else { // Es producto hijo
+            $this->procesarPadre($facturas_id, $productos_id, $clientes_id, $quantity, $bodega, $empresa_id, $medidaName);
+        }
+    }
+
+    // Método para procesar productos hijos
+    protected function procesarHijos($facturas_id, $productos_id, $clientes_id, $quantity, $bodega, $empresa_id, $medidaName) {
+        $result = facturasModelo::total_hijos_segun_padre_modelo($productos_id);
+        
+        if($result->num_rows > 0) {
+            $valor = 0;
+            while($consulta = $result->fetch_assoc()) {
+                $producto_id_hijo = intval($consulta['productos_id']);
+                $cantidad = $this->convertirMedida($quantity, $medidaName, true);
                 
-                $total_valor += ($price * $quantity);
-                $descuentos += $discount;
-                $isv_neto += $isv_valor;
-                
-                // Verificamos si es un producto para registrar movimientos
-                $result_tipo_producto = facturasModelo::tipo_producto_modelo($productos_id);
-                if($result_tipo_producto->num_rows>0){                        
-                    $consulta_tipo_producto = $result_tipo_producto->fetch_assoc();
-                    if($consulta_tipo_producto["tipo_producto"] == "Producto"){
-                        $documento = "Factura ".$facturas_id;
-                        
-                        $datosMovimiento = [
-                            "productos_id" => $productos_id,
-                            "empresa" => $empresa_id,
-                            "clientes_id" => $clientes_id ?: 0,
-                            "comentario" => "Salida de inventario por venta",
-                            "almacen_id" => $bodega ?: 0,
-                            "cantidad" => $quantity,
-                            "empresa_id" => $empresa_id,
-                            "documento" => $documento,
-                            "medida" => $medida
-                        ];
-                        
-                        $this->registrarMovimientoProducto($datosMovimiento);
-                    }
-                }
-                
-                // Registramos cambio de precio si hay referencia
-                $this->registrarCambioPrecio($facturas_id, $productos_id, $clientes_id, $fecha, $referenciaProducto, $price_anterior, $price, $fecha_registro);
+                $this->registrarSalidaHijo(
+                    $facturas_id, 
+                    $producto_id_hijo, 
+                    $clientes_id, 
+                    $cantidad, 
+                    $bodega, 
+                    $empresa_id, 
+                    $valor
+                );
+                $valor++;
             }
         }
     }
-    
-    /**
-     * Crea la alerta de respuesta
-     */
-    private function crearAlerta($tipo, $titulo, $texto, $facturas_id = null, $esProforma = false) {
-        $alert = [
-            "alert" => $tipo == "error" ? "simple" : "save_simple",
-            "title" => $titulo,
-            "text" => $texto,
-            "type" => $tipo == "error" ? "error" : "success",
-            "btn-class" => $tipo == "error" ? "btn-danger" : "btn-primary",
-            "btn-text" => $tipo == "error" ? "Cerrar" : "¡Bien Hecho!",
-            "form" => "invoice-form",    
-            "id" => "proceso_factura",
-            "valor" => "Registro",
-            "modal" => "",
+
+    // Método para procesar producto padre
+    protected function procesarPadre($facturas_id, $productos_id, $clientes_id, $quantity, $bodega, $empresa_id, $medidaName) {
+        $result = facturasModelo::cantidad_producto_modelo($productos_id);
+        
+        if($result->num_rows > 0) {
+            $valor = 0;
+            while($consulta = $result->fetch_assoc()) {
+                $producto_id_padre = intval($consulta['id_producto_superior']);
+                $cantidad = $this->convertirMedida($quantity, $medidaName, false);
+                
+                $this->registrarSalidaPadre(
+                    $facturas_id, 
+                    $producto_id_padre, 
+                    $clientes_id, 
+                    $cantidad, 
+                    $bodega, 
+                    $empresa_id, 
+                    $valor
+                );
+                $valor++;
+            }
+        }
+    }
+
+    // Método para convertir medidas (ton/lbs)
+    protected function convertirMedida($quantity, $medidaName, $esPadre) {
+        if($medidaName == "ton") {
+            return $esPadre ? $quantity * 2204.623 : $quantity * 2204.623;
+        }
+        
+        if($medidaName == "lbs") {
+            return $esPadre ? $quantity / 2204.623 : $quantity / 2204.623;
+        }
+        
+        return $quantity;
+    }
+
+    // Métodos auxiliares para registrar salidas
+    protected function registrarSalidaHijo($facturas_id, $producto_id, $clientes_id, $cantidad, $bodega, $empresa_id, $valor) {
+        $datos = [
+            "productos_id" => $producto_id,
+            "empresa" => $empresa_id,
+            "clientes_id" => $clientes_id ?: 0,
+            "comentario" => "Salida de inventario por venta",
+            "almacen_id" => $bodega ?: 0,
+            "cantidad" => $cantidad,
+            "empresa_id" => $empresa_id,
+            "documento" => "Factura ".$facturas_id."_".$valor
         ];
         
-        if($tipo != "error"){
-            if($esProforma){
-                $alert["funcion"] = "limpiarTablaFactura();getCajero();printBill(".$facturas_id.");getConsumidorFinal();getEstadoFactura();cleanFooterValueBill();resetRow();";
-            } else {
-                $alert["funcion"] = "limpiarTablaFactura();pago(".$facturas_id.");getCajero();getConsumidorFinal();getEstadoFactura();cleanFooterValueBill();resetRow();";
-            }
-        }
-        
-        return $alert;
+        facturasModelo::registrar_salida_lote_modelo($datos);
     }
-    
-    /**
-     * Registra la cuenta por cobrar
-     */
-    private function registrarCuentaPorCobrar($clientes_id, $facturas_id, $fecha, $total_despues_isv, $estado, $usuario, $fecha_registro, $empresa_id) {
-        $datos_cobrar_clientes = [
+
+    protected function registrarSalidaPadre($facturas_id, $producto_id, $clientes_id, $cantidad, $bodega, $empresa_id, $valor) {
+        $this->registrarSalidaHijo($facturas_id, $producto_id, $clientes_id, $cantidad, $bodega, $empresa_id, $valor);
+    }
+
+    // Método para registrar cambio de precio
+    protected function registrarCambioPrecio($facturas_id, $productos_id, $clientes_id, $fecha, $referencia, $precio_anterior, $precio_nuevo, $fecha_registro) {
+        $datos = [
+            "facturas_id" => $facturas_id,
+            "productos_id" => $productos_id,
+            "clientes_id" => $clientes_id,                
+            "fecha" => $fecha,
+            "referencia" => $referencia,
+            "precio_anterior" => $precio_anterior,
+            "precio_nuevo" => $precio_nuevo,                                            
+            "fecha_registro" => $fecha_registro                                            
+        ];
+
+        $result = facturasModelo::valid_precio_factura_modelo($datos);
+        
+        if($result->num_rows == 0) {
+            facturasModelo::agregar_precio_factura_clientes($datos);
+        }
+    }
+
+    // Método para guardar cuenta por cobrar
+    protected function guardarCuentaPorCobrar($clientes_id, $facturas_id, $fecha, $total, $estado, $usuario, $fecha_registro, $empresa_id) {
+        $datos = [
             "clientes_id" => $clientes_id,
             "facturas_id" => $facturas_id,
             "fecha" => $fecha,                
-            "saldo" => $total_despues_isv,
+            "saldo" => $total,
             "estado" => $estado,
             "usuario" => $usuario,
             "fecha_registro" => $fecha_registro,
             "empresa" => $empresa_id
-        ];        
-            
-        $resultCobrarClientes = facturasModelo::validar_cobrarClientes_modelo($facturas_id);
-        if($resultCobrarClientes->num_rows==0){
-            facturasModelo::agregar_cuenta_por_cobrar_clientes($datos_cobrar_clientes);    
+        ];
+
+        $result = facturasModelo::validar_cobrarClientes_modelo($facturas_id);
+        
+        if($result->num_rows == 0) {
+            facturasModelo::agregar_cuenta_por_cobrar_clientes($datos);
         }
     }
-    
-    /**
-     * Registra el historial
-     */
-    private function registrarHistorial($modulo, $status, $observacion) {
+
+    // Método para guardar historial
+    protected function guardarHistorialFactura($modulo, $status, $observacion) {
         $datos = [
             "modulo" => $modulo,
             "colaboradores_id" => $_SESSION['colaborador_id_sd'],        
             "status" => $status,
             "observacion" => $observacion,
             "fecha_registro" => date("Y-m-d H:i:s")
-        ];    
+        ];
         
         mainModel::guardarHistorial($datos);
     }
-    
-    /**
-     * Guarda la factura proforma si es necesario
-     */
-    private function guardarFacturaProforma($esProforma, $facturas_id, $clientes_id, $secuencia_facturacion_id, $numero, $total_despues_isv, $colaborador_id, $empresa_id, $fecha_registro) {
-        if($esProforma){
-            $datos_proforma = [
-                "facturas_id" => $facturas_id,
-                "clientes_id" => $clientes_id,
-                "secuencia_facturacion_id" => $secuencia_facturacion_id,                
-                "numero" => $numero,                                    
-                "importe" => $total_despues_isv,    
-                "usuario" => $colaborador_id,
-                "empresa_id" => $empresa_id,    
-                "estado" => 0,
-                "fecha_creacion" => $fecha_registro
-            ];    
 
-            facturasModelo::agregar_facturas_proforma_modelo($datos_proforma);
-            facturasModelo::actualizar_estado_factura_modelo($facturas_id);
-        }
-    }
-
-    // Métodos principales
-    
-	public function agregar_facturas_controlador(){
-		if(!isset($_SESSION['user_sd'])){ 
-			session_start(['name'=>'SD']); 
-		}
-		
-		$usuario = $_SESSION['colaborador_id_sd'];
-		$empresa_id = $_SESSION['empresa_id_sd'];        
-		$clientes_id = $_POST['cliente_id'];
-		$colaborador_id = $_POST['colaborador_id'];            
-		$tipo_factura = $_POST['facturas_activo'] ?? 2;
-		$tipo_documento = $_POST['facturas_proforma'] ?? 0;
-		$documento_id = "1";
-		$documento_nombre = "Factura Electronica";
-		$esProforma = false;
-	
-		if($tipo_documento === "1"){
-			$documento_id = "4";
-			$documento_nombre = "Factura Proforma";
-			$esProforma = true;
-		}        
-		
-		$numero = 0;
-		$secuenciaFacturacion = facturasModelo::secuencia_facturacion_modelo($empresa_id, $documento_id)->fetch_assoc();
-	
-		if ($secuenciaFacturacion === null) {
-			return mainModel::sweetAlert($this->crearAlerta("error", "Error", "Lo sentimos, no cuenta con una secuencia de facturación activa, por favor comuniquese con su contador para solventar el problema."));
-		}
-	
-		$secuencia_facturacion_id = $secuenciaFacturacion['secuencia_facturacion_id'];
-		$numero = $secuenciaFacturacion['numero'];
-		$incremento = $secuenciaFacturacion['incremento'];
-		$notas = mainModel::cleanString($_POST['notesBill']);
-		$fecha = $_POST['fecha'];
-		$fecha_dolar = $_POST['fecha_dolar'];
-		$fecha_registro = date("Y-m-d H:i:s");
-		$fac_guardada = false;
-	
-		if (isset($_POST['facturas_id']) && $_POST['facturas_id'] != "") {
-			$facturas_id = $_POST['facturas_id'];
-			$fac_guardada = true;
-		} else {
-			$facturas_id = mainModel::correlativo("facturas_id", "facturas");
-		}                    
-	
-		$estado = 2;
-	
-		$datos_apertura = [
-			"colaboradores_id" => $usuario,
-			"fecha" => $fecha,
-			"estado" => 1,
-		];
-	
-		$apertura = facturasModelo::getAperturaIDModelo($datos_apertura)->fetch_assoc();
-		$apertura_id = $apertura['apertura_id'];
-	
-		if($clientes_id == "" || $colaborador_id == ""){
-			return mainModel::sweetAlert($this->crearAlerta("error", "Error Registros en Blanco", "Lo sentimos el cliente y el vendedor no pueden quedar en blanco, por favor corregir"));
-		}
-	
-		// Primero verificamos si existe el array productName
-		$tamano_tabla = 0;
-		if (isset($_POST['productName']) && is_array($_POST['productName'])) {
-			// Luego verificamos si el primer elemento tiene los campos requeridos
-			if (isset($_POST['productos_id'][0]) && 
-				isset($_POST['productName'][0]) && 
-				$_POST['productName'][0] != "" && 
-				isset($_POST['quantity'][0]) && 
-				isset($_POST['price'][0])) {
-				$tamano_tabla = count($_POST['productName']);
-			}
-		}
-	
-		if($tamano_tabla == 0){
-			return mainModel::sweetAlert($this->crearAlerta("error", "Error Registros en Blanco", "Lo sentimos al parecer no ha seleccionado un producto en el detalle de la factura, antes de proceder debe seleccionar por lo menos un producto para realizar la facturación"));
-		}
-	
-		$datos_factura = [
-			"facturas_id" => $facturas_id,
-			"clientes_id" => $clientes_id,
-			"secuencia_facturacion_id" => $secuencia_facturacion_id,
-			"apertura_id" => $apertura_id,                
-			"tipo_factura" => $tipo_factura,                
-			"numero" => $numero,
-			"colaboradores_id" => $colaborador_id,
-			"importe" => 0,
-			"notas" => $notas,
-			"fecha" => $fecha,                
-			"estado" => $estado,
-			"usuario" => $usuario,
-			"fecha_registro" => $fecha_registro,
-			"empresa" => $empresa_id,
-			"fecha_dolar" => $fecha_dolar
-		];                            
-	
-		$query = facturasModelo::guardar_facturas_modelo($datos_factura);
-	
-		if(!$query){
-			return mainModel::sweetAlert($this->crearAlerta("error", "Ocurrio un error inesperado", "No hemos podido procesar su solicitud"));
-		}
-	
-		// Procesamos los productos (común para crédito y contado)
-		$total_valor = $descuentos = $isv_neto = 0;
-		$this->procesarProductosFactura($facturas_id, $clientes_id, $colaborador_id, $empresa_id, $fecha, $fecha_registro, $total_valor, $descuentos, $isv_neto);
-	
-		$total_despues_isv = ($total_valor + $isv_neto) - $descuentos;
-	
-		// Actualizamos el importe en la factura
-		$datos_actualizar = [
-			"facturas_id" => $facturas_id,
-			"importe" => $total_despues_isv        
-		];
-		
-		facturasModelo::actualizar_factura_importe($datos_actualizar);                            
-	
-		// Obtenemos datos del cliente para el historial
-		$campos = ['nombre', 'rtn'];
-		$resultados = mainModel::consultar_tabla('clientes', $campos, "clientes_id = {$clientes_id}");
-		
-		$nombre = $rtn = null;
-		if (!empty($resultados)) {
-			$primerResultado = $resultados[0];
-			$nombre = $primerResultado['nombre'] ?? null;
-			$rtn = $primerResultado['rtn'] ?? null;
-		}
-	
-		// Registramos historial según tipo de factura
-		if($tipo_factura == 1){
-			$this->registrarHistorial('Facturas', 'Registro', "Se registro la factura al contado para el cliente {$nombre} con el RTN {$rtn}");
-		} else {
-			$this->registrarHistorial('Facturas', 'Registrar', "Se registro la factura {$numero} al crédito para el cliente {$nombre} con el RTN {$rtn}");
-		}
-	
-		// Guardamos factura proforma si es necesario
-		$this->guardarFacturaProforma($esProforma, $facturas_id, $clientes_id, $secuencia_facturacion_id, $numero, $total_despues_isv, $colaborador_id, $empresa_id, $fecha_registro);
-	
-		// Actualizamos secuencia de facturación
-		$numero += $incremento;
-		facturasModelo::actualizar_secuencia_facturacion_modelo($secuencia_facturacion_id, $numero);
-	
-		// Registramos cuenta por cobrar
-		$estado_cuenta = ($tipo_factura == 1) ? 3 : 1; // 1=Crédito, 3=Contado
-		$this->registrarCuentaPorCobrar($clientes_id, $facturas_id, $fecha, $total_despues_isv, $estado_cuenta, $usuario, $fecha_registro, $empresa_id);
-	
-		// Retornamos respuesta exitosa
-		return mainModel::sweetAlert($this->crearAlerta("success", "Registro almacenado", "El registro se ha almacenado correctamente", $facturas_id, $esProforma));
-	}
-    
-    public function agregar_facturas_open_controlador(){
-        if(!isset($_SESSION['user_sd'])){ 
-            session_start(['name'=>'SD']); 
+    // Método principal para agregar facturas
+    public function agregar_facturas_controlador() {
+        // Validar sesión
+        $validacion = mainModel::validarSesion();
+        if ($validacion['error']) {
+            return mainModel::showNotification([
+                "title" => "Error de sesión",
+                "text" => $validacion['mensaje'],
+                "type" => "error",
+                "funcion" => "window.location.href = '" . $validacion['redireccion'] . "'"
+            ]);
         }
         
-        $usuario = $_SESSION['colaborador_id_sd'];
-        $empresa_id = $_SESSION['empresa_id_sd'];        
+        // Obtener tipo de factura y documento
+        $tipo_factura = $_POST['facturas_activo'] ?? 2; //1. CONTADO, 2. CREDITO
+        $tipo_documento = $_POST['facturas_proforma'] ?? 0; //0. FACTURA ELECTRONICA, 1. FACTURA PROFORMA
+        
+        // Preparar datos básicos
+        $datosBasicos = $this->prepararDatosFactura($tipo_factura, $tipo_documento);
+        
+        // Validar datos del formulario
+        $validacion = $this->validarDatosFormulario();
+        if($validacion['error']) {
+            return mainModel::showNotification($validacion['notification']);
+        }
+        
+		$empresa_id = $_SESSION['empresa_id_sd'];
+		$documento_id = "1"; // Factura Electronica por defecto
+		if($tipo_documento === "1"){ // Si es proforma
+			$documento_id = "4";
+		}
+
+        // Obtener número de factura
+		$numeroFactura = $this->obtenerNumeroFactura($empresa_id, $documento_id);
+        if($numeroFactura['error']) {
+            return mainModel::showNotification([
+                "title" => "Error",
+                "text" => $numeroFactura['mensaje'],
+                "type" => "error"
+            ]);
+        }
+        
+        // Datos comunes
         $clientes_id = $_POST['cliente_id'];
         $colaborador_id = $_POST['colaborador_id'];
-    
-        $tipo_factura = isset($_POST['facturas_activo']) && $_POST['facturas_activo'] != "" ? $_POST['facturas_activo'] : 2;
-        $numero = 0;
-        $Existe = false;
-
-        $fecha = $_POST['fecha'];
-        $documento_id = "1";
-        $secuenciaFacturacion = facturasModelo::secuencia_facturacion_modelo($empresa_id, $documento_id)->fetch_assoc();
-        $secuencia_facturacion_id = $secuenciaFacturacion['secuencia_facturacion_id'];
-
         $notas = mainModel::cleanString($_POST['notesBill']);
+        $fecha = $_POST['fecha'];
         $fecha_dolar = $_POST['fecha_dolar'];
-        $fecha_registro = date("Y-m-d H:i:s");            
-
-        if($_POST['facturas_id'] == "" || $_POST['facturas_id'] == 0){
-            $facturas_id = mainModel::correlativo("facturas_id", "facturas");    
-        }else{
-            $facturas_id = $_POST['facturas_id'];
-            $Existe = true;
-        }
-
-        $estado = ($tipo_factura == 1) ? 1 : 3;
-
-        $datos_apertura = [
-            "colaboradores_id" => $usuario,
+        $fecha_registro = date("Y-m-d H:i:s");
+        
+        // Obtener ID de factura
+        $facturas_id = empty($_POST['facturas_id']) ? mainModel::correlativo("facturas_id", "facturas") : $_POST['facturas_id'];
+        
+        // Obtener apertura
+        $apertura = facturasModelo::getAperturaIDModelo([
+            "colaboradores_id" => $datosBasicos['usuario'],
             "fecha" => $fecha,
-            "estado" => 1,
-        ];                
-
-        $apertura = facturasModelo::getAperturaIDModelo($datos_apertura)->fetch_assoc();
+            "estado" => 1
+        ])->fetch_assoc();
+        
         $apertura_id = $apertura['apertura_id'];
-
-        if($clientes_id == "" || $colaborador_id == ""){
-            return mainModel::sweetAlert($this->crearAlerta("error", "Error Registros en Blanco", "Lo sentimos el cliente y el vendedor no pueden quedar en blanco, por favor corregir"));
-        }
-
-		$tamano_tabla = (isset($_POST['productName']) && 
-		is_array($_POST['productName']) && 
-		isset($_POST['productos_id'][0]) && 
-		isset($_POST['productName'][0]) && 
-		$_POST['productName'][0] != "" && 
-		isset($_POST['quantity'][0]) && 
-		isset($_POST['price'][0])) 
-		? count($_POST['productName']) : 0;
-
-        if($tamano_tabla == 0){
-            return mainModel::sweetAlert($this->crearAlerta("error", "Error Registros en Blanco", "Lo sentimos al parecer no ha seleccionado un producto en el detalle de la factura, antes de proceder debe seleccionar por lo menos un producto para realizar la facturación"));
-        }
-
-        $datos_factura = [
+        
+        // Guardar factura
+        $datosFactura = [
             "facturas_id" => $facturas_id,
             "clientes_id" => $clientes_id,
-            "secuencia_facturacion_id" => $secuencia_facturacion_id,
+            "secuencia_facturacion_id" => $numeroFactura['data']['secuencia_facturacion_id'],
             "apertura_id" => $apertura_id,                
             "tipo_factura" => $tipo_factura,                
-            "numero" => $numero,
+            "numero" => $numeroFactura['data']['numero'],
             "colaboradores_id" => $colaborador_id,
             "importe" => 0,
             "notas" => $notas,
             "fecha" => $fecha,                
-            "estado" => $estado,
-            "usuario" => $usuario,
+            "estado" => $datosBasicos['estado'],
+            "usuario" => $datosBasicos['usuario'],
             "fecha_registro" => $fecha_registro,
-            "empresa" => $empresa_id,
+            "empresa" => $datosBasicos['empresa_id'],
             "fecha_dolar" => $fecha_dolar
-        ];    
-                                
-        if($Existe == false){                                        
-            facturasModelo::guardar_facturas_modelo($datos_factura);
-        }else{
-            facturasModelo::actualizar_factura_importe($datos_factura);
-        }
-
-        // Procesamos los productos
-        $total_valor = $descuentos = $isv_neto = 0;
-        $this->procesarProductosFactura($facturas_id, $clientes_id, $colaborador_id, $empresa_id, $fecha, $fecha_registro, $total_valor, $descuentos, $isv_neto);
-
-        $total_despues_isv = ($total_valor + $isv_neto) - $descuentos;
-
-        // Actualizamos importe en factura
-        $datos_actualizar = [
-            "facturas_id" => $facturas_id,
-            "importe" => $total_despues_isv        
         ];
         
-        facturasModelo::actualizar_factura_importe($datos_actualizar);                            
-
-        // Registramos cuenta por cobrar
-        $this->registrarCuentaPorCobrar($clientes_id, $facturas_id, $fecha, $total_despues_isv, 3, $usuario, $fecha_registro, $empresa_id);
-
-        // Retornamos respuesta exitosa
-        return mainModel::sweetAlert($this->crearAlerta("success", "Registro almacenado", "El registro se ha almacenado correctamente", $facturas_id, false));
-    }
-
-    public function cancelar_facturas_controlador(){
-        $facturas_id = $_POST['facturas_id'];        
-
-        $campos = ['number'];
-        $resultados = mainModel::consultar_tabla('facturas', $campos, "facturas_id = {$facturas_id}");
+        $query = facturasModelo::guardar_facturas_modelo($datosFactura);
         
-        $number = null;
-        if (!empty($resultados)) {
-            $primerResultado = $resultados[0];
-            $number = $primerResultado['number'] ?? null;
+        if(!$query) {
+            return mainModel::showNotification([
+                "title" => "Error",
+                "text" => "No hemos podido procesar su solicitud",
+                "type" => "error"
+            ]);
         }
+
+		// Si todo sale bien, actualizar la secuencia
+		$nuevo_numero = $numeroFactura['data']['numero'] + $numeroFactura['data']['incremento'];
+		if(!facturasModelo::actualizar_secuencia_modelo(
+			$numeroFactura['data']['secuencia_facturacion_id'], 
+			$nuevo_numero
+		)) {
+			// Esto es grave, deberías registrar el error
+			error_log("Error al actualizar secuencia para factura: " . $facturas_id);
+		}
+        
+        // Procesar detalle de factura
+        $totales = $this->procesarDetalleFactura(
+            $facturas_id, 
+            $clientes_id, 
+            $fecha, 
+            $fecha_registro, 
+            $datosBasicos['empresa_id']
+        );
+        
+        // Actualizar importe en factura
+        facturasModelo::actualizar_factura_importe([
+            "facturas_id" => $facturas_id,
+            "importe" => $totales['total_despues_isv']
+        ]);
+        
+        // Guardar cuenta por cobrar
+        $estado_cuenta = ($tipo_factura == 1) ? 3 : 1; // 3 para contado, 1 para crédito
+        $this->guardarCuentaPorCobrar(
+            $clientes_id, 
+            $facturas_id, 
+            $fecha, 
+            $totales['total_despues_isv'], 
+            $estado_cuenta, 
+            $datosBasicos['usuario'], 
+            $fecha_registro, 
+            $datosBasicos['empresa_id']
+        );
+        
+        // Guardar historial
+        $cliente = mainModel::consultar_tabla('clientes', ['nombre', 'rtn'], "clientes_id = {$clientes_id}")[0];
+        $tipo = ($tipo_factura == 1) ? 'contado' : 'crédito';
+        $this->guardarHistorialFactura(
+            'Facturas',
+            'Registro',
+            "Se registró la factura al {$tipo} para el cliente {$cliente['nombre']} con el RTN {$cliente['rtn']}"
+        );    
+        
+        // Preparar respuesta según tipo de documento
+        if($tipo_documento === "1") { // Factura Proforma
+            $datos_proforma = [
+                "facturas_id" => $facturas_id,
+                "clientes_id" => $clientes_id,
+                "secuencia_facturacion_id" => $numeroFactura['data']['secuencia_facturacion_id'],                
+                "numero" => $numeroFactura['data']['numero'],                                    
+                "importe" => $totales['total_despues_isv'],    
+                "usuario" => $colaborador_id,
+                "empresa_id" => $datosBasicos['empresa_id'],    
+                "estado" => 0,
+                "fecha_creacion" => $fecha_registro
+            ];
+            
+            facturasModelo::agregar_facturas_proforma_modelo($datos_proforma);
+            facturasModelo::actualizar_estado_factura_modelo($facturas_id);
+            
+            $funcion = "limpiarTablaFactura();getCajero();printBill({$facturas_id});getConsumidorFinal();getEstadoFactura();cleanFooterValueBill();resetRow();";
+        } else { // Factura normal
+			$funcion = ($tipo_factura == 1) ? 
+			"limpiarTablaFactura();pago({$facturas_id});getCajero();getConsumidorFinal();getEstadoFactura();cleanFooterValueBill();resetRow();getTotalFacturasDisponibles();" :
+			"limpiarTablaFactura();getCajero();getConsumidorFinal();getEstadoFactura();cleanFooterValueBill();resetRow();";
+        }
+        
+        return mainModel::showNotification([
+            "type" => "success",
+            "title" => "Registro almacenado",
+            "text" => "El registro se ha almacenado correctamente",
+            "form" => "invoice-form",
+            "funcion" => $funcion
+        ]);
+    }
+    
+    // Método para agregar facturas abiertas (similar al anterior pero simplificado)
+    public function agregar_facturas_open_controlador() {
+        if(!isset($_SESSION['user_sd'])) { 
+            session_start(['name'=>'SD']); 
+        }
+        
+        // Validar sesión
+        $validacion = mainModel::validarSesion();
+        if ($validacion['error']) {
+            return mainModel::showNotification([
+                "title" => "Error de sesión",
+                "text" => $validacion['mensaje'],
+                "type" => "error",
+                "funcion" => "window.location.href = '" . $validacion['redireccion'] . "'"
+            ]);
+        }
+        
+        // Obtener tipo de factura (siempre crédito para facturas abiertas)
+        $tipo_factura = 2; // CRÉDITO
+        $tipo_documento = 0; // FACTURA ELECTRONICA
+        
+        // Preparar datos básicos
+        $datosBasicos = $this->prepararDatosFactura($tipo_factura, $tipo_documento);
+        
+        // Validar datos del formulario
+        $validacion = $this->validarDatosFormulario();
+        if($validacion['error']) {
+            return mainModel::showNotification($validacion['notification']);
+        }
+        
+        // Obtener número de factura
+        $numeroFactura = $this->obtenerNumeroFactura($datosBasicos['empresa_id'], $datosBasicos['documento_id']);
+        if($numeroFactura['error']) {
+            return mainModel::showNotification([
+                "title" => "Error",
+                "text" => $numeroFactura['mensaje'],
+                "type" => "error"
+            ]);
+        }
+        
+        // Datos comunes
+        $clientes_id = $_POST['cliente_id'];
+        $colaborador_id = $_POST['colaborador_id'];
+        $notas = mainModel::cleanString($_POST['notesBill']);
+        $fecha = $_POST['fecha'];
+        $fecha_dolar = $_POST['fecha_dolar'];
+        $fecha_registro = date("Y-m-d H:i:s");
+        
+        // Obtener ID de factura
+        $facturas_id = empty($_POST['facturas_id']) ? mainModel::correlativo("facturas_id", "facturas") : $_POST['facturas_id'];
+        $Existe = !empty($_POST['facturas_id']);
+        
+        // Obtener apertura
+        $apertura = facturasModelo::getAperturaIDModelo([
+            "colaboradores_id" => $datosBasicos['usuario'],
+            "fecha" => $fecha,
+            "estado" => 1
+        ])->fetch_assoc();
+        
+        $apertura_id = $apertura['apertura_id'];
+        
+        // Guardar factura
+        $datosFactura = [
+            "facturas_id" => $facturas_id,
+            "clientes_id" => $clientes_id,
+            "secuencia_facturacion_id" => $numeroFactura['data']['secuencia_facturacion_id'],
+            "apertura_id" => $apertura_id,                
+            "tipo_factura" => $tipo_factura,                
+            "numero" => $numeroFactura['data']['numero'],
+            "colaboradores_id" => $colaborador_id,
+            "importe" => 0,
+            "notas" => $notas,
+            "fecha" => $fecha,                
+            "estado" => $datosBasicos['estado'],
+            "usuario" => $datosBasicos['usuario'],
+            "fecha_registro" => $fecha_registro,
+            "empresa" => $datosBasicos['empresa_id'],
+            "fecha_dolar" => $fecha_dolar
+        ];
+        
+        if($Existe) {
+            facturasModelo::actualizar_factura_importe($datosFactura);
+        } else {
+            facturasModelo::guardar_facturas_modelo($datosFactura);
+        }
+        
+        // Procesar detalle de factura
+        $totales = $this->procesarDetalleFactura(
+            $facturas_id, 
+            $clientes_id, 
+            $fecha, 
+            $fecha_registro, 
+            $datosBasicos['empresa_id']
+        );
+        
+        // Actualizar importe en factura
+        facturasModelo::actualizar_factura_importe([
+            "facturas_id" => $facturas_id,
+            "importe" => $totales['total_despues_isv']
+        ]);
+        
+        // Guardar cuenta por cobrar solo si es nuevo
+        if(!$Existe) {
+            $this->guardarCuentaPorCobrar(
+                $clientes_id, 
+                $facturas_id, 
+                $fecha, 
+                $totales['total_despues_isv'], 
+                3, // Efectivo con abonos
+                $datosBasicos['usuario'], 
+                $fecha_registro, 
+                $datosBasicos['empresa_id']
+            );
+        }
+        
+        return mainModel::showNotification([
+            "type" => "success",
+            "title" => "Registro almacenado",
+            "text" => "El registro se ha almacenado correctamente",
+            "form" => "invoice-form",
+            "funcion" => "limpiarTablaFactura();getCajero();getConsumidorFinal();getEstadoFactura();cleanFooterValueBill();resetRow();"
+        ]);
+    }
+    
+    // Método para cancelar facturas
+    public function cancelar_facturas_controlador() {
+        $facturas_id = $_POST['facturas_id'];
+        
+        $factura = mainModel::consultar_tabla('facturas', ['number'], "facturas_id = {$facturas_id}");
+        $number = $factura[0]['number'] ?? null;
         
         $query = facturasModelo::cancelar_facturas_modelo($facturas_id);
         
-        if($query){
-            $this->registrarHistorial('Facturas', 'Cancelar', "Se cancelo la factura {$number}");
-
-            $alert = [
-                "alert" => "clear",
+        if($query) {
+            $this->guardarHistorialFactura(
+                'Facturas',
+                'Cancelar',
+                "Se canceló la factura {$number}"
+            );
+            
+            return mainModel::showNotification([
+                "type" => "success",
                 "title" => "Registro eliminado",
                 "text" => "El registro se ha eliminado correctamente",
-                "type" => "success",
-                "btn-class" => "btn-primary",
-                "btn-text" => "¡Bien Hecho!",
-                "form" => "",    
-                "id" => "",
-                "valor" => "Cancelar",
-                "funcion" => "",
-                "modal" => "",
-            ];                
-        }else{
-            $alert = [
-                "alert" => "simple",
-                "title" => "Ocurrio un error inesperado",
-                "text" => "No hemos podido procesar su solicitud",
-                "type" => "error",
-                "btn-class" => "btn-danger",                    
-            ];                    
+                "funcion" => ""
+            ]);
         }
         
-        return mainModel::sweetAlert($alert);            
+        return mainModel::showNotification([
+            "title" => "Error",
+            "text" => "No hemos podido procesar su solicitud",
+            "type" => "error"
+        ]);
     }
 }

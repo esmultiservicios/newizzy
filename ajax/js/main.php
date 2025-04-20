@@ -109,8 +109,6 @@ async function renovarSesion() {
     const response = await fetch('<?php echo SERVERURL;?>core/renovar_sesion.php');
     const data = await response.json();
 
-    console.log('Estado de sesión renovada:', data);
-
     if (data.success) {
         // La renovación fue exitosa, actualizar el tiempo restante
         tiempoRestante = data.tiempoSesion;
@@ -122,8 +120,6 @@ async function renovarSesion() {
 async function validarSesion() {
     const response = await fetch('<?php echo SERVERURL;?>core/verificar_sesion.php?renovar=' + renovar.toString());
     const data = await response.json();
-
-    console.log('Estado de sesión:', data);
 
     if (data.estado === 'expired') {
         mostrarNotificacionExpiracion();
@@ -279,8 +275,6 @@ function getSubMenu(privilegio_id) {
                         $('#' + valores_submenu[i].submenu).hide();
                         $('.' + valores_submenu[i].submenu).hide();
                     }
-
-                    console.log(valores_submenu[i].submenu);
                 }
             } catch (e) {
                 console.error('Error:', e);
@@ -1762,7 +1756,6 @@ function printBillComprobanteReporteVentas(facturas_id, print_comprobante) {
 
                 // Abrir la URL generada
                 window.open(baseUrl + endpoint + params);
-                console.log('Comprobante Tipo:', impresora.tipo);
             } else {
                 // Usando SweetAlert en lugar de alert
                 swal({
@@ -1999,7 +1992,6 @@ function modal_colaboradores() {
 
     //HABILITAR OBJETOS
     $('#formColaboradores #nombre_colaborador').attr('readonly', false);
-    $('#formColaboradores #apellido_colaborador').attr('readonly', false);
     $('#formColaboradores #identidad_colaborador').attr('readonly', false);
     $('#formColaboradores #telefono_colaborador').attr('readonly', false);
     $('#formColaboradores #puesto_colaborador').attr('disabled', false);
@@ -2010,6 +2002,8 @@ function modal_colaboradores() {
     $('#formColaboradores #fecha_egreso_colaborador').attr('disabled', false);
     $('#formColaboradores #buscar_colaborador_empresa').show();
     $('#formColaboradores #estado_colaboradores').hide();
+
+    $('#datosClientes').hide();
 
     $('#formColaboradores #proceso_colaboradores').val("Registro");
     $('#modal_registrar_colaboradores').modal({
@@ -2035,15 +2029,38 @@ function getPuestoColaboradores() {
 }
 
 function getEmpresaColaboradores() {
-    var url = '<?php echo SERVERURL;?>core/getEmpresa.php';
-
     $.ajax({
+        url: "<?php echo SERVERURL; ?>core/getEmpresa.php",
         type: "POST",
-        url: url,
-        async: true,
-        success: function(data) {
-            $('#formColaboradores #colaborador_empresa_id').html("");
-            $('#formColaboradores #colaborador_empresa_id').html(data);
+        dataType: "json",
+        success: function(response) {
+            const select = $('#formColaboradores #colaborador_empresa_id');
+            select.empty();
+            
+            if(response.success) {
+                response.data.forEach(empresa => {
+                    select.append(`
+                        <option value="${empresa.empresa_id}">
+                            ${empresa.nombre}
+                        </option>
+                    `);
+                });
+                
+                // Establecer valor por defecto si existe
+                if(response.data.length > 0) {
+                    select.val(1); // O el valor que necesites por defecto
+                    select.selectpicker('refresh');
+                }
+            } else {
+                select.append('<option value="">No hay empresas disponibles</option>');
+                showNotify("warning", "Advertencia", response.message || "No se encontraron empresas");
+            }
+            
+            select.selectpicker('refresh');
+        },
+        error: function(xhr) {
+            showNotify("error", "Error", "Error de conexión al cargar empresas");
+            $('#formColaboradores #colaborador_empresa_id').html('<option value="">Error al cargar</option>');
             $('#formColaboradores #colaborador_empresa_id').selectpicker('refresh');
         }
     });
@@ -2172,13 +2189,13 @@ function updateDatePin(newPin) {
         success: function(response) {
             // Verificar si la actualización fue exitosa
             if (response.success) {
-                console.log('PIN actualizado correctamente en la base de datos.');
+
             } else {
-                console.error('Error al actualizar el PIN en la base de datos.');
+
             }
         },
         error: function(error) {
-            console.error('Error al actualizar el PIN: ', error);
+
         }
     });
 }
@@ -2270,7 +2287,6 @@ function getImagenHeaderConsulta(callback) {
             callback(imageUrl);
         },
         error: function() {
-            console.error("Error al obtener la URL de la imagen");
             // Puedes manejar errores aquí también, si es necesario.
         }
     });
@@ -2697,6 +2713,34 @@ function getProveedoresCXP() {
     });
 }
 
+$(() => {
+    // Evento para el botón de Generar Reporte
+    $('#form_main_cobrar_clientes').on('submit', function(e) {
+        e.preventDefault();
+        listar_cuentas_por_cobrar_clientes();
+    });
+
+    // Evento para el botón de Limpiar Filtros
+    $('#btn-limpiar-filtros').on('click', function() {
+        $('#form_main_cobrar_clientes')[0].reset();
+        $('#form_main_cobrar_clientes .selectpicker').selectpicker('refresh');
+        listar_cuentas_por_cobrar_clientes();
+    });
+
+    // Evento para el botón de Generar Reporte
+    $('#form_main_pagar_proveedores').on('submit', function(e) {
+        e.preventDefault();
+        listar_cuentas_por_pagar_proveedores();
+    });
+
+    // Evento para el botón de Limpiar Filtros
+    $('#btn-limpiar-filtros').on('click', function() {
+        $('#form_main_pagar_proveedores')[0].reset();
+        $('#form_main_pagar_proveedores .selectpicker').selectpicker('refresh');
+        listar_cuentas_por_pagar_proveedores();
+    });
+});
+
 //INICIO CUENTAS POR PAGAR PROVEEDORES
 $('#form_main_pagar_proveedores #pagar_proveedores_estado').on("change", function(e) {
     listar_cuentas_por_pagar_proveedores();
@@ -2966,7 +3010,6 @@ var registrar_pago_proveedores_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.table_pay");
     $(tbody).on("click", "button.table_pay", function() {
         var data = table.row($(this).parents("tr")).data();
-        console.log('saldo', data.saldo)
         if (data.saldo <= 0) {
             swal({
                 title: "Alerta",
@@ -3657,7 +3700,6 @@ var eliminar_clientes_dataTable = function(tbody, table) {
                     error: function(xhr, status, error) {
                         swal.close();
                         showNotify("error", "Error", "Ocurrió un error al procesar la solicitud");
-                        console.error("Error en la solicitud AJAX:", error);
                     }
                 });
             }
@@ -3855,7 +3897,6 @@ function pago(facturas_id, tipoPago) {
         success: function(datos) {
             // Verifica que datos sea un array o un objeto
             if (!Array.isArray(datos)) {
-                console.error('Formato de datos inesperado:', datos);
                 return;
             }
 
@@ -3912,7 +3953,7 @@ function pago(facturas_id, tipoPago) {
             });
         },
         error: function(xhr, status, error) {
-            console.error('Error al realizar la solicitud:', status, error);
+
         }
     });
 }
@@ -5093,7 +5134,7 @@ function getImagenHeader() {
             logoElement.attr("src", imageUrl);
         },
         error: function() {
-            console.error("Error al obtener la URL de la imagen");
+
         }
     });
 }
@@ -5167,4 +5208,60 @@ $(function() {
 function formatNumber(number) {
     return $.fn.dataTable.render.number(',', '.', 2, '').display(number);
 }
+
+function cargarContadorFacturasPendientes() {
+    $.ajax({
+        url: '<?php echo SERVERURL; ?>core/contarFacturasPendientesClientes.php',
+        type: 'POST',
+        dataType: 'json',
+        success: function(response) {
+            if (response.type === 'success') {
+                const $campana = $('#notification-bell').closest('li');
+                const $contadorCampana = $('#notification-count');
+                const $contadorDropdown = $('#notification-dropdown-count');
+                const $badgeUsuario = $('#badge-facturas-pendientes-dropdown');
+
+                if (response.total_pendientes > 0) {
+                    // Mostrar campana
+                    $campana.show();
+
+                    // Mostrar y actualizar contadores
+                    $contadorCampana.text(response.total_pendientes).show();
+                    $contadorDropdown.text(response.total_pendientes);
+                    $badgeUsuario.text(response.total_pendientes).show();
+
+                    // Efecto visual
+                    $campana.addClass('new-notification');
+                    setTimeout(() => {
+                        $campana.removeClass('new-notification');
+                    }, 2000);
+
+                    // Cambiar icono a campana llena
+                    $('#notification-bell i')
+                        .removeClass('far fa-bell')
+                        .addClass('fas fa-bell text-warning');
+
+                } else {
+                    // Ocultar campana y contadores
+                    $campana.hide();
+                    $contadorCampana.hide();
+                    $badgeUsuario.hide();
+
+                    // Cambiar icono a campana vacía
+                    $('#notification-bell i')
+                        .removeClass('fas fa-bell text-warning')
+                        .addClass('far fa-bell');
+                }
+            }
+        },
+        error: function() {
+
+        }
+    });
+}
+
+$(() => {
+    cargarContadorFacturasPendientes();
+    setInterval(cargarContadorFacturasPendientes, 300000); // cada 5 minutos
+});
 </script>

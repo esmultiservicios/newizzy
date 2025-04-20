@@ -321,103 +321,71 @@ var eliminar_producto_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.table_eliminar");
     $(tbody).on("click", "button.table_eliminar", function() {
         var data = table.row($(this).parents("tr")).data();
-        var url = '<?php echo SERVERURL;?>core/editarProductos.php';
-        $('#formProductos #productos_id').val(data.productos_id);
 
-        $.ajax({
-            type: 'POST',
-            url: url,
-            data: $('#formProductos').serialize(),
-            success: function(registro) {
-                var datos = eval(registro);
-                $('#formProductos').attr({
-                    'data-form': 'delete'
-                });
-                $('#formProductos').attr({
-                    'action': '<?php echo SERVERURL;?>ajax/eliminarProductosAjax.php'
-                });
-                $('#formProductos')[0].reset();
-                $('#reg_producto').hide();
-                $('#edi_producto').hide();
-                $('#delete_producto').show();
-                $('#formProductos #proceso_productos').val("Eliminar Productos");
-                $('#formProductos #medida').val(datos[0]);
-                $('#formProductos #medida').selectpicker('refresh');
-                $('#formProductos #almacen').val(datos[1]);
-                $('#formProductos #almacen').selectpicker('refresh');
-                $('#formProductos #producto').val(datos[2]);
-                $('#formProductos #descripcion').val(datos[3]);
-                $('#formProductos #precio_compra').val(datos[4]);
-                $('#formProductos #precio_venta').val(datos[5]);
-                $('#formProductos #tipo_producto').val(datos[6]);
-                $('#formProductos #tipo_producto').selectpicker('refresh');
-                $('#formProductos #producto_empresa_id').val(datos[11]);
-                $('#formProductos #producto_empresa_id').selectpicker('refresh');
-                $('#formProductos #porcentaje_venta').val(datos[13]);
-                $('#formProductos #cantidad_minima').val(datos[14]);
-                $('#formProductos #cantidad_maxima').val(datos[15]);
-                $('#formProductos #producto_categoria').val(datos[16]);
-                $('#formProductos #precio_mayoreo').val(datos[17]);
-                $('#formProductos #cantidad_mayoreo').val(datos[18]);
-                $('#formProductos #bar_code_product').val(datos[19]);
-
-                if (datos[11] != "image_preview.png") {
-                    $('#formProductos #preview').attr('src', datos[21]);
-                } else {
-                    $("#formProductos #preview").attr("src",
-                        "<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png"
-                    );
+        var productos_id = data.productos_id;
+        var nombreProducto = data.nombre; 
+        var barCodeProducto = data.barCode || 'No registrado'; // Manejo de RTN vacío
+        
+        // Construir el mensaje de confirmación con HTML
+        var mensajeHTML = `¿Desea eliminar permanentemente al producto?<br><br>
+                        <strong>Nombre:</strong> ${nombreProducto}<br>
+                        <strong>Cóodigo de Barra:</strong> ${barCodeProducto}`;
+        
+        swal({
+            title: "Confirmar eliminación",
+            content: {
+                element: "span",
+                attributes: {
+                    innerHTML: mensajeHTML
                 }
-
-                if (datos[7] == 1) {
-                    $('#formProductos #producto_isv_factura').attr('checked', true);
-                } else {
-                    $('#formProductos #producto_isv_factura').attr('checked', false);
+            },
+            icon: "warning",
+            buttons: {
+                cancel: {
+                    text: "Cancelar",
+                    value: null,
+                    visible: true,
+                    className: "btn-light"
+                },
+                confirm: {
+                    text: "Sí, eliminar",
+                    value: true,
+                    className: "btn-danger",
+                    closeModal: false
                 }
-
-                if (datos[8] == 1) {
-                    $('#formProductos #producto_isv_compra').attr('checked', true);
-                } else {
-                    $('#formProductos #producto_isv_compra').attr('checked', false);
-                }
-
-                if (datos[9] == 1) {
-                    $('#formProductos #producto_activo').attr('checked', true);
-                } else {
-                    $('#formProductos #producto_activo').attr('checked', false);
-                }
-
-                //DESHABILITAR OBJETOS
-                $('#formProductos #producto').attr("readonly", true);
-                $('#formProductos #medida').attr("disabled", true);
-                $('#formProductos #almacen').attr("disabled", true);
-                $('#formProductos #cantidad').attr("readonly", true);
-                $('#formProductos #precio_compra').attr("readonly", true);
-                $('#formProductos #precio_venta').attr("readonly", true);
-                $('#formProductos #descripcion').attr("readonly", true);
-                $('#formProductos #cantidad_minima').attr("readonly", true);
-                $('#formProductos #cantidad_maxima').attr("readonly", true);
-                $('#formProductos #tipo_producto').attr("disabled", true);
-                $('#formProductos #producto_categoria').attr("disabled", true);
-                $('#formProductos #producto_isv_factura').attr("disabled", true);
-                $('#formProductos #producto_isv_compra').attr("disabled", true);
-                $('#formProductos #producto_activo').attr("disabled", true);
-                $('#formProductos #bar_code_product').attr("readonly", true);
-                $('#formProductos #producto_empresa_id').attr("disabled", true);
-                $('#formProductos #precio_mayoreo').attr("readonly", true);
-                $('#formProductos #porcentaje_venta').attr("readonly", true);
-                $('#formProductos #cantidad_mayoreo').attr("readonly", true);
-                $('#formProductos #almacen').attr("disabled", true);
-                $('#formProductos #cantidad').attr("disabled", true);
-                $('#formProductos #buscar_producto_empresa').hide();
-                $('#formProductos #buscar_producto_categorias').hide();
-                $('#formProductos #estado_producto').hide();
-                $('#formProductos #grupo_editar_bacode').hide();
-
-                $('#modal_registrar_productos').modal({
-                    show: true,
-                    keyboard: false,
-                    backdrop: 'static'
+            },
+            dangerMode: true,
+            closeOnEsc: false,
+            closeOnClickOutside: false
+        }).then((confirmar) => {
+            if (confirmar) {
+               
+                $.ajax({
+                    type: 'POST',
+                    url: '<?php echo SERVERURL;?>ajax/eliminarProductosAjax.php',
+                    data: {
+                        productos_id: productos_id
+                    },
+                    dataType: 'json', // Esperamos respuesta JSON
+                    before: function(){
+                        // Mostrar carga mientras se procesa
+                        showLoading("Eliminando registro...");
+                    },
+                    success: function(response) {
+                        swal.close();
+                        
+                        if(response.status === "success") {
+                            showNotify("success", response.title, response.message);
+                            table.ajax.reload(null, false); // Recargar tabla sin resetear paginación
+                            table.search('').draw();                    
+                        } else {
+                            showNotify("error", response.title, response.message);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        swal.close();
+                        showNotify("error", "Error", "Ocurrió un error al procesar la solicitud");
+                    }
                 });
             }
         });

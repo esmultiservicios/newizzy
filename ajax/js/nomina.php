@@ -1,7 +1,7 @@
 <script>
 var sueldo_diario = 0;
 
-$(document).ready(function() {
+$(() => {
     getTipoContrato();
     getPagoPlanificado();
     getTipoEmpleado();
@@ -14,6 +14,19 @@ $(document).ready(function() {
     listar_nominas();
     $('#form_main_nominas #estado_nomina').val(0);
     $('#form_main_nominas #estado_nomina').selectpicker('refresh');
+
+    // Evento para el botón de Generar Reporte
+    $('#form_main_nominas').on('submit', function(e) {
+        e.preventDefault();
+        listar_nominas();
+    });
+
+    // Evento para el botón de Limpiar Filtros
+    $('#btn-limpiar-filtros').on('click', function() {
+        $('#form_main_nominas')[0].reset();
+        $('#form_main_nominas .selectpicker').selectpicker('refresh');
+        listar_nominas();
+    });    
 });
 
 $('#form_main_nominas #estado_nomina').on("change", function(e) {
@@ -698,7 +711,7 @@ function modalNominasDetalles() {
 }
 /*FIN FORMULARIO NOMINAS*/
 
-$(document).ready(function() {
+$(() => {
     $("#modal_registrar_nomina").on('shown.bs.modal', function() {
         $(this).find('#formNomina #nomina_detale').focus();
     });
@@ -795,15 +808,38 @@ function getTipoEmpleado() {
 }
 
 function getEmpresa() {
-    var url = '<?php echo SERVERURL;?>core/getEmpresa.php';
-
     $.ajax({
+        url: "<?php echo SERVERURL; ?>core/getEmpresa.php",
         type: "POST",
-        url: url,
-        async: true,
-        success: function(data) {
-            $('#formNomina #nomina_empresa_id').html("");
-            $('#formNomina #nomina_empresa_id').html(data);
+        dataType: "json",
+        success: function(response) {
+            const select = $('#formNomina #nomina_empresa_id');
+            select.empty();
+            
+            if(response.success) {
+                response.data.forEach(empresa => {
+                    select.append(`
+                        <option value="${empresa.empresa_id}">
+                            ${empresa.nombre}
+                        </option>
+                    `);
+                });
+                
+                // Establecer valor por defecto si existe
+                if(response.data.length > 0) {
+                    select.val(1); // O el valor que necesites por defecto
+                    select.selectpicker('refresh');
+                }
+            } else {
+                select.append('<option value="">No hay empresas disponibles</option>');
+                showNotify("warning", "Advertencia", response.message || "No se encontraron empresas");
+            }
+            
+            select.selectpicker('refresh');
+        },
+        error: function(xhr) {
+            showNotify("error", "Error", "Error de conexión al cargar empresas");
+            $('#formNomina #nomina_empresa_id').html('<option value="">Error al cargar</option>');
             $('#formNomina #nomina_empresa_id').selectpicker('refresh');
         }
     });
@@ -840,194 +876,6 @@ function getEmpleadoVales() {
     });
 }
 // FIN FORMULARIO CONTRATO
-
-$('#formNomina #nomina_notas').keyup(function() {
-    var max_chars = 254;
-    var chars = $(this).val().length;
-    var diff = max_chars - chars;
-
-    $('#formNomina #charNum_nomina_notas').html(diff + ' Caracteres');
-
-    if (diff == 0) {
-        return false;
-    }
-});
-
-function caracteresnotaNomina() {
-    var max_chars = 254;
-    var chars = $('#formNomina #nomina_notas').val().length;
-    var diff = max_chars - chars;
-
-    $('#formNomina #charNum_nomina_notas').html(diff + ' Caracteres');
-
-    if (diff == 0) {
-        return false;
-    }
-}
-
-$('#formNominaDetalles #nomina_detalles_notas').keyup(function() {
-    var max_chars = 254;
-    var chars = $(this).val().length;
-    var diff = max_chars - chars;
-
-    $('#formNominaDetalles #charNum_nomina_detales_notas').html(diff + ' Caracteres');
-
-    if (diff == 0) {
-        return false;
-    }
-});
-
-function caracteresnotaNominaDetalles() {
-    var max_chars = 254;
-    var chars = $('#formNominaDetalles #nomina_detalles_notas').val().length;
-    var diff = max_chars - chars;
-
-    $('#formNominaDetalles #charNum_nomina_detales_notas').html(diff + ' Caracteres');
-
-    if (diff == 0) {
-        return false;
-    }
-}
-
-$('#formVales #vale_notas').keyup(function() {
-    var max_chars = 254;
-    var chars = $(this).val().length;
-    var diff = max_chars - chars;
-
-    $('#formVales #charNumvale_notas').html(diff + ' Caracteres');
-
-    if (diff == 0) {
-        return false;
-    }
-});
-
-function caracteresnotaValeNotas() {
-    var max_chars = 254;
-    var chars = $('#formVales #vale_notas').val().length;
-    var diff = max_chars - chars;
-
-    $('#formVales #charNumvale_notas').html(diff + ' Caracteres');
-
-    if (diff == 0) {
-        return false;
-    }
-}
-
-//INICIO GRABACIONES POR VOZ
-$(document).ready(function() {
-    $('#formNomina #search_nomina_notas_stop').hide();
-
-    var recognition = new webkitSpeechRecognition();
-    recognition.continuous = true;
-    recognition.lang = "es";
-
-    $('#formNomina #search_nomina_notas_start').on('click', function(event) {
-        $('#formNomina #search_nomina_notas_start').hide();
-        $('#formNomina #search_nomina_notas_stop').show();
-
-        recognition.start();
-
-        recognition.onresult = function(event) {
-            finalResult = '';
-            var valor_anterior = $('#formNomina #nomina_notas').val();
-            for (var i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalResult = event.results[i][0].transcript;
-                    if (valor_anterior != "") {
-                        $('#formNomina #nomina_notas').val(valor_anterior + ' ' + finalResult);
-                        caracteresnotaNomina();
-                    } else {
-                        $('#formNomina #nomina_notas').val(finalResult);
-                        caracteresnotaNomina();
-                    }
-                }
-            }
-        };
-        return false;
-    });
-
-    $('#formNomina #search_nomina_notas_stop').on("click", function(event) {
-        $('#formNomina #search_nomina_notas_start').show();
-        $('#formNomina #search_nomina_notas_stop').hide();
-        recognition.stop();
-    });
-    /*###############################################################################################################################*/
-    $('#formNominaDetalles #search_nomina_detalles_notas_stop').hide();
-
-    var recognition = new webkitSpeechRecognition();
-    recognition.continuous = true;
-    recognition.lang = "es";
-
-    $('#formNominaDetalles #search_nomina_detalles_notas_start').on('click', function(event) {
-        $('#formNominaDetalles #search_nomina_notas_start').hide();
-        $('#formNominaDetalles #search_nomina_detalles_notas_stop').show();
-
-        recognition.start();
-
-        recognition.onresult = function(event) {
-            finalResult = '';
-            var valor_anterior = $('#formNominaDetalles #nomina_detalles_notas').val();
-            for (var i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalResult = event.results[i][0].transcript;
-                    if (valor_anterior != "") {
-                        $('#formNominaDetalles #nomina_detalles_notas').val(valor_anterior + ' ' +
-                            finalResult);
-                        caracteresnotaNominaDetalles();
-                    } else {
-                        $('#formNominaDetalles #nomina_detalles_notas').val(finalResult);
-                        caracteresnotaNominaDetalles();
-                    }
-                }
-            }
-        };
-        return false;
-    });
-
-    $('#formNominaDetalles #search_nomina_detalles_notas_stop').on("click", function(event) {
-        $('#formNominaDetalles #search_nomina_detalles_notas_start').show();
-        $('#formNominaDetalles #search_nomina_detalles_notas_start').hide();
-        recognition.stop();
-    });
-    /*###############################################################################################################################*/
-    $('#formVales #search_vale_notas_stop').hide();
-
-    var recognition = new webkitSpeechRecognition();
-    recognition.continuous = true;
-    recognition.lang = "es";
-
-    $('#formVales #search_vale_notas_start').on('click', function(event) {
-        $('#formVales #search_vale_notas_start').hide();
-        $('#formVales #search_vale_notas_stop').show();
-
-        recognition.start();
-
-        recognition.onresult = function(event) {
-            finalResult = '';
-            var valor_anterior = $('#formVales #vale_notas').val();
-            for (var i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalResult = event.results[i][0].transcript;
-                    if (valor_anterior != "") {
-                        $('#formVales #vale_notas').val(valor_anterior + ' ' +
-                            finalResult);
-                        caracteresnotaValeNotas();
-                    } else {
-                        $('#formVales #vale_notas').val(finalResult);
-                        caracteresnotaValeNotas();
-                    }
-                }
-            }
-        };
-        return false;
-    });
-
-    $('#formVales #search_vale_notas_stop').on("click", function(event) {
-        $('#formVales #search_vale_notas_start').show();
-        $('#formVales #search_vale_notas_start').hide();
-        recognition.stop();
-    });
-});
 
 //ACCIONES BOTON VOLVER
 $("#volver_nomina").on("click", function(e) {
@@ -1334,8 +1182,6 @@ var editar_nominas_detalles_dataTable = function(tbody, table) {
 
                 calculoNomina();
 
-                caracteresnotaNominaDetalles();
-
                 if (valores[29] == 1) {
                     $('#formNominaDetalles #nomina_detalles_activo').attr('checked', true);
                     $('#edi_nominaD').attr('disabled', true);
@@ -1448,8 +1294,6 @@ var eliminar_nominas_detalles_dataTable = function(tbody, table) {
                 $('#formNominaDetalles #nomina_detalles_notas').val(valores[28]);
 
                 calculoNomina();
-
-                caracteresnotaNominaDetalles();
 
                 if (valores[29] == 1) {
                     $('#formNominaDetalles #nomina_detalles_activo').attr('checked', true);
@@ -2176,4 +2020,118 @@ function anularVale(vale_id) {
     });
 }
 //FIN VALES
+
+/**
+ * Función para inicializar contadores de caracteres
+ * @param {Object} limites - Objeto con los límites de caracteres {campoId: limite}
+ */
+function inicializarContadores(limites) {
+    Object.keys(limites).forEach(function(campo) {
+        // Usar event delegation para manejar dinámicamente los campos
+        $(document).on('input', '#' + campo, function() {
+            actualizarCaracteres(campo, 'charNum_' + campo, limites[campo]);
+        });
+
+        // Inicializar el contador para elementos existentes
+        if ($('#' + campo).length) {
+            actualizarCaracteres(campo, 'charNum_' + campo, limites[campo]);
+        }
+    });
+}
+
+/**
+ * Actualiza el contador de caracteres
+ */
+function actualizarCaracteres(campo, contadorId, max_chars) {
+    var $campo = $('#' + campo);
+    if ($campo.length === 0) return;
+
+    var texto = $campo.val() || '';
+    var longitudTexto = texto.length;
+
+    if (longitudTexto > max_chars) {
+        $campo.val(texto.substring(0, max_chars));
+        longitudTexto = max_chars;
+    }
+
+    $('#' + contadorId).text(longitudTexto + '/' + max_chars);
+}
+
+/**
+ * Inicializa el reconocimiento de voz para los campos especificados
+ */
+function inicializarSpeechRecognition(limites) {
+    Object.keys(limites).forEach(function(campo) {
+        // Ocultar botón de stop inicialmente
+        $('#search_' + campo + '_stop').hide();
+
+        // Configurar reconocimiento de voz
+        var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.continuous = true;
+        recognition.lang = "es-ES";
+        recognition.interimResults = false;
+
+        // Event delegation para manejar dinámicamente los botones
+        $(document).on('click', '#search_' + campo + '_start', function(event) {
+            $(this).hide();
+            $('#search_' + campo + '_stop').show();
+            recognition.start();
+            event.preventDefault();
+        });
+
+        $(document).on('click', '#search_' + campo + '_stop', function(event) {
+            recognition.stop();
+            $(this).hide();
+            $('#search_' + campo + '_start').show();
+            event.preventDefault();
+        });
+
+        recognition.onresult = function(event) {
+            var finalResult = '';
+            var $campo = $('#' + campo);
+            var valorAnterior = $campo.val() || '';
+
+            for (var i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    finalResult = event.results[i][0].transcript;
+                    var nuevoTexto = (valorAnterior + ' ' + finalResult).trim();
+
+                    if (nuevoTexto.length > limites[campo]) {
+                        nuevoTexto = nuevoTexto.substring(0, limites[campo]);
+                    }
+
+                    $campo.val(nuevoTexto);
+                    actualizarCaracteres(campo, 'charNum_' + campo, limites[campo]);
+                }
+            }
+        };
+
+        recognition.onerror = function(event) {
+            console.error('Error en reconocimiento de voz:', event.error);
+            $('#search_' + campo + '_stop').hide();
+            $('#search_' + campo + '_start').show();
+        };
+    });
+}
+
+// Inicialización cuando el DOM esté listo
+$(() => {
+    // Configuración de límites
+    var limites = {
+        'nomina_notas': 254,
+        'nomina_detalles_notas': 254,
+        'vale_notas': 254,
+        'nominad_neto': 254
+    };
+
+    // Inicializar para elementos existentes
+    inicializarContadores(limites);
+    inicializarSpeechRecognition(limites);
+
+    // Reinicializar cuando se muestren modales
+    $('.modal').on('shown.bs.modal', function() {
+        inicializarContadores(limites);
+        inicializarSpeechRecognition(limites);
+    });
+});
 </script>

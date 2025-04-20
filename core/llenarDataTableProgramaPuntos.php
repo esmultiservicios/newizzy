@@ -16,18 +16,13 @@ if ($estado !== '') {
 $query .= " ORDER BY fecha_creacion DESC";
 
 $result = $insMainModel->ejecutar_consulta($query);
-
 $data = array();
-while ($row = $result->fetch_assoc()) {
-    $data[] = array(
-        "id" => $row['id'],
-        "nombre" => $row['nombre'],
-        "tipo_calculo" => $row['tipo_calculo'],
-        "monto" => $row['monto'],
-        "porcentaje" => $row['porcentaje'],
-        "activo" => $row['activo'],
-        "fecha_creacion" => $row['fecha_creacion']
-    );
+if (is_array($result)) {
+    $data = $result;
+} elseif (is_object($result) && method_exists($result, 'fetch_assoc')) {
+    while ($row = $result->fetch_assoc()) {
+        $data[] = $row;
+    }
 }
 
 $arreglo = array(

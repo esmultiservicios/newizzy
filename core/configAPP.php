@@ -18,13 +18,17 @@ if (!isset($_SESSION['user_sd'])) {
 }
 
 // DATOS DE CONEXION DEL CLIENTE
-const SERVER = 'localhost';
-const USER = '***REMOVED***';
-const PASS = '***REMOVED***';
+define('SERVER', 'localhost');
+define('USER', '***REMOVED***');
+define('PASS', '***REMOVED***');
 
 // DATOS DE CONEXION SERVIDOR PRINCIPAL
-const SERVER_MAIN = 'localhost';
-const DB_MAIN = 'esmultiservicios_izzy';
+define('SERVER_MAIN', 'localhost');
+define('DB_MAIN', 'esmultiservicios_izzy');
+
+// Datos conexion root MySQL user
+define('MYSQL_USER', '***REMOVED***');
+define('MYSQL_PASS', '***REMOVED***');
 
 // cPanel
 define('CPANEL_TOKEN', '***REMOVED***');
@@ -53,9 +57,6 @@ define('API_TIMEOUT', 60);
 define('SSL_VERIFICATION', false); // true en producción
 
 $GLOBALS['DB_MAIN'] = DB_MAIN;
-
-const USER_MAIN = '***REMOVED***';
-const PASS_MAIN = '***REMOVED***';
 
 // BASE DE DATOS EXCEPTION LOGIN CONTROLADOR
 const DB_MAIN_LOGIN_CONTROLADOR = DB_MAIN;  // LA BASE DE DATOS QUE ESTE AQUÍ SE EXCEPTÚA EN EL LOGIN CONTROLADOR

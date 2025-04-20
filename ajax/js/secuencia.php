@@ -335,18 +335,41 @@ function modal_secuencia_facturacion() {
 /*FIN FORMULARIO SECUENCIA DE FACTURACION*/
 
 function getEmpresaSecuencia() {
-    var url = '<?php echo SERVERURL;?>core/getEmpresa.php';
-
     $.ajax({
+        url: "<?php echo SERVERURL; ?>core/getEmpresa.php",
         type: "POST",
-        url: url,
-        async: true,
-        success: function(data) {
-            $('#formSecuencia #empresa_secuencia').html("");
-            $('#formSecuencia #empresa_secuencia').html(data);
-            $('#formSecuencia #empresa_secuencia').selectpicker('refresh');
+        dataType: "json",
+        success: function(response) {
+            const select = $('#formSecuencia #empresa_secuencia');
+            select.empty();
+            
+            if(response.success) {
+                response.data.forEach(empresa => {
+                    select.append(`
+                        <option value="${empresa.empresa_id}">
+                            ${empresa.nombre}
+                        </option>
+                    `);
+                });
+                
+                // Establecer valor por defecto si existe
+                if(response.data.length > 0) {
+                    select.val(1); // O el valor que necesites por defecto
+                    select.selectpicker('refresh');
+                }
+            } else {
+                select.append('<option value="">No hay empresas disponibles</option>');
+                showNotify("warning", "Advertencia", response.message || "No se encontraron empresas");
+            }
+            
+            select.selectpicker('refresh');
 
             $('#formSecuencia #empresa_secuencia').val(1);
+            $('#formSecuencia #empresa_secuencia').selectpicker('refresh');
+        },
+        error: function(xhr) {
+            showNotify("error", "Error", "Error de conexión al cargar empresas");
+            $('#formSecuencia #empresa_secuencia').html('<option value="">Error al cargar</option>');
             $('#formSecuencia #empresa_secuencia').selectpicker('refresh');
         }
     });

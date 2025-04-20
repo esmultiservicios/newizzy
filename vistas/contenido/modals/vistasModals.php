@@ -1,142 +1,145 @@
+<!--INICIO MODAL LOGIN-->
 <div class="modal fade" id="modalLogin">
     <div class="modal-dialog modal-md modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title"><i class="fas fa-sign-in-alt"></i> Autorización</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-sign-in-alt mr-2"></i>Autorización</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="container"></div>
             <div class="modal-body">
                 <form id="formLogin" action="" method="POST" data-form="" enctype="multipart/form-data">
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <input type="text" id="autorizacion_user" name="autorizacion_user" class="form-control"
-                                placeholder="login">
+                    <!-- Sección de Credenciales -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-user-shield mr-2"></i>Credenciales de Acceso</h5>
                         </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <input type="text" id="autorizacion_pass" name="autorizacion_pass" class="form-control"
-                                placeholder="password">
-                        </div>
-                    </div>
-
-                </form>
-            </div>
-            <div class="modal-footer">
-                <input type="submit" class="btn btn-primary ml-2" value="Log In">
-            </div>
-        </div>
-    </div>
-</div>
-
-<!--INICIO MODAL BUSQUEDA DE CUENTAS CONTABLES-->
-<div class="modal fade" id="modal_buscar_cuentas_contables">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Buscar Cuentas</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="container"></div>
-            <div class="modal-body">
-                <form class="FormularioAjax" id="formulario_busqueda_cuentas_contables">
-                    <div class="form-group">
-                        <div class="col-md-12">
-                            <div class="overflow-auto">
-                                <table id="DatatableBusquedaCuentasContables"
-                                    class="table table-striped table-condensed table-hover" style="width:100%">
-                                    <thead>
-                                        <tr>
-                                            <th>Seleccione</th>
-                                            <th>Código</th>
-                                            <th>Nombre</th>
-                                        </tr>
-                                    </thead>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-
-            </div>
-        </div>
-    </div>
-</div>
-<!--FIN MODAL BUSQUEDA DE CUENTAS CONTABLES-->
-
-<!--INICIO MODAL PARA EL INGRESO DE CUENTAS CONTABLES-->
-<div class="modal fade" id="modalCuentascontables">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Cuentas</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="container"></div>
-            <div class="modal-body">
-                <form class="form-horizontal FormularioAjax" id="formCuentasContables" action="" method="POST"
-                    data-form="" enctype="multipart/form-data">
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <input type="hidden" required="required" readonly id="cuentas_id" name="cuentas_id" />
-                            <div class="input-group mb-3">
-                                <input type="text" required readonly id="pro_cuentas" name="pro_cuentas"
-                                    class="form-control" />
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fa fa-plus-square fa-lg"></i>
-                                    </span>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="autorizacion_user"><i class="fas fa-user mr-1"></i>Usuario <span class="priority">*</span></label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-user-tag"></i></span>
+                                        </div>
+                                        <input type="text" id="autorizacion_user" name="autorizacion_user" class="form-control" placeholder="Nombre de usuario" required>
+                                    </div>
+                                    <small class="form-text text-muted">Ingrese su nombre de usuario registrado</small>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="col-md-4 mb-3" style="display: none">
-                            <label for="cuenta_codigo">Código</label>
-                            <input type="text" id="cuenta_codigo" name="cuenta_codigo" placeholder="Código"
-                                class="form-control" maxlength="11"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label for="cuenta_nombre">Cuenta <span class="priority">*</span></label>
-                            <input type="text" required id="cuenta_nombre" name="cuenta_nombre" placeholder="Cuenta"
-                                class="form-control" maxlength="30"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
-                        </div>
-                    </div>
-                    <div class="form-group" id="estado_cuentas_contables">
-                        <div class="col-md-12">
-                            <label class="switch">
-                                <input type="checkbox" id="cuentas_activo" name="cuentas_activo" value="1" checked>
-                                <div class="slider round"></div>
-                            </label>
-                            <span class="question mb-2" id="label_cuentas_activo"></span>
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="autorizacion_pass"><i class="fas fa-key mr-1"></i>Contraseña <span class="priority">*</span></label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                        </div>
+                                        <input type="password" id="autorizacion_pass" name="autorizacion_pass" class="form-control" placeholder="Contraseña" required>
+                                        <div class="input-group-append">
+                                            <button class="btn btn-outline-secondary" type="button" id="show_password_login">
+                                                <i class="fas fa-eye" id="togglePasswordLogin"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Ingrese su contraseña de acceso</small>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="RespuestaAjax"></div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="guardar btn btn-primary ml-2" type="submit" style="display: none;" id="reg_cuentas"
-                    form="formCuentasContables">
-                    <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
+                <button class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
                 </button>
-                <button class="editar btn btn-warning ml-2" type="submit" style="display: none;" id="edi_cuentas"
-                    form="formCuentasContables">
-                    <div class="sb-nav-link-icon"></div><i class="fas fa-edit fa-lg"></i> Editar
+                <button type="submit" class="btn btn-primary" form="formLogin">
+                    <i class="fas fa-sign-in-alt mr-1"></i> Iniciar Sesión
                 </button>
-                <button class="eliminar btn btn-danger ml-2" type="submit" style="display: none;" id="delete_cuentas"
-                    form="formCuentasContables">
-                    <div class="sb-nav-link-icon"></div><i class="fa fa-trash fa-lg"></i> Eliminar
+            </div>
+        </div>
+    </div>
+</div>
+<!--FIN MODAL LOGIN-->
+
+<!--INICIO MODAL PARA EL INGRESO DE CUENTAS CONTABLES-->
+<div class="modal fade" id="modalCuentascontables">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-book mr-2"></i>Registro de Cuentas Contables</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form class="FormularioAjax" id="formCuentasContables" action="" method="POST" data-form="" enctype="multipart/form-data">
+                    <!-- Sección de Información Básica -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Información Básica</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <input type="hidden" required="required" readonly id="cuentas_id" name="cuentas_id" />
+                                    <label for="pro_cuentas"><i class="fas fa-search mr-1"></i>Buscar Cuenta</label>
+                                    <div class="input-group">
+                                        <input type="text" required readonly id="pro_cuentas" name="pro_cuentas" class="form-control" placeholder="Seleccione una cuenta contable">
+                                        <div class="input-group-append">
+                                            <button class="btn btn-outline-primary" type="button" data-toggle="modal" data-target="#modal_buscar_cuentas_contables">
+                                                <i class="fas fa-search"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Seleccione una cuenta contable existente o registre una nueva</small>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="col-md-4 mb-3" style="display: none">
+                                    <label for="cuenta_codigo"><i class="fas fa-barcode mr-1"></i>Código</label>
+                                    <input type="text" id="cuenta_codigo" name="cuenta_codigo" placeholder="Código" class="form-control" maxlength="11" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
+                                    <small class="form-text text-muted">Código único de la cuenta contable</small>
+                                </div>
+                                <div class="col-md-12 mb-3">
+                                    <label for="cuenta_nombre"><i class="fas fa-file-signature mr-1"></i>Nombre de Cuenta <span class="priority">*</span></label>
+                                    <input type="text" required id="cuenta_nombre" name="cuenta_nombre" placeholder="Nombre de la cuenta contable" class="form-control" maxlength="30" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
+                                    <small class="form-text text-muted">Nombre descriptivo de la cuenta contable (máx. 30 caracteres)</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección de Estado -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-power-off mr-2"></i>Estado de la Cuenta</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" id="cuentas_activo" name="cuentas_activo" value="1" checked>
+                                <label class="custom-control-label" for="cuentas_activo">Cuenta Activa</label>
+                                <small class="form-text text-muted">Active o desactive el estado de la cuenta contable en el sistema</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="RespuestaAjax"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
+                </button>
+                <button class="btn btn-primary" type="submit" style="display: none;" id="reg_cuentas" form="formCuentasContables">
+                    <i class="far fa-save mr-1"></i> Registrar
+                </button>
+                <button class="btn btn-warning" type="submit" style="display: none;" id="edi_cuentas" form="formCuentasContables">
+                    <i class="fas fa-edit mr-1"></i> Editar
+                </button>
+                <button class="btn btn-danger" type="submit" style="display: none;" id="delete_cuentas" form="formCuentasContables">
+                    <i class="fas fa-trash mr-1"></i> Eliminar
                 </button>
             </div>
         </div>
@@ -144,113 +147,277 @@
 </div>
 <!--FIN MODAL PARA EL INGRESO DE CUENTAS CONTABLES-->
 
-<!--INICIO MODAL USUARIOS-->
-<div class="modal fade" id="modal_registrar_usuarios">
+<!--INICIO MODAL BUSQUEDA DE CUENTAS CONTABLES-->
+<div class="modal fade" id="modal_buscar_cuentas_contables">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Registro de Usuarios</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-search mr-2"></i> Buscar Cuentas Contables</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="container"></div>
             <div class="modal-body">
-                <form class="FormularioAjax" id="formUsers" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
-
-                    <input type="hidden" id="usuarios_id" name="usuarios_id" class="form-control">
-                    <input type="hidden" id="server_customers_id" name="server_customers_id" class="form-control">
-                    <input type="hidden" id="usuarios_colaborador_id" name="usuarios_colaborador_id" class="form-control" required>
-
-                    <div class="form-row">
-                        <div class="col-md-3 mb-3">
-                            <label for="colaborador_id_usuario">Colaboradores <span class="priority">*</span></label>
-                            <div class="input-group mb-3">
-                                <select id="colaborador_id_usuario" name="colaborador_id_usuario" data-width="100%"
-                                    class="selectpicker" data-live-search="true" data-size="7" title="Colaboradores">
-                                </select>
-                            </div>
+                <form class="FormularioAjax" id="formulario_busqueda_cuentas_contables">
+                    <!-- Sección de Resultados -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-list-alt mr-2"></i>Resultados de Búsqueda</h5>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="correo_usuario">Correo <span class="priority">*</span></label>
-                            <div class="input-group mb-3">
-                                <input type="email" class="form-control" placeholder="Correo" id="correo_usuario"
-                                    name="correo_usuario" aria-label="Correo" aria-describedby="basic-addon2" required>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fas fa-envelope-square"></i>
-                                    </span>
-                                </div>
+                        <div class="card-body">
+                            <div class="overflow-auto">
+                                <table id="DatatableBusquedaCuentasContables" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
+                                    <thead>
+                                        <tr>
+                                            <th><i class="fas fa-check-circle mr-1"></i> Seleccione</th>
+                                            <th><i class="fas fa-barcode mr-1"></i> Código</th>
+                                            <th><i class="fas fa-file-signature mr-1"></i> Nombre</th>
+                                        </tr>
+                                    </thead>
+                                </table>
                             </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="empresa_usuario">Empresa <span class="priority">*</span></label>
-                            <div class="input-group mb-3">
-                                <select id="empresa_usuario" name="empresa_usuario" class="selectpicker"
-                                    data-width="100%" data-live-search="true" title="Empresa">
-                                </select>
-                            </div>
+                            <small class="form-text text-muted">Seleccione una cuenta contable de la lista</small>
                         </div>
                     </div>
-
-                    <div class="form-row">
-                        <div class="col-md-3 mb-3">
-                            <label for="tipo_user" data-toggle="tooltip" data-placement="top"
-                                title="'Permisos' definen lo que puedes hacer: guardar, crear, modificar, eliminar, etc. Son las acciones que tienes permitidas en el sistema.">Perrmisos
-                                <span class="priority">*</span></label>
-                            <div class="input-group mb-3">
-                                <select id="tipo_user" name="tipo_user" class="selectpicker" data-live-search="true"
-                                    data-width="100%" title="Tipo Usuario">
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="privilegio_id" data-toggle="tooltip" data-placement="top"
-                                title="'Privilegio' determina qué áreas y menús puedes acceder. Es tu permiso para entrar a distintas partes.">Privilegio
-                                <span class="priority">*</span></label>
-                            <div class="input-group mb-3">
-                                <select id="privilegio_id" name="privilegio_id" class="selectpicker" data-width="100%"
-                                    data-live-search="true" title="Tipo Usuario">
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group" id="estado_usuarios">
-                        <span class="mr-2">Estado:</span>
-                        <div class="col-md-12">
-                            <label class="switch">
-                                <input type="checkbox" id="usuarios_activo" name="usuarios_activo" value="1" checked>
-                                <div class="slider round"></div>
-                            </label>
-                            <span class="question mb-2" id="label_usuarios_activo"></span>
-                        </div>
-                    </div>
-                    <div class="RespuestaAjax"></div>
                 </form>
-                <br />
-                <br />
-                <br />
-                <br />
             </div>
             <div class="modal-footer">
-                <button class="guardar btn btn-primary ml-2" type="submit" style="display: none;" id="reg_usuario"
-                    form="formUsers">
-                    <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
-                </button>
-                <button class="editar btn btn-warning ml-2" type="submit" style="display: none;" id="edi_usuario"
-                    form="formUsers">
-                    <div class="sb-nav-link-icon"></div><i class="fas fa-edit fa-lg"></i> Editar
-                </button>
-                <button class="eliminar btn btn-danger ml-2" type="submit" style="display: none;" id="delete_usuario"
-                    form="formUsers">
-                    <div class="sb-nav-link-icon"></div><i class="fa fa-trash fa-lg"></i> Eliminar
+                <button class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
                 </button>
             </div>
         </div>
     </div>
 </div>
-<!--FIN MODAL USUARIOS-->
+<!--FIN MODAL BUSQUEDA DE CUENTAS CONTABLES-->
+
+<!-- MODAL REGISTRAR USUARIOS -->
+<div class="modal fade" id="modal_registrar_usuarios">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title">Registro de Usuario del Sistema</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form class="FormularioAjax" id="formUsers" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+                    <input type="hidden" id="usuarios_id" name="usuarios_id">
+                    <input type="hidden" id="server_customers_id" name="server_customers_id">
+                    <input type="hidden" id="colaboradores_id" name="colaboradores_id">
+                    <input type="hidden" id="es_nuevo_colaborador" name="es_nuevo_colaborador" value="0">
+                    
+                    <!-- Pestañas para selección de colaborador -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0">Selección del Colaborador</h5>
+                        </div>
+                        <div class="card-body">
+                            <ul class="nav nav-tabs" id="myTab" role="tablist">
+                                <li class="nav-item">
+                                    <a class="nav-link active" id="existente-tab" data-toggle="tab" href="#existente" role="tab">
+                                        <i class="fas fa-users"></i> Colaboradores Existentes
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" id="nuevo-tab" data-toggle="tab" href="#nuevo" role="tab">
+                                        <i class="fa-solid fa-user-plus"></i> Registrar Nuevo Colaborador
+                                    </a>
+                                </li>
+                            </ul>
+                            
+                            <div class="tab-content mt-3" id="myTabContent">
+                                <!-- Pestaña Colaborador Existente -->
+                                <div class="tab-pane fade show active" id="existente" role="tabpanel">
+                                    <div class="form-group">
+                                        <label for="buscar_colaborador">Buscar Colaborador <span class="priority">*</span></label>
+                                        <select id="buscar_colaborador" name="buscar_colaborador" class="selectpicker form-control"
+                                            data-live-search="true" data-size="7" data-width="100%"
+                                            title="Seleccione un colaborador de la lista">
+                                        </select>
+                                        <small class="form-text text-muted">Seleccione un colaborador existente para asignarle credenciales de usuario</small>
+                                    </div>
+                                        
+                                    <!-- Información del colaborador seleccionado -->
+                                    <div class="card border-light" id="info_colaborador" style="display: none;">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0">Información del Colaborador Seleccionado</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <p><strong>Nombre:</strong> <span id="info_nombre"></span></p>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <p><strong>Identidad:</strong> <span id="info_identidad"></span></p>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <p><strong>Teléfono:</strong> <span id="info_telefono"></span></p>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <p><strong>Fecha Ingreso:</strong> <span id="info_fecha_ingreso"></span></p>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <p><strong>Estado:</strong> <span id="info_estado"></span></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Pestaña Nuevo Colaborador -->
+                                <div class="tab-pane fade" id="nuevo" role="tabpanel">
+                                    <div class="form-group">
+                                        <label for="nombre_colaborador">Nombre Completo <span class="priority">*</span></label>
+                                        <input type="text" class="form-control" id="nombre_colaborador" name="nombre_colaborador" required>
+                                        <small class="form-text text-muted">Nombre completo del nuevo colaborador</small>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="col-md-6 form-group">
+                                            <label for="identidad_colaborador">Identidad</label>
+                                            <input type="text" class="form-control" id="identidad_colaborador" name="identidad_colaborador">
+                                            <small class="form-text text-muted">Número de identificación personal</small>
+                                        </div>
+                                        <div class="col-md-6 form-group">
+                                            <label for="telefono_colaborador">Teléfono</label>
+                                            <input type="text" class="form-control" id="telefono_colaborador" name="telefono_colaborador">
+                                            <small class="form-text text-muted">Número de contacto</small>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="col-md-6 form-group">
+                                            <label for="fecha_ingreso_colaborador">Fecha Ingreso <span class="priority">*</span></label>
+                                            <input type="date" class="form-control" id="fecha_ingreso_colaborador" name="fecha_ingreso_colaborador">
+                                            <small class="form-text text-muted">Fecha de ingreso a la empresa</small>
+                                        </div>
+                                        <div class="col-md-6 form-group">
+                                            <label for="puesto_colaborador">Puesto <span class="priority">*</span></label>
+                                            <select class="selectpicker form-control" id="puesto_colaborador" name="puesto_colaborador" 
+                                                data-live-search="true" title="Seleccione un puesto" required>
+                                            </select>
+                                            <small class="form-text text-muted">Cargo o posición del colaborador</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección de Credenciales de Usuario -->
+                    <div class="card border-primary mb-3">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Credenciales de Acceso al Sistema</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-6 form-group">
+                                    <label for="correo_usuario">Correo Electrónico <span class="priority">*</span></label>
+                                    <div class="input-group">
+                                        <input type="email" class="form-control" id="correo_usuario" name="correo_usuario" required>
+                                        <div class="input-group-append">
+                                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Será utilizado como nombre de usuario para iniciar sesión</small>
+                                </div>
+                                <div class="col-md-3 form-group">
+                                    <label for="empresa_usuario">Empresa Asignada <span class="priority">*</span></label>
+                                    <select id="empresa_usuario" name="empresa_usuario" class="selectpicker form-control" 
+                                        data-live-search="true" title="Seleccione una empresa" required>
+                                    </select>
+                                    <small class="form-text text-muted">Empresa principal del usuario</small>
+                                </div>
+                                <div class="col-md-3 form-group">
+                                    <label for="privilegio_id">Nivel de Privilegio <span class="priority">*</span></label>
+                                    <select id="privilegio_id" name="privilegio_id" class="selectpicker form-control" 
+                                        data-live-search="true" title="Seleccione un privilegio" required>
+                                    </select>
+                                    <small class="form-text text-muted">Determina el nivel de acceso en el sistema</small>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="col-md-6 form-group">
+                                    <label for="tipo_user">Tipo de Permisos <span class="priority">*</span></label>
+                                    <select id="tipo_user" name="tipo_user" class="selectpicker form-control" 
+                                        data-live-search="true" title="Seleccione permisos" required>
+                                    </select>
+                                    <small class="form-text text-muted">Define las funciones específicas disponibles</small>
+                                </div>
+                                <div class="col-md-6 form-group">
+                                    <label>Estado de la Cuenta</label>
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="estado_usuario" name="estado_usuario" checked>
+                                        <label class="custom-control-label" for="estado_usuario">Cuenta Activa</label>
+                                    </div>
+                                    <small class="form-text text-muted">Habilite o deshabilite el acceso al sistema</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="submit" class="btn btn-primary" id="reg_usuario" form="formUsers" style="display: none;">
+                    <i class="fas fa-save"></i> Registrar Usuario
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PARA BUSCAR COLABORADORES -->
+<div class="modal fade" id="modal_buscar_colaboradores">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Buscar Colaborador</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="buscar_colaborador_input" placeholder="Buscar por nombre, identidad o teléfono">
+                        <div class="input-group-append">
+                            <button class="btn btn-primary" type="button" id="btn_buscar_colaborador">
+                                <i class="fas fa-search"></i> Buscar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped" id="tabla_colaboradores">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Identidad</th>
+                                <th>Teléfono</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultados_colaboradores">
+                            <!-- Resultados de búsqueda se cargarán aquí -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!--INICIO MODAL BUSQUEDA DE COLABORADORES-->
 <div class="modal fade" id="modal_buscar_colaboradores_usuarios">
@@ -269,7 +436,7 @@
                         <div class="col-md-12">
                             <div class="overflow-auto">
                                 <table id="DatatableColaboradoresBusqueda"
-                                    class="table table-striped table-condensed table-hover" style="width:100%">
+                                    class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
                                     <thead>
                                         <tr>
                                             <th>Seleccione</th>
@@ -308,7 +475,7 @@
                         <div class="col-md-12">
                             <div class="overflow-auto">
                                 <table id="DatatableClientesBusquedaFactura"
-                                    class="table table-striped table-condensed table-hover" style="width:100%">
+                                    class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
                                     <thead>
                                         <tr>
                                             <th>Seleccione</th>
@@ -334,82 +501,111 @@
 
 <!--INICIO MODAL CAMBIAR CONTRASEÑA -->
 <div class="modal fade" id="ModalContraseña">
-    <div class="modal-dialog modal-md modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Modificar Contraseña</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-key mr-2"></i>Modificar Contraseña</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="container"></div>
             <div class="modal-body">
-                <form class="FormularioAjax" id="form-cambiarcontra" method="POST" data-form="" autocomplete="off"
-                    enctype="multipart/form-data">
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <div class="input-group mb-3">
-                                <input type="text" required="required" readonly id="id-registro" name="id-registro"
-                                    readonly="readonly" style="display: none;" class="form-control" />
-                                <input type="password" name="contranaterior" class="form-control" id="contranaterior"
-                                    placeholder="Contraseña Anterior" required="required">
-                                <div class="input-group-append">
-                                    <span class="btn btn-outline-success" id="show_password1" style="cursor:pointer;"><i
-                                            id="icon1" class="fa fa-eye-slash icon fa-la"></i></span>
+                <form class="FormularioAjax" id="form-cambiarcontra" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+                    <!-- Sección de Credenciales Actuales -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-lock mr-2"></i>Seguridad</h5>
+                        </div>
+                        <div class="card-body">
+                            <input type="hidden" name="id" id="id" value="<?php echo $_SESSION['colaborador_id_sd']; ?>">
+                            <input type="hidden" required="required" readonly id="id-registro" name="id-registro" style="display: none;">
+                            
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="contranaterior"><i class="fas fa-lock mr-1"></i>Contraseña Actual <span class="priority">*</span></label>
+                                    <div class="input-group">
+                                        <input type="password" name="contranaterior" class="form-control" id="contranaterior" placeholder="Ingrese su contraseña actual" required>
+                                        <div class="input-group-append">
+                                            <button class="btn btn-outline-secondary" type="button" id="show_password1">
+                                                <i class="fas fa-eye" id="icon1"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Ingrese su contraseña actual para verificar su identidad</small>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <div class="input-group mb-3">
-                                <input type="password" name="nuevacontra" class="form-control" id="nuevacontra"
-                                    placeholder="Nueva Contraseña" required="required">
-                                <div class="input-group-append">
-                                    <span class="btn btn-outline-success" id="show_password2" style="cursor:pointer;"><i
-                                            id="icon1" class="fa fa-eye-slash icon fa-la"></i></span>
+                    
+                    <!-- Sección de Nueva Contraseña -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-key mr-2"></i>Nueva Contraseña</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="nuevacontra"><i class="fas fa-key mr-1"></i>Nueva Contraseña <span class="priority">*</span></label>
+                                    <div class="input-group">
+                                        <input type="password" name="nuevacontra" class="form-control" id="nuevacontra" placeholder="Ingrese su nueva contraseña" required>
+                                        <div class="input-group-append">
+                                            <button class="btn btn-outline-secondary" type="button" id="show_password2">
+                                                <i class="fas fa-eye" id="icon2"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Cree una nueva contraseña segura</small>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="repcontra"><i class="fas fa-redo mr-1"></i>Confirmar Contraseña <span class="priority">*</span></label>
+                                    <div class="input-group">
+                                        <input type="password" name="repcontra" class="form-control" id="repcontra" placeholder="Confirme su nueva contraseña" required>
+                                        <div class="input-group-append">
+                                            <button class="btn btn-outline-secondary" type="button" id="show_password3">
+                                                <i class="fas fa-eye" id="icon3"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Vuelva a ingresar la nueva contraseña para confirmar</small>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <div class="input-group mb-3">
-                                <input type="password" name="repcontra" class="form-control" id="repcontra"
-                                    placeholder="Repetir Contraseña" required="required">
-                                <div class="input-group-append">
-                                    <span class="btn btn-outline-success" id="show_password3" style="cursor:pointer;"><i
-                                            id="icon1" class="fa fa-eye-slash icon fa-la"></i></span>
+                    
+                    <!-- Sección de Requisitos -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-clipboard-check mr-2"></i>Requisitos de Seguridad</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <div id="mensaje_cambiar_contra"></div>
+                                    <ul title="La contraseña debe cumplir con todas estas características" id="list">
+                                        <li id="mayus"><i class="fas fa-check-circle mr-1"></i> 1 Mayúscula</li>
+                                        <li id="special"><i class="fas fa-check-circle mr-1"></i> 1 Caracter Especial (Símbolo)</li>
+                                        <li id="numbers"><i class="fas fa-check-circle mr-1"></i> Números</li>
+                                        <li id="lower"><i class="fas fa-check-circle mr-1"></i> Minúsculas</li>
+                                        <li id="len"><i class="fas fa-check-circle mr-1"></i> Mínimo 8 Caracteres</li>
+                                    </ul>
+                                    <small class="form-text text-muted">Su contraseña debe cumplir con todos estos requisitos de seguridad</small>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <div id="mensaje_cambiar_contra"></div>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <ul title="La contraseña debe cumplir con todas estas características" id="list">
-                                <li id="mayus"> 1 Mayúscula</li>
-                                <li id="special">1 Caracter Especial (Símbolo)</li>
-                                <li id="numbers">Números</li>
-                                <li id="lower">Minúsculas</li>
-                                <li id="len">Mínimo 8 Caracteres</li>
-                            </ul>
-                        </div>
-                    </div>
-                    <input type="hidden" name="id" class="form-control" id="id"
-                        value="<?php echo $_SESSION['colaborador_id_sd']; ?>">
-                    <div class="modal-footer">
-                        <button class="cambiar btn btn-success ml-2" type="submit" style="display: none;"
-                            id="Modalcambiarcontra_Edit">
-                            <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Editar
-                        </button>
-                    </div>
+                    
                     <div class="RespuestaAjax"></div>
                 </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
+                </button>
+                <button class="btn btn-success" type="submit" style="display: none;" id="Modalcambiarcontra_Edit" form="form-cambiarcontra">
+                    <i class="fas fa-save mr-1"></i> Guardar Cambios
+                </button>
             </div>
         </div>
     </div>
@@ -1721,103 +1917,147 @@
 <div class="modal fade" id="modal_registrar_clientes">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Clientes</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-user-tie mr-2"></i>Registro de Clientes</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="container"></div>
             <div class="modal-body">
-                <form class="FormularioAjax" id="formClientes" action="" method="POST" data-form="" autocomplete="off"
-                    enctype="multipart/form-data">
+                <form class="FormularioAjax" id="formClientes" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
                     <input type="hidden" id="clientes_id" name="clientes_id" class="form-control">
                     
-                    <div class="form-row">
-                        <div class="col-md-8 mb-3">
-                            <label for="nombre_clientes">Cliente <span class="priority">*</span></label>
-                            <input type="text" class="form-control" id="nombre_clientes" name="nombre_clientes"
-                                placeholder="Nombre" maxlength="100" required data-toggle="tooltip" data-placement="top"
-                                title="Razón Social (Como aparece en el RTN)">
+                    <!-- Sección de Información Básica -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Información Básica</h5>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="identidad_clientes">Identidad o RTN</label>
-                            <div class="input-group mb-3">
-                                <input type="number" class="form-control" id="identidad_clientes"
-                                    name="identidad_clientes" placeholder="Identidad o RTN" maxlength="14"
-                                    oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
-                                <div class="input-group-append" id="grupo_editar_rtn">
-                                    <span data-toggle="tooltip" data-placement="top" title="Editar RTN"><a
-                                            data-toggle="modal" href="#"
-                                            class="btn btn-outline-success form-control editar_rtn">
-                                            <div class="sb-nav-link-icon"></div><i class="fas fa-edit fa-lg"></i>
-                                        </a></span>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-8 mb-3">
+                                    <label for="nombre_clientes">Nombre/Razón Social <span class="priority">*</span></label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-signature"></i></span>
+                                        </div>
+                                        <input type="text" class="form-control" id="nombre_clientes" name="nombre_clientes" placeholder="Nombre completo o razón social" maxlength="100" required>
+                                    </div>
+                                    <small class="form-text text-muted">Ingrese el nombre completo o razón social (como aparece en documentos legales)</small>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="identidad_clientes">Identidad/RTN</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-id-card"></i></span>
+                                        </div>
+                                        <input type="number" class="form-control" id="identidad_clientes" name="identidad_clientes" placeholder="Número de identidad o RTN" maxlength="14" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
+                                        <div class="input-group-append" id="grupo_editar_rtn">
+                                            <button type="button" class="btn btn-outline-success editar_rtn" data-toggle="tooltip" title="Editar RTN">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Número de identidad (13 dígitos) o RTN (14 dígitos)</small>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="col-md-3 mb-3">
+                                    <label for="fecha_clientes">Fecha de Registro <span class="priority">*</span></label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                        </div>
+                                        <input type="date" required id="fecha_clientes" name="fecha_clientes" value="<?php echo date('Y-m-d'); ?>" class="form-control">
+                                    </div>
+                                    <small class="form-text text-muted">Fecha en que se registra al cliente</small>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="departamento_cliente">Departamento</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-map-marked-alt"></i></span>
+                                        </div>
+                                        <select class="selectpicker form-control" id="departamento_cliente" name="departamento_cliente" data-live-search="true" title="Seleccione un departamento">
+                                        </select>
+                                    </div>
+                                    <small class="form-text text-muted">Departamento donde reside el cliente</small>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="municipio_cliente">Municipio</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
+                                        </div>
+                                        <select class="selectpicker form-control" id="municipio_cliente" name="municipio_cliente" data-live-search="true" title="Seleccione un municipio">
+                                        </select>
+                                    </div>
+                                    <small class="form-text text-muted">Municipio donde reside el cliente</small>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="telefono_clientes">Teléfono</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                        </div>
+                                        <input type="number" class="form-control" id="telefono_clientes" name="telefono_clientes" placeholder="Número de teléfono" maxlength="8" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
+                                    </div>
+                                    <small class="form-text text-muted">Número de contacto principal</small>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="col-md-3 mb-3">
-                            <label for="fecha_clientes">Fecha <span class="priority">*</span></label>
-                            <div class="input-group mb-3">
-                                <input type="date" required id="fecha_clientes" name="fecha_clientes"
-                                    value="<?php echo date('Y-m-d'); ?>" class="form-control" />
+                    
+                    <!-- Sección de Contacto y Ubicación -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-map-marker-alt mr-2"></i>Contacto y Ubicación</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="dirección_clientes">Dirección Completa</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-home"></i></span>
+                                        </div>
+                                        <input type="text" class="form-control" id="dirección_clientes" name="dirección_clientes" placeholder="Dirección exacta" maxlength="150">
+                                    </div>
+                                    <small class="form-text text-muted">Dirección exacta incluyendo puntos de referencia</small>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="departamento_cliente">Departamento</label>
-                            <div class="input-group mb-3">
-                                <select class="selectpicker" id="departamento_cliente" name="departamento_cliente"
-                                    data-width="100%" data-width="100%" data-size="7" data-live-search="true"
-                                    title="Departamentos">
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="municipio_cliente">Municipio </label>
-                            <div class="input-group mb-3">
-                                <select class="selectpicker" id="municipio_cliente" name="municipio_cliente"
-                                    data-width="100%" data-size="7" data-live-search="true" title="Municipio">
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="telefono_clientes">Teléfono</label>
-                            <input type="number" class="form-control" id="telefono_clientes" name="telefono_clientes"
-                                placeholder="Teléfono" maxlength="8"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="dirección_clientes">Dirección</label>
-                            <input type="text" class="form-control" id="dirección_clientes" name="dirección_clientes"
-                                placeholder="Dirección" maxlength="150">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="correo_clientes">Correo</label>
-                            <div class="input-group mb-3">
-                                <input type="email" class="form-control" placeholder="Correo" id="correo_clientes"
-                                    name="correo_clientes" aria-label="Correo" aria-describedby="basic-addon2"
-                                    maxlength="70">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div>@algo.com
-                                    </span>
+                            
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="correo_clientes">Correo Electrónico</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                        </div>
+                                        <input type="email" class="form-control" placeholder="Correo electrónico" id="correo_clientes" name="correo_clientes" maxlength="70">
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">@ejemplo.com</span>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Correo electrónico para contacto y notificaciones</small>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="form-group" id="estado_clientes">
-                        <span class="mr-2">Estado:</span>
-                        <div class="col-md-12">
-                            <label class="switch">
-                                <input type="checkbox" id="clientes_activo" name="clientes_activo" value="1" checked>
-                                <div class="slider round"></div>
-                            </label>
-                            <span class="question mb-2" id="label_clientes_activo"></span>
+                    
+                    <!-- Sección de Estado -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-power-off mr-2"></i>Estado del Cliente</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <div class="custom-control custom-switch">
+                                    <input type="checkbox" class="custom-control-input" id="clientes_activo" name="clientes_activo" checked>
+                                    <label class="custom-control-label" for="clientes_activo"><i class="fas fa-user-check mr-1"></i>Cliente Activo</label>
+                                </div>
+                                <small class="form-text text-muted">Active o desactive el estado del cliente en el sistema</small>
+                            </div>
                         </div>
                     </div>
 
@@ -1825,17 +2065,17 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="guardar btn btn-primary ml-2" type="submit" style="display: none;" id="reg_cliente"
-                    form="formClientes">
-                    <div class="guardar sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
+                <button class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
                 </button>
-                <button class="editar btn btn-warning ml-2" type="submit" style="display: none;" id="edi_cliente"
-                    form="formClientes">
-                    <div class="editar sb-nav-link-icon"></div><i class="fas fa-edit fa-lg"></i> Editar
+                <button class="btn btn-primary" type="submit" style="display: none;" id="reg_cliente" form="formClientes">
+                    <i class="far fa-save mr-1"></i> Registrar
                 </button>
-                <button class="eliminar btn btn-danger ml-2" type="submit" style="display: none;" id="delete_cliente"
-                    form="formClientes">
-                    <div class="eliminar sb-nav-link-icon"></div><i class="fa fa-trash fa-lg"></i> Eliminar
+                <button class="btn btn-warning" type="submit" style="display: none;" id="edi_cliente" form="formClientes">
+                    <i class="fas fa-edit mr-1"></i> Editar
+                </button>
+                <button class="btn btn-danger" type="submit" style="display: none;" id="delete_cliente" form="formClientes">
+                    <i class="fas fa-trash mr-1"></i> Eliminar
                 </button>
             </div>
         </div>
@@ -1847,115 +2087,120 @@
 <div class="modal fade" id="modal_registrar_proveedores">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Proveedores</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-truck mr-2"></i>Registro de Proveedores</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="container"></div>
             <div class="modal-body">
-                <form class="FormularioAjax" id="formProveedores" action="" method="POST" data-form=""
-                    autocomplete="off" enctype="multipart/form-data">
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <div class="input-group mb-3">
-                                <input type="hidden" id="proveedores_id" name="proveedores_id" class="form-control">
-                                <input type="text" id="proceso_proveedores" class="form-control" readonly>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fa fa-plus-square fa-lg"></i>
-                                    </span>
+                <form class="FormularioAjax" id="formProveedores" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+                    <input type="hidden" id="proveedores_id" name="proveedores_id" class="form-control">
+   
+					
+                    <!-- Sección de Información Básica -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Información Básica</h5>
+                        </div>
+                        <div class="card-body">                           
+                            <div class="form-row">
+                                <div class="col-md-8 mb-3">
+                                    <label for="nombre_proveedores"><i class="fas fa-truck mr-1"></i>Proveedor <span class="priority">*</span></label>
+                                    <input type="text" class="form-control" id="nombre_proveedores" name="nombre_proveedores" placeholder="Nombre del proveedor" maxlength="150" required>
+                                    <small class="form-text text-muted">Nombre completo o razón social del proveedor</small>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="rtn_proveedores"><i class="fas fa-id-card mr-1"></i>Identidad o RTN</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="rtn_proveedores" name="rtn_proveedores" placeholder="RTN" maxlength="14" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
+                                        <div class="input-group-append" id="grupo_editar_rtn">
+                                            <button type="button" class="btn btn-outline-success editar_rtn" data-toggle="tooltip" title="Editar RTN">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Número de identidad (13 dígitos) o RTN (14 dígitos)</small>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="col-md-3 mb-3">
+                                    <label for="fecha_proveedores"><i class="fas fa-calendar-alt mr-1"></i>Fecha <span class="priority">*</span></label>
+                                    <input type="date" required id="fecha_proveedores" name="fecha_proveedores" value="<?php echo date('Y-m-d'); ?>" class="form-control">
+                                    <small class="form-text text-muted">Fecha de registro del proveedor</small>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="departamento_proveedores"><i class="fas fa-map-marker-alt mr-1"></i>Departamento</label>
+                                    <select class="selectpicker form-control" id="departamento_proveedores" name="departamento_proveedores" data-live-search="true" title="Seleccione departamento">
+                                    </select>
+                                    <small class="form-text text-muted">Departamento donde se ubica el proveedor</small>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="municipio_proveedores"><i class="fas fa-map-marked-alt mr-1"></i>Municipio</label>
+                                    <select class="selectpicker form-control" id="municipio_proveedores" name="municipio_proveedores" data-live-search="true" title="Seleccione municipio">
+                                    </select>
+                                    <small class="form-text text-muted">Municipio donde se ubica el proveedor</small>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="telefono_proveedores"><i class="fas fa-phone-alt mr-1"></i>Teléfono</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                        </div>
+                                        <input type="text" class="form-control" id="telefono_proveedores" name="telefono_proveedores" placeholder="Número de teléfono">
+                                    </div>
+                                    <small class="form-text text-muted">Número de contacto principal</small>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="col-md-8 mb-3">
-                            <label for="nombre_proveedores">Proveedor <span class="priority">*</span></label>
-                            <input type="text" class="form-control" id="nombre_proveedores" name="nombre_proveedores"
-                                placeholder="Proveedor" required maxlength="150" placeholder="RTN"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
+                    
+                    <!-- Sección de Contacto y Ubicación -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-map-marker-alt mr-2"></i>Contacto y Ubicación</h5>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="rtn_proveedores">Identidad o RTN</label>
-                            <div class="input-group mb-3">
-                                <input type="number" class="form-control" id="rtn_proveedores" name="rtn_proveedores"
-                                    maxlength="14" placeholder="RTN"
-                                    oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
-                                <div class="input-group-append" id="grupo_editar_rtn">
-                                    <span data-toggle="tooltip" data-placement="top" title="Editar RTN"><a
-                                            data-toggle="modal" href="#"
-                                            class="btn btn-outline-success form-control editar_rtn">
-                                            <div class="sb-nav-link-icon"></div><i class="fas fa-edit fa-lg"></i>
-                                        </a></span>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="dirección_proveedores"><i class="fas fa-home mr-1"></i>Dirección</label>
+                                    <input type="text" class="form-control" id="dirección_proveedores" name="dirección_proveedores" placeholder="Dirección completa" maxlength="150">
+                                    <small class="form-text text-muted">Dirección exacta del proveedor</small>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="correo_proveedores"><i class="fas fa-envelope mr-1"></i>Correo</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-at"></i></span>
+                                        </div>
+                                        <input type="email" class="form-control" placeholder="Correo electrónico" id="correo_proveedores" name="correo_proveedores" maxlength="70">
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">@ejemplo.com</span>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Correo electrónico para contacto</small>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="col-md-3 mb-3">
-                            <label for="fecha_proveedores">Fecha <span class="priority">*</span></label>
-                            <div class="input-group mb-3">
-                                <input type="date" required id="fecha_proveedores" name="fecha_proveedores"
-                                    value="<?php echo date('Y-m-d'); ?>" class="form-control" />
-                            </div>
+                    
+                    <!-- Sección de Estado -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-power-off mr-2"></i>Estado del Proveedor</h5>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="departamento_proveedores">Departamento </label>
-                            <div class="input-group mb-3">
-                                <select class="selectpicker" id="departamento_proveedores"
-                                    name="departamento_proveedores" data-size="7" data-live-search="true"
-                                    data-width="100%" title="Departamentos">
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="municipio_proveedores">Municipio </label>
-                            <div class="input-group mb-3">
-                                <select class="selectpicker" id="municipio_proveedores" name="municipio_proveedores"
-                                    data-width="100%" data-size="7" data-live-search="true" title="Municipios">
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="telefono_proveedores">Teléfono</label>
-                            <input type="text" class="form-control" id="telefono_proveedores"
-                                name="telefono_proveedores" placeholder="Teléfono">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="dirección_proveedores">Dirección</label>
-                            <input type="text" class="form-control" id="dirección_proveedores"
-                                name="dirección_proveedores" placeholder="Dirección" maxlength="150">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="correo_proveedores">Correo</label>
-                            <div class="input-group mb-3">
-                                <input type="email" class="form-control" placeholder="Correo" id="correo_proveedores"
-                                    name="correo_proveedores" aria-label="Correo" aria-describedby="basic-addon2"
-                                    maxlength="70">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div>@algo.com
-                                    </span>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <div class="custom-control custom-switch">
+                                    <input type="checkbox" class="custom-control-input" id="proveedores_activo" name="proveedores_activo" value="1" checked>
+                                    <label class="custom-control-label" for="proveedores_activo">Proveedor Activo</label>
                                 </div>
+                                <small class="form-text text-muted">Active o desactive el estado del proveedor en el sistema</small>
                             </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group" id="estado_proveedores">
-                        <span class="mr-2">Estado:</span>
-                        <div class="col-md-12">
-                            <label class="switch">
-                                <input type="checkbox" id="proveedores_activo" name="proveedores_activo" value="1"
-                                    checked>
-                                <div class="slider round"></div>
-                            </label>
-                            <span class="question mb-2" id="label_proveedores_activo"></span>
                         </div>
                     </div>
 
@@ -1963,17 +2208,17 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="guardar btn btn-primary ml-2" type="submit" style="display: none;" id="reg_proveedor"
-                    form="formProveedores">
-                    <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
+                <button class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
                 </button>
-                <button class="editar btn btn-warning ml-2" type="submit" style="display: none;" id="edi_proveedor"
-                    form="formProveedores">
-                    <div class="sb-nav-link-icon"></div><i class="fas fa-edit fa-lg"></i> Editar
+                <button class="btn btn-primary" type="submit" style="display: none;" id="reg_proveedor" form="formProveedores">
+                    <i class="far fa-save mr-1"></i> Registrar
                 </button>
-                <button class="eliminar btn btn-danger ml-2" type="submit" style="display: none;" id="delete_proveedor"
-                    form="formProveedores">
-                    <div class="sb-nav-link-icon"></div><i class="fa fa-trash fa-lg"></i> Eliminar
+                <button class="btn btn-warning" type="submit" style="display: none;" id="edi_proveedor" form="formProveedores">
+                    <i class="fas fa-edit mr-1"></i> Editar
+                </button>
+                <button class="btn btn-danger" type="submit" style="display: none;" id="delete_proveedor" form="formProveedores">
+                    <i class="fas fa-trash mr-1"></i> Eliminar
                 </button>
             </div>
         </div>
@@ -1981,7 +2226,6 @@
 </div>
 <!--FIN MODAL PROVEEDORES-->
 
-<!--INICIO MODALS BUSQUEDA-->
 <!--INICIO MODAL BUSQUEDA DE PRODUCTOS EN FACTURACION-->
 <div class="modal fade" id="modal_buscar_productos_facturacion">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
@@ -2015,7 +2259,7 @@
                     <div class="col-md-12">
                         <div class="overflow-auto">
                             <table id="DatatableProductosBusquedaFactura"
-                                class="table table-striped table-condensed table-hover" style="width:100%">
+                                class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
                                 <thead>
                                     <tr>
                                         <th>Seleccione</th>
@@ -2061,7 +2305,7 @@
                     <div class="col-md-12">
                         <div class="overflow-auto">
                             <table id="DatatableProductosBusquedaCompra"
-                                class="table table-striped table-condensed table-hover" style="width:100%">
+                                class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
                                 <thead>
                                     <tr>
                                         <th>Seleccione</th>
@@ -2104,7 +2348,7 @@
                         <div class="col-md-12">
                             <div class="overflow-auto">
                                 <table id="DatatableProductosBusquedaMovimientos"
-                                    class="table table-striped table-condensed table-hover" style="width:100%">
+                                    class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
                                     <thead>
                                         <tr>
                                             <th>Seleccione</th>
@@ -2147,7 +2391,7 @@
                         <div class="col-md-12">
                             <div class="overflow-auto">
                                 <table id="DatatableColaboradoresBusquedaFactura"
-                                    class="table table-striped table-condensed table-hover" style="width:100%">
+                                    class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
                                     <thead>
                                         <tr>
                                             <th>Seleccione</th>
@@ -2170,137 +2414,149 @@
 </div>
 <!--FIN MODAL BUSQUEDA DE COLABORADORES EN FACTURACION-->
 
-<!--INICIO MODAL COLABORADORES-->
+<!-- MODAL COLABORADORES -->
 <div class="modal fade" id="modal_registrar_colaboradores">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Colaboradores</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title">Gestión de Colaboradores</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="container"></div>
+            
             <div class="modal-body">
                 <form class="FormularioAjax" id="formColaboradores" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+                    <input type="hidden" id="colaborador_id" name="colaborador_id">
 
-                    <input type="hidden" id="colaborador_id" name="colaborador_id" class="form-control" placeholder="Colaborador">
-
-                    <div class="form-row" id="datosClientes" style="display: none;">
-                        <div class="col-md-6 mb-3">
-                            <label for="cliente_codigo_colaborador">Código Cliente</label>
-                            <input type="text" class="form-control" id="cliente_codigo_colaborador"
-                                name="cliente_codigo_colaborador" placeholder="Código Cliente" readonly
-                                data-toggle="tooltip" data-placement="top"
-                                title="Este código es exclusivo para su cuenta y será necesario proporcionarlo cada vez que necesite asistencia técnica">
+                    <!-- Sección de Datos de Seguridad -->
+                    <div class="card mb-3" id="datosClientes" style="display: none;">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0">Credenciales de Seguridad</h5>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="pin_colaborador">Pin</label>
-                            <input type="text" class="form-control" id="pin_colaborador" name="pin_colaborador"
-                                placeholder="Pin" readonly data-toggle="tooltip" data-placement="top"
-                                title="Este es un código único, que se le solicitará después de iniciar sesión en su cuenta. Este código tiene una duración de 60 segundos antes de que expire.">
-                        </div>
-                        <div class="col-md-2 mb-3 align-self-end">
-                            <button class="btn btn-primary" type="button" id="generarPin"><i
-                                    class="fas fa-sync-alt"></i> Generar</button>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="col-md-6 mb-3">
-                            <label for="nombre">Nombre <span class="priority">*</span></label>
-                            <input type="text" class="form-control" id="nombre_colaborador" name="nombre_colaborador"
-                                placeholder="Nombre" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="apellido">Apellido <span class="priority">*</span></label>
-                            <input type="text" class="form-control" id="apellido_colaborador"
-                                name="apellido_colaborador" placeholder="Apellido" required>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="col-md-6 mb-3">
-                            <label for="identidad_colaborador">Identidad <span class="priority">*</span></label>
-                            <input type="number" class="form-control" id="identidad_colaborador"
-                                name="identidad_colaborador" placeholder="Identidad" maxlength="13"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);"
-                                required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="telefono">Teléfono <span class="priority">*</span></label>
-                            <input type="number" class="form-control" id="telefono_colaborador"
-                                name="telefono_colaborador" placeholder="Teléfono" maxlength="8"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);"
-                                required>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="col-md-6 mb-3">
-                            <label for="fecha_ingreso_colaborador">Fecha Ingreso <span
-                                    class="priority">*</span></label>
-                            <input type="date" class="form-control" id="fecha_ingreso_colaborador"
-                                name="fecha_ingreso_colaborador" value="<?php echo date('Y-m-d'); ?>"
-                                placeholder="Fecha Ingreso" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="fecha_egreso_colaborador">Fecha Egreso</label>
-                            <input type="date" class="form-control" id="fecha_egreso_colaborador"
-                                name="fecha_egreso_colaborador" placeholder="Fecha Egreso">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="col-md-6 mb-3">
-                            <label>Puesto <span class="priority">*</span></label>
-                            <div class="input-group mb-3">
-                                <select id="puesto_colaborador" name="puesto_colaborador" class="selectpicker"
-                                    data-width="100%" title="Puesto" data-live-search="true" required>
-                                    <option value="">Seleccione</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label>Empresa <span class="priority">*</span></label>
-                            <div class="input-group mb-3">
-                                <select id="colaborador_empresa_id" name="colaborador_empresa_id" class="selectpicker"
-                                    data-width="100%" title="Empresa" data-live-search="true" required>
-                                    <option value="">Seleccione</option>
-                                </select>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-6 form-group">
+                                    <label for="cliente_codigo_colaborador">Código de Cliente</label>
+                                    <input type="text" class="form-control" id="cliente_codigo_colaborador" name="cliente_codigo_colaborador" readonly>
+                                    <small class="form-text text-muted">Identificador único para soporte técnico</small>
+                                </div>
+                                <div class="col-md-6 form-group">
+                                    <label for="pin_colaborador">PIN de Verificación</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="pin_colaborador" name="pin_colaborador" readonly>
+                                        <div class="input-group-append">
+                                            <button class="btn btn-primary" type="button" id="generarPin">
+                                                <i class="fas fa-sync-alt"></i> Generar Nuevo PIN
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Código temporal válido por 60 segundos</small>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="form-group" id="estado_colaboradores">
-                        <span class="mr-2">Estado:</span>
-                        <div class="col-md-12">
-                            <label class="switch">
-                                <input type="checkbox" id="colaboradores_activo" name="colaboradores_activo" value="1"
-                                    checked>
-                                <div class="slider round"></div>
-                            </label>
-                            <span class="question mb-2" id="label_colaboradores_activo"></span>
+                    <!-- Sección de Información Básica -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0">Información Personal del Colaborador</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label for="nombre_colaborador">Nombre Completo<span class="priority">*</span></label>
+                                <input type="text" class="form-control" id="nombre_colaborador" name="nombre_colaborador" required>
+                                <small class="form-text text-muted">Nombre y apellidos del colaborador</small>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="col-md-6 form-group">
+                                    <label for="identidad_colaborador">Número de Identidad <span class="priority">*</span></label>
+                                    <input type="number" class="form-control" id="identidad_colaborador" name="identidad_colaborador" 
+                                           maxlength="13" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" required>
+                                    <small class="form-text text-muted">Documento de identificación oficial</small>
+                                </div>
+                                <div class="col-md-6 form-group">
+                                    <label for="telefono_colaborador">Teléfono de Contacto <span class="priority">*</span></label>
+                                    <input type="number" class="form-control" id="telefono_colaborador" name="telefono_colaborador" 
+                                           maxlength="8" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" required>
+                                    <small class="form-text text-muted">Número celular o telefónico principal</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sección de Datos Laborales -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Información Laboral</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-6 form-group">
+                                    <label for="fecha_ingreso_colaborador">Fecha de Ingreso <span class="priority">*</span></label>
+                                    <input type="date" class="form-control" id="fecha_ingreso_colaborador" name="fecha_ingreso_colaborador" 
+                                           value="<?php echo date('Y-m-d'); ?>" required>
+                                    <small class="form-text text-muted">Fecha en que inició labores en la empresa</small>
+                                </div>
+                                <div class="col-md-6 form-group">
+                                    <label for="fecha_egreso_colaborador">Fecha de Egreso</label>
+                                    <input type="date" class="form-control" id="fecha_egreso_colaborador" name="fecha_egreso_colaborador">
+                                    <small class="form-text text-muted">Fecha de retiro (dejar vacío si sigue activo)</small>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="col-md-6 form-group">
+                                    <label>Puesto o Cargo <span class="priority">*</span></label>
+                                    <select id="puesto_colaborador" name="puesto_colaborador" class="selectpicker form-control" 
+                                            data-live-search="true" title="Seleccione el puesto" required>
+                                        <option value="">Seleccione un puesto</option>
+                                    </select>
+                                    <small class="form-text text-muted">Posición dentro de la organización</small>
+                                </div>
+                                <div class="col-md-6 form-group">
+                                    <label>Empresa Asignada <span class="priority">*</span></label>
+                                    <select id="colaborador_empresa_id" name="colaborador_empresa_id" class="selectpicker form-control" 
+                                            data-live-search="true" title="Seleccione la empresa" required>
+                                        <option value="">Seleccione una empresa</option>
+                                    </select>
+                                    <small class="form-text text-muted">Empresa o sucursal principal</small>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Estado Laboral</label>
+                                <div class="custom-control custom-switch">
+                                    <input type="checkbox" class="custom-control-input" id="colaboradores_activo" name="colaboradores_activo" checked>
+                                    <label class="custom-control-label" for="colaboradores_activo">Colaborador Activo</label>
+                                </div>
+                                <small class="form-text text-muted">Desactive si el colaborador ya no labora en la empresa</small>
+                            </div>
                         </div>
                     </div>
 
                     <div class="RespuestaAjax"></div>
                 </form>
             </div>
+            
             <div class="modal-footer">
-                <button class="guardar btn btn-primary ml-2" type="submit" style="display: none;" id="reg_colaborador"
-                    form="formColaboradores">
-                    <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancelar
                 </button>
-                <button class="editar btn btn-warning ml-2" type="submit" style="display: none;" id="edi_colaborador"
-                    form="formColaboradores">
-                    <div class="sb-nav-link-icon"></div><i class="fas fa-edit fa-lg"></i> Editar
+                <button type="submit" class="btn btn-primary" id="reg_colaborador" form="formColaboradores" style="display: none;">
+                    <i class="far fa-save"></i> Guardar Colaborador
                 </button>
-                <button class="eliminar btn btn-danger ml-2" type="submit" style="display: none;"
-                    id="delete_colaborador" form="formColaboradores">
-                    <div class="sb-nav-link-icon"></div><i class="fa fa-trash fa-lg"></i> Eliminar
+                <button type="submit" class="btn btn-warning" id="edi_colaborador" form="formColaboradores" style="display: none;">
+                    <i class="fas fa-edit"></i> Actualizar Datos
+                </button>
+                <button type="submit" class="btn btn-danger" id="delete_colaborador" form="formColaboradores" style="display: none;">
+                    <i class="fas fa-trash"></i> Eliminar Registro
                 </button>
             </div>
         </div>
     </div>
 </div>
-<!--FIN MODAL COLABORADORES-->
 
 <!--INICIO MODAL BUSQUEDA DE EMPRESAS-->
 <div class="modal fade" id="modal_buscar_empresa">
@@ -2319,7 +2575,7 @@
                         <div class="col-md-12">
                             <div class="overflow-auto">
                                 <table id="DatatableBusquedaEmpresas"
-                                    class="table table-striped table-condensed table-hover" style="width:100%">
+                                    class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
                                     <thead>
                                         <tr>
                                             <th>Seleccione</th>
@@ -2342,268 +2598,268 @@
     </div>
 </div>
 <!--FIN MODAL BUSQUEDA DE EMPRESAS-->
-<!--INICIO MODALS BUSQUEDA-->
 
 <!--INICIO MODAL EMPRESA-->
 <div class="modal fade" id="modal_registrar_empresa">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Empresa</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-building mr-2"></i>Registro de Empresa</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="container"></div>
             <div class="modal-body">
-                <form class="FormularioAjax" id="formEmpresa" action="" method="POST" data-form="" autocomplete="off"
-                    enctype="multipart/form-data">
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <div class="input-group mb-3">
-                                <input type="hidden" id="empresa_id" name="empresa_id" class="form-control">
-                                <input type="text" id="proceso_empresa" class="form-control" readonly>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fa fa-plus-square fa-lg"></i>
-                                    </span>
+                <form class="FormularioAjax" id="formEmpresa" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+                    <input type="hidden" id="empresa_id" name="empresa_id" class="form-control">
+                    
+                    <!-- Sección de Información General -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Información General</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <div class="input-group mb-3">
+                                        <input type="hidden" id="empresa_id" name="empresa_id" class="form-control">
+                                        <input type="text" id="proceso_empresa" class="form-control" readonly>
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">
+                                                <i class="fas fa-plus-square"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="empresa_razon_social"><i class="fas fa-file-signature mr-1"></i>Razón Social <span class="priority">*</span></label>
+                                    <div class="input-group">
+                                        <input type="text" name="empresa_razon_social" id="empresa_razon_social" class="form-control" placeholder="Razón Social" maxlength="100" required>
+                                        <div class="input-group-append">
+                                            <span class="input-group-text"><i class="far fa-building"></i></span>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Nombre legal de la empresa</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="empresa_empresa"><i class="fas fa-signature mr-1"></i>Empresa <span class="priority">*</span></label>
+                                    <div class="input-group">
+                                        <input type="text" name="empresa_empresa" id="empresa_empresa" class="form-control" placeholder="Nombre comercial" maxlength="50" required>
+                                        <div class="input-group-append">
+                                            <span class="input-group-text"><i class="fas fa-store"></i></span>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Nombre comercial de la empresa</small>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="rtn_empresa"><i class="fas fa-id-card-alt mr-1"></i>RTN <span class="priority">*</span></label>
+                                    <div class="input-group">
+                                        <input type="text" name="rtn_empresa" id="rtn_empresa" class="form-control" placeholder="RTN" maxlength="14" required>
+                                        <div class="input-group-append">
+                                            <span class="input-group-text"><i class="fas fa-id-card"></i></span>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Registro Tributario Nacional (14 dígitos)</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="sitioweb_empresa"><i class="fas fa-globe-americas mr-1"></i>Sitio WEB</label>
+                                    <div class="input-group">
+                                        <input type="text" name="sitioweb_empresa" id="sitioweb_empresa" class="form-control" placeholder="Sitio WEB" maxlength="150">
+                                        <div class="input-group-append">
+                                            <span class="input-group-text"><i class="fas fa-link"></i></span>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">URL del sitio web de la empresa</small>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="col-md-6 mb-3">
-                            <label>Razón Social <span class="priority">*</span></label>
-                            <div class="input-group mb-3">
-                                <input type="text" name="empresa_razon_social" id="empresa_razon_social"
-                                    class="form-control" placeholder="Razón Social" maxlength="100"
-                                    oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);"
-                                    required>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="far fa-building fa-lg"></i>
-                                    </span>
+                    
+                    <!-- Sección de Contacto -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-address-book mr-2"></i>Información de Contacto</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="telefono_empresa"><i class="fas fa-phone-alt mr-1"></i>Teléfono <span class="priority">*</span></label>
+                                    <div class="input-group">
+                                        <input type="text" name="telefono_empresa" id="telefono_empresa" class="form-control" placeholder="Teléfono" maxlength="8" required>
+                                        <div class="input-group-append">
+                                            <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Teléfono principal de contacto</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="empresa_celular"><i class="fab fa-whatsapp mr-1"></i>WhatsApp</label>
+                                    <div class="input-group">
+                                        <input type="text" name="empresa_celular" id="empresa_celular" class="form-control" placeholder="Teléfono" maxlength="8">
+                                        <div class="input-group-append">
+                                            <span class="input-group-text"><i class="fab fa-whatsapp"></i></span>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Número de WhatsApp para contacto</small>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label>Empresa <span class="priority">*</span></label>
-                            <div class="input-group mb-3">
-                                <input type="text" name="empresa_empresa" id="empresa_empresa" class="form-control"
-                                    placeholder="Empresa" maxlength="50"
-                                    oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);"
-                                    required>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="far fa-building fa-lg"></i>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="col-md-6 mb-3">
-                            <label for="prefijo">RTN <span class="priority">*</span></label>
-                            <div class="input-group mb-3">
-                                <input type="text" name="rtn_empresa" id="rtn_empresa" class="form-control"
-                                    placeholder="RTN" maxlength="14"
-                                    oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);"
-                                    required>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fas fa-id-card-alt fa-lg"></i>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label>Sitio WEB</label>
-                            <div class="input-group mb-3">
-                                <input type="text" name="sitioweb_empresa" id="sitioweb_empresa" class="form-control"
-                                    placeholder="Sitio WEB" maxlength="150"
-                                    oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fas fa-globe-americas fa-lg"></i>
-                                    </span>
+                            
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="correo_empresa"><i class="fas fa-envelope mr-1"></i>Correo</label>
+                                    <div class="input-group">
+                                        <input type="email" class="form-control" placeholder="Correo" id="correo_empresa" name="correo_empresa" maxlength="70">
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">@correo.com</span>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Correo electrónico principal</small>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="col-md-6 mb-3">
-                            <label>Teléfono <span class="priority">*</span></label>
-                            <div class="input-group mb-3">
-                                <input type="text" name="telefono_empresa" id="telefono_empresa" class="form-control"
-                                    placeholder="Teléfono" maxlength="8"
-                                    oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);"
-                                    required>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fas fa-phone-alt fa-lg"></i>
-                                    </span>
+                    
+                    <!-- Sección de Imágenes -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-images mr-2"></i>Imágenes y Logos</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="logotipo"><i class="fas fa-image mr-1"></i>Logotipo</label>
+                                    <div class="input-group">
+                                        <input type="file" class="form-control" name="logotipo" id="logotipo" accept="image/*">
+                                        <div class="input-group-append">
+                                            <span class="input-group-text"><i class="fas fa-file-image"></i></span>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Logo principal de la empresa</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="firma_documento"><i class="fas fa-signature mr-1"></i>Firma Documento</label>
+                                    <div class="input-group">
+                                        <input type="file" class="form-control" name="firma_documento" id="firma_documento" accept="image/*">
+                                        <div class="input-group-append">
+                                            <span class="input-group-text"><i class="fas fa-file-signature"></i></span>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Firma para documentos oficiales</small>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label>WhatsApp</label>
-                            <div class="input-group mb-3">
-                                <input type="text" name="empresa_celular" id="empresa_celular" class="form-control"
-                                    placeholder="Teléfono" maxlength="8"
-                                    oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fab fa-whatsapp fa-lg"></i>
-                                    </span>
+                    </div>
+                    
+                    <!-- Sección de Información Adicional -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Información Adicional</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="facebook_empresa"><i class="fab fa-facebook mr-1"></i>Facebook</label>
+                                    <div class="input-group">
+                                        <textarea id="facebook_empresa" name="facebook_empresa" placeholder="Facebook" class="form-control" maxlength="100" rows="2"></textarea>
+                                        <div class="input-group-append">
+                                            <span class="input-group-text"><i class="fab fa-facebook-f"></i></span>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">URL o información de Facebook</small>
                                 </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="horario_empresa"><i class="fas fa-clock mr-1"></i>Horario</label>
+                                    <div class="input-group">
+                                        <textarea id="horario_empresa" name="horario_empresa" placeholder="Horario de atención" class="form-control" maxlength="100" rows="2"></textarea>
+                                        <div class="input-group-append">
+                                            <span class="input-group-text"><i class="far fa-clock"></i></span>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Horario de atención al público</small>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="empresa_eslogan"><i class="fas fa-quote-left mr-1"></i>Eslogan</label>
+                                    <div class="input-group">
+                                        <textarea id="empresa_eslogan" name="empresa_eslogan" placeholder="Eslogan o lema" class="form-control" maxlength="100" rows="2"></textarea>
+                                        <div class="input-group-append">
+                                            <span class="input-group-text"><i class="fas fa-comment"></i></span>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Eslogan o lema de la empresa</small>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="empresa_otra_informacion"><i class="fas fa-info-circle mr-1"></i>Otra Información</label>
+                                    <div class="input-group">
+                                        <textarea id="empresa_otra_informacion" name="empresa_otra_informacion" placeholder="Información adicional" class="form-control" maxlength="100" rows="4"></textarea>
+                                        <div class="input-group-append">
+                                            <span class="input-group-text"><i class="fas fa-info"></i></span>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Cualquier información adicional relevante</small>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="direccion_empresa"><i class="fas fa-map-marked-alt mr-1"></i>Dirección</label>
+                                    <div class="input-group">
+                                        <textarea id="direccion_empresa" name="direccion_empresa" placeholder="Dirección física" class="form-control" maxlength="100" rows="4"></textarea>
+                                        <div class="input-group-append">
+                                            <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Dirección física completa de la empresa</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección de Estado -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-power-off mr-2"></i>Estado de la Empresa</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <div class="custom-control custom-switch">
+                                    <input type="checkbox" class="custom-control-input" id="empresa_activo" name="empresa_activo" value="1" checked>
+                                    <label class="custom-control-label" for="empresa_activo">Empresa Activa</label>
+                                </div>
+                                <small class="form-text text-muted">Active o desactive el estado de la empresa en el sistema</small>
                             </div>
                         </div>
                     </div>
 
-                    <div class="form-row">
-                        <div class="col-md-6 col-12 mb-3">
-                            <label for="logotipo">Logotipo</label>
-                            <div class="input-group mb-3">
-                                <input type="file" class="form-control" name="logotipo" id="logotipo" accept="image/*">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fa fa-image"></i>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6 col-12 mb-3">
-                            <label for="firma_documento">Firma Documento</label>
-                            <div class="input-group mb-3">
-                                <input type="file" class="form-control" name="firma_documento" id="firma_documento"
-                                    accept="image/*">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fa fa-image"></i>
-                                    </span>
-                                </div>
-                                <button id="toggle-firma" class="btn btn-primary">
-                                    <!-- El ícono y texto del botón se ajustarán con JS -->
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="col-md-12 col-12 mb-3">
-                            <label for="correo_empresa">Correo</label>
-                            <div class="input-group mb-3">
-                                <input type="email" class="form-control" placeholder="Correo" id="correo_empresa"
-                                    name="correo_empresa" aria-label="Correo" aria-describedby="basic-addon2">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div>@correo.com
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label>Facebook</label>
-                            <div class="input-group mb-3">
-                                <textarea id="facebook_empresa" name="facebook_empresa" placeholder="Facebook"
-                                    class="form-control" maxlength="100" rows="2"></textarea>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fab fa-facebook fa-lg"></i>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label>Horario</label>
-                            <div class="input-group mb-3">
-                                <textarea id="horario_empresa" name="horario_empresa" placeholder="Horario"
-                                    class="form-control" maxlength="100" rows="2"></textarea>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fas fa-clock fa-lg"></i>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label>Eslogan</label>
-                            <div class="input-group mb-3">
-                                <textarea id="empresa_eslogan" name="empresa_eslogan" placeholder="Eslogan"
-                                    class="form-control" maxlength="100" rows="2"></textarea>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fas fa-file-alt fa-lg"></i>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label>Otra Información</label>
-                            <div class="input-group mb-3">
-                                <textarea id="empresa_otra_informacion" name="empresa_otra_informacion"
-                                    placeholder="Otra Información" class="form-control" maxlength="100"
-                                    rows="4"></textarea>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fas fa-info-circle fa-lg"></i>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="direccion_empresa">Dirección </label>
-                            <div class="input-group mb-3">
-                                <textarea id="direccion_empresa" name="direccion_empresa" placeholder="Dirección "
-                                    class="form-control" maxlength="100" rows="4"></textarea>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fas fa-address-card fa-lg"></i>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group" id="estado_empresa">
-                        <span class="mr-2">Estado:</span>
-                        <div class="col-md-12">
-                            <label class="switch">
-                                <input type="checkbox" id="empresa_activo" name="empresa_activo" value="1" checked>
-                                <div class="slider round"></div>
-                            </label>
-                            <span class="question mb-2" id="label_empresa_activo"></span>
-                        </div>
-                    </div>
                     <div class="RespuestaAjax"></div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="guardar btn btn-primary ml-2" type="submit" style="display: none;" id="reg_empresa"
-                    form="formEmpresa">
-                    <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
+                <button class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
                 </button>
-                <button class="editar btn btn-warning ml-2" type="submit" style="display: none;" id="edi_empresa"
-                    form="formEmpresa">
-                    <div class="sb-nav-link-icon"></div><i class="fas fa-edit fa-lg"></i> Editar
+                <button class="btn btn-primary" type="submit" style="display: none;" id="reg_empresa" form="formEmpresa">
+                    <i class="far fa-save mr-1"></i> Registrar
                 </button>
-                <button class="eliminar btn btn-danger ml-2" type="submit" style="display: none;" id="delete_empresa"
-                    form="formEmpresa">
-                    <div class="sb-nav-link-icon"></div><i class="fa fa-trash fa-lg"></i> Eliminar
+                <button class="btn btn-warning" type="submit" style="display: none;" id="edi_empresa" form="formEmpresa">
+                    <i class="fas fa-edit mr-1"></i> Editar
+                </button>
+                <button class="btn btn-danger" type="submit" style="display: none;" id="delete_empresa" form="formEmpresa">
+                    <i class="fas fa-trash mr-1"></i> Eliminar
                 </button>
             </div>
         </div>
@@ -2615,86 +2871,95 @@
 <div class="modal fade" id="modal_registrar_cajas">
     <div class="modal-dialog modal-md modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Cajas</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-cash-register mr-2"></i>Registro de Cajas</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="container"></div>
             <div class="modal-body">
-                <form class="FormularioAjax" id="formCajas" action="" method="POST" data-form="" autocomplete="off"
-                    enctype="multipart/form-data">
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <div class="input-group mb-3">
-                                <input type="hidden" id="cajas_id" name="cajas_id" class="form-control">
-                                <input type="text" id="proceso_cajas" class="form-control" readonly>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fa fa-plus-square fa-lg"></i>
-                                    </span>
+                <form class="FormularioAjax" id="formCajas" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+                    <!-- Sección de Información de la Caja -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Información de la Caja</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <div class="input-group mb-3">
+                                        <input type="hidden" id="cajas_id" name="cajas_id" class="form-control">
+                                        <input type="text" id="proceso_cajas" class="form-control" readonly>
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">
+                                                <i class="fas fa-plus-square"></i>
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="nombre_caja"><i class="fas fa-cash-register mr-1"></i>Caja <span class="priority">*</span></label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" placeholder="Nombre de la caja" id="nombre_caja" name="nombre_caja" readonly required>
+                                        <div class="input-group-append" id="obtener_caja">
+                                            <button type="button" class="btn btn-outline-success" data-toggle="tooltip" title="Actualizar caja">
+                                                <i class="fas fa-sync-alt"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Nombre identificador de la caja</small>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="descripcion_caja"><i class="fas fa-align-left mr-1"></i>Descripción <span class="priority">*</span></label>
+                                    <div class="input-group">
+                                        <input type="text" name="descripcion_caja" id="descripcion_caja" class="form-control" placeholder="Descripción de la caja" maxlength="50" required>
+                                        <div class="input-group-append">
+                                            <span class="input-group-text"><i class="fas fa-info-circle"></i></span>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Descripción detallada de la caja</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección de Estado -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-power-off mr-2"></i>Estado de la Caja</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <div class="custom-control custom-switch">
+                                    <input type="checkbox" class="custom-control-input" id="caja_estado" name="caja_estado" value="1" checked>
+                                    <label class="custom-control-label" for="caja_estado">Caja Activa</label>
+                                </div>
+                                <small class="form-text text-muted">Active o desactive el estado de la caja en el sistema</small>
                             </div>
                         </div>
                     </div>
 
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="prefijo">Caja <span class="priority">*</span></label>
-                            <div class="input-group mb-3">
-                                <input type="text" class="form-control" placeholder="Caja" id="nombre_caja"
-                                    name="nombre_caja" aria-label="Colaborador" aria-describedby="basic-addon2" readonly
-                                    required>
-                                <div class="input-group-append" id="obtener_caja">
-                                    <span><a data-toggle="modal" href="#" class="btn btn-outline-success form-control">
-                                            <div class="sb-nav-link-icon"></div><i class="fas fa-sync-alt fa-lg"></i>
-                                        </a></span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="prefijo">Descripción <span class="priority">*</span></label>
-                            <div class="input-group mb-3">
-                                <input type="text" name="descripcion_caja" id="descripcion_caja" class="form-control"
-                                    placeholder="Descripción" maxlength="50"
-                                    oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);"
-                                    required>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fas fa-id-card-alt"></i>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <div class="col-md-12">
-                            <label class="switch">
-                                <input type="checkbox" id="caja_estado" name="caja_estado" value="1" checked>
-                                <div class="slider round"></div>
-                            </label>
-                            <span class="question mb-2" id="label_caja_estado"></span>
-                        </div>
-                    </div>
                     <div class="RespuestaAjax"></div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="guardar btn btn-primary ml-2" type="submit" style="display: none;" id="reg_caja"
-                    form="formCajas">
-                    <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
+                <button class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
                 </button>
-                <button class="editar btn btn-warning ml-2" type="submit" style="display: none;" id="edi_caja"
-                    form="formCajas">
-                    <div class="sb-nav-link-icon"></div><i class="fas fa-edit fa-lg"></i> Editar
+                <button class="btn btn-primary" type="submit" style="display: none;" id="reg_caja" form="formCajas">
+                    <i class="far fa-save mr-1"></i> Registrar
                 </button>
-                <button class="eliminar btn btn-danger ml-2" type="submit" style="display: none;" id="delete_caja"
-                    form="formCajas">
-                    <div class="sb-nav-link-icon"></div><i class="fa fa-trash fa-lg"></i> Eliminar
+                <button class="btn btn-warning" type="submit" style="display: none;" id="edi_caja" form="formCajas">
+                    <i class="fas fa-edit mr-1"></i> Editar
+                </button>
+                <button class="btn btn-danger" type="submit" style="display: none;" id="delete_caja" form="formCajas">
+                    <i class="fas fa-trash mr-1"></i> Eliminar
                 </button>
             </div>
         </div>
@@ -2704,73 +2969,80 @@
 
 <!--INICIO MODAL APERTURA CAJA-->
 <div class="modal fade" id="modal_apertura_caja">
-    <div class="modal-dialog modal-md modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Apertura Caja</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-cash-register mr-2"></i>Apertura de Caja</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="container"></div>
             <div class="modal-body">
-                <form class="FormularioAjax" id="formAperturaCaja" action="" method="POST" data-form=""
-                    autocomplete="off" enctype="multipart/form-data">
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <div class="input-group mb-3">
-                                <input type="hidden" id="apertura_id" name="apertura_id" class="form-control">
-                                <input type="hidden" id="colaboradores_id_apertura" name="colaboradores_id_apertura"
-                                    class="form-control">
-                                <input type="text" id="proceso_aperturaCaja" class="form-control" readonly>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fa fa-plus-square fa-lg"></i>
-                                    </span>
+                <form class="FormularioAjax" id="formAperturaCaja" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+                    <!-- Sección de Información de Apertura -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Datos de Apertura</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <div class="input-group mb-3">
+                                        <input type="hidden" id="apertura_id" name="apertura_id" class="form-control">
+                                        <input type="hidden" id="colaboradores_id_apertura" name="colaboradores_id_apertura" class="form-control">
+                                        <input type="text" id="proceso_aperturaCaja" class="form-control" readonly>
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">
+                                                <i class="fas fa-plus-square"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="usuario_apertura"><i class="fas fa-user mr-1"></i>Usuario</label>
+                                    <input type="text" class="form-control" placeholder="Usuario responsable" id="usuario_apertura" name="usuario_apertura" readonly required>
+                                    <small class="form-text text-muted">Usuario que realizará la apertura</small>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row" id="monto_apertura_grupo">
+                                <div class="col-md-12 mb-3">
+                                    <label for="monto_apertura"><i class="fas fa-money-bill-wave mr-1"></i>Monto Apertura</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">L</span>
+                                        </div>
+                                        <input type="number" class="form-control" placeholder="0.00" id="monto_apertura" name="monto_apertura" step="0.01" value="0.00">
+                                    </div>
+                                    <small class="form-text text-muted">Monto inicial en la caja</small>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="fecha_apertura"><i class="fas fa-calendar-alt mr-1"></i>Fecha</label>
+                                    <input type="date" name="fecha_apertura" id="fecha_apertura" class="form-control" value="<?php echo date('Y-m-d'); ?>" required readonly>
+                                    <small class="form-text text-muted">Fecha de apertura de caja</small>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="prefijo">Usuario</label>
-                            <input type="text" class="form-control" placeholder="Usuario" id="usuario_apertura"
-                                name="usuario_apertura" aria-label="Usuario" aria-describedby="basic-addon2" readonly
-                                required>
-                            <input type="hidden" class="form-control" placeholder="Usuario"
-                                id="colaboradores_id_apertura" name="colaboradores_id_apertura" aria-label="Usuario"
-                                aria-describedby="basic-addon2" readonly required>
-                        </div>
-                    </div>
-
-                    <div class="form-row" id="monto_apertura_grupo">
-                        <div class="col-md-12 mb-3">
-                            <label for="prefijo">Monto Apertura</label>
-                            <input type="text" class="form-control" placeholder="Monto Apertura" id="monto_apertura"
-                                name="monto_apertura" aria-label="Monto Apertura" aria-describedby="basic-addon2"
-                                step="0.01" value="0.00">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="prefijo">Fecha</label>
-                            <input type="text" name="fecha_apertura" id="fecha_apertura" class="form-control"
-                                value="<?php echo date('Y-m-d'); ?>" required readonly>
-                        </div>
-                    </div>
                     <div class="RespuestaAjax"></div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="guardar btn btn-primary ml-2" type="submit" style="display: none;" id="open_caja"
-                    form="formAperturaCaja">
-                    <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Aperturar
+                <button class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
                 </button>
-                <button class="guardar btn btn-primary ml-2" type="submit" style="display: none;" id="close_caja"
-                    form="formAperturaCaja">
-                    <div class="sb-nav-link-icon"></div><i class="fas fa-edit fa-lg"></i> Cerrar
+                <button class="btn btn-primary" type="submit" style="display: none;" id="open_caja" form="formAperturaCaja">
+                    <i class="fas fa-lock-open mr-1"></i> Aperturar
+                </button>
+                <button class="btn btn-primary" type="submit" style="display: none;" id="close_caja" form="formAperturaCaja">
+                    <i class="fas fa-lock mr-1"></i> Cerrar
                 </button>
             </div>
         </div>
@@ -2782,196 +3054,205 @@
 <div class="modal fade" id="modal_registrar_productos">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Productos</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-boxes mr-2"></i>Registro de Productos</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="container"></div>
             <div class="modal-body">
-                <form class="FormularioAjax" id="formProductos" action="" method="POST" data-form="" autocomplete="off"
-                    enctype="multipart/form-data">
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <div class="input-group mb-3">
-                                <input type="hidden" id="productos_id" name="productos_id" class="form-control">
-                                <input type="text" id="proceso_productos" class="form-control" readonly>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fa fa-plus-square fa-lg"></i>
-                                    </span>
+                <form class="FormularioAjax" id="formProductos" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+                    <input type="hidden" id="productos_id" name="productos_id" class="form-control">
+                    <input type="hidden" id="productos_id" name="productos_id" class="form-control">
+
+                    <!-- Sección de Información Básica -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Información Básica</h5>
+                        </div>
+                        <div class="card-body">                           
+                            <div class="form-row">
+                                <div class="col-md-1 mb-3">
+                                    <input type="file" name="file" class="file" accept=".png, .jpeg, .jpg, .jfif">
+                                    <img type="button" src="<?php echo SERVERURL; ?>vistas/plantilla/img/products/image_preview.png" id="preview" class="browse img-thumbnail" data-toggle="tooltip" data-placement="top" title="Cargar Imagen">
+                                    <input type="hidden" class="form-control" disabled placeholder="Cargar Imágen" id="file_product" name="file_product">
+                                    <small class="form-text text-muted">Imagen del producto</small>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="bar_code_product"><i class="fas fa-barcode mr-1"></i>Código de Barra</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="bar_code_product" name="bar_code_product" placeholder="Código de Barra" data-toggle="tooltip" data-placement="top" title="Si este campo está vacío o tiene el número cero el sistema genera un código de barra automáticamente siendo un valor único">
+                                        <div class="input-group-append" id="grupo_editar_bacode">
+                                            <button type="button" class="btn btn-outline-success editar_barcode" data-toggle="tooltip" title="Editar Código de Barra">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Dejar en blanco para generación automática</small>
+                                </div>
+                                <div class="col-md-8 mb-3">
+                                    <label for="producto"><i class="fas fa-tag mr-1"></i>Producto <span class="priority">*</span></label>
+                                    <input type="text" class="form-control" id="producto" name="producto" maxlength="50" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" placeholder="Nombre del producto" required>
+                                    <small class="form-text text-muted">Nombre completo del producto (máx. 50 caracteres)</small>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="col-md-1 mb-3">
-                            <input type="file" name="file" class="file" accept=".png, .jpeg, .jpg, .jfif">
-                            <img type="button"
-                                src="<?php echo SERVERURL; ?>vistas/plantilla/img/products/image_preview.png"
-                                id="preview" class="browse img-thumbnail" data-toggle="tooltip" data-placement="top"
-                                title="Cargar Imagen">
-                            <input type="hidden" class="form-control" disabled placeholder="Cargar Imágen"
-                                id="file_product" name="file_product">
+                    
+                    <!-- Sección de Clasificación -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-tags mr-2"></i>Clasificación</h5>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="bar_code_product">Código de Barra</label>
-                            <div class="input-group mb-3">
-                                <input type="text" class="form-control" id="bar_code_product" name="bar_code_product"
-                                    placeholder="Código de Barra" data-toggle="tooltip" data-placement="top"
-                                    title="Si este campo esta vacío o tiene el número cero el sistema genera un código de barra automáticamente siendo un valor único">
-                                <div class="input-group-append" id="grupo_editar_bacode">
-                                    <span data-toggle="tooltip" data-placement="top" title="Editar Código de Barra"><a
-                                            data-toggle="modal" href="#"
-                                            class="btn btn-outline-success form-control editar_barcode">
-                                            <div class="sb-nav-link-icon"></div><i class="fas fa-edit fa-lg"></i>
-                                        </a></span>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-3 mb-3" style="display: none;">
+                                    <label for="producto_empresa_id"><i class="fas fa-building mr-1"></i>Empresa <span class="priority">*</span></label>
+                                    <select id="producto_empresa_id" name="producto_empresa_id" class="selectpicker form-control" data-live-search="true" title="Seleccione una empresa">
+                                    </select>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="producto_superior" data-toggle="tooltip" data-placement="top" title="El campo 'Producto Superior' se emplea cuando estás creando un producto que tiene una conexión con otro. Imagina que estás diseñando un 'Kit de Jardinería', aquí puedes elegir 'Semillas' como el producto superior, indicando que el kit depende de las semillas para su existencia.">
+                                        <i class="fas fa-sitemap mr-1"></i>Superior
+                                    </label>
+                                    <select class="selectpicker form-control" id="producto_superior" name="producto_superior" data-live-search="true" title="Seleccione producto superior">
+                                    </select>
+                                    <small class="form-text text-muted">Producto padre o relacionado</small>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="tipo_producto"><i class="fas fa-cubes mr-1"></i>Tipo Producto <span class="priority">*</span></label>
+                                    <select id="tipo_producto" name="tipo_producto" required class="selectpicker form-control" data-live-search="true" title="Seleccione tipo de producto">
+                                    </select>
+                                    <small class="form-text text-muted">Tipo o clasificación del producto</small>
+                                </div>
+                                <div class="col-md-3 mb-3 confCategoria" style="display:none;">
+                                    <label for="producto_categoria"><i class="fas fa-folder mr-1"></i>Categoria</label>
+                                    <select class="selectpicker form-control" id="producto_categoria" name="producto_categoria" required data-live-search="true" title="Seleccione categoría">
+                                    </select>
+                                    <small class="form-text text-muted">Categoría del producto</small>
+                                </div>
+                                <div class="col-md-3 mb-3" style="display: none;">
+                                    <label for="almacen"><i class="fas fa-warehouse mr-1"></i>Almacén</label>
+                                    <select id="almacen" name="almacen" class="selectpicker form-control" data-live-search="true" title="Seleccione almacén">
+                                    </select>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="medida"><i class="fas fa-ruler-combined mr-1"></i>Medida <span class="priority">*</span></label>
+                                    <select id="medida" name="medida" required class="selectpicker form-control" data-live-search="true" title="Seleccione medida">
+                                    </select>
+                                    <small class="form-text text-muted">Unidad de medida del producto</small>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-8 mb-3">
-                            <label for="producto">Producto <span class="priority">*</span></label>
-                            <input type="text" class="form-control" id="producto" name="producto" maxlength="50"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);"
-                                placeholder="Producto" required data-toggle="tooltip" data-placement="top">
-                        </div>
                     </div>
-
-                    <div class="form-row">
-                        <div class="col-md-3 mb-3" style="display: none;">
-                            <label for="producto_empresa_id">Empresa <span class="priority">*</span></label>
-                            <div class="input-group mb-3">
-                                <select id="producto_empresa_id" name="producto_empresa_id" data-width="100%"
-                                    class="selectpicker" data-size="7" data-live-search="true" title="Empresa">
-                                </select>
+                    
+                    <!-- Sección de Precios -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-dollar-sign mr-2"></i>Precios y Stock</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-3 mb-3">
+                                    <label for="precio_compra"><i class="fas fa-shopping-cart mr-1"></i>Precio Compra</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">L</span>
+                                        </div>
+                                        <input type="number" class="form-control" id="precio_compra" name="precio_compra" placeholder="0.00" step="0.00001">
+                                    </div>
+                                    <small class="form-text text-muted">Precio de compra del producto</small>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="precio_venta"><i class="fas fa-tag mr-1"></i>Precio Venta <span class="priority">*</span></label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">L</span>
+                                        </div>
+                                        <input type="number" class="form-control" id="precio_venta" name="precio_venta" placeholder="0.00" step="0.00001" required>
+                                    </div>
+                                    <small class="form-text text-muted">Precio de venta al público</small>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="porcentaje_venta"><i class="fas fa-percentage mr-1"></i>Ganancia</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                        <input type="number" class="form-control" id="porcentaje_venta" name="porcentaje_venta" placeholder="0.00" step="0.00001" readonly>
+                                    </div>
+                                    <small class="form-text text-muted">Margen de ganancia calculado</small>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="cantidad_mayoreo"><i class="fas fa-boxes mr-1"></i>Cantidad Mayoreo</label>
+                                    <input type="number" class="form-control" id="cantidad_mayoreo" name="cantidad_mayoreo" placeholder="0" step="0.00001" value="">
+                                    <small class="form-text text-muted">Cantidad mínima para venta al por mayor</small>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="col-md-3 mb-3">
+                                    <label for="precio_mayoreo"><i class="fas fa-tags mr-1"></i>Precio Mayoreo</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">L</span>
+                                        </div>
+                                        <input type="number" class="form-control" id="precio_mayoreo" name="precio_mayoreo" placeholder="0.00" step="0.00001">
+                                    </div>
+                                    <small class="form-text text-muted">Precio para ventas al por mayor</small>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="cantidad_minima"><i class="fas fa-arrow-down mr-1"></i>Cantidad Mínima</label>
+                                    <input type="number" id="cantidad_minima" name="cantidad_minima" placeholder="0" class="form-control" step="0.00001">
+                                    <small class="form-text text-muted">Stock mínimo permitido</small>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="cantidad_maxima"><i class="fas fa-arrow-up mr-1"></i>Cantidad Máxima</label>
+                                    <input type="number" id="cantidad_maxima" name="cantidad_maxima" placeholder="0" class="form-control" step="0.00001">
+                                    <small class="form-text text-muted">Stock máximo permitido</small>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="producto_superior" data-toggle="tooltip" data-placement="top"
-                                title="El campo 'Producto Superior' se emplea cuando estás creando un producto que tiene una conexión con otro. Imagina que estás diseñando un 'Kit de Jardinería', aquí puedes elegir 'Semillas' como el producto superior, indicando que el kit depende de las semillas para su existencia.">Superior</label>
-                            <div class="input-group mb-3">
-                                <select class="selectpicker" id="producto_superior" name="producto_superior"
-                                    data-width="100%" data-size="7" data-live-search="true" title="Superior">
-                                </select>
+                    </div>
+                    
+                    <!-- Sección de Configuración Adicional -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-cogs mr-2"></i>Configuración Adicional</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="descripcion"><i class="fas fa-align-left mr-1"></i>Descripción</label>
+                                    <textarea id="descripcion" name="descripcion" placeholder="Descripción del producto" class="form-control" maxlength="100" rows="2"></textarea>
+                                    <p id="charNum_descripcion" class="text-muted">100 Caracteres restantes</p>
+                                    <small class="form-text text-muted">Descripción detallada del producto</small>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="tipo_producto">Tipo Producto <span class="priority">*</span></label>
-                            <select id="tipo_producto" name="tipo_producto" required class="selectpicker" data-size="7"
-                                data-width="100%" data-live-search="true" title="Tipo Producto">
-                            </select>
-                        </div>
-                        <div class="col-md-3 mb-3 confCategoria" style="display:none;">
-                            <label for="producto_categoria">Categoria</label>
-                            <div class="input-group mb-3">
-                                <select class="selectpicker" id="producto_categoria" name="producto_categoria" required
-                                    data-width="100%" data-size="7" data-live-search="true" title="Categoría">
-                                </select>
+                            
+                            <div class="form-row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="producto_activo" name="producto_activo" value="1" checked>
+                                        <label class="custom-control-label" for="producto_activo"><i class="fas fa-power-off mr-1"></i>Estado del Producto</label>
+                                        <small class="form-text text-muted">Activar/Desactivar producto en el sistema</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="producto_isv_factura" name="producto_isv_factura" value="1">
+                                        <label class="custom-control-label" for="producto_isv_factura"><i class="fas fa-percent mr-1"></i>Calcular ISV en Factura</label>
+                                        <small class="form-text text-muted">Aplicar impuesto en ventas</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3" style="display: none;">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="producto_isv_compra" name="producto_isv_compra" value="1">
+                                        <label class="custom-control-label" for="producto_isv_compra"><i class="fas fa-percent mr-1"></i>Calcular ISV en Compra</label>
+                                        <small class="form-text text-muted">Aplicar impuesto en compras</small>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-3 mb-3" style="display: none;">
-                            <label for="almacen">Almacén</label>
-                            <div class="input-group mb-3">
-                                <select id="almacen" name="almacen" class="selectpicker" data-width="100%"
-                                    data-live-search="true" title="Almacén">
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="medida">Medida <span class="priority">*</span></label>
-                            <select id="medida" name="medida" required class="selectpicker" data-size="7"
-                                data-width="100%" data-live-search="true" title="Medida">
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="col-md-3 mb-3">
-                            <label for="departamento_cliente">Precio Compra <span></label>
-                            <input type="number" class="form-control" id="precio_compra" name="precio_compra"
-                                placeholder="Precio Compra" step="0.00001">
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="precio_venta">Precio Venta <span class="priority">*</span></label>
-                            <input type="number" class="form-control" id="precio_venta" name="precio_venta"
-                                placeholder="Precio Venta" step="0.00001">
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="porcentaje_venta">Ganancia</label>
-                            <input type="number" class="form-control" id="porcentaje_venta" name="porcentaje_venta"
-                                placeholder="Ganancia" step="0.00001" readonly>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="cantidad_mayoreo">Cantidad Mayoreo </label>
-                            <input type="number" class="form-control" id="cantidad_mayoreo" name="cantidad_mayoreo"
-                                placeholder="Precio Mayoreo" step="0.00001" value="">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="col-md-3 mb-3">
-                            <label for="precio_mayoreo">Precio Mayoreo </label>
-                            <input type="number" class="form-control" id="precio_mayoreo" name="precio_mayoreo"
-                                placeholder="Precio Mayoreo" step="0.00001">
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label>Cantidad Mínima</label>
-                            <input type="number" id="cantidad_minima" name="cantidad_minima"
-                                placeholder="Cantidad Mínima" class="form-control" step="0.00001">
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label>Cantidad Máxima</label>
-                            <input type="number" id="cantidad_maxima" name="cantidad_maxima"
-                                placeholder="Cantidad Máxima" class="form-control" step="0.00001">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="descripcion">Descripción</label>
-                            <textarea id="descripcion" name="descripcion" placeholder="Descripción" class="form-control"
-                                maxlength="100" rows="2"></textarea>
-                            <p id="charNum_descripcion">100 Caracteres</p>
-                        </div>
-                    </div>
-
-                    <div class="form-group custom-control custom-checkbox custom-control-inline">
-                        <div class="col-md-12" id="estado_producto">
-                            <span class="mr-2">Estado:</span>
-                            <label class="switch">
-                                <input type="checkbox" id="producto_activo" name="producto_activo" value="1" checked>
-                                <div class="slider round"></div>
-                            </label>
-                            <span class="question mb-2" id="label_producto_activo"></span>
-                        </div>
-                    </div>
-                    <br />
-                    <div class="form-group custom-control custom-checkbox custom-control-inline">
-                        <div class="col-md-12">
-                            <label class="form-check-label mr-1" for="defaultCheck1" data-toggle="tooltip"
-                                data-placement="top"
-                                title="Al activar esta opción, el Impuesto sobre Ventas (ISV) se añadirá automáticamente al producto en la factura de venta, basándose en el precio de venta agregado en este formulario.">¿Calcular
-                                ISV en Factura Venta?</label>
-                            <label class="switch" data-toggle="tooltip" data-placement="top"
-                                title="Al activar esta opción, el Impuesto sobre Ventas (ISV) se añadirá automáticamente al producto en la factura de venta, basándose en el precio de venta agregado en este formulario.">
-                                <input type="checkbox" id="producto_isv_factura" name="producto_isv_factura" value="1">
-                                <div class="slider round"></div>
-                            </label>
-                            <span class="question mb-2" id="label_producto_isv_factura"></span>
-                        </div>
-                        <div class="col-md-7" style="display: none;">
-                            <label class="form-check-label mr-1" for="defaultCheck1" data-toggle="tooltip"
-                                data-placement="top"
-                                title="Al activar esta opción, el Impuesto sobre Ventas (ISV) se añadirá automáticamente al producto en la factura de compra, basándose en el precio de compra agregado en este formulario.">¿Calcular
-                                ISV
-                                en Compra?</label>
-                            <label class="switch" data-toggle="tooltip" data-placement="top"
-                                title="Al activar esta opción, el Impuesto sobre Ventas (ISV) se añadirá automáticamente al producto en la factura de compra, basándose en el precio de compra agregado en este formulario.">
-                                <input type="checkbox" id="producto_isv_compra" name="producto_isv_compra" value="1">
-                                <div class="slider round"></div>
-                            </label>
-                            <span class="question mb-2" id="label_producto_isv_compra"></span>
                         </div>
                     </div>
 
@@ -2979,17 +3260,17 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="guardar btn btn-primary ml-2" type="submit" style="display: none;" id="reg_producto"
-                    form="formProductos">
-                    <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
+                <button class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
                 </button>
-                <button class="editar btn btn-warning ml-2" type="submit" style="display: none;" id="edi_producto"
-                    form="formProductos">
-                    <div class="sb-nav-link-icon"></div><i class="fas fa-edit fa-lg"></i> Editar
+                <button class="btn btn-primary" type="submit" style="display: none;" id="reg_producto" form="formProductos">
+                    <i class="far fa-save mr-1"></i> Registrar
                 </button>
-                <button class="eliminar btn btn-danger ml-2" type="submit" style="display: none;" id="delete_producto"
-                    form="formProductos">
-                    <div class="sb-nav-link-icon"></div><i class="fa fa-trash fa-lg"></i> Eliminar
+                <button class="btn btn-warning" type="submit" style="display: none;" id="edi_producto" form="formProductos">
+                    <i class="fas fa-edit mr-1"></i> Editar
+                </button>
+                <button class="btn btn-danger" type="submit" style="display: none;" id="delete_producto" form="formProductos">
+                    <i class="fas fa-trash mr-1"></i> Eliminar
                 </button>
             </div>
         </div>
@@ -2997,135 +3278,166 @@
 </div>
 <!--FIN MODAL PRODUCTOS-->
 
-<!--Modal Transferencia de Producto / Bodega-->
-<div class="modal fade" tabindex="-1" role="dialog" id="modal_transferencia_producto">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+<!--INICIO MODAL TRANSFERENCIA DE PRODUCTO/BODEGA-->
+<div class="modal fade" id="modal_transferencia_producto">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Transferir Producto</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-exchange-alt mr-2"></i>Transferir Producto</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
-                <form class="" id="formTransferencia" action="" method="POST" data-form="" autocomplete="off"
-                    enctype="multipart/form-data">
-                    <div class="form-group text-center">
-                        <input type="hidden" id="productos_id" name="productos_id">
-                        <input type="hidden" id="id_bodega_actual" name="id_bodega_actual">
-                        <label class="modal-title" id="nameProduct" class="col-form-label"></label>
-                        <input type="hidden" required readonly id="pro_trasferencia" name="pro_trasferencia" class="form-control" />
-                        <input type="hidden" id="lote_id_productos" name="lote_id_productos" class="form-control">
-                        <input type="hidden" id="empresa_id_productos" name="empresa_id_productos" class="form-control">
-                    </div>
-
-                    <div class="form-row">
-                        <div class="col-md-5 mb-3">
-                            <label for="id_bodega">Bodega <span class="priority">*</span></label>
-                            <div class="input-group mb-3">
-                                <select id="id_bodega" name="id_bodega" class="selectpicker" data-live-search="true" style="width: auto;" class="form-control" title="Bodega" required>
-                                </select>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <i class="fas fa-warehouse"></i>
-                                    </span>
-                                </div>
-                            </div>
+                <form class="FormularioAjax" id="formTransferencia" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+                    <!-- Sección de Información del Producto -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-box mr-2"></i>Información del Producto</h5>
                         </div>
-                        <div class="col-md-7 mb-3">
-                            <label for="cantidad_movimiento">Cantidad <span class="priority">*</span></label>
-                            <div class="input-group mb-3">
-                                <input type="number" id="cantidad_movimiento" name="cantidad_movimiento" placeholder="Cantidad" class="form-control" step="0.01" requiered>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <i class="fas fa-sort-amount-up-alt"></i>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Comentarios -->
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="movimiento_comentario">Comentario</label>
-                            <textarea id="movimiento_comentario" name="movimiento_comentario" class="form-control" rows="4" charmax="254" ></textarea>
-                            <div class="char-count"></div>
+                        <div class="card-body text-center">
+                            <input type="hidden" id="productos_id" name="productos_id">
+                            <input type="hidden" id="id_bodega_actual" name="id_bodega_actual">
+                            <input type="hidden" id="lote_id_productos" name="lote_id_productos">
+                            <input type="hidden" id="empresa_id_productos" name="empresa_id_productos">
+                            <input type="hidden" required readonly id="pro_trasferencia" name="pro_trasferencia">
+                            
+                            <h5 class="text-primary" id="nameProduct"></h5>
+                            <small class="form-text text-muted">Producto seleccionado para transferencia</small>
                         </div>
                     </div>
                     
-                    <br />
-                    <br />
-                    <br />
-                    <br />
-                    <div class="RespuestaAjax"></div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-primary ml-2" type="submit" id="putEditarBodega">
-                    <div class="sb-nav-link-icon"></div><i class="fas fa-edit fa-lg"></i> Mover
-                </button>
-                <button class="btn btn-secondary ml-2" type="button" data-dismiss="modal">
-                    <div class="sb-nav-link-icon"></div><i class="fas fa-window-close"></i> Cerrar
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-<!--FN Modal Transferencia de Producto / Bodega-->
-
-<!--Modal Cambiar Fecha de Cadudicad-->
-<div class="modal fade" tabindex="-1" role="dialog" id="modalCambiarFechaProducto">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Cambiar Fecha de Caducidad Producto</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form class="" id="formTransferenciaCambiarFecha" action="" method="POST" data-form="" autocomplete="off"
-                    enctype="multipart/form-data">
-                    <div class="form-group text-center">
-                        <input type="hidden" id="productos_id" name="productos_id" class="form-control">
-                        <input type="hidden" value="" id="id_bodega_actual" name="id_bodega_actual" class="form-control">
-                        <label class="modal-title" id="nameProduct" class="col-form-label"></label>
-                        <input type="hidden" id="cantidad_productos" name="cantidad_productos" class="form-control">
-                        <input type="hidden" id="empresa_id_productos" name="empresa_id_productos" class="form-control">
-                        <input type="hidden" id="lote_id_productos" name="lote_id_productos" class="form-control">
-                        <input type="hidden" required readonly id="pro_cambiar_fecha" name="pro_cambiar_fecha" class="form-control" />
-                    </div>
-
-                    <div class="form-row">
-                        <div class="col-md-12 mb-4">
-                            <label for="fecha_caducidad">Fecha Caducidad <span class="priority">*</span></label>
-                            <div class="input-group mb-3">
-                                <input type="date" id="fecha_caducidad" name="fecha_caducidad" placeholder="Cantidad" class="form-control" required>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <i class="fa-solid fa-calendar-day"></i>
-                                    </span>
+                    <!-- Sección de Datos de Transferencia -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-truck-loading mr-2"></i>Datos de Transferencia</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="id_bodega"><i class="fas fa-warehouse mr-1"></i>Bodega Destino <span class="priority">*</span></label>
+                                    <div class="input-group">
+                                        <select id="id_bodega" name="id_bodega" class="selectpicker form-control" data-live-search="true" title="Seleccione bodega destino" required>
+                                        </select>
+                                        <div class="input-group-append">
+                                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Seleccione la bodega a la que transferirá el producto</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="cantidad_movimiento"><i class="fas fa-sort-amount-up mr-1"></i>Cantidad <span class="priority">*</span></label>
+                                    <div class="input-group">
+                                        <input type="number" id="cantidad_movimiento" name="cantidad_movimiento" placeholder="Cantidad a transferir" class="form-control" step="0.01" required>
+                                        <div class="input-group-append">
+                                            <span class="input-group-text"><i class="fas fa-cubes"></i></span>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Ingrese la cantidad del producto a transferir</small>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <br />
-                    <br />
-                    <br />
-                    <br />
+                    
+                    <!-- Sección de Comentarios -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-comment mr-2"></i>Comentarios</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="movimiento_comentario"><i class="fas fa-align-left mr-1"></i>Observaciones</label>
+                                    <textarea id="movimiento_comentario" name="movimiento_comentario" class="form-control" rows="3" maxlength="254" placeholder="Motivo de la transferencia u observaciones importantes"></textarea>
+                                    <div class="char-count"><small class="text-muted">254 caracteres restantes</small></div>
+                                    <small class="form-text text-muted">Describa el motivo de la transferencia o cualquier observación relevante</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="RespuestaAjax"></div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-primary ml-2" type="submit" id="EditarFechaVencimiento">
-                    <div class="sb-nav-link-icon"></div><i class="fa-solid fa-floppy-disk fa-lg"></i> Registrar
+                <button class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
+                </button>
+                <button class="btn btn-primary" type="submit" id="putEditarBodega" form="formTransferencia">
+                    <i class="fas fa-exchange-alt mr-1"></i> Transferir
                 </button>
             </div>
         </div>
     </div>
 </div>
-<!--FN Modal Cambiar Fecha de Cadudicad-->
+<!--FIN MODAL TRANSFERENCIA DE PRODUCTO/BODEGA-->
+
+<!--INICIO MODAL CAMBIAR FECHA DE CADUCIDAD-->
+<div class="modal fade" id="modalCambiarFechaProducto">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-calendar-alt mr-2"></i>Cambiar Fecha de Caducidad</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form class="FormularioAjax" id="formTransferenciaCambiarFecha" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+                    <!-- Sección de Información del Producto -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-box mr-2"></i>Información del Producto</h5>
+                        </div>
+                        <div class="card-body text-center">
+                            <input type="hidden" id="productos_id" name="productos_id">
+                            <input type="hidden" value="" id="id_bodega_actual" name="id_bodega_actual">
+                            <input type="hidden" id="cantidad_productos" name="cantidad_productos">
+                            <input type="hidden" id="empresa_id_productos" name="empresa_id_productos">
+                            <input type="hidden" id="lote_id_productos" name="lote_id_productos">
+                            <input type="hidden" required readonly id="pro_cambiar_fecha" name="pro_cambiar_fecha">
+                            
+                            <h5 class="text-primary" id="nameProduct"></h5>
+                            <small class="form-text text-muted">Producto seleccionado para modificar fecha de caducidad</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección de Nueva Fecha -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-calendar-day mr-2"></i>Nueva Fecha de Caducidad</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="fecha_caducidad"><i class="fas fa-calendar-check mr-1"></i>Fecha <span class="priority">*</span></label>
+                                    <div class="input-group">
+                                        <input type="date" id="fecha_caducidad" name="fecha_caducidad" class="form-control" required>
+                                        <div class="input-group-append">
+                                            <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Seleccione la nueva fecha de caducidad para el producto</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="RespuestaAjax"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
+                </button>
+                <button class="btn btn-primary" type="submit" id="EditarFechaVencimiento" form="formTransferenciaCambiarFecha">
+                    <i class="fas fa-save mr-1"></i> Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!--FIN MODAL CAMBIAR FECHA DE CADUCIDAD-->
 
 <!-- modal de abonos cxc -->
 <div class="modal fade" id="ver_abono_cxc">
@@ -3196,7 +3508,7 @@
                         <div class="col-md-12">
                             <div class="overflow-auto">
                                 <table id="table-modal-abonosCXP"
-                                    class="table table-striped table-condensed table-hover" style="width:100%">
+                                    class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
                                     <h5 id="ver_abono_cxPTitle"></h5>
                                     <thead>
                                         <tr>
@@ -3231,54 +3543,71 @@
 
 <!--INICIO MODAL EDITAR RTN CLIENTES-->
 <div class="modal fade" id="modalEditarRTNClientes">
-    <div class="modal-dialog modal-md modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">RTN Clientes</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-id-card mr-2"></i>Editar RTN de Cliente</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="container"></div>
             <div class="modal-body">
-                <form class="form-horizontal FormularioAjax" id="formEditarRTNClientes" action="" method="POST"
-                    data-form="" enctype="multipart/form-data">
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <input type="hidden" required="required" readonly id="clientes_id" name="clientes_id" />
-                            <div class="input-group mb-3">
-                                <input type="text" required readonly id="pro_clientes" name="pro_clientes"
-                                    class="form-control" />
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fa fa-plus-square fa-lg"></i>
-                                    </span>
+                <form class="form-horizontal FormularioAjax" id="formEditarRTNClientes" action="" method="POST" data-form="" enctype="multipart/form-data">
+                    <!-- Sección de Información del Cliente -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-user-tie mr-2"></i>Datos del Cliente</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <input type="hidden" required="required" readonly id="clientes_id" name="clientes_id" />
+                                    <div class="input-group mb-3">
+                                        <input type="text" required readonly id="pro_clientes" name="pro_clientes" class="form-control" />
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">
+                                                <i class="fas fa-plus-square"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="cliente"><i class="fas fa-user mr-1"></i>Cliente <span class="priority">*</span></label>
+                                    <input type="text" required id="cliente" name="cliente" placeholder="Cliente" readonly class="form-control" />
+                                    <small class="form-text text-muted">Cliente seleccionado</small>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="cuenta_nombre">Cliente <span class="priority">*</span></label>
-                            <input type="text" required id="cliente" name="cliente" placeholder="Cliente" readonly
-                                class="form-control" />
+                    
+                    <!-- Sección de RTN -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-id-card mr-2"></i>Registro Tributario (RTN)</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="rtn_cliente"><i class="fas fa-id-card mr-1"></i>RTN <span class="priority">*</span></label>
+                                    <input type="number" required id="rtn_cliente" name="rtn_cliente" placeholder="RTN" class="form-control" maxlength="14" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
+                                    <small class="form-text text-muted">Ingrese el RTN (14 dígitos)</small>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="cuenta_nombre">RTN <span class="priority">*</span></label>
-                            <input type="number" required id="rtn_cliente" name="rtn_cliente" placeholder="RTN"
-                                class="form-control" maxlength="14"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
-                        </div>
-                    </div>
+
                     <div class="RespuestaAjax"></div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="guardar btn btn-primary ml-2" type="submit" style="display: none;"
-                    id="editar_rtn_clientes" form="formEditarRTNClientes">
-                    <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
+                <button class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
+                </button>
+                <button class="btn btn-primary" type="submit" id="editar_rtn_clientes" form="formEditarRTNClientes">
+                    <i class="far fa-save mr-1"></i> Guardar Cambios
                 </button>
             </div>
         </div>
@@ -3286,114 +3615,147 @@
 </div>
 <!--FIN MODAL EDITAR RTN CLIENTES-->
 
-<!--INICIO MODAL EDITAR RTN PPROVEEDORES-->
+<!--INICIO MODAL EDITAR RTN PROVEEDORES-->
 <div class="modal fade" id="modalEditarRTNProveedores">
-    <div class="modal-dialog modal-md modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">RTN Proveedores</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-truck mr-2"></i>Editar RTN de Proveedor</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="container"></div>
             <div class="modal-body">
-                <form class="form-horizontal FormularioAjax" id="formEditarRTNProveedores" action="" method="POST"
-                    data-form="" enctype="multipart/form-data">
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <input type="hidden" required="required" readonly id="proveedores_id"
-                                name="proveedores_id" />
-                            <div class="input-group mb-3">
-                                <input type="text" required readonly id="pro_proveedores" name="pro_proveedores"
-                                    class="form-control" />
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fa fa-plus-square fa-lg"></i>
-                                    </span>
+                <form class="form-horizontal FormularioAjax" id="formEditarRTNProveedores" action="" method="POST" data-form="" enctype="multipart/form-data">
+                    <!-- Sección de Información del Proveedor -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-truck mr-2"></i>Datos del Proveedor</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <input type="hidden" required="required" readonly id="proveedores_id" name="proveedores_id" />
+                                    <div class="input-group mb-3">
+                                        <input type="text" required readonly id="pro_proveedores" name="pro_proveedores" class="form-control" />
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">
+                                                <i class="fas fa-plus-square"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="proveedor"><i class="fas fa-truck mr-1"></i>Proveedor <span class="priority">*</span></label>
+                                    <input type="text" required id="proveedor" name="proveedor" readonly placeholder="Proveedor" class="form-control" />
+                                    <small class="form-text text-muted">Proveedor seleccionado</small>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="cuenta_nombre">Proveedor <span class="priority">*</span></label>
-                            <input type="text" required id="proveedor" name="proveedor" readonly placeholder="Proveedor"
-                                class="form-control" />
+                    
+                    <!-- Sección de RTN -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-id-card mr-2"></i>Registro Tributario (RTN)</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="rtn_proveedor"><i class="fas fa-id-card mr-1"></i>RTN <span class="priority">*</span></label>
+                                    <input type="number" required id="rtn_proveedor" name="rtn_proveedor" placeholder="RTN" class="form-control" maxlength="14" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
+                                    <small class="form-text text-muted">Ingrese el RTN (14 dígitos)</small>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="cuenta_nombre">RTN <span class="priority">*</span></label>
-                            <input type="number" required id="rtn_proveedor" name="rtn_proveedor" placeholder="RTN"
-                                class="form-control" maxlength="14"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
-                        </div>
-                    </div>
+
                     <div class="RespuestaAjax"></div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="guardar btn btn-primary ml-2" type="submit" style="display: none;"
-                    id="editar_rtn_proveedores" form="formEditarRTNProveedores">
-                    <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
+                <button class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
+                </button>
+                <button class="btn btn-primary" type="submit" id="editar_rtn_proveedores" form="formEditarRTNProveedores">
+                    <i class="far fa-save mr-1"></i> Guardar Cambios
                 </button>
             </div>
         </div>
     </div>
 </div>
-<!--FIN MODAL EDITAR RTN PPROVEEDORES-->
+<!--FIN MODAL EDITAR RTN PROVEEDORES-->
 
 <!--INICIO MODAL EDITAR BARCODE-->
 <div class="modal fade" id="modalEditarBarcode">
-    <div class="modal-dialog modal-md modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Código de Barras</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-barcode mr-2"></i>Editar Código de Barras</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="container"></div>
             <div class="modal-body">
-                <form class="form-horizontal FormularioAjax" id="formEditarBarcode" action="" method="POST" data-form=""
-                    enctype="multipart/form-data">
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <input type="hidden" required="required" readonly id="productos_id" name="productos_id" />
-                            <div class="input-group mb-3">
-                                <input type="text" required readonly id="pro_barcode" name="pro_barcode"
-                                    class="form-control" />
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fa fa-plus-square fa-lg"></i>
-                                    </span>
+                <form class="form-horizontal FormularioAjax" id="formEditarBarcode" action="" method="POST" data-form="" enctype="multipart/form-data">
+                    <!-- Sección de Información del Producto -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Información del Producto</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <input type="hidden" required="required" readonly id="productos_id" name="productos_id" />
+                                    <div class="input-group mb-3">
+                                        <input type="text" required readonly id="pro_barcode" name="pro_barcode" class="form-control" />
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">
+                                                <i class="fas fa-plus-square"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="producto"><i class="fas fa-tag mr-1"></i>Producto <span class="priority">*</span></label>
+                                    <input type="text" required id="producto" name="producto" readonly placeholder="Producto" class="form-control" />
+                                    <small class="form-text text-muted">Producto seleccionado</small>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="cuenta_nombre">Producto <span class="priority">*</span></label>
-                            <input type="text" required id="producto" name="producto" readonly placeholder="Producto"
-                                class="form-control" />
+                    
+                    <!-- Sección de Código de Barras -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-barcode mr-2"></i>Código de Barras</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="barcode"><i class="fas fa-barcode mr-1"></i>Código de Barra <span class="priority">*</span></label>
+                                    <input type="text" required id="barcode" name="barcode" placeholder="Código de Barra" class="form-control" maxlength="20" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
+                                    <small class="form-text text-muted">Ingrese el nuevo código de barras (máx. 20 caracteres)</small>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="cuenta_nombre">Código de Barra <span class="priority">*</span></label>
-                            <input type="text" required id="barcode" name="barcode" placeholder="Código de Barra"
-                                class="form-control" maxlength="20"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
-                        </div>
-                    </div>
+
                     <div class="RespuestaAjax"></div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="guardar btn btn-primary ml-2" type="submit" style="display: none;" id="editar_barcode"
-                    form="formEditarBarcode">
-                    <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
+                <button class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
+                </button>
+                <button class="btn btn-primary" type="submit" id="editar_barcode" form="formEditarBarcode">
+                    <i class="far fa-save mr-1"></i> Guardar Cambios
                 </button>
             </div>
         </div>
@@ -3418,7 +3780,7 @@
                         <div class="col-md-12">
                             <div class="overflow-auto">
                                 <table id="DatatableBusquedaConsultaFacturadores"
-                                    class="table table-striped table-condensed table-hover" style="width:100%">
+                                    class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
                                     <thead>
                                         <tr>
                                             <th>Seleccione</th>
@@ -3444,85 +3806,94 @@
 <div class="modal fade" id="modal_registrar_asistencia">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Asistencia</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-user-clock mr-2"></i>Registro de Asistencia</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="container"></div>
             <div class="modal-body">
-                <form class="FormularioAjax" id="formAsistencia" action="" method="POST" data-form="" autocomplete="off"
-                    enctype="multipart/form-data">
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <div class="input-group mb-3">
-                                <input type="hidden" id="asistencia_id" name="asistencia_id" class="form-control">
-                                <input type="text" id="proceso_asistencia" class="form-control" readonly>
-                                <input type="hidden" id="marcarAsistencia_id" name="marcarAsistencia_id"
-                                    class="form-control" readonly>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fa fa-plus-square fa-lg"></i>
-                                    </span>
+                <form class="FormularioAjax" id="formAsistencia" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+
+                    <input type="hidden" id="asistencia_id" name="asistencia_id">
+                    <input type="hidden" id="marcarAsistencia_id" name="marcarAsistencia_id">
+                    
+                    <!-- Sección de Datos del Empleado -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-user-tie mr-2"></i>Datos del Empleado</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="asistencia_empleado"><i class="fas fa-users mr-1"></i>Empleado <span class="priority">*</span></label>
+                                    <select id="asistencia_empleado" name="asistencia_empleado" class="selectpicker form-control" data-live-search="true" title="Seleccione un empleado" required>
+                                    </select>
+                                    <small class="form-text text-muted">Seleccione el empleado que registrará asistencia</small>
+                                </div>
+                                <div class="col-md-6 mb-3" id="fechaAsistencia">
+                                    <label for="fecha"><i class="fas fa-calendar-day mr-1"></i>Fecha <span class="priority">*</span></label>
+                                    <input type="date" class="form-control" id="fecha" name="fecha" value="<?php echo date('Y-m-d'); ?>" required>
+                                    <small class="form-text text-muted">Fecha del registro de asistencia</small>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <div class="form-row">
-                        <div class="col-md-4 mb-3">
-                            <label for="asistencia_empleado">Empleado <span class="priority">*</span></label>
-                            <div class="input-group mb-3">
-                                <select id="asistencia_empleado" name="asistencia_empleado" class="selectpicker"
-                                    data-size="7" data-width="100%" data-live-search="true" title="Empleado">
-                                    <option value="">Seleccione</option>
-                                </select>
+                    
+                    <!-- Sección de Horarios -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-clock mr-2"></i>Control de Horarios</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-4 mb-3" id="grupoHora">
+                                    <label for="hora" id="registro_hora"><i class="fas fa-sign-in-alt mr-1"></i>Hora Entrada <span class="priority">*</span></label>
+                                    <input type="time" class="form-control" id="hora" name="hora" step="any" required>
+                                    <small class="form-text text-muted">Hora de entrada del empleado</small>
+                                </div>
+                                <div class="col-md-4 mb-3" id="grupoHorai">
+                                    <label for="horagi" id="registro_horai"><i class="fas fa-sign-in-alt mr-1"></i>Hora Entrada Registrada</label>
+                                    <input type="time" class="form-control" id="horagi" name="horagi" value="<?php echo date('H:i'); ?>" step="any" readonly>
+                                    <small class="form-text text-muted">Hora de entrada previamente registrada</small>
+                                </div>
+                                <div class="col-md-4 mb-3" id="grupoHoraf">
+                                    <label for="horagf"><i class="fas fa-sign-out-alt mr-1"></i>Hora Salida Registrada</label>
+                                    <input type="time" class="form-control" id="horagf" name="horagf" step="any" readonly>
+                                    <small class="form-text text-muted">Hora de salida previamente registrada</small>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-3 mb-3" id="fechaAsistencia">
-                            <label for="fecha">Fecha <span class="priority">*</span></label>
-                            <input type="date" class="form-control" id="fecha" name="fecha"
-                                value="<?php echo date('Y-m-d'); ?>" placeholder="Fecha">
+                    </div>
+                    
+                    <!-- Sección de Comentarios -->
+                    <div class="card border-primary" id="grupoHoraComentario">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-comment-dots mr-2"></i>Observaciones</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="comentario"><i class="fas fa-align-left mr-1"></i>Comentarios</label>
+                                    <input type="text" class="form-control" id="comentario" name="comentario" placeholder="Ingrese cualquier observación relevante">
+                                    <small class="form-text text-muted">Registre cualquier observación sobre la asistencia</small>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="col-md-3 mb-3" id="grupoHora">
-                            <label for="fecha" id="registro_hora">Hora Entrada <span class="priority">*</span></label>
-                            <input type="time" class="form-control" id="hora" name="hora" step="any">
-                        </div>
-                        <div class="col-md-3 mb-3" id="grupoHorai">
-                            <label for="fecha" id="registro_horai">Hora Entrada <span class="priority">*</span></label>
-                            <input type="time" class="form-control" id="horagi" name="horagi"
-                                value="<?php echo date('H:i'); ?>" step="any">
-                        </div>
-                        <div class="col-md-3 mb-3" id="grupoHoraf">
-                            <label for="fecha">Hora Salida <span class="priority">*</span></label>
-                            <input type="time" class="form-control" id="horagf" name="horagf" step="any">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3" id="grupoHoraComentario">
-                            <label for="comentario">Comentario</label>
-                            <input type="text" class="form-control" id="comentario" name="comentario">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <br />
-                        <br />
-                        <br />
-                    </div>
+                    
                     <div class="RespuestaAjax"></div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="guardar btn btn-primary ml-2" type="submit" style="display: none;" id="reg_asistencia"
-                    form="formAsistencia">
-                    <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
+                <button class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
                 </button>
-                <button class="editar btn btn-warning ml-2" type="submit" style="display: none;" id="edi_asistencia"
-                    form="formAsistencia">
-                    <div class="sb-nav-link-icon"></div><i class="fas fa-edit fa-lg"></i> Editar
+                <button class="btn btn-primary" type="submit" style="display: none;" id="reg_asistencia" form="formAsistencia">
+                    <i class="far fa-save mr-1"></i> Registrar
+                </button>
+                <button class="btn btn-warning" type="submit" style="display: none;" id="edi_asistencia" form="formAsistencia">
+                    <i class="fas fa-edit mr-1"></i> Editar
                 </button>
             </div>
         </div>
@@ -3534,113 +3905,107 @@
 <div class="modal fade" id="modal_generar_sistema">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Generar Sistema</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-cogs mr-2"></i>Generar Sistema</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="container"></div>
             <div class="modal-body">
-                <form class="FormularioAjax" id="formGenerarSistema" action="" method="POST" data-form=""
-                    autocomplete="off" enctype="multipart/form-data">
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <div class="input-group mb-3">
-                                <input type="text" id="clientes_id" name="clientes_id" class="form-control">
-                                <input type="hidden" id="clientes_telefono" name="clientes_telefono"
-                                    class="form-control">
-                                <input type="hidden" id="clientes_correo" name="clientes_correo" class="form-control">
-                                <input type="hidden" id="clientes_ubicacion" name="clientes_ubicacion"
-                                    class="form-control">
-                                <input type="text" id="proceso_GenerarSistema" class="form-control" readonly>
-                                <input type="hidden" id="marcarAsistencia_id" name="marcarAsistencia_id"
-                                    class="form-control" readonly>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fa fa-plus-square fa-lg"></i>
-                                    </span>
+                <form class="FormularioAjax" id="formGenerarSistema" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+                    <input type="hidden" id="clientes_id" name="clientes_id" class="form-control">
+                    <input type="hidden" id="clientes_telefono" name="clientes_telefono" class="form-control">
+                    <input type="hidden" id="clientes_correo" name="clientes_correo" class="form-control">
+                    <input type="hidden" id="clientes_ubicacion" name="clientes_ubicacion" class="form-control">
+
+                    <!-- Sección Información Cliente -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-user-tie mr-2"></i>Información del Cliente</h5>
+                        </div>
+                        <div class="card-body">                           
+                            <div class="form-row">
+                                <div class="col-md-5 mb-3">
+                                    <label for="cliente"><i class="fas fa-user mr-1"></i>Cliente <span class="priority">*</span></label>
+                                    <input type="text" class="form-control" id="cliente" name="cliente" placeholder="Cliente" required>
+                                    <small class="form-text text-muted">Nombre completo del cliente</small>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="rtn"><i class="fas fa-id-card mr-1"></i>RTN <span class="priority">*</span></label>
+                                    <input type="text" class="form-control" id="rtn" name="rtn" placeholder="RTN" required>
+                                    <small class="form-text text-muted">Número de identificación tributaria</small>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="empresa"><i class="fas fa-building mr-1"></i>Empresa <span class="priority">*</span></label>
+                                    <input type="text" class="form-control" id="empresa" name="empresa" placeholder="Empresa" required maxlength="30">
+                                    <small class="form-text text-muted">Nombre de la empresa</small>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="col-md-4 mb-3">
+                                    <label for="eslogan"><i class="fas fa-quote-left mr-1"></i>Eslogan</label>
+                                    <input type="text" class="form-control" id="eslogan" name="eslogan" placeholder="Eslogan" maxlength="50">
+                                    <small class="form-text text-muted">Frase representativa de la empresa</small>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="otra_informacion"><i class="fas fa-info-circle mr-1"></i>Otra Información</label>
+                                    <input type="text" class="form-control" id="otra_informacion" name="otra_informacion" placeholder="Otra Información" maxlength="50">
+                                    <small class="form-text text-muted">Información adicional relevante</small>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="whatsApp"><i class="fab fa-whatsapp mr-1"></i>WhatsApp</label>
+                                    <input type="number" class="form-control" id="whatsApp" name="whatsApp" placeholder="WhatsApp" maxlength="8">
+                                    <small class="form-text text-muted">Número de contacto WhatsApp</small>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="col-md-5 mb-4">
-                            <label for="asistencia_empleado">Cliente <span class="priority">*</span></label>
-                            <input type="text" class="form-control" id="cliente" name="cliente" placeholder="Cliente"
-                                required>
+                    
+                    <!-- Sección Configuración Sistema -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-server mr-2"></i>Configuración del Sistema</h5>
                         </div>
-                        <div class="col-md-4 mb-4">
-                            <label for="rtn">RTN <span class="priority">*</span></label>
-                            <input type="text" class="form-control" id="rtn" name="rtn" placeholder="RTN" required>
-                        </div>
-                        <div class="col-md-3 mb-4">
-                            <label for="empresa">Empresa <span class="priority">*</span></label>
-                            <input type="text" class="form-control" id="empresa" name="empresa" placeholder="Empresa"
-                                data-width="100%" required maxlength="30"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="col-md-4 mb-4">
-                            <label for="eslogan">Eslogan </label>
-                            <input type="text" class="form-control" id="eslogan" name="eslogan" placeholder="Eslogan"
-                                maxlength="50"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
-                        </div>
-                        <div class="col-md-4 mb-4">
-                            <label for="otra_informacion">Otra Información</label>
-                            <input type="text" class="form-control" id="otra_informacion" name="otra_informacion"
-                                placeholder="Otra Información" maxlength="50"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
-                        </div>
-                        <div class="col-md-4 mb-4">
-                            <label for="whatsApp">WhatsApp </label>
-                            <input type="number" class="form-control" id="whatsApp" name="whatsApp"
-                                placeholder="WhatsApp" maxlength="8"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="col-md-4 mb-3">
-                            <label for="sistema">Sistema</label>
-                            <div class="input-group mb-3">
-                                <select class="selectpicker" id="sistema" name="sistema" data-width="100%" data-size="7" data-live-search="true"
-                                    title="Sistema">
-                                </select>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-4 mb-3">
+                                    <label for="sistema"><i class="fas fa-cube mr-1"></i>Sistema</label>
+                                    <select class="selectpicker form-control" id="sistema" name="sistema" data-live-search="true" title="Seleccione Sistema">
+                                    </select>
+                                    <small class="form-text text-muted">Tipo de sistema a generar</small>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="plan"><i class="fas fa-layer-group mr-1"></i>Plan</label>
+                                    <select class="selectpicker form-control" id="plan" name="plan" data-live-search="true" title="Seleccione Plan">
+                                    </select>
+                                    <small class="form-text text-muted">Plan de servicio</small>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="validar"><i class="fas fa-check-circle mr-1"></i>Validar Facturación</label>
+                                    <select class="selectpicker form-control" id="validar" name="validar" data-live-search="true" title="Seleccione Validación">
+                                    </select>
+                                    <small class="form-text text-muted">Configuración de validación</small>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="plan">Plan</label>
-                            <div class="input-group mb-3">
-                                <select class="selectpicker" id="plan" name="plan" data-width="100%" data-size="7" data-live-search="true"
-                                    title="Plan">
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="validar">Validar Facturación</label>
-                            <div class="input-group mb-3">
-                                <select class="selectpicker" id="validar" name="validar" data-width="100%" data-size="7" data-live-search="true"
-                                    title="Validar Facturación">
-                                </select>
-                            </div>
-                        </div> 
                     </div>
-
-                    <div class="form-row">
-                        <div class="col-md-12">
-                            <div class="overflow-auto">
-                                <table id="DatatableGenerarSistema"
-                                    class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-                                    <thead>
+                    
+                    <!-- Sección Tabla Sistemas -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-table mr-2"></i>Sistemas Registrados</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table id="DatatableGenerarSistema" class="table table-striped table-hover" style="width:100%">
+                                    <thead class="bg-primary text-white">
                                         <tr>
-                                            <th>Cliente</th>
-                                            <th>DB</th>
-                                            <th>Sistema</th>
-                                            <th>Plan</th>
-                                            <th>Validar Facturación</th>
+                                            <th><i class="fas fa-user"></i> Cliente</th>
+                                            <th><i class="fas fa-database"></i> DB</th>
+                                            <th><i class="fas fa-cube"></i> Sistema</th>
+                                            <th><i class="fas fa-layer-group"></i> Plan</th>
+                                            <th><i class="fas fa-check-circle"></i> Validar Facturación</th>
                                         </tr>
                                     </thead>
                                 </table>
@@ -3652,9 +4017,11 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="guardar btn btn-primary ml-2" type="submit" style="display: none;" id="reg_generarSitema"
-                    form="formGenerarSistema">
-                    <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Generar
+                <button class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
+                </button>
+                <button class="btn btn-primary" type="submit" style="display: none;" id="reg_generarSitema" form="formGenerarSistema">
+                    <i class="fas fa-cogs mr-1"></i> Generar Sistema
                 </button>
             </div>
         </div>

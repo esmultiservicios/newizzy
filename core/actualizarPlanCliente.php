@@ -33,27 +33,6 @@ try {
     $stmtUpdateServer->execute();
     $stmtUpdateServer->close();
 
-    // 3. Verificar si ya existe un plan (plan_id = 1) en la base principal
-    $stmtCheckPlan = $conexion->prepare("SELECT plan_id FROM plan WHERE plan_id = 1");
-    $stmtCheckPlan->execute();
-    $stmtCheckPlan->store_result();
-
-    if ($stmtCheckPlan->num_rows > 0) {
-        // Existe, hacer UPDATE
-        $stmtUpdatePlan = $conexion->prepare("UPDATE plan SET planes_id = ?, user_extra = ?, fecha_registro = NOW() WHERE plan_id = 1");
-        $stmtUpdatePlan->bind_param("ii", $planId, $userExtra);
-        $stmtUpdatePlan->execute();
-        $stmtUpdatePlan->close();
-    } else {
-        // No existe, hacer INSERT
-        $stmtInsertPlan = $conexion->prepare("INSERT INTO plan (plan_id, planes_id, user_extra, fecha_registro) VALUES (1, ?, ?, NOW())");
-        $stmtInsertPlan->bind_param("ii", $planId, $userExtra);
-        $stmtInsertPlan->execute();
-        $stmtInsertPlan->close();
-    }
-
-    $stmtCheckPlan->close();
-
     // 4. Verificar y actualizar/insertar en la base del cliente si existe
     if (!empty($dbName)) {
         $configCliente = [

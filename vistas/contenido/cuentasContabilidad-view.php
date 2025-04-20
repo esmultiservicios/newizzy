@@ -3,54 +3,55 @@
 			<li class="breadcrumb-item"><a class="breadcrumb-link" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>dashboard/">Dashboard</a></li>
 	        <li class="breadcrumb-item active">Cuentas</li>
 	    </ol>
-	    <div class="card mb-4">
-	        <div class="card-body">
-	            <form class="form-inline" id="formMainCuentasContabilidad" action="" method="POST" data-form=""
-	                autocomplete="off" enctype="multipart/form-data">
-	                <div class="form-group mx-sm-3 mb-1">
-	                    <div class="input-group">
-	                        <div class="input-group-append">
-	                            <span class="input-group-text">
-	                                <div class="sb-nav-link-icon"></div>Fecha Inicio
-	                            </span>
-	                        </div>
-	                        <input type="date" class="form-control" id="fechai" name="fechai" value="<?php 
-							$fecha = date ("Y-m-d");
-							
-							$año = date("Y", strtotime($fecha));
-							$mes = date("m", strtotime($fecha));
-							$dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
 
-							$dia1 = date('d', mktime(0,0,0, $mes, 1, $año)); //PRIMER DIA DEL MES
-							$dia2 = date('d', mktime(0,0,0, $mes, $dia, $año)); // ULTIMO DIA DEL MES
+		<div class="card mb-4">
+			<div class="card-body">
+				<form id="formMainCuentasContabilidad">
+					<div class="row">
+						<div class="col-md-3 col-sm-6 mb-3">
+							<div class="form-group">
+								<label class="small mb-1">Fecha Inicio</label>
+								<input type="date" class="form-control" id="fechai" name="fechai" value="<?php 
+									$fecha = date ("Y-m-d");
+									
+									$año = date("Y", strtotime($fecha));
+									$mes = date("m", strtotime($fecha));
+									$dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
 
-							$fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
-							$fecha_final = date("Y-m-d", strtotime($año."-".$mes."-".$dia2));						
-							
-							
-							echo $fecha_inicial;
-						?>">
-	                    </div>
-	                </div>
-	                <div class="form-group mx-sm-3 mb-1">
-	                    <div class="input-group">
-	                        <div class="input-group-append">
-	                            <span class="input-group-text">
-	                                <div class="sb-nav-link-icon"></div>Fecha Fin
-	                            </span>
-	                        </div>
-	                        <input type="date" class="form-control" id="fechaf" name="fechaf"
-	                            value="<?php echo date('Y-m-d');?>">
-	                    </div>
-	                </div>
-	                <div class="form-group mx-sm-2 mb-1">
-	                    <button class="consultar btn btn-secondary" type="submit" id="search">
-	                        <div class="sb-nav-link-icon"></div><i class="fas fa-search fa-lg"></i> Buscar
-	                    </button>
-	                </div>
-	            </form>
-	        </div>
-	    </div>
+									$dia1 = date('d', mktime(0,0,0, $mes, 1, $año)); //PRIMER DIA DEL MES
+									$dia2 = date('d', mktime(0,0,0, $mes, $dia, $año)); // ULTIMO DIA DEL MES
+
+									$fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
+									$fecha_final = date("Y-m-d", strtotime($año."-".$mes."-".$dia2));						
+									
+									echo $fecha_inicial;
+								?>">
+							</div>
+						</div>
+						
+						<div class="col-md-3 col-sm-6 mb-3">
+							<div class="form-group">
+								<label class="small mb-1">Fecha Fin</label>
+								<input type="date" class="form-control" id="fechaf" name="fechaf"
+									value="<?php echo date('Y-m-d');?>">
+							</div>
+						</div>
+					</div>
+					
+					<div class="row">
+						<div class="col-12 text-right">
+							<button type="submit" class="btn btn-primary">
+								<i class="fas fa-search fa-lg mr-1"></i> Buscar
+							</button>
+							<button type="reset" class="btn btn-secondary">
+								<i class="fas fa-broom fa-lg"></i> Limpiar
+							</button>                        
+						</div>
+					</div>
+				</form>
+			</div>
+		</div>
+
 	    <div class="card mb-4">
 	        <div class="card-header">
 	            <i class="fas fa-receipt fa-lg mr-1"></i>

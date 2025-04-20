@@ -5,77 +5,92 @@ require_once "mainModel.php";
 
 header('Content-Type: application/json');
 
-if(isset($_POST['action']) && $_POST['action'] == 'get_detalle' && isset($_POST['facturas_id'])) {
-    session_start(['name'=>'SD']);
-    
-    if (!isset($_SESSION['users_id_sd'])) {
-        echo json_encode([
-            'type' => 'error',
-            'title' => 'Error de sesión',
-            'message' => 'Usuario no autenticado'
-        ]);
-        exit();
-    }
-    
-    $facturaId = intval($_POST['facturas_id']);
-    $mainModel = new mainModel();
-    
-    // Conectar a la base de datos del cliente
-    $configCliente = [
-        'host' => SERVER,
-        'user' => USER,
-        'pass' => PASS,
-        'name' => DB_MAIN
-    ];
-    
-    $conexionCliente = $mainModel->connectToDatabase($configCliente);
-    
-    if (!$conexionCliente) {
-        echo json_encode([
-            'type' => 'error',
-            'title' => 'Error',
-            'message' => 'Error de conexión a la base de datos'
-        ]);
-        exit();
-    }
-
-    // Consulta para obtener el detalle
-    $query = "SELECT 
-                fd.*, 
-                p.nombre as producto, 
-                p.medida,
-                IFNULL(s.nombre_servicio, '') as servicio
-              FROM facturas_detalles fd
-              LEFT JOIN productos p ON fd.productos_id = p.productos_id
-              LEFT JOIN servicios s ON fd.servicios_id = s.servicios_id
-              WHERE fd.facturas_id = ?";
-    
-    $stmt = $conexionCliente->prepare($query);
-    $stmt->bind_param("i", $facturaId);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    $detalles = [];
-    while($row = $result->fetch_assoc()) {
-        $detalles[] = [
-            'nombre' => !empty($row['producto']) ? $row['producto'] : $row['servicio'],
-            'cantidad' => $row['cantidad'],
-            'precio' => $row['precio'],
-            'isv_valor' => $row['isv_valor'],
-            'descuento' => $row['descuento'],
-            'medida' => $row['medida']
-        ];
-    }
-    
+// Verificar si se recibieron los parámetros necesarios
+if(!isset($_POST['facturas_id']) || empty($_POST['facturas_id'])) {
     echo json_encode([
-        'type' => 'success',
-        'data' => $detalles
+        'type' => 'error',
+        'mensaje' => 'ID de factura no proporcionado',
+        'data' => []
     ]);
-    exit();
+    exit;
 }
 
-echo json_encode([
-    'type' => 'error',
-    'title' => 'Error',
-    'message' => 'Petición inválida'
-]);
+// Obtener parámetros
+$facturas_id = intval($_POST['facturas_id']);
+$db_name = isset($_POST['db_name']) && !empty($_POST['db_name']) ? $_POST['db_name'] : DB_MAIN;
+
+try {
+    // Conexión a la base de datos
+    $conexion = new mysqli(SERVER, USER, PASS, $db_name);
+    
+    if($conexion->connect_error) {
+        echo json_encode([
+            'type' => 'error',
+            'mensaje' => 'Error de conexión a la base de datos',
+            'error' => $conexion->connect_error,
+            'data' => []
+        ]);
+        exit;
+    }
+    
+    // Consulta para obtener los detalles de la factura
+    $query = "SELECT fd.*, p.nombre AS producto, m.nombre AS medida 
+              FROM facturas_detalles fd
+              LEFT JOIN productos p ON fd.productos_id = p.productos_id 
+              LEFT JOIN medida m ON p.medida_id = m.medida_id
+              WHERE fd.facturas_id = ?";
+    
+    $stmt = $conexion->prepare($query);
+    
+    if($stmt) {
+        $stmt->bind_param("i", $facturas_id);
+        $stmt->execute();
+        $resultado = $stmt->get_result();
+        
+        if($resultado) {
+            $detalles = [];
+            while($fila = $resultado->fetch_assoc()) {
+                $detalles[] = [
+                    'facturas_id' => $fila['facturas_id'],
+                    'producto' => $fila['producto'] ?? 'Servicio/Producto',
+                    'cantidad' => $fila['cantidad'],
+                    'precio' => $fila['precio'],
+                    'isv_valor' => $fila['isv_valor'],
+                    'descuento' => $fila['descuento'],
+                    'medida' => $fila['medida'] ?? ''
+                ];
+            }
+            
+            echo json_encode([
+                'type' => 'success',
+                'mensaje' => 'Detalles obtenidos correctamente',
+                'data' => $detalles
+            ]);
+        } else {
+            echo json_encode([
+                'type' => 'error',
+                'mensaje' => 'Error al obtener los detalles',
+                'error' => $conexion->error,
+                'data' => []
+            ]);
+        }
+        
+        $stmt->close();
+    } else {
+        echo json_encode([
+            'type' => 'error',
+            'mensaje' => 'Error al preparar la consulta',
+            'error' => $conexion->error,
+            'data' => []
+        ]);
+    }
+    
+    $conexion->close();
+} catch(Exception $e) {
+    echo json_encode([
+        'type' => 'error',
+        'mensaje' => 'Excepción al procesar la solicitud',
+        'error' => $e->getMessage(),
+        'data' => []
+    ]);
+}

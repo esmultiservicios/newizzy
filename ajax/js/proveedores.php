@@ -224,66 +224,74 @@ var eliminar_proveedores_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.table_eliminar");
     $(tbody).on("click", "button.table_eliminar", function() {
         var data = table.row($(this).parents("tr")).data();
-        var url = '<?php echo SERVERURL;?>core/editarProveedores.php';
-        $('#formProveedores #proveedores_id').val(data.proveedores_id);
 
-        $.ajax({
-            type: 'POST',
-            url: url,
-            data: $('#formProveedores').serialize(),
-            success: function(registro) {
-                var valores = eval(registro);
-                $('#formProveedores').attr({
-                    'data-form': 'delete'
-                });
-                $('#formProveedores').attr({
-                    'action': '<?php echo SERVERURL;?>ajax/eliminarProveedoresAjax.php'
-                });
-                $('#formProveedores')[0].reset();
-                $('#reg_proveedor').hide();
-                $('#edi_proveedor').hide();
-                $('#delete_proveedor').show();
-                $('#formProveedores #nombre_proveedores').val(valores[0]);
-                $('#formProveedores #rtn_proveedores').val(valores[1]);
-                $('#formProveedores #fecha_proveedores').attr('disabled', true);
-                $('#formProveedores #fecha_proveedores').val(valores[2]);
-                $('#formProveedores #departamento_proveedores').val(valores[3]);
-                $('#formProveedores #departamento_proveedores').selectpicker('refresh');
-                getMunicipiosProveedores(valores[4]);
-                $('#formProveedores #municipio_proveedores').val(valores[4]);
-                $('#formProveedores #municipio_proveedores').selectpicker('refresh');
-                $('#formProveedores #dirección_proveedores').val(valores[5]);
-                $('#formProveedores #telefono_proveedores').val(valores[6]);
-                $('#formProveedores #correo_proveedores').val(valores[7]);
+        var proveedores_id = data.proveedores_id;
+        var nombre = data.proveedor; 
+        var rtn = data.rtn || 'No registrado'; // Manejo de RTN vacío
 
-                if (valores[8] == 1) {
-                    $('#formProveedores #proveedores_activo').attr('checked', true);
-                } else {
-                    $('#formProveedores #proveedores_activo').attr('checked', false);
+        // Construir el mensaje de confirmación con HTML
+        var mensajeHTML = `¿Desea eliminar permanentemente al proveedor?<br><br>
+                <strong>Nombre:</strong> ${nombre}<br>
+				<strong>RTN:</strong> ${rtn}`;
+
+        swal({
+            title: "Confirmar eliminación",
+            content: {
+                element: "span",
+                attributes: {
+                    innerHTML: mensajeHTML
                 }
-
-                //DESHABILITAR OBJETOS
-                $('#formProveedores #nombre_proveedores').attr("readonly", true);
-                $('#formProveedores #apellido_proveedores').attr("readonly", true);
-                $('#formProveedores #rtn_proveedores').attr("readonly", true);
-                $('#formProveedores #fecha_proveedores').attr("readonly", true);
-                $('#formProveedores #departamento_proveedores').attr("disabled", true);
-                $('#formProveedores #municipio_proveedores').attr("disabled", true);
-                $('#formProveedores #dirección_proveedores').attr("disabled", true);
-                $('#formProveedores #telefono_proveedores').attr("readonly", true);
-                $('#formProveedores #correo_proveedores').attr("readonly", true);
-                $('#formProveedores #proveedores_activo').attr("disabled", true);
-                $('#formProveedores #estado_proveedores').hide();
-                $('#formProveedores #grupo_editar_rtn').hide();
-
-                $('#formProveedores #proceso_proveedores').val("Eliminar");
-                $('#modal_registrar_proveedores').modal({
-                    show: true,
-                    keyboard: false,
-                    backdrop: 'static'
+            },
+            icon: "warning",
+            buttons: {
+                cancel: {
+                    text: "Cancelar",
+                    value: null,
+                    visible: true,
+                    className: "btn-light"
+                },
+                confirm: {
+                    text: "Sí, eliminar",
+                    value: true,
+                    className: "btn-danger",
+                    closeModal: false
+                }
+            },
+            dangerMode: true,
+            closeOnEsc: false,
+            closeOnClickOutside: false
+        }).then((confirmar) => {
+            if (confirmar) {
+            
+                $.ajax({
+                    type: 'POST',
+                    url: '<?php echo SERVERURL;?>ajax/eliminarProveedoresAjax.php',
+                    data: {
+                        proveedores_id: proveedores_id
+                    },
+                    dataType: 'json', // Esperamos respuesta JSON
+                    before: function(){
+                        // Mostrar carga mientras se procesa
+                        showLoading("Eliminando registro...");
+                    },
+                    success: function(response) {
+                        swal.close();
+                        
+                        if(response.status === "success") {
+                            showNotify("success", response.title, response.message);
+                            table.ajax.reload(null, false); // Recargar tabla sin resetear paginación
+                            table.search('').draw();                    
+                        } else {
+                            showNotify("error", response.title, response.message);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        swal.close();
+                        showNotify("error", "Error", "Ocurrió un error al procesar la solicitud");
+                    }
                 });
             }
-        });
+        });                
     });
 }
 

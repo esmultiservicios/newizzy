@@ -11,7 +11,7 @@
 			<form class="form-horizontal" id="formAyudaQuote" action="" method="POST" data-form="" enctype="multipart/form-data">
 				<div class="form-row">
 					<div class="col-md-12 mb-3">
-					  <label><center><b>Las teclas de función solo se pueden utilizar posicionándose en el área de la factura</b></center></label>
+					  <label class="text-center"><b>Las teclas de función solo se pueden utilizar posicionándose en el área de la factura</b></label>
 					</div>	
 					
 					<div class="col-md-12 mb-3">

@@ -320,15 +320,92 @@
 
 			return $result;				
 		}			
-						
-		protected function actualizar_secuencia_facturacion_modelo($secuencia_facturacion_id, $numero){
-			$update = "UPDATE secuencia_facturacion
-						SET
-							siguiente = '$numero'
-						WHERE secuencia_facturacion_id = '$secuencia_facturacion_id'";
-			$result = mainModel::connection()->query($update) or die(mainModel::connection()->error);    
+					
+		public static function bloquear_y_obtener_secuencia_modelo($empresa_id, $documento_id) {
+			// Asegurarse que $empresa_id tenga valor
+			if(empty($empresa_id)) {
+				error_log("Error: empresa_id no definido");
+				return false;
+			}
+
+			$conexion = mainModel::staticConnection();
+			
+			// Iniciar transacción
+			$conexion->begin_transaction();
+			
+			try {
+				// Bloquear la fila para lectura (FOR UPDATE)
+				$sql = "SELECT * FROM secuencia_facturacion 
+						WHERE empresa_id = ? 
+						AND documento_id = ? 
+						AND activo = 1
+						LIMIT 1
+						FOR UPDATE";
+				
+				$stmt = $conexion->prepare($sql);
+				$stmt->bind_param("ii", $empresa_id, $documento_id);
+				$stmt->execute();
+				$result = $stmt->get_result();
+				
+				if($result->num_rows == 0) {
+					$conexion->rollback();
+					$stmt->close();
+					return false;
+				}
+				
+				$secuencia = $result->fetch_assoc();
+				$stmt->close();
+				
+				// Confirmar transacción solo al final cuando todo esté listo
+				// La transacción se cierra en el método que llama a este
+				
+				return $secuencia;
+			} catch (Exception $e) {
+				$conexion->rollback();
+				error_log("Error en secuencia facturación: " . $e->getMessage());
+				return false;
+			}
+		}
 		
-			return $result;                
+		public static function actualizar_secuencia_modelo($secuencia_id, $nuevo_numero) {
+			$conexion = mainModel::staticConnection();
+			
+			try {
+				// Verificar que el nuevo número no exceda el rango final
+				$check_sql = "SELECT rango_final FROM secuencia_facturacion 
+							  WHERE secuencia_facturacion_id = ? FOR UPDATE";
+				$check_stmt = $conexion->prepare($check_sql);
+				$check_stmt->bind_param("i", $secuencia_id);
+				$check_stmt->execute();
+				$check_result = $check_stmt->get_result();
+				
+				if($check_result->num_rows == 0) {
+					$check_stmt->close();
+					return false;
+				}
+				
+				$row = $check_result->fetch_assoc();
+				$rango_final = (int)$row['rango_final'];
+				$check_stmt->close();
+				
+				if($nuevo_numero > $rango_final) {
+					return false;
+				}
+				
+				$sql = "UPDATE secuencia_facturacion 
+						SET siguiente = ? 
+						WHERE secuencia_facturacion_id = ?";
+				
+				$stmt = $conexion->prepare($sql);
+				$stmt->bind_param("ii", $nuevo_numero, $secuencia_id);
+				$result = $stmt->execute();
+				$stmt->close();
+				
+				return $result;
+			} catch (Exception $e) {
+				error_log("Error al actualizar secuencia: " . $e->getMessage());
+				return false;
+			}
 		}
 		
 		protected function cancelar_facturas_modelo($facturas_id){

@@ -74,74 +74,49 @@
         </li>
     </ul>
 
-    <!-- Menú rápido -->
-    <div class="dropdown d-md-none">
-        <button class="btn btn-secondary bg-color-navarlateral dropdown-toggle" type="button" id="dropdownMenuButton"
-            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            <i class="fas fa-bars mr-2"></i>Menú Rápido
-        </button>
-        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-
-            <a class="dropdown-item menu-rapido reporteVentas" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>reporteVentas/"
-                style="display:none">
-                <i class="fas fa-file-invoice-dollar fa-lg mr-2"></i>Reporte Ventas
-            </a>
-            <a class="dropdown-item menu-rapido reporteCotizacion" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>reporteCotizacion/"
-                style="display:none">
-                <i class="fas fa-file-signature fa-lg mr-2"></i>Reporte Cotización
-            </a>
-            <a class="dropdown-item menu-rapido reporteCompras" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>reporteCompras/"
-                style="display:none">
-                <i class="fas fa-shopping-cart fa-lg mr-2"></i>Reporte Compras
-            </a>
-            <a class="dropdown-item menu-rapido cobrarClientes" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>cobrarClientes/"
-                style="display:none">
-                <i class="fas fa-hand-holding-usd fa-lg mr-2"></i>CXC Clientes
-            </a>
-            <a class="dropdown-item menu-rapido pagarProveedores" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>pagarProveedores/"
-                style="display:none">
-                <i class="fas fa-file-invoice fa-lg mr-2"></i>CXP Proveedores
-            </a>
-            <a class="dropdown-item menu-rapido inventario" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>inventario/"
-                style="display:none">
-                <i class="fas fa-exchange-alt fa-lg mr-2"></i>Movimientos
-            </a>
-            <a class="dropdown-item menu-rapido transferencia" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>transferencia/"
-                style="display:none">
-                <i class="fas fa-boxes fa-lg mr-2"></i>Inventario
-            </a>
-            <a class="dropdown-item menu-rapido nomina" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>nomina/" style="display:none">
-                <i class="fas fa-money-check-alt fa-lg mr-2"></i>Nomina
-            </a>
-            <a class="dropdown-item menu-rapido asistencia" href="#" id="marcarAsistencia">
-                <i class="fas fa-user-clock fa-lg mr-2"></i>Asistencia
-            </a>
-        </div>
-    </div>
-
     <!-- Navbar usuario -->
     <ul class="navbar-nav ml-auto mr-0 mr-md-3 my-2 my-md-0 navbar-nav-user">
-        <li class="nav-item dropdown active">
-            <a class="nav-link dropdown-toggle" id="userDropdown" href="#" role="button" data-toggle="dropdown"
-                aria-haspopup="true" aria-expanded="false">
-                <i class="fas fa-user fa-lg"></i> <span id="user_session"></span>
+        <!-- Campana de notificaciones (se ocultará si no hay notificaciones) -->
+        <li class="nav-item dropdown mx-1" style="display: none;">
+            <a class="nav-link dropdown-toggle position-relative" id="notification-bell" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <i class="far fa-bell"></i>
+                <span id="notification-count" class="position-absolute top-0 start-100 translate-middle" style="display: none;"></span>
             </a>
-            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
+            <div class="dropdown-menu dropdown-menu-right notification-dropdown" aria-labelledby="notification-bell">
+                <h6 class="dropdown-header d-flex justify-content-between align-items-center">
+                    <span>Notificaciones</span>
+                </h6>
+                <a class="dropdown-item d-flex align-items-center" href="<?php echo SERVERURL; ?>MisFacturas/">
+                    <i class="fas fa-file-invoice mr-2"></i>
+                    <span class="flex-grow-1 ml-2">Facturas pendientes</span>
+                    <span id="notification-dropdown-count" class="badge">0</span>
+                </a>
+                <!-- Puedes agregar más notificaciones aquí -->
+            </div>
+        </li>
+
+        <!-- Menú de usuario -->
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle d-flex align-items-center" id="userDropdown" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <i class="fas fa-user-circle fa-lg mr-2"></i>
+                <span id="user_session" class="mr-1"></span>
+            </a>
+            <div class="dropdown-menu dropdown-menu-right user-dropdown" aria-labelledby="userDropdown">
                 <a class="dropdown-item" href="#" id="cambiar_contraseña_usuarios_sistema">
-                    <i class="fas fa-key mr-2"></i>Modificar Contraseña
+                    <i class="fas fa-key"></i> Modificar Contraseña
                 </a>
                 <a class="dropdown-item" href="#" id="modificar_perfil_usuario_sistema">
-                    <i class="fas fa-id-card mr-2"></i>Mi Perfil
+                    <i class="fas fa-id-card"></i> Mi Perfil
                 </a>
                 <div class="dropdown-divider"></div>
-                <a class="dropdown-item" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>MisFacturas/">
-                    <i class="fa-solid fa-file-invoice mr-2"></i> Mis Facturas
-                    <span id="badge-facturas-pendientes" class="badge bg-danger rounded-pill float-end" style="display: none;">0</span>
+                <a class="dropdown-item d-flex align-items-center" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>MisFacturas/">
+                    <i class="fas fa-file-invoice"></i>
+                    <span class="flex-grow-1 ml-2">Mis Facturas</span>
+                    <span id="badge-facturas-pendientes-dropdown" class="badge bg-danger" style="display: none;">0</span>
                 </a>
-                <div class="dropdown-divider"></div>                
-                <a class="dropdown-item btn-exit-system"
-                    href="<?php echo $lc->encryption($_SESSION['token_sd']);?>">
-                    <i class="fas fa-sign-out-alt mr-2"></i>Salir
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item btn-exit-system" href="<?php echo $lc->encryption($_SESSION['token_sd']);?>">
+                    <i class="fas fa-sign-out-alt"></i> Salir
                 </a>
             </div>
         </li>

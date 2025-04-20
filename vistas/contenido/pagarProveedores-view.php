@@ -3,61 +3,63 @@
 	        <li class="breadcrumb-item"><a class="breadcrumb-link" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>dashboard/">Dashboard</a></li>	        
 	        <li class="breadcrumb-item active">Cuentas por Pagar Proveedores</li>
 	    </ol>
-	    <div class="card mb-4">
-	        <div class="card-body">
-	            <form class="form-inline" id="form_main_pagar_proveedores">
-	                <div class="form-group mx-sm-3 mb-1">
-	                    <div class="input-group">
-	                        <div class="input-group-append">
-	                            <span class="input-group-text">
-	                                <div class="sb-nav-link-icon"></div>Estado
-	                            </span>
-	                            <select id="pagar_proveedores_estado" name="pagar_proveedores_estado" class="selectpicker"
-	                                title="Estado" data-live-search="true">
-	                                <option value="1">Pendientes</option>
-	                                <option value="2">Pagadas</option>
-	                            </select>
-	                        </div>
-	                    </div>
-	                </div>
-	                <div class="form-group mx-sm-3 mb-1">
-	                    <div class="input-group">
-	                        <div class="input-group-append">
-	                            <span class="input-group-text">
-	                                <div class="sb-nav-link-icon"></div>Proveedores
-	                            </span>
-	                            <select id="pagar_proveedores" name="pagar_proveedores" class="selectpicker"
-	                                title="Proveedores" data-live-search="true">
-	                                <option value="">Seleccione</option>
-	                            </select>
-	                        </div>
-	                    </div>
-	                </div>
-	                <div class="form-group mx-sm-3 mb-1">
-	                    <div class="input-group">
-	                        <div class="input-group-append">
-	                            <span class="input-group-text">
-	                                <div class="sb-nav-link-icon"></div>Fecha Inicio
-	                            </span>
-	                        </div>
-	                        <input type="date" required id="fechai" name="fechai" value="<?php echo date ("Y-m-d");?>"
-	                            class="form-control" data-toggle="tooltip" data-placement="top" title="Fecha Fin">
-	                    </div>
-	                </div>
-	                <div class="form-group mx-sm-3 mb-1">
-	                    <div class="input-group">
-	                        <div class="input-group-append">
-	                            <span class="input-group-text">
-	                                <div class="sb-nav-link-icon"></div>Fecha Fin
-	                            </span>
-	                        </div>
-	                        <input type="date" required id="fechaf" name="fechaf" value="<?php echo date ("Y-m-d");?>"
-	                            class="form-control" data-toggle="tooltip" data-placement="top" title="Fecha Fin">
-	                    </div>
-	                </div>
-	            </form>
-	        </div>
-	    </div>
+
+		<div class="card mb-4">
+			<div class="card-body">
+				<form id="form_main_pagar_proveedores">
+					<div class="row">
+						<div class="col-md-3 col-sm-6 mb-3">
+							<div class="form-group">
+								<label class="small mb-1">Estado</label>
+								<select id="pagar_proveedores_estado" name="pagar_proveedores_estado" 
+									class="form-control selectpicker" title="Estado" data-live-search="true">
+									<option value="1">Pendientes</option>
+									<option value="2">Pagadas</option>
+								</select>
+							</div>
+						</div>
+						
+						<div class="col-md-3 col-sm-6 mb-3">
+							<div class="form-group">
+								<label class="small mb-1">Proveedores</label>
+								<select id="pagar_proveedores" name="pagar_proveedores" 
+									class="form-control selectpicker" title="Proveedores" data-live-search="true">
+									<option value="">Seleccione</option>
+								</select>
+							</div>
+						</div>
+						
+						<div class="col-md-3 col-sm-6 mb-3">
+							<div class="form-group">
+								<label class="small mb-1">Fecha Inicio</label>
+								<input type="date" required id="fechai" name="fechai" 
+									value="<?php echo date ("Y-m-d");?>" class="form-control" title="Fecha Inicio">
+							</div>
+						</div>
+						
+						<div class="col-md-3 col-sm-6 mb-3">
+							<div class="form-group">
+								<label class="small mb-1">Fecha Fin</label>
+								<input type="date" required id="fechaf" name="fechaf" 
+									value="<?php echo date ("Y-m-d");?>" class="form-control" title="Fecha Fin">
+							</div>
+						</div>
+					</div>
+					
+					<div class="row">
+						<div class="col-12 text-right">
+							<button type="submit" class="btn btn-primary">
+								<i class="fas fa-file-invoice-dollar fa-lg mr-1"></i> Buscar Facturas
+							</button>
+							<button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary">
+                           		<i class="fas fa-broom fa-lg"></i> Limpiar
+                        	</button>     							
+						</div>
+					</div>
+				</form>
+			</div>
+		</div>
+
 	    <div class="card mb-4">
 	        <div class="card-header">
 	            <i class="fas fa-file-invoice fa-lg mr-1"></i>

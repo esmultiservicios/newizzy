@@ -264,364 +264,237 @@
 		}		
 
 		//funcion para realizar todos lo pagos de factura
-		protected function agregar_pago_factura_base($res){	
-			$existeProforma = 0;
-			$proformaNombre = "Factura Electronica";			
-
-			//CONSULTAMOS SI EXISTE FACTURA PROFORMA
-			$resultTotalPadre = pagoFacturaModelo::consultar_factura_proforma_pagos_modelo($res['facturas_id']);
-
-			if($resultTotalPadre->num_rows>0) {
-				$existeProforma = 1;
-				$proformaNombre = "Factura Proforma";
-			}
-
-			//SI EL PAGO QUE SE ESTA REALIZANDO ES DE UN DOCUMENTO AL CREDITO
-			if($res['estado_factura'] == 2 || $res['multiple_pago'] == 1){//SI ES CREDITO ESTO ES UN ABONO A LA FACTURA
-				$saldo_credito = 0;
-				$nuevo_saldo = 0;
-				
-				//consultamos a la tabla cobrar cliente
-				$get_cobrar_cliente = pagoFacturaModelo::consultar_factura_cuentas_por_cobrar($res['facturas_id']);
-		
-				if($get_cobrar_cliente->num_rows == 0){
-					echo 'error';
-				}else{
-					$rec = $get_cobrar_cliente->fetch_assoc();
-					$saldo_credito = $rec['saldo'];
-				}
-	
-				//validar que no se hagan mas abonos que el importe
-				if($res['abono'] <= $saldo_credito ){
-					//update tabla cobrar cliente
-					if($res['abono'] == $saldo_credito){
-						//actualizamos el estado a pagado (2)
-						$nuevo_saldo = 0;
-						$put_cobrar_cliente = pagoFacturaModelo::update_status_factura_cuentas_por_cobrar($res['facturas_id'],2,0);
-												
-						//ACTUALIZAMOS EL ESTADO DE LA FACTURA
-						pagoFacturaModelo::update_status_factura($res['facturas_id']);
-					}else{
-						$nuevo_saldo = $saldo_credito - $res['abono'];
-						$put_cobrar_cliente = pagoFacturaModelo::update_status_factura_cuentas_por_cobrar($res['facturas_id'],1,$nuevo_saldo);
-					}
-	
-					$query = pagoFacturaModelo::agregar_pago_factura_modelo($res);					
-	
-					if($query){
-						//ACTUALIZAMOS EL DETALLE DEL PAGO
-						$consulta_pago = pagoFacturaModelo::getLastInserted()->fetch_assoc();
-
-						$pagos_id = $consulta_pago['id'];
-													
-						$datos_pago_detalle = [
-							"pagos_id" => $pagos_id,
-							"tipo_pago_id" => $res['tipo_pago_id'],
-							"banco_id" => $res['banco_id'],
-							"efectivo" => $res['importe'],
-							"descripcion1" => $res['referencia_pago1'],
-							"descripcion2" => $res['referencia_pago2'],
-							"descripcion3" => $res['referencia_pago3'],
-						];	
-						
-						$result_valid_pagos_detalles_facturas = pagoFacturaModelo::valid_pagos_detalles_facturas($pagos_id, $res['tipo_pago_id']);
-						
-						pagoFacturaModelo::agregar_pago_detalles_factura_modelo($datos_pago_detalle);
-						/**###########################################################################################################*/
-						//INGRESAMOS LOS DATOS DEL PAGO EN LA TABLA ingresos
-						//CONSULTAMOS LA CUENTA DONDE SE ENLZARA CON EL PAGO
-						$consulta_cuenta_ingreso = self::consulta_cuenta_pago_modelo($res['tipo_pago_id'])->fetch_assoc();
-						$cuentas_id = $consulta_cuenta_ingreso['cuentas_id'];					
-						$empresa_id = $res['empresa'];
-
-						//CONSULTAMOS EL NUMERO DE FACTURA QUE ESTAMOS PAGANDO O ABONANDO
-						$consulta_factura = mainModel::getFactura($res['facturas_id'])->fetch_assoc();
-						$no_factura = str_pad($consulta_factura['numero_factura'], $consulta_factura['relleno'], "0", STR_PAD_LEFT);
-						$clientes_id = $consulta_factura['clientes_id'];
-
-						$subtotal = $res['abono'];
-						$isv = 0;
-						$descuento = 0;
-						$nc = 0;
-						$total = $res['abono'];
-						$observacion = "Ingresos por venta Cierre de Caja";
-						$tipo_ingreso = 2;//OTROS INGRESOS
-						$fecha = date("Y-m-d");
-						$fecha_registro = date("Y-m-d H:i:s");
-						$estado = 1;
-						
-						$datos_ingresos = [
-							"clientes_id" => $clientes_id,
-							"cuentas_id" => $cuentas_id,
-							"empresa_id" => $empresa_id,
-							"fecha" => $fecha,
-							"factura" => $no_factura,
-							"subtotal" => $subtotal,
-							"isv" => $isv,
-							"descuento" => $descuento,
-							"nc" => $nc,
-							"total" => $total,
-							"observacion" => $observacion,
-							"estado" => $estado,
-							"fecha_registro" => $fecha_registro,
-							"colaboradores_id" => $res['colaboradores_id'],
-							"tipo_ingreso" => $tipo_ingreso,
-							"recibide" => ""								
-						];						
-
-						//ALMACENAMOS EL INGRESO DEL PAGO
-						self::agregar_ingresos_contabilidad_pagos_modelo($datos_ingresos);
-
-						//INGRESAMOS LOS DATOS DEL PAGO EN LA TABLA movimientos_cuentas
-						//CONSULTAMOS EL SALDO DISPONIBLE PARA LA CUENTA
-						$consulta_ingresos_contabilidad = self::consultar_saldo_movimientos_cuentas_pagos_contabilidad($cuentas_id)->fetch_assoc();
-						$saldo_consulta = isset($consulta_ingresos_contabilidad['saldo']) ? $consulta_ingresos_contabilidad['saldo'] : 0;	
-						$ingreso = $total;
-						$egreso = 0;
-						$saldo = $saldo_consulta + $ingreso;
-
-						$datos_movimientos = [
-							"cuentas_id" => $cuentas_id,
-							"empresa_id" => $empresa_id,
-							"fecha" => $fecha,
-							"ingreso" => $ingreso,
-							"egreso" => $egreso,
-							"saldo" => $saldo,
-							"colaboradores_id" => $res['colaboradores_id'],
-							"fecha_registro" => $fecha_registro,				
-						];
-
-						//ALMACENAMOS EL MOVIMIENTO DE CUENTA DEL PAGO
-						self::agregar_movimientos_contabilidad_pagos_modelo($datos_movimientos);
-						
-						$get_cobrar_cliente = pagoFacturaModelo::consultar_factura_cuentas_por_cobrar($res['facturas_id']);
-						$saldo_nuevo = 0;
-						if($get_cobrar_cliente->num_rows > 0){
-							$rec = $get_cobrar_cliente->fetch_assoc();
-							$saldo_nuevo = $rec['saldo'];
-							$saldo_nuevo = intval($saldo_nuevo);
-						}
-						
-						if($res['multiple_pago'] == 1 && $saldo_nuevo > 0){
-							$datos = [
-								"modulo" => 'Pagos',
-								"colaboradores_id" => $_SESSION['colaborador_id_sd'],		
-								"status" => "Registrar",
-								"observacion" => "Se registro el pago para la factura {$no_factura} al contado, con pagos múltiples",
-								"fecha_registro" => date("Y-m-d H:i:s")
-							];	
-							
-							mainModel::guardarHistorial($datos);
-
-							$alert = [
-								"type" => "success",
-								"title" => "Registro pago multiples almacenado",
-								"text" => "El registro se ha almacenado correctamente",                
-								"funcion" => "pago(".$res['facturas_id'].");saldoFactura(".$res['facturas_id'].")"
-							];
-
-							//OBTENEMOS EL DOCUMENTO ID DE LA FACTURACION
-							$consultaDocumento = mainModel::getDocumentoSecuenciaFacturacion($proformaNombre)->fetch_assoc();
-							$documento_id = $consultaDocumento['documento_id'];	
-
-							//VALIDAMOS SI LA FACTURA YA TIENE ASIGNADO UN NUMERO CORRELATIVO, DE NO TENERLO NO HACEMOS NADA
-							$result_consuta_factura = pagoFacturaModelo::consultar_numero_factura_modelo($res['facturas_id'])->fetch_assoc();
-							$numero_factura_consultado = $result_consuta_factura['number'];
-
-							if($numero_factura_consultado == "" || $numero_factura_consultado == 0){
-								if($res['tipo_pago'] == 1){
-									$secuenciaFacturacion = pagoFacturaModelo::secuencia_facturacion_modelo($res['empresa'], $documento_id)->fetch_assoc();
-									$secuencia_facturacion_id = $secuenciaFacturacion['secuencia_facturacion_id'];
-									$numero = $secuenciaFacturacion['numero'];
-									$incremento = $secuenciaFacturacion['incremento'];
-									$no_factura = $secuenciaFacturacion['prefijo']."".str_pad($secuenciaFacturacion['numero'], $secuenciaFacturacion['relleno'], "0", STR_PAD_LEFT);
-								}else{
-									$secuenciaFacturacion = pagoFacturaModelo::consultar_numero_factura($res['facturas_id'])->fetch_assoc();
-									$secuencia_facturacion_id = $secuenciaFacturacion['secuencia_facturacion_id'];
-									$numero = $secuenciaFacturacion['number'];	
-									$no_factura = $secuenciaFacturacion['prefijo']."".str_pad($secuenciaFacturacion['numero'], $secuenciaFacturacion['relleno'], "0", STR_PAD_LEFT);			
-								}
-
-								//ACTUALIZAMOS EL ESTADO DE LA FACTURA Y EL NUMERO DE FACTURACION
-								$datos_update_factura = [
-									"facturas_id" => $res['facturas_id'],
-									"estado" => 2,//PAGADA
-									"number" => $numero,
-								];	
-
-								pagoFacturaModelo::actualizar_factura($datos_update_factura);
-							}
-						}else{
-							// Convertimos $saldo_nuevo a un entero para asegurarnos de que estamos comparando números
-							$saldo_nuevo = intval($saldo_nuevo);
-
-							$accion = "";
-							//SI SE TERMINO DE HAER TODO EL ABONO A LA FACTURA ACTUALIZAMOS LA SECUENCIA DE LA FACTURA Y ACTUALIZAMOS EL ESTADO DE LA PROFORMA
-							if($saldo_nuevo === 0){
-								//OBTENEMOS EL DOCUMENTO ID DE LA FACTURACION
-								$consultaDocumento = mainModel::getDocumentoSecuenciaFacturacion("Factura Electronica")->fetch_assoc();
-								$documento_id = $consultaDocumento['documento_id'];	
-								
-								//OBTENEMOS EL DOCUMENTO ID DE LA FACTURACION
-								$secuenciaFacturacion = pagoFacturaModelo::secuencia_facturacion_modelo($res['empresa'], $documento_id)->fetch_assoc();
-								$secuencia_facturacion_id = $secuenciaFacturacion['secuencia_facturacion_id'];
-								$numero = $secuenciaFacturacion['numero'];
-								$incremento = $secuenciaFacturacion['incremento'];	
-																					
-								if($proformaNombre === "Factura Electronica"){
-									//CONSULTAMOS EL NUMERO ACTUAL DE LA FACTURA
-									$numeroFactura = pagoFacturaModelo::consultar_numero_factura_pago_modelo($res['facturas_id'])->fetch_assoc();
-									$numero = $numeroFactura['number'];
-								}
-
-								//ACTUALIZAMOS EL NUMERO Y LA SECUENCIA DE LA FACTURA								
-								$datosFactura = [
-									"secuencia_facturacion_id" => $secuencia_facturacion_id,
-									"number" => $numero,
-									"facturas_id" => $res['facturas_id']
-								];
-								pagoFacturaModelo::actualizar_Secuenciafactura_PagoModelo($datosFactura);								
-								
-								if($proformaNombre === "Factura Proforma"){
-									$numero += $incremento;
-									pagoFacturaModelo::actualizar_secuencia_facturacion_modelo($secuencia_facturacion_id, $numero);
-								}
-
-								//ACTUALIZAMOS EL ESTADO DE LA FACTURA PROFORMA
-								pagoFacturaModelo::actualizar_estado_factura_proforma_pagos_modelo($res['facturas_id']);
-
-								$accion = "printBill({$res['facturas_id']})";
-							}
-
-							$datos = [
-								"modulo" => 'Pagos',
-								"colaboradores_id" => $_SESSION['colaborador_id_sd'],		
-								"status" => "Registrar",
-								"observacion" => "Se registro el pago para la factura {$no_factura} al contado",
-								"fecha_registro" => date("Y-m-d H:i:s")
-							];	
-							
-							mainModel::guardarHistorial($datos);
-							
-							$alert = [
-								"type" => "success",
-								"title" => "Registro almacenado",
-								"text" => "El registro se ha almacenado correctamente",                
-								"funcion" => "listar_cuentas_por_cobrar_clientes();getCollaboradoresModalPagoFacturas();".$accion,
-								"form" => "formEfectivoBill",
-								"closeAllModals" => true
-							];
-						}
-					}else{
-						$alert = [
-							"type" => "error",
-							"title" => "Ocurrió un error inesperado",
-							"text" => "No hemos podido procesar su solicitud"
-						];   		
-					}					
-				}else{
-					$alert = [
-						"type" => "error",
-						"title" => "El abono es mayor al importe",
-						"text" => "No hemos podido procesar su solicitud"
-					];   
-
-					return $alert;
-				}
-			}else{//CUANDO LA FACTURA ES AL CONTADO				
-				//VERIFICAMOS QUE NO SE HA INGRESADO EL PAGO, SI NO SE HA REALIZADO EL INGRESO, PROCEDEMOS A ALMACENAR EL PAGO
-				$result_valid_pagos_facturas = pagoFacturaModelo::valid_pagos_factura($res['facturas_id']);
-				if($result_valid_pagos_facturas->num_rows==0){	
-					$query = pagoFacturaModelo::agregar_pago_factura_modelo($res);
-	
-					if($query){
-						//ACTUALIZAMOS EL DETALLE DEL PAGO						
-						$consulta_pago = pagoFacturaModelo::getLastInserted()->fetch_assoc();
-						$pagos_id = $consulta_pago['id'];						
-													
-						$datos_pago_detalle = [
-							"pagos_id" => $pagos_id,
-							"tipo_pago_id" => $res['tipo_pago_id'],
-							"banco_id" => $res['banco_id'],
-							"efectivo" => $res['importe'],
-							"descripcion1" => $res['referencia_pago1'],
-							"descripcion2" => $res['referencia_pago2'],
-							"descripcion3" => $res['referencia_pago3'],
-						];
-											
-						$result_valid_pagos_detalles_facturas = pagoFacturaModelo::valid_pagos_detalles_facturas($pagos_id, $res['tipo_pago_id']);
-						
-						//VALIDAMOS QUE NO EXISTA EL DETALLE DEL PAGO, DE NO EXISTIR SE ALMACENA EL DETALLE DEL PAGO
-						if($result_valid_pagos_detalles_facturas->num_rows==0){
-							pagoFacturaModelo::agregar_pago_detalles_factura_modelo($datos_pago_detalle);
-						}					
-						
-						//ACTUALIZAMOS EL ESTADO DE LA FACTURA
-						pagoFacturaModelo::update_status_factura($res['facturas_id']);
-						pagoFacturaModelo::update_status_factura_cuentas_por_cobrar($res['facturas_id'],2,0);				
-	
-						//ACTUALIZAMOS EL ESTADO DE LA FACTURA Y EL NUMERO DE FACTURACION
-						$datos_update_factura = [
-							"facturas_id" => $res['facturas_id'],
-							"estado" => 2//PAGADA
-						];
-						
-						pagoFacturaModelo::actualizar_factura($datos_update_factura);
-
-						//CONSULTAMOS EL NUMERO DE LA FACTURA
-						$numero = 0;
-						$consultaNumeroFactura = pagoFacturaModelo::consultar_numero_factura_pago_modelo($res['facturas_id'])->fetch_assoc();
-						$numero = $consultaNumeroFactura['number'] ?? 0;
-
-						//GUARDAR HISTORIAL												
-						$datos = [
-							"modulo" => 'Pagos',
-							"colaboradores_id" => $_SESSION['colaborador_id_sd'],		
-							"status" => "Registrar",
-							"observacion" => "Se registro el pago para la factura {$numero} al contado",
-							"fecha_registro" => date("Y-m-d H:i:s")
-						];	
-						
-						mainModel::guardarHistorial($datos);
-
-						$alert = [
-							"alert" => "save_simple",
-							"title" => "Registro almacenado",
-							"text" => "El registro se ha almacenado correctamente",
-							"type" => "success",
-							"btn-class" => "btn-primary",
-							"btn-text" => "¡Bien Hecho!",
-							
-							"id" => "proceso_pagos",
-							"valor" => "Registro",	
-							"funcion" => "",
-							"modal" => "modal_pagos",
-													
-						];
-
-						$alert = [
-							"type" => "success",
-							"title" => "Registro modificado",
-							"text" => "El registro se ha modificado correctamente",                
-							"funcion" => "printBill(".$res['facturas_id'].",".$res['print_comprobante'].");listar_cuentas_por_cobrar_clientes();mailBill(".$res['facturas_id'].");getCollaboradoresModalPagoFacturas();",
-							"closeAllModals" => true
-						]; 						
-					}else{
-						$alert = [
-							"type" => "error",
-							"title" => "Ocurrio un error inesperado",
-							"text" => "No hemos podido procesar su solicitud"
-						];						
-					}					
-				}else{
-					$alert = [
-						"type" => "error",
-						"title" => "Error al ingresar el pago",
-						"text" => "Habilite nuevamente la seccion de Pagos Multiples"
-					]; 				
-				}						
-			}			
+		protected function agregar_pago_factura_base($res) {
+			$existeProforma = $this->verificarProforma($res['facturas_id']);
+			$proformaNombre = $existeProforma ? "Factura Proforma" : "Factura Electronica";
 			
+			if ($res['estado_factura'] == 2 || $res['multiple_pago'] == 1) {
+				return $this->procesarPagoCredito($res, $proformaNombre);
+			} else {
+				return $this->procesarPagoContado($res);
+			}
+		}
+	
+		protected function verificarProforma($facturaId) {
+			$result = $this->consultar_factura_proforma_pagos_modelo($facturaId);
+			return $result->num_rows > 0;
+		}
+	
+		protected function procesarPagoCredito($res, $proformaNombre) {
+			$saldoCredito = $this->obtenerSaldoCredito($res['facturas_id']);
+			
+			if ($res['abono'] > $saldoCredito) {
+				return $this->crearAlertaError("El abono es mayor al importe");
+			}
+	
+			$nuevoSaldo = $this->actualizarSaldoCredito($res, $saldoCredito);
+			$query = $this->agregar_pago_factura_modelo($res);
+	
+			if (!$query) {
+				return $this->crearAlertaError("No hemos podido procesar su solicitud");
+			}
+	
+			$pagoId = $this->getLastInserted()->fetch_assoc()['id'];
+			$this->agregarDetallePago($pagoId, $res);
+			$this->registrarIngresoContable($res);
+	
+			if ($res['multiple_pago'] == 1 && $nuevoSaldo > 0) {
+				return $this->procesarPagoMultiple($res, $proformaNombre);
+			} else {
+				return $this->finalizarProcesoPago($res, $proformaNombre, $nuevoSaldo);
+			}
+		}
+	
+		protected function procesarPagoContado($res) {
+			if ($this->valid_pagos_factura($res['facturas_id'])->num_rows > 0) {
+				return $this->crearAlertaError("Habilite nuevamente la seccion de Pagos Multiples");
+			}
+	
+			$query = $this->agregar_pago_factura_modelo($res);
+			
+			if (!$query) {
+				return $this->crearAlertaError("No hemos podido procesar su solicitud");
+			}
+	
+			$pagoId = $this->getLastInserted()->fetch_assoc()['id'];
+			$this->agregarDetallePago($pagoId, $res);
+			
+			$this->update_status_factura($res['facturas_id']);
+			$this->update_status_factura_cuentas_por_cobrar($res['facturas_id'], 2, 0);
+			
+			$datosUpdate = ["facturas_id" => $res['facturas_id'], "estado" => 2];
+			$this->actualizar_factura($datosUpdate);
+	
+			$this->registrarHistorial("Se registro el pago para la factura al contado");
+	
+			return [
+				"type" => "success",
+				"title" => "Registro modificado",
+				"text" => "El registro se ha modificado correctamente",                
+				"funcion" => "printBill(".$res['facturas_id'].",".$res['print_comprobante'].");listar_cuentas_por_cobrar_clientes();mailBill(".$res['facturas_id'].");getCollaboradoresModalPagoFacturas();",
+				"closeAllModals" => true
+			];
+		}
+	
+		protected function obtenerSaldoCredito($facturaId) {
+			$result = $this->consultar_factura_cuentas_por_cobrar($facturaId);
+			return $result->num_rows > 0 ? $result->fetch_assoc()['saldo'] : 0;
+		}
+	
+		protected function actualizarSaldoCredito($res, $saldoCredito) {
+			$nuevoSaldo = $saldoCredito - $res['abono'];
+			$estado = ($nuevoSaldo == 0) ? 2 : 1;
+			$this->update_status_factura_cuentas_por_cobrar($res['facturas_id'], $estado, $nuevoSaldo);
+			return $nuevoSaldo;
+		}
+	
+		protected function agregarDetallePago($pagoId, $res) {
+			$datos = [
+				"pagos_id" => $pagoId,
+				"tipo_pago_id" => $res['tipo_pago_id'],
+				"banco_id" => $res['banco_id'],
+				"efectivo" => $res['importe'],
+				"descripcion1" => $res['referencia_pago1'],
+				"descripcion2" => $res['referencia_pago2'],
+				"descripcion3" => $res['referencia_pago3'],
+			];
+			
+			if ($this->valid_pagos_detalles_facturas($pagoId, $res['tipo_pago_id'])->num_rows == 0) {
+				$this->agregar_pago_detalles_factura_modelo($datos);
+			}
+		}
+	
+		protected function registrarIngresoContable($res) {
+			$cuenta = $this->consulta_cuenta_pago_modelo($res['tipo_pago_id'])->fetch_assoc();
+			$factura = mainModel::getFactura($res['facturas_id'])->fetch_assoc();
+			
+			$datosIngreso = [
+				"clientes_id" => $factura['clientes_id'],
+				"cuentas_id" => $cuenta['cuentas_id'],
+				"empresa_id" => $res['empresa'],
+				"fecha" => date("Y-m-d"),
+				"factura" => str_pad($factura['numero_factura'], $factura['relleno'], "0", STR_PAD_LEFT),
+				"subtotal" => $res['abono'],
+				"isv" => 0,
+				"descuento" => 0,
+				"nc" => 0,
+				"total" => $res['abono'],
+				"observacion" => "Ingresos por venta Cierre de Caja",
+				"estado" => 1,
+				"fecha_registro" => date("Y-m-d H:i:s"),
+				"colaboradores_id" => $res['colaboradores_id'],
+				"tipo_ingreso" => 2,
+				"recibide" => ""                                
+			];
+			
+			$this->agregar_ingresos_contabilidad_pagos_modelo($datosIngreso);
+			$this->registrarMovimientoCuenta($cuenta['cuentas_id'], $res);
+		}
+	
+		protected function registrarMovimientoCuenta($cuentaId, $res) {
+			$saldo = $this->consultar_saldo_movimientos_cuentas_pagos_contabilidad($cuentaId)->fetch_assoc();
+			$saldoActual = $saldo['saldo'] ?? 0;
+			$nuevoSaldo = $saldoActual + $res['abono'];
+			
+			$datosMovimiento = [
+				"cuentas_id" => $cuentaId,
+				"empresa_id" => $res['empresa'],
+				"fecha" => date("Y-m-d"),
+				"ingreso" => $res['abono'],
+				"egreso" => 0,
+				"saldo" => $nuevoSaldo,
+				"colaboradores_id" => $res['colaboradores_id'],
+				"fecha_registro" => date("Y-m-d H:i:s"),                
+			];
+			
+			$this->agregar_movimientos_contabilidad_pagos_modelo($datosMovimiento);
+		}
+	
+		protected function procesarPagoMultiple($res, $proformaNombre) {
+			$this->registrarHistorial("Se registro el pago para la factura al contado, con pagos múltiples");
+			
+			$alert = [
+				"type" => "success",
+				"title" => "Registro pago multiples almacenado",
+				"text" => "El registro se ha almacenado correctamente",                
+				"funcion" => "pago(".$res['facturas_id'].");saldoFactura(".$res['facturas_id'].")"
+			];
+	
+			$documento = $this->getDocumentoSecuenciaFacturacion($proformaNombre)->fetch_assoc();
+			$resultFactura = $this->consultar_numero_factura_modelo($res['facturas_id'])->fetch_assoc();
+			
+			if(empty($resultFactura['number'])) {
+				$this->actualizarSecuenciaFactura($res, $proformaNombre, $documento);
+			}
+	
 			return $alert;
+		}
+	
+		protected function finalizarProcesoPago($res, $proformaNombre, $saldoNuevo) {
+			$accion = "";
+			
+			if($saldoNuevo === 0) {
+				$documento = $this->getDocumentoSecuenciaFacturacion("Factura Electronica")->fetch_assoc();
+				$secuencia = $this->secuencia_facturacion_modelo($res['empresa'], $documento['documento_id'])->fetch_assoc();
+				
+				if($proformaNombre === "Factura Proforma") {
+					$nuevoNumero = $secuencia['numero'] + $secuencia['incremento'];
+					$this->actualizar_secuencia_facturacion_modelo($secuencia['secuencia_facturacion_id'], $nuevoNumero);
+				}
+				
+				$this->actualizar_estado_factura_proforma_pagos_modelo($res['facturas_id']);
+				$accion = "printBill({$res['facturas_id']})";
+			}
+			
+			$this->registrarHistorial("Se registro el pago para la factura al contado");
+			
+			return [
+				"type" => "success",
+				"title" => "Registro almacenado",
+				"text" => "El registro se ha almacenado correctamente",                
+				"funcion" => "listar_cuentas_por_cobrar_clientes();getCollaboradoresModalPagoFacturas();".$accion,
+				"form" => "formEfectivoBill",
+				"closeAllModals" => true
+			];
+		}
+	
+		protected function crearAlertaError($mensaje) {
+			return [
+				"type" => "error",
+				"title" => "Ocurrió un error inesperado",
+				"text" => $mensaje
+			];
+		}
+	
+		protected function registrarHistorial($observacion) {
+			$datos = [
+				"modulo" => 'Pagos',
+				"colaboradores_id" => $_SESSION['colaborador_id_sd'],        
+				"status" => "Registrar",
+				"observacion" => $observacion,
+				"fecha_registro" => date("Y-m-d H:i:s")
+			];    
+			
+			mainModel::guardarHistorial($datos);
+		}
+	
+		protected function actualizarSecuenciaFactura($res, $proformaNombre, $documento) {
+			if($res['tipo_pago'] == 1) {
+				$secuencia = $this->secuencia_facturacion_modelo($res['empresa'], $documento['documento_id'])->fetch_assoc();
+				$numero = $secuencia['numero'];
+				$noFactura = $secuencia['prefijo']."".str_pad($secuencia['numero'], $secuencia['relleno'], "0", STR_PAD_LEFT);
+			} else {
+				$secuencia = $this->consultar_numero_factura($res['facturas_id'])->fetch_assoc();
+				$numero = $secuencia['number'];    
+				$noFactura = $secuencia['prefijo']."".str_pad($secuencia['numero'], $secuencia['relleno'], "0", STR_PAD_LEFT);            
+			}
+	
+			$datosUpdate = [
+				"facturas_id" => $res['facturas_id'],
+				"estado" => 2,
+				"number" => $numero
+			];    
+	
+			$this->actualizar_factura($datosUpdate);
 		}
 	}

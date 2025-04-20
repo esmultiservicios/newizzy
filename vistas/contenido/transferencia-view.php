@@ -3,48 +3,49 @@
 		<li class="breadcrumb-item"><a class="breadcrumb-link" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>dashboard/">Dashboard</a></li>
         <li class="breadcrumb-item active">Inventario</li>
     </ol>
+
     <div class="card mb-4">
         <div class="card-body">
-            <form class="" id="form_main_movimientos">
+            <form id="form_main_movimientos">
                 <div class="row">
-                    <div class="form-group mx-sm-3 mb-1">
-                        <div class="input-group">
-                            <div class="input-group-append">
-                                <span class="input-group-text">
-                                    <div class="sb-nav-link-icon"></div>Categoría
-                                </span>
-                                <select id="inventario_tipo_productos_id" name="inventario_tipo_productos_id"
-                                    class="selectpicker" data-live-search="true" title="Categoría de Productos">
-                                </select>
-                            </div>
+                    <div class="col-md-4 col-sm-6 mb-3">
+                        <div class="form-group">
+                            <label class="small mb-1">Categoría</label>
+                            <select id="inventario_tipo_productos_id" name="inventario_tipo_productos_id"
+                                class="form-control selectpicker" data-live-search="true" title="Categoría de Productos">
+                            </select>
                         </div>
                     </div>
-                    <div class="form-group mx-sm-3 mb-1">
-                        <div class="input-group">
-                            <div class="input-group-append">
-                                <span class="input-group-text">
-                                    <div class="sb-nav-link-icon"></div>Categoría
-                                </span>
-                                <select id="inventario_productos_id" name="inventario_productos_id" class="selectpicker"
-                                    data-live-search="true" title="Productos">
-                                </select>
-                            </div>
+                    
+                    <div class="col-md-4 col-sm-6 mb-3">
+                        <div class="form-group">
+                            <label class="small mb-1">Producto</label>
+                            <select id="inventario_productos_id" name="inventario_productos_id" 
+                                class="form-control selectpicker" data-live-search="true" title="Productos">
+                            </select>
                         </div>
                     </div>
-                    <div class="form-group mx-sm-3 mb-1">
-                        <div class="input-group">
-                            <div class="input-group-append">
-                                <span class="input-group-text">
-                                    <div class="sb-nav-link-icon"></div>Categoría
-                                </span>
-                                <select id="almacen" name="almacen" class="selectpicker" data-live-search="true"
-                                    title="Almacen">
-                                </select>
-                            </div>
+                    
+                    <div class="col-md-4 col-sm-6 mb-3">
+                        <div class="form-group">
+                            <label class="small mb-1">Almacén</label>
+                            <select id="almacen" name="almacen" class="form-control selectpicker" 
+                                data-live-search="true" title="Almacen">
+                            </select>
                         </div>
                     </div>
                 </div>
-
+                
+                <div class="row">
+                    <div class="col-12 d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search fa-lg mr-1"></i> Buscar
+                        </button>
+                        <button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary">
+                                <i class="fas fa-broom fa-lg"></i> Limpiar
+                        </button>  
+                    </div>
+                </div>
             </form>
         </div>
     </div>

@@ -58,7 +58,6 @@
 				$isv_neto = 0;
 				$importe_gravado = 0;
 				$importe_excento = 0;
-				$subtotal = 0;
 
 				while($data = $resultFacturaFinalNeto->fetch_assoc()){
 					$facturas_id = $data['facturas_id'];

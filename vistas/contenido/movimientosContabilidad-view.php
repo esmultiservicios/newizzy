@@ -3,6 +3,7 @@
         <li class="breadcrumb-item"><a class="breadcrumb-link" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>dashboard/">Dashboard</a></li>
         <li class="breadcrumb-item active">Movimiento de Cuentas</li>
     </ol>
+
     <div class="card mb-4">
         <div class="card-body">
 			<form class="form-inline" id="formMainMovimientosContabilidad" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
@@ -43,6 +44,7 @@
 			</form>	           
         </div>
     </div>	
+	
     <div class="card mb-4">
         <div class="card-header">
             <i class="fas fa-file-invoice fa-lg mr-1"></i>

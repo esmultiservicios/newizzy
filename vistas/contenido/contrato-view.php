@@ -4,67 +4,67 @@
         </li>
         <li class="breadcrumb-item active">Contrato</li>
     </ol>
+
     <div class="card mb-4">
         <div class="card-body">
-            <form class="form-inline" id="form_main_contrato">
-                <div class="form-row">
-                    <div class="form-group mx-sm-3 mb-1">
-                        <div class="input-group">
-                            <div class="input-group-append">
-                                <span class="input-group-text">
-                                    <div class="sb-nav-link-icon"></div>Estado
-                                </span>
-                            </div>
-                            <select id="estado" name="estado" class="selectpicker " data-toggle="tooltip"
-                                title="Tipo Contrato" data-live-search="true">
+            <form id="form_main_contrato">
+                <div class="row">
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="form-group">
+                            <label class="small mb-1">Estado</label>
+                            <select id="estado" name="estado" 
+                                class="form-control selectpicker" title="Tipo Contrato" data-live-search="true">
                                 <option value="1">Activo</option>
                                 <option value="2">Inactivo</option>
                             </select>
                         </div>
                     </div>
-                    <div class="form-group mx-sm-3 mb-1">
-                        <div class="input-group">
-                            <div class="input-group-append">
-                                <span class="input-group-text">
-                                    <div class="sb-nav-link-icon"></div>Tipo Contrato
-                                </span>
-                                <select id="tipo_contrato" name="tipo_contrato" class="selectpicker"
-                                    title="Tipo de Contrato" data-live-search="true">
-                                    <option value="">Seleccione</option>
-                                </select>
-                            </div>
+                    
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="form-group">
+                            <label class="small mb-1">Tipo Contrato</label>
+                            <select id="tipo_contrato" name="tipo_contrato" 
+                                class="form-control selectpicker" title="Tipo de Contrato" data-live-search="true">
+                                <option value="">Seleccione</option>
+                            </select>
                         </div>
                     </div>
-                    <div class="form-group mx-sm-3 mb-1">
-                        <div class="input-group">
-                            <div class="input-group-append">
-                                <span class="input-group-text">
-                                    <div class="sb-nav-link-icon"></div>Pago Planificado
-                                </span>
-                                <select id="pago_planificado" name="pago_planificado" class="selectpicker"
-                                    title="Pago Planificado" data-live-search="true">
-                                    <option value="">Seleccione</option>
-                                </select>
-                            </div>
+                    
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="form-group">
+                            <label class="small mb-1">Pago Planificado</label>
+                            <select id="pago_planificado" name="pago_planificado" 
+                                class="form-control selectpicker" title="Pago Planificado" data-live-search="true">
+                                <option value="">Seleccione</option>
+                            </select>
                         </div>
                     </div>
-                    <div class="form-group mx-sm-3 mb-1">
-                        <div class="input-group">
-                            <div class="input-group-append">
-                                <span class="input-group-text">
-                                    <div class="sb-nav-link-icon"></div>Tipo Empleado
-                                </span>
-                                <select id="tipo_empleado" name="tipo_empleado" class="selectpicker"
-                                    title="Tipo Empleado" data-live-search="true">
-                                    <option value="">Seleccione</option>
-                                </select>
-                            </div>
+                    
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="form-group">
+                            <label class="small mb-1">Tipo Empleado</label>
+                            <select id="tipo_empleado" name="tipo_empleado" 
+                                class="form-control selectpicker" title="Tipo Empleado" data-live-search="true">
+                                <option value="">Seleccione</option>
+                            </select>
                         </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-12 text-right">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search fa-lg mr-1"></i> Buscar
+                        </button>
+                        <button type="reset" class="btn btn-secondary">
+                            <i class="fas fa-broom fa-lg"></i> Limpiar
+                        </button>                        
                     </div>
                 </div>
             </form>
         </div>
     </div>
+
     <div class="card mb-4">
         <div class="card mb-4">
             <div class="card-header">

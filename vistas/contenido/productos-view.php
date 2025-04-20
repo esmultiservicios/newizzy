@@ -6,23 +6,27 @@
 
     <div class="card mb-4">
         <div class="card-body">
-            <form class="form-inline" id="form_main_productos">
-                <div class="form-group mx-sm-3 mb-1">
-                    <div class="input-group">
-                        <div class="input-group-append">
-                            <span class="input-group-text">
-                                <div class="sb-nav-link-icon"></div>Estado
-                            </span>
-                            <select id="estado_producto" name="estado_producto" class="selectpicker" title="Estado"
-                                data-live-search="true">
+            <form id="form_main_productos">
+                <div class="row">
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="form-group">
+                            <label class="small mb-1">Estado</label>
+                            <select id="estado_producto" name="estado_producto" 
+                                class="form-control selectpicker" title="Estado" data-live-search="true">
                             </select>
                         </div>
                     </div>
                 </div>
-                <div class="form-group mx-sm-3 mb-1">
-                    <button class="guardar btn btn-secondary" type="submit" id="buscar_productos">
-                        <div class="sb-nav-link-icon"></div><i class="fas fa-search fa-lg"></i> Buscar
-                    </button>
+                
+                <div class="row">
+                    <div class="col-12 text-right">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search fa-lg mr-1"></i> Buscar
+                        </button>
+                        <button type="reset" class="btn btn-secondary">
+                            <i class="fas fa-broom fa-lg"></i> Limpiar
+                        </button>                        
+                    </div>
                 </div>
             </form>
         </div>

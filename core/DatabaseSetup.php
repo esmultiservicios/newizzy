@@ -44,6 +44,51 @@ class DatabaseSetup {
         $connection->close();
         return ['success' => true];
     }
+
+    /**
+     * Otorga privilegios a un usuario EXISTENTE en MySQL (para cPanel o entornos restringidos)
+     * 
+     * @param string $user Usuario existente al que se le darán permisos (ej: 'usuario_existente')
+     * @param string $database Base de datos objetivo (ej: 'basedatos')
+     * @param array $privileges Privilegios a otorgar (ej: ['SELECT', 'INSERT'])
+     * @return bool|array True si tuvo éxito, array con error si falló
+     */
+    public function grantPrivilegesToExistingUser($user, $database, $privileges = ['ALL PRIVILEGES']) {
+        // Conectar con las credenciales disponibles (MYSQL_USER y MYSQL_PASS)
+        $connection = new mysqli(SERVER, MYSQL_USER, MYSQL_PASS);
+        
+        if ($connection->connect_error) {
+            return ['error' => "Error de conexión: {$connection->connect_error}"];
+        }
+
+        // Escapar nombres para evitar SQL injection (aunque en cPanel a veces tienen prefijos)
+        $escapedUser = $connection->real_escape_string($user);
+        $escapedDb = $connection->real_escape_string($database);
+
+        // Consulta GRANT (sin crear usuario, pues ya existe)
+        $grantQuery = "GRANT " . implode(', ', $privileges) . " ON `{$escapedDb}`.* TO '{$escapedUser}'@'localhost'";
+        $flushQuery = "FLUSH PRIVILEGES";
+
+        try {
+            $connection->autocommit(false);
+            
+            if (!$connection->query($grantQuery)) {
+                throw new Exception("Error al otorgar privilegios: {$connection->error}");
+            }
+            
+            if (!$connection->query($flushQuery)) {
+                throw new Exception("Error al actualizar privilegios: {$connection->error}");
+            }
+            
+            $connection->commit();
+            $connection->close();
+            return true;
+        } catch (Exception $e) {
+            $connection->rollback();
+            $connection->close();
+            return ['error' => $e->getMessage()];
+        }
+    }
     
     /**
      * Método para importar un archivo SQL en la base de datos

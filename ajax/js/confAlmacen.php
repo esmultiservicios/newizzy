@@ -287,15 +287,38 @@ function getUbicacionAlmacen() {
 }
 
 function getEmpresaAlmacen() {
-    var url = '<?php echo SERVERURL;?>core/getEmpresa.php';
-
     $.ajax({
+        url: "<?php echo SERVERURL; ?>core/getEmpresa.php",
         type: "POST",
-        url: url,
-        async: true,
-        success: function(data) {
-            $('#formAlmacen #almacen_empresa_id').html("");
-            $('#formAlmacen #almacen_empresa_id').html(data);
+        dataType: "json",
+        success: function(response) {
+            const select = $('#formAlmacen #almacen_empresa_id');
+            select.empty();
+            
+            if(response.success) {
+                response.data.forEach(empresa => {
+                    select.append(`
+                        <option value="${empresa.empresa_id}">
+                            ${empresa.nombre}
+                        </option>
+                    `);
+                });
+                
+                // Establecer valor por defecto si existe
+                if(response.data.length > 0) {
+                    select.val(1); // O el valor que necesites por defecto
+                    select.selectpicker('refresh');
+                }
+            } else {
+                select.append('<option value="">No hay empresas disponibles</option>');
+                showNotify("warning", "Advertencia", response.message || "No se encontraron empresas");
+            }
+            
+            select.selectpicker('refresh');
+        },
+        error: function(xhr) {
+            showNotify("error", "Error", "Error de conexión al cargar empresas");
+            $('#formAlmacen #almacen_empresa_id').html('<option value="">Error al cargar</option>');
             $('#formAlmacen #almacen_empresa_id').selectpicker('refresh');
         }
     });

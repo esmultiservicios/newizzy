@@ -1,9 +1,9 @@
 <script>
-$(document).ready(function() {
+$(() => {
     listar_bitacora();
 });
 //BUSQUEDA FECHAS BITACORA
-$(document).ready(function() {
+$(() => {
 	$('#formMainBitacora #fechai').on('change',function(){
 		listar_bitacora();
     });
@@ -11,6 +11,19 @@ $(document).ready(function() {
 	$('#formMainBitacora #fechaf').on('change',function(){
 		listar_bitacora();
     });
+
+    // Evento para el botón de Generar Reporte
+    $('#formMainBitacora').on('submit', function(e) {
+        e.preventDefault();
+        listar_bitacora();
+    });
+
+    // Evento para el botón de Limpiar Filtros
+    $('#btn-limpiar-filtros').on('click', function() {
+        $('#formMainBitacora')[0].reset();
+        $('#formMainBitacora .selectpicker').selectpicker('refresh');
+        listar_bitacora();
+    }); 	
 });
 
 //INICIO BITACORA

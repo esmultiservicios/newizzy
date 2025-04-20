@@ -1,11 +1,11 @@
 <script>
-$(document).ready(function() {
+$(() => {
     listar_historial_accesos();
 });
 
 
 //BUSQUEDA FECHAS HISTORIAL DE ACCESOS
-$(document).ready(function() {
+$(() => {
     $('#formMainHistorialAcceso #fechai').on('change', function() {
         listar_historial_accesos();
     });
@@ -13,6 +13,19 @@ $(document).ready(function() {
     $('#formMainHistorialAcceso #fechaf').on('change', function() {
         listar_historial_accesos();
     });
+
+    // Evento para el botón de Generar Reporte
+    $('#formMainHistorialAcceso').on('submit', function(e) {
+        e.preventDefault();
+        listar_historial_accesos();
+    });
+
+    // Evento para el botón de Limpiar Filtros
+    $('#btn-limpiar-filtros').on('click', function() {
+        $('#formMainHistorialAcceso')[0].reset();
+        $('#formMainHistorialAcceso .selectpicker').selectpicker('refresh');
+        listar_historial_accesos();
+    });     
 });
 
 //DATA TABLE HISTORIAL ACCESOS

@@ -13,7 +13,7 @@
 				<div class="form-group">				  
 					<div class="col-md-12">			
 						<div class="overflow-auto">											
-							<table id="DatatableProveedoresBusquedaProveedores" class="table table-striped table-condensed table-hover" style="width:100%">
+							<table id="DatatableProveedoresBusquedaProveedores" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
 								<thead>
 									<tr>
 										<th>Seleccione</th>

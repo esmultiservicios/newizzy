@@ -7,41 +7,49 @@
     <div class="card mb-4">
         <div class="card-body">
             <form id="form_main_cotizaciones">
-                <div class="form-row">
-                    <div class="form-group col-md-4 mb-2">
-                        <div class="input-group">
-                            <div class="input-group-append">
-                                <span class="input-group-text"><div class="sb-nav-link-icon"></div>Tipo Factura</span>
-                                <select id="tipo_cotizacion_reporte" name="tipo_cotizacion_reporte" class="selectpicker" title="Tipo de Factura" data-live-search="true"></select>
-                            </div>
+                <div class="row">
+                    <div class="col-md-4 col-sm-6 mb-3">
+                        <div class="form-group">
+                            <label class="small mb-1">Tipo Factura</label>
+                            <select id="tipo_cotizacion_reporte" name="tipo_cotizacion_reporte" 
+                                class="form-control selectpicker" title="Tipo de Factura" data-live-search="true">
+                            </select>
                         </div>
                     </div>
                     
-                    <div class="form-group col-md-4 mb-2">
-                        <div class="input-group">
-                            <div class="input-group-append">
-                                <span class="input-group-text"><div class="sb-nav-link-icon"></div>Inicio</span>
-                            </div>
+                    <div class="col-md-4 col-sm-6 mb-3">
+                        <div class="form-group">
+                            <label class="small mb-1">Fecha Inicio</label>
                             <input type="date" required id="fechai" name="fechai" value="<?php 
                                 $fecha = date ("Y-m-d");
                                 $año = date("Y", strtotime($fecha));
                                 $mes = date("m", strtotime($fecha));
                                 $dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
-                                $dia1 = date('d', mktime(0,0,0, $mes, 1, $año)); //PRIMER DIA DEL MES
-                                $dia2 = date('d', mktime(0,0,0, $mes, $dia, $año)); // ULTIMO DIA DEL MES
+                                $dia1 = date('d', mktime(0,0,0, $mes, 1, $año));
+                                $dia2 = date('d', mktime(0,0,0, $mes, $dia, $año));
                                 $fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
                                 echo $fecha_inicial;
-                            ?>" class="form-control" data-toggle="tooltip" data-placement="top" title="Fecha Inicio">
+                            ?>" class="form-control" title="Fecha Inicio">
                         </div>
                     </div>
                     
-                    <div class="form-group col-md-4 mb-2">
-                        <div class="input-group">
-                            <div class="input-group-append">
-                                <span class="input-group-text"><div class="sb-nav-link-icon"></div>Fin</span>
-                            </div>
-                            <input type="date" required id="fechaf" name="fechaf" value="<?php echo date ("Y-m-d");?>" class="form-control" data-toggle="tooltip" data-placement="top" title="Fecha Fin">
+                    <div class="col-md-4 col-sm-6 mb-3">
+                        <div class="form-group">
+                            <label class="small mb-1">Fecha Fin</label>
+                            <input type="date" required id="fechaf" name="fechaf" 
+                                value="<?php echo date ("Y-m-d");?>" class="form-control" title="Fecha Fin">
                         </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-12 text-right">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search fa-lg mr-1"></i> Generar Reporte
+                        </button>
+                        <button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary">
+                            <i class="fas fa-broom fa-lg"></i> Limpiar
+                        </button>                        
                     </div>
                 </div>
             </form>

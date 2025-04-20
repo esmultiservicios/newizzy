@@ -14,9 +14,8 @@
                     enctype="multipart/form-data">
                     <div class="form-row">
                         <div class="col-md-12 mb-3">
-                            <label>
-                                <center><b>Las teclas de función solo se pueden utilizar posicionándose en el área de la
-                                        factura, especificamente en el campo Código del Producto</b></center>
+                            <label class="text-center">
+                                <b>Las teclas de función solo se pueden utilizar posicionándose en el área de la factura, especificamente en el campo Código del Producto</b>
                             </label>
                         </div>
 
@@ -91,6 +90,7 @@
         </div>
     </div>
 </div>
+
 <!--INICIO MODAL PARA MODIFICAR PRECIO FACTURAS-->
 <div class="modal fade" id="modalModificarPrecioFacturacion">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
@@ -173,7 +173,7 @@
 </div>
 <!--FIN MODAL PARA MODIFICAR PRECIO FACTURAS-->
 
-<!--INICIO MODAL PARA FORMULARIO DESCENTOS EN FACTURACION-->
+<!--INICIO MODAL PARA FORMULARIO DESCUENTOS EN FACTURACION-->
 <div class="modal fade" id="modalDescuentoFacturacion">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
@@ -247,7 +247,7 @@
         </div>
     </div>
 </div>
-<!--FIN MODAL PARA FORMULARIO DESCENTOS EN FACTURACION-->
+<!--FIN MODAL PARA FORMULARIO DESCUENTOS EN FACTURACION-->
 
 <!--INICIO MODAL BUSQUEDA CONVERTIR COTIZACION EN FACTURAS-->
 <div class="modal fade" id="modal_buscar_cotizaciones">
@@ -262,61 +262,52 @@
             <div class="container"></div>
             <div class="modal-body">
                 <form class="FormularioAjax" id="formulario_busqueda_cotizaciones">
-                    <div class="form-row">
-                        <div class="form-group mx-sm-3 mb-1">
-                            <div class="input-group">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div>Tipo Factura
-                                    </span>
-                                    <select id="tipo_cotizacion_reporte" name="tipo_cotizacion_reporte"
-                                        data-width="100%" class="selectpicker" title="Tipo Factura"
-                                        data-live-search="true">
-                                    </select>
-                                </div>
+
+                    <div class="row align-items-end">
+                        <!-- Tipo Factura -->
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="form-group">
+                                <label class="small mb-1">Tipo Factura</label>
+                                <select id="tipo_cotizacion_reporte" name="tipo_cotizacion_reporte" 
+                                    class="form-control selectpicker" title="Tipo Factura" data-live-search="true">
+                                </select>
                             </div>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <div class="input-group">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div>Fecha Inicio
-                                    </span>
-                                </div>
+                        
+                        <!-- Fecha Inicio -->
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="form-group">
+                                <label class="small mb-1">Fecha Inicio</label>
                                 <input type="date" required id="fechai" name="fechai" value="<?php 
-								$fecha = date ("Y-m-d");
-								
-								$año = date("Y", strtotime($fecha));
-								$mes = date("m", strtotime($fecha));
-								$dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
-
-								$dia1 = date('d', mktime(0,0,0, $mes, 1, $año)); //PRIMER DIA DEL MES
-								$dia2 = date('d', mktime(0,0,0, $mes, $dia, $año)); // ULTIMO DIA DEL MES
-
-								$fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
-								$fecha_final = date("Y-m-d", strtotime($año."-".$mes."-".$dia2));						
-								
-								
-								echo $fecha_inicial;
-							?>" class="form-control ml-1" data-toggle="tooltip" data-placement="top" title="Fecha Inicio">
+                                    $fecha = date ("Y-m-d");
+                                    $año = date("Y", strtotime($fecha));
+                                    $mes = date("m", strtotime($fecha));
+                                    $dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
+                                    $dia1 = date('d', mktime(0,0,0, $mes, 1, $año));
+                                    $dia2 = date('d', mktime(0,0,0, $mes, $dia, $año));
+                                    $fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
+                                    echo $fecha_inicial;
+                                ?>" class="form-control" title="Fecha Inicio">
                             </div>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="input-group">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div>Fecha Fin
-                                    </span>
-                                </div>
+                        
+                        <!-- Fecha Fin -->
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="form-group">
+                                <label class="small mb-1">Fecha Fin</label>
                                 <input type="date" required id="fechaf" name="fechaf"
-                                    value="<?php echo date ("Y-m-d");?>" class="form-control ml-1" data-toggle="tooltip"
-                                    data-placement="top" title="Fecha Fin">
+                                    value="<?php echo date ("Y-m-d");?>" class="form-control" title="Fecha Fin">
                             </div>
                         </div>
-                        <div class="col-md-2 mb-3">
-                            <button class="consultar btn btn-secondary ml-1" type="submit" id="search">
-                                <div class="sb-nav-link-icon"></div><i class="fas fa-search fa-lg"></i> Buscar
+                        
+                        <!-- Botón Buscar -->
+                        <div class="col-md-3 col-sm-6 mb-3 d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search fa-lg mr-1"></i> Buscar
                             </button>
+                            <button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary">
+                                <i class="fas fa-broom fa-lg mr-1"></i> Limpiar
+                            </button>        
                         </div>
                     </div>
 
@@ -324,7 +315,7 @@
                         <div class="col-md-12">
                             <div class="overflow-auto">
                                 <table id="DatatableBusquedaCotizaciones"
-                                    class="table table-striped table-condensed table-hover" style="width:100%">
+                                    class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
                                     <thead>
                                         <tr>
                                             <th>Cobrar</th>
@@ -363,86 +354,86 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="container"></div>
             <div class="modal-body">
                 <form class="FormularioAjax" id="formulario_busqueda_cuentas_cobrar_clientes">
-                    <div class="form-row">
-                        <div class="form-group mx-sm-3 mb-1">
-                            <div class="input-group">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div>Estado
-                                    </span>
+                    <div class="container-fluid">
+                        <!-- Fila de filtros -->
+                        <div class="row align-items-end">
+                            <div class="col-md-3 col-sm-6 mb-2">
+                                <div class="form-group">
+                                    <label class="small mb-1">Estado</label>
                                     <select id="cobrar_clientes_estado" name="cobrar_clientes_estado"
-                                        class="selectpicker" data-width="100%" title="Estado" data-live-search="true">
+                                        class="form-control selectpicker" title="Estado" data-live-search="true">
                                     </select>
                                 </div>
                             </div>
-                        </div>
-                        <div class="form-group mx-sm-3 mb-1">
-                            <div class="input-group">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div>Clientes
-                                    </span>
-                                    <select id="cobrar_clientes" name="cobrar_clientes" class="selectpicker"
-                                        data-width="100%" title="Clientes" data-live-search="true">
+                            
+                            <div class="col-md-3 col-sm-6 mb-2">
+                                <div class="form-group">
+                                    <label class="small mb-1">Clientes</label>
+                                    <select id="cobrar_clientes" name="cobrar_clientes" class="form-control selectpicker"
+                                        title="Clientes" data-live-search="true">
                                     </select>
                                 </div>
                             </div>
-                        </div>
-                        <div class="form-group mx-sm-3 mb-1">
-                            <div class="input-group">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div>Fecha Inicio
-                                    </span>
+                            
+                            <div class="col-md-3 col-sm-6 mb-2">
+                                <div class="form-group">
+                                    <label class="small mb-1">Fecha Inicio</label>
+                                    <input type="date" required id="fechai" name="fechai"
+                                        value="<?php echo date ("Y-m-d");?>" class="form-control" title="Fecha Inicio">
                                 </div>
-                                <input type="date" required id="fechai" name="fechai"
-                                    value="<?php echo date ("Y-m-d");?>" class="form-control" data-toggle="tooltip"
-                                    data-placement="top" title="Fecha Inicio" style="width:165px;">
+                            </div>
+                            
+                            <div class="col-md-3 col-sm-6 mb-2">
+                                <div class="form-group">
+                                    <label class="small mb-1">Fecha Fin</label>
+                                    <input type="date" required id="fechaf" name="fechaf"
+                                        value="<?php echo date ("Y-m-d");?>" class="form-control" title="Fecha Fin">
+                                </div>
                             </div>
                         </div>
-                        <div class="form-group mx-sm-3 mb-1">
-                            <div class="input-group">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div>Fecha Inicio
-                                    </span>
-                                </div>
-                                <input type="date" required id="fechaf" name="fechaf"
-                                    value="<?php echo date ("Y-m-d");?>" class="form-control ml-1" data-toggle="tooltip"
-                                    data-placement="top" title="Fecha Fin" style="width:165px;">
-                            </div>
-                        </div>
-                    </div>
 
-                    <div class="form-group">
-                        <div class="col-md-12">
-                            <div class="overflow-auto">
-                                <table id="DatatableBusquedaCuentasCobrarClientes"
-                                    class="table table-striped table-condensed table-hover" style="width:100%">
-                                    <thead>
-                                        <tr>
-                                            <th>Fecha</th>
-                                            <th>Cliente</th>
-                                            <th>Factura</th>
-                                            <th>Crédito</th>
-                                            <th>Abonos</th>
-                                            <th>Saldo</th>
-                                            <th>Abonar</th>
-                                            <th>Abonos Realizados</th>
-                                            <th>Factura</th>
-                                        </tr>
-                                    </thead>
-                                </table>
+                        <!-- Fila de botones ajustada -->
+                        <div class="row mb-3">
+                            <div class="col-12 text-right">
+                                <button type="submit" class="btn btn-primary mr-2">
+                                    <i class="fas fa-search fa-lg mr-1"></i> Buscar
+                                </button>
+                                <button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary">
+                                    <i class="fas fa-broom fa-lg mr-1"></i> Limpiar
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Tabla de resultados -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="table-responsive">
+                                    <table id="DatatableBusquedaCuentasCobrarClientes"
+                                        class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
+                                        <thead>
+                                            <tr>
+                                                <th>Fecha</th>
+                                                <th>Cliente</th>
+                                                <th>Factura</th>
+                                                <th>Crédito</th>
+                                                <th>Abonos</th>
+                                                <th>Saldo</th>
+                                                <th>Abonar</th>
+                                                <th>Abonos Realizados</th>
+                                                <th>Factura</th>
+                                            </tr>
+                                        </thead>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>
@@ -459,81 +450,77 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="container"></div>
             <div class="modal-body">
                 <form class="FormularioAjax" id="formulario_bill_draft">
-                    <div class="form-row">
-                        <div class="col-md-5 mb-3">
-                            <div class="input-group">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div>Fecha Inicio
-                                    </span>
+                    <div class="container-fluid">
+                        <!-- Fila de filtros -->
+                        <div class="row align-items-end">
+                            <div class="col-md-5 col-sm-6 mb-2">
+                                <div class="form-group">
+                                    <label class="small mb-1">Fecha Inicio</label>
+                                    <input type="date" required id="fechai" name="fechai" value="<?php 
+                                        $fecha = date ("Y-m-d");
+                                        $año = date("Y", strtotime($fecha));
+                                        $mes = date("m", strtotime($fecha));
+                                        $dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
+                                        $dia1 = date('d', mktime(0,0,0, $mes, 1, $año));
+                                        $dia2 = date('d', mktime(0,0,0, $mes, $dia, $año));
+                                        $fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
+                                        echo $fecha_inicial;
+                                    ?>" class="form-control" title="Fecha Inicio">
                                 </div>
-                                <input type="date" required id="fechai" name="fechai" value="<?php 
-								$fecha = date ("Y-m-d");
-								
-								$año = date("Y", strtotime($fecha));
-								$mes = date("m", strtotime($fecha));
-								$dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
-
-								$dia1 = date('d', mktime(0,0,0, $mes, 1, $año)); //PRIMER DIA DEL MES
-								$dia2 = date('d', mktime(0,0,0, $mes, $dia, $año)); // ULTIMO DIA DEL MES
-
-								$fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
-								$fecha_final = date("Y-m-d", strtotime($año."-".$mes."-".$dia2));						
-								
-								
-								echo $fecha_inicial;
-							?>" class="form-control ml-1" data-toggle="tooltip" data-placement="top" title="Fecha Inicio">
+                            </div>
+                            
+                            <div class="col-md-5 col-sm-6 mb-2">
+                                <div class="form-group">
+                                    <label class="small mb-1">Fecha Fin</label>
+                                    <input type="date" required id="fechaf" name="fechaf"
+                                        value="<?php echo date ("Y-m-d");?>" class="form-control" title="Fecha Fin">
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-5 mb-3">
-                            <div class="input-group">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div>Fecha Inicio
-                                    </span>
-                                </div>
-                                <input type="date" required id="fechaf" name="fechaf"
-                                    value="<?php echo date ("Y-m-d");?>" class="form-control ml-1" data-toggle="tooltip"
-                                    data-placement="top" title="Fecha Fin">
+
+                        <!-- Fila de botones ajustada -->
+                        <div class="row mb-3">
+                            <div class="col-12 text-right">
+                                <button type="submit" class="btn btn-primary mr-2">
+                                    <i class="fas fa-search fa-lg mr-1"></i> Buscar
+                                </button>
+                                <button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary">
+                                    <i class="fas fa-broom fa-lg mr-1"></i> Limpiar
+                                </button>
                             </div>
                         </div>
-                        <div class="col-md-2">
-                            <button class="consultar btn btn-secondary ml-1" type="submit" id="search">
-                                <div class="sb-nav-link-icon"></div><i class="fas fa-search fa-lg"></i> Buscar
-                            </button>
-                        </div>
-                    </div>
 
-                    <div class="form-group">
-                        <div class="col-md-12">
-                            <div class="overflow-auto">
-                                <table id="DatatableBusquedaBillDraft"
-                                    class="table table-striped table-condensed table-hover" style="width:100%">
-                                    <thead>
-                                        <tr>
-                                            <th>Continuar</th>
-                                            <th>Eliminar</th>
-                                            <th>Fecha</th>
-                                            <th>Tipo</th>
-                                            <th>Empresa</th>
-                                            <th>Factura</th>
-                                            <th>SubTotal</th>
-                                            <th>ISV</th>
-                                            <th>Descuento</th>
-                                            <th>Total</th>
-                                        </tr>
-                                    </thead>
-                                </table>
+                        <!-- Tabla de resultados -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="table-responsive">
+                                    <table id="DatatableBusquedaBillDraft"
+                                        class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
+                                        <thead>
+                                            <tr>
+                                                <th>Continuar</th>
+                                                <th>Eliminar</th>
+                                                <th>Fecha</th>
+                                                <th>Tipo</th>
+                                                <th>Empresa</th>
+                                                <th>Factura</th>
+                                                <th>SubTotal</th>
+                                                <th>ISV</th>
+                                                <th>Descuento</th>
+                                                <th>Total</th>
+                                            </tr>
+                                        </thead>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>
@@ -550,114 +537,114 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="container"></div>
             <div class="modal-body">
                 <form class="FormularioAjax" id="formulario_bill">
-                    <div class="form-row">
-                        <div class="form-group mx-sm-3 mb-1">
-                            <div class="input-group">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div>Tipo Factura
-                                    </span>
-                                    <select id="tipo_factura_reporte" name="tipo_factura_reporte" class="selectpicker"
-                                        data-width="100%" title="Tipo de Factura" data-live-search="true">
+                    <div class="container-fluid">
+                        <!-- Primera fila de filtros -->
+                        <div class="row align-items-end mb-3">
+                            <div class="col-md-3 col-sm-6">
+                                <div class="form-group">
+                                    <label class="small mb-1">Tipo Factura</label>
+                                    <select id="tipo_factura_reporte" name="tipo_factura_reporte" class="form-control selectpicker"
+                                        title="Tipo de Factura" data-live-search="true">
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3 col-sm-6">
+                                <div class="form-group">
+                                    <label class="small mb-1">Facturador</label>
+                                    <select id="facturador" name="facturador" class="form-control selectpicker" title="Facturador"
+                                        data-live-search="true">
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3 col-sm-6">
+                                <div class="form-group">
+                                    <label class="small mb-1">Vendedor</label>
+                                    <select id="vendedor" name="vendedor" class="form-control selectpicker" title="Vendedor"
+                                        data-live-search="true">
                                     </select>
                                 </div>
                             </div>
                         </div>
-                        <div class="form-group mx-sm-3 mb-1">
-                            <div class="input-group">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div>Facturador
-                                    </span>
-                                    <select id="facturador" name="facturador" class="selectpicker" title="Facturador"
-                                        data-width="100%" data-live-search="true">
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group mx-sm-3 mb-1">
-                            <div class="input-group">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div>Vendedor
-                                    </span>
-                                    <select id="vendedor" name="vendedor" class="selectpicker" title="Vendedor"
-                                        data-width="100%" data-live-search="true">
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <div class="input-group">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div>Fecha Inicio
-                                    </span>
-                                </div>
-                                <input type="date" required id="fechai" name="fechai" value="<?php 
-								$fecha = date ("Y-m-d");
-								
-								$año = date("Y", strtotime($fecha));
-								$mes = date("m", strtotime($fecha));
-								$dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
 
-								$dia1 = date('d', mktime(0,0,0, $mes, 1, $año)); //PRIMER DIA DEL MES
-								$dia2 = date('d', mktime(0,0,0, $mes, $dia, $año)); // ULTIMO DIA DEL MES
-
-								$fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
-								$fecha_final = date("Y-m-d", strtotime($año."-".$mes."-".$dia2));						
-								
-								
-								echo $fecha_inicial;
-							?>" class="form-control ml-1" data-toggle="tooltip" data-placement="top" title="Fecha Inicio">
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="input-group">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div>Fecha Fin
-                                    </span>
+                        <!-- Segunda fila con fechas y botones -->
+                        <div class="row align-items-end mb-3">
+                            <div class="col-md-3 col-sm-6">
+                                <div class="form-group">
+                                    <label class="small mb-1">Fecha Inicio</label>
+                                    <input type="date" required id="fechai" name="fechai" value="<?php 
+                                        $fecha = date ("Y-m-d");
+                                        $año = date("Y", strtotime($fecha));
+                                        $mes = date("m", strtotime($fecha));
+                                        $dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
+                                        $dia1 = date('d', mktime(0,0,0, $mes, 1, $año));
+                                        $dia2 = date('d', mktime(0,0,0, $mes, $dia, $año));
+                                        $fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
+                                        echo $fecha_inicial;
+                                    ?>" class="form-control" title="Fecha Inicio">
                                 </div>
-                                <input type="date" required id="fechaf" name="fechaf"
-                                    value="<?php echo date ("Y-m-d");?>" class="form-control ml-1" data-toggle="tooltip"
-                                    data-placement="top" title="Fecha Fin">
+                            </div>
+                            
+                            <div class="col-md-3 col-sm-6">
+                                <div class="form-group">
+                                    <label class="small mb-1">Fecha Fin</label>
+                                    <input type="date" required id="fechaf" name="fechaf"
+                                        value="<?php echo date ("Y-m-d");?>" class="form-control" title="Fecha Fin">
+                                </div>
+                            </div>
+                            
+                            <!-- Botones en la misma fila -->
+                            <div class="col-md-6 col-sm-12 d-flex align-items-end justify-content-end">
+                                <button type="submit" class="btn btn-primary mr-2">
+                                    <i class="fas fa-search fa-lg mr-1"></i> Buscar
+                                </button>
+                                <button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary">
+                                    <i class="fas fa-broom fa-lg mr-1"></i> Limpiar
+                                </button>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="form-group">
-                        <div class="col-md-12">
-                            <div class="overflow-auto">
-                                <table id="DatatableBusquedaBill"
-                                    class="table table-striped table-condensed table-hover" style="width:100%">
-                                    <thead>
-                                        <tr>
-                                            <th>Fecha</th>
-                                            <th>Tipo</th>
-                                            <th>Cliente</th>
-                                            <th>Factura</th>
-                                            <th>SubTotal</th>
-                                            <th>ISV</th>
-                                            <th>Descuento</th>
-                                            <th>Total</th>
-                                            <th>Factura</th>
-                                            <th>Comprobante</th>
-                                            <th>Enviar</th>
-                                            <th>Anular</th>
-                                        </tr>
-                                    </thead>
-                                </table>
+                        <!-- Contador de registros -->
+                        <div class="row mb-2">
+                            <div class="col-12 text-right">
+                                <small class="text-muted">Mostrando <span id="contador-registros">5</span> registros</small>
+                            </div>
+                        </div>
+
+                        <!-- Tabla de resultados -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="table-responsive">
+                                    <table id="DatatableBusquedaBill"
+                                        class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
+                                        <thead>
+                                            <tr>
+                                                <th>Fecha</th>
+                                                <th>Tipo</th>
+                                                <th>Cliente</th>
+                                                <th>Factura</th>
+                                                <th>SubTotal</th>
+                                                <th>ISV</th>
+                                                <th>Descuento</th>
+                                                <th>Total</th>
+                                                <th>Factura</th>
+                                                <th>Comprobante</th>
+                                                <th>Enviar</th>
+                                                <th>Anular</th>
+                                            </tr>
+                                        </thead>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>

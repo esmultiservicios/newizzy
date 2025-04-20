@@ -1,5 +1,5 @@
 <script>
-$(document).ready(function() {
+$(() => {
     listar_cuentas_por_pagar_proveedores();
     getBancoPurchase();
     getCuentasProveedores();

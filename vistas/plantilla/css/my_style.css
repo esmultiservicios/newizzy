@@ -46,6 +46,77 @@
 .btn-warning { background-color: var(--warning); color: var(--dark); }
 .btn-info { background-color: var(--info); color: white; }
 
+.bg-primary { background-color: var(--primary) !important; color: white; }
+.bg-secondary { background-color: var(--secondary) !important; color: white; }
+.bg-success { background-color: var(--success) !important; color: white; }
+.bg-danger { background-color: var(--danger) !important; color: white; }
+.bg-warning { background-color: var(--warning) !important; color: var(--dark); }
+.bg-info { background-color: var(--info) !important; color: white; }
+
+.border-primary { border-color: var(--primary) !important; }
+.border-secondary { border-color: var(--secondary) !important; }
+.border-success { border-color: var(--success) !important; }
+.border-danger { border-color: var(--danger) !important; }
+.border-warning { border-color: var(--warning) !important; }
+.border-info { border-color: var(--info) !important; }
+
+/* Efectos hover para elementos con clases bg- */
+.bg-primary:hover, .bg-primary:focus-within {
+    filter: brightness(95%);
+    transition: filter 0.2s ease;
+  }
+  
+  .bg-secondary:hover, .bg-secondary:focus-within {
+    filter: brightness(95%);
+    transition: filter 0.2s ease;
+  }
+  
+  .bg-success:hover, .bg-success:focus-within {
+    filter: brightness(95%);
+    transition: filter 0.2s ease;
+  }
+  
+  .bg-danger:hover, .bg-danger:focus-within {
+    filter: brightness(95%);
+    transition: filter 0.2s ease;
+  }
+  
+  .bg-warning:hover, .bg-warning:focus-within {
+    filter: brightness(95%);
+    transition: filter 0.2s ease;
+  }
+  
+  .bg-info:hover, .bg-info:focus-within {
+    filter: brightness(95%);
+    transition: filter 0.2s ease;
+  }
+
+
+  /* Efectos hover para bordes */
+.border-primary:hover, .border-primary:focus {
+    box-shadow: 0 0 0 0.2rem rgba(var(--primary-rgb), 0.25);
+  }
+  
+  .border-secondary:hover, .border-secondary:focus {
+    box-shadow: 0 0 0 0.2rem rgba(var(--secondary-rgb), 0.25);
+  }
+  
+  .border-success:hover, .border-success:focus {
+    box-shadow: 0 0 0 0.2rem rgba(var(--success-rgb), 0.25);
+  }
+  
+  .border-danger:hover, .border-danger:focus {
+    box-shadow: 0 0 0 0.2rem rgba(var(--danger-rgb), 0.25);
+  }
+  
+  .border-warning:hover, .border-warning:focus {
+    box-shadow: 0 0 0 0.2rem rgba(var(--warning-rgb), 0.25);
+  }
+  
+  .border-info:hover, .border-info:focus {
+    box-shadow: 0 0 0 0.2rem rgba(var(--info-rgb), 0.25);
+  }
+
 /* Efectos hover */
 .btn:hover {
     transform: translateY(-1px);
@@ -1276,7 +1347,6 @@
     padding: 0.25rem !important;
     min-width: 30px !important;
     height: 30px !important;
-    display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     margin: 0 !important;
@@ -2151,6 +2221,7 @@
         padding-left: 15px !important;
     }
 }
+
   /* ==================== */
   /* ESTILO PARA FORMATO DE MONEDA (LEMPIRAS) */
   /* ==================== */
@@ -2413,44 +2484,79 @@
   }
 }
 
-
 /* ====================== */
-/* CONTADOR DE FACTURAS - VERSIÓN FINAL */
+/* CONTADOR DE FACTURAS - VERSIÓN MEJORADA */
 /* ====================== */
 .customer-bill-box-center {
     position: absolute;
-    left: 65%; /* Movido más a la derecha */
-    transform: translateX(-50%);
+    left: 65%;
+    transform: translateX(-50%) translateY(-5px);
     top: 50px;
     z-index: 10;
     width: auto;
     max-width: 35%;
     text-align: center;
+    margin-bottom: 5px;
 }
 
 .facturas-counter {
     background: #ffffff;
     border: 1px solid #e0e0e0;
     border-radius: 30px;
-    padding: 12px 25px;
+    padding: 10px 20px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     display: inline-flex;
-    align-items: center;
+    align-items: flex-start;
     font-size: 1.1rem;
     font-weight: 600;
     color: #3a4f6b;
     transition: all 0.3s ease;
-    white-space: nowrap;
     border-left: 4px solid #3a4f6b;
     animation: pulse-facturas-normal 3s infinite;
     backdrop-filter: blur(2px);
     gap: 12px;
+    min-height: auto;
+    line-height: 1.4;
+}
+
+.facturas-counter .counter-content {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    width: 100%;
+}
+
+.facturas-counter .counter-line {
+    line-height: 1.3;
+    padding: 1px 0;
+}
+
+.facturas-counter .days-left {
+    font-size: 1.1rem;
+    font-weight: normal;
+    margin-top: 2px;
+}
+
+.facturas-counter .counter-link {
+    color: inherit;
+    text-decoration: underline;
+    font-weight: bold;
+    display: inline-block;
+    margin-top: 3px;
+    background: rgba(255,255,255,0.2);
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.facturas-counter .counter-link:hover {
+    background: rgba(255,255,255,0.3);
 }
 
 /* Estados mejorados */
 .facturas-counter.alert-normal {
     background: rgba(235, 241, 248, 0.9);
     border-left-color: #3a4f6b;
+    animation: pulse-facturas-normal 3s infinite;
 }
 
 .facturas-counter.alert-warning {
@@ -2464,7 +2570,13 @@
     background: rgba(255, 238, 238, 0.9);
     border-left-color: #e74a3b;
     color: #721c24;
-    animation: pulse-facturas-danger 1.5s infinite;
+    padding: 8px 15px;
+    white-space: normal;
+}
+
+.facturas-counter.alert-danger .counter-line:first-child {
+    font-weight: bold;
+    margin-bottom: 3px;
 }
 
 /* Animaciones para cada estado */
@@ -2504,7 +2616,18 @@
     }
 }
 
-/* Responsive (Móvil) - Ajustes específicos para el contador */
+/* Efecto de cambio de estado */
+.facturas-counter.state-change {
+    animation: state-change 0.3s ease;
+}
+
+@keyframes state-change {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Responsive (Móvil) */
 @media (max-width: 992px) {
     .customer-bill-box-center {
         position: relative;
@@ -2522,51 +2645,24 @@
     .facturas-counter {
         width: 90%;
         max-width: 400px;
-        white-space: normal;
-        text-align: center;
         padding: 10px 15px;
         font-size: 1rem;
-        animation: none; /* Opcional: puedes mantener las animaciones quitando esta línea */
     }
     
-    /* Mantenemos los mismos estilos visuales en móvil */
-    .facturas-counter {
-        background: #ffffff !important;
-        border: 1px solid #e0e0e0 !important;
-        border-left: 4px solid #3a4f6b !important;
-        color: #3a4f6b !important;
+    .facturas-counter .counter-line {
+        font-size: 0.95rem;
     }
     
-    .facturas-counter.alert-normal {
-        background: rgba(235, 241, 248, 0.9) !important;
-        border-left-color: #3a4f6b !important;
-        color: #3a4f6b !important;
-    }
-    
-    .facturas-counter.alert-warning {
-        background: rgba(255, 248, 230, 0.9) !important;
-        border-left-color: #f6c23e !important;
-        color: #856404 !important;
-    }
-    
-    .facturas-counter.alert-danger {
-        background: rgba(255, 238, 238, 0.9) !important;
-        border-left-color: #e74a3b !important;
-        color: #721c24 !important;
+    .facturas-counter .days-left {
+        font-size: 0.85rem;
     }
 }
 
-/* Ajustes para pantallas muy pequeñas */
 @media (max-width: 576px) {
     .facturas-counter {
         width: 95%;
         padding: 8px 12px;
         font-size: 0.95rem;
-    }
-    
-    .facturas-counter .counter-text {
-        white-space: normal;
-        word-break: break-word;
     }
 }
 
@@ -3708,23 +3804,56 @@ input:checked + .payment-slider:before {
     justify-content: center;
 }
 
-/* Asegurar que los inputs tengan la misma altura */
-.form-control {
-    height: calc(1.5em + 0.75rem + 2px);
-}
-
-/* Ajuste para tamaños alternativos */
-.input-group-lg .input-group-text,
-.input-group-lg .form-control {
-    min-height: 46px; /* Altura para inputs grandes */
-    font-size: 1.25rem;
-}
-
-.input-group-sm .input-group-text,
-.input-group-sm .form-control {
-    min-height: 32px; /* Altura para inputs pequeños */
-    font-size: 0.875rem;
-}
+/* ESTILO BASE PARA TEXTAREAS */
+/* ESTILO CORREGIDO - USANDO EL ATRIBUTO ROWS DIRECTAMENTE */
+textarea.form-control {
+    /* Eliminamos el calc con attr() que no funciona */
+    height: auto; /* Permite crecimiento natural */
+    min-height: calc(1.5em * 3 + 1rem + 2px); /* Valor base para 3 filas */
+    padding: 0.65rem 0.75rem;
+    line-height: 1.5; /* Valor estándar legible */
+    width: 100%;
+    resize: vertical;
+  }
+  
+  /* ESTILO ESPECÍFICO SEGÚN FILAS */
+  textarea.form-control[rows="2"] {
+    min-height: calc(1.5em * 2 + 1rem + 2px);
+  }
+  
+  textarea.form-control[rows="3"] {
+    min-height: calc(1.5em * 3 + 1rem + 2px);
+  }
+  
+  textarea.form-control[rows="4"] {
+    min-height: calc(1.5em * 4 + 1rem + 2px);
+  }
+  
+  textarea.form-control[rows="5"] {
+    min-height: calc(1.5em * 5 + 1rem + 2px);
+  }
+  
+  /* INTEGRACIÓN CON BOTONES LATERALES */
+  .input-group > textarea.form-control {
+    flex: 1 1 auto;
+    border-right: none;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  
+  .input-group-append > .btn {
+    border-left: none;
+    height: 100%;
+    align-self: stretch;
+  }
+  
+  /* CONTADOR DE CARACTERES */
+  .char-counter {
+    font-size: 0.8rem;
+    color: #6c757d;
+    text-align: right;
+    margin-top: 0.25rem;
+  }
 
 /* Alinear correctamente el grupo completo */
 .input-group {
@@ -3820,4 +3949,205 @@ input:checked + .payment-slider:before {
     min-width: 40px;
     justify-content: center;
     background-color: #f8f9fa;
+}
+
+/*******************************
+ * ESTILOS PARA NOTIFICACIONES *
+ *******************************/
+
+/* Contenedor de la campana */
+.nav-item.dropdown.mx-1 {
+    transition: all 0.3s ease;
+}
+
+/* Ocultar campana cuando no hay notificaciones */
+.nav-item.dropdown.mx-1:not(.new-notification) {
+    opacity: 1;
+}
+
+/* Campana de notificaciones */
+#notification-bell {
+    position: relative;
+    font-size: 1.25rem;
+    color: #6c757d;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+#notification-bell:hover {
+    background-color: rgba(0,0,0,0.05);
+    color: #495057;
+}
+
+/* Badge de notificación en la campana */
+#notification-count {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 0.65rem;
+    min-width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #dc3545;
+    color: white !important;
+    font-weight: bold;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    border: 2px solid #f8f9fa;
+}
+
+/* Dropdown de notificaciones */
+.notification-dropdown {
+    min-width: 250px;
+    border: none;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    padding: 0;
+    border-radius: 0.25rem;
+    overflow: hidden;
+}
+
+.notification-dropdown .dropdown-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.9rem;
+}
+
+.notification-dropdown .dropdown-item {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #f1f1f1;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+}
+
+.notification-dropdown .dropdown-item i {
+    width: 20px;
+    text-align: center;
+    margin-right: 10px;
+    color: #6c757d;
+}
+
+/* Badge en dropdown de notificaciones */
+#notification-dropdown-count {
+    font-size: 0.75rem;
+    min-width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 11px;
+    background: #dc3545;
+    color: white !important;
+    font-weight: bold;
+    margin-left: auto;
+    padding: 0 0.35em;
+}
+
+/*******************************
+ * BADGE EN MENÚ DE USUARIO *
+ *******************************/
+
+/* Badge en dropdown de usuario */
+#badge-facturas-pendientes-dropdown {
+    font-size: 0.75rem;
+    min-width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 11px;
+    background: #dc3545;
+    color: white !important;
+    font-weight: bold;
+    margin-left: auto;
+    padding: 0 0.35em;
+}
+
+/* Animación para nueva notificación */
+.new-notification {
+    animation: pulse 1.5s ease infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/*******************************
+ * Hover general para filas *
+ *******************************/
+
+/* 1. Hover general para filas */
+.table-hover tbody tr:hover {
+    background-color: #f5f5f5;
+}
+
+/* 2. Excluir última columna del hover */
+.table-hover tbody tr:hover td:last-child {
+    background-color: transparent;
+}
+
+/* 3. Mantener colores de botones e iconos en última columna */
+.table-hover tbody tr:hover td:last-child a,
+.table-hover tbody tr:hover td:last-child i {
+    color: inherit !important;
+}
+
+/* 4. Solución NUCLEAR para badges (fondo + texto + iconos) */
+.table-hover tbody tr:hover .badge {
+    background-color: var(--bg-color, initial) !important;
+    color: var(--text-color, initial) !important;
+}
+.table-hover tbody tr:hover .badge i {
+    color: var(--icon-color, inherit) !important;
+}
+
+/* 5. Definir colores específicos para cada tipo de badge */
+.badge-primary {
+    --bg-color: #007bff;
+    --text-color: white;
+    --icon-color: white;
+}
+
+.badge-info {
+    --bg-color: #17a2b8;
+    --text-color: white;
+    --icon-color: white;
+}
+
+.badge-success {
+    --bg-color: #28a745;
+    --text-color: white;
+    --icon-color: white;
+}
+
+.badge-warning {
+    --bg-color: #ffc107;
+    --text-color: #212529;
+    --icon-color: #212529;
+}
+
+.badge-danger {
+    --bg-color: #dc3545;
+    --text-color: white;
+    --icon-color: white;
+}
+
+.badge-secondary {
+    --bg-color: #6c757d;
+    --text-color: white;
+    --icon-color: white;
 }

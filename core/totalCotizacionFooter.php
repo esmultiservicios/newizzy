@@ -21,5 +21,4 @@
 
     $row = $result->fetch_assoc();
 
-    echo json_encode($row);
-?>	
+    echo json_encode($row);	

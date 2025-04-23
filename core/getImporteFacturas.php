@@ -20,4 +20,3 @@
 		0 => $importe,							
 	);
 	echo json_encode($datos);
-?>	

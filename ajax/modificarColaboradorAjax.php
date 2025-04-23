@@ -1,32 +1,34 @@
 <?php
 $peticionAjax = true;
 require_once "../core/configGenerales.php";
-require_once "../core/mensajes.php"; // Incluye el archivo de mensajes
 
-if (isset($_POST['colaborador_id']) && isset($_POST['puesto_colaborador']) && isset($_POST['nombre_colaborador']) && isset($_POST['apellido_colaborador']) && isset($_POST['telefono_colaborador'])) {
+if (isset($_POST['colaborador_id']) && isset($_POST['puesto_colaborador']) && 
+    isset($_POST['nombre_colaborador']) && isset($_POST['telefono_colaborador'])) {
+    
     require_once "../controladores/colaboradorControlador.php";
     $insVarios = new colaboradorControlador();
-    
     echo $insVarios->editar_colaborador_controlador();
+    
 } else {
+    // Identificar campos faltantes
     $missingFields = [];
+    
+    if (!isset($_POST['colaborador_id'])) $missingFields[] = "ID del colaborador";
+    if (!isset($_POST['puesto_colaborador'])) $missingFields[] = "puesto";
+    if (!isset($_POST['nombre_colaborador'])) $missingFields[] = "nombre";
+    if (!isset($_POST['telefono_colaborador'])) $missingFields[] = "teléfono";
 
-    if (!isset($_POST['colaborador_id'])) {
-        $missingFields[] = "ID del colaborador";
-    }
-    if (!isset($_POST['puesto_colaborador'])) {
-        $missingFields[] = "puesto del colaborador";
-    }
-    if (!isset($_POST['nombre_colaborador'])) {
-        $missingFields[] = "nombre del colaborador";
-    }
-    if (!isset($_POST['apellido_colaborador'])) {
-        $missingFields[] = "apellido del colaborador";
-    }
-    if (!isset($_POST['telefono_colaborador'])) {
-        $missingFields[] = "teléfono del colaborador";
-    }
-
-    $missingFieldsText = implode(", ", $missingFields);
-    echo generarMensajeError('Error 🚨', $missingFieldsText);
+    // Preparar el mensaje
+    $missingText = implode(", ", $missingFields);
+    $title = "Error 🚨";
+    $message = "Faltan los siguientes campos: $missingText. Por favor, corrígelos.";
+    
+    // Escapar comillas para JavaScript
+    $title = addslashes($title);
+    $message = addslashes($message);
+    
+    // Llamar a TU función showNotify exactamente como está definida
+    echo "<script>
+        showNotify('error', '$title', '$message');
+    </script>";
 }

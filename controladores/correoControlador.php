@@ -23,33 +23,21 @@
 				"smtp_secure" => $smtpSecureConfEmail,				
 			];		
 
-			$query = correoModelo::edit_correo_modelo($datos);
-			
-			if($query){				
-				$alert = [
-					"alert" => "edit",
-					"title" => "Registro modificado",
-					"text" => "El registro se ha modificado correctamente",
-					"type" => "success",
-					"btn-class" => "btn-primary",
-					"btn-text" => "¡Bien Hecho!",
-					"form" => "formConfEmails",	
-					"id" => "pro_correos",
-					"valor" => "Editar",
-					"funcion" => "listar_correos_configuracion();getSMTPSecure();getTipoCorreo();",
-					"modal" => "",
-				];
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Ocurrio un error inesperado",
-					"text" => "No hemos podido procesar su solicitud",
-					"type" => "error",
-					"btn-class" => "btn-danger",					
-				];				
-			}			
-			
-			return mainModel::sweetAlert($alert);
+			if(!correoModelo::edit_correo_modelo($datos)){
+				return mainModel::showNotification([
+					"title" => "Error",
+					"text" => "No se pudo actualizar el correo",
+					"type" => "error"
+				]);
+			}
+
+			return mainModel::showNotification([
+				"type" => "success",
+				"title" => "Registro exitoso",
+				"text" => "Correo actualizado correctamente",           
+				"form" => "formConfEmails",
+				"funcion" => "listar_correos_configuracion();getSMTPSecure();getTipoCorreo();"
+			]);
 		}
 
 		public function registrar_destinatarios_correo_controlador(){
@@ -61,44 +49,28 @@
 				"nombre" => $nombre,				
 			];
 			
-			$resultDestinatarios = correoModelo::valid_pdestinatarios_modelo($correo);
-
-			if($resultDestinatarios->num_rows==0){
-				$query = correoModelo::agregar_destinatarios_modelo($datos);
-				
-				if($query){
-					$alert = [
-						"alert" => "clear",
-						"title" => "Registro almacenado",
-						"text" => "El registro se ha almacenado correctamente",
-						"type" => "success",
-						"btn-class" => "btn-primary",
-						"btn-text" => "¡Bien Hecho!",
-						"form" => "formDestinatarios",
-						"id" => "proceso_destinatarios",
-						"valor" => "Registro",	
-						"funcion" => "listar_destinatarios();",
-						"modal" => "",
-					];
-				}else{
-					$alert = [
-						"alert" => "simple",
-						"title" => "Ocurrio un error inesperado",
-						"text" => "No hemos podido procesar su solicitud",
-						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];		
-				}
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Resgistro ya existe",
-					"text" => "Lo sentimos este registro ya existe",
-					"type" => "error",	
-					"btn-class" => "btn-danger",						
-				];		
+			if(correoModelo::valid_pdestinatarios_modelo($correo)->num_rows > 0){
+				return mainModel::showNotification([
+					"type" => "error",
+					"title" => "Error",
+					"text" => "No se pudo registrar el destinatario",                
+				]);                
 			}
 
-			return mainModel::sweetAlert($alert);
+			if(!correoModelo::agregar_destinatarios_modelo($datos)){
+				return mainModel::showNotification([
+					"title" => "Error",
+					"text" => "No se pudo registrar el destinatario",
+					"type" => "error"
+				]);
+			}
+
+			return mainModel::showNotification([
+				"type" => "success",
+				"title" => "Registro exitoso",
+				"text" => "Destinatario registrado correctamente",           
+				"form" => "formDestinatarios",
+				"funcion" => "listar_destinatarios();"
+			]);
 		}
 	}

@@ -1,21 +1,37 @@
 <script>
-$(document).ready(function() {
+$(() => {
     getEstadoProducto();
-    var estado = $('#form_main_productos #estado_producto').val() === "" ? 1 : $(
-        '#form_main_productos #estado_producto').val();
-    listar_productos(estado);
+
+    listar_productos();
     getEmpresaProductos();
+
+    // Evento para el botón de Buscar (submit)
+    $('#form_main_productos').on('submit', function(e) {
+        e.preventDefault();
+        listar_productos(); 
+    });
+
+    // Evento para el botón de Limpiar (reset)
+    $('#form_main_productos').on('reset', function() {
+        // Limpia y refresca los selects
+        $('#form_main_productos .selectpicker')
+            .val('')
+            .selectpicker('refresh');
+            listar_productos();
+    });    
 });
 
 $('#form_main_productos #buscar_productos').on('click', function(e) {
     e.preventDefault();
-    var estado = $('#form_main_productos #estado_producto').val() === "" ? 1 : $(
-        '#form_main_productos #estado_producto').val();
-    listar_productos(estado);
+
+    listar_productos();
 });
 
 //INICIO ACCIONES FROMULARIO PRODUCTOS
-var listar_productos = function(estado) {
+var listar_productos = function() {
+    var estado = $('#form_main_productos #estado_producto').val() === "" ? 1 : $(
+        '#form_main_productos #estado_producto').val();
+
     var table_productos = $("#dataTableProductos").DataTable({
         "destroy": true,
         "ajax": {

@@ -35,5 +35,3 @@ function cambioDolar($amount, $date): object {
 
     return $res;
 }
-
-?>

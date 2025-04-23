@@ -6,7 +6,7 @@
 		require_once "../controladores/cuentaContabilidadControlador.php";
 		$insVarios = new cuentaContabilidadControlador();
 		
-		echo $insVarios->edit_productos_controlador();
+		echo $insVarios->edit_cuentas_contabilidad_controlador();
 	}else{
 		echo "
 			<script>

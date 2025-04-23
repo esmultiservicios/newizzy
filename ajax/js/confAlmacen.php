@@ -194,48 +194,69 @@ var delete_almacen_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.table_eliminar");
     $(tbody).on("click", "button.table_eliminar", function() {
         var data = table.row($(this).parents("tr")).data();
-        var url = '<?php echo SERVERURL;?>core/editarAlmacen.php';
-        $('#formAlmacen #almacen_id').val(data.almacen_id);
 
-        $.ajax({
-            type: 'POST',
-            url: url,
-            data: $('#formAlmacen').serialize(),
-            success: function(registro) {
-                var valores = eval(registro);
-                $('#formAlmacen').attr({
-                    'data-form': 'update'
-                });
-                $('#formAlmacen').attr({
-                    'action': '<?php echo SERVERURL;?>ajax/eliminarAlmacenAjax.php'
-                });
-                $('#formAlmacen')[0].reset();
-                $('#reg_almacen').hide();
-                $('#edi_almacen').hide();
-                $('#delete_almacen').show();
-                $('#formAlmacen #pro_almacen').val("Eliminar Almacén");
-                $('#formAlmacen #ubicacion_almacen').val(valores[0]);
-                $('#formAlmacen #ubicacion_almacen').selectpicker('refresh');
-                $('#formAlmacen #almacen_almacen').val(valores[1]);
-                $('#formAlmacen #almacen_empresa_id').val(valores[3]);
-                $('#formAlmacen #almacen_empresa_id').selectpicker('refresh');
-
-                if (valores[2] == 1) {
-                    $('#formAlmacen #almacen_activo').attr('checked', true);
-                } else {
-                    $('#formAlmacen #almacen_activo').attr('checked', false);
+        var almacen_id = data.almacen_id;
+        var nombreAlmacen = data.nombre; 
+        
+        // Construir el mensaje de confirmación con HTML
+        var mensajeHTML = `¿Desea eliminar permanentemente el almacén?<br><br>
+                        <strong>Nombre:</strong> ${nombreAlmacen}`;
+        
+        swal({
+            title: "Confirmar eliminación",
+            content: {
+                element: "span",
+                attributes: {
+                    innerHTML: mensajeHTML
                 }
-
-                //DESHABIITAR OBJETOS
-                $('#formAlmacen #almacen_almacen').attr('readonly', true);
-                $('#formAlmacen #ubicacion_almacen').attr('disabled', true);
-                $('#formAlmacen #almacen_activo').attr('disabled', true);
-                $('#formAlmacen #almacen_empresa_id').attr('disabled', true);
-
-                $('#modal_almacen').modal({
-                    show: true,
-                    keyboard: false,
-                    backdrop: 'static'
+            },
+            icon: "warning",
+            buttons: {
+                cancel: {
+                    text: "Cancelar",
+                    value: null,
+                    visible: true,
+                    className: "btn-light"
+                },
+                confirm: {
+                    text: "Sí, eliminar",
+                    value: true,
+                    className: "btn-danger",
+                    closeModal: false
+                }
+            },
+            dangerMode: true,
+            closeOnEsc: false,
+            closeOnClickOutside: false
+        }).then((confirmar) => {
+            if (confirmar) {
+               
+                $.ajax({
+                    type: 'POST',
+                    url: '<?php echo SERVERURL;?>ajax/eliminarAlmacenesAjax.php',
+                    data: {
+                        almacen_id: almacen_id
+                    },
+                    dataType: 'json', // Esperamos respuesta JSON
+                    before: function(){
+                        // Mostrar carga mientras se procesa
+                        showLoading("Eliminando registro...");
+                    },
+                    success: function(response) {
+                        swal.close();
+                        
+                        if(response.status === "success") {
+                            showNotify("success", response.title, response.message);
+                            table.ajax.reload(null, false); // Recargar tabla sin resetear paginación
+                            table.search('').draw();                    
+                        } else {
+                            showNotify("error", response.title, response.message);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        swal.close();
+                        showNotify("error", "Error", "Ocurrió un error al procesar la solicitud");
+                    }
                 });
             }
         });

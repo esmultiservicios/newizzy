@@ -5,5 +5,4 @@
 	
 	
 	echo '<option value="1">Activas</option>';
-	echo '<option value="2">Canceladas</option>';
-?>	
+	echo '<option value="2">Canceladas</option>';	

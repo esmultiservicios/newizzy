@@ -32,46 +32,29 @@
 				"estado" => $estado,
 				"fecha_registro" => $fecha_registro,				
 			];
-			
-			$resultTipoPagoModelo = tipoPagoModelo::valid_tipo_pago_modelo($nombre);
-			
-			if($resultTipoPagoModelo->num_rows==0){
-				$query = tipoPagoModelo::agregar_tipo_pago_modelo($datos);
-				
-				if($query){
-					$alert = [
-						"alert" => "clear",
-						"title" => "Registro almacenado",
-						"text" => "El registro se ha almacenado correctamente",
-						"type" => "success",
-						"btn-class" => "btn-primary",
-						"btn-text" => "¡Bien Hecho!",
-						"form" => "formConfTipoPago",
-						"id" => "pro_tipoPago",
-						"valor" => "Registro",	
-						"funcion" => "listar_tipo_pago_contabilidad();getCuentaTipoPago();getTipoCuenta();",
-						"modal" => "",
-					];
-				}else{
-					$alert = [
-						"alert" => "simple",
-						"title" => "Ocurrio un error inesperado",
-						"text" => "No hemos podido procesar su solicitud",
-						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];				
-				}				
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Resgistro ya existe",
-					"text" => "Lo sentimos este registro ya existe",
-					"type" => "error",	
-					"btn-class" => "btn-danger",						
-				];				
+
+			if(tipoPagoModelo::valid_tipo_pago_modelo($nombre)->num_rows > 0){
+				return mainModel::showNotification([
+					"type" => "error",
+					"title" => "Error",
+					"text" => "No se pudo registrar el tipo de pago",                
+				]);                
 			}
-			
-			return mainModel::sweetAlert($alert);
+
+			if(!tipoPagoModelo::agregar_tipo_pago_modelo($datos)){
+				return mainModel::showNotification([
+					"type" => "error",
+					"title" => "Error",
+					"text" => "No se pudo registrar el tipo de pago",                
+				]);
+			}
+
+			return mainModel::showNotification([
+				"type" => "success",
+				"title" => "Actualización exitosa",
+				"text" => "Tipo de pago registrado correctamente",
+				"funcion" => "listar_tipo_pago_contabilidad();getCuentaTipoPago();getTipoCuenta();"
+			]);		
 		}
 		
 		public function edit_tipo_pago_controlador(){
@@ -100,77 +83,70 @@
 				"fecha_registro" => $fecha_registro,				
 			];
 
-			$query = tipoPagoModelo::edit_tipo_pago_modelo($datos);
 			
-			if($query){				
-				$alert = [
-					"alert" => "edit",
-					"title" => "Registro modificado",
-					"text" => "El registro se ha modificado correctamente",
-					"type" => "success",
-					"btn-class" => "btn-primary",
-					"btn-text" => "¡Bien Hecho!",
-					"form" => "formConfTipoPago",	
-					"id" => "pro_tipoPago",
-					"valor" => "Editar",
-					"funcion" => "listar_tipo_pago_contabilidad();getCuentaTipoPago();getTipoCuenta();",
-					"modal" => "",
-				];
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Ocurrio un error inesperado",
-					"text" => "No hemos podido procesar su solicitud",
+			if(!tipoPagoModelo::edit_tipo_pago_modelo($datos)){
+				return mainModel::showNotification([
 					"type" => "error",
-					"btn-class" => "btn-danger",					
-				];				
-			}			
-			
-			return mainModel::sweetAlert($alert);
+					"title" => "Error",
+					"text" => "No se pudo registrar el tipo de pago",                
+				]);
+			}
+
+			return mainModel::showNotification([
+				"type" => "success",
+				"title" => "Actualización exitosa",
+				"text" => "Tipo de pago actualizado correctamente",
+				"funcion" => "listar_tipo_pago_contabilidad();getCuentaTipoPago();getTipoCuenta();",
+			]);	
 		}
 		
 		public function delete_tipo_pago_controlador(){
 			$tipo_pago_id = $_POST['tipo_pago_id'];
 			
-			$result_valid_pagos_on_pagos_modelo = tipoPagoModelo::valid_tipo_pagos_on_pagos_modelo($tipo_pago_id);
+			$campos = ['nombre'];
+			$tabla = "tipo_pago";;
+			$condicion = "tipo_pago_id = {$tipo_pago_id}";
+
+			$proveedor = mainModel::consultar_tabla($tabla, $campos, $condicion);
 			
-			if($result_valid_pagos_on_pagos_modelo->num_rows==0 ){
-				$query = tipoPagoModelo::delete_tipo_pago_modelo($tipo_pago_id);
-								
-				if($query){
-					$alert = [
-						"alert" => "clear",
-						"title" => "Registro eliminado",
-						"text" => "El registro se ha eliminado correctamente",
-						"type" => "success",
-						"btn-class" => "btn-primary",
-						"btn-text" => "¡Bien Hecho!",
-						"form" => "formConfTipoPago",	
-						"id" => "pro_tipoPago",
-						"valor" => "Eliminar",
-						"funcion" => "listar_tipo_pago_contabilidad();getCuentaTipoPago();getTipoCuenta();",
-						"modal" => "modalConfTipoPago",
-					];
-				}else{
-					$alert = [
-						"alert" => "simple",
-						"title" => "Ocurrio un error inesperado",
-						"text" => "No hemos podido procesar su solicitud",
-						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];				
-				}				
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Este registro cuenta con información almacenada",
-					"text" => "No se puede eliminar este registro",
-					"type" => "error",	
-					"btn-class" => "btn-danger",						
-				];				
+			if (empty($tipo_pago)) {
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "Error",
+					"message" => "Proveedor no encontrado"
+				]);
+				exit();
 			}
 			
-			return mainModel::sweetAlert($alert);			
+			$nombre = $tipo_pago[0]['nombre'] ?? '';
+
+			if(tipoPagoModelo::valid_tipo_pagos_on_pagos_modelo($tipo_pago_id)->num_rows > 0){
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "No se puede eliminar",
+					"message" => "El tipo de pago {$nombre} tiene pagos asociados"
+				]);
+				exit();                
+			}
+
+			if(!tipoPagoModelo::delete_tipo_pago_modelo($tipo_pago_id)){
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "Error",
+					"message" => "No se pudo eliminar el tipo de pago {$nombre}"
+				]);
+				exit();
+			}
+			
+			header('Content-Type: application/json');
+			echo json_encode([
+				"status" => "success",
+				"title" => "Eliminado",
+				"message" => "Proveedor {$nombre} eliminado correctamente"
+			]);
+			exit();						
 		}
 	}
-?>	

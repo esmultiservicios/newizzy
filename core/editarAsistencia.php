@@ -18,4 +18,3 @@
 		5 => $valores2['comentario'],				
 	);
 	echo json_encode($datos);
-?>	

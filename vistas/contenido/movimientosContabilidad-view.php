@@ -4,46 +4,60 @@
         <li class="breadcrumb-item active">Movimiento de Cuentas</li>
     </ol>
 
-    <div class="card mb-4">
-        <div class="card-body">
-			<form class="form-inline" id="formMainMovimientosContabilidad" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
-				<div class="form-group mx-sm-3 mb-1">
-					<div class="input-group">				
-						<div class="input-group-append">				
-							<span class="input-group-text"><div class="sb-nav-link-icon"></div>Fecha Inicio</span>
+	<div class="card mb-4">
+		<div class="card-body">
+			<form id="formMainMovimientosContabilidad">
+				<div class="row">
+					<div class="col-md-3 col-sm-6 mb-3">
+						<div class="form-group">
+							<label class="small mb-1">Fecha Inicio</label>
+							<div class="input-group">
+								<div class="input-group-prepend">
+									<span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+								</div>
+								<input type="date" class="form-control" id="fechai" name="fechai" value="<?php 
+									$fecha = date ("Y-m-d");
+									
+									$año = date("Y", strtotime($fecha));
+									$mes = date("m", strtotime($fecha));
+									$dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
+
+									$dia1 = date('d', mktime(0,0,0, $mes, 1, $año));
+									$dia2 = date('d', mktime(0,0,0, $mes, $dia, $año));
+
+									$fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
+									echo $fecha_inicial;
+								?>">
+							</div>
 						</div>
-						<input type="date" class="form-control" id="fechai" name="fechai" value="<?php 
-							$fecha = date ("Y-m-d");
-							
-							$año = date("Y", strtotime($fecha));
-							$mes = date("m", strtotime($fecha));
-							$dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
-
-							$dia1 = date('d', mktime(0,0,0, $mes, 1, $año)); //PRIMER DIA DEL MES
-							$dia2 = date('d', mktime(0,0,0, $mes, $dia, $año)); // ULTIMO DIA DEL MES
-
-							$fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
-							$fecha_final = date("Y-m-d", strtotime($año."-".$mes."-".$dia2));						
-							
-							
-							echo $fecha_inicial;
-						?>">
 					</div>
-				</div>	
-				<div class="form-group mx-sm-3 mb-1">
-					<div class="input-group">				
-						<div class="input-group-append">				
-							<span class="input-group-text"><div class="sb-nav-link-icon"></div>Fecha Fin</span>
+					
+					<div class="col-md-3 col-sm-6 mb-3">
+						<div class="form-group">
+							<label class="small mb-1">Fecha Fin</label>
+							<div class="input-group">
+								<div class="input-group-prepend">
+									<span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+								</div>
+								<input type="date" class="form-control" id="fechaf" name="fechaf" value="<?php echo date('Y-m-d');?>">
+							</div>
 						</div>
-						<input type="date" class="form-control" id="fechaf" name="fechaf" value="<?php echo date('Y-m-d');?>" >
 					</div>
 				</div>
-				<div class="form-group mx-sm-2 mb-1">
-					<button class="consultar btn btn-secondary" type="submit" id="search"><div class="sb-nav-link-icon"></div><i class="fas fa-search fa-lg"></i> Buscar</button>
-				</div> 			  
-			</form>	           
-        </div>
-    </div>	
+				
+				<div class="row">
+					<div class="col-12 text-right">
+						<button type="submit" class="btn btn-primary">
+							<i class="fas fa-filter fa-lg"></i> Filtrar
+						</button>
+						<button type="reset" class="btn btn-secondary">
+							<i class="fas fa-broom fa-lg"></i> Limpiar
+						</button>                        
+					</div>
+				</div>
+			</form>
+		</div>
+	</div>
 	
     <div class="card mb-4">
         <div class="card-header">

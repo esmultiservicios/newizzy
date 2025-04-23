@@ -7,8 +7,15 @@
 
 	class comprasControlador extends comprasModelo{
 		public function agregar_compras_controlador(){
-			if(!isset($_SESSION['user_sd'])){ 
-				session_start(['name'=>'SD']); 
+			// Validar sesión primero
+			$validacion = mainModel::validarSesion();
+			if($validacion['error']) {
+				return mainModel::showNotification([
+					"title" => "Error de sesión",
+					"text" => $validacion['mensaje'],
+					"type" => "error",
+					"funcion" => "window.location.href = '".$validacion['redireccion']."'"
+				]);
 			}
 
 			$usuario = $_SESSION['colaborador_id_sd'];

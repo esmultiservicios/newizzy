@@ -2003,7 +2003,8 @@ function modal_colaboradores() {
     $('#formColaboradores #buscar_colaborador_empresa').show();
     $('#formColaboradores #estado_colaboradores').hide();
 
-    $('#datosClientes').hide();
+    $('#formColaboradores #datosClientes').hide();
+    $('#formColaboradores #estado_colaborador').hide();
 
     $('#formColaboradores #proceso_colaboradores').val("Registro");
     $('#modal_registrar_colaboradores').modal({
@@ -2138,142 +2139,347 @@ $('#formAsistencia #asistencia_empleado').on('change', function() {
 
 //FIN MARCAR ASISTENCIA
 
-//INICIO MODIFICAR PERFIL USUARIO SISTEMA
-//CONSULTAR CODIGO DE CLIENTE
-function getCodigoCliente() {
-    var url = '<?php echo SERVERURL;?>core/getCodigoCliente.php';
+// Función para cargar código de cliente y PIN - Versión Final
+async function cargarDatosCliente() {
+    try {
+        const response = await $.ajax({
+            url: '<?php echo SERVERURL; ?>core/getCodigoCliente.php',
+            type: 'POST',
+            dataType: 'json'
+        });
 
-    $.ajax({
-        type: 'POST',
-        url: url,
-        success: function(valores) {
-            var datos = eval(valores);
-            $('#formColaboradores #cliente_codigo_colaborador').val(datos[0]);
-            return false;
+        // Ocultar/mostrar elementos según si es DB_MAIN
+        if (response.is_main_db) {
+            // Si es la base de datos principal, ocultamos todo relacionado con PIN
+            $('#badge-codigo-cliente').addClass('d-none');
+            $('#ver-pin-usuario').addClass('d-none');
+            return null;
+        }
+
+        // Validación del código de cliente para bases de datos no principales
+        if (response.success && response.codigo_cliente && !isNaN(response.codigo_cliente)) {
+            const codigo = String(response.codigo_cliente).trim();
+            
+            // Actualizar UI del código de cliente
+            $('#badge-codigo-cliente')
+                .text('CLIENTE: ' + codigo)
+                .removeClass('d-none bg-secondary bg-danger')
+                .addClass('bg-primary');
+            
+            // Mostrar opción de PIN y cargarlo
+            $('#ver-pin-usuario').removeClass('d-none');
+            await cargarPinCliente(codigo, false);
+            
+            return codigo;
+        } else {
+            // Manejar caso cuando no hay código de cliente válido
+            $('#badge-codigo-cliente')
+                .text('Sin código')
+                .removeClass('bg-primary d-none')
+                .addClass('bg-warning');
+                
+            $('#ver-pin-usuario').addClass('d-none');
+            
+            throw new Error(response.error || 'Código de cliente no disponible para esta base de datos');
+        }
+    } catch (error) {
+        console.error('Error cargando datos cliente:', error);
+        $('#ver-pin-usuario').addClass('d-none');
+        $('#badge-codigo-cliente')
+            .text('Error')
+            .removeClass('d-none bg-primary')
+            .addClass('bg-danger');
+            
+        mostrarErrorCliente(error.message || 'Error al cargar datos del cliente');
+        return null;
+    }
+}
+
+// Función para cargar/actualizar el PIN - Versión Final
+async function cargarPinCliente(codigoCliente, generateNew = false) {
+    // Validación robusta del código de cliente
+    if (!codigoCliente || isNaN(codigoCliente)) {
+        mostrarErrorBadgePin('Código inválido');
+        return null;
+    }
+
+    try {
+        const response = await $.ajax({
+            url: '<?php echo SERVERURL;?>core/generarPinCliente.php',
+            type: 'POST',
+            data: {
+                codigoCliente: codigoCliente,
+                generateNew: generateNew ? 1 : 0
+            },
+            dataType: 'json'
+        });
+
+        if (response.success && response.pin) {
+            const pin = String(response.pin);
+            actualizarUIPin(pin);
+            return pin;
+        } else {
+            throw new Error(response.error || 'PIN no generado');
+        }
+    } catch (error) {
+        console.error('Error generando PIN:', error);
+        mostrarErrorBadgePin(error.message);
+        return null;
+    }
+}
+
+// Helper para actualizar la UI del PIN
+function actualizarUIPin(pin) {
+    $('#badge-pin-cliente')
+        .text(pin.slice(-4) + '...')
+        .removeClass('bg-danger d-none')
+        .addClass('bg-info');
+        
+    $('#ver-pin-usuario').attr('data-content', `
+        <div class="pin-popover-content">
+            <div class="pin-header">
+                <i class="fas fa-lock mr-2"></i>
+                <span>Tu PIN de acceso</span>
+            </div>
+            <div class="pin-value">${pin}</div>
+            <div class="pin-footer">
+                <small class="text-muted">Válido por 5 minutos</small>
+                <button class="btn btn-sm btn-outline-primary btn-regenerate-pin mt-2">
+                    <i class="fas fa-sync-alt mr-1"></i> Regenerar
+                </button>
+            </div>
+        </div>
+    `);
+}
+
+// Helper para mostrar errores en el badge del PIN
+function mostrarErrorBadgePin(mensaje) {
+    $('#badge-pin-cliente')
+        .text('Error')
+        .removeClass('bg-info')
+        .addClass('bg-danger');
+        
+    if (mensaje) {
+        console.error(mensaje);
+        mostrarErrorCliente(mensaje);
+    }
+}
+
+// Mostrar error con notificación
+function mostrarErrorCliente(mensaje) {
+    if (typeof showNotify !== 'undefined') {
+        showNotify("error", "Error", mensaje);
+    } else {
+        alert(mensaje);
+    }
+}
+
+// Inicializar popover
+function inicializarPopoverPIN() {
+    $('#ver-pin-usuario').popover({
+        html: true,
+        placement: 'right',
+        trigger: 'click',
+        container: 'body',
+        template: `
+            <div class="popover pin-popover" role="tooltip">
+                <div class="popover-arrow"></div>
+                <div class="popover-body"></div>
+            </div>
+        `
+    });
+    
+    // Cerrar popover al hacer clic fuera
+    $(document).on('click', function(e) {
+        if ($(e.target).data('toggle') !== 'popover'
+            && $(e.target).parents('[data-toggle="popover"]').length === 0
+            && $(e.target).parents('.popover.in').length === 0) { 
+            $('#ver-pin-usuario').popover('hide');
+        }
+    });
+    
+    // Manejar regeneración de PIN desde el popover
+    $(document).on('click', '.btn-regenerate-pin', async function() {
+        const codigoCliente = $('#badge-codigo-cliente').text().replace('CLIENTE: ', '');
+        if (codigoCliente) {
+            await cargarPinCliente(codigoCliente, true);
+            $('#ver-pin-usuario').popover('hide');
+            showNotify("success", "PIN actualizado", "Se ha generado un nuevo PIN");
         }
     });
 }
 
-//GENERAR PIN
-function generatePin(generateNew) {
-    var codigoCliente = $('#formColaboradores #cliente_codigo_colaborador').val();
+// GENERAR PIN - Versión Final
+async function generatePin(generateNew) {
+    const codigoCliente = $('#formColaboradores #cliente_codigo_colaborador').val();
+    const main_db = $('#formColaboradores #main_db').val();
 
-    // Realizar la solicitud Ajax para generar el PIN
-    $.ajax({
-        url: '<?php echo SERVERURL;?>core/generarPinCliente.php',
-        type: 'POST',
-        data: {
-            codigoCliente: codigoCliente,
-            generateNew: generateNew // Envía el parámetro generateNew al servidor
-        },
-        dataType: 'json',
-        success: function(response) {
-            var pin = response.pin;
+    // No generar PIN si es la base de datos principal
+    if (main_db === "true") {
+        return;
+    }
 
-            // Actualizar el valor del input con el nuevo PIN
-            $('#pin_colaborador').val(pin);
-        },
-        error: function(error) {
-            console.error('Error al generar el PIN: ', error);
+    // Validación estricta para bases de datos no principales
+    if (!codigoCliente || isNaN(codigoCliente)) {
+        showNotify("error", "Error", "Código de cliente no válido");
+        return;
+    }
+
+    try {
+        const response = await $.ajax({
+            url: '<?php echo SERVERURL; ?>core/generarPinCliente.php',
+            type: 'POST',
+            data: {
+                codigoCliente: codigoCliente,
+                generateNew: generateNew
+            },
+            dataType: 'json'
+        });
+
+        // Verificación robusta de la respuesta
+        if (response && response.pin !== undefined && response.pin !== null) {
+            const pinDisplay = String(response.pin);
+            
+            // Actualizar UI
+            $('#formColaboradores #pin_colaborador').val(pinDisplay);
+            actualizarUIPin(pinDisplay);
+            
+            showNotify("success", "PIN generado", "Se ha creado un nuevo PIN");
+        } else {
+            throw new Error(response.error || 'No se recibió un PIN válido del servidor');
         }
-    });
+    } catch (error) {
+        console.error('Error al generar PIN:', error);
+        mostrarErrorBadgePin(error.message);
+        showNotify("error", "Error de conexión", "No se pudo generar el PIN");
+    }
 }
 
-function updateDatePin(newPin) {
-    $.ajax({
-        url: '<?php echo SERVERURL;?>core/updatePin.php.php', // Reemplaza con la URL correcta para actualizar el PIN
-        type: 'POST',
-        data: {
-            pin: newPin
-        }, // Envía el nuevo PIN al servidor
-        success: function(response) {
-            // Verificar si la actualización fue exitosa
-            if (response.success) {
+// CONSULTAR CÓDIGO DE CLIENTE - Versión Final
+async function getCodigoCliente() {
+    try {
+        const response = await $.ajax({
+            url: '<?php echo SERVERURL; ?>core/getCodigoCliente.php',
+            type: 'POST',
+            dataType: 'json'
+        });
 
-            } else {
+        // Asignar valores con validación
+        const codigoCliente = response.codigo_cliente || '';
+        $('#formColaboradores #cliente_codigo_colaborador').val(codigoCliente); 
+        $('#formColaboradores #main_db').val(response.is_main_db);
 
+        // Mostrar/ocultar sección de PIN según el tipo de DB
+        if (response.is_main_db) {
+            $('#formColaboradores #datosClientes').hide();
+            $('#badge-codigo-cliente').addClass('d-none');
+        } else {
+            $('#formColaboradores #datosClientes').show();
+            
+            // Generar PIN solo si hay código de cliente válido
+            if (response.success && codigoCliente && !isNaN(codigoCliente)) {
+                await generatePin(0);
             }
-        },
-        error: function(error) {
-
         }
-    });
+    } catch (error) {
+        console.error("Error en getCodigoCliente:", error);
+    }
 }
 
-// Asignar la función al evento click del botón "Generar"
-$('#generarPin').on('click', function(event) {
-    event.preventDefault();
-    generatePin(1);
-});
-
-$('#modificar_perfil_usuario_sistema').on('click', function(e) {
+// MODIFICAR PERFIL USUARIO SISTEMA - Versión Final
+$('#modificar_perfil_usuario_sistema').on('click', async function(e) {
     e.preventDefault();
-
     $('#formColaboradores')[0].reset();
-
     $('#estado_colaboradores').hide();
-    $("#datosClientes").show();
-    getCodigoCliente();
 
-    var url = '<?php echo SERVERURL;?>core/editarColaboradoresUsuario.php';
+    try {
+        // 1. Cargar código de cliente (espera a que termine)
+        await getCodigoCliente();
+        
+        // 2. Cargar datos del colaborador
+        const registro = await $.ajax({
+            url: '<?php echo SERVERURL;?>core/editarColaboradoresUsuario.php',
+            type: 'POST'
+        });
 
-    $.ajax({
-        type: 'POST',
-        url: url,
-        success: function(registro) {
-            var valores = eval(registro);
-            $('#formColaboradores').attr({
-                'data-form': 'update'
-            });
-            $('#formColaboradores').attr({
-                'action': '<?php echo SERVERURL;?>ajax/modificarColaboradorAjaxMain.php'
-            });
-            $('#reg_colaborador').hide();
-            $('#edi_colaborador').show();
-            $('#delete_colaborador').hide();
-            $('#formColaboradores #nombre_colaborador').val(valores[0]);
-            $('#formColaboradores #apellido_colaborador').val(valores[1]);
-            $('#formColaboradores #identidad_colaborador').val(valores[2]);
-            $('#formColaboradores #telefono_colaborador').val(valores[3]);
-            $('#formColaboradores #puesto_colaborador').val(valores[4]);
-            $('#formColaboradores #colaborador_empresa_id').val(valores[5]);
-            $('#formColaboradores #colaborador_id').val(valores[7]);
-            $('#formColaboradores #fecha_ingreso_colaborador').val(valores[8]);
-            $('#formColaboradores #fecha_egreso_colaborador').val(valores[9]);
+        const valores = JSON.parse(registro);
+        
+        // Configurar formulario
+        $('#formColaboradores').attr({
+            'data-form': 'update',
+            'action': '<?php echo SERVERURL;?>ajax/modificarColaboradorAjaxMain.php'
+        });
+        
+        // Mostrar/ocultar elementos
+        $('#reg_colaborador').hide();
+        $('#edi_colaborador').show();
+        $('#delete_colaborador').hide();
+        
+        // Llenar valores del formulario
+        $('#formColaboradores #nombre_colaborador').val(valores[0]).attr('readonly', false);
+        $('#formColaboradores #identidad_colaborador').val(valores[1]).attr('readonly', false);
+        $('#formColaboradores #telefono_colaborador').val(valores[2]).attr('readonly', false);
+        $('#formColaboradores #puesto_colaborador').val(valores[3]).attr('disabled', true);
+        $('#formColaboradores #colaborador_empresa_id').val(valores[4]).attr('disabled', true);
+        $('#formColaboradores #colaborador_id').val(valores[9]);
+        $('#formColaboradores #fecha_ingreso_colaborador').val(valores[6]).attr('disabled', true);
+        $('#formColaboradores #fecha_egreso_colaborador').val(valores[7]).attr('disabled', true);
+        
+        // Configurar checkbox
+        $('#formColaboradores #colaboradores_activo').prop('checked', valores[5] == 1);
 
-            if (valores[6] == 1) {
-                $('#formColaboradores #colaboradores_activo').attr('checked', true);
-            } else {
-                $('#formColaboradores #colaboradores_activo').attr('checked', false);
-            }
+        $('#formColaboradores #estado_colaborador').hide();
+        
+        // Mostrar modal
+        $('#modal_registrar_colaboradores').modal({
+            show: true,
+            keyboard: false,
+            backdrop: 'static'
+        });
 
-            //HABILITAR OBJETOS
-            $('#formColaboradores #nombre_colaborador').attr('readonly', false);
-            $('#formColaboradores #apellido_colaborador').attr('readonly', false);
-            $('#formColaboradores #identidad_colaborador').attr('readonly', false);
-            $('#formColaboradores #telefono_colaborador').attr('readonly', false);
-            $('#formColaboradores #estado_colaborador').attr('disabled', false);
+    } catch (error) {
+        console.error('Error modificando perfil:', error);
+        showNotify("error", "Error", "No se pudo cargar el perfil");
+    }
+});
 
-            //DESHABILITAR OBJETOS
-            $('#formColaboradores #puesto_colaborador').attr('disabled', true);
-            $('#formColaboradores #colaborador_empresa_id').attr('disabled', true);
+// Evento para regenerar PIN desde botón
+$(document).on('click', '#regenerar-pin', async function() {
+    const codigoCliente = $('#badge-codigo-cliente').text().replace('CLIENTE: ', '');
+    if (codigoCliente) {
+        await cargarPinCliente(codigoCliente, true);
+        showNotify("success", "PIN actualizado", "Se ha generado un nuevo PIN");
+    }
+});
 
-            $('#formColaboradores #fecha_ingreso_colaborador').attr('disabled', true);
-            $('#formColaboradores #fecha_egreso_colaborador').attr('disabled', true);
-            $('#formColaboradores #buscar_colaborador_empresa').hide();
+// Evento para mostrar modal del PIN
+$(document).on('click', '#ver-pin-usuario', function(e) {
+    e.preventDefault();
+    $('#pinModal').modal('show');
+});
 
-            $('#formColaboradores #proceso_colaboradores').val("Editar");
-            generatePin(0);
-            $('#modal_registrar_colaboradores').modal({
-                show: true,
-                keyboard: false,
-                backdrop: 'static'
-            });
+// Inicialización al cargar la página
+$(document).ready(function() {
+    inicializarPopoverPIN();
+    cargarDatosCliente();
+    
+    // Actualizar PIN periódicamente (cada minuto) solo si no es DB_MAIN
+    setInterval(async function() {
+        const main_db = $('#formColaboradores #main_db').val();
+        if (main_db === "true") return;
+        
+        const codigoCliente = $('#badge-codigo-cliente').text().replace('CLIENTE: ', '');
+        if (codigoCliente) {
+            await cargarPinCliente(codigoCliente, false);
         }
+    }, 60000);
+    
+    // Evento para botón Generar PIN
+    $('#generarPin').on('click', function(event) {
+        event.preventDefault();
+        generatePin(1);
     });
 });
-//FIN MODIFICAR PERFIL USUARIO SISTEMA
-
 
 function getImagenHeaderConsulta(callback) {
     var url = '<?php echo SERVERURL;?>core/get_image.php';
@@ -2340,23 +2546,6 @@ function getConsultarAperturaCaja() {
     });
     return estado_apertura;
 }
-
-//INICIO CUENTAS POR COBRAR CLIENTES
-$('#form_main_cobrar_clientes #cobrar_clientes_estado').on("change", function(e) {
-    listar_cuentas_por_cobrar_clientes();
-});
-
-$('#form_main_cobrar_clientes #cobrar_clientes').on("change", function(e) {
-    listar_cuentas_por_cobrar_clientes();
-});
-
-$('#form_main_cobrar_clientes #fechai').on("change", function(e) {
-    listar_cuentas_por_cobrar_clientes();
-});
-
-$('#form_main_cobrar_clientes #fechaf').on("change", function(e) {
-    listar_cuentas_por_cobrar_clientes();
-});
 
 var listar_cuentas_por_cobrar_clientes = function() {
     var estado = "";
@@ -2720,12 +2909,15 @@ $(() => {
         listar_cuentas_por_cobrar_clientes();
     });
 
-    // Evento para el botón de Limpiar Filtros
-    $('#btn-limpiar-filtros').on('click', function() {
-        $('#form_main_cobrar_clientes')[0].reset();
-        $('#form_main_cobrar_clientes .selectpicker').selectpicker('refresh');
-        listar_cuentas_por_cobrar_clientes();
-    });
+    // Evento para el botón de Limpiar (reset)
+    $('#form_main_cobrar_clientes').on('reset', function() {
+        // Limpia y refresca los selects
+        $(this).find('.selectpicker')  // Usa `this` para referenciar el formulario actual
+            .val('')
+            .selectpicker('refresh');
+
+			listar_cuentas_por_cobrar_clientes();
+    });	    
 
     // Evento para el botón de Generar Reporte
     $('#form_main_pagar_proveedores').on('submit', function(e) {
@@ -2733,29 +2925,15 @@ $(() => {
         listar_cuentas_por_pagar_proveedores();
     });
 
-    // Evento para el botón de Limpiar Filtros
-    $('#btn-limpiar-filtros').on('click', function() {
-        $('#form_main_pagar_proveedores')[0].reset();
-        $('#form_main_pagar_proveedores .selectpicker').selectpicker('refresh');
-        listar_cuentas_por_pagar_proveedores();
-    });
-});
+    // Evento para el botón de Limpiar (reset)
+    $('#form_main_pagar_proveedores').on('reset', function() {
+        // Limpia y refresca los selects
+        $(this).find('.selectpicker')  // Usa `this` para referenciar el formulario actual
+            .val('')
+            .selectpicker('refresh');
 
-//INICIO CUENTAS POR PAGAR PROVEEDORES
-$('#form_main_pagar_proveedores #pagar_proveedores_estado').on("change", function(e) {
-    listar_cuentas_por_pagar_proveedores();
-});
-
-$('#form_main_pagar_proveedores #pagar_proveedores').on("change", function(e) {
-    listar_cuentas_por_pagar_proveedores();
-});
-
-$('#form_main_pagar_proveedores #fechai').on("change", function(e) {
-    listar_cuentas_por_pagar_proveedores();
-});
-
-$('#form_main_pagar_proveedores #fechaf').on("change", function(e) {
-    listar_cuentas_por_pagar_proveedores();
+			listar_cuentas_por_pagar_proveedores();
+    });	       
 });
 
 var listar_cuentas_por_pagar_proveedores = function() {
@@ -3066,14 +3244,31 @@ $('#formClientes #departamento_cliente').on('change', function() {
     return false;
 });
 
-$(document).ready(function() {
+$(() => {
     $("#modal_registrar_clientes").on('shown.bs.modal', function() {
         $(this).find('#formClientes #nombre_clientes').focus();
     });
 });
 
+// Evento para el botón de Buscar (submit)
+$('#form_main_clientes').on('submit', function(e) {
+    e.preventDefault();
+    listar_clientes(); 
+});
+
+// Evento para el botón de Limpiar (reset)
+$('#form_main_clientes').on('reset', function() {
+    // Limpia y refresca los selects
+    $('#form_main_clientes .selectpicker')
+        .val('')
+        .selectpicker('refresh');
+    listar_clientes();
+});
+
 //INICIO ACCIONES FROMULARIO CLIENTES
 var listar_clientes = function(estado) {
+    var estado = $('#form_main_clientes #estado_clientes').val();
+
     var table_clientes = $("#dataTableClientes").DataTable({
         "destroy": true,
         "ajax": {
@@ -3082,6 +3277,9 @@ var listar_clientes = function(estado) {
             "data": {
                 "estado": estado // nuevo parámetro
             }
+        },
+        "data": {
+            "estado": estado
         },
         "columns": [{
                 "data": "cliente"
@@ -4554,75 +4752,172 @@ $(document).ready(function() {
 });
 
 function getBancoPurchase() {
-    var url = '<?php echo SERVERURL;?>core/getBanco.php';
-
     $.ajax({
+        url: "<?php echo SERVERURL; ?>core/getBanco.php",
         type: "POST",
-        url: url,
-        async: true,
-        success: function(data) {
-            $('#formTransferenciaPurchase #bk_nm').html("");
-            $('#formTransferenciaPurchase #bk_nm').html(data);
+        dataType: "json",
+        success: function(response) {
+            const selectTransferencia = $('#formTransferenciaPurchase #bk_nm');
+            const selectCheque = $('#formChequePurchase #bk_nm_chk');
+            
+            selectTransferencia.empty();
+            selectCheque.empty();
+            
+            if(response.success) {
+                response.data.forEach(banco => {
+                    const option = `
+                        <option value="${banco.bancos_id}" 
+                                data-subtext="${banco.cuenta || 'Sin cuenta'}">
+                            ${banco.nombre}
+                        </option>
+                    `;
+                    selectTransferencia.append(option);
+                    selectCheque.append(option);
+                });
+            } else {
+                const errorOption = '<option value="">No hay bancos disponibles</option>';
+                selectTransferencia.append(errorOption);
+                selectCheque.append(errorOption);
+            }
+            
+            selectTransferencia.selectpicker('refresh');
+            selectCheque.selectpicker('refresh');
+        },
+        error: function(xhr) {
+            showNotify("error", "Error", "Error de conexión al cargar bancos");
+            const errorOption = '<option value="">Error al cargar</option>';
+            
+            $('#formTransferenciaPurchase #bk_nm').html(errorOption);
+            $('#formChequePurchase #bk_nm_chk').html(errorOption);
+            
             $('#formTransferenciaPurchase #bk_nm').selectpicker('refresh');
-
-            $('#formChequePurchase #bk_nm_chk').html("");
-            $('#formChequePurchase #bk_nm_chk').html(data);
             $('#formChequePurchase #bk_nm_chk').selectpicker('refresh');
         }
     });
 }
-//FIN MODAL REGSITRAR PAGO COMPRAS PROVEEDORES
 
+// Versión adaptada para colaboradores en facturas
 function getCollaboradoresModalPagoFacturas() {
-    var url = '<?php echo SERVERURL;?>core/getColaboradores.php';
-
     $.ajax({
+        url: "<?php echo SERVERURL; ?>core/getColaboradores.php",
         type: "POST",
-        url: url,
-        async: true,
-        success: function(data) {
-            $('#formEfectivoBill #usuario_efectivo').html("");
-            $('#formEfectivoBill #usuario_efectivo').html(data);
-            $('#formEfectivoBill #usuario_efectivo').selectpicker('refresh');
-
-            $('#formTarjetaBill #usuario_tarjeta').html("");
-            $('#formTarjetaBill #usuario_tarjeta').html(data);
-            $('#formTarjetaBill #usuario_tarjeta').selectpicker('refresh');
-
-            $('#formTransferenciaBill #usuario_transferencia').html("");
-            $('#formTransferenciaBill #usuario_transferencia').html(data);
-            $('#formTransferenciaBill #usuario_transferencia').selectpicker('refresh');
-
-            $('#formChequeBill #usuario_cheque').html("");
-            $('#formChequeBill #usuario_cheque').html(data);
-            $('#formChequeBill #usuario_cheque').selectpicker('refresh');
+        dataType: "json",
+        success: function(response) {
+            const selects = [
+                '#formEfectivoBill #usuario_efectivo',
+                '#formTarjetaBill #usuario_tarjeta',
+                '#formTransferenciaBill #usuario_transferencia',
+                '#formChequeBill #usuario_cheque'
+            ];
+            
+            // Limpiar todos los selects
+            selects.forEach(selector => {
+                $(selector).empty();
+            });
+            
+            if(response.success) {
+                response.data.forEach(colaborador => {
+                    const option = `
+                        <option value="${colaborador.colaboradores_id}" 
+                                data-subtext="${colaborador.identidad || 'Sin identidad'}">
+                            ${colaborador.nombre}
+                        </option>
+                    `;
+                    
+                    // Agregar a todos los selects
+                    selects.forEach(selector => {
+                        $(selector).append(option);
+                    });
+                });
+            } else {
+                const errorOption = '<option value="">No hay colaboradores disponibles</option>';
+                selects.forEach(selector => {
+                    $(selector).append(errorOption);
+                });
+            }
+            
+            // Refrescar todos los selects
+            selects.forEach(selector => {
+                $(selector).selectpicker('refresh');
+            });
+        },
+        error: function(xhr) {
+            showNotify("error", "Error", "Error de conexión al cargar colaboradores");
+            const errorOption = '<option value="">Error al cargar</option>';
+            
+            const selects = [
+                '#formEfectivoBill #usuario_efectivo',
+                '#formTarjetaBill #usuario_tarjeta',
+                '#formTransferenciaBill #usuario_transferencia',
+                '#formChequeBill #usuario_cheque'
+            ];
+            
+            selects.forEach(selector => {
+                $(selector).html(errorOption).selectpicker('refresh');
+            });
         }
     });
 }
 
+// Versión adaptada para colaboradores en compras
 function getCollaboradoresModalPagoFacturasCompras() {
-    var url = '<?php echo SERVERURL;?>core/getColaboradores.php';
-
     $.ajax({
+        url: "<?php echo SERVERURL; ?>core/getColaboradores.php",
         type: "POST",
-        url: url,
-        async: true,
-        success: function(data) {
-            $('#formEfectivoPurchase #usuario_efectivo_compras').html("");
-            $('#formEfectivoPurchase #usuario_efectivo_compras').html(data);
-            $('#formEfectivoPurchase #usuario_efectivo_compras').selectpicker('refresh');
-
-            $('#formTarjetaPurchase #usuario_tarjeta_compras').html("");
-            $('#formTarjetaPurchase #usuario_tarjeta_compras').html(data);
-            $('#formTarjetaPurchase #usuario_tarjeta_compras').selectpicker('refresh');
-
-            $('#formTransferenciaPurchase #usuario_transferencia_compras').html("");
-            $('#formTransferenciaPurchase #usuario_transferencia_compras').html(data);
-            $('#formTransferenciaPurchase #usuario_transferencia_compras').selectpicker('refresh');
-
-            $('#formChequePurchase #usuario_cheque_compras').html("");
-            $('#formChequePurchase #usuario_cheque_compras').html(data);
-            $('#formChequePurchase #usuario_cheque_compras').selectpicker('refresh');
+        dataType: "json",
+        success: function(response) {
+            const selects = [
+                '#formEfectivoPurchase #usuario_efectivo_compras',
+                '#formTarjetaPurchase #usuario_tarjeta_compras',
+                '#formTransferenciaPurchase #usuario_transferencia_compras',
+                '#formChequePurchase #usuario_cheque_compras'
+            ];
+            
+            // Limpiar todos los selects
+            selects.forEach(selector => {
+                $(selector).empty();
+            });
+            
+            if(response.success) {
+                response.data.forEach(colaborador => {
+                    const option = `
+                        <option value="${colaborador.colaboradores_id}" 
+                                data-subtext="${colaborador.identidad || 'Sin identidad'}">
+                            ${colaborador.nombre}
+                        </option>
+                    `;
+                    
+                    // Agregar a todos los selects
+                    selects.forEach(selector => {
+                        $(selector).append(option);
+                    });
+                });
+            } else {
+                const errorOption = '<option value="">No hay colaboradores disponibles</option>';
+                selects.forEach(selector => {
+                    $(selector).append(errorOption);
+                });
+            }
+            
+            // Refrescar todos los selects
+            selects.forEach(selector => {
+                $(selector).selectpicker('refresh');
+            });
+        },
+        error: function(xhr) {
+            showNotify("error", "Error", "Error de conexión al cargar colaboradores");
+            const errorOption = '<option value="">Error al cargar</option>';
+            
+            const selects = [
+                '#formEfectivoPurchase #usuario_efectivo_compras',
+                '#formTarjetaPurchase #usuario_tarjeta_compras',
+                '#formTransferenciaPurchase #usuario_transferencia_compras',
+                '#formChequePurchase #usuario_cheque_compras'
+            ];
+            
+            selects.forEach(selector => {
+                $(selector).html(errorOption).selectpicker('refresh');
+            });
         }
     });
 }
@@ -5012,20 +5307,56 @@ var edit_asistencia_colaboradores_dataTable = function(tbody, table) {
 }
 
 function getColaboradores() {
-    var url = '<?php echo SERVERURL;?>core/getColaboradores.php';
-
     $.ajax({
+        url: "<?php echo SERVERURL; ?>core/getColaboradoresAsistencia.php",
         type: "POST",
-        url: url,
-        async: true,
-        success: function(data) {
-            $('#form_main_asistencia #colaborador').html("");
-            $('#form_main_asistencia #colaborador').html(data);
-            $('#form_main_asistencia #colaborador').selectpicker('refresh');
-
-            $('#formAsistencia #asistencia_empleado').html("");
-            $('#formAsistencia #asistencia_empleado').html(data);
-            $('#formAsistencia #asistencia_empleado').selectpicker('refresh');
+        dataType: "json",
+        success: function(response) {
+            // Selectores a actualizar
+            const selects = [
+                '#form_main_asistencia #colaborador',
+                '#formAsistencia #asistencia_empleado'
+            ];
+            
+            // Limpiar todos los selects
+            selects.forEach(selector => {
+                $(selector).empty();
+            });
+            
+            if(response.success) {
+                // Crear opciones para cada colaborador
+                response.data.forEach(colaborador => {
+                    const option = `
+                        <option value="${colaborador.colaboradores_id}" 
+                                data-subtext="${colaborador.identidad || 'Sin identidad'}">
+                            ${colaborador.nombre}
+                        </option>
+                    `;
+                    
+                    // Agregar a todos los selects
+                    selects.forEach(selector => {
+                        $(selector).append(option);
+                    });
+                });
+            } else {
+                const errorOption = '<option value="">No hay colaboradores disponibles</option>';
+                selects.forEach(selector => {
+                    $(selector).append(errorOption);
+                });
+            }
+            
+            // Refrescar todos los selects
+            selects.forEach(selector => {
+                $(selector).selectpicker('refresh');
+            });
+        },
+        error: function(xhr) {
+            showNotify("error", "Error", "Error de conexión al cargar colaboradores");
+            const errorOption = '<option value="">Error al cargar</option>';
+            
+            // Aplicar a todos los selects
+            $('#form_main_asistencia #colaborador').html(errorOption).selectpicker('refresh');
+            $('#formAsistencia #asistencia_empleado').html(errorOption).selectpicker('refresh');
         }
     });
 }

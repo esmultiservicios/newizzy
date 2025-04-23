@@ -227,66 +227,69 @@ var eliminar_secuencia_facturacion_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.table_eliminar");
     $(tbody).on("click", "button.table_eliminar", function() {
         var data = table.row($(this).parents("tr")).data();
-        var url = '<?php echo SERVERURL;?>core/editarSecuenciaFacturacion.php';
-        $('#formSecuencia #secuencia_facturacion_id').val(data.secuencia_facturacion_id);
 
-        $.ajax({
-            type: 'POST',
-            url: url,
-            data: $('#formSecuencia').serialize(),
-            success: function(registro) {
-                var valores = eval(registro);
-                $('#formSecuencia').attr({
-                    'data-form': 'delete'
-                });
-                $('#formSecuencia').attr({
-                    'action': '<?php echo SERVERURL;?>ajax/eliminarSecuenciaFacturacionAjax.php'
-                });
-                $('#formSecuencia')[0].reset();
-                $('#edi_secuencia').hide();
-                $('#reg_secuencia').hide();
-                $('#delete_secuencia').show();
-                $('#formSecuencia #empresa_secuencia').val(valores[0]);
-                $('#formSecuencia #empresa_secuencia').selectpicker('refresh');
-                $('#formSecuencia #cai_secuencia').val(valores[1]);
-                $('#formSecuencia #prefijo_secuencia').val(valores[2]);
-                $('#formSecuencia #relleno_secuencia').val(valores[3]);
-                $('#formSecuencia #incremento_secuencia').val(valores[4]);
-                $('#formSecuencia #siguiente_secuencia').val(valores[5]);
-                $('#formSecuencia #rango_inicial_secuencia').val(valores[6]);
-                $('#formSecuencia #rango_final_secuencia').val(valores[7]);
-                $('#formSecuencia #fecha_activacion_secuencia').val(valores[8]);
-                $('#formSecuencia #fecha_limite_secuencia').val(valores[9]);
-                $('#formSecuencia #documento_secuencia').val(valores[11]);
-                $('#formSecuencia #documento_secuencia').selectpicker('refresh');
-
-                if (valores[10] == 1) {
-                    $('#formSecuencia #estado_secuencia').attr('checked', true);
-                } else {
-                    $('#formSecuencia #estado_secuencia').attr('checked', false);
+        var secuencia_id = data.secuencia_facturacion_id;
+        var nombreSecuencia = data.nombre; 
+        
+        // Construir el mensaje de confirmación con HTML
+        var mensajeHTML = `¿Desea eliminar permanentemente la secuencia de facturación?<br><br>
+                        <strong>Nombre:</strong> ${nombreSecuencia}`;
+        
+        swal({
+            title: "Confirmar eliminación",
+            content: {
+                element: "span",
+                attributes: {
+                    innerHTML: mensajeHTML
                 }
-
-                //DESHABILITAR OBJETOS
-                $('#formSecuencia #empresa_secuencia').attr('disabled', true);
-                $('#formSecuencia #documento_secuencia').attr('disabled', true);
-                $('#formSecuencia #cai_secuencia').attr('readonly', true);
-                $('#formSecuencia #prefijo_secuencia').attr('readonly', true);
-                $('#formSecuencia #relleno_secuencia').attr('readonly', true);
-                $('#formSecuencia #incremento_secuencia').attr('readonly', true);
-                $('#formSecuencia #siguiente_secuencia').attr('readonly', true);
-                $('#formSecuencia #rango_inicial_secuencia').attr('readonly', true);
-                $('#formSecuencia #rango_final_secuencia').attr('readonly', true);
-                $('#formSecuencia #fecha_activacion_secuencia').attr('readonly', true);
-                $('#formSecuencia #fecha_limite_secuencia').attr('readonly', true);
-                $('#formSecuencia #estado_secuencia').attr('disabled', true);
-
-                $('#formSecuencia #estado_secuencia_container').hide();
-
-                $('#formSecuencia #proceso_secuencia_facturacion').val("Eliminar");
-                $('#modal_registrar_secuencias').modal({
-                    show: true,
-                    keyboard: false,
-                    backdrop: 'static'
+            },
+            icon: "warning",
+            buttons: {
+                cancel: {
+                    text: "Cancelar",
+                    value: null,
+                    visible: true,
+                    className: "btn-light"
+                },
+                confirm: {
+                    text: "Sí, eliminar",
+                    value: true,
+                    className: "btn-danger",
+                    closeModal: false
+                }
+            },
+            dangerMode: true,
+            closeOnEsc: false,
+            closeOnClickOutside: false
+        }).then((confirmar) => {
+            if (confirmar) {
+               
+                $.ajax({
+                    type: 'POST',
+                    url: '<?php echo SERVERURL;?>ajax/eliminarSecuenciaFacturacionAjax.php',
+                    data: {
+                        secuencia_id: secuencia_id
+                    },
+                    dataType: 'json', // Esperamos respuesta JSON
+                    before: function(){
+                        // Mostrar carga mientras se procesa
+                        showLoading("Eliminando registro...");
+                    },
+                    success: function(response) {
+                        swal.close();
+                        
+                        if(response.status === "success") {
+                            showNotify("success", response.title, response.message);
+                            table.ajax.reload(null, false); // Recargar tabla sin resetear paginación
+                            table.search('').draw();                    
+                        } else {
+                            showNotify("error", response.title, response.message);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        swal.close();
+                        showNotify("error", "Error", "Ocurrió un error al procesar la solicitud");
+                    }
                 });
             }
         });

@@ -6,4 +6,3 @@ $_SESSION['session_time'] = time();
 
 // Puedes devolver un JSON indicando que la renovación fue exitosa
 echo json_encode(['success' => true]);
-?>

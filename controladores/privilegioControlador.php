@@ -18,45 +18,29 @@
 				"fecha_registro" => $fecha_registro,				
 			];
 			
-			$resultVarios = privilegioModelo::valid_privilegios_modelo($datos);
-			
-			if($resultVarios->num_rows==0){
-				$query = privilegioModelo::agregar_privilegios_modelo($datos);
-				
-				if($query){
-					$alert = [
-						"alert" => "clear",
-						"title" => "Registro almacenado",
-						"text" => "El registro se ha almacenado correctamente",
-						"type" => "success",
-						"btn-class" => "btn-primary",
-						"btn-text" => "¡Bien Hecho!",
-						"form" => "formPrivilegios",
-						"id" => "proceso_privilegios",
-						"valor" => "Registro",
-						"funcion" => "listar_privilegio();",
-						"modal" => "",	
-					];
-				}else{
-					$alert = [
-						"alert" => "simple",
-						"title" => "Ocurrio un error inesperado",
-						"text" => "No hemos podido procesar su solicitud",
-						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];				
-				}				
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Resgistro ya existe",
-					"text" => "Lo sentimos este registro ya existe",
-					"type" => "error",	
-					"btn-class" => "btn-danger",						
-				];				
+			if(privilegioModelo::valid_privilegios_modelo($nombre)->num_rows > 0){
+				return mainModel::showNotification([
+					"type" => "error",
+					"title" => "Error",
+					"text" => "No se pudo registrar el privilegio",                
+				]);                
 			}
-			
-			return mainModel::sweetAlert($alert);			
+
+			if(!privilegioModelo::agregar_privilegios_modelo($datos)){
+				return mainModel::showNotification([
+					"title" => "Error",
+					"text" => "No se pudo registrar el privilegio",
+					"type" => "error"
+				]);
+			}
+
+			return mainModel::showNotification([
+				"type" => "success",
+				"title" => "Registro exitoso",
+				"text" => "Privilegio registrado correctamente",           
+				"form" => "formPrivilegios",
+				"funcion" => "listar_privilegio();"
+			]);		
 		}
 		
 		public function edit_privilegio_controlador(){
@@ -75,77 +59,71 @@
 				"estado" => $estado,
 			];		
 
-			$query = privilegioModelo::edit_privilegio_modelo($datos);
-			
-			if($query){				
-				$alert = [
-					"alert" => "edit",
-					"title" => "Registro modificado",
-					"text" => "El registro se ha modificado correctamente",
-					"type" => "success",
-					"btn-class" => "btn-primary",
-					"btn-text" => "¡Bien Hecho!",
-					"form" => "formPrivilegios",	
-					"id" => "proceso_privilegios",
-					"valor" => "Editar",
-					"funcion" => "listar_privilegio();",
-					"modal" => "",
-				];
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Ocurrio un error inesperado",
-					"text" => "No hemos podido procesar su solicitud",
-					"type" => "error",
-					"btn-class" => "btn-danger",					
-				];				
-			}		
-		
-			return mainModel::sweetAlert($alert);			
+			if(!privilegioModelo::edit_privilegio_modelo($datos)){
+				return mainModel::showNotification([
+					"title" => "Error",
+					"text" => "No se pudo actualizar el privilegio",
+					"type" => "error"
+				]);
+			}
+
+			return mainModel::showNotification([
+				"type" => "success",
+				"title" => "Registro exitoso",
+				"text" => "Privilegio actualizado correctamente",           
+				"form" => "formPrivilegios",
+				"funcion" => "listar_privilegio();"
+			]);		
 		}
 		
 		public function delete_privilegio_controlador(){
 			$privilegio_id = $_POST['privilegio_id_'];
 			
-			$result_valid_privilegio = privilegioModelo::valid_privilegio_usuarios($privilegio_id);
+			$campos = ['privilegio_id'];
+			$tabla = "privilegio";
+			$condicion = "privilegio_id = {$privilegio_id}";
+
+			$privilegio = mainModel::consultar_tabla($tabla, $campos, $condicion);
 			
-			if($result_valid_privilegio->num_rows==0 ){
-				$query = privilegioModelo::delete_privilegio_modelo($privilegio_id);
-								
-				if($query){
-					$alert = [
-						"alert" => "clear",
-						"title" => "Registro eliminado",
-						"text" => "El registro se ha eliminado correctamente",
-						"type" => "success",
-						"btn-class" => "btn-primary",
-						"btn-text" => "¡Bien Hecho!",
-						"form" => "formPrivilegios",	
-						"id" => "proceso_privilegios",
-						"valor" => "Eliminar",
-						"funcion" => "listar_privilegio();",
-						"modal" => "modal_registrar_privilegios",
-					];
-				}else{
-					$alert = [
-						"alert" => "simple",
-						"title" => "Ocurrio un error inesperado",
-						"text" => "No hemos podido procesar su solicitud",
-						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];				
-				}				
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Este registro cuenta con información almacenada",
-					"text" => "No se puede eliminar este registro",
-					"type" => "error",	
-					"btn-class" => "btn-danger",						
-				];				
+			if (empty($privilegio)) {
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "Error",
+					"message" => "Privilegio no encontrado"
+				]);
+				exit();
 			}
 			
-			return mainModel::sweetAlert($alert);	
+			$nombre = $privilegio[0]['privilegio_nombre'] ?? '';
+
+			// VALIDAMOS QUE EL PRODCUTO NO TENGA MOVIMIENTOS, PARA PODER ELIMINARSE
+			if(privilegioModelo::valid_privilegio_usuarios($privilegio_id)->num_rows > 0){
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "No se puede eliminar",
+					"message" => "El privilegio {$nombre} tiene usuarios asociados"
+				]);
+				exit();                
+			}
+
+			if(!privilegioModelo::delete_privilegio_modelo($privilegio_id)){
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "Error",
+					"message" => "No se pudo eliminar el privilegio {$nombre}"
+				]);
+				exit();
+			}
+			
+			header('Content-Type: application/json');
+			echo json_encode([
+				"status" => "success",
+				"title" => "Eliminado",
+				"message" => "Privilegio {$nombre} eliminado correctamente"
+			]);
+			exit();	
 		}		
 	}
-?>	

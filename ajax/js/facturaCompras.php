@@ -1103,17 +1103,38 @@ $("#purchase-form #proveedor").on('change', function() {
 });
 
 function getColaboradores() {
-    var url = '<?php echo SERVERURL;?>core/getColaboradores.php';
     $.ajax({
+        url: "<?php echo SERVERURL; ?>core/getColaboradores.php",
         type: "POST",
-        url: url,
-        async: true,
-        success: function(data) {
-            $('#purchase-form #colaborador').html("");
-            $('#purchase-form #colaborador').html(data);
-            $('#purchase-form #colaborador').selectpicker('refresh');
+        dataType: "json",
+        success: function(response) {
+            const select = $('#purchase-form #colaborador');
+            select.empty();
 
-            $('#purchase-form #colaborador').val(getuUuarioSistema());
+            if (response.success) {
+                response.data.forEach(colaborador => {
+                    select.append(`
+                        <option value="${colaborador.colaboradores_id}" 
+                                data-subtext="${colaborador.identidad || 'Sin identidad'}">
+                            ${colaborador.nombre}
+                        </option>
+                    `);
+                });
+
+                // Seleccionar usuario del sistema
+                const usuarioSistema = getuUuarioSistema().toString().trim();
+
+                select.val(usuarioSistema);
+                select.selectpicker('refresh');
+
+            } else {
+                select.append('<option value="">No hay colaboradores disponibles</option>');
+                select.selectpicker('refresh');
+            }
+        },
+        error: function(xhr) {
+            showNotify("error", "Error", "Error de conexión al cargar colaboradores");
+            $('#purchase-form #colaborador').html('<option value="">Error al cargar</option>');
             $('#purchase-form #colaborador').selectpicker('refresh');
         }
     });
@@ -1128,12 +1149,18 @@ function getuUuarioSistema() {
         url: url,
         async: false,
         success: function(valores) {
-            var datos = eval(valores);
-            UsuarioSistema = datos[0];
+            try {
+                var datos = JSON.parse(valores);
+                UsuarioSistema = datos[0];
+            } catch (e) {
+                console.error("Error al parsear JSON del usuario del sistema:", valores);
+            }
         }
     });
+
     return UsuarioSistema;
 }
+
 
 $("#purchase-form #colaborador").on('change', function() {
     $('#purchase-form #colaborador_id').val($('#purchase-form #colaborador').val());

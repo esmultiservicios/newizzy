@@ -3,11 +3,20 @@
 	require_once "configGenerales.php";
 	require_once "mainModel.php";
 	
-	if(!isset($_SESSION['user_sd'])){ 
-		session_start(['name'=>'SD']); 
+	// Instanciar mainModel
+	$insMainModel = new mainModel();
+
+	// Validar sesión primero
+	$validacion = $insMainModel->validarSesion();
+	if($validacion['error']) {
+		return $insMainModel->showNotification([
+			"title" => "Error de sesión",
+			"text" => $validacion['mensaje'],
+			"type" => "error",
+			"funcion" => "window.location.href = '".$validacion['redireccion']."'"
+		]);
 	}
 	
-	$insMainModel = new mainModel();
 	$contraseña_anterior = $insMainModel->encryption($_POST['contranaterior']);
 	$colaborador_id_sd = $_SESSION['colaborador_id_sd'];
 	
@@ -18,5 +27,3 @@
 	}else{
 		echo 1;
 	}
-		
-?>

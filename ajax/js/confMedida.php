@@ -140,44 +140,72 @@ var delete_medidas_dataTable = function(tbody, table){
 	$(tbody).off("click", "button.table_eliminar");
 	$(tbody).on("click", "button.table_eliminar", function(){
 		var data = table.row( $(this).parents("tr") ).data();
-		var url = '<?php echo SERVERURL;?>core/editarMedidas.php';
-		$('#formMedidas #medida_id').val(data.medida_id);
 
-		$.ajax({
-			type:'POST',
-			url:url,
-			data:$('#formMedidas').serialize(),
-			success: function(registro){
-				var valores = eval(registro);
-				$('#formMedidas').attr({ 'data-form': 'update' });
-				$('#formMedidas').attr({ 'action': '<?php echo SERVERURL;?>ajax/eliminarMedidasAjax.php' });
-				$('#formMedidas')[0].reset();
-				$('#reg_medidas').hide();
-				$('#edi_medidas').hide();
-				$('#delete_medidas').show();
-				$('#formMedidas #pro_medidas').val("Eliminar");
-				$('#formMedidas #medidas_medidas').val(valores[0]);
-				$('#formMedidas #descripcion_medidas').val(valores[1]);
-
-				if(valores[2] == 1){
-					$('#formMedidas #medidas_activo').attr('checked', true);
-				}else{
-					$('#formMedidas #medidas_activo').attr('checked', false);
-				}
-
-				//DESHABILITAR OBJETOS
-				$('#formMedidas #ubicacion_ubicacion').attr('readonly', true);
-				$('#formMedidas #descripcion_medidas').attr('readonly', true);
-				$('#formMedidas #medidas_activo').attr('disabled', true);
-				$('#formMedidas #estado_medidas').hide();
-
-				$('#modal_medidas').modal({
-					show:true,
-					keyboard: false,
-					backdrop:'static'
-				});
-			}
-		});
+		var medida_id = data.medida_id;
+        var nombreMedida = data.nombre; 
+        
+        // Construir el mensaje de confirmación con HTML
+        var mensajeHTML = `¿Desea eliminar permanentemente la medida?<br><br>
+                        <strong>Nombre:</strong> ${nombreMedida}`;
+        
+        swal({
+            title: "Confirmar eliminación",
+            content: {
+                element: "span",
+                attributes: {
+                    innerHTML: mensajeHTML
+                }
+            },
+            icon: "warning",
+            buttons: {
+                cancel: {
+                    text: "Cancelar",
+                    value: null,
+                    visible: true,
+                    className: "btn-light"
+                },
+                confirm: {
+                    text: "Sí, eliminar",
+                    value: true,
+                    className: "btn-danger",
+                    closeModal: false
+                }
+            },
+            dangerMode: true,
+            closeOnEsc: false,
+            closeOnClickOutside: false
+        }).then((confirmar) => {
+            if (confirmar) {
+               
+                $.ajax({
+                    type: 'POST',
+                    url: '<?php echo SERVERURL;?>ajax/eliminarMedidasAjax.php',
+                    data: {
+                        medida_id: medida_id
+                    },
+                    dataType: 'json', // Esperamos respuesta JSON
+                    before: function(){
+                        // Mostrar carga mientras se procesa
+                        showLoading("Eliminando registro...");
+                    },
+                    success: function(response) {
+                        swal.close();
+                        
+                        if(response.status === "success") {
+                            showNotify("success", response.title, response.message);
+                            table.ajax.reload(null, false); // Recargar tabla sin resetear paginación
+                            table.search('').draw();                    
+                        } else {
+                            showNotify("error", response.title, response.message);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        swal.close();
+                        showNotify("error", "Error", "Ocurrió un error al procesar la solicitud");
+                    }
+                });
+            }
+        });
 	});
 }
 //FIN MEDIDAS

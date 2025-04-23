@@ -149,7 +149,13 @@
 .table_crear { background-color: var(--primary); color: white; }
 
 /* Estilos generales para todos los botones */
-.table_info, .table_success, .table_warning, .table_dark, .table_primary, .table_secondary, .table_danger {
+.table_info, 
+.table_success, 
+.table_warning, 
+.table_dark, 
+.table_primary, 
+.table_secondary, 
+.table_danger {
     padding: 0.35rem 0.7rem;
     font-size: 0.82rem;
     height: 40px;
@@ -161,7 +167,8 @@
     justify-content: center;
     border: none;
     color: white;
-    transition: opacity 0.3s ease, box-shadow 0.3s ease; /* Agrega transiciones suaves */
+    transition: opacity 0.3s ease, box-shadow 0.3s ease;
+    gap: 0.5rem; /* Añade espacio entre icono y texto */
 }
 
 /* Estilo específico para cada color */
@@ -4150,4 +4157,142 @@ textarea.form-control {
     --bg-color: #6c757d;
     --text-color: white;
     --icon-color: white;
+}
+
+/*******************************
+ * BADGE CODIGO DE CLIENTE *
+ *******************************/
+
+ #badge-codigo-cliente {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.35em 0.65em;
+    border-radius: 4px;
+    min-width: 3em;
+    text-align: center;
+    color: #fff;
+    background-color: #2c7be5; /* Azul más vibrante */
+    border: 1px solid #1a68d1;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    margin-left: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Estilo hover */
+.dropdown-item:hover #badge-codigo-cliente {
+    background-color: #1a68d1 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+/* Estilo para el tooltip */
+#badge-codigo-cliente[title] {
+    position: relative;
+}
+
+#badge-codigo-cliente[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    margin-bottom: 5px;
+    z-index: 1000;
+}
+
+/* Para el avatar con iniciales */
+.avatar-initials {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #2c7be5, #1a68d1);
+    color: white;
+    border-radius: 50%;
+    font-weight: bold;
+    margin-right: 10px;
+    font-size: 0.9rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Estilos para el popover del PIN */
+.pin-popover {
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    border-radius: 8px;
+    min-width: 220px;
+}
+
+.pin-popover .popover-arrow {
+    display: none;
+}
+
+.pin-popover-content {
+    padding: 12px;
+    text-align: center;
+}
+
+.pin-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+    color: #495057;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.pin-header i {
+    color: #4e73df;
+}
+
+.pin-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    letter-spacing: 3px;
+    color: #2c3e50;
+    background: #f8f9fa;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin: 8px 0;
+    font-family: 'Courier New', monospace;
+}
+
+.pin-footer {
+    margin-top: 10px;
+}
+
+.btn-regenerate-pin {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    width: 100%;
+}
+
+/* Estilo para el badge del PIN */
+#badge-pin-cliente {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.3em 0.6em;
+    border-radius: 4px;
+    background-color: #17a2b8;
+    color: white;
+    margin-left: 6px;
+}
+
+/* Asegurar que el elemento esté oculto por defecto */
+#ver-pin-usuario.d-none {
+    display: none !important;
+}
+
+/* Estilo para cuando está visible */
+#ver-pin-usuario:not(.d-none) {
+    display: flex !important;
 }

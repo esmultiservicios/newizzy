@@ -6,7 +6,6 @@ require_once "mainModel.php";
 
 $mainModel = new mainModel();
 
-
 $query = "SELECT 
             sc.server_customers_id,
             sc.clientes_id, 

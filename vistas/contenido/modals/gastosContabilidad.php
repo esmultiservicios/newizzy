@@ -25,11 +25,15 @@
                                     <small class="form-text text-muted">Fecha de la factura del egreso</small>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label for="proveedor_egresos"><i class="fas fa-truck mr-1"></i>Proveedor <span class="priority">*</span></label>
+                                    <label for="proveedor_egresos"><i class="fas fa-user-tie mr-1"></i>Recibí de <span class="priority">*</span></label>
                                     <select id="proveedor_egresos" name="proveedor_egresos" class="selectpicker form-control" data-live-search="true" title="Seleccione proveedor" required>
                                         <option value="">Seleccione</option>
+                                        <!-- Las opciones se llenarán con JavaScript -->
                                     </select>
-                                    <small class="form-text text-muted">Proveedor asociado al egreso</small>
+                                    <small class="form-text text-muted">Seleccione el cliente o ingrese uno nuevo</small>
+                                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="btnNuevoProveedor">
+                                        <i class="fas fa-plus-circle mr-1"></i> Agregar Nuevo Proveedor
+                                    </button>
                                 </div>
                                 <div class="col-md-3 mb-3">
                                     <label for="cuenta_egresos"><i class="fas fa-piggy-bank mr-1"></i>Cuenta <span class="priority">*</span></label>

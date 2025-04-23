@@ -1,6 +1,6 @@
 <!--INICIO MODAL PARA EL INGRESO DE DIARIOS-->
 <div class="modal fade" id="modalConfEntidades">
-    <div class="modal-dialog modal modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h4 class="modal-title"><i class="fas fa-book mr-2"></i>Configurar Cuentas para las Entidades</h4>
@@ -32,15 +32,10 @@
                             </div>
                             <div class="form-row">
                                 <div class="col-md-12 mb-3">                            
-                                    <label>Cuenta <span class="priority">*<span /></label>
-                                    <div class="input-group">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text"><i class="fas fa-wallet"></i></span>
-                                        </div>
-                                        <select id="confCuenta" name="confCuenta" class="selectpicker" data-width="100%" data-live-search="true" title="Cuenta">
-                                            <option value="">Seleccione</option>
-                                        </select>
-                                    </div>
+                                    <label><i class="fas fa-wallet mr-2"></i>Cuenta <span class="priority">*<span /></label>
+                                    <select id="confCuenta" name="confCuenta" class="selectpicker form-control" data-live-search="true" title="Seleccione una cuenta">
+                                        <option value="">Seleccione</option>
+                                    </select>
                                     <small class="form-text text-muted">Seleccione la cuenta contable asociada</small>
                                 </div>
                             </div>

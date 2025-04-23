@@ -9,14 +9,16 @@ class productosControlador extends productosModelo
 {
 	public function agregar_productos_controlador()
 	{
-		// Verificar e iniciar sesión de forma segura
-		if(session_status() === PHP_SESSION_NONE) {
-			session_start(['name'=>'SD', 'cookie_lifetime' => 86400]); // con parámetros adicionales
-			// Inicializar variables de sesión necesarias
-			if(!isset($_SESSION['user_sd'])) {
-				$_SESSION['user_sd'] = null; // o valor por defecto
-			}
-		}
+        // Validar sesión primero
+        $validacion = mainModel::validarSesion();
+        if($validacion['error']) {
+            return mainModel::showNotification([
+                "title" => "Error de sesión",
+                "text" => $validacion['mensaje'],
+                "type" => "error",
+                "funcion" => "window.location.href = '".$validacion['redireccion']."'"
+            ]);
+        }
 	
 		$empresa = $_SESSION['empresa_id_sd'];
 		$almacen_id = 1;  // ALMACEN 1 POR DEFAULT
@@ -190,14 +192,16 @@ class productosControlador extends productosModelo
 
 	public function edit_bodega_productos_controlador()
 	{
-		// Verificar e iniciar sesión de forma segura
-		if(session_status() === PHP_SESSION_NONE) {
-			session_start(['name'=>'SD', 'cookie_lifetime' => 86400]);
-			// Inicializar variables de sesión necesarias
-			if(!isset($_SESSION['user_sd'])) {
-				$_SESSION['user_sd'] = null;
-			}
-		}
+        // Validar sesión primero
+        $validacion = mainModel::validarSesion();
+        if($validacion['error']) {
+            return mainModel::showNotification([
+                "title" => "Error de sesión",
+                "text" => $validacion['mensaje'],
+                "type" => "error",
+                "funcion" => "window.location.href = '".$validacion['redireccion']."'"
+            ]);
+        }
 	
 		$productos_id = mainModel::cleanString($_POST['productos_id']);
 		$bodega_actual = mainModel::cleanString($_POST['id_bodega_actual']);
@@ -336,7 +340,8 @@ class productosControlador extends productosModelo
 			"title" => "Transferencia exitosa",
 			"text" => "El movimiento entre bodegas se realizó correctamente",
 			"form" => "formMovimientos",
-			"funcion" => "inventario_transferencia();setValoresProduco();"
+			"funcion" => "inventario_transferencia();setValoresProduco();",
+			"closeAllModals" => true
 		]);
 	}
 

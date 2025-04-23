@@ -1,23 +1,39 @@
 <script>
-$(document).ready(function() {
+$(() => {
     getEstadoProveedores();
 
-    var estado = $('#form_main_proveedores #estado_proveedores').val() === "" ? 1 : $(
-        '#form_main_proveedores #estado_proveedores').val();
-
-    listar_proveedores(estado);
+    listar_proveedores();
     getDepartamentoProveedores();
+
+    // Evento para el botón de Buscar (submit)
+    $('#form_main_proveedores').on('submit', function(e) {
+        e.preventDefault();
+
+        listar_proveedores(); 
+    });
+
+    // Evento para el botón de Limpiar (reset)
+    $('#form_main_proveedores').on('reset', function() {
+        // Limpia y refresca los selects
+        $(this).find('.selectpicker')  // Usa `this` para referenciar el formulario actual
+            .val('')
+            .selectpicker('refresh');
+
+        listar_proveedores();
+    });
 });
 
 $('#form_main_proveedores #buscar_proveedores').on('click', function(e) {
     e.preventDefault();
-    var estado = $('#form_main_proveedores #estado_proveedores').val() === "" ? 1 : $(
-        '#form_main_proveedores #estado_proveedores').val();
-    listar_proveedores(estado);
+
+    listar_proveedores();
 });
 
 //INICIO ACCIONES FROMULARIO PROVEEDORES
-var listar_proveedores = function(estado) {
+var listar_proveedores = function() {
+    var estado = $('#form_main_proveedores #estado_proveedores').val() === "" ? 1 : $(
+        '#form_main_proveedores #estado_proveedores').val();
+
     var table_proveedores = $("#dataTableProveedores").DataTable({
         "destroy": true,
         "ajax": {

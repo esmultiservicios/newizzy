@@ -7,11 +7,20 @@
 	require_once "Database.php";
 	require_once "sendEmail.php";
 	
-	if(!isset($_SESSION['user_sd'])){ 
-		session_start(['name'=>'SD']); 
+	// Instanciar mainModel
+	$insMainModel = new mainModel();
+
+	// Validar sesión primero
+	$validacion = $insMainModel->validarSesion();
+	if($validacion['error']) {
+		return $insMainModel->showNotification([
+			"title" => "Error de sesión",
+			"text" => $validacion['mensaje'],
+			"type" => "error",
+			"funcion" => "window.location.href = '".$validacion['redireccion']."'"
+		]);
 	}
 
-	$insMainModel = new mainModel();
 
 	$database = new Database();
 	$sendEmail = new sendEmail();
@@ -101,4 +110,3 @@
 	$archivos_adjuntos = [$URL];
 	
 	echo $sendEmail->enviarCorreo($destinatarios, $bccDestinatarios, $asunto, $mensaje, $correo_tipo_id, $users_id, $archivos_adjuntos);	
-?>

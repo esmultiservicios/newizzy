@@ -47,7 +47,7 @@
 			if(!proveedoresModelo::agregar_proveedores_model($datos)){
 				return mainModel::showNotification([
 					"title" => "Error",
-					"text" => "No se pudo registrar el provoeedor",
+					"text" => "No se pudo registrar el proveedor",
 					"type" => "error"
 				]);
 			}
@@ -80,11 +80,7 @@
 			$correo = mainModel::cleanStringStrtolower($_POST['correo_proveedores']);
 			$rtn = mainModel::cleanString($_POST['rtn_proveedores']);
 
-			if (isset($_POST['proveedores_activo'])){
-				$estado = $_POST['proveedores_activo'];
-			}else{
-				$estado = 2;
-			}	
+			$estado = isset($_POST['colaboradores_activo']) ? 1 : 0;	
 			
 			$datos = [
 				"proveedores_id" => $proveedores_id,

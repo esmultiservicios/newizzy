@@ -19,46 +19,30 @@
 				"estado" => $estado,
 				"fecha_registro" => $fecha_registro,				
 			];
-			
-			$resultMedidas = medidasModelo::valid_medidas_modelo($medidas_medidas);
-			
-			if($resultMedidas->num_rows==0){
-				$query = medidasModelo::agregar_medidas_modelo($datos);
-				
-				if($query){
-					$alert = [
-						"alert" => "edit",
-						"title" => "Registro almacenado",
-						"text" => "El registro se ha almacenado correctamente",
-						"type" => "success",
-						"btn-class" => "btn-primary",
-						"btn-text" => "¡Bien Hecho!",
-						"form" => "formMedidas",
-						"id" => "pro_ubicacion",
-						"valor" => "Registro",	
-						"funcion" => "listar_medidas();",
-						"modal" => "",
-					];
-				}else{
-					$alert = [
-						"alert" => "simple",
-						"title" => "Ocurrio un error inesperado",
-						"text" => "No hemos podido procesar su solicitud",
-						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];				
-				}				
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Resgistro ya existe",
-					"text" => "Lo sentimos este registro ya existe",
-					"type" => "error",	
-					"btn-class" => "btn-danger",						
-				];				
+
+			if(medidasModelo::valid_medidas_modelo($medidas_medidas)->num_rows > 0){
+				return mainModel::showNotification([
+					"type" => "error",
+					"title" => "Error",
+					"text" => "No se pudo registrar la medida",                
+				]);                
 			}
-			
-			return mainModel::sweetAlert($alert);
+
+			if(!medidasModelo::agregar_medidas_modelo($datos)){
+				return mainModel::showNotification([
+					"title" => "Error",
+					"text" => "No se pudo registrar la medida",
+					"type" => "error"
+				]);
+			}
+
+			return mainModel::showNotification([
+				"type" => "success",
+				"title" => "Registro exitoso",
+				"text" => "Medida registrada correctamente",           
+				"form" => "formMedidas",
+				"funcion" => "listar_medidas();"
+			]);
 		}
 		
 		public function edit_medidas_controlador(){
@@ -79,77 +63,71 @@
 				"estado" => $estado,				
 			];	
 
-			$query = medidasModelo::edit_medidas_modelo($datos);
-			
-			if($query){				
-				$alert = [
-					"alert" => "edit",
-					"title" => "Registro modificado",
-					"text" => "El registro se ha modificado correctamente",
-					"type" => "success",
-					"btn-class" => "btn-primary",
-					"btn-text" => "¡Bien Hecho!",
-					"form" => "formMedidas",	
-					"id" => "pro_ubicacion",
-					"valor" => "Editar",
-					"funcion" => "listar_medidas();",
-					"modal" => "",
-				];
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Ocurrio un error inesperado",
-					"text" => "No hemos podido procesar su solicitud",
-					"type" => "error",
-					"btn-class" => "btn-danger",					
-				];				
-			}			
-			
-			return mainModel::sweetAlert($alert);
+			if(!medidasModelo::edit_medidas_modelo($datos)){
+				return mainModel::showNotification([
+					"title" => "Error",
+					"text" => "No se pudo actualizar la medida",
+					"type" => "error"
+				]);
+			}
+
+			return mainModel::showNotification([
+				"type" => "success",
+				"title" => "Registro exitoso",
+				"text" => "Medida actualizada correctamente",           
+				"form" => "formMedidas",
+				"funcion" => "listar_medidas();"
+			]);
 		}
 		
 		public function delete_medidas_controlador(){
 			$medida_id = $_POST['medida_id'];
 			
-			$result_valid_medidas_producto_modelo = medidasModelo::valid_medidas_producto_modelo($medida_id);
+			$campos = ['medida_id'];
+			$tabla = "medidas";
+			$condicion = "medida_id = {$medida_id}";
+
+			$ubicacion = mainModel::consultar_tabla($tabla, $campos, $condicion);
 			
-			if($result_valid_medidas_producto_modelo->num_rows==0 ){
-				$query = medidasModelo::delete_medidas_modelo($medida_id);
-								
-				if($query){
-					$alert = [
-						"alert" => "clear",
-						"title" => "Registro eliminado",
-						"text" => "El registro se ha eliminado correctamente",
-						"type" => "success",
-						"btn-class" => "btn-primary",
-						"btn-text" => "¡Bien Hecho!",
-						"form" => "formMedidas",	
-						"id" => "pro_medidas",
-						"valor" => "Eliminar",
-						"funcion" => "listar_medidas();",
-						"modal" => "modal_medidas",
-					];
-				}else{
-					$alert = [
-						"alert" => "simple",
-						"title" => "Ocurrio un error inesperado",
-						"text" => "No hemos podido procesar su solicitud",
-						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];				
-				}				
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Este registro cuenta con información almacenada",
-					"text" => "No se puede eliminar este registro",
-					"type" => "error",	
-					"btn-class" => "btn-danger",						
-				];				
+			if (empty($medida)) {
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "Error",
+					"message" => "Ubicacion no encontrado"
+				]);
+				exit();
 			}
 			
-			return mainModel::sweetAlert($alert);			
+			$nombre = $ubicacion[0]['ubicacion_ubicacion'] ?? '';
+
+			// VALIDAMOS QUE EL PRODCUTO NO TENGA MOVIMIENTOS, PARA PODER ELIMINARSE
+			if(medidasModelo::valid_medidas_producto_modelo($medida_id)->num_rows > 0){
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "No se puede eliminar",
+					"message" => "La medida {$nombre} tiene productos asociados"
+				]);
+				exit();                
+			}
+
+			if(!medidasModelo::delete_medidas_modelo($medida_id)){
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "Error",
+					"message" => "No se pudo eliminar la medida {$nombre}"
+				]);
+				exit();
+			}
+			
+			header('Content-Type: application/json');
+			echo json_encode([
+				"status" => "success",
+				"title" => "Eliminado",
+				"message" => "Medida {$nombre} eliminada correctamente"
+			]);
+			exit();			
 		}
-	}
-?>	
+	}	

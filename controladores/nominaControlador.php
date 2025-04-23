@@ -7,8 +7,15 @@
 	
 	class nominaControlador extends nominaModelo{
 		public function agregar_nomina_controlador(){
-			if(!isset($_SESSION['user_sd'])){ 
-				session_start(['name'=>'SD']); 
+			// Validar sesión primero
+			$validacion = mainModel::validarSesion();
+			if($validacion['error']) {
+				return mainModel::showNotification([
+					"title" => "Error de sesión",
+					"text" => $validacion['mensaje'],
+					"type" => "error",
+					"funcion" => "window.location.href = '".$validacion['redireccion']."'"
+				]);
 			}
 						
 			$pago_planificado_id = mainModel::cleanString($_POST['nomina_pago_planificado_id']);
@@ -39,50 +46,40 @@
 				"cuentas_id" => $cuentas_id,
 			];
 			
-			$resultNmina = nominaModelo::valid_nomina_modelo($detalle);
-			
-			if($resultNmina->num_rows==0){
-				$query = nominaModelo::agregar_nomina_modelo($datos);
-				
-				if($query){
-					$alert = [
-						"alert" => "clear",
-						"title" => "Registro almacenado",
-						"text" => "El registro se ha almacenado correctamente",
-						"type" => "success",
-						"btn-class" => "btn-primary",
-						"btn-text" => "¡Bien Hecho!",
-						"form" => "formNomina",
-						"id" => "proceso_nomina",
-						"valor" => "Registro",	
-						"funcion" => "listar_nominas();getPagoPlanificado();getEmpresa();getTipoNomina();",
-						"modal" => "",
-					];
-				}else{
-					$alert = [
-						"alert" => "simple",
-						"title" => "Ocurrio un error inesperado",
-						"text" => "No hemos podido procesar su solicitud",
-						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];				
-				}				
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Resgistro ya existe",
-					"text" => "Lo sentimos este registro ya existe",
-					"type" => "error",	
-					"btn-class" => "btn-danger",						
-				];				
+			if(nominaModelo::valid_nomina_modelo($detalle)->num_rows > 0){
+				return mainModel::showNotification([
+					"type" => "error",
+					"title" => "Error",
+					"text" => "No se pudo registrar la nomina",
+				]);               
 			}
 			
-			return mainModel::sweetAlert($alert);
+			if(!nominaModelo::agregar_nomina_modelo($datos)){
+				return mainModel::showNotification([
+					"title" => "Error",
+					"text" => "No se pudo registrar la nomina",
+					"type" => "error"
+				]);
+			}
+						
+			return mainModel::showNotification([
+				"type" => "success",
+				"title" => "Actualización exitosa",
+				"text" => "Nomina registrada correctamente",
+				"funcion" => "listar_nominas();getPagoPlanificado();getEmpresa();getTipoNomina();",
+			]);			
 		}
 
 		public function agregar_vale_controlador(){
-			if(!isset($_SESSION['user_sd'])){ 
-				session_start(['name'=>'SD']); 
+			// Validar sesión primero
+			$validacion = mainModel::validarSesion();
+			if($validacion['error']) {
+				return mainModel::showNotification([
+					"title" => "Error de sesión",
+					"text" => $validacion['mensaje'],
+					"type" => "error",
+					"funcion" => "window.location.href = '".$validacion['redireccion']."'"
+				]);
 			}
 						
 			$vale_empleado = mainModel::cleanString($_POST['vale_empleado']);
@@ -106,50 +103,40 @@
 				"fecha_registro" => $fecha_registro
 			];
 			
-			$resultNmina = nominaModelo::valid_vale_modelo($vale_empleado);
-			
-			if($resultNmina->num_rows==0){
-				$query = nominaModelo::agregar_vale_modelo($datos);
-				
-				if($query){
-					$alert = [
-						"alert" => "clear",
-						"title" => "Registro almacenado",
-						"text" => "El registro se ha almacenado correctamente",
-						"type" => "success",
-						"btn-class" => "btn-primary",
-						"btn-text" => "¡Bien Hecho!",
-						"form" => "formVales",
-						"id" => "proceso_vale",
-						"valor" => "Registro",	
-						"funcion" => "getEmpleadoVales();listar_vales();",
-						"modal" => "",
-					];
-				}else{
-					$alert = [
-						"alert" => "simple",
-						"title" => "Ocurrio un error inesperado",
-						"text" => "No hemos podido procesar su solicitud",
-						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];				
-				}				
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Resgistro ya existe",
-					"text" => "Lo sentimos este registro ya existe",
-					"type" => "error",	
-					"btn-class" => "btn-danger",						
-				];				
+			if(nominaModelo::valid_vale_modelo($vale_empleado)->num_rows > 0){
+				return mainModel::showNotification([
+					"type" => "error",
+					"title" => "Error",
+					"text" => "No se pudo registrar el vale",
+				]);               
 			}
 			
-			return mainModel::sweetAlert($alert);
+			if(!nominaModelo::agregar_vale_modelo($datos)){
+				return mainModel::showNotification([
+					"title" => "Error",
+					"text" => "No se pudo registrar el vale",
+					"type" => "error"
+				]);
+			}
+						
+			return mainModel::showNotification([
+				"type" => "success",
+				"title" => "Actualización exitosa",
+				"text" => "Vale registrado correctamente",
+				"funcion" => "listar_vales();getEmpleadoVales();",
+			]);			
 		}
 
 		public function agregar_nomina_detalles_controlador(){
-			if(!isset($_SESSION['user_sd'])){ 
-				session_start(['name'=>'SD']); 
+			// Validar sesión primero
+			$validacion = mainModel::validarSesion();
+			if($validacion['error']) {
+				return mainModel::showNotification([
+					"title" => "Error de sesión",
+					"text" => $validacion['mensaje'],
+					"type" => "error",
+					"funcion" => "window.location.href = '".$validacion['redireccion']."'"
+				]);
 			}
 						
 			$nomina_id = $_POST['nomina_id'];
@@ -412,78 +399,85 @@
 		
 		public function delete_nomina_controlador(){
 			$nomina_id = $_POST['nomina_id'];
+
+			$campos = ['nombre'];
+			$tabla = "nomina";;
+			$condicion = "nomina_id = {$nomina_id}";
+
+			$nomina = mainModel::consultar_tabla($tabla, $campos, $condicion);
 			
-			$result_valid_momina_modelo = nominaModelo::valid_nomina_detalles_delete_modelo($nomina_id);
-			
-			if($result_valid_momina_modelo->num_rows==0 ){
-				$query = nominaModelo::delete_nomina_modelo($nomina_id);
-								
-				if($query){
-					$alert = [
-						"alert" => "clear",
-						"title" => "Registro eliminado",
-						"text" => "El registro se ha eliminado correctamente",
-						"type" => "success",
-						"btn-class" => "btn-primary",
-						"btn-text" => "¡Bien Hecho!",
-						"form" => "formNomina",	
-						"id" => "proceso_nomina",
-						"valor" => "Eliminar",
-						"funcion" => "listar_nominas();getPagoPlanificado();getEmpresa();getTipoNomina();",
-						"modal" => "modal_registrar_nomina",
-					];
-				}else{
-					$alert = [
-						"alert" => "simple",
-						"title" => "Ocurrio un error inesperado",
-						"text" => "No hemos podido procesar su solicitud",
-						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];				
-				}				
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Este registro cuenta con información almacenada",
-					"text" => "No se puede eliminar este registro",
-					"type" => "error",	
-					"btn-class" => "btn-danger",						
-				];				
+			if (empty($nomina)) {
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "Error",
+					"message" => "Nomina no encontrada"
+				]);
+				exit();
 			}
 			
-			return mainModel::sweetAlert($alert);			
+			$nombre = $nomina[0]['nombre'] ?? '';
+
+			if(nominaModelo::valid_nomina_detalles_delete_modelo($nomina_id)->num_rows > 0){
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "No se puede eliminar",
+					"message" => "El registro {$nombre} tiene información almacenada"
+				]);
+				exit();                
+			}
+
+			if(!nominaModelo::delete_nomina_modelo($nomina_id)){
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "Error",
+					"message" => "No se pudo eliminar el registro {$nombre}"
+				]);
+				exit();
+			}			
 		}
 
 		public function delete_nomina_detalles_controlador(){
 			$nomina_detalles_id = $_POST['nomina_detalles_id'];
 			
-			$query = nominaModelo::delete_nomina_detalles_modelo($nomina_detalles_id);
-							
-			if($query){
-				$alert = [
-					"alert" => "clear",
-					"title" => "Registro eliminado",
-					"text" => "El registro se ha eliminado correctamente",
-					"type" => "success",
-					"btn-class" => "btn-primary",
-					"btn-text" => "¡Bien Hecho!",
-					"form" => "formNomina",	
-					"id" => "proceso_nomina",
-					"valor" => "Eliminar",
-					"funcion" => "listar_nominas_detalles();getEmpleado();",
-					"modal" => "modal_registrar_nomina_detalles",
-				];
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Ocurrio un error inesperado",
-					"text" => "No hemos podido procesar su solicitud",
-					"type" => "error",
-					"btn-class" => "btn-danger",					
-				];				
+			$campos = ['nombre'];
+			$tabla = "nomina";;
+			$condicion = "nomina_id = {$nomina_detalles_id}";
+
+			$nomina = mainModel::consultar_tabla($tabla, $campos, $condicion);
+			
+			if (empty($banco)) {
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "Error",
+					"message" => "Nomina no encontrada"
+				]);
+				exit();
 			}
 			
-			return mainModel::sweetAlert($alert);			
+			$nombre = $nomina[0]['nombre'] ?? '';
+
+			if(nominaModelo::valid_nomina_detalles_delete_modelo($nomina_detalles_id)->num_rows > 0){
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "No se puede eliminar",
+					"message" => "El registro {$nombre} tiene información almacenada"
+				]);
+				exit();                
+			}
+
+			if(!nominaModelo::delete_nomina_detalles_modelo($nomina_detalles_id)){
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "Error",
+					"message" => "No se pudo eliminar el registro {$nombre}"
+				]);
+				exit();
+			}					
 		}	
 	}
-?>

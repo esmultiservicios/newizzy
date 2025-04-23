@@ -7,8 +7,15 @@
 	
 	class categoriaProductosControlador extends categoriaProductosModelo{
 		public function agregar_categoria_productos_controlador(){
-			if(!isset($_SESSION['user_sd'])){ 
-				session_start(['name'=>'SD']); 
+			// Validar sesión primero
+			$validacion = mainModel::validarSesion();
+			if($validacion['error']) {
+				return mainModel::showNotification([
+					"title" => "Error de sesión",
+					"text" => $validacion['mensaje'],
+					"type" => "error",
+					"funcion" => "window.location.href = '".$validacion['redireccion']."'"
+				]);
 			}
 			
 			$categoria_productos = mainModel::cleanStringConverterCase($_POST['categoria_productos']);
@@ -22,46 +29,30 @@
 				"estado" => $estado,
 				"fecha_registro" => $fecha_registro,				
 			];
-			
-			$resultCategoria = categoriaProductosModelo::valid_categoria_productos_modelo($categoria_productos);
-			
-			if($resultCategoria->num_rows==0){
-				$query = categoriaProductosModelo::agregar_categoria_productos_modelo($datos);
-				
-				if($query){
-					$alert = [
-						"alert" => "clear",
-						"title" => "Registro almacenado",
-						"text" => "El registro se ha almacenado correctamente",
-						"type" => "success",
-						"btn-class" => "btn-primary",
-						"btn-text" => "¡Bien Hecho!",
-						"form" => "formCategoriaProductos",
-						"id" => "pro_categoria_productos",
-						"valor" => "Registro",	
-						"funcion" => "listar_categoria_productos();",
-						"modal" => "",
-					];
-				}else{
-					$alert = [
-						"alert" => "simple",
-						"title" => "Ocurrio un error inesperado",
-						"text" => "No hemos podido procesar su solicitud",
-						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];				
-				}				
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Resgistro ya existe",
-					"text" => "Lo sentimos este registro ya existe",
-					"type" => "error",	
-					"btn-class" => "btn-danger",						
-				];				
+
+			if(categoriaProductosModelo::valid_categoria_productos_modelo($categoria_productos)->num_rows > 0){
+				return mainModel::showNotification([
+					"type" => "error",
+					"title" => "Error",
+					"text" => "No se pudo registrar la categoria de producto",                
+				]);                
 			}
-			
-			return mainModel::sweetAlert($alert);
+
+			if(!categoriaProductosModelo::agregar_categoria_productos_modelo($datos)){
+				return mainModel::showNotification([
+					"title" => "Error",
+					"text" => "No se pudo registrar la categoria de producto",
+					"type" => "error"
+				]);
+			}
+
+			return mainModel::showNotification([
+				"type" => "success",
+				"title" => "Registro exitoso",
+				"text" => "Categoria de producto registrada correctamente",           
+				"form" => "formCategoriaProductos",
+				"funcion" => "listar_categoria_productos();"
+			]);
 		}
 		
 		public function edit_categoria_productos_controlador(){
@@ -80,77 +71,71 @@
 				"estado" => $estado				
 			];	
 
-			$query = categoriaProductosModelo::edit_categoria_productos_modelo($datos);
-			
-			if($query){				
-				$alert = [
-					"alert" => "edit",
-					"title" => "Registro modificado",
-					"text" => "El registro se ha modificado correctamente",
-					"type" => "success",
-					"btn-class" => "btn-primary",
-					"btn-text" => "¡Bien Hecho!",
-					"form" => "formCategoriaProductos",	
-					"id" => "pro_categoria_productos",
-					"valor" => "Editar",
-					"funcion" => "listar_categoria_productos();",
-					"modal" => "",
-				];
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Ocurrio un error inesperado",
-					"text" => "No hemos podido procesar su solicitud",
-					"type" => "error",
-					"btn-class" => "btn-danger",					
-				];				
-			}			
-			
-			return mainModel::sweetAlert($alert);
+			if(!categoriaProductosModelo::edit_categoria_productos_modelo($datos)){
+				return mainModel::showNotification([
+					"title" => "Error",
+					"text" => "No se pudo actualizar la categoria de producto",
+					"type" => "error"
+				]);
+			}
+
+			return mainModel::showNotification([
+				"type" => "success",
+				"title" => "Registro exitoso",
+				"text" => "Categoria de producto actualizada correctamente",           
+				"form" => "formCategoriaProductos",
+				"funcion" => "listar_categoria_productos();"
+			]);
 		}
 		
 		public function delete_categoria_productos_controlador(){
 			$categoria_id = $_POST['categoria_id'];
 			
-			$result_valid_categoria_productos_modelo = categoriaProductosModelo::valid_categoria_id_productos_modelo($categoria_id);
+			$campos = ['categoria_id'];
+			$tabla = "categoria_productos";
+			$condicion = "categoria_id = {$categoria_id}";
+
+			$categoria_productos = mainModel::consultar_tabla($tabla, $campos, $condicion);
 			
-			if($result_valid_categoria_productos_modelo->num_rows==0 ){
-				$query = categoriaProductosModelo::delete_categoria_productos_modelo($categoria_id);
-								
-				if($query){
-					$alert = [
-						"alert" => "clear",
-						"title" => "Registro eliminado",
-						"text" => "El registro se ha eliminado correctamente",
-						"type" => "success",
-						"btn-class" => "btn-primary",
-						"btn-text" => "¡Bien Hecho!",
-						"form" => "formCategoriaProductos",	
-						"id" => "pro_categoria_productos",
-						"valor" => "Eliminar",
-						"funcion" => "listar_categoria_productos();",
-						"modal" => "modalcategoria_productos",
-					];
-				}else{
-					$alert = [
-						"alert" => "simple",
-						"title" => "Ocurrio un error inesperado",
-						"text" => "No hemos podido procesar su solicitud",
-						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];				
-				}				
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Este registro cuenta con información almacenada",
-					"text" => "No se puede eliminar este registro",
-					"type" => "error",	
-					"btn-class" => "btn-danger",						
-				];				
+			if (empty($categoria_productos)) {
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "Error",
+					"message" => "Categoria de producto no encontrado"
+				]);
+				exit();
 			}
 			
-			return mainModel::sweetAlert($alert);			
+			$nombre = $categoria_productos[0]['nombre'] ?? '';
+
+			// VALIDAMOS QUE EL PRODCUTO NO TENGA MOVIMIENTOS, PARA PODER ELIMINARSE
+			if(categoriaProductosModelo::valid_categoria_productos_modelo($categoria_id)->num_rows > 0){
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "No se puede eliminar",
+					"message" => "La categoria de producto {$nombre} tiene productos asociados"
+				]);
+				exit();                
+			}
+
+			if(!categoriaProductosModelo::delete_categoria_productos_modelo($categoria_id)){
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "Error",
+					"message" => "No se pudo eliminar la categoria de producto {$nombre}"
+				]);
+				exit();
+			}
+			
+			header('Content-Type: application/json');
+			echo json_encode([
+				"status" => "success",
+				"title" => "Eliminado",
+				"message" => "Categoria de producto {$nombre} eliminada correctamente"
+			]);
+			exit();			
 		}
 	}
-?>	

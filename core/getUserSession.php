@@ -1,26 +1,41 @@
 <?php	
-	$peticionAjax = true;
-	if(!isset($_SESSION['user_sd'])){ 
-	   session_start(['name'=>'SD']); 
-	}
-	
-	require_once "configGenerales.php";
-	require_once "mainModel.php";
-	
-	$insMainModel = new mainModel();
-	
-	$colaborador_id = $_SESSION['colaborador_id_sd'];
+$peticionAjax = true;
+require_once "configGenerales.php";
+require_once "mainModel.php";
 
-	$result = $insMainModel->getUserSession($colaborador_id);
-	
-	if($result->num_rows>0){
-		$consulta2 = $result->fetch_assoc();
-		$nombre_ = explode(" ", trim(ucwords(strtolower($consulta2['nombre']), " ")));
-		$nombre_usuario = $nombre_[0];
-		$apellido_ = explode(" ", trim(ucwords(strtolower($consulta2['apellido']), " ")));	
-		$nombre_apellido = $apellido_[0];
-  
-		$usuario_sistema_nombre = $nombre_usuario." ".$nombre_apellido;
-		echo $usuario_sistema_nombre;
-	}
-?>
+// Instanciar mainModel
+$insMainModel = new mainModel();
+
+// Validar sesión primero
+$validacion = $insMainModel->validarSesion();
+if($validacion['error']) {
+    return $insMainModel->showNotification([
+        "title" => "Error de sesión",
+        "text" => $validacion['mensaje'],
+        "type" => "error",
+        "funcion" => "window.location.href = '".$validacion['redireccion']."'"
+    ]);
+}
+
+$colaborador_id = $_SESSION['colaborador_id_sd'];
+
+$result = $insMainModel->getUserSession($colaborador_id);
+
+if ($result->num_rows > 0) {
+    $consulta2 = $result->fetch_assoc();
+
+    $nombre_completo = ucwords(strtolower(trim($consulta2['nombre'])));
+    $partes = explode(" ", $nombre_completo);
+
+    if (count($partes) > 2) {
+        // Ej: Edwin Javier Velasquez Cortes → Edwin Velasquez
+        $primer_nombre = $partes[0] ?? '';
+        $primer_apellido = $partes[2] ?? '';
+        $usuario_sistema_nombre = $primer_nombre . " " . $primer_apellido;
+    } else {
+        // Ej: ES MULTISERVICIOS → se muestra completo
+        $usuario_sistema_nombre = $nombre_completo;
+    }
+
+    echo $usuario_sistema_nombre;
+}

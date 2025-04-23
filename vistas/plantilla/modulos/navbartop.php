@@ -107,6 +107,12 @@
                 </a>
                 <a class="dropdown-item" href="#" id="modificar_perfil_usuario_sistema">
                     <i class="fas fa-id-card"></i> Mi Perfil
+                    <span id="badge-codigo-cliente" class="badge bg-primary ml-2"></span>
+                </a>
+                <!-- Opción para ver PIN con popover -->
+                <a class="dropdown-item" href="#" id="ver-pin-usuario" data-toggle="popover">
+                    <i class="fas fa-lock"></i> Ver mi PIN
+                    <span id="badge-pin-cliente" class="badge bg-info ml-2"></span>
                 </a>
                 <div class="dropdown-divider"></div>
                 <a class="dropdown-item d-flex align-items-center" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>MisFacturas/">

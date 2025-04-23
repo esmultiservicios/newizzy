@@ -16,4 +16,3 @@
 		3 => $valores2['fecha_registro'],		
 	);
 	echo json_encode($datos);
-?>	

@@ -75,27 +75,14 @@
             </div>
             <div class="modal-body">
                 <form class="FormularioAjax" id="formCuentasContables" action="" method="POST" data-form="" enctype="multipart/form-data">
+                    <input type="hidden" required="required" readonly id="cuentas_id" name="cuentas_id" />
+
                     <!-- Sección de Información Básica -->
                     <div class="card border-primary mb-4">
                         <div class="card-header bg-primary text-white">
                             <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Información Básica</h5>
                         </div>
-                        <div class="card-body">
-                            <div class="form-row">
-                                <div class="col-md-12 mb-3">
-                                    <input type="hidden" required="required" readonly id="cuentas_id" name="cuentas_id" />
-                                    <label for="pro_cuentas"><i class="fas fa-search mr-1"></i>Buscar Cuenta</label>
-                                    <div class="input-group">
-                                        <input type="text" required readonly id="pro_cuentas" name="pro_cuentas" class="form-control" placeholder="Seleccione una cuenta contable">
-                                        <div class="input-group-append">
-                                            <button class="btn btn-outline-primary" type="button" data-toggle="modal" data-target="#modal_buscar_cuentas_contables">
-                                                <i class="fas fa-search"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <small class="form-text text-muted">Seleccione una cuenta contable existente o registre una nueva</small>
-                                </div>
-                            </div>
+                        <div class="card-body">    
                             <div class="form-row">
                                 <div class="col-md-4 mb-3" style="display: none">
                                     <label for="cuenta_codigo"><i class="fas fa-barcode mr-1"></i>Código</label>
@@ -1935,21 +1922,13 @@
                         <div class="card-body">
                             <div class="form-row">
                                 <div class="col-md-8 mb-3">
-                                    <label for="nombre_clientes">Nombre/Razón Social <span class="priority">*</span></label>
-                                    <div class="input-group">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text"><i class="fas fa-signature"></i></span>
-                                        </div>
-                                        <input type="text" class="form-control" id="nombre_clientes" name="nombre_clientes" placeholder="Nombre completo o razón social" maxlength="100" required>
-                                    </div>
+                                    <label for="nombre_clientes"><i class="fas fa-signature mr-1"></i> Nombre/Razón Social <span class="priority">*</span></label>
+                                    <input type="text" class="form-control" id="nombre_clientes" name="nombre_clientes" placeholder="Nombre completo o razón social" maxlength="100" required>
                                     <small class="form-text text-muted">Ingrese el nombre completo o razón social (como aparece en documentos legales)</small>
                                 </div>
                                 <div class="col-md-4 mb-3">
-                                    <label for="identidad_clientes">Identidad/RTN</label>
+                                    <label for="identidad_clientes"><i class="fas fa-id-card mr-1"></i> Identidad/RTN</label>
                                     <div class="input-group">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text"><i class="fas fa-id-card"></i></span>
-                                        </div>
                                         <input type="number" class="form-control" id="identidad_clientes" name="identidad_clientes" placeholder="Número de identidad o RTN" maxlength="14" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
                                         <div class="input-group-append" id="grupo_editar_rtn">
                                             <button type="button" class="btn btn-outline-success editar_rtn" data-toggle="tooltip" title="Editar RTN">
@@ -1963,45 +1942,25 @@
                             
                             <div class="form-row">
                                 <div class="col-md-3 mb-3">
-                                    <label for="fecha_clientes">Fecha de Registro <span class="priority">*</span></label>
-                                    <div class="input-group">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
-                                        </div>
-                                        <input type="date" required id="fecha_clientes" name="fecha_clientes" value="<?php echo date('Y-m-d'); ?>" class="form-control">
-                                    </div>
+                                    <label for="fecha_clientes"><i class="fas fa-calendar-alt mr-1"></i> Fecha de Registro <span class="priority">*</span></label>
+                                    <input type="date" required id="fecha_clientes" name="fecha_clientes" value="<?php echo date('Y-m-d'); ?>" class="form-control">
                                     <small class="form-text text-muted">Fecha en que se registra al cliente</small>
                                 </div>
                                 <div class="col-md-3 mb-3">
-                                    <label for="departamento_cliente">Departamento</label>
-                                    <div class="input-group">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text"><i class="fas fa-map-marked-alt"></i></span>
-                                        </div>
-                                        <select class="selectpicker form-control" id="departamento_cliente" name="departamento_cliente" data-live-search="true" title="Seleccione un departamento">
-                                        </select>
-                                    </div>
+                                    <label><i class="fas fa-map-marked-alt mr-1"></i> Departamento</label>
+                                    <select class="selectpicker form-control" id="departamento_cliente" name="departamento_cliente" data-live-search="true" title="Seleccione un departamento">
+                                    </select>
                                     <small class="form-text text-muted">Departamento donde reside el cliente</small>
                                 </div>
                                 <div class="col-md-3 mb-3">
-                                    <label for="municipio_cliente">Municipio</label>
-                                    <div class="input-group">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
-                                        </div>
-                                        <select class="selectpicker form-control" id="municipio_cliente" name="municipio_cliente" data-live-search="true" title="Seleccione un municipio">
-                                        </select>
-                                    </div>
+                                    <label><i class="fas fa-map-marker-alt mr-1"></i> Municipio</label>
+                                    <select class="selectpicker form-control" id="municipio_cliente" name="municipio_cliente" data-live-search="true" title="Seleccione un municipio">
+                                    </select>
                                     <small class="form-text text-muted">Municipio donde reside el cliente</small>
                                 </div>
                                 <div class="col-md-3 mb-3">
-                                    <label for="telefono_clientes">Teléfono</label>
-                                    <div class="input-group">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text"><i class="fas fa-phone"></i></span>
-                                        </div>
-                                        <input type="number" class="form-control" id="telefono_clientes" name="telefono_clientes" placeholder="Número de teléfono" maxlength="8" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
-                                    </div>
+                                    <label for="telefono_clientes"><i class="fas fa-phone mr-1"></i> Teléfono</label>
+                                    <input type="number" class="form-control" id="telefono_clientes" name="telefono_clientes" placeholder="Número de teléfono" maxlength="8" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
                                     <small class="form-text text-muted">Número de contacto principal</small>
                                 </div>
                             </div>
@@ -2016,24 +1975,16 @@
                         <div class="card-body">
                             <div class="form-row">
                                 <div class="col-md-12 mb-3">
-                                    <label for="dirección_clientes">Dirección Completa</label>
-                                    <div class="input-group">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text"><i class="fas fa-home"></i></span>
-                                        </div>
-                                        <input type="text" class="form-control" id="dirección_clientes" name="dirección_clientes" placeholder="Dirección exacta" maxlength="150">
-                                    </div>
+                                    <label for="dirección_clientes"><i class="fas fa-home mr-1"></i> Dirección Completa</label>
+                                    <input type="text" class="form-control" id="dirección_clientes" name="dirección_clientes" placeholder="Dirección exacta" maxlength="150">
                                     <small class="form-text text-muted">Dirección exacta incluyendo puntos de referencia</small>
                                 </div>
                             </div>
                             
                             <div class="form-row">
                                 <div class="col-md-12 mb-3">
-                                    <label for="correo_clientes">Correo Electrónico</label>
+                                    <label for="correo_clientes"><i class="fas fa-envelope mr-1"></i> Correo Electrónico</label>
                                     <div class="input-group">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                                        </div>
                                         <input type="email" class="form-control" placeholder="Correo electrónico" id="correo_clientes" name="correo_clientes" maxlength="70">
                                         <div class="input-group-append">
                                             <span class="input-group-text">@ejemplo.com</span>
@@ -2428,6 +2379,7 @@
             <div class="modal-body">
                 <form class="FormularioAjax" id="formColaboradores" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
                     <input type="hidden" id="colaborador_id" name="colaborador_id">
+                    <input type="hidden" id="main_db" name="main_db">
 
                     <!-- Sección de Datos de Seguridad -->
                     <div class="card mb-3" id="datosClientes" style="display: none;">
@@ -2451,7 +2403,7 @@
                                             </button>
                                         </div>
                                     </div>
-                                    <small class="form-text text-muted">Código temporal válido por 60 segundos</small>
+                                    <small class="form-text text-muted">Código temporal válido por 5 minutos</small>
                                 </div>
                             </div>
                         </div>
@@ -2477,9 +2429,9 @@
                                     <small class="form-text text-muted">Documento de identificación oficial</small>
                                 </div>
                                 <div class="col-md-6 form-group">
-                                    <label for="telefono_colaborador">Teléfono de Contacto <span class="priority">*</span></label>
+                                    <label for="telefono_colaborador">Teléfono de Contacto </label>
                                     <input type="number" class="form-control" id="telefono_colaborador" name="telefono_colaborador" 
-                                           maxlength="8" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" required>
+                                           maxlength="8" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
                                     <small class="form-text text-muted">Número celular o telefónico principal</small>
                                 </div>
                             </div>
@@ -2525,7 +2477,7 @@
                                 </div>
                             </div>
                             
-                            <div class="form-group">
+                            <div class="form-group" id="estado_colaborador">
                                 <label>Estado Laboral</label>
                                 <div class="custom-control custom-switch">
                                     <input type="checkbox" class="custom-control-input" id="colaboradores_activo" name="colaboradores_activo" checked>
@@ -2979,27 +2931,15 @@
             </div>
             <div class="modal-body">
                 <form class="FormularioAjax" id="formAperturaCaja" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+                    <input type="hidden" id="apertura_id" name="apertura_id" class="form-control">
+                    <input type="hidden" id="colaboradores_id_apertura" name="colaboradores_id_apertura" class="form-control">
+
                     <!-- Sección de Información de Apertura -->
                     <div class="card border-primary mb-4">
                         <div class="card-header bg-primary text-white">
                             <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Datos de Apertura</h5>
                         </div>
-                        <div class="card-body">
-                            <div class="form-row">
-                                <div class="col-md-12 mb-3">
-                                    <div class="input-group mb-3">
-                                        <input type="hidden" id="apertura_id" name="apertura_id" class="form-control">
-                                        <input type="hidden" id="colaboradores_id_apertura" name="colaboradores_id_apertura" class="form-control">
-                                        <input type="text" id="proceso_aperturaCaja" class="form-control" readonly>
-                                        <div class="input-group-append">
-                                            <span class="input-group-text">
-                                                <i class="fas fa-plus-square"></i>
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
+                        <div class="card-body">                            
                             <div class="form-row">
                                 <div class="col-md-12 mb-3">
                                     <label for="usuario_apertura"><i class="fas fa-user mr-1"></i>Usuario</label>

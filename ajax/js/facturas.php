@@ -1773,39 +1773,6 @@ $("#reg_modificar_precio_fact").on("click", function(e) {
 //FIN CAMBIAR PRECIO A PRODUCTO EN FACTURACION
 //FIN FACTURAS
 
-function validarAperturaCajaUsuario(){
-    if (getConsultarAperturaCaja() == 2) {
-        $("#invoice-form #reg_factura").attr("disabled", true);
-        $("#invoice-form #guardar_factura").attr("disabled", true);
-        $("#invoice-form #add_cliente").attr("disabled", true);
-        $("#invoice-form #add_vendedor").attr("disabled", true);
-        $("#invoice-form #addCambio").attr("disabled", true);
-        $("#invoice-form #addQuotetoBill").attr("disabled", true);
-        $("#invoice-form #addPayCustomers").attr("disabled", true);
-        $("#invoice-form #addRows").attr("disabled", true);
-        $("#invoice-form #removeRows").attr("disabled", true);
-        $("#invoice-form #addDraft").attr("disabled", true);
-        $("#invoice-form #notasFactura").attr("disabled", true);
-        $("#invoice-form #btn_apertura").show();
-        $("#invoice-form #btn_cierre").hide();
-    } else {
-        $("#invoice-form #btn_apertura").hide();
-        $("#invoice-form #reg_factura").attr("disabled", false);
-        $("#invoice-form #guardar_factura").attr("disabled", false);
-        $("#invoice-form #add_cliente").attr("disabled", false);
-        $("#invoice-form #add_vendedor").attr("disabled", false);
-        $("#invoice-form #addCambio").attr("disabled", false);
-        $("#invoice-form #addQuotetoBill").attr("disabled", false);
-        $("#invoice-form #addPayCustomers").attr("disabled", false);
-        $("#invoice-form #addRows").attr("disabled", false);
-        $("#invoice-form #removeRows").attr("disabled", false);
-        $("#invoice-form #notasFactura").attr("disabled", false);
-        $("#invoice-form #addDraft").attr("disabled", false);
-        $("#invoice-form #btn_cierre").show();
-        $("#invoice-form #btn_apertura").hide();
-    }
-}
-
 function getConsultarAperturaCaja() {
     var url = '<?php echo SERVERURL; ?>core/getAperturaCajaUsuario.php';
 
@@ -2410,11 +2377,15 @@ var ver_abono_cxp_proveedor_dataTable = function(tbody, table) {
 
 $(function() {
     // Inicialización
+    validarAperturaCajaUsuario();
     getTotalFacturasDisponibles();
+    
     // Actualizar cada minuto
-    setInterval(getTotalFacturasDisponibles, 60000);
+    setInterval(() => {
+        validarAperturaCajaUsuario();
+        getTotalFacturasDisponibles();
+    }, 60000);
 });
-
 let lastState = null;
 
 function getTotalFacturasDisponibles() {
@@ -2536,19 +2507,51 @@ function getStateConfig(state, facturasPendientes, daysLeft, fechaLimite) {
 
 function updateButtonsState(facturasPendientes, fechaLimite, daysLeft) {
     const facturarBtn = $("#invoice-form #reg_factura");
-    const aperturaBtn = $("#invoice-form #btn_apertura");
-
+    // Los botones de caja NO se deben deshabilitar aquí
+    
+    // Validación de facturas SAR
     const vencimientoPasado = daysLeft < 0;
-    const isDisabled = facturasPendientes <= 0 || !fechaLimite || fechaLimite.trim() === "Sin definir" || vencimientoPasado;
+    const sarDisabled = facturasPendientes <= 0 || !fechaLimite || fechaLimite.trim() === "Sin definir" || vencimientoPasado;
+    
+    // Validación de caja (2 = cerrada)
+    const cajaCerrada = getConsultarAperturaCaja() == 2;
+    
+    // Solo deshabilitar botones de facturación
+    facturarBtn.prop("disabled", sarDisabled || cajaCerrada);
 
-    facturarBtn.prop("disabled", isDisabled);
-    aperturaBtn.prop("disabled", isDisabled);
-
-    if (isDisabled) {
+    // Estilos solo para SAR (la caja tiene sus propios estilos)
+    if (sarDisabled && !cajaCerrada) {
         facturarBtn.addClass("btn-outline-danger").removeClass("btn-secondary");
     } else {
         facturarBtn.removeClass("btn-outline-danger").addClass("btn-secondary");
     }
+}
+
+function validarAperturaCajaUsuario() {
+    const cajaCerrada = getConsultarAperturaCaja() == 2;
+    const elementos = [
+        "#reg_factura", "#guardar_factura", "#add_cliente", 
+        "#add_vendedor", "#addCambio", "#addQuotetoBill",
+        "#addPayCustomers", "#addRows", "#removeRows",
+        "#notasFactura", "#addDraft"
+    ];
+
+    // Aplicar estado a todos los elementos (excepto botones de caja)
+    elementos.forEach(selector => {
+        $(`#invoice-form ${selector}`).prop("disabled", cajaCerrada);
+    });
+
+    // Manejar visibilidad de botones de caja (siempre habilitados)
+    $("#invoice-form #btn_apertura")
+        .toggle(cajaCerrada)
+        .prop("disabled", false); // ← Siempre habilitado
+    
+    $("#invoice-form #btn_cierre")
+        .toggle(!cajaCerrada)
+        .prop("disabled", false); // ← Siempre habilitado
+    
+    // Forzar actualización del estado SAR
+    getTotalFacturasDisponibles();
 }
 
 function showErrorState() {

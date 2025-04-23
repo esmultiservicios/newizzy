@@ -3,22 +3,21 @@ $peticionAjax = true;
 require_once "configGenerales.php";
 require_once "mainModel.php";
 
-// Verificar si la sesión no está activa
-if(session_status() !== PHP_SESSION_ACTIVE) {
-    session_start(['name'=>'SD']);
-}
+// Instanciar mainModel
+$insMainModel = new mainModel();
 
-if (!isset($_SESSION['users_id_sd'])) {
-    echo json_encode([
-        'type' => 'error',
-        'title' => 'Error de sesión',
-        'message' => 'Usuario no autenticado'
+// Validar sesión primero
+$validacion = $insMainModel->validarSesion();
+if($validacion['error']) {
+    return $insMainModel->showNotification([
+        "title" => "Error de sesión",
+        "text" => $validacion['mensaje'],
+        "type" => "error",
+        "funcion" => "window.location.href = '".$validacion['redireccion']."'"
     ]);
-    exit();
 }
 
 $users_id = intval($_SESSION['users_id_sd']);
-$mainModel = new mainModel();
 
 // 1. Obtener server_customers_id del usuario
 $conexionPrincipal = $mainModel->connection();

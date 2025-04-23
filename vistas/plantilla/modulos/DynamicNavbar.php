@@ -213,10 +213,10 @@ class DynamicNavbar {
             <center><span class="small-font">' . $nombre_db_final . '</span></center>
         </div>
         
-        <a href="https://api.whatsapp.com/send?phone=50489136844&text=Hola%20ES%20MULTISERVICIOS,%20nos%20gustar%C3%ADa%20que%20nos%20puedan%20brindar%20asistencia%20t%C3%A9cnica,%20muchas%20gracias."
-            class="float-ws" target="_blank" data-toggle="tooltip" data-placement="top" title="Soporte ES MULTISERVICIOS">
-            <i class="fab fa-whatsapp my-float-ws"></i>
-        </a>
+            <a href="https://api.whatsapp.com/send?phone=50494748379&text=Hola%20MULTIFAST,%20nos%20gustar%C3%ADa%20que%20nos%20puedan%20brindar%20asistencia%20t%C3%A9cnica,%20muchas%20gracias."
+                class="float-ws" target="_blank" data-toggle="tooltip" data-placement="top" title="FLEXA">
+                <i class="fab fa-whatsapp my-float-ws"></i>
+            </a>
         </nav>';
         
         

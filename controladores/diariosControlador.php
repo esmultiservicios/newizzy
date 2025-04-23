@@ -15,33 +15,19 @@
 				"cuentas_id" => $cuentas_id				
 			];		
 
-			$query = diariosModelo::edit_diarios_modelo($datos);
-			
-			if($query){				
-				$alert = [
-					"alert" => "edit",
-					"title" => "Registro modificado",
-					"text" => "El registro se ha modificado correctamente",
-					"type" => "success",
-					"btn-class" => "btn-primary",
-					"btn-text" => "¡Bien Hecho!",
-					"form" => "formConfCuentasEntidades",	
-					"id" => "pro_ConfCuentasEntidades",
-					"valor" => "Editar",
-					"funcion" => "listar_diarios_configuracion();getCuentaDiarios();",
-					"modal" => "",
-				];
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Ocurrio un error inesperado",
-					"text" => "No hemos podido procesar su solicitud",
+			if(!diariosModelo::edit_diarios_modelo($datos)){
+				return mainModel::showNotification([
 					"type" => "error",
-					"btn-class" => "btn-danger",					
-				];				
-			}			
-			
-			return mainModel::sweetAlert($alert);
+					"title" => "Error",
+					"text" => "No se pudo actualizar el diario",                
+				]);
+			}
+
+			return mainModel::showNotification([
+				"type" => "success",
+				"title" => "Actualización exitosa",
+				"text" => "Diario actualizado correctamente",
+				"funcion" => "listar_diarios_configuracion();getCuentaDiarios();",
+			]);
 		}
 	}
-?>	

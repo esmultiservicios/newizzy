@@ -58,7 +58,7 @@
                 <button class="btn btn-secondary" data-dismiss="modal">
                     <i class="fas fa-times mr-1"></i> Cancelar
                 </button>
-                <button class="btn btn-warning" type="submit" style="display: none;" id="edi_impuestos" form="formImpuestos">
+                <button class="btn btn-warning" type="submit" id="edi_impuestos" form="formImpuestos">
                     <i class="fas fa-edit mr-1"></i> Actualizar
                 </button>
             </div>

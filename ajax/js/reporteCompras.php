@@ -6,30 +6,22 @@ $(() => {
     $('#form_main_compras #tipo_compras_reporte').val(1);
     $('#form_main_compras #tipo_compras_reporte').selectpicker('refresh');
 
-    // Evento para el botón de Generar Reporte
+    // Evento para el botón de Buscar (submit)
     $('#form_main_compras').on('submit', function(e) {
         e.preventDefault();
-        listar_reporte_compras();
+
+        listar_reporte_compras(); 
     });
 
-    // Evento para el botón de Limpiar Filtros
-    $('#btn-limpiar-filtros').on('click', function() {
-        $('#form_main_compras')[0].reset();
-        $('#form_main_compras .selectpicker').selectpicker('refresh');
-        listar_reporte_compras();
-    });    
-});
+    // Evento para el botón de Limpiar (reset)
+    $('#form_main_compras').on('reset', function() {
+        // Limpia y refresca los selects
+        $(this).find('.selectpicker')  // Usa `this` para referenciar el formulario actual
+            .val('')
+            .selectpicker('refresh');
 
-$('#form_main_compras #tipo_compras_reporte').on("change", function(e) {
-    listar_reporte_compras();
-});
-
-$('#form_main_compras #fechai').on("change", function(e) {
-    listar_reporte_compras();
-});
-
-$('#form_main_compras #fechaf').on("change", function(e) {
-    listar_reporte_compras();
+			listar_reporte_compras();
+    });		   
 });
 
 //INICIO REPORTE DE COMPRAS

@@ -6,7 +6,7 @@
 
     <div class="card mb-4">
         <div class="card-body">
-            <form id="form_main_movimientos">
+            <form id="form_main_movimientos_transferencia">
                 <div class="row">
                     <div class="col-md-4 col-sm-6 mb-3">
                         <div class="form-group">
@@ -38,11 +38,11 @@
                 
                 <div class="row">
                     <div class="col-12 d-flex justify-content-end">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-search fa-lg mr-1"></i> Buscar
+                        <button type="submit" class="btn btn-primary mr-2">
+                            <i class="fas fa-filter fa-lg"></i> Filtrar
                         </button>
-                        <button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary">
-                                <i class="fas fa-broom fa-lg"></i> Limpiar
+                        <button type="reset" class="btn btn-secondary">
+                            <i class="fas fa-broom fa-lg"></i> Limpiar
                         </button>  
                     </div>
                 </div>

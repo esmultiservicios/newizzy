@@ -7,10 +7,16 @@
 	
 	class contratoControlador extends contratoModelo{
 		public function agregar_contrato_controlador(){
-			if(!isset($_SESSION['user_sd'])){ 
-				session_start(['name'=>'SD']); 
+			// Validar sesión primero
+			$validacion = mainModel::validarSesion();
+			if($validacion['error']) {
+				return mainModel::showNotification([
+					"title" => "Error de sesión",
+					"text" => $validacion['mensaje'],
+					"type" => "error",
+					"funcion" => "window.location.href = '".$validacion['redireccion']."'"
+				]);
 			}
-
 			$colaborador_id = mainModel::cleanString($_POST['contrato_colaborador_id']);
 			$tipo_contrato_id = mainModel::cleanString($_POST['contrato_tipo_contrato_id']);
 			$pago_planificado_id = mainModel::cleanString($_POST['contrato_pago_planificado_id']);
@@ -41,45 +47,28 @@
 				"calculo_semanal" => $calculo_semanal,
 			];
 			
-			$resultContrato = contratoModelo::valid_contrato_modelo($colaborador_id);
-			
-			if($resultContrato->num_rows==0){
-				$query = contratoModelo::agregar_contrato_modelo($datos);
-				
-				if($query){
-					$alert = [
-						"alert" => "clear",
-						"title" => "Registro almacenado",
-						"text" => "El registro se ha almacenado correctamente",
-						"type" => "success",
-						"btn-class" => "btn-primary",
-						"btn-text" => "¡Bien Hecho!",
-						"form" => "formContrato",
-						"id" => "proceso_contrato",
-						"valor" => "Registro",	
-						"funcion" => "listar_contratos();getTipoContrato();getPagoPlanificado();getTipoEmpleado();getEmpleado();",
-						"modal" => "",
-					];
-				}else{
-					$alert = [
-						"alert" => "simple",
-						"title" => "Ocurrio un error inesperado",
-						"text" => "No hemos podido procesar su solicitud",
-						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];				
-				}				
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Resgistro ya existe",
-					"text" => "Lo sentimos este registro ya existe",
-					"type" => "error",	
-					"btn-class" => "btn-danger",						
-				];				
+			if(contratoModelo::valid_contrato_modelo($colaborador_id)->num_rows > 0){
+				return mainModel::showNotification([
+					"type" => "error",
+					"title" => "Error",
+					"text" => "No se pudo registrar el contrato",
+				]);               
 			}
 			
-			return mainModel::sweetAlert($alert);
+			if(!contratoModelo::agregar_contrato_modelo($datos)){
+				return mainModel::showNotification([
+					"title" => "Error",
+					"text" => "No se pudo registrar el contrato",
+					"type" => "error"
+				]);
+			}
+						
+			return mainModel::showNotification([
+				"type" => "success",
+				"title" => "Actualización exitosa",
+				"text" => "Contrato registrado correctamente",
+				"funcion" => "listar_	contratos();getTipoContrato();getPagoPlanificado();getTipoEmpleado();getEmpleado();",
+			]);			
 		}
 		
 		public function edit_contrato_controlador(){
@@ -102,79 +91,63 @@
 				"fecha_fin" => $fecha_fin,
 				"notas" => $notas,
 				"estado" => $estado,							
-			];		
-
-			$query = contratoModelo::edit_contrato_modelo($datos);
+			];	
 			
-			if($query){				
-				$alert = [
-					"alert" => "edit",
-					"title" => "Registro modificado",
-					"text" => "El registro se ha modificado correctamente",
-					"type" => "success",
-					"btn-class" => "btn-primary",
-					"btn-text" => "¡Bien Hecho!",
-					"form" => "formContrato",	
-					"id" => "proceso_contrato",
-					"valor" => "Editar",
-					"funcion" => "listar_contratos();getTipoContrato();getPagoPlanificado();getTipoEmpleado();getEmpleado();",
-					"modal" => "",
-				];
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Ocurrio un error inesperado",
-					"text" => "No hemos podido procesar su solicitud",
-					"type" => "error",
-					"btn-class" => "btn-danger",					
-				];				
-			}			
-			
-			return mainModel::sweetAlert($alert);
+			if(!contratoModelo::edit_contrato_modelo($datos)){
+				return mainModel::showNotification([
+					"title" => "Error",
+					"text" => "No se pudo actualizar el contrato",
+					"type" => "error"
+				]);
+			}
+						
+			return mainModel::showNotification([
+				"type" => "success",
+				"title" => "Actualización exitosa",
+				"text" => "Contrato actualizado correctamente",
+				"funcion" => "listar_contratos();getTipoContrato();getPagoPlanificado();getTipoEmpleado();getEmpleado();",
+			]);				
 		}
 		
 		public function delete_contrato_controlador(){
 			$contrato_id = $_POST['contrato_id'];
 			
-			$result_valid_contrato_nomina_modelo = contratoModelo::valid_contrato_nomina_modelo($contrato_id);
+			$campos = ['nombre'];
+			$tabla = "contrato";;
+			$condicion = "contrato_id = {$contrato_id}";
+
+			$contrato = mainModel::consultar_tabla($tabla, $campos, $condicion);
 			
-			if($result_valid_contrato_nomina_modelo->num_rows==0 ){
-				$query = contratoModelo::delete_contrato_modelo($contrato_id);
-								
-				if($query){
-					$alert = [
-						"alert" => "clear",
-						"title" => "Registro eliminado",
-						"text" => "El registro se ha eliminado correctamente",
-						"type" => "success",
-						"btn-class" => "btn-primary",
-						"btn-text" => "¡Bien Hecho!",
-						"form" => "formContrato",	
-						"id" => "proceso_contrato",
-						"valor" => "Eliminar",
-						"funcion" => "listar_contratos();getTipoContrato();getPagoPlanificado();getTipoEmpleado();getEmpleado();",
-						"modal" => "modal_registrar_contrato",
-					];
-				}else{
-					$alert = [
-						"alert" => "simple",
-						"title" => "Ocurrio un error inesperado",
-						"text" => "No hemos podido procesar su solicitud",
-						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];				
-				}				
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Este registro cuenta con información almacenada",
-					"text" => "No se puede eliminar este registro",
-					"type" => "error",	
-					"btn-class" => "btn-danger",						
-				];				
+			if (empty($contrato)) {
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "Error",
+					"message" => "Contrato no encontrado"
+				]);
+				exit();
 			}
 			
-			return mainModel::sweetAlert($alert);			
+			$nombre = $contrato[0]['nombre'] ?? '';
+
+			if(contratoModelo::valid_contrato_nomina_modelo($contrato_id)->num_rows > 0){
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "No se puede eliminar",
+					"message" => "El registro {$nombre} tiene información almacenada"
+				]);
+				exit();                
+			}
+
+			if(!contratoModelo::delete_contrato_modelo($contrato_id)){
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "Error",
+					"message" => "No se pudo eliminar el registro {$nombre}"
+				]);
+				exit();
+			}							
 		}
 	}
-?>

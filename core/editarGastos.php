@@ -23,4 +23,3 @@
 	    10 => $valores2['observacion']		
 	);
 	echo json_encode($datos);
-	?>

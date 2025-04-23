@@ -3,7 +3,19 @@ $peticionAjax = true;
 require_once "configGenerales.php";
 require_once "mainModel.php";
 
+// Instanciar mainModel
 $insMainModel = new mainModel();
+
+// Validar sesión primero
+$validacion = $insMainModel->validarSesion();
+if($validacion['error']) {
+    return $insMainModel->showNotification([
+        "title" => "Error de sesión",
+        "text" => $validacion['mensaje'],
+        "type" => "error",
+        "funcion" => "window.location.href = '".$validacion['redireccion']."'"
+    ]);
+}
 
 $datos = [    
     "empresa_id" => $_SESSION['empresa_id_sd'],
@@ -32,4 +44,3 @@ if($result->num_rows > 0){
 
 header('Content-Type: application/json');
 echo json_encode($response);
-?>

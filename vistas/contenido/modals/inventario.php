@@ -133,7 +133,7 @@
                 <button class="btn btn-secondary" data-dismiss="modal">
                     <i class="fas fa-times mr-1"></i> Cancelar
                 </button>
-                <button class="btn btn-primary" type="submit" style="display: none;" id="modal_movimientos" form="formMovimientos">
+                <button class="btn btn-primary" type="submit" id="modal_movimientos" form="formMovimientos">
                     <i class="fas fa-save mr-1"></i> Registrar Movimiento
                 </button>
             </div>

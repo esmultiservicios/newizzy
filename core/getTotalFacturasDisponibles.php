@@ -3,13 +3,21 @@ $peticionAjax = true;
 require_once 'configGenerales.php';
 require_once 'mainModel.php';
 
-if (!isset($_SESSION['user_sd'])) {
-    session_start(['name' => 'SD']);
+// Instanciar mainModel
+$insMainModel = new mainModel();
+
+// Validar sesión primero
+$validacion = $insMainModel->validarSesion();
+if($validacion['error']) {
+    return $insMainModel->showNotification([
+        "title" => "Error de sesión",
+        "text" => $validacion['mensaje'],
+        "type" => "error",
+        "funcion" => "window.location.href = '".$validacion['redireccion']."'"
+    ]);
 }
 
 $empresa_id = $_SESSION['empresa_id_sd'];
-
-$insMainModel = new mainModel();
 
 $resultNumero = $insMainModel->getTotalFacturasDisponiblesDB($empresa_id);
 

@@ -30,6 +30,16 @@ define('DB_MAIN', 'esmultiservicios_izzy');
 define('MYSQL_USER', 'root');
 define('MYSQL_PASS', 'a$Exv*Smj?w7|DP');
 
+// Configuración para Microsoft 365 OAuth
+define('OAUTH_CLIENT_ID', 'tu-client-id-de-azure-ad');
+define('OAUTH_CLIENT_SECRET', 'tu-client-secret');
+define('OAUTH_TENANT_ID', 'tu-tenant-id');
+define('OAUTH_REDIRECT_URI', 'https://tudominio.com/oauth_callback.php');
+define('OAUTH_AUTHORITY', 'https://login.microsoftonline.com/' . OAUTH_TENANT_ID);
+define('OAUTH_AUTHORIZE_ENDPOINT', OAUTH_AUTHORITY . '/oauth2/v2.0/authorize');
+define('OAUTH_TOKEN_ENDPOINT', OAUTH_AUTHORITY . '/oauth2/v2.0/token');
+define('OAUTH_RESOURCE', 'https://outlook.office365.com');
+
 // cPanel
 define('CPANEL_TOKEN', 'YDBIN7O9JZMUWZU8JRWZZORJZL6GHZS7');
 define('CPANEL_USERNAME', 'esmultiservicios');
@@ -39,7 +49,7 @@ define('CPANEL_PORT', '2083');
 define('CPANEL_DB_USERNAME', USER);
 define('CPANEL_DB_PASSWORD', PASS);
 define('CPANEL_DOMINIO', "izzycloud.app");
-
+;  
 
 //WHM
 define('WHM_HOST', 'tu.servidor.whm');  // Ej: server.midominio.com
@@ -47,6 +57,9 @@ define('WHM_PORT', 2087);               // Puerto WHM (2086 para SSL, 2087 para 
 define('WHM_USERNAME', 'root');         // Usuario WHM (normalmente root)
 define('WHM_TOKEN', 'CTON6YOX1L4U50RAV7HT8EX10A94RAZS'); // Token de acceso WHM (opcional, o usa password)
 define('WHM_TIMEOUT', 30);              // Timeout para conexiones WHM
+
+//API CAMBIO DOLAR
+define('WEB_SCRAPING_DOLARES', "https://www.bancopromerica.com/banca-de-empresas/banca-internacional/mesa-de-cambio/");
 
 // Configuración para nombres de base de datos
 define('DB_PREFIX', CPANEL_USERNAME);

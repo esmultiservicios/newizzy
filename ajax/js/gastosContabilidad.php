@@ -1,15 +1,27 @@
 <script>
-$(document).ready(function() {
+$(() => {
     listar_gastos_contabilidad();
     getEmpresaEgresos();
     getCuentaEgresos();
     getProveedorEgresos();
     getCategoriaGastos();
-});
 
-$('#formMainGastosContabilidad #search').on("click", function(e) {
-    e.preventDefault();
-    listar_gastos_contabilidad();
+    // Evento para el botón de Buscar (submit)
+    $('#formMainGastosContabilidad').on('submit', function(e) {
+        e.preventDefault();
+
+        listar_gastos_contabilidad(); 
+    });
+
+    // Evento para el botón de Limpiar (reset)
+    $('#formMainGastosContabilidad').on('reset', function() {
+        // Limpia y refresca los selects
+        $(this).find('.selectpicker')  // Usa `this` para referenciar el formulario actual
+            .val('')
+            .selectpicker('refresh');
+
+			listar_gastos_contabilidad();
+    });	    
 });
 
 //INICIO ACCIONES FORMULARIO EGRESOS
@@ -513,16 +525,32 @@ function modal_reporte_categorias_contabilidad() {
 /*FIN FORMULARIO EGRESOS CONTABLES*/
 
 function getProveedorEgresos() {
-
-    var url = '<?php echo SERVERURL;?>core/getProveedores.php';
-
     $.ajax({
+        url: "<?php echo SERVERURL; ?>core/getProveedores.php",
         type: "POST",
-        url: url,
-        async: true,
-        success: function(data) {
-            $('#formEgresosContables #proveedor_egresos').html("");
-            $('#formEgresosContables #proveedor_egresos').html(data);
+        dataType: "json",
+        success: function(response) {
+            const select = $('#formEgresosContables #proveedor_egresos');
+            select.empty();
+            
+            if(response.success) {
+                response.data.forEach(proveedor => {
+                    select.append(`
+                        <option value="${proveedor.proveedores_id}" 
+                                data-subtext="${proveedor.rtn || 'Sin RTN o Identidad'}">
+                            ${proveedor.nombre}
+                        </option>
+                    `);
+                });
+            } else {
+                select.append('<option value="">No hay colaboradores disponibles</option>');
+            }
+            
+            select.selectpicker('refresh');
+        },
+        error: function(xhr) {
+            showNotify("error", "Error", "Error de conexión al cargar colaboradores");
+            $('#formEgresosContables #proveedor_egresos').html('<option value="">Error al cargar</option>');
             $('#formEgresosContables #proveedor_egresos').selectpicker('refresh');
         }
     });
@@ -1057,4 +1085,8 @@ var total_reporte_categoria_gastos_footer = function() {
             console.log("total ingreso error");
         });
 }
+
+$('#btnNuevoProveedor').on('click', function() {
+    modal_proveedores();
+});
 </script>

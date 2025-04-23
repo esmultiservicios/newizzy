@@ -81,14 +81,15 @@
                                 </td>
                                 <td><label>Usuario:</label>
                                     <p><?php 
-								$nombre_ = explode(" ", trim(ucwords($consulta_registro['colaborador_nombre']), " "));
-								$nombre_usuario = $nombre_[0];
-								$apellido_ = explode(" ", trim(ucwords($consulta_registro['colaborador_apellido']), " "));	
-								$nombre_apellido = $apellido_[0];	
-								
-								$vendedor = $nombre_usuario." ".$nombre_apellido;
+                                        $nombre_completo = trim(ucwords($consulta_registro['colaborador_nombre']));
+                                        $partes = explode(" ", $nombre_completo);
 
-								echo $vendedor; 
+                                        $primer_nombre = $partes[0];
+                                        $primer_apellido = isset($partes[2]) ? $partes[2] : (isset($partes[1]) ? $partes[1] : "");
+
+                                        $vendedor = $primer_nombre . " " . $primer_apellido;
+
+                                        echo $vendedor;
 							?></p>
                                 </td>
                             </tr>

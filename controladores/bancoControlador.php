@@ -18,45 +18,28 @@
 				"fecha_registro" => $fecha_registro,				
 			];
 			
-			$resultPuestos = bancoModelo::valid_banco_modelo($nombre);
-			
-			if($resultPuestos->num_rows==0){
-				$query = bancoModelo::agregar_banco_modelo($datos);
-				
-				if($query){
-					$alert = [
-						"alert" => "clear",
-						"title" => "Registro almacenado",
-						"text" => "El registro se ha almacenado correctamente",
-						"type" => "success",
-						"btn-class" => "btn-primary",
-						"btn-text" => "¡Bien Hecho!",
-						"form" => "formBancos",
-						"id" => "pro_bancos",
-						"valor" => "Registro",	
-						"funcion" => "listar_banco_contabilidad();",
-						"modal" => "",
-					];
-				}else{
-					$alert = [
-						"alert" => "simple",
-						"title" => "Ocurrio un error inesperado",
-						"text" => "No hemos podido procesar su solicitud",
-						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];				
-				}				
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Resgistro ya existe",
-					"text" => "Lo sentimos este registro ya existe",
-					"type" => "error",	
-					"btn-class" => "btn-danger",						
-				];				
+			if(bancoModelo::valid_banco_modelo($nombre)->num_rows > 0){
+				return mainModel::showNotification([
+					"type" => "error",
+					"title" => "Error",
+					"text" => "No se pudo registrar el banco",
+				]);               
 			}
-			
-			return mainModel::sweetAlert($alert);
+
+			if(!bancoModelo::agregar_banco_modelo($datos)){
+				return mainModel::showNotification([
+					"title" => "Error",
+					"text" => "No se pudo registrar el banco",
+					"type" => "error"
+				]);
+			}
+						
+			return mainModel::showNotification([
+				"type" => "success",
+				"title" => "Actualización exitosa",
+				"text" => "Banco registrado correctamente",
+				"funcion" => "listar_banco_contabilidad();"
+			]);			
 		}
 		
 		public function edit_banco_controlador(){
@@ -75,77 +58,69 @@
 				"estado" => $estado,				
 			];		
 
-			$query = bancoModelo::edit_banco_modelo($datos);
-			
-			if($query){				
-				$alert = [
-					"alert" => "edit",
-					"title" => "Registro modificado",
-					"text" => "El registro se ha modificado correctamente",
-					"type" => "success",
-					"btn-class" => "btn-primary",
-					"btn-text" => "¡Bien Hecho!",
-					"form" => "formBancos",	
-					"id" => "pro_bancos",
-					"valor" => "Editar",
-					"funcion" => "listar_banco_contabilidad();",
-					"modal" => "",
-				];
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Ocurrio un error inesperado",
-					"text" => "No hemos podido procesar su solicitud",
-					"type" => "error",
-					"btn-class" => "btn-danger",					
-				];				
-			}			
-			
-			return mainModel::sweetAlert($alert);
+			if(!bancoModelo::edit_banco_modelo($datos)){
+				return mainModel::showNotification([
+					"title" => "Error",
+					"text" => "No se pudo registrar el banco",
+					"type" => "error"
+				]);
+			}
+						
+			return mainModel::showNotification([
+				"type" => "success",
+				"title" => "Actualización exitosa",
+				"text" => "Banco actualizado correctamente",
+				"funcion" => "listar_banco_contabilidad();"
+			]);			
 		}
 		
 		public function delete_banco_controlador(){
 			$banco_id = $_POST['banco_id'];
 			
-			$result_valid_banco_pagos_modelo = bancoModelo::valid_banco_pagos_modelo($banco_id);
+			$campos = ['nombre'];
+			$tabla = "bancos";;
+			$condicion = "banco_id = {$banco_id}";
+
+			$banco = mainModel::consultar_tabla($tabla, $campos, $condicion);
 			
-			if($result_valid_banco_pagos_modelo->num_rows==0 ){
-				$query = bancoModelo::delete_banco_modelo($banco_id);
-								
-				if($query){
-					$alert = [
-						"alert" => "clear",
-						"title" => "Registro eliminado",
-						"text" => "El registro se ha eliminado correctamente",
-						"type" => "success",
-						"btn-class" => "btn-primary",
-						"btn-text" => "¡Bien Hecho!",
-						"form" => "formBancos",	
-						"id" => "pro_bancos",
-						"valor" => "Eliminar",
-						"funcion" => "listar_banco_contabilidad();",
-						"modal" => "modalConfBancos",
-					];
-				}else{
-					$alert = [
-						"alert" => "simple",
-						"title" => "Ocurrio un error inesperado",
-						"text" => "No hemos podido procesar su solicitud",
-						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];				
-				}				
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Este registro cuenta con información almacenada",
-					"text" => "No se puede eliminar este registro",
-					"type" => "error",	
-					"btn-class" => "btn-danger",						
-				];				
+			if (empty($banco)) {
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "Error",
+					"message" => "Banco no encontrado"
+				]);
+				exit();
 			}
 			
-			return mainModel::sweetAlert($alert);			
+			$nombre = $banco[0]['nombre'] ?? '';
+
+			if(bancoModelo::valid_banco_pagos_modelo($banco_id)->num_rows > 0){
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "No se puede eliminar",
+					"message" => "El banco {$nombre} tiene pagos asociados"
+				]);
+				exit();                
+			}
+
+			if(!bancoModelo::delete_banco_modelo($banco_id)){
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "Error",
+					"message" => "No se pudo eliminar el banco {$nombre}"
+				]);
+				exit();
+			}
+			
+			header('Content-Type: application/json');
+			echo json_encode([
+				"status" => "success",
+				"title" => "Eliminado",
+				"message" => "Banco {$nombre} eliminado correctamente"
+			]);
+			exit();							
 		}
 	}
-?>	

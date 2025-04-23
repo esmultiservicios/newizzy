@@ -13,8 +13,15 @@
 		public function edit_contraseña_controlador(){
 			$contraseña = mainModel::encryption($_POST['nuevacontra']);
 
-			if(!isset($_SESSION['user_sd'])){ 
-				session_start(['name'=>'SD']); 
+			// Validar sesión primero
+			$validacion = mainModel::validarSesion();
+			if($validacion['error']) {
+				return mainModel::showNotification([
+					"title" => "Error de sesión",
+					"text" => $validacion['mensaje'],
+					"type" => "error",
+					"funcion" => "window.location.href = '".$validacion['redireccion']."'"
+				]);
 			}
 
 			$database = new Database();
@@ -155,8 +162,15 @@
 		}
 
 		public function resetear_contraseña_controlador(){
-			if(!isset($_SESSION['user_sd'])){ 
-				session_start(['name'=>'SD']); 
+			// Validar sesión primero
+			$validacion = mainModel::validarSesion();
+			if($validacion['error']) {
+				return mainModel::showNotification([
+					"title" => "Error de sesión",
+					"text" => $validacion['mensaje'],
+					"type" => "error",
+					"funcion" => "window.location.href = '".$validacion['redireccion']."'"
+				]);
 			}
 
 			$database = new Database();
@@ -394,4 +408,3 @@
 			return $respuesta;
 		}			
 	}
-?>

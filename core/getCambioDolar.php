@@ -6,7 +6,7 @@
 	$insMainModel = new mainModel();
 	
 	$fecha = date("Y-m-d");
-	$data = htmlentities(file_get_contents("https://www.bancopromerica.com/banca-de-empresas/banca-internacional/mesa-de-cambio/"));
+	$data = htmlentities(file_get_contents(WEB_SCRAPING_DOLARES));
 	echo $data;
 	if (preg_match('|<h2 style="margin: 12px 0 0 0;">(.*?)</h2>|is' , $data , $cap )){
 		echo "UF ".$cap[1];

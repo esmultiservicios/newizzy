@@ -12,31 +12,43 @@
 					<div class="col-md-3 col-sm-6 mb-3">
 						<div class="form-group">
 							<label class="small mb-1">Fecha Inicio</label>
-							<input type="date" required id="fechai" name="fechai" value="<?php 
-								$fecha = date ("Y-m-d");
-								$año = date("Y", strtotime($fecha));
-								$mes = date("m", strtotime($fecha));
-								$dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
-								$dia1 = date('d', mktime(0,0,0, $mes, 1, $año));
-								$dia2 = date('d', mktime(0,0,0, $mes, $dia, $año));
-								$fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
-								echo $fecha_inicial;
-							?>" class="form-control" title="Fecha Inicio">
+							<div class="input-group">
+								<div class="input-group-prepend">
+									<span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+								</div>
+								<input type="date" class="form-control" id="fechai" name="fechai" value="<?php 
+									$fecha = date ("Y-m-d");
+									
+									$año = date("Y", strtotime($fecha));
+									$mes = date("m", strtotime($fecha));
+									$dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
+
+									$dia1 = date('d', mktime(0,0,0, $mes, 1, $año));
+									$dia2 = date('d', mktime(0,0,0, $mes, $dia, $año));
+
+									$fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
+									echo $fecha_inicial;
+								?>">
+							</div>
 						</div>
 					</div>
 					
 					<div class="col-md-3 col-sm-6 mb-3">
 						<div class="form-group">
 							<label class="small mb-1">Fecha Fin</label>
-							<input type="date" required id="fechaf" name="fechaf" 
-								value="<?php echo date ("Y-m-d");?>" class="form-control" title="Fecha Fin">
+							<div class="input-group">
+								<div class="input-group-prepend">
+									<span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+								</div>
+								<input type="date" class="form-control" id="fechaf" name="fechaf" value="<?php echo date('Y-m-d');?>">
+							</div>
 						</div>
 					</div>
 					
 					<!-- Botones alineados a la derecha -->
 					<div class="col-md-6 col-sm-12 d-flex align-items-end justify-content-end mb-3">
 						<button type="submit" class="btn btn-primary mr-2">
-							<i class="fas fa-clipboard-list fa-lg mr-1"></i> Consultar Bitácora
+							<i class="fas fa-filter fa-lg"></i> Filtrar
 						</button>
 						<button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary">
 							<i class="fas fa-broom fa-lg mr-1"></i> Limpiar

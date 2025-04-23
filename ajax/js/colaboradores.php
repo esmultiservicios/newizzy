@@ -158,14 +158,14 @@ var editar_colaboradores_dataTable = function(tbody, table) {
                 $('#edi_colaborador').show();
                 $('#delete_colaborador').hide();
                 $('#formColaboradores #nombre_colaborador').val(valores[0]);
-                $('#formColaboradores #identidad_colaborador').val(valores[2]);
-                $('#formColaboradores #telefono_colaborador').val(valores[3]);
-                $('#formColaboradores #puesto_colaborador').val(valores[4]);
+                $('#formColaboradores #identidad_colaborador').val(valores[1]);
+                $('#formColaboradores #telefono_colaborador').val(valores[2]);
+                $('#formColaboradores #puesto_colaborador').val(valores[3]);
                 $('#formColaboradores #puesto_colaborador').selectpicker('refresh');
-                $('#formColaboradores #colaborador_empresa_id').val(valores[6]);
+                $('#formColaboradores #colaborador_empresa_id').val(valores[4]);
                 $('#formColaboradores #colaborador_empresa_id').selectpicker('refresh');
-                $('#formColaboradores #fecha_ingreso_colaborador').val(valores[8]);
-                $('#formColaboradores #fecha_egreso_colaborador').val(valores[9]);
+                $('#formColaboradores #fecha_ingreso_colaborador').val(valores[7]);
+                $('#formColaboradores #fecha_egreso_colaborador').val(valores[8]);
 
                 if (valores[5] == 1) {
                     $('#formColaboradores #colaboradores_activo').attr('checked', true);
@@ -187,6 +187,7 @@ var editar_colaboradores_dataTable = function(tbody, table) {
                 $('#formColaboradores #estado_colaboradores').show();
 
                 $('#datosClientes').hide();
+                $('#formColaboradores #estado_colaborador').show();
 
                 $('#formColaboradores #proceso_colaboradores').val("Editar");
                 $('#modal_registrar_colaboradores').modal({

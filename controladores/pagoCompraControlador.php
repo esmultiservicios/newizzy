@@ -9,9 +9,16 @@ class pagoCompraControlador extends pagoCompraModelo
 {
 	public function agregar_pago_compra_controlador_efectivo()
 	{
-		if (!isset($_SESSION['user_sd'])) {
-			session_start(['name' => 'SD']);
-		}
+        // Validar sesión primero
+        $validacion = mainModel::validarSesion();
+        if($validacion['error']) {
+            return mainModel::showNotification([
+                "title" => "Error de sesión",
+                "text" => $validacion['mensaje'],
+                "type" => "error",
+                "funcion" => "window.location.href = '".$validacion['redireccion']."'"
+            ]);
+        }
 
 		$compras_id = $_POST['compras_id_efectivo'];
 		$consulta_fecha_compra = pagoCompraModelo::consultar_compra_fecha($compras_id)->fetch_assoc();
@@ -61,15 +68,21 @@ class pagoCompraControlador extends pagoCompraModelo
 		];
 
 		$alert = pagoCompraModelo::agregar_pago_compras_base($datos);
-
-		return mainModel::sweetAlert($alert);
+		return mainModel::showNotification($alert);
 	}
 
 	public function agregar_pago_compra_controlador_tarjeta()
 	{
-		if (!isset($_SESSION['user_sd'])) {
-			session_start(['name' => 'SD']);
-		}
+        // Validar sesión primero
+        $validacion = mainModel::validarSesion();
+        if($validacion['error']) {
+            return mainModel::showNotification([
+                "title" => "Error de sesión",
+                "text" => $validacion['mensaje'],
+                "type" => "error",
+                "funcion" => "window.location.href = '".$validacion['redireccion']."'"
+            ]);
+        }
 
 		$usuario = isset($_POST['usuario_tarjeta_compras']) && $_POST['usuario_tarjeta_compras'] !== '' ? (int) $_POST['usuario_tarjeta_compras'] : $_SESSION['users_id_sd'];
 
@@ -95,15 +108,22 @@ class pagoCompraControlador extends pagoCompraModelo
 		];
 
 		$alert = pagoCompraModelo::agregar_pago_compras_base($datos);
-		return mainModel::sweetAlert($alert);
+		return mainModel::showNotification($alert);
 	}
 
 	// TRANSFERENCIA
 	public function agregar_pago_compra_controlador_transferencia()
 	{
-		if (!isset($_SESSION['user_sd'])) {
-			session_start(['name' => 'SD']);
-		}
+        // Validar sesión primero
+        $validacion = mainModel::validarSesion();
+        if($validacion['error']) {
+            return mainModel::showNotification([
+                "title" => "Error de sesión",
+                "text" => $validacion['mensaje'],
+                "type" => "error",
+                "funcion" => "window.location.href = '".$validacion['redireccion']."'"
+            ]);
+        }
 
 		$usuario = isset($_POST['usuario_transferencia_compras']) && $_POST['usuario_transferencia_compras'] !== '' ? (int) $_POST['usuario_transferencia_compras'] : $_SESSION['users_id_sd'];
 
@@ -129,15 +149,22 @@ class pagoCompraControlador extends pagoCompraModelo
 		];
 
 		$alert = pagoCompraModelo::agregar_pago_compras_base($datos);
-		return mainModel::sweetAlert($alert);
+		return mainModel::showNotification($alert);
 	}
 
 	// PAGO CON CHEQUE
 	public function agregar_pago_compra_controlador_cheque()
 	{
-		if (!isset($_SESSION['user_sd'])) {
-			session_start(['name' => 'SD']);
-		}
+        // Validar sesión primero
+        $validacion = mainModel::validarSesion();
+        if($validacion['error']) {
+            return mainModel::showNotification([
+                "title" => "Error de sesión",
+                "text" => $validacion['mensaje'],
+                "type" => "error",
+                "funcion" => "window.location.href = '".$validacion['redireccion']."'"
+            ]);
+        }
 
 		$usuario = isset($_POST['usuario_cheque_compras']) && $_POST['usuario_cheque_compras'] !== '' ? (int) $_POST['usuario_cheque_compras'] : $_SESSION['users_id_sd'];
 
@@ -163,7 +190,7 @@ class pagoCompraControlador extends pagoCompraModelo
 		];
 
 		$alert = pagoCompraModelo::agregar_pago_compras_base($datos);
-		return mainModel::sweetAlert($alert);
+		return mainModel::showNotification($alert);
 	}
 
 	public function cancelar_pago_controlador()
@@ -195,6 +222,6 @@ class pagoCompraControlador extends pagoCompraModelo
 			];
 		}
 
-		return mainModel::sweetAlert($alert);
+		return mainModel::showNotification($alert);
 	}
 }

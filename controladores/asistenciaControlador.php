@@ -1,171 +1,108 @@
 <?php
-    if($peticionAjax){
-        require_once "../modelos/asistenciaModelo.php";
-    }else{
-        require_once "./modelos/asistenciaModelo.php";
+if($peticionAjax) {
+    require_once "../modelos/asistenciaModelo.php";
+} else {
+    require_once "./modelos/asistenciaModelo.php";
+}
+
+class asistenciaControlador extends asistenciaModelo {
+    public function agregar_asistencia_controlador() {
+        // Recuperación y limpieza de datos
+        $colaborador = $_POST['asistencia_empleado'];
+        $marcarAsistencia_id = $_POST['marcarAsistencia_id'];
+        $fecha = isset($_POST['fecha']) ? $_POST['fecha'] : date("Y-m-d H:i:s");
+        $hora = ($marcarAsistencia_id == 0) ? $_POST['hora'] : $_POST['horagi'];
+        $comentario = mainModel::cleanString($_POST['comentario']);
+
+        // Obtener comentario previo si existe
+        $datos_comentario = [
+            "colaborador" => $colaborador,
+            "fecha" => $fecha
+        ];
+        
+        $result_comentario = asistenciaModelo::getComentarioAsistenciaModelo($datos_comentario)->fetch_assoc();
+        $_comentario = $result_comentario['comentario'] ?? "";
+        
+        $comentario = ($_comentario == "") ? $comentario : $_comentario.' - '.$comentario;
+
+        // Preparar datos para el registro
+        $datos = [
+            "colaborador" => $colaborador,
+            "fecha" => $fecha,
+            "horai" => $hora,
+            "horaf" => "",
+            "comentario" => $comentario,
+            "estado" => 0,
+            "fecha_registro" => date("Y-m-d H:i:s")
+        ];
+
+        // Validar si ya existe registro de entrada
+        if(asistenciaModelo::valid_asistencia_horai_modelo($datos)->num_rows == 0) {
+            return $this->procesarRegistroEntrada($datos, $marcarAsistencia_id);
+        } else {
+            return $this->procesarRegistroSalida($datos, $marcarAsistencia_id);
+        }
     }
-	
-	class asistenciaControlador extends asistenciaModelo {
-		public function agregar_asistencia_controlador(){
-			$colaborador = $_POST['asistencia_empleado'];
-			$marcarAsistencia_id = $_POST['marcarAsistencia_id'];
 
-			if(isset($_POST['fecha'])){ 
-				$fecha = $_POST['fecha'];
-			}else{
-				$fecha = date("Y-m-d H:i:s");
-			}
+    private function procesarRegistroEntrada($datos, $marcarAsistencia_id) {
+        $query = asistenciaModelo::agregar_asistencia_modelo($datos);
+        
+        if($query) {
+            return mainModel::showNotification([
+                "type" => "success",
+                "title" => "Registro almacenado",
+                "text" => "El registro se ha almacenado correctamente",
+                "form" => "formAsistencia",
+                "funcion" => "listar_asistencia();getColaboradores();",
+                "modal" => ($marcarAsistencia_id == 0) ? "" : "modal_registrar_asistencia"
+            ]);
+        } else {
+            return mainModel::showNotification([
+                "type" => "error",
+                "title" => "Ocurrió un error inesperado",
+                "text" => "No hemos podido procesar su solicitud"
+            ]);
+        }
+    }
 
-			$datos_comentario = [
-				"colaborador" => $colaborador,
-				"fecha" => $fecha,				
-			];
+    private function procesarRegistroSalida($datos, $marcarAsistencia_id) {
+        $consultaHoraf = asistenciaModelo::valid_asistencia_horaf_modelo($datos)->fetch_assoc();
+        
+        if($consultaHoraf['horaf'] == "") {
+            $datos_salida = [
+                "colaborador" => $datos['colaborador'],
+                "fecha" => $datos['fecha'],
+                "horai" => "",
+                "horaf" => $datos['horai'],
+                "estado" => $datos['estado'],
+                "comentario" => $datos['comentario'],
+                "fecha_registro" => $datos['fecha_registro']
+            ];
 
-			//OBTENEMOS EL COMENTARIO PREVIO
-			$result_comentario = asistenciaModelo::getComentarioAsistenciaModelo($datos_comentario)->fetch_assoc();
-			$_comentario = isset($result_comentario['comentario']) ? $result_comentario['comentario'] : "";
-
-			if($_comentario == "")
-			{
-				$comentario = mainModel::cleanString($_POST['comentario']);
-			}else{
-				$comentario = $_comentario.' - '.mainModel::cleanString($_POST['comentario']);
-			}
-
-			if($marcarAsistencia_id == 0){
-				$hora = $_POST['hora'];
-			}else{
-				$hora = $_POST['horagi'];
-			}				
-			
-			$estado = 0;
-			$fecha_registro = date("Y-m-d H:i:s");	
-			
-			$datos = [
-				"colaborador" => $colaborador,
-				"fecha" => $fecha,
-				"horai" => $hora,
-				"horaf" => "",
-				"comentario" => $comentario,
-				"estado" => $estado,
-				"fecha_registro" => $fecha_registro,				
-			];
-			
-			$resultHorai = asistenciaModelo::valid_asistencia_horai_modelo($datos);
-
-			if($resultHorai->num_rows==0){//NO SE HA REGISTRADO LA FECHA DE ENTRADA
-				$query = asistenciaModelo ::agregar_asistencia_modelo($datos);
-				
-				if($query){
-					if($marcarAsistencia_id == 0){
-						$alert = [
-							"alert" => "clear",
-							"title" => "Registro almacenado",
-							"text" => "El registro se ha almacenado correctamente",
-							"type" => "success",
-							"btn-class" => "btn-primary",
-							"btn-text" => "¡Bien Hecho!",
-							"form" => "formAsistencia",
-							"id" => "proceso_asistencia",
-							"valor" => "Registro",
-							"funcion" => "listar_asistencia();getColaboradores();",
-							"modal" => "",	
-						];
-					}else{
-						$alert = [
-							"alert" => "clear",
-							"title" => "Registro almacenado",
-							"text" => "El registro se ha almacenado correctamente",
-							"type" => "success",
-							"btn-class" => "btn-primary",
-							"btn-text" => "¡Bien Hecho!",
-							"form" => "formAsistencia",
-							"id" => "proceso_asistencia",
-							"valor" => "Registro",
-							"funcion" => "listar_asistencia();getColaboradores();",
-							"modal" => "modal_registrar_asistencia",	
-						];						
-					}
-				}else{
-					$alert = [
-						"alert" => "simple",
-						"title" => "Ocurrio un error inesperado",
-						"text" => "No hemos podido procesar su solicitud",
-						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];				
-				}
-			}else{
-				$consultaHoraf = asistenciaModelo::valid_asistencia_horaf_modelo($datos)->fetch_assoc();
-				$consultaHoraf['horaf'];
-
-				$hora = $_POST['hora'];
-
-				if($consultaHoraf['horaf']=="")//NO SE HA REGISTRADO LA FECHA DE SALIDA
-				{
-					$datos = [
-						"colaborador" => $colaborador,
-						"fecha" => $fecha,
-						"horai" => "",
-						"horaf" => $hora,
-						"estado" => $estado,
-						"comentario" => $comentario,
-						"fecha_registro" => $fecha_registro,				
-					];
-
-					$query = asistenciaModelo ::update_asistencia_marcaje_modelo($datos);
-
-					if($query){
-						if($marcarAsistencia_id == 0){
-							$alert = [
-								"alert" => "clear",
-								"title" => "Registro almacenado",
-								"text" => "El registro se ha almacenado correctamente",
-								"type" => "success",
-								"btn-class" => "btn-primary",
-								"btn-text" => "¡Bien Hecho!",
-								"form" => "formAsistencia",
-								"id" => "proceso_asistencia",
-								"valor" => "Registro",
-								"funcion" => "listar_asistencia();getColaboradores();",
-								"modal" => "",	
-							];
-						}else{
-							$alert = [
-								"alert" => "clear",
-								"title" => "Registro almacenado",
-								"text" => "El registro se ha almacenado correctamente",
-								"type" => "success",
-								"btn-class" => "btn-primary",
-								"btn-text" => "¡Bien Hecho!",
-								"form" => "formAsistencia",
-								"id" => "proceso_asistencia",
-								"valor" => "Registro",
-								"funcion" => "listar_asistencia();getColaboradores();",
-								"modal" => "modal_registrar_asistencia",	
-							];						
-						}
-					}else{
-						$alert = [
-							"alert" => "simple",
-							"title" => "Ocurrio un error inesperado",
-							"text" => "No hemos podido procesar su solicitud",
-							"type" => "error",
-							"btn-class" => "btn-danger",					
-						];							
-					}
-				}else{
-					$alert = [
-						"alert" => "simple",
-						"title" => "Marcaje completado",
-						"text" => "Lo sentimos su marcaje ha sido completado",
-						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];				
-				}
-			}
-			
-			return mainModel::sweetAlert($alert);			
-		}	
-	}
-?>
+            $query = asistenciaModelo::update_asistencia_marcaje_modelo($datos_salida);
+            
+            if($query) {
+                return mainModel::showNotification([
+                    "type" => "success",
+                    "title" => "Registro almacenado",
+                    "text" => "El registro se ha almacenado correctamente",
+                    "form" => "formAsistencia",
+                    "funcion" => "listar_asistencia();getColaboradores();",
+                    "modal" => ($marcarAsistencia_id == 0) ? "" : "modal_registrar_asistencia"
+                ]);
+            } else {
+                return mainModel::showNotification([
+                    "type" => "error",
+                    "title" => "Ocurrió un error inesperado",
+                    "text" => "No hemos podido procesar su solicitud"
+                ]);
+            }
+        } else {
+            return mainModel::showNotification([
+                "type" => "error",
+                "title" => "Marcaje completado",
+                "text" => "Lo sentimos, su marcaje ha sido completado"
+            ]);
+        }
+    }
+}

@@ -24,4 +24,3 @@
 		11 => $valores2['documento_id'],
 	);
 	echo json_encode($datos);
-?>	

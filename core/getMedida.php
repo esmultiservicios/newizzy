@@ -14,5 +14,4 @@
 	}else{
 		echo '<option value="">No hay datos que mostrar</option>';
 	}
-?>	
 	

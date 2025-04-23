@@ -7,25 +7,37 @@ if($peticionAjax){
 
 class colaboradorControlador extends colaboradorModelo{
     public function agregar_colaborador_controlador(){
-        if(!isset($_SESSION['user_sd'])){ 
-            session_start(['name'=>'SD']); 
+        // Validar sesión primero
+        $validacion = mainModel::validarSesion();
+        if($validacion['error']) {
+            return mainModel::showNotification([
+                "title" => "Error de sesión",
+                "text" => $validacion['mensaje'],
+                "type" => "error",
+                "funcion" => "window.location.href = '".$validacion['redireccion']."'"
+            ]);
         }
         
-        $nombre = mainModel::cleanStringConverterCase($_POST['nombre_colaborador']);
-        $apellido = mainModel::cleanStringConverterCase($_POST['apellido_colaborador']);            
+        $nombre = mainModel::cleanStringConverterCase($_POST['nombre_colaborador']);      
         $identidad = mainModel::cleanString($_POST['identidad_colaborador']);    
         $telefono = mainModel::cleanString($_POST['telefono_colaborador']);                
         $puesto = mainModel::cleanString($_POST['puesto_colaborador']);            
         $fecha_ingreso = mainModel::cleanString($_POST['fecha_ingreso_colaborador']);
         $fecha_egreso = mainModel::cleanString($_POST['fecha_egreso_colaborador']);
         $empresa_id = $_SESSION['empresa_id_sd'];
-
+    
         $fecha_registro = date("Y-m-d H:i:s");    
         $estado = 1;
-        
+    
+        // Si la identidad está vacía, generamos una única
+        if (empty($identidad)) {
+            do {
+                $identidad = "C-" . rand(10000000, 99999999); // Puedes ajustar el formato
+            } while (colaboradorModelo::valid_colaborador_modelo($identidad)->num_rows > 0);
+        }
+    
         $datos = [
-            "nombre" => $nombre,
-            "apellido" => $apellido,                
+            "nombre" => $nombre,              
             "identidad" => $identidad,
             "telefono" => $telefono,                
             "puesto" => $puesto,                
@@ -35,42 +47,40 @@ class colaboradorControlador extends colaboradorModelo{
             "fecha_ingreso" => $fecha_ingreso,    
             "fecha_egreso" => $fecha_egreso                
         ];
-
-        $result = colaboradorModelo::valid_colaborador_modelo($identidad);
-        
-        if($result->num_rows==0){
-            $query = colaboradorModelo::agregar_colaborador_modelo($datos);
-            
-            if($query){
-                $alert = [
-                    "type" => "success",
-                    "title" => "Registro almacenado",
-                    "text" => "El registro se ha almacenado correctamente",                    
-                    "form" => "formColaboradores",
-                    "funcion" => "listar_colaboradores();getEmpresaColaboradores();getPuestoColaboradores();listar_colaboradores_buscar_factura();listar_colaboradores_buscar_cotizacion();"                    
-                ];
-            }else{
-                $alert = [
-                    "type" => "error",
-                    "title" => "Ocurrió un error inesperado",
-                    "text" => "No hemos podido procesar su solicitud"                    
-                ];
-            }                
-        }else{
-            $alert = [
-                "type" => "error",
-                "title" => "Registro ya existe",
-                "text" => "Lo sentimos, este registro ya existe"
-            ];
+    
+        // Validamos si existe el registro
+        if (colaboradorModelo::valid_colaborador_modelo($identidad)->num_rows > 0){
+            header('Content-Type: application/json');
+            echo json_encode([
+                "status" => "error",
+                "title" => "No se puede registrar",
+                "message" => "La identidad {$identidad} del colaborador {$nombre}, ya existe"
+            ]);
+            exit();                
         }
-        
-        return mainModel::showNotification($alert);
+    
+        if (!colaboradorModelo::agregar_colaborador_modelo($datos)) {
+            header('Content-Type: application/json');
+            echo json_encode([
+                "status" => "error",
+                "title" => "Error",
+                "message" => "No se puede registrar el colaborador {$nombre}"
+            ]);
+            exit();
+        }
+    
+        return mainModel::showNotification([
+            "type" => "success",
+            "title" => "Registro exitoso",
+            "text" => "Colaborador {$nombre} registrado correctamente",
+            "funcion" => "listar_colaboradores();getEmpresaColaboradores();getPuestoColaboradores();listar_colaboradores_buscar_factura();listar_colaboradores_buscar_cotizacion();"
+        ]);        
     }
+    
     
     public function editar_colaborador_controlador(){
         $colaborador_id = mainModel::cleanStringConverterCase($_POST['colaborador_id']);
-        $nombre = mainModel::cleanStringConverterCase($_POST['nombre_colaborador']);
-        $apellido = mainModel::cleanStringConverterCase($_POST['apellido_colaborador']);                
+        $nombre = mainModel::cleanStringConverterCase($_POST['nombre_colaborador']);             
         $telefono = mainModel::cleanString($_POST['telefono_colaborador']);                
         $fecha_ingreso = mainModel::cleanString($_POST['fecha_ingreso_colaborador']);
         $fecha_egreso = mainModel::cleanString($_POST['fecha_egreso_colaborador']);
@@ -85,62 +95,42 @@ class colaboradorControlador extends colaboradorModelo{
             }
         }else{
             $puesto = 0;
-        }        
+        }           
         
-        $fecha_registro = date("Y-m-d H:i:s");    
-        
-        if (isset($_POST['colaboradores_activo'])){
-            $estado = $_POST['colaboradores_activo'];
-        }else{
-            $estado = 2;
-        }
+        $estado = isset($_POST['colaboradores_activo']) ? 1 : 0;
         
         $datos = [
             "colaborador_id" => $colaborador_id,
             "nombre" => $nombre,
-            "apellido" => $apellido,
             "telefono" => $telefono,                
-            "puesto" => $puesto,                
+            "puesto" => $puesto,
             "estado" => $estado,
             "empresa_id" => $colaborador_empresa_id,
             "fecha_ingreso" => $fecha_ingreso,    
             "fecha_egreso" => $fecha_egreso        
         ];
 
-        $query = colaboradorModelo::editar_colaborador_modelo($datos);
-        
-        if($query){    
-            if($GLOBALS['db'] !== $GLOBALS['DB_MAIN']) {
-                $updateDBMainUsers = "UPDATE colaboradores 
-                    SET 
-                        estado = '$estado'
-                    WHERE nombre = '$nombre' AND apellido = '$apellido' AND identidad = '$identidad'";
-                
-                mainModel::connectionLogin()->query($updateDBMainUsers);
-            }
-
-            $alert = [
-                "type" => "success",
-                "title" => "Registro modificado",
-                "text" => "El registro se ha modificado correctamente",                
-                "form" => "formColaboradores",
-                "funcion" => "listar_colaboradores();getEmpresaColaboradores();getPuestoColaboradores();"
-            ];
-        }else{
-            $alert = [
-                "type" => "error",
-                "title" => "Ocurrió un error inesperado",
-                "text" => "No hemos podido procesar su solicitud"                
-            ];
+        if(!colaboradorModelo::editar_colaborador_modelo($datos)){
+            header('Content-Type: application/json');
+            echo json_encode([
+                "status" => "error",
+                "title" => "Error",
+                "message" => "No se puede editar el colaborador {$nombre}"
+            ]);
+            exit();
         }
-        
-        return mainModel::showNotification($alert);
+
+        return mainModel::showNotification([
+            "type" => "success",
+            "title" => "Actualización exitosa",
+            "text" => "Colaborador {$nombre} registrado correctamente",
+            "funcion" => "listar_colaboradores();getEmpresaColaboradores();getPuestoColaboradores();"
+        ]); 
     }
     
     public function editar_colaborador_perfil_controlador(){
         $colaborador_id = mainModel::cleanStringConverterCase($_POST['colaborador_id']);
-        $nombre = mainModel::cleanStringConverterCase($_POST['nombre_colaborador']);
-        $apellido = mainModel::cleanStringConverterCase($_POST['apellido_colaborador']);                
+        $nombre = mainModel::cleanStringConverterCase($_POST['nombre_colaborador']);               
         $telefono = mainModel::cleanString($_POST['telefono_colaborador']);                
         
         $fecha_registro = date("Y-m-d H:i:s");    
@@ -148,28 +138,25 @@ class colaboradorControlador extends colaboradorModelo{
         $datos = [
             "colaborador_id" => $colaborador_id,
             "nombre" => $nombre,
-            "apellido" => $apellido,
             "telefono" => $telefono,
         ];
 
-        $query = colaboradorModelo::editar_colaborador_perfil_modelo($datos);
-        
-        if($query){                
-            $alert = [
-				"type" => "success",
-                "title" => "Registro modificado",
-                "text" => "El registro se ha modificado correctamente",                
-                "funcion" => "listar_colaboradores();getEmpresaColaboradores();getPuestoColaboradores();"
-            ];
-        }else{
-            $alert = [
-                "type" => "error",
-                "title" => "Ocurrió un error inesperado",
-                "text" => "No hemos podido procesar su solicitud"
-            ];
+        if(!colaboradorModelo::editar_colaborador_perfil_modelo($datos)){
+            header('Content-Type: application/json');
+            echo json_encode([
+                "status" => "error",
+                "title" => "Error",
+                "message" => "no se puede editar el colaborador {$nombre}"
+            ]);
+            exit();
         }
-        
-        return mainModel::showNotification($alert);
+
+        return mainModel::showNotification([
+            "type" => "success",
+            "title" => "Actualización exitosa",
+            "text" => "Colaborador {$nombre} editado correctamente",
+            "funcion" => "listar_colaboradores();getEmpresaColaboradores();getPuestoColaboradores();"
+        ]);         
     }        
     
     public function delete_colaborador_controlador() {

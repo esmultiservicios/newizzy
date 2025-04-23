@@ -2,135 +2,138 @@
 <div class="modal fade" id="modalIngresosContables">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Ingresos</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-money-bill-wave mr-2"></i>Registro de Ingresos</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="container"></div>
             <div class="modal-body">
-                <form class="form-horizontal FormularioAjax" id="formIngresosContables" action="" method="POST"
-                    data-form="" enctype="multipart/form-data">
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <input type="hidden" required="required" readonly id="ingresos_id" name="ingresos_id" />
-                            <div class="input-group mb-3">
-                                <input type="text" required readonly id="pro_ingresos_contabilidad"
-                                    name="pro_ingresos_contabilidad" class="form-control" />
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fa fa-plus-square fa-lg"></i>
-                                    </span>
+                <form class="form-horizontal FormularioAjax" id="formIngresosContables" action="" method="POST" data-form="" enctype="multipart/form-data">
+                    <input type="hidden" required readonly id="ingresos_id" name="ingresos_id">
+                    
+                    <!-- Sección de Datos del Ingreso -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-file-invoice-dollar mr-2"></i>Datos del Ingreso</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-3 mb-3">
+                                    <label for="fecha_ingresos"><i class="fas fa-calendar-day mr-1"></i>Fecha Factura <span class="priority">*</span></label>
+                                    <input type="date" required id="fecha_ingresos" name="fecha_ingresos" value="<?php echo date ("Y-m-d");?>" class="form-control">
+                                    <small class="form-text text-muted">Fecha del documento del ingreso</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="recibide_ingresos"><i class="fas fa-user-tie mr-1"></i>Recibí de <span class="priority">*</span></label>
+                                    <select id="recibide_ingresos" name="recibide_ingresos" class="selectpicker form-control" data-live-search="true" title="Seleccione cliente" required>
+                                        <option value="">Seleccione</option>
+                                        <!-- Las opciones se llenarán con JavaScript -->
+                                    </select>
+                                    <small class="form-text text-muted">Seleccione el cliente o ingrese uno nuevo</small>
+                                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="btnNuevoCliente">
+                                        <i class="fas fa-plus-circle mr-1"></i> Agregar Nuevo Cliente
+                                    </button>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="cuenta_ingresos"><i class="fas fa-piggy-bank mr-1"></i>Cuenta <span class="priority">*</span></label>
+                                    <select id="cuenta_ingresos" name="cuenta_ingresos" class="selectpicker form-control" data-live-search="true" title="Seleccione cuenta" required>
+                                        <option value="">Seleccione</option>
+                                    </select>
+                                    <small class="form-text text-muted">Cuenta contable asociada</small>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="col-md-3 mb-3">
-                            <label for="fecha_ingresos">Fecha Factura <span class="priority">*<span /></label>
-                            <input type="date" required id="fecha_ingresos" name="fecha_ingresos"
-                                value="<?php echo date ("Y-m-d");?>" class="form-control" />
+                    
+                    <!-- Sección de Detalles de Factura -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-file-alt mr-2"></i>Detalles de Documento</h5>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="recibide_ingresos">Recibí de</label>
-                            <input type="text" id="recibide_ingresos" name="recibide_ingresos" value=""
-                                class="form-control" />
-                            <ul id="recibide_suggestions" class="suggestions"></ul>
-                        </div>
-                        <div class="col-md-3 mb-3" style="display: none;">
-                            <label for="cliente_ingresos">Proveedor <span class="priority">*<span /></label>
-                            <div class="input-group mb-3">
-                                <select id="cliente_ingresos" name="cliente_ingresos" class="selectpicker"
-                                    data-width="100%" data-size="10" data-live-search="true" title="Proveedor">
-                                    <option value="">Seleccione</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="cuenta_ingresos">Cuenta <span class="priority">*<span /></label>
-                            <div class="input-group mb-3">
-                                <select id="cuenta_ingresos" name="cuenta_ingresos" class="selectpicker" data-size="7"
-                                    data-width="100%" data-live-search="true" title="Cuenta" required>
-                                    <option value="">Seleccione</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3" style="display: none;">
-                            <label for="empresa_ingresos">Empresa <span class="priority">*<span /></label>
-                            <div class="input-group mb-3">
-                                <select id="empresa_ingresos" name="empresa_ingresos" class="selectpicker"
-                                    data-width="100%" data-size="10" data-live-search="true" title="Empresa">
-                                    <option value="">Seleccione</option>
-                                </select>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="factura_ingresos"><i class="fas fa-file-invoice mr-1"></i>Factura</label>
+                                    <input type="text" id="factura_ingresos" name="factura_ingresos" placeholder="Método de pago" class="form-control" maxlength="19" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
+                                    <small class="form-text text-muted">Numero de Factura o de documento</small>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="col-md-6 mb-3">
-                            <label for="factura_ingresos" data-toggle="tooltip" data-placement="top"
-                                title="Añade un número de factura opcional para propósitos fiscales. Recomendamos su uso para un mejor control.">Método</label>
-                            <input type="text" id="factura_ingresos" name="factura_ingresos" placeholder="Método"
-                                class="form-control" maxlength="19"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
+                    
+                    <!-- Sección de Montos -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-calculator mr-2"></i>Montos</h5>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="subtotal_ingresos">Subtotal <span class="priority">*<span /></label>
-                            <input type="number" id="subtotal_ingresos" name="subtotal_ingresos" required
-                                placeholder="Subtotal" class="form-control" step="0.01" />
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="isv_ingresos">ISV </label>
-                            <input type="number" id="isv_ingresos" name="isv_ingresos" placeholder="ISV"
-                                class="form-control" step="0.01" value="0" />
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="col-md-4 mb-3">
-                            <label for="descuento_ingresos">Descuento</label>
-                            <input type="number" id="descuento_ingresos" name="descuento_ingresos"
-                                placeholder="Descuento" class="form-control" step="0.01" value="0" />
-                        </div>
-                        <div class="col-md-4 mb-4" style="display: none">
-                            <label for="nc_ingresos">Nota Crédito </label>
-                            <input type="number" id="nc_ingresos" name="nc_ingresos" placeholder="NC"
-                                class="form-control" step="0.01" value="0" />
-                        </div>
-                        <div class="col-md-4 mb-4">
-                            <label for="total_ingresos">Total </label>
-                            <input type="number" readonly id="total_ingresos" name="total_ingresos" placeholder="Total"
-                                class="form-control" step="0.01" value="0" />
-                        </div>
-                    </div>
-                    <div class="form-row">
-
-                    </div>
-                    <div class="form-row">
-                        <div class="col-md-12 mb-4">
-                            <label for="observacion_ingresos">Observación </label>
-                            <input type="text" id="observacion_ingresos" name="observacion_ingresos"
-                                placeholder="Observacion" class="form-control" step="0.01" maxlength="150"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-3 mb-3">
+                                    <label for="subtotal_ingresos"><i class="fas fa-receipt mr-1"></i>Subtotal <span class="priority">*</span></label>
+                                    <input type="number" required id="subtotal_ingresos" name="subtotal_ingresos" placeholder="0.00" class="form-control" step="0.01">
+                                    <small class="form-text text-muted">Subtotal antes de impuestos</small>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="isv_ingresos"><i class="fas fa-percent mr-1"></i>ISV</label>
+                                    <input type="number" id="isv_ingresos" name="isv_ingresos" placeholder="0.00" class="form-control" step="0.01" value="0">
+                                    <small class="form-text text-muted">Impuesto sobre ventas</small>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="descuento_ingresos"><i class="fas fa-tag mr-1"></i>Descuento</label>
+                                    <input type="number" id="descuento_ingresos" name="descuento_ingresos" placeholder="0.00" class="form-control" step="0.01" value="0">
+                                    <small class="form-text text-muted">Descuentos aplicados</small>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="nc_ingresos"><i class="fas fa-money-bill-wave mr-1"></i>Nota Ingreso</label>
+                                    <input type="number" id="nc_ingresos" name="nc_ingresos" placeholder="0.00" class="form-control" step="0.01" value="0">
+                                    <small class="form-text text-muted">Nota de Credito</small>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="col-md-3 mb-3">
+                                <label for="total_ingresos"><i class="fas fa-money-bill-wave mr-1"></i>Total</label>
+                                    <input type="number" readonly id="total_ingresos" name="total_ingresos" placeholder="0.00" class="form-control" step="0.01" value="0">
+                                    <small class="form-text text-muted">Total recibido</small>
+                                </div>
+                            </div>                            
                         </div>
                     </div>
+                    
+                    <!-- Sección de Observaciones -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-clipboard mr-2"></i>Observaciones</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="observacion_ingresos"><i class="fas fa-align-left mr-1"></i>Observación</label>
+                                    <input type="text" id="observacion_ingresos" name="observacion_ingresos" placeholder="Observaciones" class="form-control" maxlength="150" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
+                                    <small class="form-text text-muted">Observaciones adicionales (máx. 150 caracteres)</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="RespuestaAjax"></div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="guardar btn btn-primary ml-2" style="display: none;" type="submit"
-                    id="reg_ingresosContabilidad" form="formIngresosContables">
-                    <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
+                <button class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
                 </button>
-                <button class="editar btn btn-warning ml-2" style="display: none;" type="submit"
-                    id="edi_ingresosContabilidad" form="formIngresosContables">
-                    <div class="sb-nav-link-icon"></div><i class="fas fa-edit fa-lg"></i> Editar
+                <button class="btn btn-primary" type="submit" style="display: none;" id="reg_ingresosContabilidad" form="formIngresosContables">
+                    <i class="far fa-save mr-1"></i> Registrar
                 </button>
-                <button class="eliminar btn btn-danger ml-2" style="display: none;" type="submit"
-                    id="delete_ingresosContabilidad" form="formIngresosContables">
-                    <div class="sb-nav-link-icon"></div><i class="fa fa-trash fa-lg"></i> Eliminar
+                <button class="btn btn-warning" type="submit" style="display: none;" id="edi_ingresosContabilidad" form="formIngresosContables">
+                    <i class="fas fa-edit mr-1"></i> Editar
+                </button>
+                <button class="btn btn-danger" type="submit" style="display: none;" id="delete_ingresosContabilidad" form="formIngresosContables">
+                    <i class="fas fa-trash mr-1"></i> Eliminar
                 </button>
             </div>
         </div>
     </div>
 </div>
-<!--FIN MODAL PARA EL FORMULARI DE INGRESOS CONTABLES-->
+<!--FIN MODAL PARA EL FORMULARIO DE INGRESOS CONTABLES-->

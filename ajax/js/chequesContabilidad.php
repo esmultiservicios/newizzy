@@ -1,12 +1,25 @@
 <script>
-$(document).ready(function() {
+$(() => {
     listar_cheques_contabilidad();
+
+	    // Evento para el botón de Buscar (submit)
+		$('#formMainChequesContabilidad').on('submit', function(e) {
+        e.preventDefault();
+
+        listar_cheques_contabilidad(); 
+    });
+
+    // Evento para el botón de Limpiar (reset)
+    $('#formMainChequesContabilidad').on('reset', function() {
+        // Limpia y refresca los selects
+        $(this).find('.selectpicker')  // Usa `this` para referenciar el formulario actual
+            .val('')
+            .selectpicker('refresh');
+
+			listar_cheques_contabilidad();
+    });	
 });
 
-$('#formMainChequesContabilidad #search').on("click", function(e){
-	e.preventDefault();
-	listar_cheques_contabilidad();
-});
 //INICIO ACCIONES FORMULARIO CHEQUES
 var listar_cheques_contabilidad = function(){	
 	var fechai = $("#formMainChequesContabilidad #fechai").val();

@@ -18,45 +18,29 @@
 				"fecha_registro" => $fecha_registro,				
 			];
 			
-			$resultPuestos = puestosModelo::valid_puestos_modelo($puesto);
-			
-			if($resultPuestos->num_rows==0){
-				$query = puestosModelo::agregar_puestos_modelo($datos);
-				
-				if($query){
-					$alert = [
-						"alert" => "clear",
-						"title" => "Registro almacenado",
-						"text" => "El registro se ha almacenado correctamente",
-						"type" => "success",
-						"btn-class" => "btn-primary",
-						"btn-text" => "¡Bien Hecho!",
-						"form" => "formPuestos",
-						"id" => "proceso_puestos",
-						"valor" => "Registro",	
-						"funcion" => "listar_puestos();",
-						"modal" => "",
-					];
-				}else{
-					$alert = [
-						"alert" => "simple",
-						"title" => "Ocurrio un error inesperado",
-						"text" => "No hemos podido procesar su solicitud",
-						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];				
-				}				
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Resgistro ya existe",
-					"text" => "Lo sentimos este registro ya existe",
-					"type" => "error",	
-					"btn-class" => "btn-danger",						
-				];				
+			if(puestosModelo::valid_puestos_modelo($puesto)->num_rows > 0){
+				return mainModel::showNotification([
+					"type" => "error",
+					"title" => "Error",
+					"text" => "No se pudo actualizar el puesto",                
+				]);                
 			}
-			
-			return mainModel::sweetAlert($alert);
+
+			if(!puestosModelo::agregar_puestos_modelo($datos)){
+				return mainModel::showNotification([
+					"title" => "Error",
+					"text" => "No se pudo registrar el puesto",
+					"type" => "error"
+				]);
+			}
+
+			return mainModel::showNotification([
+				"type" => "success",
+				"title" => "Registro exitoso",
+				"text" => "Puesto registrado correctamente",           
+				"form" => "formPuestos",
+				"funcion" => "listar_puestos();"
+			]);	
 		}
 
 		public function edit_puestos_controlador(){
@@ -84,77 +68,71 @@
 				"estado" => $estado,				
 			];		
 
-			$query = puestosModelo::edit_puestos_modelo($datos);
-			
-			if($query){				
-				$alert = [
-					"alert" => "edit",
-					"title" => "Registro modificado",
-					"text" => "El registro se ha modificado correctamente",
-					"type" => "success",
-					"btn-class" => "btn-primary",
-					"btn-text" => "¡Bien Hecho!",
-					"form" => "formPuestos",	
-					"id" => "proceso_puestos",
-					"valor" => "Editar",
-					"funcion" => "listar_puestos();",
-					"modal" => "",
-				];
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Ocurrio un error inesperado",
-					"text" => "No hemos podido procesar su solicitud",
-					"type" => "error",
-					"btn-class" => "btn-danger",					
-				];				
-			}			
-			
-			return mainModel::sweetAlert($alert);
+			if(!puestosModelo::edit_puestos_modelo($datos)){
+				return mainModel::showNotification([
+					"title" => "Error",
+					"text" => "No se pudo actualizar el puesto",
+					"type" => "error"
+				]);
+			}
+
+			return mainModel::showNotification([
+				"type" => "success",
+				"title" => "Registro exitoso",
+				"text" => "Puesto actualizado correctamente",           
+				"form" => "formPuestos",
+				"funcion" => "listar_puestos();"
+			]);
 		}
 		
 		public function delete_puestos_controlador(){
-			$puestos_id = $_POST['puestos_id'];
+			$puesto_id = $_POST['puesto_id'];
 			
-			$result_valid_puestos_colaborador_modelo = puestosModelo::valid_puestos_colaborador_modelo($puestos_id);
+			$campos = ['puesto_id'];
+			$tabla = "puestos";
+			$condicion = "puesto_id = {$puesto_id}";
+
+			$puesto = mainModel::consultar_tabla($tabla, $campos, $condicion);
 			
-			if($result_valid_puestos_colaborador_modelo->num_rows==0 ){
-				$query = puestosModelo::delete_puestos_modelo($puestos_id);
-								
-				if($query){
-					$alert = [
-						"alert" => "clear",
-						"title" => "Registro eliminado",
-						"text" => "El registro se ha eliminado correctamente",
-						"type" => "success",
-						"btn-class" => "btn-primary",
-						"btn-text" => "¡Bien Hecho!",
-						"form" => "formPuestos",	
-						"id" => "proceso_puestos",
-						"valor" => "Eliminar",
-						"funcion" => "listar_puestos();",
-						"modal" => "modal_registrar_puestos",
-					];
-				}else{
-					$alert = [
-						"alert" => "simple",
-						"title" => "Ocurrio un error inesperado",
-						"text" => "No hemos podido procesar su solicitud",
-						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];				
-				}				
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Este registro cuenta con información almacenada",
-					"text" => "No se puede eliminar este registro",
-					"type" => "error",	
-					"btn-class" => "btn-danger",						
-				];				
+			if (empty($puesto)) {
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "Error",
+					"message" => "Puesto no encontrado"
+				]);
+				exit();
 			}
 			
-			return mainModel::sweetAlert($alert);			
+			$nombre = $puesto[0]['puesto'] ?? '';
+
+			// VALIDAMOS QUE EL PRODCUTO NO TENGA MOVIMIENTOS, PARA PODER ELIMINARSE
+			if(puestosModelo::valid_puestos_colaborador_modelo($puesto_id)->num_rows > 0){
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "No se puede eliminar",
+					"message" => "El puesto {$nombre} tiene colaboradores asociados"
+				]);
+				exit();                
+			}
+
+			if(!puestosModelo::delete_puestos_modelo($puesto_id)){
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "Error",
+					"message" => "No se pudo eliminar el puesto {$nombre}"
+				]);
+				exit();
+			}
+			
+			header('Content-Type: application/json');
+			echo json_encode([
+				"status" => "success",
+				"title" => "Eliminado",
+				"message" => "Puesto {$nombre} eliminado correctamente"
+			]);
+			exit();			
 		}
 	}
-?>

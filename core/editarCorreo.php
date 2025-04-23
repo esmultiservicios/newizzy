@@ -19,4 +19,3 @@
 		6 => $insMainModel->decryption($valores2['password']),											
 	);
 	echo json_encode($datos);
-?>	

@@ -1,17 +1,69 @@
 <script>
 $(document).ready(function() {
+    // Inicializar componentes al cargar la página
     listar_ingresos_contabilidad();
     getClientesIngresos();
     getCuentaIngresos();
     getEmpresaIngresos();
+    
+    // Configurar eventos
+    inicializarEventos();
 });
 
-$('#formMainIngresosContabilidad #search').on("click", function(e) {
-    e.preventDefault();
-    listar_ingresos_contabilidad();
-});
+// Función para inicializar todos los eventos
+function inicializarEventos() {
+    // Evento para buscar ingresos
+    $('#formMainIngresosContabilidad #search').on("click", function(e) {
+        e.preventDefault();
+        listar_ingresos_contabilidad();
+    });
 
-//INICIO ACCIONES FORMULARIO INGRESOS
+    // Eventos para el cálculo automático de totales
+    const camposCalculo = ["#subtotal_ingresos", "#isv_ingresos", "#descuento_ingresos", "#nc_ingresos"];
+    camposCalculo.forEach(campo => {
+        $("#formIngresosContables " + campo).on("keyup change", function() {
+            if (parseFloat($(this).val()) < 0) {
+                $(this).val(0);
+                showNotify("warning", "Advertencia", "Los valores no pueden ser negativos");
+            }
+            calcularTotalIngreso();
+        });
+    });
+}
+
+// Función para calcular el total del ingreso
+function calcularTotalIngreso() {
+    const form = "#formIngresosContables ";
+    const subtotal = parseFloat($(form + "#subtotal_ingresos").val()) || 0;
+    const isv = parseFloat($(form + "#isv_ingresos").val()) || 0;
+    const descuento = parseFloat($(form + "#descuento_ingresos").val()) || 0;
+    const nc = parseFloat($(form + "#nc_ingresos").val()) || 0;
+    
+    const total = subtotal + isv - descuento - nc;
+    $(form + "#total_ingresos").val(total.toFixed(2));
+}
+
+// Función debounce para mejorar rendimiento en búsquedas
+function debounce(func, wait) {
+    let timeout;
+    return function() {
+        const context = this, args = arguments;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(context, args), wait);
+    };
+}
+
+// Función para buscar clientes
+function buscarClientes(searchText) {
+    return $.ajax({
+        type: "POST",
+        url: "<?php echo SERVERURL;?>core/buscar_clientes.php",
+        data: { searchText: searchText },
+        dataType: "html"
+    });
+}
+
+// Función para mostrar el total en el footer
 var total_ingreso_footer = function() {
     var fechai = $("#formMainIngresosContabilidad #fechai").val();
     var fechaf = $("#formMainIngresosContabilidad #fechaf").val();
@@ -42,14 +94,14 @@ var total_ingreso_footer = function() {
             $("#nc-i").html(ncFormatted);
         })
         .fail(function(data) {
-            console.log("total ingreso error");
+            console.log("Error al cargar totales del footer");
         });
 }
 
+// Función para listar los ingresos en la tabla
 var listar_ingresos_contabilidad = function() {
     var estado = 1;
-    if ($("#formMainIngresosContabilidad #estado_ingresos").val() == null || $(
-            "#formMainIngresosContabilidad #estado_ingresos").val() == "") {
+    if ($("#formMainIngresosContabilidad #estado_ingresos").val() == null || $("#formMainIngresosContabilidad #estado_ingresos").val() == "") {
         estado = 1;
     } else {
         estado = $("#formMainIngresosContabilidad #estado_ingresos").val();
@@ -268,7 +320,6 @@ var listar_ingresos_contabilidad = function() {
                 },
                 className: 'table_reportes btn btn-success ocultar'
             },
-
             {
                 extend: 'pdf',
                 footer: true,
@@ -285,7 +336,7 @@ var listar_ingresos_contabilidad = function() {
                     columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
                 },
                 customize: function(doc) {
-                    if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
+                    if (imagen) {
                         doc.content.splice(0, 0, {
                             image: imagen,  
                             width: 100,
@@ -298,18 +349,17 @@ var listar_ingresos_contabilidad = function() {
         ],
         "drawCallback": function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+            edit_reporte_ingresos_dataTable("#dataTableIngresosContabilidad tbody", table_ingresos_contabilidad);
+            view_reporte_ingresos_dataTable("#dataTableIngresosContabilidad tbody", table_ingresos_contabilidad);
+            total_ingreso_footer();
         }
-
     });
 
     table_ingresos_contabilidad.search('').draw();
     $('#buscar').focus();
-
-    edit_reporte_ingresos_dataTable("#dataTableIngresosContabilidad tbody", table_ingresos_contabilidad);
-    view_reporte_ingresos_dataTable("#dataTableIngresosContabilidad tbody", table_ingresos_contabilidad);
-    total_ingreso_footer();
 }
 
+// Función para editar ingresos desde la tabla
 var edit_reporte_ingresos_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.table_editar");
     $(tbody).on("click", "button.table_editar", function() {
@@ -372,6 +422,7 @@ var edit_reporte_ingresos_dataTable = function(tbody, table) {
     });
 }
 
+// Función para generar reportes desde la tabla
 var view_reporte_ingresos_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.print_gastos");
     $(tbody).on("click", "button.print_gastos", function(e) {
@@ -381,6 +432,7 @@ var view_reporte_ingresos_dataTable = function(tbody, table) {
     });
 }
 
+// Función para imprimir ingresos
 function printIngresos(ingresos_id) {
     var url = '<?php echo SERVERURL; ?>core/generaIngresos.php?ingresos_id=' + ingresos_id;
     window.open(url);
@@ -424,6 +476,7 @@ function modal_ingresos_contabilidad() {
 }
 /*FIN FORMULARIO INGRESOS CONTABLES*/
 
+// Función para obtener empresas
 function getEmpresaIngresos() {
     var url = '<?php echo SERVERURL;?>core/getEmpresa.php';
 
@@ -435,14 +488,16 @@ function getEmpresaIngresos() {
             $('#formIngresosContables #empresa_ingresos').html("");
             $('#formIngresosContables #empresa_ingresos').html(data);
             $('#formIngresosContables #empresa_ingresos').selectpicker('refresh');
+        },
+        error: function() {
+            showNotify("error", "Error", "No se pudieron cargar las empresas");
         }
     });
 }
 
+// Función para obtener cuentas contables
 function getCuentaIngresos() {
-
     var url = '<?php echo SERVERURL;?>core/getCuenta.php';
-
 
     $.ajax({
         type: "POST",
@@ -452,230 +507,58 @@ function getCuentaIngresos() {
             $('#formIngresosContables #cuenta_ingresos').html("");
             $('#formIngresosContables #cuenta_ingresos').html(data);
             $('#formIngresosContables #cuenta_ingresos').selectpicker('refresh');
+        },
+        error: function() {
+            showNotify("error", "Error", "No se pudieron cargar las cuentas contables");
         }
     });
 }
 
+// Función para obtener clientes
 function getClientesIngresos() {
-    var url = '<?php echo SERVERURL;?>core/getClientes.php';
-
     $.ajax({
+        url: "<?php echo SERVERURL; ?>core/getClientes.php",
         type: "POST",
-        url: url,
-        async: true,
-        success: function(data) {
-            $('#formIngresosContables #cliente_ingresos').html("");
-            $('#formIngresosContables #cliente_ingresos').html(data);
-            $('#formIngresosContables #cliente_ingresos').selectpicker('refresh');
+        dataType: "json",
+        success: function(response) {
+            const select = $('#formIngresosContables #recibide_ingresos');
+            select.empty();
+            
+            if(response.success) {
+                response.data.forEach(cliente => {
+                    select.append(`
+                        <option value="${cliente.clientes_id}" 
+                                data-subtext="${cliente.rtn || 'Sin RTN o Identidad'}">
+                            ${cliente.nombre}
+                        </option>
+                    `);
+                });
+            } else {
+                select.append('<option value="">No hay colaboradores disponibles</option>');
+            }
+            
+            select.selectpicker('refresh');
+        },
+        error: function(xhr) {
+            showNotify("error", "Error", "Error de conexión al cargar colaboradores");
+            $('#formIngresosContables #recibide_ingresos').html('<option value="">Error al cargar</option>');
+            $('#formIngresosContables #recibide_ingresos').selectpicker('refresh');
         }
     });
 }
 
-//INICIO CALCULAR VALORES INGRESADOS EN INGRESOS
-
-$(document).ready(function() {
-    $("#formIngresosContables #subtotal_ingresos").on("keyup", function() {
-        var subtotal;
-        var isv;
-        var descuento;
-        var nc;
-        if ($("#formIngresosContables #subtotal_ingresos").val() != "") {
-            subtotal = parseFloat($("#formIngresosContables #subtotal_ingresos").val());
-        } else {
-            subtotal = 0;
-        }
-
-        if ($("#formIngresosContables #isv_ingresos").val() != "") {
-
-            isv = parseFloat($("#formIngresosContables #isv_ingresos").val());
-
-        } else {
-
-            isv = 0;
-
-        }
-
-        if ($("#formIngresosContables #descuento_ingresos").val() != "") {
-            descuento = parseFloat($("#formIngresosContables #descuento_ingresos").val());
-        } else {
-            descuento = 0;
-        }
-
-        if ($("#formIngresosContables #nc_ingresos").val() != "") {
-            nc = parseFloat($("#formIngresosContables #nc_ingresos").val());
-        } else {
-            nc = 0;
-        }
-
-        var total = subtotal + isv - descuento - nc;
-
-        $("#formIngresosContables #total_ingresos").val(parseFloat(total).toFixed(2));
-    });
-
-    $("#formIngresosContables #isv_ingresos").on("keyup", function() {
-        var subtotal;
-        var isv;
-        var descuento;
-        var nc;
-
-        if ($("#formIngresosContables #subtotal_ingresos").val() != "") {
-            subtotal = parseFloat($("#formIngresosContables #subtotal_ingresos").val());
-        } else {
-            subtotal = 0;
-        }
-
-        if ($("#formIngresosContables #isv_ingresos").val() != "") {
-            isv = parseFloat($("#formIngresosContables #isv_ingresos").val());
-        } else {
-            isv = 0;
-        }
-
-        if ($("#formIngresosContables #descuento_ingresos").val() != "") {
-            descuento = parseFloat($("#formIngresosContables #descuento_ingresos").val());
-        } else {
-            descuento = 0;
-        }
-
-        if ($("#formIngresosContables #nc_ingresos").val() != "") {
-            nc = parseFloat($("#formIngresosContables #nc_ingresos").val());
-        } else {
-            nc = 0;
-        }
-
-        var total = subtotal + isv - descuento - nc;
-
-        $("#formIngresosContables #total_ingresos").val(parseFloat(total).toFixed(2));
-    });
-
-    $("#formIngresosContables #descuento_ingresos").on("keyup", function() {
-        var subtotal;
-        var isv;
-        var descuento;
-        var nc;
-
-        if ($("#formIngresosContables #subtotal_ingresos").val() != "") {
-            subtotal = parseFloat($("#formIngresosContables #subtotal_ingresos").val());
-        } else {
-            subtotal = 0;
-        }
-
-        if ($("#formIngresosContables #isv_ingresos").val() != "") {
-            isv = parseFloat($("#formIngresosContables #isv_ingresos").val());
-        } else {
-            isv = 0;
-        }
-
-        if ($("#formIngresosContables #descuento_ingresos").val() != "") {
-            descuento = parseFloat($("#formIngresosContables #descuento_ingresos").val());
-        } else {
-            descuento = 0;
-        }
-
-        if ($("#formIngresosContables #nc_ingresos").val() != "") {
-            nc = parseFloat($("#formIngresosContables #nc_ingresos").val());
-        } else {
-            nc = 0;
-        }
-
-        var total = subtotal + isv - descuento - nc;
-
-        $("#formIngresosContables #total_ingresos").val(parseFloat(total).toFixed(2));
-    });
-
-    $("#formIngresosContables #nc_ingresos").on("keyup", function() {
-        var subtotal;
-        var isv;
-        var descuento;
-        var nc;
-
-        if ($("#formIngresosContables #subtotal_ingresos").val() != "") {
-            subtotal = parseFloat($("#formIngresosContables #subtotal_ingresos").val());
-        } else {
-            subtotal = 0;
-        }
-
-        if ($("#formIngresosContables #isv_ingresos").val() != "") {
-            isv = parseFloat($("#formIngresosContables #isv_ingresos").val());
-        } else {
-            isv = 0;
-        }
-
-        if ($("#formIngresosContables #descuento_ingresos").val() != "") {
-            descuento = parseFloat($("#formIngresosContables #descuento_ingresos").val());
-        } else {
-            descuento = 0;
-        }
-
-        if ($("#formIngresosContables #nc_ingresos").val() != "") {
-            nc = parseFloat($("#formIngresosContables #nc_ingresos").val());
-        } else {
-            nc = 0;
-        }
-
-        var total = subtotal + isv - descuento - nc;
-
-        $("#formIngresosContables #total_ingresos").val(parseFloat(total).toFixed(2));
-
-    });
-
-});
-//FIN CALCULAR VALORES INGRESADOS EN INGRESOS
-
+// Eventos para el foco en modales
 $(document).ready(function() {
     $("#modal_buscar_clientes_facturacion").on('shown.bs.modal', function() {
         $(this).find('#formulario_busqueda_clientes_facturacion #buscar').focus();
     });
-});
 
-$(document).ready(function() {
     $("#modalIngresosContables").on('shown.bs.modal', function() {
         $(this).find('#formIngresosContables #recibide_ingresos').focus();
     });
 });
 
-$(document).ready(function() {
-    var peticionAjax = true; // Puedes ajustar esto según tus necesidades
-
-    // Evento cuando se escribe en el input
-    $("#recibide_ingresos").on("input", function() {
-        var searchText = $(this).val();
-
-        if (searchText !== '') {
-            $.ajax({
-                type: "POST",
-                url: "<?php echo SERVERURL;?>core/buscar_clientes.php",
-                data: {
-                    searchText: searchText,
-                    peticionAjax: peticionAjax
-                },
-                success: function(response) {
-                    $("#recibide_suggestions").html(response);
-                    $("#recibide_suggestions").fadeIn();
-                }
-            });
-        } else {
-            $("#recibide_suggestions").fadeOut();
-        }
-    });
-
-    // Evento cuando el input obtiene el foco
-    $("#recibide_ingresos").on("focus", function() {
-        if ($("#recibide_suggestions li").length > 0) {
-            $("#recibide_suggestions").fadeIn();
-        }
-    });
-
-    // Evento cuando el input pierde el foco
-    $("#recibide_ingresos").on("blur", function() {
-        setTimeout(function() {
-            $("#recibide_suggestions").fadeOut();
-        }, 200); // Un pequeño retraso para manejar clics en sugerencias
-    });
-
-    // Manejar clics en sugerencias
-    $(document).on("click", "#recibide_suggestions li", function() {
-        $("#recibide_ingresos").val($(this).text());
-        $("#recibide_suggestions").fadeOut();
-    });
+$('#btnNuevoCliente').on('click', function() {
+    modal_clientes();
 });
 </script>

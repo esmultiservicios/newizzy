@@ -9,8 +9,15 @@ class movimientoProductosControlador extends movimientoProductosModelo
 {
     public function agregar_movimiento_productos_controlador()
     {
-        if (!isset($_SESSION['user_sd'])) {
-            session_start(['name' => 'SD']);
+        // Validar sesión primero
+        $validacion = mainModel::validarSesion();
+        if($validacion['error']) {
+            return mainModel::showNotification([
+                "title" => "Error de sesión",
+                "text" => $validacion['mensaje'],
+                "type" => "error",
+                "funcion" => "window.location.href = '".$validacion['redireccion']."'"
+            ]);
         }
 
         $movimiento_producto = $_POST['movimiento_producto'];
@@ -25,12 +32,10 @@ class movimientoProductosControlador extends movimientoProductosModelo
 
         // Validar empresa
         if (!$this->verificar_empresa($empresa_id)) {
-            return mainModel::sweetAlert([
-                "alert" => "simple",
+            return mainModel::showNotification([
                 "title" => "Error",
                 "text" => "El ID de empresa no es válido.",
                 "type" => "error",
-                "btn-class" => "btn-danger",
             ]);
         }
 
@@ -55,26 +60,18 @@ class movimientoProductosControlador extends movimientoProductosModelo
             $resultado = movimientoProductosModelo::registrar_entrada_lote_modelo($datos);
 
             if ($resultado['success']) {
-                return mainModel::sweetAlert([
-                    "alert" => "clear",
+                return mainModel::showNotification([
                     "title" => "Registro almacenado",
                     "text" => $resultado['message'],
                     "type" => "success",
-                    "btn-class" => "btn-primary",
-                    "btn-text" => "¡Bien Hecho!",
                     "form" => "formMovimientos",
-                    "id" => "proceso_movimientos",
-                    "valor" => "Registro",
-                    "funcion" => "listar_movimientos();funciones();",
-                    "modal" => "modal_movimientos", 
+                    "funcion" => "listar_movimientos();funciones();"
                 ]);
             } else {
-                return mainModel::sweetAlert([
-                    "alert" => "simple",
+                return mainModel::showNotification([
                     "title" => "Error",
                     "text" => $resultado['message'],
-                    "type" => "error",
-                    "btn-class" => "btn-danger",
+                    "type" => "error"
                 ]);
             }
         }
@@ -93,26 +90,18 @@ class movimientoProductosControlador extends movimientoProductosModelo
             $resultado = movimientoProductosModelo::registrar_salida_lote_modelo($datos);
 
             if ($resultado['status'] == "success") {
-                return mainModel::sweetAlert([
-                    "alert" => "clear",
+                return mainModel::showNotification([
                     "title" => "Registro almacenado",
                     "text" => $resultado['message'],
                     "type" => "success",
-                    "btn-class" => "btn-primary",
-                    "btn-text" => "¡Bien Hecho!",
                     "form" => "formMovimientos",
-                    "id" => "proceso_movimientos",
-                    "valor" => "Registro",
-                    "funcion" => "listar_movimientos();",
-                    "modal" => "modal_movimientos",
+                    "funcion" => "listar_movimientos();"
                 ]);
             } else {
-                return mainModel::sweetAlert([
-                    "alert" => "simple",
+                return mainModel::showNotification([
                     "title" => "Error",
                     "text" => $resultado['message'],
-                    "type" => "error",
-                    "btn-class" => "btn-danger",
+                    "type" => "error"
                 ]);
             }
         }
@@ -163,55 +152,41 @@ class movimientoProductosControlador extends movimientoProductosModelo
                         // Mensaje con el nombre del almacén
                         $text = "Nuevo lote creado y asignado al producto en el almacén: " . $nombre_almacen;
 
-                        return mainModel::sweetAlert([
-                            "alert" => "clear",
+                        return mainModel::showNotification([
                             "title" => "Registro almacenado",
                             "text" => $text,
                             "type" => "success",
-                            "btn-class" => "btn-primary",
-                            "btn-text" => "¡Bien Hecho!",
-                            "form" => "formTransferenciaCambiarFecha",
-                            "id" => "pro_cambiar_fecha",
-                            "valor" => "Registro",
-                            "funcion" => "inventario_transferencia()",
-                            "modal" => "modalCambiarFechaProducto",
+                            "funcion" => "inventario_transferencia()",  
+                            "closeAllModals" => true                          
                         ]);                        
                     } else {
-                        return mainModel::sweetAlert([
-                            "alert" => "simple",
+                        return mainModel::showNotification([
                             "title" => "Error",
                             "text" => "El producto ya tiene un lote asignado en este almacén. No se realizó ninguna actualización",
-                            "type" => "error",
-                            "btn-class" => "btn-danger",
+                            "type" => "error"
                         ]);
                     }
                 } else {
-                    return mainModel::sweetAlert([
-                        "alert" => "simple",
+                    return mainModel::showNotification([
                         "title" => "Error",
                         "text" => "Error al actualizar el producto con el nuevo lote.",
-                        "type" => "error",
-                        "btn-class" => "btn-danger",
+                        "type" => "error"
                     ]);
                 }
             } else {
-                  return mainModel::sweetAlert([
-                    "alert" => "simple",
+                  return mainModel::showNotification([
                     "title" => "Error",
                     "text" => "Error al crear el nuevo lote.",
-                    "type" => "error",
-                    "btn-class" => "btn-danger",
+                    "type" => "error"
                 ]);                
             }
         }
     
         // Si el lote_id no es 0, no hace falta hacer nada más ya que se asume que ya tiene un lote asignado.
-        return mainModel::sweetAlert([
-            "alert" => "simple",
+        return mainModel::showNotification([
             "title" => "Error",
             "text" => "El producto ya tiene un lote, no se requiere la creación de un nuevo lote.",
-            "type" => "error",
-            "btn-class" => "btn-danger",
+            "type" => "error"
         ]); 
     }    
 }

@@ -7,15 +7,6 @@ $(() => {
     }    
 
     // Función para imprimir factura
-    function viewReport(params) {
-        // Esta función debe estar definida en otro archivo o añadirla aquí
-        // Si no existe, implementar adecuadamente
-        console.log("Imprimiendo factura con parámetros:", params);
-        
-        // Ejemplo de implementación básica si no existe
-        window.open('<?php echo SERVERURL; ?>core/generarReporte.php?id=' + params.id + '&type=' + params.type + '&db=' + params.db, '_blank');
-    }
-    
     function imprimirFactura(facturaId) {
         const params = {
             "id": facturaId,

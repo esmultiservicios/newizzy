@@ -8,9 +8,16 @@ if ($peticionAjax) {
 class pagoFacturaControlador extends pagoFacturaModelo
 {
     protected function prepararDatosPago($tipoPago) {
-        if (!isset($_SESSION['user_sd'])) {
-            session_start(['name' => 'SD']);
-        }
+         // Validar sesión primero
+         $validacion = mainModel::validarSesion();
+         if($validacion['error']) {
+             return mainModel::showNotification([
+                 "title" => "Error de sesión",
+                 "text" => $validacion['mensaje'],
+                 "type" => "error",
+                 "funcion" => "window.location.href = '".$validacion['redireccion']."'"
+             ]);
+         }
 
         $campoId = "factura_id_" . $tipoPago;
         $campoFecha = "fecha_" . $tipoPago;
@@ -119,7 +126,6 @@ class pagoFacturaControlador extends pagoFacturaModelo
         $query = pagoFacturaModelo::cancelar_pago_modelo($pagos_id);
 
         $alert = [
-            'alert' => $query ? 'clear' : 'simple',
             'title' => $query ? 'Registro eliminado' : 'Ocurrio un error inesperado',
             'text' => $query ? 'El registro se ha eliminado correctamente' : 'No hemos podido procesar su solicitud',
             'type' => $query ? 'success' : 'error',

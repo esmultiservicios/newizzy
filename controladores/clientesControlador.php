@@ -17,9 +17,16 @@ class clientesControlador extends clientesModelo {
     
     /* Método para agregar clientes normales */
     public function agregar_clientes_controlador(){
-        if(!isset($_SESSION['user_sd'])){ 
-            session_start(['name'=>'SD']); 
-        }
+			// Validar sesión primero
+			$validacion = mainModel::validarSesion();
+			if($validacion['error']) {
+				return mainModel::showNotification([
+					"title" => "Error de sesión",
+					"text" => $validacion['mensaje'],
+					"type" => "error",
+					"funcion" => "window.location.href = '".$validacion['redireccion']."'"
+				]);
+			}
             
         $datos = [
             "nombre" => mainModel::cleanString($_POST['nombre_clientes']),
@@ -281,8 +288,15 @@ class clientesControlador extends clientesModelo {
     
     /* Métodos para editar clientes */
     public function edit_clientes_controlador(){
-        if(!isset($_SESSION['user_sd'])){ 
-            session_start(['name'=>'SD']); 
+        // Validar sesión primero
+        $validacion = mainModel::validarSesion();
+        if($validacion['error']) {
+            return mainModel::showNotification([
+                "title" => "Error de sesión",
+                "text" => $validacion['mensaje'],
+                "type" => "error",
+                "funcion" => "window.location.href = '".$validacion['redireccion']."'"
+            ]);
         }
         
         $datos = [
@@ -324,8 +338,15 @@ class clientesControlador extends clientesModelo {
     
     /* Método para eliminar clientes */
     public function delete_clientes_controlador(){
-        if(!isset($_SESSION['user_sd'])){ 
-            session_start(['name'=>'SD']); 
+        // Validar sesión primero
+        $validacion = mainModel::validarSesion();
+        if($validacion['error']) {
+            return mainModel::showNotification([
+                "title" => "Error de sesión",
+                "text" => $validacion['mensaje'],
+                "type" => "error",
+                "funcion" => "window.location.href = '".$validacion['redireccion']."'"
+            ]);
         }
         
         $clientes_id = $_POST['clientes_id'];

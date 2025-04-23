@@ -10,8 +10,15 @@ if($peticionAjax){
 class usuarioControlador extends usuarioModelo{
     /*----------- Controlador para agregar usuario -----------*/
     public function agregar_usuario_controlador() {
-        if(!isset($_SESSION['user_sd'])) { 
-            session_start(['name'=>'SD']); 
+        // Validar sesión primero
+        $validacion = mainModel::validarSesion();
+        if($validacion['error']) {
+            return mainModel::showNotification([
+                "title" => "Error de sesión",
+                "text" => $validacion['mensaje'],
+                "type" => "error",
+                "funcion" => "window.location.href = '".$validacion['redireccion']."'"
+            ]);
         }
     
         $sendEmail = new sendEmail();
@@ -74,8 +81,7 @@ class usuarioControlador extends usuarioModelo{
         $correo_usuario = mainModel::cleanStringStrtolower($_POST['correo_usuario']);
         $empresa = mainModel::cleanString($_POST['empresa_usuario']);
         $tipo_user = mainModel::cleanString($_POST['tipo_user']);            
-        $fecha_registro = date("Y-m-d H:i:s");
-        $usuario_sistema = $_SESSION['colaborador_id_sd'];    
+        $fecha_registro = date("Y-m-d H:i:s"); 
         $estado = isset($_POST['usuarios_activo']) ? 1 : 2;    
         $server_customers_id = $_SESSION['server_customers_id']; 
     

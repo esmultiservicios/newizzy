@@ -7,9 +7,17 @@
 	
 	class cuentaContabilidadControlador extends cuentaContabilidadModelo{
 		public function agregar_cuenta_contabilidad_controlador(){
-			if(!isset($_SESSION['user_sd'])){ 
-				session_start(['name'=>'SD']); 
+			// Validar sesión primero
+			$validacion = mainModel::validarSesion();
+			if($validacion['error']) {
+				return mainModel::showNotification([
+					"title" => "Error de sesión",
+					"text" => $validacion['mensaje'],
+					"type" => "error",
+					"funcion" => "window.location.href = '".$validacion['redireccion']."'"
+				]);
 			}
+
 			$codigo = mainModel::cleanStringStrtoupper($_POST['cuenta_codigo']);
 			$nombre = mainModel::cleanString($_POST['cuenta_nombre']);
 			$cuentas_activo = 1;
@@ -23,49 +31,32 @@
 				"fecha_registro" => $fecha_registro,
 			];
 			
-			//VALIDAMOS QUE NO EXISTA LA CUENTA
-			$resultPuestos = cuentaContabilidadModelo::valid_cuenta_contable_modelo($nombre);
-			
-			if($resultPuestos->num_rows==0){
-				$query = cuentaContabilidadModelo::agregar_cuenta_contabilidad_modelo($datos);
-				
-				if($query){
-					$alert = [
-						"alert" => "clear",
-						"title" => "Registro almacenado",
-						"text" => "El registro se ha almacenado correctamente",
-						"type" => "success",
-						"btn-class" => "btn-primary",
-						"btn-text" => "¡Bien Hecho!",
-						"form" => "formCuentasContables",
-						"id" => "pro_cuentas",
-						"valor" => "Registro",	
-						"funcion" => "listar_cuentas_contabilidad();getCuentaIngresos();getCuentaEgresos();",
-						"modal" => "",
-					];					
-				}else{
-					$alert = [
-						"alert" => "simple",
-						"title" => "Ocurrio un error inesperado",
-						"text" => "No hemos podido procesar su solicitud",
-						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];						
-				}			
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Resgistro ya existe",
-					"text" => "Lo sentimos este registro ya existe",
-					"type" => "error",	
-					"btn-class" => "btn-danger",						
-				];					
+			//VALIDAMOS EL REGISTRO
+			if(cuentaContabilidadModelo::valid_cuenta_contable_modelo($nombre)->num_rows > 0){
+				return mainModel::showNotification([
+					"type" => "error",
+					"title" => "Error",
+					"text" => "La cuenta {$nombre} ya existe",                
+				]);              
 			}
-			
-			return mainModel::sweetAlert($alert);			
+
+			if(!cuentaContabilidadModelo::agregar_cuenta_contabilidad_modelo($datos)){
+				return mainModel::showNotification([
+					"type" => "error",
+					"title" => "Error",
+					"text" => "No se pudo registrar la cuenta {$nombre}",                
+				]);
+			}
+
+			return mainModel::showNotification([
+				"type" => "success",
+				"title" => "Registro exitoso",
+				"text" => "Cuenta {$nombre} registrada correctamente",
+				"funcion" => "listar_cuentas_contables();"
+			]);		
 		}
 		
-		public function edit_productos_controlador(){;
+		public function edit_cuentas_contabilidad_controlador(){;
 			$cuentas_id = mainModel::cleanString($_POST['cuentas_id']);		
 			$codigo = mainModel::cleanStringStrtoupper(ISSET($_POST['cuenta_codigo']) ? $_POST['cuenta_codigo'] : "");
 			$nombre = mainModel::cleanStringConverterCase($_POST['cuenta_nombre']);
@@ -82,76 +73,59 @@
 				"estado" => $cuentas_activo,				
 			];
 					
-			$query = cuentaContabilidadModelo::edit_cuentas_contabilidad_modelo($datos);
-			
-			if($query){				
-				$alert = [
-					"alert" => "edit",
-					"title" => "Registro modificado",
-					"text" => "El registro se ha modificado correctamente",
-					"type" => "success",
-					"btn-class" => "btn-primary",
-					"btn-text" => "¡Bien Hecho!",
-					"form" => "formCuentasContables",
-					"id" => "pro_cuentas",
-					"valor" => "Registro",	
-					"funcion" => "listar_cuentas_contabilidad();",
-					"modal" => "",
-				];
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Ocurrio un error inesperado",
-					"text" => "No hemos podido procesar su solicitud",
+			if(!cuentaContabilidadModelo::edit_cuentas_contabilidad_modelo($datos)){
+				return mainModel::showNotification([
 					"type" => "error",
-					"btn-class" => "btn-danger",					
-				];				
-			}			
-			
-			return mainModel::sweetAlert($alert);
+					"title" => "Error",
+					"text" => "No se pudo actualizar la cuenta",                
+				]);
+			}
+
+			return mainModel::showNotification([
+				"type" => "success",
+				"title" => "Actualización exitosa",
+				"text" => "Cuenta actualizada correctamente",
+				"funcion" => "listar_cuentas_contables();"
+			]);
 		}
 		
 		public function delete_cuneta_contabilidad_controlador(){
 	        $cuentas_id = mainModel::cleanString($_POST['cuentas_id']);	
 			
-			$result_valid_puestos_colaborador_modelo = cuentaContabilidadModelo::valid_cuenta_contable_movimientos_modelo($cuentas_id);
+			$campos = ['nombre'];
+			$tabla = "cuentas";
+			$condicion = "cuentas_id = {$cuentas_id}";
+
+			$cuenta = mainModel::consultar_tabla($tabla, $campos, $condicion);
 			
-			if($result_valid_puestos_colaborador_modelo->num_rows==0 ){
-				$query = cuentaContabilidadModelo::delete_cuenta_contabilidad_modelo($cuentas_id);
-								
-				if($query){
-					$alert = [
-						"alert" => "clear",
-						"title" => "Registro eliminado",
-						"text" => "El registro se ha eliminado correctamente",
-						"type" => "success",
-						"btn-class" => "btn-primary",
-						"btn-text" => "¡Bien Hecho!",
-						"form" => "formCuentasContables",
-						"id" => "pro_cuentas",
-						"valor" => "Registro",	
-						"funcion" => "listar_cuentas_contabilidad();",
-						"modal" => "modalCuentascontables",
-					];
-				}else{
-					$alert = [
-						"alert" => "simple",
-						"title" => "Ocurrio un error inesperado",
-						"text" => "No hemos podido procesar su solicitud",
-						"type" => "error",
-						"btn-class" => "btn-danger",					
-					];				
-				}				
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Este registro cuenta con información almacenada",
-					"text" => "No se puede eliminar este registro",
-					"type" => "error",	
-					"btn-class" => "btn-danger",						
-				];				
+			if (empty($cuenta)) {
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "Error",
+					"message" => "Cuenta no encontrada"
+				]);
+				exit();
 			}
 			
-			return mainModel::sweetAlert($alert);			
+			$nombre = $cuenta[0]['nombre'] ?? '';
+
+			if(cuentaContabilidadModelo::valid_cuenta_contable_movimientos_modelo($cuentas_id)->num_rows > 0){
+				header('Content-Type: application/json');
+				echo json_encode([
+					"status" => "error",
+					"title" => "No se puede eliminar",
+					"message" => "La cuenta {$nombre} tiene movimientos asociados"
+				]);
+				exit();                
+			}
+
+			header('Content-Type: application/json');
+			echo json_encode([
+				"status" => "success",
+				"title" => "Eliminado",
+				"message" => "Cuenta {$nombre} eliminada correctamente"
+			]);
+			exit();						
 		}		
 	}

@@ -7,8 +7,18 @@ require_once "mainModel.php";
 // Procesamiento normal para la tabla de facturas
 try {
     // Verificar sesión
-    if(session_status() !== PHP_SESSION_ACTIVE) {
-        session_start(['name'=>'SD']);
+    // Instanciar mainModel
+    $insMainModel = new mainModel();
+
+    // Validar sesión primero
+    $validacion = $insMainModel->validarSesion();
+    if($validacion['error']) {
+        return $insMainModel->showNotification([
+            "title" => "Error de sesión",
+            "text" => $validacion['mensaje'],
+            "type" => "error",
+            "funcion" => "window.location.href = '".$validacion['redireccion']."'"
+        ]);
     }
 
     if (!isset($_SESSION['users_id_sd'])) {
@@ -23,8 +33,7 @@ try {
     $users_id = intval($_SESSION['users_id_sd']);
     
     // 1. Obtener server_customers_id del usuario
-    $mainModel = new mainModel();
-    $conexionPrincipal = $mainModel->connection();
+    $conexionPrincipal = $insMainModel->connection();
     $queryUsuario = "SELECT server_customers_id FROM users WHERE users_id = ?";
     $stmtUsuario = $conexionPrincipal->prepare($queryUsuario);
     $stmtUsuario->bind_param("i", $users_id);
@@ -58,7 +67,7 @@ try {
         'name' => DB_MAIN
     ];
     
-    $conexionCliente = $mainModel->connectToDatabase($configCliente);
+    $conexionCliente = $insMainModel->connectToDatabase($configCliente);
     
     if (!$conexionCliente) {
         echo json_encode([
@@ -148,8 +157,8 @@ try {
             WHEN f.tipo_factura = 1 THEN 'Contado' 
             ELSE 'Crédito' 
         END AS tipo_documento,
-        CONCAT(co.nombre, ' ', co.apellido) AS vendedor,
-        CONCAT(co1.nombre, ' ', co1.apellido) AS facturador,
+        co.nombre AS vendedor,
+        co1.nombre AS facturador,
         (SELECT SUM(fd.cantidad * fd.precio) FROM facturas_detalles AS fd WHERE fd.facturas_id = f.facturas_id) AS subtotal,
         (SELECT SUM(fd.cantidad * p.precio_compra) FROM facturas_detalles AS fd 
             INNER JOIN productos AS p ON fd.productos_id = p.productos_id WHERE fd.facturas_id = f.facturas_id) AS subCosto,

@@ -25,4 +25,4 @@
 		"data" => $data
 	);
 
-	?>echo json_encode($arreglo);
+	echo json_encode($arreglo);

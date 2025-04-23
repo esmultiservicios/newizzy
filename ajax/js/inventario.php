@@ -15,9 +15,11 @@ $(() => {
     });
 
     // Evento para el botón de Limpiar Filtros
-    $('#btn-limpiar-filtros').on('click', function() {
-        $('#form_main_movimientos')[0].reset();
-        $('#form_main_movimientos .selectpicker').selectpicker('refresh');
+    $('#form_main_movimientos').on('reset', function() {
+        // Limpia y refresca los selects
+        $('#form_main_movimientos .selectpicker')
+            .val('')
+            .selectpicker('refresh');
         listar_movimientos();
     });    
 });

@@ -26,4 +26,3 @@
 		13 => $valores2['logotipo'],	
 	);
 	echo json_encode($datos);
-?>	

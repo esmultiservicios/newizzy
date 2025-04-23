@@ -8,11 +8,14 @@ if($peticionAjax){
 class aperturaCajaControlador extends aperturaCajaModelo{
     // Método para manejar sesión de forma segura
     private function iniciarSesionSegura() {
-        if(session_status() === PHP_SESSION_NONE) {
-            session_start(['name'=>'SD', 'cookie_lifetime' => 86400]);
-            if(!isset($_SESSION['user_sd'])) {
-                $_SESSION['user_sd'] = null;
-            }
+        $validacion = mainModel::validarSesion();
+        if($validacion['error']) {
+            return mainModel::showNotification([
+                "title" => "Error de sesión",
+                "text" => $validacion['mensaje'],
+                "type" => "error",
+                "funcion" => "window.location.href = '".$validacion['redireccion']."'"
+            ]);
         }
     }
 
@@ -76,7 +79,9 @@ class aperturaCajaControlador extends aperturaCajaModelo{
                     "text" => "La caja se ha aperturado correctamente",
                     "type" => "success",
                     "form" => "formAperturaCaja",
-                    "funcion" => "validarAperturaCajaUsuario();getCajero();"
+                    "funcion" => "validarAperturaCajaUsuario();getCajero();",
+					"closeAllModals" => true
+
                 ]);
             } else {
                 return mainModel::showNotification([

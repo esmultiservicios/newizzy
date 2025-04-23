@@ -15,47 +15,22 @@ $(() => {
     $('#form_main_nominas #estado_nomina').val(0);
     $('#form_main_nominas #estado_nomina').selectpicker('refresh');
 
-    // Evento para el botón de Generar Reporte
+    // Evento para el botón de Buscar (submit)
     $('#form_main_nominas').on('submit', function(e) {
         e.preventDefault();
-        listar_nominas();
+
+        listar_nominas(); 
     });
 
-    // Evento para el botón de Limpiar Filtros
-    $('#btn-limpiar-filtros').on('click', function() {
-        $('#form_main_nominas')[0].reset();
-        $('#form_main_nominas .selectpicker').selectpicker('refresh');
-        listar_nominas();
-    });    
-});
+    // Evento para el botón de Limpiar (reset)
+    $('#form_main_nominas').on('reset', function() {
+        // Limpia y refresca los selects
+        $(this).find('.selectpicker')  // Usa `this` para referenciar el formulario actual
+            .val('')
+            .selectpicker('refresh');
 
-$('#form_main_nominas #estado_nomina').on("change", function(e) {
-    listar_nominas();
-});
-
-$('#form_main_nominas #tipo_contrato_nomina').on("change", function(e) {
-    listar_nominas();
-});
-
-$('#form_main_nominas #pago_planificado_nomina').on("change", function(e) {
-    listar_nominas();
-});
-
-$('#form_main_nominas #fechai').on("change", function(e) {
-    listar_nominas();
-});
-
-$('#form_main_nominas #fechaf').on("change", function(e) {
-    listar_nominas();
-});
-
-//CONSULTA NOMINA DETALLES
-$('#form_main_nominas_detalles #estado_nomina_detalles').on("change", function(e) {
-    listar_nominas_detalles();
-});
-
-$('#form_main_nominas_detalles #detalle_nomina_empleado').on("change", function(e) {
-    listar_nominas_detalles();
+			listar_nominas();
+    });	   
 });
 
 //INICIO ACCIONES FROMULARIO NOMINAS
@@ -497,75 +472,72 @@ var eliminar_nominas_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.nomina_eliminar");
     $(tbody).on("click", "button.nomina_eliminar", function() {
         var data = table.row($(this).parents("tr")).data();
-        var url = '<?php echo SERVERURL;?>core/editarNominas.php';
-        $('#formNomina #nomina_id').val(data.nomina_id);
 
-        $.ajax({
-            type: 'POST',
-            url: url,
-            data: $('#formNomina').serialize(),
-            success: function(registro) {
-                var valores = eval(registro);
-                $('#formNomina').attr({
-                    'data-form': 'delete'
-                });
-                $('#formNomina').attr({
-                    'action': '<?php echo SERVERURL;?>ajax/eliminarNominaAjax.php'
-                });
-                $('#formNomina')[0].reset();
-                $('#reg_nomina').hide();
-                $('#edi_nomina').hide();
-                $('#delete_nomina').show();
-                $('#formNomina #nomina_detale').val(valores[0]);
-                $('#formNomina #nomina_pago_planificado_id').val(valores[1]);
-                $('#formNomina #nomina_pago_planificado_id').selectpicker('refresh');
-                $('#formNomina #nomina_empresa_id').val(valores[2]);
-                $('#formNomina #nomina_empresa_id').selectpicker('refresh');
-                $('#formNomina #nomina_fecha_inicio').val(valores[3]);
-                $('#formNomina #nomina_fecha_fin').val(valores[4]);
-                $('#formNomina #nomina_importe').val(valores[5]);
-                $('#formNomina #nomina_notas').val(valores[6]);
-                $('#formNomina #tipo_nomina').val(valores[8]);
-                $('#formNomina #tipo_nomina').selectpicker('refresh');
-
-                if (data.estado == 1) {
-                    $('#delete_nomina').attr('disabled', true);
-                    $('#formNomina #nomina_activo').attr('checked', true);
-                    $('#formNomina #label_nomina_activo').html("Generada");
-                } else {
-                    $('#delete_nomina').attr('disabled', false);
-                    $('#formNomina #nomina_activo').attr('checked', false);
-                    $('#formNomina #label_nomina_activo').html("Sin Generar");
+        var nomina_id = data.nomina_id;
+        var nombreNomina = data.nombre; 
+        
+        // Construir el mensaje de confirmación con HTML
+        var mensajeHTML = `¿Desea eliminar permanentemente la nomina?<br><br>
+                        <strong>Nombre:</strong> ${nombreNomina}`;
+        
+        swal({
+            title: "Confirmar eliminación",
+            content: {
+                element: "span",
+                attributes: {
+                    innerHTML: mensajeHTML
                 }
-
-                caracteresnotaNomina();
-
-                //HABIITAR OBJETOS
-                $('#formNomina #estado_nomina').show();
-
-                //DESHABILITAR OBJETOS
-                $('#formNomina #nomina_detale').attr('disabled', true);
-                $('#formNomina #nomina_pago_planificado_id').attr('disabled', true);
-                $('#formNomina #nomina_empresa_id').attr('disabled', true);
-                $('#formNomina #tipo_nomina').attr('disabled', true);
-                $('#formNomina #nomina_fecha_inicio').attr('readonly', true);
-                $('#formNomina #nomina_fecha_fin').attr('readonly', true);
-                $('#formNomina #nomina_importe').attr('readonly', true);
-                $('#formNomina #nomina_notas').attr('disabled', true);
-                $('#formNomina #search_nomina_notas_start').attr('disabled', true);
-                $('#formNomina #search_nomina_notas_stop').attr('disabled', true);
-                $('#formNomina #nomina_activo').attr('disabled', true);
-                $('#formNomina #estado_nomina').show();
-
-                $('#formNomina #proceso_nomina').val("Eliminar");
-
-                $('#modal_registrar_nomina').modal({
-                    show: true,
-                    keyboard: false,
-                    backdrop: 'static'
+            },
+            icon: "warning",
+            buttons: {
+                cancel: {
+                    text: "Cancelar",
+                    value: null,
+                    visible: true,
+                    className: "btn-light"
+                },
+                confirm: {
+                    text: "Sí, eliminar",
+                    value: true,
+                    className: "btn-danger",
+                    closeModal: false
+                }
+            },
+            dangerMode: true,
+            closeOnEsc: false,
+            closeOnClickOutside: false
+        }).then((confirmar) => {
+            if (confirmar) {
+               
+                $.ajax({
+                    type: 'POST',
+                    url: '<?php echo SERVERURL;?>ajax/eliminarNominaAjax.php',
+                    data: {
+                        nomina_id: nomina_id
+                    },
+                    dataType: 'json', // Esperamos respuesta JSON
+                    before: function(){
+                        // Mostrar carga mientras se procesa
+                        showLoading("Eliminando registro...");
+                    },
+                    success: function(response) {
+                        swal.close();
+                        
+                        if(response.status === "success") {
+                            showNotify("success", response.title, response.message);
+                            table.ajax.reload(null, false); // Recargar tabla sin resetear paginación
+                            table.search('').draw();                    
+                        } else {
+                            showNotify("error", response.title, response.message);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        swal.close();
+                        showNotify("error", "Error", "Ocurrió un error al procesar la solicitud");
+                    }
                 });
             }
-        });
+        });		
     });
 }
 //FIN ACCIONES FROMULARIO CONTRATOS

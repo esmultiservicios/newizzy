@@ -1,31 +1,23 @@
 <script>
 $(() => {
     listar_historial_accesos();
-});
 
-
-//BUSQUEDA FECHAS HISTORIAL DE ACCESOS
-$(() => {
-    $('#formMainHistorialAcceso #fechai').on('change', function() {
-        listar_historial_accesos();
-    });
-
-    $('#formMainHistorialAcceso #fechaf').on('change', function() {
-        listar_historial_accesos();
-    });
-
-    // Evento para el botón de Generar Reporte
+    // Evento para el botón de Buscar (submit)
     $('#formMainHistorialAcceso').on('submit', function(e) {
         e.preventDefault();
-        listar_historial_accesos();
+
+        listar_historial_accesos(); 
     });
 
-    // Evento para el botón de Limpiar Filtros
-    $('#btn-limpiar-filtros').on('click', function() {
-        $('#formMainHistorialAcceso')[0].reset();
-        $('#formMainHistorialAcceso .selectpicker').selectpicker('refresh');
-        listar_historial_accesos();
-    });     
+    // Evento para el botón de Limpiar (reset)
+    $('#formMainHistorialAcceso').on('reset', function() {
+        // Limpia y refresca los selects
+        $(this).find('.selectpicker')  // Usa `this` para referenciar el formulario actual
+            .val('')
+            .selectpicker('refresh');
+
+			listar_historial_accesos();
+    });		
 });
 
 //DATA TABLE HISTORIAL ACCESOS

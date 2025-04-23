@@ -1,8 +1,23 @@
 <script>
-$(document).ready(function() {
+$(() => {
     $("#formMainCajas #estado_cajas").val(1);
     $('#formMainCajas #estado_cajas').selectpicker('refresh');
     listar_registro_cajas();
+
+    // Evento para el botón de Buscar (submit)
+    $('#formMainCajas').on('submit', function(e) {
+        e.preventDefault();
+        listar_registro_cajas(); 
+    });
+
+    // Evento para el botón de Limpiar (reset)
+    $('#formMainCajas').on('reset', function() {
+        // Limpia y refresca los selects
+        $('#formMainCajas .selectpicker')
+            .val('')
+            .selectpicker('refresh');
+            listar_registro_cajas();
+    });
 });
 
 $('#formMainCajas #estado_cajas').on("change", function(e) {
@@ -16,6 +31,7 @@ $('#formMainCajas #fecha_cajas').on("change", function(e) {
 $('#formMainCajas #fecha_cajas_f').on("change", function(e) {
     listar_registro_cajas();
 });
+
 //INICIO ACCIONES FORMULARIO REGISTRO DE CAJA
 var listar_registro_cajas = function() {
     var fechai = $("#formMainCajas #fecha_cajas").val();

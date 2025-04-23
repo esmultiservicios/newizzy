@@ -39,8 +39,8 @@
                 
                 <div class="row">
                     <div class="col-12 text-right">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-search fa-lg mr-1"></i> Buscar
+                        <button type="submit" class="btn btn-primary mr-2">
+                            <i class="fas fa-filter fa-lg"></i> Filtrar
                         </button>
                         <button type="reset" class="btn btn-secondary">
                             <i class="fas fa-broom fa-lg"></i> Limpiar

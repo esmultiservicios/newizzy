@@ -4,10 +4,18 @@
 	require_once "mainModel.php";
 	require_once "Database.php";
 	
+	// Instanciar mainModel
 	$insMainModel = new mainModel();
 
-	if(!isset($_SESSION['user_sd'])){ 
-		session_start(['name'=>'SD']); 
+	// Validar sesión primero
+	$validacion = $insMainModel->validarSesion();
+	if($validacion['error']) {
+		return $insMainModel->showNotification([
+			"title" => "Error de sesión",
+			"text" => $validacion['mensaje'],
+			"type" => "error",
+			"funcion" => "window.location.href = '".$validacion['redireccion']."'"
+		]);
 	}
 	
 	$database = new Database();
@@ -63,4 +71,3 @@
 	);
 
 	echo json_encode($arreglo);
-?>

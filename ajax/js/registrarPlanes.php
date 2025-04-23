@@ -181,7 +181,7 @@ document.addEventListener("DOMContentLoaded", function() {
                             <button class="table_editar btn btn-dark ocultar btn-editar" data-id="${data.planes_id}">
                                 <i class="fas fa-edit"></i>Editar
                             </button>
-                            <button class="table_eliminar btn btn-dark ocultar btn-eliminar" data-id="${data.planes_id}">
+                            <button class="table_eliminar btn btn-dark ocultar btn-eliminar" data-id="${data.planes_id}" data-nombre="${data.nombre}">
                                 <i class="fas fa-trash"></i>Eliminar
                             </button>
                         </div>
@@ -512,41 +512,71 @@ document.addEventListener("DOMContentLoaded", function() {
     // 8. Eliminar plan
     $(document).on("click", ".btn-eliminar", function() {
         const planId = $(this).data("id");
-        
+        const nombrePlan = $(this).data("nombre");
+
+        // Construir el mensaje HTML con formato mejorado
+        var mensajeHTML = `¿Desea eliminar permanentemente el plan?<br><br>
+        <strong>Nombre:</strong> ${nombrePlan}`;
+
         swal({
-            title: "¿Estás seguro?",
-            text: "¡No podrás revertir esto!",
+            title: "¿Confirmar eliminación?",
+            content: {
+                element: "div",
+                attributes: {
+                    innerHTML: mensajeHTML
+                }
+            },
             icon: "warning",
             buttons: {
                 cancel: {
                     text: "Cancelar",
-                    visible: true
+                    value: null,
+                    visible: true,
+                    className: "btn-light"
                 },
                 confirm: {
                     text: "Sí, eliminar",
+                    value: true,
+                    className: "btn-danger"
                 }
             },
             dangerMode: true,
-            closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-            closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-        }).then((willConfirm) => {
-            if (willConfirm === true) {
+            closeOnEsc: false,
+            closeOnClickOutside: false
+        }).then((confirmado) => {
+            if (confirmado) {
+                // Mostrar carga mientras se procesa
+                swal({
+                    title: "Procesando",
+                    text: "Por favor espere...",
+                    icon: "info",
+                    buttons: false,
+                    closeOnClickOutside: false,
+                    closeOnEsc: false
+                });
+
                 $.ajax({
-                    url: "<?php echo SERVERURL;?>ajax/eliminarPlan.php",
+                    url: "<?php echo SERVERURL;?>ajax/eliminarAsistenciaAjax.php",
                     type: "POST",
-                    data: { plan_id: planId },
+                    data: { 
+                        asistencia_id: asistencia_id 
+                    },
                     dataType: "json",
                     success: function(response) {
-                        if (response.success) {
-                            dataTablePlanes.ajax.reload();
-                            showNotify(response.type, "Éxito", response.message);
+                        swal.close();
+                        
+                        if(response.status === "success") {
+                            // Recargar tabla sin resetear paginación
+                            table.ajax.reload(null, false); 
+                            showNotify("success", response.title, response.message);
                         } else {
-                            showNotify("error", "Error", response.message);
+                            showNotify("error", response.title, response.message);
                         }
                     },
                     error: function(xhr) {
-                        console.error("Error al eliminar:", xhr.responseText);
-                        showNotify("error", "Error", "Error al eliminar el plan");
+                        swal.close();
+                        console.error("Error en la solicitud:", xhr.responseText);
+                        showNotify("error", "Error", "Ocurrió un error al procesar la solicitud");
                     }
                 });
             }

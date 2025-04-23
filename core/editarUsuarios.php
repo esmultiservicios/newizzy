@@ -22,4 +22,3 @@
 		9 => $valores2['server_customers_id'],
 	);
 	echo json_encode($datos);
-?>	

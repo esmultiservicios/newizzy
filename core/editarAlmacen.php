@@ -17,4 +17,3 @@
 		4 => $valores2['facturar_cero']	
 	);
 	echo json_encode($datos);
-?>	

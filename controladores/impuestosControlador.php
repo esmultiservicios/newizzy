@@ -15,33 +15,19 @@
 				"valor" => $valor,				
 			];		
 
-			$query = impuestosModelo::edit_impuestos_modelo($datos);
-			
-			if($query){				
-				$alert = [
-					"alert" => "edit",
-					"title" => "Registro modificado",
-					"text" => "El registro se ha modificado correctamente",
-					"type" => "success",
-					"btn-class" => "btn-primary",
-					"btn-text" => "¡Bien Hecho!",
-					"form" => "formImpuestos",	
-					"id" => "pro_impuestos",
-					"valor" => "Editar",
-					"funcion" => "listar_impuestos_contabilidad();",
-					"modal" => "",
-				];
-			}else{
-				$alert = [
-					"alert" => "simple",
-					"title" => "Ocurrio un error inesperado",
-					"text" => "No hemos podido procesar su solicitud",
-					"type" => "error",
-					"btn-class" => "btn-danger",					
-				];				
-			}			
-			
-			return mainModel::sweetAlert($alert);
+			if(!impuestosModelo::edit_impuestos_modelo($datos)){
+				return mainModel::showNotification([
+					"title" => "Error",
+					"text" => "No se pudo registrar el impuesto",
+					"type" => "error"
+				]);
+			}
+						
+			return mainModel::showNotification([
+				"type" => "success",
+				"title" => "Actualización exitosa",
+				"text" => "Impuesto actualizado correctamente",
+				"funcion" => "listar_impuestos_contabilidad();"
+			]);			
 		}
-	}
-?>	
+	}	

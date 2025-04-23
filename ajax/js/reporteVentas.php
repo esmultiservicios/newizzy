@@ -8,43 +8,22 @@ $(() => {
     $('#form_main_ventas #tipo_factura_reporte').val(1);
     $('#form_main_ventas #tipo_factura_reporte').selectpicker('refresh');
 
-    // Evento para el botón de Generar Reporte
+    // Evento para el botón de Buscar (submit)
     $('#form_main_ventas').on('submit', function(e) {
         e.preventDefault();
-        listar_reporte_ventas();
+
+        listar_reporte_ventas(); 
     });
 
-    // Evento para el botón de Limpiar Filtros
-    $('#btn-limpiar-filtros').on('click', function() {
-        $('#form_main_ventas')[0].reset();
-        $('#form_main_ventas .selectpicker').selectpicker('refresh');
-        listar_reporte_ventas();
-    });
-});
+    // Evento para el botón de Limpiar (reset)
+    $('#form_main_ventas').on('reset', function() {
+        // Limpia y refresca los selects
+        $(this).find('.selectpicker')  // Usa `this` para referenciar el formulario actual
+            .val('')
+            .selectpicker('refresh');
 
-// Eventos para los filtros
-$('#form_main_ventas #tipo_factura_reporte').on("change", function(e) {
-    listar_reporte_ventas();
-});
-
-$('#form_main_ventas #facturador').on("change", function(e) {
-    listar_reporte_ventas();
-});
-
-$('#form_main_ventas #vendedor').on("change", function(e) {
-    listar_reporte_ventas();
-});
-
-$('#form_main_ventas #fechai').on("change", function(e) {
-    listar_reporte_ventas();
-});
-
-$('#form_main_ventas #fechaf').on("change", function(e) {
-    listar_reporte_ventas();
-});
-
-$('#form_main_ventas #factura_reporte').on("change", function(e) {
-    listar_reporte_ventas();
+			listar_reporte_ventas();
+    });	
 });
 
 // Función para redondear números de manera personalizada

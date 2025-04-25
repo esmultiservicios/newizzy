@@ -257,14 +257,7 @@ var generar_nominas_dataTable = function(tbody, table) {
                 }
             });
         } else {
-            swal({
-                title: "Error",
-                text: "Lo sentimos, esta nomina ya ha sido generada",
-                icon: "error",
-				dangerMode: true,
-				closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-				closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-            });
+            showNotify('error', 'Error', 'Lo sentimos, esta nomina ya ha sido generada');
         }
     });
 }
@@ -280,27 +273,12 @@ function genearNomina(nomina_id, empresa_id) {
         dataType: 'json',  // Asegura que la respuesta sea interpretada como JSON
         success: function(data) {
             if (data.status === 1) {
-                swal({
-                    title: "Success",
-                    text: data.message,  // Mostrar mensaje del servidor
-                    icon: "success",
-                    timer: 3000,
-                    closeOnEsc: false,
-                    closeOnClickOutside: false
-                }).then(() => {  // Espera hasta que el swal se cierre para continuar
-                    listar_nominas();
-                    PrintLibroSalarios(data.nomina_id);
-                    PrintVoucherPago(data.nomina_id);
-                });
+                showNotify('success', 'Success', data.message);
+                listar_nominas();
+                PrintLibroSalarios(data.nomina_id);
+                PrintVoucherPago(data.nomina_id);
             } else {
-                swal({
-                    title: "Error",
-                    text: data.message,  // Mostrar mensaje del servidor
-                    icon: "error",
-                    dangerMode: true,
-                    closeOnEsc: false,
-                    closeOnClickOutside: false
-                });
+                showNotify('error', 'Error', data.message);
             }
         },
         error: function(xhr, status, error) {
@@ -337,14 +315,7 @@ var voucher_nominas_dataTable = function(tbody, table) {
         var data = table.row($(this).parents("tr")).data();
 
         if (data.estado == 0) {
-            swal({
-                title: "Error",
-                text: "Lo sentimos, la nomina no esta generada no se puede mostrar el reporte",
-                icon: "error",
-				dangerMode: true,
-				closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-				closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-            });
+            showNotify('error', 'Error', 'Lo sentimos, la nomina no esta generada no se puede mostrar el reporte');
         } else {
             PrintVoucherPago(data.nomina_id);
         }
@@ -357,14 +328,7 @@ var libro_salarios_nominas_dataTable = function(tbody, table) {
         var data = table.row($(this).parents("tr")).data();
 
         if (data.estado == 0) {
-            swal({
-                title: "Error",
-                text: "Lo sentimos, la nomina no esta generada no se puede mostrar el reporte",
-                icon: "error",
-				dangerMode: true,
-				closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-				closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-            });
+            showNotify('error', 'Error', 'Lo sentimos, la nomina no esta generada no se puede mostrar el reporte');
         } else {
             PrintLibroSalarios(data.nomina_id);
         }
@@ -671,14 +635,7 @@ function modalNominasDetalles() {
             backdrop: 'static'
         });
     } else {
-        swal({
-            title: "Error",
-            text: "Lo sentimos, esta nomina ya ha sido generada, no puede agregar más empleados",
-            icon: "error",
-            dangerMode: true,
-            closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-            closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-        });
+        showNotify('error', 'Error', 'Lo sentimos, esta nomina ya ha sido generada, no puede agregar más empleados');
     }
 }
 /*FIN FORMULARIO NOMINAS*/
@@ -1969,24 +1926,10 @@ function anularVale(vale_id) {
         data: 'vale_id=' + vale_id,
         success: function(data) {
             if (data == 1) {
-                swal({
-                    title: "Success",
-                    text: "El vale ha sido anulado correctamente",
-                    type: "success",
-                    timer: 3000,
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera                    
-                });
+                showNotify('success', 'Success', 'El vale ha sido anulado correctamente');
                 listar_vales();
             } else {
-                swal({
-                    title: "Error",
-                    text: "Lo sentimos, no se puede anular el vale",
-                    type: "error",
-                    dangerMode: true,
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-                });
+                showNotify('error', 'Error', 'Lo sentimos, no se puede anular el vale');
             }
         }
     });

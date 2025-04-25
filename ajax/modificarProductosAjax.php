@@ -7,16 +7,28 @@
 		$insVarios = new productosControlador();
 		
 		echo $insVarios->edit_productos_controlador();
-	}else{
-		echo "
-			<script>
-				swal({
-					title: 'Error', 
-					text: 'Los datos son incorrectos por favor corregir',
-					type: 'error', 
-					confirmButtonClass: 'btn-danger'
-				});			
-			</script>";
+	} else {
+		// Identificar campos faltantes
+		$missingFields = [];
+		
+		if (!isset($_POST['productos_id'])) $missingFields[] = "ID del Producto";
+		if (!isset($_POST['producto'])) $missingFields[] = "Nombre del Producto";
+		if (!isset($_POST['descripcion'])) $missingFields[] = "Descripción del Producto";
+		if (!isset($_POST['precio_compra'])) $missingFields[] = "Precio de Compra";
+		if (!isset($_POST['precio_venta'])) $missingFields[] = "Precio de Venta";
+	
+		// Preparar el mensaje
+		$missingText = implode(", ", $missingFields);
+		$title = "Error 🚨";
+		$message = "Faltan los siguientes campos: $missingText. Por favor, corrígelos.";
+		
+		// Escapar comillas para JavaScript
+		$title = addslashes($title);
+		$message = addslashes($message);
+		
+		// Llamar a TU función showNotify exactamente como está definida
+		echo "<script>
+			showNotify('error', '$title', '$message');
+		</script>";
 	}
-?>
 	

@@ -1,10 +1,12 @@
 <script>
-$(() => {
+$(document).ready(function() {
+    // Inicializar funciones al cargar la página
     listar_usuarios();
     getTipoUsuario();
     getPrivilegio();
     getEmpresaUsers();
     getColaboradoresUsuario();
+    getPuestosColaboradoresUsuarios();
 
     // Cambio entre pestañas de colaborador existente/nuevo
     $('a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
@@ -18,86 +20,34 @@ $(() => {
     });
     
     // Cuando se selecciona un colaborador existente
-    $('#buscar_colaborador').on('changed.bs.select', function(e) {
+    $('#formUsers #colaboradores_id').on('changed.bs.select', function(e) {
         var colaborador_id = $(this).val();
-        
+
         if(colaborador_id) {
             obtenerInfoColaborador(colaborador_id);
         } else {
             $('#info_colaborador').hide();
         }
     });
-    
-    // Botón para ver información del colaborador
-    $('#btn_ver_info_colaborador').click(function() {
-        var colaborador_id = $('#buscar_colaborador').val();
-        
-        if(colaborador_id) {
-            obtenerInfoColaborador(colaborador_id);
-        } else {
-            Swal.fire({
-                title: 'Advertencia',
-                text: 'Por favor seleccione un colaborador primero',
-                icon: 'warning'
-            });
-        }
-    });   
 
-    // Evento para el botón "Ver Información"
-    $('#btn_ver_info_colaborador').click(function() {
-        // Obtener el ID del colaborador seleccionado
-        var colaborador_id = $('#buscar_colaborador').val();
-        
-        if (colaborador_id) {
-            obtenerInfoColaborador(colaborador_id); // Llamar a tu función existente
+    // Configuración del formulario al mostrarse el modal
+    $("#modal_registrar_usuarios").on('shown.bs.modal', function() {
+        $(this).find('#colaboradores_id').focus();
+    });
+
+    // Cambio en el switch de estado
+    $('#formUsers .switch').change(function() {
+        if ($('input[name=estado_usuario]').is(':checked')) {
+            $('#formUsers #label_usuarios_activo').html("Activo");
+            return true;
         } else {
-            Swal.fire({
-                title: 'Advertencia',
-                text: 'Por favor seleccione un colaborador primero',
-                icon: 'warning'
-            });
+            $('#formUsers #label_usuarios_activo').html("Inactivo");
+            return false;
         }
-    });     
+    });
 });
 
-// Función para obtener información de un colaborador
-function obtenerInfoColaborador(colaborador_id) {
-    $.ajax({
-        url: '<?php echo SERVERURL; ?>core/getColaboradorInfo.php',
-        type: 'POST',
-        data: {colaborador_id: colaborador_id},
-        dataType: 'json',
-        success: function(response) {
-            if(response.success) {
-                $('#colaboradores_id').val(response.data.colaboradores_id);
-                $('#info_nombre').text(response.data.nombre + ' ' + response.data.apellido);
-                $('#info_identidad').text(response.data.identidad);
-                $('#info_telefono').text(response.data.telefono);
-                $('#info_fecha_ingreso').text(response.data.fecha_ingreso);
-                $('#info_estado').html(response.data.estado == 1 ? '<span class="badge badge-pill badge-success" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">Activo</span>' : '<span class="badge badge-pill badge-danger" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">Inactivo</span>');
-                
-                $('#info_colaborador').show();
-            } else {
-                Swal.fire({
-                    title: 'Error',
-                    text: response.message,
-                    icon: 'error'
-                });
-                $('#info_colaborador').hide();
-            }
-        },
-        error: function() {
-            Swal.fire({
-                title: 'Error',
-                text: 'Error al obtener información del colaborador',
-                icon: 'error'
-            });
-            $('#info_colaborador').hide();
-        }
-    });
-}
-
-//INICIO ACCIONES FROMULARIO USUARIOS
+// Función para listar usuarios en DataTable
 var listar_usuarios = function() {
     var table_usuarios = $("#dataTableUsers").DataTable({
         "destroy": true,
@@ -210,21 +160,22 @@ var listar_usuarios = function() {
                     columns: [0, 1, 2, 3, 4, 5]
                 },
                 customize: function(doc) {
-					if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
-						doc.content.splice(0, 0, {
-							image: imagen,  
-							width: 100,
-							height: 45,
-							margin: [0, 0, 0, 12]
-						});
-					}
-				}
+                    if (imagen) {
+                        doc.content.splice(0, 0, {
+                            image: imagen,  
+                            width: 100,
+                            height: 45,
+                            margin: [0, 0, 0, 12]
+                        });
+                    }
+                }
             }
         ],
         "drawCallback": function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
         }
     });
+    
     table_usuarios.search('').draw();
     $('#buscar').focus();
 
@@ -233,36 +184,29 @@ var listar_usuarios = function() {
     eliminar_usuarios_dataTable("#dataTableUsers tbody", table_usuarios);
 }
 
+// Función para manejar el restablecimiento de contraseña
 var actualizar_usuarios_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.table_actualizar");
     $(tbody).on("click", "button.table_actualizar", function() {
         var data = table.row($(this).parents("tr")).data();
 
-        swal({
-            title: "¿Esta seguro?",
-            text: "¿Desea resetear la contraseña al usuario: " + consultarNombre(data.users_id) +
-                    "?",
+        Swal.fire({
+            title: "¿Está seguro?",
+            text: "¿Desea resetear la contraseña al usuario: " + data.colaborador + "?",
             icon: "warning",
-            buttons: {
-                cancel: {
-                    text: "Cancelar",
-                    visible: true
-                },
-                confirm: {
-                    text: "¡Si, deseo resetear la contraseña!",
-                }
-            },
-            dangerMode: true,
-            closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-            closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-        }).then((willConfirm) => {
-            if (willConfirm === true) {
+            showCancelButton: true,
+            confirmButtonText: "¡Sí, resetear!",
+            cancelButtonText: "Cancelar",
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
                 resetearContra(data.users_id, data.server_customers_id);
             }
         });
     });
 }
 
+// Función para editar usuario
 var editar_usuarios_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.table_editar");
     $(tbody).on("click", "button.table_editar", function() {
@@ -273,151 +217,141 @@ var editar_usuarios_dataTable = function(tbody, table) {
         $.ajax({
             type: 'POST',
             url: url,
-            data: $('#formUsers').serialize(),
-            success: function(registro) {
-                var valores = eval(registro);
-                $('#formUsers').attr({
-                    'data-form': 'update'
-                });
-                $('#formUsers').attr({
-                    'action': '<?php echo SERVERURL; ?>ajax/modificarUsersAjax.php'
-                });
-                $('#formUsers')[0].reset();
-                $('#reg_usuario').hide();
-                $('#edi_usuario').show();
-                $('#delete_usuario').hide();
-                $('#formUsers #usuarios_colaborador_id').val(valores[0]);
-                $('#formUsers #colaborador_id_usuario').val(valores[0]);
-                $('#formUsers #colaborador_id_usuario').selectpicker('refresh');
-                $('#formUsers #nickname').val(valores[2]);
-                $('#formUsers #pass').attr('disabled', true);
-                $('#formUsers #correo_usuario').val(valores[3]);
-                $('#formUsers #empresa_usuario').val(valores[4]);
-                $('#formUsers #empresa_usuario').selectpicker('refresh');
-                $('#formUsers #tipo_user').val(valores[5]);
-                $('#formUsers #tipo_user').selectpicker('refresh');
-                $('#formUsers #privilegio_id').val(valores[7]);
-                $('#formUsers #server_customers_id').val(valores[8]);
-                $('#formUsers #privilegio_id').selectpicker('refresh');
-
-                if (valores[6] == 1) {
-                    $('#formUsers #usuarios_activo').attr('checked', true);
+            data: {users_id: data.users_id},
+            dataType: 'json',
+            success: function(response) {
+                if(response.success) {
+                    // Configurar formulario para edición
+                    $('#formUsers').attr('data-form', 'update');
+                    $('#formUsers').attr('action', '<?php echo SERVERURL; ?>ajax/modificarUsersAjax.php');
+                    
+                    // Mostrar/ocultar botones
+                    $('#reg_usuario').hide();
+                    $('#edi_usuario').show();
+                    
+                    // Llenar datos del colaborador
+                    $('#formUsers #colaboradores_id').val(response.data.colaboradores_id);
+                    $('#formUsers #es_nuevo_colaborador').val('0');
+                    
+                    // Seleccionar colaborador en el select
+                    $('#formUsers #colaboradores_id').val(response.data.colaboradores_id);
+                    $('#formUsers #colaboradores_id').selectpicker('refresh');
+                    
+                    // Mostrar información del colaborador
+                    $('#formUsers #info_nombre').text(response.data.nombre_completo);
+                    $('#formUsers #info_identidad').text(response.data.identidad || 'No especificado');
+                    $('#formUsers #info_telefono').text(response.data.telefono || 'No especificado');
+                    $('#formUsers #info_fecha_ingreso').text(response.data.fecha_ingreso);
+                    $('#formUsers #info_estado').html(response.data.estado_colaborador == 1 ? 
+                        '<span class="badge badge-success">Activo</span>' : 
+                        '<span class="badge badge-danger">Inactivo</span>');
+                    $('#formUsers #info_colaborador').show();
+                    
+                    // Llenar datos del usuario
+                    $('#formUsers #correo_usuario').val(response.data.correo);
+                    $('#formUsers #empresa_usuario').val(response.data.empresa_id);
+                    $('#formUsers #empresa_usuario').selectpicker('refresh');
+                    $('#formUsers #tipo_user').val(response.data.tipo_user_id);
+                    $('#formUsers #tipo_user').selectpicker('refresh');
+                    $('#formUsers #privilegio_id').val(response.data.privilegio_id);
+                    $('#formUsers #privilegio_id').selectpicker('refresh');
+                    $('#formUsers #server_customers_id').val(response.data.server_customers_id);
+                    
+                    // Estado del usuario
+                    if(response.data.estado == 1) {
+                        $('#formUsers #estado_usuario').prop('checked', true);
+                        $('#formUsers #label_usuarios_activo').html("Activo");
+                    } else {
+                        $('#formUsers #estado_usuario').prop('checked', false);
+                        $('#formUsers #label_usuarios_activo').html("Inactivo");
+                    }
+                    
+                    // Mostrar modal
+                    $('#modal_registrar_usuarios').modal({
+                        show: true,
+                        keyboard: false,
+                        backdrop: 'static'
+                    });
                 } else {
-                    $('#formUsers #usuarios_activo').attr('checked', false);
+                    showNotify("error", "Error", response.message || "Error al cargar datos del usuario");
                 }
-
-                $('#info_identidad').text(response.data.identidad);
-                
-                //HABILITAR OBJETOS
-                $('#formUsers #pass').attr('readonly', false);
-                $('#formUsers #correo_usuario').attr('readonly', false);
-                $('#formUsers #empresa_usuario').attr('disabled', false);
-                $('#formUsers #tipo_user').attr('disabled', false);
-                $('#formUsers #estado_usuario').attr('disabled', false);
-                $('#formUsers #privilegio_id').attr('disabled', false);
-                $('#formUsers #usuarios_activo').attr('disabled', false);
-                $('#formUsers #estado_usuarios').show();
-
-                //DESHABILITAR OBJETOS
-                $('#formUsers #nickname').attr('readonly', true);
-                $('#formUsers #correo_usuario').attr('readonly', true);
-
-                $('#formUsers #proceso_usuarios').val("Editar");
-                $('#formUsers #grupo_buscar_colaboradores').attr('disabled', true);
-                $('#modal_registrar_usuarios').modal({
-                    show: true,
-                    keyboard: false,
-                    backdrop: 'static'
-                });
+            },
+            error: function() {
+                showNotify("error", "Error", "Error de conexión al cargar datos del usuario");
             }
         });
     });
 }
 
+// Función para eliminar usuario
 var eliminar_usuarios_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.table_eliminar");
     $(tbody).on("click", "button.table_eliminar", function() {
         var data = table.row($(this).parents("tr")).data();
 
-        var users_id = data.users_id;
-        var nombre = data.colaborador; 
-        var correo = data.correo;
-
-        // Construir el mensaje de confirmación con HTML
         var mensajeHTML = `¿Desea eliminar permanentemente el usuario?<br><br>
-                        <strong>Nombre:</strong> ${nombre}<br>
-                        <strong>Correo:</strong> ${correo}`;
+                        <strong>Nombre:</strong> ${data.colaborador}<br>
+                        <strong>Correo:</strong> ${data.correo}`;
                                                 
-        swal({
+        Swal.fire({
             title: "Confirmar eliminación",
-            content: {
-                element: "span",
-                attributes: {
-                    innerHTML: mensajeHTML
-                }
-            },
+            html: mensajeHTML,
             icon: "warning",
-            buttons: {
-                cancel: {
-                    text: "Cancelar",
-                    value: null,
-                    visible: true,
-                    className: "btn-light"
-                },
-                confirm: {
-                    text: "Sí, eliminar",
-                    value: true,
-                    className: "btn-danger",
-                    closeModal: false
-                }
-            },
-            dangerMode: true,
-            closeOnEsc: false,
-            closeOnClickOutside: false
-        }).then((confirmar) => {
-            if (confirmar) {
+            showCancelButton: true,
+            confirmButtonText: "Sí, eliminar",
+            cancelButtonText: "Cancelar",
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
                 $.ajax({
                     type: 'POST',
                     url: '<?php echo SERVERURL;?>ajax/eliminarUsersAjax.php',
                     data: {
-                        users_id: users_id
+                        users_id: data.users_id
                     },
-                    dataType: 'json', // Esperamos respuesta JSON
-                    before: function(){
-                        // Mostrar carga mientras se procesa
-                        showLoading("Eliminando registro...");
+                    dataType: 'json',
+                    beforeSend: function() {
+                        Swal.fire({
+                            title: 'Procesando',
+                            html: 'Eliminando usuario...',
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
                     },                    
                     success: function(response) {
-                        swal.close();
+                        Swal.close();
                         
                         if(response.status === "success") {
                             showNotify("success", response.title, response.message);
-                            table.ajax.reload(null, false); // Recargar tabla sin resetear paginación
-                            table.search('').draw();                    
+                            table.ajax.reload(null, false);
                         } else {
                             showNotify("error", response.title, response.message);
                         }
                     },
-                    error: function(xhr, status, error) {
-                        swal.close();
+                    error: function() {
+                        Swal.close();
                         showNotify("error", "Error", "Ocurrió un error al procesar la solicitud");
-                        console.error("Error en la solicitud AJAX:", error);
                     }
                 });
             }
         });
-
     });
 }
 
+// Función para abrir modal de registro
 function modal_usuarios() {
     // Resetear formulario completamente
     $('#formUsers')[0].reset();
     
-    // Limpiar y resetear select de buscar colaborador
+    // Limpiar y resetear selects
     $('#buscar_colaborador').empty();
     $('#buscar_colaborador').selectpicker('refresh');
-    $('#buscar_colaborador').selectpicker('val', '');
+    $('#empresa_usuario').val('').selectpicker('refresh');
+    $('#privilegio_id').val('').selectpicker('refresh');
+    $('#tipo_user').val('').selectpicker('refresh');
+    $('#puesto_colaborador').val('').selectpicker('refresh');
     
     // Ocultar información del colaborador
     $('#info_colaborador').hide();
@@ -425,20 +359,6 @@ function modal_usuarios() {
     
     // Mostrar pestaña de colaborador existente por defecto
     $('#existente-tab').tab('show');
-    
-    // Resetear campos de nuevo colaborador
-    $('#nombre_colaborador').val('');
-    $('#identidad_colaborador').val('');
-    $('#telefono_colaborador').val('');
-    $('#fecha_ingreso_colaborador').val(new Date().toISOString().split('T')[0]);
-    $('#puesto_colaborador').val('').selectpicker('refresh');
-    
-    // Resetear credenciales de usuario
-    $('#correo_usuario').val('');
-    $('#empresa_usuario').val('').selectpicker('refresh');
-    $('#privilegio_id').val('').selectpicker('refresh');
-    $('#tipo_user').val('').selectpicker('refresh');
-    $('#estado_usuario').prop('checked', true);
     
     // Configurar formulario para nuevo registro
     $('#formUsers').attr('data-form', 'save');
@@ -448,17 +368,13 @@ function modal_usuarios() {
     $('#reg_usuario').show();
     $('#edi_usuario').hide();
     
-    // Cargar selects
-    getEmpresaUsers();
-    getTipoUsuario();
-    getPrivilegio();
-    getPuestosColaboradoresUsuarios();
-    getEmpresaUsuarios();
-    getColaboradoresUsuario();
-
     // Establecer fecha actual
     var fechaActual = new Date().toISOString().split('T')[0];
     $('#fecha_ingreso_colaborador').val(fechaActual);
+    
+    // Estado activo por defecto
+    $('#estado_usuario').prop('checked', true);
+    $('#label_usuarios_activo').html("Activo");
     
     // Mostrar modal
     $('#modal_registrar_usuarios').modal({
@@ -468,53 +384,73 @@ function modal_usuarios() {
     });
 }
 
-function getPuestosColaboradoresUsuarios() {
-    var url = '<?php echo SERVERURL; ?>core/getPuestoColaboradores.php';
-
+// Función para obtener información de un colaborador
+function obtenerInfoColaborador(colaborador_id) {
     $.ajax({
-        type: "POST",
-        url: url,
-        async: true,
-        success: function(data) {
-            $('#formUsers #puesto_colaborador').html("");
-            $('#formUsers #puesto_colaborador').html(data);
-            $('#formUsers #puesto_colaborador').selectpicker('refresh');
+        url: '<?php echo SERVERURL; ?>core/getColaboradorInfo.php',
+        type: 'POST',
+        data: {colaborador_id: colaborador_id},
+        dataType: 'json',
+        success: function(response) {
+            if(response.success) {
+                $('#colaboradores_id').val(response.data.colaboradores_id);
+                $('#info_nombre').text(response.data.nombre + ' ' + response.data.apellido);
+                $('#info_identidad').text(response.data.identidad || 'No especificado');
+                $('#info_telefono').text(response.data.telefono || 'No especificado');
+                $('#info_fecha_ingreso').text(response.data.fecha_ingreso);
+                $('#info_estado').html(response.data.estado == 1 ? 
+                    '<span class="badge badge-success">Activo</span>' : 
+                    '<span class="badge badge-danger">Inactivo</span>');
+                
+                $('#info_colaborador').show();
+            } else {
+                showNotify("error", "Error", response.message || "Error al obtener información del colaborador");
+                $('#info_colaborador').hide();
+            }
+        },
+        error: function() {
+            showNotify("error", "Error", "Error de conexión al obtener información del colaborador");
+            $('#info_colaborador').hide();
         }
     });
 }
 
-function getEmpresaUsuarios() {
-    var url = '<?php echo SERVERURL;?>core/getEmpresa.php';
-
-    $.ajax({
-        type: "POST",
-        url: url,
-        async: true,
-        success: function(data) {
-            $('#formUsers #colaborador_empresa_id').html("");
-            $('#formUsers #colaborador_empresa_id').html(data);
-            $('#formUsers #colaborador_empresa_id').selectpicker('refresh');
+// Función para resetear contraseña
+function resetearContra(users_id, server_customers_id) {
+    Swal.fire({
+        title: 'Procesando',
+        html: 'Reseteando contraseña...',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
         }
     });
-}
-
-function consultarNombre(users_id) {
-    var url = '<?php echo SERVERURL; ?>core/getUsuarioNombre.php';
-    var resp;
 
     $.ajax({
         type: 'POST',
-        url: url,
-        data: 'users_id=' + users_id,
-        async: false,
-        success: function(data) {
-            var valores = eval(data);
-            resp = valores[0];
+        url: '<?php echo SERVERURL; ?>ajax/resetearContrasenaAjax.php',
+        data: {
+            users_id: users_id,
+            server_customers_id: server_customers_id,
+        },
+        dataType: 'json',
+        success: function(response) {
+            Swal.close();
+            
+            if(response.status === "success") {
+                showNotify("success", response.title, response.message);
+            } else {
+                showNotify("error", response.title, response.message);
+            }
+        },
+        error: function() {
+            Swal.close();
+            showNotify("error", "Error", "Error de conexión al resetear contraseña");
         }
     });
-    return resp;
 }
 
+// Función para obtener tipos de usuario
 function getTipoUsuario() {
     $.ajax({
         url: "<?php echo SERVERURL; ?>core/getTipoUsuario.php",
@@ -539,7 +475,7 @@ function getTipoUsuario() {
             
             select.selectpicker('refresh');
         },
-        error: function(xhr) {
+        error: function() {
             showNotify("error", "Error", "Error de conexión al cargar tipos de usuario");
             $('#formUsers #tipo_user').html('<option value="">Error al cargar</option>');
             $('#formUsers #tipo_user').selectpicker('refresh');
@@ -547,6 +483,7 @@ function getTipoUsuario() {
     });
 }
 
+// Función para obtener privilegios
 function getPrivilegio() {
     $.ajax({
         url: "<?php echo SERVERURL; ?>core/getPrivilegio.php",
@@ -571,7 +508,7 @@ function getPrivilegio() {
             
             select.selectpicker('refresh');
         },
-        error: function(xhr) {
+        error: function() {
             showNotify("error", "Error", "Error de conexión al cargar privilegios");
             $('#formUsers #privilegio_id').html('<option value="">Error al cargar</option>');
             $('#formUsers #privilegio_id').selectpicker('refresh');
@@ -579,6 +516,7 @@ function getPrivilegio() {
     });
 }
 
+// Función para obtener empresas
 function getEmpresaUsers() {
     $.ajax({
         url: "<?php echo SERVERURL; ?>core/getEmpresa.php",
@@ -596,12 +534,6 @@ function getEmpresaUsers() {
                         </option>
                     `);
                 });
-                
-                // Establecer valor por defecto si existe
-                if(response.data.length > 0) {
-                    select.val(1); // O el valor que necesites por defecto
-                    select.selectpicker('refresh');
-                }
             } else {
                 select.append('<option value="">No hay empresas disponibles</option>');
                 showNotify("warning", "Advertencia", response.message || "No se encontraron empresas");
@@ -609,7 +541,7 @@ function getEmpresaUsers() {
             
             select.selectpicker('refresh');
         },
-        error: function(xhr) {
+        error: function() {
             showNotify("error", "Error", "Error de conexión al cargar empresas");
             $('#formUsers #empresa_usuario').html('<option value="">Error al cargar</option>');
             $('#formUsers #empresa_usuario').selectpicker('refresh');
@@ -623,14 +555,14 @@ function getColaboradoresUsuario() {
         type: "POST",
         dataType: "json",
         success: function(response) {
-            const select = $('#formUsers #buscar_colaborador');
+            const select = $('#formUsers #colaboradores_id');
             select.empty();
             
             if(response.success) {
                 response.data.forEach(colaborador => {
                     select.append(`
                         <option value="${colaborador.colaboradores_id}" 
-                                data-subtext="${colaborador.identidad || 'Sin identidad'}">
+                                data-subtext="${cliente.identidad || 'Sin RTN o Identidad'}">
                             ${colaborador.nombre}
                         </option>
                     `);
@@ -643,72 +575,45 @@ function getColaboradoresUsuario() {
         },
         error: function(xhr) {
             showNotify("error", "Error", "Error de conexión al cargar colaboradores");
-            $('#formUsers #buscar_colaborador').html('<option value="">Error al cargar</option>');
-            $('#formUsers #buscar_colaborador').selectpicker('refresh');
+            $('#formUsers #colaboradores_id').html('<option value="">Error al cargar</option>');
+            $('#formUsers #colaboradores_id').selectpicker('refresh');
         }
     });
 }
 
-function resetearContra(users_id, server_customers_id) {
-    var url = '<?php echo SERVERURL; ?>ajax/resetearContrasenaAjax.php';
-
+// Función para obtener puestos de colaboradores
+function getPuestosColaboradoresUsuarios() {
     $.ajax({
-        type: 'POST',
-        url: url,
-        data: {
-            users_id: users_id,
-            server_customers_id: server_customers_id,
-        },
-        success: function(registro) {
-            if (registro == 1) {
-                swal({
-                    title: "Success",
-                    text: "Contraseña cambiada correctamente",
-                    icon: "success",
-                    timer: 3000, //timeOut for auto-close	
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera				
+        url: "<?php echo SERVERURL; ?>core/getPuestoColaboradores.php",
+        type: "POST",
+        dataType: "json",
+        success: function(response) {
+            const select = $('#formUsers #puesto_colaborador');
+            select.empty();
+            
+            if(response.success) {
+                response.data.forEach(puesto => {
+                    select.append(`
+                        <option value="${puesto.puestos_id}">
+                            ${puesto.nombre}
+                        </option>
+                    `);
                 });
-                return false;
             } else {
-                swal({
-                    title: "Error",
-                    text: "Error al resetear la contraseña",
-                    icon: "error",
-                    dangerMode: true,
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-                });
-                return false;
+                select.append('<option value="">No hay puestos disponibles</option>');
             }
+            
+            select.selectpicker('refresh');
+        },
+        error: function() {
+            showNotify("error", "Error", "Error de conexión al cargar puestos");
+            $('#formUsers #puesto_colaborador').html('<option value="">Error al cargar</option>');
+            $('#formUsers #puesto_colaborador').selectpicker('refresh');
         }
     });
-    return false;
 }
 
-$(document).ready(function() {
-    $("#modal_registrar_usuarios").on('shown.bs.modal', function() {
-        $(this).find('#formUsers #colaborador_id_usuario').focus();
-    });
-
-    $("#modal_buscar_colaboradores").on('shown.bs.modal', function() {
-        $(this).find('#DatatableColaboradoresBusqueda #buscar').focus();
-    });
-
-    $("#modal_buscar_colaboradores_usuarios").on('shown.bs.modal', function() {
-        $(this).find('#formulario_busqueda_coloboradores #buscar').focus();
-    });    
-});
-
-$('#formUsers #label_usuarios_activo').html("Activo");
-
-$('#formUsers .switch').change(function() {
-    if ($('input[name=usuarios_activo]').is(':checked')) {
-        $('#formUsers #label_usuarios_activo').html("Activo");
-        return true;
-    } else {
-        $('#formUsers #label_usuarios_activo').html("Inactivo");
-        return false;
-    }
+$('#btnNuevoPuesto').on('click', function() {
+    modal_puestos();
 });
 </script>

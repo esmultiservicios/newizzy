@@ -453,7 +453,6 @@ class clientesControlador extends clientesModelo {
     private function registrarColaborador($nombre, $telefono, $identidad, $empresa_id) {
         $datos = [
             "nombre" => $nombre,
-            "apellido" => "", // Puedes agregar este campo si lo necesitas
             "identidad" => $identidad,
             "estado" => 1, // 1 para Activo
             "telefono" => $telefono,

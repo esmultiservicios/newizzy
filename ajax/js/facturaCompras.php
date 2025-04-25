@@ -810,16 +810,8 @@ $(document).ready(function() {
         if ($("#purchase-form #proveedor").val() != "") {
             addRowCompras();
         } else {
-            swal({
-                title: "Error",
-                text: "Lo sentimos no puede agregar más filas, debe seleccionar un usuario antes de poder continuar",
-                icon: "error",
-                dangerMode: true,
-                closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-            });
+            showNotify('error', 'Error', 'Lo sentimos no puede agregar más filas, debe seleccionar un usuario antes de poder continuar');
         }
-
     });
 
     $(document).on('click', '#removeRowsPurchase', function() {
@@ -839,14 +831,7 @@ $(document).ready(function() {
             calculateTotalCompras();
 
         } else {
-            swal({
-                title: "Error",
-                text: "Lo sentimos debe seleccionar un fila antes de intentar eliminarla",
-                icon: "error",
-                dangerMode: true,
-                closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-            });
+            showNotify('error', 'Error', 'Lo sentimos debe seleccionar un fila antes de intentar eliminarla');
         }
     });
 
@@ -1276,14 +1261,7 @@ function manejarPresionEnterCompras(row_index) {
 
                     calculateTotalCompras();
                 } else {
-                    swal({
-                        title: "Error",
-                        text: "Producto no encontrado, por favor corregir",
-                        type: "error",
-                        dangerMode: true,
-                        closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                        closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-                    });
+                    showNotify('error', 'Error', 'Producto no encontrado, por favor corregir');
                     $("#purchase-form #purchaseItem #bar-code-id_" + row_index).val("");
                 }
             }

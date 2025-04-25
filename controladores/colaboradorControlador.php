@@ -30,7 +30,7 @@ class colaboradorControlador extends colaboradorModelo{
         $estado = 1;
     
         // Si la identidad está vacía, generamos una única
-        if (empty($identidad)) {
+        if (empty($identidad) || $identidad == "0") {
             do {
                 $identidad = "C-" . rand(10000000, 99999999); // Puedes ajustar el formato
             } while (colaboradorModelo::valid_colaborador_modelo($identidad)->num_rows > 0);

@@ -8,15 +8,23 @@
 		$insVarios = new menuAccesosControlador();
 		
 		echo $insVarios->agregar_MenuAccesos_controlador();
-	}else{
-		echo "
-			<script>
-				swal({
-					title: 'Error', 
-					text: 'Los datos son incorrectos por favor corregir',
-					type: 'error', 
-					confirmButtonClass: 'btn-danger'
-				});			
-			</script>";
+	} else {
+		// Identificar campos faltantes
+		$missingFields = [];
+		
+		if (!isset($_POST['privilegio_id_accesos'])) $missingFields[] = "ID del privilegio";
+	
+		// Preparar el mensaje
+		$missingText = implode(", ", $missingFields);
+		$title = "Error 🚨";
+		$message = "Faltan los siguientes campos: $missingText. Por favor, corrígelos.";
+		
+		// Escapar comillas para JavaScript
+		$title = addslashes($title);
+		$message = addslashes($message);
+		
+		// Llamar a TU función showNotify exactamente como está definida
+		echo "<script>
+			showNotify('error', '$title', '$message');
+		</script>";
 	}
-?>	

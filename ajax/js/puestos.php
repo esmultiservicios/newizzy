@@ -19,7 +19,6 @@ var listar_puestos = function(){
 		],
         "lengthMenu": lengthMenu,
 		"stateSave": true,
-		"bDestroy": true,
 		"language": idioma_español,
 		"dom": dom,
 		"columnDefs": [
@@ -137,7 +136,7 @@ var eliminar_puestos_dataTable = function(tbody, table){
 	$(tbody).on("click", "button.table_eliminar", function(){
 		var data = table.row( $(this).parents("tr") ).data();
 
-		var puesto_id = data.puestos_id;
+		var puestos_id = data.puestos_id;
         var nombrePuesto = data.nombre; 
         
         // Construir el mensaje de confirmación con HTML
@@ -177,7 +176,7 @@ var eliminar_puestos_dataTable = function(tbody, table){
                     type: 'POST',
                     url: '<?php echo SERVERURL;?>ajax/eliminarPuestosAjax.php',
                     data: {
-                        puesto_id: puesto_id
+                        puestos_id: puestos_id
                     },
                     dataType: 'json', // Esperamos respuesta JSON
                     before: function(){
@@ -205,29 +204,6 @@ var eliminar_puestos_dataTable = function(tbody, table){
 	});
 }
 //FIN ACCIONES FROMULARIO PUESTOS
-
-/*INICIO FORMULARIO PUESTO DE COLABORADORES*/
-function modal_puestos(){
-	  $('#formPuestos').attr({ 'data-form': 'save' });
-	  $('#formPuestos').attr({ 'action': '<?php echo SERVERURL;?>ajax/agregarPuestosAjax.php' });
-	  $('#formPuestos')[0].reset();
-	  $('#reg_puestos').show();
-	  $('#edi_puestos').hide();
-	  $('#delete_puestos').hide();
-
-	  //HABILITAR OBJETOS
-	  $('#formPuestos #puesto').attr('readonly', false);
-	  $('#formPuestos #puestos_activo').attr('disabled', false);
-	  $('#formPuestos #estado_puestos').hide();
-
-	  $('#formPuestos #proceso_puestos').val("Registro");
-	  $('#modal_registrar_puestos').modal({
-		show:true,
-		keyboard: false,
-		backdrop:'static'
-	  });
-}
-/*FIN FORMULARIO PUESTO DE COLABORADORES*/
 
 $(document).ready(function(){
     $("#modal_registrar_puestos").on('shown.bs.modal', function(){

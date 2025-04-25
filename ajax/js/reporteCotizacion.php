@@ -352,23 +352,10 @@ function anular(cotizacion_id) {
         data: 'cotizacion_id=' + cotizacion_id,
         success: function(data) {
             if (data == 1) {
-                swal({
-                    title: "Success",
-                    text: "La cotización ha sido anulada con éxito",
-                    icon: "success",
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera                    
-                });
+                showNotify('success', 'Success', 'La cotización ha sido anulada con éxito');
                 listar_reporte_cotizaciones();
             } else {
-                swal({
-                    title: "Error",
-                    text: "La cotización no se pudo anular",
-                    icon: "error",
-                    dangerMode: true,
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-                });
+                showNotify('error', 'Error', 'La cotización no se pudo anular');
             }
         }
     });

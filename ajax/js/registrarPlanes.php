@@ -545,16 +545,7 @@ document.addEventListener("DOMContentLoaded", function() {
             closeOnClickOutside: false
         }).then((confirmado) => {
             if (confirmado) {
-                // Mostrar carga mientras se procesa
-                swal({
-                    title: "Procesando",
-                    text: "Por favor espere...",
-                    icon: "info",
-                    buttons: false,
-                    closeOnClickOutside: false,
-                    closeOnEsc: false
-                });
-
+                // Mostrar carga mientras se procesa        
                 $.ajax({
                     url: "<?php echo SERVERURL;?>ajax/eliminarAsistenciaAjax.php",
                     type: "POST",
@@ -562,9 +553,10 @@ document.addEventListener("DOMContentLoaded", function() {
                         asistencia_id: asistencia_id 
                     },
                     dataType: "json",
-                    success: function(response) {
-                        swal.close();
-                        
+                    beforeSend: function() {
+                        showLoading("Procesando...");
+                    },
+                    success: function(response) {                       
                         if(response.status === "success") {
                             // Recargar tabla sin resetear paginación
                             table.ajax.reload(null, false); 
@@ -574,7 +566,6 @@ document.addEventListener("DOMContentLoaded", function() {
                         }
                     },
                     error: function(xhr) {
-                        swal.close();
                         console.error("Error en la solicitud:", xhr.responseText);
                         showNotify("error", "Error", "Ocurrió un error al procesar la solicitud");
                     }

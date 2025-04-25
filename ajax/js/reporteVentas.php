@@ -489,7 +489,7 @@ function anularFacturas(facturas_id) {
         closeOnClickOutside: false        
     }).then((value) => {
         if (value === null || value.trim() === "") {
-            swal("¡Necesita escribir algo!", { icon: "error" });
+            showNotify('error', 'Error', '¡Necesita escribir algo!');
             return false;
         }
         anular(facturas_id, value);
@@ -506,23 +506,10 @@ function anular(facturas_id, comentario) {
         data: 'facturas_id=' + facturas_id + '&comentario=' + comentario,
         success: function(data) {
             if (data == 1) {
-                swal({
-                    title: "Success",
-                    text: "La factura ha sido anulada con éxito",
-                    icon: "success",
-                    closeOnEsc: false,
-                    closeOnClickOutside: false                    
-                });
+                showNotify('success', 'Success', 'La factura ha sido anulada con éxito');
                 listar_reporte_ventas();
             } else {
-                swal({
-                    title: "Error",
-                    text: "La factura no se puede anular",
-                    icon: "error",
-                    dangerMode: true,
-                    closeOnEsc: false,
-                    closeOnClickOutside: false
-                });
+                showNotify('error', 'Error', 'La factura no se puede anular');
             }
         }
     });

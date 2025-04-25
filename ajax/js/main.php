@@ -957,6 +957,43 @@ function getProductos() {
 }
 //FIN PRODUCTOS
 
+/*INICIO FORMULARIO PUESTO DE COLABORADORES*/
+function modal_puestos(){
+	  $('#formPuestos').attr({ 'data-form': 'save' });
+	  $('#formPuestos').attr({ 'action': '<?php echo SERVERURL;?>ajax/agregarPuestosAjax.php' });
+	  $('#formPuestos')[0].reset();
+	  $('#reg_puestos').show();
+	  $('#edi_puestos').hide();
+	  $('#delete_puestos').hide();
+
+	  //HABILITAR OBJETOS
+	  $('#formPuestos #puesto').attr('readonly', false);
+	  $('#formPuestos #puestos_activo').attr('disabled', false);
+	  $('#formPuestos #estado_puestos').hide();
+
+	  $('#formPuestos #proceso_puestos').val("Registro");
+	  $('#modal_registrar_puestos').modal({
+		show:true,
+		keyboard: false,
+		backdrop:'static'
+	  });
+
+      $('#modal_registrar_puestos').off('shown.bs.modal').on('shown.bs.modal', function(){
+            $(this).find('#formPuestos #puesto').focus();
+      });
+
+      // Escuchar cuando se cierra el modal (después de un registro exitoso)
+    $('#modal_registrar_puestos').off('hidden.bs.modal').on('hidden.bs.modal', function () {
+            // Listener para después del cierre
+            $('#modal_registrar_puestos').on('hidden.bs.modal', function () {
+                if($('#formPuestos').data('success')) {
+                    alert("hey haz llegado hasta aqui");
+                }
+            });
+    });
+}
+/*FIN FORMULARIO PUESTO DE COLABORADORES*/
+
 //INICIO CLIENTES
 /*INICIO FORMULARIO CLIENTES*/
 function modal_clientes() {
@@ -1119,14 +1156,7 @@ $('#form-cambiarcontra #contranaterior').on('blur', function() {
             },
             success: function(datos) {
                 if (datos == 0) {
-                    swal({
-                        title: "Error",
-                        text: "La contraseña que ingresó no coincide con la anterior",
-                        icon: "error",
-                        dangerMode: true,
-                        closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                        closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-                    });
+                    showNotify('error', 'Error', 'La contraseña que ingresó no coincide con la anterior');
                     $("#form-cambiarcontra #contranaterior").css("border-color", "red");
                     $("#form-cambiarcontra #ModalContraseñacontra_Edit").prop('disabled', true);
                 } else {
@@ -1586,15 +1616,7 @@ function printBill(facturas_id, $print_comprobante) {
                     };                
                 } else {
                     // Manejar caso donde el formato no sea válido
-                    swal({
-                        title: "Error",
-                        text: "El formato de impresión no es válido. Verifica la configuración de la impresora.",
-                        icon: "error",
-                        button: "Cerrar",
-                        dangerMode: true,
-                        closeOnEsc: false,
-                        closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera                      
-                    });
+                    showNotify('error', 'Error', 'El formato de impresión no es válido. Verifica la configuración de la impresora.');
                     return; // Salir si el formato no es válido
                 }
 
@@ -1602,38 +1624,12 @@ function printBill(facturas_id, $print_comprobante) {
                 viewReport(params);
             } else {
                 // Usando SweetAlert en lugar de alert
-                swal({
-                    title: "Error",
-                    text: "La impresora no está activa. Diríjase al menú de 'Configuración' > 'Impresoras' para activar la impresora. Después de activarla, podrás reimprimir la factura desde el reporte de facturación.",
-                    icon: "error",
-                    buttons: {
-                        confirm: {
-                            text: "Cerrar",
-                            closeModal: true,
-                        },
-                    },
-                    dangerMode: true,
-                    closeOnEsc: false,
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-                });
+                 showNotify('error', 'Error', 'La impresora no está activa. Diríjase al menú de "Configuración" > "Impresoras" para activar la impresora. Después de activarla, podrás reimprimir la factura desde el reporte de facturación.');
             }
         },
         error: function(xhr, status, error) {
             console.error("Error en la solicitud AJAX:", error);
-            swal({
-                title: "Error",
-                text: "Hubo un problema al procesar la solicitud.",
-                icon: "error",
-                buttons: {
-                    confirm: {
-                        text: "Cerrar",
-                        closeModal: true,
-                    },
-                },
-                dangerMode: true,
-                closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera              
-            });
+            showNotify('error', 'Error', 'Hubo un problema al procesar la solicitud.');
         }
     });
 
@@ -1681,15 +1677,7 @@ function printBillReporteVentas(facturas_id, print_comprobante) {
                     };                
                 } else {
                     // Manejar caso donde el formato no sea válido
-                    swal({
-                        title: "Error",
-                        text: "El formato de impresión no es válido. Verifica la configuración de la impresora.",
-                        icon: "error",
-                        button: "Cerrar",
-                        dangerMode: true,
-                        closeOnEsc: false,
-                        closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera                      
-                    });
+                    showNotify('error', 'Error', 'El formato de impresión no es válido. Verifica la configuración de la impresora.');
                     return; // Salir si el formato no es válido
                 }
 
@@ -1715,20 +1703,7 @@ function printBillReporteVentas(facturas_id, print_comprobante) {
         },
         error: function(xhr, status, error) {
             console.error("Error en la solicitud AJAX:", error);
-            swal({
-                title: "Error",
-                text: "Hubo un problema al procesar la solicitud.",
-                icon: "error",
-                buttons: {
-                    confirm: {
-                        text: "Cerrar",
-                        closeModal: true,
-                    },
-                },
-                dangerMode: true,
-                closeOnEsc: false,
-                closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-            });
+            showNotify('error', 'Error', 'Hubo un problema al procesar la solicitud.');
         }
     });
 }
@@ -1758,38 +1733,11 @@ function printBillComprobanteReporteVentas(facturas_id, print_comprobante) {
                 window.open(baseUrl + endpoint + params);
             } else {
                 // Usando SweetAlert en lugar de alert
-                swal({
-                    title: "Error",
-                    text: "No hay impresoras activas o configuradas.",
-                    icon: "error",
-                    buttons: {
-                        confirm: {
-                            text: "Cerrar",
-                            closeModal: true,
-                        },
-                    },
-                    dangerMode: true,
-                    closeOnEsc: false,
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-                });
+                showNotify('error', 'Error', 'No hay impresoras activas o configuradas.');
             }
         },
         error: function(xhr, status, error) {
-            console.error("Error en la solicitud AJAX:", error);
-            swal({
-                title: "Error",
-                text: "Hubo un problema al procesar la solicitud.",
-                icon: "error",
-                buttons: {
-                    confirm: {
-                        text: "Cerrar",
-                        closeModal: true,
-                    },
-                },
-                dangerMode: true,
-                closeOnEsc: false,
-                closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-            });
+            showNotify('error', 'Error', 'Hubo un problema al procesar la solicitud.');
         }
     });
 }
@@ -1859,13 +1807,7 @@ function sendQuote(cotizacion_id) {
         success: function(data) {
             bill = data;
             if (bill == 1) {
-                swal({
-                    title: "Success",
-                    text: "La cotización ha sido enviada por correo satisfactoriamente",
-                    icon: "success",
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera                     
-                });
+                showNotify('success', 'Success', 'La cotización ha sido enviada por correo satisfactoriamente');
             }
         }
     });
@@ -1928,13 +1870,7 @@ function sendMail(facturas_id) {
         success: function(data) {
             bill = data;
             if (bill == 1) {
-                swal({
-                    title: "Success",
-                    text: "La factura ha sido enviada por correo satisfactoriamente",
-                    icon: "success",
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera                     
-                });
+                showNotify('success', 'Success', 'La factura ha sido enviada por correo satisfactoriamente');
             }
         }
     });
@@ -2015,15 +1951,31 @@ function modal_colaboradores() {
 }
 
 function getPuestoColaboradores() {
-    var url = '<?php echo SERVERURL;?>core/getPuestoColaboradores.php';
-
     $.ajax({
+        url: "<?php echo SERVERURL; ?>core/getPuestoColaboradores.php",
         type: "POST",
-        url: url,
-        async: true,
-        success: function(data) {
-            $('#formColaboradores #puesto_colaborador').html("");
-            $('#formColaboradores #puesto_colaborador').html(data);
+        dataType: "json",
+        success: function(response) {
+            const select = $('#formColaboradores #puesto_colaborador');
+            select.empty();
+            
+            if(response.success) {
+                response.data.forEach(puesto => {
+                    select.append(`
+                        <option value="${puesto.puestos_id}">
+                            ${puesto.nombre}
+                        </option>
+                    `);
+                });
+            } else {
+                select.append('<option value="">No hay colaboradores disponibles</option>');
+            }
+            
+            select.selectpicker('refresh');
+        },
+        error: function(xhr) {
+            showNotify("error", "Error", "Error de conexión al cargar colaboradores");
+            $('#formColaboradores #puesto_colaborador').html('<option value="">Error al cargar</option>');
             $('#formColaboradores #puesto_colaborador').selectpicker('refresh');
         }
     });
@@ -2827,14 +2779,7 @@ var registrar_abono_cxc_clientes_dataTable = function(tbody, table) {
         var data = table.row($(this).parents("tr")).data();
         if (data.estado == 2 || data.saldo <=
             0) { //no tiene acceso a la accion si la factura ya fue cancelada
-            swal({
-                title: 'Error',
-                text: 'No puede realizar esta accion a las facturas canceladas!',
-                icon: 'error',
-                dangerMode: true,
-                closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-            });
+            showNotify('error', 'Error', 'No puede realizar esta accion a las facturas canceladas!');
         } else {
             $("#GrupoPagosMultiplesFacturas").hide();
             pago(data.facturas_id, 2);
@@ -3189,13 +3134,7 @@ var registrar_pago_proveedores_dataTable = function(tbody, table) {
     $(tbody).on("click", "button.table_pay", function() {
         var data = table.row($(this).parents("tr")).data();
         if (data.saldo <= 0) {
-            swal({
-                title: "Alerta",
-                text: "Esta Factura ya fue Cancelada",
-                icon: "info",
-                closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-            });
+            showNotify('info', 'Alerta', 'Esta Factura ya fue Cancelada');
         } else {
             $("#GrupoPagosMultiples").hide();
             pagoCompras(data.compras_id, data.saldo, 2);
@@ -3691,14 +3630,7 @@ var generar_clientes_dataTable = function(tbody, table) {
         getValidarFacturacion();
 
         if (data.correo === "") {
-            swal({
-                title: "Error",
-                text: "Lo sentimos el cliente no tiene registrado un correo, es recomendable registrar uno, por favor diríjase al perfil del cliente y agregue el correo antes de generarle una cuenta",
-                icon: "error",
-                dangerMode: true,
-                closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-            });
+            showNotify('error', 'Error', 'Lo sentimos el cliente no tiene registrado un correo, es recomendable registrar uno, por favor diríjase al perfil del cliente y agregue el correo antes de generarle una cuenta');
 
             $('#reg_generarSitema').attr('disabled', true);
         } else {
@@ -3983,33 +3915,13 @@ function editRTNCliente(clientes_id, rtn) {
         data: 'clientes_id=' + clientes_id + '&rtn=' + rtn,
         success: function(data) {
             if (data == 1) {
-                swal({
-                    title: "Success",
-                    text: "El RTN ha sido actualizado satisfactoriamente",
-                    icon: "success",
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-                });
+                showNotify('success', 'Success', 'El RTN ha sido actualizado satisfactoriamente');
                 listar_clientes();
                 $('#formClientes #identidad_clientes').val(rtn);
             } else if (data == 2) {
-                swal({
-                    title: "Error",
-                    text: "Error el RTN no se puede actualizar",
-                    icon: "error",
-                    dangerMode: true,
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-                });
+                showNotify('error', 'Error', 'Error el RTN no se puede actualizar');
             } else if (data == 3) {
-                swal({
-                    title: "Error",
-                    text: "El RTN ya existe",
-                    icon: "error",
-                    dangerMode: true,
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-                });
+                showNotify('error', 'Error', 'El RTN ya existe');
             }
         }
     });
@@ -4936,14 +4848,7 @@ $('input[type="file"]').change(function(e) {
     var imagefile = file.type;
     var match = ["image/jpeg", "image/png", "image/jpg"];
     if (!((imagefile == match[0]) || (imagefile == match[1]) || (imagefile == match[2]))) {
-        swal({
-            title: "Error",
-            text: "Por favor seleccione una archivo valido con el formato (JPEG/JPG/PNG)",
-            icon: "error",
-            dangerMode: true,
-            closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-            closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-        });
+        showNotify('error', 'Error', 'Por favor seleccione una archivo valido con el formato (JPEG/JPG/PNG)');
         $("#file").val('');
         return false;
     } else {
@@ -5166,23 +5071,10 @@ function deleteAsistenciaMarcajeSalidaColaborador(asistencia_id) {
         data: 'asistencia_id=' + asistencia_id,
         success: function(data) {
             if (data == 1) {
-                swal({
-                    title: "Success",
-                    text: "La asitencia ha sido eliminada correctamente",
-                    icon: "success",
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera                     
-                });
+                showNotify('success', 'Success', 'La asitencia ha sido eliminada correctamente');
                 listar_asistencia();
             } else {
-                swal({
-                    title: 'Error',
-                    text: 'Lo sentimos no se puede eliminar la asistencia',
-                    icon: 'error',
-                    dangerMode: true,
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-                });
+                showNotify('error', 'Error', 'Lo sentimos no se puede eliminar la asistencia');
             }
         }
     });
@@ -5229,32 +5121,12 @@ function deleteMarcajeSalida(asistencia_id) {
         data: 'asistencia_id=' + asistencia_id,
         success: function(data) {
             if (data == 1) {
-                swal({
-                    title: "Success",
-                    text: "El marcaje de salida ha sido eliminado correctamente",
-                    icon: "success",
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera                     
-                });
+                showNotify('success', 'Success', 'El marcaje de salida ha sido eliminado correctamente');
                 listar_asistencia();
             } else if (data == 3) {
-                swal({
-                    title: 'Error',
-                    text: 'No hay marcaje de salida',
-                    icon: 'error',
-                    dangerMode: true,
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-                });
+                showNotify('error', 'Error', 'No hay marcaje de salida');
             } else {
-                swal({
-                    title: 'Error',
-                    text: 'Lo sentimos no se puede eliminar el marcaje de salida',
-                    icon: 'error',
-                    dangerMode: true,
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-                });
+                showNotify('error', 'Error', 'Lo sentimos no se puede eliminar el marcaje de salida');
             }
         }
     });

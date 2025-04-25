@@ -3,28 +3,34 @@ $peticionAjax = true;
 require_once "configGenerales.php";
 require_once "mainModel.php";
 
-$insMainModel = new mainModel();
+header("Content-Type: application/json");
 
-$result = $insMainModel->getColaboradoresConsulta();
+try {
+    $insMainModel = new mainModel();
+    $conexion = $insMainModel->connection();
 
-$response = [
-    'success' => false,
-    'data' => [],
-    'message' => ''
-];
+    // Consulta todos los colaboradores activos (ajusta la consulta si es necesario)
+    $stmt = $conexion->prepare("SELECT colaboradores_id, nombre, identidad FROM colaboradores WHERE estado = 1 ORDER BY nombre ASC");
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-if($result->num_rows > 0){
-    $response['success'] = true;
-    while($consulta2 = $result->fetch_assoc()){
-        $response['data'][] = [
-            'colaboradores_id' => $consulta2['colaboradores_id'],
-            'nombre' => $consulta2['nombre'],
-            'identidad' => $consulta2['identidad']
+    $colaboradores = [];
+    while ($row = $result->fetch_assoc()) {
+        $colaboradores[] = [
+            'colaboradores_id' => $row['colaboradores_id'],
+            'nombre' => $row['nombre'],
+            'identidad' => $row['identidad']
         ];
     }
-} else {
-    $response['message'] = 'No hay datos que mostrar';
-}
 
-header('Content-Type: application/json');
-echo json_encode($response);
+    echo json_encode([
+        'success' => true,
+        'data' => $colaboradores
+    ]);
+} catch (Exception $e) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Error al obtener los colaboradores',
+        'error' => $e->getMessage()
+    ]);
+}

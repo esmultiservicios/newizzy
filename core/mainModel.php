@@ -1744,7 +1744,6 @@ class mainModel
 	}
 
 	public function showNotification($alert) {
-		// Valores por defecto
 		$type = $alert['type'] ?? 'error';
 		$title = $alert['title'] ?? 'Notificación';
 		$message = $alert['text'] ?? '';
@@ -1753,7 +1752,7 @@ class mainModel
 		$scriptParts = [
 			"<script>",
 			"(function() {",
-			"  // Mostrar notificación principal",
+			"  // Mostrar notificación",
 			"  if (typeof showNotify === 'function') {",
 			"    showNotify('{$status}', '" . addslashes($title) . "', '" . addslashes($message) . "');",
 			"  }",
@@ -1761,29 +1760,33 @@ class mainModel
 	
 		// Resetear formulario si existe
 		if (!empty($alert['form'])) {
-			$scriptParts[] = "  if (typeof jQuery !== 'undefined' && $('#{$alert['form']}').length) {";
+			$scriptParts[] = "  if ($('#{$alert['form']}').length) {";
 			$scriptParts[] = "    $('#{$alert['form']}')[0].reset();";
 			$scriptParts[] = "  }";
 		}
 	
-		// Ejecutar funciones solo si existen
+		// Ejecutar funciones (manejo seguro)
 		if (!empty($alert['funcion'])) {
-			$functions = explode(';', $alert['funcion']);
+			$functions = array_filter(explode(';', $alert['funcion'])); // Separa y elimina vacíos
 			foreach ($functions as $func) {
 				$func = trim($func);
 				if (!empty($func)) {
-					$scriptParts[] = "  if (typeof {$func} === 'function') {";
-					$scriptParts[] = "    {$func}();";
+					$scriptParts[] = "  try {";
+					$scriptParts[] = "    if (typeof " . explode('(', $func)[0] . " === 'function') {"; // Extrae el nombre de la función (sin parámetros)
+					$scriptParts[] = "      " . $func . ";"; // Ejecuta la función con parámetros (ej: getMedida(1))
+					$scriptParts[] = "    } else {";
+					$scriptParts[] = "      console.warn('Función no definida: {$func}');";
+					$scriptParts[] = "    }";
+					$scriptParts[] = "  } catch (e) {";
+					$scriptParts[] = "    console.error('Error ejecutando {$func}:', e.message);";
 					$scriptParts[] = "  }";
 				}
 			}
 		}
 	
-		// Cerrar modales si se solicita
-		if (!empty($alert['closeAllModals'])) {
-			$scriptParts[] = "  if (typeof jQuery !== 'undefined' && typeof jQuery.fn.modal === 'function') {";
-			$scriptParts[] = "    $('.modal').modal('hide');";
-			$scriptParts[] = "  }";
+		// Cerrar modal si se indica
+		if (!empty($alert['closeModal'])) {
+			$scriptParts[] = "  $('.modal').modal('hide');";
 		}
 	
 		$scriptParts[] = "})();";
@@ -3622,7 +3625,6 @@ class mainModel
 		// Consulta principal sin la lógica de empresa dinámica
 		$query = "SELECT u.users_id AS 'users_id', 
 						 c.nombre AS 'colaborador', 
-						 u.username AS 'username', 
 						 u.email AS 'correo', 
 						 tp.nombre AS 'tipo_usuario',
 						 e.nombre AS 'empresa',						 
@@ -5030,7 +5032,7 @@ class mainModel
 
 	public function getUsersEdit($users_id)
 	{
-		$query = "SELECT u.users_id AS 'users_id', c.colaboradores_id AS 'colaborador_id', c.nombre AS 'colaborador', u.username AS 'username', u.email AS 'correo', u.tipo_user_id AS 'tipo_user_id', u.estado AS 'estado', u.empresa_id AS 'empresa_id', u.privilegio_id AS 'privilegio_id', u.server_customers_id
+		$query = "SELECT u.users_id AS 'users_id', c.colaboradores_id AS 'colaborador_id', c.nombre AS 'colaborador', u.email AS 'correo', u.tipo_user_id AS 'tipo_user_id', u.estado AS 'estado', u.empresa_id AS 'empresa_id', u.privilegio_id AS 'privilegio_id', u.server_customers_id
 				FROM users AS u
 				INNER JOIN colaboradores AS c
 				ON u.colaboradores_id = c.colaboradores_id

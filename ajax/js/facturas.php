@@ -663,14 +663,7 @@ var view_productos_busqueda_factura_dataTable = function(tbody, table) {
         row = $("#invoice-form #bill_row").val();
 
         if (getConsultarAperturaCaja() == 2) {
-            swal({
-                title: "Error",
-                text: "Lo sentimos debe aperturar la caja antes de continuar",
-                icon: "error",
-                dangerMode: true,
-                closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-            });
+            showNotify('error', 'Error', 'Lo sentimos debe aperturar la caja antes de continuar');
         } else {
             getTotalFacturasDisponibles();
 
@@ -711,14 +704,7 @@ var view_productos_busqueda_factura_dataTable = function(tbody, table) {
 
                 if (data.cantidad <= 0) {
                     if (facturar_cero == 'false' || facturar_cero == false) {
-                        swal({
-                            title: "Error",
-                            text: "No se puede facturar este producto inventario en cero",
-                            icon: "error",
-                            dangerMode: true,
-                            closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                            closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-                        });
+                        showNotify('error', 'Error', 'No se puede facturar este producto inventario en cero');
                         return false
                     }
                 }
@@ -775,14 +761,7 @@ var view_productos_busqueda_factura_dataTable = function(tbody, table) {
 
                 row++;
             } else {
-                swal({
-                    title: "Error",
-                    text: "Lo sentimos no se puede seleccionar un producto, por favor antes de continuar, verifique que los siguientes campos: clientes, vendedor no se encuentren vacíos",
-                    icon: "error",
-                    dangerMode: true,
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-                });
+                showNotify('error', 'Error', 'Lo sentimos no se puede seleccionar un producto, por favor antes de continuar, verifique que los siguientes campos: clientes, vendedor no se encuentren vacíos');
             }
         }
 
@@ -1058,14 +1037,7 @@ $(() => {
         if ($("#invoice-form #cliente").val() != "") {
             addRowFacturas();
         } else {
-            swal({
-                title: "Error",
-                text: "Lo sentimos no puede agregar más filas, debe seleccionar un usuario antes de poder continuar",
-                icon: "error",
-                dangerMode: true,
-                closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-            });
+            showNotify('error', 'Error', 'Lo sentimos no puede agregar más filas, debe seleccionar un usuario antes de poder continuar');
         }
     });
     $(document).on('click', '#removeRows', function() {
@@ -1077,14 +1049,7 @@ $(() => {
             $('#checkAll').attr('checked', false);
             calculateTotalFacturas();
         } else {
-            swal({
-                title: "Error",
-                text: "Lo sentimos debe seleccionar un fila antes de intentar eliminarla",
-                icon: "error",
-                dangerMode: true,
-                closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-            });
+            showNotify('error', 'Error', 'Lo sentimos debe seleccionar un fila antes de intentar eliminarla');
         }
     });
     $(document).on('blur', "[id^=quantity_]", function() {
@@ -1298,14 +1263,7 @@ function manejarPresionEnter(row_index) {
 
                     if (valores[6] <= 0) {
                         if (facturar_cero == 'false') {
-                            swal({
-                                title: "Error",
-                                text: "No se puede facturar este producto inventario en cero",
-                                icon: "error",
-                                dangerMode: true,
-                                closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                                closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-                            });
+                            showNotify('error', 'Error', 'No se puede facturar este producto inventario en cero');
                             return false;
                         }
                     }
@@ -1379,14 +1337,7 @@ function manejarPresionEnter(row_index) {
 
                     calculateTotalFacturas();
                 } else {
-                    swal({
-                        title: "Error",
-                        text: "Producto no encontrado, por favor corregir",
-                        icon: "error",
-                        dangerMode: true,
-                        closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                        closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-                    });
+                    showNotify('error', 'Error', 'Producto no encontrado, por favor corregir');
                     $("#invoice-form #invoiceItem #bar-code-id_" + row_index).val("");
                 }
             }
@@ -1458,14 +1409,7 @@ $(() => {
             if (getConsultarAperturaCaja() == 2) {
                 formAperturaBill();
             } else {
-                swal({
-                    title: "Caja abierta",
-                    text: "La caja se encuentra abierta",
-                    icon: "warning",
-                    dangerMode: true,
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-                });
+                showNotify('warning', 'Caja abierta', 'La caja se encuentra abierta');
             }
         }
 
@@ -1474,14 +1418,7 @@ $(() => {
             if (getConsultarAperturaCaja() != 2) {
                 formCierreBill()
             } else {
-                swal({
-                    title: "Caja cerrada",
-                    text: "La caja se encuentra cerrada",
-                    icon: "warning",
-                    dangerMode: true,
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-                });
+                showNotify('warning', 'Caja cerrada', 'La caja se encuentra cerrada');
             }
         }
     });
@@ -1614,14 +1551,7 @@ $("#reg_DescuentoFacturacion").on("click", function(e) {
         $('#modalDescuentoFacturacion').modal('hide');
         calculateTotalFacturas();
     } else {
-        swal({
-            title: "warning",
-            text: "El valor del descuento es mayor al precio total del artículo, por favor corregir",
-            icon: "warning",  
-            dangerMode: true,
-            closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-            closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera                      
-        });
+        showNotify('warning', 'Advertencia', 'El valor del descuento es mayor al precio total del artículo, por favor corregir');
     }
 });
 //FIN DESCUENTO PRODUCTO EN FACTURACION
@@ -2338,14 +2268,7 @@ var registrar_abono_cxc_clientes_dataTable = function(tbody, table) {
         var data = table.row($(this).parents("tr")).data();
         if (data.estado == 2 || data.saldo <=
             0) { //no tiene acceso a la accion si la factura ya fue cancelada							
-            swal({
-                title: 'Error',
-                text: 'No puede realizar esta accion a las facturas canceladas!',
-                icon: 'error',
-                dangerMode: true,
-                closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-            });
+            showNotify('error', 'Error', 'No puede realizar esta accion a las facturas canceladas!');
         } else {
             console.log('cxc', data.facturas_id, 2)
             pago(data.facturas_id, 2);
@@ -2854,23 +2777,10 @@ function deleteBill(facturas_id) {
         data: 'facturas_id=' + facturas_id,
         success: function(data) {
             if (data == 1) {
-                swal({
-                    title: "Success",
-                    text: "La factura en borrador ha sido eliminada con éxito",
-                    icon: "success",
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera                     
-                });
+                showNotify('success', 'Success', 'La factura en borrador ha sido eliminada con éxito');
                 listar_busqueda_bill_draf();
             } else {
-                swal({
-                    title: "Error",
-                    text: "La factura no se puede eliminar",
-                    icon: "error",
-                    dangerMode: true,
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-                });
+                showNotify('error', 'Error', 'La factura no se puede eliminar');
             }
         }
     });
@@ -2925,14 +2835,7 @@ var listar_busqueda_bill = function() {
 	var factura = getTipoDocumento();
 	
     if (factura === "No hay datos que mostrar" || factura === "Error en la solicitud") {
-        swal({
-            title: "Error",
-            text: "Lo sentimos, hubo un error al obtener la información de la factura.",
-            icon: "error",
-            dangerMode: true,
-            closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-            closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-        });
+        showNotify('error', 'Error', 'Lo sentimos, hubo un error al obtener la información de la factura.');
         return;
     }
 	
@@ -3207,23 +3110,10 @@ function anular(facturas_id) {
         data: 'facturas_id=' + facturas_id,
         success: function(data) {
             if (data == 1) {
-                swal({
-                    title: "Success",
-                    text: "La factura ha sido anulada con éxito",
-                    icon: "success",
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera                     
-                });
+                showNotify('success', 'Success', 'La factura ha sido anulada con éxito');
                 listar_busqueda_bill();
             } else {
-                swal({
-                    title: "Error",
-                    text: "La factura no se puede anular",
-                    icon: "error",
-                    dangerMode: true,
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-                });
+                showNotify('error', 'Error', 'La factura no se puede anular');
             }
         }
     });
@@ -3300,14 +3190,7 @@ $(() => {
                 backdrop: 'static'
             });
         } else {
-            swal({
-                title: "Error",
-                text: "Debe seleccionar un cliente y un producto antes de continuar",
-                icon: "error",
-                dangerMode: true,
-                closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-            });
+            showNotify('error', 'Error', 'Debe seleccionar un cliente y un producto antes de continuar');
         }
     });
 });
@@ -3384,14 +3267,7 @@ $("#reg_DescuentoFacturacion").on("click", function(e) {
         $('#modalDescuentoFacturacion').modal('hide');
         calculateTotalFacturas();
     } else {
-        swal({
-            title: "warning",
-            text: "El valor del descuento es mayor al precio total del artículo, por favor corregir",
-            icon: "warning",
-            dangerMode: true,
-            closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-            closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera             
-        });
+        showNotify('warning', 'Advertencia', 'El valor del descuento es mayor al precio total del artículo, por favor corregir');
     }
 });
 //FIN DESCUENTO PRODUCTO EN FACTURACION
@@ -3428,14 +3304,7 @@ $(() => {
                 backdrop: 'static'
             });
         } else {
-            swal({
-                title: "Error",
-                text: "Debe seleccionar un cliente y un producto antes de continuar",
-                icon: "error",
-                dangerMode: true,
-                closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-            });
+            showNotify('error', 'Error', 'Debe seleccionar un cliente y un producto antes de continuar');
         }
     });
 });

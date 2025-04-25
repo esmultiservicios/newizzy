@@ -909,46 +909,17 @@ function deleteCategoriaGastos(categoria_gastos_id, categoria) {
         },
         success: function(response) {
             if (response === "success") {
-                swal({
-                    title: "Success",
-                    text: "La categoria se elimino correctamente.",
-                    icon: "success",
-                    timer: 3000,
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera                    
-                });
                 listar_categoria_egresos();
             } else if (response.startsWith("error-existe: ")) {
                 var errorMessage = response.substring(13);
-                swal({
-                    title: "Error",
-                    text: "Error: " + errorMessage,
-                    icon: "error",
-                    dangerMode: true,
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-                });
+                showNotify('error', 'Error', 'Error: ' + errorMessage);
             } else {
                 var errorMessage = response.substring(7);
-                swal({
-                    title: "Error",
-                    text: "Error: " + errorMessage,
-                    icon: "error",
-                    dangerMode: true,
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-                });
+                showNotify('error', 'Error', 'Error: ' + errorMessage);
             }
         },
         error: function() {
-            swal({
-                title: "Error",
-                text: "Ha ocurrido un error en la solicitud.",
-                icon: "error",
-                dangerMode: true,
-                closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-            });
+            showNotify('error', 'Error', 'Ha ocurrido un error en la solicitud.');
         }
     });
 }

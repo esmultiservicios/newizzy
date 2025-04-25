@@ -35,7 +35,6 @@ foreach ($result as $row) {
     $data[] = array( 
         "users_id" => $row['users_id'],
         "colaborador" => $row['colaborador'],
-        "username" => $row['username'],
         "correo" => $row['correo'],
         "tipo_usuario" => $row['tipo_usuario'],
         "privilegio" => $row['privilegio'],

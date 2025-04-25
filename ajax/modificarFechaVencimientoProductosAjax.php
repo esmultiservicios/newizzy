@@ -2,57 +2,36 @@
 	$peticionAjax = true;
 	require_once "../core/configGenerales.php";
 	
-	$errores = [];
-
-	// Verificar si los campos están vacíos o si contienen valores no válidos
-	if ($_POST['fecha_caducidad'] == '') {
-		$errores[] = 'La fecha de caducidad es obligatoria';
-	}
-	if ($_POST['productos_id'] == '' || $_POST['productos_id'] == '0') {
-		$errores[] = 'El ID de producto no puede estar vacío ni ser cero';
-	}
-	if ($_POST['id_bodega_actual'] == '' || $_POST['id_bodega_actual'] == '0') {
-		$errores[] = 'El ID de bodega actual no puede estar vacío ni ser cero';
-	}
-	if ($_POST['cantidad_productos'] == '' || $_POST['cantidad_productos'] == '0') {
-		$errores[] = 'La cantidad de productos debe ser un valor válido y mayor que cero';
-	}
-	if ($_POST['empresa_id_productos'] == '') {
-		$errores[] = 'El ID de la empresa de productos es obligatorio';
-	}
-	if ($_POST['lote_id_productos'] == '') {
-		$errores[] = 'El ID del lote de productos es obligatorio';
-	}
-	
-	// Si hay errores, mostrarlos
-	if (count($errores) > 0) {
-		$erroresString = implode('<br>', $errores); // Agrega saltos de línea HTML
-
-		echo "
-			<script>
-				swal({
-					icon: 'error',
-					title: '¡Oops!', // Título simple sin HTML
-					content: {
-						element: 'span',
-						attributes: {
-							innerHTML: '¡Ups! Los siguientes campos tienen problemas: <br> <b style=\"color: #007bff;\">$erroresString</b><br><span style=\"font-size: 20px;\">❌</span> Por favor, corrígelos. <span style=\"font-size: 20px;\">❗</span>'
-						}
-					},
-					type: 'error', 
-					dangerMode: true,
-					button: {
-						text: 'Entendido',
-						value: true,
-						visible: true,
-						className: 'btn btn-danger',
-						closeModal: true
-					}
-				});            
-			</script>
-		";
-	} else {
+	if(isset($_POST['fecha_caducidad']) && isset($_POST['productos_id']) && $_POST['productos_id'] != '0' && 
+	   isset($_POST['id_bodega_actual']) && $_POST['id_bodega_actual'] != '0' && 
+	   isset($_POST['cantidad_productos']) && $_POST['cantidad_productos'] != '0' && 
+	   isset($_POST['empresa_id_productos']) && isset($_POST['lote_id_productos'])){
+		
 		require_once "../controladores/movimientoProductosControlador.php";
 		$insVarios = new movimientoProductosControlador();
 		echo $insVarios->modificar_fecha_vencimiento_movimiento_productos_controlador();
-	}	
+	} else {
+		// Identificar campos faltantes o inválidos
+		$missingFields = [];
+		
+		if (!isset($_POST['fecha_caducidad']) || $_POST['fecha_caducidad'] == '') $missingFields[] = "Fecha de Caducidad";
+		if (!isset($_POST['productos_id']) || $_POST['productos_id'] == '' || $_POST['productos_id'] == '0') $missingFields[] = "ID de Producto válido";
+		if (!isset($_POST['id_bodega_actual']) || $_POST['id_bodega_actual'] == '' || $_POST['id_bodega_actual'] == '0') $missingFields[] = "ID de Bodega válido";
+		if (!isset($_POST['cantidad_productos']) || $_POST['cantidad_productos'] == '' || $_POST['cantidad_productos'] == '0') $missingFields[] = "Cantidad de Productos válida";
+		if (!isset($_POST['empresa_id_productos']) || $_POST['empresa_id_productos'] == '') $missingFields[] = "ID de Empresa";
+		if (!isset($_POST['lote_id_productos']) || $_POST['lote_id_productos'] == '') $missingFields[] = "ID de Lote";
+	
+		// Preparar el mensaje
+		$missingText = implode(", ", $missingFields);
+		$title = "Error 🚨";
+		$message = "Los siguientes campos son obligatorios o no son válidos: $missingText. Por favor, corrígelos.";
+		
+		// Escapar comillas para JavaScript
+		$title = addslashes($title);
+		$message = addslashes($message);
+		
+		// Llamar a la función showNotify
+		echo "<script>
+			showNotify('error', '$title', '$message');
+		</script>";
+	}

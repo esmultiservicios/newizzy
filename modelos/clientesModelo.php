@@ -64,7 +64,7 @@
 				
 				// Sentencia preparada para seguridad
 				$stmt = $conexion->prepare("INSERT INTO colaboradores 
-										   (colaboradores_id, puestos_id, nombre, apellido, identidad, estado, telefono, empresa_id, fecha_registro, fecha_ingreso, fecha_egreso) 
+										   (colaboradores_id, puestos_id, nombre, identidad, estado, telefono, empresa_id, fecha_registro, fecha_ingreso, fecha_egreso) 
 										   VALUES (?, ?, ?, '', ?, ?, ?, ?, ?, ?, '')");
 				
 				$stmt->bind_param("iissiisiss", 
@@ -104,6 +104,7 @@
 				$conexion->autocommit(true);
 			}
 		}
+	
 		
 		protected function valid_clientes_modelo($rtn){
 			$query = "SELECT clientes_id FROM clientes WHERE rtn = '$rtn'";

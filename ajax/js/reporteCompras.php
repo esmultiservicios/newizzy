@@ -365,23 +365,10 @@ function anular(compras_id) {
         data: 'compras_id=' + compras_id,
         success: function(data) {
             if (data == 1) {
-                swal({
-                    title: "Success",
-                    text: "La factura de compra ha sido anulada con éxito",
-                    icon: "success",
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera                    
-                });
+                showNotify('success', 'Success', 'La factura de compra ha sido anulada con éxito');
                 listar_reporte_compras();
             } else {
-                swal({
-                    title: "Error",
-                    text: "La factura de compra no se pudo anular",
-                    icon: "error",
-                    dangerMode: true,
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-                });
+                showNotify('error', 'Error', 'La factura de compra no se pudo anular');
             }
         }
     });

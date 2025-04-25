@@ -22,7 +22,7 @@
 				return mainModel::showNotification([
 					"type" => "error",
 					"title" => "Error",
-					"text" => "No se pudo actualizar el puesto",                
+					"text" => "No se pudo registrar el puesto, ya existe un puesto con el mismo nombre",                
 				]);                
 			}
 
@@ -86,11 +86,11 @@
 		}
 		
 		public function delete_puestos_controlador(){
-			$puesto_id = $_POST['puesto_id'];
+			$puestos_id  = $_POST['puestos_id'];
 			
-			$campos = ['puesto_id'];
+			$campos = ['puestos_id'];
 			$tabla = "puestos";
-			$condicion = "puesto_id = {$puesto_id}";
+			$condicion = "puestos_id = {$puestos_id }";
 
 			$puesto = mainModel::consultar_tabla($tabla, $campos, $condicion);
 			
@@ -107,7 +107,7 @@
 			$nombre = $puesto[0]['puesto'] ?? '';
 
 			// VALIDAMOS QUE EL PRODCUTO NO TENGA MOVIMIENTOS, PARA PODER ELIMINARSE
-			if(puestosModelo::valid_puestos_colaborador_modelo($puesto_id)->num_rows > 0){
+			if(puestosModelo::valid_puestos_colaborador_modelo($puestos_id )->num_rows > 0){
 				header('Content-Type: application/json');
 				echo json_encode([
 					"status" => "error",
@@ -117,7 +117,7 @@
 				exit();                
 			}
 
-			if(!puestosModelo::delete_puestos_modelo($puesto_id)){
+			if(!puestosModelo::delete_puestos_modelo($puestos_id )){
 				header('Content-Type: application/json');
 				echo json_encode([
 					"status" => "error",

@@ -1,10 +1,10 @@
 <?php
 if($peticionAjax){
     require_once "../core/configAPP.php";
-    require_once "../core/Database.php";
+    require_once "../core/mainModel.php"; // Incluir la clase mainModel para la conexión
 }else{
     require_once "./core/configAPP.php";
-    require_once "./core/Database.php";    
+    require_once "./core/mainModel.php";    
 }
 
 require 'phpmailer/Exception.php';
@@ -36,16 +36,17 @@ class sendEmail {
 
         $mail = new PHPMailer(true);
 
-        $database = new Database();
+        // Instanciar la clase mainModel
+        $mainModel = new mainModel();
+        // Usamos la instancia para llamar a la conexión
+        $conexion = $mainModel->connection(); 
 
-        //Consultamos el correo de donde enviaremos la información
-        $tablaCorreos = "correo";
-        $camposCorreos = ["server", "correo", "password"];
-        $condicionesCorreos = ["correo_tipo_id" => $correo_tipo_id];
-        $orderBy = "";
-        $tablaJoin = "";
-		$condicionesJoin = [];
-        $resultadoCorreos = $database->consultarTabla($tablaCorreos, $camposCorreos, $condicionesCorreos, $orderBy, $tablaJoin, $condicionesJoin);
+        // Consultamos el correo de donde enviaremos la información
+        $query = "SELECT server, correo, password FROM correo WHERE correo_tipo_id = ? LIMIT 1";
+        $stmt = $conexion->prepare($query);
+        $stmt->bind_param("i", $correo_tipo_id);
+        $stmt->execute();
+        $resultadoCorreos = $stmt->get_result();
 
         $correo_empresa = '';
         $pass_empresa = '';
@@ -62,30 +63,29 @@ class sendEmail {
         $parte1 = '';
         $parte2 = '';
 
-        if (!empty($resultadoCorreos)) {
-            //CONSULTAMOS LOS DATOS DE LA EMPREA PARA ENVIAR EL CORREO
-            $smtp = $resultadoCorreos[0]['server']; 
-            $correo_empresa = $resultadoCorreos[0]['correo'];
+        if ($resultadoCorreos->num_rows > 0) {
+            //CONSULTAMOS LOS DATOS DE LA EMPRESA PARA ENVIAR EL CORREO
+            $row = $resultadoCorreos->fetch_assoc();
+            $smtp = $row['server']; 
+            $correo_empresa = $row['correo'];
+            $pass_empresa = $this->decryptionEmail($row['password']);
             
-            $pass_empresa = $this->decryptionEmail($resultadoCorreos[0]['password']);
-            
-            //Consultamos el nombre de la empresa
-            $tablaEmpresa = "empresa";
-            $camposEmpresa = ["nombre", "logotipo", "ubicacion", "telefono", "sitioweb", "correo", "rtn"];
-            $condicionesEmpresa = ["empresa_id" => $empresa_id];
-            $orderBy = "";
-            $tablaJoin = "";
-		    $condicionesJoin = [];
-            $resultadoEmpresa = $database->consultarTabla($tablaEmpresa, $camposEmpresa, $condicionesEmpresa, $orderBy, $tablaJoin, $condicionesJoin);
+            // Consultamos el nombre de la empresa
+            $queryEmpresa = "SELECT nombre, logotipo, ubicacion, telefono, sitioweb, correo, rtn FROM empresa WHERE empresa_id = ? AND estado = 1 LIMIT 1";
+            $stmtEmpresa = $conexion->prepare($queryEmpresa);
+            $stmtEmpresa->bind_param("i", $empresa_id);
+            $stmtEmpresa->execute();
+            $resultadoEmpresa = $stmtEmpresa->get_result();
 
-            if (!empty($resultadoEmpresa)) {
-                $de_empresa = $resultadoEmpresa[0]['nombre'];
-                $nombre = $resultadoEmpresa[0]['nombre'];
-                $logotipo = $resultadoEmpresa[0]['logotipo'];		
-                $ubicacion = $resultadoEmpresa[0]['ubicacion'];
+            if ($resultadoEmpresa->num_rows > 0) {
+                $rowEmpresa = $resultadoEmpresa->fetch_assoc();
+                $de_empresa = $rowEmpresa['nombre'];
+                $nombre = $rowEmpresa['nombre'];
+                $logotipo = $rowEmpresa['logotipo'];		
+                $ubicacion = $rowEmpresa['ubicacion'];
                 $numero_formateado = "";
 
-                $numero = $resultadoEmpresa[0]['telefono'];
+                $numero = $rowEmpresa['telefono'];
                 
                 if($numero != "") {
                     $parte1 = substr($numero, 0, 4);
@@ -94,10 +94,10 @@ class sendEmail {
                 }
 
                 $telefono = $numero_formateado;	
-                $sitioweb = $resultadoEmpresa[0]['sitioweb'];		
-                $correo = $resultadoEmpresa[0]['correo'];
-                $rtn = $resultadoEmpresa[0]['rtn'];        
-            }else{
+                $sitioweb = $rowEmpresa['sitioweb'];		
+                $correo = $rowEmpresa['correo'];
+                $rtn = $rowEmpresa['rtn'];        
+            } else {
                 $de_empresa = "CLINICARE";
                 $nombre = "CLINICARE";
                 $logotipo = "logo.png";	
@@ -107,16 +107,16 @@ class sendEmail {
                 $correo = "clinicare@clinicarehn.com";
                 $rtn = "05019021318813";                
             }
-            
-			$datos_empresa = [
-				"empresa" => strtoupper(trim($nombre)),
-				"logotipo" => $logotipo,				
-				"ubicacion" => $ubicacion,
-				"telefono" => $telefono,				
-				"sitioweb" => $sitioweb,				
-				"correo" => $correo,
+
+            $datos_empresa = [
+                "empresa" => strtoupper(trim($nombre)),
+                "logotipo" => $logotipo,				
+                "ubicacion" => $ubicacion,
+                "telefono" => $telefono,				
+                "sitioweb" => $sitioweb,				
+                "correo" => $correo,
                 "rtn" => $rtn		
-			];            
+            ];            
 
             try {
                 // Configuración del servidor de correo saliente (SMTP)
@@ -126,9 +126,9 @@ class sendEmail {
                 $mail->SMTPAuth      = true;
                 $mail->Username      = $correo_empresa; // Cambiar por tu correo electrónico
                 $mail->Password      = $pass_empresa; // Cambiar por tu contraseña de correo
-                $mail->SMTPSecure    = PHPMailer::ENCRYPTION_STARTTLS;//SSL - 587
-                $mail->Port          = 587;//SSL
-        
+                $mail->SMTPSecure    = PHPMailer::ENCRYPTION_STARTTLS; // SSL - 587
+                $mail->Port          = 587; // SSL
+
                 // Configuración del correo
                 $mail->setFrom($correo_empresa, $de_empresa);
                 $mail->isHTML(true);
@@ -154,7 +154,6 @@ class sendEmail {
                     $mail->Encoding = 'base64';
         
                     // Adjuntar archivos
-                    //$archivos_adjuntos = ['ruta/archivo1.pdf', 'ruta/archivo2.jpg'];
                     foreach ($archivos_adjuntos as $archivo) {
                         $mail->addAttachment($archivo);
                     }
@@ -175,11 +174,57 @@ class sendEmail {
                     return $success ? 1 : 0;
                 } 
             } catch (Exception $e) {
-                //return 0; // Error en el envío
                 echo 'Error al enviar el correo: ' . $e->getMessage();
             }            
         }
     }
+
+    public function obtenerDatosEmpresa($empresa_id) {
+        // Instanciar la clase mainModel
+        $mainModel = new mainModel();
+        // Usamos la instancia para llamar a la conexión
+        $conexion = $mainModel->connection(); 
+    
+        $query = "SELECT 
+                    empresa_id,
+                    nombre,
+                    razon_social,
+                    correo,
+                    logotipo,
+                    ubicacion,
+                    telefono,
+                    celular,
+                    facebook,
+                    sitioweb,
+                    eslogan
+                  FROM empresa
+                  WHERE empresa_id = ? AND estado = 1
+                  LIMIT 1";
+    
+        $stmt = $conexion->prepare($query);
+        $stmt->bind_param("i", $empresa_id);
+        $stmt->execute();
+        $resultado = $stmt->get_result();
+    
+        if ($resultado->num_rows > 0) {
+            return $resultado->fetch_assoc();
+        } else {
+            return [
+                'empresa_id' => 0,
+                'nombre' => 'Empresa Desconocida',
+                'razon_social' => '',
+                'correo' => 'soporte@tudominio.com',
+                'logotipo' => '',
+                'ubicacion' => '',
+                'telefono' => '',
+                'celular' => '',
+                'facebook' => '',
+                'sitioweb' => '',
+                'eslogan' => ''
+            ];
+        }
+    }
+    
 
     public function getCorreoPlantilla($asunto, $mensaje, $datos_empresa) {
         // Datos de tu empresa

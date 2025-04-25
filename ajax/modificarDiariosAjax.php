@@ -11,9 +11,9 @@
 		// Identificar campos faltantes
 		$missingFields = [];
 		
-		if (!isset($_POST['diarios_id'])) $missingFields[] = "ID de la cuenta";
-		if (!isset($_POST['confCuenta'])) $missingFields[] = "cuenta";
-
+		if (!isset($_POST['diarios_id'])) $missingFields[] = "ID del Diario";
+		if (!isset($_POST['confCuenta'])) $missingFields[] = "Confirmar Cuenta";
+	
 		// Preparar el mensaje
 		$missingText = implode(", ", $missingFields);
 		$title = "Error 🚨";

@@ -9,7 +9,7 @@ $insMainModel = new mainModel();
 if(isset($_POST['colaborador_id']) && $_POST['colaborador_id'] != "") {
     $colaborador_id = $_POST['colaborador_id'];
     
-    $query = "SELECT c.colaboradores_id, c.nombre, c.apellido, c.identidad, c.telefono, 
+    $query = "SELECT c.colaboradores_id, c.nombre, c.identidad, c.telefono, 
                      DATE_FORMAT(c.fecha_ingreso, '%d/%m/%Y') as fecha_ingreso, c.estado
               FROM colaboradores c
               WHERE c.colaboradores_id = '$colaborador_id'";

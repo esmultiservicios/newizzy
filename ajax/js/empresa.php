@@ -49,7 +49,7 @@ var listar_empresa = function() {
             "targets": 0,
             "data": 'image',
             "render": function(data, type, row, meta) {
-                return '<img class="" src="<?php echo SERVERURL;?>vistas/plantilla/img/logos/' +
+                return '<img class="" src="<?php echo SERVERURLLOGO;?>/' +
                     data + '" alt="' + data + '"height="100px" width="100px"/>';
             }
         }],
@@ -325,13 +325,7 @@ $('#toggle-firma').on('click', function(e) {
                 const jsonResponse = JSON.parse(response);
 
                 // Manejar la respuexsta del servidor
-                swal({
-                    icon: jsonResponse.type,
-                    title: jsonResponse.title,
-                    text: jsonResponse.text,
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-                });
+                showNotify(jsonResponse.type, jsonResponse.title, jsonResponse.text);
 
                 // Actualizar el estado del botón
                 GetEstadoBotonFirma();

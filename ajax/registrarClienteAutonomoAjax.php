@@ -27,9 +27,7 @@ if (empty($missingFields)) {
     $insVarios = new clientesControlador();
     echo json_encode($insVarios->registrar_cliente_autonomo_controlador());
 } else {
-    http_response_code(400); // Bad Request
-    echo json_encode([
-        'estado' => false,
-        'mensaje' => "Faltan campos obligatorios: " . implode(", ", $missingFields)
-    ]);
+    echo "<script>
+        showNotify('error', 'Error', 'Faltan campos obligatorios: " . implode(", ", $missingFields) . "');
+    </script>";
 }

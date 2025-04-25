@@ -218,10 +218,8 @@
                                 <!-- Pestaña Colaborador Existente -->
                                 <div class="tab-pane fade show active" id="existente" role="tabpanel">
                                     <div class="form-group">
-                                        <label for="buscar_colaborador">Buscar Colaborador <span class="priority">*</span></label>
-                                        <select id="buscar_colaborador" name="buscar_colaborador" class="selectpicker form-control"
-                                            data-live-search="true" data-size="7" data-width="100%"
-                                            title="Seleccione un colaborador de la lista">
+                                        <label for="colaboradores_id">Buscar Colaborador <span class="priority">*</span></label>
+                                        <select id="colaboradores_id" name="colaboradores_id" class="selectpicker form-control" data-live-search="true" data-size="7" data-width="100%" title="Seleccione un colaborador de la lista">
                                         </select>
                                         <small class="form-text text-muted">Seleccione un colaborador existente para asignarle credenciales de usuario</small>
                                     </div>
@@ -288,6 +286,9 @@
                                                 data-live-search="true" title="Seleccione un puesto" required>
                                             </select>
                                             <small class="form-text text-muted">Cargo o posición del colaborador</small>
+                                            <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="btnNuevoPuesto">
+                                                <i class="fas fa-plus-circle mr-1"></i> Agregar Nuevo Puesto
+                                            </button>                                            
                                         </div>
                                     </div>
                                 </div>
@@ -347,6 +348,8 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="RespuestaAjax"></div>  
                 </form>
             </div>
             <div class="modal-footer">
@@ -356,10 +359,79 @@
                 <button type="submit" class="btn btn-primary" id="reg_usuario" form="formUsers" style="display: none;">
                     <i class="fas fa-save"></i> Registrar Usuario
                 </button>
+                <button type="submit" class="btn btn-primary" id="edi_usuario" form="formUsers" style="display: none;">
+                    <i class="fas fa-sync-alt"></i> Actualizar Usuario
+                </button>
             </div>
         </div>
     </div>
 </div>
+
+<!--INICIO MODAL PUESTO-->
+<div class="modal fade" id="modal_registrar_puestos">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title">Registro de Puestos</h4> <!-- Icono removido del título -->
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form class="FormularioAjax" id="formPuestos" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+                    <input type="hidden" id="puestos_id" name="puestos_id" class="form-control">   
+                    
+                    <!-- Sección de Información del Puesto -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Información del Puesto</h5> <!-- Icono removido -->
+                        </div>
+                        <div class="card-body">                           
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="puesto"><i class="fas fa-briefcase mr-1"></i>Nombre del Puesto <span class="priority">*</span></label>
+                                    <input type="text" class="form-control" id="puesto" name="puesto" placeholder="Nombre del puesto" required>          
+                                    <small class="form-text text-muted">Ingrese el nombre completo del puesto</small>
+                                </div>        
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección de Estado -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Estado del Puesto</h5> <!-- Icono removido -->
+                        </div>
+                        <div class="card-body">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" id="puestos_activo" name="puestos_activo" checked>
+                                <label class="custom-control-label" for="puestos_activo"><i class="fas fa-check-circle mr-1"></i>Puesto Activo</label>
+                            </div>
+                            <small class="form-text text-muted">Active o desactive el puesto en el sistema</small>
+                        </div>
+                    </div>
+                    
+                    <div class="RespuestaAjax"></div>  
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
+                </button>
+                <button class="btn btn-primary" type="submit" style="display: none;" id="reg_puestos" form="formPuestos">
+                    <i class="far fa-save mr-1"></i> Registrar
+                </button>
+                <button class="btn btn-warning" type="submit" style="display: none;" id="edi_puestos" form="formPuestos">
+                    <i class="fas fa-edit mr-1"></i> Editar
+                </button>
+                <button class="btn btn-danger" type="submit" style="display: none;" id="delete_puestos" form="formPuestos">
+                    <i class="fas fa-trash mr-1"></i> Eliminar
+                </button>                    
+            </div>            
+        </div>
+    </div>
+</div>
+<!--FIN MODAL PUESTO-->
 
 <!-- MODAL PARA BUSCAR COLABORADORES -->
 <div class="modal fade" id="modal_buscar_colaboradores">
@@ -2039,7 +2111,7 @@
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
-                <h4 class="modal-title"><i class="fas fa-truck mr-2"></i>Registro de Proveedores</h4>
+                <h4 class="modal-title">Registro de Proveedores</h4> <!-- Quitado el ícono aquí -->
                 <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -2048,11 +2120,10 @@
                 <form class="FormularioAjax" id="formProveedores" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
                     <input type="hidden" id="proveedores_id" name="proveedores_id" class="form-control">
    
-					
                     <!-- Sección de Información Básica -->
                     <div class="card border-primary mb-4">
                         <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Información Básica</h5>
+                            <h5 class="mb-0">Información Básica</h5> <!-- Quitado el ícono aquí -->
                         </div>
                         <div class="card-body">                           
                             <div class="form-row">
@@ -2110,7 +2181,7 @@
                     <!-- Sección de Contacto y Ubicación -->
                     <div class="card border-primary mb-4">
                         <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="fas fa-map-marker-alt mr-2"></i>Contacto y Ubicación</h5>
+                            <h5 class="mb-0">Contacto y Ubicación</h5> <!-- Quitado el ícono aquí -->
                         </div>
                         <div class="card-body">
                             <div class="form-row">
@@ -2142,7 +2213,7 @@
                     <!-- Sección de Estado -->
                     <div class="card border-primary">
                         <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="fas fa-power-off mr-2"></i>Estado del Proveedor</h5>
+                            <h5 class="mb-0">Estado del Proveedor</h5> <!-- Quitado el ícono aquí -->
                         </div>
                         <div class="card-body">
                             <div class="form-group">
@@ -2389,12 +2460,12 @@
                         <div class="card-body">
                             <div class="form-row">
                                 <div class="col-md-6 form-group">
-                                    <label for="cliente_codigo_colaborador">Código de Cliente</label>
+                                    <label for="cliente_codigo_colaborador"><i class="fas fa-id-card mr-1"></i>Código de Cliente</label>
                                     <input type="text" class="form-control" id="cliente_codigo_colaborador" name="cliente_codigo_colaborador" readonly>
                                     <small class="form-text text-muted">Identificador único para soporte técnico</small>
                                 </div>
                                 <div class="col-md-6 form-group">
-                                    <label for="pin_colaborador">PIN de Verificación</label>
+                                    <label for="pin_colaborador"><i class="fas fa-key mr-1"></i>PIN de Verificación</label>
                                     <div class="input-group">
                                         <input type="text" class="form-control" id="pin_colaborador" name="pin_colaborador" readonly>
                                         <div class="input-group-append">
@@ -2416,20 +2487,20 @@
                         </div>
                         <div class="card-body">
                             <div class="form-group">
-                                <label for="nombre_colaborador">Nombre Completo<span class="priority">*</span></label>
+                                <label for="nombre_colaborador"><i class="fas fa-user mr-1"></i>Nombre Completo<span class="priority">*</span></label>
                                 <input type="text" class="form-control" id="nombre_colaborador" name="nombre_colaborador" required>
                                 <small class="form-text text-muted">Nombre y apellidos del colaborador</small>
                             </div>
                             
                             <div class="form-row">
                                 <div class="col-md-6 form-group">
-                                    <label for="identidad_colaborador">Número de Identidad <span class="priority">*</span></label>
+                                    <label for="identidad_colaborador"><i class="fas fa-id-badge mr-1"></i>Número de Identidad </label>
                                     <input type="number" class="form-control" id="identidad_colaborador" name="identidad_colaborador" 
-                                           maxlength="13" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" required>
+                                           maxlength="13" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
                                     <small class="form-text text-muted">Documento de identificación oficial</small>
                                 </div>
                                 <div class="col-md-6 form-group">
-                                    <label for="telefono_colaborador">Teléfono de Contacto </label>
+                                    <label for="telefono_colaborador"><i class="fas fa-phone mr-1"></i>Teléfono de Contacto </label>
                                     <input type="number" class="form-control" id="telefono_colaborador" name="telefono_colaborador" 
                                            maxlength="8" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
                                     <small class="form-text text-muted">Número celular o telefónico principal</small>
@@ -2446,13 +2517,13 @@
                         <div class="card-body">
                             <div class="form-row">
                                 <div class="col-md-6 form-group">
-                                    <label for="fecha_ingreso_colaborador">Fecha de Ingreso <span class="priority">*</span></label>
+                                    <label for="fecha_ingreso_colaborador"><i class="fas fa-calendar-plus mr-1"></i>Fecha de Ingreso <span class="priority">*</span></label>
                                     <input type="date" class="form-control" id="fecha_ingreso_colaborador" name="fecha_ingreso_colaborador" 
                                            value="<?php echo date('Y-m-d'); ?>" required>
                                     <small class="form-text text-muted">Fecha en que inició labores en la empresa</small>
                                 </div>
                                 <div class="col-md-6 form-group">
-                                    <label for="fecha_egreso_colaborador">Fecha de Egreso</label>
+                                    <label for="fecha_egreso_colaborador"><i class="fas fa-calendar-minus mr-1"></i>Fecha de Egreso</label>
                                     <input type="date" class="form-control" id="fecha_egreso_colaborador" name="fecha_egreso_colaborador">
                                     <small class="form-text text-muted">Fecha de retiro (dejar vacío si sigue activo)</small>
                                 </div>
@@ -2460,7 +2531,7 @@
                             
                             <div class="form-row">
                                 <div class="col-md-6 form-group">
-                                    <label>Puesto o Cargo <span class="priority">*</span></label>
+                                    <label><i class="fas fa-briefcase mr-1"></i>Puesto o Cargo <span class="priority">*</span></label>
                                     <select id="puesto_colaborador" name="puesto_colaborador" class="selectpicker form-control" 
                                             data-live-search="true" title="Seleccione el puesto" required>
                                         <option value="">Seleccione un puesto</option>
@@ -2468,7 +2539,7 @@
                                     <small class="form-text text-muted">Posición dentro de la organización</small>
                                 </div>
                                 <div class="col-md-6 form-group">
-                                    <label>Empresa Asignada <span class="priority">*</span></label>
+                                    <label><i class="fas fa-building mr-1"></i>Empresa Asignada <span class="priority">*</span></label>
                                     <select id="colaborador_empresa_id" name="colaborador_empresa_id" class="selectpicker form-control" 
                                             data-live-search="true" title="Seleccione la empresa" required>
                                         <option value="">Seleccione una empresa</option>
@@ -2478,7 +2549,7 @@
                             </div>
                             
                             <div class="form-group" id="estado_colaborador">
-                                <label>Estado Laboral</label>
+                                <label><i class="fas fa-user-check mr-1"></i>Estado Laboral</label>
                                 <div class="custom-control custom-switch">
                                     <input type="checkbox" class="custom-control-input" id="colaboradores_activo" name="colaboradores_activo" checked>
                                     <label class="custom-control-label" for="colaboradores_activo">Colaborador Activo</label>
@@ -2509,6 +2580,47 @@
         </div>
     </div>
 </div>
+
+<!--INICIO MODAL BUSQUEDA DE EMPRESAS-->
+<div class="modal fade" id="modal_buscar_empresa">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Buscar Empresa</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="container"></div>
+            <div class="modal-body">
+                <form class="FormularioAjax" id="formulario_busqueda_empreasa">
+                    <div class="form-group">
+                        <div class="col-md-12">
+                            <div class="overflow-auto">
+                                <table id="DatatableBusquedaEmpresas"
+                                    class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
+                                    <thead>
+                                        <tr>
+                                            <th>Seleccione</th>
+                                            <th>Razón Social</th>
+                                            <th>Empresa</th>
+                                            <th>Correo</th>
+                                            <th>RTN</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+
+            </div>
+        </div>
+    </div>
+</div>
+<!--FIN MODAL BUSQUEDA DE EMPRESAS-->
 
 <!--INICIO MODAL BUSQUEDA DE EMPRESAS-->
 <div class="modal fade" id="modal_buscar_empresa">

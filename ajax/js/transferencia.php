@@ -208,14 +208,7 @@ var transferencia_producto_dataTable = function(tbody, table) {
         var data = table.row($(this).parents("tr")).data();
         $('#formTransferencia')[0].reset();
         if (data.superior > 0) {
-            swal({
-                title: 'Error',
-                text: 'No se puede hacer transferencia de producto que depente de otro inventario',
-                icon: 'error',
-                dangerMode: true,
-                closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-            });
+            showNotify('error', 'Error', 'No se puede hacer transferencia de producto que depente de otro inventario');
             return false
         }
 

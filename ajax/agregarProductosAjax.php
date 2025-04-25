@@ -9,20 +9,24 @@
 
 		echo $insVarios->agregar_productos_controlador();
 	} else {
+		// Identificar campos faltantes
 		$missingFields = [];
+		
+		if (!isset($_POST['medida'])) $missingFields[] = "Medida";
+		if (!isset($_POST['producto'])) $missingFields[] = "Producto";
+		if (!isset($_POST['precio_venta'])) $missingFields[] = "Precio de Venta";
 	
-		if (!isset($_POST['medida'])) {
-			$missingFields[] = "medida del producto";
-		}
-	
-		if (!isset($_POST['producto'])) {
-			$missingFields[] = "nombre del producto";
-		}
-	
-		if (!isset($_POST['precio_venta'])) {
-			$missingFields[] = "precio de venta del producto";
-		}
-	
-		$missingFieldsText = implode(", ", $missingFields);
-		echo generarMensajeError('Error 🚨', $missingFieldsText);
+		// Preparar el mensaje
+		$missingText = implode(", ", $missingFields);
+		$title = "Error 🚨";
+		$message = "Faltan los siguientes campos: $missingText. Por favor, corrígelos.";
+		
+		// Escapar comillas para JavaScript
+		$title = addslashes($title);
+		$message = addslashes($message);
+		
+		// Llamar a TU función showNotify exactamente como está definida
+		echo "<script>
+			showNotify('error', '$title', '$message');
+		</script>";
 	}	

@@ -374,33 +374,13 @@ function editRTNProveedor(proveedores_id, rtn) {
         data: 'proveedores_id=' + proveedores_id + '&rtn=' + rtn,
         success: function(data) {
             if (data == 1) {
-                swal({
-                    title: "Success",
-                    text: "El RTN ha sido actualizado satisfactoriamente",
-                    icon: "success",
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-                });
+                showNotify('success', 'Success', 'El RTN ha sido actualizado satisfactoriamente');
                 listar_proveedores();
                 $('#formProveedores #rtn_proveedores').val(rtn);
             } else if (data == 2) {
-                swal({
-                    title: "Error",
-                    text: "Error el RTN no se puede actualizar",
-                    icon: "error",
-                    dangerMode: true,
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-                });
+                showNotify('error', 'Error', 'Error el RTN no se puede actualizar');
             } else if (data == 3) {
-                swal({
-                    title: "Error",
-                    text: "El RTN ya existe",
-                    icon: "error",
-                    dangerMode: true,
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-                });
+                showNotify('error', 'Error', 'El RTN ya existe');
             }
         }
     });

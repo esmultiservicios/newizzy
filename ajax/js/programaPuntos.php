@@ -295,17 +295,7 @@ var eliminar_programa_puntos_dataTable = function(tbody, table){
             closeOnEsc: false,
             closeOnClickOutside: false
         }).then((confirmar) => {
-            if (confirmar) {
-                // Mostrar carga mientras se procesa
-                swal({
-                    title: "Eliminando registro...",
-                    text: "Por favor espere",
-                    icon: "info",
-                    buttons: false,
-                    closeOnClickOutside: false,
-                    closeOnEsc: false
-                });
-                
+            if (confirmar) {                                
                 $.ajax({
                     type: 'POST',
                     url: '<?php echo SERVERURL;?>ajax/eliminarProgramaPuntosAjax.php',
@@ -313,9 +303,10 @@ var eliminar_programa_puntos_dataTable = function(tbody, table){
                         clientes_id: clientes_id
                     },
                     dataType: 'json', // Esperamos respuesta JSON
-                    success: function(response) {
-                        swal.close();
-                        
+                    beforeSend: function() {
+                        showLoading("Eliminando registro...");
+                    },
+                    success: function(response) {                       
                         if(response.status === "success") {
                             showNotify("success", response.title, response.message);
                             table.ajax.reload(null, false); // Recargar tabla sin resetear paginación
@@ -325,7 +316,6 @@ var eliminar_programa_puntos_dataTable = function(tbody, table){
                         }
                     },
                     error: function(xhr, status, error) {
-                        swal.close();
                         showNotify("error", "Error", "Ocurrió un error al procesar la solicitud");
                         console.error("Error en la solicitud AJAX:", error);
                     }

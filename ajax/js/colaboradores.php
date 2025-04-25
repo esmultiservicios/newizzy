@@ -246,7 +246,7 @@ var eliminar_colaboradores_dataTable = function(tbody, table) {
                     type: 'POST',
                     url: '<?php echo SERVERURL;?>ajax/eliminarColaboradorAjax.php',
                     data: {
-                        users_id: users_id
+                        colaborador_id: colaborador_id
                     },
                     dataType: 'json', // Esperamos respuesta JSON
                     before: function(){

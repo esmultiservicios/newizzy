@@ -18,13 +18,23 @@ if (isset($_POST['inputEmail']) && isset($_POST['inputPassword'])) {
 
 	// mainModel::guardar_historial_accesos("Inicio de Sesion");
 } else {
-	echo "
-			<script>
-				swal({
-					title: 'Error', 
-					text: 'Los datos son incorrectos por favor corregir',
-					type: 'error', 
-					confirmButtonClass: 'btn-danger'
-				});\t\t\t
-			</script>";
+	// Identificar campos faltantes
+	$missingFields = [];
+	
+	if (!isset($_POST['inputEmail'])) $missingFields[] = "Correo Electrónico";
+	if (!isset($_POST['inputPassword'])) $missingFields[] = "Contraseña";
+
+	// Preparar el mensaje
+	$missingText = implode(", ", $missingFields);
+	$title = "Error 🚨";
+	$message = "Faltan los siguientes campos: $missingText. Por favor, corrígelos.";
+	
+	// Escapar comillas para JavaScript
+	$title = addslashes($title);
+	$message = addslashes($message);
+	
+	// Llamar a TU función showNotify exactamente como está definida
+	echo "<script>
+		showNotify('error', '$title', '$message');
+	</script>";
 }

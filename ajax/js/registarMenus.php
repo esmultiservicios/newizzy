@@ -326,17 +326,9 @@ $(function() {
                     },
                     dataType: "json",
                     beforeSend: function() {
-                        swal({
-                            title: "Procesando",
-                            text: "Eliminando el elemento...",
-                            icon: "info",
-                            buttons: false,
-                            closeOnClickOutside: false,
-                            closeOnEsc: false
-                        });
+                        showLoading("Eliminando el elemento...");
                     },
                     success: function(response) {
-                        swal.close();
                         if (response && response.type) {
                             showNotify(response.type, response.title, response.message);
                             if (response.type === "success") {
@@ -352,7 +344,6 @@ $(function() {
                         }
                     },
                     error: function(xhr) {
-                        swal.close();
                         const errorMsg = xhr.responseJSON && xhr.responseJSON.message 
                             ? xhr.responseJSON.message 
                             : 'Error al eliminar el elemento';

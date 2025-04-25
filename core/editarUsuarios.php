@@ -1,24 +1,37 @@
-<?php	
-	$peticionAjax = true;
-	require_once "configGenerales.php";
-	require_once "mainModel.php";
-	
-	$insMainModel = new mainModel();
-	
-	$usuarios_id  = $_POST['usuarios_id'];
-	$result = $insMainModel->getUsersEdit($usuarios_id);
-	$valores2 = $result->fetch_assoc();
-	
-	$datos = array(
-		0 => $valores2['colaborador_id'],
-		1 => $valores2['colaborador'],
-		2 => $valores2['username'],
-		3 => $valores2['correo'],
-		4 => $valores2['empresa_id'],
-		5 => $valores2['tipo_user_id'],
-		6 => $valores2['estado'],
-		7 => $valores2['privilegio_id'],
-		8 => $valores2['estado'],						
-		9 => $valores2['server_customers_id'],
-	);
-	echo json_encode($datos);
+<?php
+$peticionAjax = true;
+require_once "configGenerales.php";
+require_once "mainModel.php";
+
+$insMainModel = new mainModel();
+
+$usuarios_id  = $_POST['users_id']; // Asegúrate que coincida con el nombre en el JS
+$result = $insMainModel->getUsersEdit($usuarios_id);
+$valores2 = $result->fetch_assoc();
+
+if ($valores2) {
+    $data = array(
+        "colaboradores_id" => $valores2['colaborador_id'],
+        "nombre_completo" => $valores2['colaborador'],
+        "correo" => $valores2['correo'],
+        "empresa_id" => $valores2['empresa_id'],
+        "tipo_user_id" => $valores2['tipo_user_id'],
+        "estado" => $valores2['estado'],
+        "privilegio_id" => $valores2['privilegio_id'],
+        "estado_colaborador" => $valores2['estado'], // Si usas esto para badge de estado
+        "server_customers_id" => $valores2['server_customers_id'],
+        "telefono" => $valores2['telefono'] ?? null,
+        "identidad" => $valores2['identidad'] ?? null,
+        "fecha_ingreso" => $valores2['fecha_ingreso'] ?? null
+    );
+
+    echo json_encode([
+        "success" => true,
+        "data" => $data
+    ]);
+} else {
+    echo json_encode([
+        "success" => false,
+        "message" => "No se encontró el usuario"
+    ]);
+}

@@ -114,10 +114,10 @@ var updateStatus = function(tbody, table){
 			closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
 		}).then((isConfirm) => {
 			if (isConfirm) {
-				swal("Estado de Impreso", "Activado", "success");
+				showNotify('success', 'Estado de Impreso', 'Activado');
 				editarImpresora(data.impresora_id, 1);
 			} else {
-				swal("Estado de Impreso", "Desactivado", "success");
+				showNotify('success', 'Estado de Impreso', 'Desactivado');
 				editarImpresora(data.impresora_id, 0);
 			}
 		});
@@ -139,34 +139,14 @@ function editarImpresora(id, estado) {
             var data = typeof response === 'object' ? response : JSON.parse(response);
 
             if (data.success) {
-                swal({
-                    title: "Éxito",
-                    text: data.message, // Mensaje del backend
-                    icon: "success",
-					closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-					closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera					
-                });
+                showNotify('success', 'Éxito', data.message); // Mensaje del backend
                 getImpresora(); // Actualizar la lista de impresoras
             } else {
-                swal({
-                    title: "Error",
-                    text: data.message, // Mensaje del backend
-                    icon: "error",
-					dangerMode: true,
-					closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-					closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-                });
+                showNotify('error', 'Error', data.message); // Mensaje del backend
             }
         },
         error: function () {
-            swal({
-                title: "Error",
-                text: "Hubo un problema con la conexión al servidor. Por favor, inténtelo de nuevo.",
-                icon: "error",
-				dangerMode: true,
-				closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-				closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-            });
+            showNotify('error', 'Error', 'Hubo un problema con la conexión al servidor. Por favor, inténtelo de nuevo.');
         }
     });
 }

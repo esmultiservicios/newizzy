@@ -189,28 +189,10 @@ $(() => {
         }).then((willPay) => {
             if (willPay) {
                 // Aquí iría la lógica para procesar el pago
-                swal({
-                    title: "Pago en proceso",
-                    text: "Esta funcionalidad está en desarrollo",
-                    icon: "info",
-                    button: "Entendido"
-                });
+                showNotify("warning", "Pago en proceso", "Esta funcionalidad está en desarrollo");
             }
         });
     });
-
-    // Mostrar notificación
-    function showNotify(type, title, message) {
-        Swal.fire({
-            icon: type,
-            title: title,
-            text: message,
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 3000
-        });
-    }
 
     // Cargar detalle de factura mejorado con corrección de error
     function cargarDetalleFactura(facturaId) {

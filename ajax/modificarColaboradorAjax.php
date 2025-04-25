@@ -16,7 +16,7 @@ if (isset($_POST['colaborador_id']) && isset($_POST['puesto_colaborador']) &&
     if (!isset($_POST['colaborador_id'])) $missingFields[] = "ID del colaborador";
     if (!isset($_POST['puesto_colaborador'])) $missingFields[] = "puesto";
     if (!isset($_POST['nombre_colaborador'])) $missingFields[] = "nombre";
-    if (!isset($_POST['telefono_colaborador'])) $missingFields[] = "teléfono";
+    if (!isset($_POST['telefono_colaborador'])) $missingFields[] = "telefono";
 
     // Preparar el mensaje
     $missingText = implode(", ", $missingFields);

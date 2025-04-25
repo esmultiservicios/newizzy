@@ -634,23 +634,11 @@ const BusquedaProducto = (barcode) => {
                 $('#formMovimientos #almacen_modal').val('').selectpicker('refresh')
                 $('#formMovimientos #movimiento_cantidad').focus(); 
             } else {
-                swal({
-                    title: "Error",
-                    text: registro.message,
-                    icon: "error",
-                    button: "Aceptar",
-                    dangerMode: true
-                });
+                showNotify('error', 'Error', registro.message);
             }
         },
         error: function() {
-            swal({
-                title: "Error",
-                text: "Hubo un problema en la comunicación con el servidor",
-                icon: "error",
-                button: "Aceptar",
-                dangerMode: true
-            });
+            showNotify('error', 'Error', 'Hubo un problema en la comunicación con el servidor');
         }
     });
 };
@@ -662,13 +650,7 @@ $('#formMovimientos #produto_barcode').on('keypress', (event) => {
         let barcode = $(event.target).val().trim();
 
         if (barcode.length === 0) {
-            swal({
-                title: "Error",
-                text: "Lo sentimos, debe ingresar un nombre de producto, o escanear un código de barras",
-                icon: "error",
-                button: "Aceptar",
-                dangerMode: true
-            });
+            showNotify('error', 'Error', 'Lo sentimos, debe ingresar un nombre de producto, o escanear un código de barras');
 
             $('#formMovimientos #produto_barcode').focus();
             return;
@@ -676,13 +658,7 @@ $('#formMovimientos #produto_barcode').on('keypress', (event) => {
 
         // Validar si se seleccionó algún radio button
         if ($('input[name="movimiento_operacion"]:checked').length === 0) {
-            swal({
-                title: "Error",
-                text: "Debe seleccionar un tipo de operación (Entrada o Salida)",
-                icon: "error",
-                button: "Aceptar",
-                dangerMode: true
-            });
+            showNotify('error', 'Error', 'Debe seleccionar un tipo de operación (Entrada o Salida)');
 
             $('input[name="movimiento_operacion"]').first().focus();
             return;

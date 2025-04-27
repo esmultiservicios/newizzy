@@ -74,7 +74,7 @@
                             <th>Transferencia</th>
                         </tr>
                     </thead>
-                    <tfoot class="bg-info text-white font-weight-bold">
+                    <tfoot class="bg-secondary">
                         <tr>
                             <td colspan="6"></td>
                             <td colspan='1' class="text-center">Total</td> 

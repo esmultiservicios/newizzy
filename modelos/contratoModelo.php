@@ -56,5 +56,29 @@
 			
 			return $sql;			
 		}
+
+		protected function getTotalContratosRegistrados() {
+			try {
+				// Obtener conexión a la base de datos
+				$conexion = $this->connection();
+				
+				// Consulta SQL para contar contratos activos (ajusta según tu esquema de BD)
+				$query = "SELECT COUNT(contrato_id) AS total FROM contrato WHERE estado = 1";
+				
+				// Ejecutar consulta
+				$resultado = $conexion->query($query);
+				
+				if (!$resultado) {
+					throw new Exception("Error al contar contratos: " . $conexion->error);
+				}
+				
+				// Obtener el total
+				$fila = $resultado->fetch_assoc();
+				return (int)$fila['total'];
+				
+			} catch (Exception $e) {
+				error_log("Error en getTotalContratosRegistrados: " . $e->getMessage());
+				return 0; // Retorna 0 si hay error para no bloquear el sistema
+			}
+		}
 	}
-?>

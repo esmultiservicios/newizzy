@@ -160,5 +160,30 @@ class colaboradorModelo extends mainModel{
 			return false;
 		}
 	}
+
+	protected function getTotalColaboradoresRegistrados() {
+		try {
+			// Obtener conexión a la base de datos
+			$conexion = $this->connection();
+			
+			// Consulta SQL para contar colaboradores activos (ajusta según tu esquema de BD)
+			$query = "SELECT COUNT(colaboradores_id) AS total FROM colaboradores WHERE estado = 1";
+			
+			// Ejecutar consulta
+			$resultado = $conexion->query($query);
+			
+			if (!$resultado) {
+				throw new Exception("Error al contar colaboradores: " . $conexion->error);
+			}
+			
+			// Obtener el total
+			$fila = $resultado->fetch_assoc();
+			return (int)$fila['total'];
+			
+		} catch (Exception $e) {
+			error_log("Error en getTotalColaboradoresRegistrados: " . $e->getMessage());
+			return 0; // Retorna 0 si hay error para no bloquear el sistema
+		}
+	}
 			   
 }

@@ -50,5 +50,30 @@
 			
 			return $sql;			
 		}
+
+		protected function getTotalTipoPagoRegistrados() {
+			try {
+				// Obtener conexión a la base de datos
+				$conexion = $this->connection();
+				
+				// Consulta SQL para contar tipos de pago activos (ajusta según tu esquema de BD)
+				$query = "SELECT COUNT(tipo_pago_id) AS total FROM tipo_pago WHERE estado = 1";
+				
+				// Ejecutar consulta
+				$resultado = $conexion->query($query);
+				
+				if (!$resultado) {
+					throw new Exception("Error al contar tipos de pago: " . $conexion->error);
+				}
+				
+				// Obtener el total
+				$fila = $resultado->fetch_assoc();
+				return (int)$fila['total'];
+				
+			} catch (Exception $e) {
+				error_log("Error en getTotalTipoPagoRegistrados: " . $e->getMessage());
+				return 0; // Retorna 0 si hay error para no bloquear el sistema
+			}
+		}
+		
 	}
-?>	

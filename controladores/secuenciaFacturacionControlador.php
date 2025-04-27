@@ -58,6 +58,34 @@
 				]);                
 			}
 
+			$mainModel = new mainModel();
+			$planConfig = $mainModel->getPlanConfiguracionMainModel();
+			
+			// Solo evaluar si existe configuración de plan
+			if (!empty($planConfig)) {
+				$limiteSecuencias = (int)($planConfig['secuencias'] ?? 0);
+				
+				// Caso 1: Límite es 0 (bloquear)
+				if ($limiteSecuencias === 0) {
+					return $mainModel->showNotification([
+						"type" => "error",
+						"title" => "Acceso restringido",
+						"text" => "Su plan actual no permite registrar secuencias de facturacion."
+					]);
+				}
+				
+				// Caso 2: Si tiene límite > 0, validar disponibilidad
+				$totalRegistrados = (int)secuenciaFacturacionModelo::getTotalSecuenciaRegistradas();
+				
+				if ($totalRegistrados >= $limiteSecuencias) {
+					return $mainModel->showNotification([
+						"type" => "error",
+						"title" => "Límite alcanzado",
+						"text" => "Límite de secuencias de facturacion alcanzado (Máximo: $limiteSecuencias). Actualiza tu plan."
+					]);
+				}
+			}		
+
 			if(!secuenciaFacturacionModelo::agregar_secuencia_facturacion_modelo($datos)){
 				return mainModel::showNotification([
 					"title" => "Error",

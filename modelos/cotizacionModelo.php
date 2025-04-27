@@ -219,4 +219,24 @@
         protected function getISVEstadoProducto_modelo($productos_id){
             return mainModel::getISVEstadoProducto($productos_id);
         }
+
+        protected function getTotalCotizacionesRegistradas() {
+            try {
+                $conexion = $this->connection();
+                $primerDiaMes = date('Y-m-01');
+                $ultimoDiaMes = date('Y-m-t');
+        
+                $query = "SELECT COUNT(cotizacion_id) AS total 
+                          FROM cotizacion 
+                          WHERE estado = 1
+                          AND CAST(fecha_registro AS DATE) BETWEEN '$primerDiaMes' AND '$ultimoDiaMes'";
+        
+                $resultado = $conexion->query($query);
+                $fila = $resultado->fetch_assoc();
+                return (int)$fila['total'];
+            } catch (Exception $e) {
+                error_log("Error en getTotalCotizacionesRegistradas: " . $e->getMessage());
+                return 0;
+            }
+        }
     }

@@ -117,19 +117,33 @@ class usuarioControlador extends usuarioModelo{
             ]);
         }
         
-        // Validar límite de usuarios
+        // Obtener configuración del plan
         $planConfig = usuarioModelo::getPlanConfiguracion();
-        $limiteUsuarios = isset($planConfig['usuarios']) ? (int)$planConfig['usuarios'] : 0;
-        $usuariosExtras = (int)usuarioModelo::getTotalUsuariosExtras();
-        $totalLimiteUsuarios = $limiteUsuarios + $usuariosExtras;
-        $total_usuarios_sistema = (int)usuarioModelo::getTotalUsuarios();
-        
-        if($limiteUsuarios > 0 && $total_usuarios_sistema >= $totalLimiteUsuarios) {
-            return mainModel::showNotification([
-                "type" => "error",
-                "title" => "Error",
-                "text" => "Lo sentimos, ha excedido el límite de usuarios según su plan"
-            ]);
+
+        // Solo validar si existe plan configurado
+        if (!empty($planConfig)) {
+            $limiteBase = (int)($planConfig['usuarios'] ?? 0);
+            $usuariosExtras = (int)usuarioModelo::getTotalUsuariosExtras();
+            $limiteTotal = $limiteBase + $usuariosExtras;
+            $totalUsuarios = (int)usuarioModelo::getTotalUsuarios();
+
+            // Caso 1: Límite base es 0 (sin permisos)
+            if ($limiteBase === 0) {
+                return mainModel::showNotification([
+                    "type" => "error",
+                    "title" => "Acceso restringido",
+                    "text" => "Su plan no incluye la creación de usuarios."
+                ]);
+            }
+
+            // Caso 2: Validar límite total (base + extras)
+            if ($totalUsuarios >= $limiteTotal) {
+                return mainModel::showNotification([
+                    "type" => "error",
+                    "title" => "Límite alcanzado",
+                    "text" => "Límite de usuarios excedido (Máximo: $limiteBase + $usuariosExtras extras)."
+                ]);
+            }
         }
         
         // Validar que el colaborador no tenga usuario

@@ -28,6 +28,34 @@
 				]);                
 			}
 
+			$mainModel = new mainModel();
+			$planConfig = $mainModel->getPlanConfiguracionMainModel();
+			
+			// Solo evaluar si existe configuración de plan
+			if (!empty($planConfig)) {
+				$limiteUbicaciones = (int)($planConfig['ubicaciones'] ?? 0);
+				
+				// Caso 1: Límite es 0 (bloquear)
+				if ($limiteUbicaciones === 0) {
+					return $mainModel->showNotification([
+						"type" => "error",
+						"title" => "Acceso restringido",
+						"text" => "Su plan actual no permite registrar ubicaciones."
+					]);
+				}
+				
+				// Caso 2: Si tiene límite > 0, validar disponibilidad
+				$totalRegistrados = (int)ubicacionModelo::getTotalUbicacionesRegistrados();
+				
+				if ($totalRegistrados >= $limiteUbicaciones) {
+					return $mainModel->showNotification([
+						"type" => "error",
+						"title" => "Límite alcanzado",
+						"text" => "Límite de ubicaciones alcanzado (Máximo: $limiteUbicaciones). Actualiza tu plan."
+					]);
+				}
+			}	
+
 			if(!ubicacionModelo::agregar_ubicacion_modelo($datos)){
 				return mainModel::showNotification([
 					"title" => "Error",

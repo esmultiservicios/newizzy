@@ -348,15 +348,16 @@ function editRTNProvider(proveedores_id, rtn) {
         buttons: {
             cancel: {
                 text: "Cancelar",
-                visible: true
+                visible: true,
+                closeModal: true
             },
             confirm: {
-                text: "¡Si, Deseo Editarlo!",
+                text: "¡Sí, deseo editarlo!",
+                className: "btn-primary"
             }
         },
-        dangerMode: true,
-        closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-        closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
+        closeOnClickOutside: false,
+        closeOnEsc: false
     }).then((willConfirm) => {
         if (willConfirm === true) {
             editRTNProveedor(proveedores_id, rtn);

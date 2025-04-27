@@ -43,6 +43,34 @@ class clientesControlador extends clientesModelo {
             "empresa" => ""
         ];
         
+        $mainModel = new mainModel();
+        $planConfig = $mainModel->getPlanConfiguracionMainModel();
+        
+        // Solo evaluar si existe configuración de plan
+        if (!empty($planConfig)) {
+            $limiteClientes = (int)($planConfig['clientes'] ?? 0);
+            
+            // Caso 1: Límite es 0 (bloquear)
+            if ($limiteClientes === 0) {
+                return $mainModel->showNotification([
+                    "type" => "error",
+                    "title" => "Acceso restringido",
+                    "text" => "Su plan actual no permite registrar clientes."
+                ]);
+            }
+            
+            // Caso 2: Si tiene límite > 0, validar disponibilidad
+            $totalRegistrados = (int)clientesModelo::getTotalClientesRegistrados();
+            
+            if ($totalRegistrados >= $limiteClientes) {
+                return $mainModel->showNotification([
+                    "type" => "error",
+                    "title" => "Límite alcanzado",
+                    "text" => "Límite de clientes alcanzado (Máximo: $limiteClientes). Actualiza tu plan."
+                ]);
+            }
+        }
+
         if(!clientesModelo::agregar_clientes_modelo($datos)){
             return mainModel::showNotification([
                 "title" => "Error",
@@ -108,7 +136,7 @@ class clientesControlador extends clientesModelo {
         
         if (!filter_var($datos['correo'], FILTER_VALIDATE_EMAIL)) {
             $this->responderError('Correo inválido', 'El formato del correo no es válido', 400);
-        }        
+        }
 
         // Registrar cliente principal
         if($clientes_id === "0") {
@@ -299,6 +327,8 @@ class clientesControlador extends clientesModelo {
             ]);
         }
         
+        $estado = isset($_POST['clientes_activo']) && $_POST['clientes_activo'] == 'on' ? 1 : 0;
+
         $datos = [
             "clientes_id" => $_POST['clientes_id'],
             "nombre" => mainModel::cleanStringConverterCase($_POST['nombre_clientes']),
@@ -308,7 +338,7 @@ class clientesControlador extends clientesModelo {
             "localidad" => mainModel::cleanString($_POST['dirección_clientes']),
             "telefono" => mainModel::cleanString($_POST['telefono_clientes']),
             "correo" => mainModel::cleanStringStrtolower($_POST['correo_clientes']),
-            "estado" => isset($_POST['clientes_activo']) ? $_POST['clientes_activo'] : 2
+            "estado" => $estado
         ];
                     
         if(!clientesModelo::edit_clientes_modelo($datos)){

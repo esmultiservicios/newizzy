@@ -7,9 +7,18 @@ document.addEventListener("DOMContentLoaded", function() {
         {value: 'proveedores', text: 'Proveedores'},
         {value: 'productos', text: 'Productos'},
         {value: 'facturas', text: 'Facturas'},
+        {value: 'compras', text: 'Compras'},
+        {value: 'cotizaciones', text: 'Cotizaciones'},
         {value: 'perfiles', text: 'Puntos de Venta'},
         {value: 'almacenes', text: 'Almacenes'},
-        {value: 'categorias', text: 'Categorías'}
+        {value: 'categorias', text: 'Categorías'},
+        {value: 'colaboradores', text: 'Colaboradores'},
+        {value: 'ubicaciones', text: 'Ubicaciones'},
+        {value: 'contratos', text: 'Contratos'},
+        {value: 'cuentas', text: 'Cuentas Contables'},
+        {value: 'ingresos', text: 'Ingresos Contables'},
+        {value: 'egresos', text: 'Egresos Contables'},
+        {value: 'secuencia', text: 'Secuencias de Facturacion'},
     ];
 
     // 1. Manejo del estado del plan
@@ -744,9 +753,9 @@ document.addEventListener("DOMContentLoaded", function() {
             },
             "columns": [
                 { "data": "#" },
-                { "data": "menu_name" },
-                { "data": "submenu_name" },
                 { "data": "name" },
+                { "data": "menu_name" },
+                { "data": "submenu_name" },                
                 { "data": "asignado" },
                 { "data": "acciones" }
             ],
@@ -780,28 +789,24 @@ document.addEventListener("DOMContentLoaded", function() {
             },
             success: function(response) {
                 if (response.estado) {
-                    // Actualización suave sin recargar toda la tabla
+                    // Actualización UI
                     button.data('asignado', !asignado);
                     button.toggleClass('btn-success btn-danger');
                     button.html(asignado ? '<i class="fas fa-plus"></i> Asignar' : '<i class="fas fa-times"></i> Quitar');
                     
-                    // Actualizar el badge
+                    // Actualizar badge
                     const badge = button.closest('tr').find('span.badge');
                     badge.toggleClass('badge-success badge-secondary');
                     badge.text(asignado ? 'No asignado' : 'Asignado');
                     
-                    // Actualizar contador
-                    const currentCount = parseInt($(`#contador-menus-${planId}`).text());
-                    $(`#contador-menus-${planId}`).text(asignado ? currentCount - 1 : currentCount + 1);
+                    // Actualizar contador - FORMA CORRECTA
+                    const counterElement = $(`#contador-menus-${planId}`);
+                    const currentCount = parseInt(counterElement.text().split(' ')[0]) || 0;
+                    const newCount = asignado ? currentCount - 1 : currentCount + 1;
+                    counterElement.text(newCount + " asignados");
                     
-                    // Actualizar DataTable principal sin recarga completa
-                    const row = dataTablePlanes.row($(`.btn-asignar-menu[data-plan-id="${planId}"]`).closest('tr'));
-                    const rowData = row.data();
-                    
-                    if (rowData) {
-                        rowData.menus_asignados = asignado ? rowData.menus_asignados - 1 : rowData.menus_asignados + 1;
-                        row.data(rowData).draw(false); // false para evitar resetear paginación
-                    }
+                    // Actualizar DataTable
+                    dataTablePlanes.ajax.reload(null, false);
                     
                     showNotify(response.type, response.title, response.message);
                 } else {
@@ -839,27 +844,24 @@ document.addEventListener("DOMContentLoaded", function() {
             },
             success: function(response) {
                 if (response.estado) {
-                    // Actualización suave
+                    // Actualización UI
                     button.data('asignado', !asignado);
                     button.toggleClass('btn-success btn-danger');
                     button.html(asignado ? '<i class="fas fa-plus"></i> Asignar' : '<i class="fas fa-times"></i> Quitar');
                     
+                    // Actualizar badge
                     const badge = button.closest('tr').find('span.badge');
                     badge.toggleClass('badge-success badge-secondary');
                     badge.text(asignado ? 'No asignado' : 'Asignado');
                     
-                    // Actualizar contador
-                    const currentCount = parseInt($(`#contador-submenus-${planId}`).text());
-                    $(`#contador-submenus-${planId}`).text(asignado ? currentCount - 1 : currentCount + 1);
+                    // Actualizar contador - FORMA CORRECTA
+                    const counterElement = $(`#contador-submenus-${planId}`);
+                    const currentCount = parseInt(counterElement.text().split(' ')[0]) || 0;
+                    const newCount = asignado ? currentCount - 1 : currentCount + 1;
+                    counterElement.text(newCount + " asignados");
                     
-                    // Actualizar DataTable principal sin recarga completa
-                    const row = dataTablePlanes.row($(`.btn-asignar-submenu[data-plan-id="${planId}"]`).closest('tr'));
-                    const rowData = row.data();
-                    
-                    if (rowData) {
-                        rowData.submenus_asignados = asignado ? rowData.submenus_asignados - 1 : rowData.submenus_asignados + 1;
-                        row.data(rowData).draw(false);
-                    }
+                    // Actualizar DataTable
+                    dataTablePlanes.ajax.reload(null, false);
                     
                     showNotify(response.type, response.title, response.message);
                 } else {
@@ -897,27 +899,24 @@ document.addEventListener("DOMContentLoaded", function() {
             },
             success: function(response) {
                 if (response.estado) {
-                    // Actualización suave
+                    // Actualización UI
                     button.data('asignado', !asignado);
                     button.toggleClass('btn-success btn-danger');
                     button.html(asignado ? '<i class="fas fa-plus"></i> Asignar' : '<i class="fas fa-times"></i> Quitar');
                     
+                    // Actualizar badge
                     const badge = button.closest('tr').find('span.badge');
                     badge.toggleClass('badge-success badge-secondary');
                     badge.text(asignado ? 'No asignado' : 'Asignado');
                     
-                    // Actualizar contador
-                    const currentCount = parseInt($(`#contador-submenus2-${planId}`).text());
-                    $(`#contador-submenus2-${planId}`).text(asignado ? currentCount - 1 : currentCount + 1);
+                    // Actualizar contador - FORMA CORRECTA
+                    const counterElement = $(`#contador-submenus2-${planId}`);
+                    const currentCount = parseInt(counterElement.text().split(' ')[0]) || 0;
+                    const newCount = asignado ? currentCount - 1 : currentCount + 1;
+                    counterElement.text(newCount + " asignados");
                     
-                    // Actualizar DataTable principal sin recarga completa
-                    const row = dataTablePlanes.row($(`.btn-asignar-submenu2[data-plan-id="${planId}"]`).closest('tr'));
-                    const rowData = row.data();
-                    
-                    if (rowData) {
-                        rowData.submenus2_asignados = asignado ? rowData.submenus2_asignados - 1 : rowData.submenus2_asignados + 1;
-                        row.data(rowData).draw(false);
-                    }
+                    // Actualizar DataTable
+                    dataTablePlanes.ajax.reload(null, false);
                     
                     showNotify(response.type, response.title, response.message);
                 } else {

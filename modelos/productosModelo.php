@@ -134,6 +134,30 @@
 			$result = mainModel::getTipoProducto($productos_id);
 			
 			return $result;			
-		}		
+		}	
+		
+		protected function getTotalProductosRegistrados() {
+			try {
+				// Obtener conexión a la base de datos
+				$conexion = $this->connection();
+				
+				// Consulta SQL para contar clientes activos (ajusta según tu esquema de BD)
+				$query = "SELECT COUNT(productos_id) AS total FROM productos WHERE estado = 1";
+				
+				// Ejecutar consulta
+				$resultado = $conexion->query($query);
+				
+				if (!$resultado) {
+					throw new Exception("Error al contar clientes: " . $conexion->error);
+				}
+				
+				// Obtener el total
+				$fila = $resultado->fetch_assoc();
+				return (int)$fila['total'];
+				
+			} catch (Exception $e) {
+				error_log("Error en getTotalClientesRegistrados: " . $e->getMessage());
+				return 0; // Retorna 0 si hay error para no bloquear el sistema
+			}
+		}
 	}
-?>

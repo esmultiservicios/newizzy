@@ -55,12 +55,8 @@
 			}else{
 				$puesto = 0;
 			}			
-			
-			if (isset($_POST['puestos_activo'])){
-				$estado = $_POST['puestos_activo'];
-			}else{
-				$estado = 2;
-			}
+					
+			$estado = isset($_POST['puestos_activo']) && $_POST['puestos_activo'] == 'on' ? 1 : 0;
 			
 			$datos = [
 				"puestos_id" => $puestos_id,

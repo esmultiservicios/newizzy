@@ -59,12 +59,6 @@ class empresaControlador extends empresaModelo
             'MostrarFirma' => 1,
         ];
     
-        // Validar límite de perfiles
-        $limite = $this->validarLimitePerfiles();
-        if ($limite !== true) {
-            return $limite;
-        }
-    
         // Validar empresa existente
         if (empresaModelo::valid_empresa_modelo($rtn)->num_rows > 0) {
             return mainModel::showNotification([
@@ -74,6 +68,34 @@ class empresaControlador extends empresaModelo
                 "form" => "formEmpresa"
             ]);
         }
+
+        $mainModel = new mainModel();
+        $planConfig = $mainModel->getPlanConfiguracionMainModel();
+        
+        // Solo evaluar si existe configuración de plan
+        if (!empty($planConfig)) {
+            $limiteEmpresas = (int)($planConfig['empresas'] ?? 0);
+            
+            // Caso 1: Límite es 0 (bloquear)
+            if ($limiteEmpresas === 0) {
+                return $mainModel->showNotification([
+                    "type" => "error",
+                    "title" => "Acceso restringido",
+                    "text" => "Su plan actual no permite registrar empresas."
+                ]);
+            }
+            
+            // Caso 2: Si tiene límite > 0, validar disponibilidad
+            $totalRegistrados = (int)empresaModelo::getTotalEmpresasRegistradas();
+            
+            if ($totalRegistrados >= $limiteEmpresas) {
+                return $mainModel->showNotification([
+                    "type" => "error",
+                    "title" => "Límite alcanzado",
+                    "text" => "Límite de empresas alcanzado (Máximo: $limiteEmpresas). Actualiza tu plan."
+                ]);
+            }
+        }	
     
         // Registrar empresa
         if (!empresaModelo::agregar_empresa_modelo($datos)) {
@@ -191,27 +213,7 @@ class empresaControlador extends empresaModelo
         ]);
     }
 
-    // Métodos auxiliares privados
-    
-    private function validarLimitePerfiles()
-    {
-        $cantidadPerfilesPlan = empresaModelo::cantidad_perfiles_modelo()->fetch_assoc();
-        $cantidadPerfilesPermitidos = $cantidadPerfilesPlan ? (int)$cantidadPerfilesPlan['perfiles'] : 1;
-        
-        $cantidadPerfilesRegistradosData = empresaModelo::getTotalEmpresasRegistradas()->fetch_assoc();
-        $cantidadPerfilesRegistrados = $cantidadPerfilesRegistradosData ? (int)$cantidadPerfilesRegistradosData['total'] : 0;
-
-        if ($cantidadPerfilesRegistrados >= $cantidadPerfilesPermitidos) {
-            return mainModel::showNotification([
-                "type" => "error",
-                "title" => "Límite alcanzado",
-                "text" => "Su plan solo permite $cantidadPerfilesPermitidos perfiles. Contáctese con ventas para ampliar."
-            ]);
-        }
-        
-        return true;
-    }
-
+    // Métodos auxiliares privad
     private function procesarImagen($campo, $prefijo)
     {
         if (empty($_FILES[$campo]['tmp_name'])) {

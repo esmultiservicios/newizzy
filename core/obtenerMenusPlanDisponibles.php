@@ -26,6 +26,8 @@ try {
                 menu m
             LEFT JOIN 
                 menu_plan mp ON m.menu_id = mp.menu_id AND mp.planes_id = ?
+            ORDER BY
+                m.orden ASC
         ";
 
         $stmt = $conexion->prepare($query);

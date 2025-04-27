@@ -3285,6 +3285,7 @@
 .method-card.selected::after {
     background: #3498db;
 }
+
 /* Estilo especial para puntos */
 .method-card.premium {
     border-color: #d4af37;
@@ -3330,6 +3331,7 @@
     background: rgba(212, 175, 55, 0.1);
     color: #d4af37;
 }
+
 /* Opciones adicionales */
 .payment-options-card {
     background: white;

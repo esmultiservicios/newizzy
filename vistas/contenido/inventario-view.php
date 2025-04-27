@@ -129,7 +129,7 @@
                                     <th>Bodega</th>
                                 </tr>
                             </thead>
-                            <tfoot class="bg-info text-white font-weight-bold">
+                            <tfoot class="bg-secondary">
                                 <tr>
                                     <td colspan="7"></td>
                                     <td colspan='1' class="text-center">Total</td> 

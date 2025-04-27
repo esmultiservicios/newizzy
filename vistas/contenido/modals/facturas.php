@@ -416,6 +416,7 @@
                                             <tr>
                                                 <th>Fecha</th>
                                                 <th>Cliente</th>
+                                                <th>Estado</th>
                                                 <th>Factura</th>
                                                 <th>Crédito</th>
                                                 <th>Abonos</th>

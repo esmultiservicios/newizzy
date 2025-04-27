@@ -22,6 +22,7 @@ $(() => {
 
 //INICIO ACCIONES FORMULARIO CUENTAS EN CONTABILIDAD
 var listar_cuentas_contabilidad = function() {
+    alert("listar_cuentas_contabilidad");
     var fechai = $("#formMainCuentasContabilidad #fechai").val();
     var fechaf = $("#formMainCuentasContabilidad #fechaf").val();
 

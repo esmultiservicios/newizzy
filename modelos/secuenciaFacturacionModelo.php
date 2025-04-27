@@ -57,5 +57,29 @@
 			
 			return $sql;				
 		}
+
+		protected function getTotalSecuenciaRegistradas() {
+			try {
+				// Obtener conexión a la base de datos
+				$conexion = $this->connection();
+				
+				// Consulta SQL para contar secuencias de facturacion activas (ajusta según tu esquema de BD)
+				$query = "SELECT COUNT(secuencia_facturacion_id) AS total FROM secuencia_facturacion WHERE activo = 1";
+				
+				// Ejecutar consulta
+				$resultado = $conexion->query($query);
+				
+				if (!$resultado) {
+					throw new Exception("Error al contar secuencias de facturacion: " . $conexion->error);
+				}
+				
+				// Obtener el total
+				$fila = $resultado->fetch_assoc();
+				return (int)$fila['total'];
+				
+			} catch (Exception $e) {
+				error_log("Error en getTotalSecuenciaRegistradas: " . $e->getMessage());
+				return 0; // Retorna 0 si hay error para no bloquear el sistema
+			}
+		}
 	}
-?>

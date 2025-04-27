@@ -56,6 +56,34 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
             "categoria_gastos" => $categoria_gastos
         ];
         
+        $mainModel = new mainModel();
+        $planConfig = $mainModel->getPlanConfiguracionMainModel();
+        
+        // Solo validar si existe configuración de plan
+        if (!empty($planConfig)) {
+            $limiteEgresos = (int)($planConfig['egresos'] ?? 0);
+            
+            // Caso 1: Límite es 0 (sin permisos)
+            if ($limiteEgresos === 0) {
+                return $mainModel->showNotification([
+                    "type" => "error",
+                    "title" => "Acceso restringido",
+                    "text" => "Su plan no incluye la creación de egresos contables."
+                ]);
+            }
+            
+            // Caso 2: Validar disponibilidad
+            $totalRegistradas = (int)egresosContabilidadModelo::getTotalEgresosRegistrados();
+            
+            if ($totalRegistradas >= $limiteEgresos) {
+                return $mainModel->showNotification([
+                    "type" => "error",
+                    "title" => "Límite alcanzado",
+                    "text" => "Ha excedido el límite mensual de egresos contables (Máximo: $limiteEgresos)."
+                ]);
+            }
+        }
+
         $resultEgresos = egresosContabilidadModelo::valid_egresos_cuentas_modelo($datos);
         
         if($resultEgresos->num_rows == 0){

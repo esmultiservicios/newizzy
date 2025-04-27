@@ -18,6 +18,34 @@
 				]);
 			}
 
+            $mainModel = new mainModel();
+            $planConfig = $mainModel->getPlanConfiguracionMainModel();
+            
+            // Solo validar si existe configuración de plan
+            if (!empty($planConfig)) {
+                $limiteCompras = (int)($planConfig['compras'] ?? 0);
+                
+                // Caso 1: Límite es 0 (sin permisos)
+                if ($limiteCompras === 0) {
+                    return $mainModel->showNotification([
+                        "type" => "error",
+                        "title" => "Acceso restringido",
+                        "text" => "Su plan no incluye la creación de compras."
+                    ]);
+                }
+                
+                // Caso 2: Validar disponibilidad
+                $totalRegistradas = (int)comprasModelo::getTotalComprasRegistradas();
+                
+                if ($totalRegistradas >= $limiteCompras) {
+                    return $mainModel->showNotification([
+                        "type" => "error",
+                        "title" => "Límite alcanzado",
+                        "text" => "Ha excedido el límite mensual de compras (Máximo: $limiteCompras)."
+                    ]);
+                }
+            }
+
 			$usuario = $_SESSION['colaborador_id_sd'];
 			$empresa_id = $_SESSION['empresa_id_sd'];			
 			//ENCABEZADO DE LA COMPRA

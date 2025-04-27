@@ -134,6 +134,34 @@ class productosControlador extends productosModelo
 			]);
 		}
 	
+		$mainModel = new mainModel();
+		$planConfig = $mainModel->getPlanConfiguracionMainModel();
+		
+		// Solo evaluar si existe configuración de plan
+		if (!empty($planConfig)) {
+			$limiteProductos = (int)($planConfig['productos'] ?? 0);
+			
+			// Caso 1: Límite es 0 (bloquear)
+			if ($limiteProductos === 0) {
+				return $mainModel->showNotification([
+					"type" => "error",
+					"title" => "Acceso restringido",
+					"text" => "Su plan actual no permite registrar productos."
+				]);
+			}
+			
+			// Caso 2: Si tiene límite > 0, validar disponibilidad
+			$totalRegistrados = (int)productosModelo::getTotalProductosRegistrados();
+			
+			if ($totalRegistrados >= $limiteProductos) {
+				return $mainModel->showNotification([
+					"type" => "error",
+					"title" => "Límite alcanzado",
+					"text" => "Límite de productos alcanzado (Máximo: $limiteProductos). Actualiza tu plan."
+				]);
+			}
+		}	
+
 		// Registrar el producto
 		$query = productosModelo::agregar_productos_modelo($datos);
 		if (!$query) {
@@ -283,7 +311,7 @@ class productosControlador extends productosModelo
 		}
 	
 		// Configurar estados
-		$estado = isset($_POST['producto_activo']) ? (int)$_POST['producto_activo'] : 2;
+		$estado = isset($_POST['producto_activo']) && $_POST['producto_activo'] == 'on' ? 1 : 0;
 		$isv_venta = isset($_POST['producto_isv_factura']) ? (int)$_POST['producto_isv_factura'] : 2;
 		$isv_compra = isset($_POST['producto_isv_compra']) ? (int)$_POST['producto_isv_compra'] : 2;
 	
@@ -321,9 +349,7 @@ class productosControlador extends productosModelo
 				"type" => "success",
 				"title" => "Producto actualizado",
 				"text" => "El producto se ha actualizado correctamente",
-				"form" => "formProductos",
-				"funcion" => "listar_productos();getEmpresaProductos();getCategoriaProductos();getAlmacen();getTipoProducto();getMedida(1);",
-				"closeModal" => true
+				"funcion" => "listar_productos();getEmpresaProductos();getCategoriaProductos();getAlmacen();getTipoProducto();getMedida(1);"
 			]);
 		}
 	

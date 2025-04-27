@@ -39,6 +39,34 @@
 					"text" => "La cuenta {$nombre} ya existe",                
 				]);              
 			}
+			
+			$mainModel = new mainModel();
+			$planConfig = $mainModel->getPlanConfiguracionMainModel();
+			
+			// Solo evaluar si existe configuración de plan
+			if (!empty($planConfig)) {
+				$limiteCuentas = (int)($planConfig['cuentas'] ?? 0);
+				
+				// Caso 1: Límite es 0 (bloquear)
+				if ($limiteCuentas === 0) {
+					return $mainModel->showNotification([
+						"type" => "error",
+						"title" => "Acceso restringido",
+						"text" => "Su plan actual no permite registrar cuentas contables."
+					]);
+				}
+				
+				// Caso 2: Si tiene límite > 0, validar disponibilidad
+				$totalRegistrados = (int)cuentaContabilidadModelo::getTotalCuentasRegistradas();
+				
+				if ($totalRegistrados >= $limiteCuentas) {
+					return $mainModel->showNotification([
+						"type" => "error",
+						"title" => "Límite alcanzado",
+						"text" => "Límite de cuentas contables alcanzado (Máximo: $limiteCuentas). Actualiza tu plan."
+					]);
+				}
+			}	
 
 			if(!cuentaContabilidadModelo::agregar_cuenta_contabilidad_modelo($datos)){
 				return mainModel::showNotification([
@@ -52,7 +80,7 @@
 				"type" => "success",
 				"title" => "Registro exitoso",
 				"text" => "Cuenta {$nombre} registrada correctamente",
-				"funcion" => "listar_cuentas_contables();"
+				"funcion" => "listar_cuentas_contabilidad();"
 			]);		
 		}
 		
@@ -85,7 +113,7 @@
 				"type" => "success",
 				"title" => "Actualización exitosa",
 				"text" => "Cuenta actualizada correctamente",
-				"funcion" => "listar_cuentas_contables();"
+				"funcion" => "listar_cuentas_contabilidad();"
 			]);
 		}
 		

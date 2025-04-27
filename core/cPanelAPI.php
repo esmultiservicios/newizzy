@@ -190,7 +190,19 @@ class cPanelAPI {
             ]);
             
             if ($result['status'] != 1) {
-                throw new Exception($this->parseError($result));
+                // Si falla, intentar actualizar privilegios primero
+                $this->executeApiCall('Mysql', 'update_privileges');
+                
+                // Reintentar
+                $result = $this->executeApiCall('Mysql', 'set_privileges_on_database', [
+                    'user' => $username,
+                    'database' => $dbName,
+                    'privileges' => 'ALL PRIVILEGES'
+                ]);
+                
+                if ($result['status'] != 1) {
+                    throw new Exception($this->parseError($result));
+                }
             }
             
             return ['success' => true, 'message' => 'Privileges granted successfully'];

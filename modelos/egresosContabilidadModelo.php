@@ -98,5 +98,33 @@
 			
 			return $sql;			
 		}		
+
+		protected function getTotalEgresosRegistrados() {
+			try {
+				$conexion = $this->connection();
+				
+				// Obtener el primer y último día del mes actual
+				$primerDiaMes = date('Y-m-01');  // Ej: 2024-06-01
+				$ultimoDiaMes = date('Y-m-t');   // Ej: 2024-06-30
+				
+				// Consulta SQL con CAST para ignorar la hora en DATETIME
+				$query = "SELECT COUNT(egresos_id) AS total 
+						  FROM egresos 
+						  WHERE estado = 1
+						  AND CAST(fecha_registro AS DATE) BETWEEN '$primerDiaMes' AND '$ultimoDiaMes'";
+				
+				$resultado = $conexion->query($query);
+				
+				if (!$resultado) {
+					throw new Exception("Error al contar egresos: " . $conexion->error);
+				}
+				
+				$fila = $resultado->fetch_assoc();
+				return (int)$fila['total'];
+				
+			} catch (Exception $e) {
+				error_log("Error en getTotalEgresosRegistrados: " . $e->getMessage());
+				return 0;
+			}
+		}
 	}
-?>

@@ -720,4 +720,24 @@
 			$result = $stmt->get_result();
 			return ($result && $row = $result->fetch_assoc()) ? $row['saldo'] : 0;
 		}	
+
+		protected function getTotalFacturasRegistradas() {
+			try {
+				$conexion = $this->connection();
+				$primerDiaMes = date('Y-m-01');
+				$ultimoDiaMes = date('Y-m-t');
+		
+				$query = "SELECT COUNT(facturas_id) AS total 
+						  FROM facturas 
+						  WHERE estado IN(2,3)
+						  AND CAST(fecha_registro AS DATE) BETWEEN '$primerDiaMes' AND '$ultimoDiaMes'";
+		
+				$resultado = $conexion->query($query);
+				$fila = $resultado->fetch_assoc();
+				return (int)$fila['total'];
+			} catch (Exception $e) {
+				error_log("Error en getTotalFacturasRegistradas: " . $e->getMessage());
+				return 0;
+			}
+		}
 	}

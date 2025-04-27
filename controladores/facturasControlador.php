@@ -401,6 +401,34 @@ class facturasControlador extends facturasModelo {
             ]);
         }
         
+        $mainModel = new mainModel();
+        $planConfig = $mainModel->getPlanConfiguracionMainModel();
+        
+        // Solo validar si existe configuración de plan
+        if (!empty($planConfig)) {
+            $limiteFacturas = (int)($planConfig['facturas'] ?? 0);
+            
+            // Caso 1: Límite es 0 (sin permisos)
+            if ($limiteFacturas === 0) {
+                return $mainModel->showNotification([
+                    "type" => "error",
+                    "title" => "Acceso restringido",
+                    "text" => "Su plan no incluye la creación de facturas."
+                ]);
+            }
+            
+            // Caso 2: Validar disponibilidad
+            $totalRegistradas = (int)facturasModelo::getTotalFacturasRegistradas();
+            
+            if ($totalRegistradas >= $limiteFacturas) {
+                return $mainModel->showNotification([
+                    "type" => "error",
+                    "title" => "Límite alcanzado",
+                    "text" => "Ha excedido el límite mensual de facturas (Máximo: $limiteFacturas)."
+                ]);
+            }
+        }
+
         // Obtener tipo de factura y documento
         $tipo_factura = $_POST['facturas_activo'] ?? 2; //1. CONTADO, 2. CREDITO
         $tipo_documento = $_POST['facturas_proforma'] ?? 0; //0. FACTURA ELECTRONICA, 1. FACTURA PROFORMA

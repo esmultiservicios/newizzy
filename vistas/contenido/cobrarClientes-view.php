@@ -103,7 +103,7 @@
 							<th>Factura</th>				
                         </tr>
                     </thead>
-					<tfoot class="bg-info text-white font-weight-bold">
+					<tfoot class="bg-secondary">
 						<tr>
 							<td colspan='1'>Total</td>
 							<td colspan="3"></td>

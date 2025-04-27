@@ -216,9 +216,9 @@
                         <thead>
                             <tr>
                                 <th width="5%">#</th>
-                                <th>Menú Padre</th>
-                                <th>Submenú Nivel 1</th>
                                 <th>Nombre del Submenú</th>
+                                <th>Menú Padre</th>                                
+                                <th>Submenú Nivel 1</th>                                
                                 <th width="15%">Estado</th>
                                 <th width="15%">Acciones</th>
                             </tr>

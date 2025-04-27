@@ -14,10 +14,10 @@
 		// Identificar campos faltantes
 		$missingFields = [];
 		
-		if (!isset($_POST['usuarios_colaborador_id'])) $missingFields[] = "ID del Colaborador";
-		if (!isset($_POST['colaborador_id_usuario'])) $missingFields[] = "ID del Colaborador";
-		if (!isset($_POST['privilegio_id'])) $missingFields[] = "ID del Privilegio";
-		if (!isset($_POST['correo_usuario'])) $missingFields[] = "Correo del Usuario";
+		if (!isset($_POST['usuarios_colaborador_id'])) $missingFields[] = "ID del usuario";
+		if (!isset($_POST['colaborador_id_usuario'])) $missingFields[] = "ID del colaborador";
+		if (!isset($_POST['privilegio_id'])) $missingFields[] = "ID del privilegio";
+		if (!isset($_POST['correo_usuario'])) $missingFields[] = "Correo del usuario";
 		if (!isset($_POST['empresa_usuario'])) $missingFields[] = "Empresa del Usuario";
 		if (!isset($_POST['tipo_user'])) $missingFields[] = "Tipo de Usuario";
 		if (!isset($_POST['usuarios_activo'])) $missingFields[] = "Activo del Usuario";

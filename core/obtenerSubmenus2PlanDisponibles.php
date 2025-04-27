@@ -38,6 +38,8 @@ try {
         LEFT JOIN
             menu m ON s.menu_id = m.menu_id
         ORDER BY
+            m.orden ASC,
+            s.orden ASC,
             s1.orden ASC
         ";
 

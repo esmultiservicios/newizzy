@@ -223,8 +223,7 @@ class sendEmail {
                 'eslogan' => ''
             ];
         }
-    }
-    
+    }    
 
     public function getCorreoPlantilla($asunto, $mensaje, $datos_empresa) {
         // Datos de tu empresa

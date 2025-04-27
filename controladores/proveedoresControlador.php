@@ -43,6 +43,34 @@
 				"fecha_registro" => $fecha_registro,
 				"estado" => $estado,				
 			];
+
+			$mainModel = new mainModel();
+			$planConfig = $mainModel->getPlanConfiguracionMainModel();
+			
+			// Solo evaluar si existe configuración de plan
+			if (!empty($planConfig)) {
+				$limiteProveedores = (int)($planConfig['proveedores'] ?? 0);
+				
+				// Caso 1: Límite es 0 (bloquear)
+				if ($limiteProveedores === 0) {
+					return $mainModel->showNotification([
+						"type" => "error",
+						"title" => "Acceso restringido",
+						"text" => "Su plan actual no permite registrar proveedores."
+					]);
+				}
+				
+				// Caso 2: Si tiene límite > 0, validar disponibilidad
+				$totalRegistrados = (int)proveedoresModelo::getTotalProveedoresRegistrados();
+				
+				if ($totalRegistrados >= $limiteProveedores) {
+					return $mainModel->showNotification([
+						"type" => "error",
+						"title" => "Límite alcanzado",
+						"text" => "Límite de proveedores alcanzado (Máximo: $limiteProveedores). Actualiza tu plan."
+					]);
+				}
+			}	
 			
 			if(!proveedoresModelo::agregar_proveedores_model($datos)){
 				return mainModel::showNotification([
@@ -80,7 +108,7 @@
 			$correo = mainModel::cleanStringStrtolower($_POST['correo_proveedores']);
 			$rtn = mainModel::cleanString($_POST['rtn_proveedores']);
 
-			$estado = isset($_POST['colaboradores_activo']) ? 1 : 0;	
+			$estado = isset($_POST['proveedores_activo']) && $_POST['proveedores_activo'] == 'on' ? 1 : 0;	
 			
 			$datos = [
 				"proveedores_id" => $proveedores_id,

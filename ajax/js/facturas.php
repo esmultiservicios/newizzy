@@ -2103,6 +2103,23 @@ var listar_busqueda_cuentas_por_cobrar_clientes = function() {
                 "data": "cliente"
             },
             {
+                "data": "estado",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        var text = data == 1 ? 'Crédito' : 'Contado';
+                        var icon = data == 1 
+                            ? '<i class="fas fa-clock mr-1"></i>' 
+                            : '<i class="fas fa-check-circle mr-1"></i>';
+                        var badgeClass = data == 1 
+                            ? 'badge badge-pill badge-warning' 
+                            : 'badge badge-pill badge-success';
+                        return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' + 
+                            icon + text + '</span>';
+                    }
+                    return data;
+                }
+            },             
+            {
                 "data": "numero"
             },
             {
@@ -2219,7 +2236,6 @@ var listar_busqueda_cuentas_por_cobrar_clientes = function() {
             },
         ],
         "fnRowCallback": function(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-            $('td', nRow).addClass(aData['color']);
             for (let index = 0; index < aData.length; index++) {
                 console.log(aData[i]["credito"]);
             }

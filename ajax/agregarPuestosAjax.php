@@ -1,4 +1,5 @@
 <?php	
+	//agregarPuestosAjax.php
 	$peticionAjax = true;
 	require_once "../core/configGenerales.php";
 	

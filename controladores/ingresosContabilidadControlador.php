@@ -63,6 +63,34 @@ class ingresosContabilidadControlador extends ingresosContabilidadModelo{
                 "whatsapp" => ""
             ];
 
+            $mainModel = new mainModel();
+            $planConfig = $mainModel->getPlanConfiguracionMainModel();
+            
+            // Solo validar si existe configuración de plan
+            if (!empty($planConfig)) {
+                $limiteIngresos = (int)($planConfig['ingresos'] ?? 0);
+                
+                // Caso 1: Límite es 0 (sin permisos)
+                if ($limiteIngresos === 0) {
+                    return $mainModel->showNotification([
+                        "type" => "error",
+                        "title" => "Acceso restringido",
+                        "text" => "Su plan no incluye la creación de ingresos contables."
+                    ]);
+                }
+                
+                // Caso 2: Validar disponibilidad
+                $totalRegistradas = (int)ingresosContabilidadModelo::getTotalIngresosRegistrados();
+                
+                if ($totalRegistradas >= $limiteIngresos) {
+                    return $mainModel->showNotification([
+                        "type" => "error",
+                        "title" => "Límite alcanzado",
+                        "text" => "Ha excedido el límite mensual de ingresos contables (Máximo: $limiteIngresos)."
+                    ]);
+                }
+            }
+
             if(!ingresosContabilidadModelo::agregar_clientes_ingresos_contabilidad_modelo($datos_clientes_ingreso)){
                 return mainModel::showNotification([
                     "title" => "Error",

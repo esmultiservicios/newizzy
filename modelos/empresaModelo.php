@@ -148,13 +148,27 @@ class empresaModelo extends mainModel
 	// Método para obtener el total de perfiles registrados en la empresa
 	protected function getTotalEmpresasRegistradas()
 	{
-		$query = "SELECT COUNT(empresa_id) AS 'total' FROM empresa";
-		return mainModel::connection()->query($query);
-	}
-
-	// Método para obtener el límite de perfiles del plan
-	protected function cantidad_perfiles_modelo()
-	{
-		return mainModel::getCantidadPerfilesPlan();
+		try {
+			// Obtener conexión a la base de datos
+			$conexion = $this->connection();
+			
+			// Consulta SQL para contar empresas activas (ajusta según tu esquema de BD)
+			$query = "SELECT COUNT(empresa_id) AS total FROM empresa WHERE estado = 1";
+			
+			// Ejecutar consulta
+			$resultado = $conexion->query($query);
+			
+			if (!$resultado) {
+				throw new Exception("Error al contar empresas: " . $conexion->error);
+			}
+			
+			// Obtener el total
+			$fila = $resultado->fetch_assoc();
+			return (int)$fila['total'];
+			
+		} catch (Exception $e) {
+			error_log("Error en getTotalEmpresasRegistradas: " . $e->getMessage());
+			return 0; // Retorna 0 si hay error para no bloquear el sistema
+		}
 	}
 }

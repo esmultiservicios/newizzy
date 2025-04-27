@@ -171,7 +171,7 @@ var listar_productos = function() {
                 titleAttr: 'Agregar Productos',
                 className: 'table_crear btn btn-primary ocultar',
                 action: function() {
-                    modal_productos();
+                    modal_registrar_productos();
                 }
             },
             {
@@ -287,7 +287,7 @@ var editar_producto_dataTable = function(tbody, table) {
                     $('#formProductos #preview').attr('src', datos[21]);
                 } else {
                     $("#formProductos #preview").attr("src",
-                        "<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png"
+                        "<?php echo SERVERURLLOGO; ?>/image_preview.png"
                     );
                 }
 

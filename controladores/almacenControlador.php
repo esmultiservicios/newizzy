@@ -36,6 +36,34 @@
 				]);                
 			}
 
+			$mainModel = new mainModel();
+			$planConfig = $mainModel->getPlanConfiguracionMainModel();
+			
+			// Solo evaluar si existe configuración de plan
+			if (!empty($planConfig)) {
+				$limiteAlmacenes = (int)($planConfig['almacenes'] ?? 0);
+				
+				// Caso 1: Límite es 0 (bloquear)
+				if ($limiteAlmacenes === 0) {
+					return $mainModel->showNotification([
+						"type" => "error",
+						"title" => "Acceso restringido",
+						"text" => "Su plan actual no permite registrar almacenes."
+					]);
+				}
+				
+				// Caso 2: Si tiene límite > 0, validar disponibilidad
+				$totalRegistrados = (int)almacenModelo::getTotalAlmacenesRegistrados();
+				
+				if ($totalRegistrados >= $limiteAlmacenes) {
+					return $mainModel->showNotification([
+						"type" => "error",
+						"title" => "Límite alcanzado",
+						"text" => "Límite de almacenes alcanzado (Máximo: $limiteAlmacenes). Actualiza tu plan."
+					]);
+				}
+			}	
+
 			if(!almacenModelo::agregar_almacen_modelo($datos)){
 				return mainModel::showNotification([
 					"title" => "Error",

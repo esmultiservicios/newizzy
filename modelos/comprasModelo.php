@@ -445,5 +445,25 @@
 			} else {
 				return ["success" => false, "message" => "Error al registrar el movimiento de entrada."];
 			}
-		}		
+		}	
+		
+		protected function getTotalComprasRegistradas() {
+			try {
+				$conexion = $this->connection();
+				$primerDiaMes = date('Y-m-01');
+				$ultimoDiaMes = date('Y-m-t');
+		
+				$query = "SELECT COUNT(compras_id) AS total 
+						  FROM compras 
+						  WHERE estado IN(2,3)
+						  AND CAST(fecha_registro AS DATE) BETWEEN '$primerDiaMes' AND '$ultimoDiaMes'";
+		
+				$resultado = $conexion->query($query);
+				$fila = $resultado->fetch_assoc();
+				return (int)$fila['total'];
+			} catch (Exception $e) {
+				error_log("Error en getTotalComprasRegistradas: " . $e->getMessage());
+				return 0;
+			}
+		}
 	}

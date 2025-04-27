@@ -41,6 +41,24 @@
 				]);                
 			}
 
+			$mainModel = new mainModel();
+
+            $planConfig = $mainModel->getPlanConfiguracionMainModel();
+            
+            // Solo verifica el límite si $planConfig NO está vacío
+            if (!empty($planConfig)) {
+                $limiteTipoPago = (int)($planConfig['tipo_pago'] ?? 0);
+                $totalTipoPagoRegistrados = (int)tipoPagoModelo::getTotalTipoPagoRegistrados();
+    
+                if ($limiteTipoPago > 0 && $totalTipoPagoRegistrados >= $limiteTipoPago) {
+                    return mainModel::showNotification([
+                        "type" => "error",
+                        "title" => "Error",
+                        "text" => "Límite de tipos de pago alcanzado (Máximo: $limiteTipoPago). Actualiza tu plan."
+                    ]);
+                }
+            }
+
 			if(!tipoPagoModelo::agregar_tipo_pago_modelo($datos)){
 				return mainModel::showNotification([
 					"type" => "error",

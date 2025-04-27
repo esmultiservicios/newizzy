@@ -58,7 +58,7 @@
 				$query_server = "SELECT COALESCE(s.server_customers_id, '0') AS server_customers_id, COALESCE(s.db, '" . DB_MAIN . "') AS db, codigo_cliente
 					FROM users AS u
 					LEFT JOIN server_customers AS s ON u.server_customers_id = s.server_customers_id
-					WHERE (BINARY u.email = '$username' OR BINARY u.username = '$username')";
+					WHERE BINARY u.email = '$username'";
 				
 				$respuesta = true;
 			} else {
@@ -288,7 +288,7 @@
 			$query_server = "SELECT COALESCE(s.server_customers_id, '0') AS server_customers_id, COALESCE(s.db, '" . DB_MAIN . "') AS db, codigo_cliente
 								FROM users AS u
 								LEFT JOIN server_customers AS s ON u.server_customers_id = s.server_customers_id
-								WHERE (BINARY u.email = '$username' OR BINARY u.username = '$username')";
+								WHERE BINARY u.email = '$username'";
 			
 			
 			//echo $query_server."***";

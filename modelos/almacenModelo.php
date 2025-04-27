@@ -51,6 +51,30 @@
 			$sql = mainModel::connection()->query($query) or die(mainModel::connection()->error);
 			
 			return $sql;			
-		}		
+		}	
+		
+		protected function getTotalAlmacenesRegistrados() {
+			try {
+				// Obtener conexión a la base de datos
+				$conexion = $this->connection();
+				
+				// Consulta SQL para contar almacenes activos (ajusta según tu esquema de BD)
+				$query = "SELECT COUNT(almacen_id) AS total FROM almacen WHERE estado = 1";
+				
+				// Ejecutar consulta
+				$resultado = $conexion->query($query);
+				
+				if (!$resultado) {
+					throw new Exception("Error al contar almacenes: " . $conexion->error);
+				}
+				
+				// Obtener el total
+				$fila = $resultado->fetch_assoc();
+				return (int)$fila['total'];
+				
+			} catch (Exception $e) {
+				error_log("Error en getTotalAlmacenesRegistrados: " . $e->getMessage());
+				return 0; // Retorna 0 si hay error para no bloquear el sistema
+			}
+		}
 	}
-	?>

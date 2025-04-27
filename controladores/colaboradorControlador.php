@@ -58,6 +58,34 @@ class colaboradorControlador extends colaboradorModelo{
             ]);
             exit();                
         }
+
+        $mainModel = new mainModel();
+        $planConfig = $mainModel->getPlanConfiguracionMainModel();
+        
+        // Solo evaluar si existe configuración de plan
+        if (!empty($planConfig)) {
+            $limiteColaboradores = (int)($planConfig['colaboradores'] ?? 0);
+            
+            // Caso 1: Límite es 0 (bloquear)
+            if ($limiteColaboradores === 0) {
+                return $mainModel->showNotification([
+                    "type" => "error",
+                    "title" => "Acceso restringido",
+                    "text" => "Su plan actual no permite registrar colaboradores."
+                ]);
+            }
+            
+            // Caso 2: Si tiene límite > 0, validar disponibilidad
+            $totalRegistrados = (int)colaboradorModelo::getTotalColaboradoresRegistrados();
+            
+            if ($totalRegistrados >= $limiteColaboradores) {
+                return $mainModel->showNotification([
+                    "type" => "error",
+                    "title" => "Límite alcanzado",
+                    "text" => "Límite de colaboradores alcanzado (Máximo: $limiteColaboradores). Actualiza tu plan."
+                ]);
+            }
+        }	
     
         if (!colaboradorModelo::agregar_colaborador_modelo($datos)) {
             header('Content-Type: application/json');

@@ -1,13 +1,17 @@
 <?php
-if ($peticionAjax) {
-	require_once '../core/configAPP.php';
-	require_once '../core/phpmailer/class.phpmailer.php';
-	require_once '../core/phpmailer/class.smtp.php';
+// core/mainModel.php
+
+// Determinar la ruta base según si es petición Ajax o no
+if (isset($peticionAjax)) {
+    $basePath = dirname(__DIR__) . '/core/';
 } else {
-	require_once './core/configAPP.php';
-	require_once './core/phpmailer/class.phpmailer.php';
-	require_once './core/phpmailer/class.smtp.php';
+    $basePath = __DIR__ . '/';
 }
+
+// Incluir archivos de configuración
+require_once $basePath . 'configAPP.php';
+require_once $basePath . 'phpmailer/class.phpmailer.php';
+require_once $basePath . 'phpmailer/class.smtp.php';
 
 class mainModel
 {
@@ -1748,51 +1752,50 @@ class mainModel
 		$title = $alert['title'] ?? 'Notificación';
 		$message = $alert['text'] ?? '';
 		$status = ($type === 'success') ? 'success' : 'error';
-	
-		$scriptParts = [
-			"<script>",
-			"(function() {",
-			"  // Mostrar notificación",
-			"  if (typeof showNotify === 'function') {",
-			"    showNotify('{$status}', '" . addslashes($title) . "', '" . addslashes($message) . "');",
-			"  }",
-		];
-	
-		// Resetear formulario si existe
+		
+		// Inicializar array de acciones
+		$actions = [];
+		
+		// Notificación principal (siempre primera)
+		$actions[] = "if (typeof showNotify === 'function') { 
+			showNotify('{$status}', '" . addslashes($title) . "', '" . addslashes($message) . "'); 
+		}";
+		
+		// Resetear formulario
 		if (!empty($alert['form'])) {
-			$scriptParts[] = "  if ($('#{$alert['form']}').length) {";
-			$scriptParts[] = "    $('#{$alert['form']}')[0].reset();";
-			$scriptParts[] = "  }";
+			$actions[] = "$('#{$alert['form']}')[0].reset();";
 		}
-	
-		// Ejecutar funciones (manejo seguro)
+		
+		// Funciones adicionales
 		if (!empty($alert['funcion'])) {
-			$functions = array_filter(explode(';', $alert['funcion'])); // Separa y elimina vacíos
+			$functions = array_filter(explode(';', $alert['funcion']));
 			foreach ($functions as $func) {
 				$func = trim($func);
 				if (!empty($func)) {
-					$scriptParts[] = "  try {";
-					$scriptParts[] = "    if (typeof " . explode('(', $func)[0] . " === 'function') {"; // Extrae el nombre de la función (sin parámetros)
-					$scriptParts[] = "      " . $func . ";"; // Ejecuta la función con parámetros (ej: getMedida(1))
-					$scriptParts[] = "    } else {";
-					$scriptParts[] = "      console.warn('Función no definida: {$func}');";
-					$scriptParts[] = "    }";
-					$scriptParts[] = "  } catch (e) {";
-					$scriptParts[] = "    console.error('Error ejecutando {$func}:', e.message);";
-					$scriptParts[] = "  }";
+					$actions[] = "try { 
+						if (typeof " . explode('(', $func)[0] . " === 'function') { 
+							{$func}; 
+						} else { 
+
+						} 
+					} catch (e) { 
+		
+					}";
 				}
 			}
 		}
-	
-		// Cerrar modal si se indica
+		
+		// Cerrar modal
 		if (!empty($alert['closeModal'])) {
-			$scriptParts[] = "  $('.modal').modal('hide');";
+			$actions[] = "$('.modal').modal('hide');";
 		}
-	
-		$scriptParts[] = "})();";
-		$scriptParts[] = "</script>";
-	
-		return implode("\n", $scriptParts);
+		
+		// Generar UN solo script
+		return "<script>
+			(function() {
+				" . implode("\n", $actions) . "
+			})();
+		</script>";
 	}
 
 	function cerrar_sesion()
@@ -3820,6 +3823,54 @@ class mainModel
 	public function ejecutarConsultaSimple($query){
 		$result = self::connection()->query($query);
 
+		return $result;
+	}
+
+	public function ejecutar_consulta_simple_preparada($query, $types = "", $params = array()) {
+		$conexion = self::connection();
+		
+		// Preparar la declaración
+		$stmt = $conexion->prepare($query);
+		
+		if (!$stmt) {
+			throw new Exception("Error al preparar la consulta: " . $conexion->error);
+		}
+		
+		// Si hay parámetros para vincular
+		if (!empty($types) && !empty($params)) {
+			// Crear un array con referencias para bind_param
+			$bind_params = array();
+			
+			// El primer elemento es el string de tipos
+			$bind_params[] = &$types;
+			
+			// Agregar referencias de los parámetros
+			foreach ($params as $key => $value) {
+				$bind_params[] = &$params[$key];
+			}
+			
+			// Usar call_user_func_array para vincular los parámetros
+			call_user_func_array(array($stmt, 'bind_param'), $bind_params);
+		}
+		
+		// Ejecutar la consulta
+		if (!$stmt->execute()) {
+			throw new Exception("Error al ejecutar la consulta: " . $stmt->error);
+		}
+		
+		// Obtener el resultado (para SELECT, SHOW, DESCRIBE, EXPLAIN)
+		$result = $stmt->get_result();
+		
+		// Si es una consulta que no devuelve resultados (INSERT, UPDATE, DELETE)
+		if ($result === false) {
+			// Verificar si hay filas afectadas
+			if ($stmt->affected_rows > 0) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+		
 		return $result;
 	}
 

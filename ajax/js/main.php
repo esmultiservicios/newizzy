@@ -713,7 +713,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 //INICIO PRODUCTOS
 /*INICIO FORMULARIO PRODUCTOS*/
-function modal_productos() {
+function modal_registrar_productos() {
     $('#formProductos').attr({
         'data-form': 'save'
     });
@@ -787,15 +787,17 @@ function modal_productos() {
         $('#formProductos #producto_isv_compra').attr('checked', false);
     }
 
-    $("#formProductos #preview").attr("src", "<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png");
+    $("#formProductos #preview").attr("src", "<?php echo SERVERURLLOGO;?>/image_preview.png");
 
-    $('#formProductos #proceso_productos').val("Registro de Productos");
+    $('#formProductos #estado_producto').hide();
+
     $('#modal_registrar_productos').modal({
         show: true,
         keyboard: false,
         backdrop: 'static'
     });
 }
+
 /*FIN FORMULARIO PRODUCTOS*/
 function getEmpresaProductos() {
     var url = '<?php echo SERVERURL;?>core/getEmpresa.php';
@@ -3892,38 +3894,46 @@ function editRTNClient(clientes_id, rtn) {
             },
             confirm: {
                 text: "¡Sí, deseo editarlo!",
-                className: "btn-primary",
-                closeModal: false
+                className: "btn-primary"
             }
         },
-        closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-        closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-    }).then((isConfirm) => {
-        if (isConfirm) {
-            editRTNCliente(clientes_id, rtn);
+        closeOnClickOutside: false,
+        closeOnEsc: false
+    }).then((willEdit) => {
+        if (willEdit) {
+            return editRTNCliente(clientes_id, rtn); // Retorna la promesa del AJAX
         }
     });
 }
 
 function editRTNCliente(clientes_id, rtn) {
     var url = '<?php echo SERVERURL; ?>core/editRTNCliente.php';
-
-    $.ajax({
+    
+    // Convertir a AJAX asíncrono (recomendado)
+    return $.ajax({
         type: 'POST',
         url: url,
-        async: false,
-        data: 'clientes_id=' + clientes_id + '&rtn=' + rtn,
-        success: function(data) {
-            if (data == 1) {
-                showNotify('success', 'Success', 'El RTN ha sido actualizado satisfactoriamente');
-                listar_clientes();
-                $('#formClientes #identidad_clientes').val(rtn);
-            } else if (data == 2) {
-                showNotify('error', 'Error', 'Error el RTN no se puede actualizar');
-            } else if (data == 3) {
-                showNotify('error', 'Error', 'El RTN ya existe');
-            }
+        async: true, // Cambiado a true (elimina el bloqueo)
+        data: { 
+            clientes_id: clientes_id, 
+            rtn: rtn 
         }
+    }).then(function(data) {
+        if (data == 1) {
+            swal.close(); // Cierra manualmente el SweetAlert
+            showNotify('success', 'Success', 'El RTN ha sido actualizado satisfactoriamente');
+            listar_clientes();
+            $('#formClientes #identidad_clientes').val(rtn);
+        } else if (data == 2) {
+            swal.close();
+            showNotify('error', 'Error', 'Error el RTN no se puede actualizar');
+        } else if (data == 3) {
+            swal.close();
+            showNotify('error', 'Error', 'El RTN ya existe');
+        }
+    }).fail(function() {
+        swal.close();
+        showNotify('error', 'Error', 'Error en la solicitud');
     });
 }
 

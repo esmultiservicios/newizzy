@@ -2218,7 +2218,7 @@
                         <div class="card-body">
                             <div class="form-group">
                                 <div class="custom-control custom-switch">
-                                    <input type="checkbox" class="custom-control-input" id="proveedores_activo" name="proveedores_activo" value="1" checked>
+                                    <input type="checkbox" class="custom-control-input" id="proveedores_activo" name="proveedores_activo" checked>
                                     <label class="custom-control-label" for="proveedores_activo">Proveedor Activo</label>
                                 </div>
                                 <small class="form-text text-muted">Active o desactive el estado del proveedor en el sistema</small>
@@ -3115,7 +3115,6 @@
             <div class="modal-body">
                 <form class="FormularioAjax" id="formProductos" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
                     <input type="hidden" id="productos_id" name="productos_id" class="form-control">
-                    <input type="hidden" id="productos_id" name="productos_id" class="form-control">
 
                     <!-- Sección de Información Básica -->
                     <div class="card border-primary mb-4">
@@ -3126,7 +3125,7 @@
                             <div class="form-row">
                                 <div class="col-md-1 mb-3">
                                     <input type="file" name="file" class="file" accept=".png, .jpeg, .jpg, .jfif">
-                                    <img type="button" src="<?php echo SERVERURL; ?>vistas/plantilla/img/products/image_preview.png" id="preview" class="browse img-thumbnail" data-toggle="tooltip" data-placement="top" title="Cargar Imagen">
+                                    <img type="button" src="<?php echo SERVERURLLOGO; ?>/image_preview.png" id="preview" class="browse img-thumbnail" data-toggle="tooltip" data-placement="top" title="Cargar Imagen">
                                     <input type="hidden" class="form-control" disabled placeholder="Cargar Imágen" id="file_product" name="file_product">
                                     <small class="form-text text-muted">Imagen del producto</small>
                                 </div>
@@ -3283,9 +3282,9 @@
                             </div>
                             
                             <div class="form-row">
-                                <div class="col-md-6 mb-3">
+                                <div class="col-md-6 mb-3" id="estado_producto">
                                     <div class="custom-control custom-switch">
-                                        <input type="checkbox" class="custom-control-input" id="producto_activo" name="producto_activo" value="1" checked>
+                                        <input type="checkbox" class="custom-control-input" id="producto_activo" name="producto_activo" checked>
                                         <label class="custom-control-label" for="producto_activo"><i class="fas fa-power-off mr-1"></i>Estado del Producto</label>
                                         <small class="form-text text-muted">Activar/Desactivar producto en el sistema</small>
                                     </div>
@@ -3520,7 +3519,7 @@
                                             <th>Usuario que recibe</th>
                                         </tr>
                                     </thead>
-                                    <tfoot class="bg-info text-white font-weight-bold">
+                                    <tfoot class="bg-secondary">
                                         <tr>
                                             <td colspan='2' class="text-left">Total</td>
                                             <td colspan="1"></td>
@@ -3571,7 +3570,7 @@
                                             <th>Usuario que Entrega</th>
                                         </tr>
                                     </thead>
-                                    <tfoot class="bg-info text-white font-weight-bold">
+                                    <tfoot class="bg-secondary">
                                         <tr>
                                             <td colspan='2' class="text-left">Total</td>
                                             <td colspan="1"></td>

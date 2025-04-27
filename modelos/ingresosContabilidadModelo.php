@@ -91,5 +91,35 @@
 			
 			return $sql;			
 		}
+
+		protected function getTotalIngresosRegistrados() {
+			try {
+				// Obtener conexión a la base de datos
+				$conexion = $this->connection();
+				
+				// Obtener el primer y último día del mes actual
+				$primerDiaMes = date('Y-m-01');  // Ej: 2024-06-01
+				$ultimoDiaMes = date('Y-m-t');   // Ej: 2024-06-30
+
+				// Consulta SQL para contar clientes activos (ajusta según tu esquema de BD)
+				$query = "SELECT COUNT(ingresos_id) AS total 
+						  FROM ingresos WHERE estado = 1
+						  AND CAST(fecha_registro AS DATE) BETWEEN '$primerDiaMes' AND '$ultimoDiaMes'";
+				
+				// Ejecutar consulta
+				$resultado = $conexion->query($query);
+				
+				if (!$resultado) {
+					throw new Exception("Error al contar ingresos: " . $conexion->error);
+				}
+				
+				// Obtener el total
+				$fila = $resultado->fetch_assoc();
+				return (int)$fila['total'];
+				
+			} catch (Exception $e) {
+				error_log("Error en getTotalIngresosRegistrados: " . $e->getMessage());
+				return 0; // Retorna 0 si hay error para no bloquear el sistema
+			}
+		}
 	}
-?>

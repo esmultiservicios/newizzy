@@ -33,6 +33,9 @@ try {
             submenu_plan sp ON s.submenu_id = sp.submenu_id AND sp.planes_id = ?
         LEFT JOIN
             menu m ON s.menu_id = m.menu_id 
+        ORDER BY
+            m.orden ASC,
+            s.orden ASC
         ";
 
         $stmt = $conexion->prepare($query);

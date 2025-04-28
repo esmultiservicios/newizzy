@@ -21,4 +21,4 @@
 	//ACTUALIZAMOS LA BITACORA
 	$codigo_bitacora = $_SESSION['codigo_bitacora_sd'];
 	$hora = date("H:m:s");
-	$insMainModel->actualizar_bitacora($codigo_bitacora, $hora);
+	$insMainModel->actualizar_hora_salida_bitacora($codigo_bitacora, $hora);

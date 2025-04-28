@@ -867,6 +867,48 @@ function openPaymentModal(type, amount, customer, id) {
     }
 }
 
+
 // Uso: openPaymentModal('factura', 1250.00, 'Cliente Ejemplo', 12345);
 //FIN PAGOS
 
+
+// INICIO DETECCIÓN DE CIERRE DE NAVEGADOR
+// Variable para controlar si ya se envió la solicitud de cierre
+let sessionCloseRequested = false;
+
+window.addEventListener('beforeunload', function(e) {
+    // Verificar si hay una sesión activa
+    const userToken = localStorage.getItem('user_token_sd') || sessionStorage.getItem('user_token_sd');
+    const codigoBitacora = localStorage.getItem('codigo_bitacora_sd') || sessionStorage.getItem('codigo_bitacora_sd');
+    const colaboradorId = localStorage.getItem('colaborador_id_sd') || sessionStorage.getItem('colaborador_id_sd');
+    
+    if (userToken && codigoBitacora && !sessionCloseRequested) {
+        // Solo hacer la llamada si hay una sesión activa y no se ha enviado ya la solicitud
+        sessionCloseRequested = true;
+        
+        // Datos a enviar
+        const data = {
+            token: userToken,
+            codigo_bitacora: codigoBitacora,
+            colaborador_id: colaboradorId
+        };
+        
+        // Usar navigator.sendBeacon para mayor confiabilidad
+        const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+        const url = window.location.origin + '/core/cerrarSesionInactiva.php';
+        
+        if (!navigator.sendBeacon(url, blob)) {
+            // Fallback para navegadores que no soportan sendBeacon
+            fetch(url, {
+                method: 'POST',
+                body: JSON.stringify(data),
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                keepalive: true // Similar a sendBeacon
+            }).catch(() => {});
+        }
+    }
+});
+// FIN DETECCIÓN DE CIERRE DE NAVEGADOR
+// FIN DETECCIÓN DE CIERRE DE NAVEGADOR

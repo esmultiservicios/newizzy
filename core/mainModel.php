@@ -1038,49 +1038,73 @@ class mainModel
         return $resultado;
     }
 		
-	protected function guardar_bitacora($datos)
-	{
-		$bitacora_id = self::correlativo('bitacora_id', 'bitacora');
-		$bitacoraCodigo = $datos['bitacoraCodigo'];
-		$bitacoraFecha = $datos['bitacoraFecha'];
-		$bitacoraHoraInicio = $datos['bitacoraHoraInicio'];
-		$bitacoraHoraFinal = $datos['bitacoraHoraFinal'];
-		$bitacoraTipo = $datos['bitacoraTipo'];
-		$bitacoraYear = $datos['bitacoraYear'];
-		$user_id = $datos['user_id'];
-		$fecha_registro = date('Y-m-d H:i:s');
-		$insert = "INSERT INTO bitacora
-				VALUES('$bitacora_id','$bitacoraCodigo','$bitacoraFecha','$bitacoraHoraInicio','$bitacoraHoraFinal','$bitacoraTipo','$bitacoraYear','$user_id','$fecha_registro')";
-		$result = self::connection()->query($insert) or die(self::connection()->error);
-
-		return $result;
+	protected function guardar_bitacora($datos) {
+		try {
+			$bitacora_id = self::correlativo('bitacora_id', 'bitacora');
+			$fecha_registro = date('Y-m-d H:i:s');
+			
+			$query = "INSERT INTO bitacora (bitacora_id, bitacoraCodigo, bitacoraFecha, bitacoraHoraInicio, bitacoraHoraFinal, bitacoraTipo, bitacoraYear, colaboradores_id, fecha_registro) 
+					  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+			
+			$params = [
+				$bitacora_id,
+				$datos['bitacoraCodigo'],
+				$datos['bitacoraFecha'],
+				$datos['bitacoraHoraInicio'],
+				$datos['bitacoraHoraFinal'],
+				$datos['bitacoraTipo'],
+				$datos['bitacoraYear'],
+				$datos['user_id'],
+				$fecha_registro
+			];
+			
+			$result = $this->ejecutar_consulta_simple_preparada($query, "issssisis", $params);
+			
+			return $result;
+		} catch (Exception $e) {
+			error_log("Error en guardar_bitacora: " . $e->getMessage());
+			return false;
+		}
 	}
 
-	public function guardarHistorial($datos)
-	{
-		$historial_id = self::correlativo('historial_id', 'historial');
-		$modulo = $datos['modulo'];
-		$colaboradores_id = $datos['colaboradores_id'];
-		$status = $datos['status'];
-		$observacion = $datos['observacion'];
-		$fecha_registro = date('Y-m-d H:i:s');
-		$insert = "INSERT INTO historial
-				VALUES('$historial_id','$modulo','$colaboradores_id','$status','$observacion','$fecha_registro')";
-		$result = self::connection()->query($insert) or die(self::connection()->error);
-
-		return $result;
+	public function actualizar_hora_salida_bitacora($codigo_bitacora, $hora_salida) {
+		try {
+			$query = "UPDATE bitacora SET bitacoraHoraFinal = ? WHERE bitacoraCodigo = ?";
+			$params = [$hora_salida, $codigo_bitacora];
+			
+			$result = $this->ejecutar_consulta_simple_preparada($query, "ss", $params);
+			
+			return $result;
+		} catch (Exception $e) {
+			error_log("Error en actualizar_hora_salida_bitacora: " . $e->getMessage());
+			return false;
+		}
 	}
 
-	public function actualizar_bitacora($bitacoraCodigo, $hora)
-	{
-		$update = "UPDATE bitacora
-				SET
-					bitacoraHoraFinal = '$hora'
-				WHERE bitacoraCodigo = '$bitacoraCodigo'";
-
-		$result = self::connection()->query($update);
-
-		return $result;
+	public function guardarHistorial($datos) {
+		try {
+			$historial_id = self::correlativo('historial_id', 'historial');
+			$fecha_registro = date('Y-m-d H:i:s');
+			
+			$query = "INSERT INTO historial (historial_id, modulo, colaboradores_id, status, observacion, fecha_registro) 
+					 VALUES (?, ?, ?, ?, ?, ?)";
+			
+			$params = [
+				$historial_id,
+				$datos['modulo'],
+				$datos['colaboradores_id'],
+				$datos['status'],
+				$datos['observacion'],
+				$fecha_registro
+			];
+			
+			$result = $this->ejecutar_consulta_simple_preparada($query, "isssss", $params);
+			
+			return $result;
+		} catch (Exception $e) {
+			error_log("Error en guardarHistorial: " . $e->getMessage());
+			return false;
+		}
 	}
 
 	public function validSalidaAsistenciaColaborador($asistencia_id)

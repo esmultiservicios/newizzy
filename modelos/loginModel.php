@@ -174,7 +174,7 @@
 		
 		protected function cerrar_sesion_modelo($datos){
 			if($datos['usuario'] != "" && $datos['token_s'] == $datos['token']){
-				$abitacora = mainModel::actualizar_bitacora($datos['codigo'], $datos['hora']);
+				$abitacora = mainModel::actualizar_hora_salida_bitacora($datos['codigo'], $datos['hora']);
 				
 				if($abitacora){
 					session_unset(); // VACIAR LA SESION

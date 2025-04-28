@@ -64,7 +64,7 @@ setInterval(actualizarPermisos, 300000); // 300000 ms = 5 minutos
 let renovar = false;
 let tiempoRestante = 0;
 
-function mostrarNotificacionRenovacion(tiempoRestante) {
+async function mostrarNotificacionRenovacion(tiempoRestante) {
     return new Promise((resolve) => {
         swal({
             title: "Renovar Sesión",
@@ -77,15 +77,46 @@ function mostrarNotificacionRenovacion(tiempoRestante) {
                     closeModal: false,
                 },
             },
-            closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-            closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera            
-        }).then((value) => {
+            closeOnEsc: false,
+            closeOnClickOutside: false            
+        }).then(async (value) => {
+            if (value) {
+                // Si el usuario elige renovar
+                const renovacionExitosa = await renovarSesion();
+                if (renovacionExitosa) {
+                    // Solo actualizamos la bitácora si la renovación fue exitosa
+                    await actualizarBitacora();
+                }
+            }
             resolve(value);
         });
     });
 }
 
-function mostrarNotificacionExpiracion() {
+async function renovarSesion() {
+    try {
+        const response = await fetch('<?php echo SERVERURL;?>core/renovar_sesion.php');
+        const data = await response.json();
+
+        if (data.success) {
+            // La renovación fue exitosa, actualizar el tiempo restante
+            tiempoRestante = data.tiempoSesion;
+            // Mostrar notificación de éxito
+            await showNotify('success', 'Sesión renovada', 'Tu sesión ha sido renovada exitosamente');
+            return true;
+        } else {
+            // Mostrar notificación de error
+            await showNotify('error', 'Error', 'No se pudo renovar la sesión: ' + (data.message || 'Error desconocido'));
+            return false;
+        }
+    } catch (error) {
+        console.error('Error al renovar sesión:', error);
+        await showNotify('error', 'Error', 'No se pudo conectar al servidor para renovar la sesión');
+        return false;
+    }
+}
+
+async function mostrarNotificacionExpiracion() {
     swal({
         title: "Sesión Expirada",
         text: "Su sesión ha expirado. Serás redirigido a la página de inicio de sesión.",
@@ -97,23 +128,38 @@ function mostrarNotificacionExpiracion() {
             },
         },
         dangerMode: true,
-        closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-        closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera        
-    }).then(() => {
+        closeOnEsc: false,
+        closeOnClickOutside: false        
+    }).then(async () => {
+        // Actualizar la bitácora antes de redirigir
+        await actualizarBitacora();
         // Redirigir al usuario a la página de inicio de sesión
         window.location.href = '<?php echo SERVERURL;?>';
     });
 }
 
-async function renovarSesion() {
-    const response = await fetch('<?php echo SERVERURL;?>core/renovar_sesion.php');
-    const data = await response.json();
+async function actualizarBitacora() {
+    try {
+        const codigo_bitacora = localStorage.getItem('codigo_bitacora_sd');
+        const hora_salida = new Date().toLocaleTimeString();
+        
+        const response = await $.ajax({
+            url: '<?php echo SERVERURL; ?>core/actualizarBitacora.php',
+            type: 'POST',
+            data: {
+                codigo_bitacora: codigo_bitacora,
+                hora_salida: hora_salida
+            },
+            dataType: 'json'
+        });
 
-    if (data.success) {
-        // La renovación fue exitosa, actualizar el tiempo restante
-        tiempoRestante = data.tiempoSesion;
-        // Llamar nuevamente a validarSesion después de renovar
-        await validarSesion();
+        if (!response.success) {
+            console.error('Error al actualizar bitácora:', response.message);
+            await showNotify('warning', 'Advertencia', 'No se pudo actualizar el registro de la bitácora');
+        }
+    } catch (error) {
+        console.error('Error en la petición AJAX:', error);
+        await showNotify('error', 'Error', 'Error al intentar actualizar la bitácora');
     }
 }
 
@@ -135,7 +181,6 @@ async function validarSesion() {
         }
     }
 }
-
 // Ejecutar validarSesion inicialmente
 //validarSesion();
 

@@ -1,4 +1,5 @@
 <?php
+//renovar_sesion.php
 session_start();
 
 // Simplemente actualiza el tiempo de la sesión

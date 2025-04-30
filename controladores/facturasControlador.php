@@ -9,37 +9,54 @@ if($peticionAjax){
 class facturasControlador extends facturasModelo {
     // Método para obtener el número de factura con manejo de condición de carrera
 	protected function obtenerNumeroFactura($empresa_id, $documento_id) {
-		// Obtener y bloquear la secuencia
-		$secuenciaData = facturasModelo::bloquear_y_obtener_secuencia_modelo($empresa_id, $documento_id);
-		
-		if(!$secuenciaData) {
-			return [
-				'error' => true,
-				'mensaje' => 'No se encontró una secuencia de facturación activa'
-			];
-		}
-		
-		// Verificar rango final
-		$siguiente_numero = $secuenciaData['siguiente'] + $secuenciaData['incremento'];
-		if($siguiente_numero > $secuenciaData['rango_final']) {
-			return [
-				'error' => true,
-				'mensaje' => 'Se ha alcanzado el límite del rango autorizado de facturación'
-			];
-		}
-		
-		return [
-			'error' => false,
-			'data' => [
-				'secuencia_facturacion_id' => $secuenciaData['secuencia_facturacion_id'],
-				'numero' => $secuenciaData['siguiente'],
-				'incremento' => $secuenciaData['incremento'],
-				'prefijo' => $secuenciaData['prefijo'],
-				'relleno' => $secuenciaData['relleno'],
-				'rango_final' => $secuenciaData['rango_final']
-			]
-		];
-	}
+        $conexion = mainModel::connection();
+        $conexion->begin_transaction();
+        
+        try {
+            // Obtener y bloquear la secuencia
+            $secuenciaData = facturasModelo::bloquear_y_obtener_secuencia_modelo($empresa_id, $documento_id);
+            
+            if(!$secuenciaData) {
+                $conexion->rollback();
+                return [
+                    'error' => true,
+                    'mensaje' => 'No se encontró una secuencia de facturación activa'
+                ];
+            }
+            
+            // Verificar rango final
+            $siguiente_numero = $secuenciaData['siguiente'] + $secuenciaData['incremento'];
+            if($siguiente_numero > $secuenciaData['rango_final']) {
+                $conexion->rollback();
+                return [
+                    'error' => true,
+                    'mensaje' => 'Se ha alcanzado el límite del rango autorizado de facturación'
+                ];
+            }
+            
+            // Si todo está bien, confirmar la transacción
+            $conexion->commit();
+            
+            return [
+                'error' => false,
+                'data' => [
+                    'secuencia_facturacion_id' => $secuenciaData['secuencia_facturacion_id'],
+                    'numero' => $secuenciaData['siguiente'],
+                    'incremento' => $secuenciaData['incremento'],
+                    'prefijo' => $secuenciaData['prefijo'],
+                    'relleno' => $secuenciaData['relleno'],
+                    'rango_final' => $secuenciaData['rango_final']
+                ]
+            ];
+        } catch (Exception $e) {
+            $conexion->rollback();
+            error_log("Error al obtener número de factura: " . $e->getMessage());
+            return [
+                'error' => true,
+                'mensaje' => 'Error al generar el número de factura'
+            ];
+        }
+    }
 
     // Método para preparar datos básicos de la factura
     protected function prepararDatosFactura($tipo_factura, $tipo_documento) {
@@ -367,12 +384,20 @@ class facturasControlador extends facturasModelo {
             "fecha_registro" => $fecha_registro,
             "empresa" => $empresa_id
         ];
-
+    
         $result = facturasModelo::validar_cobrarClientes_modelo($facturas_id);
         
         if($result->num_rows == 0) {
-            facturasModelo::agregar_cuenta_por_cobrar_clientes($datos);
+            $insertResult = facturasModelo::agregar_cuenta_por_cobrar_clientes($datos);
+            if(!$insertResult) {
+                error_log("Error al guardar cuenta por cobrar para factura: " . $facturas_id);
+                return false;
+            }
+            return true;
         }
+        
+        // Si ya existía, consideramos que es éxito
+        return true;
     }
 
     // Método para guardar historial
@@ -390,201 +415,258 @@ class facturasControlador extends facturasModelo {
 
     // Método principal para agregar facturas
     public function agregar_facturas_controlador() {
-        // Validar sesión
-        $validacion = mainModel::validarSesion();
-        if ($validacion['error']) {
-            return mainModel::showNotification([
-                "title" => "Error de sesión",
-                "text" => $validacion['mensaje'],
-                "type" => "error",
-                "funcion" => "window.location.href = '" . $validacion['redireccion'] . "'"
-            ]);
-        }
-        
-        $mainModel = new mainModel();
-        $planConfig = $mainModel->getPlanConfiguracionMainModel();
-        
-        // Solo validar si existe configuración de plan
-        if (!empty($planConfig)) {
-            $limiteFacturas = (int)($planConfig['facturas'] ?? 0);
-            
-            // Caso 1: Límite es 0 (sin permisos)
-            if ($limiteFacturas === 0) {
-                return $mainModel->showNotification([
+        // Iniciar transacción
+        $conexion = mainModel::connection();
+        $conexion->begin_transaction();
+    
+        try {
+            // Validar sesión
+            $validacion = mainModel::validarSesion();
+            if ($validacion['error']) {
+                $conexion->rollback();
+                return mainModel::showNotification([
+                    "title" => "Error de sesión",
+                    "text" => $validacion['mensaje'],
                     "type" => "error",
-                    "title" => "Acceso restringido",
-                    "text" => "Su plan no incluye la creación de facturas."
+                    "funcion" => "window.location.href = '" . $validacion['redireccion'] . "'"
                 ]);
             }
             
-            // Caso 2: Validar disponibilidad
-            $totalRegistradas = (int)facturasModelo::getTotalFacturasRegistradas();
+            $mainModel = new mainModel();
+            $planConfig = $mainModel->getPlanConfiguracionMainModel();
             
-            if ($totalRegistradas >= $limiteFacturas) {
-                return $mainModel->showNotification([
-                    "type" => "error",
-                    "title" => "Límite alcanzado",
-                    "text" => "Ha excedido el límite mensual de facturas (Máximo: $limiteFacturas)."
+            // Validar límite de facturas del plan
+            if (!empty($planConfig)) {
+                $limiteFacturas = (int)($planConfig['facturas'] ?? 0);
+                
+                if ($limiteFacturas === 0) {
+                    $conexion->rollback();
+                    return $mainModel->showNotification([
+                        "type" => "error",
+                        "title" => "Acceso restringido",
+                        "text" => "Su plan no incluye la creación de facturas."
+                    ]);
+                }
+                
+                $totalRegistradas = (int)facturasModelo::getTotalFacturasRegistradas();
+                
+                if ($totalRegistradas >= $limiteFacturas) {
+                    $conexion->rollback();
+                    return $mainModel->showNotification([
+                        "type" => "error",
+                        "title" => "Límite alcanzado",
+                        "text" => "Ha excedido el límite mensual de facturas (Máximo: $limiteFacturas)."
+                    ]);
+                }
+            }
+    
+            // Obtener tipo de factura y documento
+            $tipo_factura = $_POST['facturas_activo'] ?? 2; //1. CONTADO, 2. CREDITO
+            $tipo_documento = $_POST['facturas_proforma'] ?? 0; //0. FACTURA ELECTRONICA, 1. FACTURA PROFORMA
+            
+            // Preparar datos básicos
+            $datosBasicos = $this->prepararDatosFactura($tipo_factura, $tipo_documento);
+            
+            // Validar datos del formulario
+            $validacion = $this->validarDatosFormulario();
+            if($validacion['error']) {
+                $conexion->rollback();
+                return mainModel::showNotification($validacion['notification']);
+            }
+            
+            $empresa_id = $_SESSION['empresa_id_sd'];
+            $documento_id = "1"; // Factura Electronica por defecto
+            if($tipo_documento === "1"){ // Si es proforma
+                $documento_id = "4";
+            }
+    
+            // Obtener número de factura (dentro de la transacción)
+            $numeroFactura = $this->obtenerNumeroFactura($empresa_id, $documento_id);
+            if($numeroFactura['error']) {
+                $conexion->rollback();
+                return mainModel::showNotification([
+                    "title" => "Error",
+                    "text" => $numeroFactura['mensaje'],
+                    "type" => "error"
                 ]);
             }
-        }
-
-        // Obtener tipo de factura y documento
-        $tipo_factura = $_POST['facturas_activo'] ?? 2; //1. CONTADO, 2. CREDITO
-        $tipo_documento = $_POST['facturas_proforma'] ?? 0; //0. FACTURA ELECTRONICA, 1. FACTURA PROFORMA
-        
-        // Preparar datos básicos
-        $datosBasicos = $this->prepararDatosFactura($tipo_factura, $tipo_documento);
-        
-        // Validar datos del formulario
-        $validacion = $this->validarDatosFormulario();
-        if($validacion['error']) {
-            return mainModel::showNotification($validacion['notification']);
-        }
-        
-		$empresa_id = $_SESSION['empresa_id_sd'];
-		$documento_id = "1"; // Factura Electronica por defecto
-		if($tipo_documento === "1"){ // Si es proforma
-			$documento_id = "4";
-		}
-
-        // Obtener número de factura
-		$numeroFactura = $this->obtenerNumeroFactura($empresa_id, $documento_id);
-        if($numeroFactura['error']) {
-            return mainModel::showNotification([
-                "title" => "Error",
-                "text" => $numeroFactura['mensaje'],
-                "type" => "error"
-            ]);
-        }
-        
-        // Datos comunes
-        $clientes_id = $_POST['cliente_id'];
-        $colaborador_id = $_POST['colaborador_id'];
-        $notas = mainModel::cleanString($_POST['notesBill']);
-        $fecha = $_POST['fecha'];
-        $fecha_dolar = $_POST['fecha_dolar'];
-        $fecha_registro = date("Y-m-d H:i:s");
-        
-        // Obtener ID de factura
-        $facturas_id = empty($_POST['facturas_id']) ? mainModel::correlativo("facturas_id", "facturas") : $_POST['facturas_id'];
-        
-        // Obtener apertura
-        $apertura = facturasModelo::getAperturaIDModelo([
-            "colaboradores_id" => $datosBasicos['usuario'],
-            "fecha" => $fecha,
-            "estado" => 1
-        ])->fetch_assoc();
-        
-        $apertura_id = $apertura['apertura_id'];
-        
-        // Guardar factura
-        $datosFactura = [
-            "facturas_id" => $facturas_id,
-            "clientes_id" => $clientes_id,
-            "secuencia_facturacion_id" => $numeroFactura['data']['secuencia_facturacion_id'],
-            "apertura_id" => $apertura_id,                
-            "tipo_factura" => $tipo_factura,                
-            "numero" => $numeroFactura['data']['numero'],
-            "colaboradores_id" => $colaborador_id,
-            "importe" => 0,
-            "notas" => $notas,
-            "fecha" => $fecha,                
-            "estado" => $datosBasicos['estado'],
-            "usuario" => $datosBasicos['usuario'],
-            "fecha_registro" => $fecha_registro,
-            "empresa" => $datosBasicos['empresa_id'],
-            "fecha_dolar" => $fecha_dolar
-        ];
-        
-        $query = facturasModelo::guardar_facturas_modelo($datosFactura);
-        
-        if(!$query) {
-            return mainModel::showNotification([
-                "title" => "Error",
-                "text" => "No hemos podido procesar su solicitud",
-                "type" => "error"
-            ]);
-        }
-
-		// Si todo sale bien, actualizar la secuencia
-		$nuevo_numero = $numeroFactura['data']['numero'] + $numeroFactura['data']['incremento'];
-		if(!facturasModelo::actualizar_secuencia_modelo(
-			$numeroFactura['data']['secuencia_facturacion_id'], 
-			$nuevo_numero
-		)) {
-			// Esto es grave, deberías registrar el error
-			error_log("Error al actualizar secuencia para factura: " . $facturas_id);
-		}
-        
-        // Procesar detalle de factura
-        $totales = $this->procesarDetalleFactura(
-            $facturas_id, 
-            $clientes_id, 
-            $fecha, 
-            $fecha_registro, 
-            $datosBasicos['empresa_id']
-        );
-        
-        // Actualizar importe en factura
-        facturasModelo::actualizar_factura_importe([
-            "facturas_id" => $facturas_id,
-            "importe" => $totales['total_despues_isv']
-        ]);
-        
-        // Guardar cuenta por cobrar
-        $estado_cuenta = ($tipo_factura == 1) ? 3 : 1; // 3 para contado, 1 para crédito
-        $this->guardarCuentaPorCobrar(
-            $clientes_id, 
-            $facturas_id, 
-            $fecha, 
-            $totales['total_despues_isv'], 
-            $estado_cuenta, 
-            $datosBasicos['usuario'], 
-            $fecha_registro, 
-            $datosBasicos['empresa_id']
-        );
-        
-        // Guardar historial
-        $cliente = mainModel::consultar_tabla('clientes', ['nombre', 'rtn'], "clientes_id = {$clientes_id}")[0];
-        $tipo = ($tipo_factura == 1) ? 'contado' : 'crédito';
-        $this->guardarHistorialFactura(
-            'Facturas',
-            'Registro',
-            "Se registró la factura al {$tipo} para el cliente {$cliente['nombre']} con el RTN {$cliente['rtn']}"
-        );    
-        
-        // Preparar respuesta según tipo de documento
-        if($tipo_documento === "1") { // Factura Proforma
-            $datos_proforma = [
+            
+            // Datos comunes
+            $clientes_id = $_POST['cliente_id'];
+            $colaborador_id = $_POST['colaborador_id'];
+            $notas = mainModel::cleanString($_POST['notesBill']);
+            $fecha = $_POST['fecha'];
+            $fecha_dolar = $_POST['fecha_dolar'];
+            $fecha_registro = date("Y-m-d H:i:s");
+            
+            // Obtener ID de factura
+            $facturas_id = empty($_POST['facturas_id']) ? mainModel::correlativo("facturas_id", "facturas") : $_POST['facturas_id'];
+            
+            // Obtener apertura
+            $apertura = facturasModelo::getAperturaIDModelo([
+                "colaboradores_id" => $datosBasicos['usuario'],
+                "fecha" => $fecha,
+                "estado" => 1
+            ])->fetch_assoc();
+            
+            $apertura_id = $apertura['apertura_id'];
+            
+            // Guardar factura
+            $datosFactura = [
                 "facturas_id" => $facturas_id,
                 "clientes_id" => $clientes_id,
-                "secuencia_facturacion_id" => $numeroFactura['data']['secuencia_facturacion_id'],                
-                "numero" => $numeroFactura['data']['numero'],                                    
-                "importe" => $totales['total_despues_isv'],    
-                "usuario" => $colaborador_id,
-                "empresa_id" => $datosBasicos['empresa_id'],    
-                "estado" => 0,
-                "fecha_creacion" => $fecha_registro
+                "secuencia_facturacion_id" => $numeroFactura['data']['secuencia_facturacion_id'],
+                "apertura_id" => $apertura_id,                
+                "tipo_factura" => $tipo_factura,                
+                "numero" => $numeroFactura['data']['numero'],
+                "colaboradores_id" => $colaborador_id,
+                "importe" => 0,
+                "notas" => $notas,
+                "fecha" => $fecha,                
+                "estado" => $datosBasicos['estado'],
+                "usuario" => $datosBasicos['usuario'],
+                "fecha_registro" => $fecha_registro,
+                "empresa" => $datosBasicos['empresa_id'],
+                "fecha_dolar" => $fecha_dolar
             ];
             
-            facturasModelo::agregar_facturas_proforma_modelo($datos_proforma);
-            facturasModelo::actualizar_estado_factura_modelo($facturas_id);
+            $query = facturasModelo::guardar_facturas_modelo($datosFactura);
             
-            $funcion = "limpiarTablaFactura();getCajero();printBill({$facturas_id});getConsumidorFinal();getEstadoFactura();cleanFooterValueBill();resetRow();";
-        } else { // Factura normal
-			$funcion = ($tipo_factura == 1) ? 
-			"limpiarTablaFactura();pago({$facturas_id});getCajero();getConsumidorFinal();getEstadoFactura();cleanFooterValueBill();resetRow();getTotalFacturasDisponibles();" :
-			"limpiarTablaFactura();getCajero();getConsumidorFinal();getEstadoFactura();cleanFooterValueBill();resetRow();";
+            if(!$query) {
+                $conexion->rollback();
+                return mainModel::showNotification([
+                    "title" => "Error",
+                    "text" => "No hemos podido procesar su solicitud",
+                    "type" => "error"
+                ]);
+            }
+    
+            // Procesar detalle de factura
+            $totales = $this->procesarDetalleFactura(
+                $facturas_id, 
+                $clientes_id, 
+                $fecha, 
+                $fecha_registro, 
+                $datosBasicos['empresa_id']
+            );
+            
+            // Actualizar importe en factura
+            $updateImporte = facturasModelo::actualizar_factura_importe([
+                "facturas_id" => $facturas_id,
+                "importe" => $totales['total_despues_isv']
+            ]);
+            
+            if(!$updateImporte) {
+                $conexion->rollback();
+                return mainModel::showNotification([
+                    "title" => "Error",
+                    "text" => "Error al actualizar el importe de la factura",
+                    "type" => "error"
+                ]);
+            }
+            
+            // Guardar cuenta por cobrar
+            $estado_cuenta = ($tipo_factura == 1) ? 3 : 1; // 3 para contado, 1 para crédito
+            $cuentaCobrar = $this->guardarCuentaPorCobrar(
+                $clientes_id, 
+                $facturas_id, 
+                $fecha, 
+                $totales['total_despues_isv'], 
+                $estado_cuenta, 
+                $datosBasicos['usuario'], 
+                $fecha_registro, 
+                $datosBasicos['empresa_id']
+            );
+            
+            if(!$cuentaCobrar) {
+                $conexion->rollback();
+                return mainModel::showNotification([
+                    "title" => "Error",
+                    "text" => "Error al registrar la cuenta por cobrar",
+                    "type" => "error"
+                ]);
+            }
+            
+            // Actualizar la secuencia solo si todo lo anterior fue exitoso
+            $nuevo_numero = $numeroFactura['data']['numero'] + $numeroFactura['data']['incremento'];
+            $updateSecuencia = facturasModelo::actualizar_secuencia_modelo(
+                $numeroFactura['data']['secuencia_facturacion_id'], 
+                $nuevo_numero
+            );
+            
+            if(!$updateSecuencia) {
+                $conexion->rollback();
+                error_log("Error grave al actualizar secuencia para factura: " . $facturas_id);
+                return mainModel::showNotification([
+                    "title" => "Error",
+                    "text" => "Error al actualizar la secuencia de facturación",
+                    "type" => "error"
+                ]);
+            }
+            
+            // Guardar historial
+            $cliente = mainModel::consultar_tabla('clientes', ['nombre', 'rtn'], "clientes_id = {$clientes_id}")[0];
+            $tipo = ($tipo_factura == 1) ? 'contado' : 'crédito';
+            $this->guardarHistorialFactura(
+                'Facturas',
+                'Registro',
+                "Se registró la factura al {$tipo} para el cliente {$cliente['nombre']} con el RTN {$cliente['rtn']}"
+            );    
+            
+            // Preparar respuesta según tipo de documento
+            if($tipo_documento === "1") { // Factura Proforma
+                $datos_proforma = [
+                    "facturas_id" => $facturas_id,
+                    "clientes_id" => $clientes_id,
+                    "secuencia_facturacion_id" => $numeroFactura['data']['secuencia_facturacion_id'],                
+                    "numero" => $numeroFactura['data']['numero'],                                    
+                    "importe" => $totales['total_despues_isv'],    
+                    "usuario" => $colaborador_id,
+                    "empresa_id" => $datosBasicos['empresa_id'],    
+                    "estado" => 0,
+                    "fecha_creacion" => $fecha_registro
+                ];
+                
+                $proforma = facturasModelo::agregar_facturas_proforma_modelo($datos_proforma);
+                $updateEstado = facturasModelo::actualizar_estado_factura_modelo($facturas_id);
+                
+                if(!$proforma || !$updateEstado) {
+                    $conexion->rollback();
+                    return mainModel::showNotification([
+                        "title" => "Error",
+                        "text" => "Error al registrar la factura proforma",
+                        "type" => "error"
+                    ]);
+                }
+                
+                $funcion = "limpiarTablaFactura();getCajero();printBill({$facturas_id});getConsumidorFinal();getEstadoFactura();cleanFooterValueBill();resetRow();";
+            } else { // Factura normal
+                $funcion = ($tipo_factura == 1) ? 
+                    "limpiarTablaFactura();pago({$facturas_id});getCajero();getConsumidorFinal();getEstadoFactura();cleanFooterValueBill();resetRow();getTotalFacturasDisponibles();" :
+                    "limpiarTablaFactura();getCajero();getConsumidorFinal();getEstadoFactura();cleanFooterValueBill();resetRow();";
+            }
+            
+            // Si todo salió bien, confirmar la transacción
+            $conexion->commit();
+            
+            return mainModel::showNotification([
+                "type" => "success",
+                "title" => "Registro almacenado",
+                "text" => "El registro se ha almacenado correctamente",
+                "form" => "invoice-form",
+                "funcion" => $funcion
+            ]);
+            
+        } catch (Exception $e) {
+            // En caso de cualquier error, hacer rollback
+            $conexion->rollback();
+            error_log("Error en agregar_facturas_controlador: " . $e->getMessage());
+            return mainModel::showNotification([
+                "title" => "Error",
+                "text" => "Ocurrió un error al procesar la factura",
+                "type" => "error"
+            ]);
         }
-        
-        return mainModel::showNotification([
-            "type" => "success",
-            "title" => "Registro almacenado",
-            "text" => "El registro se ha almacenado correctamente",
-            "form" => "invoice-form",
-            "funcion" => $funcion
-        ]);
     }
     
     // Método para agregar facturas abiertas (similar al anterior pero simplificado)

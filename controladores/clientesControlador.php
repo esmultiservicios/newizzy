@@ -1,4 +1,5 @@
 <?php
+//clientesControlador.php
 if($peticionAjax){
     require_once "../modelos/clientesModelo.php";
     require_once "../core/sendEmail.php";
@@ -17,16 +18,16 @@ class clientesControlador extends clientesModelo {
     
     /* Método para agregar clientes normales */
     public function agregar_clientes_controlador(){
-			// Validar sesión primero
-			$validacion = mainModel::validarSesion();
-			if($validacion['error']) {
-				return mainModel::showNotification([
-					"title" => "Error de sesión",
-					"text" => $validacion['mensaje'],
-					"type" => "error",
-					"funcion" => "window.location.href = '".$validacion['redireccion']."'"
-				]);
-			}
+        // Validar sesión primero
+        $validacion = mainModel::validarSesion();
+        if($validacion['error']) {
+            return mainModel::showNotification([
+                "title" => "Error de sesión",
+                "text" => $validacion['mensaje'],
+                "type" => "error",
+                "funcion" => "window.location.href = '".$validacion['redireccion']."'"
+            ]);
+        }
             
         $datos = [
             "nombre" => mainModel::cleanString($_POST['nombre_clientes']),
@@ -156,24 +157,15 @@ class clientesControlador extends clientesModelo {
         }
 
         //CONSULTAMOS EL NOMBRE DEL SISTEMA
-        $sistema_nombre = $this->getNombreSistema(
-            $datos['sistema_id']
-        );
+        $sistema_nombre = $this->getNombreSistema($datos['sistema_id']);
 
         // Generar nombres para la base de datos
-        $dbNames = mainModel::generateDatabaseName(
-            $datos['empresa'], 
-            $sistema_nombre
-        );
+        $dbNames = mainModel::generateDatabaseName($datos['empresa'], $sistema_nombre);
 
-        $codigo_cliente = $this->generarCodigoCliente(
-            $clientes_id
-        );
-
+        $codigo_cliente = $this->generarCodigoCliente($clientes_id);
         $dataBaseCliente = $dbNames['prefixed'];
         
         // Ejecutamos el API de cPanel para poder crear la base de datos
-        // Configurar base de datos en cPanel
         try {
             $cpanel = new cPanelAPI();
 
@@ -192,26 +184,7 @@ class clientesControlador extends clientesModelo {
                 ];
             }
             
-            // Registrar en server_customers con el nombre real de la DB
-            $server_customers_id = $this->registrarServerCustomer(
-                $clientes_id,
-                $empresa_id,
-                $codigo_cliente,
-                $dbSetup['database']['db_name'],
-                $datos['validar'],
-                $datos['planes_id'],
-                $datos['sistema_id']
-            );            
-            
-            if (!$server_customers_id) {
-                $this->responderError(
-                    'Error en el registro', 
-                    'No se pudo registrar en server_customers', 
-                    500);
-                return; // Asegúrate de salir después de responder
-            }
-            
-            // Registrar Colaborador
+            // Registrar Colaborador primero
             $id_colaborador = $this->registrarColaborador(
                 $datos['nombre'], 
                 $datos['telefono'], 
@@ -220,15 +193,51 @@ class clientesControlador extends clientesModelo {
             );
 
             if (!$id_colaborador) {
-                $this->responderError(
-                    'Error en registro', 
-                    "Error al registrar en el colaborador", 
-                    500
-                );
-                return;
-            }            
+                $this->responderError('Error en registro', "Error al registrar el colaborador", 500);
+            }
 
-            // Registrar usuario
+            // Preparar datos para server customer
+            $datosColaborador = [
+                'colaboradores_id' => $id_colaborador,
+                'puestos_id' => 5,
+                'nombre' => $datos['nombre'],
+                'identidad' => $datos['rtn'],
+                'estado' => 1,
+                'telefono' => $datos['telefono'],
+                'empresa_id' => 1,
+                'fecha_registro' => date("Y-m-d H:i:s"),
+                'fecha_ingreso' => date("Y-m-d"),
+                'fecha_egreso' => '0000-00-00'
+            ];
+
+            $datosUsuarioParcial = [
+                'colaboradores_id' => $id_colaborador,
+                'privilegio_id' => 2,
+                'password' => mainModel::encryption($datos['password']),
+                'email' => $datos['correo'],
+                'tipo_user_id' => 1,
+                'estado' => 1,
+                'empresa_id' => $clientes_id
+            ];
+
+            // Registrar server customer (esto generará el ID que necesitamos)
+            $server_customers_id = $this->registrarServerCustomer(
+                $clientes_id,
+                $empresa_id,
+                $codigo_cliente,
+                $dbSetup['database']['db_name'],
+                $datos['validar'],
+                $datos['planes_id'],
+                $datos['sistema_id'],
+                $datosColaborador,
+                $datosUsuarioParcial
+            );            
+            
+            if (!$server_customers_id) {
+                $this->responderError('Error en el registro', 'No se pudo registrar en server_customers', 500);
+            }
+
+            // Ahora registrar el usuario con el server_customers_id obtenido
             $usuario = $this->registrarUsuario(
                 $clientes_id,
                 $server_customers_id,
@@ -239,48 +248,20 @@ class clientesControlador extends clientesModelo {
             );
             
             if (!$usuario) {
-                $this->responderError(
-                    'Error en registro', 
-                    "Error al registrar en el usuario", 
-                    500
-                );
-                return;
-            }
-            
-            // Establecemos los permisos del usuario a la Base de Datos creada
-            $dbSetup = new DatabaseSetup(
-                SERVER,
-                MYSQL_USER,
-                MYSQL_PASS,
-                $dataBaseCliente
-            );
-            
-            $grantResult = $dbSetup->grantPrivilegesToExistingUser(
-                USER,
-                $dataBaseCliente,
-                ['ALL PRIVILEGES']
-            );
-            
-            if ($grantResult !== true) {
-                $this->responderError(
-                    'Error en permisos', 
-                    "No se pudieron otorgar los privilegios: " . ($grantResult['error'] ?? 'Error desconocido'),
-                    500
-                );
-                return;
+                $this->responderError('Error en registro', "Error al registrar el usuario", 500);
             }
 
-            //Enviar correo electronico - Procedimiento Almacenado
-
+            // Actualizar el job en la cola con el users_id generado
+            $this->actualizarJobConUserId($server_customers_id, $usuario['users_id']);
+            
             // Enviar correo de bienvenida
-            $this->enviarCorreoBienvenida([
+            /* $this->enviarCorreoBienvenida([
                 'nombre' => $datos['nombre'],
-                'username' => $usuario['username'],
                 'email' => $datos['correo'],
                 'empresa' => $datos['empresa'],
                 'nombre_db' => $dataBaseCliente,
                 'password' => $datos['password']
-            ], 1);                                        
+            ], 1);   */                                      
 
             // Respuesta exitosa consolidada
             $this->responderExito([
@@ -297,11 +278,10 @@ class clientesControlador extends clientesModelo {
                 ],
                 'usuario' => [
                     'id' => $usuario['users_id'],
-                    'username' => $usuario['username']
+                    'email' => $usuario['email']
                 ]
             ], $dbNames['prefixed']);
-
-            //IMPORTAR BASE DE DATOS A cPanel - Procedimiento Almacenado            
+            
         } catch (Exception $e) {
             error_log("Error en registro autónomo: " . $e->getMessage());
             
@@ -480,7 +460,39 @@ class clientesControlador extends clientesModelo {
         return clientesModelo::agregar_clientes_modelo($datos);
     }
 
+    public function valid_colaborador_modelo($identidad){
+        $conexion = mainModel::connection();
+    
+        try {
+            $sql = "SELECT colaboradores_id FROM colaboradores WHERE identidad = ?";
+            $stmt = $conexion->prepare($sql);
+            if (!$stmt) throw new Exception($conexion->error);
+    
+            $stmt->bind_param("s", $identidad);
+            $stmt->execute();
+            $resultado = $stmt->get_result();
+            $stmt->close();
+    
+            return $resultado;
+        } catch (Exception $e) {
+            return false;
+        }
+    }    
+
     private function registrarColaborador($nombre, $telefono, $identidad, $empresa_id) {
+        // Validar y formatear teléfono
+        $telefono = substr($telefono, 0, 8); // Asegurar máximo 8 caracteres
+        
+        // Generar identidad única si está vacía o es "0"
+        if (empty($identidad) || $identidad == "0") {
+            do {
+                $identidad = "C-" . rand(10000000, 99999999); // Formato: C- + 8 dígitos
+            } while ($this->valid_colaborador_modelo($identidad)->num_rows > 0);
+        } else {
+            // Si viene con valor, asegurar que no exceda los 13 caracteres
+            $identidad = substr($identidad, 0, 13);
+        }
+    
         $datos = [
             "nombre" => $nombre,
             "identidad" => $identidad,
@@ -488,12 +500,13 @@ class clientesControlador extends clientesModelo {
             "telefono" => $telefono,
             "empresa_id" => $empresa_id,
             "fecha_registro" => date("Y-m-d H:i:s"),
-            "fecha_ingreso" => date("Y-m-d"), // Fecha actual como fecha de ingreso
-            "puestos_id" => 5 // Clientes
+            "fecha_ingreso" => date("Y-m-d"),
+            "puestos_id" => 5, // Clientes
+            "fecha_egreso" => '0000-00-00' // Valor por defecto para NOT NULL
         ];
         
         return $this->agregar_colaboradores_modelo($datos);
-    }  
+    }
     
     private function generarCodigoCliente($clientes_id) {
         $codigo = mainModel::generarCodigoUnico($clientes_id);
@@ -501,34 +514,23 @@ class clientesControlador extends clientesModelo {
         return ($existe->fetch_assoc()['total'] > 0) ? (int)(date('Ymd') . substr($clientes_id, -4)) : $codigo;
     }
     
-    private function registrarServerCustomer($clientes_id, $empresa_id, $codigo_cliente, $nombre_db, $validar, $planes_id, $sistema_id) {
+    private function registrarServerCustomer($clientes_id, $empresa_id, $codigo_cliente, $nombre_db, $validar, $planes_id, $sistema_id, $datosColaborador, $datosUsuarioParcial) {
         $conexion = mainModel::connection();
         $stmt = null;
         $stmtJob = null;
     
         try {
-            // Desactivar autocommit para la transacción
             $conexion->autocommit(false);
     
-            // 1. Obtener ID de forma más segura
             $server_customers_id = mainModel::correlativo("server_customers_id", "server_customers");
             
-            // 2. Validar parámetros importantes
-            if (empty($nombre_db) || !preg_match('/^[a-zA-Z0-9_]+$/', $nombre_db)) {
-                throw new Exception("Nombre de base de datos inválido");
-            }
-    
-            // 3. Insertar en server_customers (con manejo mejorado de errores)
+            // Insertar en server_customers
             $stmt = $conexion->prepare(
                 "INSERT INTO server_customers 
                 (server_customers_id, clientes_id, codigo_cliente, db, planes_id, sistema_id, validar, estado, db_imported) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, 1, 0)"
             );
             
-            if (!$stmt) {
-                throw new Exception("Error al preparar la consulta: " . $conexion->error);
-            }
-    
             $stmt->bind_param("iissiii", 
                 $server_customers_id, 
                 $clientes_id, 
@@ -540,69 +542,58 @@ class clientesControlador extends clientesModelo {
             );
     
             if (!$stmt->execute()) {
-                throw new Exception("Error al ejecutar la consulta: " . $stmt->error);
+                throw new Exception("Error al registrar server customer: " . $stmt->error);
             }
-    
-            // 4. Verificar que realmente se insertó
-            if ($stmt->affected_rows === 0) {
-                throw new Exception("No se insertó ningún registro en server_customers");
-            }
-    
-            // 5. Encolar trabajo de importación (con validación)
+
+            // Preparar datos para el job
             $jobData = [
                 'db_name' => $nombre_db,
                 'client_id' => $clientes_id,
                 'server_customers_id' => $server_customers_id,
-                'sql_file' => $_SERVER['DOCUMENT_ROOT'].'/plantilla/plantilla_izzy.sql'
+                'sql_file' => dirname(dirname(__DIR__)) . '/plantilla/plantilla_izzy.sql'
             ];
+
+            // Convertir a JSON antes de bind_param para evitar el error de referencia
+            $jsonData = json_encode($jobData);
+            $jsonColaborador = json_encode($datosColaborador);
+            $jsonUsuario = json_encode($datosUsuarioParcial);
             
-            // Verificar que el archivo SQL existe
-            if (!file_exists($jobData['sql_file'])) {
-                throw new Exception("Archivo SQL de plantilla no encontrado");
-            }
-    
+            // Crear variables para los parámetros que se pasan por referencia
+            $dbUser = CPANEL_DB_USERNAME;
+            $dbPass = CPANEL_DB_PASSWORD;
+            $notifyEmail = $datosUsuarioParcial['email'];
+
+            // Insertar el job con todos los datos
             $stmtJob = $conexion->prepare(
-                "INSERT INTO jobs_queue (job_type, data, status, created_at) 
-                VALUES ('db_import', ?, 'pending', NOW())"
+                "INSERT INTO jobs_queue 
+                (job_type, data, db_user, db_password, colaborador_data, usuario_data, notify_email, status, attempts, max_attempts) 
+                VALUES ('db_import', ?, ?, ?, ?, ?, ?, 'pending', 0, 3)"
             );
             
-            if (!$stmtJob) {
-                throw new Exception("Error al preparar job: " . $conexion->error);
-            }
-    
-            $jsonData = json_encode($jobData);
-            if (!$stmtJob->bind_param("s", $jsonData)) {
-                throw new Exception("Error al bindear job: " . $stmtJob->error);
-            }
+            $stmtJob->bind_param("ssssss", 
+                $jsonData,
+                $dbUser,
+                $dbPass,
+                $jsonColaborador,
+                $jsonUsuario,
+                $notifyEmail
+            );
     
             if (!$stmtJob->execute()) {
-                throw new Exception("Error al ejecutar job: " . $stmtJob->error);
+                throw new Exception("Error al registrar job: " . $stmtJob->error);
             }
     
-            // Confirmar la transacción
             $conexion->commit();
     
-            return [
-                'success' => true,
-                'server_customers_id' => $server_customers_id,
-                'job_queued' => true
-            ];
+            return $server_customers_id;
     
         } catch (Exception $e) {
-            // Revertir la transacción en caso de error
             if ($conexion) {
                 $conexion->rollback();
             }
-            
             error_log("Error en registrarServerCustomer: " . $e->getMessage());
-            
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-                'error_code' => $e->getCode()
-            ];
+            return false;
         } finally {
-            // Reactivar autocommit y cerrar statements
             if ($conexion) {
                 $conexion->autocommit(true);
             }
@@ -615,39 +606,76 @@ class clientesControlador extends clientesModelo {
         }
     }
     
+    private function actualizarJobConUserId($server_customers_id, $users_id) {
+        $conexion = mainModel::connection();
+        
+        try {
+            // Obtener el job más reciente para este server_customers_id
+            $stmt = $conexion->prepare(
+                "SELECT id FROM jobs_queue 
+                 WHERE data LIKE ? 
+                 ORDER BY created_at DESC 
+                 LIMIT 1"
+            );
+            
+            $search = '%"server_customers_id":'.$server_customers_id.'%';
+            $stmt->bind_param("s", $search);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            if ($result->num_rows > 0) {
+                $job = $result->fetch_assoc();
+                $jobId = $job['id'];
+                
+                // Actualizar los datos del usuario en el job
+                $updateStmt = $conexion->prepare(
+                    "UPDATE jobs_queue 
+                     SET usuario_data = JSON_SET(usuario_data, '$.users_id', ?) 
+                     WHERE id = ?"
+                );
+                
+                $updateStmt->bind_param("ii", $users_id, $jobId);
+                $updateStmt->execute();
+            }
+        } catch (Exception $e) {
+            error_log("Error al actualizar job con user_id: " . $e->getMessage());
+        } finally {
+            if (isset($stmt)) $stmt->close();
+            if (isset($updateStmt)) $updateStmt->close();
+        }
+    }
+    
     private function registrarUsuario($clientes_id, $server_customers_id, $nombre, $correo, $password, $colaboradores_id) {
         $conexion = mainModel::connection();
     
         try {
             $conexion->autocommit(false);
     
-            // 1. Mejor forma de obtener el próximo ID (para evitar race conditions)
+            // 1. Obtener el próximo ID
             $users_id = mainModel::correlativo("users_id", "users");
             
-            // 2. Validación de email adicional
+            // 2. Validación de email
             if (!filter_var($correo, FILTER_VALIDATE_EMAIL)) {
                 throw new Exception("Formato de correo electrónico inválido");
             }
     
-            // 3. Generación de credenciales
-            $username = mainModel::generarUsernameUnico($nombre);
+            // 3. Generación de hash para la contraseña (sin username)
             $password_hash = mainModel::encryption($password);
     
-            // 4. Insert con más control de errores
+            // 4. Insert modificado (eliminado el campo username)
             $stmt = $conexion->prepare(
                 "INSERT INTO users 
-                (users_id, colaboradores_id, privilegio_id, username, password, email, tipo_user_id, estado, fecha_registro, empresa_id, server_customers_id) 
-                VALUES (?, ?, 2, ?, ?, ?, 1, 1, NOW(), ?, ?)"
+                (users_id, colaboradores_id, privilegio_id, password, email, tipo_user_id, estado, fecha_registro, empresa_id, server_customers_id) 
+                VALUES (?, ?, 2, ?, ?, 1, 1, NOW(), ?, ?)"
             );
             
             if (!$stmt) {
                 throw new Exception("Error al preparar la consulta: " . $conexion->error);
             }
     
-            $stmt->bind_param("iisssii", 
+            $stmt->bind_param("iissii", 
                 $users_id, 
                 $colaboradores_id, 
-                $username, 
                 $password_hash, 
                 $correo, 
                 $clientes_id, 
@@ -658,7 +686,7 @@ class clientesControlador extends clientesModelo {
                 throw new Exception("Error al ejecutar la consulta: " . $stmt->error);
             }
     
-            // 5. Verificar que realmente se insertó
+            // 5. Verificar inserción
             if ($stmt->affected_rows === 0) {
                 throw new Exception("No se insertó ningún registro");
             }
@@ -668,7 +696,6 @@ class clientesControlador extends clientesModelo {
             return [
                 'success' => true,
                 'users_id' => $users_id,
-                'username' => $username,
                 'email' => $correo
             ];
     
@@ -712,38 +739,28 @@ class clientesControlador extends clientesModelo {
     }
 
     private function getNombreSistema($sistema_id) {
-        // Obtener la conexión a la base de datos
         $conexion = mainModel::connection();
     
         try {
-            // Consulta para obtener el nombre del sistema basado en el sistema_id
             $stmt = $conexion->prepare("SELECT LOWER(nombre) AS nombre FROM sistema WHERE sistema_id = ? AND estado = 1");
             if (!$stmt) {
                 throw new Exception("Error al preparar la consulta: " . $conexion->error);
             }
     
-            // Vincular el parámetro
             $stmt->bind_param("i", $sistema_id);
-    
-            // Ejecutar la consulta
             $stmt->execute();
-    
-            // Obtener el resultado
             $result = $stmt->get_result();
     
-            // Verificar si se encontró un registro
             if ($result->num_rows > 0) {
                 $row = $result->fetch_assoc();
-                return $row['nombre']; // Devuelve el nombre en minúsculas
+                return $row['nombre'];
             } else {
                 throw new Exception("No se encontró un sistema con el ID proporcionado o está inactivo.");
             }
         } catch (Exception $e) {
-            // Registrar el error y lanzar una excepción
             error_log("Error en getNombreSistema: " . $e->getMessage());
             throw $e;
         } finally {
-            // Cerrar la declaración preparada
             if (isset($stmt)) {
                 $stmt->close();
             }

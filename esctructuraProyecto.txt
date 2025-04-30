@@ -1,0 +1,21 @@
+ajax/
+controladores/
+core/
+    configGenerales.php
+    mainModel.php
+    emailTemplates.php
+    DatabaseSetup.php
+    programaPuntos/
+        agregarProgramaPuntosAjax.php
+        editarProgramaPuntosAjax.php
+        eliminarProgramaPuntosAjax.php
+        llenarDataTableProgramaPuntos.php
+        llenarDataTableHistoricoPuntos.php
+modelos/
+scripts/
+	process_jobs.php
+plantilla/
+	plantilla_izzy.sql
+vistas/
+   contenido/
+       programaPuntos-view.php

@@ -327,13 +327,13 @@
 				error_log("Error: empresa_id no definido");
 				return false;
 			}
-
+		
 			$conexion = mainModel::staticConnection();
 			
-			// Iniciar transacción
-			$conexion->begin_transaction();
-			
 			try {
+				// Establecer tiempo de espera para el bloqueo (5 segundos)
+				$conexion->query("SET innodb_lock_wait_timeout = 5");
+				
 				// Bloquear la fila para lectura (FOR UPDATE)
 				$sql = "SELECT * FROM secuencia_facturacion 
 						WHERE empresa_id = ? 
@@ -348,7 +348,6 @@
 				$result = $stmt->get_result();
 				
 				if($result->num_rows == 0) {
-					$conexion->rollback();
 					$stmt->close();
 					return false;
 				}
@@ -356,12 +355,8 @@
 				$secuencia = $result->fetch_assoc();
 				$stmt->close();
 				
-				// Confirmar transacción solo al final cuando todo esté listo
-				// La transacción se cierra en el método que llama a este
-				
 				return $secuencia;
 			} catch (Exception $e) {
-				$conexion->rollback();
 				error_log("Error en secuencia facturación: " . $e->getMessage());
 				return false;
 			}

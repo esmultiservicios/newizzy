@@ -1,8 +1,8 @@
 <?php
 if ($peticionAjax) {
-    require_once "../modelos/mainModel.php";
+    require_once "../core/mainModel.php";
 } else {
-    require_once "./modelos/mainModel.php";
+    require_once "./core/mainModel.php";
 }
 
 session_start(['name' => 'SD']);

@@ -662,7 +662,7 @@
                 <button class="btn btn-secondary" data-dismiss="modal">
                     <i class="fas fa-times mr-1"></i> Cancelar
                 </button>
-                <button class="btn btn-success" type="submit" style="display: none;" id="Modalcambiarcontra_Edit" form="form-cambiarcontra">
+                <button class="btn btn-success" type="submit" id="Modalcambiarcontra_Edit" form="form-cambiarcontra">
                     <i class="fas fa-save mr-1"></i> Guardar Cambios
                 </button>
             </div>

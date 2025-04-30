@@ -52,22 +52,25 @@
 			}
 		}
 
+		// Método para DB principal
 		protected function agregar_colaboradores_modelo($datos) {
 			$conexion = mainModel::connection();
 			
 			try {
-				// Desactivar autocommit para la transacción
 				$conexion->autocommit(false);
 				
-				// Obtener el próximo ID disponible
 				$colaborador_id = mainModel::correlativo("colaboradores_id", "colaboradores");
 				
-				// Sentencia preparada para seguridad
+				// Corregir la consulta SQL - 10 columnas, 10 marcadores
 				$stmt = $conexion->prepare("INSERT INTO colaboradores 
 										   (colaboradores_id, puestos_id, nombre, identidad, estado, telefono, empresa_id, fecha_registro, fecha_ingreso, fecha_egreso) 
-										   VALUES (?, ?, ?, '', ?, ?, ?, ?, ?, ?, '')");
+										   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 				
-				$stmt->bind_param("iissiisiss", 
+				// Asegurar que fecha_egreso tenga un valor por defecto si no está definido
+				$fecha_egreso = isset($datos['fecha_egreso']) ? $datos['fecha_egreso'] : '';
+				
+				// Vincular 10 parámetros con tipos correctos
+				$stmt->bind_param("iissiissss", 
 					$colaborador_id,
 					$datos['puestos_id'],
 					$datos['nombre'],
@@ -76,7 +79,8 @@
 					$datos['telefono'],
 					$datos['empresa_id'],
 					$datos['fecha_registro'],
-					$datos['fecha_ingreso']
+					$datos['fecha_ingreso'],
+					$fecha_egreso
 				);
 				
 				$ejecutado = $stmt->execute();
@@ -85,10 +89,7 @@
 					throw new Exception($stmt->error);
 				}
 				
-				// Obtener el ID insertado
 				$id_insertado = $conexion->insert_id ?: $colaborador_id;
-				
-				// Confirmar la transacción
 				$conexion->commit();
 				
 				return $id_insertado;
@@ -104,8 +105,7 @@
 				$conexion->autocommit(true);
 			}
 		}
-	
-		
+			
 		protected function valid_clientes_modelo($rtn){
 			$query = "SELECT clientes_id FROM clientes WHERE rtn = '$rtn'";
 			$sql = mainModel::connection()->query($query) or die(mainModel::connection()->error);

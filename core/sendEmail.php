@@ -1,4 +1,5 @@
 <?php
+//sendEmail.php
 if($peticionAjax){
     require_once "../core/configAPP.php";
     require_once "../core/mainModel.php"; // Incluir la clase mainModel para la conexión

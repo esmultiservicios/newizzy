@@ -1,9 +1,12 @@
 <?php
-if($peticionAjax){
-    require_once "../core/configAPP.php";
-}else{
-    require_once "./core/configAPP.php";    
-}
+// emailTemplates.php - Versión optimizada para estructura de proyecto
+
+// Determinar rutas base
+$basePath = (isset($peticionAjax) && $peticionAjax) ? dirname(__DIR__) . '/core/' : __DIR__ . '/';
+
+// Incluir configuraciones
+require_once $basePath . 'configGenerales.php';
+require_once $basePath . 'configAPP.php';
 
 class emailTemplates {
     public function __construct() {}
@@ -12,13 +15,29 @@ class emailTemplates {
         $loginUrl = SERVERURL . "login";
         $year = date('Y');
         
+        // Manejo del logo - Si no está definido o está vacío, no mostrarlo
+        $logoHtml = '';
+        if (!empty($datosEmpresa['url_logo'])) {
+            $logoHtml = '<img src="'.$datosEmpresa['url_logo'].'" alt="'.$datosEmpresa['nombre'].'" class="email-logo">';
+        }
+        
+        // Validar campos opcionales y establecer valores por defecto
+        $nombreEmpresa = $datosEmpresa['nombre'] ?? '';
+        $eslogan = $datosEmpresa['eslogan'] ?? '';
+        $ubicacion = $datosEmpresa['ubicacion'] ?? '';
+        $telefono = $datosEmpresa['telefono'] ?? '';
+        $celular = $datosEmpresa['celular'] ?? '';
+        $correo = $datosEmpresa['correo'] ?? '';
+        $sitioweb = $datosEmpresa['sitioweb'] ?? '#';
+        $facebook = $datosEmpresa['facebook'] ?? '#';
+        
         return <<<HTML
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{$titulo} | {$datosEmpresa['nombre']}</title>
+    <title>{$titulo} | {$nombreEmpresa}</title>
     <style>
         /* RESET BÁSICO */
         body, html {
@@ -199,9 +218,9 @@ class emailTemplates {
 <body>
     <div class="email-container">
         <div class="email-header">
-            <img src="{$datosEmpresa['url_logo']}" alt="{$datosEmpresa['nombre']}" class="email-logo">
-            <h1 class="email-title">{$datosEmpresa['nombre']}</h1>
-            <p class="email-eslogan">{$datosEmpresa['eslogan']}</p>
+            {$logoHtml}
+            <h1 class="email-title">{$nombreEmpresa}</h1>
+            <p class="email-eslogan">{$eslogan}</p>
         </div>
         
         <div class="email-content">
@@ -212,29 +231,29 @@ class emailTemplates {
             <div class="contact-info">
                 <div class="contact-item">
                     <i class="fas fa-map-marker-alt"></i>
-                    <span>{$datosEmpresa['ubicacion']}</span>
+                    <span>{$ubicacion}</span>
                 </div>
                 <div class="contact-item">
                     <i class="fas fa-phone"></i>
-                    <span>{$datosEmpresa['telefono']}</span>
+                    <span>{$telefono}</span>
                 </div>
                 <div class="contact-item">
                     <i class="fas fa-mobile-alt"></i>
-                    <span>{$datosEmpresa['celular']}</span>
+                    <span>{$celular}</span>
                 </div>
                 <div class="contact-item">
                     <i class="fas fa-envelope"></i>
-                    <span>{$datosEmpresa['correo']}</span>
+                    <span>{$correo}</span>
                 </div>
             </div>
             
             <div class="social-links">
-                <a href="{$datosEmpresa['sitioweb']}"><i class="fas fa-globe"></i> Sitio Web</a>
-                <a href="{$datosEmpresa['facebook']}"><i class="fab fa-facebook-f"></i> Facebook</a>
+                <a href="{$sitioweb}"><i class="fas fa-globe"></i> Sitio Web</a>
+                <a href="{$facebook}"><i class="fab fa-facebook-f"></i> Facebook</a>
             </div>
             
             <p class="copyright">
-                © {$year} {$datosEmpresa['nombre']} · Todos los derechos reservados
+                © {$year} {$nombreEmpresa} · Todos los derechos reservados
             </p>
         </div>
     </div>
@@ -253,8 +272,7 @@ HTML;
             
             <div class="email-highlight">
                 <p><strong>Empresa:</strong> {$datosUsuario['empresa']}</p>
-                <p><strong>Usuario:</strong> {$datosUsuario['username']}</p>
-                <p><strong>Correo electrónico:</strong> {$datosUsuario['email']}</p>
+                <p><strong>Correo electrónico del usuario para acceder al sistema:</strong> {$datosUsuario['email']}</p>
                 <p><strong>Base de datos asignada:</strong> {$datosUsuario['nombre_db']}</p>
                 <p><strong>Contraseña temporal:</strong> {$datosUsuario['password']}</p>
             </div>
@@ -273,7 +291,6 @@ HTML;
         return $this->plantillaBase("Bienvenido", $contenido, $datosEmpresa);
     }
 
-    // Método para plantilla genérica
     public function plantillaGenerica($titulo, $mensaje, $datosEmpresa, $accion = null) {
         $contenido = <<<HTML
             <h2>{$titulo}</h2>

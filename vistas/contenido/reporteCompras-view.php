@@ -57,7 +57,7 @@
                 
                 <div class="row">
                     <div class="col-12 text-right">
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary mr-2" id="search">
                             <i class="fas fa-filter fa-lg"></i> Filtrar
                         </button>
                         <button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary">

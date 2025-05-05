@@ -65,7 +65,7 @@
                 
                 <div class="form-row mt-3">
                     <div class="col-md-12 text-right">
-                        <button type="submit" class="btn btn-primary" id="btn-asignar-plan">
+                        <button type="submit" class="btn btn-primary mr-2" id="btn-asignar-plan">
                             <i class="fas fa-save mr-1"></i> Actualizar Plan
                         </button>
                     </div>

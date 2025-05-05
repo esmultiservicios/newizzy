@@ -8,8 +8,7 @@ $(() => {
     $('#movimientos').css('cursor', 'pointer');
     $('#registroMovimientos').css('cursor', 'pointer');
 
-    // Evento para el botón de Generar Reporte
-    $('#form_main_movimientos').on('submit', function(e) {
+	$('#form_main_movimientos #search').on("click", function(e) {
         e.preventDefault();
         listar_movimientos();
     });

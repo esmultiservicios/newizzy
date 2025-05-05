@@ -38,7 +38,7 @@
                 
                 <div class="row">
                     <div class="col-12 d-flex justify-content-end">
-                        <button type="submit" class="btn btn-primary mr-2">
+                        <button type="submit" class="btn btn-primary mr-2" id="search">
                             <i class="fas fa-filter fa-lg"></i> Filtrar
                         </button>
                         <button type="reset" class="btn btn-secondary">

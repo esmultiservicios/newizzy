@@ -127,17 +127,14 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
-                <button class="btn btn-primary" type="submit" style="display: none;" id="reg_egresosContabilidad" form="formEgresosContables">
-                    <i class="far fa-save mr-1"></i> Registrar
+                <button class="btn btn-success" type="submit" style="display: none;" id="reg_egresosContabilidad" form="formEgresosContables">
+                    <i class="far fa-save fa-lg mr-1"></i> Registrar
                 </button>
-                <button class="btn btn-warning" type="submit" style="display: none;" id="edi_egresosContabilidad" form="formEgresosContables">
-                    <i class="fas fa-edit mr-1"></i> Editar
-                </button>
-                <button class="btn btn-danger" type="submit" style="display: none;" id="delete_egresosContabilidad" form="formEgresosContables">
-                    <i class="fas fa-trash mr-1"></i> Eliminar
+                <button class="btn btn-success" type="submit" style="display: none;" id="edi_egresosContabilidad" form="formEgresosContables">
+                    <i class="fas fa-edit fa-lg mr-1"></i> Confirmar
                 </button>
             </div>
         </div>
@@ -253,17 +250,14 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="guardar btn btn-primary ml-2" type="submit" style="display: none;"
-                    id="reg_egresosContabilidad" form="formEgresosContables">
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
+                </button>                   
+                <button class="guardar btn btn-success ml-2" type="submit" style="display: none;" id="reg_egresosContabilidad" form="formEgresosContables">
                     <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
                 </button>
-                <button class="editar btn btn-warning ml-2" type="submit" style="display: none;"
-                    id="edi_egresosContabilidad" form="formEgresosContables">
-                    <div class="sb-nav-link-icon"></div><i class="fas fa-edit fa-lg"></i> Editar
-                </button>
-                <button class="eliminar btn btn-danger ml-2" type="submit" style="display: none;"
-                    id="delete_egresosContabilidad" form="formEgresosContables">
-                    <div class="sb-nav-link-icon"></div><i class="fa fa-trash fa-lg"></i> Eliminar
+                <button class="editar btn btn-success ml-2" type="submit" style="display: none;" id="edi_egresosContabilidad" form="formEgresosContables">
+                    <div class="sb-nav-link-icon"></div><i class="fas fa-edit fa-lg fa-lg"></i> Confirmar
                 </button>
             </div>
         </div>
@@ -283,7 +277,7 @@
             </div>
             <div class="container"></div>
             <div class="modal-body">
-                <form class="form-horizontal FormularioAjax" id="formCategoriaEgresos" action="" method="POST" data-form="" enctype="multipart/form-data">
+                <form class="form-horizontal" id="formCategoriaEgresos" action="" method="POST" data-form="" enctype="multipart/form-data">
 					<input type="hidden" required="required" readonly id="categoria_gastos_id" name="categoria_gastos_id" />					
 
                     <div class="form-row">
@@ -320,13 +314,14 @@
 
                         </div>
                     </div>
-
                     <div class="RespuestaAjax"></div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="guardar btn btn-primary ml-2" type="submit" style="display: none;"
-                    id="regCategoriaEgresos" form="formCategoriaEgresos">
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
+                </button>                
+                <button class="guardar btn btn-success ml-2" type="submit" style="display: none;" id="regCategoriaEgresos" form="formCategoriaEgresos">
                     <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
                 </button>
             </div>
@@ -345,24 +340,9 @@
             </div>
             <div class="container"></div>
             <div class="modal-body">
-                <form class="form-horizontal FormularioAjax" id="formUpdateCategoriaEgresos" action="" method="POST"
-                    data-form="" enctype="multipart/form-data">
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <input type="hidden" required="required" readonly id="categoria_gastos_id"
-                                name="categoria_gastos_id" />
-                            <div class="input-group mb-3">
-                                <input type="text" required readonly id="pro_categoriaEgresos"
-                                    name="pro_egresos_contabilidad" class="form-control" />
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fa fa-plus-square fa-lg"></i>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
+                <form class="form-horizontal" id="formUpdateCategoriaEgresos" action="" method="POST" data-form="" enctype="multipart/form-data">
+                    <input type="hidden" required="required" readonly id="categoria_gastos_id" name="categoria_gastos_id" />
+                    
                     <div class="form-row">
                         <div class="col-md-12 mb-3">
                             <label for="factura_egresos">Categoría <span class="priority">*<span /></label>
@@ -370,14 +350,15 @@
                                 class="form-control" maxlength="19" />
                         </div>
                     </div>
-
                     <div class="RespuestaAjax"></div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="editar btn btn-warning ml-2" type="submit" style="display: none;"
-                    id="ediCategoriaEgresos" form="formUpdateCategoriaEgresos">
-                    <div class="sb-nav-link-icon"></div><i class="fas fa-edit fa-lg"></i> Editar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
+                </button>
+                <button class="editar btn btn-success ml-2" type="submit" style="display: none;" id="ediCategoriaEgresos" form="formUpdateCategoriaEgresos">
+                    <div class="sb-nav-link-icon"></div><i class="fas fa-edit fa-lg"></i> Confirmar
                 </button>
             </div>
         </div>
@@ -397,7 +378,7 @@
             </div>
             <div class="container"></div>
             <div class="modal-body">
-                <form class="form-horizontal FormularioAjax" id="formCategoriaEgresos" action="" method="POST"
+                <form class="form-horizontal" id="formCategoriaEgresos" action="" method="POST"
                     data-form="" enctype="multipart/form-data">
                     <div class="form-row">
                         <div class="col-md-12 mb-3">
@@ -449,18 +430,15 @@
 
                         </div>
                     </div>
-
                     <div class="RespuestaAjax"></div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="guardar btn btn-primary ml-2" type="submit" style="display: none;"
-                    id="regCategoriaEgresos" form="formCategoriaEgresos">
+                <button class="guardar btn btn-success ml-2" type="submit" style="display: none;" id="regCategoriaEgresos" form="formCategoriaEgresos">
                     <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
                 </button>
-                <button class="editar btn btn-warning ml-2" type="submit" style="display: none;"
-                    id="ediCategoriaEgresos" form="formCategoriaEgresos">
-                    <div class="sb-nav-link-icon"></div><i class="fas fa-edit fa-lg"></i> Editar
+                <button class="editar btn btn-success ml-2" type="submit" style="display: none;" id="ediCategoriaEgresos" form="formCategoriaEgresos">
+                    <div class="sb-nav-link-icon"></div><i class="fas fa-edit fa-lg"></i> Confirmar
                 </button>
             </div>
         </div>

@@ -2,7 +2,7 @@
 <div class="container-fluid">
     <ol class="breadcrumb mt-2 mb-4">
         <li class="breadcrumb-item"><a class="breadcrumb-link" href="<?php echo SERVERURL; ?>dashboard/">Dashboard</a></li>
-        <li class="breadcrumb-item active">Mis Facturas</li>
+        <li class="breadcrumb-item active">Detalles de facturación</li>
     </ol>
 
     <!-- Filtros de búsqueda -->
@@ -46,11 +46,11 @@
                         <input type="text" class="form-control" id="numero_factura" name="numero_factura" placeholder="Buscar por número">
                     </div>
                     <div class="form-group col-md-6 text-right align-self-end">
+                        <button type="submit" id="btn-buscar-facturas" class="btn btn-primary">
+                            <i class="fas fa-filter mr-1 fa-lg"></i> Filtrar
+                        </button>                        
                         <button type="button" id="btn-limpiar-filtros" class="btn btn-secondary mr-2">
                             <i class="fas fa-broom mr-1 fa-lg"></i> Limpiar
-                        </button>
-                        <button type="submit" id="btn-buscar-facturas" class="btn btn-primary">
-                            <i class="fas fa-search mr-1 fa-lg"></i> Buscar
                         </button>
                     </div>
                 </div>
@@ -62,7 +62,7 @@
     <div class="card mb-4">
         <div class="card-header">
             <i class="fas fa-file-invoice-dollar mr-1"></i>
-            Facturas Registradas
+            Historial de Facturación en su plan
             <div class="float-right">
                 <span class="badge bg-light text-dark">
                     <i class="fas fa-sync-alt mr-1 fa-lg"></i>

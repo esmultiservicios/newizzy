@@ -6,9 +6,9 @@ $(() => {
     getEmpresaProductos();
 
     // Evento para el botón de Buscar (submit)
-    $('#form_main_productos').on('submit', function(e) {
+    $('#form_main_productos #search').on("click", function(e) {
         e.preventDefault();
-        listar_productos(); 
+        listar_productos();
     });
 
     // Evento para el botón de Limpiar (reset)

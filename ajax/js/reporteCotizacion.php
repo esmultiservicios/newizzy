@@ -6,11 +6,9 @@ $(() => {
     $('#form_main_cotizaciones #tipo_cotizacion_reporte').val(1);
     $('#form_main_cotizaciones #tipo_cotizacion_reporte').selectpicker('refresh');
 
-    // Evento para el botón de Buscar (submit)
-    $('#form_main_cotizaciones').on('submit', function(e) {
+    $('#form_main_cotizaciones #search').on("click", function(e) {
         e.preventDefault();
-
-        listar_reporte_cotizaciones(); 
+        listar_reporte_cotizaciones();
     });
 
     // Evento para el botón de Limpiar (reset)
@@ -137,13 +135,13 @@ var listar_reporte_cotizaciones = function() {
                 },
             },
             {
-                "defaultContent": "<button class='table_reportes print_cotizaciones btn btn-dark table_info ocultar'><span class='fas fa-file-download fa-lg'></span>Cotización</button>"
+                "defaultContent": "<button class='table_reportes print_cotizaciones btn btn-success ocultar'><span class='fas fa-file-download fa-lg'></span>Cotización</button>"
             },
             {
-                "defaultContent": "<button class='table_reportes email_cotizacion btn btn-dark table_danger ocultar'><span class='fas fa-paper-plane fa-lg'></span>Enviar</button>"
+                "defaultContent": "<button class='table_reportes email_cotizacion btn btn-secondary ocultar'><span class='fas fa-paper-plane fa-lg'></span>Enviar</button>"
             },
             {
-                "defaultContent": "<button class='table_cancelar cancelar_cotizaciones btn btn-dark table_primary ocultar'><span class='fas fa-ban fa-lg'></span>Anular</button>"
+                "defaultContent": "<button class='table_cancelar cancelar_cotizaciones btn btn-danger ocultar'><span class='fas fa-ban fa-lg'></span>Anular</button>"
             }
         ],
         "lengthMenu": lengthMenu10,

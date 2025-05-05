@@ -81,7 +81,6 @@ class aperturaCajaControlador extends aperturaCajaModelo{
                     "form" => "formAperturaCaja",
                     "funcion" => "validarAperturaCajaUsuario();getCajero();",
 					"closeAllModals" => true
-
                 ]);
             } else {
                 return mainModel::showNotification([

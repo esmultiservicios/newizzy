@@ -2,11 +2,9 @@
 $(() => {
     listar_historial_accesos();
 
-    // Evento para el botón de Buscar (submit)
-    $('#formMainHistorialAcceso').on('submit', function(e) {
+	$('#formMainHistorialAcceso #search').on("click", function(e) {
         e.preventDefault();
-
-        listar_historial_accesos(); 
+        listar_historial_accesos();
     });
 
     // Evento para el botón de Limpiar (reset)

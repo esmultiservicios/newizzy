@@ -2,11 +2,9 @@
 $(() => {
     listar_movimientos_contabilidad();
 
-    // Evento para el botón de Buscar (submit)
-    $('#formMainMovimientosContabilidad').on('submit', function(e) {
+	$('#formMainMovimientosContabilidad #search').on("click", function(e) {
         e.preventDefault();
-
-        listar_movimientos_contabilidad(); 
+        listar_movimientos_contabilidad();
     });
 
     // Evento para el botón de Limpiar (reset)

@@ -97,7 +97,10 @@
 			</form>
         </div>	
 		<div class="modal-footer">
-			<button class="guardar btn btn-primary ml-2" type="submit" style="display: none;" id="reg_modificar_precio_quote" form="formModificarPrecioCotizaciones"><div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar</button>				
+			<button class="btn btn-danger" data-dismiss="modal">
+				<i class="fas fa-times mr-1"></i> Cancelar
+			</button>			
+			<button class="guardar btn btn-success ml-2" type="submit" style="display: none;" id="reg_modificar_precio_quote" form="formModificarPrecioCotizaciones"><div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar</button>				
 		</div>			
       </div>
     </div>
@@ -153,7 +156,10 @@
 			</form>
         </div>	
 		<div class="modal-footer">
-			<button class="guardar btn btn-primary ml-2" type="submit" style="display: none;" id="reg_DescuentoQuote" form="formDescuentoCotizaciones"><div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar</button>				
+			<button class="btn btn-danger" data-dismiss="modal">
+				<i class="fas fa-times mr-1"></i> Cancelar
+			</button>				
+			<button class="guardar btn btn-success ml-2" type="submit" style="display: none;" id="reg_DescuentoQuote" form="formDescuentoCotizaciones"><div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar</button>				
 		</div>			
       </div>
     </div>

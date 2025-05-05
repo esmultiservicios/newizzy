@@ -6,11 +6,9 @@ $(() => {
     getProveedorEgresos();
     getCategoriaGastos();
 
-    // Evento para el botón de Buscar (submit)
-    $('#formMainGastosContabilidad').on('submit', function(e) {
+	$('#formMainGastosContabilidad #search').on("click", function(e) {
         e.preventDefault();
-
-        listar_gastos_contabilidad(); 
+        listar_gastos_contabilidad();
     });
 
     // Evento para el botón de Limpiar (reset)
@@ -202,10 +200,10 @@ var listar_gastos_contabilidad = function() {
                 "data": "observacion"
             },
             {
-                "defaultContent": "<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit'></span></button>"
+                "defaultContent": "<button class='table_editar btn ocultar'><span class='fas fa-edit'></span>Editar</button>"
             },
             {
-                "defaultContent": "<button class='table_reportes print_gastos btn btn-dark ocultar'><span class='fas fa-file-download fa-lg'></span></button>"
+                "defaultContent": "<button class='table_reportes print_gastos table_eliminar btn ocultar'><span class='fas fa-file-download fa-lg'></span>Reporte</button>"
             },
 
         ],
@@ -290,14 +288,14 @@ var listar_gastos_contabilidad = function() {
             {
                 text: '<i class="fas fa-layer-group fa-lg crear"></i> Categorías',
                 titleAttr: 'Categorías',
-                className: 'table_crear btn btn-dark ocultar',
+                className: 'table_crear btn btn-primary ocultar',
                 action: function() {
                     modal_categorias_contabilidad();
                 }
             }, {
-                text: '<i class="fas fa-layer-group fa-lg crear"></i> Reporte Categorías',
+                text: '<i class="fas fa-layer-group fa-lg crear"></i> Reporte',
                 titleAttr: 'Reporte Categorías',
-                className: 'table_crear btn btn-info ocultar',
+                className: 'table_crear btn btn-primary ocultar',
                 action: function() {
                     modal_reporte_categorias_contabilidad();
                 }
@@ -358,6 +356,7 @@ var listar_gastos_contabilidad = function() {
     total_gastos_footer();
 }
 
+// Función para editar gastos desde la tabla
 var edit_reporte_gastos_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.table_editar");
     $(tbody).on("click", "button.table_editar", function() {
@@ -365,55 +364,125 @@ var edit_reporte_gastos_dataTable = function(tbody, table) {
         var url = '<?php echo SERVERURL;?>core/editarGastos.php';
         $('#formEgresosContables #egresos_id').val(data.egresos_id);
 
+        // Primero cargar los proveedores
         $.ajax({
-            type: 'POST',
-            url: url,
-            data: $('#formEgresosContables').serialize(),
-            success: function(registro) {
-                var valores = eval(registro);
-                $('#formEgresosContables').attr({
-                    'data-form': 'update'
-                });
-                $('#formEgresosContables').attr({
-                    'action': '<?php echo SERVERURL;?>ajax/modificarGastosAjax.php'
-                });
-                $('#formEgresosContables')[0].reset();
-                $('#reg_egresosContabilidad').hide();
-                $('#edi_egresosContabilidad').show();
-                $('#delete_egresosContabilidad').hide();
-                $('#formEgresosContables #pro_egresos_contabilidad').val("Editar Egresos");
-                $('#formEgresosContables #proveedor_egresos').val(valores[0]);
+            url: "<?php echo SERVERURL; ?>core/getProveedores.php",
+            type: "POST",
+            dataType: "json",
+            beforeSend: function() {
+                // Mostrar carga mientras se obtienen los proveedores
+                $('#formEgresosContables #proveedor_egresos').html('<option value="">Cargando proveedores...</option>');
                 $('#formEgresosContables #proveedor_egresos').selectpicker('refresh');
-                $('#formEgresosContables #cuenta_egresos').val(valores[1]);
-                $('#formEgresosContables #cuenta_egresos').selectpicker('refresh');
-                $('#formEgresosContables #empresa_egresos').val(valores[2]);
-                $('#formEgresosContables #empresa_egresos').selectpicker('refresh');
-                $('#formEgresosContables #fecha_egresos').val(valores[3]);
-                $('#formEgresosContables #factura_egresos').val(valores[4]);
-                $('#formEgresosContables #subtotal_egresos').val(valores[5]);
-                $('#formEgresosContables #isv_egresos').val(valores[6]);
-                $('#formEgresosContables #descuento_egresos').val(valores[7]);
-                $('#formEgresosContables #nc_egresos').val(valores[8]);
-                $('#formEgresosContables #total_egresos').val(valores[9]);
-                $('#formEgresosContables #observacion_egresos').val(valores[10]);
-
-                //DESHABILITAR OBJETOS
-                $('#formEgresosContables #cuenta_egresos').attr('disabled', true);
-                $('#formEgresosContables #empresa_egresos').attr('disabled', true);
-                $('#formEgresosContables #subtotal_egresos').attr('disabled', true);
-                $('#formEgresosContables #isv_egresos').attr('disabled', true);
-                $('#formEgresosContables #descuento_egresos').attr('disabled', true);
-                $('#formEgresosContables #nc_egresos').attr('disabled', true);
-                $('#formEgresosContables #total_egresos').attr('disabled', true);
-                $('#formEgresosContables #buscar_cuenta_egresos').hide();
-                $('#formEgresosContables #buscar_empresa_egresos').hide();
-
-                $('#modalEgresosContables').modal({
-                    show: true,
-                    keyboard: false,
-                    backdrop: 'static'
-                });
             }
+        }).done(function(response) {
+            const select = $('#formEgresosContables #proveedor_egresos');
+            select.empty();
+            
+            if(response.success && response.data.length > 0) {
+                // Agregar opción por defecto
+                select.append('<option value="">Seleccione proveedor</option>');
+                
+                // Agregar todos los proveedores
+                response.data.forEach(proveedor => {
+                    select.append(`
+                        <option value="${proveedor.proveedores_id}" 
+                                data-subtext="${proveedor.rtn || 'Sin RTN o Identidad'}">
+                            ${proveedor.nombre}
+                        </option>
+                    `);
+                });
+                
+                // Refrescar el selectpicker
+                select.selectpicker('refresh');
+                
+                // Ahora hacer la solicitud para obtener los datos del gasto
+                $.ajax({
+                    type: 'POST',
+                    url: url,
+                    data: $('#formEgresosContables').serialize(),
+                    success: function(registro) {
+                        var valores = eval(registro);
+                        
+                        // Configurar el formulario
+                        $('#formEgresosContables').attr({
+                            'data-form': 'update'
+                        });
+                        $('#formEgresosContables').attr({
+                            'action': '<?php echo SERVERURL;?>ajax/modificarGastosAjax.php'
+                        });
+                        $('#formEgresosContables')[0].reset();
+                        
+                        // Mostrar/ocultar botones
+                        $('#reg_egresosContabilidad').hide();
+                        $('#edi_egresosContabilidad').show();
+                        $('#delete_egresosContabilidad').hide();
+                        
+                        // Establecer valores en el formulario
+                        $('#formEgresosContables #pro_egresos_contabilidad').val("Editar Egresos");
+                        $('#formEgresosContables #fecha_egresos').val(valores[3]);
+                        $('#formEgresosContables #factura_egresos').val(valores[4]);
+                        $('#formEgresosContables #subtotal_egresos').val(valores[5]);
+                        $('#formEgresosContables #isv_egresos').val(valores[6]);
+                        $('#formEgresosContables #descuento_egresos').val(valores[7]);
+                        $('#formEgresosContables #nc_egresos').val(valores[8]);
+                        $('#formEgresosContables #total_egresos').val(valores[9]);
+                        $('#formEgresosContables #observacion_egresos').val(valores[10]);
+                        
+                        // Establecer y refrescar selects
+                        $('#formEgresosContables #cuenta_egresos').val(valores[1]);
+                        $('#formEgresosContables #cuenta_egresos').selectpicker('refresh');
+                        
+                        $('#formEgresosContables #empresa_egresos').val(valores[2]);
+                        $('#formEgresosContables #empresa_egresos').selectpicker('refresh');
+                        
+                        // Manejar el select de proveedores
+                        var proveedorId = valores[0];
+                        if (proveedorId) {
+                            var optionExists = select.find('option[value="' + proveedorId + '"]').length > 0;
+                            if (optionExists) {
+                                select.val(proveedorId);
+                                select.selectpicker('refresh');
+                            } else {
+                                console.error('Proveedor no encontrado en las opciones');
+                                select.val('');
+                                select.selectpicker('refresh');
+                            }
+                        }
+                        
+                        // Deshabilitar campos según sea necesario
+                        $('#formEgresosContables #cuenta_egresos').attr('disabled', true);
+                        $('#formEgresosContables #empresa_egresos').attr('disabled', true);
+                        $('#formEgresosContables #subtotal_egresos').attr('disabled', true);
+                        $('#formEgresosContables #isv_egresos').attr('disabled', true);
+                        $('#formEgresosContables #descuento_egresos').attr('disabled', true);
+                        $('#formEgresosContables #nc_egresos').attr('disabled', true);
+                        $('#formEgresosContables #total_egresos').attr('disabled', true);
+                        $('#formEgresosContables #buscar_cuenta_egresos').hide();
+                        $('#formEgresosContables #buscar_empresa_egresos').hide();
+                        
+                        // Mostrar el modal
+                        $('#modalEgresosContables').modal({
+                            show: true,
+                            keyboard: false,
+                            backdrop: 'static'
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error al cargar datos del gasto:', error);
+                        showNotify("error", "Error", "No se pudieron cargar los datos del gasto");
+                    }
+                });
+            } else {
+                // No hay proveedores disponibles
+                select.append('<option value="">No hay proveedores disponibles</option>');
+                select.selectpicker('refresh');
+                showNotify("warning", "Advertencia", "No hay proveedores disponibles para seleccionar");
+            }
+        }).fail(function(xhr, status, error) {
+            console.error('Error al cargar proveedores:', error);
+            $('#formEgresosContables #proveedor_egresos').html('<option value="">Error al cargar proveedores</option>');
+            $('#formEgresosContables #proveedor_egresos').selectpicker('refresh');
+            showNotify("error", "Error", "No se pudieron cargar los proveedores");
         });
     });
 }
@@ -437,12 +506,19 @@ function modal_egresos_contabilidad() {
     getCategoriaGastos();
 
     $('#formEgresosContables').attr({
-        'data-form': 'save'
-    });
-    $('#formEgresosContables').attr({
+        'data-form': 'save',
         'action': '<?php echo SERVERURL;?>ajax/addEgresoContabilidadAjax.php'
     });
+    
+    // Resetear el formulario
     $('#formEgresosContables')[0].reset();
+    
+    // Resetear selects de Bootstrap (si usas selectpicker)
+    $('#formEgresosContables select.selectpicker').val('').selectpicker('refresh');
+    
+    // Limpiar inputs específicos si es necesario
+    $('#formEgresosContables input[type="text"], #formEgresosContables input[type="number"], #formEgresosContables textarea').val('');
+
     $('#reg_egresosContabilidad').show();
     $('#edi_egresosContabilidad').hide();
     $('#delete_egresosContabilidad').hide();
@@ -450,16 +526,16 @@ function modal_egresos_contabilidad() {
     //HABILITAR OBJETOS
     $('#formEgresosContables #cuenta_codigo').attr("readonly", false);
     $('#formEgresosContables #cuenta_nombre').attr("readonly", false);
-    $('#formEgresosContables #cuentas_activo').attr("disabled", false);
+    $('#formEgresosContables #cuentas_activo').attr("disabled", false).prop('checked', false);
     $('#formEgresosContables #buscar_cuenta_egresos').show();
     $('#formEgresosContables #buscar_empresa_egresos').show();
-    $('#formEgresosContables #cuenta_egresos').attr('disabled', false);
-    $('#formEgresosContables #empresa_egresos').attr('disabled', false);
-    $('#formEgresosContables #subtotal_egresos').attr('disabled', false);
-    $('#formEgresosContables #isv_egresos').attr('disabled', false);
-    $('#formEgresosContables #descuento_egresos').attr('disabled', false);
-    $('#formEgresosContables #nc_egresos').attr('disabled', false);
-    $('#formEgresosContables #total_egresos').attr('disabled', false);
+    $('#formEgresosContables #cuenta_egresos').attr('disabled', false).val('');
+    $('#formEgresosContables #empresa_egresos').attr('disabled', false).val('');
+    $('#formEgresosContables #subtotal_egresos').attr('disabled', false).val('');
+    $('#formEgresosContables #isv_egresos').attr('disabled', false).val('');
+    $('#formEgresosContables #descuento_egresos').attr('disabled', false).val('');
+    $('#formEgresosContables #nc_egresos').attr('disabled', false).val('');
+    $('#formEgresosContables #total_egresos').attr('disabled', false).val('');
 
     $('#formEgresosContables #pro_egresos_contabilidad').val("Registrar Egresos");
 
@@ -471,17 +547,8 @@ function modal_egresos_contabilidad() {
 }
 
 function modal_categorias_contabilidad() {
-    $('#formCategoriaEgresos').attr({
-        'data-form': 'save'
-    });
-    $('#formCategoriaEgresos').attr({
-        'action': '<?php echo SERVERURL;?>ajax/addCategoriaEgresos.php'
-    });
     $('#formCategoriaEgresos')[0].reset();
     $('#regCategoriaEgresos').show();
-
-    $('#formCategoriaEgresos #pro_categoriaEgresos').val("Registro Categorias");
-
     listar_categoria_egresos();
 
     $('#modalCategoriasEgresos').modal({
@@ -491,24 +558,143 @@ function modal_categorias_contabilidad() {
     });
 }
 
-function modal_editar_categorias_contabilidad(categoria_gastos_id, categoria) {
-    $('#formUpdateCategoriaEgresos').attr({
-        'data-form': 'update'
+// Manejador del formulario
+$("#formCategoriaEgresos").on('submit', function(e) {
+    e.preventDefault();
+    
+    var form = $(this);
+    var categoria = $('#categoria').val().trim();
+    var url = '<?php echo SERVERURL;?>ajax/addCategoriaEgresos.php';
+    var formData = form.serialize();
+    
+    // Mostrar SweetAlert de confirmación
+    swal({
+        title: "¿Estás seguro?",
+        text: "¿Desea registrar la categoría: " + categoria + "?",
+        icon: "warning",
+        buttons: {
+            cancel: {
+                text: "Cancelar",
+                visible: true
+            },
+            confirm: {
+                text: "¡Sí, registrar!",
+            }
+        },
+        dangerMode: true,
+        closeOnEsc: false,
+        closeOnClickOutside: false
+    }).then((willConfirm) => {
+        if (willConfirm) {
+            // Enviar el formulario vía AJAX
+            $.ajax({
+                type: 'POST',
+                url: url,
+                data: formData,
+                dataType: 'json', // Esperamos una respuesta JSON
+                success: function(response) {
+                    if(response.success) {
+                        // Mostrar notificación de éxito
+                        showNotify('success', response.title || 'Éxito', response.text || 'Operación realizada correctamente');
+                        
+                        // Resetear formulario y recargar lista
+                        $('#formCategoriaEgresos')[0].reset();
+                        listar_categoria_egresos();                    
+                    } else {
+                        // Mostrar notificación de error
+                        showNotify('error', response.title || 'Error', response.text || 'Ocurrió un error');
+                    }
+                },
+                error: function(xhr) {
+                    // Manejar errores de conexión
+                    showNotify('error', 'Error', 'Error en la conexión: ' + xhr.statusText);
+                }
+            });
+        }
     });
-    $('#formUpdateCategoriaEgresos').attr({
-        'action': '<?php echo SERVERURL;?>ajax/modificarCategoriaEgresos.php'
-    });
-    $('#formUpdateCategoriaEgresos')[0].reset();
-    $('#ediCategoriaEgresos').show();
+});
 
+function modal_editar_categorias_contabilidad(categoria_gastos_id, categoria) {
+    // Configurar el formulario
+    $('#formUpdateCategoriaEgresos').attr({
+        'data-form': 'update',
+        'action': '<?php echo SERVERURL;?>ajax/modificarCategoriaEgresos.php'
+    })[0].reset();
+    
+    $('#ediCategoriaEgresos').show();
     $('#formUpdateCategoriaEgresos #categoria_gastos_id').val(categoria_gastos_id);
     $('#formUpdateCategoriaEgresos #categoria').val(categoria);
     $('#formUpdateCategoriaEgresos #pro_categoriaEgresos').val("Editar Categorias");
 
+    // Configurar el modal
     $('#modalUpdateCategoriasEgresos').modal({
         show: true,
         keyboard: false,
         backdrop: 'static'
+    });
+
+    // Manejador del formulario de edición
+    $('#formUpdateCategoriaEgresos').off('submit').on('submit', function(e) {
+        e.preventDefault();
+        
+        var form = $(this);
+        var categoria = $('#categoria').val().trim();
+        var url = form.attr('action');
+        var formData = form.serialize();
+        
+        // Mostrar SweetAlert de confirmación
+        swal({
+            title: "¿Estás seguro?",
+            text: "¿Desea actualizar la categoría a: " + categoria + "?",
+            icon: "warning",
+            buttons: {
+                cancel: {
+                    text: "Cancelar",
+                    visible: true
+                },
+                confirm: {
+                    text: "¡Sí, actualizar!",
+                }
+            },
+            dangerMode: true,
+            closeOnEsc: false,
+            closeOnClickOutside: false
+        }).then((willConfirm) => {
+            if (willConfirm) {
+                // Enviar el formulario vía AJAX
+                $.ajax({
+                    type: 'POST',
+                    url: url,
+                    data: formData,
+                    dataType: 'json',
+                    success: function(response) {
+                        if(response.success) {
+                            // Mostrar notificación de éxito
+                            showNotify('success', response.title || 'Éxito', response.text || 'Cambios guardados correctamente');
+                            
+                            // Ejecutar función adicional si existe
+                            if(response.function) {
+                                eval(response.function);
+                            }
+                                                       
+                            // Actualizar la lista
+                            listar_categoria_egresos();
+                        } else {
+                            // Mostrar notificación de error
+                            showNotify('error', response.title || 'Error', response.text || 'Ocurrió un error al actualizar');
+                            
+                            // Redirección si es necesario
+                            if(response.redirect) {
+                                window.location.href = response.redirect;
+                            }
+                        }
+                    },
+                    error: function(xhr) {
+                        showNotify('error', 'Error', 'Error en la conexión: ' + xhr.statusText);
+                    }
+                });
+            }
+        });
     });
 }
 
@@ -768,6 +954,13 @@ $(document).ready(function() {
     });
 });
 
+
+$(document).ready(function() {
+    $("#modalCategoriasEgresos").on('shown.bs.modal', function() {
+        $(this).find('#formCategoriaEgresos #t').focus();
+    });
+});
+
 var listar_categoria_egresos = function() {
     var table_categoria_egresos = $("#DatatableCategoriaEgresos").DataTable({
         "destroy": true,
@@ -886,8 +1079,8 @@ var delete_categoria_gastos_dataTable = function(tbody, table) {
                 }
             },
             dangerMode: true,
-            closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-            closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
+            closeOnEsc: false,
+            closeOnClickOutside: false
         }).then((willConfirm) => {
             if (willConfirm === true) {
                 deleteCategoriaGastos(data.categoria_gastos_id, data.nombre);
@@ -902,24 +1095,21 @@ function deleteCategoriaGastos(categoria_gastos_id, categoria) {
     $.ajax({
         type: "POST",
         url: url,
-        async: true,
+        dataType: "json", // Esperamos una respuesta JSON
         data: {
             categoria_gastos_id: categoria_gastos_id,
             categoria: categoria
         },
         success: function(response) {
-            if (response === "success") {
+            if (response.success) {
+                showNotify('success', response.title || 'Éxito', response.text || 'Categoría eliminada correctamente');
                 listar_categoria_egresos();
-            } else if (response.startsWith("error-existe: ")) {
-                var errorMessage = response.substring(13);
-                showNotify('error', 'Error', 'Error: ' + errorMessage);
             } else {
-                var errorMessage = response.substring(7);
-                showNotify('error', 'Error', 'Error: ' + errorMessage);
+                showNotify('error', response.title || 'Error', response.text || 'Ocurrió un error al eliminar');
             }
         },
-        error: function() {
-            showNotify('error', 'Error', 'Ha ocurrido un error en la solicitud.');
+        error: function(xhr) {
+            showNotify('error', 'Error', 'Error en la conexión: ' + xhr.statusText);
         }
     });
 }

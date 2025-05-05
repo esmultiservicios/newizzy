@@ -8,11 +8,9 @@ $(() => {
     $('#form_main_contrato #estado').val(1);
     $('#form_main_contrato #estado').selectpicker('refresh');
 
-    // Evento para el botón de Buscar (submit)
-    $('#form_main_contrato').on('submit', function(e) {
+	$('#form_main_contrato #search').on("click", function(e) {
         e.preventDefault();
-
-        listar_contratos(); 
+        listar_contratos();
     });
 
     // Evento para el botón de Limpiar (reset)
@@ -89,10 +87,10 @@ var listar_contratos = function() {
                 "data": "notas"
             },
             {
-                "defaultContent": "<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit fa-lg'></span></button>"
+                "defaultContent": "<button class='table_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
             },
             {
-                "defaultContent": "<button class='table_eliminar btn btn-dark ocultar'><span class='fa fa-trash fa-lg'></span></button>"
+                "defaultContent": "<button class='table_eliminar btn ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"
             }
         ],
         "lengthMenu": lengthMenu,
@@ -222,12 +220,7 @@ var editar_contratos_dataTable = function(tbody, table) {
             data: $('#formContrato').serialize(),
             success: function(registro) {
                 var valores = eval(registro);
-                $('#formContrato').attr({
-                    'data-form': 'update'
-                });
-                $('#formContrato').attr({
-                    'action': '<?php echo SERVERURL;?>ajax/modificarContratosAjax.php'
-                });
+
                 $('#reg_contrato').hide();
                 $('#edi_contrato').show();
                 $('#delete_contrato').hide();
@@ -285,11 +278,11 @@ var eliminar_contratos_dataTable = function(tbody, table) {
         var data = table.row($(this).parents("tr")).data();
 
         var contrato_id = data.contrato_id;
-        var nombreContrato = data.nombre; 
+        var nombreEmpleado = data.empleado; 
         
         // Construir el mensaje de confirmación con HTML
         var mensajeHTML = `¿Desea eliminar permanentemente el contrato?<br><br>
-                        <strong>Nombre:</strong> ${nombreContrato}`;
+                        <strong>Empleado:</strong> ${nombreEmpleado}`;
         
         swal({
             title: "Confirmar eliminación",
@@ -355,12 +348,6 @@ var eliminar_contratos_dataTable = function(tbody, table) {
 
 /*INICIO FORMULARIO CONTRATOS*/
 function modal_contratos() {
-    $('#formContrato').attr({
-        'data-form': 'save'
-    });
-    $('#formContrato').attr({
-        'action': '<?php echo SERVERURL;?>ajax/addContratosAjax.php'
-    });
     $('#formContrato')[0].reset();
     $('#reg_contrato').show();
     $('#edi_contrato').hide();
@@ -392,6 +379,133 @@ function modal_contratos() {
         backdrop: 'static'
     });
 }
+
+$('#formContrato').on('submit', function(e) {
+    e.preventDefault();
+
+    // 1. Refrescar todos los selectpickers para asegurar sincronización
+    $('.selectpicker').selectpicker('refresh');
+
+    // 2. Construir objeto de datos manualmente (versión mejorada)
+    const getValue = (selector) => $(selector).val();
+    const isChecked = (selector) => $(selector).is(':checked') ? 1 : 0;
+    
+    const formData = {
+        contrato_id: getValue('#contrato_id'),
+        contrato_colaborador_id: getValue('#contrato_colaborador_id'),
+        contrato_tipo_contrato_id: getValue('#contrato_tipo_contrato_id'),
+        contrato_pago_planificado_id: getValue('#contrato_pago_planificado_id'),
+        contrato_tipo_empleado_id: getValue('#contrato_tipo_empleado_id'),
+        contrato_salario_mensual: getValue('#contrato_salario_mensual'),
+        contrato_salario: getValue('#contrato_salario'),
+        contrato_fecha_inicio: getValue('#contrato_fecha_inicio'),
+        contrato_fecha_fin: getValue('#contrato_fecha_fin') || null, // Manejo explícito de valores vacíos
+        contrato_notas: getValue('#contrato_notas'),
+        contrato_activo: isChecked('#contrato_activo'),
+        // Campos adicionales si existen
+        calculo_semanal: isChecked('#calculo_semanal')
+    };
+
+    // 3. Validación básica en cliente (opcional)
+    const requiredFields = ['contrato_colaborador_id', 'contrato_tipo_contrato_id', 'contrato_salario_mensual'];
+    const missingFields = requiredFields.filter(field => !formData[field]);
+    
+    if (missingFields.length > 0) {
+        showNotify('error', 'Error', `Faltan campos requeridos: ${missingFields.join(', ')}`);
+        return;
+    }
+
+    // 4. Determinar si es creación o edición
+    const isEdit = !!(formData.contrato_id && String(formData.contrato_id).trim() !== '' && formData.contrato_id !== '0');
+    const url = isEdit ? '<?php echo SERVERURL;?>ajax/modificarContratosAjax.php' 
+                      : '<?php echo SERVERURL;?>ajax/addContratosAjax.php';
+
+    // 5. Configuración de SweetAlert dinámica
+    swal({
+        title: isEdit ? "¿Actualizar contrato?" : "¿Registrar nuevo contrato?",
+        text: isEdit ? "Confirma los cambios del contrato" : "Confirma que deseas registrar este nuevo contrato",
+        icon: "info",
+        buttons: {
+            cancel: { text: "Cancelar", visible: true, className: "btn-light" },
+            confirm: { 
+                text: isEdit ? "Sí, actualizar" : "Sí, registrar",
+            }
+        },
+        dangerMode: false,
+        closeOnEsc: false,
+        closeOnClickOutside: false
+    }).then((willConfirm) => {
+        if (willConfirm) {
+            // 6. Deshabilitar botón durante el envío
+            const submitBtn = $(this).find('[type="submit"]');
+            const originalBtnHtml = submitBtn.html();
+            submitBtn.prop('disabled', true)
+                    .html('<i class="fas fa-spinner fa-spin"></i> Procesando...');
+
+            // 7. Enviar datos
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: formData,
+                dataType: "json",
+                success: function(response) {
+                    // Restaurar botón
+                    submitBtn.prop('disabled', false).html(originalBtnHtml);
+                    
+                    if (response?.status === "success") {
+                        showNotify("success", response.title, response.message);
+                        
+                        // Ejecutar funciones callback si existen
+                        if (response.funcion) {
+                            try {
+                                new Function(response.funcion)(); // Más seguro que eval()
+                            } catch (e) {
+                                console.error("Error ejecutando función:", e);
+                            }
+                        }
+                        
+                        // Limpiar formulario si es creación exitosa
+                        if (!isEdit && response.clearForm) {
+                            $('#formContrato')[0].reset();
+                            $('.selectpicker').selectpicker('refresh');
+                        }
+                        
+                        // Cerrar modal si es necesario
+                        if (response.modal) {
+                            $('#modal_registrar_contrato').modal('hide');
+                        }
+                    } else {
+                        showNotify("error", response?.title || "Error", response?.message || "Error desconocido");
+                        
+                        // Resaltar campos con error si existen
+                        if (response?.missing_fields) {
+                            $('.is-invalid').removeClass('is-invalid');
+                            response.missing_fields.forEach(field => {
+                                $(`[name="${field}"], #${field}`).addClass('is-invalid');
+                            });
+                        }
+                    }
+                },
+                error: function(xhr) {
+                    // Restaurar botón
+                    submitBtn.prop('disabled', false).html(originalBtnHtml);
+                    
+                    // Manejo mejorado de errores
+                    let errorMsg = "Error al procesar la solicitud";
+                    try {
+                        const errorResponse = JSON.parse(xhr.responseText);
+                        errorMsg = errorResponse.message || errorMsg;
+                    } catch (e) {
+                        console.error("Error parsing response:", e);
+                    }
+                    
+                    showNotify("error", "Error de conexión", errorMsg);
+                    console.error("Detalles del error:", xhr.responseText);
+                }
+            });
+        }
+    });
+});
 /*FIN FORMULARIO CONTRATOS*/
 
 $(document).ready(function() {

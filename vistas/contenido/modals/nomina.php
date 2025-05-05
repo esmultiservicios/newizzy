@@ -148,17 +148,14 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">
+                <button class="btn btn-danger" data-dismiss="modal">
                     <i class="fas fa-times mr-1"></i> Cancelar
                 </button>
-                <button class="btn btn-primary" type="submit" style="display: none;" id="reg_nomina" form="formNomina">
-                    <i class="far fa-save mr-1"></i> Registrar
+                <button class="btn btn-success" type="submit" style="display: none;" id="reg_nomina" form="formNomina">
+                    <i class="far fa-save fa-lg mr-1"></i> Registrar
                 </button>
-                <button class="btn btn-warning" type="submit" style="display: none;" id="edi_nomina" form="formNomina">
-                    <i class="fas fa-edit mr-1"></i> Editar
-                </button>
-                <button class="btn btn-danger" type="submit" style="display: none;" id="delete_nomina" form="formNomina">
-                    <i class="fas fa-trash mr-1"></i> Eliminar
+                <button class="btn btn-success" type="submit" style="display: none;" id="edi_nomina" form="formNomina">
+                    <i class="fas fa-edit fa-lg mr-1"></i> Confirmar
                 </button>
             </div>
         </div>
@@ -593,14 +590,14 @@
                         </div>
                     </div>
                     <div class="col-md-3 mb-3 d-flex align-items-end">
-                        <button class="btn btn-primary ml-2" type="submit" style="display: none;" id="reg_nominaD" form="formNominaDetalles">
-                            <i class="far fa-save mr-1"></i> Registrar
+                        <button class="btn btn-danger" data-dismiss="modal">
+                            <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                         </button>
-                        <button class="btn btn-warning ml-2" type="submit" style="display: none;" id="edi_nominaD" form="formNominaDetalles">
-                            <i class="fas fa-edit mr-1"></i> Editar
+                        <button class="btn btn-success ml-2" type="submit" style="display: none;" id="reg_nominaD" form="formNominaDetalles">
+                            <i class="far fa-save fa-lg mr-1"></i> Registrar
                         </button>
-                        <button class="btn btn-danger ml-2" type="submit" style="display: none;" id="delete_nominaD" form="formNominaDetalles">
-                            <i class="fas fa-trash mr-1"></i> Eliminar
+                        <button class="btn btn-success ml-2" type="submit" style="display: none;" id="edi_nominaD" form="formNominaDetalles">
+                            <i class="fas fa-edit fa-lg mr-1"></i> Confirmar
                         </button>
                     </div>
                 </div>
@@ -623,27 +620,6 @@
             <div class="modal-body">
                 <form class="FormularioAjax" id="formVales" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
                     <input type="hidden" id="vale_id" name="vale_id" class="form-control">
-                    
-                    <!-- Sección de Información General -->
-                    <div class="card border-primary mb-4">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Información General</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="form-row">
-                                <div class="col-md-12 mb-3">
-                                    <label for="proceso_vale"><i class="fas fa-tasks mr-1"></i>Proceso de Vale</label>
-                                    <div class="input-group">
-                                        <input type="text" id="proceso_vale" class="form-control" readonly>
-                                        <div class="input-group-append">
-                                            <span class="input-group-text"><i class="fas fa-plus-square"></i></span>
-                                        </div>
-                                    </div>
-                                    <small class="form-text text-muted">Descripción del proceso de vale</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                     
                     <!-- Sección de Datos del Vale -->
                     <div class="card border-primary mb-4">
@@ -729,17 +705,14 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">
+                <button class="btn btn-danger" data-dismiss="modal">
                     <i class="fas fa-times mr-1"></i> Cancelar
                 </button>
-                <button class="btn btn-primary" type="submit" style="display: none;" id="reg_vale" form="formVales">
-                    <i class="far fa-save mr-1"></i> Registrar
+                <button class="btn btn-success" type="submit" style="display: none;" id="reg_vale" form="formVales">
+                    <i class="far fa-save fa-lg mr-1"></i> Registrar
                 </button>
-                <button class="btn btn-warning" type="submit" style="display: none;" id="edi_vale" form="formVales">
-                    <i class="fas fa-edit mr-1"></i> Editar
-                </button>
-                <button class="btn btn-danger" type="submit" style="display: none;" id="delete_vale" form="formVales">
-                    <i class="fas fa-trash mr-1"></i> Eliminar
+                <button class="btn btn-success" type="submit" style="display: none;" id="edi_vale" form="formVales">
+                    <i class="fas fa-edit fa-lg mr-1"></i> Confirmar
                 </button>
             </div>
         </div>

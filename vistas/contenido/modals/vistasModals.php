@@ -51,11 +51,11 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
                 <button type="submit" class="btn btn-primary" form="formLogin">
-                    <i class="fas fa-sign-in-alt mr-1"></i> Iniciar Sesión
+                    <i class="fas fa-sign-in-alt fa-lg mr-1"></i> Iniciar Sesión
                 </button>
             </div>
         </div>
@@ -116,17 +116,14 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
-                <button class="btn btn-primary" type="submit" style="display: none;" id="reg_cuentas" form="formCuentasContables">
-                    <i class="far fa-save mr-1"></i> Registrar
+                <button class="btn btn-success" type="submit" style="display: none;" id="reg_cuentas" form="formCuentasContables">
+                    <i class="far fa-save fa-lg mr-1"></i> Registrar
                 </button>
-                <button class="btn btn-warning" type="submit" style="display: none;" id="edi_cuentas" form="formCuentasContables">
-                    <i class="fas fa-edit mr-1"></i> Editar
-                </button>
-                <button class="btn btn-danger" type="submit" style="display: none;" id="delete_cuentas" form="formCuentasContables">
-                    <i class="fas fa-trash mr-1"></i> Eliminar
+                <button class="btn btn-success" type="submit" style="display: none;" id="edi_cuentas" form="formCuentasContables">
+                    <i class="fas fa-edit fa-lg mr-1"></i> Confirmar
                 </button>
             </div>
         </div>
@@ -169,8 +166,8 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
             </div>
         </div>
@@ -353,14 +350,14 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times"></i> Cancelar
+                <button type="button" class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg"></i> Cancelar
                 </button>
-                <button type="submit" class="btn btn-primary" id="reg_usuario" form="formUsers" style="display: none;">
-                    <i class="fas fa-save"></i> Registrar Usuario
+                <button type="submit" class="btn btn-success" id="reg_usuario" form="formUsers" style="display: none;">
+                    <i class="fas fa-save fa-lg"></i> Registrar Usuario
                 </button>
-                <button type="submit" class="btn btn-primary" id="edi_usuario" form="formUsers" style="display: none;">
-                    <i class="fas fa-sync-alt"></i> Actualizar Usuario
+                <button type="submit" class="btn btn-success" id="edi_usuario" form="formUsers" style="display: none;">
+                    <i class="fas fa-sync-alt fa-lg"></i> Actualizar Usuario
                 </button>
             </div>
         </div>
@@ -415,18 +412,15 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
-                <button class="btn btn-primary" type="submit" style="display: none;" id="reg_puestos" form="formPuestos">
-                    <i class="far fa-save mr-1"></i> Registrar
+                <button class="btn btn-success" type="submit" style="display: none;" id="reg_puestos" form="formPuestos">
+                    <i class="far fa-save fa-lg mr-1"></i> Registrar
                 </button>
-                <button class="btn btn-warning" type="submit" style="display: none;" id="edi_puestos" form="formPuestos">
-                    <i class="fas fa-edit mr-1"></i> Editar
-                </button>
-                <button class="btn btn-danger" type="submit" style="display: none;" id="delete_puestos" form="formPuestos">
-                    <i class="fas fa-trash mr-1"></i> Eliminar
-                </button>                    
+                <button class="btn btn-success" type="submit" style="display: none;" id="edi_puestos" form="formPuestos">
+                    <i class="fas fa-edit fa-lg mr-1"></i> Confirmar
+                </button>                  
             </div>            
         </div>
     </div>
@@ -472,7 +466,9 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                </button>
             </div>
         </div>
     </div>
@@ -510,7 +506,9 @@
                 </form>
             </div>
             <div class="modal-footer">
-
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                </button>
             </div>
         </div>
     </div>
@@ -551,7 +549,9 @@
                 </form>
             </div>
             <div class="modal-footer">
-
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                </button>
             </div>
         </div>
     </div>
@@ -659,11 +659,11 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
                 <button class="btn btn-success" type="submit" id="Modalcambiarcontra_Edit" form="form-cambiarcontra">
-                    <i class="fas fa-save mr-1"></i> Guardar Cambios
+                    <i class="fas fa-save fa-lg mr-1"></i> Registrar
                 </button>
             </div>
         </div>
@@ -2069,7 +2069,7 @@
                     </div>
                     
                     <!-- Sección de Estado -->
-                    <div class="card border-primary">
+                    <div class="card border-primary mb-4">
                         <div class="card-header bg-primary text-white">
                             <h5 class="mb-0"><i class="fas fa-power-off mr-2"></i>Estado del Cliente</h5>
                         </div>
@@ -2084,27 +2084,95 @@
                         </div>
                     </div>
 
+                    <!-- Sección de Programa de Puntos -->
+                    <div class="card border-primary" id="card_puntos_cliente" style="display: none;">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-coins mr-2"></i>Programa de Puntos</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-6 mb-3">
+                                    <label><i class="fas fa-star mr-1"></i> Puntos Acumulados</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="puntos_acumulados" readonly>
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">Puntos</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label><i class="fas fa-calendar-alt mr-1"></i> Última Actualización</label>
+                                    <input type="text" class="form-control" id="puntos_ultima_actualizacion" readonly>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-info btn-block" id="btn_ver_historial_puntos">
+                                <i class="fas fa-history mr-1"></i> Ver Historial Completo
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="RespuestaAjax"></div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
-                <button class="btn btn-primary" type="submit" style="display: none;" id="reg_cliente" form="formClientes">
-                    <i class="far fa-save mr-1"></i> Registrar
+                <button class="btn btn-success" type="submit" style="display: none;" id="reg_cliente" form="formClientes">
+                    <i class="far fa-save fa-lg mr-1"></i> Registrar
                 </button>
-                <button class="btn btn-warning" type="submit" style="display: none;" id="edi_cliente" form="formClientes">
-                    <i class="fas fa-edit mr-1"></i> Editar
-                </button>
-                <button class="btn btn-danger" type="submit" style="display: none;" id="delete_cliente" form="formClientes">
-                    <i class="fas fa-trash mr-1"></i> Eliminar
+                <button class="btn btn-success" type="submit" style="display: none;" id="edi_cliente" form="formClientes">
+                    <i class="fas fa-edit fa-lg mr-1"></i> Confirmar
                 </button>
             </div>
         </div>
     </div>
 </div>
 <!--FIN MODAL CLIENTES-->
+
+<!-- Modal para Historial de Puntos -->
+<div class="modal fade" id="modal_historial_puntos">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h4 class="modal-title"><i class="fas fa-history mr-2"></i>Historial de Puntos</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h5><span id="nombre_cliente_puntos"></span></h5>
+                    </div>
+                    <div class="col-md-6 text-right">
+                        <h5>Total: <span class="badge badge-primary" id="total_puntos_historial">0</span> puntos</h5>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-header-gradient table-striped table-condensed table-hover" id="tabla_historial_puntos" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Tipo</th>
+                                <th>Puntos</th>
+                                <th>Descripción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Datos se cargarán por AJAX -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!--INICIO MODAL PROVEEDORES-->
 <div class="modal fade" id="modal_registrar_proveedores">
@@ -2230,17 +2298,14 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
-                <button class="btn btn-primary" type="submit" style="display: none;" id="reg_proveedor" form="formProveedores">
-                    <i class="far fa-save mr-1"></i> Registrar
+                <button class="btn btn-success" type="submit" style="display: none;" id="reg_proveedor" form="formProveedores">
+                    <i class="far fa-save fa-lg mr-1"></i> Registrar
                 </button>
-                <button class="btn btn-warning" type="submit" style="display: none;" id="edi_proveedor" form="formProveedores">
-                    <i class="fas fa-edit mr-1"></i> Editar
-                </button>
-                <button class="btn btn-danger" type="submit" style="display: none;" id="delete_proveedor" form="formProveedores">
-                    <i class="fas fa-trash mr-1"></i> Eliminar
+                <button class="btn btn-success" type="submit" style="display: none;" id="edi_proveedor" form="formProveedores">
+                    <i class="fas fa-edit fa-lg mr-1"></i> Confirmar
                 </button>
             </div>
         </div>
@@ -2253,7 +2318,7 @@
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title">Buscar Productos</h4>
+                <h4 class="modal-title">Buscar Productos - Facturación</h4>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -2271,7 +2336,7 @@
                                     <span class="input-group-text">
                                         <div class="sb-nav-link-icon"></div>Bodega
                                     </span>
-                                    <select id="almacen" name="almacen" class="selectpicker" title="Bodega"
+                                    <select id="almacen_facturas" name="almacen" class="selectpicker" title="Bodega"
                                         data-width="100%" data-size="5" data-live-search="true">
                                     </select>
                                 </div>
@@ -2301,12 +2366,76 @@
                 </form>
             </div>
             <div class="modal-footer">
-
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                </button>
             </div>
         </div>
     </div>
 </div>
 <!--FIN MODAL BUSQUEDA DE PRODUCTOS EN FACTURACION-->
+
+<!--INICIO MODAL BUSQUEDA DE PRODUCTOS EN COTIZACIONES-->
+<div class="modal fade" id="modal_buscar_productos_cotizacion">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Buscar Productos - Cotización</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="container"></div>
+            <div class="modal-body">
+                <form class="FormularioAjax" id="formulario_busqueda_productos_cotizacion">
+                    <input type="hidden" id="row" name="row" class="form-control" />
+                    <input type="hidden" id="col" name="col" class="form-control" />
+
+                    <div class="form-group">
+                        <div class="form-group mx-sm-3 mb-1">
+                            <div class="input-group">
+                                <div class="input-group-append">
+                                    <span class="input-group-text">
+                                        <div class="sb-nav-link-icon"></div>Bodega
+                                    </span>
+                                    <select id="almacen" name="almacen" class="selectpicker" title="Bodega"
+                                        data-width="100%" data-size="5" data-live-search="true">
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="overflow-auto">
+                            <table id="DatatableProductosBusquedaCotizacion"
+                                class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
+                                <thead>
+                                    <tr>
+                                        <th>Seleccione</th>
+                                        <th class="table-image">Imagen</th>
+                                        <th>Bar Code</th>
+                                        <th>Producto</th>
+                                        <th>Cantidad</th>
+                                        <th>Medida</th>
+                                        <th>Categoria</th>
+                                        <th>Venta</th>
+                                        <th>Almacén</th>
+                                    </tr>
+                                </thead>
+                            </table>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!--FIN MODAL BUSQUEDA DE PRODUCTOS EN COTIZACIONES-->
 
 <!--INICIO MODAL BUSQUEDA DE PRODUCTOS EN COMPRAS-->
 <div class="modal fade" id="modal_buscar_productos_compras">
@@ -2344,7 +2473,9 @@
                 </form>
             </div>
             <div class="modal-footer">
-
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                </button>
             </div>
         </div>
     </div>
@@ -2389,7 +2520,9 @@
                 </form>
             </div>
             <div class="modal-footer">
-
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                </button>
             </div>
         </div>
     </div>
@@ -2429,7 +2562,9 @@
                 </form>
             </div>
             <div class="modal-footer">
-
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                </button>
             </div>
         </div>
     </div>
@@ -2564,17 +2699,14 @@
             </div>
             
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times"></i> Cancelar
+                <button type="button" class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg"></i> Cancelar
                 </button>
-                <button type="submit" class="btn btn-primary" id="reg_colaborador" form="formColaboradores" style="display: none;">
-                    <i class="far fa-save"></i> Guardar Colaborador
+                <button type="submit" class="btn btn-success" id="reg_colaborador" form="formColaboradores" style="display: none;">
+                    <i class="far fa-save fa-lg"></i> Registrar
                 </button>
-                <button type="submit" class="btn btn-warning" id="edi_colaborador" form="formColaboradores" style="display: none;">
-                    <i class="fas fa-edit"></i> Actualizar Datos
-                </button>
-                <button type="submit" class="btn btn-danger" id="delete_colaborador" form="formColaboradores" style="display: none;">
-                    <i class="fas fa-trash"></i> Eliminar Registro
+                <button type="submit" class="btn btn-success" id="edi_colaborador" form="formColaboradores" style="display: none;">
+                    <i class="fas fa-edit fa-lg"></i> Confirmar
                 </button>
             </div>
         </div>
@@ -2615,7 +2747,9 @@
                 </form>
             </div>
             <div class="modal-footer">
-
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                </button>
             </div>
         </div>
     </div>
@@ -2656,7 +2790,9 @@
                 </form>
             </div>
             <div class="modal-footer">
-
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                </button>
             </div>
         </div>
     </div>
@@ -2913,17 +3049,14 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
-                <button class="btn btn-primary" type="submit" style="display: none;" id="reg_empresa" form="formEmpresa">
-                    <i class="far fa-save mr-1"></i> Registrar
+                <button class="btn btn-success" type="submit" style="display: none;" id="reg_empresa" form="formEmpresa">
+                    <i class="far fa-save fa-lg mr-1"></i> Registrar
                 </button>
-                <button class="btn btn-warning" type="submit" style="display: none;" id="edi_empresa" form="formEmpresa">
-                    <i class="fas fa-edit mr-1"></i> Editar
-                </button>
-                <button class="btn btn-danger" type="submit" style="display: none;" id="delete_empresa" form="formEmpresa">
-                    <i class="fas fa-trash mr-1"></i> Eliminar
+                <button class="btn btn-success" type="submit" style="display: none;" id="edi_empresa" form="formEmpresa">
+                    <i class="fas fa-edit fa-lg mr-1"></i> Confirmar
                 </button>
             </div>
         </div>
@@ -3013,17 +3146,14 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
-                <button class="btn btn-primary" type="submit" style="display: none;" id="reg_caja" form="formCajas">
-                    <i class="far fa-save mr-1"></i> Registrar
+                <button class="btn btn-success" type="submit" style="display: none;" id="reg_caja" form="formCajas">
+                    <i class="far fa-save fa-lg mr-1"></i> Registrar
                 </button>
-                <button class="btn btn-warning" type="submit" style="display: none;" id="edi_caja" form="formCajas">
-                    <i class="fas fa-edit mr-1"></i> Editar
-                </button>
-                <button class="btn btn-danger" type="submit" style="display: none;" id="delete_caja" form="formCajas">
-                    <i class="fas fa-trash mr-1"></i> Eliminar
+                <button class="btn btn-success" type="submit" style="display: none;" id="edi_caja" form="formCajas">
+                    <i class="fas fa-edit fa-lg mr-1"></i> Confirmar
                 </button>
             </div>
         </div>
@@ -3087,14 +3217,14 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
-                <button class="btn btn-primary" type="submit" style="display: none;" id="open_caja" form="formAperturaCaja">
-                    <i class="fas fa-lock-open mr-1"></i> Aperturar
+                <button class="btn btn-success" type="submit" style="display: none;" id="open_caja" form="formAperturaCaja">
+                    <i class="fas fa-lock-open fa-lg mr-1"></i> Aperturar Caja
                 </button>
-                <button class="btn btn-primary" type="submit" style="display: none;" id="close_caja" form="formAperturaCaja">
-                    <i class="fas fa-lock mr-1"></i> Cerrar
+                <button class="btn btn-success" type="submit" style="display: none;" id="close_caja" form="formAperturaCaja">
+                    <i class="fas fa-lock fa-lg mr-1"></i> Cerrar Caja
                 </button>
             </div>
         </div>
@@ -3312,16 +3442,13 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-danger" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
                 <button class="btn btn-success" type="submit" style="display: none;" id="reg_producto" form="formProductos">
                     <i class="far fa-save fa-lg mr-1"></i> Registrar
                 </button>
                 <button class="btn btn-success" type="submit" style="display: none;" id="edi_producto" form="formProductos">
                     <i class="fas fa-edit fa-lg mr-1"></i> Confirmar
-                </button>
-                <button class="btn btn-danger" type="submit" style="display: none;" id="delete_producto" form="formProductos">
-                    <i class="fas fa-trash fa-lg mr-1"></i> Eliminar
                 </button>
             </div>
         </div>
@@ -3340,7 +3467,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form class="FormularioAjax" id="formTransferencia" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+                <form class="" id="formTransferencia" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
                     <!-- Sección de Información del Producto -->
                     <div class="card border-primary mb-4">
                         <div class="card-header bg-primary text-white">
@@ -3411,11 +3538,11 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
-                <button class="btn btn-primary" type="submit" id="putEditarBodega" form="formTransferencia">
-                    <i class="fas fa-exchange-alt mr-1"></i> Transferir
+                <button class="btn btn-success" type="submit" id="putEditarBodega" form="formTransferencia">
+                    <i class="fas fa-exchange-alt fa-lg mr-1"></i> Transferir
                 </button>
             </div>
         </div>
@@ -3478,11 +3605,11 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
-                <button class="btn btn-primary" type="submit" id="EditarFechaVencimiento" form="formTransferenciaCambiarFecha">
-                    <i class="fas fa-save mr-1"></i> Guardar Cambios
+                <button class="btn btn-success" type="submit" id="EditarFechaVencimiento" form="formTransferenciaCambiarFecha">
+                    <i class="fas fa-save fa-lg mr-1"></i> Registrar
                 </button>
             </div>
         </div>
@@ -3534,7 +3661,9 @@
                 </form>
             </div>
             <div class="modal-footer">
-
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                </button>
             </div>
         </div>
     </div>
@@ -3585,7 +3714,9 @@
                 </form>
             </div>
             <div class="modal-footer">
-
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                </button>
             </div>
         </div>
     </div>
@@ -3654,11 +3785,11 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
-                <button class="btn btn-primary" type="submit" id="editar_rtn_clientes" form="formEditarRTNClientes">
-                    <i class="far fa-save mr-1"></i> Guardar Cambios
+                <button class="btn btn-success" type="submit" id="editar_rtn_clientes" form="formEditarRTNClientes">
+                    <i class="far fa-save fa-lg mr-1"></i> Registrar
                 </button>
             </div>
         </div>
@@ -3728,11 +3859,11 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
-                <button class="btn btn-primary" type="submit" id="editar_rtn_proveedores" form="formEditarRTNProveedores">
-                    <i class="far fa-save mr-1"></i> Guardar Cambios
+                <button class="btn btn-success" type="submit" id="editar_rtn_proveedores" form="formEditarRTNProveedores">
+                    <i class="far fa-save fa-lg mr-1"></i> Registrar
                 </button>
             </div>
         </div>
@@ -3802,11 +3933,11 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
                 <button class="btn btn-primary" type="submit" id="editar_barcode" form="formEditarBarcode">
-                    <i class="far fa-save mr-1"></i> Guardar Cambios
+                    <i class="far fa-save fa-lg mr-1"></i> Registrar
                 </button>
             </div>
         </div>
@@ -3846,7 +3977,9 @@
                 </form>
             </div>
             <div class="modal-footer">
-
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                </button>
             </div>
         </div>
     </div>
@@ -3864,8 +3997,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form class="FormularioAjax" id="formAsistencia" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
-
+                <form class="" id="formAsistencia" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
                     <input type="hidden" id="asistencia_id" name="asistencia_id">
                     <input type="hidden" id="marcarAsistencia_id" name="marcarAsistencia_id">
                     
@@ -3937,14 +4069,14 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
-                <button class="btn btn-primary" type="submit" style="display: none;" id="reg_asistencia" form="formAsistencia">
-                    <i class="far fa-save mr-1"></i> Registrar
+                <button class="btn btn-success" type="submit" style="display: none;" id="reg_asistencia" form="formAsistencia">
+                    <i class="far fa-save fa-lg mr-1"></i> Registrar
                 </button>
-                <button class="btn btn-warning" type="submit" style="display: none;" id="edi_asistencia" form="formAsistencia">
-                    <i class="fas fa-edit mr-1"></i> Editar
+                <button class="btn btn-success" type="submit" style="display: none;" id="edi_asistencia" form="formAsistencia">
+                    <i class="fas fa-edit fa-lg mr-1"></i> Confirmar
                 </button>
             </div>
         </div>
@@ -4068,11 +4200,11 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
-                <button class="btn btn-primary" type="submit" style="display: none;" id="reg_generarSitema" form="formGenerarSistema">
-                    <i class="fas fa-cogs mr-1"></i> Generar Sistema
+                <button class="btn btn-success" type="submit" style="display: none;" id="reg_generarSitema" form="formGenerarSistema">
+                    <i class="fas fa-cogs fa-lg mr-1"></i> Generar Sistema
                 </button>
             </div>
         </div>

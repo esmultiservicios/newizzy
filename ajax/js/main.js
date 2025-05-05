@@ -35,6 +35,8 @@ $('.FormularioAjax').submit(function (e) {
 		classButtom = "btn-warning";
 	}
 
+    let danger = (type === "warning" || type === "error");
+
 	swal({
 		title: "¿Estás seguro?",
 		text: textoAlerta,
@@ -47,11 +49,10 @@ $('.FormularioAjax').submit(function (e) {
 			},
 			confirm: {
 				text: "Aceptar",
-				className: classButtom,
 				closeModal: false
 			}
 		},
-		dangerMode: false,
+		dangerMode: danger,
 		closeOnEsc: false, // Desactiva el cierre con la tecla Esc
 		closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera		
 	}).then((isConfirm) => {

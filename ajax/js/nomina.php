@@ -15,11 +15,9 @@ $(() => {
     $('#form_main_nominas #estado_nomina').val(0);
     $('#form_main_nominas #estado_nomina').selectpicker('refresh');
 
-    // Evento para el botón de Buscar (submit)
-    $('#form_main_nominas').on('submit', function(e) {
+    $('#form_main_nominas #search').on("click", function(e) {
         e.preventDefault();
-
-        listar_nominas(); 
+        listar_nominas();
     });
 
     // Evento para el botón de Limpiar (reset)
@@ -86,16 +84,16 @@ var listar_nominas = function() {
                 "data": "notas"
             },
             {
-                "defaultContent": "<div class='btn-group'><button type='button' class='btn btn-dark table_editar ocultar dropdown-toggle' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'><i class='fas fa-users-cog'></i> Aciones</button><div class='dropdown-menu'><a class='dropdown-item nomina_generar' href='#'>Generar Nomina</a><div class='dropdown-divider'></div><a class='dropdown-item voucher_pago' href='#'>Voucher de Pago</a><a class='dropdown-item consolidado' href='#'>Libro de Salarios</a></div></div>"
+                "defaultContent": "<div class='btn-group'><button type='button' class='btn btn-primary ocultar dropdown-toggle' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'><i class='fas fa-users-cog'></i> Aciones</button><div class='dropdown-menu'><a class='dropdown-item nomina_generar' href='#'>Generar Nomina</a><div class='dropdown-divider'></div><a class='dropdown-item voucher_pago' href='#'>Voucher de Pago</a><a class='dropdown-item consolidado' href='#'>Libro de Salarios</a></div></div>"
             },
             {
-                "defaultContent": "<button class='table_editar nomina_agregar btn btn-dark ocultar'><span class='fas fa-folder-plus fa-lg'></span></button>"
+                "defaultContent": "<button class='btn btn-primary nomina_agregar btn ocultar'><span class='fas fa-folder-plus fa-lg'></span>Crear</button>"
             },
             {
-                "defaultContent": "<button class='table_editar nomina_editar btn btn-dark ocultar'><span class='fas fa-edit fa-lg'></span></button>"
+                "defaultContent": "<button class='table_editar nomina_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
             },
             {
-                "defaultContent": "<button class='table_eliminar nomina_eliminar btn btn-dark ocultar'><span class='fa fa-trash fa-lg'></span></button>"
+                "defaultContent": "<button class='table_eliminar nomina_eliminar btn ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"
             }
         ],
         "lengthMenu": lengthMenu10,
@@ -404,8 +402,6 @@ var editar_nominas_dataTable = function(tbody, table) {
                     $('#formNomina #label_nomina_activo').html("Sin Generar");
                 }
 
-                caracteresnotaNomina();
-
                 //HABILITAR OBJETOS								
                 $('#formNomina #nomina_detale').attr('disabled', false);
                 $('#formNomina #nomina_pago_planificado_id').attr('disabled', false);
@@ -438,11 +434,12 @@ var eliminar_nominas_dataTable = function(tbody, table) {
         var data = table.row($(this).parents("tr")).data();
 
         var nomina_id = data.nomina_id;
-        var nombreNomina = data.nombre; 
+        var detalleNomina = data.detalle; 
         
         // Construir el mensaje de confirmación con HTML
         var mensajeHTML = `¿Desea eliminar permanentemente la nomina?<br><br>
-                        <strong>Nombre:</strong> ${nombreNomina}`;
+                        <strong>Nomina:</strong> ${detalleNomina}<br>
+                        <strong>Número Nomina:</strong> ${nomina_id}`;
         
         swal({
             title: "Confirmar eliminación",
@@ -906,10 +903,10 @@ var listar_nominas_detalles = function() {
                 "data": "notas"
             },
             {
-                "defaultContent": "<button class='table_editar nomina_detalles_editar btn btn-dark ocultar'><span class='fas fa-edit fa-lg'></span></button>"
+                "defaultContent": "<button class='table_editar nomina_detalles_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
             },
             {
-                "defaultContent": "<button class='table_eliminar nomina_detalles_eliminar btn btn-dark ocultar'><span class='fa fa-trash fa-lg'></span></button>"
+                "defaultContent": "<button class='table_eliminar nomina_detalles_eliminar btn ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"
             }
         ],
         "lengthMenu": lengthMenu,
@@ -1797,7 +1794,7 @@ var listar_vales = function() {
                 "data": "nota"
             },
             {
-                "defaultContent": "<button class='table_editar anular_vale btn btn-dark ocultar'><span class='fas fa-ban fa-lg'></span></button>"
+                "defaultContent": "<button class='btn btn-danger anular_vale ocultar'><span class='fas fa-ban fa-lg'></span>Anular</button>"
             }
         ],
         "lengthMenu": lengthMenu10,

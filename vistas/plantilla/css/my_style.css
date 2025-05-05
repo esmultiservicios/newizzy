@@ -126,73 +126,163 @@
 .btn-primary:hover { background-color: #1a252f; }
 .btn-secondary:hover { background-color: #2980b9; }
 
+/* ================================== */
+/* ESTILOS ESPECÍFICOS PARA EL DROPDOWN */
+/* ================================== */
+.btn-group .dropdown-toggle {
+    transition: all 0.3s ease !important; /* Mantiene la transición suave */
+}
+
+/* Mantiene el efecto hover en el botón PERO solo para el contenedor */
+.btn-group .btn-primary.dropdown-toggle:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    background-color: #1a252f; /* Mantiene tu color hover */
+}
+
+/* Estilos específicos para el ICONO dentro del dropdown */
+.btn-group .dropdown-toggle i.fas {
+    color: white !important;
+    transition: none !important;
+    display: inline-block; /* Necesario para que transform funcione */
+}
+
+/* Anula cualquier transformación en el icono */
+.btn-group .dropdown-toggle:hover i.fas,
+.btn-group .dropdown-toggle:focus i.fas {
+    transform: none !important;
+    color: white !important;
+}
+
+/* Mantiene el cursor pointer solo en el botón principal */
+.btn-group > .btn {
+    cursor: pointer;
+}
+
 /* ====================== */
-/* TABLAS */
+/* BOTONES DE TABLA (CON VARIABLES PERSONALIZADAS) */
 /* ====================== */
-/* Botones dentro de tablas */
 .table_editar,
-.table_eliminar,
-.table_crear {
-    padding: 0.35rem 0.7rem;
+.table_eliminar {
+    padding: 0.5rem 0.7rem; /* Mismo padding vertical que .btn */
+    height: 38px; /* Misma altura que .btn */
     font-size: 0.82rem;
     height: 40px;
     min-width: 50px;
-    border-radius: 3px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border-radius: 0.25rem;
+    box-shadow: var(--accent-shadow);
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    transition: all var(--transition-speed) ease-in-out;
+    border: 1px solid transparent;
+    cursor: pointer;
+    gap: 0.4rem;
+    font-weight: 500;
 }
 
-.table_editar { background-color: var(--secondary); color: white; }
-.table_eliminar { background-color: var(--danger); color: white; }
-.table_crear { background-color: var(--primary); color: white; }
-
-/* Estilos generales para todos los botones */
-.table_info, 
-.table_success, 
-.table_warning, 
-.table_dark, 
-.table_primary, 
-.table_secondary, 
-.table_danger {
-    padding: 0.35rem 0.7rem;
-    font-size: 0.82rem;
-    height: 40px;
-    min-width: 50px;
-    border-radius: 3px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    color: white;
-    transition: opacity 0.3s ease, box-shadow 0.3s ease;
-    gap: 0.5rem; /* Añade espacio entre icono y texto */
+/* ESTILO EDITAR (USANDO TU VARIABLE WARNING) */
+.table_editar { 
+    background-color: var(--warning) !important;
+    color: var(--dark) !important;
+    border-color: var(--warning);
 }
 
-/* Estilo específico para cada color */
-.table_info { background-color: var(--info); }
-.table_success { background-color: var(--success); }
-.table_warning { background-color: var(--warning); }
-.table_dark { background-color: var(--dark); }
-.table_primary { background-color: var(--primary); }
-.table_secondary { background-color: var(--secondary); }
-.table_danger { background-color: var(--danger); }
-
-/* Hover: Mantener el mismo color de fondo, pero agregar un efecto visual */
-.table_info:hover, .table_success:hover, .table_warning:hover, .table_dark:hover, .table_primary:hover, .table_secondary:hover, .table_danger:hover {
-    opacity: 0.9; /* Reduce ligeramente la opacidad para dar un efecto interactivo */
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Añade una sombra ligera */
-    color: white;
+/* ESTILO ELIMINAR (USANDO TU VARIABLE DANGER) */
+.table_eliminar { 
+    background-color: var(--danger);
+    color: var(--white) !important;
+    border-color: var(--danger);
 }
 
-/* Excepción para botón crear con estilo primario */
-.btn-primary.table_crear {
-    padding: 0.5rem 1.25rem;
-    font-size: 0.875rem;
-    height: 38px;
-    min-width: 80px;
+/* ESTILO CREAR (USANDO TU VARIABLE PRIMARY) */
+/* HOVER STATES (CON VARIABLES) */
+.table_editar:hover { 
+    background-color: color-mix(in srgb, var(--warning), white 15%) !important;
+    border-color: color-mix(in srgb, var(--warning), black 10%);
+    color: var(--dark) !important;
+    box-shadow: var(--deep-shadow);
+}
+
+.table_eliminar:hover { 
+    background-color: color-mix(in srgb, var(--danger), black 10%) !important;
+    border-color: color-mix(in srgb, var(--danger), black 15%);
+}
+
+/* FOCUS STATES (CON VARIABLES) */
+.table_editar:focus,
+.table_eliminar:focus {
+    box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--warning), transparent 50%);
+    outline: 0;
+}
+
+/* ICONOS */
+.table_editar i,
+.table_eliminar i {
+    font-size: 0.9em;
+    transition: transform var(--transition-speed) ease;
+    color: inherit !important;
+}
+
+/* EFECTO HOVER ICONOS */
+.table_editar:hover i,
+.table_eliminar:hover i {
+    transform: scale(1.15);
+}
+
+/* ====================== */
+/* RESPONSIVE (MOBILE FIRST) */
+/* ====================== */
+@media (max-width: 992px) {
+    .table_editar,
+    .table_eliminar {
+        padding: 0.3rem 0.6rem;
+        height: 36px;
+        min-width: 45px;
+        font-size: 0.78rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .table_editar,
+    .table_eliminar {
+        padding: 0.25rem 0.5rem;
+        height: 32px;
+        min-width: 40px;
+        font-size: 0.75rem;
+        gap: 0.3rem;
+    }
+}
+
+/* SOLO ICONOS EN MÓVILES MUY PEQUEÑOS */
+@media (max-width: 480px) {
+    .table_editar span,
+    .table_eliminar span {
+        display: none;
+    }
+    .table_editar,
+    .table_eliminar {
+        min-width: 32px;
+        width: 32px;
+        justify-content: center;
+        padding: 0.25rem;
+    }
+    .table_editar i,
+    .table_eliminar i {
+        font-size: 1em;
+        margin: 0;
+    }
+}
+
+/* AJUSTES PARA PANTALLAS MUY GRANDES */
+@media (min-width: 1600px) {
+    .table_editar,
+    .table_eliminar {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+        height: 42px;
+        min-width: 55px;
+    }
 }
 
 /* ====================== */
@@ -285,25 +375,18 @@
 
 /* CORRECCIÓN PARA BOTONES EN TABLAS (SOLUCIÓN DEFINITIVA) */
 .table_editar:hover { 
-    background-color: var(--secondary) !important; /* Mantiene el color original */
+    background-color: var(--warning) !important; /* Mantiene el color original */
 }
 
 .table_eliminar:hover { 
     background-color: var(--danger) !important; /* Mantiene el color original */
 }
 
-.table_crear:hover { 
-    background-color: var(--primary) !important; /* Mantiene el color original */
-}
-
 /* Excepción para botón crear con estilo primario */
-.btn-primary.table_crear:hover {
-    background-color: var(--primary) !important;
-}
+
 
 .table_editar i,
-.table_eliminar i,
-.table_crear i {
+.table_eliminar i {
     transition: all 0.2s ease;
 }
 
@@ -313,11 +396,6 @@
 }
 
 .table_eliminar:hover i {
-    color: white !important;
-    transform: scale(1.1);
-}
-
-.table_crear:hover i {
     color: white !important;
     transform: scale(1.1);
 }
@@ -347,8 +425,7 @@
     }
     
     .table_editar,
-    .table_eliminar,
-    .table_crear {
+    .table_eliminar {
         padding: 0.3rem 0.6rem;
         font-size: 0.75rem;
         height: 28px;
@@ -4297,4 +4374,66 @@ textarea.form-control {
 /* Estilo para cuando está visible */
 #ver-pin-usuario:not(.d-none) {
     display: flex !important;
+}
+
+
+/* Estilos generales para los campos del formulario */
+/* Estos estilos mantendrán la posición original pero aplicarán negrita */
+/* Campos de cotización */
+.inputfield-details1, /* Código del Producto */
+.product-description, /* Descripción del Producto */
+.buscar_cantidad,     /* CANTIDAD (quantityQuote) */
+#priceQuote_ + count,  /* PRECIO */
+#discountQuote_ + count, /* DESCUENTO */
+.total,               /* TOTAL */
+/* Campos de factura */
+.product-bar-code,     /* Código del Producto (factura) */
+.product-description,  /* Descripción del Producto (factura) */
+#quantity_ + count,    /* CANTIDAD (factura) */
+.medida-description,   /* Medida (aunque no estaba en tu lista original) */
+#price_ + count,       /* PRECIO (factura) */
+#discount_ + count,    /* DESCUENTO (factura) */
+/* Campos de compra */
+.product-bar-codePurchase, /* Código del Producto (compra) */
+#productNamePurchase_ + count, /* Nombre del Producto (compra) */
+.buscar_cantidad_purchase, /* CANTIDAD (compra) */
+.buscar_medida_purchase, /* Medida (compra) */
+.buscar_price_purchase, /* PRECIO (compra) */
+#isvPurchaseWrite_ + count, /* ISV (compra) */
+#discountPurchase_ + count, /* DESCUENTO (compra) */
+#totalPurchase_ + count,    /* TOTAL (compra) */
+/* Campos de solo lectura también en negrita */
+input[readonly] {
+    font-weight: bold !important;
+}
+
+/* Ajustes específicos para los placeholders */
+.inputfield-details1::placeholder,
+.buscar_cantidad::placeholder,
+.product-bar-code::placeholder,
+.product-bar-codePurchase::placeholder,
+.buscar_cantidad_purchase::placeholder {
+    font-weight: bold !important;
+}
+
+/* Ajuste para los textos de descripción (producto y medida) */
+.product-description,
+.medida-description,
+#productNamePurchase_ + count {
+    font-weight: bold !important;
+    display: inline-block; /* Mantiene la posición original */
+    vertical-align: middle; /* Alineación vertical */
+    line-height: normal; /* Altura de línea normal */
+    margin-top: 0; /* Elimina cualquier margen superior */
+    padding: 0; /* Elimina cualquier padding */
+}
+
+/* Asegurar que los inputs mantengan su tamaño */
+.form-control {
+    box-sizing: border-box !important;
+}
+
+/* Estilos para los botones de búsqueda para mantener consistencia */
+.btn-link {
+    font-weight: normal !important; /* Los íconos no necesitan negrita */
 }

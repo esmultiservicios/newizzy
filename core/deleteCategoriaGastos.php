@@ -4,27 +4,54 @@ require_once "configGenerales.php";
 require_once "Database.php";
 $database = new Database();
 
-$categoria_gastos_id = $_POST['categoria_gastos_id'];
-$categoria = $_POST['categoria'];
+header('Content-Type: application/json'); // Especificamos que la respuesta es JSON
 
-// CONSULTAMOS EL EGRESO
-$tablEgresos = "egresos";
-$camposEgresos = ["egresos_id"];
-$condicionesEgresos = ["categoria_gastos_id" => $categoria_gastos_id]; 
-$orderBy = "";
-$tablaJoin = "";
-$condicionesJoin = [];
-$resultadoEgresos = $database->consultarTabla($tablEgresos, $camposEgresos, $condicionesEgresos, $orderBy, $tablaJoin, $condicionesJoin);
+try {
+    $categoria_gastos_id = $_POST['categoria_gastos_id'] ?? null;
+    $categoria = $_POST['categoria'] ?? '';
 
-if (empty($resultadoEgresos)) {
-	$condiciones_eliminar = ["categoria_gastos_id" => $categoria_gastos_id];
+    if (!$categoria_gastos_id) {
+        echo json_encode([
+            'success' => false,
+            'title' => 'Error',
+            'text' => 'ID de categoría no proporcionado'
+        ]);
+        exit();
+    }
 
-	// Llamar a la función para eliminar los registros
-	if ($database->eliminarRegistros('categoria_gastos', $condiciones_eliminar)) {
-		echo "success"; // Envía 'error' si hubo un error en la eliminación
-	} else {
-		echo "error: Error al eliminar el registro"; // Envía 'error' si hubo un error en la eliminación
-	} 
-}else{
-    echo "error-existe: La categoria $categoria, cuenta con información en los gastos, no se puede eliminar"; // Envía 'existe' si registro cuenta con información
+    // Consultamos si la categoría tiene egresos asociados
+    $tablaEgresos = "egresos";
+    $camposEgresos = ["egresos_id"];
+    $condicionesEgresos = ["categoria_gastos_id" => $categoria_gastos_id]; 
+    $resultadoEgresos = $database->consultarTabla($tablaEgresos, $camposEgresos, $condicionesEgresos);
+
+    if (empty($resultadoEgresos)) {
+        $condiciones_eliminar = ["categoria_gastos_id" => $categoria_gastos_id];
+
+        if ($database->eliminarRegistros('categoria_gastos', $condiciones_eliminar)) {
+            echo json_encode([
+                'success' => true,
+                'title' => 'Éxito',
+                'text' => 'Categoría eliminada correctamente'
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'title' => 'Error',
+                'text' => 'Error al eliminar el registro'
+            ]);
+        } 
+    } else {
+        echo json_encode([
+            'success' => false,
+            'title' => 'Error',
+            'text' => "La categoría $categoria cuenta con información en los gastos, no se puede eliminar"
+        ]);
+    }
+} catch (Exception $e) {
+    echo json_encode([
+        'success' => false,
+        'title' => 'Error',
+        'text' => 'Error inesperado: ' . $e->getMessage()
+    ]);
 }

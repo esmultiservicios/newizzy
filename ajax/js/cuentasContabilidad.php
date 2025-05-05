@@ -2,11 +2,9 @@
 $(() => {
     listar_cuentas_contabilidad();
 
-    // Evento para el botón de Buscar (submit)
-    $('#formMainCuentasContabilidad').on('submit', function(e) {
+	$('#formMainCuentasContabilidad #search').on("click", function(e) {
         e.preventDefault();
-
-        listar_cuentas_contabilidad(); 
+        listar_cuentas_contabilidad();
     });
 
     // Evento para el botón de Limpiar (reset)
@@ -22,7 +20,6 @@ $(() => {
 
 //INICIO ACCIONES FORMULARIO CUENTAS EN CONTABILIDAD
 var listar_cuentas_contabilidad = function() {
-    alert("listar_cuentas_contabilidad");
     var fechai = $("#formMainCuentasContabilidad #fechai").val();
     var fechaf = $("#formMainCuentasContabilidad #fechaf").val();
 
@@ -135,10 +132,10 @@ var listar_cuentas_contabilidad = function() {
                 },
             },
             {
-                "defaultContent": "<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit fa-lg'></span></button>"
+                "defaultContent": "<button class='table_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
             },
             {
-                "defaultContent": "<button class='table_eliminar btn btn-dark ocultar'><span class='fa fa-trash fa-lg'></span></button>"
+                "defaultContent": "<button class='table_eliminar btn ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"
             }
         ],
         "lengthMenu": lengthMenu10,

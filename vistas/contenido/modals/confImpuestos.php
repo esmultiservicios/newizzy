@@ -55,11 +55,11 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
-                <button class="btn btn-warning" type="submit" id="edi_impuestos" form="formImpuestos">
-                    <i class="fas fa-edit mr-1"></i> Actualizar
+                <button class="btn btn-success" type="submit" id="edi_impuestos" form="formImpuestos">
+                    <i class="fas fa-edit fa-lg mr-1"></i> Confirmar
                 </button>
             </div>
         </div>

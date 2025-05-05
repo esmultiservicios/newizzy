@@ -1,9 +1,10 @@
 <div class="container-fluid">
     <ol class="breadcrumb mt-2 mb-4">
-        <li class="breadcrumb-item"><a class="breadcrumb-link" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>dashboard/">Dashboard</a></li>
+        <li class="breadcrumb-item"><a class="breadcrumb-link"
+                href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>dashboard/">Dashboard</a></li>
         <li class="breadcrumb-item active">Reporte de Ventas</li>
     </ol>
-    
+
     <div class="card mb-4">
         <div class="card-body">
             <form id="form_main_ventas">
@@ -12,54 +13,54 @@
                     <div class="col-md-3 col-sm-6 mb-3">
                         <div class="form-group">
                             <label class="small mb-1">Tipo Factura</label>
-                            <select id="factura_reporte" name="factura_reporte" 
-                                class="form-control selectpicker" title="Factura" data-live-search="true">
+                            <select id="factura_reporte" name="factura_reporte" class="form-control selectpicker"
+                                title="Factura" data-live-search="true">
                                 <option value="1">Electrónica</option>
                                 <option value="4">Proforma</option>
                             </select>
                         </div>
                     </div>
-                    
+
                     <div class="col-md-3 col-sm-6 mb-3">
                         <div class="form-group">
                             <label class="small mb-1">Categoría Factura</label>
-                            <select id="tipo_factura_reporte" name="tipo_factura_reporte" 
+                            <select id="tipo_factura_reporte" name="tipo_factura_reporte"
                                 class="form-control selectpicker" title="Tipo de Factura" data-live-search="true">
                             </select>
                         </div>
                     </div>
-                    
+
                     <div class="col-md-3 col-sm-6 mb-3">
                         <div class="form-group">
                             <label class="small mb-1">Facturador</label>
-                            <select id="facturador" name="facturador" 
-                                class="form-control selectpicker" title="Facturador" data-live-search="true">
+                            <select id="facturador" name="facturador" class="form-control selectpicker"
+                                title="Facturador" data-live-search="true">
                                 <option value="">Seleccione</option>
                             </select>
                         </div>
                     </div>
-                    
+
                     <div class="col-md-3 col-sm-6 mb-3">
                         <div class="form-group">
                             <label class="small mb-1">Vendedor</label>
-                            <select id="vendedor" name="vendedor" 
-                                class="form-control selectpicker" title="Vendedor" data-live-search="true">
+                            <select id="vendedor" name="vendedor" class="form-control selectpicker" title="Vendedor"
+                                data-live-search="true">
                                 <option value="">Seleccione</option>
                             </select>
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="row">
                     <!-- Segunda fila con fechas y botón -->
-					<div class="col-md-3 col-sm-6 mb-3">
-						<div class="form-group">
-							<label class="small mb-1">Fecha Inicio</label>
-							<div class="input-group">
-								<div class="input-group-prepend">
-									<span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
-								</div>
-								<input type="date" class="form-control" id="fechai" name="fechai" value="<?php 
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="form-group">
+                            <label class="small mb-1">Fecha Inicio</label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                </div>
+                                <input type="date" class="form-control" id="fechai" name="fechai" value="<?php 
 									$fecha = date ("Y-m-d");
 									
 									$año = date("Y", strtotime($fecha));
@@ -72,35 +73,36 @@
 									$fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
 									echo $fecha_inicial;
 								?>">
-							</div>
-						</div>
-					</div>
-                    
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="col-md-3 col-sm-6 mb-3">
-						<div class="form-group">
-							<label class="small mb-1">Fecha Fin</label>
-							<div class="input-group">
-								<div class="input-group-prepend">
-									<span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
-								</div>
-								<input type="date" class="form-control" id="fechaf" name="fechaf" value="<?php echo date('Y-m-d');?>">
-							</div>
-						</div>
-					</div>
-                    
+                        <div class="form-group">
+                            <label class="small mb-1">Fecha Fin</label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                </div>
+                                <input type="date" class="form-control" id="fechaf" name="fechaf"
+                                    value="<?php echo date('Y-m-d');?>">
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="col-md-6 col-sm-12 d-flex align-items-end justify-content-end mb-3">
-                        <button type="submit" class="btn btn-primary mr-2">
+                        <button type="submit" class="btn btn-primary mr-2" id="search">
                             <i class="fas fa-filter fa-lg"></i> Filtrar
                         </button>
                         <button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary">
-							<i class="fas fa-broom fa-lg mr-1"></i> Limpiar
-						</button>
+                            <i class="fas fa-broom fa-lg mr-1"></i> Limpiar
+                        </button>
                     </div>
                 </div>
             </form>
         </div>
     </div>
-    
+
     <div class="card mb-4">
         <div class="card-header">
             <i class="fas fa-file-invoice-dollar fa-lg mr-1"></i>
@@ -114,7 +116,8 @@
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table id="dataTablaReporteVentas" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
+                <table id="dataTablaReporteVentas"
+                    class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
                     <thead>
                         <tr>
                             <th>Fecha</th>
@@ -194,7 +197,7 @@
                         <h6><strong>Total:</strong> <span id="total-factura"></span></h6>
                     </div>
                 </div>
-                
+
                 <div class="table-responsive">
                     <table class="table table-header-gradient table-striped table-condensed table-hover">
                         <thead class="bg-light">
@@ -211,7 +214,7 @@
                         </tbody>
                     </table>
                 </div>
-                
+
                 <div class="row mt-3">
                     <div class="col-md-12">
                         <h6><strong>Notas:</strong></h6>
@@ -220,11 +223,11 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cerrar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
                 <button type="button" id="btn-imprimir-factura" class="btn btn-primary">
-                    <i class="fas fa-print mr-1"></i> Imprimir
+                    <i class="fas fa-print fa-lg mr-1"></i> Imprimir
                 </button>
             </div>
         </div>
@@ -256,7 +259,7 @@
                         <h6><strong>Total:</strong> <span id="total-factura"></span></h6>
                     </div>
                 </div>
-                
+
                 <div class="table-responsive">
                     <table class="table table-header-gradient table-striped table-condensed table-hover">
                         <thead class="bg-light">
@@ -273,7 +276,7 @@
                         </tbody>
                     </table>
                 </div>
-                
+
                 <div class="row mt-3">
                     <div class="col-md-12">
                         <h6><strong>Notas:</strong></h6>
@@ -282,11 +285,11 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="submit" class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cerrar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
                 <button type="button" id="btn-imprimir-factura" class="btn btn-primary">
-                    <i class="fas fa-print mr-1"></i> Imprimir
+                    <i class="fas fa-print fa-lg mr-1"></i> Imprimir
                 </button>
             </div>
         </div>

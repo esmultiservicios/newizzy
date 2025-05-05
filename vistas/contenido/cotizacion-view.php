@@ -154,9 +154,9 @@
                                                 </div>
                                             </td>
                                             <td>
-                                                <input type="text" name="productNameQuote[]" id="productNameQuote_0"
-                                                    placeholder="Descripción del Producto" readonly
+                                                <input type="hidden" name="productNameQuote[]" id="productNameQuote_0" placeholder="Descripción del Producto" readonly
                                                     class="form-control inputfield-details1" autocomplete="off">
+                                                <span id="productNameQuote_text_0" class="product-description">Descripción del Producto</span>
                                             </td>
                                             <td>
                                                 <input type="number" name="quantityQuote[]" id="quantityQuote_0"
@@ -190,8 +190,7 @@
                                             </td>
                                             <td>
                                                 <div class="input-group mb-3">
-                                                    <input type="number" name="discountQuote[]" id="discountQuote_0"
-                                                        class="form-control" step="0.01" placeholder="Descuento"
+                                                    <input type="number" name="discountQuote[]" id="discountQuote_0" class="form-control" step="0.01" placeholder="Descuento"
                                                         readonly autocomplete="off">
                                                     <div id="suggestions_producto_0" class="suggestions"></div>
                                                     <div class="input-group-append">

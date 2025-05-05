@@ -1,22 +1,26 @@
 <script>
-$(document).ready(function() {
+$(() => {
     // Inicializar componentes al cargar la página
     listar_ingresos_contabilidad();
     getClientesIngresos();
     getCuentaIngresos();
     getEmpresaIngresos();
     
-    // Configurar eventos
-    inicializarEventos();
-});
-
-// Función para inicializar todos los eventos
-function inicializarEventos() {
     // Evento para buscar ingresos
     $('#formMainIngresosContabilidad #search').on("click", function(e) {
         e.preventDefault();
         listar_ingresos_contabilidad();
     });
+
+    // Evento para el botón de Limpiar (reset)
+    $('#formMainIngresosContabilidad').on('reset', function() {
+        // Limpia y refresca los selects
+        $(this).find('.selectpicker')  // Usa `this` para referenciar el formulario actual
+            .val('')
+            .selectpicker('refresh');
+
+			listar_ingresos_contabilidad();
+    });	
 
     // Eventos para el cálculo automático de totales
     const camposCalculo = ["#subtotal_ingresos", "#isv_ingresos", "#descuento_ingresos", "#nc_ingresos"];
@@ -29,7 +33,7 @@ function inicializarEventos() {
             calcularTotalIngreso();
         });
     });
-}
+});
 
 // Función para calcular el total del ingreso
 function calcularTotalIngreso() {
@@ -98,17 +102,22 @@ var total_ingreso_footer = function() {
         });
 }
 
-// Función para listar los ingresos en la tabla
 var listar_ingresos_contabilidad = function() {
-    var estado = 1;
-    if ($("#formMainIngresosContabilidad #estado_ingresos").val() == null || $("#formMainIngresosContabilidad #estado_ingresos").val() == "") {
-        estado = 1;
-    } else {
-        estado = $("#formMainIngresosContabilidad #estado_ingresos").val();
-    }
-
+    // Obtener el valor del estado
+    var estado = $("#formMainIngresosContabilidad #estado_ingresos").val() || 1;
     var fechai = $("#formMainIngresosContabilidad #fechai").val();
     var fechaf = $("#formMainIngresosContabilidad #fechaf").val();
+
+    // Validar fechas
+    if(!fechai || !fechaf) {
+        showNotify("error", "Error", "Debe seleccionar un rango de fechas");
+        return;
+    }
+
+
+    // Mostrar carga mientras se obtienen los datos
+    var loading = $('#dataTableIngresosContabilidad').closest('.card').find('.card-body');
+    loading.append('<div class="overlay"><i class="fas fa-2x fa-sync-alt fa-spin"></i></div>');
 
     var table_ingresos_contabilidad = $("#dataTableIngresosContabilidad").DataTable({
         "destroy": true,
@@ -118,30 +127,31 @@ var listar_ingresos_contabilidad = function() {
             "data": {
                 "fechai": fechai,
                 "fechaf": fechaf,
-                "estado": estado,
+                "estado": estado
+            },
+            "dataSrc": function (json) {
+                // Remover overlay de carga
+                loading.find('.overlay').remove();
+                
+                if(json.data.length === 0) {
+                    showNotify("warning", "Advertencia", "No se encontraron registros con los filtros aplicados");
+                }
+                return json.data;
+            },
+            "error": function(xhr, error, thrown) {
+                loading.find('.overlay').remove();
+                showNotify("error", "Error", "No se pudieron cargar los datos");
+                console.error("Error en AJAX:", xhr.responseText);
             }
         },
-        "columns": [{
-                "data": "fecha_registro"
-            },
-            {
-                "data": "tipo_ingreso"
-            },
-            {
-                "data": "ingresos_id"
-            },
-            {
-                "data": "fecha"
-            },
-            {
-                "data": "nombre"
-            },
-            {
-                "data": "cliente"
-            },
-            {
-                "data": "factura"
-            },
+        "columns": [
+            {"data": "fecha_registro"},
+            {"data": "tipo_ingreso"},
+            {"data": "ingresos_id"},
+            {"data": "fecha"},
+            {"data": "nombre"},
+            {"data": "cliente"},
+            {"data": "factura"},
             {
                 "data": "subtotal",
                 render: function(data, type) {
@@ -150,54 +160,19 @@ var listar_ingresos_contabilidad = function() {
                         .display(data);
 
                     if (type === 'display') {
-                        let color = 'green';
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
+                        let color = data < 0 ? 'red' : 'green';
                         return '<span style="color:' + color + '">' + number + '</span>';
                     }
-
                     return number;
-                },
+                }
             },
             {
                 "data": "impuesto",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
-                    if (type === 'display') {
-                        let color = 'green';
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                },
+                render: $.fn.dataTable.render.number(',', '.', 2, 'L ')
             },
             {
                 "data": "descuento",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
-                    if (type === 'display') {
-                        let color = 'green';
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                },
+                render: $.fn.dataTable.render.number(',', '.', 2, 'L ')
             },
             {
                 "data": "total",
@@ -207,90 +182,43 @@ var listar_ingresos_contabilidad = function() {
                         .display(data);
 
                     if (type === 'display') {
-                        let color = 'green';
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
+                        let color = data < 0 ? 'red' : 'green';
                         return '<span style="color:' + color + '">' + number + '</span>';
                     }
-
                     return number;
-                },
+                }
+            },
+            {"data": "observacion"},
+            {
+                "defaultContent": "<button class='table_editar btn ocultar'><span class='fas fa-edit'></span>Editar</button>"
             },
             {
-                "data": "observacion"
-            },
-            {
-                "defaultContent": "<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit'></span></button>"
-            },
-            {
-                "defaultContent": "<button class='table_reportes print_gastos btn btn-dark ocultar'><span class='fas fa-file-download fa-lg'></span></button>"
-            },
+                "defaultContent": "<button class='table_reportes print_gastos table_eliminar btn ocultar'><span class='fas fa-file-download fa-lg'></span>Reporte</button>"
+            }
         ],
         "lengthMenu": lengthMenu10,
         "stateSave": true,
         "bDestroy": true,
         "language": idioma_español,
         "dom": dom,
-        "columnDefs": [{
-                width: "7.69%",
-                targets: 0
-            },
-            {
-                width: "7.69%",
-                targets: 1
-            },
-            {
-                width: "7.69%",
-                targets: 2
-            },
-            {
-                width: "7.69%",
-                targets: 3
-            },
-            {
-                width: "7.69%",
-                targets: 4
-            },
-            {
-                width: "7.69%",
-                targets: 5
-            },
-            {
-                width: "7.69%",
-                targets: 6
-            },
-            {
-                width: "7.69%",
-                targets: 7
-            },
-            {
-                width: "7.69%",
-                targets: 8
-            },
-            {
-                width: "7.69%",
-                targets: 9
-            },
-            {
-                width: "7.69%",
-                targets: 10
-            },
-            {
-                width: "7.69%",
-                targets: 11
-            },
-            {
-                width: "7.69%",
-                targets: 12
-            },
-            {
-                width: "7.69%",
-                targets: 13
-            },
+        "columnDefs": [
+            {width: "7.69%", targets: 0},
+            {width: "7.69%", targets: 1},
+            {width: "7.69%", targets: 2},
+            {width: "7.69%", targets: 3},
+            {width: "7.69%", targets: 4},
+            {width: "7.69%", targets: 5},
+            {width: "7.69%", targets: 6},
+            {width: "7.69%", targets: 7},
+            {width: "7.69%", targets: 8},
+            {width: "7.69%", targets: 9},
+            {width: "7.69%", targets: 10},
+            {width: "7.69%", targets: 11},
+            {width: "7.69%", targets: 12},
+            {width: "7.69%", targets: 13}
         ],
-        "buttons": [{
+        "buttons": [
+            {
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                 titleAttr: 'Actualizar Registro Ingresos',
                 className: 'table_actualizar btn btn-secondary ocultar',
@@ -312,8 +240,7 @@ var listar_ingresos_contabilidad = function() {
                 text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
                 titleAttr: 'Excel',
                 title: 'Reporte Registro Ingresos',
-                messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' +
-                    convertDateFormat(fechaf),
+                messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' + convertDateFormat(fechaf),
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 exportOptions: {
                     columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
@@ -328,8 +255,7 @@ var listar_ingresos_contabilidad = function() {
                 orientation: 'landscape',
                 pageSize: 'LEGAL',
                 title: 'Reporte Registro Ingresos',
-                messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' +
-                    convertDateFormat(fechaf),
+                messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' + convertDateFormat(fechaf),
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-danger ocultar',
                 exportOptions: {
@@ -367,57 +293,126 @@ var edit_reporte_ingresos_dataTable = function(tbody, table) {
         var url = '<?php echo SERVERURL;?>core/editarIngresos.php';
         $('#formIngresosContables #ingresos_id').val(data.ingresos_id);
 
+        // Primero cargar los clientes
         $.ajax({
-            type: 'POST',
-            url: url,
-            data: $('#formIngresosContables').serialize(),
-            success: function(registro) {
-                var valores = eval(registro);
-                $('#formIngresosContables').attr({
-                    'data-form': 'update'
-                });
-                $('#formIngresosContables').attr({
-                    'action': '<?php echo SERVERURL;?>ajax/modificarIngresosAjax.php'
-                });
-                $('#formIngresosContables')[0].reset();
-                $('#reg_ingresosContabilidad').hide();
-                $('#edi_ingresosContabilidad').show();
-                $('#delete_ingresosContabilidad').hide();
-                $('#formIngresosContables #pro_ingresos_contabilidad').val("Editar");
-                $('#formIngresosContables #cliente_ingresos').val(valores[0]);
-                $('#formIngresosContables #cliente_ingresos').selectpicker('refresh');
-                $('#formIngresosContables #cuenta_ingresos').val(valores[1]);
-                $('#formIngresosContables #cuenta_ingresos').selectpicker('refresh');
-                $('#formIngresosContables #empresa_ingresos').val(valores[2]);
-                $('#formIngresosContables #empresa_ingresos').selectpicker('refresh');
-                $('#formIngresosContables #fecha_ingresos').val(valores[3]);
-                $('#formIngresosContables #factura_ingresos').val(valores[4]);
-                $('#formIngresosContables #subtotal_ingresos').val(valores[5]);
-                $('#formIngresosContables #isv_ingresos').val(valores[6]);
-                $('#formIngresosContables #descuento_ingresos').val(valores[7]);
-                $('#formIngresosContables #nc_ingresos').val(valores[8]);
-                $('#formIngresosContables #total_ingresos').val(valores[9]);
-                $('#formIngresosContables #observacion_ingresos').val(valores[10]);
-                $('#formIngresosContables #recibide_ingresos').val(valores[11]);
-
-                //DESHABILITAR OBJETOS
-                $('#formIngresosContables #cuenta_ingresos').attr('disabled', true);
-                $('#formIngresosContables #empresa_ingresos').attr('disabled', true);
-                $('#formIngresosContables #subtotal_ingresos').attr('disabled', true);
-                $('#formIngresosContables #isv_ingresos').attr('disabled', true);
-                $('#formIngresosContables #descuento_ingresos').attr('disabled', true);
-                $('#formIngresosContables #nc_ingresos').attr('disabled', true);
-                $('#formIngresosContables #total_ingresos').attr('disabled', true);
-                $('#formIngresosContables #recibide_ingresos').attr('disabled', true);
-                $('#formIngresosContables #buscar_cuenta_ingresos').hide();
-                $('#formIngresosContables #buscar_empresa_ingresos').hide();
-
-                $('#modalIngresosContables').modal({
-                    show: true,
-                    keyboard: false,
-                    backdrop: 'static'
-                });
+            url: "<?php echo SERVERURL; ?>core/getClientes.php",
+            type: "POST",
+            dataType: "json",
+            beforeSend: function() {
+                // Mostrar carga mientras se obtienen los clientes
+                $('#formIngresosContables #recibide_ingresos').html('<option value="">Cargando clientes...</option>');
+                $('#formIngresosContables #recibide_ingresos').selectpicker('refresh');
             }
+        }).done(function(response) {
+            const select = $('#formIngresosContables #recibide_ingresos');
+            select.empty();
+            
+            if(response.success && response.data.length > 0) {
+                // Agregar opción por defecto
+                select.append('<option value="">Seleccione cliente</option>');
+                
+                // Agregar todos los clientes
+                response.data.forEach(cliente => {
+                    select.append(`
+                        <option value="${cliente.clientes_id}" 
+                                data-subtext="${cliente.rtn || 'Sin RTN o Identidad'}">
+                            ${cliente.nombre}
+                        </option>
+                    `);
+                });
+                
+                // Refrescar el selectpicker
+                select.selectpicker('refresh');
+                
+                // Ahora hacer la solicitud para obtener los datos del ingreso
+                $.ajax({
+                    type: 'POST',
+                    url: url,
+                    data: $('#formIngresosContables').serialize(),
+                    success: function(registro) {
+                        var valores = eval(registro);
+                        
+                        // Configurar el formulario
+                        $('#formIngresosContables').attr({
+                            'data-form': 'update'
+                        });
+                        $('#formIngresosContables').attr({
+                            'action': '<?php echo SERVERURL;?>ajax/modificarIngresosAjax.php'
+                        });
+                        $('#formIngresosContables')[0].reset();
+                        
+                        // Mostrar/ocultar botones
+                        $('#reg_ingresosContabilidad').hide();
+                        $('#edi_ingresosContabilidad').show();
+                        $('#delete_ingresosContabilidad').hide();
+                        
+                        // Establecer valores en el formulario
+                        $('#formIngresosContables #pro_ingresos_contabilidad').val("Editar");
+                        $('#formIngresosContables #fecha_ingresos').val(valores[3]);
+                        $('#formIngresosContables #factura_ingresos').val(valores[4]);
+                        $('#formIngresosContables #subtotal_ingresos').val(valores[5]);
+                        $('#formIngresosContables #isv_ingresos').val(valores[6]);
+                        $('#formIngresosContables #descuento_ingresos').val(valores[7]);
+                        $('#formIngresosContables #nc_ingresos').val(valores[8]);
+                        $('#formIngresosContables #total_ingresos').val(valores[9]);
+                        $('#formIngresosContables #observacion_ingresos').val(valores[10]);
+                        
+                        // Establecer y refrescar selects
+                        $('#formIngresosContables #cuenta_ingresos').val(valores[1]);
+                        $('#formIngresosContables #cuenta_ingresos').selectpicker('refresh');
+                        
+                        $('#formIngresosContables #empresa_ingresos').val(valores[2]);
+                        $('#formIngresosContables #empresa_ingresos').selectpicker('refresh');
+                        
+                        // Manejar el select de clientes
+                        var clienteId = valores[11];
+                        if (clienteId) {
+                            var optionExists = select.find('option[value="' + clienteId + '"]').length > 0;
+                            if (optionExists) {
+                                select.val(clienteId);
+                                select.selectpicker('refresh');
+                            } else {
+                                console.error('Cliente no encontrado en las opciones');
+                                select.val('');
+                                select.selectpicker('refresh');
+                            }
+                        }
+                        
+                        // Deshabilitar campos según sea necesario
+                        $('#formIngresosContables #cuenta_ingresos').attr('disabled', true);
+                        $('#formIngresosContables #empresa_ingresos').attr('disabled', true);
+                        $('#formIngresosContables #subtotal_ingresos').attr('disabled', true);
+                        $('#formIngresosContables #isv_ingresos').attr('disabled', true);
+                        $('#formIngresosContables #descuento_ingresos').attr('disabled', true);
+                        $('#formIngresosContables #nc_ingresos').attr('disabled', true);
+                        $('#formIngresosContables #total_ingresos').attr('disabled', true);
+                        $('#formIngresosContables #recibide_ingresos').attr('disabled', true);
+                        $('#formIngresosContables #buscar_cuenta_ingresos').hide();
+                        $('#formIngresosContables #buscar_empresa_ingresos').hide();
+                        
+                        // Mostrar el modal
+                        $('#modalIngresosContables').modal({
+                            show: true,
+                            keyboard: false,
+                            backdrop: 'static'
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error al cargar datos del ingreso:', error);
+                        showNotify("error", "Error", "No se pudieron cargar los datos del ingreso");
+                    }
+                });
+            } else {
+                // No hay clientes disponibles
+                select.append('<option value="">No hay clientes disponibles</option>');
+                select.selectpicker('refresh');
+                showNotify("warning", "Advertencia", "No hay clientes disponibles para seleccionar");
+            }
+        }).fail(function(xhr, status, error) {
+            console.error('Error al cargar clientes:', error);
+            $('#formIngresosContables #recibide_ingresos').html('<option value="">Error al cargar clientes</option>');
+            $('#formIngresosContables #recibide_ingresos').selectpicker('refresh');
+            showNotify("error", "Error", "No se pudieron cargar los clientes");
         });
     });
 }
@@ -441,12 +436,19 @@ function printIngresos(ingresos_id) {
 /*INICIO FORMULARIO INGRESOS CONTABLES*/
 function modal_ingresos_contabilidad() {
     $('#formIngresosContables').attr({
-        'data-form': 'save'
-    });
-    $('#formIngresosContables').attr({
+        'data-form': 'save',
         'action': '<?php echo SERVERURL;?>ajax/addIngresoContabilidadAjax.php'
     });
+    
+    // Resetear el formulario
     $('#formIngresosContables')[0].reset();
+    
+    // Resetear selects de Bootstrap (si usas selectpicker)
+    $('#formIngresosContables select.selectpicker').val('').selectpicker('refresh');
+    
+    // Limpiar inputs específicos si es necesario
+    $('#formIngresosContables input[type="text"], #formIngresosContables input[type="number"], #formIngresosContables textarea').val('');
+    
     $('#reg_ingresosContabilidad').show();
     $('#edi_ingresosContabilidad').hide();
     $('#delete_ingresosContabilidad').hide();
@@ -454,15 +456,15 @@ function modal_ingresos_contabilidad() {
     //HABILITAR OBJETOS
     $('#formIngresosContables #cuenta_codigo').attr("readonly", false);
     $('#formIngresosContables #cuenta_nombre').attr("readonly", false);
-    $('#formIngresosContables #cuentas_activo').attr("disabled", false);
-    $('#formIngresosContables #cuenta_ingresos').attr('disabled', false);
-    $('#formIngresosContables #empresa_ingresos').attr('disabled', false);
-    $('#formIngresosContables #subtotal_ingresos').attr('disabled', false);
-    $('#formIngresosContables #isv_ingresos').attr('disabled', false);
-    $('#formIngresosContables #descuento_ingresos').attr('disabled', false);
-    $('#formIngresosContables #nc_ingresos').attr('disabled', false);
-    $('#formIngresosContables #total_ingresos').attr('disabled', false);
-    $('#formIngresosContables #recibide_ingresos').attr('disabled', false);
+    $('#formIngresosContables #cuentas_activo').attr("disabled", false).prop('checked', false);
+    $('#formIngresosContables #cuenta_ingresos').attr('disabled', false).val('');
+    $('#formIngresosContables #empresa_ingresos').attr('disabled', false).val('');
+    $('#formIngresosContables #subtotal_ingresos').attr('disabled', false).val('');
+    $('#formIngresosContables #isv_ingresos').attr('disabled', false).val('');
+    $('#formIngresosContables #descuento_ingresos').attr('disabled', false).val('');
+    $('#formIngresosContables #nc_ingresos').attr('disabled', false).val('');
+    $('#formIngresosContables #total_ingresos').attr('disabled', false).val('');
+    $('#formIngresosContables #recibide_ingresos').attr('disabled', false).val('');
     $('#formIngresosContables #buscar_cuenta_ingresos').show();
     $('#formIngresosContables #buscar_empresa_ingresos').show();
 

@@ -2,11 +2,9 @@
 $(() => {
     listar_cheques_contabilidad();
 
-	    // Evento para el botón de Buscar (submit)
-		$('#formMainChequesContabilidad').on('submit', function(e) {
+	$('#formMainChequesContabilidad #search').on("click", function(e) {
         e.preventDefault();
-
-        listar_cheques_contabilidad(); 
+        listar_cheques_contabilidad();
     });
 
     // Evento para el botón de Limpiar (reset)

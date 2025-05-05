@@ -14,7 +14,7 @@
 								<select id="estado_egresos" name="estado_egresos" 
 									class="form-control selectpicker" title="Estado" data-live-search="true">
 									<option value="1">Activas</option>
-									<option value="2">Anuladas</option>
+									<option value="0">Anuladas</option>
 								</select>
 							</div>
 						</div>
@@ -58,7 +58,7 @@
 					
 					<div class="row">
 						<div class="col-12 text-right">
-							<button type="submit" class="btn btn-primary">
+							<button type="submit" class="btn btn-primary mr-2" id="search">
 								<i class="fas fa-filter fa-lg"></i> Filtrar
 							</button>
 							<button type="reset" class="btn btn-secondary">

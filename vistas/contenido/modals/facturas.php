@@ -15,7 +15,8 @@
                     <div class="form-row">
                         <div class="col-md-12 mb-3">
                             <label class="text-center">
-                                <b>Las teclas de función solo se pueden utilizar posicionándose en el área de la factura, especificamente en el campo Código del Producto</b>
+                                <b>Las teclas de función solo se pueden utilizar posicionándose en el área de la
+                                    factura, especificamente en el campo Código del Producto</b>
                             </label>
                         </div>
 
@@ -268,12 +269,12 @@
                         <div class="col-md-3 col-sm-6 mb-3">
                             <div class="form-group">
                                 <label class="small mb-1">Tipo Factura</label>
-                                <select id="tipo_cotizacion_reporte" name="tipo_cotizacion_reporte" 
+                                <select id="tipo_cotizacion_reporte" name="tipo_cotizacion_reporte"
                                     class="form-control selectpicker" title="Tipo Factura" data-live-search="true">
                                 </select>
                             </div>
                         </div>
-                        
+
                         <!-- Fecha Inicio -->
                         <div class="col-md-3 col-sm-6 mb-3">
                             <div class="form-group">
@@ -290,7 +291,7 @@
                                 ?>" class="form-control" title="Fecha Inicio">
                             </div>
                         </div>
-                        
+
                         <!-- Fecha Fin -->
                         <div class="col-md-3 col-sm-6 mb-3">
                             <div class="form-group">
@@ -299,7 +300,7 @@
                                     value="<?php echo date ("Y-m-d");?>" class="form-control" title="Fecha Fin">
                             </div>
                         </div>
-                        
+
                         <!-- Botón Buscar -->
                         <div class="col-md-3 col-sm-6 mb-3 d-flex justify-content-end">
                             <button type="submit" class="btn btn-primary">
@@ -307,7 +308,7 @@
                             </button>
                             <button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary">
                                 <i class="fas fa-broom fa-lg mr-1"></i> Limpiar
-                            </button>        
+                            </button>
                         </div>
                     </div>
 
@@ -315,7 +316,8 @@
                         <div class="col-md-12">
                             <div class="overflow-auto">
                                 <table id="DatatableBusquedaCotizaciones"
-                                    class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
+                                    class="table table-header-gradient table-striped table-condensed table-hover"
+                                    style="width:100%">
                                     <thead>
                                         <tr>
                                             <th>Cobrar</th>
@@ -367,16 +369,16 @@
                                     </select>
                                 </div>
                             </div>
-                            
+
                             <div class="col-md-3 col-sm-6 mb-2">
                                 <div class="form-group">
                                     <label class="small mb-1">Clientes</label>
-                                    <select id="cobrar_clientes" name="cobrar_clientes" class="form-control selectpicker"
-                                        title="Clientes" data-live-search="true">
+                                    <select id="cobrar_clientes" name="cobrar_clientes"
+                                        class="form-control selectpicker" title="Clientes" data-live-search="true">
                                     </select>
                                 </div>
                             </div>
-                            
+
                             <div class="col-md-3 col-sm-6 mb-2">
                                 <div class="form-group">
                                     <label class="small mb-1">Fecha Inicio</label>
@@ -384,7 +386,7 @@
                                         value="<?php echo date ("Y-m-d");?>" class="form-control" title="Fecha Inicio">
                                 </div>
                             </div>
-                            
+
                             <div class="col-md-3 col-sm-6 mb-2">
                                 <div class="form-group">
                                     <label class="small mb-1">Fecha Fin</label>
@@ -411,7 +413,8 @@
                             <div class="col-12">
                                 <div class="table-responsive">
                                     <table id="DatatableBusquedaCuentasCobrarClientes"
-                                        class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
+                                        class="table table-header-gradient table-striped table-condensed table-hover"
+                                        style="width:100%">
                                         <thead>
                                             <tr>
                                                 <th>Fecha</th>
@@ -434,7 +437,9 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                </button>
             </div>
         </div>
     </div>
@@ -471,7 +476,7 @@
                                     ?>" class="form-control" title="Fecha Inicio">
                                 </div>
                             </div>
-                            
+
                             <div class="col-md-5 col-sm-6 mb-2">
                                 <div class="form-group">
                                     <label class="small mb-1">Fecha Fin</label>
@@ -498,7 +503,8 @@
                             <div class="col-12">
                                 <div class="table-responsive">
                                     <table id="DatatableBusquedaBillDraft"
-                                        class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
+                                        class="table table-header-gradient table-striped table-condensed table-hover"
+                                        style="width:100%">
                                         <thead>
                                             <tr>
                                                 <th>Continuar</th>
@@ -521,7 +527,9 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                </button>
             </div>
         </div>
     </div>
@@ -546,26 +554,27 @@
                             <div class="col-md-3 col-sm-6">
                                 <div class="form-group">
                                     <label class="small mb-1">Tipo Factura</label>
-                                    <select id="tipo_factura_reporte" name="tipo_factura_reporte" class="form-control selectpicker"
-                                        title="Tipo de Factura" data-live-search="true">
+                                    <select id="tipo_factura_reporte" name="tipo_factura_reporte"
+                                        class="form-control selectpicker" title="Tipo de Factura"
+                                        data-live-search="true">
                                     </select>
                                 </div>
                             </div>
-                            
+
                             <div class="col-md-3 col-sm-6">
                                 <div class="form-group">
                                     <label class="small mb-1">Facturador</label>
-                                    <select id="facturador" name="facturador" class="form-control selectpicker" title="Facturador"
-                                        data-live-search="true">
+                                    <select id="facturador" name="facturador" class="form-control selectpicker"
+                                        title="Facturador" data-live-search="true">
                                     </select>
                                 </div>
                             </div>
-                            
+
                             <div class="col-md-3 col-sm-6">
                                 <div class="form-group">
                                     <label class="small mb-1">Vendedor</label>
-                                    <select id="vendedor" name="vendedor" class="form-control selectpicker" title="Vendedor"
-                                        data-live-search="true">
+                                    <select id="vendedor" name="vendedor" class="form-control selectpicker"
+                                        title="Vendedor" data-live-search="true">
                                     </select>
                                 </div>
                             </div>
@@ -588,7 +597,7 @@
                                     ?>" class="form-control" title="Fecha Inicio">
                                 </div>
                             </div>
-                            
+
                             <div class="col-md-3 col-sm-6">
                                 <div class="form-group">
                                     <label class="small mb-1">Fecha Fin</label>
@@ -596,7 +605,7 @@
                                         value="<?php echo date ("Y-m-d");?>" class="form-control" title="Fecha Fin">
                                 </div>
                             </div>
-                            
+
                             <!-- Botones en la misma fila -->
                             <div class="col-md-6 col-sm-12 d-flex align-items-end justify-content-end">
                                 <button type="submit" class="btn btn-primary mr-2">
@@ -611,7 +620,8 @@
                         <!-- Contador de registros -->
                         <div class="row mb-2">
                             <div class="col-12 text-right">
-                                <small class="text-muted">Mostrando <span id="contador-registros">5</span> registros</small>
+                                <small class="text-muted">Mostrando <span id="contador-registros">5</span>
+                                    registros</small>
                             </div>
                         </div>
 
@@ -620,7 +630,8 @@
                             <div class="col-12">
                                 <div class="table-responsive">
                                     <table id="DatatableBusquedaBill"
-                                        class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
+                                        class="table table-header-gradient table-striped table-condensed table-hover"
+                                        style="width:100%">
                                         <thead>
                                             <tr>
                                                 <th>Fecha</th>
@@ -645,7 +656,9 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                </button>
             </div>
         </div>
     </div>

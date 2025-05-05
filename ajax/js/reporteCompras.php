@@ -6,11 +6,9 @@ $(() => {
     $('#form_main_compras #tipo_compras_reporte').val(1);
     $('#form_main_compras #tipo_compras_reporte').selectpicker('refresh');
 
-    // Evento para el botón de Buscar (submit)
-    $('#form_main_compras').on('submit', function(e) {
+    $('#form_main_compras #search').on("click", function(e) {
         e.preventDefault();
-
-        listar_reporte_compras(); 
+        listar_reporte_compras();
     });
 
     // Evento para el botón de Limpiar (reset)
@@ -153,10 +151,10 @@ var listar_reporte_compras = function() {
                 },
             },
             {
-                "defaultContent": "<button class='table_reportes print_compras btn btn-dark table_info ocultar'><span class='fas fa-file-download fa-lg'></span>Factura</button>"
+                "defaultContent": "<button class='table_reportes print_compras btn btn-success ocultar'><span class='fas fa-file-download fa-lg'></span>Factura</button>"
             },
             {
-                "defaultContent": "<button class='table_cancelar cancelar_compras btn btn-dark table_primary ocultar'><span class='fas fa-ban fa-lg'></span>Anular</button>"
+                "defaultContent": "<button class='table_cancelar cancelar_compras btn btn-danger ocultar'><span class='fas fa-ban fa-lg'></span>Anular</button>"
             }
         ],
         "lengthMenu": lengthMenu10,

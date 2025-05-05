@@ -42,7 +42,7 @@ var inventario_transferencia = function() {
         },
         columns: [ 
             { 
-                defaultContent: "<button data-toggle='tooltip' data-placement='top' title='Actualizar la fecha de vencimiento' class='table_change_date btn btn-dark'><span class='fa-solid fa-calendar-days fa-lg'></span></button>" 
+                defaultContent: "<button data-toggle='tooltip' data-placement='top' title='Actualizar la fecha de vencimiento' class='table_change_date table_crear'><span class='fa-solid fa-calendar-days fa-lg'></span></button>" 
             },                    
             { 
                 data: "fecha_registro" 
@@ -107,7 +107,7 @@ var inventario_transferencia = function() {
                 data: "bodega" 
             },
             { 
-                defaultContent: "<button data-toggle='tooltip' data-placement='top' title='Permite mover o transferir un producto de una bodega a otra' class='table_transferencia table_danger'><span class='fa fa-exchange-alt fa-lg'></span>Transferir</button>" 
+                defaultContent: "<button data-toggle='tooltip' data-placement='top' title='Permite mover o transferir un producto de una bodega a otra' class='table_eliminar table_transferencia'><span class='fa fa-exchange-alt fa-lg'></span>Transferir</button>" 
             }
         ],
         lengthMenu: lengthMenu10,
@@ -226,34 +226,48 @@ var transferencia_producto_dataTable = function(tbody, table) {
     })
 };
 
-$('#putEditarBodega').on('click', function(e) {
-    e.preventDefault(); // Evita la acción por defecto del botón
-    
+$('#formTransferencia').on('submit', function(e) {   
+    e.preventDefault();
     var form = $("#formTransferencia");
     var respuesta = form.children('.RespuestaAjax');
-    
-    // Verificar si el formulario es válido antes de hacer la petición AJAX
-    if (form[0].checkValidity()) {
-        var url = '<?php echo SERVERURL;?>ajax/modificarBodegaProductosAjax.php';
-        $.ajax({
-            type: 'POST',
-            url: url,
-            data: form.serialize(),
-            beforeSend: function() {
-                $('#modal_transferencia_producto').modal({
-                    show: false,
-                    keyboard: false,
-                    backdrop: 'static'
-                });
+
+    swal({
+        title: "¿Estas seguro?",
+        text: "¿Desea transferir este producto?",
+        icon: "warning",
+        buttons: {
+            cancel: {
+                text: "Cancelar",
+                visible: true
             },
-            success: function(data) {
-                respuesta.html(data);
+            confirm: {
+                text: "¡Sí, transferir el producto!",
             }
-        });
-    } else {
-        // Si no es válido, activar los mensajes de validación de HTML5
-        form[0].reportValidity();
-    }
+        },
+		buttons: true,
+		dangerMode: true,
+        closeOnEsc: false,
+        closeOnClickOutside: false
+    }).then((willConfirm) => {
+        if (willConfirm) {
+            var url = '<?php echo SERVERURL;?>ajax/modificarBodegaProductosAjax.php';
+            $.ajax({
+                type: 'POST',
+                url: url,
+                data: form.serialize(),
+                beforeSend: function() {
+                    $('#modal_transferencia_producto').modal({
+                        show: false,
+                        keyboard: false,
+                        backdrop: 'static'
+                    });
+                },
+                success: function(data) {
+                    respuesta.html(data);
+                }
+            });
+        }
+    });
 });
 
 //TRANSFERIR PRODUCTO/BODEGA

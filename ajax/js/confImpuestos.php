@@ -13,7 +13,7 @@ var listar_impuestos_contabilidad = function(){
 		"columns":[
 			{"data":"tipo_isv_nombre"},	
 			{"data":"valor"},								
-			{"defaultContent":"<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit'></span>Editar</button>"}
+			{"defaultContent":"<button class='table_editar btn ocultar'><span class='fas fa-edit'></span>Editar</button>"}
 		],
         "lengthMenu": lengthMenu,
 		"stateSave": true,

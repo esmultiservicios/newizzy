@@ -2,7 +2,7 @@
 	$peticionAjax = true;
 	require_once "../core/configGenerales.php";
 	
-	if(isset($_POST['contrato_id']) && isset($_POST['colaborador_id'])){
+	if(isset($_POST['contrato_id'])){
 		require_once "../controladores/contratoControlador.php";
 		$insVarios = new contratoControlador();
 		
@@ -12,7 +12,6 @@
 		$missingFields = [];
 		
 		if (!isset($_POST['contrato_id'])) $missingFields[] = "ID del Contrato";
-		if (!isset($_POST['colaborador_id'])) $missingFields[] = "ID del Colaborador";
 		
 		// Preparar el mensaje
 		$missingText = implode(", ", $missingFields);

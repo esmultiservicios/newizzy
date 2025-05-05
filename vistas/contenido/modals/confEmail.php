@@ -101,14 +101,14 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
                 <button class="btn btn-info" type="submit" style="display: none;" id="test_confEmails" form="formConfEmails">
-                    <i class="fas fa-mail-bulk mr-1"></i> Probar Conexión
+                    <i class="fas fa-mail-bulk fa-lg mr-1"></i> Probar Conexión
                 </button>
                 <button class="btn btn-warning" type="submit" style="display: none;" id="edi_confEmails" form="formConfEmails">
-                    <i class="fas fa-edit mr-1"></i> Actualizar
+                    <i class="fas fa-edit fa-lg mr-1"></i> Actualizar
                 </button>
             </div>
         </div>
@@ -192,11 +192,11 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
-                <button class="btn btn-primary" type="submit" style="display: none;" id="reg_destinatarios" form="formDestinatarios">
-                    <i class="far fa-save mr-1"></i> Registrar
+                <button class="btn btn-success" type="submit" style="display: none;" id="reg_destinatarios" form="formDestinatarios">
+                    <i class="far fa-save fa-lg mr-1"></i> Registrar
                 </button>
             </div>
         </div>

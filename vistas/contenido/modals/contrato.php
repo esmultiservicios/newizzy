@@ -10,9 +10,8 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form class="FormularioAjax" id="formContrato" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
-					<input type="hidden" id="contrato_id" name="contrato_id" class="form-control">
-                    <input type="hidden" id="colaborador_id" name="colaborador_id" class="form-control">								
+                <form class="" id="formContrato" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+					<input type="hidden" id="contrato_id" name="contrato_id" class="form-control">								
                     
                     <!-- Sección de Datos del Contrato -->
                     <div class="card border-primary mb-4">
@@ -134,23 +133,18 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div class="RespuestaAjax"></div>
+                    </div>                
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
-                <button class="btn btn-primary" type="submit" style="display: none;" id="reg_contrato" form="formContrato">
-                    <i class="far fa-save mr-1"></i> Registrar
+                <button class="btn btn-success" type="submit" id="reg_contrato" form="formContrato">
+                    <i class="far fa-save fa-lg mr-1"></i> Registrar
                 </button>
-                <button class="btn btn-warning" type="submit" style="display: none;" id="edi_contrato" form="formContrato">
-                    <i class="fas fa-edit mr-1"></i> Editar
-                </button>
-                <button class="btn btn-danger" type="submit" style="display: none;" id="delete_contrato" form="formContrato">
-                    <i class="fas fa-trash mr-1"></i> Eliminar
+                <button class="btn btn-success" type="submit" id="edi_contrato" form="formContrato">
+                    <i class="fas fa-edit fa-lg mr-1"></i> Confirmar
                 </button>
             </div>
         </div>

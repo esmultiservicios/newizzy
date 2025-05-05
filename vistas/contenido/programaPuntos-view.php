@@ -25,7 +25,7 @@
 				
 				<div class="row">
 					<div class="col-12 text-right">
-						<button type="submit" class="btn btn-primary">
+						<button type="submit" class="btn btn-primary mr-2" id="search">
 							<i class="fas fa-search fa-lg mr-1"></i> Buscar
 						</button>
 						<button type="reset" class="btn btn-secondary">

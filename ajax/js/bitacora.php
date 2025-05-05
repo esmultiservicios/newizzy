@@ -2,11 +2,9 @@
 $(() => {
     listar_bitacora();
 
-    // Evento para el botón de Buscar (submit)
-    $('#formMainBitacora').on('submit', function(e) {
+	$('#formMainBitacora #search').on("click", function(e) {
         e.preventDefault();
-
-        listar_bitacora(); 
+        listar_bitacora();
     });
 
     // Evento para el botón de Limpiar (reset)

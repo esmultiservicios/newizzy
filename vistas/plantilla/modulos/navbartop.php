@@ -115,9 +115,9 @@
                     <span id="badge-pin-cliente" class="badge bg-info ml-2"></span>
                 </a>
                 <div class="dropdown-divider"></div>
-                <a class="dropdown-item d-flex align-items-center" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>MisFacturas/">
+                <a class="dropdown-item d-flex align-items-center" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>DetallesFacturacion/">
                     <i class="fas fa-file-invoice"></i>
-                    <span class="flex-grow-1 ml-2">Mis Facturas</span>
+                    <span class="flex-grow-1 ml-2">Detalles de Facturación</span>
                     <span id="badge-facturas-pendientes-dropdown" class="badge bg-danger" style="display: none;">0</span>
                 </a>
                 <div class="dropdown-divider"></div>

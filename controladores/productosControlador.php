@@ -509,7 +509,6 @@ class productosControlador extends productosModelo
 			"type" => "success",
 			"title" => "Transferencia exitosa",
 			"text" => "El movimiento entre bodegas se realizó correctamente",
-			"form" => "formMovimientos",
 			"funcion" => "inventario_transferencia();setValoresProduco();",
 			"closeAllModals" => true
 		]);

@@ -20,7 +20,7 @@
                 
                 <div class="row">
                     <div class="col-12 text-right">
-                        <button type="submit" class="btn btn-primary mr-2">
+                        <button type="submit" class="btn btn-primary mr-2" id="search">
                             <i class="fas fa-filter fa-lg"></i> Filtrar
                         </button>
                         <button type="reset" class="btn btn-secondary">
@@ -48,9 +48,10 @@
                                 <th>Teléfono</th>
                                 <th>Correo</th>
                                 <th>Departamento</th>
-                                <th>Municipio</th>
+                                <th>Municipio</th>                                
                                 <th class="sistema">Sistema</th>
-                                <th class="generar">Generar</th>
+                                <th>Puntos</th>
+                                <th class="generar">Generar</th>                                
                                 <th>Editar</th>
                                 <th>Eliminar</th>
                             </tr>

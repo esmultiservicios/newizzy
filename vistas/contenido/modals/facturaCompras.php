@@ -30,6 +30,9 @@
 			</form>
         </div>
 		<div class="modal-footer">
+			<button class="btn btn-danger" data-dismiss="modal">
+				<i class="fas fa-times mr-1"></i> Cancelar
+			</button>
 		</div>			
       </div>
     </div>

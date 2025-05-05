@@ -441,10 +441,10 @@ $(document).ready(function() {
             var row_index = $(this).closest("tr").index();
             var col_index = $(this).closest("td").index();
 
-            $('#formulario_busqueda_productos_facturacion #row').val(row_index);
-            $('#formulario_busqueda_productos_facturacion #col').val(col_index);
+            $('#formulario_busqueda_productos_cotizacion #row').val(row_index);
+            $('#formulario_busqueda_productos_cotizacion #col').val(col_index);
 
-            $('#modal_buscar_productos_facturacion').modal({
+            $('#modal_buscar_productos_cotizacion').modal({
                 show: true,
                 keyboard: false,
                 backdrop: 'static'
@@ -700,8 +700,6 @@ $("#reg_DescuentoQuote").on("click", function(e) {
 
     }
 
-
-
     $('#modalDescuentoCotizaciones').modal('hide');
 
     calculateTotalQuote();
@@ -727,7 +725,7 @@ $(document).ready(function() {
         $('#formulario_busqueda_productos_facturacion #col').val(col_index);
         console.log('row_index', row_index)
 
-        $('#modal_buscar_productos_facturacion').modal({
+        $('#modal_buscar_productos_cotizacion').modal({
             show: true,
             keyboard: false,
             backdrop: 'static'
@@ -739,7 +737,7 @@ var listar_productos_cotizacion_buscar = function() {
     var bodega = $("#formulario_busqueda_productos_facturacion #almacen").val() === "" ? 1 : $(
         "#formulario_busqueda_productos_facturacion #almacen").val();
 
-    var table_productos_cotizacion_buscar = $("#DatatableProductosBusquedaFactura").DataTable({
+    var table_productos_cotizacion_buscar = $("#DatatableProductosBusquedaCotizacion").DataTable({
         "destroy": true,
         "ajax": {
             "method": "POST",
@@ -748,8 +746,9 @@ var listar_productos_cotizacion_buscar = function() {
                 "bodega": bodega
             }
         },
-        "columns": [{
-                "defaultContent": "<button class='table_view btn btn-primary ocultar'><span class='fas fa-cart-plus fa-lg'></span></button>"
+        "columns": [
+            {
+                "defaultContent": "<button class='table_view btn btn-secondary ocultar'><span class='fas fa-cart-plus fa-lg'></span></button>"
             },
             {
                 "data": "image",
@@ -838,7 +837,15 @@ var listar_productos_cotizacion_buscar = function() {
                 },
             },
             {
-                "data": "almacen"
+                "data": null,
+                "render": function(data, type, row) {
+                    // Mostramos 'Sin bodega' si almacen es null o vacío
+                    if (row.almacen === null || row.almacen === "" || row.almacen === undefined) {
+                        return "Sin bodega";
+                    } else {
+                        return row.almacen;
+                    }
+                }
             }
         ],
         "lengthMenu": lengthMenu,
@@ -880,9 +887,8 @@ var listar_productos_cotizacion_buscar = function() {
                 targets: 7
             },
             {
-                width: "0%",
-                targets: 8,
-                visible: false
+                width: "12%",
+                targets: 8
             }
         ],
         "buttons": [{
@@ -913,7 +919,7 @@ var listar_productos_cotizacion_buscar = function() {
     $('#buscar').focus();
 
 
-    view_productos_busqueda_cotizacion_dataTable("#DatatableProductosBusquedaFactura tbody",
+    view_productos_busqueda_cotizacion_dataTable("#DatatableProductosBusquedaCotizacion tbody",
         table_productos_cotizacion_buscar);
 
 }
@@ -927,110 +933,59 @@ var view_productos_busqueda_cotizacion_dataTable = function(tbody, table) { //re
 
         if ($("#quoteForm #cliente_id").val() != "" && $("#quoteForm #cliente").val() != "" && $(
                 "#quoteForm #colaborador_id").val() != "" && $("#quoteForm #colaborador").val() != "") {
-
-            var data = table.row($(this).parents("tr")).data();
-
-            //var row = $('#formulario_busqueda_productos_facturacion #row').val();//no se actualiza la tabla al eliminar una fila
-
-            console.log('row agregar', row, data.nombre)
-
-
+            var data= table.row($(this).parents("tr")).data();
 
             $('#quoteForm #QuoteItem #productosQuote_id_' + row).val(data.productos_id);
-
             $('#quoteForm #QuoteItem #bar-code-id_' + row).val(data.barCode);
-
             $('#quoteForm #QuoteItem #productNameQuote_' + row).val(data.nombre);
-
             $('#quoteForm #QuoteItem #quantityQuote_' + row).val(1);
-
             $('#quoteForm #QuoteItem #quantityQuote_' + row).focus();
-
             $('#quoteForm #QuoteItem #priceQuote_' + row).val(data.precio_venta);
-
             $('#quoteForm #QuoteItem #discountQuote_' + row).val(0);
-
             $('#quoteForm #QuoteItem #isvQuote_' + row).val(data.impuesto_venta);
-
             $('#quoteForm #QuoteItem #precio_mayoreoQuote_' + row).val(data.precio_mayoreo);
-
             $('#quoteForm #QuoteItem #cantidad_mayoreoQuote_' + row).val(data.cantidad_mayoreo);
-
             $('#quoteForm #QuoteItem #precio_realQuote_' + row).val(data.precio_venta);
 
-
-
+            actualizarTextoProductoQuote(row, data.nombre, data.medida);
             var isv = 0;
-
             var isv_total = 0;
-
             var porcentaje_isv = 0;
-
             var porcentaje_calculo = 0;
-
             var isv_neto = 0;
 
-
-
             if (data.impuesto_venta == 1) {
-
                 porcentaje_isv = parseFloat(getPorcentajeISV("Facturas") / 100);
-
                 if ($('#quoteForm #taxAmountQuote').val() == "" || $('#quoteForm #taxAmountQuote').val() ==
                     0) {
-
                     porcentaje_calculo = (parseFloat(data.precio_venta) * porcentaje_isv).toFixed(2);
-
                     isv_neto = porcentaje_calculo;
-
                     $('#quoteForm #taxAmountQuote').val(porcentaje_calculo);
-
                     $('#quoteForm #QuoteItem #valorQuote_isv_' + row).val(porcentaje_calculo);
-
                 } else {
-
                     isv_total = parseFloat($('#quoteForm #taxAmountQuote').val());
-
                     porcentaje_calculo = (parseFloat(data.precio_venta) * porcentaje_isv).toFixed(2);
-
                     isv_neto = parseFloat(isv_total) + parseFloat(porcentaje_calculo);
-
                     $('#quoteForm #taxAmountQuote').val(isv_neto);
-
                     $('#quoteForm #QuoteItem #valorQuote_isv_' + row).val(porcentaje_calculo);
-
                 }
-
             }
-
             calculateTotalQuote();
-
             addRowQuote();
 
             if (row > 0) {
-
                 var icon_search = row - 1;
-
             }
+			
 
-            //$("#quoteForm #QuoteItem #icon-search-bar_" + row).hide();
-
-            //$("#quoteForm #QuoteItem #icon-search-bar_" + icon_search).hide();				
-
-            $('#modal_buscar_productos_facturacion').modal('hide');
-
-            console.log('searh row', row, 'search', icon_search)
-
+            $('#modal_buscar_productos_cotizacion').modal('hide');
             row++;
-
         } else {
             showNotify('error', 'Error', 'Lo sentimos no se puede seleccionar un producto, por favor antes de continuar, verifique que los siguientes campos: clientes, vendedor no se encuentren vacíos');
         }
 
         e.preventDefault();
-
     });
-
 }
 
 //FIN BUSQUEDA PRODUCTOS COTIZACION
@@ -1702,8 +1657,6 @@ $(document).ready(function() {
 
         }
 
-
-
         calculateTotalQuote();
 
     });
@@ -1711,115 +1664,71 @@ $(document).ready(function() {
 });
 
 //INICIO DETALLES COTIZACION
+function generarFilaCotizacion(count) {
+    let htmlRow = '<tr>';
+    htmlRow += '<td><input class="itemRowQuote" type="checkbox"></td>';
+    htmlRow += '<td><input type="hidden" name="referenciaProductoQuote[]" id="referenciaProductoQuote_' + count + '" class="form-control" placeholder="Referencia Producto Precio" autocomplete="off">';
+    htmlRow += '<input type="hidden" name="isvQuote[]" id="isvQuote_' + count + '" class="form-control" placeholder="Producto ISV" autocomplete="off">';
+    htmlRow += '<input type="hidden" name="valorQuote_isv[]" id="valorQuote_isv_' + count + '" class="form-control" placeholder="Valor ISV" autocomplete="off">';
+    htmlRow += '<input type="hidden" name="productosQuote_id[]" id="productosQuote_id_' + count + '" class="form-control inputfield-details1" placeholder="Código del Producto" autocomplete="off">';
+    htmlRow += '<div class="input-group mb-3"><div class="input-group-prepend">';
+    htmlRow += '<button type="button" data-toggle="modal" class="btn btn-link buscar_productos_quote p-0" data-toggle="tooltip" data-placement="top" title="Búsqueda de Productos" id="icon-search-bar_' + count + '">';
+    htmlRow += '<i class="fas fa-search icon-color" style="font-size: 0.875rem;"></i></button></div>';
+    htmlRow += '<input type="text" name="bar-code-id[]" id="bar-code-id_' + count + '" class="form-control product-bar-code inputfield-details1" placeholder="Código del Producto" autocomplete="off"></div></td>';
+    
+    // Descripción de producto como texto (span) con input oculto para el valor
+    htmlRow += '<td>';
+    htmlRow += '<input type="hidden" name="productNameQuote[]" id="productNameQuote_' + count + '" autocomplete="off">';
+    htmlRow += '<span id="productNameQuote_text_' + count + '" class="product-description">Descripción del Producto</span>';
+    htmlRow += '</td>';
+    
+    htmlRow += '<td><input type="number" name="quantityQuote[]" id="quantityQuote_' + count + '" step="0.01" placeholder="Cantidad" class="buscar_cantidad form-control inputfield-details" autocomplete="off">';
+    htmlRow += '<input type="hidden" name="cantidad_mayoreoQuote[]" id="cantidad_mayoreoQuote_' + count + '" step="0.01" placeholder="Cantidad Mayoreo" class="buscar_cantidad form-control inputfield-details" autocomplete="off"></td>';
+    
+    htmlRow += '<td><div class="input-group mb-3"><input type="number" name="priceQuote[]" id="priceQuote_' + count + '" class="form-control" step="0.01" placeholder="Precio" readonly autocomplete="off">';
+    htmlRow += '<div id="suggestions_producto_0" class="suggestions"></div>';
+    htmlRow += '<div class="input-group-append"><a data-toggle="modal" href="#" class="btn btn-outline-success"><div class="sb-nav-link-icon"></div><i class="aplicar_precio_cotizacion fas fa-plus fa-lg"></i></a></div></div>';
+    htmlRow += '<input type="hidden" name="precio_mayoreoQuote[]" id="precio_mayoreoQuote_' + count + '" step="0.01" placeholder="Precio Mayoreo" class="form-control inputfield-details" readonly autocomplete="off">';
+    htmlRow += '<input type="hidden" name="precio_realQuote[]" id="precio_realQuote_' + count + '" placeholder="Precio Real" class="form-control inputfield-details" readonly autocomplete="off"></td>';
+    
+    htmlRow += '<td><div class="input-group mb-3"><input type="number" name="discountQuote[]" id="discountQuote_' + count + '" class="form-control" step="0.01" placeholder="Descuento" readonly autocomplete="off">';
+    htmlRow += '<div id="suggestions_producto_0" class="suggestions"></div>';
+    htmlRow += '<div class="input-group-append"><a data-toggle="modal" href="#" class="btn btn-outline-success"><div class="sb-nav-link-icon"></div><i class="aplicar_descuento_cotizacion fas fa-plus fa-lg"></i></a></div></div></td>';
+    
+    htmlRow += '<td><input type="number" name="totalQuote[]" id="totalQuote_' + count + '" placeholder="Total" class="form-control total inputfield-details" readonly autocomplete="off" step="0.01"></td>';
+    htmlRow += '</tr>';
+    return htmlRow;
+}
+
 function limpiarTablaQuote() {
-    $("#quoteForm #QuoteItem > tbody").empty(); //limpia solo los registros del body
-    var count = 0;
-    var htmlRows = '';
-    htmlRows += '<tr>';
-    htmlRows += '<td><input class="itemRowQuote" type="checkbox"></td>';
-
-    htmlRows += '<td><input type="hidden" name="referenciaProductoQuote[]" id="referenciaProductoQuote_' + count +
-        '" class="form-control" placeholder="Referencia Producto Precio" autocomplete="off">' +
-        '<input type="hidden" name="isvQuote[]" id="isvQuote_' + count +
-        '" class="form-control" placeholder="Producto ISV" autocomplete="off">' +
-        '<input type="hidden" name="valorQuote_isv[]" id="valorQuote_isv_' + count +
-        '" class="form-control" placeholder="Valor ISV" autocomplete="off">' +
-        '<input type="hidden" name="productosQuote_id[]" id="productosQuote_id_' + count +
-        '" class="form-control inputfield-details1" placeholder="Código del Producto" autocomplete="off">' +
-        '<div class="input-group mb-3">' +
-            '<div class="input-group-prepend">' +
-                '<button type="button" data-toggle="modal" class="btn btn-link buscar_productos_quote p-0" ' +
-                'data-toggle="tooltip" data-placement="top" title="Búsqueda de Productos" ' +
-                'id="icon-search-bar_' + count + '">' +
-                    '<i class="fas fa-search icon-color" style="font-size: 0.875rem;"></i>' +
-                '</button>' +
-            '</div>' +
-            '<input type="text" name="bar-code-id[]" id="bar-code-id_' + count +
-            '" class="form-control product-bar-code inputfield-details1" ' +
-            'placeholder="Código del Producto" autocomplete="off">' +
-        '</div></td>';
-
-    htmlRows += '<td><input type="text" name="productNameQuote[]" id="productNameQuote_' + count +
-        '" readonly placeholder="Descripción del Producto" class="form-control inputfield-details1" autocomplete="off"></td>';
-    htmlRows += '<td><input type="number" name="quantityQuote[]" id="quantityQuote_' + count +
-        '" step="0.01" placeholder="Cantidad" class="buscar_cantidad form-control inputfield-details" autocomplete="off"><input type="hidden" name="cantidad_mayoreoQuote[]" id="cantidad_mayoreoQuote_' +
-        count +
-        '" step="0.01" placeholder="Cantidad Mayoreo" class="buscar_cantidad form-control inputfield-details" autocomplete="off"></td>';
-    htmlRows += '<td><div class="input-group mb-3"><input type="number" name="priceQuote[]" id="priceQuote_' + count +
-        '" class="form-control" step="0.01" placeholder="Precio" readonly autocomplete="off"><div id="suggestions_producto_0" class="suggestions"></div><div class="input-group-append"><a data-toggle="modal" href="#" class="btn btn-outline-success"><div class="sb-nav-link-icon"></div><i class="aplicar_precio_cotizacion fas fa-plus fa-lg"></i></a></div></div><input type="hidden" name="precio_mayoreoQuote[]" id="precio_mayoreoQuote_' +
-        count +
-        '" step="0.01" placeholder="Precio Mayoreo" class="form-control inputfield-details" readonly autocomplete="off"><input type="hidden" name="precio_realQuote[]" id="precio_realQuote_' +
-        count + '" placeholder="Precio Real" class="form-control inputfield-details" readonly autocomplete="off"></td>';
-    htmlRows += '<td><div class="input-group mb-3"><input type="number" name="discountQuote[]" id="discountQuote_' +
-        count +
-        '" class="form-control" step="0.01" placeholder="Descuento" readonly autocomplete="off"><div id="suggestions_producto_0" class="suggestions"></div><div class="input-group-append"><a data-toggle="modal" href="#" class="btn btn-outline-success"><div class="sb-nav-link-icon"></div><i class="aplicar_descuento_cotizacion fas fa-plus fa-lg"></i></a></div></div></td>';
-    htmlRows += '<td><input type="number" name="totalQuote[]" id="totalQuote_' + count +
-        '" placeholder="Total" class="form-control total inputfield-details" readonly autocomplete="off" step="0.01"></td>';
-    htmlRows += '</tr>';
-    $('#QuoteItem').append(htmlRows);
+    $("#quoteForm #QuoteItem > tbody").empty();
+    let count = 0;
+    $('#QuoteItem').append(generarFilaCotizacion(count));
     $("#quoteForm .tableFixHead").scrollTop($(document).height());
     $("#quoteForm #QuoteItem #bar-code-id_" + count).focus();
-
 }
 
 function addRowQuote() {
-    //var count = $(".itemRowQuote").length; 
-    var count = row + 1;
-    var htmlRows = '';
-    htmlRows += '<tr>';
-    htmlRows += '<td><input class="itemRowQuote" type="checkbox"></td>';
-
-    htmlRows += '<td><input type="hidden" name="referenciaProductoQuote[]" id="referenciaProductoQuote_' + count +
-        '" class="form-control" placeholder="Referencia Producto Precio" autocomplete="off">' +
-        '<input type="hidden" name="isvQuote[]" id="isvQuote_' + count +
-        '" class="form-control" placeholder="Producto ISV" autocomplete="off">' +
-        '<input type="hidden" name="valorQuote_isv[]" id="valorQuote_isv_' + count +
-        '" class="form-control" placeholder="Valor ISV" autocomplete="off">' +
-        '<input type="hidden" name="productosQuote_id[]" id="productosQuote_id_' + count +
-        '" class="form-control inputfield-details1" placeholder="Código del Producto" autocomplete="off">' +
-        '<div class="input-group mb-3">' +
-            '<div class="input-group-prepend">' +
-                '<button type="button" data-toggle="modal" class="btn btn-link buscar_productos_quote p-0" ' +
-                'data-toggle="tooltip" data-placement="top" title="Búsqueda de Productos" ' +
-                'id="icon-search-bar_' + count + '">' +
-                    '<i class="fas fa-search icon-color" style="font-size: 0.875rem;"></i>' +
-                '</button>' +
-            '</div>' +
-            '<input type="text" name="bar-code-id[]" id="bar-code-id_' + count +
-            '" class="form-control product-bar-code inputfield-details1" ' +
-            'placeholder="Código del Producto" autocomplete="off">' +
-        '</div></td>';
-        
-    htmlRows += '<td><input type="text" name="productNameQuote[]" id="productNameQuote_' + count +
-        '" readonly placeholder="Descripción del Producto" class="form-control inputfield-details1" autocomplete="off"></td>';
-    htmlRows += '<td><input type="number" name="quantityQuote[]" id="quantityQuote_' + count +
-        '" step="0.01" placeholder="Cantidad" class="buscar_cantidad form-control inputfield-details" autocomplete="off"><input type="hidden" name="cantidad_mayoreoQuote[]" id="cantidad_mayoreoQuote_' +
-        count +
-        '" step="0.01" placeholder="Cantidad Mayoreo" class="buscar_cantidad form-control inputfield-details" autocomplete="off"></td>';
-    htmlRows += '<td><div class="input-group mb-3"><input type="number" name="priceQuote[]" id="priceQuote_' + count +
-        '" class="form-control" step="0.01" placeholder="Precio" readonly autocomplete="off"><div id="suggestions_producto_0" class="suggestions"></div><div class="input-group-append"><a data-toggle="modal" href="#" class="btn btn-outline-success"><div class="sb-nav-link-icon"></div><i class="aplicar_precio_cotizacion fas fa-plus fa-lg"></i></a></div></div><input type="hidden" name="precio_mayoreoQuote[]" id="precio_mayoreoQuote_' +
-        count +
-        '" step="0.01" placeholder="Precio Mayoreo" class="form-control inputfield-details" readonly autocomplete="off"><input type="hidden" name="precio_realQuote[]" id="precio_realQuote_' +
-        count + '" placeholder="Precio Real" class="form-control inputfield-details" readonly autocomplete="off"></td>';
-    htmlRows += '<td><div class="input-group mb-3"><input type="number" name="discountQuote[]" id="discountQuote_' +
-        count +
-        '" class="form-control" step="0.01" placeholder="Descuento" readonly autocomplete="off"><div id="suggestions_producto_0" class="suggestions"></div><div class="input-group-append"><a data-toggle="modal" href="#" class="btn btn-outline-success"><div class="sb-nav-link-icon"></div><i class="aplicar_descuento_cotizacion fas fa-plus fa-lg"></i></a></div></div></td>';
-    htmlRows += '<td><input type="number" name="totalQuote[]" id="totalQuote_' + count +
-        '" step="0.01" placeholder="Total" class="form-control total inputfield-details" readonly autocomplete="off"></td>';
-    htmlRows += '</tr>';
-    console.log('addrow producto', count, );
-    $('#QuoteItem').append(htmlRows);
-    //MOVER SCROLL FACTURA TO THE BOTTOM
+    let count = row + 1;
+    $('#QuoteItem').append(generarFilaCotizacion(count));
+    
+    // MOVER SCROLL DE COTIZACIÓN AL FINAL
     $("#quoteForm .tableFixHead").scrollTop($(document).height());
     $("#quoteForm #QuoteItem #bar-code-id_" + count).focus();
 
     if (count > 0) {
-        var icon_search = count - 1;
-
+        let icon_search = count - 1;
+        $("#quoteForm #QuoteItem #icon-search-bar_" + icon_search).hide();
     }
+}
 
-    $("#quoteForm #QuoteItem #icon-search-bar_" + icon_search).hide();
-    $("#quoteForm #QuoteItem #icon-search-bar_" + icon_search).hide();
+// Función para actualizar la descripción cuando se carga un producto
+function actualizarTextoProductoQuote(index, nombreProducto) {
+    // Actualizar input oculto
+    $("#productNameQuote_" + index).val(nombreProducto);
+    
+    // Actualizar texto visible
+    $("#productNameQuote_text_" + index).text(nombreProducto || "Descripción del Producto");
 }
 
 //FIN DETALLES COTIZACION
@@ -2099,8 +2008,8 @@ function getVigencia() {
 }
 
 $(document).ready(function() {
-    $("#modal_buscar_productos_facturacion").on('shown.bs.modal', function() {
-        $(this).find('#formulario_busqueda_productos_facturacion #buscar').focus();
+    $("#modal_buscar_productos_cotizacion").on('shown.bs.modal', function() {
+        $(this).find('#formulario_busqueda_productos_cotizacion #buscar').focus();
     });
 });
 

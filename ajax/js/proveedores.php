@@ -6,10 +6,9 @@ $(() => {
     getDepartamentoProveedores();
 
     // Evento para el botón de Buscar (submit)
-    $('#form_main_proveedores').on('submit', function(e) {
+    $('#form_main_proveedores #search').on("click", function(e) {
         e.preventDefault();
-
-        listar_proveedores(); 
+        listar_proveedores();
     });
 
     // Evento para el botón de Limpiar (reset)
@@ -62,10 +61,10 @@ var listar_proveedores = function() {
                 "data": "municipio"
             },
             {
-                "defaultContent": "<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
+                "defaultContent": "<button class='table_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
             },
             {
-                "defaultContent": "<button class='table_eliminar btn btn-dark ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"
+                "defaultContent": "<button class='table_eliminar btn ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"
             }
         ],
         "lengthMenu": lengthMenu10,

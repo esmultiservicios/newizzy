@@ -209,9 +209,9 @@
                                                 </div>
                                             </td>
                                             <td>
-                                                <input type="text" name="productName[]" id="productName_0"
-                                                    placeholder="Descripción del Producto" readonly
+                                                <input type="hidden" name="productName[]" id="productName_0" placeholder="Descripción del Producto" readonly
                                                     class="form-control inputfield-details1" autocomplete="off">
+                                                <span id="productName_text_0" class="product-description">Descripción del Producto</span>
                                             </td>
                                             <td>
                                                 <input type="number" name="quantity[]" id="quantity_0"
@@ -224,9 +224,9 @@
                                                     autocomplete="off" step="0.01">
                                             </td>
                                             <td>
-                                                <input type="text" name="medida[]" id="medida_0" readonly
-                                                    class="form-control buscar_medida" autocomplete="off"
+                                                <input type="hidden" name="medida[]" id="medida_0" readonly class="form-control buscar_medida" autocomplete="off"
                                                     placeholder="Medida">
+                                                <span id="medida_text_0" class="medida-description">Medida</span>
                                                 <input type="hidden" name="bodega[]" id="bodega_0" readonly
                                                     class="form-control buscar_bodega" autocomplete="off">
 

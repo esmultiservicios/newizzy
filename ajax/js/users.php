@@ -74,13 +74,13 @@ var listar_usuarios = function() {
                 "data": "empresa"
             },
             {
-                "defaultContent": "<button class='table_actualizar btn btn-dark ocultar'><span class='fas fa-sync-alt fa-lg'></span>Restablecer</button>"
+                "defaultContent": "<button class='table_actualizar btn btn-secondary ocultar'><span class='fas fa-sync-alt fa-lg'></span>Restablecer</button>"
             },
             {
-                "defaultContent": "<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
+                "defaultContent": "<button class='table_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
             },
             {
-                "defaultContent": "<button class='table_eliminar btn btn-dark ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"
+                "defaultContent": "<button class='table_eliminar btn ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"
             }
         ],
         "lengthMenu": lengthMenu10,

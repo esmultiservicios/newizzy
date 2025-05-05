@@ -148,12 +148,13 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
         // Validar sesión primero
         $validacion = mainModel::validarSesion();
         if($validacion['error']) {
-            return mainModel::showNotification([
-                "title" => "Error de sesión",
-                "text" => $validacion['mensaje'],
-                "type" => "error",
-                "funcion" => "window.location.href = '".$validacion['redireccion']."'"
+            echo json_encode([
+                'success' => false,
+                'title' => 'Error de sesión',
+                'text' => $validacion['mensaje'],
+                'type' => 'error'
             ]);
+            exit();
         }
         
         $categoria = $_POST['categoria'];    
@@ -161,7 +162,7 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
         $colaboradores_id = $_SESSION['colaborador_id_sd'];
         $fecha_registro = date("Y-m-d H:i:s");    
         $categoria_gastos_id = mainModel::correlativo("categoria_gastos_id", "categoria_gastos");
-
+    
         $datos = [
             "categoria_gastos_id" => $categoria_gastos_id,
             "nombre" => $categoria,
@@ -184,28 +185,30 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
                     "observacion" => "Se registró categoría de egresos: {$categoria}",
                     "fecha_registro" => date("Y-m-d H:i:s")
                 ]);
-
-                return mainModel::showNotification([
-                    "type" => "success",
-                    "title" => "Registro almacenado",
-                    "text" => "El registro se ha almacenado correctamente",
-                    "form" => "formCategoriaEgresos",
-                    "funcion" => "listar_categoria_egresos();"
+    
+                echo json_encode([
+                    'success' => true,
+                    'title' => 'Registro almacenado',
+                    'text' => 'El registro se ha almacenado correctamente',
+                    'type' => 'success'
                 ]);
             }else{
-                return mainModel::showNotification([
-                    "title" => "Error",
-                    "text" => "No se pudo registrar la categoría",
-                    "type" => "error"
+                echo json_encode([
+                    'success' => false,
+                    'title' => 'Error',
+                    'text' => 'No se pudo registrar la categoría',
+                    'type' => 'error'
                 ]);                
             }                
         }else{
-            return mainModel::showNotification([
-                "title" => "Registro ya existe",
-                "text" => "Ya existe una categoría con este nombre",
-                "type" => "error"
+            echo json_encode([
+                'success' => false,
+                'title' => 'Registro ya existe',
+                'text' => 'Ya existe una categoría con este nombre',
+                'type' => 'error'
             ]);                
         }
+        exit();
     }
 
     public function edit_egresos_contabilidad_controlador(){
@@ -263,21 +266,23 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
         }
     }
 
-    public function edit_categoria_egresos_contabilidad_controlador(){
+    public function edit_categoria_egresos_contabilidad_controlador() {
         // Validar sesión primero
         $validacion = mainModel::validarSesion();
         if($validacion['error']) {
-            return mainModel::showNotification([
-                "title" => "Error de sesión",
-                "text" => $validacion['mensaje'],
-                "type" => "error",
-                "funcion" => "window.location.href = '".$validacion['redireccion']."'"
+            echo json_encode([
+                'success' => false,
+                'title' => 'Error de sesión',
+                'text' => $validacion['mensaje'],
+                'type' => 'error',
+                'redirect' => $validacion['redireccion']
             ]);
+            exit();
         }
-
+    
         $categoria_gastos_id = $_POST['categoria_gastos_id'];
         $categoria = $_POST['categoria'];
-
+    
         $datos = [
             "categoria_gastos_id" => $categoria_gastos_id,
             "nombre" => $categoria                            
@@ -285,10 +290,10 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
         
         $resultCategoriaEgresos = egresosContabilidadModelo::valid_categoria_egresos_modelo($datos);
         
-        if($resultCategoriaEgresos->num_rows == 0){
+        if($resultCategoriaEgresos->num_rows == 0) {
             $query = egresosContabilidadModelo::edit_categoria_egresos_contabilidad_modelo($datos);
-
-            if($query){
+    
+            if($query) {
                 // Registrar en historial
                 mainModel::guardarHistorial([
                     "modulo" => 'Categoría Egresos',
@@ -297,29 +302,32 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
                     "observacion" => "Se editó categoría de egresos ID: {$categoria_gastos_id}",
                     "fecha_registro" => date("Y-m-d H:i:s")
                 ]);
-
-                return mainModel::showNotification([
-                    "type" => "success",
-                    "title" => "Registro editado",
-                    "text" => "Registro editado correctamente",
-                    "form" => "formUpdateCategoriaEgresos",
-                    "funcion" => "listar_categoria_egresos();",
-                    "modal" => "modalUpdateCategoriasEgresos"
+    
+                echo json_encode([
+                    'success' => true,
+                    'title' => 'Registro editado',
+                    'text' => 'Registro editado correctamente',
+                    'type' => 'success',
+                    'form' => 'formUpdateCategoriaEgresos',
+                    'function' => 'listar_categoria_egresos();'
                 ]);
-            }else{
-                return mainModel::showNotification([
-                    "title" => "Error",
-                    "text" => "No se pudo editar la categoría",
-                    "type" => "error"
+            } else {
+                echo json_encode([
+                    'success' => false,
+                    'title' => 'Error',
+                    'text' => 'No se pudo editar la categoría',
+                    'type' => 'error'
                 ]);    
             }
-        }else{
-            return mainModel::showNotification([
-                "title" => "Registro ya existe",
-                "text" => "Ya existe una categoría con este nombre",
-                "type" => "error"
+        } else {
+            echo json_encode([
+                'success' => false,
+                'title' => 'Registro ya existe',
+                'text' => 'Ya existe una categoría con este nombre',
+                'type' => 'error'
             ]);    
-        }        
+        }
+        exit();
     }
 
     public function cancel_egresos_contabilidad_controlador(){

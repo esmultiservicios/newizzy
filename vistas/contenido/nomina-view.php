@@ -81,7 +81,7 @@
                         </div>
                         
                         <div class="col-md-6 col-sm-12 d-flex align-items-end justify-content-end mb-3">
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary mr-2" id="search">
                                 <i class="fas fa-filter fa-lg mr-1"></i> Filtrar
                             </button>
                             <button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary">

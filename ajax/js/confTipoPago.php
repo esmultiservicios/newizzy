@@ -17,8 +17,8 @@ var listar_tipo_pago_contabilidad = function(){
 			{"data":"nombre"},
 			{"data":"codigo"},
 			{"data":"cuenta"},						
-			{"defaultContent":"<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit'></span>Editar</button>"},
-			{"defaultContent":"<button class='table_eliminar btn btn-dark ocultar'><span class='fa fa-trash'></span>Eliminar</button>"}
+			{"defaultContent":"<button class='table_editar btn ocultar'><span class='fas fa-edit'></span>Editar</button>"},
+			{"defaultContent":"<button class='table_eliminar btn ocultar'><span class='fa fa-trash'></span>Eliminar</button>"}
 		],
         "lengthMenu": lengthMenu,
 		"stateSave": true,

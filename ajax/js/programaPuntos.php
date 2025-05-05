@@ -60,11 +60,11 @@ var listar_programa_puntos = function(){
                 }
             },        
             {
-                "defaultContent": "<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit fa-lg'></span></button>",
+                "defaultContent": "<button class='table_editar btn ocultar'><span class='fas fa-edit fa-lg'></span></button>",
                 "className": "text-center"
             },
             {
-                "defaultContent": "<button class='table_eliminar btn btn-dark ocultar'><span class='fa fa-trash fa-lg'></span></button>",
+                "defaultContent": "<button class='table_eliminar btn ocultar'><span class='fa fa-trash fa-lg'></span></button>",
                 "className": "text-center"
             }
         ],

@@ -1810,7 +1810,7 @@ class mainModel
 		}
 		
 		// Cerrar modal
-		if (!empty($alert['closeModal'])) {
+		if (!empty($alert['closeAllModals'])) {
 			$actions[] = "$('.modal').modal('hide');";
 		}
 		
@@ -2956,6 +2956,20 @@ class mainModel
 		return $result;
 	}
 
+	public function obtenerPlanUsuario() {
+		// Implementa la lógica para obtener el plan del usuario actual
+		// Ejemplo básico:
+		$consulta = "SELECT planes_id FROM usuarios WHERE usuario_id = ?";
+		$resultado = $this->ejecutar_consulta_simple_preparada($consulta, "i", [$_SESSION['id']]);
+		return $resultado->fetch_assoc()['planes_id'] ?? null;
+	}
+	
+	public function obtenerSubmenuIdPorNombre($nombre) {
+		$consulta = "SELECT submenu_id FROM submenu WHERE name = ?";
+		$resultado = $this->ejecutar_consulta_simple_preparada($consulta, "s", [$nombre]);
+		return $resultado->fetch_assoc()['submenu_id'] ?? null;
+	}
+	
 	public function getClientes($estado)
 	{
 		if (!isset($_SESSION['user_sd'])) {
@@ -2996,18 +3010,19 @@ class mainModel
 				c.otra_informacion, 
 				c.whatsapp, 
 				c.empresa,
-				c.colaboradores_id			
+				c.colaboradores_id,
+				p.planes_id AS plan_id       
 		FROM clientes AS c
 			LEFT JOIN departamentos AS d ON c.departamentos_id = d.departamentos_id
 			LEFT JOIN municipios AS m ON c.municipios_id = m.municipios_id
 			LEFT JOIN server_customers AS s ON c.clientes_id = s.clientes_id
 			LEFT JOIN sistema AS si ON si.sistema_id=s.sistema_id
+			LEFT JOIN plan p ON c.clientes_id = p.plan_id
 			INNER JOIN users AS usr ON c.colaboradores_id = usr.colaboradores_id
 		".$where."
 		GROUP BY 
 			c.clientes_id, c.nombre, c.rtn, c.localidad, c.telefono, c.correo, d.nombre, 
-			m.nombre, c.rtn, c.eslogan, c.otra_informacion, c.whatsapp, c.empresa;";
-
+			m.nombre, c.rtn, c.eslogan, c.otra_informacion, c.whatsapp, c.empresa, p.planes_id;";
 
 		$result = self::connection()->query($query);
 
@@ -3455,8 +3470,8 @@ class mainModel
 						 n.pago_planificado_id AS 'pago_planificado_id'
 				  FROM nomina AS n
 				  INNER JOIN empresa AS e ON n.empresa_id = e.empresa_id
-				  INNER JOIN nomina_detalles AS nd ON n.nomina_id = nd.nomina_id
-				  INNER JOIN contrato AS c ON nd.colaboradores_id = c.colaborador_id
+				  LEFT JOIN nomina_detalles AS nd ON n.nomina_id = nd.nomina_id
+				  LEFT JOIN contrato AS c ON nd.colaboradores_id = c.colaborador_id
 				  WHERE n.estado = '" . $datos['estado'] . "'
 				  $tipo_contrato_condicion
 				  ORDER BY n.fecha_registro DESC";
@@ -4070,20 +4085,20 @@ class mainModel
 	{
 		$bodega = '';
 		$barCode = '';
-	
+
 		// Filtro por bodega (solo para productos, no para servicios)
 		if ($datos['bodega'] != '' && $datos['bodega'] != '0') {
-			$bodega = "AND m.almacen_id = '" . $datos['bodega'] . "'";
+			$bodega = "AND (m.almacen_id = '" . $datos['bodega'] . "' OR m.almacen_id IS NULL OR m.almacen_id = 0)";
 		}
-	
+
 		// Filtro por código de barras
 		if ($datos['barcode'] != '') {
 			$barCode = "AND p.barCode = '" . $datos['barcode'] . "'";
 		}
-	
-		// Consulta unificada
+
+		// Consulta unificada: Productos + Servicios
 		$query = "
-			-- Consulta para productos con inventario
+			-- Consulta para productos (siempre incluye todos)
 			SELECT
 				m.almacen_id,
 				m.movimientos_id AS 'movimientos_id',
@@ -4130,11 +4145,7 @@ class mainModel
 				$bodega
 			GROUP BY
 				p.productos_id, m.almacen_id
-			HAVING
-				SUM(m.cantidad_entrada) - SUM(m.cantidad_salida) > 0
-	
 			UNION ALL
-	
 			-- Consulta para servicios
 			SELECT
 				NULL AS 'almacen_id',
@@ -4177,30 +4188,28 @@ class mainModel
 			ORDER BY
 				tipo_producto_id ASC, nombre ASC;
 		";
-	
 		$result = self::connection()->query($query);
-	
 		return $result;
 	}
-
+	
 	public function getProductosConInventarioYServiciosCotizacion($datos)
 	{
 		$bodega = '';
 		$barCode = '';
-	
+
 		// Filtro por bodega (solo para productos, no para servicios)
 		if ($datos['bodega'] != '' && $datos['bodega'] != '0') {
-			$bodega = "AND m.almacen_id = '" . $datos['bodega'] . "'";
+			$bodega = "AND (m.almacen_id = '" . $datos['bodega'] . "' OR m.almacen_id IS NULL OR m.almacen_id = 0)";
 		}
-	
+
 		// Filtro por código de barras
 		if ($datos['barcode'] != '') {
 			$barCode = "AND p.barCode = '" . $datos['barcode'] . "'";
 		}
-	
-		// Consulta unificada
+
+		// Consulta unificada: Productos + Servicios
 		$query = "
-			-- Consulta para productos con inventario
+			-- Consulta para productos (siempre incluye todos)
 			SELECT
 				m.almacen_id,
 				m.movimientos_id AS 'movimientos_id',
@@ -4247,9 +4256,7 @@ class mainModel
 				$bodega
 			GROUP BY
 				p.productos_id, m.almacen_id
-	
 			UNION ALL
-	
 			-- Consulta para servicios
 			SELECT
 				NULL AS 'almacen_id',
@@ -4292,12 +4299,9 @@ class mainModel
 			ORDER BY
 				tipo_producto_id ASC, nombre ASC;
 		";
-	
 		$result = self::connection()->query($query);
-	
 		return $result;
-	}	
-
+	}
 	public function getProductosCantidad($datos)
 	{
 		$bodega = '';
@@ -4886,37 +4890,44 @@ class mainModel
 	public function getIngresosContables($datos)
 	{
 		$query = "SELECT
-					i.ingresos_id AS 'ingresos_id',
-					i.fecha AS 'fecha',
-					c.codigo AS 'codigo',
-					c.nombre AS 'nombre',
-					cli.nombre AS 'cliente',
-					i.factura AS 'factura',
-					i.subtotal AS 'subtotal',
-					i.impuesto AS 'impuesto',
-					i.descuento AS 'descuento',
-					i.recibide AS 'recibide',
-					COALESCE(cli.nombre, i.recibide) AS 'cliente',
-					i.nc AS 'nc',
-					i.total AS 'total',
-					i.fecha_registro AS 'fecha_registro',
-					i.observacion AS 'observacion',
-				CASE i.tipo_ingreso
-					WHEN 1 THEN 'Ingresos por Ventas'
-					WHEN 2 THEN 'Ingresos Manuales'
-					ELSE 'Otro'
-				END AS 'tipo_ingreso'
+					i.ingresos_id,
+					i.fecha,
+					c.codigo,
+					c.nombre,
+					cli.nombre AS cliente,
+					i.factura,
+					i.subtotal,
+					i.impuesto,
+					i.descuento,
+					i.recibide,
+					COALESCE(cli.nombre, i.recibide) AS cliente,
+					i.nc,
+					i.total,
+					i.fecha_registro,
+					i.observacion,
+					CASE i.tipo_ingreso
+						WHEN 1 THEN 'Ingresos por Ventas'
+						WHEN 2 THEN 'Ingresos Manuales'
+						ELSE 'Otro'
+					END AS tipo_ingreso
 				FROM
 					ingresos AS i
 				INNER JOIN
 					cuentas AS c ON i.cuentas_id = c.cuentas_id
-				INNER JOIN
+				LEFT JOIN
 					clientes AS cli ON i.clientes_id = cli.clientes_id
 				WHERE 
-					CAST(i.fecha_registro AS DATE) BETWEEN '" . $datos['fechai'] . "' AND '" . $datos['fechaf'] . "' AND i.estado = '" . $datos['estado'] . "'
-				ORDER BY i.fecha_registro DESC;";
+					CAST(i.fecha_registro AS DATE) BETWEEN '".$datos['fechai']."' AND '".$datos['fechaf']."' 
+					AND i.estado = ".$datos['estado']."
+				ORDER BY i.fecha_registro DESC";
 
 		$result = self::connection()->query($query);
+
+		if(!$result) {
+			// Registrar error si la consulta falla
+			error_log("Error en getIngresosContables: ".self::connection()->error);
+			return false;
+		}
 
 		return $result;
 	}
@@ -5948,15 +5959,15 @@ class mainModel
         return $stmt->get_result();
     }
 
-	public function getNumeroMaximoPermitido($empresa_id)
-	{
+	public function getNumeroMaximoPermitido($empresa_id) {
 		$query = "SELECT rango_final AS 'numero', rango_inicial, rango_final
-				FROM secuencia_facturacion
-
-				WHERE activo = 1 AND empresa_id = '$empresa_id' AND documento_id = 1";
-
+				  FROM secuencia_facturacion
+				  WHERE activo = 1 
+					AND empresa_id = '$empresa_id' 
+					AND documento_id = 1
+				  LIMIT 1";
+	
 		$result = self::connection()->query($query);
-
 		return $result;
 	}
 
@@ -6936,7 +6947,7 @@ class mainModel
 
 	function getCajero($colaborador_id_sd)
 	{
-		$query = "SELECT colaboradores_id AS 'colaboradores_id',nombre AS 'colaborador'
+		$query = "SELECT colaboradores_id AS 'colaboradores_id', nombre AS 'colaborador'
 				FROM colaboradores
 				WHERE colaboradores_id = '$colaborador_id_sd'";
 

@@ -433,10 +433,10 @@ function showComprasAnuales(year = null) {
                     labels: mes,
                     datasets: [{
                         label: 'Compras ' + year,
-                        backgroundColor: '#e74a3b',
-                        borderColor: '#be2617',
-                        hoverBackgroundColor: '#be2617',
-                        hoverBorderColor: '#9a1e12',
+                        backgroundColor: '#1abc9c',
+                        borderColor: '#16a085',
+                        hoverBackgroundColor: '#16a085',
+                        hoverBorderColor: '#1abc9c',
                         borderWidth: 1,
                         borderRadius: 6,
                         data: total

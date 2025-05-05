@@ -89,7 +89,7 @@
                         
                         <!-- Puedes agregar más campos aquí si es necesario -->
                         <div class="col-md-6 col-sm-12 d-flex align-items-end justify-content-end">
-                            <button type="submit" class="btn btn-primary mr-2">
+                            <button type="submit" class="btn btn-primary mr-2" id="search">
                                 <i class="fas fa-filter fa-lg"></i> Filtrar
                             </button>
                             <button type="reset" class="btn btn-secondary">

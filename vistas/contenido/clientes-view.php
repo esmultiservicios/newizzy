@@ -1,6 +1,7 @@
 <div class="container-fluid">
     <ol class="breadcrumb mt-2 mb-4">
-        <li class="breadcrumb-item"><a class="breadcrumb-link" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>dashboard/">Dashboard</a></li>
+        <li class="breadcrumb-item"><a class="breadcrumb-link"
+                href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>dashboard/">Dashboard</a></li>
         <li class="breadcrumb-item active">Clientes</li>
     </ol>
 
@@ -11,13 +12,13 @@
                     <div class="col-md-3 col-sm-6 mb-3">
                         <div class="form-group">
                             <label class="small mb-1">Estado</label>
-                            <select id="estado_clientes" name="estado_clientes" 
-                                class="form-control selectpicker" title="Estado" data-live-search="true">
+                            <select id="estado_clientes" name="estado_clientes" class="form-control selectpicker"
+                                title="Estado" data-live-search="true">
                             </select>
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="row">
                     <div class="col-12 text-right">
                         <button type="submit" class="btn btn-primary mr-2" id="search">
@@ -25,7 +26,7 @@
                         </button>
                         <button type="reset" class="btn btn-secondary">
                             <i class="fas fa-broom fa-lg"></i> Limpiar
-                        </button>                        
+                        </button>
                     </div>
                 </div>
             </form>
@@ -40,7 +41,9 @@
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table id="dataTableClientes" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
+                    <table id="dataTableClientes"
+                        class="table table-header-gradient table-striped table-condensed table-hover"
+                        style="width:100%">
                         <thead>
                             <tr>
                                 <th>Clientes</th>
@@ -48,10 +51,10 @@
                                 <th>Teléfono</th>
                                 <th>Correo</th>
                                 <th>Departamento</th>
-                                <th>Municipio</th>                                
+                                <th>Municipio</th>
                                 <th class="sistema">Sistema</th>
-                                <th>Puntos</th>
-                                <th class="generar">Generar</th>                                
+                                <th class="puntos">Puntos</th>
+                                <th class="generar">Generar</th>
                                 <th>Editar</th>
                                 <th>Eliminar</th>
                             </tr>

@@ -114,10 +114,10 @@ var updateStatus = function(tbody, table){
 			closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
 		}).then((isConfirm) => {
 			if (isConfirm) {
-				showNotify('success', 'Estado de Impreso', 'Activado');
+				showNotify('success', 'Estado de Impresora', 'Activado');
 				editarImpresora(data.impresora_id, 1);
 			} else {
-				showNotify('success', 'Estado de Impreso', 'Desactivado');
+				showNotify('success', 'Estado de Impresora', 'Desactivado');
 				editarImpresora(data.impresora_id, 0);
 			}
 		});

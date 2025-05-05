@@ -2777,13 +2777,13 @@ var listar_cuentas_por_cobrar_clientes = function() {
                 "data": "vendedor"
             },
             {
-                "defaultContent": "<button class='table_abono btn btn-dark table_secondary'><span class='fas fa-cash-register fa-lg'></span>Abonar</button>"
+                "defaultContent": "<button class='table_abono btn btn-primary'><span class='fas fa-cash-register fa-lg'></span>Abonar</button>"
             },
             {
-                "defaultContent": "<button class='table_reportes abono_factura btn btn-dark table_success ocultar'><span class='fa fa-money-bill-wave fa-solid'></span>Abonos</button>"
+                "defaultContent": "<button class='table_reportes abono_factura btn btn-secondary ocultar'><span class='fa fa-money-bill-wave fa-solid'></span>Abonos</button>"
             },
             {
-                "defaultContent": "<button class='table_reportes print_factura btn btn-dark table_info ocultar'><span class='fas fa-file-download fa-lg'></span>Factura</button>"
+                "defaultContent": "<button class='table_reportes print_factura btn btn-success ocultar'><span class='fas fa-file-download fa-lg'></span>Factura</button>"
             }
         ],
         "pageLength": 10,

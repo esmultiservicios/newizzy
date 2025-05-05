@@ -84,7 +84,7 @@
 									<th>Vendedor</th>
 								</tr>
 							</thead>
-							<tfoot>
+							<tfoot class="bg-secondary">
 								<tr>
 									<th colspan="2">Totales:</th>
 									<th id="total-precio"></th>

@@ -22,7 +22,7 @@ $(() => {
         processing: true,
         serverSide: false,
         ajax: {
-            url: '<?php echo SERVERURL; ?>core/misFacturas.php',
+            url: '<?php echo SERVERURL; ?>core/DetallesFacturacion.php',
             type: 'POST'
         },
         columns: [
@@ -197,7 +197,7 @@ $(() => {
     // Cargar detalle de factura mejorado con corrección de error
     function cargarDetalleFactura(facturaId) {
         $.ajax({
-            url: '<?php echo SERVERURL; ?>core/misFacturas.php',
+            url: '<?php echo SERVERURL; ?>core/DetallesFacturacion.php',
             type: 'POST',
             dataType: 'json',
             data: { 

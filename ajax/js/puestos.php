@@ -1,19 +1,59 @@
 <script>
 $(document).ready(function() {
     listar_puestos();
+
+
+	$('#form_main_puestos #search').on("click", function (e) {
+		e.preventDefault();
+		listar_puestos();
+	});
+
+	// Evento para el botón de Limpiar (reset)
+	$('#form_main_puestos').on('reset', function () {
+		// Limpia y refresca los selects
+		$(this).find('.selectpicker') // Usa `this` para referenciar el formulario actual
+			.val('')
+			.selectpicker('refresh');
+
+			listar_puestos();
+	}); 	
 });
 
 //INICIO ACCIONES FROMULARIO PUESTOS
 var listar_puestos = function(){
+	var estado = $('#form_main_puestos #estado_puestos').val();
+
 	var table_puestos  = $("#dataTablePuestos").DataTable({
 		"destroy":true,
 		"ajax":{
 			"method":"POST",
-			"url":"<?php echo SERVERURL;?>core/llenarDataTablePuestos.php"
+			"url":"<?php echo SERVERURL;?>core/llenarDataTablePuestos.php",
+			"data": {
+                "estado": estado
+            }
 		},
 		"columns":[
 			{"data":"puestos_id"},
 			{"data":"nombre"},
+            {
+                "data": "estado",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        var estadoText = data == 1 ? 'Activo' : 'Inactivo';
+                        var icon = data == 1 ? 
+                            '<i class="fas fa-check-circle mr-1"></i>' : 
+                            '<i class="fas fa-times-circle mr-1"></i>';
+                        var badgeClass = data == 1 ? 
+                            'badge badge-pill badge-success' : 
+                            'badge badge-pill badge-danger';
+                        
+                        return '<span class="' + badgeClass + 
+                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                            icon + estadoText + '</span>';
+                    }
+                    return data;
+                }
+            },			
 			{"defaultContent":"<button class='table_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"},
 			{"defaultContent":"<button class='table_eliminar btn ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"}
 		],

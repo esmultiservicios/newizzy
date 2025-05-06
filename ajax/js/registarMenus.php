@@ -93,10 +93,22 @@ $(function() {
             },
             { data: "orden" },
             { data: "dependency" },
-            { 
+            {
                 data: "visible",
                 render: function(data, type, row) {
-                    return data == 1 ? '<i class="fas fa-check text-success"></i>' : '<i class="fas fa-times text-danger"></i>';
+                    if (type === 'display') {
+                        var icon = data == 1
+                            ? '<i class="fas fa-circle-check mr-1"></i>'
+                            : '<i class="fas fa-circle-xmark mr-1"></i>';
+                        var badgeClass = data == 1
+                            ? 'badge badge-pill badge-success'
+                            : 'badge badge-pill badge-danger';
+
+                        return '<span class="' + badgeClass + 
+                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                            icon + (data == 1 ? 'Visible' : 'Oculto') + '</span>';
+                    }
+                    return data;
                 }
             },
             {

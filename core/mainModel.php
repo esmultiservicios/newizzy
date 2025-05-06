@@ -3135,12 +3135,12 @@ class mainModel
 		return $result;
 	}
 
-	public function getPuestos()
+	public function getPuestos($estado)
 	{
-		$query = 'SELECT *
+		$query = "SELECT *
 				FROM puestos
-				WHERE estado = 1
-				ORDER BY nombre';
+				WHERE estado = '$estado'
+				ORDER BY nombre";
 
 		$result = self::connection()->query($query);
 

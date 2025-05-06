@@ -20,7 +20,7 @@ if($validacion['error']) {
 $users_id = intval($_SESSION['users_id_sd']);
 
 // 1. Obtener server_customers_id del usuario
-$conexionPrincipal = $mainModel->connection();
+$conexionPrincipal = $insMainModel->connection();
 $queryUsuario = "SELECT server_customers_id FROM users WHERE users_id = ?";
 $stmtUsuario = $conexionPrincipal->prepare($queryUsuario);
 $stmtUsuario->bind_param("i", $users_id);

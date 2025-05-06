@@ -3717,29 +3717,26 @@ class mainModel
 		while ($row = $result->fetch_assoc()) {
 			// Si server_customers_id no es 0, obtener el nombre de la empresa desde la base de datos correspondiente
 			if ($row['server_customers_id'] != 0) {
-				// Consulta para obtener el nombre de la base de datos desde server_customers
-				$query_db = "SELECT db FROM server_customers WHERE server_customers_id = " . $row['server_customers_id'];
-				$result_db = self::connection()->query($query_db);
-	
-				if ($result_db && $result_db->num_rows > 0) {
-					$db_row = $result_db->fetch_assoc();
-					$db_name = $db_row['db'];
-	
-					// Verificar que el nombre de la base de datos no esté vacío y sea válido
-					if (!empty($db_name)) {
-						// Escapar el nombre de la base de datos para evitar problemas de sintaxis
-						$db_name = self::connection()->real_escape_string($db_name);
-	
-						// Consulta para obtener el nombre de la empresa desde la base de datos especificada
-						$query_empresa = "SELECT nombre FROM `" . $db_name . "`.empresa WHERE empresa_id = 1";
-						$result_empresa = self::connection()->query($query_empresa);
-	
-						if ($result_empresa && $result_empresa->num_rows > 0) {
-							$empresa_row = $result_empresa->fetch_assoc();
-							// Convertir el nombre de la empresa a mayúsculas
-							$row['empresa'] = strtoupper($empresa_row['nombre']); // Convertir a mayúsculas
+				try {
+					$query_db = "SELECT db FROM server_customers WHERE server_customers_id = ?";
+					$stmt_db = self::connection()->prepare($query_db);
+					$stmt_db->bind_param("i", $row['server_customers_id']);
+					$stmt_db->execute();
+					$result_db = $stmt_db->get_result();
+
+					if ($result_db && $result_db->num_rows > 0) {
+						$db_row = $result_db->fetch_assoc();
+						$db_name = $db_row['db'];
+
+						if (!empty($db_name)) {
+							$query_empresa = "SELECT nombre FROM `".self::connection()->real_escape_string($db_name)."`.empresa WHERE empresa_id = 1";
+							$result_empresa = self::connection()->query($query_empresa);
+							// ... resto del código
 						}
 					}
+				} catch (Exception $e) {
+					// Loggear el error o manejar la excepción
+					$row['empresa'] = "No disponible";
 				}
 			}
 	

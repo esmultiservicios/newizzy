@@ -2818,21 +2818,7 @@
                         <div class="card-header bg-primary text-white">
                             <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Información General</h5>
                         </div>
-                        <div class="card-body">
-                            <div class="form-row">
-                                <div class="col-md-12 mb-3">
-                                    <div class="input-group mb-3">
-                                        <input type="hidden" id="empresa_id" name="empresa_id" class="form-control">
-                                        <input type="text" id="proceso_empresa" class="form-control" readonly>
-                                        <div class="input-group-append">
-                                            <span class="input-group-text">
-                                                <i class="fas fa-plus-square"></i>
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
+                        <div class="card-body">                           
                             <div class="form-row">
                                 <div class="col-md-6 mb-3">
                                     <label for="empresa_razon_social"><i class="fas fa-file-signature mr-1"></i>Razón Social <span class="priority">*</span></label>

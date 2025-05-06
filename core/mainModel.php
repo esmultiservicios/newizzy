@@ -1392,7 +1392,7 @@ class mainModel
 			sf.siguiente AS 'numero',
 			sf.relleno AS 'relleno',
 			sf.prefijo AS 'prefijo',
-			CONCAT(colaboradores.nombre, ' ', colaboradores.apellido) AS 'usuario'
+			colaboradores.nombre AS 'usuario'
 			FROM pagos
 			LEFT JOIN pagos_detalles ON pagos.pagos_id = pagos_detalles.pagos_id
 			INNER JOIN facturas ON facturas.facturas_id = pagos.facturas_id
@@ -1426,7 +1426,7 @@ class mainModel
 			tipo_pago.nombre as tipoPago,
 			pagoscompras_detalles.descripcion1,
 			compras.number AS factura,
-			CONCAT(colaboradores.nombre, ' ', colaboradores.apellido) AS 'usuario'
+			colaboradores.nombre AS 'usuario'
 			FROM compras
 			INNER JOIN pagoscompras ON compras.compras_id = pagoscompras.compras_id
 			INNER JOIN pagoscompras_detalles ON pagoscompras_detalles.pagoscompras_id = pagoscompras.pagoscompras_id

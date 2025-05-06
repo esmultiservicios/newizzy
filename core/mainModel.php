@@ -1777,20 +1777,29 @@ class mainModel
 		$message = $alert['text'] ?? '';
 		$status = ($type === 'success') ? 'success' : 'error';
 		
+		// Permitir HTML en el mensaje si se especifica
+		$allowHtml = $alert['allow_html'] ?? false;
+		
 		// Inicializar array de acciones
 		$actions = [];
 		
 		// Notificación principal (siempre primera)
-		$actions[] = "if (typeof showNotify === 'function') { 
-			showNotify('{$status}', '" . addslashes($title) . "', '" . addslashes($message) . "'); 
+		$notificationScript = "if (typeof showNotify === 'function') { 
+			showNotify('{$status}', '" . addslashes($title) . "', " . 
+			($allowHtml ? "`{$message}`" : "'" . addslashes($message) . "'") . ", " .
+			($allowHtml ? 'true' : 'false') . "); 
 		}";
+		$actions[] = $notificationScript;
 		
-		// Resetear formulario
+		// Resetear formulario si se especifica
 		if (!empty($alert['form'])) {
 			$actions[] = "$('#{$alert['form']}')[0].reset();";
+			
+			// Resetear también selects con selectpicker si existen
+			$actions[] = "$('#{$alert['form']}').find('.selectpicker').selectpicker('refresh');";
 		}
 		
-		// Funciones adicionales
+		// Ejecutar funciones adicionales si se especifican
 		if (!empty($alert['funcion'])) {
 			$functions = array_filter(explode(';', $alert['funcion']));
 			foreach ($functions as $func) {
@@ -1799,19 +1808,25 @@ class mainModel
 					$actions[] = "try { 
 						if (typeof " . explode('(', $func)[0] . " === 'function') { 
 							{$func}; 
-						} else { 
-
-						} 
-					} catch (e) { 
-		
+						}
+					} catch (e) {
+						console.error('Error al ejecutar función: {$func}', e); 
 					}";
 				}
 			}
 		}
 		
-		// Cerrar modal
+		// Cerrar modales si se solicita
 		if (!empty($alert['closeAllModals'])) {
 			$actions[] = "$('.modal').modal('hide');";
+		}
+		
+		// Redireccionar si se especifica
+		if (!empty($alert['redirect'])) {
+			$redirectUrl = addslashes($alert['redirect']);
+			$actions[] = "setTimeout(function() {
+				window.location.href = '{$redirectUrl}';
+			}, 1500);";
 		}
 		
 		// Generar UN solo script
@@ -1856,13 +1871,13 @@ class mainModel
 		return $result;
 	}
 
-	public function getCategoriaProductos()
+	public function getCategoriaProductos($estado)
 	{
-		$query = 'SELECT categoria_id, nombre
+		$query = "SELECT categoria_id, nombre, estado
 
 				FROM categoria
 
-				WHERE estado = 1';
+				WHERE estado = '$estado'";
 
 		$result = self::connection()->query($query);
 
@@ -2038,6 +2053,7 @@ class mainModel
 	public function getEmpresa($datos)
 	{
 		$privilegio = $datos['privilegio_colaborador'];
+		$stado = $datos['estado'];
 
 		if ($privilegio === 'Super Administrador' ||
 				$privilegio === 'Administrador' ||
@@ -2046,10 +2062,10 @@ class mainModel
 				$privilegio === 'Regular' ||
 				$privilegio === 'Estandar' ||
 				$privilegio === 'Premium') {
-			$where = 'WHERE estado = 1';
+			$where = "WHERE estado = '$stado'";
 		} else {
 			// $where = "WHERE estado = 1 AND empresa_id = '".$datos['empresa_id']."'";
-			$where = 'WHERE estado = 1';
+			$where = "WHERE estado = '$stado'";
 		}
 
 		$query = "SELECT *
@@ -2731,10 +2747,12 @@ class mainModel
 
 	public function getTipoUsuario($datos)
 	{
+		$estado = $datos['estado'] ?? 1;
+
 		if ($datos['db_cliente'] === $GLOBALS['DB_MAIN']) {
-			$where = 'WHERE estado = 1';
+			$where = "WHERE estado = '$estado'";
 		} else {
-			$where = 'WHERE estado = 1 AND tipo_user_id NOT IN(1,3)';
+			$where = "WHERE estado = '$estado' AND tipo_user_id NOT IN(1,3)";
 		}
 
 		$query = 'SELECT *
@@ -2930,7 +2948,7 @@ class mainModel
 
 	public function getBitacora($fechai, $fechaf)
 	{
-		$query = "SELECT b.bitacoraCodigo AS 'bitacoraCodigo', DATE_FORMAT(b.bitacoraFecha, '%d/%m/%Y') AS 'bitacoraFecha', b.bitacoraHoraInicio As 'bitacoraHoraInicio', b.bitacoraHoraFinal AS 'bitacoraHoraFinal', tu.nombre AS 'bitacoraTipo', b.bitacoraYear AS 'bitacoraYear', CONCAT(c.nombre,' ',c.apellido) AS 'colaborador'
+		$query = "SELECT b.bitacoraCodigo AS 'bitacoraCodigo', DATE_FORMAT(b.bitacoraFecha, '%d/%m/%Y') AS 'bitacoraFecha', b.bitacoraHoraInicio As 'bitacoraHoraInicio', b.bitacoraHoraFinal AS 'bitacoraHoraFinal', tu.nombre AS 'bitacoraTipo', b.bitacoraYear AS 'bitacoraYear',c.nombre AS 'colaborador'
 				FROM bitacora AS b
 				INNER JOIN tipo_user AS tu
 				ON b.bitacoraTipo = tu.tipo_user_id
@@ -3011,7 +3029,8 @@ class mainModel
 				c.whatsapp, 
 				c.empresa,
 				c.colaboradores_id,
-				p.planes_id AS plan_id       
+				p.planes_id AS plan_id,
+				c.estado    
 		FROM clientes AS c
 			LEFT JOIN departamentos AS d ON c.departamentos_id = d.departamentos_id
 			LEFT JOIN municipios AS m ON c.municipios_id = m.municipios_id
@@ -3031,7 +3050,7 @@ class mainModel
 
 	public function getProveedores($estado)
 	{
-		$query = "SELECT p.proveedores_id AS 'proveedores_id', p.nombre AS 'proveedor', p.rtn AS 'rtn' , p.localidad AS 'localidad', p.telefono AS 'telefono', p.correo AS 'correo', d.nombre AS 'departamento', m.nombre AS 'municipio'
+		$query = "SELECT p.proveedores_id AS 'proveedores_id', p.nombre AS 'proveedor', p.rtn AS 'rtn' , p.localidad AS 'localidad', p.telefono AS 'telefono', p.correo AS 'correo', d.nombre AS 'departamento', m.nombre AS 'municipio', p.estado
 				FROM proveedores AS p
 				LEFT JOIN departamentos AS d
 				ON p.departamentos_id = d.departamentos_id
@@ -3071,16 +3090,23 @@ class mainModel
 
 	public function getColaboradoresTabla($datos)
 	{
+		$estado = $datos["estado"] ?? ''; // No asignamos valor por defecto
+		
 		$where = '';
-
+	
 		if ($GLOBALS['db'] === DB_MAIN) {
-			$where = 'WHERE c.estado = 1';
+			$where = "WHERE c.colaboradores_id NOT IN(1)";
+			if ($estado !== '') {
+				$where .= " AND c.estado = '$estado'";
+			}
 		} else {
-			$where = "WHERE c.estado = 1 AND c.colaboradores_id NOT IN(1) AND p.nombre NOT IN('Reseller', 'Clientes') AND e.empresa_id = '" . $datos['empresa_id'] . "'";
+			$where = "WHERE c.colaboradores_id NOT IN(1) AND p.nombre NOT IN('Reseller', 'Clientes') AND e.empresa_id = '" . $datos['empresa_id'] . "'";
+			if ($estado !== '') {
+				$where .= " AND c.estado = '$estado'";
+			}
 		}
-
-		$query = "SELECT c.colaboradores_id AS 'colaborador_id', c.nombre AS 'colaborador', c.identidad AS 'identidad',
-				CASE WHEN c.estado = 1 THEN 'Activo' ELSE 'Inactivo' END AS 'estado', c.telefono AS 'telefono', e.nombre AS 'empresa', p.nombre AS 'puesto'
+	
+		$query = "SELECT c.colaboradores_id AS 'colaborador_id', c.nombre AS 'colaborador', c.identidad AS 'identidad', c.estado, c.telefono AS 'telefono', e.nombre AS 'empresa', p.nombre AS 'puesto'
 				FROM colaboradores AS c
 				INNER JOIN empresa AS e
 				ON c.empresa_id = e.empresa_id
@@ -3088,7 +3114,7 @@ class mainModel
 				ON c.puestos_id = p.puestos_id
 				" . $where . "
 				ORDER BY c.nombre";
-
+	
 		$result = self::connection()->query($query);
 		return $result;
 	}
@@ -3512,7 +3538,7 @@ class mainModel
 			$empleado = "AND c.colaboradores_id = '" . $datos['empleado'] . "'";
 		}		
 
-		$query = "SELECT n.nomina_id AS 'nomina_id', nd.nomina_detalles_id AS 'nomina_detalles_id', CONCAT(c.nombre,' ' ,c.apellido) AS 'empleado', nd.salario AS 'salario', nd.hrse25 AS 'horas_25', nd.hrse50 As 'horas_50', nd.hrse75 AS 'horas_75', nd.hrse100 As 'horas_100', nd.retroactivo AS 'retroactivo', nd.bono AS 'bono', nd.deducciones AS 'deducciones', nd.prestamo AS 'prestamo', nd.ihss AS 'ihss', nd.rap AS 'rap', nd.estado AS 'estado', nd.estado AS 'estado', nd.nomina_detalles_id AS 'nomina_detalles_id', (CASE WHEN nd.estado = 1 THEN 'Activo' ELSE 'Inactivo' END) AS 'estado_nombre', nd.colaboradores_id AS 'colaboradores_id', nd.neto_ingresos As 'neto_ingresos', nd.neto_egresos AS 'neto_egresos', nd.neto AS 'neto', nd.notas AS 'notas', tp.nombre AS 'contrato', e.nombre AS 'empresa', n.fecha_inicio, n.fecha_fin
+		$query = "SELECT n.nomina_id AS 'nomina_id', nd.nomina_detalles_id AS 'nomina_detalles_id', c.nombre AS 'empleado', nd.salario AS 'salario', nd.hrse25 AS 'horas_25', nd.hrse50 As 'horas_50', nd.hrse75 AS 'horas_75', nd.hrse100 As 'horas_100', nd.retroactivo AS 'retroactivo', nd.bono AS 'bono', nd.deducciones AS 'deducciones', nd.prestamo AS 'prestamo', nd.ihss AS 'ihss', nd.rap AS 'rap', nd.estado AS 'estado', nd.estado AS 'estado', nd.nomina_detalles_id AS 'nomina_detalles_id', (CASE WHEN nd.estado = 1 THEN 'Activo' ELSE 'Inactivo' END) AS 'estado_nombre', nd.colaboradores_id AS 'colaboradores_id', nd.neto_ingresos As 'neto_ingresos', nd.neto_egresos AS 'neto_egresos', nd.neto AS 'neto', nd.notas AS 'notas', tp.nombre AS 'contrato', e.nombre AS 'empresa', n.fecha_inicio, n.fecha_fin
 				FROM nomina_detalles AS nd
 				INNER JOIN nomina AS n ON nd.nomina_id = n.nomina_id
 				INNER JOIN colaboradores AS c ON nd.colaboradores_id = c.colaboradores_id
@@ -3603,7 +3629,7 @@ class mainModel
 
 	public function getNominaDetallesEdit($nomina_detalles_id)
 	{
-		$query = "SELECT n.nomina_id AS 'nomina_id', nd.nomina_detalles_id AS 'nomina_detalles_id', CONCAT(c.nombre,' ' ,c.apellido) AS 'empleado', nd.salario AS 'salario', nd.hrse25 AS 'horas_25', nd.hrse50 As 'horas_50', nd.hrse75 AS 'horas_75', nd.hrse100 As 'horas_100', nd.retroactivo AS 'retroactivo', nd.bono AS 'bono', nd.deducciones AS 'deducciones', nd.prestamo AS 'prestamo', nd.ihss AS 'ihss', nd.rap AS 'rap', nd.estado AS 'estado', nd.estado AS 'estado', nd.nomina_detalles_id AS 'nomina_detalles_id', (CASE WHEN nd.estado = 1 THEN 'Activo' ELSE 'Inactivo' END) AS 'estado_nombre', nd.colaboradores_id AS 'colaboradores_id', nd.neto_ingresos As 'neto_ingresos', nd.neto_egresos AS 'neto_egresos', nd.neto AS 'neto', nd.notas AS 'notas', tp.nombre AS 'contrato', e.nombre AS 'empresa', n.pago_planificado_id AS 'pago_planificado_id', n.notas AS 'notas', c.identidad AS 'identidad', p.nombre AS 'puesto', co.contrato_id AS 'contrato_id', c.fecha_ingreso AS 'fecha_ingreso', nd.dias_trabajados AS 'dias_trabajados', nd.otros_ingresos AS 'otros_ingresos', nd.isr AS 'isr', nd.incapacidad_ihss AS 'incapacidad_ihss', nd.notas AS 'nota_detalles', nd.vales, e.logotipo, nd.hrse25_valor, nd.hrse50_valor, nd.hrse75_valor, nd.hrse100_valor, n.detalle, nd.salario_mensual, co.tipo_empleado_id
+		$query = "SELECT n.nomina_id AS 'nomina_id', nd.nomina_detalles_id AS 'nomina_detalles_id', c.nombre AS 'empleado', nd.salario AS 'salario', nd.hrse25 AS 'horas_25', nd.hrse50 As 'horas_50', nd.hrse75 AS 'horas_75', nd.hrse100 As 'horas_100', nd.retroactivo AS 'retroactivo', nd.bono AS 'bono', nd.deducciones AS 'deducciones', nd.prestamo AS 'prestamo', nd.ihss AS 'ihss', nd.rap AS 'rap', nd.estado AS 'estado', nd.estado AS 'estado', nd.nomina_detalles_id AS 'nomina_detalles_id', (CASE WHEN nd.estado = 1 THEN 'Activo' ELSE 'Inactivo' END) AS 'estado_nombre', nd.colaboradores_id AS 'colaboradores_id', nd.neto_ingresos As 'neto_ingresos', nd.neto_egresos AS 'neto_egresos', nd.neto AS 'neto', nd.notas AS 'notas', tp.nombre AS 'contrato', e.nombre AS 'empresa', n.pago_planificado_id AS 'pago_planificado_id', n.notas AS 'notas', c.identidad AS 'identidad', p.nombre AS 'puesto', co.contrato_id AS 'contrato_id', c.fecha_ingreso AS 'fecha_ingreso', nd.dias_trabajados AS 'dias_trabajados', nd.otros_ingresos AS 'otros_ingresos', nd.isr AS 'isr', nd.incapacidad_ihss AS 'incapacidad_ihss', nd.notas AS 'nota_detalles', nd.vales, e.logotipo, nd.hrse25_valor, nd.hrse50_valor, nd.hrse75_valor, nd.hrse100_valor, n.detalle, nd.salario_mensual, co.tipo_empleado_id
 				FROM nomina_detalles AS nd
 				INNER JOIN nomina AS n ON nd.nomina_id = n.nomina_id
 				INNER JOIN colaboradores AS c ON nd.colaboradores_id = c.colaboradores_id
@@ -3640,6 +3666,8 @@ class mainModel
 
 	public function getUsuarios($datos)
 	{
+		$estado = $datos['estado'] ?? 1;
+
 		// Consulta para obtener el privilegio del colaborador
 		$privilegioQuery = "SELECT nombre FROM privilegio WHERE privilegio_id = '" . $datos['privilegio_id'] . "'";
 		$privilegioResult = self::connection()->query($privilegioQuery);
@@ -3656,11 +3684,11 @@ class mainModel
 			$where = 'WHERE u.estado = 1';
 		} else {
 			if ($privilegio_colaborador === 'Super Administrador' ) {
-				$where = 'WHERE u.estado = 1';
+				$where = "WHERE u.estado = '$estado'";
 			} else if ($privilegio_colaborador === 'Administrador') {
-				$where = 'WHERE u.estado = 1 AND u.privilegio_id NOT IN(1)';
+				$where = "WHERE u.estado = '$estado' AND u.privilegio_id NOT IN(1)";
 			} else {
-				$where = "WHERE u.estado = 1 AND u.privilegio_id NOT IN(1) AND u.empresa_id = '" . $datos['empresa_id'] . "'";
+				$where = "WHERE u.estado = '$estado' AND u.privilegio_id NOT IN(1) AND u.empresa_id = '" . $datos['empresa_id'] . "'";
 			}
 		}
 	
@@ -3672,7 +3700,8 @@ class mainModel
 						 e.nombre AS 'empresa',						 
 						 CASE WHEN u.estado = 1 THEN 'Activo' ELSE 'Inactivo' END AS 'estado',
 						 u.server_customers_id, 
-						 p.nombre AS 'privilegio'
+						 p.nombre AS 'privilegio',
+						 u.estado
 				  FROM users AS u
 				  INNER JOIN colaboradores AS c ON u.colaboradores_id = c.colaboradores_id
 				  INNER JOIN tipo_user AS tp ON u.tipo_user_id = tp.tipo_user_id
@@ -3724,20 +3753,21 @@ class mainModel
 	{
 		$privilegio = $datos['privilegio_colaborador'];
 		$empresaId = $datos['empresa_id'];
+		$estado = $datos['estado'] ?? 1;
 
 		$query = "
 			SELECT sf.secuencia_facturacion_id AS 'secuencia_facturacion_id', sf.cai AS 'cai', 
-			\t   sf.prefijo AS 'prefijo', sf.relleno AS 'relleno', sf.incremento AS 'incremento', 
-			\t   sf.siguiente AS 'siguiente', sf.rango_inicial AS 'rango_inicial', sf.rango_final AS 'rango_final', 
-			\t   DATE_FORMAT(sf.fecha_activacion, '%d/%m/%Y') AS 'fecha_activacion', 
-			\t   DATE_FORMAT(sf.fecha_registro, '%d/%m/%Y') AS 'fecha_registro', 
-			\t   e.nombre AS 'empresa', 
-			\t   DATE_FORMAT(sf.fecha_limite, '%d/%m/%Y') AS 'fecha_limite', 
-			\t   d.nombre AS 'documento'
+			   sf.prefijo AS 'prefijo', sf.relleno AS 'relleno', sf.incremento AS 'incremento', 
+			   sf.siguiente AS 'siguiente', sf.rango_inicial AS 'rango_inicial', sf.rango_final AS 'rango_final', 
+			   DATE_FORMAT(sf.fecha_activacion, '%d/%m/%Y') AS 'fecha_activacion', 
+			   DATE_FORMAT(sf.fecha_registro, '%d/%m/%Y') AS 'fecha_registro', 
+			   e.nombre AS 'empresa', 
+			   DATE_FORMAT(sf.fecha_limite, '%d/%m/%Y') AS 'fecha_limite', 
+			   d.nombre AS 'documento', sf.activo AS 'estado'
 			FROM secuencia_facturacion AS sf
 			INNER JOIN empresa AS e ON sf.empresa_id = e.empresa_id
 			INNER JOIN documento AS d ON sf.documento_id = d.documento_id
-			WHERE sf.activo = 1";
+			WHERE sf.activo = '$estado'";
 
 		if ($privilegio !== 'Administrador' && $privilegio !== 'Super Administrador') {
 			$query .= " AND e.empresa_id = '$empresaId'";
@@ -3916,7 +3946,7 @@ class mainModel
 	public function getProductosUnificado($datos)
 	{
 		$empresa_id = $datos['empresa_id_sd'];
-		$estado = $datos['estado'];
+		$estado = $datos['estado'] ?? 1;
 
 		$query = "SELECT 
 					p.barCode AS 'barCode', 
@@ -3929,7 +3959,7 @@ class mainModel
 					a.nombre AS 'almacen', 
 					u.nombre AS 'ubicacion', 
 					e.nombre AS 'empresa',
-					(CASE WHEN p.estado = '1' THEN 'Activo' ELSE 'Inactivo' END) AS 'estado', 
+					p.estado = '1' THEN 'Activo' ELSE 'Inactivo' END) AS 'estado', 
 					(CASE WHEN p.isv_venta = '1' THEN 'Sí' ELSE 'No' END) AS 'isv',
 					tp.tipo_producto_id AS 'tipo_producto_id', 
 					tp.nombre AS 'categoria', 
@@ -3937,7 +3967,7 @@ class mainModel
 					(CASE WHEN p.isv_compra = '1' THEN 'Si' ELSE 'No' END) AS 'isv_compra', 
 					p.file_name AS 'image', 
 					p.porcentaje_venta,
-					COALESCE(SUM(mov.cantidad_entrada) - SUM(mov.cantidad_salida), 0) AS 'saldo'
+					COALESCE(SUM(mov.cantidad_entrada) - SUM(mov.cantidad_salida), 0) AS 'saldo',
 				FROM productos AS p
 				INNER JOIN medida AS m ON p.medida_id = m.medida_id
 				INNER JOIN almacen AS a ON p.almacen_id = a.almacen_id
@@ -4050,7 +4080,7 @@ class mainModel
 	public function getProductos($datos)
 	{
 		$query = "SELECT p.barCode AS 'barCode', p.productos_id AS 'productos_id', p.nombre AS 'nombre', p.descripcion AS 'descripcion', p.precio_compra AS 'precio_compra', p.precio_venta AS 'precio_venta',m.nombre AS 'medida', a.nombre AS 'almacen', u.nombre AS 'ubicacion', e.nombre AS 'empresa',
-				(CASE WHEN p.estado = '1' THEN 'Activo' ELSE 'Inactivo' END) AS 'estado', (CASE WHEN p.isv_venta = '1' THEN 'Sí' ELSE 'No' END) AS 'isv',
+				p.estado AS 'estado', (CASE WHEN p.isv_venta = '1' THEN 'Sí' ELSE 'No' END) AS 'isv',
 				tp.tipo_producto_id AS 'tipo_producto_id', tp.nombre AS 'categoria', (CASE WHEN p.isv_venta = '1' THEN 'Si' ELSE 'No' END) AS 'isv_venta', (CASE WHEN p.isv_compra = '1' THEN 'Si' ELSE 'No' END) AS 'isv_compra', p.file_name AS 'image', p.porcentaje_venta
 					FROM productos AS p
 					INNER JOIN medida AS m
@@ -4649,16 +4679,16 @@ class mainModel
 		return $result;
 	}
 
-	public function getMedida()
+	public function getMedida($estado)
 	{
-		$query = '
+		$query = "
 			SELECT
 			*
 			FROM
 			medida
-			WHERE estado = 1
-			ORDER BY medida_id ASC
-			';
+			WHERE estado = '$estado'
+			ORDER BY medida_id ASC";
+			
 		$result = self::connection()->query($query);
 		return $result;
 	}
@@ -4734,13 +4764,15 @@ class mainModel
 
 	public function getAlmacen($datos)
 	{
+		$estado = $datos["estado"] ?? 1;
+
 		if ($datos['privilegio_colaborador'] === 'Super Administrador' && $datos['privilegio_colaborador'] === 'Administrador') {
-			$where = 'WHERE a.estado = 1';
+			$where = "WHERE a.estado = '$estado'";
 		} else {
-			$where = "WHERE a.estado = 1  AND a.empresa_id = '" . $datos['empresa_id'] . "'";
+			$where = "WHERE a.estado = '$estado'  AND a.empresa_id = '" . $datos['empresa_id'] . "'";
 		}
 
-		$query = "SELECT a.almacen_id AS 'almacen_id', a.nombre AS 'almacen', u.nombre AS 'ubicacion', e.nombre AS 'empresa',
+		$query = "SELECT a.almacen_id AS 'almacen_id', a.nombre AS 'almacen', u.nombre AS 'ubicacion', e.nombre AS 'empresa', a.estado,
 				a.facturar_cero
 				FROM almacen AS a
 				INNER JOIN ubicacion AS u
@@ -4755,13 +4787,13 @@ class mainModel
 		return $result;
 	}
 
-	public function getTipoPagoContabilidad()
+	public function getTipoPagoContabilidad($estado)
 	{
-		$query = "SELECT tp.nombre AS 'nombre', c.codigo AS 'codigo', c.nombre AS 'cuenta', tp.tipo_pago_id AS 'tipo_pago_id'
+		$query = "SELECT tp.nombre AS 'nombre', c.codigo AS 'codigo', c.nombre AS 'cuenta', tp.tipo_pago_id AS 'tipo_pago_id', tp.estado
 				FROM tipo_pago AS tp
 				INNER JOIN cuentas As c
 				ON tp.cuentas_id = c.cuentas_id
-				WHERE tp.estado = 1";
+				WHERE tp.estado = '$estado'";
 
 		$result = self::connection()->query($query);
 
@@ -4770,13 +4802,15 @@ class mainModel
 
 	public function getUbicacion($datos)
 	{
+		$estado = $datos['estado'] ?? 1;
+
 		if ($datos['privilegio_colaborador'] === 'Super Administrador' && $datos['privilegio_colaborador'] === 'Administrador') {
-			$where = 'WHERE u.estado = 1';
+			$where = "WHERE u.estado = '$estado'";
 		} else {
-			$where = "WHERE u.estado = 1 AND u.empresa_id = '" . $datos['empresa_id'] . "'";
+			$where = "WHERE u.estado = '$estado' AND u.empresa_id = '" . $datos['empresa_id'] . "'";
 		}
 
-		$query = "SELECT u.ubicacion_id AS 'ubicacion_id', u.nombre AS 'ubicacion', e.nombre AS 'empresa'
+		$query = "SELECT u.ubicacion_id AS 'ubicacion_id', u.nombre AS 'ubicacion', e.nombre AS 'empresa', u.estado
 				FROM ubicacion AS u
 				INNER JOIN empresa AS e
 				ON u.empresa_id = e.empresa_id
@@ -4841,11 +4875,11 @@ class mainModel
 		return $result;
 	}
 
-	public function getCuentasContabilidad()
+	public function getCuentasContabilidad($estado)
 	{
-		$query = 'SELECT *
+		$query = "SELECT *
 				FROM cuentas
-				WHERE estado = 1';
+				WHERE estado = '$estado'";
 
 		$result = self::connection()->query($query);
 
@@ -4909,7 +4943,8 @@ class mainModel
 						WHEN 1 THEN 'Ingresos por Ventas'
 						WHEN 2 THEN 'Ingresos Manuales'
 						ELSE 'Otro'
-					END AS tipo_ingreso
+					END AS tipo_ingreso,
+					i.estado
 				FROM
 					ingresos AS i
 				INNER JOIN
@@ -4962,7 +4997,7 @@ class mainModel
 
 	public function getEgresosContables($datos)
 	{
-		$query = "SELECT e.egresos_id AS 'egresos_id', e.fecha AS 'fecha', c.codigo as 'codigo', c.nombre AS 'nombre', p.nombre AS 'proveedor', e.factura AS 'factura', e.subtotal as 'subtotal', e.impuesto AS 'impuesto', e.descuento AS 'descuento', e.nc AS 'nc', e.total AS 'total', e.fecha_registro As 'fecha_registro', cg.nombre AS 'categoria', e.observacion
+		$query = "SELECT e.egresos_id AS 'egresos_id', e.fecha AS 'fecha', c.codigo as 'codigo', c.nombre AS 'nombre', p.nombre AS 'proveedor', e.factura AS 'factura', e.subtotal as 'subtotal', e.impuesto AS 'impuesto', e.descuento AS 'descuento', e.nc AS 'nc', e.total AS 'total', e.fecha_registro As 'fecha_registro', cg.nombre AS 'categoria', e.observacion, e.estado
 				FROM egresos AS e
 				INNER JOIN cuentas AS c
 				ON e.cuentas_id = c.cuentas_id
@@ -6472,9 +6507,9 @@ class mainModel
 		return $result;
 	}
 
-	public function getBanco()
+	public function getBanco($estado)
 	{
-		$query = 'SELECT * FROM banco';
+		$query = "SELECT * FROM banco WHERE estado = '$estado'";
 
 		$result = self::connection()->query($query);
 
@@ -7001,7 +7036,6 @@ class mainModel
 		return $result;
 	}
 	
-
 	function getFacturasAnual($año)
 	{
 		$query = "SELECT fecha as 'fecha', SUM(importe) as 'total'

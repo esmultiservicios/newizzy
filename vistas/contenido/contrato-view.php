@@ -84,8 +84,9 @@
                                 <th>Pago Planificado</th>
                                 <th>Salario</th>
                                 <th>Fecha Inicio</th>
-                                <th>Fecha Fin</th>
+                                <th>Fecha Fin</th>                                
                                 <th>Notas</th>
+                                <th>Estado</th>
                                 <th>Editar</th>
                                 <th>Eliminar</th>
                             </tr>

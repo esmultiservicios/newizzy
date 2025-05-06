@@ -29,6 +29,7 @@
 			"otra_informacion" => $row['otra_informacion'],
 			"whatsapp" => $row['whatsapp'],
 			"empresa" => $row['empresa'],
+			"estado" => $row['estado']
 		);		
 	}
 	

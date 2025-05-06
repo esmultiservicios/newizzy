@@ -48,7 +48,23 @@ class usuarioControlador extends usuarioModelo{
                     $identidad = "C-" . rand(10000000, 99999999); // Puedes ajustar el formato
                 } while (usuarioModelo::valid_colaborador_modelo($identidad)->num_rows > 0);
             }  
-                        
+                  
+            if (empty($nombre)) {
+                return mainModel::showNotification([
+                    "type" => "error",
+                    "title" => "Error",
+                    "text" => "El nombre no debe estar vacío"
+                ]);
+            }
+            
+            if (empty($puesto_id) || $puesto_id == 0) {
+                return mainModel::showNotification([
+                    "type" => "error",
+                    "title" => "Error",
+                    "text" => "El puesto no debe estar vacío"
+                ]);
+            }            
+
             // Validar identidad única si se proporcionó
             if(!empty($identidad)) {
                 $result_identidad = mainModel::ejecutar_consulta_simple("SELECT colaboradores_id FROM colaboradores WHERE identidad = '$identidad'");

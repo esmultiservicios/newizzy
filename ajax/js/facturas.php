@@ -663,39 +663,24 @@ var view_productos_busqueda_factura_dataTable = function(tbody, table) {
                     "#invoice-form #colaborador_id").val() != "" && $("#invoice-form #colaborador").val() !=
                 "") {
                 var data = table.row($(this).parents("tr")).data();
-                var facturar_cero = facturarEnCeroAlmacen(data.almacen_id);
+                var facturar_cero = false;
 
-                if (data.tipo_producto_id !== "2") {
-                    if (data.almacen_id === null || data.almacen_id === "") {
-                        swal({
-                            title: "Error",
-                            content: {
-                                element: "span",
-                                attributes: {
-                                    innerHTML: "Lo sentimos, el producto no está asignado a una bodega. Por favor, <a href='<?php echo SERVERURL; ?>inventario/' style='color: blue; text-decoration: none;' onmouseover='this.style.color=`purple`' onmouseout='this.style.color=`blue`' onmousedown='this.style.color=`purple`' target='_blank'>ingrese el movimiento</a> de este registro antes de continuar."
-                                }
-                            },
-                            icon: "warning",
-                            buttons: {
-                                confirm: {
-                                    text: "¡Cerrar el mensaje!",
-                                }
-                            },
-                            dangerMode: true,
-                            closeOnEsc: false,
-                            closeOnClickOutside: false
-                        });
-                        return false;
-                    }
+                // Verificación de facturación en cero solo si hay bodega asignada y no es servicio
+                if(data.almacen_id && data.tipo_producto_id !== "2") {
+                    facturar_cero = facturarEnCeroAlmacen(data.almacen_id);
+                    console.log("Facturar en cero para almacén", data.almacen_id, ":", facturar_cero);
                 }
 
-                if (data.cantidad <= 0) {
-                    if (facturar_cero == 'false' || facturar_cero == false) {
-                        showNotify('error', 'Error', 'No se puede facturar este producto inventario en cero');
-                        return false
-                    }
+                // Validación de cantidad en cero solo si:
+                // 1. No es servicio (tipo_producto_id !== "2")
+                // 2. Hay bodega asignada
+                // 3. No se permite facturar en cero
+                if(data.tipo_producto_id !== "2" && data.almacen_id && data.cantidad <= 0 && !facturar_cero) {
+                    showNotify('error', 'Error', 'No se puede facturar este producto con inventario en cero');
+                    return false;
                 }
 
+                // Continuar con el proceso de facturación aunque no tenga bodega asignada
                 $('#invoice-form #invoiceItem #productos_id_' + row).val(data.productos_id);
                 $('#invoice-form #invoiceItem #bar-code-id_' + row).val(data.barCode);
                 $('#invoice-form #invoiceItem #productName_' + row).val(data.nombre);
@@ -707,11 +692,11 @@ var view_productos_busqueda_factura_dataTable = function(tbody, table) {
                 $('#invoice-form #invoiceItem #precio_mayoreo_' + row).val(data.precio_mayoreo);
                 $('#invoice-form #invoiceItem #cantidad_mayoreo_' + row).val(data.cantidad_mayoreo);
                 $('#invoice-form #invoiceItem #medida_' + row).val(data.medida);
-                $('#invoice-form #invoiceItem #bodega_' + row).val(data.almacen_id);
+                $('#invoice-form #invoiceItem #bodega_' + row).val(data.almacen_id || ''); // Acepta null/undefined
 
                 $('#invoice-form #invoiceItem #precio_real_' + row).val(data.precio_venta);
 
-                // Actualizar textos visibles
+                // Resto del código original...
                 actualizarTextoProducto(row, data.nombre, data.medida);
 
                 var isv = 0;
@@ -722,8 +707,7 @@ var view_productos_busqueda_factura_dataTable = function(tbody, table) {
 
                 if (data.impuesto_venta == 1) {
                     porcentaje_isv = parseFloat(getPorcentajeISV("Facturas") / 100);
-                    if ($('#invoice-form #taxAmount').val() == "" || $('#invoice-form #taxAmount').val() ==
-                        0) {
+                    if ($('#invoice-form #taxAmount').val() == "" || $('#invoice-form #taxAmount').val() == 0) {
                         porcentaje_calculo = (parseFloat(data.precio_venta) * porcentaje_isv).toFixed(2);
                         isv_neto = porcentaje_calculo;
                         $('#invoice-form #taxAmount').val(porcentaje_calculo);
@@ -742,20 +726,16 @@ var view_productos_busqueda_factura_dataTable = function(tbody, table) {
 
                 if (row > 0) {
                     var icon_search = row - 1;
+                    $("#invoice-form #invoiceItem #icon-search-bar_" + icon_search).hide();
                 }
 
                 $("#invoice-form #invoiceItem #icon-search-bar_" + row).hide();
-                $("#invoice-form #invoiceItem #icon-search-bar_" + icon_search).hide();
-
                 $('#modal_buscar_productos_facturacion').modal('hide');
-
                 row++;
             } else {
                 showNotify('error', 'Error', 'Lo sentimos no se puede seleccionar un producto, por favor antes de continuar, verifique que los siguientes campos: clientes, vendedor no se encuentren vacíos');
             }
         }
-
-        e.preventDefault();
     });
 }
 //FIN BUSQUEDA PRODUCTOS FACTURA
@@ -1644,22 +1624,28 @@ function getConsultarAperturaCaja() {
 }
 
 function facturarEnCeroAlmacen(almacen_id) {
-
     var url = '<?php echo SERVERURL; ?>core/getFacturarCeroAlmacen.php';
-    var estado = true;
+    var estado = false;
 
     $.ajax({
         type: 'POST',
         url: url,
-        data: 'almacen_id=' + almacen_id,
+        data: {almacen_id: almacen_id},
         async: false,
-        success: function(res) {
-            estado = res;
+        dataType: 'json', // Asegurar que esperamos JSON
+        success: function(response) {
+            if(response.success) {
+                estado = response.facturar_cero;
+            } else {
+                console.error("Error al verificar facturación en cero");
+            }
+        },
+        error: function(xhr) {
+            console.error("Error de conexión al verificar facturación en cero");
         }
     });
     return estado;
 }
-
 
 //INICIO ESTADOS
 function getEstadoFactura() {
@@ -3108,18 +3094,20 @@ $(() => {
         var row_index = $(this).closest("tr").index();
         var col_index = $(this).closest("td").index();
 
-        if ($('#invoice-form #cliente_id').val() != "" && $(
-                "#invoice-form #invoiceItem #productos_id_" + row_index).val() != "") {
+        if ($('#invoice-form #cliente_id').val() != "" && $("#invoice-form #invoiceItem #productos_id_" + row_index).val() != "") {
             $('#formDescuentoFacturacion #row_index').val(row_index);
             $('#formDescuentoFacturacion #col_index').val(col_index);
 
             var productos_id = $("#invoice-form #invoiceItem #productos_id_" + row_index).val();
             var producto = $("#invoice-form #invoiceItem #productName_" + row_index).val();
             var precio = $("#invoice-form #invoiceItem #price_" + row_index).val();
+            var cantidad = $("#invoice-form #invoiceItem #quantity_" + row_index).val();
+            var total = precio * cantidad;
 
             $('#formDescuentoFacturacion #descuento_productos_id').val(productos_id);
             $('#formDescuentoFacturacion #producto_descuento_fact').val(producto);
-            $('#formDescuentoFacturacion #precio_descuento_fact').val(precio);
+            $('#formDescuentoFacturacion #precio_descuento_fact').val(total); // Guardamos el total, no el precio unitario
+            $('#formDescuentoFacturacion #cantidad_descuento_fact').val(cantidad); // Guardamos la cantidad
 
             $('#formDescuentoFacturacion #pro_descuento_fact').val("Aplicar Descuento");
 
@@ -3132,75 +3120,53 @@ $(() => {
             showNotify('error', 'Error', 'Debe seleccionar un cliente y un producto antes de continuar');
         }
     });
-});
 
-$(() => {
+    // Cálculo del descuento en porcentaje
     $("#formDescuentoFacturacion #porcentaje_descuento_fact").on("keyup", function() {
-        var precio;
-        var porcentaje;
+        var total = parseFloat($('#formDescuentoFacturacion #precio_descuento_fact').val());
+        var porcentaje = parseFloat($(this).val()) || 0;
 
-        if ($("#formDescuentoFacturacion #porcentaje_descuento_fact").val()) {
-            precio = parseFloat($('#formDescuentoFacturacion #precio_descuento_fact').val());
-            porcentaje = parseFloat($('#formDescuentoFacturacion #porcentaje_descuento_fact').val());
-
-            $('#formDescuentoFacturacion #descuento_fact').val(parseFloat(precio * (porcentaje / 100))
-                .toFixed(2));
-        } else {
-            $('#formDescuentoFacturacion #descuento_fact').val(0);
-        }
+        var descuento = total * (porcentaje / 100);
+        $('#formDescuentoFacturacion #descuento_fact').val(descuento.toFixed(2));
     });
 
+    // Cálculo del porcentaje cuando se ingresa el monto directo
     $("#formDescuentoFacturacion #descuento_fact").on("keyup", function() {
-        var precio;
-        var descuento_fact;
+        var total = parseFloat($('#formDescuentoFacturacion #precio_descuento_fact').val());
+        var descuento = parseFloat($(this).val()) || 0;
 
-        if ($("#formDescuentoFacturacion #descuento_fact").val() != "") {
-            precio = parseFloat($('#formDescuentoFacturacion #precio_descuento_fact').val());
-            descuento_fact = parseFloat($('#formDescuentoFacturacion #descuento_fact').val());
-
-            $('#formDescuentoFacturacion #porcentaje_descuento_fact').val(parseFloat((descuento_fact /
-                precio) * 100).toFixed(2));
-        } else {
-            $('#formDescuentoFacturacion #porcentaje_descuento_fact').val(0);
-        }
+        var porcentaje = (descuento / total) * 100;
+        $('#formDescuentoFacturacion #porcentaje_descuento_fact').val(porcentaje.toFixed(2));
     });
 });
 
+// Aplicar el descuento
 $("#reg_DescuentoFacturacion").on("click", function(e) {
     e.preventDefault();
     var row_index = $('#formDescuentoFacturacion #row_index').val();
     var col_index = $('#formDescuentoFacturacion #col_index').val();
 
-    var descuento = parseFloat($('#formDescuentoFacturacion #descuento_fact').val()).toFixed(2);
-
-    var precio = $("#invoice-form #invoiceItem #price_" + row_index).val();
-    var cantidad = $("#invoice-form #invoiceItem #quantity_" + row_index).val();
+    var descuento = parseFloat($('#formDescuentoFacturacion #descuento_fact').val()) || 0;
+    var precio = parseFloat($("#invoice-form #invoiceItem #price_" + row_index).val());
+    var cantidad = parseFloat($("#invoice-form #invoiceItem #quantity_" + row_index).val());
     var impuesto_venta = $("#invoice-form #invoiceItem #isv_" + row_index).val();
-    $("#invoice-form #invoiceItem #discount_" + row_index).val(descuento);
+    
+    // Guardamos el descuento en la fila
+    $("#invoice-form #invoiceItem #discount_" + row_index).val(descuento.toFixed(2));
 
+    var total_sin_descuento = precio * cantidad;
+    var total_con_descuento = total_sin_descuento - descuento;
 
-    var isv = 0;
-    var isv_total = 0;
-    var porcentaje_isv = 0;
-    var porcentaje_calculo = 0;
-    var isv_neto = 0;
-    var total_ = (precio * cantidad) - descuento;
-
-    if (total_ >= 0) {
+    if (total_con_descuento >= 0) {
+        // Cálculo de ISV
         if (impuesto_venta == 1) {
-            porcentaje_isv = parseFloat(getPorcentajeISV("Facturas") / 100);
-            if ($('#invoice-form #taxAmount').val() == "" || $('#invoice-form #taxAmount').val() == 0) {
-                porcentaje_calculo = (parseFloat(total_) * porcentaje_isv).toFixed(2);
-                isv_neto = porcentaje_calculo;
-                $('#invoice-form #taxAmount').val(porcentaje_calculo);
-                $('#invoice-form #invoiceItem #valor_isv_' + row_index).val(porcentaje_calculo);
-            } else {
-                isv_total = parseFloat($('#invoice-form #taxAmount').val());
-                porcentaje_calculo = (parseFloat(total_) * porcentaje_isv).toFixed(2);
-                isv_neto = parseFloat(isv_total) + parseFloat(porcentaje_calculo);
-                $('#invoice-form #taxAmount').val(isv_neto);
-                $('#invoice-form #invoiceItem #valor_isv_' + row_index).val(porcentaje_calculo);
-            }
+            var porcentaje_isv = parseFloat(getPorcentajeISV("Facturas") / 100);
+            var isv_actual = parseFloat($('#invoice-form #taxAmount').val()) || 0;
+            var isv_nuevo = (total_con_descuento * porcentaje_isv).toFixed(2);
+            
+            // Actualizamos el ISV
+            $('#invoice-form #taxAmount').val(parseFloat(isv_actual) + parseFloat(isv_nuevo));
+            $('#invoice-form #invoiceItem #valor_isv_' + row_index).val(isv_nuevo);
         }
 
         $('#modalDescuentoFacturacion').modal('hide');

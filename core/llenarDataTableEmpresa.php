@@ -33,11 +33,14 @@
             $privilegio_colaborador = $row['nombre'];
         }
         
+        $estado = (isset($_POST['estado']) && $_POST['estado'] !== '') ? $_POST['estado'] : 1;
+
         $datos = [
             "privilegio_id" => $_SESSION['privilegio_sd'],
             "colaborador_id" => $_SESSION['colaborador_id_sd'],	
             "privilegio_colaborador" => $privilegio_colaborador,	
-            "empresa_id" => $_SESSION['empresa_id_sd']	
+            "empresa_id" => $_SESSION['empresa_id_sd'],
+            "estado" => $estado
         ];	
         
         // Consulta para obtener empresas
@@ -55,7 +58,8 @@
                 "correo"=>$row['correo'],
                 "rtn"=>$row['rtn'],
                 "ubicacion"=>$row['ubicacion'],		
-                "image"=>$row['logotipo']
+                "image"=>$row['logotipo'],
+                "estado"=>$row['estado']
             );		
         }
         

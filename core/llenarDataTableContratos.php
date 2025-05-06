@@ -5,11 +5,13 @@
 	
 	$insMainModel = new mainModel();
 	
+	$estado = (isset($_POST['estado']) && $_POST['estado'] !== '') ? $_POST['estado'] : 1;
+
 	$datos = [
-		"estado" => $_POST['estado'],
+		"estado" => $estado,
 		"tipo_contrato" => $_POST['tipo_contrato'],		
 		"pago_planificado" => $_POST['pago_planificado'],
-		"tipo_empleado" => $_POST['tipo_empleado']
+		"tipo_empleado" => $_POST['tipo_empleado'],
 	];	
 
 	$result = $insMainModel->getContrato($datos);

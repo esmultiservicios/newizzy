@@ -2,7 +2,7 @@
 $(document).ready(function() {
     listar_correos_configuracion();
     getSMTPSecure();
-    getTipoCorreo();
+    getTipoCorreo();   
 });
 
 //INICIO CORREO
@@ -11,7 +11,7 @@ var listar_correos_configuracion = function() {
         "destroy": true,
         "ajax": {
             "method": "POST",
-            "url": "<?php echo SERVERURL; ?>core/llenarDataTableConfCorreos.php"
+            "url": "<?php echo SERVERURL; ?>core/llenarDataTableConfCorreos.php",
         },
         "columns": [{
                 "data": "tipo_correo"

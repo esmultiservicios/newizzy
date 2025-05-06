@@ -48,7 +48,8 @@
 			"precio_venta"=> $row['precio_venta'],
 			"isv_venta"=> $row['isv_venta'],
 			"isv_compra"=> $row['isv_compra'],
-			"porcentaje_venta"=> $row['porcentaje_venta']				 			
+			"porcentaje_venta"=> $row['porcentaje_venta'],
+			"estado"=> $row['estado']
 		);			
 	}
 	

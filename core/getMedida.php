@@ -5,7 +5,9 @@
 	
 	$insMainModel = new mainModel();
 	
-	$result = $insMainModel->getMedida();
+	$estado = 1;
+	
+	$result = $insMainModel->getMedida($estado );
 	
 	if($result->num_rows>0){
 		while($consulta2 = $result->fetch_assoc()){

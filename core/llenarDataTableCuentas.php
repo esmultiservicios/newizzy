@@ -5,7 +5,9 @@ require_once 'mainModel.php';
 
 $insMainModel = new mainModel();
 
-$result = $insMainModel->getCuentasContabilidad();
+$estado = isset($_POST['estado']) ? $_POST['estado'] : 1;
+
+$result = $insMainModel->getCuentasContabilidad($estado);
 
 $arreglo = array();
 $importe_venta = 0.0;
@@ -85,7 +87,8 @@ while ($row = $result->fetch_assoc()) {
 		'ingreso' => 'L. ' . number_format($ingreso, 2),
 		'egreso' => 'L. ' . number_format($egreso, 2),
 		'saldo_cierre' => 'L. ' . number_format($saldo_cierre, 2),
-		'neto' => 'L. ' . number_format($neto, 2)
+		'neto' => 'L. ' . number_format($neto, 2),
+		'estado' => $estado,
 	);
 }
 

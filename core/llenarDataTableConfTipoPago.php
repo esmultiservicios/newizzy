@@ -5,7 +5,9 @@
 	
 	$insMainModel = new mainModel();
 
-	$result = $insMainModel->getTipoPagoContabilidad();
+	$estado = (isset($_POST['estado']) && $_POST['estado'] !== '') ? $_POST['estado'] : 1;
+
+	$result = $insMainModel->getTipoPagoContabilidad($estado);
 	
 	$arreglo = array();
 	$data = array();	
@@ -15,7 +17,8 @@
 			"tipo_pago_id"=>$row['tipo_pago_id'],
 			"nombre"=>$row['nombre'],
 			"codigo"=>$row['codigo'],
-			"cuenta"=>$row['cuenta']		  
+			"cuenta"=>$row['cuenta'],
+			"estado"=>$row['estado']
 		);	
 	}
 	

@@ -5,7 +5,9 @@
 	
 	$insMainModel = new mainModel();
 	
-	$result = $insMainModel->getCategoriaProductos();
+	$estado = 1;
+
+	$result = $insMainModel->getCategoriaProductos($estado );
 	
 	if($result->num_rows>0){
 		while($consulta2 = $result->fetch_assoc()){

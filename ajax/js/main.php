@@ -3429,6 +3429,25 @@ var listar_clientes = function(estado) {
                 }
             },
             {
+                "data": "estado",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        var estadoText = data == 1 ? 'Activo' : 'Inactivo';
+                        var icon = data == 1 ? 
+                            '<i class="fas fa-check-circle mr-1"></i>' : 
+                            '<i class="fas fa-times-circle mr-1"></i>';
+                        var badgeClass = data == 1 ? 
+                            'badge badge-pill badge-success' : 
+                            'badge badge-pill badge-danger';
+                        
+                        return '<span class="' + badgeClass + 
+                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                            icon + estadoText + '</span>';
+                    }
+                    return data;
+                }
+            },            
+            {
                 "data": "puntos",
                 "render": function(data, type, row) {
                     var clienteId = row.id || row.clientes_id || 0;
@@ -4387,22 +4406,50 @@ $(document).ready(function() {
 });
 
 function getBanco() {
-    var url = '<?php echo SERVERURL;?>core/getBanco.php';
-
     $.ajax({
-        type: "POST",
-        url: url,
-        async: true,
-        success: function(data) {
-            $('#formTransferenciaBill #bk_nm').html("");
-            $('#formTransferenciaBill #bk_nm').html(data);
+        url: '<?php echo SERVERURL; ?>core/getBanco.php',
+        type: 'POST',
+        dataType: 'json',
+        success: function(response) {
+            // Seleccionar ambos dropdowns
+            const $bkTransferencia = $('#formTransferenciaBill #bk_nm');
+            const $bkCheque = $('#formChequeBill #bk_nm_chk');
+            
+            // Limpiar ambos selects
+            $bkTransferencia.empty();
+            $bkCheque.empty();
+            
+            if(response.success && response.data && response.data.length > 0) {
+                // Agregar opciones a ambos selects
+                response.data.forEach(banco => {
+                    const option = `
+                        <option value="${banco.id || banco.bancos_id}">
+                            ${banco.nombre || 'Nombre no disponible'}
+                        </option>`;
+                    
+                    $bkTransferencia.append(option);
+                    $bkCheque.append(option);
+                });
+            } else {
+                const errorOption = '<option value="">No hay bancos disponibles</option>';
+                $bkTransferencia.append(errorOption);
+                $bkCheque.append(errorOption);
+            }
+            
+            // Refrescar ambos selects
+            $bkTransferencia.selectpicker('refresh');
+            $bkCheque.selectpicker('refresh');
+        },
+        error: function(xhr, status, error) {
+            console.error("Error al cargar bancos:", error);
+            showNotify("error", "Error", "No se pudieron cargar los bancos");
+            
+            $('#formTransferenciaBill #bk_nm').html('<option value="">Error al cargar</option>');
+            $('#formChequeBill #bk_nm_chk').html('<option value="">Error al cargar</option>');
+            
             $('#formTransferenciaBill #bk_nm').selectpicker('refresh');
-
-            $('#formChequeBill #bk_nm_chk').html("");
-            $('#formChequeBill #bk_nm_chk').html(data);
             $('#formChequeBill #bk_nm_chk').selectpicker('refresh');
         }
-
     });
 }
 //FIN MODAL REGSITRAR PAGO FACTURACIÓN CLIENTES

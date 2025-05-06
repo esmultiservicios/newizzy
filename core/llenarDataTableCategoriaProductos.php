@@ -5,7 +5,9 @@
 	
 	$insMainModel = new mainModel();
 
-	$result = $insMainModel->getCategoriaProductos();
+	$estado = (isset($_POST['estado']) && $_POST['estado'] !== '') ? $_POST['estado'] : 1;
+
+	$result = $insMainModel->getCategoriaProductos($estado);
 	
 	$arreglo = array();
 	$data = array();
@@ -13,7 +15,8 @@
 	while($row = $result->fetch_assoc()){
 		$data[] = array( 
 			"categoria_id"=>$row['categoria_id'],
-			"nombre"=>$row['nombre']	  
+			"nombre"=>$row['nombre'],
+			"estado"=>$row['estado']
 		);	
 	}
 

@@ -47,11 +47,7 @@
 			$privilegio_id = $_POST['privilegio_id_'];
 			$nombre = mainModel::cleanStringConverterCase($_POST['privilegios_nombre']);
 			
-			if (isset($_POST['privilegio_activo'])){
-				$estado = $_POST['privilegio_activo'];
-			}else{
-				$estado = 2;
-			}
+			$estado = isset($_POST['privilegio_activo']) && $_POST['privilegio_activo'] == 'on' ? 1 : 0;
 			
 			$datos = [
 				"privilegio_id" => $privilegio_id,
@@ -70,8 +66,7 @@
 			return mainModel::showNotification([
 				"type" => "success",
 				"title" => "Registro exitoso",
-				"text" => "Privilegio actualizado correctamente",           
-				"form" => "formPrivilegios",
+				"text" => "Privilegio actualizado correctamente",
 				"funcion" => "listar_privilegio();"
 			]);		
 		}

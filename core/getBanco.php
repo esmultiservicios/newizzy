@@ -7,7 +7,8 @@ header('Content-Type: application/json'); // Especificamos que la respuesta es J
 
 try {
     $insMainModel = new mainModel();
-    $result = $insMainModel->getBanco();
+    $estado = 1;
+    $result = $insMainModel->getBanco($estado );
 
     $bancos = [];
     if($result->num_rows > 0) {

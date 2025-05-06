@@ -19,11 +19,14 @@ if($validacion['error']) {
     ]);
 }
 
+$estado = (isset($_POST['estado']) && $_POST['estado'] !== '') ? $_POST['estado'] : 1;
+
 $datos = [
     "privilegio_id" => $_SESSION['privilegio_sd'],
     "colaborador_id" => $_SESSION['colaborador_id_sd'],	
     "empresa_id" => $_SESSION['empresa_id_sd'],
-    "db_cliente" => $_SESSION['db_cliente']
+    "db_cliente" => $_SESSION['db_cliente'],
+    "estado" => $estado
 ];	
 
 $result = $insMainModel->getUsuarios($datos);
@@ -38,9 +41,9 @@ foreach ($result as $row) {
         "correo" => $row['correo'],
         "tipo_usuario" => $row['tipo_usuario'],
         "privilegio" => $row['privilegio'],
-        "estado" => $row['estado'],
         "empresa" => $row['empresa'],		
-        "server_customers_id" => $row['server_customers_id']
+        "server_customers_id" => $row['server_customers_id'],
+        "estado" => $row['estado']
     );			
 }
 

@@ -1,65 +1,57 @@
 <?php	
-	$peticionAjax = true;
-	require_once "configGenerales.php";
-	require_once "mainModel.php";
-	require_once "Database.php";
-	
-	// Instanciar mainModel
-	$insMainModel = new mainModel();
+$peticionAjax = true;
+require_once "configGenerales.php";
+require_once "mainModel.php";
 
-	// Validar sesión primero
-	$validacion = $insMainModel->validarSesion();
-	if($validacion['error']) {
-		return $insMainModel->showNotification([
-			"title" => "Error de sesión",
-			"text" => $validacion['mensaje'],
-			"type" => "error",
-			"funcion" => "window.location.href = '".$validacion['redireccion']."'"
-		]);
-	}
-	
-	$database = new Database();
-	
-	$tablaPrivilegio = "privilegio";
-	$camposPrivilegio = ["nombre"];
-	$condicionesPrivilegio = ["privilegio_id" => $_SESSION['privilegio_sd']];
-	$orderBy = "";
-	$tablaJoin = "";
-	$condicionesJoin = [];
-	$resultadoPrivilegio = $database->consultarTabla($tablaPrivilegio, $camposPrivilegio, $condicionesPrivilegio, $orderBy, $tablaJoin, $condicionesJoin);
+// 1. Validar sesión
+$insMainModel = new mainModel();
+$validacion = $insMainModel->validarSesion();
 
-	$privilegio_colaborador = "";
+if($validacion['error']) {
+    echo json_encode([
+        'error' => true,
+        'mensaje' => $validacion['mensaje'],
+        'redireccion' => $validacion['redireccion']
+    ]);
+    exit();
+}
 
-	if (!empty($resultadoPrivilegio)) {
-		$privilegio_colaborador = $resultadoPrivilegio[0]['nombre'];
-	}
+// 2. Obtener datos del usuario
+$privilegio_id = $_SESSION['privilegio_sd'];
+$colaborador_id = $_SESSION['colaborador_id_sd'];
+$empresa_id = $_SESSION['empresa_id_sd'];
+$estado = (isset($_POST['estado']) && $_POST['estado'] !== '') ? $_POST['estado'] : 1;
 
-	$datos = [
-		"privilegio_id" => $_SESSION['privilegio_sd'],
-		"colaborador_id" => $_SESSION['colaborador_id_sd'],	
-		"privilegio_colaborador" => $privilegio_colaborador,	
-		"empresa_id" => $_SESSION['empresa_id_sd']	
-	];	
+// 3. Consultar nombre del privilegio (sin Database.php)
+$query_privilegio = "SELECT nombre FROM privilegio WHERE privilegio_id = '$privilegio_id'";
+$result_privilegio = $insMainModel->ejecutar_consulta_simple($query_privilegio);
+$privilegio_colaborador = ($result_privilegio->num_rows > 0) ? $result_privilegio->fetch_assoc()['nombre'] : "";
 
-	$result = $insMainModel->getUbicacion($datos);
-	
-	$arreglo = array();
-	$data = array();
+// 4. Obtener ubicaciones
+$datos = [
+    "privilegio_id" => $privilegio_id,
+    "colaborador_id" => $colaborador_id,
+    "privilegio_colaborador" => $privilegio_colaborador,
+    "empresa_id" => $empresa_id,
+	"estado" => $estado
+];
 
-	while($row = $result->fetch_assoc()){
-		$data[] = array( 
-			"ubicacion_id"=>$row['ubicacion_id'],
-			"ubicacion"=>$row['ubicacion'],
-			"empresa"=>$row['empresa']		  
-		);	
-	}
-	
-	$arreglo = array(
-		"echo" => 1,
-		"totalrecords" => count($data),
-		"totaldisplayrecords" => count($data),
-		"data" => $data
-	);	
-	echo json_encode($arreglo);
-	
-?>
+$result = $insMainModel->getUbicacion($datos);
+
+// 5. Formatear respuesta
+$ubicaciones = [];
+while($row = $result->fetch_assoc()) {
+    $ubicaciones[] = [
+        "ubicacion_id" => $row['ubicacion_id'],
+        "ubicacion" => $row['ubicacion'],
+        "empresa" => $row['empresa'],
+        "estado" => $row['estado']
+    ];
+}
+
+// 6. Enviar JSON
+header('Content-Type: application/json');
+echo json_encode([
+    'success' => true,
+    'data' => $ubicaciones
+]);

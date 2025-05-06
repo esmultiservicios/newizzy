@@ -200,6 +200,25 @@ var listar_gastos_contabilidad = function() {
                 "data": "observacion"
             },
             {
+                "data": "estado",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        var estadoText = data == 1 ? 'Activo' : 'Inactivo';
+                        var icon = data == 1 ? 
+                            '<i class="fas fa-check-circle mr-1"></i>' : 
+                            '<i class="fas fa-times-circle mr-1"></i>';
+                        var badgeClass = data == 1 ? 
+                            'badge badge-pill badge-success' : 
+                            'badge badge-pill badge-danger';
+                        
+                        return '<span class="' + badgeClass + 
+                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                            icon + estadoText + '</span>';
+                    }
+                    return data;
+                }
+            },            
+            {
                 "defaultContent": "<button class='table_editar btn ocultar'><span class='fas fa-edit'></span>Editar</button>"
             },
             {

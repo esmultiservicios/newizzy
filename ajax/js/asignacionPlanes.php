@@ -32,25 +32,49 @@ document.addEventListener("DOMContentLoaded", function() {
             {
                 data: "plan",
                 render: function(data, type, row) {
-                    const planColors = {
-                        1: 'badge-primary',    // Emprendedor
-                        2: 'badge-info',       // Básico
-                        3: 'badge-success',    // Regular
-                        4: 'badge-warning',    // Estandar
-                        5: 'badge-danger',     // Premium
-                        6: 'badge-secondary'   // Gratis
+                    const planInfo = {
+                        1: { class: 'badge-primary', icon: 'fas fa-rocket' },        // Emprendedor
+                        2: { class: 'badge-info', icon: 'fas fa-leaf' },             // Básico
+                        3: { class: 'badge-success', icon: 'fas fa-check-circle' },  // Regular
+                        4: { class: 'badge-warning', icon: 'fas fa-star-half-alt' }, // Estándar
+                        5: { class: 'badge-danger', icon: 'fas fa-gem' },            // Premium
+                        6: { class: 'badge-secondary', icon: 'fas fa-gift' }         // Gratis
                     };
 
-                    const badgeClass = planColors[row.planes_id] || 'badge-light';
-                    return `<span class="badge ${badgeClass} badge-pill" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">${data.nombre}</span>`;
+                    const info = planInfo[row.planes_id] || { class: 'badge-light', icon: 'fas fa-question-circle' };
+
+                    return `<span class="badge ${info.class} badge-pill" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">
+                                <i class="${info.icon}" style="margin-right: 5px;"></i>${data.nombre}
+                            </span>`;
                 }
             },
             {
                 data: "sistema",
                 render: function(data) {
-                    const badgeClass = data.sistema_id == 1 ? 'badge-info' : 
-                                     (data.sistema_id == 2 ? 'badge-success' : 'badge-warning');
-                    return `<span class="badge ${badgeClass} badge-pill" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">${data.nombre}</span>`;
+                    let badgeClass, iconClass;
+
+                    switch (data.nombre) {
+                        case 'CAMI':
+                            badgeClass = 'badge-info';
+                            iconClass = 'fas fa-stethoscope'; // ícono para sistema médico
+                            break;
+                        case 'IZZY':
+                            badgeClass = 'badge-success';
+                            iconClass = 'fas fa-store'; // ícono para sistema comercial
+                            break;
+                        case 'MONISYS':
+                            badgeClass = 'badge-warning';
+                            iconClass = 'fas fa-chart-line'; // ícono para monitoreo o gestión
+                            break;
+                        default:
+                            badgeClass = 'badge-secondary';
+                            iconClass = 'fas fa-question-circle'; // ícono por defecto
+                            break;
+                    }
+
+                    return `<span class="badge ${badgeClass} badge-pill" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">
+                                <i class="${iconClass}" style="margin-right: 5px;"></i>${data.nombre}
+                            </span>`;
                 }
             },
             { 
@@ -65,18 +89,33 @@ document.addEventListener("DOMContentLoaded", function() {
                 data: "validar",
                 className: "text-center",
                 render: function(data) {
-                    const badgeClass = data == 1 ? 'badge-success' : 'badge-secondary';
-                    const text = data == 1 ? 'Sí' : 'No';
-                    return `<span class="badge ${badgeClass} badge-pill" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">${text}</span>`;
+                    const isValid = data == 1;
+                    const badgeClass = isValid ? 'badge-success' : 'badge-secondary';
+                    const iconClass = isValid ? 'fas fa-check-circle' : 'fas fa-times-circle';
+                    const text = isValid ? 'Sí' : 'No';
+
+                    return `<span class="badge ${badgeClass} badge-pill" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">
+                                <i class="${iconClass}" style="margin-right: 5px;"></i>${text}
+                            </span>`;
                 }
             },
             {
-                data: "estado",
-                className: "text-center",
-                render: function(data) {
-                    const badgeClass = data == 1 ? 'badge-primary' : 'badge-danger';
-                    const text = data == 1 ? 'Activo' : 'Inactivo';
-                    return `<span class="badge ${badgeClass} badge-pill" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">${text}</span>`;
+                "data": "estado",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        var estadoText = data == 1 ? 'Activo' : 'Inactivo';
+                        var icon = data == 1 ? 
+                            '<i class="fas fa-check-circle mr-1"></i>' : 
+                            '<i class="fas fa-times-circle mr-1"></i>';
+                        var badgeClass = data == 1 ? 
+                            'badge badge-pill badge-success' : 
+                            'badge badge-pill badge-danger';
+                        
+                        return '<span class="' + badgeClass + 
+                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                            icon + estadoText + '</span>';
+                    }
+                    return data;
                 }
             },
             { 
@@ -90,7 +129,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 className: "text-center",
                 render: function(data) {
                     return `
-                        <button class="table_editar btn btn-dark ocultar btn-editar-asignacion" 
+                        <button class="table_editar btn ocultar btn-editar-asignacion" 
                                 data-id="${data.server_customers_id}"
                                 data-cliente-id="${data.cliente_id}" 
                                 data-plan-id="${data.planes_id}"
@@ -98,7 +137,7 @@ document.addEventListener("DOMContentLoaded", function() {
                                 data-user-extra="${data.user_extra}"
                                 data-validar="${data.validar}"
                                 data-estado="${data.estado}">
-                            <i class="fas fa-edit"></i> Editar
+                            <i class="fas fa-edit fa-lg"></i> Editar
                         </button>
                     `;
                 }

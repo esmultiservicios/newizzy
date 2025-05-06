@@ -84,6 +84,25 @@ var listar_nominas = function() {
                 "data": "notas"
             },
             {
+                "data": "estado",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        var estadoText = data == 1 ? 'Generada' : 'Sin Generar';
+                        var icon = data == 1 ? 
+                            '<i class="fas fa-check-circle mr-1"></i>' : 
+                            '<i class="fas fa-times-circle mr-1"></i>';
+                        var badgeClass = data == 1 ? 
+                            'badge badge-pill badge-success' : 
+                            'badge badge-pill badge-danger';
+                        
+                        return '<span class="' + badgeClass + 
+                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                            icon + estadoText + '</span>';
+                    }
+                    return data;
+                }
+            },            
+            {
                 "defaultContent": "<div class='btn-group'><button type='button' class='btn btn-primary ocultar dropdown-toggle' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'><i class='fas fa-users-cog'></i> Aciones</button><div class='dropdown-menu'><a class='dropdown-item nomina_generar' href='#'>Generar Nomina</a><div class='dropdown-divider'></div><a class='dropdown-item voucher_pago' href='#'>Voucher de Pago</a><a class='dropdown-item consolidado' href='#'>Libro de Salarios</a></div></div>"
             },
             {
@@ -902,6 +921,25 @@ var listar_nominas_detalles = function() {
             {
                 "data": "notas"
             },
+            {
+                "data": "estado",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        var estadoText = data == 1 ? 'Generada' : 'Sin Generar';
+                        var icon = data == 1 ? 
+                            '<i class="fas fa-check-circle mr-1"></i>' : 
+                            '<i class="fas fa-times-circle mr-1"></i>';
+                        var badgeClass = data == 1 ? 
+                            'badge badge-pill badge-success' : 
+                            'badge badge-pill badge-danger';
+                        
+                        return '<span class="' + badgeClass + 
+                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                            icon + estadoText + '</span>';
+                    }
+                    return data;
+                }
+            },            
             {
                 "defaultContent": "<button class='table_editar nomina_detalles_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
             },

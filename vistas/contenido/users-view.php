@@ -3,6 +3,36 @@
         <li class="breadcrumb-item"><a class="breadcrumb-link" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>dashboard/">Dashboard</a></li>
         <li class="breadcrumb-item active">Usuarios</li>
     </ol>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form id="form_main_usuarios">
+                <div class="row">
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="form-group">
+                            <label class="small mb-1">Estado</label>
+                            <select id="estado_usuarios" name="estado_usuarios" class="form-control selectpicker" title="Estado" data-live-search="true">
+								<option value="1">Activo</option>
+								<option value="0">Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-12 text-right">
+                        <button type="submit" class="btn btn-primary mr-2" id="search">
+                            <i class="fas fa-filter fa-lg"></i> Filtrar
+                        </button>
+                        <button type="reset" class="btn btn-secondary">
+                            <i class="fas fa-broom fa-lg"></i> Limpiar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="card mb-4">
         <div class="card mb-4">
             <div class="card-header">
@@ -18,8 +48,8 @@
                                 <th>Correo</th>
                                 <th>Permisos</th>
                                 <th>Privilegio</th>
-                                <th>Estado</th>
                                 <th>Empresa</th>
+                                <th>Estado</th>
                                 <th>Restablecer</th>
                                 <th>Editar</th>
                                 <th>Eliminar</th>

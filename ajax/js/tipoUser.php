@@ -1,18 +1,57 @@
 <script>
 $(document).ready(function() {
-    listar_tipo_usuario();    
+    listar_tipo_usuario(); 
+	
+	$('#form_main_permisos #search').on("click", function (e) {
+		e.preventDefault();
+		listar_tipo_usuario();
+	});
+
+	// Evento para el botón de Limpiar (reset)
+	$('#form_main_permisos').on('reset', function () {
+		// Limpia y refresca los selects
+		$(this).find('.selectpicker') // Usa `this` para referenciar el formulario actual
+			.val('')
+			.selectpicker('refresh');
+
+			listar_tipo_usuario();
+	});
 });
 
 //INICIO ACCIONES FROMULARIO TIPO USUARIO
 var listar_tipo_usuario = function(){
+	var estado = $('#form_main_permisos #estado_medidas').val();
+
 	var table_tipo_usuario  = $("#dataTableTipoUser").DataTable({
 		"destroy":true,
 		"ajax":{
 			"method":"POST",
-			"url":"<?php echo SERVERURL;?>core/llenarDataTableTipoUsuario.php"
+			"url":"<?php echo SERVERURL;?>core/llenarDataTableTipoUsuario.php",
+			"data": {
+                "estado": estado
+            }			
 		},
 		"columns":[
 			{"data":"nombre"},
+			{
+				"data": "estado",
+				"render": function(data, type, row) {
+					if (type === 'display') {
+						var estadoText = data == 1 ? 'Activo' : 'Inactivo';
+						var icon = data == 1 ? 
+							'<i class="fas fa-check-circle mr-1"></i>' : 
+							'<i class="fas fa-times-circle mr-1"></i>';
+						var badgeClass = data == 1 ? 
+							'badge badge-pill badge-success' : 
+							'badge badge-pill badge-danger';
+						
+						return '<span class="' + badgeClass + 
+							   '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+							   icon + estadoText + '</span>';
+					}
+					return data;
+				}
+			},			
 			{"defaultContent":"<button class='table_permisos btn btn-dark'><span class='fas fa-users-cog fa-lg'></span>Asignar</button>"},
 			{"defaultContent":"<button class='table_editar1 table_editar btn btn-dark'><span class='fas fa-edit fa-lg'></span>Editar</button>"},
 			{"defaultContent":"<button class='table_eliminar1 table_eliminar btn btn-dark'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"}

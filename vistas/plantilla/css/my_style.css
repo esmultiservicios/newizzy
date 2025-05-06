@@ -4437,3 +4437,9 @@ input[readonly] {
 .btn-link {
     font-weight: normal !important; /* Los íconos no necesitan negrita */
 }
+
+.notyf__toast--error a.alert-link {
+    color: #ffeb3b !important; /* Amarillo claro */
+    text-decoration: underline;
+    font-weight: bold;
+}

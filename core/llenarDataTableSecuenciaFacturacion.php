@@ -1,73 +1,67 @@
-<?php	
-	$peticionAjax = true;
-	require_once "configGenerales.php";
-	require_once "mainModel.php";
-	require_once "Database.php";
-	
-	// Instanciar mainModel
-	$insMainModel = new mainModel();
+<?php
+$peticionAjax = true;
+require_once "configGenerales.php";
+require_once "mainModel.php";
 
-	// Validar sesión primero
-	$validacion = $insMainModel->validarSesion();
-	if($validacion['error']) {
-		return $insMainModel->showNotification([
-			"title" => "Error de sesión",
-			"text" => $validacion['mensaje'],
-			"type" => "error",
-			"funcion" => "window.location.href = '".$validacion['redireccion']."'"
-		]);
-	}
-	
-	$database = new Database();
-	
-	$tablaPrivilegio = "privilegio";
-	$camposPrivilegio = ["nombre"];
-	$condicionesPrivilegio = ["privilegio_id" => $_SESSION['privilegio_sd']];
-	$orderBy = "";
-	$tablaJoin = "";
-	$condicionesJoin = [];
-	$resultadoPrivilegio = $database->consultarTabla($tablaPrivilegio, $camposPrivilegio, $condicionesPrivilegio, $orderBy, $tablaJoin, $condicionesJoin);
+// 1. Validar sesión
+$insMainModel = new mainModel();
+$validacion = $insMainModel->validarSesion();
 
-	$privilegio_colaborador = "";
+if($validacion['error']) {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'status' => 'error',
+        'title' => 'Error de sesión',
+        'message' => $validacion['mensaje'],
+        'redirect' => $validacion['redireccion']
+    ]);
+    exit();
+}
 
-	if (!empty($resultadoPrivilegio)) {
-		$privilegio_colaborador = $resultadoPrivilegio[0]['nombre'];
-	}
+// 2. Obtener datos básicos de sesión
+$privilegio_id = $_SESSION['privilegio_sd'];
+$colaborador_id = $_SESSION['colaborador_id_sd'];
+$empresa_id = $_SESSION['empresa_id_sd'];
 
-	$datos = [
-		"privilegio_id" => $_SESSION['privilegio_sd'],
-		"colaborador_id" => $_SESSION['colaborador_id_sd'],	
-		"privilegio_colaborador" => $privilegio_colaborador,	
-		"empresa_id" => $_SESSION['empresa_id_sd']	
-	];	
+// 3. Consultar nombre del privilegio (versión simplificada)
+$query_privilegio = "SELECT nombre FROM privilegio WHERE privilegio_id = '$privilegio_id'";
+$result_privilegio = $insMainModel->ejecutar_consulta_simple($query_privilegio);
+$privilegio_colaborador = ($result_privilegio->num_rows > 0) ? $result_privilegio->fetch_assoc()['nombre'] : "";
 
-	$result = $insMainModel->getSecuenciaFacturacion($datos);
-	
-	$arreglo = array();
-	$data = array();
-	
-	while($row = $result->fetch_assoc()){				
-		$data[] = array( 
-			"secuencia_facturacion_id"=>$row['secuencia_facturacion_id'],
-			"empresa"=>$row['empresa'],
-			"documento"=>$row['documento'],
-			"cai"=>$row['cai'],
-			"prefijo"=>$row['prefijo'],
-			"siguiente"=>$row['siguiente'],
-			"rango_inicial"=>$row['rango_inicial'],
-			"rango_final"=>$row['rango_final'],
-			"prefijo"=>$row['prefijo'],
-			"fecha_limite"=>$row['fecha_limite']			
-		);		
-	}
-	
-	$arreglo = array(
-		"echo" => 1,
-		"totalrecords" => count($data),
-		"totaldisplayrecords" => count($data),
-		"data" => $data
-	);
+// 4. Obtener secuencias de facturación
+$estado = (isset($_POST['estado']) && $_POST['estado'] !== '') ? $_POST['estado'] : 1;
 
-	echo json_encode($arreglo);
-	
-?>
+$datos = [
+    "privilegio_id" => $privilegio_id,
+    "colaborador_id" => $colaborador_id,
+    "privilegio_colaborador" => $privilegio_colaborador,
+    "empresa_id" => $empresa_id,
+	"estado" => $estado
+];
+
+$result = $insMainModel->getSecuenciaFacturacion($datos);
+
+// 5. Procesar resultados
+$secuencias = [];
+while($row = $result->fetch_assoc()) {
+    $secuencias[] = [
+        "secuencia_facturacion_id" => $row['secuencia_facturacion_id'],
+        "empresa" => $row['empresa'],
+        "documento" => $row['documento'],
+        "cai" => $row['cai'],
+        "prefijo" => $row['prefijo'],
+        "siguiente" => $row['siguiente'],
+        "rango_inicial" => $row['rango_inicial'],
+        "rango_final" => $row['rango_final'],
+        "fecha_limite" => $row['fecha_limite'],
+		"estado" => $row['estado']
+    ];
+}
+
+// 6. Enviar respuesta JSON
+header('Content-Type: application/json');
+echo json_encode([
+    'success' => true,
+    'data' => $secuencias,
+    'total' => count($secuencias)
+]);

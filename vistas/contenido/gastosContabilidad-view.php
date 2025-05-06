@@ -94,6 +94,7 @@
 	                            <th>Nota de Crédito</th>
 	                            <th>Total</th>
 	                            <th>Observación</th>
+								<th>Estado</th>
 	                            <th>Editar</th>
 	                            <th>Imprimir</th>
 	                        </tr>
@@ -107,7 +108,7 @@
 	                            <td id="descuento-g"></td>
 	                            <td id="nc-g"></td>
 	                            <td id='total-footer-gastos'></td>
-	                            <td colspan="3"></td>
+	                            <td colspan="4"></td>
 	                        </tr>
 	                    </tfoot>
 	                </table>

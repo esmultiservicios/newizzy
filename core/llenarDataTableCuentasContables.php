@@ -5,7 +5,9 @@
 	
 	$insMainModel = new mainModel();
 
-	$result = $insMainModel->getCuentasContabilidad();
+	$estado = isset($_POST['estado']) ? $_POST['estado'] : 1;
+
+	$result = $insMainModel->getCuentasContabilidad($estado);
 	
 	$arreglo = array();
 	$data = array();
@@ -14,7 +16,8 @@
 		$data[] = array( 
 			"cuentas_id"=>$row['cuentas_id'],
 			"codigo"=>$row['codigo'],
-			"nombre"=>$row['nombre']		  
+			"nombre"=>$row['nombre'],
+			"estado"=>$row['estado']
 		);	
 	}
 	

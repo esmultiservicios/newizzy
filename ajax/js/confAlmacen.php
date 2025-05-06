@@ -3,15 +3,35 @@ $(document).ready(function() {
     listar_almacen();
     getEmpresaAlmacen();
     getUbicacionAlmacen();
+
+	$('#form_main_almacen #search').on("click", function (e) {
+		e.preventDefault();
+		listar_almacen();
+	});
+
+	// Evento para el botón de Limpiar (reset)
+	$('#form_main_almacen').on('reset', function () {
+		// Limpia y refresca los selects
+		$(this).find('.selectpicker') // Usa `this` para referenciar el formulario actual
+			.val('')
+			.selectpicker('refresh');
+
+			listar_almacen();
+	});    
 });
 
 //INICIO ALMACEN
 var listar_almacen = function() {
+    var estado = $('#form_main_almacen #estado_almacen').val();
+
     var table_almacen = $("#dataTableConfAlmacen").DataTable({
         "destroy": true,
         "ajax": {
             "method": "POST",
-            "url": "<?php echo SERVERURL; ?>core/llenarDataTableAlmacen.php"
+            "url": "<?php echo SERVERURL; ?>core/llenarDataTableAlmacen.php",
+			"data": {
+                "estado": estado
+            }            
         },
         "columns": [{
                 "data": "empresa"
@@ -25,6 +45,25 @@ var listar_almacen = function() {
             {
                 "data": "ubicacion"
             },
+            {
+                "data": "estado",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        var estadoText = data == 1 ? 'Activo' : 'Inactivo';
+                        var icon = data == 1 ? 
+                            '<i class="fas fa-check-circle mr-1"></i>' : 
+                            '<i class="fas fa-times-circle mr-1"></i>';
+                        var badgeClass = data == 1 ? 
+                            'badge badge-pill badge-success' : 
+                            'badge badge-pill badge-danger';
+                        
+                        return '<span class="' + badgeClass + 
+                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                            icon + estadoText + '</span>';
+                    }
+                    return data;
+                }
+            },            
             {
                 "defaultContent": "<button class='table_editar btn ocultar'><span class='fas fa-edit'></span>Editar</button>"
             },

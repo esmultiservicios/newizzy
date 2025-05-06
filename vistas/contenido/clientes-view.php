@@ -53,6 +53,7 @@
                                 <th>Departamento</th>
                                 <th>Municipio</th>
                                 <th class="sistema">Sistema</th>
+                                <th>Estado</th>
                                 <th class="puntos">Puntos</th>
                                 <th class="generar">Generar</th>
                                 <th>Editar</th>

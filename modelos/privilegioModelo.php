@@ -14,10 +14,9 @@
 			return $sql;
 		}
 		
-		protected function valid_privilegios_modelo($datos){
-			$query = "SELECT privilegio_id FROM privilegio WHERE nombre = '".$datos['nombre']."'";
+		protected function valid_privilegios_modelo($nombre){
+			$query = "SELECT privilegio_id FROM privilegio WHERE nombre = '".$nombre."'";
 			$sql = mainModel::connection()->query($query) or die(mainModel::connection()->error);
-			
 			return $sql;
 		}
 		

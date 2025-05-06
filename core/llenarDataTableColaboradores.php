@@ -17,8 +17,11 @@ if($validacion['error']) {
 	]);
 }
 
+$estado = (isset($_POST['estado']) && $_POST['estado'] !== '') ? $_POST['estado'] : 1;
+
 $datos = [
-	'empresa_id' => $_SESSION['empresa_id_sd']
+	'empresa_id' => $_SESSION['empresa_id_sd'],
+	"estado" => $estado
 ];
 
 $result = $insMainModel->getColaboradoresTabla($datos);

@@ -5,10 +5,14 @@
 	
 	$insMainModel = new mainModel();
 	
+	$estado = isset($_POST['estado']) ? $_POST['estado'] : 1;
+	$fechai = $insMainModel->cleanString($_POST['fechai']);
+	$fechaf = $insMainModel->cleanString($_POST['fechaf']); 
+
 	$datos = [
-		"estado" => $_POST['estado'],
-		"fechai" => $_POST['fechai'],
-		"fechaf" => $_POST['fechaf'],		
+		"estado" => $estado,
+		"fechai" => $fechai,
+		"fechaf" => $fechaf, 	
 	];	
 		
 	$result = $insMainModel->getEgresosContables($datos);
@@ -31,6 +35,7 @@
 			"total"=>'L. '.$row['total'],
 			"categoria"=>$row['categoria'],
 			"observacion"=>$row['observacion'],
+			"estado"=>$row['estado']
 		);			
 	}
 	

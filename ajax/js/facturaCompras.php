@@ -93,7 +93,7 @@
                 }
             },
             "columns": [{
-                    "defaultContent": "<button class='table_view btn btn-primary ocultar'><span class='fas fa-cart-plus'></span></button>"
+                    "defaultContent": "<button class='table_view btn btn-secondary ocultar'><span class='fas fa-cart-plus'></span></button>"
                 },
                 {
                     "data": "image",
@@ -634,10 +634,13 @@
         getMedida(count);
         getAlmacenProductos(count);
 
-        // Asignar el evento 'input' dinámicamente
-        $("#bar-code-idPurchase_" + count).on("input", function () {
+        // Asignar el evento 'input' dinámicamente para cada nueva fila
+        $("#bar-code-idPurchase_" + count).on("input", function() {
             checkBarcode(count);
         });
+        
+        // Asegurarnos que el campo Almacén no sea obligatorio inicialmente en la nueva fila
+        $("#almacenPurchase_" + count).removeAttr('required');
     }
 
     // Función para manejar el cambio en el código de barras y habilitar/inhabilitar el campo 'Almacén'
@@ -654,65 +657,39 @@
         }
     }
 
-    /*
-    function addRowCompras() {
-        //var count = row + 1;
-        var count = parseInt($("#purchase-form #pucharse_row").val()) + 1;
-        var htmlRows = '';
-
-        htmlRows += '<tr>';
-
-        htmlRows += '<td><input class="itemRowPurchase" type="checkbox"></td>';
-
-        htmlRows +=
-            '<td><div class="input-group mb-3"><div class="input-group-append"><span data-toggle="tooltip" data-placement="top" title="Búsqueda de Productos" id="icon-search-bar_0"><a data-toggle="modal" href="#" class="btn btn-link form-control buscar_productos_purchase"><div class="sb-nav-link-icon"></div><i class="fas fa-search fa-lg icon-color"></i></a></span><input type="text" name="bar-code-idPurchase[]" id="bar-code-idPurchase_' + count + '" class="form-control product-bar-codePurchase inputfield-details1" placeholder="Código del Producto" autocomplete="off"></div></div></td>';
-
-        htmlRows += '<td><div class="input-group mb-3"><input type="hidden" name="isvPurchase[]" id="isvPurchase_' + count +
-            '" class="form-control" autocomplete="off"><input type="hidden" name="valor_isvPurchase[]" id="valor_isvPurchase_' +
-            count +
-            '" class="form-control" autocomplete="off"><input type="hidden" name="productos_idPurchase[]" id="productos_idPurchase_' +
-            count +
-            '" class="form-control" autocomplete="off"><input type="text" name="productNamePurchase[]" id="productNamePurchase_' +
-            count + '" class="form-control" autocomplete="off"></div></td>';
-
-        htmlRows += '<td><input type="number" name="quantityPurchase[]" id="quantityPurchase_' + count +
-            '" class="buscar_cantidad_purchase form-control" autocomplete="off" step="0.01"></td>';
-
-        htmlRows += '<td><select id="almacenPurchase_' + count + '" name="almacenPurchase[]" class="selectpicker" title="Almacén" data-live-search="true" required data-size="5"> </select> </td>' ;
-
-        htmlRows += '<td style="display: none;"><input type="hidden" name="medidaPurchase[]" id="medidaPurchase_' + count +
-            '" readonly class="form-control buscar_medida_purchase" autocomplete="off"><input type="hidden" name="bodegaPurchase[]" id="bodegaPurchase_' +
-            count + '" class="buscar_bodega_purchase form-control"></td>';
-
-        htmlRows += '<td><input type="date" name="vencimientoPurchase[]" id="vencimientoPurchase_' + count +
-        '" class="form-control buscar_medida_purchase" autocomplete="off"><input type="hidden" name="bodegaPurchase[]" id="bodegaPurchase_' +
-        count + '" class="buscar_bodega_purchase form-control"></td>';        
+    // Función para validar todos los campos antes de enviar el formulario
+    function validatePurchaseForm() {
+        let isValid = true;
+        const count = parseInt($("#purchase-form #pucharse_row").val());
         
+        for (let i = 0; i <= count; i++) {
+            const barcodeInput = $("#bar-code-idPurchase_" + i).val();
+            const almacenSelect = $("#almacenPurchase_" + i);
+            
+            if (barcodeInput && barcodeInput.trim() !== "") {
+                // Si hay código de barras, verificar que el almacén esté seleccionado
+                if (!almacenSelect.val()) {
+                    isValid = false;
+                    almacenSelect.addClass('is-invalid');
+                } else {
+                    almacenSelect.removeClass('is-invalid');
+                }
+            } else {
+                almacenSelect.removeClass('is-invalid');
+            }
+        }
+        
+        return isValid;
+    }
 
-        htmlRows += '<td><input type="number" name="pricePurchase[]" id="pricePurchase_' + count +
-            '" class="buscar_price_purchase form-control" autocomplete="off" step="0.01"></td>';
+    // Asignar la validación al evento submit del formulario
+    $("#purchase-form").on("submit", function(e) {
+        if (!validatePurchaseForm()) {
+            e.preventDefault();
+            alert("Por favor complete todos los campos obligatorios");
+        }
+    });
 
-        htmlRows += '<td><input type="number" name="isvPurchaseWrite[]" id="isvPurchaseWrite_' + count +
-            '" class=" form-control" autocomplete="off" step="0.01"></td>';
-
-        htmlRows += '<td><input type="number" name="discountPurchase[]" id="discountPurchase_' + count +
-            '" class="form-control" autocomplete="off" step="0.01"></td>';
-
-        htmlRows += '<td><input type="number" name="totalPurchase[]" id="totalPurchase_' + count +
-            '" class="form-control total" readonly autocomplete="off" step="0.01"></td>';
-
-        htmlRows += '</tr>';
-
-        $('#purchaseItem').append(htmlRows);
-
-        $("#purchase-form #invoiceItem #icon-search-bar_" + icon_search).hide();
-        $("#purchase-form #invoiceItem #icon-search-bar_" + icon_search).hide();
-
-        $("#purchase-form #pucharse_row").val(count);
-
-        getMedida(count);
-        getAlmacenProductos(count);
-    }*/
 
     $(document).ready(function () {
 

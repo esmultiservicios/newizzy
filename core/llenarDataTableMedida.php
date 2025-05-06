@@ -5,7 +5,9 @@
 	
 	$insMainModel = new mainModel();
 	
-	$result = $insMainModel->getMedida();
+	$estado = (isset($_POST['estado']) && $_POST['estado'] !== '') ? $_POST['estado'] : 1;
+
+	$result = $insMainModel->getMedida($estado);
 	
 	$arreglo = array();
 	$data = array();
@@ -14,7 +16,8 @@
 		$data[] = array( 
 			"medida_id"=>$row['medida_id'],
 			"nombre"=>$row['nombre'],
-			"descripcion"=>$row['descripcion']		  
+			"descripcion"=>$row['descripcion'],
+			"estado"=>$row['estado']
 		);
 	}
 	
@@ -26,4 +29,3 @@
 	);
 
 	echo json_encode($arreglo);
-?>	

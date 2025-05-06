@@ -53,6 +53,7 @@
                                 <th>Precio Venta</th>
                                 <th>Ganancia</th>
                                 <th>ISV Venta</th>
+                                <th>Estado</th>
                                 <th>Editar</th>
                                 <th>Eliminar</th>
                             </tr>

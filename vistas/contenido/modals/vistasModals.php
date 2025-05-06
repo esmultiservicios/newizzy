@@ -253,8 +253,8 @@
                                 <!-- Pestaña Nuevo Colaborador -->
                                 <div class="tab-pane fade" id="nuevo" role="tabpanel">
                                     <div class="form-group">
-                                        <label for="nombre_colaborador">Nombre Completo <span class="priority">*</span></label>
-                                        <input type="text" class="form-control" id="nombre_colaborador" name="nombre_colaborador" required>
+                                        <label for="nombre_colaborador">Nombre Completo</label>
+                                        <input type="text" class="form-control" id="nombre_colaborador" name="nombre_colaborador">
                                         <small class="form-text text-muted">Nombre completo del nuevo colaborador</small>
                                     </div>
 
@@ -278,9 +278,9 @@
                                             <small class="form-text text-muted">Fecha de ingreso a la empresa</small>
                                         </div>
                                         <div class="col-md-6 form-group">
-                                            <label for="puesto_colaborador">Puesto <span class="priority">*</span></label>
+                                            <label for="puesto_colaborador">Puesto</label>
                                             <select class="selectpicker form-control" id="puesto_colaborador" name="puesto_colaborador" 
-                                                data-live-search="true" title="Seleccione un puesto" required>
+                                                data-live-search="true" title="Seleccione un puesto">
                                             </select>
                                             <small class="form-text text-muted">Cargo o posición del colaborador</small>
                                             <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="btnNuevoPuesto">
@@ -2623,7 +2623,7 @@
                         <div class="card-body">
                             <div class="form-group">
                                 <label for="nombre_colaborador"><i class="fas fa-user mr-1"></i>Nombre Completo<span class="priority">*</span></label>
-                                <input type="text" class="form-control" id="nombre_colaborador" name="nombre_colaborador" required>
+                                <input type="text" class="form-control" id="nombre_colaborador" name="nombre_colaborador" data-required="true">
                                 <small class="form-text text-muted">Nombre y apellidos del colaborador</small>
                             </div>
                             
@@ -2668,7 +2668,7 @@
                                 <div class="col-md-6 form-group">
                                     <label><i class="fas fa-briefcase mr-1"></i>Puesto o Cargo <span class="priority">*</span></label>
                                     <select id="puesto_colaborador" name="puesto_colaborador" class="selectpicker form-control" 
-                                            data-live-search="true" title="Seleccione el puesto" required>
+                                            data-live-search="true" title="Seleccione el puesto" data-required="true">
                                         <option value="">Seleccione un puesto</option>
                                     </select>
                                     <small class="form-text text-muted">Posición dentro de la organización</small>

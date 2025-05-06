@@ -38,6 +38,7 @@ if($result->num_rows > 0){
             "recibide"=>$row['recibide'],
             "tipo_ingreso"=>$row['tipo_ingreso'],
             "observacion"=>$row['observacion'],
+            "estado"=>$row['estado']
         );    
     }
 }

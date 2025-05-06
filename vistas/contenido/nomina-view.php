@@ -112,6 +112,7 @@
                                     <th>Fecha Fin</th>
                                     <th>Importe</th>
                                     <th>Notas</th>
+                                    <th>Estado</th>
                                     <th>Acciones</th>
                                     <th>Crear</th>
                                     <th>Editar</th>
@@ -123,7 +124,7 @@
                                     <td colspan='1'>Total</td>
                                     <td colspan="4"></td>
                                     <td id="neto_importe"></td>
-                                    <td colspan="5"></td>
+                                    <td colspan="6"></td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -219,6 +220,7 @@
                                     <th>Neto Egresos</th>
                                     <th>Neto</th>
                                     <th>Notas</th>
+                                    <th>Estado</th>
                                     <th>Editar</th>
                                     <th>Eliminar</th>
                                 </tr>
@@ -230,7 +232,7 @@
                                     <td id="neto_ingreso"></td>
                                     <td id="neto_egreso"></td>
                                     <td id="neto"></td>
-                                    <td colspan="3"></td>
+                                    <td colspan="4"></td>
                                 </tr>
                             </tfoot>
                         </table>

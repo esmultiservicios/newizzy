@@ -93,6 +93,7 @@
 	                            <th>Descuento</th>
 	                            <th>Total</th>
 	                            <th>Observación</th>
+								<th>Estado</th>
 	                            <th>Editar</th>
 	                            <th>Imprimir</th>
 	                        </tr>
@@ -105,7 +106,7 @@
 	                            <td id="impuesto-i"></td>
 	                            <td id="descuento-i"></td>
 	                            <td colspan='1' id='total-footer-ingreso'></td>
-	                            <td colspan="3"></td>
+	                            <td colspan="4"></td>
 	                        </tr>
 	                    </tfoot>
 	                </table>

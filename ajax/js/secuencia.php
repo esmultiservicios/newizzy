@@ -3,15 +3,35 @@ $(document).ready(function() {
     listar_secuencia_facturacion();
     getEmpresaSecuencia();
     getDocumentoSecuencia();
+
+	$('#form_main_secuencia #search').on("click", function (e) {
+		e.preventDefault();
+		listar_secuencia_facturacion();
+	});
+
+	// Evento para el botón de Limpiar (reset)
+	$('#form_main_secuencia').on('reset', function () {
+		// Limpia y refresca los selects
+		$(this).find('.selectpicker') // Usa `this` para referenciar el formulario actual
+			.val('')
+			.selectpicker('refresh');
+
+			listar_secuencia_facturacion();
+	});    
 });
 
 //INICIO ACCIONES FROMULARIO SECUENCIA FACTURACION
 var listar_secuencia_facturacion = function() {
+    var estado = $('#form_main_secuencia #estado_secuencia').val();
+
     var table_secuencia_facturacion = $("#dataTableSecuencia").DataTable({
         "destroy": true,
         "ajax": {
             "method": "POST",
-            "url": "<?php echo SERVERURL;?>core/llenarDataTableSecuenciaFacturacion.php"
+            "url": "<?php echo SERVERURL;?>core/llenarDataTableSecuenciaFacturacion.php",
+			"data": {
+                "estado": estado
+            }	
         },
         "columns": [{
                 "data": "empresa"
@@ -37,6 +57,25 @@ var listar_secuencia_facturacion = function() {
             {
                 "data": "fecha_limite"
             },
+            {
+                "data": "estado",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        var estadoText = data == 1 ? 'Activo' : 'Inactivo';
+                        var icon = data == 1 ? 
+                            '<i class="fas fa-check-circle mr-1"></i>' : 
+                            '<i class="fas fa-times-circle mr-1"></i>';
+                        var badgeClass = data == 1 ? 
+                            'badge badge-pill badge-success' : 
+                            'badge badge-pill badge-danger';
+                        
+                        return '<span class="' + badgeClass + 
+                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                            icon + estadoText + '</span>';
+                    }
+                    return data;
+                }
+            },            
             {
                 "defaultContent": "<button class='table_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
             },

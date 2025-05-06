@@ -92,8 +92,9 @@ class aperturaCajaControlador extends aperturaCajaModelo{
         } else {
             return mainModel::showNotification([
                 "title" => "Caja abierta",
-                "text" => "La caja ya se encuentra abierta",
-                "type" => "error"
+                "text" => "La caja ya se encuentra abierta. <a href='".htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8')."cajas/' class='alert-link'>Ir a Ventas > Caja</a>",
+                "type" => "error",
+                "allow_html" => true
             ]);
         }
     }

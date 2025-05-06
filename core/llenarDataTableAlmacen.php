@@ -1,73 +1,64 @@
-<?php	
-	$peticionAjax = true;
-	require_once "configGenerales.php";
-	require_once "mainModel.php";
-	require_once "Database.php";
-	
-	// Instanciar mainModel
-	$insMainModel = new mainModel();
+<?php
+$peticionAjax = true;
+require_once "configGenerales.php";
+require_once "mainModel.php";
 
-	// Validar sesión primero
-	$validacion = $insMainModel->validarSesion();
-	if($validacion['error']) {
-		return $insMainModel->showNotification([
-			"title" => "Error de sesión",
-			"text" => $validacion['mensaje'],
-			"type" => "error",
-			"funcion" => "window.location.href = '".$validacion['redireccion']."'"
-		]);
-	}
-	
-	$database = new Database();
-	
-	$tablaPrivilegio = "privilegio";
-	$camposPrivilegio = ["nombre"];
-	$condicionesPrivilegio = ["privilegio_id" => $_SESSION['privilegio_sd']];
-	$orderBy = "";
-	$tablaJoin = "";
-	$condicionesJoin = [];
-	$resultadoPrivilegio = $database->consultarTabla($tablaPrivilegio, $camposPrivilegio, $condicionesPrivilegio, $orderBy, $tablaJoin, $condicionesJoin);
+// 1. Initialize and validate session
+$insMainModel = new mainModel();
+$validacion = $insMainModel->validarSesion();
 
-	$privilegio_colaborador = "";
+if($validacion['error']) {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'status' => 'error',
+        'title' => 'Error de sesión',
+        'message' => $validacion['mensaje'],
+        'redirect' => $validacion['redireccion']
+    ]);
+    exit();
+}
 
-	if (!empty($resultadoPrivilegio)) {
-		$privilegio_colaborador = $resultadoPrivilegio[0]['nombre'];
-	}
+// 2. Get session data
+$privilegio_id = $_SESSION['privilegio_sd'];
+$colaborador_id = $_SESSION['colaborador_id_sd'];
+$empresa_id = $_SESSION['empresa_id_sd'];
 
-	$datos = [
-		"privilegio_id" => $_SESSION['privilegio_sd'],
-		"colaborador_id" => $_SESSION['colaborador_id_sd'],	
-		"privilegio_colaborador" => $privilegio_colaborador,	
-		"empresa_id" => $_SESSION['empresa_id_sd']	
-	];	
+// 3. Get privilege name (simplified query)
+$query_privilegio = "SELECT nombre FROM privilegio WHERE privilegio_id = '$privilegio_id'";
+$result_privilegio = $insMainModel->ejecutar_consulta_simple($query_privilegio);
+$privilegio_colaborador = ($result_privilegio->num_rows > 0) ? $result_privilegio->fetch_assoc()['nombre'] : "";
 
-	$result = $insMainModel->getAlmacen($datos);
-	
-	$arreglo = array();
-	$data = array();
-	$facturar_cero = 'No';
+// 4. Get almacenes data
+$estado = (isset($_POST['estado']) && $_POST['estado'] !== '') ? $_POST['estado'] : 1;
 
-	while($row = $result->fetch_assoc()){
-		if($row['facturar_cero'] == 1){
-			$facturar_cero = 'Si';
-		}elseif($row['facturar_cero'] == 0){
-			$facturar_cero = 'No';
-		}
-		$data[] = array( 
-			"almacen_id"=>$row['almacen_id'],
-			"empresa"=>$row['empresa'],
-			"facturarCero"=>$facturar_cero,
-			"almacen"=>$row['almacen'],
+$datos = [
+    "privilegio_id" => $privilegio_id,
+    "colaborador_id" => $colaborador_id,
+    "privilegio_colaborador" => $privilegio_colaborador,
+    "empresa_id" => $empresa_id,
+	"estado" => $estado
+];
 
-			"ubicacion"=>$row['ubicacion']		  
-		);
-	}
-	
-	$arreglo = array(
-		"echo" => 1,
-		"totalrecords" => count($data),
-		"totaldisplayrecords" => count($data),
-		"data" => $data
-	);
+$result = $insMainModel->getAlmacen($datos);
 
-	echo json_encode($arreglo);
+// 5. Process and format data
+$almacenes = [];
+while($row = $result->fetch_assoc()) {
+    $almacenes[] = [
+        "almacen_id" => $row['almacen_id'],
+        "empresa" => $row['empresa'],
+        "facturarCero" => ($row['facturar_cero'] == 1) ? 'Si' : 'No',
+        "almacen" => $row['almacen'],
+        "ubicacion" => $row['ubicacion'],
+		"estado" => $row['estado']
+    ];
+}
+
+// 6. Return JSON response
+header('Content-Type: application/json');
+echo json_encode([
+    'success' => true,
+    'data' => $almacenes,
+    'total' => count($almacenes)
+]);
+?>

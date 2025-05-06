@@ -22,6 +22,7 @@ $(() => {
 var listar_cuentas_contabilidad = function() {
     var fechai = $("#formMainCuentasContabilidad #fechai").val();
     var fechaf = $("#formMainCuentasContabilidad #fechaf").val();
+    var estado = $('#formMainCuentasContabilidad #estado_cuentasContabilidad').val();
 
     var table_cuentas_contabilidad = $("#dataTableCuentasContabilidad").DataTable({
         "destroy": true,
@@ -30,7 +31,8 @@ var listar_cuentas_contabilidad = function() {
             "url": "<?php echo SERVERURL;?>core/llenarDataTableCuentas.php",
             "data": {
                 "fechai": fechai,
-                "fechaf": fechaf
+                "fechaf": fechaf,
+                "estado": estado
             }
         },
         "columns": [{
@@ -130,6 +132,25 @@ var listar_cuentas_contabilidad = function() {
 
                     return number;
                 },
+            },
+            {
+                "data": "estado",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        var estadoText = data == 1 ? 'Activo' : 'Inactivo';
+                        var icon = data == 1 ? 
+                            '<i class="fas fa-check-circle mr-1"></i>' : 
+                            '<i class="fas fa-times-circle mr-1"></i>';
+                        var badgeClass = data == 1 ? 
+                            'badge badge-pill badge-success' : 
+                            'badge badge-pill badge-danger';
+                        
+                        return '<span class="' + badgeClass + 
+                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                            icon + estadoText + '</span>';
+                    }
+                    return data;
+                }
             },
             {
                 "defaultContent": "<button class='table_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"

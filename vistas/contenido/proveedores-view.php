@@ -50,6 +50,7 @@
                                 <th>Correo</th>
                                 <th>Departamento</th>
                                 <th>Municipio</th>
+                                <th>Estado</th>
                                 <th>Editar</th>
                                 <th>Eliminar</th>
                             </tr>

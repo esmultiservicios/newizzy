@@ -188,27 +188,6 @@
                     <input type="hidden" id="pago_planificado_id" name="pago_planificado_id" class="form-control">
                     <input type="hidden" id="colaboradores_id" name="colaboradores_id" class="form-control">
                     
-                    <!-- Sección de Información General -->
-                    <div class="card border-primary mb-4">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Información General</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="form-row">
-                                <div class="col-md-12 mb-3">
-                                    <label for="proceso_nomina_detalles"><i class="fas fa-tasks mr-1"></i>Proceso de Nómina</label>
-                                    <div class="input-group">
-                                        <input type="text" id="proceso_nomina_detalles" class="form-control" readonly>
-                                        <div class="input-group-append">
-                                            <span class="input-group-text"><i class="fas fa-plus-square"></i></span>
-                                        </div>
-                                    </div>
-                                    <small class="form-text text-muted">Descripción del proceso de nómina</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
                     <!-- Sección de Nómina -->
                     <div class="card border-primary mb-4">
                         <div class="card-header bg-primary text-white">

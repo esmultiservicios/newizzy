@@ -6714,21 +6714,22 @@ class mainModel
 		$proveedores_id = '';
 		$fecha_actual = date('Y-m-d');
 		$fecha = '';
-
+	
 		if ($datos['fechai'] !== $fecha_actual) {
-			$fecha = "AND proveedores.fecha BETWEEN '" . $datos['fechai'] . "' AND '" . $datos['fechaf'] . "'";
+			$fecha = "AND compras.fecha BETWEEN '" . $datos['fechai'] . "' AND '" . $datos['fechaf'] . "'";
 		}
-
+	
 		if (!empty($datos['proveedores_id']) && $datos['proveedores_id'] !== 0) {
 			$proveedores_id = "AND proveedores.proveedores_id = '" . $datos['proveedores_id'] . "'";
 		}
-
+	
 		$query = "SELECT
 			proveedores.nombre AS proveedores,
 			compras.compras_id,
 			compras.number AS factura,
 			compras.importe,
 			compras.fecha,
+			compras.tipo_compra,			
 			pagar_proveedores.saldo,
 			pagar_proveedores.estado
 			FROM
@@ -6738,10 +6739,11 @@ class mainModel
 			WHERE pagar_proveedores.estado = '" . $datos['estado'] . "'
 			$fecha
 			$proveedores_id
-			ORDER BY proveedores.fecha ASC";
+			ORDER BY compras.fecha ASC";
 
+	
 		$result = self::connection()->query($query);
-
+	
 		return $result;
 	}
 

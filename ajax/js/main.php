@@ -3047,14 +3047,7 @@ $(() => {
 });
 
 var listar_cuentas_por_pagar_proveedores = function() {
-    var estado = "";
-
-    if ($("#form_main_pagar_proveedores #pagar_proveedores_estado").val() == "" || $(
-            "#form_main_pagar_proveedores #pagar_proveedores_estado").val() == null) {
-        estado = 1;
-    } else {
-        estado = $("#form_main_pagar_proveedores #pagar_proveedores_estado").val();
-    }
+    var estado = $('#form_main_pagar_proveedores #pagar_proveedores_estado').val();
 
     var proveedores_id = $("#form_main_pagar_proveedores #pagar_proveedores").val();
     var fechai = $("#form_main_pagar_proveedores #fechai").val();
@@ -3078,6 +3071,23 @@ var listar_cuentas_por_pagar_proveedores = function() {
             {
                 "data": "proveedores"
             },
+            {
+                "data": "estado",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        var text = data == 1 ? 'Crédito' : 'Contado';
+                        var icon = data == 1 
+                            ? '<i class="fas fa-clock mr-1"></i>' 
+                            : '<i class="fas fa-check-circle mr-1"></i>';
+                        var badgeClass = data == 1 
+                            ? 'badge badge-pill badge-warning' 
+                            : 'badge badge-pill badge-success';
+                        return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' + 
+                            icon + text + '</span>';
+                    }
+                    return data;
+                }
+            },             
             {
                 "data": "factura"
             },
@@ -3190,13 +3200,6 @@ var listar_cuentas_por_pagar_proveedores = function() {
                 targets: 7
             }
         ],
-        "fnRowCallback": function(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-            // Agregar clases de color a las celdas de cada fila según el valor de 'color'
-            $('td', nRow).addClass(aData['color']);
-
-            // Personalizar el color de la celda en la posición 2 (índice 2)
-            $('td:eq(2)', nRow).css('color', 'red');
-        },
         "footerCallback": function(row, data, start, end, display) {
             // Calcular los totales
             var totalCredito = data.reduce(function(acc, row) {
@@ -4496,7 +4499,7 @@ var listar_AbonosCXC = function() {
         "language": idioma_español,
         "dom": dom,
         "columnDefs": [{
-                width: "10%",
+                width: "20%",
                 targets: 0
             },
             {
@@ -4504,7 +4507,7 @@ var listar_AbonosCXC = function() {
                 targets: 1
             },
             {
-                width: "35%",
+                width: "25%",
                 targets: 2
             },
             {
@@ -4512,7 +4515,7 @@ var listar_AbonosCXC = function() {
                 targets: 3
             },
             {
-                width: "50%",
+                width: "25%",
                 targets: 4
             }
         ],

@@ -11,8 +11,7 @@
 						<div class="col-md-3 col-sm-6 mb-3">
 							<div class="form-group">
 								<label class="small mb-1">Estado</label>
-								<select id="pagar_proveedores_estado" name="pagar_proveedores_estado" 
-									class="form-control selectpicker" title="Estado" data-live-search="true">
+								<select id="pagar_proveedores_estado" name="pagar_proveedores_estado" class="form-control selectpicker" title="Estado" data-live-search="true">
 									<option value="1">Pendientes</option>
 									<option value="2">Pagadas</option>
 								</select>
@@ -93,6 +92,7 @@
 	                        <tr>
 	                            <th>Fecha</th>
 	                            <th>Cliente</th>
+								<th>Estado</th>
 	                            <th>Factura</th>
 	                            <th>Crédito</th>
 	                            <th>Abonos</th>
@@ -104,7 +104,7 @@
 	                    </thead>
 	                    <tfoot class="bg-secondary">
 	                        <tr>
-	                            <td colspan='3'>Total</td>
+	                            <td colspan='4'>Total</td>
 	                            <td id="credito-cxp"></td>
 	                            <td id="abono-cxp"></td>
 	                            <td colspan='1' id='total-footer-cxp'></td>

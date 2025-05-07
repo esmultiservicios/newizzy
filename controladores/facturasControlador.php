@@ -45,7 +45,8 @@ class facturasControlador extends facturasModelo {
                     'incremento' => $secuenciaData['incremento'],
                     'prefijo' => $secuenciaData['prefijo'],
                     'relleno' => $secuenciaData['relleno'],
-                    'rango_final' => $secuenciaData['rango_final']
+                    'rango_final' => $secuenciaData['rango_final'],
+                    'conexion' => $conexion // Añadimos la conexión al array de retorno
                 ]
             ];
         } catch (Exception $e) {
@@ -55,6 +56,28 @@ class facturasControlador extends facturasModelo {
                 'error' => true,
                 'mensaje' => 'Error al generar el número de factura'
             ];
+        }
+    }
+
+    // Método para confirmar la numeración de factura (se llama después de guardar la factura exitosamente)
+    protected function confirmarNumeracionFactura($secuencia_facturacion_id, $nuevo_numero, $conexion) {
+        try {
+            $updateSecuencia = facturasModelo::actualizar_secuencia_modelo(
+                $secuencia_facturacion_id, 
+                $nuevo_numero,
+                $conexion
+            );
+            
+            if(!$updateSecuencia) {
+                throw new Exception("Error al actualizar la secuencia de facturación");
+            }
+            
+            $conexion->commit();
+            return true;
+        } catch (Exception $e) {
+            $conexion->rollback();
+            error_log("Error al confirmar numeración: " . $e->getMessage());
+            return false;
         }
     }
 
@@ -431,15 +454,15 @@ class facturasControlador extends facturasModelo {
 
     // Método principal para agregar facturas
     public function agregar_facturas_controlador() {
-        // Iniciar transacción
-        $conexion = mainModel::connection();
-        $conexion->begin_transaction();
-    
+        // Iniciar transacción principal
+        $conexionPrincipal = mainModel::connection();
+        $conexionPrincipal->begin_transaction();
+
         try {
             // Validar sesión
             $validacion = mainModel::validarSesion();
             if ($validacion['error']) {
-                $conexion->rollback();
+                $conexionPrincipal->rollback();
                 return mainModel::showNotification([
                     "title" => "Error de sesión",
                     "text" => $validacion['mensaje'],
@@ -456,7 +479,7 @@ class facturasControlador extends facturasModelo {
                 $limiteFacturas = (int)($planConfig['facturas'] ?? 0);
                 
                 if ($limiteFacturas === 0) {
-                    $conexion->rollback();
+                    $conexionPrincipal->rollback();
                     return $mainModel->showNotification([
                         "type" => "error",
                         "title" => "Acceso restringido",
@@ -467,7 +490,7 @@ class facturasControlador extends facturasModelo {
                 $totalRegistradas = (int)facturasModelo::getTotalFacturasRegistradas();
                 
                 if ($totalRegistradas >= $limiteFacturas) {
-                    $conexion->rollback();
+                    $conexionPrincipal->rollback();
                     return $mainModel->showNotification([
                         "type" => "error",
                         "title" => "Límite alcanzado",
@@ -475,7 +498,7 @@ class facturasControlador extends facturasModelo {
                     ]);
                 }
             }
-    
+
             // Obtener tipo de factura y documento
             $tipo_factura = $_POST['facturas_activo'] ?? 2; //1. CONTADO, 2. CREDITO
             $tipo_documento = $_POST['facturas_proforma'] ?? 0; //0. FACTURA ELECTRONICA, 1. FACTURA PROFORMA
@@ -486,7 +509,7 @@ class facturasControlador extends facturasModelo {
             // Validar datos del formulario
             $validacion = $this->validarDatosFormulario();
             if($validacion['error']) {
-                $conexion->rollback();
+                $conexionPrincipal->rollback();
                 return mainModel::showNotification($validacion['notification']);
             }
             
@@ -495,11 +518,11 @@ class facturasControlador extends facturasModelo {
             if($tipo_documento === "1"){ // Si es proforma
                 $documento_id = "4";
             }
-    
-            // Obtener número de factura (dentro de la transacción)
+
+            // Obtener número de factura (dentro de una transacción separada que manejaremos)
             $numeroFactura = $this->obtenerNumeroFactura($empresa_id, $documento_id);
             if($numeroFactura['error']) {
-                $conexion->rollback();
+                $conexionPrincipal->rollback();
                 return mainModel::showNotification([
                     "title" => "Error",
                     "text" => $numeroFactura['mensaje'],
@@ -549,14 +572,17 @@ class facturasControlador extends facturasModelo {
             $query = facturasModelo::guardar_facturas_modelo($datosFactura);
             
             if(!$query) {
-                $conexion->rollback();
+                $conexionPrincipal->rollback();
+                if(isset($numeroFactura['data']['conexion'])) {
+                    $numeroFactura['data']['conexion']->rollback();
+                }
                 return mainModel::showNotification([
                     "title" => "Error",
                     "text" => "No hemos podido procesar su solicitud",
                     "type" => "error"
                 ]);
             }
-    
+
             // Procesar detalle de factura
             $totales = $this->procesarDetalleFactura(
                 $facturas_id, 
@@ -573,7 +599,10 @@ class facturasControlador extends facturasModelo {
             ]);
             
             if(!$updateImporte) {
-                $conexion->rollback();
+                $conexionPrincipal->rollback();
+                if(isset($numeroFactura['data']['conexion'])) {
+                    $numeroFactura['data']['conexion']->rollback();
+                }
                 return mainModel::showNotification([
                     "title" => "Error",
                     "text" => "Error al actualizar el importe de la factura",
@@ -595,7 +624,10 @@ class facturasControlador extends facturasModelo {
             );
             
             if(!$cuentaCobrar) {
-                $conexion->rollback();
+                $conexionPrincipal->rollback();
+                if(isset($numeroFactura['data']['conexion'])) {
+                    $numeroFactura['data']['conexion']->rollback();
+                }
                 return mainModel::showNotification([
                     "title" => "Error",
                     "text" => "Error al registrar la cuenta por cobrar",
@@ -605,20 +637,23 @@ class facturasControlador extends facturasModelo {
             
             // Actualizar la secuencia solo si todo lo anterior fue exitoso
             $nuevo_numero = $numeroFactura['data']['numero'] + $numeroFactura['data']['incremento'];
-            $updateSecuencia = facturasModelo::actualizar_secuencia_modelo(
+            $confirmacionNumeracion = $this->confirmarNumeracionFactura(
                 $numeroFactura['data']['secuencia_facturacion_id'], 
-                $nuevo_numero
+                $nuevo_numero,
+                $numeroFactura['data']['conexion']
             );
             
-            if(!$updateSecuencia) {
-                $conexion->rollback();
-                error_log("Error grave al actualizar secuencia para factura: " . $facturas_id);
+            if(!$confirmacionNumeracion) {
+                $conexionPrincipal->rollback();
                 return mainModel::showNotification([
                     "title" => "Error",
                     "text" => "Error al actualizar la secuencia de facturación",
                     "type" => "error"
                 ]);
             }
+            
+            // Confirmar transacción principal
+            $conexionPrincipal->commit();
             
             // Guardar historial
             $cliente = mainModel::consultar_tabla('clientes', ['nombre', 'rtn'], "clientes_id = {$clientes_id}")[0];
@@ -647,7 +682,6 @@ class facturasControlador extends facturasModelo {
                 $updateEstado = facturasModelo::actualizar_estado_factura_modelo($facturas_id);
                 
                 if(!$proforma || !$updateEstado) {
-                    $conexion->rollback();
                     return mainModel::showNotification([
                         "title" => "Error",
                         "text" => "Error al registrar la factura proforma",
@@ -668,9 +702,6 @@ class facturasControlador extends facturasModelo {
                     "limpiarTablaFactura();getCajero();getConsumidorFinal();getEstadoFactura();cleanFooterValueBill();resetRow();" . $funcion_pagos;
             }
             
-            // Si todo salió bien, confirmar la transacción
-            $conexion->commit();
-            
             return mainModel::showNotification([
                 "type" => "success",
                 "title" => "Registro almacenado",
@@ -681,11 +712,16 @@ class facturasControlador extends facturasModelo {
             
         } catch (Exception $e) {
             // En caso de cualquier error, hacer rollback
-            $conexion->rollback();
+            if(isset($conexionPrincipal) && $conexionPrincipal) {
+                $conexionPrincipal->rollback();
+            }
+            if(isset($numeroFactura['data']['conexion']) && $numeroFactura['data']['conexion']) {
+                $numeroFactura['data']['conexion']->rollback();
+            }
             error_log("Error en agregar_facturas_controlador: " . $e->getMessage());
             return mainModel::showNotification([
                 "title" => "Error",
-                "text" => "Ocurrió un error al procesar la factura",
+                "text" => "Ocurrió un error al procesar la factura: " . $e->getMessage(),
                 "type" => "error"
             ]);
         }

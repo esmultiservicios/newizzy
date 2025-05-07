@@ -8,7 +8,7 @@ if($peticionAjax){
 
 class facturasControlador extends facturasModelo {
     // Método para obtener el número de factura con manejo de condición de carrera
-	protected function obtenerNumeroFactura($empresa_id, $documento_id) {
+    protected function obtenerNumeroFactura($empresa_id, $documento_id) {
         $conexion = mainModel::connection();
         $conexion->begin_transaction();
         
@@ -413,6 +413,22 @@ class facturasControlador extends facturasModelo {
         mainModel::guardarHistorial($datos);
     }
 
+    // Método para procesar pagos múltiples
+    protected function procesarPagosMultiples($facturas_id, $total_pagado) {
+        // Verificar si el saldo es cero
+        $saldo_cero = facturasModelo::verificar_saldo_cero($facturas_id);
+        
+        if($saldo_cero) {
+            // Actualizar estado a pago completo
+            facturasModelo::actualizar_estado_pago_completo($facturas_id);
+            
+            // Retornar función para imprimir factura
+            return "printBill(".$facturas_id.");";
+        }
+        
+        return "";
+    }
+
     // Método principal para agregar facturas
     public function agregar_facturas_controlador() {
         // Iniciar transacción
@@ -641,9 +657,15 @@ class facturasControlador extends facturasModelo {
                 
                 $funcion = "limpiarTablaFactura();getCajero();printBill({$facturas_id});getConsumidorFinal();getEstadoFactura();cleanFooterValueBill();resetRow();";
             } else { // Factura normal
+                // Verificar si hay pagos múltiples y saldo cero
+                $funcion_pagos = "";
+                if(isset($_POST['total_pagado'])) {
+                    $funcion_pagos = $this->procesarPagosMultiples($facturas_id, $_POST['total_pagado']);
+                }
+                
                 $funcion = ($tipo_factura == 1) ? 
-                    "limpiarTablaFactura();pago({$facturas_id});getCajero();getConsumidorFinal();getEstadoFactura();cleanFooterValueBill();resetRow();getTotalFacturasDisponibles();" :
-                    "limpiarTablaFactura();getCajero();getConsumidorFinal();getEstadoFactura();cleanFooterValueBill();resetRow();";
+                    "limpiarTablaFactura();pago({$facturas_id});getCajero();getConsumidorFinal();getEstadoFactura();cleanFooterValueBill();resetRow();getTotalFacturasDisponibles();" . $funcion_pagos :
+                    "limpiarTablaFactura();getCajero();getConsumidorFinal();getEstadoFactura();cleanFooterValueBill();resetRow();" . $funcion_pagos;
             }
             
             // Si todo salió bien, confirmar la transacción

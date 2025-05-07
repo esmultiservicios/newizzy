@@ -5,8 +5,10 @@
 	
 	$insMainModel = new mainModel();
 	
+	$estado = (isset($_POST['estado']) && $_POST['estado'] !== '') ? $_POST['estado'] : 1;
+
 	$datos = [
-		"estado" => $_POST['estado'],
+		"estado" =>	$estado,
 		"proveedores_id" => $_POST['proveedores_id'],		
 		"fechai" => $_POST['fechai'],
 		"fechaf" => $_POST['fechaf'],		
@@ -52,6 +54,8 @@
 			"fecha"=>$row['fecha'],
 			"proveedores"=>$row['proveedores'],
 			"factura"=>$row['factura'],
+			"factura"=>$row['factura'],
+			"tipo_compra"=>$row['tipo_compra'],
 			"credito"=>$credito,
 			"abono"=>$abono,			
 			"saldo"=>$saldo,

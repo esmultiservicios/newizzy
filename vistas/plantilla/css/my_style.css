@@ -843,6 +843,7 @@
 .logo-container .logo polygon {
     fill: inherit !important; /* Respeta colores originales */
 }
+
 /* ==================== */
 /* ESTILOS PARA SIDEBAR - REVISADO */
 /* ==================== */
@@ -2511,24 +2512,108 @@
 }
 
 /*PRUEBA SISTEMA*/
-.prueba-sistema {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  z-index: 9999;
-  font-size: 5vw;
-  font-weight: 700;
-  color: rgba(255, 160, 160, 0.7); /* Color ajustado: más saturado y menos transparente */
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-  transform: rotate(-15deg);
-  user-select: none;
-  animation: floatText 8s ease-in-out infinite alternate;
+/* ESTILOS PARA ENTORNO DE PRUEBAS - Versión ajustada */
+.env-badge {
+    position: fixed;
+    bottom: 60px; /* Subido 40px más que antes (de 20px a 60px) */
+    right: 20px;
+    padding: 12px 20px; /* Aumentado el padding para más tamaño */
+    background-color: #FF9800; /* Naranja para entorno de pruebas */
+    color: white;
+    border-radius: 20px;
+    font-size: 16px; /* Aumentado de 12px a 16px */
+    font-weight: 700; /* Más grueso (de 600 a 700) */
+    z-index: 99999;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.25); /* Sombra más pronunciada */
+    text-transform: uppercase;
+    letter-spacing: 1.5px; /* Más espacio entre letras */
+    opacity: 0.95;
+    display: flex;
+    align-items: center;
+    animation: pulse 2s infinite;
+    min-width: 200px; /* Ancho mínimo para mejor legibilidad */
+    text-align: center;
+    justify-content: center;
+}
+
+.env-badge i {
+    margin-right: 10px; /* Más espacio entre icono y texto */
+    font-size: 18px; /* Icono más grande (de 14px a 18px) */
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Para modo desarrollo */
+.env-badge.dev {
+    background-color: #2196F3; /* Azul */
+}
+
+/* Para modo producción */
+.env-badge.prod {
+    background-color: #4CAF50; /* Verde */
+    display: none;
+}
+
+/* Estilo profesional para el badge de base de datos */
+.sb-sidenav-footer {
+    padding: 12px 15px;
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.db-badge {
+    display: flex;
+    align-items: center;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 8px 12px;
+    transition: all 0.3s ease;
+}
+
+.db-badge:hover {
+    background: rgba(255,255,255,0.15);
+    transform: translateY(-2px);
+}
+
+.db-icon {
+    font-size: 16px;
+    color: #3498db;
+    margin-right: 10px;
+    background: rgba(52, 152, 219, 0.2);
+    padding: 8px;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.db-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.db-label {
+    font-size: 10px;
+    color: #bdc3c7;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+}
+
+.db-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #ecf0f1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
 }
 
 /* Animación sutil para dar sensación de "flotar" */
@@ -3071,39 +3156,94 @@
 }
 
 /* ====================== */
-/* BOTÓN WHATSAPP PERFECTO */
+/* BOTÓN WHATSAPP PREMIUM */
 /* ====================== */
 .float-ws {
     position: fixed;
-    width: 56px;
-    height: 56px;
-    bottom: 70px; /* Posición ideal arriba del footer */
-    left: 10px;
+    width: 60px;
+    height: 60px;
+    bottom: 90px; /* Más elevado para mejor visibilidad */
+    left: 20px; /* Mayor margen del borde */
     background-color: #25D366;
     color: white !important;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.7rem;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
-    z-index: 100;
-    transition: all 0.2s ease;
-    animation: pulse-ws 2s infinite;
-    border: none;
+    font-size: 1.8rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+    z-index: 1000; /* Mayor z-index para asegurar visibilidad */
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    animation: pulse-ws 2s infinite ease-in-out;
+    border: 2px solid white; /* Borde blanco para mejor contraste */
     outline: none;
     cursor: pointer;
+    overflow: hidden; /* Para el efecto de onda */
 }
 
 .float-ws:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1) translateY(-5px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+    animation: none; /* Detiene la animación al hacer hover */
+}
+
+/* Efecto de onda al hacer click */
+.float-ws:active:after {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    background: radial-gradient(circle, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 70%);
+    border-radius: 50%;
+    animation: click-wave 0.5s ease-out;
 }
 
 @keyframes pulse-ws {
-    0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.6); }
-    70% { box-shadow: 0 0 0 10px rgba(37, 211, 102, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 15px rgba(37, 211, 102, 0);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
+    }
+}
+
+@keyframes click-wave {
+    0% {
+        transform: scale(0.8);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(2.5);
+        opacity: 0;
+    }
+}
+
+/* Efecto de notificación (opcional) */
+.float-ws.notification:before {
+    content: "";
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background-color: #FF3B30;
+    border-radius: 50%;
+    border: 2px solid white;
+    top: 5px;
+    right: 5px;
+    animation: notification-pulse 1.5s infinite;
+}
+
+@keyframes notification-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
 }
 
 /* ====================== */
@@ -4493,3 +4633,4 @@ input[readonly] {
     text-decoration: underline;
     font-weight: bold;
 }
+

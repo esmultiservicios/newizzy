@@ -462,7 +462,7 @@ function showComprasAnuales(year = null) {
                             usePointStyle: true,
                             callbacks: {
                                 label: function(context) {
-                                    return ' $' + context.parsed.y.toLocaleString();
+                                    return ' L.' + context.parsed.y.toLocaleString();
                                 }
                             }
                         },

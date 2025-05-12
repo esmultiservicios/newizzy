@@ -113,7 +113,6 @@ class DynamicNavbar {
     // Generar el HTML del navbar dinámicamente
     public function generarNavbar() {
         $html = '<nav class="sb-sidenav accordion bg-color-navarlateral" id="sidenavAccordion">
-                    <br/>
                     <div class="sb-sidenav-menu">
                         <div class="nav">';
         
@@ -203,22 +202,37 @@ class DynamicNavbar {
             }
         }
         
-        $prefixes = array("clinicarehn_", "clientes_");
+        $prefixes = DB_PREFIX . "_";
         $nombre_db_final = str_replace($prefixes, "", $GLOBALS['db']);
+        
+        // Variables para WhatsApp
+        $telefono_ws = "50489136844";
+        $mensaje_ws = "Hola ES MULTISERVICIOS, nos gustaría que nos puedan brindar asistencia técnica, muchas gracias.";
+        $title = "ES MULTISERVICIOS";
+        
+        // Codificar mensaje para URL
+        $mensaje_codificado = urlencode($mensaje_ws);
+        
+        // Construir URL de WhatsApp
+        $url_ws = "https://api.whatsapp.com/send?phone={$telefono_ws}&text={$mensaje_codificado}";
         
         $html .= '
             </div>
         </div>
-        <div class="sb-sidenav-footer link">
-            <center><span class="small-font">' . $nombre_db_final . '</span></center>
+        <div class="sb-sidenav-footer">
+            <div class="db-badge">
+                <i class="fas fa-database db-icon"></i>
+                <div class="db-info">
+                    <span class="db-label">Base de Datos:</span>
+                    <span class="db-name">' . htmlspecialchars($nombre_db_final, ENT_QUOTES, 'UTF-8') . '</span>
+                </div>
+            </div>
         </div>
         
-            <a href="https://api.whatsapp.com/send?phone=50494748379&text=Hola%20MULTIFAST,%20nos%20gustar%C3%ADa%20que%20nos%20puedan%20brindar%20asistencia%20t%C3%A9cnica,%20muchas%20gracias."
-                class="float-ws" target="_blank" data-toggle="tooltip" data-placement="top" title="FLEXA">
-                <i class="fab fa-whatsapp my-float-ws"></i>
-            </a>
-        </nav>';
-        
+        <a href="' . $url_ws . '" class="float-ws" target="_blank" data-toggle="tooltip" data-placement="top" title="'.$title.'">
+           <i class="fab fa-whatsapp my-float-ws"></i>
+        </a>
+        </nav>';        
         
         return $html;
     }

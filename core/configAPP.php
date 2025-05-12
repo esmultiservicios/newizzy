@@ -78,10 +78,11 @@ const DB_MAIN_LOGIN_CONTROLADOR = DB_MAIN;  // LA BASE DE DATOS QUE ESTE AQUÃ
  * Para encrptar y Desencriptar
  * Nota: Estos valores no se deben cambiar, si hay datos en la DB
  */
-const METHOD = 'AES-256-CBC';
-const SECRET_KEY = '$DP_@2020';
-const SECRET_IV = '10172';
-const SISTEMA_PRUEBA = 'NO';  // SI o NO
+define('METHOD', "AES-256-CBC");
+define('SECRET_KEY', '$DP_@2020');
+define('SECRET_IV', '10172');
+define('SISTEMA_PRUEBA', "SI");
+define('SISTEMA_PRUEBA_LABEL', "DEMO");
 
 initConfig();  // Llamar a la funciÃ³n para inicializar la configuraciÃ³n
 

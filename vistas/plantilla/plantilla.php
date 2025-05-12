@@ -24,16 +24,16 @@ if(!isset($_SESSION)){
     <link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/notyf.min.css" rel="stylesheet" />
     <link rel="shortcut icon" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/img/icono.png">
 <!--     <link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/sweetalert/sweetalert.css"
-        rel="stylesheet" crossorigin="anonymous" /> -->
+        rel="stylesheet" crossorigin="anonymous" /> -->        
 </head>
 
 <body class="sb-nav-fixed">
     <?php
-    if (SISTEMA_PRUEBA=="SI"){ //CAJA
-    ?>
-    <span class="container-fluid prueba-sistema">SISTEMA DE PRUEBA</span>
-    <?php
-    }
+        if (defined('SISTEMA_PRUEBA') && SISTEMA_PRUEBA == "SI" && defined('SISTEMA_PRUEBA_LABEL')) {
+            echo '<div class="env-badge" data-toggle="tooltip" data-placement="left" title="Entorno de demostración - Datos no reales">
+                    <i class="fas fa-flask"></i> ' . htmlspecialchars(SISTEMA_PRUEBA_LABEL, ENT_QUOTES, 'UTF-8') . '
+                </div>';
+        }
     ?>
 
     <?php
@@ -60,7 +60,7 @@ if(!isset($_SESSION)){
     <!-- Navbar Top -->
     <?php
     // Procesamiento del nombre de la base de datos
-    $prefixes = array("clinicarehn_", "clientes_");
+    $prefixes = DB_PREFIX . "_";
     $nombre_db_final = str_replace($prefixes, "", $GLOBALS['db']);
     // Mostrar banner de modo soporte si está activo
     if (isset($_SESSION['modo_soporte']) && $_SESSION['modo_soporte'] === "SI") {

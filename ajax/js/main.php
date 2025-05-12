@@ -3490,6 +3490,7 @@ var listar_clientes = function(estado) {
             var cells = $(row).find("td");
             $(cells[7]).addClass("generar");
             $(cells[6]).addClass("sistema");
+            $(cells[8]).addClass("puntos");
         },
         "buttons": [
             {
@@ -3546,6 +3547,7 @@ var listar_clientes = function(estado) {
         "drawCallback": function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
 
+            // Verificación para columnas generar y sistema
             if (getPrivilegioUsuario() !== 1 || getPrivilegioUsuario() !== 2 || getPrivilegioUsuario() !== 3) {
                 var db_consulta = getSessionUser() === "" ? DB_MAIN : getSessionUser();
                 if (db_consulta === DB_MAIN) {
@@ -3558,15 +3560,33 @@ var listar_clientes = function(estado) {
                 $('.generar').hide();
             }
 
-
+            // Verificación para puntos (AJAX SINCRÓNICO como lo necesitas)
+            $.ajax({
+                url: '<?php echo SERVERURL;?>core/programaPuntos/verificarProgramaPuntos.php',
+                type: 'POST',
+                dataType: 'json',
+                async: false, // Importante para que espere la respuesta
+                success: function(response) {
+                    if(response.mostrar_puntos) {
+                        $('.puntos').show();
+                    } else {
+                        $('.puntos').hide();
+                    }
+                    
+                    // Para debug (puedes eliminar esto)
+                    console.log("Respuesta permisos puntos:", response);
+                },
+                error: function() {
+                    $('.puntos').hide();
+                    console.error("Error verificando programa de puntos");
+                }
+            });
         }
     });
 
     // Evento para el botón de historial (DELEGACIÓN DE EVENTOS)
     $('#dataTableClientes').off('click', '.ver-historial').on('click', '.ver-historial', function() {
-        var cliente_id = $(this).data('id');
-        console.log('Botón clickeado, ID:', cliente_id);
-        
+        var cliente_id = $(this).data('id');       
         // Mostrar el modal inmediatamente
         $('#modal_historial_puntos').modal('show');
         
@@ -3582,15 +3602,14 @@ var listar_clientes = function(estado) {
     eliminar_clientes_dataTable("#dataTableClientes tbody", table_clientes);
 }
 
-// Función para cargar el historial de puntos
 function cargarHistorialPuntos(cliente_id) {
-    console.log('Iniciando carga de historial para cliente ID:', cliente_id);
+    console.log('Cargando historial para cliente ID:', cliente_id);
     
     // Mostrar loader
     $('#tabla_historial_puntos tbody').html('<tr><td colspan="4" class="text-center"><i class="fas fa-spinner fa-spin"></i> Cargando historial...</td></tr>');
     
     $.ajax({
-        url: '<?php echo SERVERURL;?>core/programaPuntos/llenarDataTableHistoricoPuntos.php',
+        url: '<?php echo SERVERURL;?>core/programaPuntos/llenarDataTableHistoricoPuntos.php', // <-- URL CORRECTA
         method: 'POST',
         data: { 
             cliente_id: cliente_id,
@@ -3602,21 +3621,24 @@ function cargarHistorialPuntos(cliente_id) {
             
             if(response.success) {
                 $('#nombre_cliente_puntos').text(response.nombre_cliente || 'Cliente no identificado');
-                $('#total_puntos_historial').text(response.total_puntos || 0);
+                
+                // Mostrar total con 2 decimales
+                var totalPuntos = parseFloat(response.total_puntos || 0).toFixed(2);
+                $('#total_puntos_historial').text(totalPuntos);
                 
                 var tbody = $('#tabla_historial_puntos tbody');
                 tbody.empty();
                 
                 if(response.historial && response.historial.length > 0) {
                     $.each(response.historial, function(index, item) {
-                        var puntos = parseInt(item.puntos) || 0;
+                        var puntos = parseFloat(item.puntos) || 0;
                         var signo = item.tipo === 'Acumulación' ? '+' : '-';
                         var clase = item.tipo === 'Acumulación' ? 'text-success' : 'text-danger';
                         
                         var row = '<tr>' +
                             '<td>' + (item.fecha || '--') + '</td>' +
                             '<td>' + (item.tipo || '--') + '</td>' +
-                            '<td class="'+clase+'">' + signo + puntos + '</td>' +
+                            '<td class="'+clase+'">' + signo + puntos.toFixed(2) + '</td>' +
                             '<td>' + (item.descripcion || '--') + '</td>' +
                             '</tr>';
                         tbody.append(row);
@@ -3630,6 +3652,7 @@ function cargarHistorialPuntos(cliente_id) {
                 $('#tabla_historial_puntos tbody').html(
                     '<tr><td colspan="4" class="text-center text-danger">Error al cargar el historial</td></tr>'
                 );
+                $('#total_puntos_historial').text('0.00'); // <-- Mostrar 0.00 en caso de error
             }
         },
         error: function(xhr, status, error) {
@@ -3638,6 +3661,7 @@ function cargarHistorialPuntos(cliente_id) {
             $('#tabla_historial_puntos tbody').html(
                 '<tr><td colspan="4" class="text-center text-danger">Error de conexión</td></tr>'
             );
+            $('#total_puntos_historial').text('0.00'); // <-- Mostrar 0.00 en caso de error
         }
     });
 }
@@ -3646,8 +3670,8 @@ var listar_generar_clientes = function() {
     var clientes_id = $("#formGenerarSistema #clientes_id").val();
 
     // Destruir la tabla si ya existe
-    if (table_generar_clientes) {
-        table_generar_clientes.destroy();
+    if ($.fn.DataTable.isDataTable("#DatatableGenerarSistema")) {
+        $("#DatatableGenerarSistema").DataTable().destroy();
     }
 
     var table_generar_clientes = $("#DatatableGenerarSistema").DataTable({
@@ -3659,49 +3683,27 @@ var listar_generar_clientes = function() {
                 "clientes_id": clientes_id,
             }
         },
-        "columns": [{
-                "data": "nombre"
-            },
-            {
-                "data": "db"
-            },
-            {
-                "data": "sistema"
-            },
-            {
-                "data": "plan"
-            },
-            {
-                "data": "validar"
-            },
+        "columns": [
+            {"data": "nombre"},
+            {"data": "db"},
+            {"data": "sistema"},
+            {"data": "plan"},
+            {"data": "validar"}
         ],
         "lengthMenu": lengthMenu20,
         "stateSave": true,
-        "bDestroy": true,
         "language": idioma_español,
         "dom": dom,
-        "columnDefs": [{
-                width: "60%",
-                targets: 0
-            },
-            {
-                width: "10%",
-                targets: 1
-            },
-            {
-                width: "5%",
-                targets: 2
-            },
-            {
-                width: "5%",
-                targets: 3
-            },
-            {
-                width: "20%",
-                targets: 4
-            }
+        "autoWidth": false,
+        "columnDefs": [
+            {width: "40%", targets: 0},
+            {width: "20%", targets: 1},
+            {width: "15%", targets: 2},
+            {width: "15%", targets: 3},
+            {width: "10%", targets: 4}
         ],
-        "buttons": [{
+        "buttons": [
+            {
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                 titleAttr: 'Actualizar Clientes',
                 className: 'btn btn-secondary',
@@ -3718,7 +3720,7 @@ var listar_generar_clientes = function() {
                 className: 'btn btn-success',
                 exportOptions: {
                     columns: [0, 1, 2, 3, 4]
-                },
+                }
             },
             {
                 extend: 'pdf',
@@ -3731,7 +3733,7 @@ var listar_generar_clientes = function() {
                     columns: [0, 1, 2, 3, 4]
                 },
                 customize: function(doc) {
-                    if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
+                    if (imagen) {
                         doc.content.splice(0, 0, {
                             image: imagen,  
                             width: 100,
@@ -3742,15 +3744,27 @@ var listar_generar_clientes = function() {
                 }
             }
         ],
+        "initComplete": function() {
+            // Redimensionar la tabla cuando se complete la inicialización
+            $(window).trigger('resize');
+        },
         "drawCallback": function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+            // Forzar redimensionamiento después de dibujar
+            setTimeout(function() {
+                table_generar_clientes.columns.adjust().draw();
+            }, 100);
         }
     });
 
-    table_generar_clientes.search('').draw();
+    // Ajustar tabla cuando el modal se muestre completamente
+    $('#modal_generar_sistema').on('shown.bs.modal', function () {
+        table_generar_clientes.columns.adjust().draw();
+    });
 
+    table_generar_clientes.search('').draw();
     $('#buscar').focus();
-}
+};
 
 $("#modal_generar_sistema").on('shown.bs.modal', function () {
     $(this).find('#formGenerarSistema #empresa').focus();
@@ -3842,7 +3856,7 @@ $("#reg_generarSitema").click(function(e) {
             if (resp.estado) {
                 showNotify(resp.type, resp.title, resp.mensaje);
                 listar_generar_clientes();
-                listar_clientes(1);
+                listar_clientes();
             } else {
                 showNotify(resp.type, resp.title, resp.mensaje);
             }
@@ -3893,7 +3907,7 @@ var generar_clientes_dataTable = function(tbody, table) {
         getValidarFacturacion();
 
         if (data.correo === "") {
-            showNotify('error', 'Error', 'Lo sentimos el cliente no tiene registrado un correo, es recomendable registrar uno, por favor diríjase al perfil del cliente y agregue el correo antes de generarle una cuenta');
+            showNotify('error', 'Correo requerido', 'El cliente no tiene correo registrado. Agregue uno en su perfil antes de continuar');
 
             $('#reg_generarSitema').attr('disabled', true);
         } else {
@@ -3962,69 +3976,103 @@ var editar_clientes_dataTable = function(tbody, table) {
     $(tbody).on("click", "button.table_editar", function() {
         var data = table.row($(this).parents("tr")).data();
         var url = '<?php echo SERVERURL;?>core/editarClientes.php';
-        $('#formClientes #clientes_id').val(data.clientes_id)
+        $('#formClientes #clientes_id').val(data.clientes_id);
 
         $.ajax({
             type: 'POST',
             url: url,
             data: $('#formClientes').serialize(),
-            success: function(registro) {
-                var valores = eval(registro);
+            dataType: 'json',
+            success: function(respuesta) {
+                // Configuración básica del formulario
                 $('#formClientes').attr({
-                    'data-form': 'update'
-                });
-                $('#formClientes').attr({
+                    'data-form': 'update',
                     'action': '<?php echo SERVERURL;?>ajax/modificarClientesAjax.php'
-                });
-                $('#formClientes')[0].reset();
+                }).trigger('reset');
+                
                 $('#reg_cliente').hide();
                 $('#edi_cliente').show();
                 $('#delete_cliente').hide();
 
-                $('#formClientes #nombre_clientes').val(valores[0]);
-                $('#formClientes #identidad_clientes').val(valores[1]);
-                $('#formClientes #fecha_clientes').attr('disabled', true);
-                $('#formClientes #fecha_clientes').val(valores[2]);
-                $('#formClientes #departamento_cliente').val(valores[3]);
-                $('#formClientes #departamento_cliente').selectpicker('refresh');
-                getMunicipiosClientes(valores[4]);
-                $('#formClientes #municipio_cliente').val(valores[4]);
-                $('#formClientes #municipio_cliente').selectpicker('refresh');
-                $('#formClientes #dirección_clientes').val(valores[5]);
-                $('#formClientes #telefono_clientes').val(valores[6]);
-                $('#formClientes #correo_clientes').val(valores[7]);
+                // Llenar datos del cliente
+                $('#formClientes #nombre_clientes').val(respuesta.nombre || '');
+                $('#formClientes #identidad_clientes').val(respuesta.rtn || '');
+                $('#formClientes #fecha_clientes').attr('disabled', true).val(respuesta.fecha || '');
+                $('#formClientes #departamento_cliente').val(respuesta.departamentos_id || '').selectpicker('refresh');
+                getMunicipiosClientes(respuesta.municipios_id);
+                $('#formClientes #municipio_cliente').val(respuesta.municipios_id || '').selectpicker('refresh');
+                $('#formClientes #dirección_clientes').val(respuesta.localidad || '');
+                $('#formClientes #telefono_clientes').val(respuesta.telefono || '');
+                $('#formClientes #correo_clientes').val(respuesta.correo || '');
+                $('#formClientes #clientes_activo').prop('checked', respuesta.estado == 1);
 
-                if (valores[8] == 1) {
-                    $('#formClientes #clientes_activo').attr('checked', true);
+                /* SECCIÓN DE PUNTOS - CAMBIOS CLAVE */
+                $('#card_puntos_cliente').show();
+                
+                // Manejo de puntos (siempre mostrar valor, 0 por defecto)
+                var puntos = respuesta.puntos || 0;
+                $('#puntos_acumulados').val(puntos);
+                
+                // Manejo de fecha (formato correcto o "No existe")
+                var fechaActualizacion = 'No existe';
+                if (respuesta.ultima_actualizacion && respuesta.ultima_actualizacion !== 'No existe') {
+                    var fecha = new Date(respuesta.ultima_actualizacion);
+                    if (!isNaN(fecha.getTime())) {
+                        fechaActualizacion = fecha.toLocaleDateString('es-ES', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    }
+                }
+                $('#puntos_ultima_actualizacion').val(fechaActualizacion);
+                
+                // Estilos condicionales
+                if (puntos == 0) {
+                    $('#puntos_acumulados').addClass('text-muted');
                 } else {
-                    $('#formClientes #clientes_activo').attr('checked', false);
+                    $('#puntos_acumulados').removeClass('text-muted').addClass('text-success');
+                }
+                
+                if (fechaActualizacion === 'No existe') {
+                    $('#puntos_ultima_actualizacion').addClass('text-muted');
+                } else {
+                    $('#puntos_ultima_actualizacion').removeClass('text-muted');
                 }
 
-                //HABILITAR OBJETOS
+                // Configurar botón de historial
+                $('#btn_ver_historial_puntos').off('click').on('click', function() {
+                    $('#modal_historial_puntos').modal('show');
+                    cargarHistorialPuntos(data.clientes_id);
+                });
+
+                // Manejo de estados de los campos
                 $('#formClientes #nombre_clientes').attr("readonly", false);
-                $('#formClientes #departamento_cliente').attr("disabled", false);
-                $('#formClientes #municipio_cliente').attr("disabled", false);
-                $('#formClientes #dirección_clientes').attr("disabled", false);
-                $('#formClientes #telefono_clientes').attr("readonly", false);
-                $('#formClientes #correo_clientes').attr("readonly", false);
+                $('#formClientes #departamento_cliente, #formClientes #municipio_cliente, #formClientes #dirección_clientes').attr("disabled", false);
+                $('#formClientes #telefono_clientes, #formClientes #correo_clientes').attr("readonly", false);
                 $('#formClientes #clientes_activo').attr("disabled", false);
                 $('#formClientes #grupo_editar_rtn').show();
-
-                //DESHABILITAR
                 $('#formClientes #identidad_clientes').attr("readonly", true);
                 $('#formClientes #fecha_clientes').attr("readonly", true);
-                $('#formClientes #estado_clientes').show();
 
+                // Mostrar modal
                 $('#formClientes #proceso_clientes').val("Editar");
                 $('#modal_registrar_clientes').modal({
                     show: true,
                     keyboard: false,
                     backdrop: 'static'
                 });
+            },
+            error: function(xhr, status, error) {
+                console.error("Error al cargar datos del cliente:", error);
+                showNotify('error', 'Error', 'No se pudieron cargar los datos del cliente');
+                $('#modal_registrar_clientes').modal('hide');
             }
         });
     });
-}
+};
 
 var eliminar_clientes_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.table_eliminar");

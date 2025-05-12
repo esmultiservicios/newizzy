@@ -3409,6 +3409,56 @@
     color: #d4af37;
 }
 
+/* Estilos para la sección de puntos */
+#card_puntos_cliente {
+    border: 1px solid #17a2b8;
+    border-radius: 0.25rem;
+}
+
+#puntos_acumulados {
+    font-weight: bold;
+    text-align: right;
+    font-size: 1.1rem;
+    color: #28a745;
+    background-color: rgba(40, 167, 69, 0.1);
+}
+
+#puntos_ultima_actualizacion {
+    background-color: #f8f9fa;
+    font-style: italic;
+}
+
+#btn_ver_historial_puntos {
+    transition: all 0.3s ease;
+}
+
+#btn_ver_historial_puntos:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Estilos para cuando no hay datos */
+#puntos_acumulados[value="0"],
+#puntos_ultima_actualizacion[value="No existe"] {
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Estilo para el badge de puntos */
+.badge-puntos {
+    font-size: 0.9rem;
+    padding: 0.35em 0.65em;
+    min-width: 60px;
+    display: inline-block;
+    text-align: center;
+}
+
+/* Estilo para fechas inválidas */
+.fecha-invalida {
+    color: #dc3545;
+    font-style: italic;
+}
+
 /* Opciones adicionales */
 .payment-options-card {
     background: white;

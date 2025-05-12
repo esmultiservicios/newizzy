@@ -3014,23 +3014,24 @@ class mainModel
 		}
 
 		$query = "SELECT c.clientes_id AS 'clientes_id', 
-				c.nombre AS 'cliente', 
-				c.rtn AS 'rtn', 
-				c.localidad AS 'localidad', 
-				c.telefono AS 'telefono', 
-				c.correo AS 'correo', 
-				d.nombre AS 'departamento', 
-				m.nombre AS 'municipio', 
-				c.rtn AS 'rtn', 
-				GROUP_CONCAT(DISTINCT  s.sistema_id) AS 'sistema_ids', 
-				GROUP_CONCAT(DISTINCT  si.nombre) AS 'db_values', 
-				c.eslogan, 
-				c.otra_informacion, 
-				c.whatsapp, 
-				c.empresa,
-				c.colaboradores_id,
-				p.planes_id AS plan_id,
-				c.estado    
+            c.nombre AS 'cliente', 
+            c.rtn AS 'rtn', 
+            c.localidad AS 'localidad', 
+            c.telefono AS 'telefono', 
+            c.correo AS 'correo', 
+            d.nombre AS 'departamento', 
+            m.nombre AS 'municipio', 
+            c.rtn AS 'rtn', 
+            GROUP_CONCAT(DISTINCT  s.sistema_id) AS 'sistema_ids', 
+            GROUP_CONCAT(DISTINCT  si.nombre) AS 'db_values', 
+            c.eslogan, 
+            c.otra_informacion, 
+            c.whatsapp, 
+            c.empresa,
+            c.colaboradores_id,
+            p.planes_id AS plan_id,
+            c.estado,
+            IFNULL((SELECT SUM(total_puntos) FROM puntos_cliente WHERE cliente_id = c.clientes_id), 0) AS puntos    
 		FROM clientes AS c
 			LEFT JOIN departamentos AS d ON c.departamentos_id = d.departamentos_id
 			LEFT JOIN municipios AS m ON c.municipios_id = m.municipios_id
@@ -3046,6 +3047,52 @@ class mainModel
 		$result = self::connection()->query($query);
 
 		return $result;
+	}
+
+	public function getClienteInfo($cliente_id) {
+		$query = "SELECT nombre FROM clientes WHERE clientes_id = ?";
+		$stmt = self::connection()->prepare($query);
+		$stmt->bind_param("i", $cliente_id);
+		$stmt->execute();
+		$result = $stmt->get_result();
+		return $result->fetch_assoc();
+	}
+	
+	public function getTotalPuntosCliente($cliente_id, $programa_puntos_id) {
+		$query = "SELECT total_puntos FROM puntos_cliente 
+				  WHERE cliente_id = ? AND programa_puntos_id = ?";
+		$stmt = self::connection()->prepare($query);
+		$stmt->bind_param("ii", $cliente_id, $programa_puntos_id);
+		$stmt->execute();
+		$result = $stmt->get_result();
+		
+		if($result->num_rows > 0) {
+			$row = $result->fetch_assoc();
+			return $row['total_puntos'];
+		}
+		return 0;
+	}
+	
+	public function getHistorialPuntos($cliente_id, $programa_puntos_id) {
+		$query = "SELECT 
+					tipo_movimiento AS tipo,
+					puntos,
+					descripcion,
+					DATE_FORMAT(fecha, '%d/%m/%Y %H:%i') AS fecha
+				  FROM historial_puntos
+				  WHERE cliente_id = ? AND programa_puntos_id = ?
+				  ORDER BY fecha DESC";
+				  
+		$stmt = self::connection()->prepare($query);
+		$stmt->bind_param("ii", $cliente_id, $programa_puntos_id);
+		$stmt->execute();
+		$result = $stmt->get_result();
+		
+		$historial = [];
+		while($row = $result->fetch_assoc()) {
+			$historial[] = $row;
+		}
+		return $historial;
 	}
 
 	public function getProveedores($estado)
@@ -5094,14 +5141,8 @@ class mainModel
 
 	public function getClientesEdit($clientes_id)
 	{
-		$query = "SELECT *
-
-				FROM clientes
-
-				WHERE clientes_id = '$clientes_id'";
-
+		$query = "SELECT * FROM clientes WHERE clientes_id = '$clientes_id'";
 		$result = self::connection()->query($query);
-
 		return $result;
 	}
 

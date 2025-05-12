@@ -1,6 +1,6 @@
- <?php
+<?php
 /*
- * Parametros de conexión a la DB
+ * Parametros de conexiÃ³n a la DB
  */
 
 // Reemplaza esto:
@@ -13,7 +13,7 @@ if (!isset($_SESSION['user_sd'])) {
     if (session_status() !== PHP_SESSION_ACTIVE) {
         session_start(['name' => 'SD']);
     }
-    // Si la sesión está activa pero no tiene 'user_sd'
+    // Si la sesiÃ³n estÃ¡ activa pero no tiene 'user_sd'
     $_SESSION['user_sd'] = null; // O el valor inicial que necesites
 }
 
@@ -30,7 +30,7 @@ define('DB_MAIN', 'esmultiservicios_izzy');
 define('MYSQL_USER', 'root');
 define('MYSQL_PASS', 'a$Exv*Smj?w7|DP');
 
-// Configuración para Microsoft 365 OAuth
+// ConfiguraciÃ³n para Microsoft 365 OAuth
 define('OAUTH_CLIENT_ID', 'tu-client-id-de-azure-ad');
 define('OAUTH_CLIENT_SECRET', 'tu-client-secret');
 define('OAUTH_TENANT_ID', 'tu-tenant-id');
@@ -48,7 +48,8 @@ define('CPANEL_HOST', 'esmultiservicios.com');
 define('CPANEL_PORT', '2083');
 define('CPANEL_DB_USERNAME', USER);
 define('CPANEL_DB_PASSWORD', PASS);
-define('CPANEL_DOMINIO', "izzycloud.app");  
+define('CPANEL_DOMINIO', "izzycloud.app");
+;  
 
 //WHM
 define('WHM_HOST', 'tu.servidor.whm');  // Ej: server.midominio.com
@@ -60,18 +61,18 @@ define('WHM_TIMEOUT', 30);              // Timeout para conexiones WHM
 //API CAMBIO DOLAR
 define('WEB_SCRAPING_DOLARES', "https://www.bancopromerica.com/banca-de-empresas/banca-internacional/mesa-de-cambio/");
 
-// Configuración para nombres de base de datos
+// ConfiguraciÃ³n para nombres de base de datos
 define('DB_PREFIX', CPANEL_USERNAME);
-define('DB_MAX_LENGTH', 10); // Longitud máxima para el identificador único
+define('DB_MAX_LENGTH', 10); // Longitud mÃ¡xima para el identificador Ãºnico
 
-// Configuración de seguridad
+// ConfiguraciÃ³n de seguridad
 define('API_TIMEOUT', 60);
-define('SSL_VERIFICATION', false); // true en producción
+define('SSL_VERIFICATION', false); // true en producciÃ³n
 
 $GLOBALS['DB_MAIN'] = DB_MAIN;
 
 // BASE DE DATOS EXCEPTION LOGIN CONTROLADOR
-const DB_MAIN_LOGIN_CONTROLADOR = DB_MAIN;  // LA BASE DE DATOS QUE ESTE AQUÍ SE EXCEPTÚA EN EL LOGIN CONTROLADOR
+const DB_MAIN_LOGIN_CONTROLADOR = DB_MAIN;  // LA BASE DE DATOS QUE ESTE AQUÃ SE EXCEPTÃšA EN EL LOGIN CONTROLADOR
 
 /*
  * Para encrptar y Desencriptar
@@ -82,25 +83,25 @@ const SECRET_KEY = '$DP_@2020';
 const SECRET_IV = '10172';
 const SISTEMA_PRUEBA = 'NO';  // SI o NO
 
-initConfig();  // Llamar a la función para inicializar la configuración
+initConfig();  // Llamar a la funciÃ³n para inicializar la configuraciÃ³n
 
 function initConfig()
 {
-    // Verificar si la sesión está activa y no ha expirado
+    // Verificar si la sesiÃ³n estÃ¡ activa y no ha expirado
     if (session_status() === PHP_SESSION_ACTIVE) {
-        // Verificar si $_SESSION['db_cliente'] está definido y no está vacío
+        // Verificar si $_SESSION['db_cliente'] estÃ¡ definido y no estÃ¡ vacÃ­o
         if (isset($_SESSION['db_cliente']) && $_SESSION['db_cliente'] !== '') {
             $db_cliente = $_SESSION['db_cliente'];
         } else {
-            $db_cliente = $GLOBALS['DB_MAIN'];  // Valor predeterminado si $_SESSION['db_cliente'] no está definido o está vacío
+            $db_cliente = $GLOBALS['DB_MAIN'];  // Valor predeterminado si $_SESSION['db_cliente'] no estÃ¡ definido o estÃ¡ vacÃ­o
         }
 
-        // DATOS DE CONEXIÓN DEL CLIENTE
+        // DATOS DE CONEXIÃ“N DEL CLIENTE
         $GLOBALS['db'] = $db_cliente;
     } else {
-        // La sesión ha expirado, puedes manejar esto de alguna manera, por ejemplo, redirigiendo al usuario a una página de inicio de sesión.
-        // Aquí puedes decidir qué hacer en caso de sesión expirada.
-        // Por ejemplo, puedes redirigir al usuario a una página de inicio de sesión.
+        // La sesiÃ³n ha expirado, puedes manejar esto de alguna manera, por ejemplo, redirigiendo al usuario a una pÃ¡gina de inicio de sesiÃ³n.
+        // AquÃ­ puedes decidir quÃ© hacer en caso de sesiÃ³n expirada.
+        // Por ejemplo, puedes redirigir al usuario a una pÃ¡gina de inicio de sesiÃ³n.
         header('Location: ' . SERVERURL);
         exit;
     }

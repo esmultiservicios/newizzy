@@ -29,7 +29,7 @@ if(!isset($_SESSION)){
 
 <body class="sb-nav-fixed">
     <?php
-        if (defined('SISTEMA_PRUEBA') && SISTEMA_PRUEBA == "SI" && defined('SISTEMA_PRUEBA_LABEL')) {
+        if (defined('SISTEMA_PRUEBA_LABEL') && SISTEMA_PRUEBA_LABEL !== '') {
             echo '<div class="env-badge" data-toggle="tooltip" data-placement="left" title="Entorno de demostración - Datos no reales">
                     <i class="fas fa-flask"></i> ' . htmlspecialchars(SISTEMA_PRUEBA_LABEL, ENT_QUOTES, 'UTF-8') . '
                 </div>';

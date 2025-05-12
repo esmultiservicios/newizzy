@@ -81,8 +81,30 @@ const DB_MAIN_LOGIN_CONTROLADOR = DB_MAIN;  // LA BASE DE DATOS QUE ESTE AQUÃ
 define('METHOD', "AES-256-CBC");
 define('SECRET_KEY', '$DP_@2020');
 define('SECRET_IV', '10172');
-define('SISTEMA_PRUEBA', "SI");
-define('SISTEMA_PRUEBA_LABEL', "DEMO");
+
+// 1. Detectar entorno local (manera más confiable)
+$host = trim($_SERVER['SERVER_NAME']); // Elimina espacios ocultos
+$isLocalDomain = (
+    $host === 'localhost' ||
+    $host === '127.0.0.1' ||
+    str_ends_with($host, '.test') ||    // PHP 8+ (recomendado)
+    str_ends_with($host, '.local') ||
+    str_ends_with($host, '.localhost')
+);
+// Si no tienes PHP 8, usa esto:
+// $isLocalDomain = $isLocalDomain || (strpos($host, '.test') !== false);
+
+define('ES_LOCAL', $isLocalDomain);
+
+// 2. Definir modo demo (solo aplica en producción)
+define('SISTEMA_PRUEBA', 'SI'); // Cambia a 'SI' o 'NO'
+
+// 3. Asignar etiqueta (prioridad absoluta a entorno local)
+if (ES_LOCAL) {
+    define('SISTEMA_PRUEBA_LABEL', 'MODO DESARROLLO'); // Siempre en local
+} else {
+    define('SISTEMA_PRUEBA_LABEL', (SISTEMA_PRUEBA === 'SI') ? 'DEMO' : '');
+}
 
 initConfig();  // Llamar a la funciÃ³n para inicializar la configuraciÃ³n
 

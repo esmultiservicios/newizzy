@@ -75,7 +75,7 @@ try {
     
     $result_total = $insMainModel->ejecutar_consulta_simple_preparada($query_total, $types, $params);
     $total = $result_total->fetch_assoc();
-    $total_puntos = $total ? intval($total['total']) : 0;
+    $total_puntos = $total ? floatval($total['total']) : 0.00;
 
     // 4. Obtener última actualización
     $query_last = "SELECT MAX(fecha) as ultima FROM historial_puntos WHERE cliente_id = ?";

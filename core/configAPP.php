@@ -1,4 +1,4 @@
-<?php
+ <?php
 /*
  * Parametros de conexión a la DB
  */
@@ -48,8 +48,7 @@ define('CPANEL_HOST', 'esmultiservicios.com');
 define('CPANEL_PORT', '2083');
 define('CPANEL_DB_USERNAME', USER);
 define('CPANEL_DB_PASSWORD', PASS);
-define('CPANEL_DOMINIO', "izzycloud.app");
-;  
+define('CPANEL_DOMINIO', "izzycloud.app");  
 
 //WHM
 define('WHM_HOST', 'tu.servidor.whm');  // Ej: server.midominio.com

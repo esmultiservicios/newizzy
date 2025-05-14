@@ -10,6 +10,7 @@
 
         $('#form_main_ventas #search').on("click", function (e) {
             e.preventDefault();
+            console.log("Botón de búsqueda clickeado"); // Verifica en la consola (F12)
             listar_reporte_ventas();
         });
 
@@ -36,7 +37,7 @@
         }
     }
 
-    // Función principal para listar el reporte de ventas
+    // Modificación en la función listar_reporte_ventas
     var listar_reporte_ventas = function () {
         let tipo_factura_reporte = $("#form_main_ventas #tipo_factura_reporte").val();
         tipo_factura_reporte = tipo_factura_reporte ? tipo_factura_reporte : 1;
@@ -88,7 +89,16 @@
                     "data": "cliente"
                 },
                 {
-                    "data": "numero"
+                    "data": "numero",
+                    "render": function(data, type, row) {
+                        if (type === 'sort') {
+                            // Para ordenamiento, usamos el número original (row.number)
+                            // que es común tanto para facturas como proformas
+                            return parseInt(row.number);
+                        }
+                        // Para visualización, usamos el formato completo
+                        return data;
+                    }
                 },
                 {
                     "data": "subtotal",
@@ -207,6 +217,11 @@
                     "defaultContent": "<button class='table_cancelar cancelar_factura btn btn-danger'><span class='fas fa-ban fa-lg'></span> Anular</button>"
                 }
             ],
+            // Ordenamos por la columna 3 (número) de forma descendente
+            "order": [[3, "desc"]], 
+            "orderFixed": {
+                "pre": [[3, "desc"]]
+            },
             "lengthMenu": lengthMenu10,
             "stateSave": true,
             "bDestroy": true,
@@ -326,7 +341,7 @@
             mostrarDetalleFactura(data.facturas_id);
         });
     }
-
+    
     function mostrarDetalleFactura(facturas_id) {
         // Mostrar el modal
         var $modal = $('#modalDetalleFactura');

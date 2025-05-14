@@ -22,7 +22,6 @@ $(() => {
     });	
 });
 
-//INICIO REPORTE DE COTIZACIONES
 var listar_reporte_cotizaciones = function() {
     var tipo_cotizacion_reporte = 1;
     if ($("#form_main_cotizaciones #tipo_cotizacion_reporte").val() == null || $(
@@ -56,7 +55,15 @@ var listar_reporte_cotizaciones = function() {
                 "data": "cliente"
             },
             {
-                "data": "numero"
+                "data": "numero",
+                "render": function(data, type, row) {
+                    if (type === 'sort') {
+                        // Para ordenamiento, usamos el número base (row.numero_ordenamiento)
+                        return parseInt(row.numero_ordenamiento);
+                    }
+                    // Para visualización, usamos el formato completo
+                    return data;
+                }
             },
             {
                 "data": "subtotal",
@@ -144,10 +151,14 @@ var listar_reporte_cotizaciones = function() {
                 "defaultContent": "<button class='table_cancelar cancelar_cotizaciones btn btn-danger ocultar'><span class='fas fa-ban fa-lg'></span>Anular</button>"
             }
         ],
+        "order": [[3, "desc"]], // Ordenar por la columna 3 (número) de forma descendente
+        "orderFixed": {
+            "pre": [[3, "desc"]] // Mantener este orden incluso después de búsquedas/filtros
+        },
         "lengthMenu": lengthMenu10,
         "stateSave": true,
         "bDestroy": true,
-        "language": idioma_español, //esta se encuenta en el archivo main.js
+        "language": idioma_español,
         "dom": dom,
         "columnDefs": [{
                 width: "9.09%",
@@ -195,7 +206,6 @@ var listar_reporte_cotizaciones = function() {
             },
         ],
         "footerCallback": function(row, data, start, end, display) {
-            // Aquí puedes calcular los totales y actualizar el footer
             var totalSubtotal = data.reduce(function(acc, row) {
                 return acc + (parseFloat(row.subtotal) || 0);
             }, 0);
@@ -212,22 +222,17 @@ var listar_reporte_cotizaciones = function() {
                 return acc + (parseFloat(row.total) || 0);
             }, 0);
 
-            // Formatear los totales con dos decimales y separadores de miles
-            var totalSubtotalFormatted = "L. " + totalSubtotal.toFixed(2).replace(/\d(?=(\d{3})+\.)/g,
-                '$&,');
-            var totalIsvFormatted = "L. " + totalIsv.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
-            var totalDescuentoFormatted = "L. " + totalDescuento.toFixed(2).replace(/\d(?=(\d{3})+\.)/g,
-                '$&,');
-            var totalVentasFormatted = "L. " + totalVentas.toFixed(2).replace(/\d(?=(\d{3})+\.)/g,
-                '$&,');
+            var formatter = new Intl.NumberFormat('es-HN', {
+                style: 'currency',
+                currency: 'HNL',
+                minimumFractionDigits: 2,
+            });
 
-            // Asignar los totales a los elementos HTML en el footer
-            $('#subtotal-i').html(totalSubtotalFormatted);
-            $('#impuesto-i').html(totalIsvFormatted);
-            $('#descuento-i').html(totalDescuentoFormatted);
-            $('#total-footer-ingreso').html(totalVentasFormatted);
+            $('#subtotal-i').html(formatter.format(totalSubtotal));
+            $('#impuesto-i').html(formatter.format(totalIsv));
+            $('#descuento-i').html(formatter.format(totalDescuento));
+            $('#total-footer-ingreso').html(formatter.format(totalVentas));
         },
-
         "buttons": [{
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                 titleAttr: 'Actualizar Reporte de Cotizaciones',
@@ -266,7 +271,7 @@ var listar_reporte_cotizaciones = function() {
                     columns: [0, 1, 2, 3, 4, 5, 6, 7]
                 },
                 customize: function(doc) {
-                    if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
+                    if (imagen) {
                         doc.content.splice(0, 0, {
                             image: imagen,  
                             width: 100,

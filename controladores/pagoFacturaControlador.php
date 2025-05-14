@@ -24,7 +24,7 @@ class pagoFacturaControlador extends pagoFacturaModelo {
         $campoUsuario = "usuario_" . $tipoPago;
 
         // Validar campos requeridos
-        if (!isset($_POST[$campoId]) || empty($_POST[$campoId])) {
+        if (!isset($_POST[$campoId])) {
             return [
                 "status" => false,
                 "title" => "Error",
@@ -36,11 +36,7 @@ class pagoFacturaControlador extends pagoFacturaModelo {
         $monto = 0;
         if ($tipoPago === 'efectivo') {
             $monto = isset($_POST['efectivo_bill']) ? floatval($_POST['efectivo_bill']) : 0;
-        } elseif ($tipoPago === 'tarjeta') {
-            $monto = isset($_POST['importe']) ? floatval($_POST['importe']) : 0;
-        } elseif ($tipoPago === 'transferencia') {
-            $monto = isset($_POST['importe']) ? floatval($_POST['importe']) : 0;
-        } elseif ($tipoPago === 'cheque') {
+        } elseif ($tipoPago === 'tarjeta' || $tipoPago === 'transferencia' || $tipoPago === 'cheque') {
             $monto = isset($_POST['importe']) ? floatval($_POST['importe']) : 0;
         }
 

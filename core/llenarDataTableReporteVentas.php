@@ -19,13 +19,13 @@ if($validacion['error']) {
 }
 
 $datos = [
-	'tipo_factura_reporte' => $_POST['tipo_factura_reporte'],
-	'fechai' => $_POST['fechai'],
-	'fechaf' => $_POST['fechaf'],
-	'facturador' => $_POST['facturador'],
-	'vendedor' => $_POST['vendedor'],
-	'factura' => $_POST['factura'],
-	'empresa_id_sd' => $_SESSION['empresa_id_sd'],
+    'tipo_factura_reporte' => $_POST['tipo_factura_reporte'],
+    'fechai' => $_POST['fechai'],
+    'fechaf' => $_POST['fechaf'],
+    'facturador' => $_POST['facturador'],
+    'vendedor' => $_POST['vendedor'],
+    'factura' => $_POST['factura'],
+    'empresa_id_sd' => $_SESSION['empresa_id_sd'],
 ];
 
 $result = $insMainModel->consultaVentas($datos);
@@ -41,13 +41,18 @@ while ($row = $result->fetch_assoc()) {
     if ($row['tipo_documento'] == 'Crédito' && $row['pagos_realizados'] == 0) {
         $color = 'bg-c-yellow';
     }
-
+    
+    // Usamos el campo 'number' directamente para el ordenamiento
+    // Este campo es común tanto para facturas como proformas
+    $numero_ordenamiento = intval($row['number']);
+    
     $data[] = array(
         'facturas_id' => $row['facturas_id'],
         'fecha' => $row['fecha'],
         'tipo_documento' => $row['tipo_documento'],
         'cliente' => $row['cliente'],
         'numero' => $row['numero'],
+        'number' => $numero_ordenamiento, // Campo para ordenamiento (usando el número base)
         'subtotal' => $row['subtotal'],
         'ganancia' => $ganancia,
         'isv' => $row['isv'],

@@ -5349,10 +5349,10 @@ class mainModel
 	public function getCotizacion($noCotizacion)
 	{
 		$query = "SELECT cl.nombre AS 'cliente', cl.rtn AS 'rtn_cliente', cl.telefono AS 'telefono', cl.localidad AS 'localidad',
-		\t e.nombre AS 'empresa', e.ubicacion AS 'direccion_empresa', e.telefono AS 'empresa_telefono', e.celular AS 'empresa_celular',
-		\t  e.correo AS 'empresa_correo', co.nombre AS 'colaborador_nombre',
-		\t   DATE_FORMAT(c.fecha, '%d/%m/%Y') AS 'fecha', c.fecha_dolar,
-		\t    time(c.fecha_registro) AS 'hora',  c.estado AS 'estado', c.number AS 'numero_factura', c.notas AS 'notas', e.otra_informacion As 'otra_informacion', e.eslogan AS 'eslogan', e.celular As 'celular', (CASE WHEN c.tipo_factura = 1 THEN 'Contado' ELSE 'Crédito'END) AS 'tipo_documento', vg.valor AS 'vigencia_cotizacion', e.rtn AS 'rtn_empresa', e.logotipo AS 'logotipo', e.firma_documento AS 'firma_documento', e.MostrarFirma
+		 e.nombre AS 'empresa', e.ubicacion AS 'direccion_empresa', e.telefono AS 'empresa_telefono', e.celular AS 'empresa_celular',
+		  e.correo AS 'empresa_correo', co.nombre AS 'colaborador_nombre',
+		  DATE_FORMAT(c.fecha, '%d/%m/%Y') AS 'fecha', c.fecha_dolar,
+		   time(c.fecha_registro) AS 'hora',  c.estado AS 'estado', c.number AS 'numero_factura', c.notas AS 'notas', e.otra_informacion As 'otra_informacion', e.eslogan AS 'eslogan', e.celular As 'celular', (CASE WHEN c.tipo_factura = 1 THEN 'Contado' ELSE 'Crédito'END) AS 'tipo_documento', vg.valor AS 'vigencia_cotizacion', e.rtn AS 'rtn_empresa', e.logotipo AS 'logotipo', e.firma_documento AS 'firma_documento', e.MostrarFirma
 				FROM cotizacion AS c
 				INNER JOIN clientes AS cl
 				ON c.clientes_id = cl.clientes_id
@@ -5371,7 +5371,11 @@ class mainModel
 
 	public function getCompra($noCompra)
 	{
-		$query = "SELECT p.nombre AS 'proveedor', p.rtn AS 'rtn_proveedor', p.telefono AS 'telefono', p.localidad AS 'localidad', e.nombre AS 'empresa', e.ubicacion AS 'direccion_empresa', e.telefono AS 'empresa_telefono', e.celular AS 'empresa_celular', e.correo AS 'empresa_correo', co.nombre AS 'colaborador_nombre', DATE_FORMAT(c.fecha, '%d/%m/%Y') AS 'fecha', time(c.fecha_registro) AS 'hora',  c.estado AS 'estado', c.number AS 'numero_factura', c.notas AS 'notas', e.otra_informacion As 'otra_informacion', e.eslogan AS 'eslogan', e.celular As 'celular', (CASE WHEN c.tipo_compra = 1 THEN 'Contado' ELSE 'Crédito' END) AS 'tipo_documento', e.rtn AS 'rtn_empresa', c.proveedores_id AS 'proveedores_id', e.logotipo AS 'logotipo', e.firma_documento AS 'firma_documento'
+		$query = "SELECT p.nombre AS 'proveedor', p.rtn AS 'rtn_proveedor', p.telefono AS 'telefono', p.localidad AS 'localidad', e.nombre AS 'empresa', e.ubicacion AS 'direccion_empresa', e.telefono AS 'empresa_telefono', e.celular AS 'empresa_celular', e.correo AS 'empresa_correo', co.nombre AS 'colaborador_nombre', DATE_FORMAT(c.fecha, '%d/%m/%Y') AS 'fecha', time(c.fecha_registro) AS 'hora',  c.estado AS 'estado', 					IF(
+						c.number LIKE '%-%',
+						c.number,
+						CONCAT('FAC-', LPAD(c.number, 8, '0'))
+					) AS 'numero_factura', c.notas AS 'notas', e.otra_informacion As 'otra_informacion', e.eslogan AS 'eslogan', e.celular As 'celular', (CASE WHEN c.tipo_compra = 1 THEN 'Contado' ELSE 'Crédito' END) AS 'tipo_documento', e.rtn AS 'rtn_empresa', c.proveedores_id AS 'proveedores_id', e.logotipo AS 'logotipo', e.firma_documento AS 'firma_documento'
 				FROM compras AS c
 				INNER JOIN proveedores AS p
 				ON c.proveedores_id = p.proveedores_id
@@ -5772,6 +5776,38 @@ class mainModel
 				ON cd.productos_id = p.productos_id
 				WHERE cd.compras_id = '$noFactura'
 				GROUP BY cd.productos_id";
+
+		$result = self::connection()->query($query);
+
+		return $result;
+	}
+
+	public function consultaCotizacionesReporte($datos)
+	{
+		if ($datos['tipo_cotizacion_reporte'] == 1) {
+			$where = "WHERE c.empresa_id = '" . $datos['empresa_id_sd'] . "' AND c.fecha BETWEEN '" . $datos['fechai'] . "' AND '" . $datos['fechaf'] . "' AND c.estado = 1";
+		} else {
+			$where = "WHERE c.empresa_id = '" . $datos['empresa_id_sd'] . "' AND c.fecha BETWEEN '" . $datos['fechai'] . "' AND '" . $datos['fechaf'] . "' AND c.estado = 2";
+		}
+
+		$query = "SELECT 
+					c.cotizacion_id AS 'cotizacion_id', 
+					DATE_FORMAT(c.fecha, '%d/%m/%Y') AS 'fecha', 
+					cl.nombre AS 'cliente', 
+					CONCAT('COT-', LPAD(c.number, 8, '0')) AS 'numero',
+					c.number AS 'numero_ordenamiento', /* Número base para ordenamiento */
+					c.importe AS 'total', 
+					(CASE WHEN c.tipo_factura = 1 THEN 'Contado' ELSE 'Crédito' END) AS 'tipo_documento',
+					/* Calculamos subtotal, ISV y descuento en una sola consulta */
+					(SELECT SUM(cd.cantidad * cd.precio) FROM cotizacion_detalles AS cd WHERE cd.cotizacion_id = c.cotizacion_id) AS 'subtotal',
+					(SELECT SUM(cd.isv_valor) FROM cotizacion_detalles AS cd WHERE cd.cotizacion_id = c.cotizacion_id) AS 'isv',
+					(SELECT SUM(cd.descuento) FROM cotizacion_detalles AS cd WHERE cd.cotizacion_id = c.cotizacion_id) AS 'descuento'
+				FROM 
+					cotizacion AS c
+				INNER JOIN 
+					clientes AS cl ON c.clientes_id = cl.clientes_id
+				" . $where . "
+				ORDER BY c.number DESC, c.fecha DESC";
 
 		$result = self::connection()->query($query);
 
@@ -6305,23 +6341,23 @@ class mainModel
 		$tipo_factura_reporte = '';
 		$facturador = '';
 		$vendedor = '';
-	
+
 		if ($datos['tipo_factura_reporte'] == 1) {
 			$tipo_factura_reporte = 'AND f.estado IN(2,3)';
 		}
-	
+
 		if ($datos['tipo_factura_reporte'] == 2) {
 			$tipo_factura_reporte = 'AND f.estado = 4';
 		}
-	
+
 		if ($datos['facturador'] != '') {
 			$facturador = "AND f.usuario = '" . $datos['facturador'] . "'";
 		}
-	
+
 		if ($datos['vendedor'] != '') {
 			$vendedor = "AND f.colaboradores_id = '" . $datos['vendedor'] . "'";
 		}
-	
+
 		$query = "
 			SELECT 
 				f.facturas_id AS 'facturas_id', 
@@ -6330,7 +6366,9 @@ class mainModel
 				CASE 
 					WHEN d.documento_id = 4 THEN CONCAT('PROFORMA-', sf.prefijo, LPAD(f.number, sf.relleno, 0)) 
 					ELSE CONCAT(sf.prefijo, '', LPAD(f.number, sf.relleno, 0))
-				END AS 'numero', 
+				END AS 'numero',
+				f.number AS 'number', -- Número original para ordenamiento
+				f.fecha AS 'fecha_orden', -- Para ordenamiento por fecha cuando los números son iguales
 				f.importe AS 'total',
 				CASE 
 					WHEN f.tipo_factura = 1 THEN 'Contado' 
@@ -6360,8 +6398,9 @@ class mainModel
 				$facturador
 				$vendedor
 			ORDER BY 
-				f.number DESC";
-	
+				f.number DESC, f.fecha DESC"; // Ordenamos primero por number y luego por fecha como respaldo
+				
+
 		$result = self::connection()->query($query);
 		if (!$result) {
 			die('Error en la consulta SQL: ' . self::connection()->error);
@@ -6701,15 +6740,15 @@ class mainModel
 		$clientes_id = '';
 		$fecha_actual = date('Y-m-d');
 		$fecha = '';
-
+	
 		if ($datos['fechai'] != $fecha_actual) {
 			$fecha = "AND cc.fecha BETWEEN '" . $datos['fechai'] . "' AND '" . $datos['fechaf'] . "'";
 		}
-
+	
 		if ($datos['clientes_id'] != 0 && $datos['clientes_id'] != '') {
 			$clientes_id = "AND cc.clientes_id = '" . $datos['clientes_id'] . "'";
 		}
-
+	
 		$query = "SELECT 
 					cc.cobrar_clientes_id AS 'cobrar_clientes_id', 
 					f.facturas_id AS 'facturas_id', 
@@ -6720,6 +6759,7 @@ class mainModel
 						WHEN d.documento_id = 4 THEN CONCAT('PROFORMA-', sf.prefijo, LPAD(f.number, sf.relleno, 0)) 
 						ELSE CONCAT(sf.prefijo,'',LPAD(f.number, sf.relleno, 0))
 					END AS 'numero', 
+					f.number AS 'number',
 					cc.estado,
 					f.importe, 
 					co.nombre AS 'vendedor'
@@ -6729,14 +6769,14 @@ class mainModel
 					INNER JOIN facturas AS f ON cc.facturas_id = f.facturas_id
 					INNER JOIN secuencia_facturacion AS sf ON f.secuencia_facturacion_id = sf.secuencia_facturacion_id
 					INNER JOIN colaboradores AS co ON f.colaboradores_id = co.colaboradores_id
-					INNER JOIN documento AS d ON sf.documento_id = d.documento_id\t\t
+					INNER JOIN documento AS d ON sf.documento_id = d.documento_id            
 				WHERE cc.empresa_id = '" . $datos['empresa_id_sd'] . "' AND cc.estado = '" . $datos['estado'] . "'
 				$fecha
 				$clientes_id
-				ORDER BY cc.fecha ASC";
-
+				ORDER BY f.number DESC, cc.fecha DESC";
+	
 		$result = self::connection()->query($query);
-
+	
 		return $result;
 	}
 
@@ -6785,6 +6825,92 @@ class mainModel
 	
 		$result = self::connection()->query($query);
 	
+		return $result;
+	}
+
+	public function consultaComprasCompleta($datos)
+	{
+		if ($datos['tipo_compra_reporte'] == 1) {
+			$where = "WHERE c.empresa_id = '" . $datos['empresa_id_sd'] . "' AND c.fecha BETWEEN '" . $datos['fechai'] . "' AND '" . $datos['fechaf'] . "' AND c.estado IN(2,3)";
+		} else {
+			$where = "WHERE c.empresa_id = '" . $datos['empresa_id_sd'] . "' AND c.fecha BETWEEN '" . $datos['fechai'] . "' AND '" . $datos['fechaf'] . "' AND c.estado = 4";
+		}
+
+		$query = "SELECT 
+					c.compras_id AS 'compras_id', 
+					DATE_FORMAT(c.fecha, '%d/%m/%Y') AS 'fecha', 
+					p.nombre AS 'proveedor', 
+					IF(
+						c.number LIKE '%-%',
+						c.number,
+						CONCAT('FAC-', LPAD(c.number, 8, '0'))
+					) AS 'numero',
+					c.number AS 'numero_ordenamiento',
+					c.importe AS 'total', 
+					(CASE WHEN c.tipo_compra = 1 THEN 'Contado' ELSE 'Crédito' END) AS 'tipo_documento', 
+					ct.nombre AS 'cuenta',
+					(SELECT SUM(cd.cantidad * cd.precio) FROM compras_detalles AS cd WHERE cd.compras_id = c.compras_id) AS 'subtotal',
+					(SELECT SUM(cd.isv_valor) FROM compras_detalles AS cd WHERE cd.compras_id = c.compras_id) AS 'isv',
+					(SELECT SUM(cd.descuento) FROM compras_detalles AS cd WHERE cd.compras_id = c.compras_id) AS 'descuento',
+					(SELECT COUNT(*) FROM pagoscompras WHERE compras_id = c.compras_id) AS 'tiene_pagos'
+				FROM 
+					compras AS c
+				INNER JOIN 
+					proveedores AS p ON c.proveedores_id = p.proveedores_id
+				LEFT JOIN 
+					cuentas AS ct ON c.cuentas_id = ct.cuentas_id
+				" . $where . "
+				ORDER BY c.number DESC";
+
+		$result = self::connection()->query($query);
+
+		return $result;
+	}
+
+	public function consultaCuentasPorPagarCompleta($datos)
+	{
+		$proveedores_id = '';
+		$fecha_actual = date('Y-m-d');
+		$fecha = '';
+
+		if ($datos['fechai'] !== $fecha_actual) {
+			$fecha = "AND compras.fecha BETWEEN '" . $datos['fechai'] . "' AND '" . $datos['fechaf'] . "'";
+		}
+
+		if (!empty($datos['proveedores_id']) && $datos['proveedores_id'] !== 0) {
+			$proveedores_id = "AND proveedores.proveedores_id = '" . $datos['proveedores_id'] . "'";
+		}
+
+		$query = "SELECT
+					proveedores.nombre AS 'proveedores',
+					compras.compras_id,
+					IF(
+						compras.number LIKE '%-%',
+						compras.number,
+						CONCAT('FAC-', LPAD(compras.number, 8, '0'))
+					) AS 'factura',
+					compras.number AS 'numero_ordenamiento',
+					compras.importe,
+					DATE_FORMAT(compras.fecha, '%d/%m/%Y') AS 'fecha',
+					compras.tipo_compra,            
+					pagar_proveedores.saldo,
+					pagar_proveedores.estado,
+					(SELECT SUM(importe) FROM pagoscompras WHERE compras_id = compras.compras_id) AS 'abono'
+				FROM
+					proveedores
+				INNER JOIN 
+					compras ON proveedores.proveedores_id = compras.proveedores_id
+				INNER JOIN 
+					pagar_proveedores ON pagar_proveedores.compras_id = compras.compras_id
+				WHERE 
+					pagar_proveedores.estado = '" . $datos['estado'] . "'
+					$fecha
+					$proveedores_id
+				ORDER BY 
+					compras.number DESC";
+
+		$result = self::connection()->query($query);
+
 		return $result;
 	}
 

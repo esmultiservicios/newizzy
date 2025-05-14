@@ -72,7 +72,13 @@ var listar_reporte_compras = function() {
                 "data": "proveedor"
             },
             {
-                "data": "numero"
+                "data": "numero",
+                "render": function(data, type, row) {
+                    if (type === 'sort') {
+                        return parseInt(row.numero_ordenamiento);
+                    }
+                    return data;
+                }
             },
             {
                 "data": "subtotal",
@@ -157,10 +163,14 @@ var listar_reporte_compras = function() {
                 "defaultContent": "<button class='table_cancelar cancelar_compras btn btn-danger ocultar'><span class='fas fa-ban fa-lg'></span>Anular</button>"
             }
         ],
+        "order": [[4, "desc"]], // Ordenar por número descendente
+        "orderFixed": {
+            "pre": [[4, "desc"]]
+        },
         "lengthMenu": lengthMenu10,
         "stateSave": true,
         "bDestroy": true,
-        "language": idioma_español, //esta se encuenta en el archivo main.js
+        "language": idioma_español,
         "dom": dom,
         "columnDefs": [{
                 width: "9.09%",
@@ -216,35 +226,22 @@ var listar_reporte_compras = function() {
                 });
             }
 
-            // Sumar los valores de la columna de Subtotal
-            var subtotal = api.column(5, {
-                page: 'current'
-            }).data().reduce(function(a, b) {
+            var subtotal = api.column(5, {page: 'current'}).data().reduce(function(a, b) {
                 return a + parseFloat(b);
             }, 0);
 
-            // Sumar los valores de la columna de ISV
-            var isv = api.column(6, {
-                page: 'current'
-            }).data().reduce(function(a, b) {
+            var isv = api.column(6, {page: 'current'}).data().reduce(function(a, b) {
                 return a + parseFloat(b);
             }, 0);
 
-            // Sumar los valores de la columna de Descuento
-            var descuento = api.column(7, {
-                page: 'current'
-            }).data().reduce(function(a, b) {
+            var descuento = api.column(7, {page: 'current'}).data().reduce(function(a, b) {
                 return a + parseFloat(b);
             }, 0);
 
-            // Sumar los valores de la columna de Total
-            var total = api.column(8, {
-                page: 'current'
-            }).data().reduce(function(a, b) {
+            var total = api.column(8, {page: 'current'}).data().reduce(function(a, b) {
                 return a + parseFloat(b);
             }, 0);
 
-            // Mostrar los totales con formato en las celdas correspondientes del pie de la tabla
             $('#subtotal-i').html(formatNumber(subtotal));
             $('#impuesto-i').html(formatNumber(isv));
             $('#descuento-i').html(formatNumber(descuento));
@@ -264,8 +261,7 @@ var listar_reporte_compras = function() {
                 text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
                 titleAttr: 'Excel',
                 title: 'Reporte de Compras',
-                messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' +
-                    convertDateFormat(fechaf),
+                messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' + convertDateFormat(fechaf),
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-success ocultar',
                 exportOptions: {
@@ -281,15 +277,14 @@ var listar_reporte_compras = function() {
                 orientation: 'landscape',
                 pageSize: 'LETTER',
                 title: 'Reporte de Compras',
-                messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' +
-                    convertDateFormat(fechaf),
+                messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' + convertDateFormat(fechaf),
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-danger ocultar',
                 exportOptions: {
                     columns: [0, 1, 2, 3, 4, 5, 6, 7]
                 },
                 customize: function(doc) {
-                    if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
+                    if (imagen) {
                         doc.content.splice(0, 0, {
                             image: imagen,  
                             width: 100,

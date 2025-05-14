@@ -17,7 +17,7 @@
                         <div class="col-sm-6">
                             <button class="btn btn-success" type="submit" id="reg_factura" form="purchase-form"
                                 data-toggle="tooltip" data-placement="top" title="Ingresar Factura de Compra">
-                                <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Regsitrar
+                                <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
                             </button>
                         </div>
                         <label for="inputFecha" class="col-sm-1 col-form-label-md">Fecha <span

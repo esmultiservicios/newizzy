@@ -2714,7 +2714,15 @@ var listar_cuentas_por_cobrar_clientes = function() {
                 }
             },        
             {
-                "data": "numero"
+                "data": "numero",
+                "render": function(data, type, row) {
+                    if (type === 'sort') {
+                        // Para ordenamiento, usamos el número base (row.numero_ordenamiento)
+                        return parseInt(row.numero_ordenamiento);
+                    }
+                    // Para visualización, usamos el formato completo
+                    return data;
+                }
             },
             {
                 data: 'credito',
@@ -2792,19 +2800,23 @@ var listar_cuentas_por_cobrar_clientes = function() {
         "bDestroy": true,
         "language": idioma_español,
         "dom": dom,
+        "order": [[3, "desc"]], // Ordenar por la columna 3 (número) de forma descendente
+        "orderFixed": {
+            "pre": [[3, "desc"]] // Mantener este orden incluso después de búsquedas/filtros
+        },
         "columnDefs": [
             {
                 width: "10%",
                 targets: 0 // Fecha
             },
             {
-                width: "14%", // Reduje este ancho para hacer espacio
+                width: "14%",
                 targets: 1 // Cliente
             },
             {
-                width: "8%", // Nueva columna para el badge
+                width: "8%",
                 targets: 2, // Estado (Crédito/Contado)
-                className: "text-center" // Centramos el badge
+                className: "text-center"
             },
             {
                 width: "12%",
@@ -2827,7 +2839,7 @@ var listar_cuentas_por_cobrar_clientes = function() {
                 className: "text-center"
             },
             {
-                width: "14%", // Ajusté este ancho
+                width: "14%",
                 targets: 7 // Vendedor
             },
             {
@@ -2844,7 +2856,6 @@ var listar_cuentas_por_cobrar_clientes = function() {
             }
         ],
         "footerCallback": function(row, data, start, end, display) {
-            // Aquí puedes calcular los totales y actualizar el footer
             var totalCredito = data.reduce(function(acc, row) {
                 return acc + (parseFloat(row.credito) || 0);
             }, 0);
@@ -2857,21 +2868,15 @@ var listar_cuentas_por_cobrar_clientes = function() {
                 return acc + (parseFloat(row.saldo) || 0);
             }, 0);
 
-            // Formatear los totales con separadores de miles y coma para decimales
             var formatter = new Intl.NumberFormat('es-HN', {
                 style: 'currency',
                 currency: 'HNL',
                 minimumFractionDigits: 2,
             });
 
-            var totalCreditoFormatted = formatter.format(totalCredito);
-            var totalAbonoFormatted = formatter.format(totalAbono);
-            var totalPendienteFormatted = formatter.format(totalPendiente);
-
-            // Asignar los totales a los elementos HTML
-            $('#credito-cxc').html(totalCreditoFormatted);
-            $('#abono-cxc').html(totalAbonoFormatted);
-            $('#total-footer-cxc').html(totalPendienteFormatted);
+            $('#credito-cxc').html(formatter.format(totalCredito));
+            $('#abono-cxc').html(formatter.format(totalAbono));
+            $('#total-footer-cxc').html(formatter.format(totalPendiente));
         },
         "buttons": [{
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
@@ -2904,7 +2909,7 @@ var listar_cuentas_por_cobrar_clientes = function() {
                     columns: [2, 3, 4, 5, 6]
                 },
                 customize: function(doc) {
-                    if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
+                    if (imagen) {
                         doc.content.splice(0, 0, {
                             image: imagen,  
                             width: 100,
@@ -3089,7 +3094,13 @@ var listar_cuentas_por_pagar_proveedores = function() {
                 }
             },             
             {
-                "data": "factura"
+                "data": "factura",
+                "render": function(data, type, row) {
+                    if (type === 'sort') {
+                        return parseInt(row.numero_ordenamiento);
+                    }
+                    return data;
+                }
             },
             {
                 "data": "credito",
@@ -3149,15 +3160,19 @@ var listar_cuentas_por_pagar_proveedores = function() {
                 },
             },
             {
-                "defaultContent": "<button class='table_pay btn btn-dark table_info ocultar'><span class='fas fa-hand-holding-usd fa-lg'></span>Abonar</button>"
+                "defaultContent": "<button class='table_pay btn btn-primary ocultar'><span class='fas fa-hand-holding-usd fa-lg'></span>Abonar</button>"
             },
             {
-                "defaultContent": "<button class='abono_proveedor btn btn-dark table_success'><span class='fa fa-money-bill-wave fa-solid'></span>Abonos</button>"
+                "defaultContent": "<button class='abono_proveedor btn btn-secondary'><span class='fa fa-money-bill-wave fa-solid'></span>Abonos</button>"
             },
             {
-                "defaultContent": "<button class='table_reportes print_factura btn btn-dark table_info ocultar'><span class='fas fa-file-download fa-lg'></span>Factura</button>"
+                "defaultContent": "<button class='table_reportes print_factura btn btn-success ocultar'><span class='fas fa-file-download fa-lg'></span>Factura</button>"
             }
         ],
+        "order": [[3, "desc"]], // Ordenar por número de factura descendente
+        "orderFixed": {
+            "pre": [[3, "desc"]]
+        },
         "pageLength": 10,
         "lengthMenu": lengthMenu10,
         "stateSave": true,
@@ -3201,34 +3216,27 @@ var listar_cuentas_por_pagar_proveedores = function() {
             }
         ],
         "footerCallback": function(row, data, start, end, display) {
-            // Calcular los totales
             var totalCredito = data.reduce(function(acc, row) {
-                return acc + (parseFloat(row.credito) || 0); // Asegurar que sea numérico
-            }, 0).toFixed(2);
+                return acc + (parseFloat(row.credito) || 0);
+            }, 0);
 
             var totalAbono = data.reduce(function(acc, row) {
                 return acc + (parseFloat(row.abono) || 0);
-            }, 0).toFixed(2);
+            }, 0);
 
             var totalPendiente = data.reduce(function(acc, row) {
                 return acc + (parseFloat(row.saldo) || 0);
-            }, 0).toFixed(2);
+            }, 0);
 
-            // Formatear los totales con separadores de miles y coma para decimales
             var formatter = new Intl.NumberFormat('es-HN', {
                 style: 'currency',
                 currency: 'HNL',
                 minimumFractionDigits: 2,
             });
 
-            var totalCreditoFormatted = formatter.format(totalCredito);
-            var totalAbonoFormatted = formatter.format(totalAbono);
-            var totalPendienteFormatted = formatter.format(totalPendiente);
-
-            // Asignar los totales a los elementos HTML
-            $('#credito-cxp').html(totalCreditoFormatted);
-            $('#abono-cxp').html(totalAbonoFormatted);
-            $('#total-footer-cxp').html(totalPendienteFormatted);
+            $('#credito-cxp').html(formatter.format(totalCredito));
+            $('#abono-cxp').html(formatter.format(totalAbono));
+            $('#total-footer-cxp').html(formatter.format(totalPendiente));
         },
         "buttons": [{
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
@@ -3254,15 +3262,14 @@ var listar_cuentas_por_pagar_proveedores = function() {
                 text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
                 titleAttr: 'PDF',
                 title: 'Reporte Cuentas por Pagar Proveedores',
-                messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' +
-                    convertDateFormat(fechaf),
+                messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' + convertDateFormat(fechaf),
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-danger ocultar',
                 exportOptions: {
                     columns: [1, 2, 3, 4, 5, 6]
                 },
                 customize: function(doc) {
-                    if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
+                    if (imagen) {
                         doc.content.splice(0, 0, {
                             image: imagen,  
                             width: 100,
@@ -3280,12 +3287,9 @@ var listar_cuentas_por_pagar_proveedores = function() {
     table_cuentas_por_pagar_proveedores.search('').draw();
     $('#buscar').focus();
 
-    registrar_pago_proveedores_dataTable("#dataTableCuentasPorPagarProveedores tbody",
-        table_cuentas_por_pagar_proveedores);
-    ver_abono_cxp_proveedor_dataTable("#dataTableCuentasPorPagarProveedores tbody",
-        table_cuentas_por_pagar_proveedores);
-    ver_reporte_facturas_cxp_proveedor_dataTable("#dataTableCuentasPorPagarProveedores tbody",
-        table_cuentas_por_pagar_proveedores);
+    registrar_pago_proveedores_dataTable("#dataTableCuentasPorPagarProveedores tbody", table_cuentas_por_pagar_proveedores);
+    ver_abono_cxp_proveedor_dataTable("#dataTableCuentasPorPagarProveedores tbody", table_cuentas_por_pagar_proveedores);
+    ver_reporte_facturas_cxp_proveedor_dataTable("#dataTableCuentasPorPagarProveedores tbody", table_cuentas_por_pagar_proveedores);
 }
 
 var ver_reporte_facturas_cxp_proveedor_dataTable = function(tbody, table) {

@@ -5842,6 +5842,75 @@ class mainModel
 		return $result;
 	}
 
+	public function getCompraUnificada($noCompra)
+	{
+		$query = "SELECT 
+					p.nombre AS 'proveedor', 
+					p.rtn AS 'rtn_proveedor', 
+					p.telefono AS 'telephone', 
+					p.localidad AS 'localidad', 
+					e.nombre AS 'empresa', 
+					e.ubicacion AS 'direccion_empresa', 
+					e.telefono AS 'empresa_telefono', 
+					e.celular AS 'empresa_celular', 
+					e.correo AS 'empresa_correo', 
+					co.nombre AS 'colaborador_nombre', 
+					DATE_FORMAT(c.fecha, '%d/%m/%Y') AS 'fecha', 
+					TIME(c.fecha_registro) AS 'hora',  
+					c.estado AS 'estado',                  
+					IF(
+						c.number LIKE '%-%',
+						c.number,
+						CONCAT('FAC-', LPAD(c.number, 8, '0'))
+					) AS 'numero_factura', 
+					c.notas AS 'notas', 
+					e.otra_informacion AS 'otra_informacion', 
+					e.eslogan AS 'eslogan', 
+					e.celular AS 'celular', 
+					(CASE WHEN c.tipo_compra = 1 THEN 'Contado' ELSE 'Crédito' END) AS 'tipo_documento', 
+					e.rtn AS 'rtn_empresa', 
+					c.proveedores_id AS 'proveedores_id', 
+					e.logotipo AS 'logotipo', 
+					e.firma_documento AS 'firma_documento',
+					(SELECT JSON_ARRAYAGG(
+						JSON_OBJECT(
+							'producto', p2.nombre,
+							'cantidad', cd.cantidad,
+							'precio', cd.precio,
+							'descuento', cd.descuento,
+							'productos_id', cd.productos_id,
+							'isv_valor', cd.isv_valor,
+							'medida', med.nombre
+						)
+					) FROM compras_detalles cd
+					INNER JOIN productos p2 ON cd.productos_id = p2.productos_id
+					INNER JOIN medida med ON p2.medida_id = med.medida_id
+					WHERE cd.compras_id = c.compras_id) AS 'detalles'
+				FROM compras AS c
+				INNER JOIN proveedores AS p ON c.proveedores_id = p.proveedores_id
+				INNER JOIN colaboradores AS co ON c.colaboradores_id = co.colaboradores_id
+				INNER JOIN empresa AS e ON co.empresa_id = e.empresa_id
+				WHERE c.compras_id = ?";
+
+		try {
+			// Ejecutar consulta preparada
+			$result = $this->ejecutar_consulta_simple_preparada($query, "i", [$noCompra]);
+			
+			if($result->num_rows > 0) {
+				$compra = $result->fetch_assoc();
+				$compra['detalles'] = json_decode($compra['detalles'], true);
+				return $compra;
+			}
+			
+			return null;
+			
+		} catch (Exception $e) {
+			// Manejar el error según tus necesidades
+			error_log("Error en getCompraUnificada: " . $e->getMessage());
+			return null;
+		}
+	}
+
 	public function getDetalleCompras($compras_id)
 	{
 		$query = "SELECT

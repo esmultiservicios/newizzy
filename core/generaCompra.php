@@ -1,60 +1,49 @@
 <?php
-	header("Content-Type: text/html;charset=utf-8");
-	
-	$peticionAjax = true;
-	require_once "configGenerales.php";
-	require_once "mainModel.php";
-	
-	$insMainModel = new mainModel();
+header("Content-Type: text/html;charset=utf-8");
 
-	include_once "dompdf/vendor/autoload.php";
+$peticionAjax = true;
+require_once "configGenerales.php";
+require_once "mainModel.php";
 
-	use Dompdf\Dompdf;
-	use Dompdf\Options;
+$insMainModel = new mainModel();
 
-	$noFactura = $_GET['compras_id'];
+include_once "dompdf/vendor/autoload.php";
 
-	//OBTENEMOS LOS DATOS DEL ENCABEZADO DE LA FACTURA
-	$result = $insMainModel->getCompra($noFactura);
-	
-	$anulada = '';
-	$logotipo = '';
-	$firma_documento = '';
+use Dompdf\Dompdf;
+use Dompdf\Options;
 
-	//OBTENEMOS LOS DATOS DEL DETALLE DE FACTURA
-	$result_cotizacion_detalle = $insMainModel->getDetalleCompras($noFactura);								
+$noFactura = $_GET['compras_id'];
 
-	if($result->num_rows>0){
-		$consulta_registro = $result->fetch_assoc();
-		
-		$logotipo = $consulta_registro['logotipo'];
-		$firma_documento = $consulta_registro['firma_documento'];
-		$no_factura = $consulta_registro['numero_factura'];
+// OBTENEMOS TODOS LOS DATOS DE LA COMPRA (ENCABEZADO Y DETALLE)
+$compra = $insMainModel->getCompraUnificada($noFactura);
 
-		if($consulta_registro['estado'] == 4){
-			$anulada = '<img class="anulada" src="'.SERVERURL.'vistas/plantilla/img/anulado.png" alt="Anulada">';
-		}
+if($compra){
+    $anulada = '';
+    $logotipo = '';
+    $firma_documento = '';
+    
+    $logotipo = $compra['logotipo'];
+    $firma_documento = $compra['firma_documento'];
+    $no_factura = $compra['numero_factura'];
 
-		ob_start();
-		include(dirname('__FILE__').'/compra.php');
-		$html = ob_get_clean();
+    if($compra['estado'] == 4){
+        $anulada = '<img class="anulada" src="'.SERVERURL.'vistas/plantilla/img/anulado.png" alt="Anulada">';
+    }
 
-		// Configurar Dompdf
-		$options = new Options();
-		$options->set('isHtml5ParserEnabled', true);
-		$options->set('isRemoteEnabled', true);
+    ob_start();
+    include(dirname('__FILE__').'/compra.php');
+    $html = ob_get_clean();
 
-		// instantiate and use the dompdf class
-		$dompdf = new Dompdf($options);
-	
-		$dompdf->loadHtml($html);
-		// (Optional) Setup the paper size and orientation
-		$dompdf->setPaper('letter', 'portrait');
-		// Render the HTML as PDF
-		$dompdf->render();
-			
-		// Output the generated PDF to Browser
-		$dompdf->stream('compra_'.$no_factura.'.pdf',array('Attachment'=>0));	
-					
-		exit;	
-	}
+    // Configurar Dompdf
+    $options = new Options();
+    $options->set('isHtml5ParserEnabled', true);
+    $options->set('isRemoteEnabled', true);
+
+    $dompdf = new Dompdf($options);
+    $dompdf->loadHtml($html);
+    $dompdf->setPaper('letter', 'portrait');
+    $dompdf->render();
+        
+    $dompdf->stream('compra_'.$no_factura.'.pdf', array('Attachment'=>0));    
+    exit;
+}

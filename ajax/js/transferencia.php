@@ -42,7 +42,7 @@ var inventario_transferencia = function() {
         },
         columns: [ 
             { 
-                defaultContent: "<button data-toggle='tooltip' data-placement='top' title='Actualizar la fecha de vencimiento' class='table_change_date table_crear'><span class='fa-solid fa-calendar-days fa-lg'></span></button>" 
+                defaultContent: "<button data-toggle='tooltip' data-placement='top' title='Actualizar la fecha de vencimiento' class='table_change_date btn btn-secondary'><span class='fa-solid fa-calendar-days fa-lg'></span>Fecha</button>" 
             },                    
             { 
                 data: "fecha_registro" 

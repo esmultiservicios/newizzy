@@ -1,394 +1,246 @@
+// Reemplaza todo el código JS con este
 <script>
-$(() => {
+$(document).ready(function() {
     listar_cuentas_contabilidad();
 
-	$('#formMainCuentasContabilidad #search').on("click", function(e) {
+    $('#formMainCuentasContabilidad #search').on("click", function(e) {
         e.preventDefault();
         listar_cuentas_contabilidad();
     });
 
-    // Evento para el botón de Limpiar (reset)
     $('#formMainCuentasContabilidad').on('reset', function() {
-        // Limpia y refresca los selects
-        $(this).find('.selectpicker')  // Usa `this` para referenciar el formulario actual
-            .val('')
-            .selectpicker('refresh');
-
+        $(this).find('.selectpicker').val('').selectpicker('refresh');
         listar_cuentas_contabilidad();
     });    
 });
 
-//INICIO ACCIONES FORMULARIO CUENTAS EN CONTABILIDAD
+function cleanNumber(numStr) {
+    return numStr.replace(/[^0-9.-]+/g,"");
+}
+
+function formatCurrency(value) {
+    return 'L. ' + parseFloat(value).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+}
+
 var listar_cuentas_contabilidad = function() {
     var fechai = $("#formMainCuentasContabilidad #fechai").val();
     var fechaf = $("#formMainCuentasContabilidad #fechaf").val();
     var estado = $('#formMainCuentasContabilidad #estado_cuentasContabilidad').val();
 
-    var table_cuentas_contabilidad = $("#dataTableCuentasContabilidad").DataTable({
-        "destroy": true,
-        "ajax": {
-            "method": "POST",
-            "url": "<?php echo SERVERURL;?>core/llenarDataTableCuentas.php",
-            "data": {
-                "fechai": fechai,
-                "fechaf": fechaf,
-                "estado": estado
+    $.ajax({
+        method: "POST",
+        url: "<?php echo SERVERURL;?>core/llenarDataTableCuentas.php",
+        data: {
+            "fechai": fechai,
+            "fechaf": fechaf,
+            "estado": estado
+        },
+        dataType: "json",
+        beforeSend: function() {
+            $("#cuentas-container").html('<div class="col-12 text-center py-4"><i class="fas fa-spinner fa-spin fa-3x"></i><p class="mt-2">Cargando cuentas...</p></div>');
+        },
+        success: function(response) {
+            if(response.data && response.data.length > 0) {
+                let html = '';
+                
+                response.data.forEach(function(cuenta) {
+                    const saldoNeto = parseFloat(cleanNumber(cuenta.neto));
+                    const saldoClass = saldoNeto >= 0 ? 'positive-balance' : 'negative-balance';
+                    const estadoBadge = cuenta.estado == 1 ? 
+                        '<span class="badge badge-success">Activo</span>' : 
+                        '<span class="badge badge-danger">Inactivo</span>';
+                    
+                    html += `
+                    <div class="col-xl-4 col-md-6 mb-4">
+                        <div class="card h-100 shadow-sm card-account ${saldoClass}">
+                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0 text-truncate">${cuenta.nombre}</h5>
+                                ${estadoBadge}
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="font-weight-bold">Saldo Anterior:</span>
+                                    <span>${cuenta.saldo_anterior}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="font-weight-bold">Ingresos:</span>
+                                    <span class="text-success">${cuenta.ingreso}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="font-weight-bold">Egresos:</span>
+                                    <span class="text-danger">${cuenta.egreso}</span>
+                                </div>
+                                <hr>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="font-weight-bold">Saldo Cierre:</span>
+                                    <span>${cuenta.saldo_cierre}</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="font-weight-bold">Saldo Total:</span>
+                                    <span class="${saldoNeto >= 0 ? 'text-success' : 'text-danger'} font-weight-bold">${cuenta.neto}</span>
+                                </div>
+                            </div>
+                            <div class="card-footer bg-white d-flex justify-content-end">
+                                <button class="btn btn-sm btn-outline-primary table_editar mr-2" data-id="${cuenta.cuentas_id}">
+                                    <i class="fas fa-edit"></i> Editar
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger table_eliminar" data-id="${cuenta.cuentas_id}">
+                                    <i class="fas fa-trash"></i> Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    </div>`;
+                });
+                
+                $("#cuentas-container").html(html);
+                
+                // Asignar eventos a los botones
+                $(".table_editar").click(function() {
+                    var cuentas_id = $(this).data('id');
+                    editar_cuenta(cuentas_id);
+                });
+                
+                $(".table_eliminar").click(function() {
+                    var cuentas_id = $(this).data('id');
+                    var nombreCuenta = $(this).closest('.card').find('.card-header h5').text();
+                    eliminar_cuenta(cuentas_id, nombreCuenta);
+                });
+            } else {
+                $("#cuentas-container").html('<div class="col-12 text-center py-5"><i class="fas fa-box-open fa-3x mb-3 text-muted"></i><h4 class="text-muted">No se encontraron cuentas</h4></div>');
             }
         },
-        "columns": [{
-                "data": "nombre"
-            },
-            {
-                "data": "saldo_anterior",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
+        error: function() {
+            $("#cuentas-container").html('<div class="col-12"><div class="alert alert-danger">Error al cargar las cuentas. Intente nuevamente.</div></div>');
+        }
+    });
+};
 
-                    if (type === 'display') {
-                        let color = 'green';
-                        if (data < 0) {
-                            color = 'red';
-                        }
+function editar_cuenta(cuentas_id) {
+    var url = '<?php echo SERVERURL;?>core/editarCuentasContabilidad.php';
+    $('#formCuentasContables #cuentas_id').val(cuentas_id);
 
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
+    $.ajax({
+        type: 'POST',
+        url: url,
+        data: $('#formCuentasContables').serialize(),
+        success: function(registro) {
+            var valores = eval(registro);
+            $('#formCuentasContables').attr({
+                'data-form': 'update'
+            });
+            $('#formCuentasContables').attr({
+                'action': '<?php echo SERVERURL;?>ajax/modificarCuentaContabilidadAjax.php'
+            });
+            $('#formCuentasContables')[0].reset();
+            $('#reg_cuentas').hide();
+            $('#edi_cuentas').show();
+            $('#delete_cuentas').hide();
 
-                    return number;
-                },
-            },
-            {
-                "data": "ingreso",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
+            $('#formCuentasContables #cuenta_codigo').val(valores[1]);
+            $('#formCuentasContables #cuenta_nombre').val(valores[2]);
 
-                    if (type === 'display') {
-                        let color = 'green';
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                },
-            },
-            {
-                "data": "egreso",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
-                    if (type === 'display') {
-                        let color = 'green';
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                },
-            },
-            {
-                "data": "saldo_cierre",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
-                    if (type === 'display') {
-                        let color = 'green';
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                },
-            },
-            {
-                "data": "neto",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
-                    if (type === 'display') {
-                        let color = 'green';
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                },
-            },
-            {
-                "data": "estado",
-                "render": function(data, type, row) {
-                    if (type === 'display') {
-                        var estadoText = data == 1 ? 'Activo' : 'Inactivo';
-                        var icon = data == 1 ? 
-                            '<i class="fas fa-check-circle mr-1"></i>' : 
-                            '<i class="fas fa-times-circle mr-1"></i>';
-                        var badgeClass = data == 1 ? 
-                            'badge badge-pill badge-success' : 
-                            'badge badge-pill badge-danger';
-                        
-                        return '<span class="' + badgeClass + 
-                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
-                            icon + estadoText + '</span>';
-                    }
-                    return data;
-                }
-            },
-            {
-                "defaultContent": "<button class='table_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
-            },
-            {
-                "defaultContent": "<button class='table_eliminar btn ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"
+            if (valores[3] == 1) {
+                $('#formCuentasContables #clientes_activo').attr('checked', true);
+            } else {
+                $('#formCuentasContables #clientes_activo').attr('checked', false);
             }
-        ],
-        "lengthMenu": lengthMenu10,
-        "stateSave": true,
-        "bDestroy": true,
-        "language": idioma_español,
-        "dom": dom,
-        "columnDefs": [{
-                width: "11.11%",
-                targets: 0
-            },
-            {
-                width: "17.11%",
-                targets: 1
-            },
-            {
-                width: "15.11%",
-                targets: 2
-            },
-            {
-                width: "11.11%",
-                targets: 3
-            },
-            {
-                width: "11.11%",
-                targets: 4
-            },
-            {
-                width: "13.11%",
-                targets: 5
-            },
-            {
-                width: "11.11%",
-                targets: 6
-            },
-            {
-                width: "5.11%",
-                targets: 7
+
+            $('#formCuentasContables #cuenta_nombre').attr("readonly", false);
+            $('#formCuentasContables #estado_cuentas_contables').show();
+            $('#formCuentasContables #cuenta_codigo').attr("readonly", true);
+            $('#formCuentasContables #pro_cuentas').val("Editar");
+            
+            $('#modalCuentascontables').modal({
+                show: true,
+                keyboard: false,
+                backdrop: 'static'
+            });
+        }
+    });
+}
+
+function eliminar_cuenta(cuentas_id, nombreCuenta) {
+    var mensajeHTML = `¿Desea eliminar permanentemente la cuenta?<br><br>
+                    <strong>Nombre:</strong> ${nombreCuenta}`;
+    
+    swal({
+        title: "Confirmar eliminación",
+        content: {
+            element: "span",
+            attributes: {
+                innerHTML: mensajeHTML
             }
-        ],
-        "buttons": [{
-                text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-                titleAttr: 'Actualizar Registro de Cuentas',
-                className: 'table_actualizar btn btn-secondary ocultar',
-                action: function() {
-                    listar_cuentas_contabilidad();
-                }
+        },
+        icon: "warning",
+        buttons: {
+            cancel: {
+                text: "Cancelar",
+                value: null,
+                visible: true,
+                className: "btn-light"
             },
-            {
-                text: '<i class="fas fas fa-plus fa-lg crear"></i> Ingresar',
-                titleAttr: 'Agregar Cuentas',
-                className: 'table_crear btn btn-primary ocultar',
-                action: function() {
-                    modal_cuentas_contables();
-                }
-            },
-            {
-                extend: 'excelHtml5',
-                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
-                titleAttr: 'Excel',
-                title: 'Reporte Registro de Cuentas',
-                messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' +
-                    convertDateFormat(fechaf),
-                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-                exportOptions: {
-                    columns: [0, 1, 2, 3, 4, 5]
+            confirm: {
+                text: "Sí, eliminar",
+                value: true,
+                className: "btn-danger",
+                closeModal: false
+            }
+        },
+        dangerMode: true,
+        closeOnEsc: false,
+        closeOnClickOutside: false
+    }).then((confirmar) => {
+        if (confirmar) {
+            $.ajax({
+                type: 'POST',
+                url: '<?php echo SERVERURL;?>ajax/eliminarCuentaContabilidadAjax.php',
+                data: {
+                    cuentas_id: cuentas_id
                 },
-                className: 'table_reportes btn btn-success ocultar'
-            },
-            {
-                extend: 'pdf',
-                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-                titleAttr: 'PDF',
-                orientation: 'landscape',
-                title: 'Reporte Registro de Cuentas',
-                messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' +
-                    convertDateFormat(fechaf),
-                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-                className: 'table_reportes btn btn-danger ocultar',
-                exportOptions: {
-                    columns: [0, 1, 2, 3, 4, 5]
+                dataType: 'json',
+                beforeSend: function() {
+                    swal({
+                        title: "Eliminando...",
+                        text: "Por favor espere",
+                        icon: "info",
+                        buttons: false,
+                        closeOnClickOutside: false,
+                        closeOnEsc: false
+                    });
                 },
-                customize: function(doc) {
-                    if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
-                        doc.content.splice(0, 0, {
-                            image: imagen,  
-                            width: 100,
-                            height: 45,
-                            margin: [0, 0, 0, 12]
+                success: function(response) {
+                    swal.close();
+                    
+                    if(response.status === "success") {
+                        swal({
+                            title: response.title,
+                            text: response.message,
+                            icon: "success",
+                            timer: 2000,
+                            buttons: false
+                        });
+                        listar_cuentas_contabilidad();
+                    } else {
+                        swal({
+                            title: response.title,
+                            text: response.message,
+                            icon: "error"
                         });
                     }
-                }
-            }
-        ],
-        "drawCallback": function(settings) {
-            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-        },
-    });
-    table_cuentas_contabilidad.search('').draw();
-    $('#buscar').focus();
-
-    editar_cuentas_contabilidad_dataTable("#dataTableCuentasContabilidad tbody", table_cuentas_contabilidad);
-    eliminar_cuentas_contabilidad_dataTable("#dataTableCuentasContabilidad tbody", table_cuentas_contabilidad);
-}
-
-var editar_cuentas_contabilidad_dataTable = function(tbody, table) {
-    $(tbody).off("click", "button.table_editar");
-    $(tbody).on("click", "button.table_editar", function() {
-        var data = table.row($(this).parents("tr")).data();
-        var url = '<?php echo SERVERURL;?>core/editarCuentasContabilidad.php';
-        $('#formCuentasContables #cuentas_id').val(data.cuentas_id)
-
-        $.ajax({
-            type: 'POST',
-            url: url,
-            data: $('#formCuentasContables').serialize(),
-            success: function(registro) {
-                var valores = eval(registro);
-                $('#formCuentasContables').attr({
-                    'data-form': 'update'
-                });
-                $('#formCuentasContables').attr({
-                    'action': '<?php echo SERVERURL;?>ajax/modificarCuentaContabilidadAjax.php'
-                });
-                $('#formCuentasContables')[0].reset();
-                $('#reg_cuentas').hide();
-                $('#edi_cuentas').show();
-                $('#delete_cuentas').hide();
-
-                $('#formCuentasContables #cuenta_codigo').val(valores[1]);
-                $('#formCuentasContables #cuenta_nombre').val(valores[2]);
-
-                if (valores[3] == 1) {
-                    $('#formCuentasContables #clientes_activo').attr('checked', true);
-                } else {
-                    $('#formCuentasContables #clientes_activo').attr('checked', false);
-                }
-
-                //HABILITAR OBJETOS
-                $('#formCuentasContables #cuenta_nombre').attr("readonly", false);
-                $('#formCuentasContables #estado_cuentas_contables').show();
-
-                //DESHABILITAR
-                $('#formCuentasContables #cuenta_codigo').attr("readonly", true);
-
-                $('#formCuentasContables #pro_cuentas').val("Editar");
-                $('#modalCuentascontables').modal({
-                    show: true,
-                    keyboard: false,
-                    backdrop: 'static'
-                });
-            }
-        });
-    });
-}
-
-var eliminar_cuentas_contabilidad_dataTable = function(tbody, table) {
-    $(tbody).off("click", "button.table_eliminar");
-    $(tbody).on("click", "button.table_eliminar", function() {
-        var data = table.row($(this).parents("tr")).data();
-
-
-        var cuentas_id = data.cuentas_id;
-        var nombreCuenta = data.nombre; 
-        
-        // Construir el mensaje de confirmación con HTML
-        var mensajeHTML = `¿Desea eliminar permanentemente la cuenta?<br><br>
-                        <strong>Nombre:</strong> ${nombreCuenta}`;
-        
-        swal({
-            title: "Confirmar eliminación",
-            content: {
-                element: "span",
-                attributes: {
-                    innerHTML: mensajeHTML
-                }
-            },
-            icon: "warning",
-            buttons: {
-                cancel: {
-                    text: "Cancelar",
-                    value: null,
-                    visible: true,
-                    className: "btn-light"
                 },
-                confirm: {
-                    text: "Sí, eliminar",
-                    value: true,
-                    className: "btn-danger",
-                    closeModal: false
+                error: function() {
+                    swal.close();
+                    swal({
+                        title: "Error",
+                        text: "Ocurrió un error al procesar la solicitud",
+                        icon: "error"
+                    });
                 }
-            },
-            dangerMode: true,
-            closeOnEsc: false,
-            closeOnClickOutside: false
-        }).then((confirmar) => {
-            if (confirmar) {
-               
-                $.ajax({
-                    type: 'POST',
-                    url: '<?php echo SERVERURL;?>ajax/eliminarCuentaContabilidadAjax.php',
-                    data: {
-                        cuentas_id: cuentas_id
-                    },
-                    dataType: 'json', // Esperamos respuesta JSON
-                    before: function(){
-                        // Mostrar carga mientras se procesa
-                        showLoading("Eliminando registro...");
-                    },
-                    success: function(response) {
-                        swal.close();
-                        
-                        if(response.status === "success") {
-                            showNotify("success", response.title, response.message);
-                            table.ajax.reload(null, false); // Recargar tabla sin resetear paginación
-                            table.search('').draw();                    
-                        } else {
-                            showNotify("error", response.title, response.message);
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        swal.close();
-                        showNotify("error", "Error", "Ocurrió un error al procesar la solicitud");
-                    }
-                });
-            }
-        });        
-    });
+            });
+        }
+    });        
 }
-//FIN ACCIONES FORMULARIO CUENTAS EN CONTABILIDAD
 
-/*INICIO FORMULARIO CUENTAS CONTABLES*/
 function modal_cuentas_contables() {
     $('#formCuentasContables').attr({
         'data-form': 'save'
@@ -401,12 +253,10 @@ function modal_cuentas_contables() {
     $('#edi_cuentas').hide();
     $('#delete_cuentas').hide();
 
-    //HABILITAR OBJETOS
     $('#formCuentasContables #cuenta_codigo').attr("readonly", false);
     $('#formCuentasContables #cuenta_nombre').attr("readonly", false);
     $('#formCuentasContables #cuentas_activo').attr("disabled", false);
     $('#formCuentasContables #estado_cuentas_contables').hide();
-
     $('#formCuentasContables #pro_cuentas').val("Registro");
 
     $('#modalCuentascontables').modal({
@@ -415,17 +265,14 @@ function modal_cuentas_contables() {
         backdrop: 'static'
     });
 }
-/*FIN FORMULARIO CUENTAS CONTABLES*/
 
 $('#formCuentasContables #label_cuentas_activo').html("Activo");
 
 $('#formCuentasContables .switch').change(function() {
     if ($('input[name=cuentas_activo]').is(':checked')) {
         $('#formCuentasContables #label_cuentas_activo').html("Activo");
-        return true;
     } else {
         $('#formCuentasContables #label_cuentas_activo').html("Inactivo");
-        return false;
     }
 });
 

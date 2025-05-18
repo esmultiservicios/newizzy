@@ -53,7 +53,28 @@ function actualizarPermisos() {
     getMenu(privilegio_id);
     getSubMenu(privilegio_id);
     getSubMenu1(privilegio_id);
+
+    ajustarMenuResponsivo();
 }
+
+// En tu archivo JavaScript o script
+function ajustarMenuResponsivo() {
+  const anchoPantalla = window.innerWidth;
+  
+  if (anchoPantalla < 769) { // Pantallas pequeñas (768px o menos)
+    document.getElementById('facturas').style.display = 'none';
+    document.getElementById('cotizacion').style.display = 'none';
+    document.getElementById('facturaCompras').style.display = 'none';
+  } else { // Pantallas grandes
+    document.getElementById('facturas').style.display = '';
+    document.getElementById('cotizacion').style.display = '';
+    document.getElementById('facturaCompras').style.display = '';
+  }
+}
+
+// Ejecutar al cargar y al redimensionar la ventana
+window.addEventListener('load', ajustarMenuResponsivo);
+window.addEventListener('resize', ajustarMenuResponsivo);
 
 // Ejecutar al cargar
 actualizarPermisos();
@@ -2697,16 +2718,16 @@ var listar_cuentas_por_cobrar_clientes = function() {
                 "data": "cliente"
             },
             {
-                "data": "estado",
+                "data": "tipo_factura",
                 "render": function(data, type, row) {
                     if (type === 'display') {
-                        var text = data == 1 ? 'Crédito' : 'Contado';
+                        var text = data == 1 ? 'Contado' : 'Crédito';
                         var icon = data == 1 
                             ? '<i class="fas fa-clock mr-1"></i>' 
                             : '<i class="fas fa-check-circle mr-1"></i>';
                         var badgeClass = data == 1 
-                            ? 'badge badge-pill badge-warning' 
-                            : 'badge badge-pill badge-success';
+                            ? 'badge badge-pill badge-success' 
+                            : 'badge badge-pill badge-warning';
                         return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' + 
                             icon + text + '</span>';
                     }
@@ -4302,212 +4323,258 @@ function saldoCompras(compras_id) {
 }
 //FIN ACCIONES FROMULARIO CLIENTES
 
-//INICIO MODAL REGSITRAR PAGO FACTURACIÓN CLIENTES
+// INICIO MODAL REGISTRAR PAGO FACTURACIÓN CLIENTES
 function customRound(number) {
-    var truncated = Math.floor(number * 100) / 100; // Trunca a dos decimales
-    var secondDecimal = Math.floor((number * 100) % 10); // Obtiene el segundo decimal
-
-    if (secondDecimal >= 5) { // Si el segundo decimal es mayor o igual a 5, redondea hacia arriba
-        return parseFloat((truncated + 0.01).toFixed(2)); // Redondea hacia arriba
-    } else { // Si el segundo decimal es menor que 5, no redondea
-        return parseFloat(truncated.toFixed(2)); // No redondea
-    }
+    const truncated = Math.floor(number * 100) / 100;
+    const secondDecimal = Math.floor((number * 100) % 10);
+    return secondDecimal >= 5 ? parseFloat((truncated + 0.01).toFixed(2)) : parseFloat(truncated.toFixed(2));
 }
 
 function pago(facturas_id, tipoPago) {
-    var url = '<?php echo SERVERURL;?>core/editarPagoFacturas.php';
+    const url = '<?php echo SERVERURL;?>core/editarPagoFacturas.php';
 
-    $('#pagos_multiples_switch').attr('checked', false);
+    // Resetear el switch de pagos múltiples
+    $('#pagos_multiples_switch').prop('checked', false).val(0);
     getCollaboradoresModalPagoFacturas();
+    getBanco();
 
     $.ajax({
         type: 'POST',
         url: url,
-        data: {
-            facturas_id: facturas_id
-        },
-        dataType: 'json', // Asegúrate de que el servidor devuelve JSON
+        data: { facturas_id: facturas_id },
+        dataType: 'json',
         success: function(datos) {
-            // Verifica que datos sea un array o un objeto
-            if (!Array.isArray(datos)) {
-                return;
-            }
+            if (!Array.isArray(datos)) return;
 
+            // Configuración inicial
             $('#formEfectivoBill .border-right a:eq(0) a').tab('show');
-            $("#customer-name-bill").html("<b>Cliente:</b> " + datos[0]);
+            $("#customer-name-bill").html(`<b>Cliente:</b> ${datos[0]}`);
             $("#customer_bill_pay").val(datos[6]);
-            $('#bill-pay').html("L. " + parseFloat(datos[6]).toFixed(2));
+            $('#bill-pay').html(`L. ${parseFloat(datos[6]).toFixed(2)}`);
 
-            //EFECTIVO
-            $('#formEfectivoBill')[0].reset();
-            $('#formEfectivoBill #monto_efectivo').val(parseFloat(datos[6]));
+            // Configurar formularios
+            configurarFormularioEfectivo(facturas_id, tipoPago, datos[6]);
+            configurarFormularioTarjeta(facturas_id, tipoPago, datos[6]);
+            configurarFormularioTransferencia(facturas_id, tipoPago, datos[6]);
+            configurarFormularioCheque(facturas_id, tipoPago, datos[6]);
 
-            $('#formEfectivoBill #factura_id_efectivo').val(facturas_id);
-            $('#formEfectivoBill #tipo_factura').val(tipoPago);
-            $('#formEfectivoBill #pago_efectivo').attr('disabled', true);
-
-            if (tipoPago == 2) {
-                $('#bill-pay').html("L. " + parseFloat(datos[6]));
-                $('#tab5').hide();
-                $("#formEfectivoBill #tipo_factura_efectivo").val(tipoPago);
-
-                $('#formTarjetaBill #monto_efectivo_tarjeta').show();
-                $('#formTransferenciaBill #importe_transferencia').show();
-                $('#formChequeBill #importe_cheque').show();
-                $("#formEfectivoBill #grupo_cambio_efectivo").hide();
-            }
-
-            //TARJETA
-            $('#formTarjetaBill')[0].reset();
-            $('#formTarjetaBill #monto_efectivo').val(parseFloat(datos[6]));
-            $('#formTarjetaBill #importe_tarjeta').val(parseFloat(datos[6]));
-            $('#formTarjetaBill #factura_id_tarjeta').val(facturas_id);
-            $('#formTarjetaBill #tipo_factura').val(tipoPago);
-            $('#formTarjetaBill #pago_efectivo').attr('disabled', true);
-
-            //TRANSFERENCIA
-            $('#formTransferenciaBill')[0].reset();
-            $('#formTransferenciaBill #monto_efectivo').val(parseFloat(datos[6]));
-            $('#formTransferenciaBill #factura_id_transferencia').val(facturas_id);
-            $('#formTransferenciaBill #tipo_factura_transferencia').val(tipoPago);
-            $('#formTransferenciaBill #pago_efectivo').attr('disabled', true);
-
-            //CHEQUES
-            $('#formChequeBill')[0].reset();
-            $('#formChequeBill #monto_efectivo').val(parseFloat(datos[6]));
-            $('#formChequeBill #factura_id_cheque').val(facturas_id);
-            $('#formChequeBill #pago_efectivo').attr('disabled', true);
-            $('#formChequeBill #tipo_factura_cheque').val(tipoPago);
-
-            $('#modal_pagos').modal({
-                show: true,
-                keyboard: false,
-                backdrop: 'static'
+            // Mostrar modal
+            $('#modal_pagos').modal({ 
+                show: true, 
+                keyboard: false, 
+                backdrop: 'static' 
             });
+            
+            // Inicializar el cálculo del cambio
+            calcularCambioEfectivo();
         },
-        error: function(xhr, status, error) {
-
+        error: (xhr, status, error) => {
+            console.error("Error al cargar datos de pago:", error);
+            showNotify("error", "Error", "No se pudieron cargar los datos del pago");
         }
     });
 }
 
-$(document).ready(function() {
-    $("#tab1").on("click", function() {
-        $("#modal_pagos").on('shown.bs.modal', function() {
-            $(this).find('#formTarjetaBill #efectivo_bill').focus();
+// Funciones auxiliares para configuración de formularios
+function configurarFormularioEfectivo(facturas_id, tipoPago, monto) {
+    const $form = $('#formEfectivoBill');
+    $form[0].reset();
+    $form.find('#monto_efectivo').val(parseFloat(monto).toFixed(2));
+    $form.find('#factura_id_efectivo').val(facturas_id);
+    $form.find('#tipo_factura').val(tipoPago);
+    $form.find('#pago_efectivo').attr('disabled', true);
+
+    if (tipoPago == 2) { // Pago múltiple
+        $('#bill-pay').html(`L. ${parseFloat(monto).toFixed(2)}`);
+        $('#tab5').hide();
+        $form.find('#grupo_cambio_efectivo').hide();
+        $form.find('#cambio_efectivo').val("0.00");
+    } else { // Pago normal
+        $form.find('#grupo_cambio_efectivo').show();
+    }
+}
+
+function configurarFormularioTarjeta(facturas_id, tipoPago, monto) {
+    const $form = $('#formTarjetaBill');
+    $form[0].reset();
+    $form.find('#monto_efectivo, #importe_tarjeta').val(parseFloat(monto).toFixed(2));
+    $form.find('#factura_id_tarjeta').val(facturas_id);
+    $form.find('#tipo_factura').val(tipoPago);
+    $form.find('#pago_tarjeta').attr('disabled', false);
+}
+
+function configurarFormularioTransferencia(facturas_id, tipoPago, monto) {
+    const $form = $('#formTransferenciaBill');
+    $form[0].reset();
+    $form.find('#monto_efectivo').val(parseFloat(monto).toFixed(2));
+    $form.find('#factura_id_transferencia').val(facturas_id);
+    $form.find('#tipo_factura_transferencia').val(tipoPago);
+    $form.find('#pago_transferencia').attr('disabled', false);
+}
+
+function configurarFormularioCheque(facturas_id, tipoPago, monto) {
+    const $form = $('#formChequeBill');
+    $form[0].reset();
+    $form.find('#monto_efectivo').val(parseFloat(monto).toFixed(2));
+    $form.find('#factura_id_cheque').val(facturas_id);
+    $form.find('#tipo_factura_cheque').val(tipoPago);
+    $form.find('#pago_cheque').attr('disabled', false);
+}
+
+// Inicialización cuando el DOM está listo
+$(function() {
+    // Configuración de focus en los tabs
+    $("#tab1, #tab2, #tab3, #tab4").on("click", function() {
+        const targetMap = {
+            'tab1': '#formEfectivoBill #efectivo_bill',
+            'tab2': '#formTarjetaBill #cr_bill',
+            'tab3': '#formTransferenciaBill #bk_nm',
+            'tab4': '#formChequeBill #bk_nm_chk'
+        };
+        
+        $("#modal_pagos").on('shown.bs.modal', () => {
+            $(targetMap[this.id]).focus();
         });
     });
 
-    $("#tab2").on("click", function() {
-        $("#modal_pagos").on('shown.bs.modal', function() {
-            $(this).find('#formTarjetaBill #cr_bill').focus();
-        });
-    });
-
-    $("#tab3").on("click", function() {
-        $("#modal_pagos").on('shown.bs.modal', function() {
-            $(this).find('#formTarjetaBill #bk_nm').focus();
-        });
-    });
-
-    $("#tab4").on("click", function() {
-        $("#modal_pagos").on('shown.bs.modal', function() {
-            $(this).find('#formChequeBill #bk_nm_chk').focus();
-        });
-    });
-});
-
-$(document).ready(function() {
+    // Máscaras para los inputs
     $('#formTarjetaBill #cr_bill').inputmask("9999");
-});
-
-$(document).ready(function() {
     $('#formTarjetaBill #exp').inputmask("99/99");
-});
-
-$(document).ready(function() {
     $('#formTarjetaBill #cvcpwd').inputmask("999999");
-});
 
-$(document).ready(function() {
-    $("#formEfectivoBill #efectivo_bill").on("keyup", function() {
-        var efectivo = parseFloat($("#formEfectivoBill #efectivo_bill").val()).toFixed(2);
-        var monto = parseFloat($("#formEfectivoBill #monto_efectivo").val()).toFixed(2);
-        var credito = $("#formEfectivoBill #tipo_factura").val();
-        var pagos_multiples = $('#pagos_multiples_switch').val();
-
-        if (credito == 2) {
-            $("#formEfectivoBill #cambio_efectivo").val(0)
-            $("#formEfectivoBill #grupo_cambio_efectivo").hide();
-        }
-
-        var total = efectivo - monto;
-
-        if (Math.floor(efectivo * 100) >= Math.floor(monto * 100) || credito == 2 || pagos_multiples ==
-            1) {
-            $('#formEfectivoBill #cambio_efectivo').val(parseFloat(total).toFixed(2));
-            $('#formEfectivoBill #pago_efectivo').attr('disabled', false);
-
-            //aqi
+    // Evento para el switch de pagos múltiples
+    $('#pagos_multiples_switch').change(function() {
+        const isChecked = $(this).is(':checked');
+        const tipoPago = isChecked ? 2 : 1;
+        
+        // Actualizar todos los formularios con el nuevo tipo de pago
+        $('[id^="form"] [id*="tipo_factura"]').val(tipoPago);
+        $('.multiple_pago').val(isChecked ? 1 : 0);
+        
+        // Mostrar/ocultar grupo de cambio según el tipo de pago
+        const $cambioGroup = $('#formEfectivoBill #grupo_cambio_efectivo');
+        if (isChecked) {
+            $cambioGroup.hide();
+            $('#formEfectivoBill #cambio_efectivo').val("0.00");
         } else {
-            $('#formEfectivoBill #cambio_efectivo').val(parseFloat(0).toFixed(2));
-            $('#formEfectivoBill #pago_efectivo').attr('disabled', true);
+            $cambioGroup.show();
         }
+        
+        // Recalcular el cambio y estado del botón
+        calcularCambioEfectivo();
+    });
 
-        if (parseFloat(efectivo) > parseFloat(monto)) {
-            $('#formEfectivoBill #pago_efectivo').attr('disabled', true);
+    // Evento mejorado para el input de efectivo
+    $("#formEfectivoBill #efectivo_bill").on("input", function() {
+        // Obtener valor actual
+        let value = $(this).val();
+        
+        // Limpiar y formatear el valor
+        value = value.replace(/[^0-9.]/g, '')
+                     .replace(/(\..*)\./g, '$1') // Evitar múltiples puntos
+                     .replace(/^\./, '0.'); // Agregar 0 si empieza con punto
+        
+        // Limitar a 2 decimales
+        const parts = value.split('.');
+        if (parts.length > 1) {
+            value = parts[0] + '.' + parts[1].slice(0, 2);
+        }
+        
+        // Actualizar valor
+        $(this).val(value);
+        
+        // Calcular el cambio
+        calcularCambioEfectivo();
+    });
+    
+    // Evento para cuando el modal se muestra
+    $('#modal_pagos').on('shown.bs.modal', function() {
+        // Inicializar el cálculo del cambio
+        calcularCambioEfectivo();
+        
+        // Enfocar el input de efectivo si está visible
+        if ($('#formEfectivoBill').is(':visible')) {
+            setTimeout(() => {
+                $('#formEfectivoBill #efectivo_bill').focus();
+            }, 300);
         }
     });
 });
 
+// Función mejorada para calcular el cambio en efectivo
+function calcularCambioEfectivo() {
+    const $form = $('#formEfectivoBill');
+    const efectivoStr = $form.find('#efectivo_bill').val().replace(/,/g, '');
+    const montoStr = $form.find('#monto_efectivo').val().replace(/,/g, '');
+    
+    const efectivo = parseFloat(efectivoStr) || 0;
+    const monto = parseFloat(montoStr) || 0;
+    const tipoPago = parseInt($form.find('#tipo_factura').val()) || 1;
+
+    if (tipoPago === 1) { // Pago completo
+        const cambio = efectivo - monto;
+        $form.find('#cambio_efectivo').val(cambio >= 0 ? cambio.toFixed(2) : "0.00");
+        $form.find('#pago_efectivo').attr('disabled', efectivo < monto);
+    } else { // Pago múltiple
+        $form.find('#cambio_efectivo').val("0.00");
+        $form.find('#pago_efectivo').attr('disabled', efectivo <= 0 || efectivo > monto);
+    }
+}
+
+// Función para obtener los colaboradores
+function getCollaboradoresModalPagoFacturas() {
+    $.ajax({
+        url: '<?php echo SERVERURL; ?>core/getCollaboradores.php',
+        type: 'POST',
+        dataType: 'json',
+        success: function(response) {
+            const $selects = $('[id^="usuario_"]');
+            $selects.empty();
+            
+            if(response.success && response.data?.length) {
+                response.data.forEach(user => {
+                    $selects.append(`<option value="${user.id}">${user.nombre}</option>`);
+                });
+            } else {
+                $selects.append('<option value="">No hay usuarios disponibles</option>');
+            }
+            
+            $selects.selectpicker('refresh');
+        },
+        error: (xhr, status, error) => {
+            console.error("Error al cargar usuarios:", error);
+            showNotify("error", "Error", "No se pudieron cargar los usuarios");
+        }
+    });
+}
+
+// Función para obtener los bancos
 function getBanco() {
     $.ajax({
         url: '<?php echo SERVERURL; ?>core/getBanco.php',
         type: 'POST',
         dataType: 'json',
         success: function(response) {
-            // Seleccionar ambos dropdowns
-            const $bkTransferencia = $('#formTransferenciaBill #bk_nm');
-            const $bkCheque = $('#formChequeBill #bk_nm_chk');
+            const $selects = $('#formTransferenciaBill #bk_nm, #formChequeBill #bk_nm_chk');
+            $selects.empty();
             
-            // Limpiar ambos selects
-            $bkTransferencia.empty();
-            $bkCheque.empty();
-            
-            if(response.success && response.data && response.data.length > 0) {
-                // Agregar opciones a ambos selects
+            if(response.success && response.data?.length) {
                 response.data.forEach(banco => {
-                    const option = `
-                        <option value="${banco.id || banco.bancos_id}">
-                            ${banco.nombre || 'Nombre no disponible'}
-                        </option>`;
-                    
-                    $bkTransferencia.append(option);
-                    $bkCheque.append(option);
+                    $selects.append(`<option value="${banco.id || banco.bancos_id}">${banco.nombre}</option>`);
                 });
             } else {
-                const errorOption = '<option value="">No hay bancos disponibles</option>';
-                $bkTransferencia.append(errorOption);
-                $bkCheque.append(errorOption);
+                $selects.append('<option value="">No hay bancos disponibles</option>');
             }
             
-            // Refrescar ambos selects
-            $bkTransferencia.selectpicker('refresh');
-            $bkCheque.selectpicker('refresh');
+            $selects.selectpicker('refresh');
         },
-        error: function(xhr, status, error) {
+        error: (xhr, status, error) => {
             console.error("Error al cargar bancos:", error);
             showNotify("error", "Error", "No se pudieron cargar los bancos");
-            
-            $('#formTransferenciaBill #bk_nm').html('<option value="">Error al cargar</option>');
-            $('#formChequeBill #bk_nm_chk').html('<option value="">Error al cargar</option>');
-            
-            $('#formTransferenciaBill #bk_nm').selectpicker('refresh');
-            $('#formChequeBill #bk_nm_chk').selectpicker('refresh');
         }
     });
 }
-//FIN MODAL REGSITRAR PAGO FACTURACIÓN CLIENTES
+// FIN MODAL REGISTRAR PAGO FACTURACIÓN CLIENTES
 
 //INICIO ABONO CXC
 $(document).ready(function() {

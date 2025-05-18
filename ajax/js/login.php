@@ -22,6 +22,7 @@ $(document).ready(function() {
 
     // Validación de email/password
     var timeout;
+    $("#groupDB").hide();
     $("#inputEmail, #inputPassword").on("input blur", function() {
         clearTimeout(timeout);
         var email = $("#inputEmail").val();

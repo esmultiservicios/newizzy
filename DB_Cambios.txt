@@ -1,3 +1,7 @@
+###17 de mayo de 2025####
+ALTER TABLE `cobrar_clientes` 
+ADD COLUMN `tipo_factura` INT NOT NULL DEFAULT 2 COMMENT '1=Contado, 2=Crédito' AFTER `estado`;
+
 ####30/10/2024####
 tabla => apertura
 empresa_id		int se agrego despúes de fecha_registro

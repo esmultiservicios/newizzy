@@ -28,6 +28,7 @@ $('#form_main_productos #buscar_productos').on('click', function(e) {
 });
 
 //INICIO ACCIONES FROMULARIO PRODUCTOS
+//INICIO ACCIONES FROMULARIO PRODUCTOS
 var listar_productos = function() {
     var estado = $('#form_main_productos #estado_producto').val() === "" ? 1 : $(
         '#form_main_productos #estado_producto').val();
@@ -41,7 +42,8 @@ var listar_productos = function() {
                 "estado": estado
             }
         },
-        "columns": [{
+        "columns": [
+            {
                 "data": "image",
                 "render": function(data, type, row, meta) {
                     var defaultImageUrl =
@@ -72,22 +74,37 @@ var listar_productos = function() {
 
                     return imageHtml;
                 }
-
             },
             {
                 "data": "barCode"
             },
             {
-                "data": "nombre"
+                "data": "nombre",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        var warningIcon = '';
+                        
+                        // Verificar si hay stock mínimo configurado y si el stock actual es bajo
+                        if (row.cantidad_minima > 0 && row.stock <= row.cantidad_minima) {
+                            warningIcon = '<i class="fas fa-exclamation-triangle text-danger mr-1" title="Stock mínimo alcanzado"></i>';
+                        } else if (row.cantidad_minima > 0 && row.stock <= (row.cantidad_minima * 1.5)) {
+                            warningIcon = '<i class="fas fa-exclamation-circle text-warning mr-1" title="Stock cerca del mínimo"></i>';
+                        }
+                        
+                        return warningIcon + data;
+                    }
+                    return data;
+                }
             },
             {
                 "data": "medida"
             },
             {
                 "data": "categoria"
-            }, {
+            },
+            {
                 "data": "precio_compra",
-                render: function(data, type) {
+                "render": function(data, type) {
                     var number = $.fn.dataTable.render
                         .number(',', '.', 2, 'L ')
                         .display(data);
@@ -102,11 +119,11 @@ var listar_productos = function() {
                     }
 
                     return number;
-                },
+                }
             },
             {
                 "data": "precio_venta",
-                render: function(data, type) {
+                "render": function(data, type) {
                     var number = $.fn.dataTable.render
                         .number(',', '.', 2, 'L ')
                         .display(data);
@@ -121,11 +138,11 @@ var listar_productos = function() {
                     }
 
                     return number;
-                },
+                }
             },
             {
                 "data": "porcentaje_venta",
-                render: function(data, type) {
+                "render": function(data, type) {
                     var number = $.fn.dataTable.render
                         .number(',', '.', 2, 'L ')
                         .display(data);
@@ -140,10 +157,46 @@ var listar_productos = function() {
                     }
 
                     return number;
-                },
+                }
             },
             {
                 "data": "isv_venta"
+            },
+            {
+                "data": "stock",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        // Si el stock es null o undefined, mostramos 0
+                        if (data === null || data === undefined) {
+                            data = 0;
+                        }
+                        
+                        let color = 'black';
+                        let icon = '';
+                        let tooltip = '';
+                        
+                        if (row.cantidad_minima > 0) {
+                            if (data <= row.cantidad_minima) {
+                                color = 'red';
+                                icon = '<i class="fas fa-exclamation-triangle mr-1"></i>';
+                                tooltip = 'title="Stock mínimo alcanzado (Mín: ' + row.cantidad_minima + ')"';
+                            } else if (data <= (row.cantidad_minima * 1.5)) {
+                                color = 'orange';
+                                icon = '<i class="fas fa-exclamation-circle mr-1"></i>';
+                                tooltip = 'title="Stock cerca del mínimo (Mín: ' + row.cantidad_minima + ')"';
+                            }
+                            
+                            if (row.cantidad_maxima > 0 && data > row.cantidad_maxima) {
+                                color = 'blue';
+                                icon = '<i class="fas fa-arrow-up mr-1"></i>';
+                                tooltip = 'title="Stock sobre el máximo permitido (Máx: ' + row.cantidad_maxima + ')"';
+                            }
+                        }
+                        
+                        return '<span style="color:' + color + '" ' + tooltip + '>' + icon + data + '</span>';
+                    }
+                    return data;
+                }
             },
             {
                 "data": "estado",
@@ -177,7 +230,8 @@ var listar_productos = function() {
         "responsive": true,
         "language": idioma_español,
         "dom": dom,
-        "buttons": [{
+        "buttons": [
+            {
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                 titleAttr: 'Actualizar Productos',
                 className: 'table_actualizar btn btn-secondary ocultar',
@@ -202,7 +256,7 @@ var listar_productos = function() {
                 className: 'table_reportes btn btn-success ocultar',
                 exportOptions: {
                     columns: [1, 2, 3, 4, 5, 6, 7]
-                },
+                }
             },
             {
                 extend: 'pdf',
@@ -216,7 +270,7 @@ var listar_productos = function() {
                 },
                 className: 'table_reportes btn btn-danger ocultar',
                 customize: function(doc) {
-                    if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
+                    if (imagen) {
                         doc.content.splice(0, 0, {
                             image: imagen,  
                             width: 100,
@@ -229,8 +283,24 @@ var listar_productos = function() {
         ],
         "drawCallback": function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+            
+            // Mostrar alerta si hay productos con stock bajo
+            var api = this.api();
+            var lowStockCount = 0;
+            
+            api.rows().every(function() {
+                var data = this.data();
+                if (data.cantidad_minima > 0 && data.stock <= data.cantidad_minima) {
+                    lowStockCount++;
+                }
+            });
+            
+            if (lowStockCount > 0) {
+                showNotify('warning', 'Stock Bajo', 'Tienes ' + lowStockCount + ' producto(s) que han alcanzado su stock mínimo');
+            }
         }
     });
+    
     table_productos.search('').draw();
     $('#buscar').focus();
 

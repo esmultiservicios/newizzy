@@ -37,7 +37,6 @@
         }
     }
 
-    // Modificación en la función listar_reporte_ventas
     var listar_reporte_ventas = function () {
         let tipo_factura_reporte = $("#form_main_ventas #tipo_factura_reporte").val();
         tipo_factura_reporte = tipo_factura_reporte ? tipo_factura_reporte : 1;
@@ -159,21 +158,53 @@
                 },
                 {
                     "data": "total",
-                    render: function (data, type) {
-                        var number = $.fn.dataTable.render
-                            .number(',', '.', 2, 'L ')
-                            .display(data);
+                    "render": function (data, type, row) {
+                        let numberFormatted = 'L ' + parseFloat(data).toLocaleString('es-HN', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        });
 
                         if (type === 'display') {
-                            let color = 'green';
-                            if (data < 0) {
-                                color = 'red';
+                            let estado, estadoClass, bgClass, icon, borderColor, badgeColor;
+
+                            if (row.tipo_documento === 'Contado') {
+                                estado = 'Pagado';
+                                estadoClass = 'text-white';
+                                bgClass = 'bg-success';
+                                borderColor = '#28a745';
+                                badgeColor = 'bg-success';
+                                icon = '<i class="fas fa-check-circle mr-1"></i>';
+                            } else {
+                                estado = row.estado_pago || 'Pendiente';
+                                if (estado === 'Pagado') {
+                                    estadoClass = 'text-white';
+                                    bgClass = 'bg-secondary';
+                                    borderColor = '#343a40';
+                                    badgeColor = 'bg-secondary';
+                                    icon = '<i class="fas fa-check-double mr-1"></i>';
+                                } else {
+                                    estadoClass = 'text-dark';
+                                    bgClass = 'bg-warning';
+                                    borderColor = '#ffc107';
+                                    badgeColor = 'bg-warning';
+                                    icon = '<i class="fas fa-clock mr-1"></i>';
+                                }
                             }
 
-                            return '<span style="color:' + color + '">' + number + '</span>';
+                            return `
+                                <div class="total-container" style="display: flex; flex-direction: column; align-items: flex-end; min-width: 0; max-width: 200px;">
+                                    <div style="background: #fff; border-left: 6px solid ${borderColor}; padding: 8px 12px; border-radius: 0.5rem; box-shadow: 0 1px 5px rgba(0,0,0,0.08); font-size: 1.1em; font-weight: bold; color: #212529; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        ${numberFormatted}
+                                    </div>
+                                    <div class="status-badge ${badgeColor} ${estadoClass}" 
+                                        style="font-size: 0.75em !important; padding: 0.3em 1em !important; border-radius: 999px !important; display: inline-block; line-height: 1.3; margin-top: 5px; white-space: nowrap;">
+                                        ${icon}${estado}
+                                    </div>
+                                </div>
+                            `;
                         }
 
-                        return number;
+                        return numberFormatted;
                     },
                 },
                 {

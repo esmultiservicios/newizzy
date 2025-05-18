@@ -396,7 +396,7 @@ class facturasControlador extends facturasModelo {
     }
 
     // Método para guardar cuenta por cobrar
-    protected function guardarCuentaPorCobrar($clientes_id, $facturas_id, $fecha, $total, $estado, $usuario, $fecha_registro, $empresa_id) {
+    protected function guardarCuentaPorCobrar($clientes_id, $facturas_id, $fecha, $total, $estado, $tipo_factura, $usuario, $fecha_registro, $empresa_id) {
         $datos = [
             "clientes_id" => $clientes_id,
             "facturas_id" => $facturas_id,
@@ -405,7 +405,8 @@ class facturasControlador extends facturasModelo {
             "estado" => $estado,
             "usuario" => $usuario,
             "fecha_registro" => $fecha_registro,
-            "empresa" => $empresa_id
+            "empresa" => $empresa_id,
+            "tipo_factura" => $tipo_factura // 1=Contado, 2=Crédito
         ];
     
         $result = facturasModelo::validar_cobrarClientes_modelo($facturas_id);
@@ -417,9 +418,8 @@ class facturasControlador extends facturasModelo {
                 return false;
             }
             return true;
-        }
+        }        
         
-        // Si ya existía, consideramos que es éxito
         return true;
     }
 
@@ -611,13 +611,14 @@ class facturasControlador extends facturasModelo {
             }
             
             // Guardar cuenta por cobrar
-            $estado_cuenta = ($tipo_factura == 1) ? 3 : 1; // 3 para contado, 1 para crédito
+            $estado_cuenta = 1;
             $cuentaCobrar = $this->guardarCuentaPorCobrar(
                 $clientes_id, 
                 $facturas_id, 
                 $fecha, 
                 $totales['total_despues_isv'], 
                 $estado_cuenta, 
+                $tipo_factura,
                 $datosBasicos['usuario'], 
                 $fecha_registro, 
                 $datosBasicos['empresa_id']
@@ -698,8 +699,8 @@ class facturasControlador extends facturasModelo {
                 }
                 
                 $funcion = ($tipo_factura == 1) ? 
-                    "limpiarTablaFactura();pago({$facturas_id});getCajero();getConsumidorFinal();getEstadoFactura();cleanFooterValueBill();resetRow();getTotalFacturasDisponibles();" . $funcion_pagos :
-                    "limpiarTablaFactura();getCajero();getConsumidorFinal();getEstadoFactura();cleanFooterValueBill();resetRow();" . $funcion_pagos;
+                "limpiarTablaFactura();pago({$facturas_id}, 1);getCajero();getConsumidorFinal();getEstadoFactura();cleanFooterValueBill();resetRow();getTotalFacturasDisponibles();" . $funcion_pagos :
+                "limpiarTablaFactura();getCajero();getConsumidorFinal();getEstadoFactura();cleanFooterValueBill();resetRow();" . $funcion_pagos;
             }
             
             return mainModel::showNotification([
@@ -836,6 +837,7 @@ class facturasControlador extends facturasModelo {
                 $fecha, 
                 $totales['total_despues_isv'], 
                 3, // Efectivo con abonos
+                $tipo_factura,
                 $datosBasicos['usuario'], 
                 $fecha_registro, 
                 $datosBasicos['empresa_id']

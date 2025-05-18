@@ -55,12 +55,6 @@ while($row = $result->fetch_assoc()){
     $totalAbono += $abono;
     $totalPendiente += $saldo;
 
-    if($row['estado'] == 2){
-        $estadoColor = 'bg-c-green';
-    }else{
-        $estadoColor = 'bg-c-yellow';
-    }
-
     // Extraer el número base para ordenamiento
     $numero_ordenamiento = intval($row['number']);
 
@@ -74,8 +68,8 @@ while($row = $result->fetch_assoc()){
         "credito"=> $credito,
         "abono"=>$abono,                        
         "saldo"=>$saldo,
-        "color"=> $estadoColor,
         "estado"=>$row['estado'],
+        "tipo_factura"=>$row['tipo_factura'],
         "total_credito"=> $totalCredito,
         "total_abono"=>$totalAbono,
         "total_pendiente"=> $totalPendiente,

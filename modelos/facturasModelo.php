@@ -178,6 +178,7 @@ class facturasModelo extends mainModel{
                         `fecha`, 
                         `saldo`, 
                         `estado`, 
+                        `tipo_factura`,
                         `usuario`, 
                         `empresa_id`, 
                         `fecha_registro`
@@ -189,6 +190,7 @@ class facturasModelo extends mainModel{
                         '".$datos['fecha']."',
                         '".$datos['saldo']."',
                         '".$datos['estado']."',
+                        '".$datos['tipo_factura']."',
                         '".$datos['usuario']."',
                         '".$datos['empresa']."',
                         '".$datos['fecha_registro']."'
@@ -196,7 +198,7 @@ class facturasModelo extends mainModel{
     
         $result = mainModel::connection()->query($insert) or die(mainModel::connection()->error);
         return $result;                
-    }        
+    }
 
     protected function agregar_precio_factura_clientes($datos){
         $precio_factura_id = mainModel::correlativo("precio_factura_id", "precio_factura");

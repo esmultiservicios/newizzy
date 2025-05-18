@@ -34,15 +34,8 @@ $arreglo = array();
 $data = [];
 
 while ($row = $result->fetch_assoc()) {
-    $ganancia = doubleval($row['subtotal']) - doubleval($row['subCosto']) - doubleval($row['isv']) - doubleval($row['descuento']);
+    $ganancia = doubleval($row['subtotal']) - doubleval($row['subCosto']) - doubleval($row['isv']) - doubleval($row['descuento']);    
 
-    $color = 'bg-c-green'; // Por defecto
-
-    if ($row['tipo_documento'] == 'Crédito' && $row['pagos_realizados'] == 0) {
-        $color = 'bg-c-yellow';
-    }
-    
-    // Usamos el campo 'number' directamente para el ordenamiento
     // Este campo es común tanto para facturas como proformas
     $numero_ordenamiento = intval($row['number']);
     
@@ -58,9 +51,10 @@ while ($row = $result->fetch_assoc()) {
         'isv' => $row['isv'],
         'descuento' => $row['descuento'],
         'total' => $row['total'],
-        'color' => $color,
         'vendedor' => $row['vendedor'],
         'facturador' => $row['facturador'],
+        'estado_pago' => $row['estado_pago'], // Añadir este campo
+        'tipo_factura' => $row['tipo_factura'] // Añadir este campo        
     );
 }
 

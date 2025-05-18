@@ -20,57 +20,44 @@ $(document).ready(function() {
         if ($(this).val().length === 8) $('#inputPin').focus();
     });
 
-    // Validación de email/password
-    var timeout;
-    $("#groupDB").hide();
+    // Validación inmediata de email/password
     $("#inputEmail, #inputPassword").on("input blur", function() {
-        clearTimeout(timeout);
         var email = $("#inputEmail").val();
         var password = $("#inputPassword").val();
 
-        timeout = setTimeout(function() {
-            if (email && password) {
-                $.ajax({
-                    type: 'POST',
-                    url: '<?php echo SERVERURL; ?>core/getValidUserSesion.php',
-                    data: { email: email, pass: password },
-                    dataType: 'json',
-                    success: function(resp) {
-                        // Ocultar mensajes previos
-                        $(".RespuestaAjax").hide();
-                        
-                        if(resp.is_test) {
-                            // Ambiente de prueba - ocultar groupDB
-                            $("#groupDB").hide();
-                            console.log("Ambiente de prueba - groupDB oculto");
-                        } else if(resp.success && resp.show_db) {
-                            // Autenticación exitosa en producción
-                            $("#groupDB").show();
-                            $("#inputCliente").focus();
-                            console.log("Autenticación exitosa - groupDB visible");
-                        } else {
-                            // Autenticación fallida o no debe mostrar DB
-                            $("#groupDB").hide();
-                            $("#inputCliente, #inputPin").val("");
-                            
-                            if(resp.message) {
-                                $(".RespuestaAjax").html(resp.message).show();
-                            }
-                        }
-                    },
-                    error: function(xhr, status, error) {
+        if (email && password) {
+            $.ajax({
+                type: 'POST',
+                url: '<?php echo SERVERURL; ?>core/getValidUserSesion.php',
+                data: { email: email, pass: password },
+                dataType: 'json',
+                success: function(resp) {
+                    $(".RespuestaAjax").hide();
+
+                    if (resp.is_test) {
+                        $("#groupDB").hide();
+                    } else if (resp.success && resp.show_db) {
+                        $("#groupDB").show();
+                        $("#inputCliente").focus();
+                    } else {
                         $("#groupDB").hide();
                         $("#inputCliente, #inputPin").val("");
-                        $(".RespuestaAjax").html("Error en el servidor").show();
-                        console.error("Error AJAX:", status, error);
+                        if (resp.message) {
+                            $(".RespuestaAjax").html(resp.message).show();
+                        }
                     }
-                });
-            } else {
-                $("#groupDB").hide();
-                if (!email) $("#inputCliente").val("");
-                if (!password) $("#inputPin").val("");
-            }
-        }, 300);
+                },
+                error: function(xhr, status, error) {
+                    $("#groupDB").hide();
+                    $("#inputCliente, #inputPin").val("");
+                    $(".RespuestaAjax").html("Error en el servidor").show();
+                }
+            });
+        } else {
+            $("#groupDB").hide();
+            if (!email) $("#inputCliente").val("");
+            if (!password) $("#inputPin").val("");
+        }
     });
 
     $("#loginform").submit(function(e) {

@@ -9,6 +9,8 @@ function redireccionar() {
 }
 
 $(document).ready(function() {
+    $("#groupDB").hide();
+    
     // Generar PIN aleatorio
     $("#generate_pin_link").click(function(e) {
         e.preventDefault();
@@ -29,7 +31,10 @@ $(document).ready(function() {
             $.ajax({
                 type: 'POST',
                 url: '<?php echo SERVERURL; ?>core/getValidUserSesion.php',
-                data: { email: email, pass: password },
+                data: { 
+                    email: email, 
+                    pass: password 
+                },
                 dataType: 'json',
                 success: function(resp) {
                     $(".RespuestaAjax").hide();

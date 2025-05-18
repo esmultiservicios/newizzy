@@ -33,15 +33,35 @@ $(document).ready(function() {
                     type: 'POST',
                     url: '<?php echo SERVERURL; ?>core/getValidUserSesion.php',
                     data: { email: email, pass: password },
+                    dataType: 'json',
                     success: function(resp) {
-                        $("#groupDB").toggle(resp === "1");
-                        if (resp === "1") $("#inputCliente").focus();
-                        else $("#inputCliente, #inputPin").val("");
+                        // Ocultar mensajes previos
+                        $(".RespuestaAjax").hide();
+                        
+                        if(resp.is_test) {
+                            // Ambiente de prueba - ocultar groupDB
+                            $("#groupDB").hide();
+                            console.log("Ambiente de prueba - groupDB oculto");
+                        } else if(resp.success && resp.show_db) {
+                            // Autenticación exitosa en producción
+                            $("#groupDB").show();
+                            $("#inputCliente").focus();
+                            console.log("Autenticación exitosa - groupDB visible");
+                        } else {
+                            // Autenticación fallida o no debe mostrar DB
+                            $("#groupDB").hide();
+                            $("#inputCliente, #inputPin").val("");
+                            
+                            if(resp.message) {
+                                $(".RespuestaAjax").html(resp.message).show();
+                            }
+                        }
                     },
-                    error: function() {
+                    error: function(xhr, status, error) {
                         $("#groupDB").hide();
                         $("#inputCliente, #inputPin").val("");
-                        $(".RespuestaAjax").html("Error de autenticación");
+                        $(".RespuestaAjax").html("Error en el servidor").show();
+                        console.error("Error AJAX:", status, error);
                     }
                 });
             } else {

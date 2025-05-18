@@ -10,7 +10,7 @@ function redireccionar() {
 
 $(document).ready(function() {
     $("#groupDB").hide();
-    
+
     // Generar PIN aleatorio
     $("#generate_pin_link").click(function(e) {
         e.preventDefault();
@@ -47,9 +47,6 @@ $(document).ready(function() {
                     } else {
                         $("#groupDB").hide();
                         $("#inputCliente, #inputPin").val("");
-                        if (resp.message) {
-                            $(".RespuestaAjax").html(resp.message).show();
-                        }
                     }
                 },
                 error: function(xhr, status, error) {

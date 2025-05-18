@@ -25,6 +25,7 @@ define('PASS', 'o8lXA0gtIO$@');
 // DATOS DE CONEXION SERVIDOR PRINCIPAL
 define('SERVER_MAIN', 'localhost');
 define('DB_MAIN', 'esmultiservicios_izzy');
+define('DB_PRUEBA', 'esmultiservicios_dev_izzy');
 
 // Datos conexion root MySQL user
 define('MYSQL_USER', 'root');

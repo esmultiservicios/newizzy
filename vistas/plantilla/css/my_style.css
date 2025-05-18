@@ -4790,3 +4790,27 @@ input[readonly] {
         margin-right: 0.3rem;
     }
 }
+
+/* Estilo para el texto de copyright */
+.col-11.text-left small:first-child {
+    font-size: 0.85em;
+    color: #edeff1;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+/* Estilo para el texto de versión */
+.col-11.text-left small:last-child {
+    font-size: 0.85em;
+    color: #edeff1;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+/* Estilo para los iconos */
+.col-11.text-left small i {
+    font-size: 0.9em;
+    opacity: 0.8;
+}

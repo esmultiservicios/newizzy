@@ -9,7 +9,7 @@
                 <div class="col-11 text-left">
                     <center>
                         <small>
-                            Copyright &copy; 2020 - <?php echo date("Y");?>
+                            Copyright <i class="fas fa-copyright"></i> 2020 - <?php echo date("Y");?>
                         </small>
                     </center>
                 </div>
@@ -35,6 +35,7 @@
                 <div class="col-11 text-left">
                     <center>
                         <small>
+                            <i class="fas fa-code-branch"></i>
                             <span class="version" id="version"></span>
                         </small>
                     </center>

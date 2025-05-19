@@ -179,7 +179,7 @@ class aperturaCajaControlador extends aperturaCajaModelo{
     }
 
     private function calcularTotalesCaja($apertura_id) {
-        $result = aperturaCajaModelo::consulta_facturas($apertura_id);
+        $result = aperturaCajaModelo::consulta_facturas_electronicas_con_pagos($apertura_id);
         
         $totales = [
             'total' => 0,

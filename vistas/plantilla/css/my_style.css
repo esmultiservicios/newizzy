@@ -4928,3 +4928,53 @@ input:checked + .slider:before {
     font-size: inherit;
     line-height: 1.5;
 }
+
+/* Estilo que combina con tu diseño actual */
+.breadcrumb-harmony {
+    background: #f8fafc; /* Fondo similar al de tu sidebar */
+    padding: 8px 15px;
+    border-radius: 4px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    list-style: none;
+    margin: 15px 0 20px 0;
+    border-left: 3px solid #3b82f6; /* Azul similar al de tu interfaz */
+    color: #334155; /* Color de texto oscuro pero no negro */
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05); /* Sombra muy sutil */
+}
+
+.breadcrumb-harmony .breadcrumb-item {
+    display: flex;
+    align-items: center;
+}
+
+.breadcrumb-harmony .breadcrumb-link {
+    color: #475569; /* Gris azulado similar a tu diseño */
+    text-decoration: none;
+    font-weight: 500; /* Peso medio como en tu interfaz */
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+}
+
+.breadcrumb-harmony .breadcrumb-link:hover {
+    color: #2563eb; /* Azul más intenso al hover */
+}
+
+.breadcrumb-harmony .breadcrumb-item.active {
+    color: #1e40af; /* Azul oscuro para el ítem activo */
+    font-weight: 600; /* Un poco más grueso que el normal */
+}
+
+.breadcrumb-harmony .breadcrumb-icon {
+    margin-right: 8px;
+    font-size: 13px;
+    color: #64748b; /* Gris para los iconos */
+}
+
+.breadcrumb-harmony .breadcrumb-separator {
+    margin: 0 8px;
+    color: #94a3b8; /* Gris claro para el separador */
+    font-weight: normal;
+}

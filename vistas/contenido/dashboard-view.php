@@ -1,9 +1,14 @@
 <div class="container-fluid">
-    <!-- Breadcrumb (se mantiene igual) -->
-    <ol class="breadcrumb mt-2 mb-4">
-        <li class="breadcrumb-item active">Dashboard</li>
-    </ol>
-    
+    <!-- Breadcrumb para Dashboard -->
+    <div class="breadcrumb-container">
+        <ol class="breadcrumb-harmony">
+            <li class="breadcrumb-item active">
+                <i class="fas fa-home breadcrumb-icon"></i>
+                <span>Dashboard</span>
+            </li>
+        </ol>
+    </div>
+        
     <!-- Cards de Métricas - Versión Mejorada -->
     <div class="row mb-4">
         <!-- Card Clientes -->

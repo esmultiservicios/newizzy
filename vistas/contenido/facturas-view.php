@@ -6,21 +6,19 @@
                 Facturas
             </div>
             <div class="card-body">
-                <form class="FormularioAjax" id="invoice-form" method="POST" action="" data-form="" autocomplete="off"
-                    enctype="multipart/form-data">
+                <form class="FormularioAjax" id="invoice-form" method="POST" action="" data-form="" autocomplete="off" enctype="multipart/form-data">
                     <div class="form-group row customer-bill-box-left">
                         <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
                             <div class="bill-header-row">
                                 <span id="rtn-customers-bill"></span>
                                 <span id="client-customers-bill"></span>
                             </div>
-                            <div class="bill-row"> <!-- Si necesitas otra fila para Vendedor -->
+                            <div class="bill-row">
                                 <span id="vendedor-customers-bill"></span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Después del card-header y antes del customer-bill-box-left -->
                     <div class="form-group row customer-bill-box-center">
                         <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
                             <div id="mensajeFacturas" class="facturas-counter alert-normal">
@@ -38,123 +36,98 @@
                             <span id="hora-customers-bill"></span>
                         </div>
                     </div>
+
                     <div class="bill">
+                        <!-- SECCIÓN DE BOTONES MEJORADA (SOLO REORGANIZACIÓN VISUAL) -->
                         <div class="form-group row">
                             <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-                                <!-- Botones -->
-                                <button class="btn btn-secondary" type="submit" id="help_factura" form="invoice-form"
-                                    data-toggle="tooltip" data-placement="top" title="Ayuda">
-                                    <div class="sb-nav-link-icon"></div><i class="fas fa-question-circle fa-lg"></i>
-                                    [F1] Ayuda
-                                </button>
-                                <button class="btn btn-secondary" type="submit" id="guardar_factura"
-                                    data-toggle="tooltip" data-placement="top" title="Guardar">
-                                    <div class="sb-nav-link-icon"></div><i class="fas fa-save fa-lg"></i> [F2] Guardar
-                                </button>
-                                <button class="btn btn-secondary" type="submit" id="reg_factura" data-toggle="tooltip"
-                                    data-placement="top" title="Facturar">
-                                    <div class="sb-nav-link-icon"></div><i class="fas fa-hand-holding-usd fa-lg"></i>
-                                    [F7] Facturar
-                                </button>
-                                <button class="btn btn-secondary" type="submit" id="add_cliente" data-toggle="tooltip"
-                                    data-placement="top" title="Agregar Cliente">
-                                    <div class="sb-nav-link-icon"></div><i class="fas fa-user-plus fa-lg"></i> [F8]
-                                    Cliente
-                                </button>
-                                <button class="btn btn-secondary" type="submit" id="add_vendedor" data-toggle="tooltip"
-                                    data-placement="top" title="Agregar Vendeor o Empleado">
-                                    <div class="sb-nav-link-icon"></div><i class="fas fa-plus-circle fa-lg"></i> [F9]
-                                    Vendedor
-                                </button>
-                                <button class="btn btn-secondary" type="submit" id="btn_apertura" data-toggle="tooltip"
-                                    data-placement="top" title="Aperturar Caja">
-                                    <div class="sb-nav-link-icon"></div><i class="fas fa-cash-register fa-lg"></i> [F10]
-                                    Aperturar
-                                </button>
-                                <button class="btn btn-secondary" type="submit" id="btn_cierre" data-toggle="tooltip"
-                                    data-placement="top" title="Cerrar Caja" style="display:none;">
-                                    <div class="sb-nav-link-icon"></div><i class="fas fa-cash-register fa-lg"></i> [F11]
-                                    Cerrar
-                                </button>
-                                <!-- Otros botones aquí -->
+                                <!-- Primera fila de botones principales -->
+                                <div class="d-flex flex-wrap mb-2">
+                                    <button class="btn btn-secondary mr-2" type="submit" id="help_factura" form="invoice-form" data-toggle="tooltip" data-placement="top" title="Ayuda">
+                                        <div class="sb-nav-link-icon"></div><i class="fas fa-question-circle fa-lg"></i> [F1] Ayuda
+                                    </button>
+                                    <button class="btn btn-secondary mr-2" type="submit" id="guardar_factura" data-toggle="tooltip" data-placement="top" title="Guardar">
+                                        <div class="sb-nav-link-icon"></div><i class="fas fa-save fa-lg"></i> [F2] Guardar
+                                    </button>
+                                    <button class="btn btn-secondary mr-2" type="submit" id="reg_factura" data-toggle="tooltip" data-placement="top" title="Facturar">
+                                        <div class="sb-nav-link-icon"></div><i class="fas fa-hand-holding-usd fa-lg"></i> [F7] Facturar
+                                    </button>
+                                    <button class="btn btn-secondary mr-2" type="submit" id="add_cliente" data-toggle="tooltip" data-placement="top" title="Agregar Cliente">
+                                        <div class="sb-nav-link-icon"></div><i class="fas fa-user-plus fa-lg"></i> [F8] Cliente
+                                    </button>
+                                    <button class="btn btn-secondary mr-2" type="submit" id="add_vendedor" data-toggle="tooltip" data-placement="top" title="Agregar Vendeor o Empleado">
+                                        <div class="sb-nav-link-icon"></div><i class="fas fa-plus-circle fa-lg"></i> [F9] Vendedor
+                                    </button>
+                                    <button class="btn btn-secondary mr-2" type="submit" id="btn_apertura" data-toggle="tooltip" data-placement="top" title="Aperturar Caja">
+                                        <div class="sb-nav-link-icon"></div><i class="fas fa-cash-register fa-lg"></i> [F10] Aperturar
+                                    </button>
+                                    <button class="btn btn-secondary mr-2" type="submit" id="btn_cierre" data-toggle="tooltip" data-placement="top" title="Cerrar Caja" style="display:none;">
+                                        <div class="sb-nav-link-icon"></div><i class="fas fa-cash-register fa-lg"></i> [F11] Cerrar
+                                    </button>
 
-                                <!-- Texto antes del primer checkbox -->
-                                <label class="col-form-label mr-2" for="facturas_activo">Tipo:</label>
-                                <!-- Primer checkbox -->
-                                <label class="switch mb-2" data-toggle="tooltip" data-placement="top"
-                                    title="Tipo de Factura, Contado o Crédito">
-                                    <input type="checkbox" id="facturas_activo" name="facturas_activo" value="1"
-                                        checked>
-                                    <div class="slider round"></div>
-                                </label>
-                                <span class="question mb-2" id="label_facturas_activo"></span>
+                                </div>
 
-                                <span id="facturas_proforma_container">
-                                    <label class="col-form-label mr-2" for="facturas_proforma">Proforma:</label>
-                                    <!-- Segundo checkbox -->
-                                    <label class="switch mb-2" data-toggle="tooltip" data-placement="top"
-                                        title="Factura Proforma">
-                                        <input type="checkbox" id="facturas_proforma" name="facturas_proforma"
-                                            value="1">
-                                        <div class="slider round"></div>
-                                    </label>
-                                    <span class="question mb-2" id="label_facturas_proforma"></span>
-                                </span>
+                                <!-- Segunda fila de botones y controles -->
+                                <div class="d-flex flex-wrap align-items-center">
+                                    <!-- Controles de Tipo y Proforma -->
+                                    <div class="d-flex align-items-center mr-3">
+                                        <label class="col-form-label mr-2 mb-0" for="facturas_activo">Tipo Factura:</label>
+                                        <label class="switch mb-0" data-toggle="tooltip" data-placement="top" title="Tipo de Factura, Contado o Crédito">
+                                            <input type="checkbox" id="facturas_activo" name="facturas_activo" value="1" checked>
+                                            <div class="slider round"></div>
+                                        </label>
+                                        <span class="question mb-0 ml-1" id="label_facturas_activo"></span>
+                                    </div>
+
+                                    <div class="d-flex align-items-center mr-3" id="facturas_proforma_container">
+                                        <label class="col-form-label mr-2 mb-0" for="facturas_proforma">Es Proforma:</label>
+                                        <label class="switch mb-0" data-toggle="tooltip" data-placement="top" title="Factura Proforma">
+                                            <input type="checkbox" id="facturas_proforma" name="facturas_proforma" value="1">
+                                            <div class="slider round"></div>
+                                        </label>
+                                        <span class="question mb-0 ml-1" id="label_facturas_proforma"></span>
+                                    </div>
+
+                                    <!-- Botón de Exoneración -->
+                                    <button type="button" id="btn_exoneracion" class="btn btn-info" data-toggle="modal" data-target="#exoneracionModal">
+                                        <i class="fas fa-file-invoice"></i> Datos de Exoneración
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
+                        <!-- RESTO DEL CÓDIGO (EXACTAMENTE IGUAL) -->
                         <div class="form-group row" style="display:none">
-                            <label for="inputCliente" class="col-sm-1 col-form-label-md">Cliente <span
-                                    class="priority">*<span /></label>
+                            <label for="inputCliente" class="col-sm-1 col-form-label-md">Cliente <span class="priority">*<span /></label>
                             <div class="col-sm-5">
                                 <div class="input-group mb-3">
-                                    <input type="hidden" class="form-control" placeholder="Proceso" id="proceso_factura"
-                                        name="proceso_factura" readonly>
-                                    <input type="text" class="form-control" placeholder="Factura" id="facturas_id"
-                                        name="facturas_id" readonly>
-                                    <input type="text" class="form-control" placeholder="row" id="bill_row"
-                                        name="bill_row" readonly value="0">
-                                    <input type="hidden" class="form-control" placeholder="Cliente" id="cliente_id"
-                                        name="cliente_id" readonly required>
-                                    <input type="text" class="form-control" placeholder="Cliente" id="cliente"
-                                        name="cliente" required readonly data-toggle="tooltip" data-placement="top"
-                                        title="Cliente">
+                                    <input type="hidden" class="form-control" placeholder="Proceso" id="proceso_factura" name="proceso_factura" readonly>
+                                    <input type="text" class="form-control" placeholder="Factura" id="facturas_id" name="facturas_id" readonly>
+                                    <input type="text" class="form-control" placeholder="row" id="bill_row" name="bill_row" readonly value="0">
+                                    <input type="hidden" class="form-control" placeholder="Cliente" id="cliente_id" name="cliente_id" readonly required>
+                                    <input type="text" class="form-control" placeholder="Cliente" id="cliente" name="cliente" required readonly data-toggle="tooltip" data-placement="top" title="Cliente">
                                     <div class="input-group-append" id="grupo_buscar_colaboradores">
-                                        <span data-toggle="tooltip" data-placement="top"
-                                            title="Búsqueda de Empleados"><a data-toggle="modal" href="#"
-                                                class="btn btn-outline-success" id="buscar_clientes">
-                                                <div class="sb-nav-link-icon"></div><i
-                                                    class="fas fa-search-plus fa-lg"></i>
-                                            </a></span>
+                                        <span data-toggle="tooltip" data-placement="top" title="Búsqueda de Empleados"><a data-toggle="modal" href="#" class="btn btn-outline-success" id="buscar_clientes">
+                                            <div class="sb-nav-link-icon"></div><i class="fas fa-search-plus fa-lg"></i>
+                                        </a></span>
                                     </div>
                                 </div>
                             </div>
-                            <label for="inputFecha" class="col-sm-1 col-form-label-md">Fecha <span
-                                    class="priority">*<span /></label>
+                            <label for="inputFecha" class="col-sm-1 col-form-label-md">Fecha <span class="priority">*<span /></label>
                             <div class="col-sm-3">
-                                <input type="date" class="form-control" value="<?php echo date('Y-m-d'); ?>" required
-                                    id="fecha" name="fecha" data-toggle="tooltip" data-placement="top"
-                                    title="Fecha de Facturación" style="width:165px">
+                                <input type="date" class="form-control" value="<?php echo date('Y-m-d'); ?>" required id="fecha" name="fecha" data-toggle="tooltip" data-placement="top" title="Fecha de Facturación" style="width:165px">
                             </div>
                         </div>
                         <div class="form-group row" style="display:none">
-                            <label for="inputCliente" class="col-sm-1 col-form-label-md">Vendedor <span
-                                    class="priority">*<span /></label>
+                            <label for="inputCliente" class="col-sm-1 col-form-label-md">Vendedor <span class="priority">*<span /></label>
                             <div class="col-sm-5">
                                 <div class="input-group mb-3">
-                                    <input type="hidden" class="form-control" placeholder="Vendedor" id="colaborador_id"
-                                        name="colaborador_id" aria-label="Colaborador" aria-describedby="basic-addon2"
-                                        readonly required>
-                                    <input type="text" class="form-control" placeholder="Vendedor" id="colaborador"
-                                        name="colaborador" aria-label="Colaborador" aria-describedby="basic-addon2"
-                                        required readonly data-toggle="tooltip" data-placement="top" title="Vendedor">
+                                    <input type="hidden" class="form-control" placeholder="Vendedor" id="colaborador_id" name="colaborador_id" aria-label="Colaborador" aria-describedby="basic-addon2" readonly required>
+                                    <input type="text" class="form-control" placeholder="Vendedor" id="colaborador" name="colaborador" aria-label="Colaborador" aria-describedby="basic-addon2" required readonly data-toggle="tooltip" data-placement="top" title="Vendedor">
                                     <div class="input-group-append" id="grupo_buscar_colaboradores">
-                                        <span data-toggle="tooltip" data-placement="top"
-                                            title="Búsqueda de Colaboradores"><a data-toggle="modal" href="#"
-                                                class="btn btn-outline-success" id="buscar_colaboradores">
-                                                <div class="sb-nav-link-icon"></div><i
-                                                    class="fas fa-search-plus fa-lg"></i>
-                                            </a><span>
+                                        <span data-toggle="tooltip" data-placement="top" title="Búsqueda de Colaboradores"><a data-toggle="modal" href="#" class="btn btn-outline-success" id="buscar_colaboradores">
+                                            <div class="sb-nav-link-icon"></div><i class="fas fa-search-plus fa-lg"></i>
+                                        </a><span>
                                     </div>
                                 </div>
                             </div>
@@ -178,21 +151,11 @@
                                         <tr>
                                             <td><input class="itemRow" type="checkbox"></td>
                                             <td>
-                                                <input type="hidden" name="referenciaProducto[]"
-                                                    id="referenciaProducto_0" class="form-control inputfield-details1"
-                                                    placeholder="Referencia Producto Precio" autocomplete="off">
-                                                <input type="hidden" name="isv[]" id="isv_0"
-                                                    class="form-control inputfield-details1" placeholder="Producto ISV"
-                                                    autocomplete="off">
-                                                <input type="hidden" name="valor_isv[]" id="valor_isv_0"
-                                                    class="form-control inputfield-details1" placeholder="Valor ISV"
-                                                    autocomplete="off">
-                                                <input type="hidden" name="facturas_detalle_id[]"
-                                                    id="facturas_detalle_id_0" class="form-control"
-                                                    placeholder="Código Producto" autocomplete="off">
-                                                <input type="hidden" name="productos_id[]" id="productos_id_0"
-                                                    class="form-control inputfield-details1"
-                                                    placeholder="Código del Producto" autocomplete="off">
+                                                <input type="hidden" name="referenciaProducto[]" id="referenciaProducto_0" class="form-control inputfield-details1" placeholder="Referencia Producto Precio" autocomplete="off">
+                                                <input type="hidden" name="isv[]" id="isv_0" class="form-control inputfield-details1" placeholder="Producto ISV" autocomplete="off">
+                                                <input type="hidden" name="valor_isv[]" id="valor_isv_0" class="form-control inputfield-details1" placeholder="Valor ISV" autocomplete="off">
+                                                <input type="hidden" name="facturas_detalle_id[]" id="facturas_detalle_id_0" class="form-control" placeholder="Código Producto" autocomplete="off">
+                                                <input type="hidden" name="productos_id[]" id="productos_id_0" class="form-control inputfield-details1" placeholder="Código del Producto" autocomplete="off">
                                                 <div class="input-group mb-3">
                                                     <div class="input-group-prepend">
                                                         <button type="button" data-toggle="modal" 
@@ -203,71 +166,47 @@
                                                             <i class="fas fa-search icon-color" style="font-size: 0.875rem;"></i>
                                                         </button>
                                                     </div>
-                                                    <input type="text" name="bar-code-id[]" id="bar-code-id_0"
-                                                        class="form-control product-bar-code inputfield-details1"
-                                                        placeholder="Código del Producto" autocomplete="off">
+                                                    <input type="text" name="bar-code-id[]" id="bar-code-id_0" class="form-control product-bar-code inputfield-details1" placeholder="Código del Producto" autocomplete="off">
                                                 </div>
                                             </td>
                                             <td>
-                                                <input type="hidden" name="productName[]" id="productName_0" placeholder="Descripción del Producto" readonly
-                                                    class="form-control inputfield-details1" autocomplete="off">
+                                                <input type="hidden" name="productName[]" id="productName_0" placeholder="Descripción del Producto" readonly class="form-control inputfield-details1" autocomplete="off">
                                                 <span id="productName_text_0" class="product-description">Descripción del Producto</span>
                                             </td>
                                             <td>
-                                                <input type="number" name="quantity[]" id="quantity_0"
-                                                    placeholder="Cantidad"
-                                                    class="buscar_cantidad form-control inputfield-details"
-                                                    autocomplete="off" step="0.01">
-                                                <input type="hidden" name="cantidad_mayoreo[]" id="cantidad_mayoreo_0"
-                                                    placeholder="Cantidad Mayoreo"
-                                                    class="buscar_cantidad form-control inputfield-details"
-                                                    autocomplete="off" step="0.01">
+                                                <input type="number" name="quantity[]" id="quantity_0" placeholder="Cantidad" class="buscar_cantidad form-control inputfield-details" autocomplete="off" step="0.01">
+                                                <input type="hidden" name="cantidad_mayoreo[]" id="cantidad_mayoreo_0" placeholder="Cantidad Mayoreo" class="buscar_cantidad form-control inputfield-details" autocomplete="off" step="0.01">
                                             </td>
                                             <td>
-                                                <input type="hidden" name="medida[]" id="medida_0" readonly class="form-control buscar_medida" autocomplete="off"
-                                                    placeholder="Medida">
+                                                <input type="hidden" name="medida[]" id="medida_0" readonly class="form-control buscar_medida" autocomplete="off" placeholder="Medida">
                                                 <span id="medida_text_0" class="medida-description">Medida</span>
-                                                <input type="hidden" name="bodega[]" id="bodega_0" readonly
-                                                    class="form-control buscar_bodega" autocomplete="off">
-
+                                                <input type="hidden" name="bodega[]" id="bodega_0" readonly class="form-control buscar_bodega" autocomplete="off">
                                             </td>
                                             <td>
-                                                <input type="hidden" name="precio_real[]" id="precio_real_0"
-                                                    placeholder="Precio Real" class="form-control inputfield-details"
-                                                    step="0.01" readonly autocomplete="off">
+                                                <input type="hidden" name="precio_real[]" id="precio_real_0" placeholder="Precio Real" class="form-control inputfield-details" step="0.01" readonly autocomplete="off">
                                                 <div class="input-group mb-3">
-                                                    <input type="number" name="price[]" id="price_0"
-                                                        class="form-control" step="0.01" placeholder="Precio" readonly
-                                                        autocomplete="off">
+                                                    <input type="number" name="price[]" id="price_0" class="form-control" step="0.01" placeholder="Precio" readonly autocomplete="off">
                                                     <div id="suggestions_producto_0" class="suggestions"></div>
                                                     <div class="input-group-append">
                                                         <a data-toggle="modal" href="#" class="btn btn-outline-success">
-                                                            <div class="sb-nav-link-icon"></div><i
-                                                                class="aplicar_precio fas fa-plus fa-lg"></i>
+                                                            <div class="sb-nav-link-icon"></div><i class="aplicar_precio fas fa-plus fa-lg"></i>
                                                         </a>
                                                     </div>
                                                 </div>
-                                                <input type="hidden" name="precio_mayoreo[]" id="precio_mayoreo_0"
-                                                    placeholder="Precio mayoreo" step="0.01"
-                                                    class="form-control inputfield-details" readonly autocomplete="off">
+                                                <input type="hidden" name="precio_mayoreo[]" id="precio_mayoreo_0" placeholder="Precio mayoreo" step="0.01" class="form-control inputfield-details" readonly autocomplete="off">
                                             </td>
                                             <td>
                                                 <div class="input-group mb-3">
-                                                    <input type="number" name="discount[]" id="discount_0"
-                                                        class="form-control" step="0.01" placeholder="Descuento"
-                                                        readonly autocomplete="off">
+                                                    <input type="number" name="discount[]" id="discount_0" class="form-control" step="0.01" placeholder="Descuento" readonly autocomplete="off">
                                                     <div id="suggestions_producto_0" class="suggestions"></div>
                                                     <div class="input-group-append">
                                                         <a data-toggle="modal" href="#" class="btn btn-outline-success">
-                                                            <div class="sb-nav-link-icon"></div><i
-                                                                class="aplicar_descuento fas fa-plus fa-lg"></i>
+                                                            <div class="sb-nav-link-icon"></div><i class="aplicar_descuento fas fa-plus fa-lg"></i>
                                                         </a>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td><input type="number" name="total[]" id="total_0" placeholder="Total"
-                                                    class="form-control total inputfield-details" step="0.01" readonly
-                                                    autocomplete="off"></td>
+                                            <td><input type="number" name="total[]" id="total_0" placeholder="Total" class="form-control total inputfield-details" step="0.01" readonly autocomplete="off"></td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -276,32 +215,22 @@
                         <hr class="line_table" />
                         <div class="form-group row">
                             <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-                                <button class="btn btn-secondary ml-3 bill-bottom-add" id="addRows" type="button"
-                                    data-toggle="tooltip" data-placement="top" title="Agregar filas en la factura">
+                                <button class="btn btn-secondary ml-3 bill-bottom-add" id="addRows" type="button" data-toggle="tooltip" data-placement="top" title="Agregar filas en la factura">
                                     <div class="sb-nav-link-icon"></div><i class="fas fa-plus fa-lg"></i> Agregar
                                 </button>
-                                <button class="btn btn-secondary delete bill-bottom-remove" id="removeRows"
-                                    type="button" data-toggle="tooltip" data-placement="top"
-                                    title="Remover filas en la factura">
+                                <button class="btn btn-secondary delete bill-bottom-remove" id="removeRows" type="button" data-toggle="tooltip" data-placement="top" title="Remover filas en la factura">
                                     <div class="sb-nav-link-icon"></div><i class="fas fa-minus fa-lg"></i> Quitar
                                 </button>
-                                <button class="btn btn-secondary bill-bottom-remove" id="addQuotetoBill" type="button"
-                                    data-toggle="tooltip" data-placement="top" title="Convertir Cotizacion en Factura">
-                                    <div class="sb-nav-link-icon"></div><i class="fas fa-file-invoice-dollar fa-lg"></i>
-                                    Convertir
+                                <button class="btn btn-secondary bill-bottom-remove" id="addQuotetoBill" type="button" data-toggle="tooltip" data-placement="top" title="Convertir Cotizacion en Factura">
+                                    <div class="sb-nav-link-icon"></div><i class="fas fa-file-invoice-dollar fa-lg"></i> Convertir
                                 </button>
-                                <button class="btn btn-secondary bill-bottom-remove" id="addPayCustomers" type="button"
-                                    data-toggle="tooltip" data-placement="top"
-                                    title="Cobrar Cuentas por Pagar Clientes">
-                                    <div class="sb-nav-link-icon"></div><i class="fas fa-hand-holding-usd fa-lg"></i>
-                                    CxC
+                                <button class="btn btn-secondary bill-bottom-remove" id="addPayCustomers" type="button" data-toggle="tooltip" data-placement="top" title="Cobrar Cuentas por Pagar Clientes">
+                                    <div class="sb-nav-link-icon"></div><i class="fas fa-hand-holding-usd fa-lg"></i> CxC
                                 </button>
-                                <button class="btn btn-secondary bill-bottom-remove" id="addDraft" type="button"
-                                    data-toggle="tooltip" data-placement="top" title="Facturas Pendientes">
+                                <button class="btn btn-secondary bill-bottom-remove" id="addDraft" type="button" data-toggle="tooltip" data-placement="top" title="Facturas Pendientes">
                                     <div class="sb-nav-link-icon"></div><i class="fas fa-file-invoice fa-lg"></i> Pendientes
                                 </button>
-                                <button class="btn btn-secondary bill-bottom-remove" id="BillReports" type="button"
-                                    data-toggle="tooltip" data-placement="top" title="Facturas Guardadas">
+                                <button class="btn btn-secondary bill-bottom-remove" id="BillReports" type="button" data-toggle="tooltip" data-placement="top" title="Facturas Guardadas">
                                     <div class="sb-nav-link-icon"></div><i class="fas fa-file-invoice fa-lg"></i> Facturas
                                 </button>
                             </div>
@@ -311,8 +240,7 @@
                                 <div class="col-sm-12 col-md-12">
                                     <h3>Notas: </h3>
                                     <div class="form-group">
-                                        <textarea class="form-control txt" rows="6" name="notesBill" id="notesBill"
-                                            placeholder="Notas" maxlength="2000"></textarea>
+                                        <textarea class="form-control txt" rows="6" name="notesBill" id="notesBill" placeholder="Notas" maxlength="2000"></textarea>
                                         <p id="charNum_notasQuote">2000 Caracteres</p>
                                     </div>
                                 </div>
@@ -326,11 +254,9 @@
                                                             <div class="sb-nav-link-icon"></div>Fecha Cambio Dolar
                                                         </span>
                                                     </div>
-                                                    <input type="date" class="form-control" id="fecha_dolar"
-                                                        name="fecha_dolar" value="<?php echo date('Y-m-d'); ?>">
+                                                    <input type="date" class="form-control" id="fecha_dolar" name="fecha_dolar" value="<?php echo date('Y-m-d'); ?>">
                                                 </div>
                                             </div>
-
                                         </div>
                                     </div>
                                 </div>
@@ -346,9 +272,7 @@
                                                         <div class="sb-nav-link-icon"></div>L</i>
                                                     </span>
                                                 </div>
-                                                <input value="" type="number" class="form-control"
-                                                    name="subTotalImporte" id="subTotalImporte" readonly
-                                                    placeholder="Importe">
+                                                <input value="" type="number" class="form-control" name="subTotalImporte" id="subTotalImporte" readonly placeholder="Importe">
                                             </div>
                                         </div>
                                     </div>
@@ -363,8 +287,7 @@
                                                         <div class="sb-nav-link-icon"></div>L</i>
                                                     </span>
                                                 </div>
-                                                <input value="" type="number" class="form-control" name="taxDescuento"
-                                                    id="taxDescuento" readonly placeholder="Descuento">
+                                                <input value="" type="number" class="form-control" name="taxDescuento" id="taxDescuento" readonly placeholder="Descuento">
                                             </div>
                                         </div>
                                     </div>
@@ -379,8 +302,7 @@
                                                         <div class="sb-nav-link-icon"></div>L</i>
                                                     </span>
                                                 </div>
-                                                <input value="" type="number" class="form-control" name="subTotal"
-                                                    id="subTotal" readonly placeholder="Subtotal">
+                                                <input value="" type="number" class="form-control" name="subTotal" id="subTotal" readonly placeholder="Subtotal">
                                             </div>
                                         </div>
                                     </div>
@@ -395,8 +317,7 @@
                                                         <div class="sb-nav-link-icon"></div>L</i>
                                                     </span>
                                                 </div>
-                                                <input value="" type="number" class="form-control" name="taxAmount"
-                                                    id="taxAmount" readonly placeholder="Impuesto">
+                                                <input value="" type="number" class="form-control" name="taxAmount" id="taxAmount" readonly placeholder="Impuesto">
                                             </div>
                                         </div>
                                     </div>
@@ -411,24 +332,26 @@
                                                         <div class="sb-nav-link-icon"></div>L</i>
                                                     </span>
                                                 </div>
-                                                <input value="" type="number" class="form-control" name="totalAftertax"
-                                                    id="totalAftertax" readonly placeholder="Total">
+                                                <input value="" type="number" class="form-control" name="totalAftertax" id="totalAftertax" readonly placeholder="Total">
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-
-
                     </div>
                     <div class="RespuestaAjax"></div>
+
+                    <!-- Campos ocultos para almacenar datos de exoneración -->
+                    <input type="hidden" id="exoneracion_orden" name="exoneracion_orden">
+                    <input type="hidden" id="exoneracion_constancia" name="exoneracion_constancia">
+                    <input type="hidden" id="exoneracion_sag" name="exoneracion_sag">
+                    <input type="hidden" id="exoneracion_orden_interno" name="exoneracion_orden_interno">                    
                 </form>
             </div>
             <div class="card-footer small text-muted">
                 <?php
                     require_once './core/mainModel.php';
-
                     $insMainModel = new mainModel();
                     $entidad = 'facturas';
 
@@ -444,11 +367,52 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal para datos de exoneración -->
+    <div class="modal fade" id="exoneracionModal" tabindex="-1" role="dialog" aria-labelledby="exoneracionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="exoneracionModalLabel">Datos de Exoneración</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="modal_exoneracion_orden">No. Orden</label>
+                            <input type="text" class="form-control" id="modal_exoneracion_orden" placeholder="Número de Orden">
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="modal_exoneracion_constancia">Constancia</label>
+                            <input type="text" class="form-control" id="modal_exoneracion_constancia" placeholder="Constancia">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="modal_exoneracion_sag">Identificativo SAG</label>
+                            <input type="text" class="form-control" id="modal_exoneracion_sag" placeholder="Identificativo SAG">
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="modal_exoneracion_orden_interno">Número de orden interno</label>
+                            <input type="text" class="form-control" id="modal_exoneracion_orden_interno" placeholder="Número de orden interno">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-danger" data-dismiss="modal">
+                        <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-primary" id="guardar_exoneracion"><i class="far fa-save fa-lg mr-1"></i> Guardar datos</button>
+                </div>
+            </div>
+        </div>
+    </div>    
 </body>
 
 <?php
 require_once './core/mainModel.php';
-
 $insMainModel = new mainModel();
 $insMainModel->guardar_historial_accesos('Ingreso al modulo Facturas');
 ?>

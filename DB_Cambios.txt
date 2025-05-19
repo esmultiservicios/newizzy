@@ -1,3 +1,12 @@
+
+####18 de mayo de 2025####
+se ejecuto este alter
+ALTER TABLE facturas
+ADD COLUMN no_orden VARCHAR(50) NULL AFTER fecha_dolar,
+ADD COLUMN constancia VARCHAR(50) NULL AFTER no_orden,
+ADD COLUMN identificativo_sag VARCHAR(50) NULL AFTER constancia,
+ADD COLUMN numero_interno VARCHAR(50) NULL AFTER identificativo_sag;
+
 ###17 de mayo de 2025####
 ALTER TABLE `cobrar_clientes` 
 ADD COLUMN `tipo_factura` INT NOT NULL DEFAULT 2 COMMENT '1=Contado, 2=Crédito' AFTER `estado`;

@@ -49,7 +49,11 @@ class facturasModelo extends mainModel{
                         `usuario`, 
                         `empresa_id`, 
                         `fecha_registro`, 
-                        `fecha_dolar`
+                        `fecha_dolar`,
+						`no_orden`,
+						`constancia`,
+						`identificativo_sag`,
+						`numero_interno`                        
                     )
                     VALUES (
                         '".$datos['facturas_id']."',
@@ -66,7 +70,11 @@ class facturasModelo extends mainModel{
                         '".$datos['usuario']."',
                         '".$datos['empresa']."',
                         '".$datos['fecha_registro']."',
-                        '".$datos['fecha_dolar']."'
+                        '".$datos['fecha_dolar']."',
+						'".$datos['exoneracion_orden']."',
+						'".$datos['exoneracion_constancia']."',
+						'".$datos['exoneracion_sag']."',
+						'".$datos['exoneracion_orden_interno']."'	                        
                     )";
         }
     

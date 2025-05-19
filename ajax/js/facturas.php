@@ -3214,4 +3214,38 @@ $(() => {
     });
 });
 //FIN MODIFICAR PRECIO EN PRODUCTO FACTURACION
+
+$(() => {
+    // Guardar datos de exoneración en campos ocultos al hacer clic en el botón "Guardar datos"
+    $("#guardar_exoneracion").click(function() {
+        $("#exoneracion_orden").val($("#modal_exoneracion_orden").val());
+        $("#exoneracion_constancia").val($("#modal_exoneracion_constancia").val());
+        $("#exoneracion_sag").val($("#modal_exoneracion_sag").val());
+        $("#exoneracion_orden_interno").val($("#modal_exoneracion_orden_interno").val());
+        
+        // Cerrar modal
+        $("#exoneracionModal").modal("hide");
+        
+        // Opcional: Mostrar un indicador visual de que hay datos de exoneración
+        if ($("#modal_exoneracion_orden").val() || $("#modal_exoneracion_constancia").val() || 
+            $("#modal_exoneracion_sag").val() || $("#modal_exoneracion_orden_interno").val()) {
+            $("#btn_exoneracion").removeClass("btn-outline-info").addClass("btn-info");
+        } else {
+            $("#btn_exoneracion").removeClass("btn-info").addClass("btn-outline-info");
+        }
+    });
+    
+    // Cargar datos en el modal cuando se abre
+    $("#exoneracionModal").on("show.bs.modal", function() {
+        $("#modal_exoneracion_orden").val($("#exoneracion_orden").val());
+        $("#modal_exoneracion_constancia").val($("#exoneracion_constancia").val());
+        $("#modal_exoneracion_sag").val($("#exoneracion_sag").val());
+        $("#modal_exoneracion_orden_interno").val($("#exoneracion_orden_interno").val());
+    });
+
+    $('#exoneracionModal').on('shown.bs.modal', function() {
+        $('#modal_exoneracion_orden').focus();
+    });
+});
+
 </script>

@@ -537,6 +537,12 @@ class facturasControlador extends facturasModelo {
             $fecha = $_POST['fecha'];
             $fecha_dolar = $_POST['fecha_dolar'];
             $fecha_registro = date("Y-m-d H:i:s");
+
+            //DATOS DE EXONERACION
+            $exoneracion_orden = $_POST['exoneracion_orden'];
+            $exoneracion_constancia = $_POST['exoneracion_constancia'];
+            $exoneracion_sag = $_POST['exoneracion_sag'];
+            $exoneracion_orden_interno = $_POST['exoneracion_orden_interno'];
             
             // Obtener ID de factura
             $facturas_id = empty($_POST['facturas_id']) ? mainModel::correlativo("facturas_id", "facturas") : $_POST['facturas_id'];
@@ -566,7 +572,11 @@ class facturasControlador extends facturasModelo {
                 "usuario" => $datosBasicos['usuario'],
                 "fecha_registro" => $fecha_registro,
                 "empresa" => $datosBasicos['empresa_id'],
-                "fecha_dolar" => $fecha_dolar
+                "fecha_dolar" => $fecha_dolar,
+                "exoneracion_orden" => $exoneracion_orden,
+                "exoneracion_constancia" => $exoneracion_constancia,
+                "exoneracion_sag" => $exoneracion_sag,
+                "exoneracion_orden_interno" => $exoneracion_orden_interno,
             ];
             
             $query = facturasModelo::guardar_facturas_modelo($datosFactura);

@@ -132,6 +132,7 @@
                                 </div>
                             </div>
                         </div>
+                        
                         <div class="form-group row table-responsive-xl table table-hover">
                             <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
                                 <table id="invoiceItem" class="table-header-pro table-footer-pro">
@@ -212,6 +213,7 @@
                                 </table>
                             </div>
                         </div>
+                        
                         <hr class="line_table" />
                         <div class="form-group row">
                             <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">

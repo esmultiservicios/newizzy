@@ -1,7 +1,8 @@
 <?php
+//getClientesphp
 $peticionAjax = true;
-require_once __DIR__ . '/../../configGenerales.php';
-require_once __DIR__ . '/../../mainModel.php';
+require_once __DIR__ . '/../configGenerales.php';
+require_once __DIR__ . '/../mainModel.php';
 
 $mainModel = new mainModel();
 

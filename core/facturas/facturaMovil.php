@@ -1,4 +1,5 @@
 <?php
+//facturaMovil.php
 $peticionAjax = true;
 require_once __DIR__ . '/../configGenerales.php';
 require_once __DIR__ . '/../mainModel.php';

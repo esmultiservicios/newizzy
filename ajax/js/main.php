@@ -65,10 +65,16 @@ function ajustarMenuResponsivo() {
     document.getElementById('facturas').style.display = 'none';
     document.getElementById('cotizacion').style.display = 'none';
     document.getElementById('facturaCompras').style.display = 'none';
+
+    //MOSTRAOS
+    document.getElementById('facturaMovil').style.display = '';
   } else { // Pantallas grandes
     document.getElementById('facturas').style.display = '';
     document.getElementById('cotizacion').style.display = '';
     document.getElementById('facturaCompras').style.display = '';
+
+    //ocultamos
+    document.getElementById('facturaMovil').style.display = 'none';
   }
 }
 

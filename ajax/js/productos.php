@@ -28,10 +28,8 @@ $('#form_main_productos #buscar_productos').on('click', function(e) {
 });
 
 //INICIO ACCIONES FROMULARIO PRODUCTOS
-//INICIO ACCIONES FROMULARIO PRODUCTOS
-var listar_productos = function() {
-    var estado = $('#form_main_productos #estado_producto').val() === "" ? 1 : $(
-        '#form_main_productos #estado_producto').val();
+var listar_productos = function(estado) {
+    var estado = $('#form_main_productos #estado_producto').val() === "" ? 1 : $('#form_main_productos #estado_producto').val();
 
     var table_productos = $("#dataTableProductos").DataTable({
         "destroy": true,
@@ -39,11 +37,10 @@ var listar_productos = function() {
             "method": "POST",
             "url": "<?php echo SERVERURL;?>core/llenarDataTableProductos.php",
             "data": {
-                "estado": estado
+                "estado": estado // nuevo parámetro
             }
         },
-        "columns": [
-            {
+        "columns": [{
                 "data": "image",
                 "render": function(data, type, row, meta) {
                     var defaultImageUrl =
@@ -74,37 +71,22 @@ var listar_productos = function() {
 
                     return imageHtml;
                 }
+
             },
             {
                 "data": "barCode"
             },
             {
-                "data": "nombre",
-                "render": function(data, type, row) {
-                    if (type === 'display') {
-                        var warningIcon = '';
-                        
-                        // Verificar si hay stock mínimo configurado y si el stock actual es bajo
-                        if (row.cantidad_minima > 0 && row.stock <= row.cantidad_minima) {
-                            warningIcon = '<i class="fas fa-exclamation-triangle text-danger mr-1" title="Stock mínimo alcanzado"></i>';
-                        } else if (row.cantidad_minima > 0 && row.stock <= (row.cantidad_minima * 1.5)) {
-                            warningIcon = '<i class="fas fa-exclamation-circle text-warning mr-1" title="Stock cerca del mínimo"></i>';
-                        }
-                        
-                        return warningIcon + data;
-                    }
-                    return data;
-                }
+                "data": "nombre"
             },
             {
                 "data": "medida"
             },
             {
                 "data": "categoria"
-            },
-            {
+            }, {
                 "data": "precio_compra",
-                "render": function(data, type) {
+                render: function(data, type) {
                     var number = $.fn.dataTable.render
                         .number(',', '.', 2, 'L ')
                         .display(data);
@@ -119,11 +101,11 @@ var listar_productos = function() {
                     }
 
                     return number;
-                }
+                },
             },
             {
                 "data": "precio_venta",
-                "render": function(data, type) {
+                render: function(data, type) {
                     var number = $.fn.dataTable.render
                         .number(',', '.', 2, 'L ')
                         .display(data);
@@ -138,11 +120,11 @@ var listar_productos = function() {
                     }
 
                     return number;
-                }
+                },
             },
             {
                 "data": "porcentaje_venta",
-                "render": function(data, type) {
+                render: function(data, type) {
                     var number = $.fn.dataTable.render
                         .number(',', '.', 2, 'L ')
                         .display(data);
@@ -157,68 +139,26 @@ var listar_productos = function() {
                     }
 
                     return number;
-                }
+                },
             },
             {
                 "data": "isv_venta"
             },
             {
-                "data": "stock",
-                "render": function(data, type, row) {
-                    if (type === 'display') {
-                        // Si el stock es null o undefined, mostramos 0
-                        if (data === null || data === undefined) {
-                            data = 0;
-                        }
-                        
-                        let color = 'black';
-                        let icon = '';
-                        let tooltip = '';
-                        
-                        if (row.cantidad_minima > 0) {
-                            if (data <= row.cantidad_minima) {
-                                color = 'red';
-                                icon = '<i class="fas fa-exclamation-triangle mr-1"></i>';
-                                tooltip = 'title="Stock mínimo alcanzado (Mín: ' + row.cantidad_minima + ')"';
-                            } else if (data <= (row.cantidad_minima * 1.5)) {
-                                color = 'orange';
-                                icon = '<i class="fas fa-exclamation-circle mr-1"></i>';
-                                tooltip = 'title="Stock cerca del mínimo (Mín: ' + row.cantidad_minima + ')"';
-                            }
-                            
-                            if (row.cantidad_maxima > 0 && data > row.cantidad_maxima) {
-                                color = 'blue';
-                                icon = '<i class="fas fa-arrow-up mr-1"></i>';
-                                tooltip = 'title="Stock sobre el máximo permitido (Máx: ' + row.cantidad_maxima + ')"';
-                            }
-                        }
-                        
-                        return '<span style="color:' + color + '" ' + tooltip + '>' + icon + data + '</span>';
-                    }
-                    return data;
-                }
-            },
-            {
                 "data": "estado",
-                "render": function(data, type, row) {
+                "render": function(data, type) {
                     if (type === 'display') {
                         var estadoText = data == 1 ? 'Activo' : 'Inactivo';
-                        var icon = data == 1 ? 
-                            '<i class="fas fa-check-circle mr-1"></i>' : 
-                            '<i class="fas fa-times-circle mr-1"></i>';
-                        var badgeClass = data == 1 ? 
-                            'badge badge-pill badge-success' : 
-                            'badge badge-pill badge-danger';
+                        var icon = data == 1 ? '<i class="fas fa-check-circle mr-1"></i>' : '<i class="fas fa-times-circle mr-1"></i>';
+                        var badgeClass = data == 1 ? 'badge badge-pill badge-success' : 'badge badge-pill badge-danger';
                         
-                        return '<span class="' + badgeClass + 
-                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
-                            icon + estadoText + '</span>';
+                        return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' + icon + estadoText + '</span>';
                     }
                     return data;
                 }
-            },             
+            },            
             {
-                "defaultContent": "<button class='table_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
+                "defaultContent": "<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
             },
             {
                 "defaultContent": "<button class='table_eliminar btn btn-dark ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"
@@ -230,8 +170,7 @@ var listar_productos = function() {
         "responsive": true,
         "language": idioma_español,
         "dom": dom,
-        "buttons": [
-            {
+        "buttons": [{
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                 titleAttr: 'Actualizar Productos',
                 className: 'table_actualizar btn btn-secondary ocultar',
@@ -244,7 +183,7 @@ var listar_productos = function() {
                 titleAttr: 'Agregar Productos',
                 className: 'table_crear btn btn-primary ocultar',
                 action: function() {
-                    modal_registrar_productos();
+                    modal_productos();
                 }
             },
             {
@@ -256,7 +195,7 @@ var listar_productos = function() {
                 className: 'table_reportes btn btn-success ocultar',
                 exportOptions: {
                     columns: [1, 2, 3, 4, 5, 6, 7]
-                }
+                },
             },
             {
                 extend: 'pdf',
@@ -270,7 +209,7 @@ var listar_productos = function() {
                 },
                 className: 'table_reportes btn btn-danger ocultar',
                 customize: function(doc) {
-                    if (imagen) {
+                    if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
                         doc.content.splice(0, 0, {
                             image: imagen,  
                             width: 100,
@@ -283,24 +222,8 @@ var listar_productos = function() {
         ],
         "drawCallback": function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-            
-            // Mostrar alerta si hay productos con stock bajo
-            var api = this.api();
-            var lowStockCount = 0;
-            
-            api.rows().every(function() {
-                var data = this.data();
-                if (data.cantidad_minima > 0 && data.stock <= data.cantidad_minima) {
-                    lowStockCount++;
-                }
-            });
-            
-            if (lowStockCount > 0) {
-                showNotify('warning', 'Stock Bajo', 'Tienes ' + lowStockCount + ' producto(s) que han alcanzado su stock mínimo');
-            }
         }
     });
-    
     table_productos.search('').draw();
     $('#buscar').focus();
 
@@ -376,7 +299,7 @@ var editar_producto_dataTable = function(tbody, table) {
                     $('#formProductos #preview').attr('src', datos[21]);
                 } else {
                     $("#formProductos #preview").attr("src",
-                        "<?php echo SERVERURLLOGO; ?>/image_preview.png"
+                        "<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png"
                     );
                 }
 
@@ -426,71 +349,103 @@ var eliminar_producto_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.table_eliminar");
     $(tbody).on("click", "button.table_eliminar", function() {
         var data = table.row($(this).parents("tr")).data();
+        var url = '<?php echo SERVERURL;?>core/editarProductos.php';
+        $('#formProductos #productos_id').val(data.productos_id);
 
-        var productos_id = data.productos_id;
-        var nombreProducto = data.nombre; 
-        var barCodeProducto = data.barCode || 'No registrado'; // Manejo de RTN vacío
-        
-        // Construir el mensaje de confirmación con HTML
-        var mensajeHTML = `¿Desea eliminar permanentemente al producto?<br><br>
-                        <strong>Nombre:</strong> ${nombreProducto}<br>
-                        <strong>Cóodigo de Barra:</strong> ${barCodeProducto}`;
-        
-        swal({
-            title: "Confirmar eliminación",
-            content: {
-                element: "span",
-                attributes: {
-                    innerHTML: mensajeHTML
+        $.ajax({
+            type: 'POST',
+            url: url,
+            data: $('#formProductos').serialize(),
+            success: function(registro) {
+                var datos = eval(registro);
+                $('#formProductos').attr({
+                    'data-form': 'delete'
+                });
+                $('#formProductos').attr({
+                    'action': '<?php echo SERVERURL;?>ajax/eliminarProductosAjax.php'
+                });
+                $('#formProductos')[0].reset();
+                $('#reg_producto').hide();
+                $('#edi_producto').hide();
+                $('#delete_producto').show();
+                $('#formProductos #proceso_productos').val("Eliminar Productos");
+                $('#formProductos #medida').val(datos[0]);
+                $('#formProductos #medida').selectpicker('refresh');
+                $('#formProductos #almacen').val(datos[1]);
+                $('#formProductos #almacen').selectpicker('refresh');
+                $('#formProductos #producto').val(datos[2]);
+                $('#formProductos #descripcion').val(datos[3]);
+                $('#formProductos #precio_compra').val(datos[4]);
+                $('#formProductos #precio_venta').val(datos[5]);
+                $('#formProductos #tipo_producto').val(datos[6]);
+                $('#formProductos #tipo_producto').selectpicker('refresh');
+                $('#formProductos #producto_empresa_id').val(datos[11]);
+                $('#formProductos #producto_empresa_id').selectpicker('refresh');
+                $('#formProductos #porcentaje_venta').val(datos[13]);
+                $('#formProductos #cantidad_minima').val(datos[14]);
+                $('#formProductos #cantidad_maxima').val(datos[15]);
+                $('#formProductos #producto_categoria').val(datos[16]);
+                $('#formProductos #precio_mayoreo').val(datos[17]);
+                $('#formProductos #cantidad_mayoreo').val(datos[18]);
+                $('#formProductos #bar_code_product').val(datos[19]);
+
+                if (datos[11] != "image_preview.png") {
+                    $('#formProductos #preview').attr('src', datos[21]);
+                } else {
+                    $("#formProductos #preview").attr("src",
+                        "<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png"
+                    );
                 }
-            },
-            icon: "warning",
-            buttons: {
-                cancel: {
-                    text: "Cancelar",
-                    value: null,
-                    visible: true,
-                    className: "btn-light"
-                },
-                confirm: {
-                    text: "Sí, eliminar",
-                    value: true,
-                    className: "btn-danger",
-                    closeModal: false
+
+                if (datos[7] == 1) {
+                    $('#formProductos #producto_isv_factura').attr('checked', true);
+                } else {
+                    $('#formProductos #producto_isv_factura').attr('checked', false);
                 }
-            },
-            dangerMode: true,
-            closeOnEsc: false,
-            closeOnClickOutside: false
-        }).then((confirmar) => {
-            if (confirmar) {
-               
-                $.ajax({
-                    type: 'POST',
-                    url: '<?php echo SERVERURL;?>ajax/eliminarProductosAjax.php',
-                    data: {
-                        productos_id: productos_id
-                    },
-                    dataType: 'json', // Esperamos respuesta JSON
-                    before: function(){
-                        // Mostrar carga mientras se procesa
-                        showLoading("Eliminando registro...");
-                    },
-                    success: function(response) {
-                        swal.close();
-                        
-                        if(response.status === "success") {
-                            showNotify("success", response.title, response.message);
-                            table.ajax.reload(null, false); // Recargar tabla sin resetear paginación
-                            table.search('').draw();                    
-                        } else {
-                            showNotify("error", response.title, response.message);
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        swal.close();
-                        showNotify("error", "Error", "Ocurrió un error al procesar la solicitud");
-                    }
+
+                if (datos[8] == 1) {
+                    $('#formProductos #producto_isv_compra').attr('checked', true);
+                } else {
+                    $('#formProductos #producto_isv_compra').attr('checked', false);
+                }
+
+                if (datos[9] == 1) {
+                    $('#formProductos #producto_activo').attr('checked', true);
+                } else {
+                    $('#formProductos #producto_activo').attr('checked', false);
+                }
+
+                //DESHABILITAR OBJETOS
+                $('#formProductos #producto').attr("readonly", true);
+                $('#formProductos #medida').attr("disabled", true);
+                $('#formProductos #almacen').attr("disabled", true);
+                $('#formProductos #cantidad').attr("readonly", true);
+                $('#formProductos #precio_compra').attr("readonly", true);
+                $('#formProductos #precio_venta').attr("readonly", true);
+                $('#formProductos #descripcion').attr("readonly", true);
+                $('#formProductos #cantidad_minima').attr("readonly", true);
+                $('#formProductos #cantidad_maxima').attr("readonly", true);
+                $('#formProductos #tipo_producto').attr("disabled", true);
+                $('#formProductos #producto_categoria').attr("disabled", true);
+                $('#formProductos #producto_isv_factura').attr("disabled", true);
+                $('#formProductos #producto_isv_compra').attr("disabled", true);
+                $('#formProductos #producto_activo').attr("disabled", true);
+                $('#formProductos #bar_code_product').attr("readonly", true);
+                $('#formProductos #producto_empresa_id').attr("disabled", true);
+                $('#formProductos #precio_mayoreo').attr("readonly", true);
+                $('#formProductos #porcentaje_venta').attr("readonly", true);
+                $('#formProductos #cantidad_mayoreo').attr("readonly", true);
+                $('#formProductos #almacen').attr("disabled", true);
+                $('#formProductos #cantidad').attr("disabled", true);
+                $('#formProductos #buscar_producto_empresa').hide();
+                $('#formProductos #buscar_producto_categorias').hide();
+                $('#formProductos #estado_producto').hide();
+                $('#formProductos #grupo_editar_bacode').hide();
+
+                $('#modal_registrar_productos').modal({
+                    show: true,
+                    keyboard: false,
+                    backdrop: 'static'
                 });
             }
         });
@@ -559,13 +514,34 @@ function editarCodigoBarra(productos_id, barcode) {
         data: 'productos_id=' + productos_id + '&barcode=' + barcode,
         success: function(data) {
             if (data == 1) {
-                showNotify('success', 'Success', 'El Código de Barra ha sido actualizado satisfactoriamente');
+                swal({
+                    title: "Success",
+                    text: "El Código de Barra ha sido actualizado satisfactoriamente",
+                    icon: "success",
+                    dangerMode: true,
+                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
+                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
+                });
                 listar_productos();
                 $('#formProductos #bar_code_product').val(barcode);
             } else if (data == 2) {
-                showNotify('error', 'Error', 'Error el El Código de Barra no se puede actualizar');
+                swal({
+                    title: "Error",
+                    text: "Error el El Código de Barra no se puede actualizar",
+                    icon: "error",
+                    dangerMode: true,
+                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
+                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
+                });
             } else if (data == 3) {
-                showNotify('error', 'Error', 'El El Código de Barra ya existe');
+                swal({
+                    title: "Error",
+                    text: "El El Código de Barra ya existe",
+                    icon: "error",
+                    dangerMode: true,
+                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
+                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
+                });
             }
         }
     });

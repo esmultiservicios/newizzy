@@ -1,9 +1,20 @@
 <!-- MisFacturas-view.php -->
 <div class="container-fluid">
-    <ol class="breadcrumb mt-2 mb-4">
-        <li class="breadcrumb-item"><a class="breadcrumb-link" href="<?php echo SERVERURL; ?>dashboard/">Dashboard</a></li>
-        <li class="breadcrumb-item active">Detalles de facturación</li>
-    </ol>
+    <div class="breadcrumb-harmony-container">
+        <ol class="breadcrumb-harmony">
+            <li class="breadcrumb-item">
+                <a class="breadcrumb-link" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>dashboard/">
+                    <i class="fas fa-home breadcrumb-icon"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="breadcrumb-separator">/</li>
+            <li class="breadcrumb-item active">
+                <i class="fas fa-file-invoice-dollar breadcrumb-icon"></i>
+                <span>Detalles de facturación</span>
+            </li>
+        </ol>
+    </div>
 
     <!-- Filtros de búsqueda -->
     <div class="card mb-4">

@@ -139,7 +139,7 @@ $(() => {
     // Buscar facturas al enviar el formulario
     $('#form-filtros-facturas').on('submit', function(e) {
         e.preventDefault();
-        dataTableFacturas.ajax.url('<?php echo SERVERURL; ?>core/misFacturas.php?' + $(this).serialize()).load();
+        dataTableFacturas.ajax.url('<?php echo SERVERURL; ?>core/DetallesFacturacion.php?' + $(this).serialize()).load();
     });
 
     // Limpiar filtros
@@ -148,7 +148,7 @@ $(() => {
         if ($.fn.selectpicker) {
             $('select').selectpicker('refresh');
         }
-        dataTableFacturas.ajax.url('<?php echo SERVERURL; ?>core/misFacturas.php').load();
+        dataTableFacturas.ajax.url('<?php echo SERVERURL; ?>core/DetallesFacturacion.php').load();
     });
 
     // Ver detalle de factura

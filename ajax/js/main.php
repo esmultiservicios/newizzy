@@ -53,9 +53,13 @@ function actualizarPermisos() {
     getMenu(privilegio_id);
     getSubMenu(privilegio_id);
     getSubMenu1(privilegio_id);
-
-    ajustarMenuResponsivo();
 }
+
+// Ejecutar al cargar la página
+window.addEventListener('DOMContentLoaded', ajustarMenuResponsivo);
+
+// Ejecutar al redimensionar la ventana
+window.addEventListener('resize', ajustarMenuResponsivo);
 
 // En tu archivo JavaScript o script
 function ajustarMenuResponsivo() {
@@ -66,14 +70,14 @@ function ajustarMenuResponsivo() {
     document.getElementById('cotizacion').style.display = 'none';
     document.getElementById('facturaCompras').style.display = 'none';
 
-    //MOSTRAOS
+    //MOSTRAMOS
     document.getElementById('facturaMovil').style.display = '';
   } else { // Pantallas grandes
     document.getElementById('facturas').style.display = '';
     document.getElementById('cotizacion').style.display = '';
     document.getElementById('facturaCompras').style.display = '';
 
-    //ocultamos
+    //OCULAMOS
     document.getElementById('facturaMovil').style.display = 'none';
   }
 }

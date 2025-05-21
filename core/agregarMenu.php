@@ -134,11 +134,8 @@ try {
         }
     }
 
-    // Actualizar lista blanca si es un menú principal
-    if ($tipo == 'menu') {
-        $nombre_config = 'configuracion_principal';
-        $insMainModel->guardar_o_actualizar_modulo_lista_blanca($nombre_config, $nombre);
-    }
+    $nombre_config = 'configuracion_principal';
+    $insMainModel->guardar_o_actualizar_modulo_lista_blanca($nombre_config, $nombre);
 
     // Confirmar transacción principal
     $conexionPrincipal->commit();

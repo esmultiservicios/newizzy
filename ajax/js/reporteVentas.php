@@ -564,9 +564,11 @@
             data: 'facturas_id=' + facturas_id + '&comentario=' + comentario,
             success: function (data) {
                 if (data == 1) {
+                    swal.close(); // Cierra el modal de SweetAlert
                     showNotify('success', 'Success', 'La factura ha sido anulada con éxito');
                     listar_reporte_ventas();
                 } else {
+                    swal.close(); // Cierra el modal de SweetAlert
                     showNotify('error', 'Error', 'La factura no se puede anular');
                 }
             }

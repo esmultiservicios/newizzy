@@ -355,9 +355,11 @@ function anular(cotizacion_id) {
         data: 'cotizacion_id=' + cotizacion_id,
         success: function(data) {
             if (data == 1) {
+                swal.close(); // Cierra el modal de SweetAlert  
                 showNotify('success', 'Success', 'La cotización ha sido anulada con éxito');
                 listar_reporte_cotizaciones();
             } else {
+                swal.close(); // Cierra el modal de SweetAlert
                 showNotify('error', 'Error', 'La cotización no se pudo anular');
             }
         }

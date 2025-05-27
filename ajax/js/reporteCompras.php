@@ -358,9 +358,11 @@ function anular(compras_id) {
         data: 'compras_id=' + compras_id,
         success: function(data) {
             if (data == 1) {
+                swal.close(); // Cierra el modal de SweetAlert
                 showNotify('success', 'Success', 'La factura de compra ha sido anulada con éxito');
                 listar_reporte_compras();
             } else {
+                swal.close(); // Cierra el modal de SweetAlert
                 showNotify('error', 'Error', 'La factura de compra no se pudo anular');
             }
         }

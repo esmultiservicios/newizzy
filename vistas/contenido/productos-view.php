@@ -53,8 +53,7 @@
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table id="dataTableProductos" class="table table-striped table-condensed table-hover"
-                        style="width:100%">
+                    <table id="dataTableProductos" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
                         <thead>
                             <tr>
                                 <th>Imagen</th>

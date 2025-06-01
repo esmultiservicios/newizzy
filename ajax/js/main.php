@@ -1127,6 +1127,93 @@ function getDepartamentoClientes() {
 /*FIN FORMULARIO CLIENTES*/
 //FIN CLIENTES
 
+/*INICIO FORMULARIO PRODUCTOS*/
+function modal_productos() {
+    $('#formProductos').attr({
+        'data-form': 'save'
+    });
+    $('#formProductos').attr({
+        'action': '<?php echo SERVERURL;?>ajax/agregarProductosAjax.php'
+    });
+    $('#formProductos')[0].reset();
+    $('#reg_producto').show();
+    $('#edi_producto').hide();
+    $('#delete_producto').hide();
+
+    //MOSTRAR OBJETOS
+    $('#formProductos #cantidad').show();
+    $('#div_cantidad_editar_producto').show();
+
+    //HABILITAR OBJETOS
+    $('#formProductos #producto').attr("readonly", false);
+    $('#formProductos #categoria').attr("disabled", false);
+    $('#formProductos #medida').attr("disabled", false);
+    $('#formProductos #almacen').attr("disabled", false);
+    $('#formProductos #cantidad').attr("readonly", false);
+    $('#formProductos #precio_compra').attr("readonly", false);
+    $('#formProductos #precio_venta').attr("readonly", false);
+    $('#formProductos #descripcion').attr("readonly", false);
+    $('#formProductos #cantidad_minima').attr("readonly", false);
+    $('#formProductos #cantidad_maxima').attr("readonly", false);
+    $('#formProductos #producto_isv_factura').attr("disabled", false);
+    $('#formProductos #producto_isv_compra').attr("disabled", false);
+    $('#formProductos #bar_code_product').attr("readonly", false);
+    $('#formProductos #producto_empresa_id').attr("disabled", false);
+    $('#formProductos #producto_categoria').attr("disabled", false);
+    $('#formProductos #tipo_producto').attr("disabled", false);
+    $('#formProductos #precio_mayoreo').attr("readonly", false);
+    $('#formProductos #porcentaje_venta').attr("readonly", false);
+    $('#formProductos #cantidad_mayoreo').attr("readonly", false);
+    $('#formProductos #producto_isv_compra').attr('checked', false);
+    $('#formProductos #cantidad').attr("disabled", false);
+    $('#formProductos #producto_superior').attr("disabled", false);
+
+    $('#formProductos #producto_empresa_id').val(1);
+    $('#formProductos #producto_empresa_id').selectpicker('refresh');
+
+    $('#formProductos #producto_categoria').val(1);
+    $('#formProductos #producto_categoria').selectpicker('refresh');
+
+    $('#formProductos #almacen').val(1);
+    $('#formProductos #almacen').selectpicker('refresh');
+
+    $('#formProductos #tipo_producto').val(1);
+    $('#formProductos #tipo_producto').selectpicker('refresh');
+
+    $('#formProductos #buscar_producto_empresa').show();
+    $('#formProductos #buscar_producto_categorias').show();
+
+    $('#formProductos #medida').val(1);
+    $('#formProductos #medida').selectpicker('refresh');
+
+    $('#formProductos #producto_activo').attr('checked', true);
+    $('#formProductos #estado_producto').hide();
+    $('#formProductos #grupo_editar_bacode').hide();
+
+    if (validarISV("Facturas") == 1) {
+        $('#formProductos #producto_isv_factura').attr('checked', true);
+    } else {
+        $('#formProductos #producto_isv_factura').attr('checked', false);
+    }
+
+    if (validarISV("Compras") == 1) {
+        $('#formProductos #producto_isv_compra').attr('checked', true);
+    } else {
+        $('#formProductos #producto_isv_compra').attr('checked', false);
+    }
+
+    $("#formProductos #preview").attr("src", "<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png");
+
+    $('#formProductos #proceso_productos').val("Registro de Productos");
+    $('#modal_registrar_productos').modal({
+        show: true,
+        keyboard: false,
+        backdrop: 'static'
+    });
+}
+/*FIN FORMULARIO PRODUCTOS*/
+
+
 //INICIO PROVEEDORES
 /*INICIO FORMULARIO PROVEEDORES*/
 function modal_proveedores() {

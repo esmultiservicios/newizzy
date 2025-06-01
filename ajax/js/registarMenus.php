@@ -316,8 +316,7 @@ $(function() {
                 cancel: {
                     text: "Cancelar",
                     value: null,
-                    visible: true,
-                    className: "btn-secondary"
+                    visible: true
                 },
                 confirm: {
                     text: "Eliminar",

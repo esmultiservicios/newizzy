@@ -268,11 +268,11 @@ var eliminar_secuencia_facturacion_dataTable = function(tbody, table) {
         var data = table.row($(this).parents("tr")).data();
 
         var secuencia_id = data.secuencia_facturacion_id;
-        var nombreSecuencia = data.nombre; 
+        var nombreSecuencia = data.empresa; 
         
         // Construir el mensaje de confirmación con HTML
         var mensajeHTML = `¿Desea eliminar permanentemente la secuencia de facturación?<br><br>
-                        <strong>Nombre:</strong> ${nombreSecuencia}`;
+                        <strong>Empresa:</strong> ${nombreSecuencia}`;
         
         swal({
             title: "Confirmar eliminación",

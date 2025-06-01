@@ -61,4 +61,3 @@ echo json_encode([
     'data' => $almacenes,
     'total' => count($almacenes)
 ]);
-?>

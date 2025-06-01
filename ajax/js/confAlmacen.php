@@ -235,7 +235,7 @@ var delete_almacen_dataTable = function(tbody, table) {
         var data = table.row($(this).parents("tr")).data();
 
         var almacen_id = data.almacen_id;
-        var nombreAlmacen = data.nombre; 
+        var nombreAlmacen = data.almacen; 
         
         // Construir el mensaje de confirmación con HTML
         var mensajeHTML = `¿Desea eliminar permanentemente el almacén?<br><br>

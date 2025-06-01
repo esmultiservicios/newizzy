@@ -326,19 +326,37 @@ var eliminar_usuarios_dataTable = function(tbody, table) {
         var data = table.row($(this).parents("tr")).data();
 
         var mensajeHTML = `¿Desea eliminar permanentemente el usuario?<br><br>
-                        <strong>Nombre:</strong> ${data.colaborador}<br>
-                        <strong>Correo:</strong> ${data.correo}`;
-                                                
-        Swal.fire({
+                        <strong>Nombre:</strong> ${data.colaborador}`;
+
+                        swal({
             title: "Confirmar eliminación",
-            html: mensajeHTML,
+            content: {
+                element: "span",
+                attributes: {
+                    innerHTML: mensajeHTML
+                }
+            },
             icon: "warning",
-            showCancelButton: true,
-            confirmButtonText: "Sí, eliminar",
-            cancelButtonText: "Cancelar",
-            reverseButtons: true
-        }).then((result) => {
-            if (result.isConfirmed) {
+            buttons: {
+                cancel: {
+                    text: "Cancelar",
+                    value: null,
+                    visible: true,
+                    className: "btn-light"
+                },
+                confirm: {
+                    text: "Sí, eliminar",
+                    value: true,
+                    className: "btn-danger",
+                    closeModal: false
+                }
+            },
+            dangerMode: true,
+            closeOnEsc: false,
+            closeOnClickOutside: false
+        }).then((confirmar) => {
+            if (confirmar) {
+               
                 $.ajax({
                     type: 'POST',
                     url: '<?php echo SERVERURL;?>ajax/eliminarUsersAjax.php',

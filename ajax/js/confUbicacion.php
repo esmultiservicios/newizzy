@@ -184,7 +184,7 @@ var delete_ubicacion_dataTable = function(tbody, table){
 		var data = table.row( $(this).parents("tr") ).data();
 
 		var ubicacion_id = data.ubicacion_id;
-        var nombreUbicacion = data.nombre; 
+        var nombreUbicacion = data.ubicacion; 
         
         // Construir el mensaje de confirmación con HTML
         var mensajeHTML = `¿Desea eliminar permanentemente la ubicación?<br><br>

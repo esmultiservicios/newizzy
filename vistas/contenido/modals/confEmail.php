@@ -107,7 +107,7 @@
                 <button class="btn btn-info" type="submit" style="display: none;" id="test_confEmails" form="formConfEmails">
                     <i class="fas fa-mail-bulk fa-lg mr-1"></i> Probar Conexión
                 </button>
-                <button class="btn btn-warning" type="submit" style="display: none;" id="edi_confEmails" form="formConfEmails">
+                <button class="btn btn-success" type="submit" style="display: none;" id="edi_confEmails" form="formConfEmails">
                     <i class="fas fa-edit fa-lg mr-1"></i> Actualizar
                 </button>
             </div>

@@ -22,10 +22,10 @@
             $planConfig = $mainModel->getPlanConfiguracionMainModel();
             
             // Solo validar si existe configuración de plan
-            if (!empty($planConfig)) {
-                $limiteCotizaciones = (int)($planConfig['cotizaciones'] ?? 0);
-                
-                // Caso 1: Límite es 0 (sin permisos)
+			if (isset($planConfig['cotizaciones'])) {
+				$limiteCotizaciones = (int)$planConfig['cotizaciones']; // No usamos ?? 0 aquí para no convertir "no definido" en 0
+				
+               // Caso 1: Límite es 0 (sin permisos)
                 if ($limiteCotizaciones === 0) {
                     return $mainModel->showNotification([
                         "type" => "error",
@@ -44,7 +44,7 @@
                         "text" => "Ha excedido el límite mensual de cotizaciones (Máximo: $limiteCotizaciones)."
                     ]);
                 }
-            }
+			}
 
             $usuario = $_SESSION['colaborador_id_sd'];
             $empresa_id = $_SESSION['empresa_id_sd'];			

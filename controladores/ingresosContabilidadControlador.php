@@ -67,9 +67,9 @@ class ingresosContabilidadControlador extends ingresosContabilidadModelo{
             $planConfig = $mainModel->getPlanConfiguracionMainModel();
             
             // Solo validar si existe configuración de plan
-            if (!empty($planConfig)) {
-                $limiteIngresos = (int)($planConfig['ingresos'] ?? 0);
-                
+			if (isset($planConfig['ingresos'])) {
+				$limiteIngresos = (int)$planConfig['ingresos']; // No usamos ?? 0 aquí para no convertir "no definido" en 0
+				
                 // Caso 1: Límite es 0 (sin permisos)
                 if ($limiteIngresos === 0) {
                     return $mainModel->showNotification([
@@ -89,7 +89,7 @@ class ingresosContabilidadControlador extends ingresosContabilidadModelo{
                         "text" => "Ha excedido el límite mensual de ingresos contables (Máximo: $limiteIngresos)."
                     ]);
                 }
-            }
+			}
 
             if(!ingresosContabilidadModelo::agregar_clientes_ingresos_contabilidad_modelo($datos_clientes_ingreso)){
                 return mainModel::showNotification([

@@ -73,10 +73,10 @@ class empresaControlador extends empresaModelo
         $planConfig = $mainModel->getPlanConfiguracionMainModel();
         
         // Solo evaluar si existe configuración de plan
-        if (!empty($planConfig)) {
-            $limiteEmpresas = (int)($planConfig['empresas'] ?? 0);
-            
-            // Caso 1: Límite es 0 (bloquear)
+		if (isset($planConfig['empresas'])) {
+			$limiteEmpresas = (int)$planConfig['empresas']; // No usamos ?? 0 aquí para no convertir "no definido" en 0
+			
+             // Caso 1: Límite es 0 (bloquear)
             if ($limiteEmpresas === 0) {
                 return $mainModel->showNotification([
                     "type" => "error",
@@ -95,7 +95,7 @@ class empresaControlador extends empresaModelo
                     "text" => "Límite de empresas alcanzado (Máximo: $limiteEmpresas). Actualiza tu plan."
                 ]);
             }
-        }	
+		}
     
         // Registrar empresa
         if (!empresaModelo::agregar_empresa_modelo($datos)) {

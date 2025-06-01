@@ -62,8 +62,8 @@
 			$planConfig = $mainModel->getPlanConfiguracionMainModel();
 			
 			// Solo evaluar si existe configuración de plan
-			if (!empty($planConfig)) {
-				$limiteSecuencias = (int)($planConfig['secuencias'] ?? 0);
+			if (isset($planConfig['secuencias'])) {
+				$limiteSecuencias = (int)$planConfig['secuencias']; // No usamos ?? 0 aquí para no convertir "no definido" en 0
 				
 				// Caso 1: Límite es 0 (bloquear)
 				if ($limiteSecuencias === 0) {
@@ -84,7 +84,7 @@
 						"text" => "Límite de secuencias de facturacion alcanzado (Máximo: $limiteSecuencias). Actualiza tu plan."
 					]);
 				}
-			}		
+			}	
 
 			if(!secuenciaFacturacionModelo::agregar_secuencia_facturacion_modelo($datos)){
 				return mainModel::showNotification([
@@ -115,11 +115,7 @@
 			$fecha_activacion = mainModel::cleanString($_POST['fecha_activacion_secuencia']);
 			$fecha_limite = mainModel::cleanString($_POST['fecha_limite_secuencia']);
 
-			if (isset($_POST['estado_secuencia'])){
-				$activo = $_POST['estado_secuencia'];
-			}else{
-				$activo = 2;
-			}	
+			$activo = isset($_POST['estado_secuencia']) && $_POST['estado_secuencia'] == 'on' ? 1 : 0;		
 			
 			$datos = [
 				"secuencia_facturacion_id" => $secuencia_facturacion_id,

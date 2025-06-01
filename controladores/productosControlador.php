@@ -138,8 +138,8 @@ class productosControlador extends productosModelo
 		$planConfig = $mainModel->getPlanConfiguracionMainModel();
 		
 		// Solo evaluar si existe configuración de plan
-		if (!empty($planConfig)) {
-			$limiteProductos = (int)($planConfig['productos'] ?? 0);
+		if (isset($planConfig['productos'])) {
+			$limiteProductos = (int)$planConfig['productos']; // No usamos ?? 0 aquí para no convertir "no definido" en 0
 			
 			// Caso 1: Límite es 0 (bloquear)
 			if ($limiteProductos === 0) {
@@ -160,7 +160,7 @@ class productosControlador extends productosModelo
 					"text" => "Límite de productos alcanzado (Máximo: $limiteProductos). Actualiza tu plan."
 				]);
 			}
-		}	
+		}
 
 		// Registrar el producto
 		$query = productosModelo::agregar_productos_modelo($datos);

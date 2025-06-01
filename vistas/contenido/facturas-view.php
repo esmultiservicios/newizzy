@@ -7,6 +7,7 @@
             </div>
             <div class="card-body">
                 <form class="FormularioAjax" id="invoice-form" method="POST" action="" data-form="" autocomplete="off" enctype="multipart/form-data">
+                    
                     <div class="form-group row customer-bill-box-left">
                         <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
                             <div class="bill-header-row">

@@ -23,9 +23,9 @@ class comprasControlador extends comprasModelo{
         $planConfig = $mainModel->getPlanConfiguracionMainModel();
         
         // Solo validar si existe configuración de plan
-        if (!empty($planConfig)) {
-            $limiteCompras = (int)($planConfig['compras'] ?? 0);
-            
+		if (isset($planConfig['compras'])) {
+			$limiteCompras = (int)$planConfig['compras']; // No usamos ?? 0 aquí para no convertir "no definido" en 0
+			
             // Caso 1: Límite es 0 (sin permisos)
             if ($limiteCompras === 0) {
                 return $mainModel->showNotification([
@@ -44,8 +44,9 @@ class comprasControlador extends comprasModelo{
                     "title" => "Límite alcanzado",
                     "text" => "Ha excedido el límite mensual de compras (Máximo: $limiteCompras)."
                 ]);
-            }
-        }
+            }]);
+			}
+		}
 
         $usuario = $_SESSION['colaborador_id_sd'];
         $empresa_id = $_SESSION['empresa_id_sd'];			

@@ -659,28 +659,26 @@ var view_productos_busqueda_factura_dataTable = function(tbody, table) {
         } else {
             getTotalFacturasDisponibles();
 
-            if ($("#invoice-form #cliente_id").val() != "" && $("#invoice-form #cliente").val() != "" && $(
-                    "#invoice-form #colaborador_id").val() != "" && $("#invoice-form #colaborador").val() !=
-                "") {
+            if ($("#invoice-form #cliente_id").val() != "" && $("#invoice-form #cliente").val() != "" && 
+                $("#invoice-form #colaborador_id").val() != "" && $("#invoice-form #colaborador").val() != "") {
+                
                 var data = table.row($(this).parents("tr")).data();
                 var facturar_cero = false;
 
-                // Verificación de facturación en cero solo si hay bodega asignada y no es servicio
-                if(data.almacen_id && data.tipo_producto_id !== "2") {
+                // Solo validar inventario si tiene bodega asignada (mayor a 0) y no es servicio
+                console.log("El código del almacén registrado es: " + data.almacen_id);
+                if(data.almacen_id !== null && data.almacen_id !== undefined && data.almacen_id > 0 && data.tipo_producto_id !== "2") {
                     facturar_cero = facturarEnCeroAlmacen(data.almacen_id);
                     console.log("Facturar en cero para almacén", data.almacen_id, ":", facturar_cero);
+                    
+                    // Validar cantidad solo si no se permite facturar en cero
+                    if(data.cantidad <= 0 && !facturar_cero) {
+                        showNotify('error', 'Error', 'No se puede facturar este producto con inventario en cero');
+                        return false;
+                    }
                 }
 
-                // Validación de cantidad en cero solo si:
-                // 1. No es servicio (tipo_producto_id !== "2")
-                // 2. Hay bodega asignada
-                // 3. No se permite facturar en cero
-                if(data.tipo_producto_id !== "2" && data.almacen_id && data.cantidad <= 0 && !facturar_cero) {
-                    showNotify('error', 'Error', 'No se puede facturar este producto con inventario en cero');
-                    return false;
-                }
-
-                // Continuar con el proceso de facturación aunque no tenga bodega asignada
+                // Continuar con el proceso de facturación
                 $('#invoice-form #invoiceItem #productos_id_' + row).val(data.productos_id);
                 $('#invoice-form #invoiceItem #bar-code-id_' + row).val(data.barCode);
                 $('#invoice-form #invoiceItem #productName_' + row).val(data.nombre);
@@ -692,11 +690,10 @@ var view_productos_busqueda_factura_dataTable = function(tbody, table) {
                 $('#invoice-form #invoiceItem #precio_mayoreo_' + row).val(data.precio_mayoreo);
                 $('#invoice-form #invoiceItem #cantidad_mayoreo_' + row).val(data.cantidad_mayoreo);
                 $('#invoice-form #invoiceItem #medida_' + row).val(data.medida);
-                $('#invoice-form #invoiceItem #bodega_' + row).val(data.almacen_id || ''); // Acepta null/undefined
+                $('#invoice-form #invoiceItem #bodega_' + row).val(data.almacen_id || '');
 
                 $('#invoice-form #invoiceItem #precio_real_' + row).val(data.precio_venta);
 
-                // Resto del código original...
                 actualizarTextoProducto(row, data.nombre, data.medida);
 
                 var isv = 0;

@@ -91,9 +91,11 @@ class contratoControlador extends contratoModelo{
         $mainModel = new mainModel();
         $planConfig = $mainModel->getPlanConfiguracionMainModel();
         
-        if (!empty($planConfig)) {
-            $limiteContratos = (int)($planConfig['contratos'] ?? 0);
-            
+		// Validar límite de contratos del plan
+		if (isset($planConfig['contratos'])) {
+			$limiteContratos = (int)$planConfig['contratos']; // No usamos ?? 0 aquí para no convertir "no definido" en 0
+			
+			// Caso 1: Límite es 0 (bloquear)
             if ($limiteContratos === 0) {
                 return json_encode([
                     "status" => "error",
@@ -101,7 +103,8 @@ class contratoControlador extends contratoModelo{
                     "message" => "Su plan actual no permite registrar contratos."
                 ]);
             }
-            
+			
+			// Caso 2: Si tiene límite > 0, validar disponibilidad
             $totalRegistrados = (int)contratoModelo::getTotalContratosRegistrados();
             
             if ($totalRegistrados >= $limiteContratos) {
@@ -111,7 +114,7 @@ class contratoControlador extends contratoModelo{
                     "message" => "Límite de contratos alcanzado (Máximo: $limiteContratos). Actualiza tu plan."
                 ]);
             }
-        }    
+		}  
 
         // Intentar registrar el contrato
         if(!contratoModelo::agregar_contrato_modelo($datos)){

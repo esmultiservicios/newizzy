@@ -441,14 +441,18 @@ function getPrivilegioUsuario() {
 function getSessionUser() {
     var url = '<?php echo SERVERURL;?>core/getSessionUser.php';
     var db_cliente;
-
     $.ajax({
         type: 'POST',
         url: url,
+        dataType: 'json', // jQuery automáticamente parsea el JSON
         async: false,
-        success: function(valores) {
-            var datos = eval(valores);
+        success: function(datos) {
+            // Ya no necesitas parsear, 'datos' ya es un array
             db_cliente = datos[0];
+        },
+        error: function(xhr, status, error) {
+            console.error('Error en AJAX:', error);
+            console.log('Respuesta:', xhr.responseText);
         }
     });
     return db_cliente;
@@ -3521,12 +3525,6 @@ var listar_clientes = function(estado) {
             {width: "2%", targets: 8},
             {width: "2%", targets: 9}
         ],
-        "createdRow": function(row, data, dataIndex) {
-            var cells = $(row).find("td");
-            $(cells[7]).addClass("generar");
-            $(cells[6]).addClass("sistema");
-            $(cells[8]).addClass("puntos");
-        },
         "buttons": [
             {
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
@@ -3581,39 +3579,48 @@ var listar_clientes = function(estado) {
         ],
         "drawCallback": function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-
-            // Verificación para columnas generar y sistema
-            if (getPrivilegioUsuario() !== 1 || getPrivilegioUsuario() !== 2 || getPrivilegioUsuario() !== 3) {
+            
+            var privilegio = getPrivilegioUsuario();
+            var privilegiosPermitidos = [1, 2];
+            var table = this.api(); // Obtener referencia de la tabla
+            
+            console.log("Privilegio usuario:", privilegio);
+            
+            // Si el privilegio está en la lista de restringidos
+            if (privilegiosPermitidos.includes(privilegio)) {
                 var db_consulta = getSessionUser() === "" ? DB_MAIN : getSessionUser();
-                if (db_consulta === DB_MAIN) {
-                    $('.generar').show();
+                console.log("DB consulta:", db_consulta, "DB Main:", DB_MAIN);
+                
+                if (db_consulta == DB_MAIN) {
+                    // Mostrar columnas (índices: 9=generar, 6=sistema)
+                    table.column(9).visible(true); // Boton Generar
+                    table.column(6).visible(true); // Label Sistema
                 } else {
-                    $('.generar').hide();
-                    $('.sistema').hide();
+                    // Ocultar columnas
+                    table.column(9).visible(false); // Boton Generar
+                    table.column(6).visible(false); // Label Sistema
                 }
             } else {
-                $('.generar').hide();
+                // Privilegios 1, 2 o 3: ocultar generar
+                table.column(9).visible(false); // Boton Generar
+                table.column(6).visible(false); // Label Sistema
             }
-
-            // Verificación para puntos (AJAX SINCRÓNICO como lo necesitas)
+            
+            // Verificación para puntos (índice 8)
             $.ajax({
                 url: '<?php echo SERVERURL;?>core/programaPuntos/verificarProgramaPuntos.php',
                 type: 'POST',
                 dataType: 'json',
-                async: false, // Importante para que espere la respuesta
+                async: false,
                 success: function(response) {
                     if(response.mostrar_puntos) {
-                        $('.puntos').show();
+                        table.column(8).visible(true); // Boton Puntos
                     } else {
-                        $('.puntos').hide();
+                        table.column(8).visible(false); // Boton Puntos
                     }
-                    
-                    // Para debug (puedes eliminar esto)
-                    console.log("Respuesta permisos puntos:", response);
                 },
                 error: function() {
-                    $('.puntos').hide();
-                    console.error("Error verificando programa de puntos");
+                    table.column(8).visible(false); // Boton Puntos
                 }
             });
         }

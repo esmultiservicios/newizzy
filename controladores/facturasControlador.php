@@ -475,9 +475,10 @@ class facturasControlador extends facturasModelo {
             $planConfig = $mainModel->getPlanConfiguracionMainModel();
             
             // Validar límite de facturas del plan
-            if (!empty($planConfig)) {
-                $limiteFacturas = (int)($planConfig['facturas'] ?? 0);
+            if (isset($planConfig['facturas'])) {
+                $limiteFacturas = (int)$planConfig['facturas']; // No usamos ?? 0 aquí para no convertir "no definido" en 0
                 
+                // Caso 1: Si facturas = 0 (configurado explícitamente)
                 if ($limiteFacturas === 0) {
                     $conexionPrincipal->rollback();
                     return $mainModel->showNotification([
@@ -487,6 +488,7 @@ class facturasControlador extends facturasModelo {
                     ]);
                 }
                 
+                // Caso 2: Si facturas > 0 (evaluar límite)
                 $totalRegistradas = (int)facturasModelo::getTotalFacturasRegistradas();
                 
                 if ($totalRegistradas >= $limiteFacturas) {

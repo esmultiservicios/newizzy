@@ -32,8 +32,8 @@
 			$planConfig = $mainModel->getPlanConfiguracionMainModel();
 			
 			// Solo evaluar si existe configuración de plan
-			if (!empty($planConfig)) {
-				$limiteUbicaciones = (int)($planConfig['ubicaciones'] ?? 0);
+			if (isset($planConfig['ubicaciones'])) {
+				$limiteUbicaciones = (int)$planConfig['ubicaciones']; // No usamos ?? 0 aquí para no convertir "no definido" en 0
 				
 				// Caso 1: Límite es 0 (bloquear)
 				if ($limiteUbicaciones === 0) {
@@ -54,7 +54,7 @@
 						"text" => "Límite de ubicaciones alcanzado (Máximo: $limiteUbicaciones). Actualiza tu plan."
 					]);
 				}
-			}	
+			}
 
 			if(!ubicacionModelo::agregar_ubicacion_modelo($datos)){
 				return mainModel::showNotification([

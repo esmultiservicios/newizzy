@@ -42,8 +42,8 @@
 			$planConfig = $mainModel->getPlanConfiguracionMainModel();
 			
 			// Solo evaluar si existe configuración de plan
-			if (!empty($planConfig)) {
-				$limiteCategorias = (int)($planConfig['categorias'] ?? 0);
+			if (isset($planConfig['categorias'])) {
+				$limiteCategorias = (int)$planConfig['categorias']; // No usamos ?? 0 aquí para no convertir "no definido" en 0
 				
 				// Caso 1: Límite es 0 (bloquear)
 				if ($limiteCategorias === 0) {
@@ -64,7 +64,7 @@
 						"text" => "Límite de categorias de productos alcanzado (Máximo: $limiteCategorias). Actualiza tu plan."
 					]);
 				}
-			}	
+			}
 
 			if(!categoriaProductosModelo::agregar_categoria_productos_modelo($datos)){
 				return mainModel::showNotification([

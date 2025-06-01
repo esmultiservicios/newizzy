@@ -44,8 +44,8 @@
 			$planConfig = $mainModel->getPlanConfiguracionMainModel();
 			
 			// Solo evaluar si existe configuración de plan
-			if (!empty($planConfig)) {
-				$limiteCuentas = (int)($planConfig['cuentas'] ?? 0);
+			if (isset($planConfig['cuentas'])) {
+				$limiteCuentas = (int)$planConfig['cuentas']; // No usamos ?? 0 aquí para no convertir "no definido" en 0
 				
 				// Caso 1: Límite es 0 (bloquear)
 				if ($limiteCuentas === 0) {
@@ -66,7 +66,7 @@
 						"text" => "Límite de cuentas contables alcanzado (Máximo: $limiteCuentas). Actualiza tu plan."
 					]);
 				}
-			}	
+			}
 
 			if(!cuentaContabilidadModelo::agregar_cuenta_contabilidad_modelo($datos)){
 				return mainModel::showNotification([

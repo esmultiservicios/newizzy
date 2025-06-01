@@ -48,8 +48,8 @@
 			$planConfig = $mainModel->getPlanConfiguracionMainModel();
 			
 			// Solo evaluar si existe configuración de plan
-			if (!empty($planConfig)) {
-				$limiteProveedores = (int)($planConfig['proveedores'] ?? 0);
+			if (isset($planConfig['proveedores'])) {
+				$limiteProveedores = (int)$planConfig['proveedores']; // No usamos ?? 0 aquí para no convertir "no definido" en 0
 				
 				// Caso 1: Límite es 0 (bloquear)
 				if ($limiteProveedores === 0) {
@@ -70,7 +70,7 @@
 						"text" => "Límite de proveedores alcanzado (Máximo: $limiteProveedores). Actualiza tu plan."
 					]);
 				}
-			}	
+			}
 			
 			if(!proveedoresModelo::agregar_proveedores_model($datos)){
 				return mainModel::showNotification([

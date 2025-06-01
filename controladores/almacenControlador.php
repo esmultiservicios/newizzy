@@ -40,8 +40,8 @@
 			$planConfig = $mainModel->getPlanConfiguracionMainModel();
 			
 			// Solo evaluar si existe configuración de plan
-			if (!empty($planConfig)) {
-				$limiteAlmacenes = (int)($planConfig['almacenes'] ?? 0);
+			if (isset($planConfig['almacenes'])) {
+				$limiteAlmacenes = (int)$planConfig['almacenes']; // No usamos ?? 0 aquí para no convertir "no definido" en 0
 				
 				// Caso 1: Límite es 0 (bloquear)
 				if ($limiteAlmacenes === 0) {
@@ -62,7 +62,7 @@
 						"text" => "Límite de almacenes alcanzado (Máximo: $limiteAlmacenes). Actualiza tu plan."
 					]);
 				}
-			}	
+			}
 
 			if(!almacenModelo::agregar_almacen_modelo($datos)){
 				return mainModel::showNotification([

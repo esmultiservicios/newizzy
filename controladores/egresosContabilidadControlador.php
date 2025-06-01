@@ -60,9 +60,9 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
         $planConfig = $mainModel->getPlanConfiguracionMainModel();
         
         // Solo validar si existe configuración de plan
-        if (!empty($planConfig)) {
-            $limiteEgresos = (int)($planConfig['egresos'] ?? 0);
-            
+		if (isset($planConfig['egresos'])) {
+			$limiteEgresos = (int)$planConfig['egresos']; // No usamos ?? 0 aquí para no convertir "no definido" en 0
+			
             // Caso 1: Límite es 0 (sin permisos)
             if ($limiteEgresos === 0) {
                 return $mainModel->showNotification([
@@ -82,7 +82,7 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
                     "text" => "Ha excedido el límite mensual de egresos contables (Máximo: $limiteEgresos)."
                 ]);
             }
-        }
+		}
 
         $resultEgresos = egresosContabilidadModelo::valid_egresos_cuentas_modelo($datos);
         

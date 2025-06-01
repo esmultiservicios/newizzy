@@ -63,9 +63,9 @@ class colaboradorControlador extends colaboradorModelo{
         $planConfig = $mainModel->getPlanConfiguracionMainModel();
         
         // Solo evaluar si existe configuración de plan
-        if (!empty($planConfig)) {
-            $limiteColaboradores = (int)($planConfig['colaboradores'] ?? 0);
-            
+		if (isset($planConfig['colaboradores'])) {
+			$limiteColaboradores = (int)$planConfig['colaboradores']; // No usamos ?? 0 aquí para no convertir "no definido" en 0
+			
             // Caso 1: Límite es 0 (bloquear)
             if ($limiteColaboradores === 0) {
                 return $mainModel->showNotification([
@@ -85,7 +85,7 @@ class colaboradorControlador extends colaboradorModelo{
                     "text" => "Límite de colaboradores alcanzado (Máximo: $limiteColaboradores). Actualiza tu plan."
                 ]);
             }
-        }	
+		}	
     
         if (!colaboradorModelo::agregar_colaborador_modelo($datos)) {
             header('Content-Type: application/json');

@@ -8,4 +8,5 @@
 	$datos = array(
 		0 => $db_cliente, 					
 	);
+	
 	echo json_encode($datos);

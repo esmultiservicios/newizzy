@@ -48,9 +48,9 @@ class clientesControlador extends clientesModelo {
         $planConfig = $mainModel->getPlanConfiguracionMainModel();
         
         // Solo evaluar si existe configuración de plan
-        if (!empty($planConfig)) {
-            $limiteClientes = (int)($planConfig['clientes'] ?? 0);
-            
+		if (isset($planConfig['clientes'])) {
+			$limiteClientes = (int)$planConfig['clientes']; // No usamos ?? 0 aquí para no convertir "no definido" en 0
+			
             // Caso 1: Límite es 0 (bloquear)
             if ($limiteClientes === 0) {
                 return $mainModel->showNotification([
@@ -70,7 +70,7 @@ class clientesControlador extends clientesModelo {
                     "text" => "Límite de clientes alcanzado (Máximo: $limiteClientes). Actualiza tu plan."
                 ]);
             }
-        }
+		}
 
         if(!clientesModelo::agregar_clientes_modelo($datos)){
             return mainModel::showNotification([

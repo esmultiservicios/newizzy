@@ -137,7 +137,7 @@ class usuarioControlador extends usuarioModelo{
         $planConfig = usuarioModelo::getPlanConfiguracion();
 
         // Solo validar si existe plan configurado
-        if (!empty($planConfig)) {
+		if (isset($planConfig['usuarios'])) {
             $limiteBase = (int)($planConfig['usuarios'] ?? 0);
             $usuariosExtras = (int)usuarioModelo::getTotalUsuariosExtras();
             $limiteTotal = $limiteBase + $usuariosExtras;
@@ -160,7 +160,7 @@ class usuarioControlador extends usuarioModelo{
                     "text" => "Límite de usuarios excedido (Máximo: $limiteBase + $usuariosExtras extras)."
                 ]);
             }
-        }
+		}
         
         // Validar que el colaborador no tenga usuario
         if(usuarioModelo::valid_user_modelo($colaborador_id)) {

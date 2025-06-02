@@ -1,5 +1,5 @@
 <?php
-//misFacturas.php
+//DetallesFacturacion.php
 $peticionAjax = true;
 require_once "configGenerales.php";
 require_once "mainModel.php";
@@ -144,7 +144,7 @@ try {
         $paramTypes .= "s";
     }
 
-    // En la consulta SQL, modificar el CASE para el estado
+    // Consulta modificada para incluir estado de cobrar_clientes
     $query = "SELECT 
         f.facturas_id, 
         DATE_FORMAT(f.fecha, '%d/%m/%Y') AS fecha, 
@@ -176,6 +176,7 @@ try {
             ELSE 'Borrador'
         END AS estado_texto,
         d.documento_id, -- Añadir documento_id para identificar proformas
+        (SELECT COUNT(*) FROM cobrar_clientes WHERE facturas_id = f.facturas_id AND estado = 1) AS tiene_pendiente,
         f.notas,
         ? AS db_name
     FROM 
@@ -216,6 +217,8 @@ try {
             'facturador' => $row['facturador'],
             'estado' => $row['estado'],
             'estado_texto' => $row['estado_texto'],
+            'documento_id' => $row['documento_id'],
+            'tiene_pendiente' => $row['tiene_pendiente'],
             'notas' => $row['notas'],
             'db_name' => $row['db_name']
         ];

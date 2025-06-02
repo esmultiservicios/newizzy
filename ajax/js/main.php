@@ -61,29 +61,31 @@ window.addEventListener('DOMContentLoaded', ajustarMenuResponsivo);
 // Ejecutar al redimensionar la ventana
 window.addEventListener('resize', ajustarMenuResponsivo);
 
-// En tu archivo JavaScript o script
+// Verifica si el elemento existe antes de modificar su estilo
 function ajustarMenuResponsivo() {
   const anchoPantalla = window.innerWidth;
-  
-  if (anchoPantalla < 769) { // Pantallas pequeñas (768px o menos)
-    document.getElementById('facturas').style.display = 'none';
-    document.getElementById('cotizacion').style.display = 'none';
-    document.getElementById('facturaCompras').style.display = 'none';
+  const facturas = document.getElementById('facturas');
+  const cotizacion = document.getElementById('cotizacion');
+  const facturaCompras = document.getElementById('facturaCompras');
+  const facturaMovil = document.getElementById('facturaMovil');
 
-    //MOSTRAMOS
-    document.getElementById('facturaMovil').style.display = '';
-  } else { // Pantallas grandes
-    document.getElementById('facturas').style.display = '';
-    document.getElementById('cotizacion').style.display = '';
-    document.getElementById('facturaCompras').style.display = '';
-
-    //OCULAMOS
-    document.getElementById('facturaMovil').style.display = 'none';
+  if (anchoPantalla < 769) {
+    // Oculta elementos si existen
+    if (facturas) facturas.style.display = 'none';
+    if (cotizacion) cotizacion.style.display = 'none';
+    if (facturaCompras) facturaCompras.style.display = 'none';
+    if (facturaMovil) facturaMovil.style.display = '';
+  } else {
+    // Muestra elementos si existen
+    if (facturas) facturas.style.display = '';
+    if (cotizacion) cotizacion.style.display = '';
+    if (facturaCompras) facturaCompras.style.display = '';
+    if (facturaMovil) facturaMovil.style.display = 'none';
   }
 }
 
 // Ejecutar al cargar y al redimensionar la ventana
-window.addEventListener('load', ajustarMenuResponsivo);
+window.addEventListener('DOMContentLoaded', ajustarMenuResponsivo);
 window.addEventListener('resize', ajustarMenuResponsivo);
 
 // Ejecutar al cargar
@@ -451,8 +453,7 @@ function getSessionUser() {
             db_cliente = datos[0];
         },
         error: function(xhr, status, error) {
-            console.error('Error en AJAX:', error);
-            console.log('Respuesta:', xhr.responseText);
+  
         }
     });
     return db_cliente;
@@ -2362,11 +2363,11 @@ $('#formAsistencia').on('submit', function(e) {
                         const errorResponse = JSON.parse(xhr.responseText);
                         errorMsg = errorResponse.message || errorResponse.Texto || errorMsg;
                     } catch (e) {
-                        console.error("Error parsing response:", e);
+              
                     }
                     
                     showNotify("error", "Error de conexión", errorMsg);
-                    console.error("Detalles del error:", xhr.responseText);
+                   
                 }
             });
         }
@@ -3671,12 +3672,9 @@ var listar_clientes = function(estado) {
             var privilegiosPermitidos = [1, 2];
             var table = this.api(); // Obtener referencia de la tabla
             
-            console.log("Privilegio usuario:", privilegio);
-            
             // Si el privilegio está en la lista de restringidos
             if (privilegiosPermitidos.includes(privilegio)) {
                 var db_consulta = getSessionUser() === "" ? DB_MAIN : getSessionUser();
-                console.log("DB consulta:", db_consulta, "DB Main:", DB_MAIN);
                 
                 if (db_consulta == DB_MAIN) {
                     // Mostrar columnas (índices: 9=generar, 6=sistema)
@@ -3732,7 +3730,6 @@ var listar_clientes = function(estado) {
 }
 
 function cargarHistorialPuntos(cliente_id) {
-    console.log('Cargando historial para cliente ID:', cliente_id);
     
     // Mostrar loader
     $('#tabla_historial_puntos tbody').html('<tr><td colspan="4" class="text-center"><i class="fas fa-spinner fa-spin"></i> Cargando historial...</td></tr>');
@@ -3746,7 +3743,6 @@ function cargarHistorialPuntos(cliente_id) {
         },
         dataType: 'json',
         success: function(response) {
-            console.log('Respuesta recibida:', response);
             
             if(response.success) {
                 $('#nombre_cliente_puntos').text(response.nombre_cliente || 'Cliente no identificado');
@@ -3776,7 +3772,6 @@ function cargarHistorialPuntos(cliente_id) {
                     tbody.append('<tr><td colspan="4" class="text-center">No hay registros de puntos</td></tr>');
                 }
             } else {
-                console.error('Error en la respuesta:', response.message);
                 toastr.error(response.message || 'Error al cargar el historial de puntos');
                 $('#tabla_historial_puntos tbody').html(
                     '<tr><td colspan="4" class="text-center text-danger">Error al cargar el historial</td></tr>'
@@ -3785,7 +3780,6 @@ function cargarHistorialPuntos(cliente_id) {
             }
         },
         error: function(xhr, status, error) {
-            console.error('Error en AJAX:', status, error);
             toastr.error('Error al conectar con el servidor');
             $('#tabla_historial_puntos tbody').html(
                 '<tr><td colspan="4" class="text-center text-danger">Error de conexión</td></tr>'
@@ -4194,8 +4188,7 @@ var editar_clientes_dataTable = function(tbody, table) {
                     backdrop: 'static'
                 });
             },
-            error: function(xhr, status, error) {
-                console.error("Error al cargar datos del cliente:", error);
+            error: function(xhr, status, error) {                
                 showNotify('error', 'Error', 'No se pudieron cargar los datos del cliente');
                 $('#modal_registrar_clientes').modal('hide');
             }
@@ -4473,7 +4466,6 @@ function pago(facturas_id, tipoPago) {
             calcularCambioEfectivo();
         },
         error: (xhr, status, error) => {
-            console.error("Error al cargar datos de pago:", error);
             showNotify("error", "Error", "No se pudieron cargar los datos del pago");
         }
     });
@@ -4646,7 +4638,6 @@ function getCollaboradoresModalPagoFacturas() {
             $selects.selectpicker('refresh');
         },
         error: (xhr, status, error) => {
-            console.error("Error al cargar usuarios:", error);
             showNotify("error", "Error", "No se pudieron cargar los usuarios");
         }
     });
@@ -4673,7 +4664,6 @@ function getBanco() {
             $selects.selectpicker('refresh');
         },
         error: (xhr, status, error) => {
-            console.error("Error al cargar bancos:", error);
             showNotify("error", "Error", "No se pudieron cargar los bancos");
         }
     });
@@ -6039,7 +6029,7 @@ function cargarContadorFacturasPendientes() {
             }
         },
         error: function() {
-
+            // Manejo de errores opcional
         }
     });
 }

@@ -79,10 +79,32 @@ $clienteData = $resultCliente->fetch_assoc();
 $clientes_id = $clienteData['clientes_id'];
 $stmtCliente->close();
 
-// 4. Contar facturas pendientes (estado = 3)
-$query = "SELECT COUNT(*) as total_pendientes FROM facturas WHERE clientes_id = ? AND estado = '3'";
+// 4. Contar facturas pendientes:
+// - Facturas electrónicas (documento_id = 1) con estado = 3 (Crédito)
+// - Proformas (documento_id = 4) que tengan registros en cobrar_clientes con estado = 1 (Pendiente)
+$query = "SELECT 
+    (
+        SELECT COUNT(*) 
+        FROM facturas f
+        INNER JOIN secuencia_facturacion sf ON f.secuencia_facturacion_id = sf.secuencia_facturacion_id
+        INNER JOIN documento d ON sf.documento_id = d.documento_id
+        WHERE f.clientes_id = ? 
+        AND f.estado = '3' 
+        AND d.documento_id = 1
+    ) + 
+    (
+        SELECT COUNT(DISTINCT f.facturas_id)
+        FROM facturas f
+        INNER JOIN secuencia_facturacion sf ON f.secuencia_facturacion_id = sf.secuencia_facturacion_id
+        INNER JOIN documento d ON sf.documento_id = d.documento_id
+        INNER JOIN cobrar_clientes cc ON f.facturas_id = cc.facturas_id
+        WHERE f.clientes_id = ?
+        AND d.documento_id = 4
+        AND cc.estado = 1
+    ) AS total_pendientes";
+
 $stmt = $conexionCliente->prepare($query);
-$stmt->bind_param("i", $clientes_id);
+$stmt->bind_param("ii", $clientes_id, $clientes_id);
 $stmt->execute();
 $result = $stmt->get_result();
 $data = $result->fetch_assoc();

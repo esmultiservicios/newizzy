@@ -1,10 +1,20 @@
 <script>
 // Código JavaScript actualizado y mejorado
 $(() => {
-    // Formatear dinero
+    // Función para formatear dinero
     function formatMoney(amount) {
         return 'L. ' + parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
-    }    
+    }
+
+    // Función para mostrar notificaciones
+    function showNotify(type, title, message) {
+        Swal.fire({
+            title: title,
+            text: message,
+            icon: type,
+            confirmButtonText: 'Aceptar'
+        });
+    }
 
     // Función para imprimir factura
     function imprimirFactura(facturaId) {
@@ -16,7 +26,7 @@ $(() => {
         viewReport(params); 
     }
 
-    // Inicializar DataTable con mejor configuración
+    // Inicializar DataTable
     const dataTableFacturas = $('#dataTableFacturas').DataTable({
         responsive: true,
         processing: true,
@@ -36,29 +46,36 @@ $(() => {
                 render: function(data, type, row) {
                     if (type === 'display') {
                         let badgeClass, icon, text;
-                        // Convertir data a número para la comparación
-                        const estadoNum = parseInt(data, 10);
+                        const esProforma = row.documento_id == 4;
                         
-                        switch (estadoNum) {
-                            case 2: // Pagada
-                                badgeClass = 'badge badge-pill badge-success';
-                                icon = '<i class="fas fa-check-circle mr-1"></i>';
-                                text = row.estado_texto;
-                                break;
-                            case 3: // Crédito
-                                badgeClass = 'badge badge-pill badge-warning text-dark';
-                                icon = '<i class="fas fa-clock mr-1"></i>';
-                                text = row.estado_texto;
-                                break;
-                            case 4: // Cancelada
-                                badgeClass = 'badge badge-pill badge-danger';
-                                icon = '<i class="fas fa-times-circle mr-1"></i>';
-                                text = row.estado_texto;
-                                break;
-                            default: // Borrador
-                                badgeClass = 'badge badge-pill badge-secondary';
-                                icon = '<i class="fas fa-file-alt mr-1"></i>';
-                                text = row.estado_texto;
+                        if (esProforma) {
+                            badgeClass = 'badge badge-pill badge-warning text-dark';
+                            icon = '<i class="fas fa-clock mr-1"></i>';
+                            text = 'Pendiente de pago';
+                        } else {
+                            const estadoNum = parseInt(data, 10);
+                            
+                            switch (estadoNum) {
+                                case 2:
+                                    badgeClass = 'badge badge-pill badge-success';
+                                    icon = '<i class="fas fa-check-circle mr-1"></i>';
+                                    text = row.estado_texto;
+                                    break;
+                                case 3:
+                                    badgeClass = 'badge badge-pill badge-warning text-dark';
+                                    icon = '<i class="fas fa-clock mr-1"></i>';
+                                    text = row.estado_texto;
+                                    break;
+                                case 4:
+                                    badgeClass = 'badge badge-pill badge-danger';
+                                    icon = '<i class="fas fa-times-circle mr-1"></i>';
+                                    text = row.estado_texto;
+                                    break;
+                                default:
+                                    badgeClass = 'badge badge-pill badge-secondary';
+                                    icon = '<i class="fas fa-file-alt mr-1"></i>';
+                                    text = row.estado_texto;
+                            }
                         }
                         
                         return `<span class="${badgeClass}" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">
@@ -104,7 +121,10 @@ $(() => {
                             <i class="fas fa-print mr-1"></i> Imprimir
                         </button>`;
                     
-                    if (row.estado == '3') {
+                    // Mostrar botón de pago para:
+                    // 1. Facturas al crédito (estado = 3) O
+                    // 2. Proformas (documento_id = 4) que tengan pendiente en cobrar_clientes (tiene_pendiente > 0)
+                    if (row.estado == '3' || (row.documento_id == 4 && row.tiene_pendiente > 0)) {
                         buttons += `
                             <button class="btn btn-success btn-sm btn-pagar" title="Pagar Factura" data-id="${row.facturas_id}">
                                 <i class="fas fa-money-bill-wave mr-1"></i> Pagar
@@ -117,7 +137,30 @@ $(() => {
             }
         ],
         order: [[1, 'desc']],
-        language: idioma_español,
+        language: {
+            "decimal": "",
+            "emptyTable": "No hay datos disponibles",
+            "info": "Mostrando _START_ a _END_ de _TOTAL_ registros",
+            "infoEmpty": "Mostrando 0 a 0 de 0 registros",
+            "infoFiltered": "(filtrado de _MAX_ registros totales)",
+            "infoPostFix": "",
+            "thousands": ",",
+            "lengthMenu": "Mostrar _MENU_ registros",
+            "loadingRecords": "Cargando...",
+            "processing": "Procesando...",
+            "search": "Buscar:",
+            "zeroRecords": "No se encontraron registros coincidentes",
+            "paginate": {
+                "first": "Primero",
+                "last": "Último",
+                "next": "Siguiente",
+                "previous": "Anterior"
+            },
+            "aria": {
+                "sortAscending": ": activar para ordenar ascendente",
+                "sortDescending": ": activar para ordenar descendente"
+            }
+        },
         dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
              "<'row'<'col-sm-12'tr>>" +
              "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
@@ -126,15 +169,6 @@ $(() => {
             $('.dataTables_length select').addClass('form-control form-control-sm');
         }
     });
-
-    // Inicializar selects con Bootstrap Select
-    if ($.fn.selectpicker) {
-        $('select').selectpicker({
-            style: 'btn-default',
-            size: 'auto',
-            width: '100%'
-        });
-    }
 
     // Buscar facturas al enviar el formulario
     $('#form-filtros-facturas').on('submit', function(e) {
@@ -167,7 +201,7 @@ $(() => {
         imprimirFactura(facturaId);
     });
 
-    // Pagar factura (crédito)
+    // Pagar factura (crédito o proforma)
     $(document).on('click', '.btn-pagar', function() {
         const facturaId = $(this).data('id');
         swal({
@@ -188,21 +222,43 @@ $(() => {
             closeOnClickOutside: false
         }).then((willPay) => {
             if (willPay) {
-                // Aquí iría la lógica para procesar el pago
-                showNotify("warning", "Pago en proceso", "Esta funcionalidad está en desarrollo");
+                pagarFactura(facturaId);
             }
         });
     });
 
-    // Cargar detalle de factura mejorado con corrección de error
+    // Función para pagar factura
+    function pagarFactura(facturaId) {
+        $.ajax({
+            url: '<?php echo SERVERURL; ?>core/pagarFactura.php',
+            type: 'POST',
+            dataType: 'json',
+            data: { 
+                facturas_id: facturaId,
+                db_name: '<?php echo DB_MAIN; ?>'
+            },
+            success: function(response) {
+                if (response.type === 'success') {
+                    showNotify('success', 'Éxito', response.message);
+                    dataTableFacturas.ajax.reload(null, false);
+                } else {
+                    showNotify('error', 'Error', response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                showNotify('error', 'Error', 'Ocurrió un error al procesar el pago');
+                console.error('Error al pagar factura:', error);
+            }
+        });
+    }
+
+    // Cargar detalle de factura
     function cargarDetalleFactura(facturaId) {
         $.ajax({
             url: '<?php echo SERVERURL; ?>core/DetallesFacturacion.php',
             type: 'POST',
             dataType: 'json',
-            data: { 
-                facturas_id: facturaId,
-            },
+            data: { facturas_id: facturaId },
             success: function(response) {
                 if (response.type === 'success' && response.data && response.data.length > 0) {
                     const factura = response.data[0];   
@@ -216,129 +272,125 @@ $(() => {
                         $('#cliente-factura').text(facturaEncontrada.cliente);
                         $('#tipo-factura').text(facturaEncontrada.tipo_documento);
                         estadoNum = parseInt(facturaEncontrada.estado, 10);
-                    } else {
-                        return;
-                    }
-                    
-                    // Estado con badge - Convertir a entero y usar badges pill
+                        
+                        // Estado con badge
+                        let estadoBadge = '';
+                        const esProforma = facturaEncontrada.documento_id == 4;
 
-                    let estadoBadge = '';
-                    switch(estadoNum) {
-                        case 2:
-                            estadoBadge = '<span class="badge badge-pill badge-success">Pagada</span>';
-                            break;
-                        case 3:
-                            estadoBadge = '<span class="badge badge-pill badge-warning text-dark">Crédito</span>';
-                            break;
-                        case 4:
-                            estadoBadge = '<span class="badge badge-pill badge-danger">Cancelada</span>';
-                            break;
-                        default:
-                            estadoBadge = '<span class="badge badge-pill badge-secondary">Borrador</span>';
-                    }
-                    $('#estado-factura').html(estadoBadge);
-                    
-                    $('#subtotal-factura').text(formatMoney(factura.subtotal));
-                    $('#total-factura').text(formatMoney(factura.total));
-                    $('#notas-factura').text(factura.notas || 'No hay notas');
-                    
-                    // Mostrar indicador de carga
-                    $('#detalle-factura-body').html(`
-                        <tr>
-                            <td colspan="6" class="text-center">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="sr-only">Cargando...</span>
-                                </div>
-                                <p class="mt-2">Cargando detalles...</p>
-                            </td>
-                        </tr>
-                    `);
-                    
-                    // Obtener detalles de la factura - CORRECCIÓN PARA SOLUCIONAR EL ERROR
-                    $.ajax({
-                        url: '<?php echo SERVERURL; ?>core/getDetalleFactura.php',
-                        type: 'POST',
-                        dataType: 'json',
-                        data: { 
-                            facturas_id: facturaId,
-                            db_name: factura.db_name || '<?php echo DB_MAIN; ?>' // Añadir valor predeterminado
-                        },
-                        success: function(detalleResponse) {
-                            if (detalleResponse.type === 'success' && detalleResponse.data && detalleResponse.data.length > 0) {
-                                let detalleHtml = '';
-                                detalleResponse.data.forEach(item => {
-                                    const subtotal = item.cantidad * item.precio;
+                        if (esProforma) {
+                            estadoBadge = '<span class="badge badge-pill badge-warning text-dark">Pendiente de pago</span>';
+                        } else {
+                            switch(estadoNum) {
+                                case 2:
+                                    estadoBadge = '<span class="badge badge-pill badge-success">Pagada</span>';
+                                    break;
+                                case 3:
+                                    estadoBadge = '<span class="badge badge-pill badge-warning text-dark">Crédito</span>';
+                                    break;
+                                case 4:
+                                    estadoBadge = '<span class="badge badge-pill badge-danger">Cancelada</span>';
+                                    break;
+                                default:
+                                    estadoBadge = '<span class="badge badge-pill badge-secondary">Borrador</span>';
+                            }
+                        }
+                        $('#estado-factura').html(estadoBadge);
+                        
+                        $('#subtotal-factura').text(formatMoney(factura.subtotal));
+                        $('#total-factura').text(formatMoney(factura.total));
+                        $('#notas-factura').text(factura.notas || 'No hay notas');
+                        
+                        // Mostrar indicador de carga
+                        $('#detalle-factura-body').html(`
+                            <tr>
+                                <td colspan="6" class="text-center">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="sr-only">Cargando...</span>
+                                    </div>
+                                    <p class="mt-2">Cargando detalles...</p>
+                                </td>
+                            </tr>
+                        `);
+                        
+                        // Obtener detalles de la factura
+                        $.ajax({
+                            url: '<?php echo SERVERURL; ?>core/getDetalleFactura.php',
+                            type: 'POST',
+                            dataType: 'json',
+                            data: { 
+                                facturas_id: facturaId,
+                                db_name: factura.db_name || '<?php echo DB_MAIN; ?>'
+                            },
+                            success: function(detalleResponse) {
+                                if (detalleResponse.type === 'success' && detalleResponse.data && detalleResponse.data.length > 0) {
+                                    let detalleHtml = '';
+                                    detalleResponse.data.forEach(item => {
+                                        const subtotal = item.cantidad * item.precio;
+                                        detalleHtml += `
+                                            <tr>
+                                                <td>${item.producto || 'Servicio'}</td>
+                                                <td class="text-center">${item.cantidad} ${item.medida || ''}</td>
+                                                <td class="text-right">${formatMoney(item.precio)}</td>
+                                                <td class="text-right">${formatMoney(item.isv_valor || 0)}</td>
+                                                <td class="text-right">${formatMoney(item.descuento || 0)}</td>
+                                                <td class="text-right">${formatMoney(subtotal)}</td>
+                                            </tr>`;
+                                    });
+                                    
+                                    // Agregar totales
                                     detalleHtml += `
-                                        <tr>
-                                            <td>${item.producto || 'Servicio'}</td>
-                                            <td class="text-center">${item.cantidad} ${item.medida || ''}</td>
-                                            <td class="text-right">${formatMoney(item.precio)}</td>
-                                            <td class="text-right">${formatMoney(item.isv_valor || 0)}</td>
-                                            <td class="text-right">${formatMoney(item.descuento || 0)}</td>
-                                            <td class="text-right">${formatMoney(subtotal)}</td>
+                                        <tr class="bg-light">
+                                            <td colspan="3" class="text-right"><strong>Subtotal:</strong></td>
+                                            <td colspan="3" class="text-right">${formatMoney(factura.subtotal)}</td>
+                                        </tr>
+                                        <tr class="bg-light">
+                                            <td colspan="3" class="text-right"><strong>ISV:</strong></td>
+                                            <td colspan="3" class="text-right">${formatMoney(factura.isv)}</td>
+                                        </tr>
+                                        <tr class="bg-light">
+                                            <td colspan="3" class="text-right"><strong>Descuento:</strong></td>
+                                            <td colspan="3" class="text-right">${formatMoney(factura.descuento)}</td>
+                                        </tr>
+                                        <tr class="bg-primary text-white">
+                                            <td colspan="3" class="text-right"><strong>TOTAL:</strong></td>
+                                            <td colspan="3" class="text-right"><strong>${formatMoney(factura.total)}</strong></td>
                                         </tr>`;
-                                });
-                                
-                                // Agregar totales
-                                detalleHtml += `
-                                    <tr class="bg-light">
-                                        <td colspan="3" class="text-right"><strong>Subtotal:</strong></td>
-                                        <td colspan="3" class="text-right">${formatMoney(factura.subtotal)}</td>
-                                    </tr>
-                                    <tr class="bg-light">
-                                        <td colspan="3" class="text-right"><strong>ISV:</strong></td>
-                                        <td colspan="3" class="text-right">${formatMoney(factura.isv)}</td>
-                                    </tr>
-                                    <tr class="bg-light">
-                                        <td colspan="3" class="text-right"><strong>Descuento:</strong></td>
-                                        <td colspan="3" class="text-right">${formatMoney(factura.descuento)}</td>
-                                    </tr>
-                                    <tr class="bg-primary text-white">
-                                        <td colspan="3" class="text-right"><strong>TOTAL:</strong></td>
-                                        <td colspan="3" class="text-right"><strong>${formatMoney(factura.total)}</strong></td>
-                                    </tr>`;
-                                
-                                $('#detalle-factura-body').html(detalleHtml);
-                            } else {
+                                    
+                                    $('#detalle-factura-body').html(detalleHtml);
+                                } else {
+                                    $('#detalle-factura-body').html(`
+                                        <tr>
+                                            <td colspan="6" class="text-center text-muted py-4">
+                                                <i class="fas fa-info-circle fa-2x mb-2"></i><br>
+                                                No se encontraron detalles para esta factura
+                                            </td>
+                                        </tr>`);
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                console.error('Error al cargar detalles:', error);
                                 $('#detalle-factura-body').html(`
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted py-4">
-                                            <i class="fas fa-info-circle fa-2x mb-2"></i><br>
-                                            No se encontraron detalles para esta factura
+                                        <td colspan="6" class="text-center text-danger py-4">
+                                            <i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>
+                                            Error al cargar los detalles de la factura<br>
+                                            <small class="text-muted mt-2">Error: ${error}</small><br>
+                                            <button class="btn btn-outline-primary btn-sm mt-3 btn-retry-detalle" data-id="${facturaId}">
+                                                <i class="fas fa-sync-alt mr-1"></i> Reintentar
+                                            </button>
                                         </td>
                                     </tr>`);
                             }
-                        },
-                        error: function(xhr, status, error) {
-                            console.error('Error al cargar detalles:', error);
-                            console.log('Response:', xhr.responseText); // Añadir para depuración
-                            
-                            // Intentar depurar la respuesta
-                            try {
-                                const errorData = JSON.parse(xhr.responseText);
-                                console.log('Error data:', errorData);
-                            } catch (e) {
-                                console.log('No se pudo analizar la respuesta JSON');
-                            }
-                            
-                            $('#detalle-factura-body').html(`
-                                <tr>
-                                    <td colspan="6" class="text-center text-danger py-4">
-                                        <i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>
-                                        Error al cargar los detalles de la factura<br>
-                                        <small class="text-muted mt-2">Error: ${error}</small><br>
-                                        <button class="btn btn-outline-primary btn-sm mt-3 btn-retry-detalle" data-id="${facturaId}">
-                                            <i class="fas fa-sync-alt mr-1"></i> Reintentar
-                                        </button>
-                                    </td>
-                                </tr>`);
-                        }
-                    });
-                    
-                    // Configurar botón de impresión
-                    $('#btn-imprimir-factura').off('click').on('click', function() {
-                        imprimirFactura(facturaId);
-                    });
+                        });
+                        
+                        // Configurar botón de impresión
+                        $('#btn-imprimir-factura').off('click').on('click', function() {
+                            imprimirFactura(facturaId);
+                        });
+                    } else {
+                        showNotify('error', 'Error', 'No se encontraron datos de la factura');
+                        $('#modalDetalleFactura').modal('hide');
+                    }
                 } else {
                     showNotify('error', 'Error', 'No se encontraron datos de la factura');
                     $('#modalDetalleFactura').modal('hide');
@@ -358,29 +410,6 @@ $(() => {
         cargarDetalleFactura(facturaId);
     });
 
-    // Contador de actualización
-    function iniciarContadorActualizacion() {
-        let segundos = 300; // 5 minutos
-        const contadorElement = $('#contador-actualizacion');
-        
-        function actualizarContador() {
-            const minutos = Math.floor(segundos / 60);
-            const segs = segundos % 60;
-            contadorElement.text(`Próxima actualización: ${minutos}:${segs < 10 ? '0' : ''}${segs}`);
-            
-            if (segundos <= 0) {
-                dataTableFacturas.ajax.reload(null, false);
-                cargarContadorFacturasPendientes();
-                segundos = 300;
-            } else {
-                segundos--;
-            }
-        }
-        
-        actualizarContador();
-        setInterval(actualizarContador, 1000);
-    }
-
     // Establecer fechas por defecto (últimos 30 días)
     const today = new Date();
     const thirtyDaysAgo = new Date();
@@ -391,7 +420,5 @@ $(() => {
     
     // Cargar datos iniciales
     dataTableFacturas.ajax.reload(null, false);
-    cargarContadorFacturasPendientes();
-    iniciarContadorActualizacion();    
 });
 </script>

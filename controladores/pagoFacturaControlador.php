@@ -53,8 +53,8 @@ class pagoFacturaControlador extends pagoFacturaModelo {
                 "message" => "El monto debe ser mayor que cero"
             ];
         }
-
-        $tipo_factura_post = isset($_POST['tipo_factura']) ? intval($_POST['tipo_factura']) : 1;
+        
+        $tipo_factura_post = isset($_POST['facturas_activo']) && $_POST['facturas_activo'] == '1' ? 1 : 2;
         $saldoPendiente = $this->obtener_saldo_credito($_POST[$campoId]);
         
         // Validación CORREGIDA según tus condiciones exactas

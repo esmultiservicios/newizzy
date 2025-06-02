@@ -493,20 +493,20 @@ class pagoFacturaModelo extends mainModel {
             throw new Exception("No se encontró la factura");
         }
         
-        $tipo_ingreso = ($factura['tipo_factura'] == 1) ? 1 : 2;
+        $tipo_ingreso = isset($_POST['facturas_activo']) && $_POST['facturas_activo'] == '1' ? 1 : 2;
         
         $datosIngreso = [
             "clientes_id" => $factura['clientes_id'],
             "cuentas_id" => $cuenta['cuentas_id'],
             "empresa_id" => $datos['empresa'],
             "fecha" => date("Y-m-d"),
-            "factura" => $datos['factura_number'] ?: str_pad($factura['number'], 8, "0", STR_PAD_LEFT),
+            "factura" => $datos['factura_number'],
             "subtotal" => $datos['importe'],
             "isv" => 0,
             "descuento" => 0,
             "nc" => 0,
             "total" => $datos['importe'],
-            "observacion" => ($factura['tipo_factura'] == 1) ? "Pago de factura al contado" : "Abono a factura al crédito",
+            "observacion" => ($datos['tipo_factura'] == 1) ? "Pago de factura al contado" : "Abono a factura al crédito",
             "estado" => 1,
             "fecha_registro" => date("Y-m-d H:i:s"),
             "colaboradores_id" => $datos['colaboradores_id'],

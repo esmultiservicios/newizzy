@@ -3025,6 +3025,7 @@
     display: inline-flex;
     align-items: center;
     margin: 0;
+    white-space: pre;
 }
 
 /* ====================== */

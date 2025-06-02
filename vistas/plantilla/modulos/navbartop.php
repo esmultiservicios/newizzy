@@ -86,7 +86,7 @@
                 <h6 class="dropdown-header d-flex justify-content-between align-items-center">
                     <span>Notificaciones</span>
                 </h6>
-                <a class="dropdown-item d-flex align-items-center" href="<?php echo SERVERURL; ?>MisFacturas/">
+                <a class="dropdown-item d-flex align-items-center" href="<?php echo SERVERURL; ?>DetallesFacturacion/">
                     <i class="fas fa-file-invoice mr-2"></i>
                     <span class="flex-grow-1 ml-2">Facturas pendientes</span>
                     <span id="notification-dropdown-count" class="badge">0</span>

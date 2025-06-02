@@ -25,7 +25,7 @@
                                     <small class="form-text text-muted">Fecha de la factura del egreso</small>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label for="proveedor_egresos"><i class="fas fa-user-tie mr-1"></i>Recibí de <span class="priority">*</span></label>
+                                    <label for="proveedor_egresos"><i class="fas fa-user-tie mr-1"></i>Entregado a <span class="priority">*</span></label>
                                     <select id="proveedor_egresos" name="proveedor_egresos" class="selectpicker form-control" data-live-search="true" title="Seleccione proveedor" required>
                                         <option value="">Seleccione</option>
                                         <!-- Las opciones se llenarán con JavaScript -->

@@ -48,7 +48,7 @@ $configCliente = [
     'name' => DB_MAIN
 ];
 
-$conexionCliente = $mainModel->connectToDatabase($configCliente);
+$conexionCliente = $insMainModel->connectToDatabase($configCliente);
 
 if (!$conexionCliente) {
     echo json_encode([

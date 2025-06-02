@@ -144,6 +144,7 @@ try {
         $paramTypes .= "s";
     }
 
+    // En la consulta SQL, modificar el CASE para el estado
     $query = "SELECT 
         f.facturas_id, 
         DATE_FORMAT(f.fecha, '%d/%m/%Y') AS fecha, 
@@ -167,12 +168,14 @@ try {
         (SELECT COUNT(*) FROM cobrar_clientes WHERE facturas_id = f.facturas_id AND estado = 2) AS pagos_realizados,
         f.estado,
         CASE
+            WHEN d.documento_id = 4 THEN 'Pendiente de pago' -- Siempre Pendiente para proformas
             WHEN f.estado = 1 THEN 'Borrador'
             WHEN f.estado = 2 THEN 'Pagada'
             WHEN f.estado = 3 THEN 'Crédito'
             WHEN f.estado = 4 THEN 'Cancelada'
             ELSE 'Borrador'
         END AS estado_texto,
+        d.documento_id, -- Añadir documento_id para identificar proformas
         f.notas,
         ? AS db_name
     FROM 

@@ -167,7 +167,9 @@ class facturasControlador extends facturasModelo {
     // Método para procesar cada producto individual
     protected function procesarProducto($facturas_id, $clientes_id, $fecha, $fecha_registro, $empresa_id, $index) {
         $discount = $_POST['discount'][$index] ?? 0;
+        $discount = number_format((float)$discount, 2, '.', '');
         $isv_valor = $_POST['valor_isv'][$index] ?? 0;
+        $isv_valor = number_format((float)$isv_valor, 2, '.', '');
         $productos_id = $_POST['productos_id'][$index];
         $quantity = $_POST['quantity'][$index];
         $price = $_POST['price'][$index];

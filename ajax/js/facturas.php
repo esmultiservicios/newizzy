@@ -345,8 +345,8 @@ var view_clientes_busqueda_factura_dataTable = function(tbody, table) {
         var data = table.row($(this).parents("tr")).data();
         $('#invoice-form #cliente_id').val(data.clientes_id);
         $('#invoice-form #cliente').val(data.cliente);
-        $('#invoice-form #client-customers-bill').html("<b>Cliente:</b> " + data.cliente);
-        $('#invoice-form #rtn-customers-bill').html("<b>RTN:</b> " + data.rtn);
+        $('#invoice-form #client-customers-bill').html("<b>Cliente: </b> " + data.cliente);
+        $('#invoice-form #rtn-customers-bill').html("<b>RTN: </b> " + data.rtn);
         $('#modal_buscar_clientes_facturacion').modal('hide');
     });
 }
@@ -445,7 +445,7 @@ var view_colaboradores_busqueda_factura_dataTable = function(tbody, table) {
         $('#invoice-form #colaborador_id').val(data.colaborador_id);
         $('#invoice-form #colaborador').val(data.colaborador);
         $('#invoice-form #colaborador').val(data.colaborador);
-        $('#invoice-form #vendedor-customers-bill').html("<b>Vendedor:</b> " + data.colaborador);
+        $('#invoice-form #vendedor-customers-bill').html("<b>Vendedor: </b> " + data.colaborador);
         $('#modal_buscar_colaboradores_facturacion').modal('hide');
     });
 }

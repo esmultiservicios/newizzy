@@ -168,7 +168,8 @@ try {
         (SELECT COUNT(*) FROM cobrar_clientes WHERE facturas_id = f.facturas_id AND estado = 2) AS pagos_realizados,
         f.estado,
         CASE
-            WHEN d.documento_id = 4 THEN 'Pendiente de pago' -- Siempre Pendiente para proformas
+            WHEN d.documento_id = 4 AND (SELECT COUNT(*) FROM cobrar_clientes WHERE facturas_id = f.facturas_id AND estado = 1) > 0 THEN 'Pendiente de pago'
+            WHEN d.documento_id = 4 THEN 'Proforma cerrada'
             WHEN f.estado = 1 THEN 'Borrador'
             WHEN f.estado = 2 THEN 'Pagada'
             WHEN f.estado = 3 THEN 'Crédito'

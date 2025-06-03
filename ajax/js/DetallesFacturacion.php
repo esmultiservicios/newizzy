@@ -49,9 +49,15 @@ $(() => {
                         const esProforma = row.documento_id == 4;
                         
                         if (esProforma) {
-                            badgeClass = 'badge badge-pill badge-warning text-dark';
-                            icon = '<i class="fas fa-clock mr-1"></i>';
-                            text = 'Pendiente de pago';
+                            if (row.tiene_pendiente == 1) {
+                                badgeClass = 'badge badge-pill badge-warning text-dark';
+                                icon = '<i class="fas fa-clock mr-1"></i>';
+                                text = 'Pendiente de pago';
+                            } else {
+                                badgeClass = 'badge badge-pill badge-info';
+                                icon = '<i class="fas fa-file-invoice mr-1"></i>';
+                                text = 'Proforma cerrada';
+                            }
                         } else {
                             const estadoNum = parseInt(data, 10);
                             

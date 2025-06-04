@@ -5592,27 +5592,18 @@ class mainModel
 		}
 	}
 
-	function getProductosLike($searchText)
-	{
+	function getProductosLike($searchText) {
 		$query = "
-			SELECT p.productos_id, p.nombre, p.barCode, p.tipo_producto_id				   
+			SELECT p.productos_id, p.nombre, p.barCode, p.tipo_producto_id                   
 			FROM productos p
 			WHERE p.barCode LIKE ? OR p.nombre LIKE ?
 			GROUP BY p.productos_id
 			LIMIT 10";
 		
-		$stmt = self::connection()->prepare($query);
-		$stmt->bind_param("ss", $param1, $param2);  // Solo se usan los parámetros de búsqueda
-		
-		// Prepara los parámetros de búsqueda
 		$param1 = "%$searchText%";
 		$param2 = "%$searchText%";
 		
-		// Ejecuta la consulta
-		$stmt->execute();
-		$result = $stmt->get_result();
-		
-		return $result;
+		return self::ejecutar_consulta_simple_preparada($query, "ss", [$param1, $param2]);
 	}
 	
 	public function getNombreClienteFactura($factura_id)

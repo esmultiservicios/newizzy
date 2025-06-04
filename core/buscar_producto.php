@@ -3,26 +3,37 @@ $peticionAjax = true;
 require_once "configGenerales.php";
 require_once "mainModel.php";
 
-$insMainModel = new mainModel();
-if (isset($_POST["barcode"])) {
-    $searchText = $_POST["barcode"];
+header('Content-Type: application/json');
 
-    // Obtener resultados
+try {
+    $insMainModel = new mainModel();
+    
+    if (!isset($_POST["barcode"])) {
+        throw new Exception("Parámetro 'barcode' no recibido");
+    }
+
+    $searchText = $_POST["barcode"];
     $result = $insMainModel->getProductosLike($searchText);
 
     if ($result->num_rows > 0) {
         $producto = $result->fetch_assoc();
-
-        // Respuesta en formato JSON
         echo json_encode([
             "success" => true,
             "productos_id" => $producto["productos_id"],
             "tipo_producto_id" => $producto["tipo_producto_id"],
-            "nombre" => $producto["nombre"] // Opcional, si lo necesitas
+            "nombre" => $producto["nombre"]
         ]);
     } else {
         echo json_encode(["success" => false, "message" => "Producto no encontrado"]);
     }
-} else {
-    echo json_encode(["success" => false, "message" => "Parámetro 'barcode' no recibido"]);
+} catch (mysqli_sql_exception $e) {
+    echo json_encode([
+        "success" => false,
+        "message" => "Error de base de datos: " . $e->getMessage()
+    ]);
+} catch (Exception $e) {
+    echo json_encode([
+        "success" => false,
+        "message" => $e->getMessage()
+    ]);
 }

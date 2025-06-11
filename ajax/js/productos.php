@@ -518,7 +518,6 @@ function editarCodigoBarra(productos_id, barcode) {
                     title: "Success",
                     text: "El Código de Barra ha sido actualizado satisfactoriamente",
                     icon: "success",
-                    dangerMode: true,
                     closeOnEsc: false, // Desactiva el cierre con la tecla Esc
                     closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
                 });

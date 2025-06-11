@@ -1131,10 +1131,10 @@ function manejarPresionEnter(row_index) {
             async: false,
             success: function(registro) {
                 getTotalFacturasDisponibles();
-                var valores = eval(registro);
+                var producto = JSON.parse(registro);
 
-                if (valores[9] !== "2") {
-                    if (valores[7] === null || valores[7] === "") {
+                if (producto.tipo_producto_id !== "2") {
+                    if (producto.almacen_id === null || producto.almacen_id === "") {
                         swal({
                             title: "Error",
                             content: {
@@ -1150,18 +1150,17 @@ function manejarPresionEnter(row_index) {
                                 }
                             },
                             dangerMode: true,
-                            closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                            closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
+                            closeOnEsc: false,
+                            closeOnClickOutside: false
                         });
-
                         return false;
                     }
                 }
 
-                if (valores[0]) {
-                    var facturar_cero = facturarEnCeroAlmacen(valores[7]);
+                if (producto.nombre) {
+                    var facturar_cero = facturarEnCeroAlmacen(producto.almacen_id);
 
-                    if (valores[6] <= 0) {
+                    if (producto.saldo <= 0) {
                         if (facturar_cero == 'false') {
                             showNotify('error', 'Error', 'No se puede facturar este producto inventario en cero');
                             return false;
@@ -1170,36 +1169,32 @@ function manejarPresionEnter(row_index) {
 
                     $("#invoice-form #invoiceItem #bar-code-id_" + row_index).val(barcode);
 
-                    // Verificar si el valor ingresado contiene un '*'
                     if (barcode.includes('*')) {
                         var parts = barcode.split('*');
-                        var cantidad = parseFloat(parts[0]) ||
-                            1; // Ahora se utiliza parseFloat para valores decimales
+                        var cantidad = parseFloat(parts[0]) || 1;
                         var nuevoBarcode = parts[1];
 
-                        // Asignar la cantidad y el código del producto a los campos correspondientes
                         $("#invoice-form #invoiceItem #quantity_" + row_index).val(cantidad);
                         $("#invoice-form #invoiceItem #bar-code-id_" + row_index).val(nuevoBarcode);
                     } else {
-                        // Si no hay '*', asumir que la cantidad es 1 y el código es el valor ingresado
                         $("#invoice-form #invoiceItem #quantity_" + row_index).val(1);
                         $("#invoice-form #invoiceItem #bar-code-id_" + row_index).val(barcode);
                     }
 
-                    $("#invoice-form #invoiceItem #productName_" + row_index).val(valores[0]);
-                    $("#invoice-form #invoiceItem #price_" + row_index).val(valores[1]);
-                    $("#invoice-form #invoiceItem #precio_real_" + row_index).val(valores[1]);
-                    $("#invoice-form #invoiceItem #productos_id_" + row_index).val(valores[2]);
-                    $("#invoice-form #invoiceItem #isv_" + row_index).val(valores[3]);
-                    $("#invoice-form #invoiceItem #cantidad_mayoreo_" + row_index).val(valores[4]);
-                    $("#invoice-form #invoiceItem #precio_mayoreo_" + row_index).val(valores[5]);
-                    $('#invoice-form #invoiceItem #bodega_' + row).val(valores[7]);
-                    $('#invoice-form #invoiceItem #medida_' + row).val(valores[8]);
+                    // Usar los nombres de propiedades en lugar de índices numéricos
+                    $("#invoice-form #invoiceItem #productName_" + row_index).val(producto.nombre);
+                    $("#invoice-form #invoiceItem #productName_text_" + row_index).html(producto.nombre);
+                    $("#invoice-form #invoiceItem #price_" + row_index).val(producto.precio_venta);
+                    $("#invoice-form #invoiceItem #precio_real_" + row_index).val(producto.precio_venta);
+                    $("#invoice-form #invoiceItem #productos_id_" + row_index).val(producto.productos_id);
+                    $("#invoice-form #invoiceItem #isv_" + row_index).val(producto.impuesto_venta);
+                    $("#invoice-form #invoiceItem #cantidad_mayoreo_" + row_index).val(producto.cantidad_mayoreo);
+                    $("#invoice-form #invoiceItem #precio_mayoreo_" + row_index).val(producto.precio_mayoreo);
+                    $('#invoice-form #invoiceItem #bodega_' + row).val(producto.almacen_id);
+                    $('#invoice-form #invoiceItem #medida_' + row).val(producto.medida);
 
-                    var impuesto_venta = parseFloat($('#invoice-form #invoiceItem #isv_' + row_index)
-                        .val());
-                    var cantidad1 = parseFloat($('#invoice-form #invoiceItem #quantity_' + row_index)
-                        .val());
+                    var impuesto_venta = parseFloat($('#invoice-form #invoiceItem #isv_' + row_index).val());
+                    var cantidad1 = parseFloat($('#invoice-form #invoiceItem #quantity_' + row_index).val());
                     var precio = parseFloat($('#invoice-form #invoiceItem #price_' + row_index).val());
                     var total = parseFloat($('#invoice-form #invoiceItem #total_' + row_index).val());
 
@@ -1213,14 +1208,12 @@ function manejarPresionEnter(row_index) {
                         porcentaje_isv = parseFloat(getPorcentajeISV("Facturas") / 100);
 
                         if (total == "" || total == 0) {
-                            porcentaje_calculo = (parseFloat(precio) * parseFloat(cantidad1) *
-                                porcentaje_isv).toFixed(2);
+                            porcentaje_calculo = (parseFloat(precio) * parseFloat(cantidad1) * porcentaje_isv).toFixed(2);
                             isv_neto = parseFloat(porcentaje_calculo);
                             $('#invoice-form #invoiceItem #valor_isv_' + row_index).val(porcentaje_calculo);
                         } else {
                             isv_total = parseFloat($('#invoice-form #taxAmount').val());
-                            porcentaje_calculo = (parseFloat(precio) * parseFloat(cantidad1) *
-                                porcentaje_isv).toFixed(2);
+                            porcentaje_calculo = (parseFloat(precio) * parseFloat(cantidad1) * porcentaje_isv).toFixed(2);
                             isv_neto = parseFloat(isv_total) + parseFloat(porcentaje_calculo);
                             $('#invoice-form #invoiceItem #valor_isv_' + row_index).val(porcentaje_calculo);
                         }

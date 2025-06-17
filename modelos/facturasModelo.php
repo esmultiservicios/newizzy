@@ -332,16 +332,16 @@ class facturasModelo extends mainModel{
         return $result;                
     }            
                     
-    public static function bloquear_y_obtener_secuencia_modelo($empresa_id, $documento_id) {
-        // Asegurarse que $empresa_id tenga valor
-        if(empty($empresa_id)) {
-            error_log("Error: empresa_id no definido");
-            return false;
-        }
-    
-        $conexion = mainModel::staticConnection();
+    public static function bloquear_y_obtener_secuencia_modelo($empresa_id, $documento_id, $conexion = null) {
+        $conexionLocal = false;
         
         try {
+            // Si no se proporciona conexión, crear una nueva
+            if($conexion === null) {
+                $conexion = mainModel::staticConnection();
+                $conexionLocal = true;
+            }
+            
             // Establecer tiempo de espera para el bloqueo (5 segundos)
             $conexion->query("SET innodb_lock_wait_timeout = 5");
             

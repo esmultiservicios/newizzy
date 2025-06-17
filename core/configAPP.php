@@ -111,6 +111,7 @@ initConfig();  // Llamar a la funciÃ³n para inicializar la configuraciÃ³n
 
 function initConfig()
 {
+    $GLOBALS['SISTEMA_PRUEBA'] = constant('SISTEMA_PRUEBA'); // ✅ Añade esto
     // Verificar si la sesiÃ³n estÃ¡ activa y no ha expirado
     if (session_status() === PHP_SESSION_ACTIVE) {
         // Verificar si $_SESSION['db_cliente'] estÃ¡ definido y no estÃ¡ vacÃ­o

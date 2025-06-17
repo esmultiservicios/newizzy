@@ -44,8 +44,8 @@ class comprasControlador extends comprasModelo{
                     "title" => "Límite alcanzado",
                     "text" => "Ha excedido el límite mensual de compras (Máximo: $limiteCompras)."
                 ]);
-            }]);
-			}
+            };
+			
 		}
 
         $usuario = $_SESSION['colaborador_id_sd'];

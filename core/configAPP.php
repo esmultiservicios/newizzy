@@ -98,7 +98,7 @@ $isLocalDomain = (
 define('ES_LOCAL', $isLocalDomain);
 
 // 2. Definir modo demo (solo aplica en producción)
-define('SISTEMA_PRUEBA', 'SI'); // Cambia a 'SI' o 'NO'
+define('SISTEMA_PRUEBA', 'NO'); // Cambia a 'SI' o 'NO'
 
 // 3. Asignar etiqueta (prioridad absoluta a entorno local)
 if (ES_LOCAL) {

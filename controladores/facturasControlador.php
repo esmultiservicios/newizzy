@@ -8,86 +8,97 @@ if($peticionAjax){
 
 class facturasControlador extends facturasModelo {
     // Método para obtener el número de factura con manejo de condición de carrera
-    protected function obtenerNumeroFactura($empresa_id, $documento_id, $conexion = null) {
-        $conexionLocal = false;
-        
+    protected function obtenerNumeroFactura($empresa_id, $documento_id) {
         try {
-            // Si no se proporciona conexión, crear una nueva
-            if($conexion === null) {
-                $conexion = mainModel::connection();
-                $conexionLocal = true;
-                $conexion->begin_transaction();
-            }
-            
-            // Obtener y bloquear la secuencia
-            $secuenciaData = facturasModelo::bloquear_y_obtener_secuencia_modelo($empresa_id, $documento_id, $conexion);
-            
-            if(!$secuenciaData) {
-                if($conexionLocal) $conexion->rollback();
+            $conexion = mainModel::connection();
+            $conexion->begin_transaction();
+    
+            // 1. Buscar un número fallido disponible
+            $sql_fallidos = "SELECT numero FROM secuencia_factura_fallida 
+                             WHERE empresa_id = ? AND documento_id = ? 
+                             ORDER BY numero ASC LIMIT 1 FOR UPDATE";
+            $stmt_fallidos = $conexion->prepare($sql_fallidos);
+            $stmt_fallidos->bind_param("ii", $empresa_id, $documento_id);
+            $stmt_fallidos->execute();
+            $result_fallidos = $stmt_fallidos->get_result();
+    
+            if ($result_fallidos->num_rows > 0) {
+                // 2. Si hay un número fallido, lo tomamos
+                $row = $result_fallidos->fetch_assoc();
+                $numero_usado = $row['numero'];
+                $stmt_fallidos->close();
+    
+                // 3. Lo eliminamos para que no vuelva a usarse
+                $delete_sql = "DELETE FROM secuencia_factura_fallida 
+                               WHERE empresa_id = ? AND documento_id = ? AND numero = ?";
+                $delete_stmt = $conexion->prepare($delete_sql);
+                $delete_stmt->bind_param("iii", $empresa_id, $documento_id, $numero_usado);
+                $delete_stmt->execute();
+                $delete_stmt->close();
+    
+                $conexion->commit();
+    
                 return [
-                    'error' => true,
-                    'mensaje' => 'No se encontró una secuencia de facturación activa'
+                    'error' => false,
+                    'data' => [
+                        'secuencia_facturacion_id' => null, // este número no viene de la tabla secuencia
+                        'numero' => $numero_usado,
+                        'prefijo' => '', // rellena si aplica
+                        'relleno' => ''
+                    ]
                 ];
             }
-            
-            // Verificar rango final
-            $siguiente_numero = $secuenciaData['siguiente'] + $secuenciaData['incremento'];
-            if($siguiente_numero > $secuenciaData['rango_final']) {
-                if($conexionLocal) $conexion->rollback();
-                return [
-                    'error' => true,
-                    'mensaje' => 'Se ha alcanzado el límite del rango autorizado de facturación'
-                ];
+    
+            $stmt_fallidos->close();
+    
+            // 4. Si no hay números fallidos, seguimos con la secuencia normal
+            $sql = "SELECT * FROM secuencia_facturacion 
+                    WHERE empresa_id = ? AND documento_id = ? AND activo = 1 
+                    FOR UPDATE";
+            $stmt = $conexion->prepare($sql);
+            $stmt->bind_param("ii", $empresa_id, $documento_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            if($result->num_rows === 0){
+                $conexion->rollback();
+                return ['error' => true, 'mensaje' => 'No se encontró secuencia activa'];
             }
-            
+            $secuencia = $result->fetch_assoc();
+            $stmt->close();
+    
+            $siguiente_numero = $secuencia['siguiente'];
+            if ($siguiente_numero > $secuencia['rango_final']) {
+                $conexion->rollback();
+                return ['error' => true, 'mensaje' => 'Se ha alcanzado el límite del rango'];
+            }
+    
+            $nuevo_numero = $siguiente_numero + $secuencia['incremento'];
+            $update_sql = "UPDATE secuencia_facturacion SET siguiente = ? WHERE secuencia_facturacion_id = ?";
+            $update_stmt = $conexion->prepare($update_sql);
+            $update_stmt->bind_param("ii", $nuevo_numero, $secuencia['secuencia_facturacion_id']);
+            if(!$update_stmt->execute()) {
+                $conexion->rollback();
+                return ['error' => true, 'mensaje' => 'Error al actualizar secuencia'];
+            }
+            $update_stmt->close();
+    
+            $conexion->commit();
+    
             return [
                 'error' => false,
                 'data' => [
-                    'secuencia_facturacion_id' => $secuenciaData['secuencia_facturacion_id'],
-                    'numero' => $secuenciaData['siguiente'],
-                    'incremento' => $secuenciaData['incremento'],
-                    'prefijo' => $secuenciaData['prefijo'],
-                    'relleno' => $secuenciaData['relleno'],
-                    'rango_final' => $secuenciaData['rango_final'],
-                    'conexion' => $conexion,
-                    'conexionLocal' => $conexionLocal
+                    'secuencia_facturacion_id' => $secuencia['secuencia_facturacion_id'],
+                    'numero' => $siguiente_numero,
+                    'prefijo' => $secuencia['prefijo'],
+                    'relleno' => $secuencia['relleno']
                 ]
             ];
+    
         } catch (Exception $e) {
-            if($conexionLocal) $conexion->rollback();
-            error_log("Error al obtener número de factura: " . $e->getMessage());
-            return [
-                'error' => true,
-                'mensaje' => 'Error al generar el número de factura'
-            ];
+            error_log("Error obtenerNumeroFactura: " . $e->getMessage());
+            return ['error' => true, 'mensaje' => 'Error al generar número de factura'];
         }
-    }
-
-    // Método para confirmar la numeración de factura
-    protected function confirmarNumeracionFactura($secuencia_facturacion_id, $nuevo_numero, $conexion, $conexionLocal) {
-        try {
-            $updateSecuencia = facturasModelo::actualizar_secuencia_modelo(
-                $secuencia_facturacion_id, 
-                $nuevo_numero,
-                $conexion
-            );
-            
-            if(!$updateSecuencia) {
-                throw new Exception("Error al actualizar la secuencia de facturación");
-            }
-            
-            if($conexionLocal) {
-                $conexion->commit();
-            }
-            return true;
-        } catch (Exception $e) {
-            if($conexionLocal) {
-                $conexion->rollback();
-            }
-            error_log("Error al confirmar numeración: " . $e->getMessage());
-            return false;
-        }
-    }
+    }    
 
     // Método para preparar datos básicos de la factura
     protected function prepararDatosFactura($tipo_factura, $tipo_documento) {
@@ -647,27 +658,6 @@ class facturasControlador extends facturasModelo {
                 ]);
             }
             
-            // Actualizar la secuencia solo si todo lo anterior fue exitoso
-            $nuevo_numero = $numeroFactura['data']['numero'] + $numeroFactura['data']['incremento'];
-            $confirmacionNumeracion = $this->confirmarNumeracionFactura(
-                $numeroFactura['data']['secuencia_facturacion_id'], 
-                $nuevo_numero,
-                $conexionPrincipal,
-                false // No es conexión local porque usamos la conexión principal
-            );
-            
-            if(!$confirmacionNumeracion) {
-                $conexionPrincipal->rollback();
-                return mainModel::showNotification([
-                    "title" => "Error",
-                    "text" => "Error al actualizar la secuencia de facturación",
-                    "type" => "error"
-                ]);
-            }
-            
-            // Confirmar transacción principal (esto confirmará todo incluyendo la secuencia)
-            $conexionPrincipal->commit();
-            
             // Guardar historial
             $cliente = mainModel::consultar_tabla('clientes', ['nombre', 'rtn'], "clientes_id = {$clientes_id}")[0];
             $tipo = ($tipo_factura == 1) ? 'contado' : 'crédito';
@@ -724,10 +714,20 @@ class facturasControlador extends facturasModelo {
             ]);
             
         } catch (Exception $e) {
-            // En caso de cualquier error, hacer rollback
-            if(isset($conexionPrincipal) && $conexionPrincipal) {
+            if(isset($conexionPrincipal)) {
                 $conexionPrincipal->rollback();
             }
+        
+            // Registrar el número fallido antes de salir
+            if (isset($numeroFactura['data']['numero'])) {
+                $numero = $numeroFactura['data']['numero'];
+                $conexion = mainModel::connection();
+                $stmt = $conexion->prepare("INSERT IGNORE INTO secuencia_factura_fallida (empresa_id, documento_id, numero) VALUES (?, ?, ?)");
+                $stmt->bind_param("iii", $_SESSION['empresa_id_sd'], $documento_id, $numero);
+                $stmt->execute();
+                $stmt->close();
+            }
+        
             error_log("Error en agregar_facturas_controlador: " . $e->getMessage());
             return mainModel::showNotification([
                 "title" => "Error",

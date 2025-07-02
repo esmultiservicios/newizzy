@@ -344,7 +344,7 @@
 									1 => "ErrorP",
 								);	
 							}
-						}else if($result->num_rows > 1){//SI ENCONTRAMOS MAS DE UN REGISTRO DE PAGO PENDIENTE, NO DEJAMOS INICIAR SESION AL CLIENTE
+						}else if($result->num_rows > 2){//SI ENCONTRAMOS MAS DE UN REGISTRO DE PAGO PENDIENTE, NO DEJAMOS INICIAR SESION AL CLIENTE
 							$datos = array(
 								0 => "",
 								1 => "ErrorP",

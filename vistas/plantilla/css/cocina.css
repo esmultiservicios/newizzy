@@ -1,0 +1,531 @@
+/* ==================== */
+/* VARIABLES Y ESTILOS BASE */
+/* ==================== */
+:root {
+    --primary-color: #2c3e50;
+    --secondary-color: #3498db;
+    --success-color: #27ae60;
+    --danger-color: #e74c3c;
+    --warning-color: #f39c12;
+    --info-color: #2980b9;
+    --light-color: #ecf0f1;
+    --dark-color: #34495e;
+    --text-color: #333;
+    --border-color: #ddd;
+    --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    --shadow-hover: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #f5f5f5;
+    color: var(--text-color);
+}
+
+/* ==================== */
+/* ESTRUCTURA PRINCIPAL */
+/* ==================== */
+.vista-cocina-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--light-color);
+    z-index: 1050;
+    overflow: hidden;
+}
+
+/* Ocultar elementos del layout principal */
+.sb-topnav,
+.sb-sidenav {
+    display: none !important;
+}
+
+/* ==================== */
+/* HEADER */
+/* ==================== */
+.header-cocina {
+    background: linear-gradient(135deg, var(--primary-color), var(--dark-color));
+    color: white;
+    padding: 1rem;
+    text-align: center;
+    box-shadow: var(--shadow);
+    position: relative;
+    z-index: 10;
+}
+
+.header-cocina h1 {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.header-cocina h1 i {
+    font-size: 1.5rem;
+}
+
+#hora-actual {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* ==================== */
+/* CONTENEDOR DE COMANDAS */
+/* ==================== */
+.comandas-container {
+    flex: 1;
+    padding: 1.5rem;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 1.5rem;
+    background-color: #f1f3f5;
+}
+
+/* ==================== */
+/* TARJETAS DE COMANDAS */
+/* ==================== */
+.comanda-card {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    border-left: 6px solid var(--warning-color);
+    display: flex;
+    flex-direction: column;
+}
+
+.comanda-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-hover);
+}
+
+.comanda-card.comanda-urgente {
+    border-left-color: var(--danger-color);
+    animation: pulse 1.5s infinite;
+}
+
+/* Header de comanda */
+.comanda-header {
+    background: linear-gradient(to right, var(--secondary-color), var(--info-color));
+    color: white;
+    padding: 0.8rem 1.2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.comanda-mesa {
+    font-weight: 600;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.badge-urgente {
+    background-color: var(--danger-color);
+    color: white;
+    padding: 0.2rem 0.6rem;
+    border-radius: 1rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.comanda-hora {
+    font-size: 0.85rem;
+    background-color: rgba(0, 0, 0, 0.15);
+    padding: 0.2rem 0.6rem;
+    border-radius: 1rem;
+    font-weight: 500;
+}
+
+/* Items de comanda */
+.comanda-items {
+    padding: 1rem 1.2rem;
+    flex: 1;
+}
+
+.comanda-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.6rem 0;
+    border-bottom: 1px dashed var(--border-color);
+    align-items: center;
+}
+
+.comanda-item:last-child {
+    border-bottom: none;
+}
+
+.item-nombre {
+    font-weight: 500;
+    flex: 1;
+    font-size: 0.95rem;
+    color: var(--text-color);
+}
+
+.item-cantidad {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0.2rem 0.8rem;
+    border-radius: 1rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    min-width: 2rem;
+    text-align: center;
+}
+
+/* Observaciones */
+.comanda-observaciones {
+    padding: 0.8rem 1.2rem;
+    background-color: var(--light-color);
+    font-size: 0.9rem;
+    color: var(--text-color);
+    border-top: 1px solid var(--border-color);
+    margin-top: auto;
+}
+
+.comanda-observaciones strong {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* ==================== */
+/* BOTONES Y ACCIONES */
+/* ==================== */
+.comanda-actions {
+    padding: 0.8rem 1.2rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.8rem;
+    border-top: 1px solid var(--border-color);
+    background-color: var(--light-color);
+}
+
+.btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn i {
+    font-size: 0.9rem;
+}
+
+.btn-success {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.btn-success:hover {
+    background-color: #219653;
+    transform: translateY(-1px);
+}
+
+.btn-warning {
+    background-color: var(--warning-color);
+    color: white;
+}
+
+.btn-warning:hover {
+    background-color: #e67e22;
+    transform: translateY(-1px);
+}
+
+/* ==================== */
+/* ESTADO SIN COMANDAS */
+/* ==================== */
+.no-comandas {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem;
+    color: #6c757d;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 60vh;
+}
+
+.no-comandas i {
+    font-size: 3rem;
+    color: #adb5bd;
+    margin-bottom: 1.5rem;
+    opacity: 0.7;
+}
+
+.no-comandas p {
+    font-size: 1.1rem;
+    color: var(--text-color);
+    font-weight: 400;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+/* ==================== */
+/* BOTÓN DE REFRESCAR */
+/* ==================== */
+.refresh-button {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background-color: var(--primary-color);
+    color: white;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: var(--shadow-hover);
+    z-index: 100;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+}
+
+.refresh-button:hover {
+    background-color: var(--dark-color);
+    transform: rotate(180deg) scale(1.05);
+}
+
+.refresh-button i {
+    font-size: 1.3rem;
+}
+
+/* ==================== */
+/* ANIMACIONES */
+/* ==================== */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
+    70% { box-shadow: 0 0 0 12px rgba(231, 76, 60, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* ==================== */
+/* RESPONSIVE */
+/* ==================== */
+@media (max-width: 992px) {
+    .comandas-container {
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .header-cocina h1 {
+        font-size: 1.5rem;
+    }
+    
+    .comandas-container {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+        gap: 1rem;
+    }
+    
+    .refresh-button {
+        width: 3rem;
+        height: 3rem;
+        bottom: 1.5rem;
+        right: 1.5rem;
+    }
+    
+    .refresh-button i {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .header-cocina {
+        padding: 0.8rem 1rem;
+    }
+    
+    .header-cocina h1 {
+        font-size: 1.3rem;
+        gap: 8px;
+    }
+    
+    .comanda-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ==================== */
+/* NUEVOS ESTILOS PARA COCINA */
+/* ==================== */
+
+.comanda-info {
+    padding: 0.8rem 1.2rem;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.9rem;
+}
+
+.comanda-info div {
+    margin-bottom: 0.3rem;
+}
+
+.comanda-info strong {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.comanda-observaciones p {
+    margin-top: 0.5rem;
+    margin-bottom: 0;
+}
+
+.comanda-observaciones strong {
+    color: var(--dark-color);
+}
+
+/* Estilo para comandas urgentes */
+.comanda-urgente {
+    border-left: 6px solid var(--danger-color);
+    animation: pulse 1.5s infinite;
+}
+
+.comanda-urgente .comanda-header {
+    background: linear-gradient(to right, var(--danger-color), #c0392b);
+}
+
+/* ==================== */
+/* ANIMACIONES */
+/* ==================== */
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
+    70% { box-shadow: 0 0 0 12px rgba(231, 76, 60, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+}
+
+/* Estilos para los estados de las comandas */
+.badge-estado {
+    padding: 0.3rem 0.6rem;
+    border-radius: 1rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-left: 0.5rem;
+}
+
+.badge-estado.pendiente {
+    background-color: #f39c12;
+    color: white;
+}
+
+.badge-estado.en_preparacion {
+    background-color: #3498db;
+    color: white;
+}
+
+.badge-estado.preparada {
+    background-color: #27ae60;
+    color: white;
+}
+
+.badge-estado.urgente {
+    background-color: #e74c3c;
+    color: white;
+}
+
+/* Estilos para los botones de acción */
+.btn-primary {
+    background-color: #3498db;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #2980b9;
+}
+
+/* Animación para las comandas */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Estilo para comandas urgentes */
+.comanda-urgente {
+    border-left: 6px solid #e74c3c;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
+    70% { box-shadow: 0 0 0 12px rgba(231, 76, 60, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+}
+
+/* Estilos para la información de cliente y orden */
+.comanda-info {
+    padding: 0.8rem 1.2rem;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #ddd;
+    font-size: 0.9rem;
+}
+
+.comanda-info div {
+    margin-bottom: 0.3rem;
+}
+
+.comanda-info strong {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+/* Estilos para las observaciones */
+.comanda-observaciones p {
+    margin-top: 0.5rem;
+    margin-bottom: 0;
+}
+
+.comanda-observaciones strong {
+    color: #34495e;
+}

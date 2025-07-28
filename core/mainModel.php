@@ -207,6 +207,98 @@ class mainModel
 		return $numero;
 	}
 	
+	function obtenerNumeroFacturaSecuencia($empresa_id, $documento_id) {
+        try {
+            $conexion = $this->connection();
+            $conexion->begin_transaction();
+    
+            // 1. Buscar un número fallido disponible
+            $sql_fallidos = "SELECT numero FROM secuencia_factura_fallida 
+                             WHERE empresa_id = ? AND documento_id = ? 
+                             ORDER BY numero ASC LIMIT 1 FOR UPDATE";
+            $stmt_fallidos = $conexion->prepare($sql_fallidos);
+            $stmt_fallidos->bind_param("ii", $empresa_id, $documento_id);
+            $stmt_fallidos->execute();
+            $result_fallidos = $stmt_fallidos->get_result();
+    
+            if ($result_fallidos->num_rows > 0) {
+                // 2. Si hay un número fallido, lo tomamos
+                $row = $result_fallidos->fetch_assoc();
+                $numero_usado = $row['numero'];
+                $stmt_fallidos->close();
+    
+                // 3. Lo eliminamos para que no vuelva a usarse
+                $delete_sql = "DELETE FROM secuencia_factura_fallida 
+                               WHERE empresa_id = ? AND documento_id = ? AND numero = ?";
+                $delete_stmt = $conexion->prepare($delete_sql);
+                $delete_stmt->bind_param("iii", $empresa_id, $documento_id, $numero_usado);
+                $delete_stmt->execute();
+                $delete_stmt->close();
+    
+                $conexion->commit();
+    
+                return [
+                    'error' => false,
+                    'data' => [
+                        'secuencia_facturacion_id' => null,
+                        'numero' => $numero_usado,
+                        'prefijo' => '',
+                        'relleno' => ''
+                    ]
+                ];
+            }
+    
+            $stmt_fallidos->close();
+    
+            // 4. Si no hay números fallidos, seguimos con la secuencia normal
+            $sql = "SELECT * FROM secuencia_facturacion 
+                    WHERE empresa_id = ? AND documento_id = ? AND activo = 1 
+                    FOR UPDATE";
+            $stmt = $conexion->prepare($sql);
+            $stmt->bind_param("ii", $empresa_id, $documento_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            if($result->num_rows === 0){
+                $conexion->rollback();
+                return ['error' => true, 'mensaje' => 'No se encontró secuencia activa'];
+            }
+            $secuencia = $result->fetch_assoc();
+            $stmt->close();
+    
+            $siguiente_numero = $secuencia['siguiente'];
+            if ($siguiente_numero > $secuencia['rango_final']) {
+                $conexion->rollback();
+                return ['error' => true, 'mensaje' => 'Se ha alcanzado el límite del rango'];
+            }
+    
+            $nuevo_numero = $siguiente_numero + $secuencia['incremento'];
+            $update_sql = "UPDATE secuencia_facturacion SET siguiente = ? WHERE secuencia_facturacion_id = ?";
+            $update_stmt = $conexion->prepare($update_sql);
+            $update_stmt->bind_param("ii", $nuevo_numero, $secuencia['secuencia_facturacion_id']);
+            if(!$update_stmt->execute()) {
+                $conexion->rollback();
+                return ['error' => true, 'mensaje' => 'Error al actualizar secuencia'];
+            }
+            $update_stmt->close();
+    
+            $conexion->commit();
+    
+            return [
+                'error' => false,
+                'data' => [
+                    'secuencia_facturacion_id' => $secuencia['secuencia_facturacion_id'],
+                    'numero' => $siguiente_numero,
+                    'prefijo' => $secuencia['prefijo'],
+                    'relleno' => $secuencia['relleno']
+                ]
+            ];
+    
+        } catch (Exception $e) {
+            error_log("Error obtenerNumeroFactura: " . $e->getMessage());
+            return ['error' => true, 'mensaje' => 'Error al generar número de factura'];
+        }
+    }
+
 	public function obtener_planes_id_por_plan_id(){
 		$query = "SELECT planes_id FROM plan"; // ejemplo con ID fijo
 	

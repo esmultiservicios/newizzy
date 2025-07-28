@@ -41,9 +41,9 @@
         // Método para obtener las vistas y validarlas con la lista blanca
         protected function getVistasModelo($vistas, $nombre_config = 'configuracion_principal') {
             $listaBlanca = $this->obtenerListaBlanca($nombre_config);
-        
+
             // Verificamos si la vista está en la lista blanca
-            if ($listaBlanca && in_array($vistas, $listaBlanca)) {
+            if ($listaBlanca && in_array($vistas, $listaBlanca)) {                
                 // Verificamos si el archivo de vista existe
                 if(is_file("./vistas/contenido/".$vistas."-view.php")){
                     // Determinamos el tipo de vista y validamos permisos

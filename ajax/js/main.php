@@ -85,8 +85,8 @@ function ajustarMenuResponsivo() {
 }
 
 // Ejecutar al cargar y al redimensionar la ventana
-window.addEventListener('DOMContentLoaded', ajustarMenuResponsivo);
-window.addEventListener('resize', ajustarMenuResponsivo);
+/*window.addEventListener('DOMContentLoaded', ajustarMenuResponsivo);
+window.addEventListener('resize', ajustarMenuResponsivo);*/
 
 // Ejecutar al cargar
 actualizarPermisos();

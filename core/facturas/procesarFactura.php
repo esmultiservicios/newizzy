@@ -16,6 +16,26 @@ $response = [
 ];
 
 try {
+    if(!isset($_SESSION['user_sd'])) { 
+        session_start(['name'=>'SD']); 
+    }
+    
+    // Validar sesión
+    $validacion = mainModel::validarSesion();
+    if ($validacion['error']) {
+        return $response = [
+            'type' => 'error',
+            'title' => "Error de sesión",
+            'message' => $validacion['mensaje'],
+            'factura_id' => null,
+            'total' => 0,
+            'puntos_generados' => 0,
+            'estado' => false
+        ];
+    }
+
+    $usuario = $_SESSION['colaborador_id_sd'];
+
     // Validar método de solicitud
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         throw new Exception('Método no permitido');
@@ -28,7 +48,7 @@ try {
     }
     
     // Validar datos requeridos
-    $requiredFields = ['clienteId', 'vendedorId', 'tipoFactura', 'productos', 'secuenciaId', 'prefijo', 'numero'];
+    $requiredFields = ['clienteId', 'vendedorId', 'tipoFactura', 'productos'];
     foreach ($requiredFields as $field) {
         if (!isset($data[$field])) {
             throw new Exception("Campo requerido faltante: $field");
@@ -37,6 +57,15 @@ try {
     
     if (empty($data['productos']) || !is_array($data['productos'])) {
         throw new Exception('No hay productos para facturar');
+    }
+    
+    // Obtener número de factura (aquí ya se actualiza la secuencia)
+    $empresa_id = 1;
+    $documento_id = $data['tipoFactura'] == 1 ? 1 : 2;
+    $numeroFactura = $mainModel->obtenerNumeroFacturaSecuencia($empresa_id, $documento_id);
+    
+    if ($numeroFactura['error']) {
+        throw new Exception($numeroFactura['mensaje']);
     }
     
     // Iniciar transacción
@@ -55,60 +84,67 @@ try {
     
     $total = ($subtotal - $totalDescuento) + $totalIsv;
     
-    // 1. Insertar la factura
+    // 1. Obtener el próximo facturas_id disponible
+    $queryMaxId = "SELECT MAX(facturas_id) as max_id FROM facturas";
+    $resultMax = $mainModel->ejecutar_consulta_simple($queryMaxId);
+    $nextId = 1;
+    
+    if ($resultMax && $resultMax->num_rows > 0) {
+        $row = $resultMax->fetch_assoc();
+        $nextId = $row['max_id'] + 1;
+    }
+
+    // 2. Insertar la factura con el ID manual
     $query = "INSERT INTO facturas (
+        facturas_id,
         clientes_id, 
         colaboradores_id, 
         secuencia_facturacion_id, 
-        prefijo, 
-        numero_factura, 
+        number, 
         fecha, 
-        subtotal, 
-        descuento, 
-        isv, 
-        total, 
-        tipo_factura, 
+        importe, 
         notas, 
+        tipo_factura, 
         estado,
-        estado_pago
-    ) VALUES (?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, 1, 0)";
+        usuario,
+        empresa_id,
+        fecha_registro,
+        fecha_dolar
+    ) VALUES (?, ?, ?, ?, ?, NOW(), ?, ?, ?, 1, ?, ?, NOW(), NOW())";
     
     $params = [
+        $nextId,
         $data['clienteId'],
         $data['vendedorId'],
-        $data['secuenciaId'],
-        $mainModel->cleanString($data['prefijo']),
-        $mainModel->cleanString($data['numero']),
-        $subtotal - $totalDescuento,
-        $totalDescuento,
-        $totalIsv,
+        $numeroFactura['data']['secuencia_facturacion_id'],
+        $mainModel->cleanString($numeroFactura['data']['numero']),
         $total,
+        isset($data['notas']) ? $mainModel->cleanString($data['notas']) : '',
         $mainModel->cleanString($data['tipoFactura']),
-        isset($data['notas']) ? $mainModel->cleanString($data['notas']) : null
+        $usuario,
+        $empresa_id
     ];
     
-    $result = $mainModel->ejecutar_consulta_simple_preparada($query, "iisssddddss", $params);
+    $result = $mainModel->ejecutar_consulta_simple_preparada($query, "iiiisdssii", $params);
     
     if (!$result) {
-        throw new Exception('Error al insertar la factura');
+        throw new Exception('Error al insertar la factura: ' . $mainModel->connection()->error);
     }
     
-    $facturaId = $mainModel->connection()->insert_id;
+    $facturaId = $nextId;
     
-    // 2. Insertar los productos de la factura
-    $queryDetalle = "INSERT INTO facturas_detalle (
+    // 3. Insertar los productos de la factura
+    $queryDetalle = "INSERT INTO facturas_detalles (
         facturas_id, 
         productos_id, 
         cantidad, 
-        precio_unitario, 
+        precio, 
         descuento, 
-        isv, 
-        subtotal
+        isv_valor, 
+        medida
     ) VALUES (?, ?, ?, ?, ?, ?, ?)";
     
     foreach ($data['productos'] as $producto) {
-        $productoSubtotal = ($producto['precio'] * $producto['cantidad']) - ($producto['descuento'] ?? 0);
-        
         $paramsDetalle = [
             $facturaId,
             $producto['productoId'],
@@ -116,25 +152,14 @@ try {
             $producto['precio'],
             $producto['descuento'] ?? 0,
             $producto['isv'] ?? 0,
-            $productoSubtotal
+            'UN'
         ];
         
-        $resultDetalle = $mainModel->ejecutar_consulta_simple_preparada($queryDetalle, "iiidddd", $paramsDetalle);
+        $resultDetalle = $mainModel->ejecutar_consulta_simple_preparada($queryDetalle, "iiiddds", $paramsDetalle);
         
         if (!$resultDetalle) {
-            throw new Exception('Error al insertar el detalle de factura');
+            throw new Exception('Error al insertar el detalle de factura: ' . $mainModel->connection()->error);
         }
-    }
-    
-    // 3. Actualizar la secuencia de facturación
-    $querySecuencia = "UPDATE secuencia_facturacion 
-                      SET siguiente = siguiente + 1 
-                      WHERE secuencia_facturacion_id = ?";
-    
-    $resultSecuencia = $mainModel->ejecutar_consulta_simple_preparada($querySecuencia, "i", [$data['secuenciaId']]);
-    
-    if (!$resultSecuencia) {
-        throw new Exception('Error al actualizar la secuencia');
     }
     
     // 4. Calcular puntos si el programa de puntos está activo
@@ -156,7 +181,7 @@ try {
             $resultPuntos = $mainModel->ejecutar_consulta_simple_preparada($queryPuntos, "iii", [$data['clienteId'], $facturaId, $puntosGenerados]);
             
             if (!$resultPuntos) {
-                throw new Exception('Error al registrar los puntos');
+                throw new Exception('Error al registrar los puntos: ' . $mainModel->connection()->error);
             }
         }
     }
@@ -177,6 +202,16 @@ try {
 } catch (Exception $e) {
     if ($mainModel->connection()) {
         $mainModel->connection()->rollback();
+        
+        // Registrar factura fallida si tenemos el número
+        if (isset($numeroFactura['data']['numero'])) {
+            $queryFallida = "INSERT INTO secuencia_factura_fallida (empresa_id, documento_id, numero) VALUES (?, ?, ?)";
+            $mainModel->ejecutar_consulta_simple_preparada($queryFallida, "iii", [
+                $empresa_id,
+                $documento_id,
+                $numeroFactura['data']['numero']
+            ]);
+        }
     }
     
     $response = [

@@ -26,7 +26,7 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="cliente-select" class="form-label">Cliente</label>
-                                    <select class="form-control selectpicker" id="cliente-select" data-live-search="true" title="Seleccione un cliente" required>
+                                    <select class="form-control selectpicker" id="cliente-select" data-live-search="true" title="Seleccione un cliente" data-size="5" equired>
                                         <!-- Opciones se llenarán con JS -->
                                     </select>
                                 </div>
@@ -34,7 +34,7 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="vendedor-select" class="form-label">Vendedor</label>
-                                    <select class="form-control selectpicker" id="vendedor-select" data-live-search="true" title="Seleccione un vendedor" required>
+                                    <select class="form-control selectpicker" id="vendedor-select" data-live-search="true" title="Seleccione un vendedor" data-size="5" required>
                                         <!-- Opciones se llenarán con JS -->
                                     </select>
                                 </div>
@@ -67,7 +67,7 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="producto-select" class="form-label">Producto</label>
-                                    <select class="form-control selectpicker" id="producto-select" data-live-search="true" title="Seleccione un producto">
+                                    <select class="form-control selectpicker" id="producto-select" data-live-search="true" title="Seleccione un producto" data-size="5">
                                     <!-- Opciones se llenarán con JS -->
                                     </select>
                                 </div>

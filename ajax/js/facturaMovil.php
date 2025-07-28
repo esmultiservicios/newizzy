@@ -562,21 +562,13 @@ $(() => {
             return;
         }
 
-        if (facturasDisponibles <= 0) {
-            showNotify("error", "Error", "No hay facturas disponibles para registrar");
-            return;
-        }
-
         const tipoFactura = $('input[name="tipo-factura"]:checked').val();
         const datos = {
             clienteId: $('#cliente-select').val(),
             vendedorId: $('#vendedor-select').val(),
             tipoFactura: tipoFactura,
             productos: productosAgregados,
-            notas: $('#notas').val(),
-            secuenciaId: secuenciaFactura.secuencia_facturacion_id,
-            prefijo: secuenciaFactura.prefijo,
-            numero: secuenciaFactura.siguiente
+            notas: $('#notas').val()
         };
 
         showNotify("info", "Procesando factura", "Por favor espere...", true);
@@ -588,7 +580,7 @@ $(() => {
             data: JSON.stringify(datos),
             contentType: 'application/json',
             success: function(response) {
-                if (response.success) {
+                if (response.estado) {
                     currentFacturaId = response.factura_id;
                     
                     if (tipoFactura == 1) {
@@ -601,8 +593,10 @@ $(() => {
                     } else {
                         showNotify("success", "Éxito", "Factura registrada correctamente");
                         resetearFormulario();
-                        getTotalFacturasDisponibles();
                     }
+                    
+                    // Actualizar contador de facturas disponibles
+                    getTotalFacturasDisponibles();
                 } else {
                     showNotify("error", "Error", response.message || 'Error al procesar la factura');
                 }

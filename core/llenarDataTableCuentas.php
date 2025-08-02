@@ -44,7 +44,7 @@ while ($row = $result->fetch_assoc()) {
 
 	if ($result_saldo_anterior->num_rows > 0) {
 		$row_saldo_anterior = $result_saldo_anterior->fetch_assoc();
-		$saldo_anterior = $row_saldo_anterior['saldo'];
+		$saldo_anterior = $result_saldo_anterior->num_rows > 0 ? $row_saldo_anterior['saldo'] : 0.0;
 	} else {
 		// Consultamos el último saldo de la cuenta
 		$result_ultimo_saldo = $insMainModel->getSaldoMovimientosCuentasUltimoSaldo($datos);

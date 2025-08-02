@@ -253,31 +253,3 @@ document.addEventListener('DOMContentLoaded', function() {
     // Actualizar comandas automáticamente cada 30 segundos
     setInterval(cargarComandas, 30000);
 });
-
-function showNotify(type, title, message) {
-    const alert = document.createElement('div');
-    alert.className = `alert alert-${type}`;
-    alert.innerHTML = `
-        <strong>${title}</strong>: ${message}
-    `;
-    alert.style.position = 'fixed';
-    alert.style.top = '20px';
-    alert.style.right = '20px';
-    alert.style.padding = '15px';
-    alert.style.borderRadius = '5px';
-    alert.style.color = 'white';
-    alert.style.backgroundColor = type === 'success' ? '#27ae60' : 
-                                type === 'error' ? '#e74c3c' : 
-                                type === 'info' ? '#3498db' : '#f39c12';
-    alert.style.zIndex = '2000';
-    alert.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-    
-    document.body.appendChild(alert);
-    
-    setTimeout(() => {
-        alert.style.opacity = '0';
-        setTimeout(() => {
-            document.body.removeChild(alert);
-        }, 500);
-    }, 3000);
-}

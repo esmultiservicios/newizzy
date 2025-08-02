@@ -484,8 +484,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const mostrarMayoreo = producto.cantidad_mayoreo > 0 && producto.precio_mayoreo > 0;
             
             contenidoDiv.innerHTML = `
-                <h4 class="producto-nombre">${producto.nombre}</h4>
-                <p class="producto-descripcion">${producto.descripcion || 'Sin descripción disponible'}</p>
+                <h4 class="producto-nombre">${producto.nombre}</h4>                
                 <div class="producto-precios">
                     <div class="precio-regular">
                         <span class="precio-valor">L ${formatNumber(producto.precio_venta)}</span>
@@ -506,20 +505,26 @@ document.addEventListener('DOMContentLoaded', function() {
             btnAgregar.innerHTML = '<i class="fas fa-cart-plus"></i> Agregar';
             productoElement.appendChild(btnAgregar);
             
-            // Event listener
-            productoElement.addEventListener('click', (e) => {
-                // Evitar que se active al hacer clic en el botón de agregar
-                if (!e.target.closest('.btn-agregar')) {
-                    agregarProductoComanda({
-                        id: producto.productos_id,
-                        nombre: producto.nombre,
-                        precio: producto.precio_venta,
-                        descripcion: producto.descripcion,
-                        imagen: producto.file_name ? 
-                            `${SERVERURL}vistas/plantilla/img/products/${producto.file_name}` : 
-                            `${SERVERURL}vistas/plantilla/img/products/image_preview.png`
-                    });
-                }
+            // Datos del producto para reutilizar
+            const datosProducto = {
+                id: producto.productos_id,
+                nombre: producto.nombre,
+                precio: producto.precio_venta,
+                descripcion: producto.descripcion,
+                imagen: producto.file_name ? 
+                    `${SERVERURL}vistas/plantilla/img/products/${producto.file_name}` : 
+                    `${SERVERURL}vistas/plantilla/img/products/image_preview.png`
+            };
+            
+            // Evento para el botón Agregar
+            btnAgregar.addEventListener('click', (e) => {
+                e.stopPropagation(); // Evita que se active el evento del contenedor
+                agregarProductoComanda(datosProducto);
+            });
+            
+            // Evento para el contenedor del producto
+            productoElement.addEventListener('click', () => {
+                agregarProductoComanda(datosProducto);
             });
             
             productosContainer.appendChild(productoElement);

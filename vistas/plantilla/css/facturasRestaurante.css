@@ -1,47 +1,37 @@
-/* 
- * Variables CSS globales para colores y estilos consistentes
- */
- :root {
-    --primary-color: #2c3e50;       /* Color principal (azul oscuro) */
-    --secondary-color: #3498db;     /* Color secundario (azul) */
-    --success-color: #27ae60;       /* Verde para acciones exitosas */
-    --danger-color: #e74c3c;        /* Rojo para acciones peligrosas */
-    --warning-color: #f39c12;       /* Naranja para advertencias */
-    --info-color: #2980b9;          /* Azul más claro para información */
-    --light-color: #ecf0f1;         /* Color de fondo claro */
-    --dark-color: #34495e;          /* Color de texto oscuro */
-    --text-color: #333;             /* Color de texto principal */
-    --border-color: #ddd;           /* Color para bordes */
-    --shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Sombra predeterminada */
-    --border-radius: 8px;           /* Radio de borde consistente */
+/* Variables CSS globales */
+:root {
+    --primary-color: #2c3e50;
+    --secondary-color: #3498db;
+    --success-color: #27ae60;
+    --danger-color: #e74c3c;
+    --warning-color: #f39c12;
+    --info-color: #2980b9;
+    --light-color: #ecf0f1;
+    --dark-color: #34495e;
+    --text-color: #333;
+    --border-color: #ddd;
+    --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    --border-radius: 8px;
+    --transition: all 0.3s ease;
 }
-
-/* 
- * Reset básico para todos los elementos 
- */
+/* Reset básico */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
-
-/* 
- * Estilos generales del cuerpo del documento
- */
+/* Estilos generales del cuerpo */
 body {
     background-color: #f5f5f5;
     color: var(--text-color);
     line-height: 1.6;
+    touch-action: manipulation;
 }
-
 body.vista-facturacion-restaurante {
     overflow: hidden;
 }
-
-/* 
- * Contenedor principal del restaurante
- */
+/* Contenedor principal */
 .restaurante-container {
     display: flex;
     flex-direction: column;
@@ -55,101 +45,84 @@ body.vista-facturacion-restaurante {
     background: white;
     z-index: 1050;
 }
-
 /* ========== BARRA DE CONTROL SUPERIOR ========== */
 .control-bar {
     background: linear-gradient(135deg, var(--primary-color) 0%, #34495e 100%);
     color: white;
-    padding: 12px 25px;
+    padding: 10px 15px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    height: 70px;
+    height: 60px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.15);
     z-index: 100;
     position: relative;
     border-bottom: 3px solid var(--secondary-color);
     width: 100%;
-    box-sizing: border-box;
+    min-width: 100%;
+    gap: 10px;
+    flex-wrap: nowrap; /* Evita saltos */
 }
 
+/* --- Contenedor del usuario --- */
+/* BARRA DE CONTROL SUPERIOR */
+.control-bar {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #34495e 100%);
+    color: white;
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 60px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    z-index: 100;
+    position: relative;
+    border-bottom: 3px solid var(--secondary-color);
+    width: 100%;
+}
+
+/* CONTENEDOR USUARIO */
 .control-user {
     display: flex;
     align-items: center;
-    gap: 12px;
-    font-size: 16px;
+    gap: 8px;
+    font-size: 15px;
     font-weight: 600;
-    padding: 8px 20px;
+    padding: 6px 15px;
     background: rgba(255, 255, 255, 0.15);
     border-radius: 25px;
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.25);
     white-space: nowrap;
-    min-width: auto;
-    width: auto;
     flex-shrink: 0;
 }
 
-.control-user span {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    white-space: nowrap;
-    font-size: 16px;
-    font-weight: 600;
-}
-
+/* ICONO DE USUARIO */
 .control-user i {
-    font-size: 18px;
+    font-size: 16px;
     color: var(--secondary-color);
     background: white;
-    padding: 8px;
+    padding: 6px;
     border-radius: 50%;
-    width: 36px;
-    height: 36px;
-    display: flex;
+    width: 28px;
+    height: 28px;
+    display: inline-flex; /* Cambiado a inline-flex */
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
 }
 
+/* TEXTO "CAJERO: USUARIO" */
+.control-user span {
+    display: inline-block; /* Asegura que esté en línea */
+    vertical-align: middle;
+}
+
+/* BOTONES DERECHA */
 .control-buttons {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     align-items: center;
-    flex-shrink: 0;
-}
-
-.control-buttons .btn {
-    padding: 10px 18px;
-    font-weight: 600;
-    border-radius: 25px;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    border: 2px solid transparent;
-    white-space: nowrap;
-    font-size: 14px;
-}
-
-.control-buttons .btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-.control-buttons .btn-light {
-    background: white;
-    color: var(--primary-color);
-    border-color: white;
-}
-
-.control-buttons .btn-light:hover {
-    background: var(--light-color);
-    border-color: var(--secondary-color);
-}
-
-.control-buttons .btn-danger:hover {
-    background: #c0392b;
-    border-color: #c0392b;
+    margin-left: auto; /* Empuja los botones a la derecha */
 }
 
 /* ========== CONTENIDO PRINCIPAL ========== */
@@ -157,12 +130,11 @@ body.vista-facturacion-restaurante {
     display: flex;
     flex: 1;
     overflow: hidden;
-    height: calc(100vh - 70px);
+    height: calc(100vh - 60px);
 }
-
 /* ========== SIDEBAR DE MESAS ========== */
 .mesas-sidebar {
-    width: 280px;
+    width: 250px;
     background-color: white;
     border-right: 1px solid var(--border-color);
     display: flex;
@@ -170,95 +142,84 @@ body.vista-facturacion-restaurante {
     height: 100%;
     overflow-y: auto;
 }
-
 .sidebar-header {
-    padding: 15px;
+    padding: 12px;
     border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
-
 .sidebar-header h3 {
-    font-size: 18px;
+    font-size: 16px;
     color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
-
 .mesas-list {
     flex: 1;
     overflow-y: auto;
     padding: 10px;
     display: grid;
     grid-template-columns: 1fr;
-    gap: 10px;
+    gap: 8px;
 }
-
 .mesa-item {
     background-color: var(--light-color);
     border-radius: var(--border-radius);
-    padding: 12px;
+    padding: 10px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: var(--transition);
     border-left: 5px solid var(--secondary-color);
     box-shadow: var(--shadow);
 }
-
 .mesa-item:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
-
 .mesa-item.seleccionada {
     border-left-color: var(--primary-color);
     background-color: #e3f2fd;
 }
-
 .mesa-item.ocupada {
     border-left-color: var(--danger-color);
     background-color: #ffebee;
 }
-
 .mesa-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
-
 .mesa-numero {
     font-weight: bold;
-    font-size: 16px;
+    font-size: 15px;
     color: var(--secondary-color);
 }
-
 .mesa-item.ocupada .mesa-numero {
     color: var(--danger-color);
 }
-
 .mesa-capacidad {
     background-color: var(--primary-color);
     color: white;
-    padding: 3px 8px;
+    padding: 2px 8px;
     border-radius: 12px;
-    font-size: 12px;
+    font-size: 11px;
     display: inline-flex;
     align-items: center;
     gap: 4px;
 }
-
 .mesa-info {
     display: flex;
     justify-content: space-between;
     font-size: 12px;
 }
-
 .mesa-ubicacion {
     color: #666;
     display: flex;
     align-items: center;
     gap: 4px;
 }
-
 .mesa-estado {
     font-weight: 500;
     font-size: 11px;
@@ -267,15 +228,12 @@ body.vista-facturacion-restaurante {
     align-items: center;
     gap: 4px;
 }
-
 .mesa-estado.disponible {
     color: var(--success-color);
 }
-
 .mesa-estado.ocupada {
     color: var(--danger-color);
 }
-
 /* ========== ÁREA PRINCIPAL ========== */
 .main-content {
     flex: 1;
@@ -284,31 +242,47 @@ body.vista-facturacion-restaurante {
     overflow: hidden;
     height: 100%;
 }
-
 /* Encabezado de la factura */
 .factura-header {
     background-color: white;
-    padding: 15px;
+    padding: 12px 15px;
     border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
 }
-
+.factura-info {
+    flex: 1;
+    min-width: 200px;
+}
 .factura-info h2 {
-    font-size: 22px;
+    font-size: 18px;
     color: var(--primary-color);
     margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
-
 .factura-meta {
     display: flex;
-    gap: 15px;
-    font-size: 14px;
+    gap: 12px;
+    font-size: 13px;
     color: #666;
     align-items: center;
+    flex-wrap: wrap;
 }
-
+.factura-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.factura-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
 /* ========== CUERPO DE LA FACTURA ========== */
 .factura-body {
     display: flex;
@@ -316,7 +290,6 @@ body.vista-facturacion-restaurante {
     overflow: hidden;
     height: calc(100% - 60px);
 }
-
 /* ========== PANEL DE PRODUCTOS ========== */
 .productos-panel {
     flex: 2;
@@ -326,35 +299,36 @@ body.vista-facturacion-restaurante {
     flex-direction: column;
     overflow: hidden;
 }
-
 .productos-header {
-    padding: 15px;
+    padding: 12px 15px;
     border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
 }
-
 .productos-header h3 {
-    font-size: 18px;
+    font-size: 16px;
     color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
-
 /* Barra de búsqueda */
 .productos-search {
     display: flex;
-    width: 250px;
+    width: 200px;
+    min-width: 150px;
 }
-
 .productos-search input {
     flex: 1;
     padding: 8px 12px;
     border: 1px solid var(--border-color);
     border-radius: 4px 0 0 4px;
     outline: none;
-    font-size: 14px;
+    font-size: 13px;
 }
-
 .productos-search button {
     background-color: var(--secondary-color);
     color: white;
@@ -366,89 +340,71 @@ body.vista-facturacion-restaurante {
     align-items: center;
     justify-content: center;
 }
-
 /* Pestañas de categorías */
 .categorias-tabs {
     display: flex;
-    padding: 10px 15px;
+    padding: 8px 12px;
     border-bottom: 1px solid var(--border-color);
     overflow-x: auto;
     white-space: nowrap;
     gap: 5px;
     scrollbar-width: thin;
-    scrollbar-color: var(--secondary-color) #f1f1f1;
 }
-
 .categorias-tabs::-webkit-scrollbar {
-    height: 6px;
+    height: 4px;
 }
-
 .categorias-tabs::-webkit-scrollbar-track {
     background: #f1f1f1;
-    border-radius: 3px;
 }
-
 .categorias-tabs::-webkit-scrollbar-thumb {
     background-color: var(--secondary-color);
-    border-radius: 3px;
 }
-
-.categorias-tabs::-webkit-scrollbar-thumb:hover {
-    background-color: var(--primary-color);
-}
-
 .categoria-tab {
-    padding: 8px 15px;
+    padding: 6px 12px;
     background-color: var(--light-color);
     border-radius: var(--border-radius);
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
     white-space: nowrap;
-    transition: all 0.2s ease;
+    transition: var(--transition);
 }
-
 .categoria-tab:hover {
     background-color: #dfe6e9;
 }
-
 .categoria-tab.active {
     background-color: var(--secondary-color);
     color: white;
 }
-
 /* Grid de productos */
 .productos-grid {
     flex: 1;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 15px;
-    padding: 15px;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    padding: 12px;
     overflow-y: auto;
 }
-
 /* ESTILOS PARA PRODUCTOS */
 .producto-item {
     background: white;
     border-radius: var(--border-radius);
     overflow: hidden;
     box-shadow: var(--shadow);
-    transition: all 0.3s ease;
+    transition: var(--transition);
     display: flex;
     flex-direction: column;
-    height: 280px;
+    height: 240px;
     border: 1px solid #eee;
     position: relative;
     cursor: pointer;
 }
-
 .producto-item:hover {
     transform: translateY(-3px);
     box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
-
 /* CONTENEDOR DE IMAGEN */
 .producto-imagen-container {
-    height: 110px;
+    height: 100px;
     background: #f8f9fa;
     display: flex;
     align-items: center;
@@ -456,7 +412,6 @@ body.vista-facturacion-restaurante {
     position: relative;
     flex-shrink: 0;
 }
-
 .producto-imagen {
     width: 100%;
     height: 100%;
@@ -465,7 +420,6 @@ body.vista-facturacion-restaurante {
     justify-content: center;
     background-color: #f1f3f5;
 }
-
 /* ESTILO CUANDO NO HAY IMAGEN */
 .producto-imagen.sin-imagen {
     background-color: #e9ecef;
@@ -473,14 +427,12 @@ body.vista-facturacion-restaurante {
     padding: 10px;
     text-align: center;
 }
-
 .producto-imagen.sin-imagen::before {
     content: "🛒";
-    font-size: 28px;
+    font-size: 24px;
     margin-bottom: 5px;
     opacity: 0.5;
 }
-
 .producto-imagen.sin-imagen::after {
     content: "NO IMAGE AVAILABLE";
     font-size: 10px;
@@ -489,14 +441,12 @@ body.vista-facturacion-restaurante {
     padding: 0 5px;
     line-height: 1.2;
 }
-
 .imagen-producto {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
     padding: 8px;
 }
-
 /* CONTENIDO DEL PRODUCTO */
 .producto-contenido {
     padding: 10px;
@@ -508,9 +458,8 @@ body.vista-facturacion-restaurante {
     min-height: 0;
     overflow: hidden;
 }
-
 .producto-nombre {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--primary-color);
     margin-bottom: 5px;
@@ -521,33 +470,7 @@ body.vista-facturacion-restaurante {
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
-    word-wrap: break-word;
-    hyphens: auto;
-    max-height: 2.8em;
 }
-
-.producto-descripcion {
-    font-size: 11px;
-    color: #57606f;
-    margin-bottom: 6px;
-    line-height: 1.3;
-    text-align: center;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    word-wrap: break-word;
-    max-height: 2.6em;
-    min-height: 1.3em;
-}
-
-.producto-descripcion:empty,
-.producto-descripcion[data-empty="true"] {
-    display: none;
-    margin-bottom: 0;
-}
-
 /* Estilos para precios */
 .producto-precios {
     margin-top: auto;
@@ -556,18 +479,15 @@ body.vista-facturacion-restaurante {
     text-align: center;
     flex-shrink: 0;
 }
-
 .precio-regular {
     display: block;
     margin-bottom: 3px;
 }
-
 .precio-valor {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
     color: var(--success-color);
 }
-
 .precio-mayoreo {
     font-size: 11px;
     padding: 2px 0;
@@ -575,7 +495,6 @@ body.vista-facturacion-restaurante {
     display: block;
     line-height: 1.2;
 }
-
 .mayoreo-info {
     font-weight: 600;
     color: var(--info-color);
@@ -586,76 +505,74 @@ body.vista-facturacion-restaurante {
     margin-top: 2px;
     font-size: 10px;
 }
-
 /* Botón de agregar */
 .btn-agregar {
     background: var(--secondary-color);
     color: white;
     border: none;
-    padding: 10px;
+    padding: 8px;
     width: 100%;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: var(--transition);
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
     font-weight: 600;
     font-size: 13px;
-    height: 40px;
+    height: 36px;
     flex-shrink: 0;
     border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
-
 .btn-agregar:hover {
     background: var(--primary-color);
 }
-
 .btn-agregar i {
     font-size: 13px;
 }
-
-/* ========== PANEL DE COMANDA (MEJORADO) ========== */
-/* ========== PANEL DE COMANDA (MEJORADO) ========== */
+/* ========== PANEL DE COMANDA ========== */
 .comanda-panel {
     flex: 1;
     display: flex;
     flex-direction: column;
     background-color: white;
     overflow: hidden;
-    min-width: 350px;
+    min-width: 320px;
+    max-height: 100%;
 }
-
 .comanda-header {
-    padding: 15px;
+    padding: 12px 15px;
     border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-shrink: 0;
 }
-
 .comanda-header h3 {
-    font-size: 18px;
+    font-size: 16px;
     color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
-
 .comanda-items {
     flex: 1;
     overflow-y: auto;
-    padding: 10px;
+    padding: 0;
+    min-height: 0;
+    max-height: calc(100vh - 450px);
+    border-bottom: 1px solid var(--border-color);
 }
-
-/* Tabla de comanda mejorada */
+/* Tabla de comanda */
 .comanda-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 14px;
+    font-size: 13px;
     table-layout: fixed;
 }
-
 .comanda-table th {
     text-align: left;
-    padding: 10px 8px;
+    padding: 10px 6px;
     background-color: #f8f9fa;
     border-bottom: 2px solid var(--border-color);
     font-weight: 600;
@@ -663,363 +580,353 @@ body.vista-facturacion-restaurante {
     position: sticky;
     top: 0;
     z-index: 10;
+    font-size: 12px;
 }
-
 .comanda-table td {
-    padding: 10px 8px;
+    padding: 8px 6px;
     border-bottom: 1px solid var(--border-color);
     vertical-align: middle;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
-
-/* Columnas específicas con anchos fijos */
+/* Columnas específicas */
 .comanda-table th:nth-child(1),
 .comanda-table td:nth-child(1) {
-    width: 40%;
-    max-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    width: 45%;
+    padding-right: 8px;
 }
-
 .comanda-table th:nth-child(2),
 .comanda-table td:nth-child(2) {
-    width: 15%;
+    width: 12%;
     text-align: center;
+    padding: 8px 2px;
 }
-
 .comanda-table th:nth-child(3),
 .comanda-table td:nth-child(3) {
-    width: 15%;
+    width: 18%;
     text-align: right;
-    padding-right: 10px;
+    padding-right: 8px;
+    font-size: 12px;
     white-space: nowrap;
-    font-family: 'Courier New', monospace;
 }
-
 .comanda-table th:nth-child(4),
 .comanda-table td:nth-child(4) {
-    width: 15%;
+    width: 18%;
     text-align: right;
-    padding-right: 10px;
+    padding-right: 8px;
+    font-size: 12px;
     white-space: nowrap;
-    font-family: 'Courier New', monospace;
 }
-
 .comanda-table th:nth-child(5),
 .comanda-table td:nth-child(5) {
-    width: 15%;
+    width: 7%;
     text-align: center;
+    padding: 8px 2px;
 }
-
-/* Estilos para nombres de productos */
+/* Estilos para nombres de productos - MEJORADO */
 .comanda-producto-info {
     display: flex;
     flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
 }
-
 .comanda-producto-nombre {
     font-weight: 600;
     color: var(--primary-color);
-    margin-bottom: 3px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    margin-bottom: 2px;
+    line-height: 1.2;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    display: block;
+    font-size: 11px;
     max-width: 100%;
-    display: inline-block;
+    /* Permitir que el texto se ajuste en múltiples líneas */
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
 }
-
 .comanda-producto-desc {
-    font-size: 12px;
+    font-size: 9px;
     color: #666;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    line-height: 1.2;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    display: block;
+    white-space: normal;
+    overflow: visible;
 }
-
 /* Controles de cantidad */
 .comanda-item-cantidad {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 5px;
+    gap: 2px;
 }
-
 .btn-cantidad {
     background-color: var(--light-color);
     border: 1px solid var(--border-color);
     border-radius: 3px;
-    width: 25px;
-    height: 25px;
+    width: 20px;
+    height: 20px;
     cursor: pointer;
     font-weight: bold;
     color: var(--primary-color);
-    transition: all 0.2s ease;
+    transition: var(--transition);
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 11px;
 }
-
 .btn-cantidad:hover {
     background-color: var(--secondary-color);
     color: white;
 }
-
 .comanda-item-cantidad input {
-    width: 40px;
+    width: 30px;
     text-align: center;
-    padding: 5px;
+    padding: 2px;
     border: 1px solid var(--border-color);
     border-radius: 3px;
-    margin: 0 5px;
-    font-size: 14px;
+    font-size: 11px;
+    margin: 0 1px;
 }
-
 /* Botón eliminar */
 .btn-eliminar {
     background: none;
     border: none;
     color: var(--danger-color);
     cursor: pointer;
-    font-size: 16px;
-    transition: all 0.2s ease;
-    padding: 5px;
+    font-size: 14px;
+    transition: var(--transition);
+    padding: 2px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto;
 }
-
 .btn-eliminar:hover {
     color: #c0392b;
     transform: scale(1.1);
 }
-
 /* Totales de la comanda */
 .comanda-totales {
-    padding: 15px 20px;
-    border-top: 1px solid var(--border-color);
+    padding: 12px 15px;
+    border-top: 2px solid var(--border-color);
     background: #f9f9f9;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
 }
-
 .totales-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
-    font-size: 15px;
-    padding: 0 5px;
+    margin-bottom: 6px;
+    font-size: 14px;
+    padding: 0 3px;
 }
-
 .totales-row span:first-child {
     flex: 1;
     text-align: left;
 }
-
 .totales-row span:last-child {
     flex: 0 0 auto;
     text-align: right;
-    margin-left: 20px;
-    min-width: 80px;
-    font-family: 'Courier New', monospace;
+    margin-left: 15px;
+    min-width: 70px;
+    font-size: 13px;
+    white-space: nowrap;
 }
-
 .totales-row.total {
     font-weight: bold;
-    font-size: 18px;
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border-color);
+    font-size: 16px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 2px solid var(--border-color);
     background: rgba(39, 174, 96, 0.1);
-    margin: 10px -20px 0 -20px;
-    padding: 15px 25px;
+    margin: 8px -15px 0 -15px;
+    padding: 12px 18px;
 }
-
 .totales-row.total span:last-child {
     color: var(--success-color);
     font-weight: 700;
+    font-size: 16px;
 }
-
 /* Observaciones */
 .comanda-observaciones {
-    padding: 15px;
+    padding: 12px 15px;
     border-top: 1px solid var(--border-color);
+    flex-shrink: 0;
+    background: white;
 }
-
 .comanda-observaciones label {
     display: block;
-    margin-bottom: 5px;
-    font-size: 14px;
+    margin-bottom: 4px;
+    font-size: 13px;
     color: var(--primary-color);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
-
 .comanda-observaciones textarea {
     width: 100%;
     padding: 8px;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     resize: none;
-    min-height: 80px;
-    font-size: 14px;
+    min-height: 60px;
+    font-size: 12px;
+    font-family: inherit;
 }
-
 /* Método de pago */
 .comanda-pago {
-    padding: 15px;
+    padding: 12px 15px;
     border-top: 1px solid var(--border-color);
     background: #f9f9f9;
+    flex-shrink: 0;
 }
-
 .comanda-pago h4 {
-    margin-bottom: 10px;
-    font-size: 16px;
+    margin-bottom: 8px;
+    font-size: 14px;
     color: var(--primary-color);
-}
-
-.pago-options {
-    display: flex;
-    gap: 15px;
-    flex-wrap: wrap;
-}
-
-/* Estilos mejorados para radio buttons */
-.radio-container {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+.pago-options {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+/* Estilos para radio buttons */
+.radio-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     cursor: pointer;
-    padding: 8px 12px;
+    padding: 6px 10px;
     border-radius: var(--border-radius);
     border: 1px solid var(--border-color);
-    transition: all 0.2s ease;
+    transition: var(--transition);
     background: white;
     position: relative;
     user-select: none;
+    font-size: 12px;
 }
-
 .radio-container:hover {
     border-color: var(--secondary-color);
     background: #f8f9fa;
 }
-
 .radio-container input[type="radio"] {
     appearance: none;
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     border: 2px solid var(--border-color);
     border-radius: 50%;
     background: white;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: var(--transition);
 }
-
 .radio-container input[type="radio"]:checked {
     border-color: var(--secondary-color);
     background: var(--secondary-color);
     position: relative;
 }
-
 .radio-container input[type="radio"]:checked::after {
     content: '';
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     background: white;
 }
-
 .radio-checkmark {
     display: none;
 }
-
 /* Acciones de la comanda */
 .comanda-actions {
-    padding: 15px;
+    padding: 12px 15px;
     border-top: 1px solid var(--border-color);
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
+    gap: 8px;
+    flex-shrink: 0;
+    background: white;
 }
-
 /* ========== BOTONES ========== */
 .btn {
-    padding: 10px 15px;
+    padding: 8px 12px;
     border: none;
     border-radius: var(--border-radius);
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    transition: all 0.2s ease;
+    transition: var(--transition);
+    min-height: 36px;
 }
-
 .btn i {
     font-size: 14px;
 }
-
 .btn-primary {
     background-color: var(--secondary-color);
     color: white;
 }
-
 .btn-primary:hover {
     background-color: #2980b9;
 }
-
 .btn-success {
     background-color: var(--success-color);
     color: white;
 }
-
 .btn-success:hover {
     background-color: #219653;
 }
-
 .btn-danger {
     background-color: var(--danger-color);
     color: white;
 }
-
 .btn-danger:hover {
     background-color: #c0392b;
 }
-
 .btn-warning {
     background-color: var(--warning-color);
     color: white;
 }
-
 .btn-warning:hover {
     background-color: #e67e22;
 }
-
 .btn-info {
     background-color: var(--info-color);
     color: white;
 }
-
 .btn-info:hover {
     background-color: #3498db;
 }
-
 .btn-light {
     background-color: var(--light-color);
     color: var(--text-color);
 }
-
 .btn-light:hover {
     background-color: #dfe6e9;
 }
-
 .btn-sm {
-    padding: 6px 12px;
+    padding: 6px 10px;
     font-size: 12px;
+    min-height: 32px;
 }
-
+.btn-block {
+    display: block;
+    width: 100%;
+}
 /* ========== MODALES ========== */
 .modal {
     display: none;
@@ -1036,28 +943,31 @@ body.vista-facturacion-restaurante {
 
 .modal-content {
     background-color: white;
-    margin: 5% auto;
+    position: relative;
+    margin: auto;
     padding: 0;
     border-radius: var(--border-radius);
     width: 90%;
     max-width: 500px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     animation: modalSlideIn 0.3s ease-out;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 @keyframes modalSlideIn {
     from {
         opacity: 0;
-        transform: translateY(-50px);
+        transform: translateY(-50px) translateY(-50%);
     }
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) translateY(-50%);
     }
 }
 
 .modal-header {
-    padding: 20px;
+    padding: 15px 20px;
     border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
@@ -1070,6 +980,9 @@ body.vista-facturacion-restaurante {
 .modal-header h3 {
     margin: 0;
     font-size: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .close {
@@ -1096,19 +1009,19 @@ body.vista-facturacion-restaurante {
     justify-content: flex-end;
     gap: 10px;
 }
-
 /* Formularios en modales */
 .form-group {
     margin-bottom: 15px;
 }
-
 .form-group label {
     display: block;
     margin-bottom: 5px;
     font-weight: 500;
     color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
-
 .form-group input,
 .form-group select {
     width: 100%;
@@ -1116,358 +1029,138 @@ body.vista-facturacion-restaurante {
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     font-size: 14px;
-    transition: border-color 0.2s ease;
+    transition: var(--transition);
 }
-
 .form-group input:focus,
 .form-group select:focus {
     outline: none;
     border-color: var(--secondary-color);
     box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
-
 /* Lista de clientes */
 .search-container {
     margin-bottom: 15px;
+    display: flex;
 }
-
+.search-container input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px 0 0 4px;
+    outline: none;
+    font-size: 14px;
+}
+.search-container button {
+    background-color: var(--secondary-color);
+    color: white;
+    border: none;
+    padding: 0 12px;
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 .clientes-list {
     max-height: 300px;
     overflow-y: auto;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
 }
-
 .cliente-item {
     padding: 10px 15px;
     border-bottom: 1px solid var(--border-color);
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: var(--transition);
 }
-
 .cliente-item:hover {
     background-color: #f8f9fa;
 }
-
 .cliente-item:last-child {
     border-bottom: none;
 }
-
 .cliente-nombre {
     font-weight: 600;
     color: var(--primary-color);
 }
-
-.cliente-info {
+.cliente-identificacion {
     font-size: 12px;
     color: #666;
     margin-top: 2px;
 }
-
-/* ========== RESPONSIVE ========== */
-@media (max-width: 1400px) {
-    .productos-grid {
-        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    }
-    
-    .producto-item {
-        height: 260px;
-    }
+/* ========== ANIMACIONES ========== */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
-
-@media (max-width: 1200px) {
-    .productos-grid {
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    }
-    
-    .producto-item {
-        height: 250px;
-    }
-    
-    .producto-nombre {
-        font-size: 13px;
-        -webkit-line-clamp: 2;
-        max-height: 2.6em;
-    }
-    
-    .producto-imagen-container {
-        height: 100px;
-    }
+.fade-in {
+    animation: fadeIn 0.3s ease-in-out;
 }
-
-@media (max-width: 992px) {
-    .factura-body {
-        flex-direction: column;
-    }
-    
-    .productos-panel {
-        border-right: none;
-        border-bottom: 1px solid var(--border-color);
-    }
-    
-    .productos-grid {
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    }
-    
-    .producto-item {
-        height: 240px;
-    }
-    
-    .producto-imagen-container {
-        height: 90px;
-    }
-    
-    /* Ajustes para la comanda en tablet */
-    .comanda-table th,
-    .comanda-table td {
-        padding: 8px 10px;
-        font-size: 13px;
-    }
-    
-    .comanda-producto-nombre {
-        -webkit-line-clamp: 1;
-    }
-    
-    .comanda-producto-desc {
-        display: none;
-    }
-}
-
-@media (max-width: 768px) {
-    .restaurante-container {
-        flex-direction: column;
-    }
-    
+/* ========== RESPONSIVE PARA TABLETS ========== */
+@media (max-width: 1024px) {
     .control-bar {
+        padding: 8px 12px;
         height: auto;
-        padding: 10px 15px;
-        flex-direction: column;
-        gap: 10px;
+        min-height: 50px;
     }
     
     .control-user {
-        padding: 8px 16px;
         font-size: 14px;
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .control-user span {
-        font-size: 14px;
-    }
-    
-    .control-user i {
-        width: 32px;
-        height: 32px;
-        font-size: 16px;
-    }
-    
-    .control-buttons {
-        width: 100%;
-        justify-content: center;
-        flex-wrap: wrap;
-    }
-    
-    .control-buttons .btn {
-        padding: 8px 12px;
-        font-size: 12px;
-        flex: 1;
-        min-width: 120px;
-    }
-    
-    .restaurante-content {
-        height: calc(100vh - 100px);
-    }
-    
-    .mesas-sidebar {
-        width: 100%;
-        height: auto;
-        max-height: 200px;
-        border-right: none;
-        border-bottom: 1px solid var(--border-color);
-    }
-    
-    .factura-actions {
-        flex-wrap: wrap;
-        gap: 5px;
-    }
-    
-    .btn {
-        padding: 8px 12px;
-        font-size: 13px;
-    }
-    
-    .factura-meta {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 5px;
-    }
-    
-    .comanda-panel {
-        min-width: auto;
-    }
-    
-    .productos-grid {
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-        gap: 10px;
-    }
-    
-    .producto-item {
-        height: 220px;
-    }
-    
-    .producto-imagen-container {
-        height: 80px;
-    }
-    
-    .producto-nombre {
-        font-size: 12px;
-        -webkit-line-clamp: 2;
-        max-height: 2.4em;
-    }
-    
-    .producto-descripcion {
-        font-size: 10px;
-        -webkit-line-clamp: 1;
-        max-height: 1.3em;
-    }
-    
-    .btn-agregar {
-        font-size: 12px;
-        padding: 8px;
-        height: 36px;
-    }
-    
-    .precio-valor {
-        font-size: 14px;
-    }
-    
-    /* Ajustes para modales en móvil */
-    .modal-content {
-        width: 95%;
-        margin: 10% auto;
-    }
-    
-    .pago-options {
-        flex-direction: column;
-        gap: 8px;
-    }
-    
-    .radio-container {
-        justify-content: flex-start;
-    }
-    
-    /* Vista móvil para la comanda */
-    .comanda-table {
-        display: block;
-        overflow-x: auto;
-        white-space: nowrap;
-    }
-    
-    .comanda-table th, 
-    .comanda-table td {
-        min-width: 80px;
-    }
-    
-    .comanda-table td:nth-child(1) {
-        max-width: 120px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-}
-
-@media (max-width: 600px) {
-    .control-bar {
-        padding: 8px 12px;
-    }
-    
-    .control-user {
-        padding: 6px 12px;
-        font-size: 13px;
-    }
-    
-    .control-user span {
-        font-size: 13px;
-    }
-    
-    .control-buttons .btn {
-        font-size: 11px;
-        padding: 6px 10px;
-        min-width: 100px;
-    }
-    
-    .restaurante-content {
-        height: calc(100vh - 90px);
-    }
-    
-    /* Ajustes específicos para la comanda en móviles */
-    .comanda-table {
-        display: block;
-        width: 100%;
-        overflow-x: auto;
-    }
-    
-    .comanda-table th, 
-    .comanda-table td {
-        padding: 8px;
-        font-size: 12px;
-    }
-    
-    .comanda-table td:nth-child(1) {
-        max-width: 100px;
-    }
-    
-    .btn-cantidad {
-        width: 20px;
-        height: 20px;
-        font-size: 12px;
-    }
-    
-    .comanda-item-cantidad input {
-        width: 30px;
-        padding: 3px;
-    }
-    
-    .btn-eliminar {
-        font-size: 14px;
-    }
-}
-
-@media (max-width: 480px) {
-    .control-bar {
-        padding: 8px 10px;
-    }
-    
-    .control-user {
-        padding: 6px 10px;
-        font-size: 12px;
-    }
-    
-    .control-user span {
-        font-size: 12px;
+        padding: 5px 12px;
         gap: 6px;
     }
     
     .control-user i {
-        width: 28px;
-        height: 28px;
+        width: 24px;
+        height: 24px;
         font-size: 14px;
-        padding: 6px;
-    }
-    
-    .control-buttons .btn {
-        font-size: 10px;
-        padding: 6px 8px;
-        min-width: 80px;
     }
     
     .restaurante-content {
-        height: calc(100vh - 85px);
+        flex-direction: row;
+        height: calc(100vh - 50px);
+    }
+    
+    .mesas-sidebar {
+        width: 200px;
+        height: 100%;
+        max-height: none;
+        border-right: 1px solid var(--border-color);
+        border-bottom: none;
+    }
+    
+    .main-content {
+        flex: 1;
+    }
+    
+    .factura-body {
+        flex-direction: row;
+        height: calc(100% - 60px);
+    }
+    
+    .productos-panel {
+        flex: 1.5;
+        border-right: 1px solid var(--border-color);
+        border-bottom: none;
+        max-height: 100%;
+        min-height: 100%;
+    }
+    
+    .comanda-panel {
+        flex: 1;
+        min-width: 280px;
+        max-height: 100%;
+        min-height: 100%;
+    }
+    
+    .comanda-items {
+        max-height: calc(100vh - 400px);
+        min-height: 200px;
     }
     
     .productos-grid {
         grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        gap: 8px;
+        gap: 10px;
         padding: 10px;
     }
     
@@ -1476,7 +1169,7 @@ body.vista-facturacion-restaurante {
     }
     
     .producto-imagen-container {
-        height: 70px;
+        height: 80px;
     }
     
     .producto-contenido {
@@ -1484,140 +1177,380 @@ body.vista-facturacion-restaurante {
     }
     
     .producto-nombre {
-        font-size: 11px;
-        margin-bottom: 3px;
+        font-size: 12px;
     }
     
-    .producto-descripcion {
-        font-size: 9px;
+    .btn-agregar {
+        font-size: 12px;
+        height: 32px;
+    }
+    
+    /* Ajustes para la tabla de comanda */
+    .comanda-table th,
+    .comanda-table td {
+        padding: 6px 4px;
+        font-size: 11px;
+    }
+    
+    .comanda-producto-nombre {
+        font-size: 10px;
+        line-height: 1.2;
+    }
+    
+    .comanda-producto-desc {
+        font-size: 8px;
+    }
+    
+    .btn-cantidad {
+        width: 18px;
+        height: 18px;
+        font-size: 10px;
+    }
+    
+    .comanda-item-cantidad input {
+        width: 25px;
+        font-size: 10px;
+    }
+    
+    .btn-eliminar {
+        font-size: 12px;
+    }
+}
+/* ========== RESPONSIVE PARA MÓVILES ========== */
+@media (max-width: 768px) {
+    .control-bar {
+        height: auto;
+        padding: 8px 10px;
+        flex-wrap: wrap;
+        gap: 8px;
+        min-height: 60px;
+    }
+    
+    .control-user {
+        font-size: 13px;
+        padding: 4px 10px;
+        gap: 5px;
+        flex: 1;
+        min-width: 150px;
+    }
+    
+    .control-user i {
+        width: 22px;
+        height: 22px;
+        font-size: 12px;
+        padding: 4px;
+    }
+    
+    .control-buttons {
+        flex: 1;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    
+    .control-buttons .btn {
+        font-size: 11px;
+        padding: 5px 8px;
+        min-height: 28px;
+    }
+    
+    .restaurante-content {
+        height: calc(100vh - 70px);
+        flex-direction: column;
+    }
+    
+    .mesas-sidebar {
+        width: 100%;
+        height: auto;
+        max-height: 120px;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        order: 1;
+    }
+    
+    .mesas-list {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 6px;
+        padding: 8px;
+    }
+    
+    .mesa-item {
+        padding: 8px;
+    }
+    
+    .mesa-numero {
+        font-size: 14px;
+    }
+    
+    .mesa-capacidad {
+        font-size: 10px;
+        padding: 1px 6px;
+    }
+    
+    .mesa-info {
+        font-size: 11px;
+    }
+    
+    .main-content {
+        flex: 1;
+        order: 2;
+    }
+    
+    .factura-header {
+        padding: 8px 10px;
+    }
+    
+    .factura-info h2 {
+        font-size: 16px;
+    }
+    
+    .factura-meta {
+        font-size: 12px;
+        gap: 8px;
+    }
+    
+    .factura-actions .btn {
+        font-size: 11px;
+        padding: 5px 8px;
+        min-height: 28px;
+    }
+    
+    .factura-body {
+        flex-direction: column;
+        height: calc(100% - 50px);
+    }
+    
+    .productos-panel {
+        flex: 1;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        max-height: 60%;
+        min-height: 300px;
+    }
+    
+    .productos-header {
+        padding: 8px 10px;
+        gap: 8px;
+    }
+    
+    .productos-header h3 {
+        font-size: 14px;
+    }
+    
+    .productos-search {
+        width: 150px;
+        min-width: 120px;
+    }
+    
+    .productos-search input {
+        font-size: 12px;
+        padding: 6px 8px;
+    }
+    
+    .categorias-tabs {
+        padding: 6px 8px;
+        gap: 4px;
+    }
+    
+    .categoria-tab {
+        padding: 5px 8px;
+        font-size: 12px;
+    }
+    
+    .productos-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 8px;
+        padding: 8px;
+    }
+    
+    .producto-item {
+        height: 180px;
+    }
+    
+    .producto-imagen-container {
+        height: 70px;
+    }
+    
+    .producto-contenido {
+        padding: 6px;
+    }
+    
+    .producto-nombre {
+        font-size: 11px;
         margin-bottom: 4px;
     }
     
     .precio-valor {
-        font-size: 13px;
+        font-size: 12px;
+    }
+    
+    .precio-mayoreo {
+        font-size: 10px;
+    }
+    
+    .mayoreo-info {
+        font-size: 9px;
     }
     
     .btn-agregar {
-        height: 32px;
+        height: 28px;
         font-size: 11px;
-        padding: 6px;
+        padding: 4px;
+    }
+    
+    .comanda-panel {
+        flex: 1;
+        min-width: auto;
+        max-height: 40%;
+        min-height: 250px;
+    }
+    
+    .comanda-header {
+        padding: 8px 10px;
+    }
+    
+    .comanda-header h3 {
+        font-size: 14px;
+    }
+    
+    .comanda-items {
+        max-height: calc(40vh - 200px);
+        min-height: 120px;
+    }
+    
+    /* Ajustes para la tabla de comanda en móvil */
+    .comanda-table th,
+    .comanda-table td {
+        padding: 4px 2px;
+        font-size: 10px;
+    }
+    
+    .comanda-table th:nth-child(1),
+    .comanda-table td:nth-child(1) {
+        width: 40%;
+        padding-right: 4px;
+    }
+    
+    .comanda-table th:nth-child(2),
+    .comanda-table td:nth-child(2) {
+        width: 15%;
+    }
+    
+    .comanda-table th:nth-child(3),
+    .comanda-table td:nth-child(3) {
+        width: 20%;
+        font-size: 9px;
+        padding-right: 4px;
+    }
+    
+    .comanda-table th:nth-child(4),
+    .comanda-table td:nth-child(4) {
+        width: 20%;
+        font-size: 9px;
+        padding-right: 4px;
+    }
+    
+    .comanda-table th:nth-child(5),
+    .comanda-table td:nth-child(5) {
+        width: 5%;
+    }
+    
+    .comanda-producto-nombre {
+        font-size: 9px;
+        line-height: 1.1;
+        margin-bottom: 1px;
+    }
+    
+    .comanda-producto-desc {
+        font-size: 8px;
+        line-height: 1.1;
+    }
+    
+    .btn-cantidad {
+        width: 16px;
+        height: 16px;
+        font-size: 9px;
+    }
+    
+    .comanda-item-cantidad input {
+        width: 20px;
+        font-size: 9px;
+        padding: 1px;
+    }
+    
+    .btn-eliminar {
+        font-size: 10px;
     }
     
     .comanda-totales {
-        padding: 10px 15px;
+        padding: 8px 10px;
     }
     
     .totales-row {
-        font-size: 13px;
-        padding: 0 2px;
+        font-size: 11px;
+        margin-bottom: 4px;
     }
     
     .totales-row span:last-child {
-        margin-left: 10px;
+        font-size: 11px;
         min-width: 60px;
     }
     
     .totales-row.total {
-        font-size: 16px;
-        padding: 10px 17px;
-        margin: 8px -15px 0 -15px;
+        font-size: 13px;
+        padding: 8px 12px;
+        margin: 6px -10px 0 -10px;
+    }
+    
+    .totales-row.total span:last-child {
+        font-size: 14px;
+    }
+    
+    .comanda-observaciones {
+        padding: 8px 10px;
+    }
+    
+    .comanda-observaciones label {
+        font-size: 12px;
+    }
+    
+    .comanda-observaciones textarea {
+        min-height: 40px;
+        font-size: 11px;
+        padding: 6px;
+    }
+    
+    .comanda-pago {
+        padding: 8px 10px;
+    }
+    
+    .comanda-pago h4 {
+        font-size: 12px;
+        margin-bottom: 6px;
+    }
+    
+    .radio-container {
+        font-size: 10px;
+        padding: 4px 8px;
+        gap: 4px;
+    }
+    
+    .radio-container input[type="radio"] {
+        width: 14px;
+        height: 14px;
+    }
+    
+    .comanda-actions {
+        padding: 8px 10px;
+        gap: 6px;
+    }
+    
+    .comanda-actions .btn {
+        font-size: 11px;
+        padding: 5px 8px;
+        min-height: 28px;
     }
 }
-
-/* ========== ANIMACIONES ========== */
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-.fade-in {
-    animation: fadeIn 0.3s ease-in-out;
-}
-
-@keyframes slideUp {
-    from {
-        transform: translateY(20px);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-.slide-up {
-    animation: slideUp 0.4s ease-out;
-}
-
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.05);
-    }
-    100% {
-        transform: scale(1);
-    }
-}
-
-.pulse {
-    animation: pulse 0.6s ease-in-out;
-}
-
-/* ========== ESTADOS DE CARGA ========== */
-.loading {
-    position: relative;
-    pointer-events: none;
-    opacity: 0.7;
-}
-
-.loading::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 20px;
-    height: 20px;
-    margin: -10px 0 0 -10px;
-    border: 2px solid var(--secondary-color);
-    border-top: 2px solid transparent;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* ========== UTILIDADES ========== */
-.text-center { text-align: center; }
-.text-left { text-align: left; }
-.text-right { text-align: right; }
-
-.d-none { display: none !important; }
-.d-block { display: block !important; }
-.d-flex { display: flex !important; }
-
-.mb-0 { margin-bottom: 0 !important; }
-.mb-1 { margin-bottom: 0.25rem !important; }
-.mb-2 { margin-bottom: 0.5rem !important; }
-.mb-3 { margin-bottom: 1rem !important; }
-
-.mt-0 { margin-top: 0 !important; }
-.mt-1 { margin-top: 0.25rem !important; }
-.mt-2 { margin-top: 0.5rem !important; }
-.mt-3 { margin-top: 1rem !important; }
-
-.p-0 { padding: 0 !important; }
-.p-1 { padding: 0.25rem !important; }
-.p-2 { padding: 0.5rem !important; }
-.p-3 { padding: 1rem !important; }
-
-.w-100 { width: 100% !important; }
-.h-100 { height: 100% !important; }
-
 /* ========== SCROLLBAR PERSONALIZADO ========== */
 .mesas-list::-webkit-scrollbar,
 .productos-grid::-webkit-scrollbar,
@@ -1625,7 +1558,6 @@ body.vista-facturacion-restaurante {
 .clientes-list::-webkit-scrollbar {
     width: 6px;
 }
-
 .mesas-list::-webkit-scrollbar-track,
 .productos-grid::-webkit-scrollbar-track,
 .comanda-items::-webkit-scrollbar-track,
@@ -1633,7 +1565,6 @@ body.vista-facturacion-restaurante {
     background: #f1f1f1;
     border-radius: 3px;
 }
-
 .mesas-list::-webkit-scrollbar-thumb,
 .productos-grid::-webkit-scrollbar-thumb,
 .comanda-items::-webkit-scrollbar-thumb,
@@ -1641,7 +1572,6 @@ body.vista-facturacion-restaurante {
     background: var(--secondary-color);
     border-radius: 3px;
 }
-
 .mesas-list::-webkit-scrollbar-thumb:hover,
 .productos-grid::-webkit-scrollbar-thumb:hover,
 .comanda-items::-webkit-scrollbar-thumb:hover,

@@ -1,4 +1,5 @@
 <?php
+	//cuentaContabilidadControlador.php
     if($peticionAjax){
         require_once "../modelos/cuentaContabilidadModelo.php";
     }else{

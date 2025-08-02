@@ -2949,35 +2949,30 @@ class mainModel
 
 	public function getSaldoMovimientosCuentasSaldoAnterior($datos)
 	{
-		// Obtener el último día del mes anterior
-		$fecha_inicio_mes_anterior = date('Y-m-01', strtotime('-1 month', strtotime($datos['fechai'])));
-		$fecha_fin_mes_anterior = date('Y-m-t', strtotime('-1 month', strtotime($datos['fechai'])));
-	
+		// Obtener la fecha de inicio del período anterior
+		$fecha_anterior = date('Y-m-d', strtotime('-1 day', strtotime($datos['fechai'])));
+		
 		$query = "SELECT saldo
 				FROM movimientos_cuentas
 				WHERE cuentas_id = '" . $datos['cuentas_id'] . "'
-				AND fecha BETWEEN '" . $fecha_inicio_mes_anterior . "' AND '" . $fecha_fin_mes_anterior . "'
+				AND fecha <= '" . $fecha_anterior . "'
 				ORDER BY fecha DESC, movimientos_cuentas_id DESC LIMIT 1";
-	
+		
 		$result = self::connection()->query($query);
-	
+		
 		return $result;
 	}
-
 	public function getSaldoMovimientosCuentasUltimoSaldo($datos)
 	{
-		// Obtener el último día del mes anterior
-		$fecha_inicio_mes_anterior = date('Y-m-01', strtotime('-1 month', strtotime($datos['fechai'])));
-		$fecha_fin_mes_anterior = date('Y-m-t', strtotime('-1 month', strtotime($datos['fechai'])));
-	
+		// Buscar cualquier registro anterior a la fecha de inicio
 		$query = "SELECT saldo, fecha
 				FROM movimientos_cuentas
 				WHERE cuentas_id = '" . $datos['cuentas_id'] . "'
-				AND fecha BETWEEN '" . $fecha_inicio_mes_anterior . "' AND '" . $fecha_fin_mes_anterior . "'
+				AND fecha < '" . $datos['fechai'] . "'
 				ORDER BY fecha DESC, movimientos_cuentas_id DESC LIMIT 1";
-	
+		
 		$result = self::connection()->query($query);
-	
+		
 		return $result;
 	}
 

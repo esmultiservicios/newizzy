@@ -1,4 +1,91 @@
 <script>
+//gastosContabilidad.php
+// Agrega estas funciones al inicio de tu JS
+function setupFileUpload() {
+    const fileDropArea = document.getElementById('fileDropArea');
+    const fileInput = document.querySelector('.file-upload-input');
+    const fileInfo = document.getElementById('fileInfo');
+    const filePreview = document.getElementById('filePreview');
+    
+    if(fileDropArea) {
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            fileDropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        // Highlight drop area when item is dragged over it
+        ['dragenter', 'dragover'].forEach(eventName => {
+            fileDropArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            fileDropArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        // Handle dropped files
+        fileDropArea.addEventListener('drop', handleDrop, false);
+
+        // Handle selected files
+        fileInput.addEventListener('change', handleFiles, false);
+    }
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    function highlight() {
+        fileDropArea.classList.add('highlight');
+    }
+
+    function unhighlight() {
+        fileDropArea.classList.remove('highlight');
+    }
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        fileInput.files = files;
+        handleFiles({target: {files: files}});
+    }
+
+    function handleFiles(e) {
+        const files = e.target.files;
+        if(files.length > 0) {
+            const file = files[0];
+            
+            // Validar que sea PDF
+            if(file.type !== 'application/pdf') {
+                showNotify('error', 'Error', 'Solo se permiten archivos PDF');
+                fileInput.value = '';
+                fileInfo.textContent = 'Ningún archivo seleccionado';
+                filePreview.style.display = 'none';
+                return;
+            }
+            
+            // Validar tamaño (ej. 5MB máximo)
+            if(file.size > 5 * 1024 * 1024) {
+                showNotify('error', 'Error', 'El archivo no debe exceder los 5MB');
+                fileInput.value = '';
+                fileInfo.textContent = 'Ningún archivo seleccionado';
+                filePreview.style.display = 'none';
+                return;
+            }
+            
+            fileInfo.textContent = `Archivo seleccionado: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+            
+            // Mostrar vista previa para PDF
+            filePreview.innerHTML = `
+                <div class="pdf-preview">
+                    <i class="fas fa-file-pdf fa-2x"></i>
+                    <p>${file.name}</p>
+                </div>
+            `;
+            filePreview.style.display = 'block';
+        }
+    }
+}
+
 $(() => {
     listar_gastos_contabilidad();
     getEmpresaEgresos();
@@ -85,7 +172,7 @@ var listar_gastos_contabilidad = function() {
             },
             {
                 "data": "egresos_id"
-            },
+            },           
             {
                 "data": "categoria"
             },
@@ -99,7 +186,26 @@ var listar_gastos_contabilidad = function() {
                 "data": "proveedor"
             },
             {
-                "data": "factura"
+                "data": "factura",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        // Mostrar el número de factura + ícono PDF (si existe)
+                        let html = data; // Número de factura
+                        
+                        if (row.factura_pdf && row.factura_pdf !== '') {
+                            html += ` <a href="<?php echo SERVERURL; ?>vistas/plantilla/gastos/${row.factura_pdf}" 
+                                    target="_blank" 
+                                    class="btn btn-sm btn-pdf" 
+                                    title="Descargar PDF" 
+                                    data-toggle="tooltip">
+                                        <i class="fas fa-file-pdf fa-lg"></i>
+                                    </a>`;
+                        }
+                        
+                        return html;
+                    }
+                    return data;
+                }
             },
             {
                 "data": "subtotal",
@@ -366,6 +472,11 @@ var listar_gastos_contabilidad = function() {
         }
     });
 
+    // Inicializar tooltips después de cada redibujado de la tabla
+    $('#dataTableGastosContabilidad').on('draw.dt', function() {
+        $('[data-toggle="tooltip"]').tooltip();
+    });
+
     table_gastos_contabilidad.search('').draw();
 
     $('#buscar').focus();
@@ -453,6 +564,36 @@ var edit_reporte_gastos_dataTable = function(tbody, table) {
                         
                         $('#formEgresosContables #empresa_egresos').val(valores[2]);
                         $('#formEgresosContables #empresa_egresos').selectpicker('refresh');
+
+                        // Manejar el archivo PDF existente si hay uno
+                        if(valores[11] && valores[11] !== '') {
+                            $('#filePreview').html(`
+                                <div class="existing-file">
+                                    <i class="fas fa-file-pdf"></i> 
+                                    <a href="<?php echo SERVERURL; ?>vistas/plantilla/gastos/${valores[11]}" target="_blank">Ver factura actual</a>
+                                    <p><small>${valores[11]}</small></p>
+                                    <button type="button" class="btn btn-sm btn-outline-danger mt-2" id="removeFile">
+                                        <i class="fas fa-trash"></i> Cambiar archivo
+                                    </button>
+                                </div>
+                            `).show();
+                            
+                            $('#fileInfo').text('Archivo actual: ' + valores[11]);
+                            
+                            $('#removeFile').on('click', function() {
+                                $('#filePreview').hide().html('');
+                                $('#fileInfo').text('Ningún archivo seleccionado');
+                                $('#factura_pdf').val('');
+                                $('<input>').attr({
+                                    type: 'hidden',
+                                    name: 'remove_existing_file',
+                                    value: '1'
+                                }).appendTo('#formEgresosContables');
+                            });
+                        }
+                            
+                        // Configurar la carga de archivos
+                        setupFileUpload();                        
                         
                         // Manejar el select de proveedores
                         var proveedorId = valores[0];
@@ -523,6 +664,14 @@ function printGastos(egresos_id) {
 /*INICIO FORMULARIO EGRESOS CONTABLES*/
 function modal_egresos_contabilidad() {
     getCategoriaGastos();
+
+    // Resetear el campo de archivo
+    $('#formEgresosContables #filePreview').hide();
+    $('#formEgresosContables #fileInfo').text('Ningún archivo seleccionado');
+    $('#formEgresosContables #factura_pdf').val('');
+    
+    // Configurar la carga de archivos
+    setupFileUpload();    
 
     $('#formEgresosContables').attr({
         'data-form': 'save',

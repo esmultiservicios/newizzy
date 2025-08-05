@@ -5354,38 +5354,6 @@ function getCollaboradoresModalPagoFacturasCompras() {
     });
 }
 
-//IMAGE FILE TYPE VALIDATION
-$(document).on("click", ".browse", function() {
-    var file = $(this)
-        .parent()
-        .parent()
-        .parent()
-        .find(".file");
-    file.trigger("click");
-});
-$('input[type="file"]').change(function(e) {
-    var file = this.files[0];
-    var imagefile = file.type;
-    var match = ["image/jpeg", "image/png", "image/jpg"];
-    if (!((imagefile == match[0]) || (imagefile == match[1]) || (imagefile == match[2]))) {
-        showNotify('error', 'Error', 'Por favor seleccione una archivo valido con el formato (JPEG/JPG/PNG)');
-        $("#file").val('');
-        return false;
-    } else {
-        var fileName = e.target.files[0].name;
-        $("#formProductos #file_product").val(fileName);
-
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            // get loaded data and render thumbnail.
-            document.getElementById("preview").src = e.target.result;
-        };
-        // read the image file as a data URL.
-        reader.readAsDataURL(this.files[0]);
-    }
-});
-
-
 //INICIO ASISTENCIA
 $(document).ready(function() {
     listar_asistencia();

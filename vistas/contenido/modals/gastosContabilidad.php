@@ -65,6 +65,22 @@
                                     <input type="text" required id="factura_egresos" name="factura_egresos" placeholder="Número de factura" class="form-control" maxlength="19" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
                                     <small class="form-text text-muted">Número de factura (máx. 19 caracteres)</small>
                                 </div>
+
+                                <!-- En el formulario principal, agrega esto en la sección de campos -->
+                                <div class="col-md-12 col-sm-6 mb-3">
+                                    <div class="form-group">
+                                        <label class="small mb-1"><strong>Factura PDF</strong></label>
+                                        <div class="file-upload-container">
+                                            <div class="file-upload-area" id="fileDropArea">
+                                                <i class="fas fa-file-pdf fa-3x mb-2"></i>
+                                                <p>Arrastra tu archivo PDF aquí o haz clic para seleccionar</p>
+                                                <input type="file" id="factura_pdf" name="factura_pdf" accept=".pdf" class="file-upload-input">
+                                                <div class="file-preview" id="filePreview"></div>
+                                            </div>
+                                            <div class="file-info" id="fileInfo">Ningún archivo seleccionado</div>
+                                        </div>
+                                    </div>
+                                </div>                                
                             </div>
                         </div>
                     </div>

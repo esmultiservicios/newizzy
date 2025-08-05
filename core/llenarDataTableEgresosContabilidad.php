@@ -1,4 +1,5 @@
 <?php	
+	//llenarDataTAbleEgresosContabilidad.php
 	$peticionAjax = true;
 	require_once "configGenerales.php";
 	require_once "mainModel.php";
@@ -28,6 +29,7 @@
 			"nombre"=>$row['nombre'],
 			"proveedor"=>$row['proveedor'],
 			"factura"=>$row['factura'],
+			"factura_pdf"=>$row['factura_pdf'],
 			"subtotal"=>'L. '.$row['subtotal'],
 			"impuesto"=>'L. '.$row['impuesto'],
 			"descuento"=>'L. '.$row['descuento'],

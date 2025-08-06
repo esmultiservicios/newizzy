@@ -20,17 +20,17 @@ if ($validacion['error']) {
 
 $empresa_id = $_SESSION['empresa_id_sd'];
 
-$ultimoNumeroUsado = 0;
+$siguienteNumero = 0;  // Cambiamos el nombre para mayor claridad
 $rango_inicial = 0;
 $rango_final = 0;
 $contador = 0;
 $fecha_limite = 'Sin definir';
 
-// Obtener siguiente (último usado)
+// Obtener el siguiente número a usar
 $resultNumero = $insMainModel->getTotalFacturasDisponiblesDB($empresa_id);
 if ($resultNumero->num_rows > 0) {
     $row = $resultNumero->fetch_assoc();
-    $ultimoNumeroUsado = (int)$row['numero'];
+    $siguienteNumero = (int)$row['numero'];
 }
 
 // Obtener rango inicial y final
@@ -42,13 +42,20 @@ if ($resultRango->num_rows > 0) {
 }
 
 // Calcular total de facturas disponibles
-if ($ultimoNumeroUsado === 0 || $ultimoNumeroUsado === $rango_inicial) {
-    // No se ha usado ninguna factura o estamos en el primer número
-    $totalFacturas = $rango_final - $rango_inicial + 1;
-    $facturasPendientes = $totalFacturas;
+if ($siguienteNumero === 0) {
+    // Caso especial: no se ha usado ninguna factura
+    $facturasPendientes = $rango_final - $rango_inicial + 1;
 } else {
-    // Ya se han usado algunas
-    $facturasPendientes = max(0, $rango_final - $ultimoNumeroUsado);
+    // El último número usado es $siguienteNumero - 1
+    $ultimoUsado = $siguienteNumero - 1;
+    
+    // Verificar si ya hemos alcanzado el límite
+    if ($ultimoUsado >= $rango_final) {
+        $facturasPendientes = 0; // Ya no quedan facturas disponibles
+    } else {
+        // Calcular las facturas restantes
+        $facturasPendientes = $rango_final - $ultimoUsado;
+    }
 }
 
 // Obtener fecha límite

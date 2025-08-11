@@ -22,7 +22,7 @@ $(document).ready(function() {
 
 //INICIO ACCIONES FROMULARIO SECUENCIA FACTURACION
 var listar_secuencia_facturacion = function() {
-    var estado = $('#form_main_secuencia #estado_secuencia').val();
+    var estado = $('#form_main_secuencia #estado_secuencia_main').val();
 
     var table_secuencia_facturacion = $("#dataTableSecuencia").DataTable({
         "destroy": true,

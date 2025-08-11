@@ -23,7 +23,7 @@
                     <div class="col-md-3 col-sm-6 mb-3">
                         <div class="form-group">
                             <label class="small mb-1">Estado</label>
-                            <select id="estado_secuencia" name="estado_secuencia" class="form-control selectpicker" title="Estado" data-live-search="true">
+                            <select id="estado_secuencia_main" name="estado_secuencia_main" class="form-control selectpicker" title="Estado" data-live-search="true">
 								<option value="1">Activo</option>
 								<option value="0">Inactivo</option>
                             </select>

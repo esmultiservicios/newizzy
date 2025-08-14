@@ -1,9 +1,9 @@
 <script>
 $(() => {
     getEstadoProducto();
-
     listar_productos();
     getEmpresaProductos();
+    initImageUpload(); // Inicializar el drag and drop de imágenes
 
     // Evento para el botón de Buscar (submit)
     $('#form_main_productos #search').on("click", function(e) {
@@ -13,223 +13,321 @@ $(() => {
 
     // Evento para el botón de Limpiar (reset)
     $('#form_main_productos').on('reset', function() {
-        // Limpia y refresca los selects
         $('#form_main_productos .selectpicker')
             .val('')
             .selectpicker('refresh');
-            listar_productos();
+        listar_productos();
     });    
 });
 
 $('#form_main_productos #buscar_productos').on('click', function(e) {
     e.preventDefault();
-
     listar_productos();
 });
 
-//INICIO ACCIONES FROMULARIO PRODUCTOS
-var listar_productos = function(estado) {
-    var estado = $('#form_main_productos #estado_producto').val() === "" ? 1 : $('#form_main_productos #estado_producto').val();
+/* =========================
+   Uploader de imagen (Producto)
+   - Drag & Drop
+   - Pegar en cualquier parte (Ctrl+V)
+   - Clic SOLO en “haz clic para seleccionar”
+   ========================= */
+   function initImageUpload() {
+  const dropArea   = document.getElementById('productoDropArea');
+  const fileInput  = document.getElementById('imagen_producto');
+  const preview    = document.getElementById('productoPreview');
+  const fileInfo   = document.getElementById('productoInfo');
+  const selectLink = dropArea ? dropArea.querySelector('.select-file-text') : null;
 
-    var table_productos = $("#dataTableProductos").DataTable({
-        "destroy": true,
-        "ajax": {
-            "method": "POST",
-            "url": "<?php echo SERVERURL;?>core/llenarDataTableProductos.php",
-            "data": {
-                "estado": estado // nuevo parámetro
-            }
-        },
-        "columns": [{
-                "data": "image",
-                "render": function(data, type, row, meta) {
-                    var defaultImageUrl =
-                        '<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png';
-                    var imageUrl = data ? '<?php echo SERVERURL;?>vistas/plantilla/img/products/' +
-                        data : defaultImageUrl;
+  // Evita múltiples inicializaciones
+  if (!dropArea || !fileInput || fileInput.dataset.initialized) return;
+  fileInput.dataset.initialized = 'true';
 
-                    var imageHtml = '<img class="table-image" src="' + imageUrl +
-                        '" alt="Image Preview" height="100px" width="100px"/>';
+  let isProcessing = false;
 
-                    var cell = $('td:eq(' + meta.col + ')', meta.settings.oInstance.api().row(meta
-                        .row).node());
+  // Drag & Drop
+  ['dragenter','dragover','dragleave','drop'].forEach(ev =>
+    dropArea.addEventListener(ev, preventDefaults, false)
+  );
+  ['dragenter','dragover'].forEach(ev =>
+    dropArea.addEventListener(ev, () => dropArea.classList.add('drag-over'), false)
+  );
+  ['dragleave','drop'].forEach(ev =>
+    dropArea.addEventListener(ev, () => dropArea.classList.remove('drag-over'), false)
+  );
+  dropArea.addEventListener('drop', e => {
+    const files = e.dataTransfer?.files || [];
+    if (files.length) handleFiles(files);
+  });
 
-                    var img = new Image();
-
-                    img.onload = function() {
-                        // La imagen se cargó correctamente, actualizar la imagen en la celda
-                        $('.table-image', cell).attr('src', imageUrl);
-                    };
-
-                    img.onerror = function() {
-                        // La imagen no se pudo cargar, usar la imagen de vista previa
-                        $('.table-image', cell).attr('src', defaultImageUrl);
-                    };
-
-                    // Establecer la fuente de la imagen
-                    img.src = imageUrl;
-
-                    return imageHtml;
-                }
-
-            },
-            {
-                "data": "barCode"
-            },
-            {
-                "data": "nombre"
-            },
-            {
-                "data": "medida"
-            },
-            {
-                "data": "categoria"
-            }, {
-                "data": "precio_compra",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
-                    if (type === 'display') {
-                        let color = 'green';
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                },
-            },
-            {
-                "data": "precio_venta",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
-                    if (type === 'display') {
-                        let color = 'green';
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                },
-            },
-            {
-                "data": "porcentaje_venta",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
-                    if (type === 'display') {
-                        let color = 'green';
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                },
-            },
-            {
-                "data": "isv_venta"
-            },
-            {
-                "data": "estado",
-                "render": function(data, type) {
-                    if (type === 'display') {
-                        var estadoText = data == 1 ? 'Activo' : 'Inactivo';
-                        var icon = data == 1 ? '<i class="fas fa-check-circle mr-1"></i>' : '<i class="fas fa-times-circle mr-1"></i>';
-                        var badgeClass = data == 1 ? 'badge badge-pill badge-success' : 'badge badge-pill badge-danger';
-                        
-                        return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' + icon + estadoText + '</span>';
-                    }
-                    return data;
-                }
-            },            
-            {
-                "defaultContent": "<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
-            },
-            {
-                "defaultContent": "<button class='table_eliminar btn btn-dark ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"
-            }
-        ],
-        "lengthMenu": lengthMenu10,
-        "stateSave": true,
-        "bDestroy": true,
-        "responsive": true,
-        "language": idioma_español,
-        "dom": dom,
-        "buttons": [{
-                text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-                titleAttr: 'Actualizar Productos',
-                className: 'table_actualizar btn btn-secondary ocultar',
-                action: function() {
-                    listar_productos();
-                }
-            },
-            {
-                text: '<i class="fas fas fa-plus fa-lg"></i> Ingresar',
-                titleAttr: 'Agregar Productos',
-                className: 'table_crear btn btn-primary ocultar',
-                action: function() {
-                    modal_productos();
-                }
-            },
-            {
-                extend: 'excelHtml5',
-                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
-                titleAttr: 'Excel',
-                title: 'Reporte Productos',
-                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-                className: 'table_reportes btn btn-success ocultar',
-                exportOptions: {
-                    columns: [1, 2, 3, 4, 5, 6, 7]
-                },
-            },
-            {
-                extend: 'pdf',
-                orientation: 'landscape',
-                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-                titleAttr: 'PDF',
-                title: 'Reporte Productos',
-                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-                exportOptions: {
-                    columns: [1, 2, 3, 4, 5, 6, 7]
-                },
-                className: 'table_reportes btn btn-danger ocultar',
-                customize: function(doc) {
-                    if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
-                        doc.content.splice(0, 0, {
-                            image: imagen,  
-                            width: 100,
-                            height: 45,
-                            margin: [0, 0, 0, 12]
-                        });
-                    }
-                }
-            }
-        ],
-        "drawCallback": function(settings) {
-            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-        }
+  // SOLO aquí abrimos el chooser (no en todo el contenedor)
+  if (selectLink) {
+    const openChooser = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      fileInput.click();
+    };
+    selectLink.addEventListener('click', openChooser);
+    selectLink.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') openChooser(e);
     });
-    table_productos.search('').draw();
-    $('#buscar').focus();
+  }
 
-    editar_producto_dataTable("#dataTableProductos tbody", table_productos);
-    eliminar_producto_dataTable("#dataTableProductos tbody", table_productos);
+  // Selección por input
+  fileInput.addEventListener('change', e => {
+    if (isProcessing) return;
+    isProcessing = true;
+    handleFiles(e.target.files);
+    isProcessing = false;
+  });
+
+  // Pegar en cualquier parte del documento
+  document.addEventListener('paste', e => {
+    const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items || [];
+    let file = null;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].kind === 'file' && items[i].type.startsWith('image/')) {
+        file = items[i].getAsFile();
+        break;
+      }
+    }
+    if (file) {
+      e.preventDefault(); // evita insertar la imagen en inputs/contenteditables
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      handleFiles(dt.files);
+    }
+  });
+
+  // Helpers
+  function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+
+  function handleFiles(fileList) {
+    if (!fileList || !fileList.length) return;
+    const file = fileList[0];
+
+    // Validaciones
+    if (!file.type.startsWith('image/')) {
+      (window.swal
+        ? swal({ title: 'Error', text: 'Selecciona una imagen válida (JPG, PNG, GIF)', icon: 'error' })
+        : alert('Selecciona una imagen válida (JPG, PNG, GIF)'));
+      resetImage();
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      (typeof showNotify === 'function'
+        ? showNotify('error', 'Error', 'La imagen no debe exceder 2MB')
+        : alert('La imagen no debe exceder 2MB'));
+      resetImage();
+      return;
+    }
+
+    // Previsualizar
+    const reader = new FileReader();
+    reader.onload = ev => {
+      preview.innerHTML = '';
+
+      const img = document.createElement('img');
+      img.src = ev.target.result;
+      img.alt = file.name;
+      preview.appendChild(img);
+
+      // Botón eliminar
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'btn-remove-image';
+      removeBtn.type = 'button';
+      removeBtn.title = 'Eliminar imagen';
+      removeBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+      removeBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        resetImage();
+      });
+      preview.appendChild(removeBtn);
+
+      preview.style.display = 'block';
+      fileInfo.textContent = `${file.name} (${formatFileSize(file.size)})`;
+
+      // Modo edición (opcional)
+      if (window.jQuery && $("#formProductos #productos_id").val()) {
+        $("#formProductos #preview").attr("src", ev.target.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024, sizes = ['Bytes','KB','MB','GB'], i = Math.floor(Math.log(bytes)/Math.log(k));
+    return (bytes/Math.pow(k,i)).toFixed(2) + ' ' + sizes[i];
+  }
+
+  function resetImage() {
+    fileInput.value = '';
+    preview.innerHTML = '';
+    preview.style.display = 'none';
+    fileInfo.textContent = 'Ningún archivo seleccionado';
+
+    // Modo edición (opcional)
+    if (window.jQuery && $("#formProductos #productos_id").val()) {
+      $("#formProductos #preview").attr("src", "<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png");
+    }
+  }
+
+  // Exponer por si lo quieres llamar manualmente
+  window.resetProductoImagen = resetImage;
 }
+
+document.addEventListener('DOMContentLoaded', initImageUpload);
+
+
+/* =========================
+   DataTable: Productos
+   - Miniatura con fallback (via image_viewer.js)
+   - Modal de imagen al clic (via image_viewer.js)
+   ========================= */
+  var listar_productos = function(estado) {
+  var estado = $('#form_main_productos #estado_producto').val() === "" ? 1 : $('#form_main_productos #estado_producto').val();
+
+  var table_productos = $("#dataTableProductos").DataTable({
+    "destroy": true,
+    "ajax": {
+      "method": "POST",
+      "url": "<?php echo SERVERURL;?>core/llenarDataTableProductos.php",
+      "data": { "estado": estado }
+    },
+    "columns": [
+      {
+        "data": "image",
+        "orderable": false,
+        "render": function (data, type, row, meta) {
+          var defaultImageUrl = '<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png';
+          var imageUrl = data ? ('<?php echo SERVERURL;?>vistas/plantilla/img/products/' + data) : defaultImageUrl;
+          var safeName = (row && row.nombre) ? String(row.nombre).replace(/"/g,'&quot;') : 'Imagen de producto';
+
+          // .iv-trigger: el visor genérico leerá estos data-attrs
+          return '' +
+            '<a href="#" class="iv-trigger" ' +
+              'data-iv-src="' + imageUrl + '" ' +
+              'data-iv-fallback="' + defaultImageUrl + '" ' +
+              'data-iv-title="' + safeName + '">' +
+              '<img class="table-image" src="' + imageUrl + '" alt="' + safeName + '" ' +
+                   'width="64" height="64" ' +
+                   'style="object-fit:cover;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.12)">' +
+            '</a>';
+        }
+      },
+      { "data": "barCode" },
+      { "data": "nombre" },
+      { "data": "medida" },
+      { "data": "categoria" },
+      {
+        "data": "precio_compra",
+        render: function(data, type) {
+          var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
+          if (type === 'display') {
+            let color = data < 0 ? 'red' : 'green';
+            return '<span style="color:' + color + '">' + number + '</span>';
+          }
+          return number;
+        },
+      },
+      {
+        "data": "precio_venta",
+        render: function(data, type) {
+          var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
+          if (type === 'display') {
+            let color = data < 0 ? 'red' : 'green';
+            return '<span style="color:' + color + '">' + number + '</span>';
+          }
+          return number;
+        },
+      },
+      {
+        "data": "porcentaje_venta",
+        render: function(data, type) {
+          var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
+          if (type === 'display') {
+            let color = data < 0 ? 'red' : 'green';
+            return '<span style="color:' + color + '">' + number + '</span>';
+          }
+          return number;
+        },
+      },
+      { "data": "isv_venta" },
+      {
+        "data": "estado",
+        "render": function(data, type) {
+          if (type === 'display') {
+            var estadoText = data == 1 ? 'Activo' : 'Inactivo';
+            var icon = data == 1 ? '<i class="fas fa-check-circle mr-1"></i>' : '<i class="fas fa-times-circle mr-1"></i>';
+            var badgeClass = data == 1 ? 'badge badge-pill badge-success' : 'badge badge-pill badge-danger';
+            return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' + icon + estadoText + '</span>';
+          }
+          return data;
+        }
+      },
+      { "defaultContent": "<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>" },
+      { "defaultContent": "<button class='table_eliminar btn btn-dark ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>" }
+    ],
+    "lengthMenu": lengthMenu10,
+    "stateSave": true,
+    "bDestroy": true,
+    "responsive": true,
+    "language": idioma_español,
+    "dom": dom,
+    "buttons": [
+      {
+        text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
+        titleAttr: 'Actualizar Productos',
+        className: 'table_actualizar btn btn-secondary ocultar',
+        action: function() { listar_productos(); }
+      },
+      {
+        text: '<i class="fas fas fa-plus fa-lg"></i> Ingresar',
+        titleAttr: 'Agregar Productos',
+        className: 'table_crear btn btn-primary ocultar',
+        action: function() { modal_productos(); }
+      },
+      {
+        extend: 'excelHtml5',
+        text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
+        titleAttr: 'Excel',
+        title: 'Reporte Productos',
+        messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
+        className: 'table_reportes btn btn-success ocultar',
+        exportOptions: { columns: [1, 2, 3, 4, 5, 6, 7] },
+      },
+      {
+        extend: 'pdf',
+        orientation: 'landscape',
+        text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
+        titleAttr: 'PDF',
+        title: 'Reporte Productos',
+        messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
+        exportOptions: { columns: [1, 2, 3, 4, 5, 6, 7] },
+        className: 'table_reportes btn btn-danger ocultar',
+        customize: function(doc) {
+          if (typeof imagen !== 'undefined' && imagen) {
+            doc.content.splice(0, 0, {
+              image: imagen,
+              width: 100,
+              height: 45,
+              margin: [0, 0, 0, 12]
+            });
+          }
+        }
+      }
+    ],
+    "drawCallback": function(settings) {
+      getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+    }
+  });
+
+  table_productos.search('').draw();
+  $('#buscar').focus();
+
+  editar_producto_dataTable("#dataTableProductos tbody", table_productos);
+  eliminar_producto_dataTable("#dataTableProductos tbody", table_productos);
+};
 
 var editar_producto_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.table_editar");
@@ -295,12 +393,28 @@ var editar_producto_dataTable = function(tbody, table) {
                     $('#formProductos #producto_activo').attr('checked', false);
                 }
 
+                // Cargar imagen existente si hay
                 if (datos[11] != "image_preview.png") {
                     $('#formProductos #preview').attr('src', datos[21]);
+                    var preview = document.getElementById('productoPreview');
+                    preview.innerHTML = '';
+                    const img = document.createElement('img');
+                    img.src = datos[21];
+                    preview.appendChild(img);
+                    preview.style.display = 'block';
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'btn-remove-image';
+                    removeBtn.innerHTML = '×';
+                    removeBtn.onclick = function() {
+                        resetFileInput();
+                    };
+                    preview.appendChild(removeBtn);
+                    
+                    document.getElementById('productoInfo').textContent = 'Imagen cargada';
                 } else {
-                    $("#formProductos #preview").attr("src",
-                        "<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png"
-                    );
+                    $("#formProductos #preview").attr("src", "<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png");
+                    resetFileInput();
                 }
 
                 //HABILITAR OBJETOS
@@ -392,9 +506,7 @@ var eliminar_producto_dataTable = function(tbody, table) {
                 if (datos[11] != "image_preview.png") {
                     $('#formProductos #preview').attr('src', datos[21]);
                 } else {
-                    $("#formProductos #preview").attr("src",
-                        "<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png"
-                    );
+                    $("#formProductos #preview").attr("src", "<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png");
                 }
 
                 if (datos[7] == 1) {
@@ -453,7 +565,6 @@ var eliminar_producto_dataTable = function(tbody, table) {
 }
 
 //INICIO EDITAR CODIGO DE BARRA
-//SE LLAMA AL MODAL CUANDO PRESIONAMOS EN EDITAR CODIGO DE BARRA DE LOS PRODUCTOS
 $('#formProductos #grupo_editar_bacode').on('click', function(e) {
     e.preventDefault();
 
@@ -495,8 +606,8 @@ function editBarCode(productos_id, barcode, producto) {
                 text: "¡Si, Deseo Editarlo!",
             }
         },
-        closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-        closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
+        closeOnEsc: false,
+        closeOnClickOutside: false
     }).then((willConfirm) => {
         if (willConfirm === true) {
             editarCodigoBarra(productos_id, barcode);
@@ -518,8 +629,8 @@ function editarCodigoBarra(productos_id, barcode) {
                     title: "Success",
                     text: "El Código de Barra ha sido actualizado satisfactoriamente",
                     icon: "success",
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
+                    closeOnEsc: false,
+                    closeOnClickOutside: false
                 });
                 listar_productos();
                 $('#formProductos #bar_code_product').val(barcode);
@@ -529,8 +640,8 @@ function editarCodigoBarra(productos_id, barcode) {
                     text: "Error el El Código de Barra no se puede actualizar",
                     icon: "error",
                     dangerMode: true,
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
+                    closeOnEsc: false,
+                    closeOnClickOutside: false
                 });
             } else if (data == 3) {
                 swal({
@@ -538,8 +649,8 @@ function editarCodigoBarra(productos_id, barcode) {
                     text: "El El Código de Barra ya existe",
                     icon: "error",
                     dangerMode: true,
-                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
+                    closeOnEsc: false,
+                    closeOnClickOutside: false
                 });
             }
         }
@@ -650,21 +761,6 @@ $(document).ready(function() {
         }
     }
 });
-
-/*
-$(document).ready(function(){
-	$("#formProductos #cantidad_mayoreo").on("keyup", function(){	
-		if($("#formProductos #cantidad_mayoreo").val() < 3 ){
-			$("#formProductos #cantidad_mayoreo").val("");
-			$("#formProductos #cantidad_mayoreo").val(3);
-			$("#reg_producto").attr("disabled", false);
-			$("#edi_producto").attr("disabled", false);
-		}else{
-			$("#reg_producto").attr("disabled", false);
-			$("#edi_producto").attr("disabled", false);
-		}				
-	});
-});*/
 
 $('#formProductos #label_producto_activo').html("Activo");
 

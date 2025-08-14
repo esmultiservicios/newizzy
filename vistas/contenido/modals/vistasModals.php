@@ -2350,7 +2350,7 @@
                                 <thead>
                                     <tr>
                                         <th>Seleccione</th>
-                                        <th class="table-image">Imagen</th>
+                                        <th>Imagen</th>
                                         <th>Bar Code</th>
                                         <th>Producto</th>
                                         <th>Cantidad</th>
@@ -2412,7 +2412,7 @@
                                 <thead>
                                     <tr>
                                         <th>Seleccione</th>
-                                        <th class="table-image">Imagen</th>
+                                        <th>Imagen</th>
                                         <th>Bar Code</th>
                                         <th>Producto</th>
                                         <th>Cantidad</th>
@@ -2460,7 +2460,7 @@
                                 <thead>
                                     <tr>
                                         <th>Seleccione</th>
-                                        <th class="table-image">Imagen</th>
+                                        <th>Imagen</th>
                                         <th>Bar Code</th>
                                         <th>Producto</th>
                                         <th>Medida</th>
@@ -2913,34 +2913,69 @@
                     
                     <!-- Sección de Imágenes -->
                     <div class="card border-primary mb-4">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="fas fa-images mr-2"></i>Imágenes y Logos</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="form-row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="logotipo"><i class="fas fa-image mr-1"></i>Logotipo</label>
-                                    <div class="input-group">
-                                        <input type="file" class="form-control" name="logotipo" id="logotipo" accept="image/*">
-                                        <div class="input-group-append">
-                                            <span class="input-group-text"><i class="fas fa-file-image"></i></span>
-                                        </div>
-                                    </div>
-                                    <small class="form-text text-muted">Logo principal de la empresa</small>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="firma_documento"><i class="fas fa-signature mr-1"></i>Firma Documento</label>
-                                    <div class="input-group">
-                                        <input type="file" class="form-control" name="firma_documento" id="firma_documento" accept="image/*">
-                                        <div class="input-group-append">
-                                            <span class="input-group-text"><i class="fas fa-file-signature"></i></span>
-                                        </div>
-                                    </div>
-                                    <small class="form-text text-muted">Firma para documentos oficiales</small>
-                                </div>
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-images mr-2"></i>Imágenes y Logos</h5>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="form-row">
+                        <!-- Columna: Logotipo -->
+                        <div class="col-md-6 mb-3">
+                            <label for="logotipo"><i class="fas fa-image mr-1"></i>Logotipo</label>
+
+                            <div class="file-upload-container">
+                            <div class="file-upload-area image-upload-area" id="logoDropArea" tabindex="0" aria-label="Zona para arrastrar y soltar logotipo">
+                                <i class="fas fa-image fa-3x mb-2"></i>
+                                <p class="mb-2">
+                                Arrastra tu logotipo aquí
+                                <span class="select-file-container">
+                                    <span class="select-file-text" role="button" tabindex="0"> o haz clic para seleccionar</span>
+                                    <input type="file" id="logotipo" name="logotipo" accept="image/*" class="file-upload-input">
+                                </span>
+                                <span class="paste-text">, o pega en cualquier área</span>
+                                </p>
+
+                                <div class="file-preview" id="logoPreview"></div>
                             </div>
+
+                            <div class="file-info" id="logoInfo">Ningún archivo seleccionado</div>
+                            </div>
+
+                            <small class="form-text text-muted">
+                            Logo principal de la empresa (formatos: JPG, PNG, GIF • Máx. 2MB)
+                            </small>
+                        </div>
+
+                        <!-- Columna: Firma Documento -->
+                        <div class="col-md-6 mb-3">
+                            <label for="firma_documento"><i class="fas fa-signature mr-1"></i>Firma Documento</label>
+
+                            <div class="file-upload-container">
+                            <div class="file-upload-area image-upload-area" id="firmaDropArea" tabindex="0" aria-label="Zona para arrastrar y soltar firma">
+                                <i class="fas fa-signature fa-3x mb-2"></i>
+                                <p class="mb-2">
+                                Arrastra tu firma aquí
+                                <span class="select-file-container">
+                                    <span class="select-file-text" role="button" tabindex="0"> o haz clic para seleccionar</span>
+                                    <input type="file" id="firma_documento" name="firma_documento" accept="image/*" class="file-upload-input">
+                                </span>
+                                <span class="paste-text">, o pega en cualquier área</span>
+                                </p>
+
+                                <div class="file-preview" id="firmaPreview"></div>
+                            </div>
+
+                            <div class="file-info" id="firmaInfo">Ningún archivo seleccionado</div>
+                            </div>
+
+                            <small class="form-text text-muted">
+                            Firma para documentos oficiales (formatos: JPG, PNG, GIF • Máx. 2MB)
+                            </small>
+                        </div>
                         </div>
                     </div>
+                    </div>
+
                     
                     <!-- Sección de Información Adicional -->
                     <div class="card border-primary mb-4">
@@ -3239,13 +3274,7 @@
                         </div>
                         <div class="card-body">                           
                             <div class="form-row">
-                                <div class="col-md-1 mb-3">
-                                    <input type="file" name="file" class="file" accept=".png, .jpeg, .jpg, .jfif">
-                                    <img type="button" src="<?php echo SERVERURLLOGO; ?>/image_preview.png" id="preview" class="browse img-thumbnail" data-toggle="tooltip" data-placement="top" title="Cargar Imagen">
-                                    <input type="hidden" class="form-control" disabled placeholder="Cargar Imágen" id="file_product" name="file_product">
-                                    <small class="form-text text-muted">Imagen del producto</small>
-                                </div>
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-6 mb-3">
                                     <label for="bar_code_product"><i class="fas fa-barcode mr-1"></i>Código de Barra</label>
                                     <div class="input-group">
                                         <input type="text" class="form-control" id="bar_code_product" name="bar_code_product" placeholder="Código de Barra" data-toggle="tooltip" data-placement="top" title="Si este campo está vacío o tiene el número cero el sistema genera un código de barra automáticamente siendo un valor único">
@@ -3256,13 +3285,41 @@
                                         </div>
                                     </div>
                                     <small class="form-text text-muted">Dejar en blanco para generación automática</small>
-                                </div>
-                                <div class="col-md-8 mb-3">
+                                </div>                                
+                                <div class="col-md-6 mb-3">
                                     <label for="producto"><i class="fas fa-tag mr-1"></i>Producto <span class="priority">*</span></label>
                                     <input type="text" class="form-control" id="producto" name="producto" maxlength="50" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" placeholder="Nombre del producto" required>
                                     <small class="form-text text-muted">Nombre completo del producto (máx. 50 caracteres)</small>
                                 </div>
                             </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <!-- Quitamos el for="imagen_producto" para que NO abra el chooser al hacer click en el label -->
+                                <label><i class="fas fa-image mr-1"></i>Imagen del Producto</label>
+
+                                <div class="file-upload-container">
+                                <div class="file-upload-area image-upload-area" id="productoDropArea" tabindex="0" aria-label="Zona para arrastrar y soltar imagen">
+                                    <i class="fas fa-image fa-3x mb-2"></i>
+                                    <p>
+                                    <span class="drag-text">Arrastra la imagen del producto aquí</span>
+                                    <span class="select-file-container">
+                                        <span class="select-file-text" role="button" tabindex="0"> o haz clic para seleccionar</span>
+                                        <input type="file" id="imagen_producto" name="imagen_producto" accept="image/*" class="file-upload-input">
+                                    </span>
+                                    <span class="paste-text">, o pega en cualquier área</span>
+                                    </p>
+
+                                    <div class="file-preview" id="productoPreview"></div>
+                                </div>
+
+                                <div class="file-info" id="productoInfo">Ningún archivo seleccionado</div>
+                                </div>
+
+                                <small class="form-text text-muted">
+                                Imagen representativa del producto (formatos: JPG, PNG, GIF • Máx. 2MB)
+                                </small>
+                            </div>
+
                         </div>
                     </div>
                     
@@ -3389,15 +3446,6 @@
                         </div>
                         <div class="card-body">
                             <div class="form-row">
-                                <div class="col-md-12 mb-3">
-                                    <label for="descripcion"><i class="fas fa-align-left mr-1"></i>Descripción</label>
-                                    <textarea id="descripcion" name="descripcion" placeholder="Descripción del producto" class="form-control" maxlength="100" rows="2"></textarea>
-                                    <p id="charNum_descripcion" class="text-muted">100 Caracteres restantes</p>
-                                    <small class="form-text text-muted">Descripción detallada del producto</small>
-                                </div>
-                            </div>
-                            
-                            <div class="form-row">
                                 <div class="col-md-6 mb-3" id="estado_producto">
                                     <div class="custom-control custom-switch">
                                         <input type="checkbox" class="custom-control-input" id="producto_activo" name="producto_activo" checked>
@@ -3441,6 +3489,43 @@
     </div>
 </div>
 <!--FIN MODAL PRODUCTOS-->
+
+<!-- Visor de imágenes genérico (Bootstrap 4.6) -->
+<div class="modal fade image-viewer-modal" tabindex="-1" role="dialog" aria-hidden="true" aria-labelledby="imageViewerTitle">
+  <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title mb-0" id="imageViewerTitle">
+          <i class="fas fa-image mr-2"></i>
+          <span class="iv-title">Vista de imagen</span>
+        </h5>
+
+        <!-- Botón cerrar (BS4) -->
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <img class="iv-img" src="" alt="Imagen" />
+      </div>
+
+      <div class="modal-footer">
+        <a class="btn btn-dark btn-action iv-open" target="_blank" rel="noopener">
+            <i class="fas fa-external-link-alt"></i> Abrir en pestaña
+        </a>
+        <a class="btn btn-success btn-action iv-download" download>
+            <i class="fas fa-download"></i> Descargar
+        </a>
+        <button type="button" class="btn btn-secondary iv-close" data-dismiss="modal">
+            Cerrar
+        </button>
+        </div>
+
+    </div>
+  </div>
+</div>
 
 <!--INICIO MODAL TRANSFERENCIA DE PRODUCTO/BODEGA-->
 <div class="modal fade" id="modal_transferencia_producto">

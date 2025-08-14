@@ -60,17 +60,118 @@
     text-overflow: ellipsis;
 }
 
-#mensajeFacturasMobile {
+/* Contador de facturas con animaciones */
+#mensajeFacturasMobile, 
+#factura-counter {
     font-size: 0.85rem;
     padding: 10px;
     margin: 0 10px 10px;
     border-radius: 8px;
     display: flex;
     align-items: center;
+    transition: all 0.3s ease;
 }
 
-#mensajeFacturasMobile i {
+#mensajeFacturasMobile i, 
+#factura-counter i {
     margin-right: 8px;
+}
+
+/* Estilos específicos para el contador */
+.badge-counter {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    margin: 5px 0;
+}
+
+.badge-counter i {
+    margin-right: 6px;
+    font-size: 16px;
+}
+
+/* Animaciones mejoradas */
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.7); }
+    70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(52, 152, 219, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(52, 152, 219, 0); }
+}
+
+@keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+    100% { transform: translateY(0px); }
+}
+
+.state-change {
+    animation: pulse 1s ease, float 2s ease-in-out infinite;
+}
+
+/* Estados dinámicos */
+.counter-update {
+    animation: pulse 0.5s ease 2;
+}
+
+.counter-warning {
+    animation: pulse 0.8s ease infinite;
+}
+
+.counter-danger {
+    animation: pulse 0.5s ease infinite;
+}
+
+.state-change {
+    animation: pulse 0.5s ease;
+}
+
+.counter-danger.state-change {
+    animation: shake 0.5s ease;
+}
+
+.counter-warning.state-change {
+    animation: highlight 1s ease;
+}
+
+/* Estados del contador */
+.counter-normal {
+    background-color: #d1ecf1;
+    border: 1px solid #bee5eb;
+    color: #0c5460;
+}
+
+.counter-warning {
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+    color: #856404;
+}
+
+.counter-danger {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.counter-expired {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.counter-blocked {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.counter-no-config {
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+    color: #856404;
 }
 
 .product-list {
@@ -256,38 +357,24 @@
     background-color: #27ae60;
 }
 
-/* Alert States */
-.alert-normal {
-    background-color: #d1ecf1;
-    border-color: #bee5eb;
-    color: #0c5460;
-}
-
-.alert-warning {
-    background-color: #fff3cd;
-    border-color: #ffeeba;
-    color: #856404;
-}
-
-.alert-danger {
-    background-color: #f8d7da;
-    border-color: #f5c6cb;
-    color: #721c24;
-}
-
-.state-change {
-    transition: all 0.3s ease;
-    transform: scale(1.02);
-}
-
-/* Animations */
+/* Animaciones para productos */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes slideIn {
+    from { transform: translateX(-20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
 .product-item {
     animation: fadeIn 0.3s ease-out;
+}
+
+/* Animación para cuando se agrega un nuevo producto */
+.new-product {
+    animation: slideIn 0.4s ease-out, highlight 1.5s ease;
 }
 
 /* Modal Styles */
@@ -320,6 +407,16 @@
     border-radius: 0 0 15px 15px;
 }
 
+/* Animación para modales */
+@keyframes modalEnter {
+    from { transform: translateY(-50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.modal.fade .modal-dialog {
+    animation: modalEnter 0.3s ease-out;
+}
+
 /* Responsive Adjustments */
 @media (max-width: 576px) {
     .mobile-header h1 {
@@ -337,6 +434,12 @@
     .mobile-actions .btn {
         font-size: 0.75rem;
         padding: 8px 2px;
+    }
+    
+    #mensajeFacturasMobile, 
+    #factura-counter {
+        font-size: 0.75rem;
+        padding: 8px;
     }
 }
 
@@ -389,4 +492,51 @@
     .modal-header {
         background-color: #0d47a1;
     }
+    
+    /* Ajustes para el contador en dark mode */
+    .counter-normal {
+        background-color: #0d2b36;
+        border-color: #0c5460;
+        color: #d1ecf1;
+    }
+    
+    .counter-warning {
+        background-color: #332a00;
+        border-color: #856404;
+        color: #ffeeba;
+    }
+    
+    .counter-danger,
+    .counter-expired,
+    .counter-blocked {
+        background-color: #3a0d0d;
+        border-color: #721c24;
+        color: #f5c6cb;
+    }
+    
+    .counter-no-config {
+        background-color: #332a00;
+        border-color: #856404;
+        color: #ffeeba;
+    }
+}
+
+/* Efecto de carga */
+@keyframes loadingPulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+.loading {
+    animation: loadingPulse 1.5s ease-in-out infinite;
+}
+
+/* Rotación para íconos de carga */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
 }

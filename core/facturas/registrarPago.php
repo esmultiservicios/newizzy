@@ -13,144 +13,119 @@ $response = [
     'estado' => false
 ];
 
-
-
 try {
-    // Validar método de solicitud
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         throw new Exception('Método no permitido');
     }
 
     $data = json_decode(file_get_contents('php://input'), true);
-    
     if (json_last_error() !== JSON_ERROR_NONE) {
         throw new Exception('Datos JSON inválidos');
     }
     
-    // Validar datos requeridos
-    $requiredFields = ['facturaId', 'efectivo', 'tarjeta', 'cambio'];
-    foreach ($requiredFields as $field) {
-        if (!isset($data[$field])) {
-            throw new Exception("Campo requerido faltante: $field");
+    $required = ['facturaId', 'efectivo', 'transferencia', 'tarjeta', 'cambio'];
+    foreach ($required as $f) {
+        if (!isset($data[$f])) {
+            throw new Exception("Campo requerido faltante: $f");
         }
     }
-    
-    // Validar montos
-    $efectivo = floatval($data['efectivo']);
-    $tarjeta = floatval($data['tarjeta']);
-    $cambio = floatval($data['cambio']);
-    
-    if ($efectivo < 0 || $tarjeta < 0 || $cambio < 0) {
-        throw new Exception('Los montos no pueden ser negativos');
-    }
-    
-    // Iniciar transacción
-    $conexion = $mainModel->connection();
-    $conexion->begin_transaction();
-    
-    // 1. Obtener total de la factura
-    $queryFactura = "SELECT total, estado_pago FROM facturas WHERE facturas_id = ? FOR UPDATE";
-    $stmtFactura = $conexion->prepare($queryFactura);
-    $stmtFactura->bind_param("i", $data['facturaId']);
-    
-    if (!$stmtFactura->execute()) {
-        throw new Exception('Error al consultar la factura: ' . $stmtFactura->error);
-    }
-    
-    $result = $stmtFactura->get_result();
-    
-    if ($result->num_rows === 0) {
-        throw new Exception('Factura no encontrada');
-    }
-    
-    $row = $result->fetch_assoc();
-    $totalFactura = $row['total'];
-    
-    if ($row['estado_pago'] == 1) {
+
+    $efectivo = max(0, floatval($data['efectivo']));
+    $transferencia = max(0, floatval($data['transferencia']));
+    $tarjeta = max(0, floatval($data['tarjeta']));
+    $cambio = max(0, floatval($data['cambio']));
+
+    $cn = $mainModel->connection();
+    $cn->begin_transaction();
+
+    // Validar factura
+    $qFactura = "SELECT importe, estado FROM facturas WHERE facturas_id = ? FOR UPDATE";
+    $st = $cn->prepare($qFactura);
+    $st->bind_param("i", $data['facturaId']);
+    if (!$st->execute()) throw new Exception('Error al consultar la factura: ' . $st->error);
+    $res = $st->get_result();
+    if ($res->num_rows === 0) throw new Exception('Factura no encontrada');
+
+    $row = $res->fetch_assoc();
+    $totalFactura = floatval($row['importe']);
+    $estadoFactura = intval($row['estado']); // 1=registrada; 2=pagada, etc. (ajusta a tu catálogo)
+    $st->close();
+
+    if ($estadoFactura == 2) {
         throw new Exception('La factura ya está pagada');
     }
-    
-    // Validar que el pago cubra el total
-    $totalPago = $efectivo + $tarjeta;
-    if ($totalPago < $totalFactura) {
+
+    $totalPago = $efectivo + $transferencia + $tarjeta;
+    if ($totalPago + 0.0001 < $totalFactura) {
         throw new Exception('El pago no cubre el total de la factura');
     }
-    
-    // 2. Registrar el pago
-    $query = "INSERT INTO pagos (
+
+    // Insertar pago principal
+    $qPago = "INSERT INTO pagos (
         facturas_id, 
         fecha, 
         efectivo, 
         tarjeta, 
         cambio, 
-        estado
-    ) VALUES (?, NOW(), ?, ?, ?, 1)";
-    
-    $stmt = $conexion->prepare($query);
-    $stmt->bind_param("iddd", $data['facturaId'], $efectivo, $tarjeta, $cambio);
-    
-    if (!$stmt->execute()) {
-        throw new Exception('Error al registrar el pago: ' . $stmt->error);
-    }
-    
-    $pagoId = $conexion->insert_id;
-    $stmt->close();
-    
-    // 3. Registrar detalles de pago si es con tarjeta
+        estado,
+        transferencia
+    ) VALUES (?, NOW(), ?, ?, ?, 1, ?)";
+
+    $stp = $cn->prepare($qPago);
+    $stp->bind_param("idddd", $data['facturaId'], $efectivo, $tarjeta, $cambio, $transferencia);
+    if (!$stp->execute()) throw new Exception('Error al registrar el pago: ' . $stp->error);
+    $pagoId = $cn->insert_id;
+    $stp->close();
+
+    // Detalle tarjeta (tipo 2)
     if ($tarjeta > 0) {
-        $queryDetalle = "INSERT INTO pagos_detalles (
-            pagos_id, 
-            tipo_pago_id, 
-            banco_id, 
-            efectivo, 
-            descripcion1
-        ) VALUES (?, 2, 0, ?, 'Pago con tarjeta')";
-        
-        $stmtDetalle = $conexion->prepare($queryDetalle);
-        $stmtDetalle->bind_param("id", $pagoId, $tarjeta);
-        
-        if (!$stmtDetalle->execute()) {
-            throw new Exception('Error al registrar detalle de pago: ' . $stmtDetalle->error);
-        }
-        $stmtDetalle->close();
+        $qDetT = "INSERT INTO pagos_detalles (pagos_id, tipo_pago_id, banco_id, efectivo, descripcion1)
+                  VALUES (?, 2, 0, ?, 'Pago con tarjeta')";
+        $stt = $cn->prepare($qDetT);
+        $stt->bind_param("id", $pagoId, $tarjeta);
+        if (!$stt->execute()) throw new Exception('Error al registrar detalle de tarjeta: ' . $stt->error);
+        $stt->close();
     }
-    
-    // 4. Actualizar estado de la factura a pagada
-    $queryUpdateFactura = "UPDATE facturas 
-                          SET estado_pago = 1, 
-                              fecha_pago = NOW() 
-                          WHERE facturas_id = ?";
-    
-    $stmtUpdate = $conexion->prepare($queryUpdateFactura);
-    $stmtUpdate->bind_param("i", $data['facturaId']);
-    
-    if (!$stmtUpdate->execute()) {
-        throw new Exception('Error al actualizar la factura: ' . $stmtUpdate->error);
+
+    // Detalle transferencia (tipo 3)
+    if ($transferencia > 0) {
+        $qDetTr = "INSERT INTO pagos_detalles (pagos_id, tipo_pago_id, banco_id, efectivo, descripcion1)
+                   VALUES (?, 3, 0, ?, 'Pago por transferencia')";
+        $sttr = $cn->prepare($qDetTr);
+        $sttr->bind_param("id", $pagoId, $transferencia);
+        if (!$sttr->execute()) throw new Exception('Error al registrar detalle de transferencia: ' . $sttr->error);
+        $sttr->close();
     }
-    $stmtUpdate->close();
-    
-    // Confirmar transacción
-    $conexion->commit();
-    
-    $response = [
+
+    // Actualizar estado factura a pagada
+    $qUpd = "UPDATE facturas 
+             SET estado = 2, fecha_pago = NOW()
+             WHERE facturas_id = ?";
+    $stu = $cn->prepare($qUpd);
+    $stu->bind_param("i", $data['facturaId']);
+    if (!$stu->execute()) throw new Exception('Error al actualizar la factura: ' . $stu->error);
+    $stu->close();
+
+    $cn->commit();
+
+    echo json_encode([
         'type' => 'success',
         'title' => 'Éxito',
         'message' => 'Pago registrado correctamente',
         'pago_id' => $pagoId,
+        'success' => true,
         'estado' => true
-    ];
-    
+    ]);
+    exit;
+
 } catch (Exception $e) {
-    if (isset($conexion)) {
-        $conexion->rollback();
-    }
-    
-    $response = [
+    if (isset($cn)) $cn->rollback();
+    echo json_encode([
         'type' => 'error',
         'title' => 'Error',
         'message' => 'Error: ' . $e->getMessage(),
+        'success' => false,
         'estado' => false
-    ];
+    ]);
+    exit;
 }
-
-echo json_encode($response);

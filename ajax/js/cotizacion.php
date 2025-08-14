@@ -752,34 +752,25 @@ var listar_productos_cotizacion_buscar = function() {
             },
             {
                 "data": "image",
-                "render": function(data, type, row, meta) {
-                    var defaultImageUrl =
-                        '<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png';
-                    var imageUrl = data ? '<?php echo SERVERURL;?>vistas/plantilla/img/products/' +
-                        data : defaultImageUrl;
+                "orderable": false,
+                "render": function (data, type, row, meta) {
+                    var defaultImageUrl = '<?php echo SERVERURL; ?>vistas/plantilla/img/products/image_preview.png';
+                    var imageUrl = data ? '<?php echo SERVERURL; ?>vistas/plantilla/img/products/' + data : defaultImageUrl;
+                    var safeTitle = (row && row.nombre) ? String(row.nombre).replace(/"/g, '&quot;') : 'Imagen';
 
-                    var imageHtml = '<img class="table-image" src="' + imageUrl +
-                        '" alt="Image Preview" height="100px" width="100px"/>';
+                    // miniatura con cursor de mano
+                    var imgHtml = '<img class="table-image mr-2" src="' + imageUrl + '" alt="' + safeTitle + '" style="cursor:pointer;">';
 
-                    var cell = $('td:eq(' + meta.col + ')', meta.settings.oInstance.api().row(meta
-                        .row).node());
+                    // botón de zoom pequeño
+                    var btnHtml = '<button type="button" class="btn btn-light btn-icon btn-xs btn-zoom iv-trigger"'
+                        + ' data-iv-src="' + imageUrl + '"'
+                        + ' data-iv-fallback="' + defaultImageUrl + '"'
+                        + ' data-iv-title="' + safeTitle + '"'
+                        + ' title="Ver imagen grande">'
+                        + '<i class="fas fa-search-plus"></i>'
+                        + '</button>';
 
-                    var img = new Image();
-
-                    img.onload = function() {
-                        // La imagen se cargó correctamente, actualizar la imagen en la celda
-                        $('.table-image', cell).attr('src', imageUrl);
-                    };
-
-                    img.onerror = function() {
-                        // La imagen no se pudo cargar, usar la imagen de vista previa
-                        $('.table-image', cell).attr('src', defaultImageUrl);
-                    };
-
-                    // Establecer la fuente de la imagen
-                    img.src = imageUrl;
-
-                    return imageHtml;
+                    return '<div class="d-flex align-items-center">' + imgHtml + btnHtml + '</div>';
                 }
             },
             {

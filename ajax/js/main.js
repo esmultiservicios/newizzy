@@ -913,3 +913,212 @@ window.addEventListener('beforeunload', function(e) {
 });
 // FIN DETECCIÓN DE CIERRE DE NAVEGADOR
 // FIN DETECCIÓN DE CIERRE DE NAVEGADOR
+
+// Visor de imágenes genérico (BS4/BS5)
+// Requiere en el DOM un modal .image-viewer-modal con .iv-img .iv-title .iv-open .iv-download .iv-close
+(function () {
+    var modal = document.querySelector('.image-viewer-modal');
+    if (!modal) return;
+  
+    var imgEl   = modal.querySelector('.iv-img');
+    var titleEl = modal.querySelector('.iv-title');
+    var openBtn = modal.querySelector('.iv-open');
+    var dlBtn   = modal.querySelector('.iv-download');
+    var closeBtn= modal.querySelector('.iv-close');
+  
+    function showModal() {
+      if (window.bootstrap && window.bootstrap.Modal) {
+        if (!window.__ivModal) {
+          window.__ivModal = new bootstrap.Modal(modal, { keyboard: true });
+        }
+        window.__ivModal.show();
+      } else if (window.jQuery) {
+        jQuery(modal).modal('show'); // BS4
+      }
+    }
+  
+    function hideModal() {
+      if (window.bootstrap && window.bootstrap.Modal && window.__ivModal) {
+        window.__ivModal.hide();
+      } else if (window.jQuery) {
+        jQuery(modal).modal('hide'); // BS4
+      }
+    }
+  
+    if (closeBtn) closeBtn.addEventListener('click', hideModal);
+  
+    // Utilidad: mismo origen
+    function isSameOrigin(url) {
+      try {
+        var u = new URL(url, window.location.href);
+        return u.origin === window.location.origin;
+      } catch (e) {
+        return false;
+      }
+    }
+  
+    // Forzar descarga para mismo origen
+    async function forceDownloadSameOrigin(url, filename) {
+      const res = await fetch(url, { credentials: 'same-origin' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      const objUrl = URL.createObjectURL(blob);
+      a.href = objUrl;
+      a.download = filename || (url.split('/').pop() || 'imagen.jpg').split('?')[0];
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objUrl);
+    }
+  
+    // Abrir por clic en cualquier .iv-trigger
+    document.addEventListener('click', function (e) {
+      var trigger = e.target.closest('.iv-trigger');
+      if (!trigger) return;
+  
+      e.preventDefault();
+  
+      var src      = trigger.getAttribute('data-iv-src');
+      var title    = trigger.getAttribute('data-iv-title') || 'Vista de imagen';
+      var fallback = trigger.getAttribute('data-iv-fallback') || '';
+  
+      if (!src) return;
+  
+      // limpiar y setear datos
+      imgEl.src = '';
+      imgEl.alt = title;
+      titleEl.textContent = title;
+  
+      imgEl.onerror = null;
+      imgEl.addEventListener('error', function onErr() {
+        imgEl.removeEventListener('error', onErr);
+        if (fallback && imgEl.src !== fallback) imgEl.src = fallback;
+      });
+  
+      imgEl.src = src;
+  
+      // Botón Abrir (siempre en pestaña nueva)
+      if (openBtn) {
+        openBtn.setAttribute('href', src);
+        openBtn.setAttribute('target', '_blank');
+        openBtn.setAttribute('rel', 'noopener');
+      }
+  
+      // Botón Descargar
+      if (dlBtn) {
+        var fileName = (src.split('/').pop() || 'imagen.jpg').split('?')[0];
+  
+        // Quitar target del botón de descarga para evitar abrir en misma pestaña
+        dlBtn.removeAttribute('target');
+        dlBtn.setAttribute('href', src);
+        dlBtn.setAttribute('download', fileName);
+  
+        // Handler de descarga robusto
+        dlBtn.onclick = async function (ev) {
+          ev.preventDefault();
+          // Si es mismo origen, forzamos descarga via blob
+          if (isSameOrigin(src)) {
+            try {
+              await forceDownloadSameOrigin(src, fileName);
+            } catch (err) {
+              // fallback si falla
+              const a = document.createElement('a');
+              a.href = src;
+              a.download = fileName;
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+            }
+          } else {
+            // Cross-origin: no se puede forzar sin cabeceras en el servidor
+            // Mejor abrir en nueva pestaña para no reemplazar la actual
+            window.open(src, '_blank', 'noopener');
+          }
+        };
+      }
+  
+      showModal();
+    });
+  
+    // Accesibilidad: abrir con Enter/Espacio sobre .iv-trigger
+    document.addEventListener('keydown', function (e) {
+      var trigger = e.target.closest && e.target.closest('.iv-trigger');
+      if (!trigger) return;
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        trigger.click();
+      }
+    });
+  
+    // Fallback de miniaturas con jQuery
+    if (window.jQuery) {
+      jQuery(document).on('error', '.iv-trigger img', function () {
+        var $a = jQuery(this).closest('.iv-trigger');
+        var fallback = $a.data('iv-fallback');
+        if (fallback && this.src !== fallback) this.src = fallback;
+      });
+    } else {
+      // Fallback de miniaturas sin jQuery
+      document.addEventListener('error', function (ev) {
+        var el = ev.target;
+        if (el && el.tagName === 'IMG') {
+          var parent = el.closest('.iv-trigger');
+          if (!parent) return;
+          var fallback = parent.getAttribute('data-iv-fallback');
+          if (fallback && el.src !== fallback) el.src = fallback;
+        }
+      }, true);
+    }
+  
+    // API opcional
+    window.ImageViewer = {
+      open: async function ({ src, title = 'Vista de imagen', fallback = '' } = {}) {
+        if (!src) return;
+        imgEl.src = '';
+        imgEl.alt = title;
+        titleEl.textContent = title;
+  
+        imgEl.onerror = null;
+        imgEl.addEventListener('error', function onErr() {
+          imgEl.removeEventListener('error', onErr);
+          if (fallback && imgEl.src !== fallback) imgEl.src = fallback;
+        });
+  
+        imgEl.src = src;
+  
+        if (openBtn) {
+          openBtn.setAttribute('href', src);
+          openBtn.setAttribute('target', '_blank');
+          openBtn.setAttribute('rel', 'noopener');
+        }
+  
+        if (dlBtn) {
+          var name = (src.split('/').pop() || 'imagen.jpg').split('?')[0];
+          dlBtn.removeAttribute('target');
+          dlBtn.setAttribute('href', src);
+          dlBtn.setAttribute('download', name);
+          dlBtn.onclick = async function (ev) {
+            ev.preventDefault();
+            if (isSameOrigin(src)) {
+              try {
+                await forceDownloadSameOrigin(src, name);
+              } catch (err) {
+                const a = document.createElement('a');
+                a.href = src;
+                a.download = name;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+              }
+            } else {
+              window.open(src, '_blank', 'noopener');
+            }
+          };
+        }
+  
+        showModal();
+      },
+      close: hideModal
+    };
+  })();  

@@ -9,16 +9,16 @@ class empresaControlador extends empresaModelo
 {
     public function agregar_empresa_controlador()
     {
-		// Validar sesión primero
-		$validacion = mainModel::validarSesion();
-		if($validacion['error']) {
-			return mainModel::showNotification([
-				"title" => "Error de sesión",
-				"text" => $validacion['mensaje'],
-				"type" => "error",
-				"funcion" => "window.location.href = '".$validacion['redireccion']."'"
-			]);
-		}
+        // Validar sesión primero
+        $validacion = mainModel::validarSesion();
+        if($validacion['error']) {
+            return mainModel::showNotification([
+                "title" => "Error de sesión",
+                "text" => $validacion['mensaje'],
+                "type" => "error",
+                "funcion" => "window.location.href = '".$validacion['redireccion']."'"
+            ]);
+        }
 
         // Limpieza de datos
         $razon_social = mainModel::cleanString($_POST['empresa_razon_social']);
@@ -73,9 +73,9 @@ class empresaControlador extends empresaModelo
         $planConfig = $mainModel->getPlanConfiguracionMainModel();
         
         // Solo evaluar si existe configuración de plan
-		if (isset($planConfig['empresas'])) {
-			$limiteEmpresas = (int)$planConfig['empresas']; // No usamos ?? 0 aquí para no convertir "no definido" en 0
-			
+        if (isset($planConfig['empresas'])) {
+            $limiteEmpresas = (int)$planConfig['empresas'];
+            
              // Caso 1: Límite es 0 (bloquear)
             if ($limiteEmpresas === 0) {
                 return $mainModel->showNotification([
@@ -95,7 +95,7 @@ class empresaControlador extends empresaModelo
                     "text" => "Límite de empresas alcanzado (Máximo: $limiteEmpresas). Actualiza tu plan."
                 ]);
             }
-		}
+        }
     
         // Registrar empresa
         if (!empresaModelo::agregar_empresa_modelo($datos)) {
@@ -118,16 +118,16 @@ class empresaControlador extends empresaModelo
     
     public function edit_empresa_controlador()
     {
-		// Validar sesión primero
-		$validacion = mainModel::validarSesion();
-		if($validacion['error']) {
-			return mainModel::showNotification([
-				"title" => "Error de sesión",
-				"text" => $validacion['mensaje'],
-				"type" => "error",
-				"funcion" => "window.location.href = '".$validacion['redireccion']."'"
-			]);
-		}
+        // Validar sesión primero
+        $validacion = mainModel::validarSesion();
+        if($validacion['error']) {
+            return mainModel::showNotification([
+                "title" => "Error de sesión",
+                "text" => $validacion['mensaje'],
+                "type" => "error",
+                "funcion" => "window.location.href = '".$validacion['redireccion']."'"
+            ]);
+        }
 
         $empresa_id = $_POST['empresa_id'];
         
@@ -213,7 +213,7 @@ class empresaControlador extends empresaModelo
         ]);
     }
 
-    // Métodos auxiliares privad
+    // Métodos auxiliares privados
     private function procesarImagen($campo, $prefijo)
     {
         if (empty($_FILES[$campo]['tmp_name'])) {
@@ -232,6 +232,23 @@ class empresaControlador extends empresaModelo
             $valor = rand(pow(10, $digits - 1), pow(10, $digits) - 1);
             $nombreArchivo = $prefijo . $valor . '.' . $extension;
             $ruta = $directorio . $nombreArchivo;
+        }
+
+        // Validar que sea una imagen
+        $check = getimagesize($_FILES[$campo]['tmp_name']);
+        if ($check === false) {
+            return $campo === 'logotipo' ? 'image_preview.png' : '';
+        }
+
+        // Validar tamaño (ejemplo: máximo 2MB)
+        if ($_FILES[$campo]['size'] > 2 * 1024 * 1024) {
+            return $campo === 'logotipo' ? 'image_preview.png' : '';
+        }
+
+        // Validar extensión
+        $extensionesPermitidas = ['jpg', 'jpeg', 'png', 'gif'];
+        if (!in_array(strtolower($extension), $extensionesPermitidas)) {
+            return $campo === 'logotipo' ? 'image_preview.png' : '';
         }
 
         if (move_uploaded_file($_FILES[$campo]['tmp_name'], $ruta)) {

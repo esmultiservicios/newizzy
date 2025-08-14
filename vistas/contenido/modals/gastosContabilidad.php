@@ -66,21 +66,28 @@
                                     <small class="form-text text-muted">Número de factura (máx. 19 caracteres)</small>
                                 </div>
 
-                                <!-- En el formulario principal, agrega esto en la sección de campos -->
                                 <div class="col-md-12 col-sm-6 mb-3">
                                     <div class="form-group">
                                         <label class="small mb-1"><strong>Factura PDF</strong></label>
                                         <div class="file-upload-container">
                                             <div class="file-upload-area" id="fileDropArea">
                                                 <i class="fas fa-file-pdf fa-3x mb-2"></i>
-                                                <p>Arrastra tu archivo PDF aquí o haz clic para seleccionar</p>
-                                                <input type="file" id="factura_pdf" name="factura_pdf" accept=".pdf" class="file-upload-input">
+                                                <p>
+                                                    <span class="drag-text">Arrastra tu archivo PDF aquí o </span>
+                                                    <span class="select-file-container">
+                                                        <span class="select-file-text">haz clic aquí para seleccionar</span>
+                                                        <input type="file" id="factura_pdf" name="factura_pdf" accept=".pdf" class="file-upload-input">
+                                                    </span>
+                                                    <span class="paste-text">, o pega en cualquier área</span>
+                                                </p>
                                                 <div class="file-preview" id="filePreview"></div>
                                             </div>
                                             <div class="file-info" id="fileInfo">Ningún archivo seleccionado</div>
                                         </div>
+                                        <small class="form-text text-muted">Documento PDF de la factura (Máx. 5MB)</small>
                                     </div>
-                                </div>                                
+                                </div>                           
+
                             </div>
                         </div>
                     </div>

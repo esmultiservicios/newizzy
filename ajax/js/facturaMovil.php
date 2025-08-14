@@ -1,32 +1,42 @@
 <script>
+//facturaMovil.php
 $(() => {
+    // ===============================
     // Variables globales
+    // ===============================
     let productosAgregados = [];
     let currentFacturaId = null;
     let secuenciaFactura = null;
     let facturasDisponibles = 0;
     let lastState = null;
     let currentProductPrice = 0;
+    let cajaAbierta = false;
+    let aperturaInfo = null;
 
-    // Formateador de números
     const formatter = new Intl.NumberFormat('es-HN', {
         style: 'decimal',
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     });
 
+    // ===============================
     // 1. Cargar datos iniciales
+    // ===============================
     cargarClientes();
     cargarVendedores();
     cargarProductos();
     obtenerSecuenciaFactura();
     getTotalFacturasDisponibles();
+    getCajero();
+    verificarAperturaCaja();
 
-    // 2. Configurar eventos principales
+    // ===============================
+    // 2. Eventos principales
+    // ===============================
     $('#agregar-producto').click(agregarProducto);
     $('#procesar-factura-top, #procesar-factura-bottom').click(procesarFactura);
     $('#cancelar-factura-top, #cancelar-factura-bottom').click(cancelarFactura);
-    $('#efectivo-pago').on('input', calcularCambio);
+    $('#efectivo-pago, #transferencia-pago, #tarjeta-pago').on('input', calcularCambio);
     $('#registrar-pago').click(registrarPago);
     $('#guardar-descuento').click(guardarDescuento);
     $('#nuevo-descuento-monto').on('input', actualizarDescuentoDesdeMonto);
@@ -38,148 +48,135 @@ $(() => {
         }
     });
 
-    // 3. Eventos para la cantidad
-    $(document).on('click', '.btn-cantidad-minus', function() {
-        const $input = $(this).siblings('.input-cantidad');
-        let value = parseInt($input.val()) || 1;
-        if (value > 1) {
-            value--;
-            $input.val(value).trigger('change');
-        }
-    });
-
-    $(document).on('click', '.btn-cantidad-plus', function() {
-        const $input = $(this).siblings('.input-cantidad');
-        let value = parseInt($input.val()) || 1;
-        value++;
-        $input.val(value).trigger('change');
-    });
-
-    $(document).on('change', '.input-cantidad', function() {
-        let value = parseInt($(this).val()) || 1;
-        if (value < 1) {
-            value = 1;
-            $(this).val(value);
-        }
-        
-        const index = $(this).data('index');
-        if (index !== undefined && productosAgregados[index]) {
-            productosAgregados[index].cantidad = value;
-            calcularTotales();
-        }
-    });
-
-    // 4. Evento para cambiar entre tabs de descuento
-    $('#descuento-tab button').on('click', function() {
-        const target = $(this).data('bs-target');
-        if (target === '#monto-tab-pane') {
-            $('#nuevo-descuento-monto').trigger('focus');
+    $(document).on('click', '#btn-apertura-caja', function() {
+        var mode = $(this).data('mode');
+        if (mode === 'abrir') {
+            formAperturaBill();
         } else {
-            $('#nuevo-descuento-porcentaje').trigger('focus');
+            formCierreBill();
         }
     });
 
-    // 5. Evento para editar producto (VERSIÓN CORREGIDA)
-    $(document).on('click', '.btn-edit-product', function() {
-        const index = $(this).closest('.product-item').data('index');
-        const producto = productosAgregados[index];
-        
-        if (index === undefined || !producto) {
-            showNotify("error", "Error", "No se pudo encontrar el producto para editar");
-            return;
-        }
-        
-        $('#producto-index').val(index);
-        
-        // Calcular valores iniciales correctamente
-        const precioTotal = producto.precio * producto.cantidad;
-        const descuentoActual = producto.descuento || 0;
-        const porcentajeActual = (descuentoActual / precioTotal) * 100;
-        
-        $('#nuevo-descuento-monto').val(descuentoActual.toFixed(2));
-        $('#nuevo-descuento-porcentaje').val(porcentajeActual.toFixed(2));
-        $('#descuento-total').val(`L. ${formatter.format(descuentoActual)} (${porcentajeActual.toFixed(2)}%)`);
-        
-        currentProductPrice = precioTotal;
-        
-        // Mostrar modal con Bootstrap 5
-        var modal = new bootstrap.Modal(document.getElementById('editarDescuentoModal'), {
-            backdrop: 'static',
-            keyboard: false
-        });
-        modal.show();
+    $('#modal_apertura_caja').on('hidden.bs.modal', function() {
+        verificarAperturaCaja();
     });
 
-    // 6. Evento para el botón Cancelar (NUEVO)
-    $(document).on('click', '[data-dismiss="modal"], .btn-secondary', function() {
-        var modal = bootstrap.Modal.getInstance(document.getElementById('editarDescuentoModal'));
-        if (modal) {
-            modal.hide();
-        }
-    });
+    // ===============================
+    // 3. Funciones de Caja
+    // ===============================
+    function getConsultarAperturaCaja() {
+        var url = '<?php echo SERVERURL; ?>core/getAperturaCajaUsuario.php';
+        var estado_apertura = 2; // Por defecto cerrada
 
-    // 7. Funciones para manejar descuentos
-    function actualizarDescuentoDesdeMonto() {
-        const monto = parseFloat($('#nuevo-descuento-monto').val()) || 0;
-        const porcentaje = (monto / currentProductPrice) * 100;
-        $('#nuevo-descuento-porcentaje').val(porcentaje.toFixed(2));
-        $('#descuento-total').val(`L. ${formatter.format(monto)} (${porcentaje.toFixed(2)}%)`);
-    }
-
-    function actualizarDescuentoDesdePorcentaje() {
-        const porcentaje = parseFloat($('#nuevo-descuento-porcentaje').val()) || 0;
-        const monto = (porcentaje / 100) * currentProductPrice;
-        $('#nuevo-descuento-monto').val(monto.toFixed(2));
-        $('#descuento-total').val(`L. ${formatter.format(monto)} (${porcentaje.toFixed(2)}%)`);
-    }
-
-    function guardarDescuento() {
-        const index = $('#producto-index').val();
-        const nuevoDescuento = parseFloat($('#nuevo-descuento-monto').val()) || 0;
-        
-        if (index !== null && productosAgregados[index]) {
-            const precioTotal = productosAgregados[index].precio * productosAgregados[index].cantidad;
-            if (nuevoDescuento > precioTotal) {
-                showNotify("error", "Error", "El descuento no puede ser mayor al precio total");
-                return;
-            }
-            
-            productosAgregados[index].descuento = nuevoDescuento;
-            actualizarListaProductos();
-            calcularTotales();
-            
-            var modal = bootstrap.Modal.getInstance(document.getElementById('editarDescuentoModal'));
-            modal.hide();
-            
-            showNotify("success", "Éxito", "Descuento actualizado correctamente");
-        } else {
-            showNotify("error", "Error", "No se pudo actualizar el descuento: producto no encontrado");
-        }
-    }
-
-    // 8. Funciones AJAX y de utilidad
-    function buscarProductoPorCodigo(codigo) {
         $.ajax({
-            url: '<?php echo SERVERURL;?>core/facturas/buscarProductoPorCodigo.php',
             type: 'POST',
-            data: { codigo: codigo },
-            dataType: 'json',
-            success: function(response) {
-                if (response.success && response.producto) {
-                    const producto = response.producto;
-                    $('#producto-select').val(producto.productos_id).selectpicker('refresh');
-                    agregarProducto();
-                    $('#codigo-barra').val('').focus();
-                } else {
-                    showNotify("warning", "Advertencia", "Producto no encontrado");
+            url: url,
+            async: false,
+            success: function(registro) {
+                try {
+                    var valores = JSON.parse(registro);
+                    estado_apertura = valores[0];
+                } catch(e) {
+                    console.error("Error parsing apertura caja response:", e);
+                    estado_apertura = 2;
                 }
             },
             error: function() {
-                showNotify("error", "Error", "No se pudo buscar el producto");
+                console.error("Error en AJAX getAperturaCajaUsuario");
+                estado_apertura = 2;
             }
+        });
+        return estado_apertura;
+    }
+
+    function verificarAperturaCaja() {
+        var estado = Number(getConsultarAperturaCaja());
+        cajaAbierta = (estado === 1);
+
+        // Actualizar botón de apertura/cierre
+        var $btn = $('#btn-apertura-caja');
+        if ($btn.length) {
+            if (cajaAbierta) {
+                $btn.removeClass('btn-primary').addClass('btn-warning')
+                    .html('<i class="fas fa-lock mr-1"></i> Cerrar Caja')
+                    .data('mode', 'cerrar');
+            } else {
+                $btn.removeClass('btn-warning').addClass('btn-primary')
+                    .html('<i class="fas fa-lock-open mr-1"></i> Aperturar Caja')
+                    .data('mode', 'abrir');
+            }
+        }
+
+        // Actualizar UI según estado de caja
+        toggleUIForCajaAbierta(cajaAbierta);
+        getTotalFacturasDisponibles(); // Actualizar contador SAR
+    }
+
+    function toggleUIForCajaAbierta(abierta) {
+        var disable = !abierta;
+
+        // Habilitar/deshabilitar elementos
+        $('#agregar-producto').prop('disabled', disable);
+        $('#procesar-factura-top, #procesar-factura-bottom').prop('disabled', disable);
+        $('#cancelar-factura-top, #cancelar-factura-bottom').prop('disabled', disable);
+        
+        $('#cliente-select, #vendedor-select, #producto-select, #cantidad, #descuento, #codigo-barra, #notas')
+            .prop('disabled', disable);
+
+        // Actualizar selects
+        if ($('#cliente-select').hasClass('selectpicker')) $('#cliente-select').selectpicker('refresh');
+        if ($('#vendedor-select').hasClass('selectpicker')) $('#vendedor-select').selectpicker('refresh');
+        if ($('#producto-select').hasClass('selectpicker')) $('#producto-select').selectpicker('refresh');
+
+        // Actualizar botones de factura
+        if (disable) {
+            $('#procesar-factura-top, #procesar-factura-bottom')
+                .removeClass('btn-success')
+                .addClass('btn-outline-danger')
+                .html('<i class="fas fa-ban mr-1"></i> No disponible (Caja cerrada)');
+        } else {
+            $('#procesar-factura-top, #procesar-factura-bottom')
+                .removeClass('btn-outline-danger')
+                .addClass('btn-success')
+                .html('<i class="fas fa-save mr-1"></i> Registrar Factura');
+        }
+    }
+
+    function formAperturaBill() {
+        $('#formAperturaCaja #proceso_aperturaCaja').val("Aperturar Caja");
+        $('#open_caja').show();
+        $('#close_caja').hide();
+        $('#formAperturaCaja #monto_apertura_grupo').show();
+
+        $('#formAperturaCaja').attr({'data-form': 'save'});
+        $('#formAperturaCaja').attr({'action': '<?php echo SERVERURL; ?>ajax/addAperturaCajaAjax.php'});
+
+        $('#modal_apertura_caja').modal({
+            show: true,
+            keyboard: false,
+            backdrop: 'static'
         });
     }
 
+    function formCierreBill() {
+        $('#formAperturaCaja #proceso_aperturaCaja').val("Cerrar Caja");
+        $('#open_caja').hide();
+        $('#close_caja').show();
+        $('#formAperturaCaja #monto_apertura_grupo').hide();
+
+        $('#formAperturaCaja').attr({'data-form': 'save'});
+        $('#formAperturaCaja').attr({'action': '<?php echo SERVERURL; ?>ajax/addCierreCajaFacturasAjax.php'});
+
+        $('#modal_apertura_caja').modal({
+            show: true,
+            keyboard: false,
+            backdrop: 'static'
+        });
+    }
+
+    // ===============================
+    // 4. Funciones de facturas disponibles
+    // ===============================
     function getTotalFacturasDisponibles() {
         $.ajax({
             type: 'POST',
@@ -201,17 +198,28 @@ $(() => {
         const daysLeft = parseInt(contador);
         const currentState = getCurrentState(facturasPendientes, daysLeft, fechaLimite);
         
-        if (currentState !== lastState) {
-            lastState = currentState;
-            counter.addClass('state-change');
-            setTimeout(() => counter.removeClass('state-change'), 300);
-            
+        // Forzar reinicio de animación
+        counter.removeClass('state-change');
+        void counter[0].offsetWidth; // Truco para reiniciar animación
+        
+        // Aplicar cambios
+        counter.addClass('state-change');
+        
+        // Actualizar contenido después de un pequeño delay para que se vea la animación
+        setTimeout(() => {
             const config = getStateConfig(currentState, facturasPendientes, daysLeft, fechaLimite);
             counter.html(`<i class="${config.icon}"></i> <span class="counter-value">${config.text}</span>`)
-                  .removeClass('counter-normal counter-warning counter-danger counter-expired counter-blocked counter-no-config')
-                  .addClass(config.class);
-        }
+                .removeClass('counter-normal counter-warning counter-danger counter-expired counter-blocked counter-no-config')
+                .addClass(config.class);
+            
+            // Animación adicional para cambios importantes
+            if (lastState !== currentState) {
+                counter.addClass('counter-update');
+                setTimeout(() => counter.removeClass('counter-update'), 1000);
+            }
+        }, 300);
         
+        lastState = currentState;
         updateButtonsState(facturasPendientes, fechaLimite, daysLeft);
     }
 
@@ -226,7 +234,7 @@ $(() => {
     }
 
     function getStateConfig(state, facturasPendientes, daysLeft, fechaLimite) {
-        const facturasFormateadas = facturasPendientes;
+        const facturasFormateadas = facturasPendientes.toLocaleString('es-HN');
         const vencimientoMsg = (daysLeft <= 5) ? 
             `<span class="d-block small">
                 ${daysLeft < 0 ? 'Autorizaciones vencidas' : 
@@ -236,9 +244,21 @@ $(() => {
         const facturasMsg = `<span class="d-block">${facturasFormateadas} facturas</span>`;
 
         const configs = {
-            'normal': { icon: 'fas fa-file-invoice', class: 'counter-normal', text: facturasMsg },
-            'warning': { icon: 'fas fa-hourglass-half', class: 'counter-warning', text: facturasMsg + vencimientoMsg },
-            'danger': { icon: 'fas fa-exclamation-triangle', class: 'counter-danger', text: facturasMsg + vencimientoMsg },
+            'normal': { 
+                icon: 'fas fa-file-invoice', 
+                class: 'counter-normal', 
+                text: facturasMsg 
+            },
+            'warning': { 
+                icon: 'fas fa-hourglass-half', 
+                class: 'counter-warning', 
+                text: facturasMsg + vencimientoMsg 
+            },
+            'danger': { 
+                icon: 'fas fa-exclamation-triangle', 
+                class: 'counter-danger', 
+                text: facturasMsg + vencimientoMsg 
+            },
             'expired': { 
                 icon: 'fas fa-calendar-times', 
                 class: 'counter-expired', 
@@ -271,19 +291,44 @@ $(() => {
     function updateButtonsState(facturasPendientes, fechaLimite, daysLeft) {
         const vencimientoPasado = daysLeft < 0;
         const sarDisabled = facturasPendientes <= 0 || !fechaLimite || fechaLimite.trim() === "Sin definir" || vencimientoPasado;
-        
-        $('#procesar-factura-top, #procesar-factura-bottom').prop('disabled', sarDisabled);
-        
-        if (sarDisabled) {
-            $('#procesar-factura-top, #procesar-factura-bottom')
-                .removeClass('btn-success')
-                .addClass('btn-outline-danger')
-                .html('<i class="fas fa-ban me-1"></i> No disponible');
+
+        const disabled = sarDisabled || !cajaAbierta;
+
+        $('#procesar-factura-top, #procesar-factura-bottom').prop('disabled', disabled);
+        $('#agregar-producto, #cancelar-factura-top, #cancelar-factura-bottom').prop('disabled', !cajaAbierta);
+
+        if (disabled) {
+            if (sarDisabled && cajaAbierta) {
+                $('#procesar-factura-top, #procesar-factura-bottom')
+                    .removeClass('btn-success')
+                    .addClass('btn-outline-danger')
+                    .html('<i class="fas fa-ban mr-1"></i> No disponible (Límite SAR)');
+            } else if (!cajaAbierta) {
+                $('#procesar-factura-top, #procesar-factura-bottom')
+                    .removeClass('btn-success')
+                    .addClass('btn-outline-danger')
+                    .html('<i class="fas fa-ban mr-1"></i> No disponible (Caja cerrada)');
+            }
         } else {
             $('#procesar-factura-top, #procesar-factura-bottom')
                 .removeClass('btn-outline-danger')
                 .addClass('btn-success')
-                .html('<i class="fas fa-save me-1"></i> Registrar Factura');
+                .html('<i class="fas fa-save mr-1"></i> Registrar Factura');
+        }
+
+        // Actualizar botón de caja
+        if (cajaAbierta) {
+            $('#btn-apertura-caja')
+                .removeClass('btn-primary')
+                .addClass('btn-warning')
+                .html('<i class="fas fa-lock mr-1"></i> Cerrar Caja')
+                .data('mode', 'cerrar');
+        } else {
+            $('#btn-apertura-caja')
+                .removeClass('btn-warning')
+                .addClass('btn-primary')
+                .html('<i class="fas fa-lock-open mr-1"></i> Aperturar Caja')
+                .data('mode', 'abrir');
         }
     }
 
@@ -293,79 +338,9 @@ $(() => {
         ).addClass('counter-danger');
     }
 
-    function cargarClientes() {
-        $.ajax({
-            url: '<?php echo SERVERURL;?>core/facturas/getClientes.php',
-            type: 'GET',
-            dataType: 'json',
-            success: function(data) {
-                $('#cliente-select').empty().append('<option value="">Seleccione un cliente</option>');
-                $.each(data, function(index, cliente) {
-                    $('#cliente-select').append(`<option value="${cliente.clientes_id}">${cliente.nombre} - ${cliente.rtn || 'Sin RTN'}</option>`);
-                });
-                $('#cliente-select').selectpicker('refresh');
-                
-                if ($(window).width() < 768) {
-                    $('.bootstrap-select').addClass('mobile-select');
-                    $('.dropdown-menu').addClass('mobile-dropdown');
-                }
-            },
-            error: function() {
-                showNotify("error", "Error", "No se pudieron cargar los clientes");
-            }
-        });
-    }
-
-    function cargarVendedores() {
-        $.ajax({
-            url: '<?php echo SERVERURL;?>core/facturas/getVendedores.php',
-            type: 'GET',
-            dataType: 'json',
-            success: function(data) {
-                $('#vendedor-select').empty().append('<option value="">Seleccione un vendedor</option>');
-                $.each(data, function(index, vendedor) {
-                    $('#vendedor-select').append(`<option value="${vendedor.colaboradores_id}">${vendedor.nombre}</option>`);
-                });
-                $('#vendedor-select').selectpicker('refresh');
-            },
-            error: function() {
-                showNotify("error", "Error", "No se pudieron cargar los vendedores");
-            }
-        });
-    }
-
-    function cargarProductos() {
-        $.ajax({
-            url: '<?php echo SERVERURL;?>core/facturas/getProductos.php',
-            type: 'GET',
-            dataType: 'json',
-            success: function(data) {
-                $('#producto-select').empty().append('<option value="">Seleccione un producto</option>');
-                $.each(data, function(index, producto) {
-                    $('#producto-select').append(`<option value="${producto.productos_id}" data-precio="${producto.precio_venta}" data-isv="${producto.isv_venta}">${producto.nombre} - L. ${formatter.format(producto.precio_venta)}</option>`);
-                });
-                $('#producto-select').selectpicker('refresh');
-            },
-            error: function() {
-                showNotify("error", "Error", "No se pudieron cargar los productos");
-            }
-        });
-    }
-
-    function obtenerSecuenciaFactura() {
-        $.ajax({
-            url: '<?php echo SERVERURL;?>core/facturas/getSecuenciaFactura.php',
-            type: 'GET',
-            dataType: 'json',
-            success: function(data) {
-                secuenciaFactura = data;
-            },
-            error: function() {
-                showNotify("error", "Error", "No se pudo obtener la secuencia de facturación");
-            }
-        });
-    }
-
+    // ===============================
+    // 5. Funciones de productos y facturación
+    // ===============================
     function agregarProducto() {
         const productoId = $('#producto-select').val();
         const productoText = $('#producto-select option:selected').text();
@@ -392,20 +367,25 @@ $(() => {
                         visible: true
                     },
                     confirm: {
-                        text: "¡Si, actualizar!",
+                        text: "¡Si, actualizar!"
                     }
                 },
                 dangerMode: true,
                 closeOnEsc: false,
                 closeOnClickOutside: false
             }).then((result) => {
-                if (result.isConfirmed) {
+                if (result && result.isConfirmed) {
                     productosAgregados[index].cantidad += cantidad;
                     productosAgregados[index].descuento += descuento;
                     actualizarListaProductos();
                     calcularTotales();
-                } else if (result.isDenied) {
+                } else if (result && result.isDenied) {
                     productosAgregados.push({ productoId, productoText, precio, cantidad, descuento, isv });
+                    actualizarListaProductos();
+                    calcularTotales();
+                } else if (result === true) {
+                    productosAgregados[index].cantidad += cantidad;
+                    productosAgregados[index].descuento += descuento;
                     actualizarListaProductos();
                     calcularTotales();
                 }
@@ -488,8 +468,7 @@ $(() => {
             `);
         });
 
-        // Evento para eliminar producto
-        $(document).on('click', '.btn-eliminar-producto', function() {
+        $(document).off('click', '.btn-eliminar-producto').on('click', '.btn-eliminar-producto', function() {
             const index = $(this).closest('.product-item').data('index');
             const producto = productosAgregados[index];
             
@@ -508,14 +487,14 @@ $(() => {
                         visible: true
                     },
                     confirm: {
-                        text: "¡Si, eliminar!",
+                        text: "¡Si, eliminar!"
                     }
                 },
                 dangerMode: true,
                 closeOnEsc: false,
                 closeOnClickOutside: false
             }).then((result) => {
-                if (result.isConfirmed) {
+                if ((result && result.isConfirmed) || result === true) {
                     productosAgregados.splice(index, 1);
                     actualizarListaProductos();
                     calcularTotales();
@@ -552,7 +531,13 @@ $(() => {
     function procesarFactura(e) {
         e.preventDefault();
 
-        if ($('#cliente-select').val() === null || $('#vendedor-select').val() === null) {
+        if(!cajaAbierta){
+            showNotify("warning", "Caja cerrada", "No puedes procesar facturas sin aperturar caja");
+            formAperturaBill();
+            return;
+        }
+
+        if (!$('#cliente-select').val() || !$('#vendedor-select').val()) {
             showNotify("warning", "Advertencia", "Seleccione cliente y vendedor");
             return;
         }
@@ -568,7 +553,8 @@ $(() => {
             vendedorId: $('#vendedor-select').val(),
             tipoFactura: tipoFactura,
             productos: productosAgregados,
-            notas: $('#notas').val()
+            notas: $('#notas').val(),
+            aperturaId: (aperturaInfo && aperturaInfo.apertura_id) ? aperturaInfo.apertura_id : null
         };
 
         showNotify("info", "Procesando factura", "Por favor espere...", true);
@@ -587,42 +573,50 @@ $(() => {
                         $('#factura-id-pago').val(response.factura_id);
                         $('#monto-pago').val(response.total);
                         $('#efectivo-pago').val('');
+                        $('#transferencia-pago').val('');
+                        $('#tarjeta-pago').val('');
                         $('#cambio-pago').val('');
-                        $('#tarjeta-pago').val(0);
                         $('#pagoModal').modal('show');
                     } else {
                         showNotify("success", "Éxito", "Factura registrada correctamente");
                         resetearFormulario();
                     }
                     
-                    // Actualizar contador de facturas disponibles
                     getTotalFacturasDisponibles();
                 } else {
                     showNotify("error", "Error", response.message || 'Error al procesar la factura');
                 }
             },
             error: function(xhr) {
-                showNotify("error", "Error", xhr.responseJSON?.message || 'Error al procesar la factura');
+                showNotify("error", "Error", (xhr.responseJSON && xhr.responseJSON.message) || 'Error al procesar la factura');
             }
         });
     }
 
+    // ===============================
+    // 6. Funciones de pago
+    // ===============================
     function registrarPago() {
         const efectivo = parseFloat($('#efectivo-pago').val()) || 0;
+        const transferencia = parseFloat($('#transferencia-pago').val()) || 0;
         const tarjeta = parseFloat($('#tarjeta-pago').val()) || 0;
-        const totalPago = efectivo + tarjeta;
-        const montoFactura = parseFloat($('#monto-pago').val());
+        const totalPago = efectivo + transferencia + tarjeta;
+        const montoFactura = parseFloat($('#monto-pago').val()) || 0;
         
         if (totalPago < montoFactura) {
             showNotify("warning", "Advertencia", "El pago no cubre el total de la factura");
             return;
         }
 
+        const cambioDesdeEfectivo = Math.max(0, efectivo - Math.max(0, montoFactura - (transferencia + tarjeta)));
+        $('#cambio-pago').val(formatter.format(cambioDesdeEfectivo));
+
         const datos = {
             facturaId: $('#factura-id-pago').val(),
             efectivo: efectivo,
+            transferencia: transferencia,
             tarjeta: tarjeta,
-            cambio: parseFloat($('#cambio-pago').val()) || 0
+            cambio: cambioDesdeEfectivo
         };
 
         showNotify("info", "Registrando pago", "Por favor espere...", true);
@@ -644,17 +638,95 @@ $(() => {
                 }
             },
             error: function(xhr) {
-                showNotify("error", "Error", xhr.responseJSON?.message || 'Error al registrar el pago');
+                showNotify("error", "Error", (xhr.responseJSON && xhr.responseJSON.message) || 'Error al registrar el pago');
             }
         });
     }
 
     function calcularCambio() {
         const efectivo = parseFloat($('#efectivo-pago').val()) || 0;
+        const transferencia = parseFloat($('#transferencia-pago').val()) || 0;
         const tarjeta = parseFloat($('#tarjeta-pago').val()) || 0;
-        const totalPago = efectivo + tarjeta;
-        const montoFactura = parseFloat($('#monto-pago').val());
-        $('#cambio-pago').val(totalPago >= montoFactura ? formatter.format(totalPago - montoFactura) : '');
+        const montoFactura = parseFloat($('#monto-pago').val()) || 0;
+
+        const cambioDesdeEfectivo = Math.max(0, efectivo - Math.max(0, montoFactura - (transferencia + tarjeta)));
+        $('#cambio-pago').val(cambioDesdeEfectivo > 0 ? formatter.format(cambioDesdeEfectivo) : '');
+    }
+
+    // ===============================
+    // 7. Funciones auxiliares
+    // ===============================
+    function cargarClientes() {
+        $.ajax({
+            url: '<?php echo SERVERURL;?>core/facturas/getClientes.php',
+            type: 'GET',
+            dataType: 'json',
+            success: function(data) {
+                $('#cliente-select').empty().append('<option value="">Seleccione un cliente</option>');
+                $.each(data, function(index, cliente) {
+                    $('#cliente-select').append(`<option value="${cliente.clientes_id}">${cliente.nombre} - ${cliente.rtn || 'Sin RTN'}</option>`);
+                });
+                $('#cliente-select').selectpicker('refresh');
+                
+                if ($(window).width() < 768) {
+                    $('.bootstrap-select').addClass('mobile-select');
+                    $('.dropdown-menu').addClass('mobile-dropdown');
+                }
+            },
+            error: function() {
+                showNotify("error", "Error", "No se pudieron cargar los clientes");
+            }
+        });
+    }
+
+    function cargarVendedores() {
+        $.ajax({
+            url: '<?php echo SERVERURL;?>core/facturas/getVendedores.php',
+            type: 'GET',
+            dataType: 'json',
+            success: function(data) {
+                $('#vendedor-select').empty().append('<option value="">Seleccione un vendedor</option>');
+                $.each(data, function(index, vendedor) {
+                    $('#vendedor-select').append(`<option value="${vendedor.colaboradores_id}">${vendedor.nombre}</option>`);
+                });
+                $('#vendedor-select').selectpicker('refresh');
+            },
+            error: function() {
+                showNotify("error", "Error", "No se pudieron cargar los vendedores");
+            }
+        });
+    }
+
+    function cargarProductos() {
+        $.ajax({
+            url: '<?php echo SERVERURL;?>core/facturas/getProductos.php',
+            type: 'GET',
+            dataType: 'json',
+            success: function(data) {
+                $('#producto-select').empty().append('<option value="">Seleccione un producto</option>');
+                $.each(data, function(index, producto) {
+                    $('#producto-select').append(`<option value="${producto.productos_id}" data-precio="${producto.precio_venta}" data-isv="${producto.isv_venta}">${producto.nombre} - L. ${formatter.format(producto.precio_venta)}</option>`);
+                });
+                $('#producto-select').selectpicker('refresh');
+            },
+            error: function() {
+                showNotify("error", "Error", "No se pudieron cargar los productos");
+            }
+        });
+    }
+
+    function obtenerSecuenciaFactura() {
+        $.ajax({
+            url: '<?php echo SERVERURL;?>core/facturas/getSecuenciaFactura.php',
+            type: 'GET',
+            dataType: 'json',
+            success: function(data) {
+                secuenciaFactura = data;
+            },
+            error: function() {
+                showNotify("error", "Error", "No se pudo obtener la secuencia de facturación");
+            }
+        });
     }
 
     function cancelarFactura() {
@@ -673,14 +745,14 @@ $(() => {
                     visible: true
                 },
                 confirm: {
-                    text: "¡Si, cancelar!",
+                    text: "¡Si, cancelar!"
                 }
             },
             dangerMode: true,
             closeOnEsc: false,
             closeOnClickOutside: false
         }).then((result) => {
-            if (result.isConfirmed) {
+            if ((result && result.isConfirmed) || result === true) {
                 resetearFormulario();
                 showNotify("success", "Éxito", "Factura cancelada correctamente");
             }
@@ -700,27 +772,82 @@ $(() => {
         obtenerSecuenciaFactura();
     }
 
-    // Inicialización de tabs en el modal de descuento
-    var triggerTabList = [].slice.call(document.querySelectorAll('#descuento-tab button'));
-    triggerTabList.forEach(function(triggerEl) {
-        var tabTrigger = new bootstrap.Tab(triggerEl);
-        
-        triggerEl.addEventListener('click', function(event) {
-            event.preventDefault();
-            tabTrigger.show();
+    function buscarProductoPorCodigo(codigo) {
+        $.ajax({
+            url: '<?php echo SERVERURL;?>core/facturas/buscarProductoPorCodigo.php',
+            type: 'POST',
+            data: { codigo: codigo },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success && response.producto) {
+                    const producto = response.producto;
+                    $('#producto-select').val(producto.productos_id).selectpicker('refresh');
+                    agregarProducto();
+                    $('#codigo-barra').val('').focus();
+                } else {
+                    showNotify("warning", "Advertencia", "Producto no encontrado");
+                }
+            },
+            error: function() {
+                showNotify("error", "Error", "No se pudo buscar el producto");
+            }
         });
-    });
+    }
 
+    // ===============================
+    // 8. Funciones de Descuento
+    // ===============================
+    function actualizarDescuentoDesdeMonto() {
+        const monto = parseFloat($('#nuevo-descuento-monto').val()) || 0;
+        const porcentaje = currentProductPrice > 0 ? (monto / currentProductPrice) * 100 : 0;
+        $('#nuevo-descuento-porcentaje').val(porcentaje.toFixed(2));
+        $('#descuento-total').val(`L. ${formatter.format(monto)} (${porcentaje.toFixed(2)}%)`);
+    }
+
+    function actualizarDescuentoDesdePorcentaje() {
+        const porcentaje = parseFloat($('#nuevo-descuento-porcentaje').val()) || 0;
+        const monto = (porcentaje / 100) * currentProductPrice;
+        $('#nuevo-descuento-monto').val((monto || 0).toFixed(2));
+        $('#descuento-total').val(`L. ${formatter.format(monto || 0)} (${porcentaje.toFixed(2)}%)`);
+    }
+
+    function guardarDescuento() {
+        const index = $('#producto-index').val();
+        const nuevoDescuento = parseFloat($('#nuevo-descuento-monto').val()) || 0;
+        
+        if (index !== null && productosAgregados[index]) {
+            const precioTotal = (productosAgregados[index].precio * productosAgregados[index].cantidad) || 0;
+            if (nuevoDescuento > precioTotal) {
+                showNotify("error", "Error", "El descuento no puede ser mayor al precio total");
+                return;
+            }
+            
+            productosAgregados[index].descuento = nuevoDescuento;
+            actualizarListaProductos();
+            calcularTotales();
+            
+            $('#editarDescuentoModal').modal('hide');
+            showNotify("success", "Éxito", "Descuento actualizado correctamente");
+        } else {
+            showNotify("error", "Error", "No se pudo actualizar el descuento: producto no encontrado");
+        }
+    }
+
+    // Eventos para el modal de descuento
     $('#editarDescuentoModal').on('shown.bs.modal', function() {
-        $('#descuento-tab button:first').tab('show');
+        $('#descuento-tab .nav-link').first().trigger('click');
         $('#nuevo-descuento-monto').trigger('focus');
     });
 
-    // Limpiar y resetear modal al cerrar
     $('#editarDescuentoModal').on('hidden.bs.modal', function() {
         $('#editar-descuento-form')[0].reset();
         $('#descuento-total').val('');
         $('#producto-index').val('');
     });
+
+    setInterval(() => {
+        validarAperturaCajaUsuario();
+        getTotalFacturasDisponibles();
+    }, 60000);
 });
 </script>

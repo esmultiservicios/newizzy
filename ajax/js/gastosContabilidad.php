@@ -1,33 +1,38 @@
 <script>
-//gastosContabilidad.php
-// Agrega estas funciones al inicio de tu JS
+// gastosContabilidad.phpDOMContentLoaded
 function setupFileUpload() {
     const fileDropArea = document.getElementById('fileDropArea');
     const fileInput = document.querySelector('.file-upload-input');
     const fileInfo = document.getElementById('fileInfo');
     const filePreview = document.getElementById('filePreview');
-    
-    if(fileDropArea) {
-        // Prevent default drag behaviors
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            fileDropArea.addEventListener(eventName, preventDefaults, false);
-        });
+    const selectFileText = document.querySelector('.select-file-text');
 
-        // Highlight drop area when item is dragged over it
-        ['dragenter', 'dragover'].forEach(eventName => {
-            fileDropArea.addEventListener(eventName, highlight, false);
-        });
+    if (!fileDropArea || fileInput.dataset.initialized) return;
+    fileInput.dataset.initialized = "true";
 
-        ['dragleave', 'drop'].forEach(eventName => {
-            fileDropArea.addEventListener(eventName, unhighlight, false);
-        });
+    let isProcessing = false;
 
-        // Handle dropped files
-        fileDropArea.addEventListener('drop', handleDrop, false);
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        fileDropArea.addEventListener(eventName, preventDefaults, false);
+    });
 
-        // Handle selected files
-        fileInput.addEventListener('change', handleFiles, false);
-    }
+    ['dragenter', 'dragover'].forEach(eventName => {
+        fileDropArea.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        fileDropArea.addEventListener(eventName, unhighlight, false);
+    });
+
+    fileDropArea.addEventListener('drop', handleDrop, false);
+    document.addEventListener('paste', handlePaste);
+
+    selectFileText.addEventListener('click', (e) => {
+        e.stopPropagation();
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', handleFiles, false);
 
     function preventDefaults(e) {
         e.preventDefault();
@@ -45,46 +50,77 @@ function setupFileUpload() {
     function handleDrop(e) {
         const dt = e.dataTransfer;
         const files = dt.files;
-        fileInput.files = files;
-        handleFiles({target: {files: files}});
+        processFiles(files);
+    }
+
+    function handlePaste(e) {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        let file = null;
+
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].kind === 'file' && items[i].type === 'application/pdf') {
+                file = items[i].getAsFile();
+                break;
+            }
+        }
+
+        if (file) {
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            processFiles(dataTransfer.files);
+        }
     }
 
     function handleFiles(e) {
-        const files = e.target.files;
-        if(files.length > 0) {
+        if (isProcessing) return;
+        isProcessing = true;
+        processFiles(e.target.files);
+        isProcessing = false;
+    }
+
+    function processFiles(files) {
+        if (files && files.length > 0) {
             const file = files[0];
-            
-            // Validar que sea PDF
-            if(file.type !== 'application/pdf') {
+
+            if (file.type !== 'application/pdf') {
                 showNotify('error', 'Error', 'Solo se permiten archivos PDF');
-                fileInput.value = '';
-                fileInfo.textContent = 'Ningún archivo seleccionado';
-                filePreview.style.display = 'none';
+                clearFile();
                 return;
             }
-            
-            // Validar tamaño (ej. 5MB máximo)
-            if(file.size > 5 * 1024 * 1024) {
+
+            if (file.size > 5 * 1024 * 1024) {
                 showNotify('error', 'Error', 'El archivo no debe exceder los 5MB');
-                fileInput.value = '';
-                fileInfo.textContent = 'Ningún archivo seleccionado';
-                filePreview.style.display = 'none';
+                clearFile();
                 return;
             }
-            
+
             fileInfo.textContent = `Archivo seleccionado: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
-            
-            // Mostrar vista previa para PDF
+
             filePreview.innerHTML = `
                 <div class="pdf-preview">
-                    <i class="fas fa-file-pdf fa-2x"></i>
-                    <p>${file.name}</p>
+                    <i class="fas fa-file-pdf fa-2x" style="color:#dc3545;"></i>
+                    <p style="margin:0 8px; flex:1;">${file.name}</p>
+                    <button type="button" class="btn-remove-pdf" title="Eliminar archivo">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
                 </div>
             `;
-            filePreview.style.display = 'block';
+            filePreview.style.display = 'flex';
+            filePreview.style.alignItems = 'center';
+
+            filePreview.querySelector('.btn-remove-pdf').addEventListener('click', clearFile);
         }
     }
+
+    function clearFile() {
+        fileInput.value = '';
+        fileInfo.textContent = 'Ningún archivo seleccionado';
+        filePreview.innerHTML = '';
+        filePreview.style.display = 'none';
+    }
 }
+
+document.addEventListener('DOMContentLoaded', setupFileUpload);
 
 $(() => {
     listar_gastos_contabilidad();
@@ -189,20 +225,28 @@ var listar_gastos_contabilidad = function() {
                 "data": "factura",
                 "render": function(data, type, row) {
                     if (type === 'display') {
-                        // Mostrar el número de factura + ícono PDF (si existe)
-                        let html = data; // Número de factura
-                        
+                        let numeroFactura = data ? data : ''; // Número de factura o vacío
+
+                        let icono = '';
                         if (row.factura_pdf && row.factura_pdf !== '') {
-                            html += ` <a href="<?php echo SERVERURL; ?>vistas/plantilla/gastos/${row.factura_pdf}" 
-                                    target="_blank" 
-                                    class="btn btn-sm btn-pdf" 
-                                    title="Descargar PDF" 
-                                    data-toggle="tooltip">
-                                        <i class="fas fa-file-pdf fa-lg"></i>
-                                    </a>`;
+                            icono = `
+                                <a href="<?php echo SERVERURL; ?>vistas/plantilla/gastos/${row.factura_pdf}" 
+                                target="_blank" 
+                                class="btn btn-sm btn-danger d-flex align-items-center justify-content-center factura-btn"
+                                title="Ver/Descargar PDF" 
+                                data-toggle="tooltip">
+                                    <i class="fas fa-file-pdf"></i>
+                                </a>
+                            `;
                         }
-                        
-                        return html;
+
+                        // Contenedor flex para que siempre se mantenga centrado verticalmente
+                        return `
+                            <div class="d-flex justify-content-between align-items-center w-100">
+                                <span>${numeroFactura}</span>
+                                ${icono}
+                            </div>
+                        `;
                     }
                     return data;
                 }
@@ -706,6 +750,14 @@ function modal_egresos_contabilidad() {
     $('#formEgresosContables #total_egresos').attr('disabled', false).val('');
 
     $('#formEgresosContables #pro_egresos_contabilidad').val("Registrar Egresos");
+
+    // Resetear completamente el área de PDF (igual que en empresas)
+    $('#filePreview').html('').hide();
+    $('#fileInfo').text('Ningún archivo seleccionado');
+    $('#factura_pdf').val('');
+    
+    // Configurar la carga de archivos
+    setupFileUpload(); 
 
     $('#modalEgresosContables').modal({
         show: true,

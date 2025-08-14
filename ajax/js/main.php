@@ -1203,7 +1203,10 @@ function modal_productos() {
         $('#formProductos #producto_isv_compra').attr('checked', false);
     }
 
-    $("#formProductos #preview").attr("src", "<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png");
+    // Limpiar vistas previas de imágenes - Mismo enfoque simple que en empresas
+    $('#productoPreview').html('').hide();
+    $('#productoInfo').text('Ningún archivo seleccionado');
+    $("#formProductos #preview").attr("src", "").hide();
 
     $('#formProductos #proceso_productos').val("Registro de Productos");
     $('#modal_registrar_productos').modal({

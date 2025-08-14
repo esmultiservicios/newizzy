@@ -4,14 +4,17 @@
             <div class="card">
                 <div class="card-header card-header-movile d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Facturación Móvil</h5>
-                    <div id="factura-counter" class="badge-counter">
+                    <div id="factura-counter" class="badge-counter counter-normal">
                         <i class="fas fa-file-invoice"></i>
                         <span class="counter-value" id="factura-disponibles">Cargando...</span>
                     </div>
                 </div>
                 <div class="card-body">
-                    <!-- Barra de botones fija superior - ahora más pequeños -->
+                    <!-- Barra de botones fija superior -->
                     <div class="action-buttons-top mb-3 d-flex gap-2">
+                        <button type="button" class="btn btn-primary btn-sm" id="btn-apertura-caja">
+                            <i class="fas fa-lock-open"></i> Aperturar Caja
+                        </button>
                         <button type="button" class="btn btn-danger btn-sm" id="cancelar-factura-top">
                             <i class="fas fa-times"></i> Cancelar
                         </button>
@@ -149,13 +152,15 @@
     </div>
 </div>
 
-<!-- Modal de Pago -->
+<!-- Modal de Pago (Actualizado) -->
 <div class="modal fade" id="pagoModal" tabindex="-1" aria-labelledby="pagoModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="pagoModalLabel">Registrar Pago</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title" id="pagoModalLabel">
+                    <i class="fas fa-cash-register me-2"></i> Registrar Pago
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body">
                 <form id="pago-form">
@@ -163,24 +168,44 @@
                     <div class="form-group mb-3">
                         <label for="monto-pago" class="form-label">Monto a Pagar</label>
                         <input type="text" class="form-control" id="monto-pago" readonly>
+                        <small class="text-muted">Total de la factura.</small>
                     </div>
-                    <div class="form-group mb-3">
-                        <label for="efectivo-pago" class="form-label">Efectivo Recibido</label>
-                        <input type="text" class="form-control" id="efectivo-pago" placeholder="0.00" required>
+
+                    <div class="row g-2">
+                        <div class="col-12 col-sm-4">
+                            <div class="form-group mb-3">
+                                <label for="efectivo-pago" class="form-label">Efectivo</label>
+                                <input type="number" min="0" step="0.01" class="form-control" id="efectivo-pago" placeholder="0.00">
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4">
+                            <div class="form-group mb-3">
+                                <label for="transferencia-pago" class="form-label">Transferencia</label>
+                                <input type="number" min="0" step="0.01" class="form-control" id="transferencia-pago" placeholder="0.00">
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4">
+                            <div class="form-group mb-3">
+                                <label for="tarjeta-pago" class="form-label">Tarjeta</label>
+                                <input type="number" min="0" step="0.01" class="form-control" id="tarjeta-pago" placeholder="0.00">
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group mb-3">
+
+                    <div class="form-group mb-2">
                         <label for="cambio-pago" class="form-label">Cambio</label>
                         <input type="text" class="form-control" id="cambio-pago" readonly>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="tarjeta-pago" class="form-label">Pago con Tarjeta</label>
-                        <input type="text" class="form-control" id="tarjeta-pago" placeholder="0.00">
+                        <small class="text-muted">Se calcula automáticamente con base en Efectivo + Transferencia + Tarjeta.</small>
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="registrar-pago">Registrar Pago</button>
+            <div class="modal-footer d-flex justify-content-between">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" id="registrar-pago">
+                    <i class="fas fa-check me-1"></i> Registrar Pago
+                </button>
             </div>
         </div>
     </div>

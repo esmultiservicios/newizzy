@@ -23,7 +23,7 @@ try {
     // Validar sesión
     $validacion = mainModel::validarSesion();
     if ($validacion['error']) {
-        return $response = [
+        echo json_encode([
             'type' => 'error',
             'title' => "Error de sesión",
             'message' => $validacion['mensaje'],
@@ -31,18 +31,18 @@ try {
             'total' => 0,
             'puntos_generados' => 0,
             'estado' => false
-        ];
+        ]);
+        exit;
     }
 
     $usuario = $_SESSION['colaborador_id_sd'];
 
-    // Validar método de solicitud
+    // Validar método
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         throw new Exception('Método no permitido');
     }
 
     $data = json_decode(file_get_contents('php://input'), true);
-    
     if (json_last_error() !== JSON_ERROR_NONE) {
         throw new Exception('Datos JSON inválidos');
     }
@@ -54,172 +54,213 @@ try {
             throw new Exception("Campo requerido faltante: $field");
         }
     }
-    
     if (empty($data['productos']) || !is_array($data['productos'])) {
         throw new Exception('No hay productos para facturar');
     }
-    
-    // Obtener número de factura (aquí ya se actualiza la secuencia)
+
     $empresa_id = 1;
-    $documento_id = $data['tipoFactura'] == 1 ? 1 : 2;
-    $numeroFactura = $mainModel->obtenerNumeroFacturaSecuencia($empresa_id, $documento_id);
-    
-    if ($numeroFactura['error']) {
-        throw new Exception($numeroFactura['mensaje']);
+    $documento_id = ($data['tipoFactura'] == 1) ? 1 : 2; // 1=Contado, 2=Crédito (ajusta si difiere en tu catálogo)
+
+    $cn = $mainModel->connection();
+    $cn->begin_transaction();
+
+    // Obtener número de factura (con bloqueo y sin carrera)
+    // IMPORTANTE: usamos la misma conexión $cn en la función
+    $numData = $mainModel->obtenerNumeroFacturaSecuencia($empresa_id, $documento_id);
+    if ($numData['error']) {
+        throw new Exception($numData['mensaje']);
     }
-    
-    // Iniciar transacción
-    $mainModel->connection()->begin_transaction();
-    
+
+    $secuencia_id = $numData['data']['secuencia_facturacion_id'];
+    $numero = $numData['data']['numero'];
+    $prefijo = $numData['data']['prefijo'] ?? '';
+    $relleno = intval($numData['data']['relleno'] ?? 0);
+
     // Calcular totales
     $subtotal = 0;
     $totalDescuento = 0;
     $totalIsv = 0;
-    
     foreach ($data['productos'] as $producto) {
-        $subtotal += $producto['precio'] * $producto['cantidad'];
-        $totalDescuento += $producto['descuento'] ?? 0;
-        $totalIsv += ($producto['isv'] ?? 0) * $producto['cantidad'];
+        $p = floatval($producto['precio']);
+        $c = intval($producto['cantidad']);
+        $d = floatval($producto['descuento'] ?? 0);
+        $i = floatval($producto['isv'] ?? 0);
+
+        $subtotal += $p * $c;
+        $totalDescuento += $d;
+        $totalIsv += $i * $c;
     }
-    
     $total = ($subtotal - $totalDescuento) + $totalIsv;
-    
-    // 1. Obtener el próximo facturas_id disponible
-    $queryMaxId = "SELECT MAX(facturas_id) as max_id FROM facturas";
-    $resultMax = $mainModel->ejecutar_consulta_simple($queryMaxId);
-    $nextId = 1;
-    
-    if ($resultMax && $resultMax->num_rows > 0) {
-        $row = $resultMax->fetch_assoc();
-        $nextId = $row['max_id'] + 1;
+
+    // Obtener apertura de caja activa para el usuario y empresa
+    $sqlApertura = "SELECT apertura_id 
+                    FROM apertura 
+                    WHERE colaboradores_id = ? 
+                    AND empresa_id = ? 
+                    AND estado = 1 
+                    LIMIT 1";
+    $stmt = $cn->prepare($sqlApertura);
+    $stmt->bind_param("ii", $usuario, $empresa_id);
+    $stmt->execute();
+    $resApertura = $stmt->get_result();
+
+    if ($resApertura->num_rows > 0) {
+        $rowApertura = $resApertura->fetch_assoc();
+        $apertura_id = intval($rowApertura['apertura_id']);
+    } else {
+        throw new Exception('No hay apertura de caja activa para registrar la factura.');
     }
 
-    // 2. Insertar la factura con el ID manual
+
+    // Obtener correlativo para facturas_id
+    $sqlCorrelativo = "SELECT IFNULL(MAX(facturas_id), 0) + 1 AS nuevo_id FROM facturas";
+    $resCorrelativo = $cn->query($sqlCorrelativo);
+    $rowCorrelativo = $resCorrelativo->fetch_assoc();
+    $nuevo_facturas_id = intval($rowCorrelativo['nuevo_id']);
+
+    // Insertar factura con correlativo manual
     $query = "INSERT INTO facturas (
         facturas_id,
-        clientes_id, 
-        colaboradores_id, 
-        secuencia_facturacion_id, 
-        number, 
-        fecha, 
-        importe, 
-        notas, 
-        tipo_factura, 
+        clientes_id,
+        colaboradores_id,
+        secuencia_facturacion_id,
+        apertura_id,
+        number,
+        fecha,
+        importe,
+        notas,
+        tipo_factura,
         estado,
         usuario,
         empresa_id,
         fecha_registro,
         fecha_dolar
     ) VALUES (?, ?, ?, ?, ?, NOW(), ?, ?, ?, 1, ?, ?, NOW(), NOW())";
-    
+
+    // $numeroStr puede ser solo el número o prefijo + número formateado
+    $numeroStr = $numero; // Ajusta si quieres mostrar con prefijo/ceros
+
     $params = [
-        $nextId,
-        $data['clienteId'],
-        $data['vendedorId'],
-        $numeroFactura['data']['secuencia_facturacion_id'],
-        $mainModel->cleanString($numeroFactura['data']['numero']),
-        $total,
-        isset($data['notas']) ? $mainModel->cleanString($data['notas']) : '',
-        $mainModel->cleanString($data['tipoFactura']),
-        $usuario,
-        $empresa_id
+        $nuevo_facturas_id,                          // i → facturas_id
+        $data['clienteId'],                          // i
+        $data['vendedorId'],                         // i
+        $secuencia_id,   
+        $apertura_id,                           // i
+        intval($numeroStr),                          // i
+        floatval($total),                            // d
+        isset($data['notas']) ? $mainModel->cleanString($data['notas']) : '', // s
+        intval($data['tipoFactura']),                // i
+        intval($usuario),                            // i
+        intval($empresa_id)                          // i
     ];
-    
-    $result = $mainModel->ejecutar_consulta_simple_preparada($query, "iiiisdssii", $params);
-    
-    if (!$result) {
-        throw new Exception('Error al insertar la factura: ' . $mainModel->connection()->error);
+
+    // Cadena de tipos: 10 parámetros => iiiidsiiii
+    $ok = $mainModel->ejecutar_consulta_simple_preparada($query, "iiiidsiiii", $params);
+    if (!$ok) {
+        throw new Exception('Error al insertar la factura: ' . $cn->error);
     }
-    
-    $facturaId = $nextId;
-    
-    // 3. Insertar los productos de la factura
+
+    $facturaId = $nuevo_facturas_id; // Usamos el que generamos arriba
+
+    // Insertar detalles
     $queryDetalle = "INSERT INTO facturas_detalles (
-        facturas_id, 
-        productos_id, 
-        cantidad, 
-        precio, 
-        descuento, 
-        isv_valor, 
+        facturas_detalle_id,
+        facturas_id,
+        productos_id,
+        cantidad,
+        precio,
+        isv_valor,
+        descuento,
         medida
-    ) VALUES (?, ?, ?, ?, ?, ?, ?)";
-    
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+
+    // Obtener correlativo para facturas_detalle_id
+    $correlativoDetalle = 1;
+
     foreach ($data['productos'] as $producto) {
+        $sqlDetalle = "SELECT IFNULL(MAX(facturas_detalle_id), 0) + 1 AS nuevo_id FROM facturas_detalles";
+        $resDetalle = $cn->query($sqlDetalle);
+        $rowDetalle = $resDetalle->fetch_assoc();
+        $nuevo_detalle_id = intval($rowDetalle['nuevo_id']);
+
         $paramsDetalle = [
-            $facturaId,
-            $producto['productoId'],
-            $producto['cantidad'],
-            $producto['precio'],
-            $producto['descuento'] ?? 0,
-            $producto['isv'] ?? 0,
-            'UN'
+            $nuevo_detalle_id,                        // i
+            intval($facturaId),                       // i
+            intval($producto['productoId']),          // i
+            intval($producto['cantidad']),            // i
+            floatval($producto['precio']),            // d
+            floatval($producto['isv'] ?? 0),          // d
+            floatval($producto['descuento'] ?? 0),    // d
+            'UN'                                      // s
         ];
-        
-        $resultDetalle = $mainModel->ejecutar_consulta_simple_preparada($queryDetalle, "iiiddds", $paramsDetalle);
-        
-        if (!$resultDetalle) {
-            throw new Exception('Error al insertar el detalle de factura: ' . $mainModel->connection()->error);
+
+        // Cadena de tipos: 8 parámetros => iiiiddds
+        $okDetalle = $mainModel->ejecutar_consulta_simple_preparada($queryDetalle, "iiiiddds", $paramsDetalle);
+        if (!$okDetalle) {
+            throw new Exception('Error al insertar el detalle de factura: ' . $cn->error);
         }
     }
-    
-    // 4. Calcular puntos si el programa de puntos está activo
+
+
+    // Programa de puntos (opcional – igual a tu lógica)
     $puntosGenerados = 0;
-    $queryPrograma = "SELECT tipo_calculo, monto, porcentaje FROM programa_puntos WHERE activo = 1 LIMIT 1";
-    $programa = $mainModel->ejecutar_consulta_simple($queryPrograma);
-    
+    $qProg = "SELECT tipo_calculo, monto, porcentaje FROM programa_puntos WHERE activo = 1 LIMIT 1";
+    $programa = $mainModel->ejecutar_consulta_simple($qProg);
     if ($programa && $programa->num_rows > 0) {
         $row = $programa->fetch_assoc();
         if ($row['tipo_calculo'] == 'monto_fijo') {
-            $puntosGenerados = floor($total / $row['monto']);
+            $puntosGenerados = ($row['monto'] > 0) ? floor($total / $row['monto']) : 0;
         } else {
             $puntosGenerados = floor(($total * $row['porcentaje']) / 100);
         }
-        
         if ($puntosGenerados > 0) {
-            $queryPuntos = "INSERT INTO cliente_puntos (cliente_id, factura_id, puntos, fecha_creacion, fecha_expiracion, estado) 
-                           VALUES (?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 1 YEAR), 1)";
-            $resultPuntos = $mainModel->ejecutar_consulta_simple_preparada($queryPuntos, "iii", [$data['clienteId'], $facturaId, $puntosGenerados]);
-            
-            if (!$resultPuntos) {
-                throw new Exception('Error al registrar los puntos: ' . $mainModel->connection()->error);
+            $qPts = "INSERT INTO cliente_puntos (cliente_id, factura_id, puntos, fecha_creacion, fecha_expiracion, estado) 
+                     VALUES (?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 1 YEAR), 1)";
+            $okPts = $mainModel->ejecutar_consulta_simple_preparada($qPts, "iii", [$data['clienteId'], $facturaId, $puntosGenerados]);
+            if (!$okPts) {
+                throw new Exception('Error al registrar los puntos: ' . $cn->error);
             }
         }
     }
-    
-    // Confirmar transacción
-    $mainModel->connection()->commit();
-    
-    $response = [
+
+    // Commit
+    $cn->commit();
+
+    echo json_encode([
         'type' => 'success',
         'title' => 'Éxito',
         'message' => 'Factura procesada correctamente',
         'factura_id' => $facturaId,
         'total' => $total,
         'puntos_generados' => $puntosGenerados,
-        'estado' => true
-    ];
-    
+        'estado' => true,
+        // Si quieres devolver el número visible:
+        'numero_visible' => $prefijo . str_pad($numero, $relleno, '0', STR_PAD_LEFT)
+    ]);
+    exit;
+
 } catch (Exception $e) {
     if ($mainModel->connection()) {
         $mainModel->connection()->rollback();
-        
-        // Registrar factura fallida si tenemos el número
-        if (isset($numeroFactura['data']['numero'])) {
-            $queryFallida = "INSERT INTO secuencia_factura_fallida (empresa_id, documento_id, numero) VALUES (?, ?, ?)";
-            $mainModel->ejecutar_consulta_simple_preparada($queryFallida, "iii", [
+
+        // Registrar número fallido si lo teníamos
+        if (isset($numData['data']['numero'])) {
+            $empresa_id = $empresa_id ?? 1;
+            $documento_id = $documento_id ?? 1;
+            $qFallida = "INSERT INTO secuencia_factura_fallida (empresa_id, documento_id, numero) VALUES (?, ?, ?)";
+            $mainModel->ejecutar_consulta_simple_preparada($qFallida, "iii", [
                 $empresa_id,
                 $documento_id,
-                $numeroFactura['data']['numero']
+                $numData['data']['numero']
             ]);
         }
     }
-    
-    $response = [
+
+    echo json_encode([
         'type' => 'error',
         'title' => 'Error',
         'message' => 'Error: ' . $e->getMessage(),
         'estado' => false
-    ];
+    ]);
+    exit;
 }
-
-echo json_encode($response);

@@ -488,25 +488,23 @@ var listar_productos_factura_buscar = function() {
             },
             {
                 "data": "image",
-                "render": function(data, type, row, meta) {
+                "orderable": false,
+                "render": function (data, type, row, meta) {
                     var defaultImageUrl = '<?php echo SERVERURL; ?>vistas/plantilla/img/products/image_preview.png';
                     var imageUrl = data ? '<?php echo SERVERURL; ?>vistas/plantilla/img/products/' + data : defaultImageUrl;
+                    var safeTitle = (row && row.nombre) ? String(row.nombre).replace(/"/g, '&quot;') : 'Imagen';
 
-                    var img = new Image();
-
-                    img.onload = function() {
-                        $('img.table-image', meta.settings.oInstance.api().row(meta.row).node()).attr('src', imageUrl);
-                    };
-
-                    img.onerror = function() {
-                        $('img.table-image', meta.settings.oInstance.api().row(meta.row).node()).attr('src', defaultImageUrl);
-                    };
-
-                    img.src = imageUrl;
-
-                    var altText = data ? data : 'Image Preview';
-
-                    return '<img class="table-image" src="' + imageUrl + '" alt="' + altText + '" height="100px" width="100px"/>';
+                    return ''
+                    + '<div class="d-flex align-items-center">'
+                    +   '<img class="table-image mr-2" src="' + imageUrl + '" alt="' + safeTitle + '" style="cursor:pointer;">'
+                    +   '<button type="button" class="btn btn-light btn-icon btn-xs btn-zoom iv-trigger"'
+                    +     ' data-iv-src="' + imageUrl + '"'
+                    +     ' data-iv-fallback="' + defaultImageUrl + '"'
+                    +     ' data-iv-title="' + safeTitle + '"'
+                    +     ' title="Ver imagen grande">'
+                    +     '<i class="fas fa-search-plus"></i>'
+                    +   '</button>'
+                    + '</div>';
                 }
             },
             {

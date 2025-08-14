@@ -1,158 +1,328 @@
 <script>
-$(document).ready(function() {
+$(() => {
     listar_empresa();
     GetEstadoBotonFirma();
 
-	$('#form_main_empresa #search').on("click", function (e) {
-		e.preventDefault();
-		listar_empresa();
-	});
+    $('#form_main_empresa #search').on("click", function (e) {
+        e.preventDefault();
+        listar_empresa();
+    });
 
-	// Evento para el botón de Limpiar (reset)
-	$('#form_main_empresa').on('reset', function () {
-		// Limpia y refresca los selects
-		$(this).find('.selectpicker') // Usa `this` para referenciar el formulario actual
-			.val('')
-			.selectpicker('refresh');
+    // Evento para el botón de Limpiar (reset)
+    $('#form_main_empresa').on('reset', function () {
+        // Limpia y refresca los selects
+        $(this).find('.selectpicker')
+            .val('')
+            .selectpicker('refresh');
+        listar_empresa();
+    });    
 
-			listar_empresa();
-	});    
+    const cfgs = [
+    { drop: '#logoDropArea',  input: '#logotipo',         preview: '#logoPreview',  info: '#logoInfo',  maxMB: 2 },
+    { drop: '#firmaDropArea', input: '#firma_documento',  preview: '#firmaPreview', info: '#firmaInfo', maxMB: 2 },
+  ];
+
+  let lastAreaCtx = null; // para pegar (Ctrl+V) en el último área activa
+
+  cfgs.forEach(setupUploader);
+
+  // Pegar en cualquier parte del documento: va al último área activa (o a la primera disponible)
+  document.addEventListener('paste', function (e) {
+    const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items || [];
+    let file = null;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].kind === 'file' && items[i].type.startsWith('image/')) {
+        file = items[i].getAsFile();
+        break;
+      }
+    }
+    if (!file) return;
+
+    e.preventDefault();
+    const ctx = lastAreaCtx || getFirstAvailableCtx();
+    if (!ctx) return;
+
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    handleFiles(dt.files, ctx);
+  });
+
+  function getFirstAvailableCtx() {
+    for (const c of cfgs) {
+      const drop = document.querySelector(c.drop);
+      const input = document.querySelector(c.input);
+      const preview = document.querySelector(c.preview);
+      const info = document.querySelector(c.info);
+      if (drop && input && preview && info) return { drop, input, preview, info, maxMB: c.maxMB };
+    }
+    return null;
+  }
+
+  function setupUploader({ drop, input, preview, info, maxMB }) {
+    const dropArea = document.querySelector(drop);
+    const fileInput = document.querySelector(input);
+    const previewEl = document.querySelector(preview);
+    const infoEl = document.querySelector(info);
+    if (!dropArea || !fileInput || !previewEl || !infoEl) return;
+
+    // Evitar doble init por recarga
+    if (fileInput.dataset.initialized) return;
+    fileInput.dataset.initialized = 'true';
+
+    // Drag & Drop
+    ['dragenter','dragover','dragleave','drop'].forEach(ev =>
+      dropArea.addEventListener(ev, preventDefaults, false)
+    );
+    ['dragenter','dragover'].forEach(ev =>
+      dropArea.addEventListener(ev, () => dropArea.classList.add('drag-over'), false)
+    );
+    ['dragleave','drop'].forEach(ev =>
+      dropArea.addEventListener(ev, () => dropArea.classList.remove('drag-over'), false)
+    );
+    dropArea.addEventListener('drop', e => {
+      const files = e.dataTransfer?.files || [];
+      if (files.length) handleFiles(files, { drop: dropArea, input: fileInput, preview: previewEl, info: infoEl, maxMB });
+    });
+
+    // Guardar área activa para Ctrl+V
+    ['mouseenter','focusin'].forEach(ev => {
+      dropArea.addEventListener(ev, () => {
+        lastAreaCtx = { drop: dropArea, input: fileInput, preview: previewEl, info: infoEl, maxMB };
+      });
+    });
+
+    // Selección por input
+    fileInput.addEventListener('change', e => {
+      handleFiles(e.target.files, { drop: dropArea, input: fileInput, preview: previewEl, info: infoEl, maxMB });
+    });
+
+    // SOLO abrir file chooser al hacer clic en .select-file-text (si la agregas en el HTML)
+    const selectLink = dropArea.querySelector('.select-file-text');
+    if (selectLink) {
+      const openChooser = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        fileInput.click();
+      };
+      selectLink.addEventListener('click', openChooser);
+      selectLink.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') openChooser(e);
+      });
+    }
+
+    function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+  }
+
+  function handleFiles(fileList, ctx) {
+    if (!ctx || !fileList || !fileList.length) return;
+    const { input, preview, info, maxMB } = ctx;
+    const file = fileList[0];
+
+    // Validaciones
+    if (!file.type.startsWith('image/')) {
+      (typeof showNotify === 'function'
+        ? showNotify('error', 'Error', 'El archivo debe ser una imagen (JPG, PNG, GIF)')
+        : alert('El archivo debe ser una imagen (JPG, PNG, GIF)'));
+      resetField(ctx);
+      return;
+    }
+    if (file.size > maxMB * 1024 * 1024) {
+      (typeof showNotify === 'function'
+        ? showNotify('error', 'Error', 'La imagen no debe exceder ' + maxMB + 'MB')
+        : alert('La imagen no debe exceder ' + maxMB + 'MB'));
+      resetField(ctx);
+      return;
+    }
+
+    info.textContent = `${file.name} (${formatFileSize(file.size)})`;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      preview.innerHTML = '';
+
+      const wrapper = document.createElement('div');
+      wrapper.style.position = 'relative';
+      wrapper.style.display  = 'inline-block';
+
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      img.alt = file.name;
+      img.className = 'img-thumbnail';
+      img.style.maxWidth = '200px';
+      img.style.maxHeight = '200px';
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'btn-remove-image';
+      removeBtn.title = 'Eliminar imagen';
+      removeBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+      // estilos inline mínimos si no tienes clase .btn-remove-image global
+      removeBtn.style.position = 'absolute';
+      removeBtn.style.top = '5px';
+      removeBtn.style.right = '5px';
+      removeBtn.style.background = 'rgba(220,53,69,.95)';
+      removeBtn.style.color = '#fff';
+      removeBtn.style.border = 'none';
+      removeBtn.style.borderRadius = '50%';
+      removeBtn.style.width = '32px';
+      removeBtn.style.height = '32px';
+      removeBtn.style.display = 'flex';
+      removeBtn.style.alignItems = 'center';
+      removeBtn.style.justifyContent = 'center';
+      removeBtn.style.boxShadow = '0 2px 6px rgba(0,0,0,.18)';
+      removeBtn.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        resetField(ctx);
+      });
+
+      wrapper.appendChild(img);
+      wrapper.appendChild(removeBtn);
+      preview.appendChild(wrapper);
+      preview.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function resetField(ctx) {
+    const { input, preview, info } = ctx;
+    input.value = '';
+    preview.innerHTML = '';
+    preview.style.display = 'none';
+    info.textContent = 'Ningún archivo seleccionado';
+  }
+
+  function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024, sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
+  }
 });
 
 //INICIO ACCIONES FROMULARIO EMPRESA
+// INICIO ACCIONES FORMULARIO EMPRESA
 var listar_empresa = function() {
-    var estado = $('#form_main_empresa #estado_empresa').val();
+  var estado = $('#form_main_empresa #estado_empresa').val();
 
-    var table_empresa = $("#dataTableEmpresa").DataTable({
-        "destroy": true,
-        "ajax": {
-            "method": "POST",
-            "url": "<?php echo SERVERURL;?>core/llenarDataTableEmpresa.php",
-            "data": {
-                "estado": estado
-            }
-        },
-        "columns": [{
-                "data": "image"
-            },
-            {
-                "data": "razon_social"
-            },
-            {
-                "data": "nombre"
-            },
-            {
-                "data": "telefono"
-            },
-            {
-                "data": "correo"
-            },
-            {
-                "data": "rtn"
-            },
-            {
-                "data": "ubicacion"
-            },
-            {
-                "data": "estado",
-                "render": function(data, type, row) {
-                    if (type === 'display') {
-                        var estadoText = data == 1 ? 'Activo' : 'Inactivo';
-                        var icon = data == 1 ? 
-                            '<i class="fas fa-check-circle mr-1"></i>' : 
-                            '<i class="fas fa-times-circle mr-1"></i>';
-                        var badgeClass = data == 1 ? 
-                            'badge badge-pill badge-success' : 
-                            'badge badge-pill badge-danger';
-                        
-                        return '<span class="' + badgeClass + 
-                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
-                            icon + estadoText + '</span>';
-                    }
-                    return data;
-                }
-            },            
-            {
-                "defaultContent": "<button class='table_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
-            },
-            {
-                "defaultContent": "<button class='table_eliminar btn ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"
-            }
-        ],
-        "lengthMenu": lengthMenu,
-        "stateSave": true,
-        "bDestroy": true,
-        "language": idioma_español,
-        "dom": dom,
-        "columnDefs": [{
-            "targets": 0,
-            "data": 'image',
-            "render": function(data, type, row, meta) {
-                return '<img class="" src="<?php echo SERVERURLLOGO;?>/' +
-                    data + '" alt="' + data + '"height="100px" width="100px"/>';
-            }
-        }],
-        "buttons": [{
-                text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-                titleAttr: 'Actualizar Empresa',
-                className: 'table_actualizar btn btn-secondary ocultar',
-                action: function() {
-                    listar_empresa();
-                }
-            },
-            {
-                text: '<i class="fas fas fa-plus fa-lg"></i> Ingresar',
-                titleAttr: 'Agregar Empresa',
-                className: 'table_crear btn btn-primary ocultar',
-                action: function() {
-                    modal_empresa();
-                }
-            },
-            {
-                extend: 'excelHtml5',
-                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
-                titleAttr: 'Excel',
-                title: 'Reporte de Empresa',
-                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-                className: 'table_reportes btn btn-success ocultar',
-                exportOptions: {
-                    columns: [0, 1, 2, 3, 4, 5]
-                }
-            },
-            {
-                extend: 'pdf',
-                orientation: 'landscape',
-                pageSize: 'LEGAL',
-                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-                titleAttr: 'PDF',
-                title: 'Reporte de Empresa',
-                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-                className: 'table_reportes btn btn-danger ocultar',
-                exportOptions: {
-                    columns: [0, 1, 2, 3, 4, 5]
-                },
-                customize: function(doc) {
-                    if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
-                        doc.content.splice(0, 0, {
-                            image: imagen,  
-                            width: 100,
-                            height: 45,
-                            margin: [0, 0, 0, 12]
-                        });
-                    }
-                }
-            }
-        ],
-        "drawCallback": function(settings) {
-            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+  var table_empresa = $("#dataTableEmpresa").DataTable({
+    "destroy": true,
+    "ajax": {
+      "method": "POST",
+      "url": "<?php echo SERVERURL;?>core/llenarDataTableEmpresa.php",
+      "data": { "estado": estado }
+    },
+    "columns": [
+      // Columna de logo (miniatura + iv-trigger)
+      {
+        "data": "image",
+        "orderable": false,
+        "render": function(data, type, row, meta) {
+          // Folders:
+          //  - SERVERURLLOGO: carpeta real de logos (como ya usabas)
+          //  - defaultLogoUrl: fallback (ajústalo si tienes otra ruta)
+          var defaultLogoUrl = '<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png';
+          var imageUrl = data ? ('<?php echo SERVERURLLOGO;?>/' + data) : defaultLogoUrl;
+
+          var safeTitle = (row && (row.nombre || row.razon_social))
+            ? String(row.nombre || row.razon_social).replace(/"/g,'&quot;')
+            : 'Logo';
+
+          return '' +
+            '<a href="#" class="iv-trigger" ' +
+              'data-iv-src="' + imageUrl + '" ' +
+              'data-iv-fallback="' + defaultLogoUrl + '" ' +
+              'data-iv-title="' + safeTitle + '">' +
+              '<img class="table-image" src="' + imageUrl + '" alt="' + safeTitle + '">' +
+            '</a>';
         }
-    });
-    table_empresa.search('').draw();
-    $('#buscar').focus();
+      },
+      { "data": "razon_social" },
+      { "data": "nombre" },
+      { "data": "telefono" },
+      { "data": "correo" },
+      { "data": "rtn" },
+      { "data": "ubicacion" },
+      {
+        "data": "estado",
+        "render": function(data, type, row) {
+          if (type === 'display') {
+            var estadoText = data == 1 ? 'Activo' : 'Inactivo';
+            var icon = data == 1
+              ? '<i class="fas fa-check-circle mr-1"></i>'
+              : '<i class="fas fa-times-circle mr-1"></i>';
+            var badgeClass = data == 1
+              ? 'badge badge-pill badge-success'
+              : 'badge badge-pill badge-danger';
 
-    editar_empresa_dataTable("#dataTableEmpresa tbody", table_empresa);
-    eliminar_empresa_dataTable("#dataTableEmpresa tbody", table_empresa);
-}
+            return '<span class="' + badgeClass + '" style="font-size:0.95rem;padding:.5em .8em;font-weight:600;">' +
+              icon + estadoText + '</span>';
+          }
+          return data;
+        }
+      },
+      { "defaultContent": "<button class='table_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>" },
+      { "defaultContent": "<button class='table_eliminar btn ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>" }
+    ],
+    "lengthMenu": lengthMenu,
+    "stateSave": true,
+    "bDestroy": true,
+    "language": idioma_español,
+    "dom": dom,
+    "buttons": [
+      {
+        text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
+        titleAttr: 'Actualizar Empresa',
+        className: 'table_actualizar btn btn-secondary ocultar',
+        action: function() { listar_empresa(); }
+      },
+      {
+        text: '<i class="fas fas fa-plus fa-lg"></i> Ingresar',
+        titleAttr: 'Agregar Empresa',
+        className: 'table_crear btn btn-primary ocultar',
+        action: function() { modal_empresa(); }
+      },
+      {
+        extend: 'excelHtml5',
+        text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
+        titleAttr: 'Excel',
+        title: 'Reporte de Empresa',
+        messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
+        className: 'table_reportes btn btn-success ocultar',
+        exportOptions: { columns: [0, 1, 2, 3, 4, 5] }
+      },
+      {
+        extend: 'pdf',
+        orientation: 'landscape',
+        pageSize: 'LEGAL',
+        text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
+        titleAttr: 'PDF',
+        title: 'Reporte de Empresa',
+        messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
+        className: 'table_reportes btn btn-danger ocultar',
+        exportOptions: { columns: [0, 1, 2, 3, 4, 5] },
+        customize: function(doc) {
+          if (typeof imagen !== 'undefined' && imagen) {
+            doc.content.splice(0, 0, {
+              image: imagen,
+              width: 100,
+              height: 45,
+              margin: [0, 0, 0, 12]
+            });
+          }
+        }
+      }
+    ],
+    "drawCallback": function(settings) {
+      getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+    }
+  });
+
+  table_empresa.search('').draw();
+  $('#buscar').focus();
+
+  editar_empresa_dataTable("#dataTableEmpresa tbody", table_empresa);
+  eliminar_empresa_dataTable("#dataTableEmpresa tbody", table_empresa);
+};
 
 var editar_empresa_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.table_editar");
@@ -194,6 +364,21 @@ var editar_empresa_dataTable = function(tbody, table) {
                     $('#formEmpresa #empresa_activo').attr('checked', true);
                 } else {
                     $('#formEmpresa #empresa_activo').attr('checked', false);
+                }
+
+                // Cargar imágenes existentes
+                if (valores[13] && valores[13] !== 'image_preview.png') {
+                    cargarImagenExistente('logo', valores[13]);
+                } else {
+                    $('#logoPreview').html('').hide();
+                    $('#logoInfo').text('Ningún archivo seleccionado');
+                }
+
+                if (valores[14] && valores[14] !== '') {
+                    cargarImagenExistente('firma', valores[14]);
+                } else {
+                    $('#firmaPreview').html('').hide();
+                    $('#firmaInfo').text('Ningún archivo seleccionado');
                 }
 
                 //HABILITAR OBJETOS
@@ -266,9 +451,8 @@ var eliminar_empresa_dataTable = function(tbody, table) {
                     data: {
                         empresa_id: empresa_id
                     },
-                    dataType: 'json', // Esperamos respuesta JSON
+                    dataType: 'json',
                     before: function(){
-                        // Mostrar carga mientras se procesa
                         showLoading("Eliminando registro...");
                     },
                     success: function(response) {
@@ -276,7 +460,7 @@ var eliminar_empresa_dataTable = function(tbody, table) {
                         
                         if(response.status === "success") {
                             showNotify("success", response.title, response.message);
-                            table.ajax.reload(null, false); // Recargar tabla sin resetear paginación
+                            table.ajax.reload(null, false);
                             table.search('').draw();                    
                         } else {
                             showNotify("error", response.title, response.message);
@@ -306,6 +490,12 @@ function modal_empresa() {
     $('#edi_empresa').hide();
     $('#delete_empresa').hide();
 
+    // Limpiar vistas previas de imágenes
+    $('#logoPreview').html('').hide();
+    $('#firmaPreview').html('').hide();
+    $('#logoInfo').text('Ningún archivo seleccionado');
+    $('#firmaInfo').text('Ningún archivo seleccionado');
+
     //HABILITAR OBJETOS
     $('#formEmpresa #empresa_empresa').attr('readonly', false);
     $('#formEmpresa #rtn_empresa').attr('readonly', false);
@@ -326,6 +516,34 @@ function modal_empresa() {
     });
 }
 /*FIN FORMULARIO EMPRESA*/
+
+// Función para cargar imágenes existentes al editar
+function cargarImagenExistente(tipo, rutaImagen) {
+    const preview = tipo === 'logo' ? $('#logoPreview') : $('#firmaPreview');
+    const info = tipo === 'logo' ? $('#logoInfo') : $('#firmaInfo');
+    const input = tipo === 'logo' ? $('#logotipo') : $('#firma_documento');
+    
+    if (rutaImagen && rutaImagen !== 'image_preview.png' && rutaImagen !== '') {
+        const rutaCompleta = '<?php echo SERVERURLLOGO;?>/' + rutaImagen;
+        preview.html(`
+            <div style="position: relative; display: inline-block;">
+                <img src="${rutaCompleta}" alt="Imagen existente" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
+                <button type="button" class="btn-remove-image" title="Eliminar imagen" style="position: absolute; top: 5px; right: 5px; background: rgba(255,0,0,0.7); color: white; border: none; border-radius: 50%; width: 25px; height: 25px; padding: 0;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `).show();
+        info.text(rutaImagen);
+        
+        // Configurar botón para eliminar
+        preview.find('.btn-remove-image').on('click', function(e) {
+            e.stopPropagation();
+            preview.html('').hide();
+            info.text('Ningún archivo seleccionado');
+            input.val('');
+        });
+    }
+}
 
 $(document).ready(function() {
     $("#modal_registrar_empresa").on('shown.bs.modal', function() {
@@ -363,7 +581,7 @@ $('#toggle-firma').on('click', function(e) {
             try {
                 const jsonResponse = JSON.parse(response);
 
-                // Manejar la respuexsta del servidor
+                // Manejar la respuesta del servidor
                 showNotify(jsonResponse.type, jsonResponse.title, jsonResponse.text);
 
                 // Actualizar el estado del botón
@@ -383,7 +601,7 @@ $('#toggle-firma').on('click', function(e) {
 function GetEstadoBotonFirma() {
     // Obtener el estado inicial y configurar el texto y el ícono del botón
     $.ajax({
-        url: '<?php echo SERVERURL;?>core/GetEstadoBotonFirma.php', // Cambia esta URL para obtener el estado
+        url: '<?php echo SERVERURL;?>core/GetEstadoBotonFirma.php',
         dataType: 'json',
         success: function(response) {
             if (response.error) {
@@ -391,7 +609,7 @@ function GetEstadoBotonFirma() {
                 return;
             }
 
-            const isFirmaVisible = response.estado === 'visible'; // Ajusta según la respuesta del servidor
+            const isFirmaVisible = response.estado === 'visible';
 
             const $toggleButton = $('#toggle-firma');
 
@@ -407,35 +625,4 @@ function GetEstadoBotonFirma() {
         }
     });
 }
-
-$(document).on("click", ".browse", function() {
-    var file = $(this)
-        .parent()
-        .parent()
-        .parent()
-        .find(".file");
-    file.trigger("click");
-});
-$('input[type="file"]').change(function(e) {
-    var file = this.files[0];
-    var imagefile = file.type;
-    var match = ["image/jpeg", "image/png", "image/jpg"];
-    if (!((imagefile == match[0]) || (imagefile == match[1]) || (imagefile == match[2]))) {
-        showNotify('error', 'Error', 'Por favor seleccione una archivo valido con el formato (JPEG/JPG/PNG)');
-        $("#file").val('');
-        return false;
-    } else {
-        var fileName = e.target.files[0].name;
-        $("#formProductos #file_product").val(fileName);
-
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            // get loaded data and render thumbnail.
-            document.getElementById("preview").src = e.target.result;
-        };
-        // read the image file as a data URL.
-        reader.readAsDataURL(this.files[0]);
-    }
-});
-
 </script>

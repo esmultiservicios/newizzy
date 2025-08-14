@@ -5687,8 +5687,10 @@ input:checked + .slider:before {
 }
 
 
-/* Estilos para la carga de archivos */
-.file-upload-container {
+/* =========================
+   📂 ESTILOS PARA SUBIDA DE ARCHIVOS PDF
+   ========================= */
+   .file-upload-container {
     margin-bottom: 15px;
 }
 
@@ -5697,11 +5699,12 @@ input:checked + .slider:before {
     border-radius: 5px;
     padding: 20px;
     text-align: center;
-    cursor: pointer;
     transition: all 0.3s;
     background-color: #f9f9f9;
     position: relative;
     overflow: hidden;
+    cursor: default;
+    outline: none;
 }
 
 .file-upload-area:hover {
@@ -5710,22 +5713,12 @@ input:checked + .slider:before {
 }
 
 .file-upload-area i {
-    color: #dc3545;
+    color: #dc3545; /* Rojo para iconos de PDF */
 }
 
 .file-upload-area p {
     margin: 10px 0 0;
     color: #666;
-}
-
-.file-upload-input {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    opacity: 0;
-    cursor: pointer;
 }
 
 .file-info {
@@ -5735,20 +5728,48 @@ input:checked + .slider:before {
     word-break: break-all;
 }
 
-.file-preview {
-    margin-top: 15px;
-    display: none;
+.file-upload-area.drag-over {
+    border-color: #28a745;
+    background-color: #e8f5e9;
 }
 
-.file-preview img {
-    max-width: 100%;
-    max-height: 150px;
-    border-radius: 4px;
+.file-upload-area:focus {
+    border: 2px dashed #28a745;
 }
 
+/* Botón para seleccionar archivo */
+.select-file-container {
+    display: inline-block;
+    position: relative;
+}
+
+.select-file-text {
+    color: #007bff;
+    cursor: pointer;
+    text-decoration: underline;
+    position: relative;
+    z-index: 1;
+}
+
+.select-file-text:hover {
+    color: #0056b3;
+}
+
+.file-upload-input {
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    overflow: hidden;
+}
+
+/* Vista previa PDF */
 .pdf-preview {
-    background: #f5f5f5;
-    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f8f9fa;
+    padding: 8px 10px;
     border-radius: 4px;
     margin-top: 10px;
 }
@@ -5756,12 +5777,30 @@ input:checked + .slider:before {
 .pdf-preview a {
     color: #dc3545;
     text-decoration: none;
+    word-break: break-all;
+    flex: 1;
+    margin-left: 8px;
 }
 
 .pdf-preview a:hover {
     text-decoration: underline;
 }
 
+/* Botón eliminar PDF */
+.btn-remove-pdf {
+    background: transparent;
+    border: none;
+    color: #e74c3c;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 5px;
+}
+
+.btn-remove-pdf:hover {
+    color: #c0392b;
+}
+
+/* Archivo existente */
 .existing-file {
     margin-top: 10px;
     padding: 10px;
@@ -5770,17 +5809,247 @@ input:checked + .slider:before {
     border-left: 3px solid #007bff;
 }
 
-.btn-pdf {
-    color: #e74c3c; /* Rojo */
-    background: transparent;
-    border: none;
-    padding: 0.2rem;
-    margin-left: 5px;
-    font-size: 1rem;
-    vertical-align: middle;
-    cursor: pointer;
+/* Vista previa genérica */
+.file-preview {
+    margin-top: 15px;
+    display: none;
+    text-align: center;
 }
 
-.btn-pdf:hover {
-    color: #c0392b; /* Rojo más oscuro */
+/* =========================
+   📷 SUBIDA DE IMÁGENES (PRODUCTO)
+   ========================= */
+   .file-upload-container {
+    margin-bottom: 15px;
+  }
+  
+  .file-upload-area {
+    border: 2px dashed #ccc;
+    border-radius: 5px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s;
+    background-color: #f9f9f9;
+    position: relative;
+    overflow: hidden;
+    cursor: default;
+    outline: none;
+  }
+  
+  .file-upload-area:hover {
+    border-color: #007bff;
+    background-color: #f0f7ff;
+  }
+  
+  .image-upload-area i {
+    color: #007bff; /* Azul para icono de imagen */
+  }
+  
+  .file-upload-area p {
+    margin: 10px 0 0;
+    color: #666;
+  }
+  
+  .file-info {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #666;
+    word-break: break-all;
+  }
+  
+  /* Estados de arrastre/hover/focus */
+  .file-upload-area.drag-over {
+    border-color: #28a745;
+    background-color: #e8f5e9;
+  }
+  .file-upload-area:focus {
+    border: 2px dashed #28a745;
+  }
+  
+  /* Texto/trigger para seleccionar */
+  .select-file-container {
+    display: inline-block;
+    position: relative;
+  }
+  .select-file-text {
+    color: #007bff;
+    cursor: pointer;
+    text-decoration: underline;
+    position: relative;
+    z-index: 1;
+  }
+  .select-file-text:hover {
+    color: #0056b3;
+  }
+  
+  /* Oculta el input nativo */
+  .file-upload-input {
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    overflow: hidden;
+  }
+  
+  /* Vista previa de imagen */
+  .file-preview {
+    margin-top: 15px;
+    display: none; /* se muestra cuando hay imagen */
+    text-align: center;
+    position: relative;
+  }
+  
+  .file-preview img {
+    max-width: 100%;
+    max-height: 220px;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.12);
+  }
+  
+  /* Botón eliminar (ícono de basura) */
+  .btn-remove-image {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(220, 53, 69, 0.95);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px; /* tamaño del ícono */
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,.18);
+    opacity: 0.95;
+    transition: transform .15s ease, opacity .15s ease;
+  }
+  
+  .btn-remove-image:hover {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  
+  /* Mostrar el botón solo al pasar el mouse (opcional: comenta si quieres que siempre se vea) */
+  .file-preview .btn-remove-image { opacity: 0; }
+  .file-preview:hover .btn-remove-image { opacity: 0.95; }
+  
+  /* Resaltado genérico compartido */
+  .highlight {
+    background-color: #f8f9fa;
+    border: 2px dashed #007bff;
+  }
+
+
+/* =========================
+   🎨 ESTILOS COMPARTIDOS
+   ========================= */
+.highlight {
+    background-color: #f8f9fa;
+    border: 2px dashed #007bff;
 }
+
+/* ===== Cuerpo del visor (oscuro para la imagen) ===== */
+.image-viewer-modal .modal-body {
+    background: #000;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .image-viewer-modal .iv-img {
+    width: 100%;
+    height: 80vh;
+    object-fit: contain;
+    background: #000;
+  }
+  
+  /* ===== Header oscuro (con close blanco) ===== */
+  .image-viewer-modal .modal-header {
+    background: #111 !important;
+    color: #fff !important;
+    border: 0 !important;
+  }
+  .image-viewer-modal .close {
+    color: #fff;
+    opacity: .85;
+    text-shadow: none;
+  }
+  .image-viewer-modal .close:hover,
+  .image-viewer-modal .close:focus {
+    color: #fff;
+    opacity: 1;
+  }
+  
+  /* ===== Footer CLARO ===== */
+  .image-viewer-modal .modal-footer {
+    background: #fff !important;         /* <- claro */
+    color: #212529 !important;           /* texto oscuro */
+    border-top: 1px solid rgba(0,0,0,.1) !important;
+  }
+  
+  /* Botones del footer sobre fondo claro */
+  .image-viewer-modal .modal-footer .btn-outline-light {
+    /* en fondo claro, el outline-light casi no se ve; lo reasignamos a gris */
+    color: #495057 !important;
+    border-color: #ced4da !important;
+    background: transparent !important;
+  }
+  .image-viewer-modal .modal-footer .btn-outline-light:hover,
+  .image-viewer-modal .modal-footer .btn-outline-light:focus,
+  .image-viewer-modal .modal-footer .btn-outline-light:active,
+  .image-viewer-modal .modal-footer .btn-outline-light.active {
+    background: #e9ecef !important;
+    color: #212529 !important;
+    border-color: #ced4da !important;
+    box-shadow: none !important;
+  }
+  
+  /* Botón outline-success sigue funcionando bien en claro */
+  .image-viewer-modal .modal-footer .btn-outline-success {
+    color: #28a745;
+    border-color: #28a745;
+  }
+  .image-viewer-modal .modal-footer .btn-outline-success:hover,
+  .image-viewer-modal .modal-footer .btn-outline-success:focus,
+  .image-viewer-modal .modal-footer .btn-outline-success:active,
+  .image-viewer-modal .modal-footer .btn-outline-success.active {
+    background: #28a745;
+    color: #fff;
+    border-color: #28a745;
+    box-shadow: none;
+  }
+  
+  /* Quitar halos de foco */
+  .image-viewer-modal .btn:focus,
+  .image-viewer-modal .close:focus {
+    box-shadow: none;
+    outline: none;
+  }  
+  
+  /* ===== Miniaturas globales para tablas (opcional, reutilizable) ===== */
+  .table-image {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.12);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .table-image:hover {
+    transform: scale(1.03);
+    box-shadow: 0 4px 10px rgba(0,0,0,.18);
+    cursor: zoom-in;
+  }
+  
+  /* Botón “ver imagen” junto a la miniatura */
+.btn-view-image {
+    padding: .2rem .4rem;
+    line-height: 1;
+    border-radius: 6px;
+  }
+  .btn-view-image i {
+    font-size: .9rem;
+  }

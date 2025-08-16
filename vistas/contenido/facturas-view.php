@@ -73,27 +73,41 @@
                                     <!-- Controles de Tipo y Proforma -->
                                     <div class="d-flex align-items-center mr-3">
                                         <label class="col-form-label mr-2 mb-0" for="facturas_activo">Tipo Factura:</label>
-                                        <label class="switch mb-0" data-toggle="tooltip" data-placement="top" title="Tipo de Factura, Contado o Crédito">
+                                        <label class="switch mb-0" 
+                                            data-toggle="tooltip" 
+                                            data-placement="top" 
+                                            title="<?php 
+                                                if ($_SESSION['planes_id_sistema'] == 1) {
+                                                    echo 'En el Plan Emprendedor, si la factura es crédito, se podrá emitir pero no se registrarán los pagos. Esto solo aplica para los siguientes planes';
+                                                } else {
+                                                    echo 'Tipo de Factura, Contado o Crédito';
+                                                }
+                                            ?>">
                                             <input type="checkbox" id="facturas_activo" name="facturas_activo" value="1" checked>
                                             <div class="slider round"></div>
                                         </label>
                                         <span class="question mb-0 ml-1" id="label_facturas_activo"></span>
                                     </div>
 
-                                    <div class="d-flex align-items-center mr-3" id="facturas_proforma_container">
-                                        <label class="col-form-label mr-2 mb-0" for="facturas_proforma">Es Proforma:</label>
-                                        <label class="switch mb-0" data-toggle="tooltip" data-placement="top" title="Factura Proforma">
-                                            <input type="checkbox" id="facturas_proforma" name="facturas_proforma" value="1">
-                                            <div class="slider round"></div>
-                                        </label>
-                                        <span class="question mb-0 ml-1" id="label_facturas_proforma"></span>
-                                    </div>
+
+                                    <?php if ($_SESSION['planes_id_sistema'] != 1): ?>
+                                        <div class="d-flex align-items-center mr-3" id="facturas_proforma_container">
+                                            <label class="col-form-label mr-2 mb-0" for="facturas_proforma">Es Proforma:</label>
+                                            <label class="switch mb-0" data-toggle="tooltip" data-placement="top" title="Factura Proforma">
+                                                <input type="checkbox" id="facturas_proforma" name="facturas_proforma" value="1">
+                                                <div class="slider round"></div>
+                                            </label>
+                                            <span class="question mb-0 ml-1" id="label_facturas_proforma"></span>
+                                        </div>
+                                    <?php endif; ?>
+
 
                                     <!-- Botón de Exoneración -->
                                     <button type="button" id="btn_exoneracion" class="btn btn-info" data-toggle="modal" data-target="#exoneracionModal">
                                         <i class="fas fa-file-invoice"></i> Datos de Exoneración
                                     </button>
                                 </div>
+
                             </div>
                         </div>
 
@@ -227,9 +241,15 @@
                                 <button class="btn btn-secondary bill-bottom-remove" id="addQuotetoBill" type="button" data-toggle="tooltip" data-placement="top" title="Convertir Cotizacion en Factura">
                                     <div class="sb-nav-link-icon"></div><i class="fas fa-file-invoice-dollar fa-lg"></i> Convertir
                                 </button>
-                                <button class="btn btn-secondary bill-bottom-remove" id="addPayCustomers" type="button" data-toggle="tooltip" data-placement="top" title="Cobrar Cuentas por Pagar Clientes">
-                                    <div class="sb-nav-link-icon"></div><i class="fas fa-hand-holding-usd fa-lg"></i> CxC
-                                </button>
+
+                                <?php if ($_SESSION['planes_id_sistema'] != 1): ?>
+                                    <button class="btn btn-secondary bill-bottom-remove" id="addPayCustomers" type="button"
+                                            data-toggle="tooltip" data-placement="top" title="Cobrar Cuentas por Pagar Clientes">
+                                        <div class="sb-nav-link-icon"></div>
+                                        <i class="fas fa-hand-holding-usd fa-lg"></i> CxC
+                                    </button>
+                                <?php endif; ?>
+
                                 <button class="btn btn-secondary bill-bottom-remove" id="addDraft" type="button" data-toggle="tooltip" data-placement="top" title="Facturas Pendientes">
                                     <div class="sb-nav-link-icon"></div><i class="fas fa-file-invoice fa-lg"></i> Pendientes
                                 </button>

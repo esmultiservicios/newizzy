@@ -1,4 +1,5 @@
 <?php	
+	//editarGastos.php
 	$peticionAjax = true;
 	require_once "configGenerales.php";
 	require_once "mainModel.php";
@@ -20,6 +21,7 @@
 		7 => $valores2['descuento'],
 		8 => $valores2['nc'],
 		9 => $valores2['total'],
-	    10 => $valores2['observacion']		
+	    10 => $valores2['observacion'],
+		11 => $valores2['factura_pdf']
 	);
 	echo json_encode($datos);

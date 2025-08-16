@@ -237,7 +237,7 @@
     
     <!-- Copyright -->
     <div class="footer-copyright text-center py-3">
-        © 2021 - <?php echo date("Y");?> Copyright:
+        © 2020 - <?php echo date("Y");?> Copyright:
         <div style="text-align: center;">
             <p class="navbar-text">Todos los derechos reservados</p>
         </div>        

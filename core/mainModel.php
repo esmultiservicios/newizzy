@@ -5999,10 +5999,19 @@ class mainModel
 
 	public function getPrivilegiosAccesoMenu($privilegio_id)
 	{
-		$query = "SELECT am.acceso_menu_id AS 'acceso_menu_id ', m.name AS 'menu', am.estado AS 'estado'
+		$plan_id = $_SESSION['planes_id_sistema'];
+
+		$query = "SELECT 
+					am.acceso_menu_id AS acceso_menu_id,
+					m.name AS menu,
+					am.estado AS estado,
+					mp.estado AS estado_menu_plan
 				FROM acceso_menu am
 				INNER JOIN menu AS m
-				ON am.menu_id = m.menu_id
+					ON am.menu_id = m.menu_id
+				INNER JOIN menu_plan AS mp
+					ON m.menu_id = mp.menu_id
+					AND mp.planes_id = '$plan_id'
 				WHERE am.privilegio_id = '$privilegio_id'";
 
 		$result = self::connection()->query($query);
@@ -6012,11 +6021,20 @@ class mainModel
 
 	public function getPrivilegiosAccesoSubMenu($privilegio_id)
 	{
-		$query = "SELECT asm.acceso_submenu_id AS 'acceso_menu_id ', sm.name AS 'submenu', asm.estado AS 'estado'
-				FROM acceso_submenu asm
-				INNER JOIN submenu AS sm
-				ON asm.submenu_id = sm.submenu_id
-				WHERE asm.privilegio_id = '$privilegio_id'";
+		$plan_id = $_SESSION['planes_id_sistema'];
+
+		$query = "SELECT 
+					asm.acceso_submenu_id AS acceso_submenu_id,
+					sm.name AS submenu,
+					asm.estado AS estado,
+					sp.estado AS estado_submenu_plan
+				  FROM acceso_submenu asm
+				  INNER JOIN submenu AS sm
+					ON asm.submenu_id = sm.submenu_id
+				  INNER JOIN submenu_plan AS sp
+					ON sm.submenu_id = sp.submenu_id
+				   AND sp.planes_id = '$plan_id'
+				  WHERE asm.privilegio_id = '$privilegio_id'";
 
 		$result = self::connection()->query($query);
 
@@ -6025,11 +6043,21 @@ class mainModel
 
 	public function getPrivilegiosAccesoSubMenu1($privilegio_id)
 	{
-		$query = "SELECT asm.acceso_submenu1_id AS 'acceso_menu_id ', sm.name AS 'submenu1', asm.estado AS 'estado', asm.privilegio_id
-				FROM acceso_submenu1 asm
-				INNER JOIN submenu1 AS sm
-				ON asm.submenu1_id = sm.submenu1_id
-				WHERE asm.privilegio_id = '$privilegio_id'";
+		$plan_id = $_SESSION['planes_id_sistema'];
+
+		$query = "SELECT 
+					asm.acceso_submenu1_id AS acceso_submenu1_id,
+					sm.name AS submenu1,
+					asm.estado AS estado,
+					asm.privilegio_id,
+					sp.estado AS estado_submenu1_plan
+				  FROM acceso_submenu1 asm
+				  INNER JOIN submenu1 sm
+					ON asm.submenu1_id = sm.submenu1_id
+				  INNER JOIN submenu1_plan sp
+					ON sm.submenu1_id = sp.submenu1_id
+				   AND sp.planes_id = '$plan_id'
+				  WHERE asm.privilegio_id = '$privilegio_id'";
 
 		$result = self::connection()->query($query);
 

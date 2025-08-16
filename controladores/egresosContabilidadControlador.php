@@ -19,18 +19,22 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
         }
         
         $proveedores_id = $_POST['proveedor_egresos'];
-        $cuentas_id = mainModel::cleanStringConverterCase($_POST['cuenta_egresos']);
+        $cuentas_id = mainModel::cleanString($_POST['cuenta_egresos']);
         $empresa_id = $_SESSION['empresa_id_sd'];
         $tipo_egreso = 2;//GASTOS
         $fecha = $_POST['fecha_egresos'];
         $factura = mainModel::cleanString($_POST['factura_egresos']);
-        $subtotal = mainModel::cleanStringConverterCase($_POST['subtotal_egresos'] === "" ? 0 : $_POST['subtotal_egresos']);
-        $isv = mainModel::cleanStringConverterCase($_POST['isv_egresos'] === "" ? 0 : $_POST['isv_egresos']);
-        $descuento = mainModel::cleanStringConverterCase($_POST['descuento_egresos'] === "" ? 0 : $_POST['descuento_egresos']);
-        $nc = mainModel::cleanStringConverterCase($_POST['nc_egresos'] === "" ? 0 : $_POST['nc_egresos']);
-        $total = mainModel::cleanStringConverterCase($_POST['total_egresos'] === "" ? 0 : $_POST['total_egresos']);
+        $subtotal = mainModel::cleanString($_POST['subtotal_egresos'] === "" ? 0 : $_POST['subtotal_egresos']);
+        $isv = mainModel::cleanString($_POST['isv_egresos'] === "" ? 0 : $_POST['isv_egresos']);
+        $descuento = mainModel::cleanString($_POST['descuento_egresos'] === "" ? 0 : $_POST['descuento_egresos']);
+        $nc = mainModel::cleanString($_POST['nc_egresos'] === "" ? 0 : $_POST['nc_egresos']);
+        $total = mainModel::cleanString($_POST['total_egresos'] === "" ? 0 : $_POST['total_egresos']);
         $observacion = mainModel::cleanString($_POST['observacion_egresos']);
-        $categoria_gastos = mainModel::cleanString($_POST['categoria_gastos']);
+        
+        $categoria_gastos = (isset($_POST['categoria_gastos']) && $_POST['categoria_gastos'] !== '' && is_numeric($_POST['categoria_gastos']))
+        ? (int) mainModel::cleanString($_POST['categoria_gastos'])
+        : 0;
+        
         $estado = 1;
         $colaboradores_id = $_SESSION['colaborador_id_sd'];
         $fecha_registro = date("Y-m-d H:i:s");    
@@ -400,8 +404,11 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
             ]);
             exit();
         }
-    
-        $categoria_gastos_id = $_POST['categoria_gastos_id'];
+
+        $categoria_gastos_id = (isset($_POST['categoria_gastos']) && $_POST['categoria_gastos'] !== '' && is_numeric($_POST['categoria_gastos']))
+        ? (int) mainModel::cleanString($_POST['categoria_gastos'])
+        : 0;
+
         $categoria = $_POST['categoria'];
     
         $datos = [

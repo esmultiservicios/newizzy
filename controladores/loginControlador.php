@@ -139,6 +139,7 @@
 							//CONSULTAMOS EL PLAN ACTIVO DEL CLIENTE
 							$resultPlanSistema = mainModel::getPlanSistema()->fetch_assoc();
 							$_SESSION['planes_id'] = $resultPlanSistema['plan_id'];
+							$_SESSION['planes_id_sistema'] = $resultPlanSistema['planes_id'];
 
 							if ($mantenimiento) {
 								$_SESSION['modo_soporte'] = "SI";

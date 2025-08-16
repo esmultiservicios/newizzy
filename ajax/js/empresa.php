@@ -15,9 +15,12 @@ $(() => {
             .val('')
             .selectpicker('refresh');
         listar_empresa();
-    });    
+    });
 
-    const cfgs = [
+  // ====== NUEVO: base URL a la carpeta enterprise (coincide con ENTERPRISE_PATH del backend)
+  const ENTERPRISE_URL = '<?php echo rtrim(SERVERURL, "/") . ENTERPRISE_PATH; ?>'; // p.ej. https://tuapp.com/vistas/plantilla/img/enterprise/
+
+  const cfgs = [
     { drop: '#logoDropArea',  input: '#logotipo',         preview: '#logoPreview',  info: '#logoInfo',  maxMB: 2 },
     { drop: '#firmaDropArea', input: '#firma_documento',  preview: '#firmaPreview', info: '#firmaInfo', maxMB: 2 },
   ];
@@ -204,6 +207,9 @@ $(() => {
 var listar_empresa = function() {
   var estado = $('#form_main_empresa #estado_empresa').val();
 
+  // ====== NUEVO: base URL a la carpeta enterprise (coincide con ENTERPRISE_PATH del backend)
+  var ENTERPRISE_URL = '<?php echo rtrim(SERVERURL, "/") . ENTERPRISE_PATH; ?>'; // termina con /
+
   var table_empresa = $("#dataTableEmpresa").DataTable({
     "destroy": true,
     "ajax": {
@@ -217,11 +223,10 @@ var listar_empresa = function() {
         "data": "image",
         "orderable": false,
         "render": function(data, type, row, meta) {
-          // Folders:
-          //  - SERVERURLLOGO: carpeta real de logos (como ya usabas)
-          //  - defaultLogoUrl: fallback (ajústalo si tienes otra ruta)
-          var defaultLogoUrl = '<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png';
-          var imageUrl = data ? ('<?php echo SERVERURLLOGO;?>/' + data) : defaultLogoUrl;
+          // default dentro de enterprise (ya no products)
+          var defaultLogoUrl = ENTERPRISE_URL + 'image_preview.png';
+          // si el backend devuelve solo el nombre de archivo (p.ej. logo_ab12cd.png)
+          var imageUrl = data ? (ENTERPRISE_URL + data) : defaultLogoUrl;
 
           var safeTitle = (row && (row.nombre || row.razon_social))
             ? String(row.nombre || row.razon_social).replace(/"/g,'&quot;')
@@ -297,7 +302,7 @@ var listar_empresa = function() {
         text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
         titleAttr: 'PDF',
         title: 'Reporte de Empresa',
-        messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
+        messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today() ),
         className: 'table_reportes btn btn-danger ocultar',
         exportOptions: { columns: [0, 1, 2, 3, 4, 5] },
         customize: function(doc) {
@@ -366,7 +371,7 @@ var editar_empresa_dataTable = function(tbody, table) {
                     $('#formEmpresa #empresa_activo').attr('checked', false);
                 }
 
-                // Cargar imágenes existentes
+                // ====== AJUSTE: cargar imágenes existentes desde enterprise (no SERVERURLLOGO)
                 if (valores[13] && valores[13] !== 'image_preview.png') {
                     cargarImagenExistente('logo', valores[13]);
                 } else {
@@ -405,75 +410,61 @@ var editar_empresa_dataTable = function(tbody, table) {
 }
 
 var eliminar_empresa_dataTable = function(tbody, table) {
-    $(tbody).off("click", "button.table_eliminar");
-    $(tbody).on("click", "button.table_eliminar", function() {
-        var data = table.row($(this).parents("tr")).data();
+  $(tbody).off("click", "button.table_eliminar");
+  $(tbody).on("click", "button.table_eliminar", function() {
+    var data = table.row($(this).parents("tr")).data();
 
-        var empresa_id = data.empresa_id;
-        var nombreEmpresa = data.nombre; 
-        
-        // Construir el mensaje de confirmación con HTML
-        var mensajeHTML = `¿Desea eliminar permanentemente la empresa?<br><br>
-                        <strong>Nombre:</strong> ${nombreEmpresa}`;
-        
-        swal({
-            title: "Confirmar eliminación",
-            content: {
-                element: "span",
-                attributes: {
-                    innerHTML: mensajeHTML
-                }
-            },
-            icon: "warning",
-            buttons: {
-                cancel: {
-                    text: "Cancelar",
-                    value: null,
-                    visible: true,
-                    className: "btn-light"
-                },
-                confirm: {
-                    text: "Sí, eliminar",
-                    value: true,
-                    className: "btn-danger",
-                    closeModal: false
-                }
-            },
-            dangerMode: true,
-            closeOnEsc: false,
-            closeOnClickOutside: false
-        }).then((confirmar) => {
-            if (confirmar) {
-               
-                $.ajax({
-                    type: 'POST',
-                    url: '<?php echo SERVERURL;?>ajax/eliminarEmpresasAjax.php',
-                    data: {
-                        empresa_id: empresa_id
-                    },
-                    dataType: 'json',
-                    before: function(){
-                        showLoading("Eliminando registro...");
-                    },
-                    success: function(response) {
-                        swal.close();
-                        
-                        if(response.status === "success") {
-                            showNotify("success", response.title, response.message);
-                            table.ajax.reload(null, false);
-                            table.search('').draw();                    
-                        } else {
-                            showNotify("error", response.title, response.message);
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        swal.close();
-                        showNotify("error", "Error", "Ocurrió un error al procesar la solicitud");
-                    }
-                });
+    var empresa_id = data.empresa_id;
+    var nombreEmpresa = data.nombre;
+
+    var mensajeHTML = `¿Desea eliminar permanentemente la empresa?<br><br>
+                       <strong>Nombre:</strong> ${nombreEmpresa}`;
+
+    swal({
+      title: "Confirmar eliminación",
+      content: { element: "span", attributes: { innerHTML: mensajeHTML } },
+      icon: "warning",
+      buttons: {
+        cancel: { text: "Cancelar", value: null, visible: true, className: "btn-light" },
+        confirm:{ text: "Sí, eliminar", value: true, className: "btn-danger", closeModal: false }
+      },
+      dangerMode: true,
+      closeOnEsc: false,
+      closeOnClickOutside: false
+    }).then((confirmar) => {
+      if (!confirmar) return;
+
+      $.ajax({
+        type: 'POST',
+        url: '<?php echo SERVERURL;?>ajax/eliminarEmpresaAjax.php', // asegúrate que este endpoint devuelve JSON
+        data: { empresa_id: empresa_id },
+        dataType: 'json',
+        beforeSend: function() {
+          if (typeof showLoading === 'function') showLoading("Eliminando registro...");
+        },
+        success: function(response) {
+          swal.close();
+          if (response && response.status === "success") {
+            if (typeof showNotify === 'function') {
+              showNotify("success", response.title || "Eliminación exitosa", response.message || "Empresa eliminada correctamente");
             }
-        });
+            table.ajax.reload(null, false);
+            table.search('').draw();
+          } else {
+            if (typeof showNotify === 'function') {
+              showNotify("error", (response && response.title) || "Error", (response && response.message) || "No se pudo eliminar la empresa");
+            }
+          }
+        },
+        error: function(xhr) {
+          swal.close();
+          const msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : "Ocurrió un error al procesar la solicitud";
+          if (typeof showNotify === 'function') showNotify("error", "Error", msg);
+          // console.error(xhr.responseText);
+        }
+      });
     });
+  });
 }
 //FIN ACCIONES FROMULARIO EMPRESA
 
@@ -490,11 +481,7 @@ function modal_empresa() {
     $('#edi_empresa').hide();
     $('#delete_empresa').hide();
 
-    // Limpiar vistas previas de imágenes
-    $('#logoPreview').html('').hide();
-    $('#firmaPreview').html('').hide();
-    $('#logoInfo').text('Ningún archivo seleccionado');
-    $('#firmaInfo').text('Ningún archivo seleccionado');
+    CleanEnterpriseImage();
 
     //HABILITAR OBJETOS
     $('#formEmpresa #empresa_empresa').attr('readonly', false);
@@ -519,12 +506,13 @@ function modal_empresa() {
 
 // Función para cargar imágenes existentes al editar
 function cargarImagenExistente(tipo, rutaImagen) {
+    const ENTERPRISE_URL = '<?php echo rtrim(SERVERURL, "/") . ENTERPRISE_PATH; ?>';
     const preview = tipo === 'logo' ? $('#logoPreview') : $('#firmaPreview');
     const info = tipo === 'logo' ? $('#logoInfo') : $('#firmaInfo');
     const input = tipo === 'logo' ? $('#logotipo') : $('#firma_documento');
     
     if (rutaImagen && rutaImagen !== 'image_preview.png' && rutaImagen !== '') {
-        const rutaCompleta = '<?php echo SERVERURLLOGO;?>/' + rutaImagen;
+        const rutaCompleta = ENTERPRISE_URL + rutaImagen; // AJUSTE: enterprise
         preview.html(`
             <div style="position: relative; display: inline-block;">
                 <img src="${rutaCompleta}" alt="Imagen existente" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
@@ -542,6 +530,9 @@ function cargarImagenExistente(tipo, rutaImagen) {
             info.text('Ningún archivo seleccionado');
             input.val('');
         });
+    } else {
+        preview.html('').hide();
+        info.text('Ningún archivo seleccionado');
     }
 }
 
@@ -625,4 +616,4 @@ function GetEstadoBotonFirma() {
         }
     });
 }
-</script>
+</script> 

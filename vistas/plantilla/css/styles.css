@@ -84,6 +84,9 @@
     --modal-bg: #f8fafc;
     --text-primary: #2d3748;
     --text-secondary: #4a5568;
+
+    --link-blue: #0d6efd;
+    --link-blue-hover: #0a58ca;    
 }
 
 *,

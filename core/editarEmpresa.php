@@ -23,6 +23,7 @@
 		10 => $valores2['facebook'],
 		11 => $valores2['sitioweb'],
 		12 => $valores2['horario'],						
-		13 => $valores2['logotipo'],	
+		13 => $valores2['logotipo'],
+		14 => $valores2['firma_documento'],	
 	);
 	echo json_encode($datos);

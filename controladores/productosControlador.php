@@ -275,7 +275,7 @@ class productosControlador extends productosModelo
             "title" => "Registro exitoso",
             "text" => "Producto registrado correctamente",
             "form" => "formProductos",
-            "funcion" => "listar_productos();getProductos();getCategoriaProductos();getTipoProducto();getAlmacen();getMedida(0);getEmpresaProductos();"
+            "funcion" => "listar_productos();getProductos();getCategoriaProductos();getTipoProducto();getAlmacen();getMedida(0);getEmpresaProductos();ClenProductImage();"
         ]);
     }
 

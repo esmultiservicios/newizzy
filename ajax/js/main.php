@@ -1203,10 +1203,7 @@ function modal_productos() {
         $('#formProductos #producto_isv_compra').attr('checked', false);
     }
 
-    // Limpiar vistas previas de imágenes - Mismo enfoque simple que en empresas
-    $('#productoPreview').html('').hide();
-    $('#productoInfo').text('Ningún archivo seleccionado');
-    $("#formProductos #preview").attr("src", "").hide();
+    ClenProductImage();
 
     $('#formProductos #proceso_productos').val("Registro de Productos");
     $('#modal_registrar_productos').modal({
@@ -1215,8 +1212,22 @@ function modal_productos() {
         backdrop: 'static'
     });
 }
+
+function ClenProductImage(){
+    // Limpiar vistas previas de imágenes - Mismo enfoque simple que en empresas
+    $('#productoPreview').html('').hide();
+    $('#productoInfo').text('Ningún archivo seleccionado');
+    $("#formProductos #preview").attr("src", "").hide();
+}
 /*FIN FORMULARIO PRODUCTOS*/
 
+function CleanEnterpriseImage(){
+    // Limpiar vistas previas de imágenes
+    $('#logoPreview').html('').hide();
+    $('#firmaPreview').html('').hide();
+    $('#logoInfo').text('Ningún archivo seleccionado');
+    $('#firmaInfo').text('Ningún archivo seleccionado');
+}
 
 //INICIO PROVEEDORES
 /*INICIO FORMULARIO PROVEEDORES*/

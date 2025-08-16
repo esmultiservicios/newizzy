@@ -32,6 +32,7 @@ define('SERVERURLLOGO', $urlLogo);
 
 // Otras constantes
 define('PRODUCT_PATH', '/vistas/plantilla/img/products/');
+define('ENTERPRISE_PATH', '/vistas/plantilla/img/enterprise/');
 define('COMPANY', 'IZZY :: ES MULTISERVICIOS');
 
 // Configurar la zona horaria

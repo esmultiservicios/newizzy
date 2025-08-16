@@ -232,7 +232,7 @@ var listar_gastos_contabilidad = function() {
                             icono = `
                                 <a href="<?php echo SERVERURL; ?>vistas/plantilla/gastos/${row.factura_pdf}" 
                                 target="_blank" 
-                                class="btn btn-sm btn-danger d-flex align-items-center justify-content-center factura-btn"
+                                class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center factura-btn"
                                 title="Ver/Descargar PDF" 
                                 data-toggle="tooltip">
                                     <i class="fas fa-file-pdf"></i>
@@ -614,14 +614,16 @@ var edit_reporte_gastos_dataTable = function(tbody, table) {
                             $('#filePreview').html(`
                                 <div class="existing-file">
                                     <i class="fas fa-file-pdf"></i> 
-                                    <a href="<?php echo SERVERURL; ?>vistas/plantilla/gastos/${valores[11]}" target="_blank">Ver factura actual</a>
+                                    <a class="no-link-hover" href="<?php echo SERVERURL; ?>vistas/plantilla/gastos/${valores[11]}" target="_blank">
+                                    Ver factura actual
+                                    </a>
                                     <p><small>${valores[11]}</small></p>
                                     <button type="button" class="btn btn-sm btn-outline-danger mt-2" id="removeFile">
-                                        <i class="fas fa-trash"></i> Cambiar archivo
+                                    <i class="fas fa-trash"></i> Cambiar archivo
                                     </button>
                                 </div>
                             `).show();
-                            
+                                                        
                             $('#fileInfo').text('Archivo actual: ' + valores[11]);
                             
                             $('#removeFile').on('click', function() {

@@ -88,14 +88,36 @@
                     "data": "cliente"
                 },
                 {
-                    "data": "numero",
-                    "render": function(data, type, row) {
+                    data: "numero",
+                    render: function (data, type, row) {
                         if (type === 'sort') {
-                            // Para ordenamiento, usamos el número original (row.number)
-                            // que es común tanto para facturas como proformas
-                            return parseInt(row.number);
+                        return parseInt(row.number); // ordena por número base
                         }
-                        // Para visualización, usamos el formato completo
+
+                        // Si es PROFORMA mostramos badge de estado y botón X si está Abierta (fp.estado = 0)
+                        if (parseInt(row.documento_id, 10) === 4) {
+                        const est = parseInt(row.proforma_estado, 10); // 0 = Abierta, 1 = Cerrada
+                        const badge = (est === 1)
+                            ? '<span class="badge badge-secondary ml-2">Cerrada</span>'
+                            : '<span class="badge badge-info ml-2">Abierta</span>';
+
+                        // Botón X solo si está Abierta
+                        const cerrarBtn = (est === 0)
+                            ? `<button class="btn btn-sm btn-danger ml-2 cerrar_proforma"
+                                        data-toggle="tooltip" data-placement="top" title="Cerrar proforma">
+                                <i class="fas fa-times-circle"></i>
+                            </button>`
+                            : '';
+
+                        return `
+                            <div class="d-flex align-items-center justify-content-between" style="gap:.5rem;">
+                            <span>${data}</span>
+                            <span>${badge}</span>
+                            ${cerrarBtn}
+                            </div>`;
+                        }
+
+                        // Facturas normales
                         return data;
                     }
                 },
@@ -157,56 +179,74 @@
                     },
                 },
                 {
-                    "data": "total",
-                    "render": function (data, type, row) {
-                        let numberFormatted = 'L ' + parseFloat(data).toLocaleString('es-HN', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2
+                    data: "total",
+                    render: function (data, type, row) {
+                        const numberFormatted = 'L ' + parseFloat(data).toLocaleString('es-HN', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
                         });
+                        if (type !== 'display') return numberFormatted;
 
-                        if (type === 'display') {
-                            let estado, estadoClass, bgClass, icon, borderColor, badgeColor;
+                        let estado, estadoClass, borderColor, badgeColor, icon;
 
-                            if (row.tipo_documento === 'Contado') {
-                                estado = 'Pagado';
-                                estadoClass = 'text-white';
-                                bgClass = 'bg-success';
-                                borderColor = '#28a745';
-                                badgeColor = 'bg-success';
-                                icon = '<i class="fas fa-check-circle mr-1"></i>';
-                            } else {
-                                estado = row.estado_pago || 'Pendiente';
-                                if (estado === 'Pagado') {
-                                    estadoClass = 'text-white';
-                                    bgClass = 'bg-secondary';
-                                    borderColor = '#343a40';
-                                    badgeColor = 'bg-secondary';
-                                    icon = '<i class="fas fa-check-double mr-1"></i>';
-                                } else {
-                                    estadoClass = 'text-dark';
-                                    bgClass = 'bg-warning';
-                                    borderColor = '#ffc107';
-                                    badgeColor = 'bg-warning';
-                                    icon = '<i class="fas fa-clock mr-1"></i>';
-                                }
-                            }
-
-                            return `
-                                <div class="total-container" style="display: flex; flex-direction: column; align-items: flex-end; min-width: 0; max-width: 200px;">
-                                    <div style="background: #fff; border-left: 6px solid ${borderColor}; padding: 8px 12px; border-radius: 0.5rem; box-shadow: 0 1px 5px rgba(0,0,0,0.08); font-size: 1.1em; font-weight: bold; color: #212529; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                        ${numberFormatted}
-                                    </div>
-                                    <div class="status-badge ${badgeColor} ${estadoClass}" 
-                                        style="font-size: 0.75em !important; padding: 0.3em 1em !important; border-radius: 999px !important; display: inline-block; line-height: 1.3; margin-top: 5px; white-space: nowrap;">
-                                        ${icon}${estado}
-                                    </div>
-                                </div>
-                            `;
+                        // PROFORMAS
+                        if (parseInt(row.documento_id, 10) === 4) {
+                        // ✅ proforma_estado: 0 = Abierta, 1 = Cerrada
+                        const proformaEstado = parseInt(row.proforma_estado, 10);
+                        if (proformaEstado === 1) {
+                            // Cerrada
+                            estado = 'Cerrada';
+                            estadoClass = 'text-white';
+                            badgeColor = 'bg-secondary';
+                            borderColor = '#343a40';
+                            icon = '<i class="fas fa-lock mr-1"></i>';
+                        } else {
+                            // Abierta (default para 0 o null)
+                            estado = 'Abierta';
+                            estadoClass = 'text-white';
+                            badgeColor = 'bg-info';
+                            borderColor = '#17a2b8';
+                            icon = '<i class="fas fa-folder-open mr-1"></i>';
                         }
 
-                        return numberFormatted;
+                        } else {
+                        // FACTURAS (electrónicas/físicas)
+                        if (row.tipo_documento === 'Contado') {
+                            estado = 'Pagado';
+                            estadoClass = 'text-white';
+                            badgeColor = 'bg-success';
+                            borderColor = '#28a745';
+                            icon = '<i class="fas fa-check-circle mr-1"></i>';
+                        } else {
+                            const pago = row.estado_pago || 'Pendiente';
+                            if (pago === 'Pagado') {
+                            estado = 'Pagado';
+                            estadoClass = 'text-white';
+                            badgeColor = 'bg-secondary';
+                            borderColor = '#343a40';
+                            icon = '<i class="fas fa-check-double mr-1"></i>';
+                            } else {
+                            estado = 'Pendiente';
+                            estadoClass = 'text-dark';
+                            badgeColor = 'bg-warning';
+                            borderColor = '#ffc107';
+                            icon = '<i class="fas fa-clock mr-1"></i>';
+                            }
+                        }
+                        }
+
+                        return `
+                        <div class="total-container" style="display:flex;flex-direction:column;align-items:flex-end;min-width:0;max-width:200px;">
+                            <div style="background:#fff;border-left:6px solid ${borderColor};padding:8px 12px;border-radius:.5rem;box-shadow:0 1px 5px rgba(0,0,0,.08);font-size:1.1em;font-weight:bold;color:#212529;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                            ${numberFormatted}
+                            </div>
+                            <div class="status-badge ${badgeColor} ${estadoClass}"
+                                style="font-size:.75em!important;padding:.3em 1em!important;border-radius:999px!important;display:inline-block;line-height:1.3;margin-top:5px;white-space:nowrap;">
+                            ${icon}${estado}
+                            </div>
+                        </div>`;
+                    }
                     },
-                },
                 {
                     "data": "ganancia",
                     render: function (data, type) {
@@ -362,7 +402,56 @@
         view_reporte_facturas_dataTable("#dataTablaReporteVentas tbody", table_reporteVentas);
         view_reporte_comprobante_dataTable("#dataTablaReporteVentas tbody", table_reporteVentas);
         view_anular_facturas_dataTable("#dataTablaReporteVentas tbody", table_reporteVentas);
+        view_cerrar_proforma_dataTable("#dataTablaReporteVentas tbody", table_reporteVentas);
     };
+
+    var view_cerrar_proforma_dataTable = function (tbody, table) {
+        $(tbody).off("click", "button.cerrar_proforma");
+        $(tbody).on("click", "button.cerrar_proforma", function (e) {
+            e.preventDefault();
+            const data = table.row($(this).parents("tr")).data();
+            // ENVIAMOS AMBOS IDs
+            cerrarProforma(data.facturas_proforma_id, data.facturas_id, data.numero);
+        });
+    };
+
+    function cerrarProforma(facturas_proforma_id, facturas_id, numero) {
+        swal({
+            title: "Cerrar proforma",
+            text: `¿Desea cerrar la proforma ${numero}?`,
+            icon: "warning",
+            buttons: {
+                cancel: "Cancelar",
+                confirm: { text: "Sí, cerrar", closeModal: false }
+            },
+            dangerMode: true, closeOnEsc: false, closeOnClickOutside: false
+        }).then((ok) => {
+            if (!ok) return;
+
+            $.ajax({
+                url: '<?php echo SERVERURL; ?>core/facturas/cerrarProforma.php',
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    facturas_proforma_id: facturas_proforma_id,
+                    facturas_id: facturas_id
+                },
+                success: function (r) {
+                    swal.close();
+                    if (r && r.success) {
+                        showNotify('success', r.title || 'Éxito', r.message || 'Proforma cerrada.');
+                        listar_reporte_ventas();
+                    } else {
+                        showNotify('error', r.title || 'Error', (r && r.message) ? r.message : 'No se pudo cerrar la proforma.');
+                    }
+                },
+                error: function (xhr) {
+                    swal.close();
+                    showNotify('error', 'Error', xhr.responseText || 'Error de red.');
+                }
+            });
+        });
+    }
 
     var view_detalle_factura_dataTable = function (tbody, table) {
         $(tbody).off("click", "button.detalle_factura");

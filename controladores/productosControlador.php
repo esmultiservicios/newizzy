@@ -7,649 +7,696 @@ if ($peticionAjax) {
 
 class productosControlador extends productosModelo
 {
+    /* =========================
+       AGREGAR PRODUCTO
+       ========================= */
     public function agregar_productos_controlador()
     {
-        // Validar sesión primero
+        // Validar sesión
         $validacion = mainModel::validarSesion();
-        if($validacion['error']) {
+        if ($validacion['error']) {
             return mainModel::showNotification([
-                "title" => "Error de sesión",
-                "text" => $validacion['mensaje'],
-                "type" => "error",
+                "title"   => "Error de sesión",
+                "text"    => $validacion['mensaje'],
+                "type"    => "error",
                 "funcion" => "window.location.href = '".$validacion['redireccion']."'"
             ]);
         }
-    
-        $empresa = $_SESSION['empresa_id_sd'];
-        $almacen_id = 1;  // ALMACEN 1 POR DEFAULT
-        $medida_id = mainModel::cleanStringConverterCase($_POST['medida'] ?? 0);
-        $producto_superior = mainModel::cleanString($_POST['producto_superior']) == '' ? 0 : mainModel::cleanString($_POST['producto_superior']);
-        $categoria_id = mainModel::cleanStringConverterCase($_POST['producto_categoria'] ?? 0);
-        $tipo_producto = mainModel::cleanStringConverterCase($_POST['tipo_producto'] ?? 1);
-        $nombre = mainModel::cleanString($_POST['producto']);
-        $descripcion = mainModel::cleanString($_POST['descripcion']);
-        $cantidad = 0;
-        $precio_compra = mainModel::cleanString($_POST['precio_compra'] === '' ? 0 : $_POST['precio_compra']);
-        $porcentaje_venta = mainModel::cleanString($_POST['porcentaje_venta'] === '' ? 0 : $_POST['porcentaje_venta']);
-        $precio_venta = mainModel::cleanString($_POST['precio_venta'] === '' ? 0 : $_POST['precio_venta']);
-        $cantidad_mayoreo = mainModel::cleanString($_POST['cantidad_mayoreo'] === '' ? 3 : $_POST['cantidad_mayoreo']);
-        $precio_mayoreo = mainModel::cleanString($_POST['precio_mayoreo'] === '' ? 0 : $_POST['precio_mayoreo']);
-        $cantidad_minima = mainModel::cleanString($_POST['cantidad_minima'] === '' ? 0 : $_POST['cantidad_minima']);
-        $cantidad_maxima = mainModel::cleanString($_POST['cantidad_maxima'] === '' ? 0 : $_POST['cantidad_maxima']);
-    
-        // Validar campos requeridos
+
+        $empresa            = $_SESSION['empresa_id_sd'];
+        $almacen_id         = 1;
+        $medida_id          = mainModel::cleanStringConverterCase($_POST['medida'] ?? 0);
+        $producto_superior  = mainModel::cleanString($_POST['producto_superior']) == '' ? 0 : mainModel::cleanString($_POST['producto_superior']);
+        $categoria_id       = mainModel::cleanStringConverterCase($_POST['producto_categoria'] ?? 0);
+        $tipo_producto      = mainModel::cleanStringConverterCase($_POST['tipo_producto'] ?? 1);
+        $nombre             = mainModel::cleanString($_POST['producto']);
+        $descripcion        = mainModel::cleanString($_POST['descripcion']);
+        $cantidad           = 0;
+        $precio_compra      = mainModel::cleanString($_POST['precio_compra'] === '' ? 0 : $_POST['precio_compra']);
+        $porcentaje_venta   = mainModel::cleanString($_POST['porcentaje_venta'] === '' ? 0 : $_POST['porcentaje_venta']);
+        $precio_venta       = mainModel::cleanString($_POST['precio_venta'] === '' ? 0 : $_POST['precio_venta']);
+        $cantidad_mayoreo   = mainModel::cleanString($_POST['cantidad_mayoreo'] === '' ? 3 : $_POST['cantidad_mayoreo']);
+        $precio_mayoreo     = mainModel::cleanString($_POST['precio_mayoreo'] === '' ? 0 : $_POST['precio_mayoreo']);
+        $cantidad_minima    = mainModel::cleanString($_POST['cantidad_minima'] === '' ? 0 : $_POST['cantidad_minima']);
+        $cantidad_maxima    = mainModel::cleanString($_POST['cantidad_maxima'] === '' ? 0 : $_POST['cantidad_maxima']);
+
+        // Requeridos
         $requiredFields = [
-            'producto' => 'Nombre del producto',
+            'producto'      => 'Nombre del producto',
             'tipo_producto' => 'Tipo de producto',
-            'medida' => 'Medida',
-            'precio_venta' => 'Precio de venta'
+            'medida'        => 'Medida',
+            'precio_venta'  => 'Precio de venta'
         ];
-        
         $missingFields = [];
         foreach ($requiredFields as $field => $name) {
-            if (empty($_POST[$field]) || $_POST[$field] == '0') {
-                $missingFields[] = $name;
-            }
+            if (empty($_POST[$field]) || $_POST[$field] == '0') $missingFields[] = $name;
         }
-
-        // Validar categoría si el tipo de producto no es servicio
         if (isset($_POST['tipo_producto'])) {
             $tipoProducto = mainModel::cleanStringConverterCase($_POST['tipo_producto']);
             if ($tipoProducto != 'Servicio' && (empty($_POST['producto_categoria']) || $_POST['producto_categoria'] == '0')) {
                 $missingFields[] = 'Categoría';
             }
         }
-
         if (!empty($missingFields)) {
             return mainModel::showNotification([
                 "title" => "Campos requeridos",
-                "text" => "Los siguientes campos son obligatorios: " . implode(", ", $missingFields),
-                "type" => "error"
+                "text"  => "Los siguientes campos son obligatorios: " . implode(", ", $missingFields),
+                "type"  => "error"
             ]);
         }
 
-        // Validar precios
+        // Precios válidos
         $precioVenta = (float)mainModel::cleanString($_POST['precio_venta']);
         if ($precioVenta <= 0) {
             return mainModel::showNotification([
                 "title" => "Error en precios",
-                "text" => "El precio de venta debe ser mayor que cero",
-                "type" => "error"
+                "text"  => "El precio de venta debe ser mayor que cero",
+                "type"  => "error"
             ]);
         }
 
+        // Código de barras
         if ($_POST['bar_code_product'] == '') {
             $flag_barcode = true;
             while ($flag_barcode) {
-                $result_barcode = productosModelo::valid_bar_code_productos_modelo(mainModel::generarCodigoBarra(), $empresa);
+                $tmp = mainModel::generarCodigoBarra();
+                $result_barcode = productosModelo::valid_bar_code_productos_modelo($tmp, $empresa);
                 if ($result_barcode->num_rows == 0) {
-                    $bar_code_product = mainModel::generarCodigoBarra();
+                    $bar_code_product = $tmp;
                     $flag_barcode = false;
-                } else {
-                    $flag_barcode = true;
                 }
             }
         } else {
             $bar_code_product = mainModel::cleanString($_POST['bar_code_product']);
         }
-    
-        // FILE IMAGE - Manejo de la imagen del producto
+
+        /* =========================
+           IMAGEN (nombre único)
+           ========================= */
         $file = 'image_preview.png';
-        $file_exist = 0;
-        
-        if (isset($_FILES['imagen_producto']['name']) && !empty($_FILES['imagen_producto']['name'])) {
-            $file = $_FILES['imagen_producto']['name'];
-            $path = $_SERVER['DOCUMENT_ROOT'] . PRODUCT_PATH . $file;
-            
-            // Validar tipo de archivo
-            $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
-            $file_type = $_FILES['imagen_producto']['type'];
-            
+        if (!empty($_FILES['imagen_producto']['name'])) {
+            $allowed_types = ['image/jpeg','image/jpg','image/png','image/gif','image/pjpeg'];
+            $file_type     = $_FILES['imagen_producto']['type'] ?? '';
+            $file_size     = $_FILES['imagen_producto']['size'] ?? 0;
+
             if (!in_array($file_type, $allowed_types)) {
                 return mainModel::showNotification([
                     "title" => "Error en imagen",
-                    "text" => "Solo se permiten archivos de imagen (JPG, PNG, GIF)",
-                    "type" => "error"
+                    "text"  => "Solo se permiten archivos de imagen (JPG, PNG, GIF)",
+                    "type"  => "error"
                 ]);
             }
-            
-            // Validar tamaño (máximo 2MB)
-            if ($_FILES['imagen_producto']['size'] > 2097152) {
+            if ($file_size > 2 * 1024 * 1024) {
                 return mainModel::showNotification([
                     "title" => "Error en imagen",
-                    "text" => "El tamaño de la imagen no debe exceder 2MB",
-                    "type" => "error"
+                    "text"  => "El tamaño de la imagen no debe exceder 2MB",
+                    "type"  => "error"
                 ]);
             }
-            
-            if (file_exists($path)) {
-                $file_exist = 1;
-            } else {
-                if (!move_uploaded_file($_FILES['imagen_producto']['tmp_name'], $path)) {
-                    return mainModel::showNotification([
-                        "title" => "Error en imagen",
-                        "text" => "No se pudo subir la imagen del producto",
-                        "type" => "error"
-                    ]);
-                }
+
+            $destinoBase = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/' . trim(PRODUCT_PATH, '/') . '/';
+            if (!is_dir($destinoBase)) { @mkdir($destinoBase, 0775, true); }
+
+            $ext = pathinfo($_FILES['imagen_producto']['name'], PATHINFO_EXTENSION);
+            if ($ext === '') {
+                $map = ['image/jpeg'=>'jpg','image/jpg'=>'jpg','image/png'=>'png','image/gif'=>'gif','image/pjpeg'=>'jpg'];
+                $ext = $map[$file_type] ?? 'jpg';
             }
-        }
-    
-        $colaborador_id = $_SESSION['colaborador_id_sd'];
-        $fecha_registro = date('Y-m-d H:i:s');
-        $estado = 1;
-        $isv_venta = isset($_POST['producto_isv_factura']) ? $_POST['producto_isv_factura'] : 2;
-        $isv_compra = isset($_POST['producto_isv_compra']) ? $_POST['producto_isv_compra'] : 2;
-    
-        $datos = [
-            'bar_code_product' => $bar_code_product,
-            'almacen_id' => $almacen_id,
-            'medida_id' => $medida_id,
-            'id_producto_superior' => $producto_superior,
-            'categoria_id' => $categoria_id,
-            'tipo_producto' => $tipo_producto,
-            'nombre' => $nombre,
-            'descripcion' => $descripcion,
-            'precio_compra' => $precio_compra,
-            'porcentaje_venta' => $porcentaje_venta,
-            'precio_venta' => $precio_venta,
-            'cantidad_mayoreo' => $cantidad_mayoreo,
-            'precio_mayoreo' => $precio_mayoreo,
-            'cantidad_minima' => $cantidad_minima,
-            'cantidad_maxima' => $cantidad_maxima,
-            'colaborador_id' => $colaborador_id,
-            'fecha_registro' => $fecha_registro,
-            'estado' => $estado,
-            'isv_venta' => $isv_venta,
-            'isv_compra' => $isv_compra,
-            'file' => $file,
-            'empresa' => $empresa,
-        ];
-    
-        // Validación de imagen existente
-        if ($file_exist == 1) {
-            return mainModel::showNotification([
-                "title" => "Error",
-                "text" => "El nombre de la imagen ya existe, por favor corregir",
-                "type" => "error"
-            ]);
-        }
-    
-        // Validación de código de barras existente
-        $result = productosModelo::valid_bar_code_productos_modelo($bar_code_product, $empresa);
-        if ($result->num_rows > 0) {
-            return mainModel::showNotification([
-                "title" => "Error",
-                "text" => "El código de barra ya existe",
-                "type" => "error"
-            ]);
-        }
-    
-        // Validación de nombre de producto existente
-        $result_nombre = productosModelo::valid_nombre_producto_modelo($nombre, $empresa);
-        if ($result_nombre->num_rows > 0) {
-            return mainModel::showNotification([
-                "title" => "Error",
-                "text" => "El nombre de producto ya existe",
-                "type" => "error"
-            ]);
-        }
-    
-        $mainModel = new mainModel();
-        $planConfig = $mainModel->getPlanConfiguracionMainModel();
-        
-        // Solo evaluar si existe configuración de plan
-        if (isset($planConfig['productos'])) {
-            $limiteProductos = (int)$planConfig['productos'];
-            
-            // Caso 1: Límite es 0 (bloquear)
-            if ($limiteProductos === 0) {
-                return $mainModel->showNotification([
-                    "type" => "error",
-                    "title" => "Acceso restringido",
-                    "text" => "Su plan actual no permite registrar productos."
-                ]);
-            }
-            
-            // Caso 2: Si tiene límite > 0, validar disponibilidad
-            $totalRegistrados = (int)productosModelo::getTotalProductosRegistrados();
-            
-            if ($totalRegistrados >= $limiteProductos) {
-                return $mainModel->showNotification([
-                    "type" => "error",
-                    "title" => "Límite alcanzado",
-                    "text" => "Límite de productos alcanzado (Máximo: $limiteProductos). Actualiza tu plan."
+            $ext = strtolower($ext);
+
+            do {
+                $idcorto = substr(bin2hex(random_bytes(4)), 0, 6);
+                $file = "prod_{$idcorto}.{$ext}";
+            } while (file_exists($destinoBase . $file));
+
+            if (!move_uploaded_file($_FILES['imagen_producto']['tmp_name'], $destinoBase . $file)) {
+                return mainModel::showNotification([
+                    "title" => "Error en imagen",
+                    "text"  => "No se pudo subir la imagen del producto",
+                    "type"  => "error"
                 ]);
             }
         }
 
-        // Registrar el producto
-        $query = productosModelo::agregar_productos_modelo($datos);
-        if (!$query) {
+        // Duplicados
+        $result = productosModelo::valid_bar_code_productos_modelo($bar_code_product, $empresa);
+        if ($result->num_rows > 0) {
+            // rollback de imagen única si se subió
+            if ($file !== 'image_preview.png') {
+                $destinoBase = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/' . trim(PRODUCT_PATH, '/') . '/';
+                if (file_exists($destinoBase . $file)) { @unlink($destinoBase . $file); }
+            }
             return mainModel::showNotification([
                 "title" => "Error",
-                "text" => "No se pudo registrar el producto",
-                "type" => "error"
+                "text"  => "El código de barra ya existe",
+                "type"  => "error"
             ]);
         }
-    
-        // Proceso exitoso - registrar movimientos si es necesario
-        $consulta_factura = productosModelo::consultar_codigo_producto($nombre)->fetch_assoc();
-        $productos_id = $consulta_factura['productos_id'];
-    
-        $tipo_productos = '';
-        $result_tipo_producto = productosModelo::tipo_producto_modelo($productos_id);
-        if ($result_tipo_producto->num_rows > 0) {
-            $valores2 = $result_tipo_producto->fetch_assoc();
-            $tipo_productos = $valores2['tipo_producto'];
+
+        $result_nombre = productosModelo::valid_nombre_producto_modelo($nombre, $empresa);
+        if ($result_nombre->num_rows > 0) {
+            if ($file !== 'image_preview.png') {
+                $destinoBase = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/' . trim(PRODUCT_PATH, '/') . '/';
+                if (file_exists($destinoBase . $file)) { @unlink($destinoBase . $file); }
+            }
+            return mainModel::showNotification([
+                "title" => "Error",
+                "text"  => "El nombre de producto ya existe",
+                "type"  => "error"
+            ]);
         }
-    
-        $datos_movimientos_productos = [
-            'productos_id' => $productos_id,
-            'documento' => 'Creacion de Producto',
-            'cantidad_entrada' => $cantidad,
-            'cantidad_salida' => 0,
-            'saldo' => 0,
-            'fecha_registro' => $fecha_registro,
-            'empresa' => $empresa,
-            'clientes_id' => 0,
-            'comentario' => '',
-            'almacen_id' => $almacen_id
+
+        // Límite del plan
+        $mainModel  = new mainModel();
+        $planConfig = $mainModel->getPlanConfiguracionMainModel();
+        if (isset($planConfig['productos'])) {
+            $limiteProductos = (int)$planConfig['productos'];
+            if ($limiteProductos === 0) {
+                return $mainModel->showNotification([
+                    "type"  => "error",
+                    "title" => "Acceso restringido",
+                    "text"  => "Su plan actual no permite registrar productos."
+                ]);
+            }
+            $totalRegistrados = (int)productosModelo::getTotalProductosRegistrados();
+            if ($totalRegistrados >= $limiteProductos) {
+                return $mainModel->showNotification([
+                    "type"  => "error",
+                    "title" => "Límite alcanzado",
+                    "text"  => "Límite de productos alcanzado (Máximo: $limiteProductos). Actualiza tu plan."
+                ]);
+            }
+        }
+
+        $colaborador_id = $_SESSION['colaborador_id_sd'];
+        $fecha_registro = date('Y-m-d H:i:s');
+        $estado         = 1; // activo
+        $isv_venta      = isset($_POST['producto_isv_factura']) ? $_POST['producto_isv_factura'] : 2;
+        $isv_compra     = isset($_POST['producto_isv_compra'])  ? $_POST['producto_isv_compra']  : 2;
+
+        // IMPORTANTE: mantenemos las claves que tu modelo espera
+        $datos = [
+            'bar_code_product'    => $bar_code_product,
+            'almacen_id'          => $almacen_id,
+            'medida_id'           => $medida_id,
+            'id_producto_superior'=> $producto_superior,
+            'categoria_id'        => $categoria_id,
+            'tipo_producto'       => $tipo_producto, // tu modelo lo mapea a tipo_producto_id
+            'nombre'              => $nombre,
+            'descripcion'         => $descripcion,
+            'precio_compra'       => $precio_compra,
+            'porcentaje_venta'    => $porcentaje_venta,
+            'precio_venta'        => $precio_venta,
+            'cantidad_mayoreo'    => $cantidad_mayoreo,
+            'precio_mayoreo'      => $precio_mayoreo,
+            'cantidad_minima'     => $cantidad_minima,
+            'cantidad_maxima'     => $cantidad_maxima,
+            'colaborador_id'      => $colaborador_id,
+            'fecha_registro'      => $fecha_registro,
+            'estado'              => $estado,
+            'isv_venta'           => $isv_venta,
+            'isv_compra'          => $isv_compra,
+            'file'                => $file,     // el modelo insertará en file_name
+            'empresa'             => $empresa,  // el modelo insertará en empresa_id
         ];
-    
-        if ($cantidad > 0 && ($tipo_productos == 'Producto' || $tipo_productos == 'Insumos')) {
-            productosModelo::agregar_movimientos_productos_modelo($datos_movimientos_productos);
+
+        // Insert
+        $query = productosModelo::agregar_productos_modelo($datos);
+        if (!$query) {
+            if ($file !== 'image_preview.png') {
+                $destinoBase = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/' . trim(PRODUCT_PATH, '/') . '/';
+                if (file_exists($destinoBase . $file)) { @unlink($destinoBase . $file); }
+            }
+            return mainModel::showNotification([
+                "title" => "Error",
+                "text"  => "No se pudo registrar el producto",
+                "type"  => "error"
+            ]);
         }
-    
-        // Registrar en historial
+
+        // Movimientos iniciales si aplica
+        $consulta_producto = productosModelo::consultar_codigo_producto($nombre)->fetch_assoc();
+        $productos_id      = $consulta_producto['productos_id'] ?? 0;
+
+        $tipo_productos = '';
+        $result_tipo = productosModelo::tipo_producto_modelo($productos_id);
+        if ($result_tipo && $result_tipo->num_rows > 0) {
+            $val2 = $result_tipo->fetch_assoc();
+            $tipo_productos = $val2['tipo_producto'] ?? '';
+        }
+
+        if ($cantidad > 0 && ($tipo_productos == 'Producto' || $tipo_productos == 'Insumos')) {
+            $datos_mov = [
+                'productos_id'     => $productos_id,
+                'documento'        => 'Creacion de Producto',
+                'cantidad_entrada' => $cantidad,
+                'cantidad_salida'  => 0,
+                'saldo'            => 0,
+                'fecha_registro'   => $fecha_registro,
+                'empresa'          => $empresa,
+                'clientes_id'      => 0,
+                'comentario'       => '',
+                'almacen_id'       => $almacen_id
+            ];
+            productosModelo::agregar_movimientos_productos_modelo($datos_mov);
+        }
+
+        // Historial
         mainModel::guardarHistorial([
-            "modulo" => 'Productos',
+            "modulo"           => 'Productos',
             "colaboradores_id" => $_SESSION['colaborador_id_sd'],
-            "status" => "Registro",
-            "observacion" => "Se registró el producto {$datos['nombre']} con código {$datos['bar_code_product']}",
-            "fecha_registro" => date("Y-m-d H:i:s")
+            "status"           => "Registro",
+            "observacion"      => "Se registró el producto {$datos['nombre']} con código {$datos['bar_code_product']}",
+            "fecha_registro"   => date("Y-m-d H:i:s")
         ]);
-    
+
         return mainModel::showNotification([
-            "type" => "success",
-            "title" => "Registro exitoso",
-            "text" => "Producto registrado correctamente",
-            "form" => "formProductos",
+            "type"    => "success",
+            "title"   => "Registro exitoso",
+            "text"    => "Producto registrado correctamente",
+            "form"    => "formProductos",
             "funcion" => "listar_productos();getProductos();getCategoriaProductos();getTipoProducto();getAlmacen();getMedida(0);getEmpresaProductos();ClenProductImage();"
         ]);
     }
 
+    /* =========================
+       EDITAR PRODUCTO
+       ========================= */
     public function edit_productos_controlador()
     {
-        // Validar sesión primero
+        // Validar sesión
         $validacion = mainModel::validarSesion();
         if($validacion['error']) {
             return mainModel::showNotification([
-                "title" => "Error de sesión",
-                "text" => $validacion['mensaje'],
-                "type" => "error",
+                "title"   => "Error de sesión",
+                "text"    => $validacion['mensaje'],
+                "type"    => "error",
                 "funcion" => "window.location.href = '".$validacion['redireccion']."'"
             ]);
         }
-    
-        // Validar campos requeridos
-        $requiredFields = [
-            'productos_id' => "ID del producto",
-            'producto' => "Nombre del producto",
+
+        // Requeridos
+        $required = [
+            'productos_id'  => "ID del producto",
+            'producto'      => "Nombre del producto",
             'precio_compra' => "Precio de compra",
-            'precio_venta' => "Precio de venta"
+            'precio_venta'  => "Precio de venta"
         ];
-        
-        $missingFields = [];
-        foreach ($requiredFields as $field => $name) {
-            if (!isset($_POST[$field]) || empty($_POST[$field])) {
-                $missingFields[] = $name;
-            }
+        $missing = [];
+        foreach ($required as $k => $label) {
+            if (!isset($_POST[$k]) || $_POST[$k] === '') $missing[] = $label;
         }
-        
-        if (!empty($missingFields)) {
+        if (!empty($missing)) {
             return mainModel::showNotification([
                 "title" => "Campos requeridos",
-                "text" => "Faltan los siguientes campos: ".implode(", ", $missingFields),
-                "type" => "error"
+                "text"  => "Faltan los siguientes campos: ".implode(", ", $missing),
+                "type"  => "error"
             ]);
         }
-    
-        // Limpiar y validar datos
-        $productos_id = mainModel::cleanString($_POST['productos_id']);
-        $nombre = mainModel::cleanString($_POST['producto']);
-        $descripcion = mainModel::cleanString($_POST['descripcion'] ?? '');
-        $precio_compra = (float)mainModel::cleanString($_POST['precio_compra']);
+
+        // Datos
+        $productos_id     = mainModel::cleanString($_POST['productos_id']);
+        $nombre           = mainModel::cleanString($_POST['producto']);
+        $descripcion      = mainModel::cleanString($_POST['descripcion'] ?? '');
+        $precio_compra    = (float)mainModel::cleanString($_POST['precio_compra']);
         $porcentaje_venta = (float)mainModel::cleanString($_POST['porcentaje_venta'] ?? 0);
-        $precio_venta = (float)mainModel::cleanString($_POST['precio_venta']);
-        $precio_mayoreo = (float)mainModel::cleanString($_POST['precio_mayoreo'] ?? 0);
-        $cantidad_minima = (int)mainModel::cleanString($_POST['cantidad_minima'] ?? 0);
-        $cantidad_maxima = (int)mainModel::cleanString($_POST['cantidad_maxima'] ?? 0);
-        
-        // Validar precios
+        $precio_venta     = (float)mainModel::cleanString($_POST['precio_venta']);
+        $precio_mayoreo   = (float)mainModel::cleanString($_POST['precio_mayoreo'] ?? 0);
+        $cantidad_minima  = (int)mainModel::cleanString($_POST['cantidad_minima'] ?? 0);
+        $cantidad_maxima  = (int)mainModel::cleanString($_POST['cantidad_maxima'] ?? 0);
+
         if ($precio_compra < 0 || $precio_venta < 0) {
             return mainModel::showNotification([
                 "title" => "Error en precios",
-                "text" => "Los precios no pueden ser negativos",
-                "type" => "error"
+                "text"  => "Los precios no pueden ser negativos",
+                "type"  => "error"
             ]);
         }
-            
-        // Manejo de imagen
-        $cargarLogo = false;
-        $file = 'image_preview.png';
-        $file_exist = false;
-        
+
+        // Leer imagen actual desde DB (file_name)
+        $conn = mainModel::connection();
+        $imagenActual = 'image_preview.png';
+        $rsActual = $conn->query("SELECT file_name AS file FROM productos WHERE productos_id = '{$productos_id}' LIMIT 1");
+        if ($rsActual && $rsActual->num_rows > 0) {
+            $row = $rsActual->fetch_assoc();
+            if (!empty($row['file'])) $imagenActual = $row['file'];
+        }
+
+        // Subida opcional
+        $subioNueva = false;
+        $file       = $imagenActual;
+
         if (!empty($_FILES['imagen_producto']['name'])) {
-            $cargarLogo = true;
-            $file = mainModel::cleanString($_FILES['imagen_producto']['name']);
-            $path = $_SERVER['DOCUMENT_ROOT'] . PRODUCT_PATH . $file;
-    
-            // Validar tipo de archivo
-            $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
-            $file_type = $_FILES['imagen_producto']['type'];
-            
+            $allowed_types = ['image/jpeg','image/jpg','image/png','image/gif','image/pjpeg'];
+            $file_type     = $_FILES['imagen_producto']['type'] ?? '';
+            $file_size     = $_FILES['imagen_producto']['size'] ?? 0;
+
             if (!in_array($file_type, $allowed_types)) {
                 return mainModel::showNotification([
                     "title" => "Error en imagen",
-                    "text" => "Solo se permiten archivos de imagen (JPG, PNG, GIF)",
-                    "type" => "error"
+                    "text"  => "Solo se permiten archivos de imagen (JPG, PNG, GIF)",
+                    "type"  => "error"
                 ]);
             }
-            
-            // Validar tamaño (máximo 2MB)
-            if ($_FILES['imagen_producto']['size'] > 2097152) {
+            if ($file_size > 2 * 1024 * 1024) {
                 return mainModel::showNotification([
                     "title" => "Error en imagen",
-                    "text" => "El tamaño de la imagen no debe exceder 2MB",
-                    "type" => "error"
+                    "text"  => "El tamaño de la imagen no debe exceder 2MB",
+                    "type"  => "error"
                 ]);
             }
 
-            if (file_exists($path)) {
-                $file_exist = true;
-            } else {
-                if (!move_uploaded_file($_FILES['imagen_producto']['tmp_name'], $path)) {
-                    return mainModel::showNotification([
-                        "title" => "Error en imagen",
-                        "text" => "No se pudo subir la imagen del producto",
-                        "type" => "error"
-                    ]);
-                }
+            $destinoBase = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/' . trim(PRODUCT_PATH, '/') . '/';
+            if (!is_dir($destinoBase)) { @mkdir($destinoBase, 0775, true); }
+
+            $ext = pathinfo($_FILES['imagen_producto']['name'], PATHINFO_EXTENSION);
+            if ($ext === '') {
+                $map = ['image/jpeg'=>'jpg','image/jpg'=>'jpg','image/png'=>'png','image/gif'=>'gif','image/pjpeg'=>'jpg'];
+                $ext = $map[$file_type] ?? 'jpg';
             }
+            $ext = strtolower($ext);
+
+            do {
+                $idcorto = substr(bin2hex(random_bytes(4)), 0, 6);
+                $file = "prod_{$idcorto}.{$ext}";
+            } while (file_exists($destinoBase . $file));
+
+            if (!move_uploaded_file($_FILES['imagen_producto']['tmp_name'], $destinoBase . $file)) {
+                return mainModel::showNotification([
+                    "title" => "Error en imagen",
+                    "text"  => "No se pudo subir la imagen del producto",
+                    "type"  => "error"
+                ]);
+            }
+            $subioNueva = true;
         }
-    
-        // Validar si el nombre ya existe (excluyendo el producto actual)
+
+        // Nombre duplicado (excluyendo el actual)
         $nombreExistente = productosModelo::valid_nombre_producto_modelo($nombre, $_SESSION['empresa_id_sd']);
         if ($nombreExistente->num_rows > 0) {
             $productoExistente = $nombreExistente->fetch_assoc();
-            if ($productoExistente['productos_id'] != $productos_id) {
+            if (!empty($productoExistente['productos_id']) && (int)$productoExistente['productos_id'] !== (int)$productos_id) {
+                if ($subioNueva) {
+                    $nuevoPath = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/' . trim(PRODUCT_PATH, '/') . '/' . $file;
+                    if (file_exists($nuevoPath)) { @unlink($nuevoPath); }
+                }
                 return mainModel::showNotification([
                     "title" => "Nombre duplicado",
-                    "text" => "Ya existe un producto con este nombre",
-                    "type" => "error"
+                    "text"  => "Ya existe un producto con este nombre",
+                    "type"  => "error"
                 ]);
             }
         }
-    
-        // Configurar estados
-        $estado = isset($_POST['producto_activo']) && $_POST['producto_activo'] == 'on' ? 1 : 0;
-        $isv_venta = isset($_POST['producto_isv_factura']) ? (int)$_POST['producto_isv_factura'] : 2;
-        $isv_compra = isset($_POST['producto_isv_compra']) ? (int)$_POST['producto_isv_compra'] : 2;
-    
+
+        // Estados según tu schema (1=activo, 2=inactivo)
+        $estado     = (isset($_POST['producto_activo']) && $_POST['producto_activo'] == 'on') ? 1 : 2;
+        $isv_venta  = isset($_POST['producto_isv_factura']) ? (int)$_POST['producto_isv_factura'] : 2;
+        $isv_compra = isset($_POST['producto_isv_compra'])  ? (int)$_POST['producto_isv_compra']  : 2;
+
+        // Mantengo claves esperadas por tu modelo
         $datos = [
-            'productos_id' => $productos_id,
-            'nombre' => $nombre,
-            'descripcion' => $descripcion,
-            'precio_compra' => $precio_compra,
+            'productos_id'     => $productos_id,
+            'nombre'           => $nombre,
+            'descripcion'      => $descripcion,
+            'precio_compra'    => $precio_compra,
             'porcentaje_venta' => $porcentaje_venta,
-            'precio_venta' => $precio_venta,
-            'precio_mayoreo' => $precio_mayoreo,
-            'cantidad_minima' => $cantidad_minima,
-            'cantidad_maxima' => $cantidad_maxima,
-            'estado' => $estado,
-            'isv_venta' => $isv_venta,
-            'isv_compra' => $isv_compra,
-            'file' => $file,
-            'cargarLogo' => $cargarLogo,
+            'precio_venta'     => $precio_venta,
+            'precio_mayoreo'   => $precio_mayoreo,
+            'cantidad_minima'  => $cantidad_minima,
+            'cantidad_maxima'  => $cantidad_maxima,
+            'estado'           => $estado,
+            'isv_venta'        => $isv_venta,
+            'isv_compra'       => $isv_compra,
+            'file'             => $file,       // el modelo actualizará file_name
+            'cargarLogo'       => $subioNueva, // el modelo debe actualizar file_name solo si true
         ];
-    
-        // Actualizar producto
+
+        // Update
         $query = productosModelo::edit_productos_modelo($datos);
-    
         if ($query) {
-            // Registrar en historial
+            // Si hubo nueva imagen, borro la anterior (no borrar el placeholder)
+            if ($subioNueva && $imagenActual && $imagenActual !== 'image_preview.png' && $imagenActual !== $file) {
+                $old = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/' . trim(PRODUCT_PATH, '/') . '/' . $imagenActual;
+                if (file_exists($old)) { @unlink($old); }
+            }
+
             mainModel::guardarHistorial([
-                "modulo" => 'Productos',
+                "modulo"           => 'Productos',
                 "colaboradores_id" => $_SESSION['colaborador_id_sd'],
-                "status" => "Actualización",
-                "observacion" => "Se actualizó el producto {$nombre} (ID: {$productos_id})",
-                "fecha_registro" => date("Y-m-d H:i:s")
+                "status"           => "Actualización",
+                "observacion"      => "Se actualizó el producto {$nombre} (ID: {$productos_id})",
+                "fecha_registro"   => date("Y-m-d H:i:s")
             ]);
-    
+
             return mainModel::showNotification([
-                "type" => "success",
-                "title" => "Producto actualizado",
-                "text" => "El producto se ha actualizado correctamente",
+                "type"    => "success",
+                "title"   => "Producto actualizado",
+                "text"    => "El producto se ha actualizado correctamente",
                 "funcion" => "listar_productos();getEmpresaProductos();getCategoriaProductos();getAlmacen();getTipoProducto();getMedida(1);"
             ]);
         }
-    
+
+        // rollback si falló y había imagen nueva
+        if ($subioNueva) {
+            $nuevoPath = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/' . trim(PRODUCT_PATH, '/') . '/' . $file;
+            if (file_exists($nuevoPath)) { @unlink($nuevoPath); }
+        }
+
         return mainModel::showNotification([
             "title" => "Error al actualizar",
-            "text" => "No se pudo actualizar el producto",
-            "type" => "error"
+            "text"  => "No se pudo actualizar el producto",
+            "type"  => "error"
         ]);
     }
 
+    /* =========================
+       TRANSFERENCIA ENTRE BODEGAS
+       (tu lógica original)
+       ========================= */
     public function edit_bodega_productos_controlador()
     {
-        // Validar sesión primero
+        // ... (igual que tu versión actual; sin cambios en imagen) ...
         $validacion = mainModel::validarSesion();
         if($validacion['error']) {
             return mainModel::showNotification([
-                "title" => "Error de sesión",
-                "text" => $validacion['mensaje'],
-                "type" => "error",
+                "title"   => "Error de sesión",
+                "text"    => $validacion['mensaje'],
+                "type"    => "error",
                 "funcion" => "window.location.href = '".$validacion['redireccion']."'"
             ]);
         }
-    
-        $productos_id = mainModel::cleanString($_POST['productos_id']);
+
+        $productos_id  = mainModel::cleanString($_POST['productos_id']);
         $bodega_actual = mainModel::cleanString($_POST['id_bodega_actual']);
-        $bodega = mainModel::cleanString($_POST['id_bodega']);
-        $cantidad = mainModel::cleanString($_POST['cantidad_movimiento']);
-        $lote_id = mainModel::cleanString($_POST['lote_id_productos']);
-        $empresa_id = mainModel::cleanString($_POST['empresa_id_productos']);
+        $bodega        = mainModel::cleanString($_POST['id_bodega']);
+        $cantidad      = mainModel::cleanString($_POST['cantidad_movimiento']);
+        $lote_id       = mainModel::cleanString($_POST['lote_id_productos']);
+        $empresa_id    = mainModel::cleanString($_POST['empresa_id_productos']);
         $saldoProducto = 0;
-    
-        $comentario = isset($_POST['movimiento_comentario']) ? 
-            mainModel::cleanString($_POST['movimiento_comentario']) : '';
+
+        $comentario = isset($_POST['movimiento_comentario']) ? mainModel::cleanString($_POST['movimiento_comentario']) : '';
         $clientes_id = 0;
-    
-        $datos = [
-            'productos_id' => $productos_id,
-            'bodega' => $bodega,
-            'cantidad' => $cantidad
-        ];
-    
+
         $fecha_registro = date('Y-m-d H:i:s');
-        $saldo = 0;
-    
+
         // Verificamos producto hijo
         $result_productos = mainModel::getProductoHijo($productos_id);
         $procesosHijosExitosos = true;
-    
+
         if ($result_productos->num_rows > 0) {
             while ($consulta = $result_productos->fetch_assoc()) {
                 $id_producto_hijo = intval($consulta['productos_id']);
                 if ($id_producto_hijo != 0 && $id_producto_hijo != 'null') {
-                    // OBTENER LA MEDIDA DEL PRODUCTO PADRE
                     $medidaName = strtolower(mainModel::getMedidaProductoPadre($productos_id)->fetch_assoc());
-    
-                    if ($medidaName == 'ton') {  // Medida en Toneladas DEL HIJO
+                    if ($medidaName == 'ton') {
                         $quantity = $cantidad * 2204.623;
-    
-                        // OBTENEMOS EL SALDO DEL PRODUCTO HIJO
+
                         $consultaSaldoProductoHijo = mainModel::getSaldoProductosMovimientosBodega($productos_id, $bodega_actual)->fetch_assoc();
                         $saldoProductoHijo = doubleval($consultaSaldoProductoHijo['saldo']);
-    
                         $saldoNuevoProductoHijo = $saldoProductoHijo + doubleval($quantity);
-    
+
                         $datosHijo = [
-                            'productos_id' => $id_producto_hijo,
+                            'productos_id'     => $id_producto_hijo,
                             'cantidad_entrada' => $quantity,
-                            'cantidad_salida' => 0,
-                            'saldo' => $saldoNuevoProductoHijo,
-                            'fecha_registro' => $fecha_registro,
-                            'empresa' => $empresa_id,
-                            'comentario' => $comentario,
-                            'clientes_id' => $clientes_id,
-                            'almacen_id' => $bodega,
-                            'lote_id' => $lote_id
+                            'cantidad_salida'  => 0,
+                            'saldo'            => $saldoNuevoProductoHijo,
+                            'fecha_registro'   => $fecha_registro,
+                            'empresa'          => $empresa_id,
+                            'comentario'       => $comentario,
+                            'clientes_id'      => $clientes_id,
+                            'almacen_id'       => $bodega,
+                            'lote_id'          => $lote_id
                         ];
-    
                         $queryIngreso = mainModel::agregar_movimiento_productos_modelo($datosHijo);
-                        if (!$queryIngreso) {
-                            $procesosHijosExitosos = false;
-                        }
+                        if (!$queryIngreso) $procesosHijosExitosos = false;
                     }
                 }
             }
         }
-    
         if (!$procesosHijosExitosos) {
             return mainModel::showNotification([
                 "title" => "Error",
-                "text" => "Error al procesar productos hijos",
-                "type" => "error"
+                "text"  => "Error al procesar productos hijos",
+                "type"  => "error"
             ]);
         }
-    
-        // OBTENEMOS EL SALDO DEL PRODUCTO
+
         $consultaSaldoBodegaActual = mainModel::getSaldoProductosMovimientosBodega($productos_id, $bodega_actual)->fetch_assoc();
         $saldoProductoBodegaActual = doubleval($consultaSaldoBodegaActual['saldo']);
-    
-        $consultaSaldoBodegaNueva = mainModel::getSaldoProductosMovimientosBodega($productos_id, $bodega)->fetch_assoc();
-        $saldoProductoBodegaNueva = doubleval($consultaSaldoBodegaNueva['saldo']);
-    
+
+        $consultaSaldoBodegaNueva  = mainModel::getSaldoProductosMovimientosBodega($productos_id, $bodega)->fetch_assoc();
+        $saldoProductoBodegaNueva  = doubleval($consultaSaldoBodegaNueva['saldo']);
+
         $saldoBodegaNueva = $saldoProductoBodegaNueva + doubleval($cantidad);
-    
-        // INGRESAMOS EL NUEVO REGISTRO EN LA ENTIDAD MOVIMIENTOS
-        $datos = [
-            'productos_id' => $productos_id,
+
+        $datosIngreso = [
+            'productos_id'     => $productos_id,
             'cantidad_entrada' => $cantidad,
-            'cantidad_salida' => 0,
-            'saldo' => $saldoBodegaNueva,
-            'fecha_registro' => $fecha_registro,
-            'empresa' => $empresa_id,
-            'comentario' => $comentario,
-            'clientes_id' => $clientes_id,
-            'almacen_id' => $bodega,
-            'lote_id' => $lote_id
+            'cantidad_salida'  => 0,
+            'saldo'            => $saldoBodegaNueva,
+            'fecha_registro'   => $fecha_registro,
+            'empresa'          => $empresa_id,
+            'comentario'       => $comentario,
+            'clientes_id'      => $clientes_id,
+            'almacen_id'       => $bodega,
+            'lote_id'          => $lote_id
         ];
-    
-        $queryIngreso = mainModel::agregar_movimiento_productos_modelo($datos);
-    
-        $saldoNuevo = $saldoProducto + doubleval($cantidad);
+        $queryIngreso = mainModel::agregar_movimiento_productos_modelo($datosIngreso);
+
         $saldoBodegaActual = $saldoProductoBodegaActual - doubleval($cantidad);
-    
-        // EGRESO DEL PRODUCTO DE LA BODEGA ACTUAL
+
         $datosEgreso = [
-            'productos_id' => $productos_id,
+            'productos_id'     => $productos_id,
             'cantidad_entrada' => 0,
-            'cantidad_salida' => $cantidad,
-            'saldo' => $saldoBodegaActual,
-            'fecha_registro' => $fecha_registro,
-            'empresa' => $empresa_id,
-            'comentario' => $comentario,
-            'clientes_id' => $clientes_id,
-            'almacen_id' => $bodega_actual,
-            'lote_id' => $lote_id
+            'cantidad_salida'  => $cantidad,
+            'saldo'            => $saldoBodegaActual,
+            'fecha_registro'   => $fecha_registro,
+            'empresa'          => $empresa_id,
+            'comentario'       => $comentario,
+            'clientes_id'      => $clientes_id,
+            'almacen_id'       => $bodega_actual,
+            'lote_id'          => $lote_id
         ];
-    
         $queryEgreso = mainModel::agregar_movimiento_productos_modelo($datosEgreso);
-    
+
         if (!$queryEgreso || !$queryIngreso) {
             return mainModel::showNotification([
                 "title" => "Error",
-                "text" => "No se pudo completar la transferencia entre bodegas",
-                "type" => "error"
+                "text"  => "No se pudo completar la transferencia entre bodegas",
+                "type"  => "error"
             ]);
         }
-    
-        // Registrar en historial
+
         mainModel::guardarHistorial([
-            "modulo" => 'Productos',
+            "modulo"           => 'Productos',
             "colaboradores_id" => $_SESSION['colaborador_id_sd'],
-            "status" => "Transferencia",
-            "observacion" => "Se transfirió producto ID: {$productos_id} de bodega {$bodega_actual} a {$bodega}",
-            "fecha_registro" => date("Y-m-d H:i:s")
+            "status"           => "Transferencia",
+            "observacion"      => "Se transfirió producto ID: {$productos_id} de bodega {$bodega_actual} a {$bodega}",
+            "fecha_registro"   => date("Y-m-d H:i:s")
         ]);
-    
+
         return mainModel::showNotification([
-            "type" => "success",
-            "title" => "Transferencia exitosa",
-            "text" => "El movimiento entre bodegas se realizó correctamente",
-            "funcion" => "inventario_transferencia();setValoresProduco();",
-            "closeAllModals" => true
+            "type"          => "success",
+            "title"         => "Transferencia exitosa",
+            "text"          => "El movimiento entre bodegas se realizó correctamente",
+            "funcion"       => "inventario_transferencia();setValoresProduco();",
+            "closeAllModals"=> true
         ]);
     }
 
+    /* =========================
+       ELIMINAR PRODUCTO
+       ========================= */
     public function delete_productos_controlador()
     {
-        // Validar sesión primero
+        // Validar sesión
         $validacion = mainModel::validarSesion();
-        if($validacion['error']) {
-            return mainModel::showNotification([
-                "title" => "Error de sesión",
-                "text" => $validacion['mensaje'],
-                "type" => "error",
-                "funcion" => "window.location.href = '".$validacion['redireccion']."'"
+        if ($validacion['error']) {
+            header('Content-Type: application/json; charset=UTF-8');
+            echo json_encode([
+                "status"   => "error",
+                "title"    => "Error de sesión",
+                "message"  => $validacion['mensaje'],
+                "redirect" => $validacion['redireccion']
             ]);
+            exit();
         }
 
-        $productos_id = $_POST['productos_id'];
-
-        $producto = mainModel::consultar_tabla('productos', ['nombre', 'barCode'], "productos_id = {$productos_id}");
-        
-        if (empty($producto)) {
-            header('Content-Type: application/json');
+        if (!isset($_POST['productos_id']) || !is_numeric($_POST['productos_id'])) {
+            header('Content-Type: application/json; charset=UTF-8');
             echo json_encode([
-                "status" => "error",
-                "title" => "Error",
+                "status"  => "error",
+                "title"   => "Solicitud inválida",
+                "message" => "Falta el ID del producto."
+            ]);
+            exit();
+        }
+
+        $productos_id = (int)$_POST['productos_id'];
+        $conn = mainModel::connection();
+
+        // Traer datos incluyendo el nombre del archivo desde file_name
+        $sql = "SELECT nombre, barCode, file_name AS file FROM productos WHERE productos_id = {$productos_id} LIMIT 1";
+        $res = $conn->query($sql);
+        if (!$res || $res->num_rows === 0) {
+            header('Content-Type: application/json; charset=UTF-8');
+            echo json_encode([
+                "status"  => "error",
+                "title"   => "Error",
                 "message" => "Producto no encontrado"
             ]);
             exit();
         }
-        
-        $nombre = $producto[0]['nombre'] ?? '';
+        $producto = $res->fetch_assoc();
 
-        // VALIDAMOS QUE EL PRODCUTO NO TENGA MOVIMIENTOS, PARA PODER ELIMINARSE
-        if(productosModelo::valid_productos_movimientos($productos_id)->num_rows > 0){
-            header('Content-Type: application/json');
+        $nombre   = $producto['nombre']  ?? '';
+        $barcode  = $producto['barCode'] ?? '';
+        $filename = $producto['file']    ?? '';
+
+        // Validar movimientos
+        if (productosModelo::valid_productos_movimientos($productos_id)->num_rows > 0) {
+            header('Content-Type: application/json; charset=UTF-8');
             echo json_encode([
-                "status" => "error",
-                "title" => "No se puede eliminar",
-                "message" => "El producto {$nombre} tiene movimientos asociadas"
+                "status"  => "error",
+                "title"   => "No se puede eliminar",
+                "message" => "El producto {$nombre} tiene movimientos asociados"
             ]);
-            exit();                
+            exit();
         }
 
-        if(!productosModelo::delete_productos_modelo($productos_id)){
-            header('Content-Type: application/json');
+        // Borrar en DB
+        if (!productosModelo::delete_productos_modelo($productos_id)) {
+            header('Content-Type: application/json; charset=UTF-8');
             echo json_encode([
-                "status" => "error",
-                "title" => "Error",
+                "status"  => "error",
+                "title"   => "Error",
                 "message" => "No se pudo eliminar el producto {$nombre}"
             ]);
             exit();
         }
 
-        header('Content-Type: application/json');
+        // Borrar imagen física (no borrar placeholder)
+        $defaultPlaceholder = 'image_preview.png';
+        if (!empty($filename) && $filename !== $defaultPlaceholder) {
+            $path = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/' . trim(PRODUCT_PATH, '/') . '/' . basename($filename);
+            if (file_exists($path)) { @unlink($path); }
+        }
+
+        // Historial
+        if (method_exists('mainModel', 'guardarHistorial')) {
+            mainModel::guardarHistorial([
+                "modulo"           => 'Productos',
+                "colaboradores_id" => $_SESSION['colaborador_id_sd'],
+                "status"           => "Eliminación",
+                "observacion"      => "Se eliminó el producto {$nombre}" . ($barcode ? " (Código: {$barcode})" : ""),
+                "fecha_registro"   => date("Y-m-d H:i:s")
+            ]);
+        }
+
+        header('Content-Type: application/json; charset=UTF-8');
         echo json_encode([
-            "status" => "success",
-            "title" => "Eliminado",
+            "status"  => "success",
+            "title"   => "Eliminado",
             "message" => "Producto {$nombre} eliminado correctamente"
         ]);
         exit();

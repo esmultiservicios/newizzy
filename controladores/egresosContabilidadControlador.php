@@ -405,9 +405,15 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
             exit();
         }
 
-        $categoria_gastos_id = (isset($_POST['categoria_gastos']) && $_POST['categoria_gastos'] !== '' && is_numeric($_POST['categoria_gastos']))
-        ? (int) mainModel::cleanString($_POST['categoria_gastos'])
-        : 0;
+        $categoria_gastos_id = $_POST['categoria_gastos_id'] ?? 0;
+
+        if($categoria_gastos_id === 0) {
+            return mainModel::showNotification([
+                "title" => "Error",
+                "text" => "No se pudo editar la categoria no viene definida",
+                "type" => "error"
+            ]);
+        }
 
         $categoria = $_POST['categoria'];
     

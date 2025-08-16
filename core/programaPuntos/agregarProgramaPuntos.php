@@ -1,74 +1,69 @@
 <?php
+// core/cerrarProforma.php
 $peticionAjax = true;
-require_once __DIR__ . '/../configGenerales.php';
-require_once __DIR__ . '/../mainModel.php';
+require_once __DIR__ . '/configGenerales.php';
+require_once __DIR__ . '/mainModel.php';
 
-$mainModel = new mainModel();
+header('Content-Type: application/json; charset=utf-8');
 
-$datos = [
-    'nombre' => $mainModel->cleanString($_POST['nombre']),
-    'tipo_calculo' => $mainModel->cleanString($_POST['tipo_calculo']),
-    'monto' => isset($_POST['monto']) ? floatval($_POST['monto']) : 0,
-    'porcentaje' => isset($_POST['porcentaje']) ? floatval($_POST['porcentaje']) : 0,
-    'estado' => isset($_POST['estado']) ? intval($_POST['estado']) : 1
-];
-
-if (empty($datos['nombre'])) {
-    echo json_encode([
-        'type' => 'error',
-        'title' => 'Error',
-        'message' => 'El nombre del programa es requerido',
-        'estado' => false
-    ]);
-    exit;
-}
-
-// Validar que no exista otro programa activo
 try {
-    $query_check = "SELECT COUNT(*) as total FROM programa_puntos WHERE activo = 1";
-    $result_check = $mainModel->ejecutar_consulta_simple_preparada($query_check, "", []);
-    
-    if ($result_check) {
-        $row = $result_check->fetch_assoc();
-        if ($row['total'] > 0 && $datos['estado'] == 1) {
-            echo json_encode([
-                'type' => 'error',
-                'title' => 'Error',
-                'message' => 'Ya existe un programa de puntos activo. Solo puede haber un programa activo a la vez.',
-                'estado' => false
-            ]);
-            exit;
-        }
+    $mainModel = new mainModel();
+
+    // Validar sesión
+    $validacion = $mainModel->validarSesion();
+    if (!empty($validacion['error']) && $validacion['error']) {
+        echo json_encode(["success" => false, "message" => $validacion['mensaje']]); exit;
     }
 
-    // Continuar con el registro
-    $query = "INSERT INTO programa_puntos (nombre, tipo_calculo, monto, porcentaje, activo) VALUES (?, ?, ?, ?, ?)";
-    $types = "ssddi";
-    $params = [
-        $datos['nombre'],
-        $datos['tipo_calculo'],
-        $datos['monto'],
-        $datos['porcentaje'],
-        $datos['estado']
-    ];    
-
-    $result = $mainModel->ejecutar_consulta_simple_preparada($query, $types, $params);
-    
-    if ($result) {
-        $programa_id = $mainModel->connection()->insert_id;
-        echo json_encode([
-            'type' => 'success',
-            'title' => 'Éxito',
-            'message' => 'Programa creado correctamente',
-            'id' => $programa_id,
-            'estado' => true
-        ]);
+    if (!isset($_POST['facturas_id'])) {
+        echo json_encode(["success" => false, "message" => "Parámetro facturas_id requerido."]); exit;
     }
+
+    $empresa_id  = $_SESSION['empresa_id_sd'];
+    $facturas_id = (int)$_POST['facturas_id'];
+
+    $db = $mainModel->connection(); // <- NO estático
+
+    // 1) Verificar que sea PROFORMA y que esté Abierta (fp.estado = 0)
+    $sqlCheck = "
+        SELECT d.documento_id, IFNULL(fp.estado, -1) AS proforma_estado
+        FROM facturas f
+        INNER JOIN secuencia_facturacion sf ON f.secuencia_facturacion_id = sf.secuencia_facturacion_id
+        INNER JOIN documento d            ON sf.documento_id = d.documento_id
+        LEFT JOIN facturas_proforma fp    ON fp.facturas_id = f.facturas_id AND fp.empresa_id = f.empresa_id
+        WHERE f.facturas_id = ? AND f.empresa_id = ?
+        LIMIT 1
+    ";
+    $res = $mainModel->ejecutar_consulta_simple_preparada($sqlCheck, "ii", [$facturas_id, $empresa_id]);
+    if (!$res || $res->num_rows === 0) {
+        echo json_encode(["success" => false, "message" => "Factura no encontrada."]); exit;
+    }
+    $row = $res->fetch_assoc();
+
+    if ((int)$row['documento_id'] !== 4) {
+        echo json_encode(["success" => false, "message" => "El documento no es una proforma."]); exit;
+    }
+    if ((int)$row['proforma_estado'] !== 0) {
+        echo json_encode(["success" => false, "message" => "La proforma ya está cerrada o no existe."]); exit;
+    }
+
+    // 2) Cerrar proforma: facturas_proforma.estado 0 -> 1
+    $sqlUpdProforma = "UPDATE facturas_proforma
+                          SET estado = 1
+                        WHERE facturas_id = ? AND empresa_id = ? AND estado = 0";
+    $ok1 = $mainModel->ejecutar_consulta_simple_preparada($sqlUpdProforma, "ii", [$facturas_id, $empresa_id]);
+    if (!$ok1 || $db->affected_rows === 0) {
+        echo json_encode(["success" => false, "message" => "No se pudo cerrar la proforma."]); exit;
+    }
+
+    // 3) cobrar_clientes: estado 1 -> 2 y saldo = 0 (si existe fila)
+    $sqlUpdCobrar = "UPDATE cobrar_clientes
+                        SET estado = 2, saldo = 0
+                      WHERE facturas_id = ? AND empresa_id = ? AND estado = 1";
+    $mainModel->ejecutar_consulta_simple_preparada($sqlUpdCobrar, "ii", [$facturas_id, $empresa_id]);
+    // Nota: aunque no afecte filas, no es error (puede no existir registro).
+
+    echo json_encode(["success" => true, "message" => "Proforma cerrada correctamente."]);
 } catch (Exception $e) {
-    echo json_encode([
-        'type' => 'error',
-        'title' => 'Error',
-        'message' => 'Error: ' . $e->getMessage(),
-        'estado' => false
-    ]);
+    echo json_encode(["success" => false, "message" => "Error: " . $e->getMessage()]);
 }

@@ -47,13 +47,27 @@ var inventario_transferencia = function() {
             { 
                 data: "fecha_registro" 
             },
-            { 
-                data: "image", 
-                render: function(data) {
+            {
+                data: "image",
+                orderable: false,
+                render: function (data, type, row) {
+                    if (type !== "display") return data || ""; // no romper export/búsqueda
+
                     var defaultImageUrl = '<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png';
-                    var imageUrl = data ? '<?php echo SERVERURL;?>vistas/plantilla/img/products/' + data : defaultImageUrl;
-                    return `<img class="table-image" src="${imageUrl}" alt="Image Preview" height="100px" width="100px"/>`;
-                } 
+                    var imageUrl = data ? ('<?php echo SERVERURL;?>vistas/plantilla/img/products/' + data) : defaultImageUrl;
+                    var safeName = (row && row.nombre) ? String(row.nombre).replace(/"/g, '&quot;') : 'Imagen de producto';
+
+                    return ''
+                    + '<a href="#" class="iv-trigger"'
+                    + '   data-iv-src="' + imageUrl + '"'
+                    + '   data-iv-fallback="' + defaultImageUrl + '"'
+                    + '   data-iv-title="' + safeName + '">'
+                    + '  <img class="table-image" src="' + imageUrl + '" alt="' + safeName + '"'
+                    + '       width="100" height="100" loading="lazy"'
+                    + '       style="object-fit:cover;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.12)"'
+                    + '       onerror="this.onerror=null;this.src=\'' + defaultImageUrl + '\';" />'
+                    + '</a>';
+                }
             },
             {
                 "data": "numero_lote",

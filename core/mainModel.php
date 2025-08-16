@@ -6471,19 +6471,22 @@ class mainModel
 		$facturador = '';
 		$vendedor = '';
 
-		if ($datos['tipo_factura_reporte'] == 1) {
-			$tipo_factura_reporte = 'AND f.estado IN(2,3)';
+		// Si es PROFORMA (documento_id = 4) -> NO filtrar por estado (trae 0 y 1)
+		// Si es FACTURA normal -> mantener tus filtros previos
+		if ((int)$datos['factura'] === 4) {
+			// $tipo_factura_reporte = ''; // explícitamente sin filtro por estado de proforma
+		} else {
+			if ((int)$datos['tipo_factura_reporte'] === 1) {
+				$tipo_factura_reporte = "AND f.estado IN (2,3)";
+			} elseif ((int)$datos['tipo_factura_reporte'] === 2) {
+				$tipo_factura_reporte = "AND f.estado = 4";
+			}
 		}
 
-		if ($datos['tipo_factura_reporte'] == 2) {
-			$tipo_factura_reporte = 'AND f.estado = 4';
-		}
-
-		if ($datos['facturador'] != '') {
+		if (!empty($datos['facturador'])) {
 			$facturador = "AND f.usuario = '" . $datos['facturador'] . "'";
 		}
-
-		if ($datos['vendedor'] != '') {
+		if (!empty($datos['vendedor'])) {
 			$vendedor = "AND f.colaboradores_id = '" . $datos['vendedor'] . "'";
 		}
 
@@ -6494,7 +6497,7 @@ class mainModel
 			c.nombre AS 'cliente',
 			CASE 
 				WHEN d.documento_id = 4 THEN CONCAT('PROFORMA-', sf.prefijo, LPAD(f.number, sf.relleno, 0)) 
-				ELSE CONCAT(sf.prefijo, '', LPAD(f.number, sf.relleno, 0))
+				ELSE CONCAT(sf.prefijo, LPAD(f.number, sf.relleno, 0))
 			END AS 'numero',
 			f.number AS 'number',
 			f.fecha AS 'fecha_orden',
@@ -6503,27 +6506,47 @@ class mainModel
 				WHEN f.tipo_factura = 1 THEN 'Contado' 
 				ELSE 'Crédito' 
 			END AS 'tipo_documento', 
-			co.nombre AS 'vendedor', 
+			co.nombre  AS 'vendedor', 
 			co1.nombre AS 'facturador',
-			(SELECT SUM(fd.cantidad * fd.precio) FROM facturas_detalles AS fd WHERE fd.facturas_id = f.facturas_id) AS 'subtotal',
-			(SELECT SUM(fd.cantidad * p.precio_compra) FROM facturas_detalles AS fd INNER JOIN productos AS p ON fd.productos_id = p.productos_id WHERE fd.facturas_id = f.facturas_id) AS 'subCosto',
-			(SELECT SUM(fd.isv_valor) FROM facturas_detalles AS fd WHERE fd.facturas_id = f.facturas_id) AS 'isv',
-			(SELECT SUM(fd.descuento) FROM facturas_detalles AS fd WHERE fd.facturas_id = f.facturas_id) AS 'descuento',
-			-- Nueva columna para estado de pago
+
+			(SELECT SUM(fd.cantidad * fd.precio)
+			FROM facturas_detalles fd
+			WHERE fd.facturas_id = f.facturas_id) AS 'subtotal',
+
+			(SELECT SUM(fd.cantidad * p.precio_compra)
+			FROM facturas_detalles fd
+			INNER JOIN productos p ON fd.productos_id = p.productos_id
+			WHERE fd.facturas_id = f.facturas_id) AS 'subCosto',
+
+			(SELECT SUM(fd.isv_valor)
+			FROM facturas_detalles fd
+			WHERE fd.facturas_id = f.facturas_id) AS 'isv',
+
+			(SELECT SUM(fd.descuento)
+			FROM facturas_detalles fd
+			WHERE fd.facturas_id = f.facturas_id) AS 'descuento',
+
+			-- Estado de pago solo aplica a facturas (no proformas)
 			CASE
-				WHEN f.tipo_factura = 1 THEN 'Pagado' -- Facturas al contado siempre están pagadas
+				WHEN d.documento_id = 4 THEN NULL
+				WHEN f.tipo_factura = 1 THEN 'Pagado'
 				WHEN (SELECT COUNT(*) FROM pagos WHERE facturas_id = f.facturas_id) > 0 THEN 'Pagado'
 				ELSE 'Pendiente'
 			END AS 'estado_pago',
-			-- Columna auxiliar para saber si es crédito
-			f.tipo_factura AS 'tipo_factura'
+
+			f.tipo_factura              AS 'tipo_factura',
+			d.documento_id              AS 'documento_id',
+			fp.estado                   AS 'proforma_estado',        -- 0 = Abierta, 1 = Cerrada
+			fp.facturas_proforma_id     AS 'facturas_proforma_id'
 		FROM 
-			facturas AS f
-			INNER JOIN clientes AS c ON f.clientes_id = c.clientes_id
-			INNER JOIN colaboradores AS co ON f.colaboradores_id = co.colaboradores_id
-			INNER JOIN colaboradores AS co1 ON f.usuario = co1.colaboradores_id
-			INNER JOIN secuencia_facturacion AS sf ON f.secuencia_facturacion_id = sf.secuencia_facturacion_id
-			INNER JOIN documento AS d ON sf.documento_id = d.documento_id
+			facturas f
+			INNER JOIN clientes c                ON f.clientes_id = c.clientes_id
+			INNER JOIN colaboradores co          ON f.colaboradores_id = co.colaboradores_id
+			INNER JOIN colaboradores co1         ON f.usuario = co1.colaboradores_id
+			INNER JOIN secuencia_facturacion sf  ON f.secuencia_facturacion_id = sf.secuencia_facturacion_id
+			INNER JOIN documento d               ON sf.documento_id = d.documento_id
+			LEFT JOIN facturas_proforma fp       ON fp.facturas_id = f.facturas_id
+												AND fp.empresa_id  = f.empresa_id
 		WHERE 
 			f.empresa_id = '" . $datos['empresa_id_sd'] . "' 
 			AND f.fecha BETWEEN '" . $datos['fechai'] . "' AND '" . $datos['fechaf'] . "' 
@@ -6533,10 +6556,11 @@ class mainModel
 			$vendedor
 		ORDER BY 
 			f.number DESC, f.fecha DESC";
-				
-		$result = self::connection()->query($query);
+
+		$conn = $this->connection();
+		$result = $conn->query($query);
 		if (!$result) {
-			die('Error en la consulta SQL: ' . self::connection()->error);
+			die('Error en la consulta SQL: ' . $conn->error);
 		}
 		return $result;
 	}

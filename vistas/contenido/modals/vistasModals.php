@@ -3292,31 +3292,40 @@
                                     <small class="form-text text-muted">Nombre completo del producto (máx. 50 caracteres)</small>
                                 </div>
                             </div>
+
+                            <!-- NUEVO CAMPO: Descripción -->
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="descripcion"><i class="fas fa-align-left mr-1"></i>Descripción</label>
+                                    <textarea class="form-control" id="descripcion" name="descripcion" rows="2" maxlength="200" placeholder="Descripción breve del producto"></textarea>
+                                    <small class="form-text text-muted">Máx. 200 caracteres</small>
+                                </div>
+                            </div>
                             
                             <div class="col-md-6 mb-3">
                                 <!-- Quitamos el for="imagen_producto" para que NO abra el chooser al hacer click en el label -->
                                 <label><i class="fas fa-image mr-1"></i>Imagen del Producto</label>
 
                                 <div class="file-upload-container">
-                                <div class="file-upload-area image-upload-area" id="productoDropArea" tabindex="0" aria-label="Zona para arrastrar y soltar imagen">
-                                    <i class="fas fa-image fa-3x mb-2"></i>
-                                    <p>
-                                    <span class="drag-text">Arrastra la imagen del producto aquí</span>
-                                    <span class="select-file-container">
-                                        <span class="select-file-text" role="button" tabindex="0"> o haz clic para seleccionar</span>
-                                        <input type="file" id="imagen_producto" name="imagen_producto" accept="image/*" class="file-upload-input">
-                                    </span>
-                                    <span class="paste-text">, o pega en cualquier área</span>
-                                    </p>
+                                    <div class="file-upload-area image-upload-area" id="productoDropArea" tabindex="0" aria-label="Zona para arrastrar y soltar imagen">
+                                        <i class="fas fa-image fa-3x mb-2"></i>
+                                        <p>
+                                            <span class="drag-text">Arrastra la imagen del producto aquí</span>
+                                            <span class="select-file-container">
+                                                <span class="select-file-text" role="button" tabindex="0"> o haz clic para seleccionar</span>
+                                                <input type="file" id="imagen_producto" name="imagen_producto" accept="image/*" class="file-upload-input">
+                                            </span>
+                                            <span class="paste-text">, o pega en cualquier área</span>
+                                        </p>
 
-                                    <div class="file-preview" id="productoPreview"></div>
-                                </div>
+                                        <div class="file-preview" id="productoPreview"></div>
+                                    </div>
 
-                                <div class="file-info" id="productoInfo">Ningún archivo seleccionado</div>
+                                    <div class="file-info" id="productoInfo">Ningún archivo seleccionado</div>
                                 </div>
 
                                 <small class="form-text text-muted">
-                                Imagen representativa del producto (formatos: JPG, PNG, GIF • Máx. 2MB)
+                                    Imagen representativa del producto (formatos: JPG, PNG, GIF • Máx. 2MB)
                                 </small>
                             </div>
 

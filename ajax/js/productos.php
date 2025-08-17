@@ -334,6 +334,8 @@ var editar_producto_dataTable = function(tbody, table) {
     $(tbody).on("click", "button.table_editar", function() {
         var data = table.row($(this).parents("tr")).data();
         var url = '<?php echo SERVERURL;?>core/editarProductos.php';
+        $('#formProductos')[0].reset();
+
         $('#formProductos #productos_id').val(data.productos_id);
 
         $.ajax({
@@ -347,8 +349,7 @@ var editar_producto_dataTable = function(tbody, table) {
                 });
                 $('#formProductos').attr({
                     'action': '<?php echo SERVERURL;?>ajax/modificarProductosAjax.php'
-                });
-                $('#formProductos')[0].reset();
+                });                
                 $('#reg_producto').hide();
                 $('#edi_producto').show();
                 $('#delete_producto').hide();
@@ -404,13 +405,27 @@ var editar_producto_dataTable = function(tbody, table) {
                     preview.style.display = 'block';
                     
                     const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button'; // <- EVITA submit
                     removeBtn.className = 'btn-remove-image';
+                    removeBtn.title = 'Eliminar imagen';
                     removeBtn.innerHTML = '×';
-                    removeBtn.onclick = function() {
-                        resetFileInput();
-                    };
+                    removeBtn.addEventListener('click', function (e) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (typeof window.resetProductoImagen === 'function') {
+                        window.resetProductoImagen(); // usa la función ya expuesta en initImageUpload
+                      } else {
+                        // fallback por si el nombre cambia
+                        const fileInput  = document.getElementById('imagen_producto');
+                        const preview    = document.getElementById('productoPreview');
+                        const fileInfo   = document.getElementById('productoInfo');
+                        if (fileInput) fileInput.value = '';
+                        if (preview) { preview.innerHTML = ''; preview.style.display = 'none'; }
+                        if (fileInfo) fileInfo.textContent = 'Ningún archivo seleccionado';
+                      }
+                    });
                     preview.appendChild(removeBtn);
-                    
+                                        
                     document.getElementById('productoInfo').textContent = 'Imagen cargada';
                 } else {
                     $("#formProductos #preview").attr("src", "<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png");

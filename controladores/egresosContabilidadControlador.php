@@ -6,6 +6,55 @@ if($peticionAjax){
 }
 
 class egresosContabilidadControlador extends egresosContabilidadModelo{
+
+    /**
+     * Construye un nombre de archivo PDF seguro basado en la factura.
+     * Formato principal: factura_<slugFactura>.pdf
+     * En caso de colisión: factura_<slugFactura>_<egresosid>.pdf
+     * - Normaliza (minúsculas, sin acentos, solo [a-z0-9_-])
+     * - Sustituye espacios por guiones bajos
+     * - Recorta a 60 chars para prolijidad
+     */
+    private function buildPdfFileName($egresos_id, $factura){
+        $factura = (string)$factura;
+        $factura = trim($factura);
+
+        // A minúsculas
+        $factura = mb_strtolower($factura, 'UTF-8');
+
+        // Quitar acentos
+        $replacements = [
+            'á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ñ'=>'n',
+            'ä'=>'a','ë'=>'e','ï'=>'i','ö'=>'o','ü'=>'u',
+            'à'=>'a','è'=>'e','ì'=>'i','ò'=>'o','ù'=>'u',
+            'Á'=>'a','É'=>'e','Í'=>'i','Ó'=>'o','Ú'=>'u','Ñ'=>'n',
+        ];
+        $factura = strtr($factura, $replacements);
+
+        // Espacios -> _
+        $factura = preg_replace('/\s+/', '_', $factura);
+
+        // Solo a-z 0-9 _ -
+        $factura = preg_replace('/[^a-z0-9_-]/', '', $factura);
+
+        if ($factura === '' || $factura === null) {
+            $factura = 'sin_numero';
+        }
+
+        $factura = substr($factura, 0, 60);
+
+        $baseDir = '../vistas/plantilla/gastos/';
+        $baseName = "factura_{$factura}";
+        $finalName = $baseName . '.pdf';
+
+        // En caso de colisión, agregamos _<egresos_id>
+        if (file_exists($baseDir . $finalName)) {
+            $finalName = "{$baseName}_{$egresos_id}.pdf";
+        }
+
+        return $finalName;
+    }
+
     public function agregar_egresos_contabilidad_controlador(){
         // Validar sesión primero
         $validacion = mainModel::validarSesion();
@@ -63,8 +112,9 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
                     "type" => "error"
                 ]);
             }
-            
-            $nombre_archivo = 'factura_' . $egresos_id . '_' . time() . '.pdf';
+
+            // Nombre de archivo basado en la factura (con colisión controlada)
+            $nombre_archivo = $this->buildPdfFileName($egresos_id, $factura);
             $ruta_destino = '../vistas/plantilla/gastos/' . $nombre_archivo;
             
             if(move_uploaded_file($archivo['tmp_name'], $ruta_destino)) {
@@ -301,7 +351,7 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
         // Manejar la carga de un nuevo archivo
         $nuevo_archivo = $archivo_actual;
         if(isset($_FILES['factura_pdf']) && $_FILES['factura_pdf']['error'] === UPLOAD_ERR_OK) {
-            // Eliminar el archivo anterior si existe
+            // Eliminar el archivo anterior si existe (vamos a reemplazar por el nuevo)
             if($archivo_actual) {
                 $ruta_archivo = '../vistas/plantilla/gastos/' . $archivo_actual;
                 if(file_exists($ruta_archivo)) {
@@ -330,8 +380,9 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
                     "type" => "error"
                 ]);
             }
-            
-            $nombre_archivo = 'factura_' . $egresos_id . '_' . time() . '.pdf';
+
+            // Nombre de archivo basado en factura (con colisión controlada)
+            $nombre_archivo = $this->buildPdfFileName($egresos_id, $factura);
             $ruta_destino = '../vistas/plantilla/gastos/' . $nombre_archivo;
             
             if(move_uploaded_file($archivo['tmp_name'], $ruta_destino)) {
@@ -375,7 +426,7 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
                 "modal" => "modalEgresosContables"
             ]);
         }else{
-            // Si falla la actualización, eliminar el archivo subido si era nuevo
+            // Si falla la actualización y se había subido un nuevo archivo, elimínalo
             if(isset($nombre_archivo) && $nombre_archivo != $archivo_actual) {
                 $ruta_archivo = '../vistas/plantilla/gastos/' . $nombre_archivo;
                 if(file_exists($ruta_archivo)) {

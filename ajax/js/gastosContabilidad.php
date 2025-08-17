@@ -530,6 +530,27 @@ var listar_gastos_contabilidad = function() {
     total_gastos_footer();
 }
 
+function resetPdfUI() {
+  const $preview = $('#filePreview');
+  const $info    = $('#fileInfo');
+  const $form    = $('#formEgresosContables');
+  const fileInput = document.querySelector('.file-upload-input');
+
+  // Limpiar vista y texto
+  $preview.stop(true, true).hide().empty();
+  $info.text('Ningún archivo seleccionado');
+
+  // Limpiar input file (si existe)
+  if (fileInput) {
+    fileInput.value = '';
+    // NO tocamos dataset.initialized para no re-bindear listeners de setupFileUpload()
+  }
+
+  // Quitar cualquier hidden que hayas agregado previamente para marcar borrado
+  $form.find('input[name="remove_existing_file"]').remove();
+}
+
+
 // Función para editar gastos desde la tabla
 var edit_reporte_gastos_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.table_editar");
@@ -537,6 +558,9 @@ var edit_reporte_gastos_dataTable = function(tbody, table) {
         var data = table.row($(this).parents("tr")).data();
         var url = '<?php echo SERVERURL;?>core/editarGastos.php';
         $('#formEgresosContables #egresos_id').val(data.egresos_id);
+
+        // RESETEA UI PDF ANTES DE CARGAR NUEVOS DATOS
+        resetPdfUI();
 
         // Primero cargar los proveedores
         $.ajax({

@@ -41,13 +41,22 @@ class egresosContabilidadModelo extends mainModel{
         return $sql;			
     }		
     
+    // 3) Ya tienes este: crea el movimiento y calcula el correlativo internamente
     protected function agregar_movimientos_contabilidad_modelo($datos){
         $movimientos_cuentas_id = mainModel::correlativo("movimientos_cuentas_id", "movimientos_cuentas");
-        $insert = "INSERT INTO movimientos_cuentas VALUES('$movimientos_cuentas_id','".$datos['cuentas_id']."','".$datos['empresa_id']."','".$datos['fecha']."','".$datos['ingreso']."','".$datos['egreso']."','".$datos['saldo']."','".$datos['colaboradores_id']."','".$datos['fecha_registro']."')";
-        
+        $insert = "INSERT INTO movimientos_cuentas VALUES(
+            '$movimientos_cuentas_id',
+            '".$datos['cuentas_id']."',
+            '".$datos['empresa_id']."',
+            '".$datos['fecha']."',
+            '".$datos['ingreso']."',
+            '".$datos['egreso']."',
+            '".$datos['saldo']."',
+            '".$datos['colaboradores_id']."',
+            '".$datos['fecha_registro']."'
+        )";
         $sql = mainModel::connection()->query($insert) or die(mainModel::connection()->error);
-        
-        return $sql;			
+        return $sql;
     }
     
     protected function edit_egresos_contabilidad_modelo($datos){
@@ -74,25 +83,53 @@ class egresosContabilidadModelo extends mainModel{
         return $sql;
     }
 
+    // 1) Anular egreso: estado y observación
     protected function cancel_egresos_contabilidad_modelo($datos){
-        $update = "UPDATE egresos
-        SET
-            estado = '".$datos['estado']."'                
-        WHERE egresos_id = '".$datos['egresos_id']."'";
+        $update = "
+            UPDATE egresos
+            SET estado = '".$datos['estado']."',
+                observacion = '".$datos['observacion']."'
+            WHERE egresos_id = '".$datos['egresos_id']."'
+        ";
         $sql = mainModel::connection()->query($update) or die(mainModel::connection()->error);
-        
-        return $sql;			
+        return $sql;
     }
-    
+
+    // 2) Insertar el INGRESO de reintegro
+    protected function agregar_ingreso_por_anulacion_modelo($datos){
+        // MISMO orden de columnas que tu modelo de ingresos
+        $insert = "INSERT INTO ingresos VALUES(
+            '".$datos['ingresos_id']."',
+            '".$datos['cuentas_id']."',
+            '".$datos['clientes_id']."',
+            '".$datos['empresa_id']."',
+            '".$datos['tipo_ingreso']."',
+            '".$datos['fecha']."',
+            '".$datos['factura']."',
+            '".$datos['subtotal']."',
+            '".$datos['descuento']."',
+            '".$datos['nc']."',
+            '".$datos['isv']."',
+            '".$datos['total']."',
+            '".$datos['observacion']."',
+            '".$datos['estado']."',
+            '".$datos['colaboradores_id']."',
+            '".$datos['fecha_registro']."',
+            '".$datos['recibide']."'
+        )";
+        $sql = mainModel::connection()->query($insert) or die(mainModel::connection()->error);
+        return $sql;
+    }
+ 
+    // 4) Y este: trae el último saldo
     protected function consultar_saldo_movimientos_cuentas_contabilidad($cuentas_id){
         $query = "SELECT ingreso, egreso, saldo
-            FROM movimientos_cuentas
-            WHERE cuentas_id = '$cuentas_id'
-            ORDER BY movimientos_cuentas_id DESC LIMIT 1";
-
+                FROM movimientos_cuentas
+                WHERE cuentas_id = '$cuentas_id'
+                ORDER BY movimientos_cuentas_id DESC
+                LIMIT 1";
         $sql = mainModel::connection()->query($query) or die(mainModel::connection()->error);
-        
-        return $sql;				
+        return $sql;
     }
     
     protected function delete_egresos_contabilidad_modelo($cuentas_id){
@@ -150,5 +187,34 @@ class egresosContabilidadModelo extends mainModel{
             error_log("Error en getTotalEgresosRegistrados: " . $e->getMessage());
             return 0;
         }
+    }
+
+    protected function get_egreso_by_id($egreso_id) {
+        $conexion = mainModel::connection();
+    
+        $stmt = $conexion->prepare("
+            SELECT e.egresos_id, e.numero_factura, e.monto, e.fecha, e.estado,
+                   e.archivo_pdf, p.nombre AS proveedor
+            FROM egresos_contabilidad e
+            INNER JOIN proveedores p ON e.proveedor_id = p.proveedores_id
+            WHERE e.egresos_id = ?
+            LIMIT 1
+        ");
+        $stmt->bind_param("i", $egreso_id);
+        $stmt->execute();
+        $resultado = $stmt->get_result();
+        return $resultado->fetch_assoc();
+    }   
+    
+    // 5) Ya lo tienes: nombre del proveedor (usado para “recibide”)
+    protected function getProveedorNombreById($proveedores_id){
+        $proveedores_id = mainModel::cleanString($proveedores_id);
+        $q  = "SELECT nombre FROM proveedores WHERE proveedores_id = '$proveedores_id' LIMIT 1";
+        $rs = mainModel::connection()->query($q);
+        if ($rs && $rs->num_rows > 0) {
+            $row = $rs->fetch_assoc();
+            return (string)$row['nombre'];
+        }
+        return '';
     }
 }

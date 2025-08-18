@@ -45,15 +45,17 @@
 			return $sql;
 		}
 
+		// 1) Anular ingreso: estado y observación (igual que egresos)
 		protected function cancel_ingresos_contabilidad_modelo($datos){
-			$update = "UPDATE ingresos
-			SET
-				estado = '".$datos['estado']."'				
-			WHERE ingresos_id = '".$datos['ingresos_id']."'";
+			$update = "
+				UPDATE ingresos
+				SET estado = '".$datos['estado']."',
+					observacion = '".$datos['observacion']."'
+				WHERE ingresos_id = '".$datos['ingresos_id']."'
+			";
 			$sql = mainModel::connection()->query($update) or die(mainModel::connection()->error);
-			
 			return $sql;			
-		}
+		}		
 		
 		protected function valid_clientes_cuentas_contabilidad($nombre){
 			$query = "SELECT clientes_id
@@ -122,4 +124,31 @@
 				return 0; // Retorna 0 si hay error para no bloquear el sistema
 			}
 		}
+
+		// Inserta un egreso espejo (idéntico a agregar_egresos_contabilidad_modelo del modelo de egresos)
+		protected function agregar_egreso_por_anulacion_modelo($datos){
+			$insert = "INSERT INTO egresos VALUES(
+				'".$datos['egresos_id']."',
+				'".$datos['cuentas_id']."',
+				'".$datos['proveedores_id']."',
+				'".$datos['empresa_id']."',
+				'".$datos['tipo_egreso']."',
+				'".$datos['fecha']."',
+				'".$datos['factura']."',
+				'".$datos['factura_pdf']."',
+				'".$datos['subtotal']."',
+				'".$datos['descuento']."',
+				'".$datos['nc']."',
+				'".$datos['isv']."',
+				'".$datos['total']."',
+				'".$datos['observacion']."',
+				'".$datos['estado']."',
+				'".$datos['colaboradores_id']."',
+				'".$datos['fecha_registro']."',
+				'".$datos['categoria_gastos']."'
+			)";
+			$sql = mainModel::connection()->query($insert) or die(mainModel::connection()->error);
+			return $sql;			
+		}
+
 	}

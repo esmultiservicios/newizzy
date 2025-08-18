@@ -12,91 +12,134 @@
 			if($validacion['error']) {
 				return mainModel::showNotification([
 					"title" => "Error de sesión",
-					"text" => $validacion['mensaje'],
-					"type" => "error",
+					"text"  => $validacion['mensaje'],
+					"type"  => "error",
 					"funcion" => "window.location.href = '".$validacion['redireccion']."'"
 				]);
 			}
-			
-			$nombre = mainModel::cleanString($_POST['nombre_proveedores']);
-			$rtn = mainModel::cleanString($_POST['rtn_proveedores']);
-			$fecha = mainModel::cleanString($_POST['fecha_proveedores']);			
-			$departamento_id = isset($_POST['departamento_proveedores']) ? intval($_POST['departamento_proveedores']) : 0;
-			$municipio_id = isset($_POST['municipio_proveedores']) ? intval($_POST['municipio_proveedores']) : 0;	
-			$localidad = mainModel::cleanString($_POST['dirección_proveedores']);
-			$telefono = mainModel::cleanString($_POST['telefono_proveedores']);
-			$correo = mainModel::cleanStringStrtolower($_POST['correo_proveedores']);
-			$colaborador_id = $_SESSION['colaborador_id_sd'];
-			$fecha_registro = date("Y-m-d H:i:s");
-			$estado = 1;			
-
-			$datos = [
-				"nombre" => $nombre,
-				"rtn" => $rtn,
-				"fecha" => $fecha,
-				"departamento_id" => $departamento_id,
-				"municipio_id" => $municipio_id,
-				"localidad" => $localidad,
-				"telefono" => $telefono,
-				"correo" => $correo,
-				"colaborador_id" => $colaborador_id,
-				"fecha_registro" => $fecha_registro,
-				"estado" => $estado,				
-			];
-
-			$mainModel = new mainModel();
-			$planConfig = $mainModel->getPlanConfiguracionMainModel();
-			
-			// Solo evaluar si existe configuración de plan
-			if (isset($planConfig['proveedores'])) {
-				$limiteProveedores = (int)$planConfig['proveedores']; // No usamos ?? 0 aquí para no convertir "no definido" en 0
-				
-				// Caso 1: Límite es 0 (bloquear)
-				if ($limiteProveedores === 0) {
-					return $mainModel->showNotification([
-						"type" => "error",
-						"title" => "Acceso restringido",
-						"text" => "Su plan actual no permite registrar proveedores."
-					]);
-				}
-				
-				// Caso 2: Si tiene límite > 0, validar disponibilidad
-				$totalRegistrados = (int)proveedoresModelo::getTotalProveedoresRegistrados();
-				
-				if ($totalRegistrados >= $limiteProveedores) {
-					return $mainModel->showNotification([
-						"type" => "error",
-						"title" => "Límite alcanzado",
-						"text" => "Límite de proveedores alcanzado (Máximo: $limiteProveedores). Actualiza tu plan."
-					]);
-				}
-			}
-			
-			if(!proveedoresModelo::agregar_proveedores_model($datos)){
+		
+			// Sanitizar
+			$nombre = trim(mainModel::cleanString($_POST['nombre_proveedores'] ?? ''));
+			$rtn    = trim(mainModel::cleanString($_POST['rtn_proveedores'] ?? ''));
+			$fecha  = mainModel::cleanString($_POST['fecha_proveedores'] ?? '');
+			$depto  = isset($_POST['departamento_proveedores']) ? (int)$_POST['departamento_proveedores'] : 0;
+			$muni   = isset($_POST['municipio_proveedores']) ? (int)$_POST['municipio_proveedores'] : 0;
+			$local  = mainModel::cleanString($_POST['dirección_proveedores'] ?? '');
+			$tel    = mainModel::cleanString($_POST['telefono_proveedores'] ?? '');
+			$correo = mainModel::cleanStringStrtolower($_POST['correo_proveedores'] ?? '');
+			$colab  = $_SESSION['colaborador_id_sd'] ?? 1;
+			$freg   = date("Y-m-d H:i:s");
+			$estado = 1;
+		
+			// Validaciones duras
+			if ($nombre === '' || $rtn === '') {
 				return mainModel::showNotification([
-					"title" => "Error",
-					"text" => "No se pudo registrar el proveedor",
-					"type" => "error"
+					"type"  => "error",
+					"title" => "Campos obligatorios",
+					"text"  => "Nombre y RTN del proveedor son obligatorios."
 				]);
 			}
-
-			// Registrar en historial
+		
+			// RTN: exactamente 14 dígitos numéricos (según tu tabla char(14))
+			if (!preg_match('/^\d{14}$/', $rtn)) {
+				return mainModel::showNotification([
+					"type"  => "error",
+					"title" => "RTN inválido",
+					"text"  => "El RTN debe contener exactamente 14 dígitos numéricos."
+				]);
+			}
+		
+			// Teléfono (opcional) máximo 8 dígitos
+			if ($tel !== '' && !preg_match('/^\d{1,8}$/', $tel)) {
+				return mainModel::showNotification([
+					"type"  => "error",
+					"title" => "Teléfono inválido",
+					"text"  => "El teléfono debe tener máximo 8 dígitos numéricos."
+				]);
+			}
+		
+			// Correo (opcional) formato
+			if ($correo !== '' && !filter_var($correo, FILTER_VALIDATE_EMAIL)) {
+				return mainModel::showNotification([
+					"type"  => "error",
+					"title" => "Correo inválido",
+					"text"  => "El formato del correo no es válido."
+				]);
+			}
+		
+			// Límite por plan (si aplica)
+			$mainModel = new mainModel();
+			$planConfig = $mainModel->getPlanConfiguracionMainModel();
+			if (isset($planConfig['proveedores'])) {
+				$limite = (int)$planConfig['proveedores'];
+				if ($limite === 0) {
+					return $mainModel->showNotification([
+						"type"  => "error",
+						"title" => "Acceso restringido",
+						"text"  => "Su plan actual no permite registrar proveedores."
+					]);
+				}
+				$totalRegs = (int)proveedoresModelo::getTotalProveedoresRegistrados();
+				if ($totalRegs >= $limite) {
+					return $mainModel->showNotification([
+						"type"  => "error",
+						"title" => "Límite alcanzado",
+						"text"  => "Límite de proveedores alcanzado (Máximo: $limite)."
+					]);
+				}
+			}
+		
+			// Duplicado por RTN
+			if (proveedoresModelo::valid_proveedores_modelo($rtn)->num_rows > 0) {
+				return mainModel::showNotification([
+					"type"  => "error",
+					"title" => "Duplicado",
+					"text"  => "Ya existe un proveedor registrado con ese RTN."
+				]);
+			}
+		
+			// Armar datos
+			$datos = [
+				"nombre"          => $nombre,
+				"rtn"             => $rtn,
+				"fecha"           => $fecha ?: date("Y-m-d"),
+				"departamento_id" => $depto,
+				"municipio_id"    => $muni,
+				"localidad"       => $local,
+				"telefono"        => $tel,
+				"correo"          => $correo,
+				"colaborador_id"  => $colab,
+				"fecha_registro"  => $freg,
+				"estado"          => $estado,
+			];
+		
+			// Insert
+			$nuevoID = proveedoresModelo::agregar_proveedores_model($datos);
+			if (!$nuevoID) {
+				return mainModel::showNotification([
+					"title" => "Error",
+					"text"  => "No se pudo registrar el proveedor",
+					"type"  => "error"
+				]);
+			}
+		
+			// Historial (corrijo el módulo y el texto)
 			mainModel::guardarHistorial([
-				"modulo" => 'Clientes',
+				"modulo" => 'Proveedores',
 				"colaboradores_id" => $_SESSION['colaborador_id_sd'],
 				"status" => "Registro",
-				"observacion" => "Se registró el cliente {$datos['nombre']} con RTN {$datos['rtn']}",
+				"observacion" => "Se registró el proveedor {$nombre} con RTN {$rtn}",
 				"fecha_registro" => date("Y-m-d H:i:s")
 			]);
-			
+		
 			return mainModel::showNotification([
-				"type" => "success",
-				"title" => "Registro exitoso",
-				"text" => "Proveedor registrado correctamente",           
-				"form" => "formProveedores",
+				"type"    => "success",
+				"title"   => "Registro exitoso",
+				"text"    => "Proveedor registrado correctamente",
+				"form"    => "formProveedores",
 				"funcion" => "listar_proveedores();getDepartamentoProveedores();getMunicipiosProveedores(0);getProveedorIngresos();getProveedorEgresos();listar_proveedores_ingresos_contabilidad_buscar();listar_proveedores_compras_buscar();listar_proveedores_egresos_contabilidad_buscar();"
-			]);								
-		}
+			]);
+		}		
 		
 		public function edit_proveedores_controlador(){
 			$proveedores_id = $_POST['proveedores_id'];

@@ -5077,47 +5077,47 @@ class mainModel
 
 	public function getIngresosContables($datos)
 	{
-		$query = "SELECT
-					i.ingresos_id,
-					i.fecha,
-					c.codigo,
-					c.nombre,
-					cli.nombre AS cliente,
-					i.factura,
-					i.subtotal,
-					i.impuesto,
-					i.descuento,
-					i.recibide,
-					COALESCE(cli.nombre, i.recibide) AS cliente,
-					i.nc,
-					i.total,
-					i.fecha_registro,
-					i.observacion,
-					CASE i.tipo_ingreso
-						WHEN 1 THEN 'Ingresos por Ventas'
-						WHEN 2 THEN 'Ingresos Manuales'
-						ELSE 'Otro'
-					END AS tipo_ingreso,
-					i.estado
-				FROM
-					ingresos AS i
-				INNER JOIN
-					cuentas AS c ON i.cuentas_id = c.cuentas_id
-				LEFT JOIN
-					clientes AS cli ON i.clientes_id = cli.clientes_id
-				WHERE 
-					CAST(i.fecha_registro AS DATE) BETWEEN '".$datos['fechai']."' AND '".$datos['fechaf']."' 
-					AND i.estado = ".$datos['estado']."
-				ORDER BY i.fecha_registro DESC";
+		$fechai = $this->cleanString($datos['fechai']);
+		$fechaf = $this->cleanString($datos['fechaf']);
+		$estado = (int)$datos['estado'];
+
+		$query = "
+			SELECT
+				i.ingresos_id,
+				i.fecha,
+				i.cuentas_id,
+				i.clientes_id,
+				i.empresa_id,
+				c.codigo,
+				c.nombre,
+				COALESCE(cli.nombre, i.recibide) AS cliente,
+				i.factura,
+				i.subtotal,
+				i.impuesto       AS impuesto,
+				i.descuento,
+				i.nc,
+				i.total,
+				i.fecha_registro,
+				i.observacion,
+				CASE i.tipo_ingreso
+					WHEN 1 THEN 'Ingresos por Ventas'
+					WHEN 2 THEN 'Ingresos Manuales'
+					ELSE 'Otro'
+				END AS tipo_ingreso,
+				i.estado
+			FROM ingresos AS i
+			INNER JOIN cuentas AS c      ON i.cuentas_id  = c.cuentas_id
+			LEFT  JOIN clientes AS cli   ON i.clientes_id = cli.clientes_id
+			WHERE CAST(i.fecha_registro AS DATE) BETWEEN '$fechai' AND '$fechaf'
+			AND i.estado = $estado
+			ORDER BY i.fecha_registro DESC
+		";
 
 		$result = self::connection()->query($query);
-
-		if(!$result) {
-			// Registrar error si la consulta falla
+		if(!$result){
 			error_log("Error en getIngresosContables: ".self::connection()->error);
 			return false;
 		}
-
 		return $result;
 	}
 
@@ -5151,23 +5151,48 @@ class mainModel
 
 	public function getEgresosContables($datos)
 	{
-		$query = "SELECT e.egresos_id AS 'egresos_id', e.fecha AS 'fecha', c.codigo as 'codigo', c.nombre AS 'nombre', p.nombre AS 'proveedor', e.factura AS 'factura', e.subtotal as 'subtotal', e.impuesto AS 'impuesto', e.descuento AS 'descuento', e.nc AS 'nc', e.total AS 'total', e.fecha_registro As 'fecha_registro', cg.nombre AS 'categoria', e.observacion, e.estado, e.factura_pdf
-				FROM egresos AS e
-				INNER JOIN cuentas AS c
+		$fechai = self::cleanString($datos['fechai']);
+		$fechaf = self::cleanString($datos['fechaf']);
+		$estado = (int)$datos['estado'];
+	
+		$query = "
+			SELECT
+				e.egresos_id                              AS egresos_id,
+				e.fecha                                    AS fecha,
+				c.codigo                                   AS codigo,
+				c.nombre                                   AS nombre,
+				p.nombre                                   AS proveedor,
+				e.factura                                  AS factura,
+				e.subtotal                                 AS subtotal,      -- crudo
+				e.impuesto                                      AS impuesto,      -- crudo (antes lo aliasabas como 'impuesto')
+				e.descuento                                AS descuento,     -- crudo
+				e.nc                                       AS nc,            -- crudo
+				e.total                                    AS total,         -- crudo
+				e.fecha_registro                           AS fecha_registro,
+				cg.nombre                                  AS categoria,
+				e.observacion                              AS observacion,
+				e.estado                                   AS estado,
+				e.factura_pdf                              AS factura_pdf,
+	
+				-- IDs crudos extra para anular sin consultas adicionales
+				e.proveedores_id                           AS proveedores_id,
+				e.cuentas_id                               AS cuentas_id,
+				e.empresa_id                               AS empresa_id
+			FROM egresos AS e
+			INNER JOIN cuentas AS c
 				ON e.cuentas_id = c.cuentas_id
-				INNER JOIN proveedores AS p
+			INNER JOIN proveedores AS p
 				ON e.proveedores_id = p.proveedores_id
-				LEFT
-				 JOIN categoria_gastos AS cg
+			LEFT JOIN categoria_gastos AS cg
 				ON e.categoria_gastos_id = cg.categoria_gastos_id
-				WHERE CAST(e.fecha_registro AS DATE) BETWEEN '" . $datos['fechai'] . "' AND '" . $datos['fechaf'] . "'
-				AND e.estado = '" . $datos['estado'] . "'
-				ORDER BY e.fecha_registro DESC";
-
+			WHERE CAST(e.fecha_registro AS DATE) BETWEEN '$fechai' AND '$fechaf'
+			  AND e.estado = '$estado'
+			ORDER BY e.fecha_registro DESC
+		";
+	
 		$result = self::connection()->query($query);
-
 		return $result;
-	}
+	}	
 
 	public function getEgresosContablesReporte($egresos_id)
 	{

@@ -23,80 +23,135 @@ class clientesControlador extends clientesModelo {
         if($validacion['error']) {
             return mainModel::showNotification([
                 "title" => "Error de sesión",
-                "text" => $validacion['mensaje'],
-                "type" => "error",
+                "text"  => $validacion['mensaje'],
+                "type"  => "error",
                 "funcion" => "window.location.href = '".$validacion['redireccion']."'"
             ]);
         }
-            
-        $datos = [
-            "nombre" => mainModel::cleanString($_POST['nombre_clientes']),
-            "rtn" => mainModel::cleanString($_POST['identidad_clientes']),
-            "fecha" => mainModel::cleanString($_POST['fecha_clientes']),
-            "departamento_id" => isset($_POST['departamento_cliente']) ? intval($_POST['departamento_cliente']) : 0,
-            "municipio_id" => isset($_POST['municipio_cliente']) ? intval($_POST['municipio_cliente']) : 0,
-            "localidad" => mainModel::cleanString($_POST['dirección_clientes']),
-            "telefono" => mainModel::cleanString($_POST['telefono_clientes']),
-            "correo" => mainModel::cleanStringStrtolower($_POST['correo_clientes']),
-            "estado_clientes" => 1,
-            "colaborador_id" => $_SESSION['colaborador_id_sd'],
-            "fecha_registro" => date("Y-m-d H:i:s"),
-            "empresa" => ""
-        ];
-        
-        $mainModel = new mainModel();
-        $planConfig = $mainModel->getPlanConfiguracionMainModel();
-        
-        // Solo evaluar si existe configuración de plan
-		if (isset($planConfig['clientes'])) {
-			$limiteClientes = (int)$planConfig['clientes']; // No usamos ?? 0 aquí para no convertir "no definido" en 0
-			
-            // Caso 1: Límite es 0 (bloquear)
-            if ($limiteClientes === 0) {
-                return $mainModel->showNotification([
-                    "type" => "error",
-                    "title" => "Acceso restringido",
-                    "text" => "Su plan actual no permite registrar clientes."
-                ]);
-            }
-            
-            // Caso 2: Si tiene límite > 0, validar disponibilidad
-            $totalRegistrados = (int)clientesModelo::getTotalClientesRegistrados();
-            
-            if ($totalRegistrados >= $limiteClientes) {
-                return $mainModel->showNotification([
-                    "type" => "error",
-                    "title" => "Límite alcanzado",
-                    "text" => "Límite de clientes alcanzado (Máximo: $limiteClientes). Actualiza tu plan."
-                ]);
-            }
-		}
-
-        if(!clientesModelo::agregar_clientes_modelo($datos)){
+    
+        // Sanitizar
+        $nombre = trim(mainModel::cleanString($_POST['nombre_clientes'] ?? ''));
+        $rtn    = trim(mainModel::cleanString($_POST['identidad_clientes'] ?? ''));
+        $fecha  = mainModel::cleanString($_POST['fecha_clientes'] ?? '');
+        $depto  = isset($_POST['departamento_cliente']) ? (int)$_POST['departamento_cliente'] : 0;
+        $muni   = isset($_POST['municipio_cliente']) ? (int)$_POST['municipio_cliente'] : 0;
+        $local  = mainModel::cleanString($_POST['dirección_clientes'] ?? '');
+        $tel    = mainModel::cleanString($_POST['telefono_clientes'] ?? '');
+        $correo = mainModel::cleanStringStrtolower($_POST['correo_clientes'] ?? '');
+        $estado = 1;
+        $colab  = $_SESSION['colaborador_id_sd'] ?? 1;
+        $freg   = date("Y-m-d H:i:s");
+    
+        // Validaciones duras
+        if ($nombre === '' || $rtn === '') {
             return mainModel::showNotification([
-                "title" => "Error",
-                "text" => "No se pudo registrar el cliente",
-                "type" => "error"
+                "type"  => "error",
+                "title" => "Campos obligatorios",
+                "text"  => "Nombre y RTN/Identidad son obligatorios."
             ]);
         }
-        
-        // Registrar en historial
+    
+        // RTN / Identidad 13 o 14 dígitos (solo números)
+        if (!preg_match('/^\d{13,14}$/', $rtn)) {
+            return mainModel::showNotification([
+                "type"  => "error",
+                "title" => "RTN/Identidad inválido",
+                "text"  => "El RTN/Identidad debe contener 13 o 14 dígitos numéricos."
+            ]);
+        }
+    
+        // Teléfono (opcional) máximo 8 dígitos
+        if ($tel !== '' && !preg_match('/^\d{1,8}$/', $tel)) {
+            return mainModel::showNotification([
+                "type"  => "error",
+                "title" => "Teléfono inválido",
+                "text"  => "El teléfono debe tener máximo 8 dígitos numéricos."
+            ]);
+        }
+    
+        // Correo (opcional) formato
+        if ($correo !== '' && !filter_var($correo, FILTER_VALIDATE_EMAIL)) {
+            return mainModel::showNotification([
+                "type"  => "error",
+                "title" => "Correo inválido",
+                "text"  => "El formato del correo no es válido."
+            ]);
+        }
+    
+        // Límite por plan (si aplica)
+        $mainModel = new mainModel();
+        $planConfig = $mainModel->getPlanConfiguracionMainModel();
+        if (isset($planConfig['clientes'])) {
+            $limiteClientes = (int)$planConfig['clientes'];
+            if ($limiteClientes === 0) {
+                return $mainModel->showNotification([
+                    "type"  => "error",
+                    "title" => "Acceso restringido",
+                    "text"  => "Su plan actual no permite registrar clientes."
+                ]);
+            }
+            $totalRegs = (int)clientesModelo::getTotalClientesRegistrados();
+            if ($totalRegs >= $limiteClientes) {
+                return $mainModel->showNotification([
+                    "type"  => "error",
+                    "title" => "Límite alcanzado",
+                    "text"  => "Límite de clientes alcanzado (Máximo: $limiteClientes)."
+                ]);
+            }
+        }
+    
+        // Duplicado por RTN
+        if (clientesModelo::valid_clientes_modelo($rtn)->num_rows > 0) {
+            return mainModel::showNotification([
+                "type"  => "error",
+                "title" => "Duplicado",
+                "text"  => "Ya existe un cliente registrado con ese RTN/Identidad."
+            ]);
+        }
+    
+        // Preparar datos
+        $datos = [
+            "nombre"           => $nombre,
+            "rtn"              => $rtn,
+            "fecha"            => $fecha ?: date("Y-m-d"),
+            "departamento_id"  => $depto,
+            "municipio_id"     => $muni,
+            "localidad"        => $local,
+            "telefono"         => $tel,
+            "correo"           => $correo,
+            "estado_clientes"  => $estado,
+            "colaborador_id"   => $colab,
+            "fecha_registro"   => $freg,
+            "empresa"          => ""
+        ];
+    
+        // Insert
+        $nuevoID = clientesModelo::agregar_clientes_modelo($datos);
+        if (!$nuevoID) {
+            return mainModel::showNotification([
+                "type"  => "error",
+                "title" => "Error",
+                "text"  => "No se pudo registrar el cliente."
+            ]);
+        }
+    
+        // Historial
         mainModel::guardarHistorial([
             "modulo" => 'Clientes',
             "colaboradores_id" => $_SESSION['colaborador_id_sd'],
             "status" => "Registro",
-            "observacion" => "Se registró el cliente {$datos['nombre']} con RTN {$datos['rtn']}",
+            "observacion" => "Se registró el cliente {$nombre} con RTN {$rtn}",
             "fecha_registro" => date("Y-m-d H:i:s")
         ]);
-        
+    
         return mainModel::showNotification([
-            "type" => "success",
-            "title" => "Registro exitoso",
-            "text" => "Cliente registrado correctamente",           
-            "form" => "formClientes",
-            "funcion" => "listar_clientes();getDepartamentoClientes();getMunicipiosClientes(0);listar_clientes_factura_buscar();listar_clientes_cotizacion_buscar();listar_colaboradores_buscar_compras();"
+            "type"    => "success",
+            "title"   => "Registro exitoso",
+            "text"    => "Cliente registrado correctamente",
+            "form"    => "formClientes",
+            "funcion" => "listar_clientes();getDepartamentoClientes();getMunicipiosClientes(0);listar_clientes_factura_buscar();listar_clientes_cotizacion_buscar();listar_colaboradores_buscar_compras();getClientesIngresos();"
         ]);
-    }
+    }    
 
     /* Método para registrar clientes autónomos */
     public function registrar_cliente_autonomo_controlador() {

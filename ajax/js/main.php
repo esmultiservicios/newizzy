@@ -6028,4 +6028,37 @@ $(() => {
     cargarContadorFacturasPendientes();
     setInterval(cargarContadorFacturasPendientes, 300000); // cada 5 minutos
 });
+
+// Función para obtener clientes
+function getClientesIngresos() {
+    $.ajax({
+        url: "<?php echo SERVERURL; ?>core/getClientes.php",
+        type: "POST",
+        dataType: "json",
+        success: function(response) {
+            const select = $('#formIngresosContables #recibide_ingresos');
+            select.empty();
+            
+            if(response.success) {
+                response.data.forEach(cliente => {
+                    select.append(`
+                        <option value="${cliente.clientes_id}" 
+                                data-subtext="${cliente.rtn || 'Sin RTN o Identidad'}">
+                            ${cliente.nombre}
+                        </option>
+                    `);
+                });
+            } else {
+                select.append('<option value="">No hay colaboradores disponibles</option>');
+            }
+            
+            select.selectpicker('refresh');
+        },
+        error: function(xhr) {
+            showNotify("error", "Error", "Error de conexión al cargar colaboradores");
+            $('#formIngresosContables #recibide_ingresos').html('<option value="">Error al cargar</option>');
+            $('#formIngresosContables #recibide_ingresos').selectpicker('refresh');
+        }
+    });
+}
 </script>

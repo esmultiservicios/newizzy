@@ -109,6 +109,7 @@
 								<th>Estado</th>
 	                            <th>Editar</th>
 	                            <th>Imprimir</th>
+								<th>Anular</th>
 	                        </tr>
 	                    </thead>
 	                    <tfoot class="bg-secondary text-white font-weight-bold">
@@ -120,7 +121,7 @@
 	                            <td id="descuento-g"></td>
 	                            <td id="nc-g"></td>
 	                            <td id='total-footer-gastos'></td>
-	                            <td colspan="4"></td>
+	                            <td colspan="5"></td>
 	                        </tr>
 	                    </tfoot>
 	                </table>

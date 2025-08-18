@@ -8,46 +8,48 @@ if($peticionAjax){
 class egresosContabilidadControlador extends egresosContabilidadModelo{
 
     /**
-     * Construye un nombre de archivo PDF seguro basado en la factura.
-     * Formato principal: factura_<slugFactura>.pdf
-     * En caso de colisión: factura_<slugFactura>_<egresosid>.pdf
+     * Construye un nombre de archivo PDF seguro basado en proveedor + factura.
+     * Formato principal: factura_<slugProveedor>_<slugFactura>.pdf
+     * En caso de colisión: factura_<slugProveedor>_<slugFactura>_<egresosid>.pdf
      * - Normaliza (minúsculas, sin acentos, solo [a-z0-9_-])
      * - Sustituye espacios por guiones bajos
-     * - Recorta a 60 chars para prolijidad
+     * - Recorta a 60 chars cada parte para prolijidad
      */
-    private function buildPdfFileName($egresos_id, $factura){
-        $factura = (string)$factura;
-        $factura = trim($factura);
+    private function buildPdfFileName($egresos_id, $proveedorNombre, $factura){
+        $slug = function($txt){
+            $txt = (string)$txt;
+            $txt = trim($txt);
+            $txt = mb_strtolower($txt, 'UTF-8');
 
-        // A minúsculas
-        $factura = mb_strtolower($factura, 'UTF-8');
+            // Quitar acentos / ñ
+            $replacements = [
+                'á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ñ'=>'n',
+                'ä'=>'a','ë'=>'e','ï'=>'i','ö'=>'o','ü'=>'u',
+                'à'=>'a','è'=>'e','ì'=>'i','ò'=>'o','ù'=>'u',
+                'Á'=>'a','É'=>'e','Í'=>'i','Ó'=>'o','Ú'=>'u','Ñ'=>'n',
+            ];
+            $txt = strtr($txt, $replacements);
 
-        // Quitar acentos
-        $replacements = [
-            'á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ñ'=>'n',
-            'ä'=>'a','ë'=>'e','ï'=>'i','ö'=>'o','ü'=>'u',
-            'à'=>'a','è'=>'e','ì'=>'i','ò'=>'o','ù'=>'u',
-            'Á'=>'a','É'=>'e','Í'=>'i','Ó'=>'o','Ú'=>'u','Ñ'=>'n',
-        ];
-        $factura = strtr($factura, $replacements);
+            // Espacios -> _
+            $txt = preg_replace('/\s+/', '_', $txt);
 
-        // Espacios -> _
-        $factura = preg_replace('/\s+/', '_', $factura);
+            // Solo a-z 0-9 _ -
+            $txt = preg_replace('/[^a-z0-9_-]/', '', $txt);
 
-        // Solo a-z 0-9 _ -
-        $factura = preg_replace('/[^a-z0-9_-]/', '', $factura);
+            // Limitar longitud
+            $txt = substr($txt, 0, 60);
 
-        if ($factura === '' || $factura === null) {
-            $factura = 'sin_numero';
-        }
+            return ($txt === '' ? 'sin_dato' : $txt);
+        };
 
-        $factura = substr($factura, 0, 60);
+        $prov = $slug($proveedorNombre);
+        $fac  = $slug($factura);
 
-        $baseDir = '../vistas/plantilla/gastos/';
-        $baseName = "factura_{$factura}";
+        $baseDir   = '../vistas/plantilla/gastos/';
+        $baseName  = "factura_{$prov}_{$fac}";
         $finalName = $baseName . '.pdf';
 
-        // En caso de colisión, agregamos _<egresos_id>
+        // Si existe, agrega sufijo con ID para evitar colisión
         if (file_exists($baseDir . $finalName)) {
             $finalName = "{$baseName}_{$egresos_id}.pdf";
         }
@@ -56,7 +58,7 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
     }
 
     public function agregar_egresos_contabilidad_controlador(){
-        // Validar sesión primero
+        // Validar sesión
         $validacion = mainModel::validarSesion();
         if($validacion['error']) {
             return mainModel::showNotification([
@@ -81,13 +83,16 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
         $observacion = mainModel::cleanString($_POST['observacion_egresos']);
         
         $categoria_gastos = (isset($_POST['categoria_gastos']) && $_POST['categoria_gastos'] !== '' && is_numeric($_POST['categoria_gastos']))
-        ? (int) mainModel::cleanString($_POST['categoria_gastos'])
-        : 0;
+            ? (int) mainModel::cleanString($_POST['categoria_gastos'])
+            : 0;
         
         $estado = 1;
         $colaboradores_id = $_SESSION['colaborador_id_sd'];
         $fecha_registro = date("Y-m-d H:i:s");    
         $egresos_id = mainModel::correlativo("egresos_id", "egresos");
+
+        // Obtener el nombre del proveedor (la implementarás en el modelo)
+        $proveedorNombre = egresosContabilidadModelo::getProveedorNombreById($proveedores_id);
 
         // Manejar la carga del archivo PDF
         $factura_pdf = '';
@@ -113,8 +118,8 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
                 ]);
             }
 
-            // Nombre de archivo basado en la factura (con colisión controlada)
-            $nombre_archivo = $this->buildPdfFileName($egresos_id, $factura);
+            // Nombre de archivo basado en proveedor + factura (con colisión controlada)
+            $nombre_archivo = $this->buildPdfFileName($egresos_id, $proveedorNombre, $factura);
             $ruta_destino = '../vistas/plantilla/gastos/' . $nombre_archivo;
             
             if(move_uploaded_file($archivo['tmp_name'], $ruta_destino)) {
@@ -180,7 +185,7 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
             $query = egresosContabilidadModelo::agregar_egresos_contabilidad_modelo($datos);
             
             if($query){
-                //CONSULTAMOS EL SALDO DISPONIBLE PARA LA CUENTA
+                // Consultar saldo disponible para la cuenta
                 $consulta_ingresos_contabilidad = egresosContabilidadModelo::consultar_saldo_movimientos_cuentas_contabilidad($cuentas_id)->fetch_assoc();
                 $saldo_consulta = isset($consulta_ingresos_contabilidad['saldo']) && $consulta_ingresos_contabilidad['saldo'] !== "" ? $consulta_ingresos_contabilidad['saldo'] : 0;
                 
@@ -188,7 +193,7 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
                 $egreso = $total;
                 $saldo = $saldo_consulta - $egreso;
                 
-                //AGREGAMOS LOS MOVIMIENTOS DE LA CUENTA
+                // Agregar movimientos de la cuenta
                 $datos_movimientos = [
                     "cuentas_id" => $cuentas_id,
                     "empresa_id" => $empresa_id === "" ? 1 : $empresa_id,
@@ -202,7 +207,7 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
                 
                 egresosContabilidadModelo::agregar_movimientos_contabilidad_modelo($datos_movimientos);
 
-                // Registrar en historial
+                // Historial
                 mainModel::guardarHistorial([
                     "modulo" => 'Egresos Contabilidad',
                     "colaboradores_id" => $_SESSION['colaborador_id_sd'],
@@ -251,7 +256,7 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
     }
 
     public function agregar_categoria_egresos_controlador(){
-        // Validar sesión primero
+        // Validar sesión
         $validacion = mainModel::validarSesion();
         if($validacion['error']) {
             echo json_encode([
@@ -283,7 +288,7 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
             $query = egresosContabilidadModelo::agregar_categoria_egresos_modelo($datos);
             
             if($query){
-                // Registrar en historial
+                // Historial
                 mainModel::guardarHistorial([
                     "modulo" => 'Categoría Egresos',
                     "colaboradores_id" => $_SESSION['colaborador_id_sd'],
@@ -318,7 +323,7 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
     }
 
     public function edit_egresos_contabilidad_controlador(){
-        // Validar sesión primero
+        // Validar sesión
         $validacion = mainModel::validarSesion();
         if($validacion['error']) {
             return mainModel::showNotification([
@@ -334,6 +339,9 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
         $factura = mainModel::cleanString($_POST['factura_egresos']);
         $observacion = mainModel::cleanString($_POST['observacion_egresos']);
         $fecha = $_POST['fecha_egresos'];
+
+        // Obtener nombre del proveedor para armar el nombre del PDF
+        $proveedorNombre = egresosContabilidadModelo::getProveedorNombreById($proveedores_id);
 
         // Obtener el nombre del archivo actual si existe
         $consulta_archivo = mainModel::connection()->query("SELECT factura_pdf FROM egresos WHERE egresos_id = '$egresos_id'");
@@ -381,8 +389,8 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
                 ]);
             }
 
-            // Nombre de archivo basado en factura (con colisión controlada)
-            $nombre_archivo = $this->buildPdfFileName($egresos_id, $factura);
+            // Nombre de archivo: factura_<proveedor>_<factura>.pdf (colisión controlada)
+            $nombre_archivo = $this->buildPdfFileName($egresos_id, $proveedorNombre, $factura);
             $ruta_destino = '../vistas/plantilla/gastos/' . $nombre_archivo;
             
             if(move_uploaded_file($archivo['tmp_name'], $ruta_destino)) {
@@ -408,7 +416,7 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
         $query = egresosContabilidadModelo::edit_egresos_contabilidad_modelo($datos);
 
         if($query){
-            // Registrar en historial
+            // Historial
             mainModel::guardarHistorial([
                 "modulo" => 'Egresos Contabilidad',
                 "colaboradores_id" => $_SESSION['colaborador_id_sd'],
@@ -443,7 +451,7 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
     }
 
     public function edit_categoria_egresos_contabilidad_controlador() {
-        // Validar sesión primero
+        // Validar sesión
         $validacion = mainModel::validarSesion();
         if($validacion['error']) {
             echo json_encode([
@@ -479,7 +487,7 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
             $query = egresosContabilidadModelo::edit_categoria_egresos_contabilidad_modelo($datos);
     
             if($query) {
-                // Registrar en historial
+                // Historial
                 mainModel::guardarHistorial([
                     "modulo" => 'Categoría Egresos',
                     "colaboradores_id" => $_SESSION['colaborador_id_sd'],
@@ -516,109 +524,147 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
     }
 
     public function cancel_egresos_contabilidad_controlador(){
-        // Validar sesión primero
+        // 1) Validar sesión
         $validacion = mainModel::validarSesion();
         if($validacion['error']) {
             return mainModel::showNotification([
-                "title" => "Error de sesión",
-                "text" => $validacion['mensaje'],
-                "type" => "error",
+                "title"   => "Error de sesión",
+                "text"    => $validacion['mensaje'],
+                "type"    => "error",
                 "funcion" => "window.location.href = '".$validacion['redireccion']."'"
             ]);
         }
-        
-        $egresos_id = $_POST['egresos_id'];
-        $proveedores_id = $_POST['proveedor_egresos'];
-        $cuentas_id = mainModel::cleanStringConverterCase($_POST['cuenta_egresos']);
-        $empresa_id = $_SESSION['empresa_id_sd'];
-        $fecha = mainModel::cleanString($_POST['fecha_egresos']);
-        $factura = mainModel::cleanStringConverterCase($_POST['factura_egresos']);
-        $subtotal = mainModel::cleanStringConverterCase($_POST['subtotal_egresos']);
-        $isv = mainModel::cleanStringConverterCase($_POST['isv_egresos']);
-        $descuento = mainModel::cleanStringConverterCase($_POST['descuento_egresos']);
-        $nc = mainModel::cleanStringConverterCase($_POST['nc_egresos']);
-        $total = mainModel::cleanStringConverterCase($_POST['total_egresos']);
-        $observacion = mainModel::cleanString($_POST['observacion_egresos']);
-        $estado = 2;
-        $tipo_egreso = 2;//GASTOS
+    
+        // 2) Entradas
+        $egresos_id      = $_POST['egresos_id'];
+        $proveedores_id  = $_POST['proveedor_egresos'];
+        $cuentas_id      = mainModel::cleanString($_POST['cuenta_egresos']);
+        $empresa_id      = $_SESSION['empresa_id_sd'];
+        $fecha           = mainModel::cleanString($_POST['fecha_egresos']);
+        $factura         = mainModel::cleanString($_POST['factura_egresos']);
+        $subtotal        = (float) mainModel::cleanString($_POST['subtotal_egresos']);
+        $isv             = (float) mainModel::cleanString($_POST['isv_egresos']);
+        $descuento       = (float) mainModel::cleanString($_POST['descuento_egresos']);
+        $nc              = (float) mainModel::cleanString($_POST['nc_egresos']);
+        $total           = (float) mainModel::cleanString($_POST['total_egresos']);
+        $observacionIn   = mainModel::cleanString($_POST['observacion_egresos']);
+    
         $colaboradores_id = $_SESSION['colaborador_id_sd'];
-        $fecha_registro = date("Y-m-d H:i:s");    
-        
-        $datos = [
-            "egresos_id" => $egresos_id,
-            "proveedores_id" => $proveedores_id,
-            "cuentas_id" => $cuentas_id,
-            "empresa_id" => $empresa_id,
-            "tipo_egreso" => $tipo_egreso,
-            "fecha" => $fecha,
-            "factura" => $factura,
-            "subtotal" => $subtotal,
-            "isv" => $isv,
-            "descuento" => $descuento,
-            "nc" => $nc,
-            "total" => $total,
-            "observacion" => $observacion,
-            "estado" => $estado,
-            "fecha_registro" => $fecha_registro,                
-        ];
-        
-        $result_valid_egresos = egresosContabilidadModelo::valid_egresos_cuentas_modelo($egresos_id);
-        
-        if($result_valid_egresos->num_rows > 0){
-            $query = egresosContabilidadModelo::cancel_egresos_contabilidad_modelo($datos);
-                                
-            if($query){
-                //CONSULTAMOS EL SALDO DISPONIBLE PARA LA CUENTA
-                $consulta_ingresos_contabilidad = egresosContabilidadModelo::consultar_saldo_movimientos_cuentas_contabilidad($cuentas_id)->fetch_assoc();
-                $saldo_consulta = $consulta_ingresos_contabilidad['saldo'];    
-                $ingreso = $total;
-                $egreso = 0;
-                $saldo = $saldo_consulta + $ingreso;
-                
-                //AGREGAMOS LOS MOVIMIENTOS DE LA CUENTA
-                $datos_movimientos = [
-                    "cuentas_id" => $cuentas_id,
-                    "empresa_id" => $empresa_id,
-                    "fecha" => $fecha,
-                    "ingreso" => $ingreso,
-                    "egreso" => $egreso,
-                    "saldo" => $saldo,
-                    "colaboradores_id" => $colaboradores_id,
-                    "fecha_registro" => $fecha_registro,                
-                ];
-                
-                egresosContabilidadModelo::agregar_movimientos_contabilidad_modelo($datos_movimientos);
-
-                // Registrar en historial
-                mainModel::guardarHistorial([
-                    "modulo" => 'Egresos Contabilidad',
-                    "colaboradores_id" => $_SESSION['colaborador_id_sd'],
-                    "status" => "Cancelación",
-                    "observacion" => "Se canceló egreso contable ID: {$egresos_id}",
-                    "fecha_registro" => date("Y-m-d H:i:s")
-                ]);
-                
-                return mainModel::showNotification([
-                    "type" => "success",
-                    "title" => "Registro cancelado",
-                    "text" => "El registro se ha cancelado correctamente",
-                    "form" => "formEgresosContables",
-                    "funcion" => "listar_gastos_contabilidad();getEmpresaEgresos(); getCuentaEgresos(); getProveedorEgresos();",
-                    "modal" => "modalEgresosContables"
-                ]);
-            }else{
-                return mainModel::showNotification([
-                    "title" => "Error",
-                    "text" => "No se pudo cancelar el egreso contable",
-                    "type" => "error"
-                ]);                
-            }                
-        }else{
+        $fecha_registro   = date("Y-m-d H:i:s");
+    
+        // 3) Verificar existencia del egreso
+        $result_valid = egresosContabilidadModelo::valid_egresos_cuentas_modelo($egresos_id);
+        if($result_valid->num_rows === 0){
             return mainModel::showNotification([
                 "title" => "Error",
-                "text" => "No se puede cancelar este registro",
-                "type" => "error"
-            ]);                
+                "text"  => "No se encontró el egreso a anular.",
+                "type"  => "error"
+            ]);
         }
-    }
+    
+        // 4) Armar observaciones
+        $obsEgreso  = "[ANULACIÓN EGRESO #{$egresos_id}] Reintegro por cancelación."
+                    . ($observacionIn ? " {$observacionIn}" : "");
+    
+        // Nombre proveedor (para “recibide” del ingreso)
+        $nombreProveedor = egresosContabilidadModelo::getProveedorNombreById($proveedores_id);
+        $recibide        = "Reintegro egreso #{$egresos_id}".($nombreProveedor ? " - {$nombreProveedor}" : "");
+    
+        $obsIngreso = "[REINTEGRO] Anulación de egreso ID: {$egresos_id}"
+                    . ($factura ? ", Factura: {$factura}" : "")
+                    . ($nombreProveedor ? ", Proveedor: {$nombreProveedor}" : "")
+                    . ($observacionIn ? ". {$observacionIn}" : "");
+    
+        // 5) Transacción
+        $cn = mainModel::connection();
+        $cn->begin_transaction();
+    
+        try {
+            // 5.1) Marcar EGRESO como ANULADO (estado=0) + observación
+            $datosCancel = [
+                "egresos_id"  => $egresos_id,
+                "estado"      => 0,           // 0 = anulado
+                "observacion" => $obsEgreso
+            ];
+            if(!egresosContabilidadModelo::cancel_egresos_contabilidad_modelo($datosCancel)){
+                throw new Exception("No se pudo marcar el egreso como anulado.");
+            }
+    
+            // 5.2) Crear un INGRESO de reintegro (tabla ingresos)
+            $ingresos_id = mainModel::correlativo("ingresos_id", "ingresos");
+            $datosIngreso = [
+                "ingresos_id"      => $ingresos_id,
+                "cuentas_id"       => $cuentas_id,
+                "clientes_id"      => 0,              // no es cliente de venta
+                "empresa_id"       => $empresa_id,
+                "tipo_ingreso"     => 2,              // OTROS INGRESOS (tu esquema)
+                "fecha"            => $fecha,
+                "factura"          => "",             // sin número (no es venta)
+                "subtotal"         => $subtotal,      // puedes setear 0 y mandar todo en total si prefieres
+                "descuento"        => $descuento,
+                "nc"               => $nc,
+                "isv"              => $isv,
+                "total"            => $total,
+                "observacion"      => $obsIngreso,
+                "estado"           => 1,              // activo
+                "colaboradores_id" => $colaboradores_id,
+                "fecha_registro"   => $fecha_registro,
+                "recibide"         => $recibide
+            ];
+            if(!egresosContabilidadModelo::agregar_ingreso_por_anulacion_modelo($datosIngreso)){
+                throw new Exception("No se pudo registrar el ingreso por reintegro.");
+            }
+    
+            // 5.3) Registrar MOVIMIENTO en movimientos_cuentas (INGRESO por reintegro)
+            $lastSaldo = egresosContabilidadModelo::consultar_saldo_movimientos_cuentas_contabilidad($cuentas_id)->fetch_assoc();
+            $saldoActual = isset($lastSaldo['saldo']) ? (float)$lastSaldo['saldo'] : 0.00;
+    
+            $ingresoMov = $total;
+            $egresoMov  = 0.00;
+            $nuevoSaldo = $saldoActual + $ingresoMov;
+    
+            $datosMov = [
+                "cuentas_id"       => $cuentas_id,
+                "empresa_id"       => $empresa_id,
+                "fecha"            => $fecha,
+                "ingreso"          => $ingresoMov,
+                "egreso"           => $egresoMov,
+                "saldo"            => $nuevoSaldo,
+                "colaboradores_id" => $colaboradores_id,
+                "fecha_registro"   => $fecha_registro
+            ];
+            if(!egresosContabilidadModelo::agregar_movimientos_contabilidad_modelo($datosMov)){
+                throw new Exception("No se pudo insertar el movimiento del reintegro.");
+            }
+    
+            // 5.4) Historial
+            mainModel::guardarHistorial([
+                "modulo"           => 'Egresos Contabilidad',
+                "colaboradores_id" => $colaboradores_id,
+                "status"           => "Cancelación",
+                "observacion"      => "Anulado egreso ID {$egresos_id}; reintegro en ingresos ID {$ingresos_id} por {$total}.",
+                "fecha_registro"   => date("Y-m-d H:i:s")
+            ]);
+    
+            // 5.5) OK
+            $cn->commit();
+    
+            return mainModel::showNotification([
+                "type"    => "success",
+                "title"   => "Egreso anulado",
+                "text"    => "Se registró el reintegro y el movimiento de cuenta.",
+                "form"    => "formEgresosContables",
+                "funcion" => "listar_gastos_contabilidad();getEmpresaEgresos();getCuentaEgresos();getProveedorEgresos();total_gastos_footer();",
+                "modal"   => "modalEgresosContables"
+            ]);
+    
+        } catch (Exception $e) {
+            $cn->rollback();
+            return mainModel::showNotification([
+                "title" => "Error",
+                "text"  => "No se pudo anular el egreso: ".$e->getMessage(),
+                "type"  => "error"
+            ]);
+        }
+    }      
 }

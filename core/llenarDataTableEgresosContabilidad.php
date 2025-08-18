@@ -37,7 +37,15 @@
 			"total"=>'L. '.$row['total'],
 			"categoria"=>$row['categoria'],
 			"observacion"=>$row['observacion'],
-			"estado"=>$row['estado']
+			"estado"=>$row['estado'],
+			"proveedores_id" => isset($row['proveedores_id']) ? (int)$row['proveedores_id'] : 0,
+			"cuentas_id"     => isset($row['cuentas_id']) ? (int)$row['cuentas_id'] : 0,
+			"empresa_id"     => isset($row['empresa_id']) ? (int)$row['empresa_id'] : 0,		
+			"subtotal_raw" => isset($row['subtotal']) ? (float)$row['subtotal'] : 0,
+			"isv_raw"      => isset($row['impuesto']) ? (float)$row['impuesto'] : 0,
+			"descuento_raw"=> isset($row['descuento']) ? (float)$row['descuento'] : 0,
+			"nc_raw"       => isset($row['nc']) ? (float)$row['nc'] : 0,
+			"total_raw"    => isset($row['total']) ? (float)$row['total'] : 0,
 		);			
 	}
 	

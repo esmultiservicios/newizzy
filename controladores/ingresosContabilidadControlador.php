@@ -296,108 +296,148 @@ class ingresosContabilidadControlador extends ingresosContabilidadModelo{
         }
     }
 
-    public function cancel_egresos_contabilidad_controlador(){
-        // Validar sesión primero
+    public function cancel_ingresos_contabilidad_controlador(){
+        // 1) Validar sesión
         $validacion = mainModel::validarSesion();
         if($validacion['error']) {
             return mainModel::showNotification([
-                "title" => "Error de sesión",
-                "text" => $validacion['mensaje'],
-                "type" => "error",
+                "title"   => "Error de sesión",
+                "text"    => $validacion['mensaje'],
+                "type"    => "error",
                 "funcion" => "window.location.href = '".$validacion['redireccion']."'"
             ]);
         }
-
+    
+        // 2) Entradas (POST)
         $ingresos_id = $_POST['ingresos_id'];
-        $proveedores_id = mainModel::cleanStringConverterCase($_POST['proveedor_ingresos']);
-        $cuentas_id = mainModel::cleanStringConverterCase($_POST['cuenta_ingresos']);
-        $empresa_id = mainModel::cleanStringConverterCase($_POST['empresa_ingresos']);
-        $fecha = mainModel::cleanStringConverterCase($_POST['fecha_ingresos']);
-        $factura = mainModel::cleanStringConverterCase($_POST['factura_ingresos']);
-        $subtotal = mainModel::cleanStringConverterCase($_POST['subtotal_ingresos']);
-        $isv = mainModel::cleanStringConverterCase($_POST['isv_ingresos']);
-        $descuento = mainModel::cleanStringConverterCase($_POST['descuento_ingresos']);
-        $nc = mainModel::cleanStringConverterCase($_POST['nc_ingresos']);
-        $total = mainModel::cleanStringConverterCase($_POST['total_ingresos']);
-        $observacion = mainModel::cleanStringConverterCase($_POST['observacion_ingresos']);
-        $estado = 2;
+        $cuentas_id  = mainModel::cleanString($_POST['cuenta_ingresos']);
+        $empresa_id  = $_SESSION['empresa_id_sd'];
+        $fecha       = mainModel::cleanString($_POST['fecha_ingresos']);
+        $factura     = mainModel::cleanString($_POST['factura_ingresos']);
+    
+        $subtotal    = (float) mainModel::cleanString($_POST['subtotal_ingresos'] === "" ? 0 : $_POST['subtotal_ingresos']);
+        $isv         = (float) mainModel::cleanString($_POST['isv_ingresos'] === "" ? 0 : $_POST['isv_ingresos']);
+        $descuento   = (float) mainModel::cleanString($_POST['descuento_ingresos'] === "" ? 0 : $_POST['descuento_ingresos']);
+        $nc          = (float) mainModel::cleanString($_POST['nc_ingresos'] === "" ? 0 : $_POST['nc_ingresos']);
+        $total       = (float) mainModel::cleanString($_POST['total_ingresos'] === "" ? 0 : $_POST['total_ingresos']);
+    
+        $observacionIn       = mainModel::cleanString($_POST['observacion_ingresos']);
+        $proveedores_id_ajus = isset($_POST['proveedor_anulacion_id']) ? (int) $_POST['proveedor_anulacion_id'] : 1;
+    
         $colaboradores_id = $_SESSION['colaborador_id_sd'];
-        $fecha_registro = date("Y-m-d H:i:s");	
+        $fecha_registro   = date("Y-m-d H:i:s");
     
-        $datos = [
-            "ingresos_id" => $ingresos_id,
-            "proveedores_id" => $proveedores_id,
-            "cuentas_id" => $cuentas_id,
-            "empresa_id" => $empresa_id,
-            "fecha" => $fecha,
-            "factura" => $factura,
-            "subtotal" => $subtotal,
-            "isv" => $isv,
-            "descuento" => $descuento,
-            "nc" => $nc,
-            "total" => $total,
-            "observacion" => $observacion,
-            "estado" => $estado,
-            "fecha_registro" => $fecha_registro,
-        ];
-    
-        $result_valid_ingresos = ingresosContabilidadModelo::valid_ingreso_cuentas_modelo($ingresos_id);
-    
-        if($result_valid_ingresos->num_rows > 0 ){
-            $query = ingresosContabilidadModelo::cancel_ingresos_contabilidad_modelo($ingresos_id);
-                        
-            if($query){
-                //CONSULTAMOS EL SALDO DISPONIBLE PARA LA CUENTA
-                $consulta_ingresos_contabilidad = ingresosContabilidadModelo::consultar_saldo_movimientos_cuentas_contabilidad($cuentas_id)->fetch_assoc();
-                $saldo_consulta = $consulta_ingresos_contabilidad['saldo'];	
-                $ingreso = 0;
-                $egreso = $total;
-                $saldo = $saldo_consulta - $egreso;				
-                //AGREGAMOS LOS MOVIMIENTOS DE LA CUENTA
-
-                $datos_movimientos = [
-                    "cuentas_id" => $cuentas_id,
-                    "empresa_id" => $empresa_id,
-                    "fecha" => $fecha,
-                    "ingreso" => $ingreso,
-                    "egreso" => $egreso,
-                    "saldo" => $saldo,
-                    "colaboradores_id" => $colaboradores_id,
-                    "fecha_registro" => $fecha_registro,				
-                ];
-            
-                ingresosContabilidadModelo::agregar_movimientos_contabilidad_modelo($datos_movimientos);
-
-                // Registrar en historial
-                mainModel::guardarHistorial([
-                    "modulo" => 'Ingresos Contabilidad',
-                    "colaboradores_id" => $_SESSION['colaborador_id_sd'],
-                    "status" => "Cancelación",
-                    "observacion" => "Se canceló ingreso contable ID: {$ingresos_id}",
-                    "fecha_registro" => date("Y-m-d H:i:s")
-                ]);
-            
-                return mainModel::showNotification([
-                    "type" => "success",
-                    "title" => "Registro cancelado",
-                    "text" => "El registro se ha cancelado correctamente",
-                    "form" => "formIngresosContables",
-                    "funcion" => "listar_ingresos_contabilidad();getClientesIngresos(); getCuentaIngresos(); getEmpresaIngresos();total_ingreso_footer();",
-                    "modal" => "modalIngresosContables"
-                ]);
-            }else{
-                return mainModel::showNotification([
-                    "title" => "Error",
-                    "text" => "No se pudo cancelar el ingreso contable",
-                    "type" => "error"
-                ]);				
-            }				
-        }else{
+        // 3) Verificar existencia del ingreso
+        $cn = mainModel::connection();
+        $rs_valid = $cn->query("SELECT ingresos_id FROM ingresos WHERE ingresos_id = '{$ingresos_id}' LIMIT 1");
+        if(!$rs_valid || $rs_valid->num_rows === 0){
             return mainModel::showNotification([
                 "title" => "Error",
-                "text" => "No se puede cancelar este registro",
-                "type" => "error"
-            ]);				
+                "text"  => "No se encontró el ingreso a anular.",
+                "type"  => "error"
+            ]);
         }
-    }
+    
+        // 4) Observaciones claras
+        $obsIngreso = "[ANULACIÓN] Ingreso #{$ingresos_id} anulado."
+                    . ($factura ? " Factura: {$factura}." : "")
+                    . ($observacionIn ? " Motivo: {$observacionIn}" : "");
+    
+        $obsEgresoAjuste = "[AJUSTE POR ANULACIÓN] Reversión del ingreso #{$ingresos_id} por L {$total}."
+                         . ($factura ? " Factura original: {$factura}." : "")
+                         . ($observacionIn ? " Motivo: {$observacionIn}" : "");
+    
+        // 5) Transacción
+        $cn->begin_transaction();
+        try {
+            // 5.1) Marcar el INGRESO como anulado (estado=0) + observación
+            $datosCancel = [
+                "ingresos_id" => $ingresos_id,
+                "estado"      => 0,            // 0 = anulado
+                "observacion" => $obsIngreso
+            ];
+            if(!$this->cancel_ingresos_contabilidad_modelo($datosCancel)){ // <- usamos método del MISMO modelo (this->)
+                throw new Exception("No se pudo marcar el ingreso como anulado.");
+            }
+    
+            // 5.2) Insertar el EGRESO de ajuste (salida real de la cuenta)
+            $egresos_id_ajuste = mainModel::correlativo("egresos_id","egresos");
+            $tipo_egreso       = 2;   // GASTOS/OTROS (ajusta si tu catálogo usa otro código)
+    
+            $datosEgreso = [
+                "egresos_id"       => $egresos_id_ajuste,
+                "cuentas_id"       => $cuentas_id,
+                "proveedores_id"   => $proveedores_id_ajus,
+                "empresa_id"       => $empresa_id,
+                "tipo_egreso"      => $tipo_egreso,
+                "fecha"            => $fecha,
+                "factura"          => $factura ?: "",
+                "factura_pdf"      => "",
+                "subtotal"         => $subtotal,
+                "descuento"        => $descuento,
+                "nc"               => $nc,
+                "isv"              => $isv,
+                "total"            => $total,
+                "observacion"      => $obsEgresoAjuste,
+                "estado"           => 1, // activo
+                "colaboradores_id" => $colaboradores_id,
+                "fecha_registro"   => $fecha_registro,
+                "categoria_gastos" => 0
+            ];
+            if(!$this->agregar_egreso_por_anulacion_modelo($datosEgreso)){ // <- reusamos el INSERT estándar de egresos
+                throw new Exception("No se pudo registrar el egreso de ajuste.");
+            }
+    
+            // 5.3) Registrar MOVIMIENTO (egreso) por el ajuste
+            $lastSaldo = $this->consultar_saldo_movimientos_cuentas_contabilidad($cuentas_id)->fetch_assoc();
+            $saldoAnterior = isset($lastSaldo['saldo']) ? (float)$lastSaldo['saldo'] : 0.00;
+    
+            $ingresoMov = 0.00;
+            $egresoMov  = $total;
+            $nuevoSaldo = $saldoAnterior - $egresoMov;
+    
+            $datosMov = [
+                "cuentas_id"       => $cuentas_id,
+                "empresa_id"       => $empresa_id,
+                "fecha"            => $fecha,
+                "ingreso"          => $ingresoMov,
+                "egreso"           => $egresoMov,
+                "saldo"            => $nuevoSaldo,
+                "colaboradores_id" => $colaboradores_id,
+                "fecha_registro"   => $fecha_registro
+            ];
+            if(!$this->agregar_movimientos_contabilidad_modelo($datosMov)){
+                throw new Exception("No se pudo insertar el movimiento de cuenta.");
+            }
+    
+            // 5.4) Historial
+            mainModel::guardarHistorial([
+                "modulo"           => 'Ingresos Contabilidad',
+                "colaboradores_id" => $colaboradores_id,
+                "status"           => "Cancelación",
+                "observacion"      => "Ingreso ID {$ingresos_id} anulado; egreso de ajuste ID {$egresos_id_ajuste} por L {$total}.",
+                "fecha_registro"   => date("Y-m-d H:i:s")
+            ]);
+    
+            // 5.5) OK
+            $cn->commit();
+    
+            return mainModel::showNotification([
+                "type"    => "success",
+                "title"   => "Ingreso anulado",
+                "text"    => "Se registró el ajuste y el movimiento de cuenta.",
+                "form"    => "formIngresosContables",
+                "funcion" => "listar_ingresos_contabilidad();total_ingreso_footer();",
+                "modal"   => "modalIngresosContables"
+            ]);
+    
+        } catch (Exception $e) {
+            $cn->rollback();
+            return mainModel::showNotification([
+                "title" => "Error",
+                "text"  => "No se pudo anular el ingreso: ".$e->getMessage(),
+                "type"  => "error"
+            ]);
+        }
+    }       
 }

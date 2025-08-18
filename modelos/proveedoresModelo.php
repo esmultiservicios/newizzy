@@ -7,13 +7,64 @@
 	
 	class proveedoresModelo extends mainModel{
 		protected function agregar_proveedores_model($datos){
-			$proveedores_id = mainModel::correlativo("proveedores_id","proveedores");
-			$insert = "INSERT INTO proveedores VALUES('$proveedores_id','".$datos['nombre']."','".$datos['rtn']."','".$datos['fecha']."','".$datos['departamento_id']."','".$datos['municipio_id']."','".$datos['localidad']."','".$datos['telefono']."','".$datos['correo']."','".$datos['estado']."','".$datos['colaborador_id']."','".$datos['fecha_registro']."')";
-			
-			$sql = mainModel::connection()->query($insert) or die(mainModel::connection()->error);
-			
-			return $sql;		
-		}
+			$conexion = mainModel::connection();
+			$stmt = null;
+		
+			try {
+				// Usamos transacción por seguridad
+				$conexion->autocommit(false);
+		
+				// Siguiente ID correlativo
+				$proveedores_id = mainModel::correlativo("proveedores_id","proveedores");
+		
+				// 12 columnas = 12 placeholders
+				$sql = "INSERT INTO proveedores
+						(proveedores_id, nombre, rtn, fecha, departamentos_id, municipios_id, localidad, telefono, correo, estado, colaboradores_id, fecha_registro)
+						VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		
+				$stmt = $conexion->prepare($sql);
+				if(!$stmt){
+					throw new Exception("Prepare failed: ".$conexion->error);
+				}
+		
+				// Tipos: i s s s i i s s s i i s  →  "isssiisssiis"
+				$stmt->bind_param(
+					"isssiisssiis",
+					$proveedores_id,               // i
+					$datos['nombre'],              // s
+					$datos['rtn'],                 // s
+					$datos['fecha'],               // s (YYYY-MM-DD)
+					$datos['departamento_id'],     // i
+					$datos['municipio_id'],        // i
+					$datos['localidad'],           // s
+					$datos['telefono'],            // s
+					$datos['correo'],              // s
+					$datos['estado'],              // i
+					$datos['colaborador_id'],      // i
+					$datos['fecha_registro']       // s (YYYY-MM-DD HH:MM:SS)
+				);
+		
+				if(!$stmt->execute()){
+					throw new Exception("Execute failed: ".$stmt->error);
+				}
+		
+				// Confirmar transacción
+				$conexion->commit();
+				return true;
+		
+			} catch(Exception $e){
+				// Revertir si algo falla
+				if ($conexion && $conexion->errno === 0) {
+					$conexion->rollback();
+				}
+				error_log("Error al insertar proveedor: ".$e->getMessage());
+				return false;
+		
+			} finally {
+				if($stmt){ $stmt->close(); }
+				if($conexion){ $conexion->autocommit(true); }
+			}
+		}			
 		
 		protected function valid_proveedores_modelo($rtn){
 			$query = "SELECT proveedores_id FROM proveedores WHERE rtn = '$rtn'";

@@ -213,7 +213,11 @@ var listar_ingresos_contabilidad = function() {
             },
             {
                 "defaultContent": "<button class='table_reportes print_gastos btn btn-success btn ocultar'><span class='fas fa-file-download fa-lg'></span>Reporte</button>"
+            },
+            {
+             "defaultContent": "<button class='table_cancelar anular_ingreso btn btn-danger btn ocultar'><span class='fas fa-ban'></span> Anular</button>"
             }
+
         ],
         "lengthMenu": lengthMenu10,
         "stateSave": true,
@@ -293,16 +297,105 @@ var listar_ingresos_contabilidad = function() {
             }
         ],
         "drawCallback": function(settings) {
-            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-            edit_reporte_ingresos_dataTable("#dataTableIngresosContabilidad tbody", table_ingresos_contabilidad);
-            view_reporte_ingresos_dataTable("#dataTableIngresosContabilidad tbody", table_ingresos_contabilidad);
-            total_ingreso_footer();
+        getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+        edit_reporte_ingresos_dataTable("#dataTableIngresosContabilidad tbody", table_ingresos_contabilidad);
+        view_reporte_ingresos_dataTable("#dataTableIngresosContabilidad tbody", table_ingresos_contabilidad);
+        anular_ingresos_dataTable("#dataTableIngresosContabilidad tbody", table_ingresos_contabilidad);
+        total_ingreso_footer();
         }
     });
 
     table_ingresos_contabilidad.search('').draw();
     $('#buscar').focus();
 }
+
+// Anular ingresos desde el DataTable (crea egreso espejo y movimiento) con HTML en SweetAlert v1
+var anular_ingresos_dataTable = function (tbody, table) {
+  function toNumber(val) {
+    if (val == null) return 0;
+    if (typeof val === "number") return val;
+    return parseFloat(String(val).replace(/[^\d.-]/g, "")) || 0;
+  }
+
+  $(tbody).off("click", "button.anular_ingreso");
+  $(tbody).on("click", "button.anular_ingreso", function (e) {
+    e.preventDefault();
+    const $btn = $(this);
+
+    const rowData = table.row($btn.parents("tr")).data();
+    if (!rowData) {
+      showNotify("error", "Error", "No se pudo obtener la fila seleccionada.");
+      return;
+    }
+
+    const ingresos_id = rowData.ingresos_id;
+
+    const content = document.createElement("div");
+    content.innerHTML = `
+      <p style="margin:0 0 6px 0;">
+        Se marcará como <b>ANULADO</b> y se registrará un <b>EGRESO espejo</b>.
+      </p>
+      <p style="margin:0;">
+        <b>Esto NO es una compra</b>; es un <u>egreso por anulación del ingreso</u>.
+      </p>
+    `;
+
+    swal({
+      title: "¿Anular ingreso?",
+      content: content,
+      icon: "warning",
+      buttons: {
+        cancel: { text: "Cancelar", visible: true },
+        confirm: { text: "Sí, anular" }
+      },
+      dangerMode: true,
+      closeOnEsc: false,
+      closeOnClickOutside: false
+    }).then(function (willConfirm) {
+      if (!willConfirm) return;
+
+      const cuentaId = parseInt(rowData.cuentas_id ?? rowData.cuenta_ingresos ?? 0, 10) || 0;
+
+      const payload = {
+        ingresos_id: ingresos_id,
+        cuenta_ingresos: cuentaId,
+        fecha_ingresos: rowData.fecha,
+        factura_ingresos: rowData.factura,
+        subtotal_ingresos: toNumber(rowData.subtotal_raw ?? rowData.subtotal),
+        isv_ingresos: toNumber(rowData.isv_raw ?? rowData.impuesto_raw ?? rowData.impuesto),
+        descuento_ingresos: toNumber(rowData.descuento_raw ?? rowData.descuento),
+        nc_ingresos: toNumber(rowData.nc_raw ?? rowData.nc),
+        total_ingresos: toNumber(rowData.total_raw ?? rowData.total),
+        observacion_ingresos:
+          `[ANULACIÓN] Egreso espejo por anulación del ingreso ID ${ingresos_id}` +
+          (rowData.observacion ? ` | Obs: ${rowData.observacion}` : ""),
+        clientes_id: rowData.clientes_id ?? 0,
+        proveedor_anulacion_id: 1 // tu ID de “ANULACIONES”
+      };
+
+      if (!payload.cuenta_ingresos) {
+        showNotify("error", "Error", "No se pudo determinar la cuenta contable.");
+        return;
+      }
+
+      $.ajax({
+        url: "<?php echo SERVERURL;?>ajax/cancelIngresoContabilidadAjax.php",
+        type: "POST",
+        data: payload,
+        beforeSend: function () { $btn.prop("disabled", true); },
+        success: function () {
+          listar_ingresos_contabilidad();
+          total_ingreso_footer();
+          showNotify("success", "Ingreso anulado", "Se anuló el ingreso y se registró el egreso espejo.");
+        },
+        error: function (xhr) {
+          showNotify("error", "Error", "No se pudo anular el ingreso: " + xhr.statusText);
+        },
+        complete: function () { $btn.prop("disabled", false); }
+      });
+    });
+  });
+};
 
 // Función para editar ingresos desde la tabla
 var edit_reporte_ingresos_dataTable = function(tbody, table) {
@@ -531,39 +624,6 @@ function getCuentaIngresos() {
         },
         error: function() {
             showNotify("error", "Error", "No se pudieron cargar las cuentas contables");
-        }
-    });
-}
-
-// Función para obtener clientes
-function getClientesIngresos() {
-    $.ajax({
-        url: "<?php echo SERVERURL; ?>core/getClientes.php",
-        type: "POST",
-        dataType: "json",
-        success: function(response) {
-            const select = $('#formIngresosContables #recibide_ingresos');
-            select.empty();
-            
-            if(response.success) {
-                response.data.forEach(cliente => {
-                    select.append(`
-                        <option value="${cliente.clientes_id}" 
-                                data-subtext="${cliente.rtn || 'Sin RTN o Identidad'}">
-                            ${cliente.nombre}
-                        </option>
-                    `);
-                });
-            } else {
-                select.append('<option value="">No hay colaboradores disponibles</option>');
-            }
-            
-            select.selectpicker('refresh');
-        },
-        error: function(xhr) {
-            showNotify("error", "Error", "Error de conexión al cargar colaboradores");
-            $('#formIngresosContables #recibide_ingresos').html('<option value="">Error al cargar</option>');
-            $('#formIngresosContables #recibide_ingresos').selectpicker('refresh');
         }
     });
 }

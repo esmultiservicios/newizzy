@@ -374,6 +374,9 @@ var listar_gastos_contabilidad = function() {
             {
                 "defaultContent": "<button class='table_reportes print_gastos btn btn-success btn ocultar'><span class='fas fa-file-download fa-lg'></span>Reporte</button>"
             },
+            {
+                "defaultContent": "<button class='table_cancelar anular_factura btn btn-danger ocultar'><span class='fas fa-ban fa-lg'></span> Anular</button>"
+            }
 
         ],
         "lengthMenu": lengthMenu10,
@@ -527,6 +530,7 @@ var listar_gastos_contabilidad = function() {
 
     edit_reporte_gastos_dataTable("#dataTableGastosContabilidad tbody", table_gastos_contabilidad);
     view_reporte_gastos_dataTable("#dataTableGastosContabilidad tbody", table_gastos_contabilidad);
+    anular_gastos_dataTable("#dataTableGastosContabilidad tbody", table_gastos_contabilidad);
     total_gastos_footer();
 }
 
@@ -730,6 +734,105 @@ function printGastos(egresos_id) {
     var url = '<?php echo SERVERURL; ?>core/generaGastos.php?egresos_id=' + egresos_id;
     window.open(url);
 }
+
+// Anular egresos desde el DataTable (con texto en negrita usando SweetAlert v1)
+var anular_gastos_dataTable = function (tbody, table) {
+  // Utilidad para convertir montos "L. 1,234.56" -> 1234.56
+  function toNumber(val) {
+    if (val == null) return 0;
+    if (typeof val === "number") return val;
+    return parseFloat(String(val).replace(/[^\d.-]/g, "")) || 0;
+  }
+
+  $(tbody).off("click", "button.anular_factura");
+  $(tbody).on("click", "button.anular_factura", function (e) {
+    e.preventDefault();
+
+    const rowData = table.row($(this).parents("tr")).data();
+    if (!rowData) {
+      showNotify("error", "Error", "No se pudo obtener la fila seleccionada.");
+      return;
+    }
+
+    const egresos_id = rowData.egresos_id;
+
+    // --- Construimos contenido HTML para que haya negritas/subrayado ---
+    const content = document.createElement("div");
+    content.innerHTML = `
+      <p style="margin:0 0 6px 0;">
+        Se marcará como <b>ANULADO</b> y se registrará el <b>reintegro</b> en la cuenta.
+      </p>
+      <p style="margin:0;">
+        <b>Esto NO es un ingreso por venta</b>; es un <u>reintegro por cancelación</u>.
+      </p>
+    `;
+
+    swal({
+      title: "¿Anular egreso?",
+      content: content,          // <<--- permite HTML
+      icon: "warning",
+      buttons: {
+        cancel: { text: "Cancelar", visible: true },
+        confirm: { text: "Sí, anular" },
+      },
+      dangerMode: true,
+      closeOnEsc: false,
+      closeOnClickOutside: false,
+    }).then(function (willConfirm) {
+      if (!willConfirm) return;
+
+      // Tomamos campos crudos si existen; si no, limpiamos los formateados
+      const payload = {
+        egresos_id: egresos_id,
+        proveedor_egresos:
+          (rowData.proveedores_id != null ? rowData.proveedores_id : rowData.proveedor_egresos),
+        cuenta_egresos:
+          (rowData.cuentas_id != null ? rowData.cuentas_id : rowData.cuenta_egresos),
+        fecha_egresos: rowData.fecha,
+        factura_egresos: rowData.factura,
+        subtotal_egresos: toNumber(rowData.subtotal_raw ?? rowData.subtotal),
+        isv_egresos: toNumber(rowData.isv_raw ?? rowData.impuesto_raw ?? rowData.impuesto),
+        descuento_egresos: toNumber(rowData.descuento_raw ?? rowData.descuento),
+        nc_egresos: toNumber(rowData.nc_raw ?? rowData.nc),
+        total_egresos: toNumber(rowData.total_raw ?? rowData.total),
+      };
+
+      // Observación con marca de anulación
+      const obsOriginal = rowData.observacion ? ` | Obs: ${rowData.observacion}` : "";
+      payload.observacion_egresos =
+        `[ANULACIÓN] Reintegro por cancelación del egreso ID ${egresos_id}` + obsOriginal;
+
+      // Validaciones mínimas
+      if (!payload.cuenta_egresos) {
+        showNotify("error", "Error", "No se pudo determinar la cuenta del egreso.");
+        return;
+      }
+      if (!payload.proveedor_egresos) {
+        showNotify("error", "Error", "No se pudo determinar el proveedor del egreso.");
+        return;
+      }
+
+      // Llamada al AJAX de anulación
+      $.ajax({
+        url: "<?php echo SERVERURL;?>ajax/cancelEgresoContabilidadAjax.php",
+        type: "POST",
+        data: payload,
+        success: function () {
+          listar_gastos_contabilidad();
+          total_gastos_footer();
+          showNotify(
+            "success",
+            "Egreso anulado",
+            "Se marcó como anulado y se registró el reintegro correctamente."
+          );
+        },
+        error: function (xhr) {
+          showNotify("error", "Error", "No se pudo anular el egreso: " + xhr.statusText);
+        }
+      });
+    });
+  });
+};
 
 /*INICIO FORMULARIO EGRESOS CONTABLES*/
 function modal_egresos_contabilidad() {

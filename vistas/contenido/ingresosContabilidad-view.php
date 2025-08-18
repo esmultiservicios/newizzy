@@ -108,6 +108,7 @@
 								<th>Estado</th>
 	                            <th>Editar</th>
 	                            <th>Imprimir</th>
+								<th>Anular</th>
 	                        </tr>
 	                    </thead>
 	                    <tfoot class="bg-secondary text-white font-weight-bold">
@@ -118,7 +119,7 @@
 	                            <td id="impuesto-i"></td>
 	                            <td id="descuento-i"></td>
 	                            <td colspan='1' id='total-footer-ingreso'></td>
-	                            <td colspan="4"></td>
+	                            <td colspan="5"></td>
 	                        </tr>
 	                    </tfoot>
 	                </table>

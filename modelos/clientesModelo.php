@@ -8,17 +8,30 @@
 	class clientesModelo extends mainModel{
 		protected function agregar_clientes_modelo($datos) {
 			$conexion = mainModel::connection();
-						
+			$stmt = null;
+		
 			try {
-				// Desactivar autocommit para la transacción
+				// No aceptar inserción si faltan nombre o rtn
+				if (trim($datos['nombre']) === '' || trim($datos['rtn']) === '') {
+					throw new Exception("Nombre o RTN vacíos");
+				}
+		
 				$conexion->autocommit(false);
-				
-				// Obtener el próximo ID disponible
+		
 				$cliente_id = mainModel::correlativo("clientes_id", "clientes");
-				
-				// Sentencia preparada para seguridad
-				$stmt = $conexion->prepare("INSERT INTO clientes VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', '', '', '')");
-				$stmt->bind_param("isssiisssiis", 
+		
+				// Columnas explícitas para evitar desorden
+				$sql = "INSERT INTO clientes
+						(clientes_id, nombre, rtn, fecha, departamentos_id, municipios_id, localidad, telefono, correo, estado, colaboradores_id, fecha_registro, empresa, eslogan, otra_informacion, whatsapp)
+						VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', '', '', '')";
+		
+				$stmt = $conexion->prepare($sql);
+				if (!$stmt) {
+					throw new Exception($conexion->error);
+				}
+		
+				$stmt->bind_param(
+					"isssiisssiis",
 					$cliente_id,
 					$datos['nombre'],
 					$datos['rtn'],
@@ -32,25 +45,25 @@
 					$datos['colaborador_id'],
 					$datos['fecha_registro']
 				);
-				
-				$ejecutado = $stmt->execute();
-				
-				if(!$ejecutado) {
+		
+				if (!$stmt->execute()) {
 					throw new Exception($stmt->error);
 				}
-				
-				// Obtener el ID insertado
-				$id_insertado = $conexion->insert_id ?: $cliente_id;
-				
-				// Confirmar la transacción
+		
 				$conexion->commit();
-				
-				return $id_insertado;
-				
-			} catch(Exception $e) {			
+		
+				// Si la tabla no es AUTO_INCREMENT, devolvemos el correlativo usado
+				return $cliente_id;
+		
+			} catch (Exception $e) {
+				if ($conexion) { $conexion->rollback(); }
+				error_log("Error al insertar cliente: ".$e->getMessage());
 				return false;
+			} finally {
+				if ($stmt) { $stmt->close(); }
+				if ($conexion) { $conexion->autocommit(true); }
 			}
-		}
+		}		
 
 		// Método para DB principal
 		protected function agregar_colaboradores_modelo($datos) {

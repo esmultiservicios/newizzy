@@ -1,7 +1,7 @@
 <?php
 
     // echo "No se pudo obtener la versión.";
-    echo 'Versión: 5.0.0';
+    echo 'Versión: 5.1.0';
 
     /*
      * Número de Versión Principal (Major Version): El primer número representa la versión principal del software. Se incrementa cuando se realizan cambios significativos que pueden no ser compatibles con versiones anteriores. Por ejemplo, agregar una funcionalidad importante o realizar cambios que rompen la compatibilidad hacia atrás.

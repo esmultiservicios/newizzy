@@ -72,27 +72,29 @@
                                 <div class="d-flex flex-wrap align-items-center">
                                     <!-- Controles de Tipo y Proforma -->
                                     <div class="d-flex align-items-center mr-3">
-                                        <label class="col-form-label mr-2 mb-0" for="facturas_activo">Tipo Factura:</label>
-                                        <label class="switch mb-0" 
-                                            data-toggle="tooltip" 
-                                            data-placement="top" 
-                                            title="<?php 
+                                        <label class="col-form-label mr-2 mb-0">Tipo de Factura:</label>
+
+                                        <!-- NUEVO CONTROL: BOTONES CONTADO / CRÉDITO -->
+                                        <div id="tipo-factura-control" class="btn-group btn-group-sm" role="group" aria-label="Tipo de factura"
+                                             data-toggle="tooltip" data-placement="top"
+                                             title="<?php 
                                                 if ($_SESSION['planes_id_sistema'] == 1) {
                                                     echo 'En el Plan Emprendedor, si la factura es crédito, se podrá emitir pero no se registrarán los pagos. Esto solo aplica para los siguientes planes';
                                                 } else {
                                                     echo 'Tipo de Factura, Contado o Crédito';
                                                 }
-                                            ?>">
-                                            <input type="checkbox" id="facturas_activo" name="facturas_activo" value="1" checked>
-                                            <div class="slider round"></div>
-                                        </label>
-                                        <span class="question mb-0 ml-1" id="label_facturas_activo"></span>
-                                    </div>
+                                             ?>">
+                                            <button type="button" class="btn btn-primary active" data-tipo="contado" id="btn-tipo-contado">Contado</button>
+                                            <button type="button" class="btn btn-outline-primary" data-tipo="credito" id="btn-tipo-credito">Crédito</button>
+                                        </div>
 
+                                        <!-- campo compatible con backend: 1=Contado, 0=Crédito -->
+                                        <input type="hidden" id="facturas_activo" name="facturas_activo" value="1" class="form-control">                                       
+                                    </div>
 
                                     <?php if ($_SESSION['planes_id_sistema'] != 1): ?>
                                         <div class="d-flex align-items-center mr-3" id="facturas_proforma_container">
-                                            <label class="col-form-label mr-2 mb-0" for="facturas_proforma">Es Proforma:</label>
+                                            <label class="col-form-label mr-2 mb-0" for="facturas_proforma">¿Generar factura Proforma?</label>
                                             <label class="switch mb-0" data-toggle="tooltip" data-placement="top" title="Factura Proforma">
                                                 <input type="checkbox" id="facturas_proforma" name="facturas_proforma" value="1">
                                                 <div class="slider round"></div>
@@ -100,7 +102,6 @@
                                             <span class="question mb-0 ml-1" id="label_facturas_proforma"></span>
                                         </div>
                                     <?php endif; ?>
-
 
                                     <!-- Botón de Exoneración -->
                                     <button type="button" id="btn_exoneracion" class="btn btn-info" data-toggle="modal" data-target="#exoneracionModal">
@@ -238,13 +239,36 @@
                                 <button class="btn btn-secondary delete bill-bottom-remove" id="removeRows" type="button" data-toggle="tooltip" data-placement="top" title="Remover filas en la factura">
                                     <div class="sb-nav-link-icon"></div><i class="fas fa-minus fa-lg"></i> Quitar
                                 </button>
-                                <button class="btn btn-secondary bill-bottom-remove" id="addQuotetoBill" type="button" data-toggle="tooltip" data-placement="top" title="Convertir Cotizacion en Factura">
-                                    <div class="sb-nav-link-icon"></div><i class="fas fa-file-invoice-dollar fa-lg"></i> Convertir
-                                </button>
+
+                                <?php if ($_SESSION['planes_id_sistema'] != 1): ?>
+                                    <button class="btn btn-secondary bill-bottom-remove" 
+                                            id="addQuotetoBill" 
+                                            type="button" 
+                                            data-toggle="tooltip" 
+                                            data-placement="top" 
+                                            title="Convertir Cotización en Factura">
+                                        <div class="sb-nav-link-icon"></div>
+                                        <i class="fas fa-file-invoice-dollar fa-lg"></i> Cotizaciones
+                                    </button>
+                                <?php endif; ?>
+
+                                <?php if ($_SESSION['planes_id_sistema'] != 1): ?>
+                                    <button class="btn btn-secondary bill-bottom-remove" 
+                                            id="addRecurringBill" 
+                                            type="button"
+                                            data-toggle="tooltip" 
+                                            data-placement="top" 
+                                            title="Programar Factura Recurrente">
+                                    <div class="sb-nav-link-icon"></div>
+                                    <i class="fas fa-redo-alt fa-lg"></i> Recurrente
+                                    </button>
+                                <?php endif; ?>                                
 
                                 <?php if ($_SESSION['planes_id_sistema'] != 1): ?>
                                     <button class="btn btn-secondary bill-bottom-remove" id="addPayCustomers" type="button"
-                                            data-toggle="tooltip" data-placement="top" title="Cobrar Cuentas por Pagar Clientes">
+                                            data-toggle="tooltip" 
+                                            data-placement="top" 
+                                            title="Cobrar Cuentas por Pagar Clientes">
                                         <div class="sb-nav-link-icon"></div>
                                         <i class="fas fa-hand-holding-usd fa-lg"></i> CxC
                                     </button>
@@ -431,6 +455,28 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- MODAL DE CONFIRMACIÓN PARA CAMBIAR A CRÉDITO -->
+    <div class="modal fade" id="confirmTipoFactura" tabindex="-1" role="dialog" aria-labelledby="confirmTipoFacturaLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header py-2">
+            <h6 class="modal-title" id="confirmTipoFacturaLabel">Cambiar a Crédito</h6>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            Vas a cambiar el <b>Tipo de Factura</b> a <b>Crédito</b>. Esto generará una <b>cuenta por cobrar</b> al cliente.
+            <br>¿Deseas continuar?
+          </div>
+          <div class="modal-footer py-2">
+            <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-primary btn-sm" id="confirmarCambioTipo">Sí, cambiar</button>
+          </div>
+        </div>
+      </div>
     </div>    
 </body>
 

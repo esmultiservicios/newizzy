@@ -5910,35 +5910,49 @@ class mainModel
 
 	public function consultaCotizacionesReporte($datos)
 	{
-		if ($datos['tipo_cotizacion_reporte'] == 1) {
-			$where = "WHERE c.empresa_id = '" . $datos['empresa_id_sd'] . "' AND c.fecha BETWEEN '" . $datos['fechai'] . "' AND '" . $datos['fechaf'] . "' AND c.estado = 1";
-		} else {
-			$where = "WHERE c.empresa_id = '" . $datos['empresa_id_sd'] . "' AND c.fecha BETWEEN '" . $datos['fechai'] . "' AND '" . $datos['fechaf'] . "' AND c.estado = 2";
-		}
-
-		$query = "SELECT 
-					c.cotizacion_id AS 'cotizacion_id', 
-					DATE_FORMAT(c.fecha, '%d/%m/%Y') AS 'fecha', 
-					cl.nombre AS 'cliente', 
-					CONCAT('COT-', LPAD(c.number, 8, '0')) AS 'numero',
-					c.number AS 'numero_ordenamiento', /* Número base para ordenamiento */
-					c.importe AS 'total', 
-					(CASE WHEN c.tipo_factura = 1 THEN 'Contado' ELSE 'Crédito' END) AS 'tipo_documento',
-					/* Calculamos subtotal, ISV y descuento en una sola consulta */
-					(SELECT SUM(cd.cantidad * cd.precio) FROM cotizacion_detalles AS cd WHERE cd.cotizacion_id = c.cotizacion_id) AS 'subtotal',
-					(SELECT SUM(cd.isv_valor) FROM cotizacion_detalles AS cd WHERE cd.cotizacion_id = c.cotizacion_id) AS 'isv',
-					(SELECT SUM(cd.descuento) FROM cotizacion_detalles AS cd WHERE cd.cotizacion_id = c.cotizacion_id) AS 'descuento'
-				FROM 
-					cotizacion AS c
-				INNER JOIN 
-					clientes AS cl ON c.clientes_id = cl.clientes_id
-				" . $where . "
-				ORDER BY c.number DESC, c.fecha DESC";
-
-		$result = self::connection()->query($query);
-
-		return $result;
-	}
+		// Estados: 1/3 = vigentes (mostrar), 2 = canceladas
+		$whereEstado = ((int)$datos['tipo_cotizacion_reporte'] === 1)
+			? "AND c.estado IN (1,3)"
+			: "AND c.estado = 2";
+	
+		$empresaId = (int)$datos['empresa_id_sd'];
+		$conn      = self::connection();
+	
+		$fechai = $conn->real_escape_string($datos['fechai']);
+		$fechaf = $conn->real_escape_string($datos['fechaf']);
+	
+		$query = "
+			SELECT 
+				c.cotizacion_id,
+				DATE_FORMAT(c.fecha, '%d/%m/%Y')              AS fecha,
+				cl.nombre                                     AS cliente,
+				CONCAT('COT-', LPAD(c.number, 8, '0'))        AS numero,
+				c.number                                      AS numero_ordenamiento,
+				c.importe                                     AS total,
+				(CASE WHEN c.tipo_factura = 1 THEN 'Contado' ELSE 'Crédito' END) AS tipo_documento,
+				COALESCE(d.subtotal, 0)  AS subtotal,
+				COALESCE(d.isv, 0)       AS isv,
+				COALESCE(d.descuento, 0) AS descuento
+			FROM cotizacion c
+			INNER JOIN clientes cl 
+				ON c.clientes_id = cl.clientes_id
+			LEFT JOIN (
+				SELECT 
+					cd.cotizacion_id,
+					SUM(cd.cantidad * cd.precio) AS subtotal,
+					SUM(cd.isv_valor)            AS isv,
+					SUM(cd.descuento)            AS descuento
+				FROM cotizacion_detalles cd
+				GROUP BY cd.cotizacion_id
+			) d ON d.cotizacion_id = c.cotizacion_id
+			WHERE c.empresa_id = {$empresaId}
+			  AND c.fecha BETWEEN '{$fechai}' AND '{$fechaf}'
+			  {$whereEstado}
+			ORDER BY c.number DESC, c.fecha DESC
+		";
+	
+		return $conn->query($query);
+	}	
 
 	public function getDetalleCotizaciones($noCotizacion)
 	{
@@ -6713,18 +6727,32 @@ class mainModel
 
 	public function consultaBillDraft($datos)
 	{
-		$query = "SELECT f.facturas_id AS 'facturas_id', DATE_FORMAT(f.fecha, '%d/%m/%Y') AS 'fecha', c.nombre AS 'cliente', CONCAT(sf.prefijo,'',LPAD(f.number, sf.relleno, 0)) AS 'numero', FORMAT(f.importe,2) As 'total', (CASE WHEN f.tipo_factura = 1 THEN 'Contado' ELSE 'Crédito' END) AS 'tipo_documento', f.number AS 'numero_factura'
-				FROM facturas AS f
-				INNER JOIN clientes AS c
-				ON f.clientes_id = c.clientes_id
-				INNER JOIN secuencia_facturacion AS sf
-				ON f.secuencia_facturacion_id = sf.secuencia_facturacion_id
-				WHERE f.fecha BETWEEN '" . $datos['fechai'] . "' AND '" . $datos['fechaf'] . "' AND f.estado = 1 AND f.number = 0";
-
-		$result = self::connection()->query($query);
-
-		return $result;
-	}
+		$fechai = $this->connection()->real_escape_string($datos['fechai']);
+		$fechaf = $this->connection()->real_escape_string($datos['fechaf']);
+	
+		$query = "
+			SELECT 
+				f.facturas_id,
+				DATE_FORMAT(f.fecha, '%d/%m/%Y') AS fecha,
+				c.nombre AS cliente,
+				-- Si ya tiene número, lo mostramos; si no, texto
+				CASE 
+					WHEN f.number = 0 THEN 'Aún no se ha generado'
+					ELSE CONCAT(sf.prefijo, LPAD(f.number, sf.relleno, '0'))
+				END AS numero,
+				FORMAT(f.importe, 2) AS total,
+				(CASE WHEN f.tipo_factura = 1 THEN 'Contado' ELSE 'Crédito' END) AS tipo_documento,
+				f.number AS numero_factura
+			FROM facturas f
+			INNER JOIN clientes c ON f.clientes_id = c.clientes_id
+			LEFT JOIN secuencia_facturacion sf ON f.secuencia_facturacion_id = sf.secuencia_facturacion_id
+			WHERE f.fecha BETWEEN '$fechai' AND '$fechaf'
+			  AND f.estado = 1
+			ORDER BY f.fecha DESC, f.facturas_id DESC
+		";
+	
+		return self::connection()->query($query);
+	}	
 
 	public function consultaCompras($datos)
 	{

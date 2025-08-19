@@ -320,7 +320,7 @@
                                     style="width:100%">
                                     <thead>
                                         <tr>
-                                            <th>Cobrar</th>
+                                            <th>Continuar</th>
                                             <th>Imprimir</th>
                                             <th>Fecha</th>
                                             <th>Tipo</th>
@@ -664,3 +664,84 @@
     </div>
 </div>
 <!--FIN MODAL BUSQUEDA FACTURAS CREDITO Y CONTADO-->
+
+<!-- Modal: Programar Factura Recurrente -->
+<div class="modal fade" id="recurringBillModal" tabindex="-1" role="dialog" aria-labelledby="recurringBillModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title" id="recurringBillModalLabel">Programar Factura Recurrente</h6>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Tipo de documento -->
+        <div class="form-group">
+          <label class="small mb-1 d-block">Tipo de documento</label>
+          <div class="btn-group btn-group-sm" role="group" aria-label="Tipo de documento">
+            <button type="button" class="btn btn-primary" id="btn-rec-tipo-normal" data-tipo="0">Normal</button>
+            <button type="button" class="btn btn-outline-primary" id="btn-rec-tipo-proforma" data-tipo="1">Proforma</button>
+          </div>
+          <input type="hidden" id="rec_tipo_documento" value="0">
+        </div>
+
+        <!-- Tipo de factura (contado/crédito) -->
+        <div class="form-group">
+          <label class="small mb-1 d-block">Tipo de factura</label>
+          <div class="btn-group btn-group-sm" role="group" aria-label="Tipo de factura">
+            <button type="button" class="btn btn-primary" id="btn-rec-contado" data-tipo="1">Contado</button>
+            <button type="button" class="btn btn-outline-primary" id="btn-rec-credito" data-tipo="2">Crédito</button>
+          </div>
+          <input type="hidden" id="rec_tipo_factura" value="1">
+        </div>
+
+        <!-- Fecha/hora de primera ejecución -->
+        <div class="form-group">
+          <label class="small mb-1">Fecha de generación</label>
+          <input type="datetime-local" class="form-control" id="rec_start_at" required>
+          <small class="text-muted">Cuándo quieres que se genere por primera vez.</small>
+        </div>
+
+        <!-- Periodicidad -->
+        <div class="form-group">
+          <label class="small mb-1">Periodicidad</label>
+          <select id="rec_periodicidad" class="form-control">
+            <option value="once">Una vez</option>
+            <option value="daily">Diaria</option>
+            <option value="weekly">Semanal</option>
+            <option value="monthly" selected>Mensual</option>
+          </select>
+        </div>
+
+        <!-- Vigencia (opcional) -->
+        <div class="form-group">
+          <label class="small mb-1">Hasta (opcional)</label>
+          <input type="date" class="form-control" id="rec_until">
+          <small class="text-muted">Si lo dejas vacío, se repite indefinidamente.</small>
+        </div>
+
+        <div class="alert alert-info d-flex align-items-center" id="rec_info">
+          <i class="fas fa-info-circle mr-2"></i>
+          Se creará una factura con los datos actuales de esta vista en cada fecha programada.
+        </div>
+
+        <!-- Spinner -->
+        <div id="rec_spinner" class="text-center" style="display:none;">
+          <i class="fas fa-spinner fa-spin fa-2x"></i>
+          <div>Guardando recurrencia...</div>
+        </div>
+      </div>
+
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-danger btn-sm" data-dismiss="modal">
+          <i class="fas fa-times-circle mr-1"></i> Cancelar
+        </button>
+        <button type="button" class="btn btn-primary btn-sm" id="confirmRecurring">
+          <i class="fas fa-calendar-check mr-1"></i> Guardar recurrencia
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

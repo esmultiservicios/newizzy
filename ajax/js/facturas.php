@@ -61,7 +61,6 @@ $(() => {
     getConsumidorFinal();
     getConsultarAperturaCaja();
     validarAperturaCajaUsuario();
-    getEstadoFactura();
     getBanco();
     getTotalFacturasDisponibles();
     getReporteCotizacion();
@@ -474,7 +473,9 @@ var listar_productos_factura_buscar = function() {
         "#formulario_busqueda_productos_facturacion #almacen_facturas").val();
 
     var table_productos_factura_buscar = $("#DatatableProductosBusquedaFactura").DataTable({
-        "destroy": true,
+        destroy: true,
+        processing: true,        // <-- muestra indicador y no bloquea la UI
+        deferRender: true,       // <-- renderiza bajo demanda (rápido)
         "ajax": {
             "method": "POST",
             "url": "<?php echo SERVERURL; ?>core/llenarDataTableProductosFacturas.php",
@@ -1636,26 +1637,7 @@ function facturarEnCeroAlmacen(almacen_id) {
 }
 
 //INICIO ESTADOS
-function getEstadoFactura() {
-    $('#invoice-form #label_facturas_activo').html("Contado");
-    $('#invoice-form #facturas_activo').attr('checked', true);
-}
-
 $(() => {
-    //INICIO FACTURA
-    $('#invoice-form #label_facturas_activo').html("Contado");
-
-    $('#invoice-form .switch').change(function() {
-        if ($('input[name=facturas_activo]').is(':checked')) {
-            $('#invoice-form #label_facturas_activo').html("Contado");
-            return true;
-        } else {
-            $('#invoice-form #label_facturas_activo').html("Crédito");
-            return false;
-        }
-    });
-
-
     $('#invoice-form #label_facturas_proforma').html("No");
 
     $('#invoice-form .switch').change(function() {
@@ -1754,206 +1736,204 @@ $("#invoice-form #addQuotetoBill").on("click", function(e) {
     });
 });
 
-var listar_busqueda_cotizaciones = function() {
-    var tipo_cotizacion_reporte = 1;
-    if ($("#formulario_busqueda_cotizaciones #tipo_cotizacion_reporte").val() == null || $(
-            "#formulario_busqueda_cotizaciones #tipo_cotizacion_reporte").val() == "") {
-        tipo_cotizacion_reporte = 1;
-    } else {
-        tipo_cotizacion_reporte = $("#formulario_busqueda_cotizaciones #tipo_cotizacion_reporte").val();
-    }
 
-    var fechai = $("#formulario_busqueda_cotizaciones #fechai").val();
-    var fechaf = $("#formulario_busqueda_cotizaciones #fechaf").val();
+// Lista de cotizaciones
+// Lista de cotizaciones
+var listar_busqueda_cotizaciones = function () {
+  var $form = $("#formulario_busqueda_cotizaciones");
+  var tipo_cotizacion_reporte = $form.find("#tipo_cotizacion_reporte").val() || 1;
+  var fechai = $form.find("#fechai").val();
+  var fechaf = $form.find("#fechaf").val();
 
-    var table_busqueda_Cotizaciones = $("#DatatableBusquedaCotizaciones").DataTable({
-        "destroy": true,
-        "ajax": {
-            "method": "POST",
-            "url": "<?php echo SERVERURL; ?>core/llenarDataTableReporteCotizaciones.php",
-            "data": {
-                "tipo_cotizacion_reporte": tipo_cotizacion_reporte,
-                "fechai": fechai,
-                "fechaf": fechaf
-            }
-        },
-        "columns": [{
-                "defaultContent": "<button class='table_view pay_fact_cot btn btn-dark ocultar'><span class='fab fa-amazon-pay fa-lg'></span></button>"
-            },
-            {
-                "defaultContent": "<button class='table_reportes print_cotizaciones btn btn-dark ocultar'><span class='fas fa-file-download fa-lg'></span></button>"
-            },
-            {
-                "data": "fecha"
-            },
-            {
-                "data": "tipo_documento"
-            },
-            {
-                "data": "cliente"
-            },
-            {
-                "data": "numero"
-            },
-            {
-                "data": "subtotal",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
-                    if (type === 'display') {
-                        let color = 'black';
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                },
-            },
-            {
-                "data": "isv",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
-                    if (type === 'display') {
-                        let color = 'black';
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                },
-            },
-            {
-                "data": "descuento",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
-                    if (type === 'display') {
-                        let color = 'black';
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                },
-            },
-            {
-                "data": "total",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
-                    if (type === 'display') {
-                        let color = 'black';
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                },
-            }
-        ],
-        "lengthMenu": lengthMenu,
-        "stateSave": true,
-        "bDestroy": true,
-        "language": idioma_español, //esta se encuenta en el archivo main.js
-        "dom": dom,
-        "columnDefs": [{
-                width: "2%",
-                targets: 0
-            },
-            {
-                width: "2%",
-                targets: 1
-            },
-            {
-                width: "8%",
-                targets: 2
-            },
-            {
-                width: "8%",
-                targets: 3
-            },
-            {
-                width: "20%",
-                targets: 4
-            },
-            {
-                width: "12%",
-                targets: 5
-            },
-            {
-                width: "12%",
-                targets: 6
-            },
-            {
-                width: "12%",
-                targets: 7
-            },
-            {
-                width: "12%",
-                targets: 8
-            },
-            {
-                width: "12%",
-                targets: 9
-            }
-        ],
-        "buttons": [{
-            text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-            titleAttr: 'Actualizar Cotizaciones',
-            className: 'table_actualizar btn btn-secondary ocultar',
-            action: function() {
-                listar_busqueda_cotizaciones();
-            }
-        }],
-        "drawCallback": function(settings) {
-            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+  var table_busqueda_Cotizaciones = $("#DatatableBusquedaCotizaciones").DataTable({
+    destroy: true,
+    processing: true,        // <-- muestra indicador y no bloquea la UI
+    deferRender: true,       // <-- renderiza bajo demanda (rápido)
+    ajax: {
+      method: "POST",
+      url: "<?php echo SERVERURL; ?>core/llenarDataTableReporteCotizaciones.php",
+      data: { tipo_cotizacion_reporte: tipo_cotizacion_reporte, fechai: fechai, fechaf: fechaf },
+      cache: false
+    },
+    columns: [
+      {
+        defaultContent:
+          "<button type='button' class='table_view load_quote btn btn-primary ocultar' title='Cargar en factura'>" +
+          "<span class='fas fa-play fa-lg'></span></button>"
+      },
+      {
+        defaultContent:
+          "<button type='button' class='table_reportes print_cotizaciones btn btn-success ocultar' title='Imprimir'>" +
+          "<span class='fas fa-file-download fa-lg'></span></button>"
+      },
+      { data: "fecha" },
+      { data: "tipo_documento" },
+      { data: "cliente" },
+      { data: "numero" },
+      {
+        data: "subtotal",
+        render: function (d, t) {
+          var n = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(d);
+          return t === 'display' ? '<span>'+n+'</span>' : n;
         }
-    });
-    table_busqueda_Cotizaciones.search('').draw();
-    $('#buscar').focus();
+      },
+      {
+        data: "isv",
+        render: function (d, t) {
+          var n = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(d);
+          return t === 'display' ? '<span>'+n+'</span>' : n;
+        }
+      },
+      {
+        data: "descuento",
+        render: function (d, t) {
+          var n = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(d);
+          return t === 'display' ? '<span>'+n+'</span>' : n;
+        }
+      },
+      {
+        data: "total",
+        render: function (d, t) {
+          var n = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(d);
+          return t === 'display' ? '<span>'+n+'</span>' : n;
+        }
+      }
+    ],
+    // si te interesa “lo más reciente primero”
+    order: [[5,'desc']], // 5 = columna "numero"
+    lengthMenu: lengthMenu,
+    stateSave: true,
+    language: idioma_español,
+    dom: dom,
+    buttons: [{
+      text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
+      titleAttr: 'Actualizar Cotizaciones',
+      className: 'table_actualizar btn btn-secondary ocultar',
+      action: function () { listar_busqueda_cotizaciones(); }
+    }],
+    drawCallback: function () {
+      if (typeof getPermisosTipoUsuarioAccesosTable === 'function' &&
+          typeof getPrivilegioTipoUsuario === 'function') {
+        getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+      }
+    }
+  });
 
-    pay_factura_cotizaciones_dataTable("#DatatableBusquedaCotizaciones tbody", table_busqueda_Cotizaciones);
-    view_factura_cotizaciones_dataTable("#DatatableBusquedaCotizaciones tbody", table_busqueda_Cotizaciones);
-}
+  table_busqueda_Cotizaciones.search('').draw();
+  $('#buscar').focus();
+};
 
-var pay_factura_cotizaciones_dataTable = function(tbody, table) {
-    $(tbody).off("click", "button.pay_fact_cot");
-    $(tbody).on("click", "button.pay_fact_cot", function(e) {
-        e.preventDefault();
-        var data = table.row($(this).parents("tr")).data();
-        convertirCotizacion(data.cotizacion_id);
-    });
-}
+// Cargar cotización en la factura (delegado)
+$(document)
+  .off('click', '#DatatableBusquedaCotizaciones button.load_quote')
+  .on('click', '#DatatableBusquedaCotizaciones button.load_quote', function (e) {
+    e.preventDefault();
 
-var view_factura_cotizaciones_dataTable = function(tbody, table) {
-    $(tbody).off("click", "button.print_cotizaciones");
-    $(tbody).on("click", "button.print_cotizaciones", function(e) {
-        e.preventDefault();
-        var data = table.row($(this).parents("tr")).data();
-        printQuote(data.cotizacion_id);
+    const $btn = $(this);
+    const originalHtml = $btn.html();
+    $btn.prop('disabled', true).html("<span class='spinner-border spinner-border-sm'></span>");
+
+    const table = $('#DatatableBusquedaCotizaciones').DataTable();
+    const row = table.row($(this).closest('tr')).data();
+    if (!row) { $btn.prop('disabled', false).html(originalHtml); return; }
+
+    $.ajax({
+      type: 'POST',
+      url: "<?php echo SERVERURL; ?>core/getCotizacionParaFactura.php",
+      data: { cotizacion_id: row.cotizacion_id },
+      dataType: 'json'
+    })
+    .done(function (res) {
+      if (!res || res.ok !== true) {
+        showNotify('error', 'Error', (res && res.msg) ? res.msg : 'No se pudo cargar la cotización');
+        return;
+      }
+
+      const h = res.header || {};
+      const d = Array.isArray(res.detalle) ? res.detalle : [];
+
+      // Oculta el cuerpo de la tabla de factura para evitar reflujo/repaint continuo
+      const $tbody = $("#invoiceItem tbody");
+      $tbody.hide();
+
+      if (typeof limpiarTablaFacturaDetalles === 'function') limpiarTablaFacturaDetalles(0);
+
+      // Header
+      $("#invoice-form #facturas_id").val(''); // nueva factura
+      $("#cliente_id").val(h.clientes_id || '');
+      $("#cliente").val(h.cliente_nombre || '');
+      $("#colaborador_id").val(h.colaboradores_id || '');
+      $("#colaborador").val(h.colaborador_nombre || '');
+      $("#notesBill").val(h.notas || '');
+      $("#fecha").val(h.fecha || "<?php echo date('Y-m-d');?>");
+      $("#fecha_dolar").val(h.fecha_dolar || "<?php echo date('Y-m-d');?>");
+
+      if (typeof setTipoFactura === 'function') {
+        setTipoFactura(h.tipo_factura == 1 ? 'contado' : 'credito');
+      } else {
+        $("#facturas_activo").val(h.tipo_factura == 1 ? 1 : 0);
+      }
+
+      // Pre-crear filas necesarias de una sola vez
+      if (typeof addRowFacturas === 'function' && d.length > 1) {
+        for (let k = 1; k < d.length; k++) addRowFacturas();
+      }
+
+      // Rellenar (IDs directos = O(1))
+      for (let i = 0; i < d.length; i++) {
+        $("#facturas_detalle_id_"+i).val('');
+        $("#bar-code-id_"+i).val(d[i].barCode || "");
+        $("#productos_id_"+i).val(d[i].productos_id || "");
+        $("#productName_"+i).val(d[i].producto || "");
+        $("#productName_text_"+i).text(d[i].producto || "Descripción del Producto");
+        $("#quantity_"+i).val(d[i].cantidad || 0);
+        $("#price_"+i).val(d[i].precio || 0);
+        $("#precio_real_"+i).val(d[i].precio || 0);
+        $("#isv_"+i).val(d[i].isv_venta || 0);
+        $("#valor_isv_"+i).val(d[i].isv_valor || 0);
+        $("#cantidad_mayoreo_"+i).val(d[i].cantidad_mayoreo || 0);
+        $("#precio_mayoreo_"+i).val(d[i].precio_mayoreo || 0);
+        $("#bodega_"+i).val(d[i].almacen_id || "");
+        $("#medida_"+i).val(d[i].medida || "");
+        $("#medida_text_"+i).text(d[i].medida || "Medida");
+        $("#discount_"+i).val(d[i].descuento || 0);
+      }
+
+      if (typeof calculateTotalFacturas === 'function') calculateTotalFacturas();
+
+      // Agrega una fila vacía extra y enfoca el código
+      if (typeof addRowFacturas === 'function') {
+        addRowFacturas();
+        const next = parseInt($("#bill_row").val(), 10);
+        $("#bar-code-id_"+next).focus();
+      }
+
+      // Mostrar todo de golpe (un solo reflow)
+      $tbody.show();
+
+      $('#modal_buscar_cotizaciones').modal('hide');
+      showNotify('success', 'Cotización cargada', 'Se cargó la cotización en la factura');
+    })
+    .fail(function (xhr) {
+      console.error('AJAX error', xhr.responseText);
+      showNotify('error', 'Error', 'Falló la petición al servidor');
+    })
+    .always(function(){
+      $btn.prop('disabled', false).html(originalHtml);
     });
-}
+  });
+
+// Imprimir
+$(document)
+  .off('click', '#DatatableBusquedaCotizaciones button.print_cotizaciones')
+  .on('click', '#DatatableBusquedaCotizaciones button.print_cotizaciones', function (e) {
+    e.preventDefault();
+    const table = $('#DatatableBusquedaCotizaciones').DataTable();
+    const data = table.row($(this).closest('tr')).data();
+    if (data && typeof printQuote === 'function') {
+      printQuote(data.cotizacion_id);
+    }
+  });
 //FIN CONVERTIR COTIZACION EN FACTURAS
 
 //INICIO CUENTAS POR COBRAR CLIENTES
@@ -2453,250 +2433,176 @@ $("#addDraft").on("click", function(e) {
     });
 });
 
-var listar_busqueda_bill_draf = function() {
-    var fechai = $("#formulario_bill_draft #fechai").val();
-    var fechaf = $("#formulario_bill_draft #fechaf").val();
+var listar_busqueda_bill_draf = function () {
+  var fechai = $("#formulario_bill_draft #fechai").val();
+  var fechaf = $("#formulario_bill_draft #fechaf").val();
 
-    var table_busqueda_bill_draft = $("#DatatableBusquedaBillDraft").DataTable({
-        "destroy": true,
-        "ajax": {
-            "method": "POST",
-            "url": "<?php echo SERVERURL; ?>core/llenarDataTableFacturasBorrador.php",
-            "data": {
-                "fechai": fechai,
-                "fechaf": fechaf
-            }
-        },
-        "columns": [{
-                "defaultContent": "<button class='table_pay pay btn btn-dark ocultar'><span class='fas fa-play fa-lg'></span></button>"
-            },
-            {
-                "defaultContent": "<button class='table_eliminar eliminar btn btn-dark ocultar'><span class='fa fa-trash fa-lg'></span></button>"
-            },
-            {
-                "data": "fecha"
-            },
-            {
-                "data": "tipo_documento"
-            },
-            {
-                "data": "cliente"
-            },
-            {
-                "data": "numero"
-            },
-            {
-                "data": "subtotal",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
-                    if (type === 'display') {
-                        let color = 'black';
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                },
-            },
-            {
-                "data": "isv",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
-                    if (type === 'display') {
-                        let color = 'black';
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                },
-            },
-            {
-                "data": "descuento",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
-                    if (type === 'display') {
-                        let color = 'black';
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                },
-            },
-            {
-                "data": "total",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
-                    if (type === 'display') {
-                        let color = 'black';
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                },
-            }
-        ],
-        "pageLength": 5,
-        "lengthMenu": lengthMenu,
-        "stateSave": true,
-        "bDestroy": true,
-        "language": idioma_español,
-        "dom": dom,
-        "buttons": [{
-            text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-            titleAttr: 'Actualizar Facturas Borrador',
-            className: 'table_actualizar btn btn-secondary ocultar',
-            action: function() {
-                listar_busqueda_bill_draf();
-            }
-        }],
-        "drawCallback": function(settings) {
-            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+  var table = $("#DatatableBusquedaBillDraft").DataTable({
+    destroy: true,
+    processing: true,        // <-- muestra indicador y no bloquea la UI
+    deferRender: true,       // <-- renderiza bajo demanda (rápido)
+    ajax: {
+      method: "POST",
+      url: "<?php echo SERVERURL;?>core/llenarDataTableFacturasBorrador.php",
+      data: { fechai: fechai, fechaf: fechaf }
+    },
+    columns: [
+      { defaultContent: "<button class='table_pay pay btn btn-primary'><span class='fas fa-play fa-lg'></span></button>" },
+      { defaultContent: "<button class='table_eliminar eliminar btn btn-danger'><span class='fa fa-trash fa-lg'></span></button>" },
+      { data: "fecha" },
+      { data: "tipo_documento" },
+      { data: "cliente" },
+      { data: "numero" },
+      {
+        data: "subtotal",
+        render: function (data, type) {
+          var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
+          if (type === 'display') return '<span>' + number + '</span>';
+          return data;
         }
+      },
+      {
+        data: "isv",
+        render: function (data, type) {
+          var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
+          if (type === 'display') return '<span>' + number + '</span>';
+          return data;
+        }
+      },
+      {
+        data: "descuento",
+        render: function (data, type) {
+          var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
+          if (type === 'display') return '<span>' + number + '</span>';
+          return data;
+        }
+      },
+      {
+        data: "total",
+        render: function (data, type) {
+          var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
+          if (type === 'display') return '<span>' + number + '</span>';
+          return data;
+        }
+      }
+    ],
+    pageLength: 5,
+    lengthMenu: lengthMenu,
+    stateSave: true,
+    language: idioma_español,
+    dom: dom,
+    buttons: [{
+      text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
+      titleAttr: 'Actualizar Facturas Borrador',
+      className: 'table_actualizar btn btn-secondary',
+      action: function () { listar_busqueda_bill_draf(); }
+    }],
+    drawCallback: function () {
+      if (typeof getPermisosTipoUsuarioAccesosTable === 'function') {
+        getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+      }
+    }
+  });
+
+  table.search('').draw();
+  continue_bill_draft_dataTable("#DatatableBusquedaBillDraft tbody", table);
+  delete_bill_draft_dataTable("#DatatableBusquedaBillDraft tbody", table);
+};
+
+var continue_bill_draft_dataTable = function (tbody, table) {
+  $(tbody).off("click", "button.pay").on("click", "button.pay", function (e) {
+    e.preventDefault();
+    var row = table.row($(this).parents("tr")).data();
+    if (!row) return;
+
+    // set factura seleccionada
+    $("#invoice-form #facturas_id").val(row.facturas_id);
+
+    $.ajax({
+      type: 'POST',
+      url: "<?php echo SERVERURL;?>core/getDraftBills.php",
+      data: { facturas_id: row.facturas_id },
+      success: function (resp) {
+        var datos = [];
+        try { datos = JSON.parse(resp); } catch (e) { try { datos = eval(resp); } catch (e2) {} }
+        if (!Array.isArray(datos)) datos = [];
+
+        // Limpia la tabla y deja UNA fila base (index 0)
+        limpiarTablaFacturaDetalles(0);
+
+        // Rellena filas guardadas
+        for (var i = 0; i < datos.length; i++) {
+          // para i>0, crea la fila antes de setear valores
+          if (i > 0) addRowFacturas();
+
+          $("#facturas_detalle_id_" + i).val(datos[i]["facturas_detalle_id"] || "");
+          $("#bar-code-id_" + i).val(datos[i]["barCode"] || "");
+          $("#productos_id_" + i).val(datos[i]["productos_id"] || "");
+          $("#productName_" + i).val(datos[i]["producto"] || "");
+          $("#productName_text_" + i).text(datos[i]["producto"] || "Descripción del Producto");
+          $("#quantity_" + i).val(datos[i]["cantidad"] || 0);
+          $("#price_" + i).val(datos[i]["precio"] || 0);
+          $("#precio_real_" + i).val(datos[i]["precio"] || 0);
+          $("#isv_" + i).val(datos[i]["isv_venta"] || 0);
+          $("#valor_isv_" + i).val(datos[i]["isv_valor"] || 0);
+          $("#cantidad_mayoreo_" + i).val(datos[i]["cantidad_mayoreo"] || 0);
+          $("#precio_mayoreo_" + i).val(datos[i]["precio_venta"] || 0);
+          $("#bodega_" + i).val(datos[i]["almacen_id"] || "");
+          $("#medida_" + i).val(datos[i]["medida"] || "");
+          $("#medida_text_" + i).text(datos[i]["medida"] || "Medida");
+          $("#discount_" + i).val(datos[i]["descuento"] || 0);
+        }
+
+        // Recalcula importes
+        calculateTotalFacturas();
+
+        // Agrega una fila VACÍA extra y deja el cursor en su código
+        addRowFacturas(); // esta función ya hace .focus() en #bar-code-id_count
+
+        // Cierra el modal
+        $('#modal_buscar_bill_draft').modal('hide');
+      }
     });
-    table_busqueda_bill_draft.search('').draw();
-    $('#buscar').focus();
+  });
+};
 
-    continue_bill_draft_dataTable("#DatatableBusquedaBillDraft tbody", table_busqueda_bill_draft);
-    delete_bill_draft_dataTable("#DatatableBusquedaBillDraft tbody", table_busqueda_bill_draft);
-}
-
-var continue_bill_draft_dataTable = function(tbody, table) {
-    $(tbody).off("click", "button.pay");
-    $(tbody).on("click", "button.pay", function(e) {
-        e.preventDefault();
-        var data = table.row($(this).parents("tr")).data();
-
-        $("#invoice-form #facturas_id").val(data.facturas_id);
-
-        var url = '<?php echo SERVERURL; ?>core/getDraftBills.php';
-
-        $.ajax({
-            type: 'POST',
-            url: url,
-            async: false,
-            data: 'facturas_id=' + data.facturas_id,
-            success: function(data) {
-                var datos = eval(data);
-                limpiarTablaFacturaDetalles(0);
-                for (var fila = 0; fila < datos.length; fila++) {
-                    var barCode = datos[fila]["barCode"];
-                    var facturas_detalle_id = datos[fila]["facturas_detalle_id"];
-                    var productoID = datos[fila]["productos_id"];
-                    var productName = datos[fila]["producto"];
-                    var quantity = datos[fila]["cantidad"];
-                    var precio_venta = datos[fila]["precio_venta"];
-                    var price = datos[fila]["precio"];
-                    var discount = datos[fila]["descuento"];
-                    var isv = datos[fila]["isv_valor"];
-                    var producto_isv = datos[fila]["isv_venta"];
-                    var cantidad_mayoreo = datos[fila]["cantidad_mayoreo"];
-                    var almacen_id = datos[fila]["almacen_id"];
-                    var medida = datos[fila]["medida"];
-
-                    $("#invoice-form #invoiceItem #facturas_detalle_id_" + fila).val(
-                        facturas_detalle_id);
-                    $("#invoice-form #invoiceItem #bar-code-id_" + fila).val(barCode);
-                    $("#invoice-form #invoiceItem #productos_id_" + fila).val(productoID);
-                    $("#invoice-form #invoiceItem #productName_" + fila).val(productName);
-                    $("#invoice-form #invoiceItem #price_" + fila).val(price);
-                    $("#invoice-form #invoiceItem #precio_real_" + fila).val(price);
-                    $("#invoice-form #invoiceItem #isv_" + fila).val(producto_isv);
-                    $("#invoice-form #invoiceItem #valor_isv_" + fila).val(isv);
-                    $("#invoice-form #invoiceItem #cantidad_mayoreo_" + fila).val(
-                        cantidad_mayoreo);
-                    $("#invoice-form #invoiceItem #precio_mayoreo_" + fila).val(precio_mayoreo);
-                    $("#invoice-form #invoiceItem #quantity_" + fila).val(quantity);
-                    $("#invoice-form #invoiceItem #discount_" + fila).val(discount);
-                    $('#invoice-form #invoiceItem #bodega_' + fila).val(almacen_id);
-                    $('#invoice-form #invoiceItem #medida_' + fila).val(medida);
-                    addRowFacturas();
-                }
-
-                calculateTotalFacturas();
-
-                $('#modal_buscar_bill_draft').modal('hide');
-            }
-        });
-    });
-}
-
-var delete_bill_draft_dataTable = function(tbody, table) {
-    $(tbody).off("click", "button.eliminar");
-    $(tbody).on("click", "button.eliminar", function(e) {
-        e.preventDefault();
-        var data = table.row($(this).parents("tr")).data();
-        deleteBillDraft(data.facturas_id)
-    });
-}
+var delete_bill_draft_dataTable = function (tbody, table) {
+  $(tbody).off("click", "button.eliminar").on("click", "button.eliminar", function (e) {
+    e.preventDefault();
+    var row = table.row($(this).parents("tr")).data();
+    if (!row) return;
+    deleteBillDraft(row.facturas_id);
+  });
+};
 
 function deleteBillDraft(facturas_id) {
-    swal({
-        title: "¿Estas seguro?",
-        text: "¿Desea anular la factura: # " + getNumeroFactura(facturas_id) + "?",
-        icon: "warning",
-        buttons: {
-            cancel: {
-                text: "Cancelar",
-                visible: true
-            },
-            confirm: {
-                text: "¡Sí, anular la factura!",
-            }
-        },
-        dangerMode: true,
-        closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-        closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-    }).then((willConfirm) => {
-        if (willConfirm === true) {
-            deleteBill(facturas_id);
-        }
-    });
+  swal({
+    title: "¿Estas seguro?",
+    text: "¿Desea anular la factura: # " + getNumeroFactura(facturas_id) + "?",
+    icon: "warning",
+    buttons: { cancel: { text: "Cancelar", visible: true }, confirm: { text: "¡Sí, anular la factura!" } },
+    dangerMode: true,
+    closeOnEsc: false,
+    closeOnClickOutside: false
+  }).then((willConfirm) => {
+    if (willConfirm === true) deleteBill(facturas_id);
+  });
 }
 
 function deleteBill(facturas_id) {
-    var url = '<?php echo SERVERURL; ?>core/deleteBillDraft.php';
-
-    $.ajax({
-        type: 'POST',
-        url: url,
-        async: false,
-        data: 'facturas_id=' + facturas_id,
-        success: function(data) {
-            if (data == 1) {
-                showNotify('success', 'Success', 'La factura en borrador ha sido eliminada con éxito');
-                listar_busqueda_bill_draf();
-            } else {
-                showNotify('error', 'Error', 'La factura no se puede eliminar');
-            }
-        }
-    });
+  $.ajax({
+    type: 'POST',
+    url: BASE_URL + 'core/deleteBillDraft.php',
+    data: { facturas_id: facturas_id },
+    success: function (data) {
+      if (String(data).trim() === "1") {
+        showNotify('success', 'Success', 'La factura en borrador ha sido eliminada con éxito');
+        listar_busqueda_bill_draf();
+      } else {
+        showNotify('error', 'Error', 'La factura no se puede eliminar');
+      }
+    }
+  });
 }
 
 //BUSQUEDA FACTURAS AL CREDITO Y CONTADO
@@ -3236,4 +3142,240 @@ $(() => {
     });
 });
 
+// === Control de Tipo de Factura con botones ===
+let tipoActual = 'contado'; // estado UI
+
+function setTipoFactura(tipo){
+  const isContado = (tipo === 'contado');
+  tipoActual = tipo;
+
+  // Visual
+  $('#btn-tipo-contado')
+    .toggleClass('active btn-primary', isContado)
+    .toggleClass('btn-outline-primary', !isContado);
+  $('#btn-tipo-credito')
+    .toggleClass('active btn-primary', !isContado)
+    .toggleClass('btn-outline-primary', isContado);
+
+  // Backend: 1=Contado, 0=Crédito
+  $('#facturas_activo').val(isContado ? 1 : 0);
+  $('#label_facturas_activo').text(isContado ? 'Contado' : 'Crédito');
+}
+
+// Inicial
+setTipoFactura('contado');
+
+// Click en Contado
+$(document).on('click', '#btn-tipo-contado', function(){
+  setTipoFactura('contado');
+});
+
+// Click en Crédito -> Confirmación si venimos de Contado
+$(document).on('click', '#btn-tipo-credito', function(){
+  if (tipoActual === 'contado') {
+    $('#confirmTipoFactura')
+      .data('next','credito')
+      .modal({show:true, keyboard:false, backdrop:'static'});
+  } else {
+    setTipoFactura('credito');
+  }
+});
+
+// Confirmar en el modal
+$(document).on('click', '#confirmarCambioTipo', function(){
+  const next = $('#confirmTipoFactura').data('next') || 'credito';
+  setTipoFactura(next);
+  $('#confirmTipoFactura').modal('hide');
+});
+
+/*RECURRENCIA EN FACTURAS*/
+/* =========== RECURRENCIA EN FACTURAS =========== */
+
+/* Utilidades */
+function _localISOString(dt){
+  // datetime-local: "YYYY-MM-DDTHH:mm" (sin zona)
+  const pad = n => String(n).padStart(2,'0');
+  return dt.getFullYear() + '-' +
+         pad(dt.getMonth()+1) + '-' +
+         pad(dt.getDate()) + 'T' +
+         pad(dt.getHours()) + ':' +
+         pad(dt.getMinutes());
+}
+
+function hayDetalleFactura(){
+  const totalFilas = parseInt($('#bill_row').val(), 10) || 0;
+  for (let i = 0; i <= totalFilas; i++){
+    const pid   = $('#productos_id_'+i).val();
+    const pname = $('#productName_'+i).val();
+    const qty   = $('#quantity_'+i).val();
+    const price = $('#price_'+i).val();
+    if(pid && pname && qty && price) return true;
+  }
+  return false;
+}
+
+function hayEncabezado(){
+  return !!($('#cliente_id').val() && $('#colaborador_id').val());
+}
+
+/* Abrir modal de recurrencia */
+$(document).on('click', '#addRecurringBill', function(){
+  // Validar que la factura tenga encabezado y detalle
+  if(!hayEncabezado()){
+    showNotify('error','Faltan datos','Debe seleccionar cliente y vendedor antes de programar la recurrencia');
+    return;
+  }
+  if(!hayDetalleFactura()){
+    showNotify('error','Sin productos','Debe agregar al menos un producto para programar la recurrencia');
+    return;
+  }
+
+  // Tipo actual de la UI (1=contado, 0=crédito en tu front)
+  var tipoActual = $('#facturas_activo').val(); 
+  var tipoFacturaBack = (tipoActual === "1") ? "1" : "2"; // backend: 1=contado, 2=crédito
+  $('#rec_tipo_factura').val(tipoFacturaBack);
+
+  // Toggle botones de tipo factura
+  $('#btn-rec-contado')
+    .toggleClass('btn-primary', tipoFacturaBack === "1")
+    .toggleClass('btn-outline-primary', tipoFacturaBack !== "1");
+  $('#btn-rec-credito')
+    .toggleClass('btn-primary', tipoFacturaBack === "2")
+    .toggleClass('btn-outline-primary', tipoFacturaBack !== "2");
+
+  // Documento por defecto: normal (0)
+  $('#rec_tipo_documento').val('0');
+  $('#btn-rec-tipo-normal').addClass('btn-primary').removeClass('btn-outline-primary');
+  $('#btn-rec-tipo-proforma').addClass('btn-outline-primary').removeClass('btn-primary');
+
+  // Fecha inicio default: ahora + 10min
+  var now = new Date();
+  now.setMinutes(now.getMinutes()+10);
+  $('#rec_start_at').val(_localISOString(now));
+
+  // Periodicidad default
+  $('#rec_periodicidad').val('monthly');
+  $('#rec_until').val('');
+
+  // Reset spinner/info
+  $('#rec_info').show();
+  $('#rec_spinner').hide();
+
+  $('#recurringBillModal').modal('show');
+});
+
+/* Toggle tipo documento (0 normal, 1 proforma) */
+$(document).on('click', '#btn-rec-tipo-normal, #btn-rec-tipo-proforma', function(){
+  var tipo = String($(this).data('tipo')); // "0" o "1"
+  $('#rec_tipo_documento').val(tipo);
+  $('#btn-rec-tipo-normal')
+    .toggleClass('btn-primary', tipo === "0")
+    .toggleClass('btn-outline-primary', tipo !== "0");
+  $('#btn-rec-tipo-proforma')
+    .toggleClass('btn-primary', tipo === "1")
+    .toggleClass('btn-outline-primary', tipo !== "1");
+});
+
+/* Toggle tipo factura (1 contado, 2 crédito) */
+$(document).on('click', '#btn-rec-contado, #btn-rec-credito', function(){
+  var tipo = String($(this).data('tipo')); // "1" o "2"
+  $('#rec_tipo_factura').val(tipo);
+  $('#btn-rec-contado')
+    .toggleClass('btn-primary', tipo === "1")
+    .toggleClass('btn-outline-primary', tipo !== "1");
+  $('#btn-rec-credito')
+    .toggleClass('btn-primary', tipo === "2")
+    .toggleClass('btn-outline-primary', tipo !== "2");
+});
+
+/* Guardar recurrencia */
+$(document).on('click', '#confirmRecurring', function(){
+  // Validación rápida
+  if(!hayEncabezado()){
+    showNotify('error','Faltan datos','Debe seleccionar cliente y vendedor');
+    return;
+  }
+  if(!hayDetalleFactura()){
+    showNotify('error','Sin productos','Debe agregar al menos un producto');
+    return;
+  }
+
+  var startAt = $('#rec_start_at').val();
+  if(!startAt){
+    showNotify('error','Error','Debes indicar la fecha de generación');
+    return;
+  }
+
+  // Construir payload (encabezado)
+  var payload = {
+    clientes_id: $('#cliente_id').val(),
+    colaboradores_id: $('#colaborador_id').val(),
+    notas: $('#notesBill').val(),
+    fecha_dolar: $('#fecha_dolar').val(),
+    tipo_documento: $('#rec_tipo_documento').val(), // "0" normal, "1" proforma
+    tipo_factura: $('#rec_tipo_factura').val(),     // "1" contado, "2" crédito
+    start_at: startAt,                              // datetime-local
+    periodicidad: $('#rec_periodicidad').val(),     // once/daily/weekly/monthly (según tu modal)
+    until: $('#rec_until').val() || null,
+    exoneracion_orden: $('#exoneracion_orden').val() || null,
+    exoneracion_constancia: $('#exoneracion_constancia').val() || null,
+    exoneracion_sag: $('#exoneracion_sag').val() || null,
+    exoneracion_orden_interno: $('#exoneracion_orden_interno').val() || null,
+    detalle: []
+  };
+
+  // Detalle
+  var totalFilas = parseInt($('#bill_row').val(), 10) || 0;
+  for (var i = 0; i <= totalFilas; i++) {
+    var pid   = $('#productos_id_'+i).val();
+    var pname = $('#productName_'+i).val();
+    var qty   = $('#quantity_'+i).val();
+    var price = $('#price_'+i).val();
+    if(!pid || !pname || !qty || !price) continue;
+
+    payload.detalle.push({
+      productos_id : pid,
+      producto     : pname,
+      cantidad     : parseFloat(qty),
+      precio       : parseFloat(price),
+      descuento    : parseFloat($('#discount_'+i).val() || 0),
+      isv_valor    : parseFloat($('#valor_isv_'+i).val() || 0),
+      medida       : $('#medida_'+i).val() || '',
+      almacen_id   : $('#bodega_'+i).val() || ''
+    });
+  }
+
+  if(payload.detalle.length === 0){
+    showNotify('error','Sin productos','Debes tener al menos un producto en la factura');
+    return;
+  }
+
+  // Spinner ON
+  $('#rec_info').hide();
+  $('#rec_spinner').show();
+
+  $.ajax({
+    type: 'POST',
+    url: "<?php echo SERVERURL;?>core/facturas/agregarFacturaRecurrente.php",
+    data: { data: JSON.stringify(payload) },
+    dataType: 'json'
+  })
+  .done(function(res){
+    if(res && (res.ok === true || res.success === true)){
+      $('#recurringBillModal').modal('hide');
+      showNotify('success','Recurrencia creada','La factura recurrente ha sido guardada');
+    }else{
+      $('#rec_info').show();
+      $('#rec_spinner').hide();
+      var msg = (res && (res.msg || res.message)) ? (res.msg || res.message) : 'No se pudo guardar la recurrencia';
+      showNotify('error','Error', msg);
+    }
+  })
+  .fail(function(xhr){
+    $('#rec_info').show();
+    $('#rec_spinner').hide();
+    console.error('AJAX error:', xhr.responseText);
+    showNotify('error','Error','Falló la petición al servidor');
+  });
+});
 </script>

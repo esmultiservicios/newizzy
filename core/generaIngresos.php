@@ -28,7 +28,7 @@
 		$firma_documento = $consulta_registro['firma_documento'];
 		$no_factura = $consulta_registro['ingresos_id'];
 
-		if($consulta_registro['estado'] == 2){
+		if($consulta_registro['estado'] == 0){
 			$anulada = '<img class="anulada" src="'.SERVERURL.'vistas/plantilla/img/anulado.png" alt="Anulada">';
 		}
 

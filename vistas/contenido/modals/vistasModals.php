@@ -1226,6 +1226,9 @@
                                                                         <input type="hidden"
                                                                             class="comprobante_print_value"
                                                                             name="comprobante_print" value="0">
+                                                                        <input type="hidden"                
+                                                                            name="origen_pago" 
+                                                                            id="origen_pago" value="0">
                                                                         <input type="hidden" class="multiple_pago"
                                                                             name="multiple_pago" value="0">
                                                                         <input type="hidden" name="factura_id_efectivo"
@@ -1235,9 +1238,7 @@
                                                                         <input type="hidden" name="monto_efectivo"
                                                                             id="monto_efectivo" step="0.01"
                                                                             placeholder="0.00">
-                                                                        <input type="number" name="efectivo_bill"
-                                                                            id="efectivo_bill" class="inputfield"
-                                                                            step="0.01" placeholder="0.00" step="0.01">
+                                                                        <input type="text" name="efectivo_bill" id="efectivo_bill" class="inputfield" inputmode="decimal" placeholder="0.00">
                                                                     </div>
                                                                 </div>
                                                                 <div class="col-12">
@@ -1301,6 +1302,9 @@
                                                                         <label>Número de Tarjeta</label>
                                                                         <input type="hidden" name="factura_id_tarjeta"
                                                                             id="factura_id_tarjeta">
+                                                                        <input type="hidden"                
+                                                                            name="origen_pago" 
+                                                                            id="origen_pago" value="0">                                                                            
                                                                         <input type="hidden"
                                                                             class="comprobante_print_value"
                                                                             name="comprobante_print" value="0">
@@ -1392,6 +1396,9 @@
                                                                         <input type="hidden"
                                                                             class="comprobante_print_value"
                                                                             name="comprobante_print" value="0">
+                                                                            <input type="hidden"                
+                                                                                name="origen_pago" 
+                                                                                id="origen_pago" value="0">                                                                            
                                                                         <input type="hidden" class="multiple_pago"
                                                                             name="multiple_pago" value="0">
                                                                         <input type="hidden" name="factura_id_mixto"
@@ -1501,6 +1508,9 @@
                                                                         <input type="hidden"
                                                                             name="factura_id_transferencia"
                                                                             id="factura_id_transferencia">
+                                                                        <input type="hidden"                
+                                                                            name="origen_pago" 
+                                                                            id="origen_pago" value="0">                                                                            
                                                                         <select id="bk_nm" name="bk_nm" required
                                                                             class="selectpicker col-12" data-size="5"
                                                                             data-width="100%" data-live-search="true"
@@ -1513,12 +1523,7 @@
                                                                             name="comprobante_print" value="0">
                                                                         <input type="hidden" name="monto_efectivo"
                                                                             id="monto_efectivo" placeholder="0.00">
-                                                                        <input type="number" name="importe"
-                                                                            id="importe_transferencia"
-                                                                            class="inputfield mt-5" step="0.01"
-                                                                            placeholder="0.00" data-toggle="tooltip"
-                                                                            data-placement="top"
-                                                                            title="Ingrese el monto">
+                                                                        <input type="text" name="importe_transferencia" id="importe_transferencia" class="inputfield mt-5" placeholder="0.00">
                                                                         <input type="hidden" name="tipo_factura"
                                                                             id="tipo_factura_transferencia" value="1"
                                                                             step="0.01" placeholder="0.00">
@@ -1598,6 +1603,9 @@
                                                                         <input type="hidden"
                                                                             class="comprobante_print_value"
                                                                             name="comprobante_print" value="0">
+                                                                        <input type="hidden"                
+                                                                            name="origen_pago" 
+                                                                            id="origen_pago" value="0">                                                                            
                                                                         <input type="hidden" name="factura_id_cheque"
                                                                             id="factura_id_cheque">
                                                                         <select id="bk_nm_chk" name="bk_nm_chk" required
@@ -1607,11 +1615,7 @@
                                                                         </select>
                                                                         <input type="hidden" name="monto_efectivo"
                                                                             id="monto_efectivo" placeholder="0.00">
-                                                                        <input type="number" name="importe"
-                                                                            id="importe_cheque" class="inputfield mt-5"
-                                                                            step="0.01" placeholder="0.00"
-                                                                            data-toggle="tooltip" data-placement="top"
-                                                                            title="Ingrese el monto">
+                                                                        <input type="text" name="importe_cheque" id="importe_cheque" class="inputfield mt-5" placeholder="0.00">
                                                                         <input type="hidden" name="tipo_factura"
                                                                             id="tipo_factura_cheque" value="1"
                                                                             step="0.01" placeholder="0.00">

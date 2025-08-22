@@ -3097,7 +3097,7 @@ var registrar_abono_cxc_clientes_dataTable = function(tbody, table) {
             showNotify('error', 'Error', 'No puede realizar esta accion a las facturas canceladas!');
         } else {
             $("#GrupoPagosMultiplesFacturas").hide();
-            pago(data.facturas_id, 2);
+            pago(data.facturas_id, 2, 'cxc');
             // Para facturas
             //openPaymentModal('factura', 1250.00, 'Cliente Ejemplo', 12345);
         }
@@ -4442,6 +4442,7 @@ function saldoCompras(compras_id) {
 }
 //FIN ACCIONES FROMULARIO CLIENTES
 
+/*FIN DE PAGOS*/
 // INICIO MODAL REGISTRAR PAGO FACTURACIÓN CLIENTES
 function customRound(number) {
     const truncated = Math.floor(number * 100) / 100;
@@ -4449,7 +4450,7 @@ function customRound(number) {
     return secondDecimal >= 5 ? parseFloat((truncated + 0.01).toFixed(2)) : parseFloat(truncated.toFixed(2));
 }
 
-function pago(facturas_id, tipoPago) {
+function pago(facturas_id, tipoPago, origen) {
     const url = '<?php echo SERVERURL;?>core/editarPagoFacturas.php';
 
     // Resetear el switch de pagos múltiples
@@ -4472,18 +4473,18 @@ function pago(facturas_id, tipoPago) {
             $('#bill-pay').html(`L. ${parseFloat(datos[6]).toFixed(2)}`);
 
             // Configurar formularios
-            configurarFormularioEfectivo(facturas_id, tipoPago, datos[6]);
-            configurarFormularioTarjeta(facturas_id, tipoPago, datos[6]);
-            configurarFormularioTransferencia(facturas_id, tipoPago, datos[6]);
-            configurarFormularioCheque(facturas_id, tipoPago, datos[6]);
+            configurarFormularioEfectivo(facturas_id, tipoPago, datos[6], origen);
+            configurarFormularioTarjeta(facturas_id, tipoPago, datos[6], origen);
+            configurarFormularioTransferencia(facturas_id, tipoPago, datos[6], origen);
+            configurarFormularioCheque(facturas_id, tipoPago, datos[6], origen);
 
             // Mostrar modal
-            $('#modal_pagos').modal({ 
-                show: true, 
-                keyboard: false, 
-                backdrop: 'static' 
+            $('#modal_pagos').modal({
+                show: true,
+                keyboard: false,
+                backdrop: 'static'
             });
-            
+
             // Inicializar el cálculo del cambio
             calcularCambioEfectivo();
         },
@@ -4493,53 +4494,132 @@ function pago(facturas_id, tipoPago) {
     });
 }
 
-// Funciones auxiliares para configuración de formularios
-function configurarFormularioEfectivo(facturas_id, tipoPago, monto) {
+// -------- Helpers de sanitización de números --------
+function normalizarMontoEntrada(str) {
+    let value = (str || '').toString();
+    
+    // Permite solo números y un punto decimal
+    value = value.replace(/[^0-9.]/g, '');
+    
+    // Evita más de un punto decimal
+    const parts = value.split('.');
+    if (parts.length > 2) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    // Limita a 2 decimales
+    if (parts.length > 1) {
+        value = parts[0] + '.' + parts[1].slice(0, 2);
+    }
+    
+    return value;
+}
+
+function parseMonto(str) {
+    const limpio = normalizarMontoEntrada(str);
+    const n = parseFloat(limpio);
+    return isNaN(n) ? 0 : n;
+}
+
+// Nueva función para formatear visualmente el número
+function formatearMonto(valor) {
+    if (!valor) return '';
+    
+    const numero = parseMonto(valor);
+    return numero.toFixed(2);
+}
+
+// -------- Configuración de formularios --------
+function configurarFormularioEfectivo(facturas_id, tipoPago, monto, origen) {
     const $form = $('#formEfectivoBill');
     $form[0].reset();
-    $form.find('#monto_efectivo').val(parseFloat(monto).toFixed(2));
+
+    // Asegurar número limpio (sin L., comas, espacios)
+    const montoNum = parseMonto(monto);
+
+    $form.find('#monto_efectivo').val(montoNum.toFixed(2));
     $form.find('#factura_id_efectivo').val(facturas_id);
     $form.find('#tipo_factura').val(tipoPago);
-    $form.find('#pago_efectivo').attr('disabled', true);
+    $form.find('#origen_pago').val(origen);
+    $form.find('#pago_efectivo').prop('disabled', true);
 
-    if (tipoPago == 2) { // Pago múltiple
-        $('#bill-pay').html(`L. ${parseFloat(monto).toFixed(2)}`);
+    // Establecer el valor formateado en el input de texto
+    $form.find('#efectivo_bill').val();
+
+    if (parseInt(tipoPago, 10) === 2) {
         $('#tab5').hide();
         $form.find('#grupo_cambio_efectivo').hide();
         $form.find('#cambio_efectivo').val("0.00");
-    } else { // Pago normal
+    } else {
         $form.find('#grupo_cambio_efectivo').show();
+    }
+
+    calcularCambioEfectivo();
+}
+
+function configurarFormularioTarjeta(facturas_id, tipoPago, monto, origen) {
+    const $form = $('#formTarjetaBill');
+    $form[0].reset();
+    const montoNum = parseMonto(monto);
+    $form.find('#monto_efectivo, #importe_tarjeta').val(montoNum.toFixed(2));
+    $form.find('#factura_id_tarjeta').val(facturas_id);
+    $form.find('#tipo_factura').val(tipoPago);
+    $form.find('#origen_pago').val(origen);
+    $form.find('#pago_tarjeta').attr('disabled', false);
+
+    // Establecer el valor formateado
+    $form.find('#monto_efectivo_tarjeta').val();
+}
+
+function configurarFormularioTransferencia(facturas_id, tipoPago, monto, origen) {
+    const $form = $('#formTransferenciaBill');
+    $form[0].reset();
+    const montoNum = parseMonto(monto);
+    $form.find('#monto_efectivo').val(montoNum.toFixed(2));
+    $form.find('#factura_id_transferencia').val(facturas_id);
+    $form.find('#tipo_factura_transferencia').val(tipoPago);
+    $form.find('#origen_pago').val(origen);
+    $form.find('#pago_transferencia').attr('disabled', false);
+
+    // Establecer el valor formateado
+    $form.find('#importe_transferencia').val();
+}
+
+function configurarFormularioCheque(facturas_id, tipoPago, monto, origen) {
+    const $form = $('#formChequeBill');
+    $form[0].reset();
+    const montoNum = parseMonto(monto);
+    $form.find('#monto_efectivo').val(montoNum.toFixed(2));
+    $form.find('#factura_id_cheque').val(facturas_id);
+    $form.find('#tipo_factura_cheque').val(tipoPago);
+    $form.find('#origen_pago').val(origen);
+    $form.find('#pago_cheque').attr('disabled', false);
+
+    // Establecer el valor formateado
+    $form.find('#importe_cheque').val();
+}
+
+// -------- Cálculo de cambio y habilitar botón --------
+function calcularCambioEfectivo() {
+    const $form = $('#formEfectivoBill');
+
+    const efectivo = parseMonto($form.find('#efectivo_bill').val());
+    const monto    = parseMonto($form.find('#monto_efectivo').val());
+    const tipoPago = parseInt($form.find('#tipo_factura').val(), 10) || 1;
+
+    if (tipoPago === 1) { // Pago completo (contado)
+        const cambio = efectivo - monto;
+        $form.find('#cambio_efectivo').val(cambio >= 0 ? cambio.toFixed(2) : "0.00");
+        const habilitar = (monto > 0) && (efectivo >= monto);
+        $form.find('#pago_efectivo').prop('disabled', !habilitar);
+    } else { // Pago múltiple
+        $form.find('#cambio_efectivo').val("0.00");
+        const habilitar = (efectivo > 0) && (efectivo <= monto);
+        $form.find('#pago_efectivo').prop('disabled', !habilitar);
     }
 }
 
-function configurarFormularioTarjeta(facturas_id, tipoPago, monto) {
-    const $form = $('#formTarjetaBill');
-    $form[0].reset();
-    $form.find('#monto_efectivo, #importe_tarjeta').val(parseFloat(monto).toFixed(2));
-    $form.find('#factura_id_tarjeta').val(facturas_id);
-    $form.find('#tipo_factura').val(tipoPago);
-    $form.find('#pago_tarjeta').attr('disabled', false);
-}
-
-function configurarFormularioTransferencia(facturas_id, tipoPago, monto) {
-    const $form = $('#formTransferenciaBill');
-    $form[0].reset();
-    $form.find('#monto_efectivo').val(parseFloat(monto).toFixed(2));
-    $form.find('#factura_id_transferencia').val(facturas_id);
-    $form.find('#tipo_factura_transferencia').val(tipoPago);
-    $form.find('#pago_transferencia').attr('disabled', false);
-}
-
-function configurarFormularioCheque(facturas_id, tipoPago, monto) {
-    const $form = $('#formChequeBill');
-    $form[0].reset();
-    $form.find('#monto_efectivo').val(parseFloat(monto).toFixed(2));
-    $form.find('#factura_id_cheque').val(facturas_id);
-    $form.find('#tipo_factura_cheque').val(tipoPago);
-    $form.find('#pago_cheque').attr('disabled', false);
-}
-
-// Inicialización cuando el DOM está listo
+// -------- Inicialización DOM --------
 $(function() {
     // Configuración de focus en los tabs
     $("#tab1, #tab2, #tab3, #tab4").on("click", function() {
@@ -4549,95 +4629,95 @@ $(function() {
             'tab3': '#formTransferenciaBill #bk_nm',
             'tab4': '#formChequeBill #bk_nm_chk'
         };
-        
         $("#modal_pagos").on('shown.bs.modal', () => {
             $(targetMap[this.id]).focus();
         });
     });
 
-    // Máscaras para los inputs
+    // Máscaras para inputs de tarjeta (solo tarjeta)
     $('#formTarjetaBill #cr_bill').inputmask("9999");
     $('#formTarjetaBill #exp').inputmask("99/99");
     $('#formTarjetaBill #cvcpwd').inputmask("999999");
 
-    // Evento para el switch de pagos múltiples
+    // Toggle pagos múltiples (solo afecta EFECTIVO)
     $('#pagos_multiples_switch').change(function() {
         const isChecked = $(this).is(':checked');
         const tipoPago = isChecked ? 2 : 1;
-        
-        // Actualizar todos los formularios con el nuevo tipo de pago
-        $('[id^="form"] [id*="tipo_factura"]').val(tipoPago);
-        $('.multiple_pago').val(isChecked ? 1 : 0);
-        
-        // Mostrar/ocultar grupo de cambio según el tipo de pago
-        const $cambioGroup = $('#formEfectivoBill #grupo_cambio_efectivo');
+
+        const $form = $('#formEfectivoBill');
+        $form.find('#tipo_factura').val(tipoPago);
+        $form.find('.multiple_pago').val(isChecked ? 1 : 0);
+
+        const $cambioGroup = $form.find('#grupo_cambio_efectivo');
         if (isChecked) {
             $cambioGroup.hide();
-            $('#formEfectivoBill #cambio_efectivo').val("0.00");
+            $form.find('#cambio_efectivo').val("0.00");
         } else {
             $cambioGroup.show();
         }
-        
-        // Recalcular el cambio y estado del botón
+
         calcularCambioEfectivo();
     });
 
-    // Evento mejorado para el input de efectivo
-    $("#formEfectivoBill #efectivo_bill").on("input", function() {
-        // Obtener valor actual
-        let value = $(this).val();
+    // -------- Handlers de entrada numérica (aceptan . y ,) --------
+    // EFECTIVO
+    $("#formEfectivoBill #efectivo_bill").on("input", function(e) {
+        // Guarda la posición del cursor
+        const cursorPosition = e.target.selectionStart;
+        const valorOriginal = $(this).val();
         
-        // Limpiar y formatear el valor
-        value = value.replace(/[^0-9.]/g, '')
-                     .replace(/(\..*)\./g, '$1') // Evitar múltiples puntos
-                     .replace(/^\./, '0.'); // Agregar 0 si empieza con punto
+        // Normaliza el valor
+        const limpio = normalizarMontoEntrada(valorOriginal);
+        $(this).val(limpio);
         
-        // Limitar a 2 decimales
-        const parts = value.split('.');
-        if (parts.length > 1) {
-            value = parts[0] + '.' + parts[1].slice(0, 2);
-        }
+        // Restaura la posición del cursor, ajustando por cambios
+        const cambio = limpio.length - valorOriginal.length;
+        e.target.setSelectionRange(cursorPosition + cambio, cursorPosition + cambio);
         
-        // Actualizar valor
-        $(this).val(value);
-        
-        // Calcular el cambio
         calcularCambioEfectivo();
     });
-    
-    // Evento para cuando el modal se muestra
-    $('#modal_pagos').on('shown.bs.modal', function() {
-        // Inicializar el cálculo del cambio
-        calcularCambioEfectivo();
+
+    // TRANSFERENCIA
+    $("#formTransferenciaBill #importe_transferencia").on("input", function(e) {
+        const cursorPosition = e.target.selectionStart;
+        const valorOriginal = $(this).val();
         
-        // Enfocar el input de efectivo si está visible
+        const limpio = normalizarMontoEntrada(valorOriginal);
+        $(this).val(limpio);
+        
+        const cambio = limpio.length - valorOriginal.length;
+        e.target.setSelectionRange(cursorPosition + cambio, cursorPosition + cambio);
+    });
+
+    // CHEQUE
+    $("#formChequeBill #importe_cheque").on("input", function(e) {
+        const cursorPosition = e.target.selectionStart;
+        const valorOriginal = $(this).val();
+        
+        const limpio = normalizarMontoEntrada(valorOriginal);
+        $(this).val(limpio);
+        
+        const cambio = limpio.length - valorOriginal.length;
+        e.target.setSelectionRange(cursorPosition + cambio, cursorPosition + cambio);
+    });
+
+    // Cuando el input pierde el foco, formatea con 2 decimales
+    $("#efectivo_bill, #importe_transferencia, #importe_cheque").on("blur", function() {
+        const valor = $(this).val();
+        if (valor) {
+            $(this).val(formatearMonto(valor));
+        }
+    });
+
+    // Al mostrar el modal: calcular cambio + enfocar
+    $('#modal_pagos').on('shown.bs.modal', function() {
+        calcularCambioEfectivo();
         if ($('#formEfectivoBill').is(':visible')) {
-            setTimeout(() => {
-                $('#formEfectivoBill #efectivo_bill').focus();
-            }, 300);
+            setTimeout(() => { $('#formEfectivoBill #efectivo_bill').focus(); }, 300);
         }
     });
 });
-
-// Función mejorada para calcular el cambio en efectivo
-function calcularCambioEfectivo() {
-    const $form = $('#formEfectivoBill');
-    const efectivoStr = $form.find('#efectivo_bill').val().replace(/,/g, '');
-    const montoStr = $form.find('#monto_efectivo').val().replace(/,/g, '');
-    
-    const efectivo = parseFloat(efectivoStr) || 0;
-    const monto = parseFloat(montoStr) || 0;
-    const tipoPago = parseInt($form.find('#tipo_factura').val()) || 1;
-
-    if (tipoPago === 1) { // Pago completo
-        const cambio = efectivo - monto;
-        $form.find('#cambio_efectivo').val(cambio >= 0 ? cambio.toFixed(2) : "0.00");
-        $form.find('#pago_efectivo').attr('disabled', efectivo < monto);
-    } else { // Pago múltiple
-        $form.find('#cambio_efectivo').val("0.00");
-        $form.find('#pago_efectivo').attr('disabled', efectivo <= 0 || efectivo > monto);
-    }
-}
+/*FIN DE PAGOS*/
 
 // Función para obtener los colaboradores
 function getCollaboradoresModalPagoFacturas() {
@@ -6061,4 +6141,219 @@ function getClientesIngresos() {
         }
     });
 }
+
+function getConsultarAperturaCaja() {
+    var url = '<?php echo SERVERURL; ?>core/getAperturaCajaUsuario.php';
+
+    var estado_apertura;
+
+    $.ajax({
+        type: 'POST',
+        url: url,
+        async: false,
+        success: function(registro) {
+            var valores = eval(registro);
+            estado_apertura = valores[0];
+        }
+    });
+    return estado_apertura;
+}
+
+// ==============================
+// counter
+// ==============================
+/*CONTEO FACTURAS*/
+$(function() {
+    // Inicialización
+    validarAperturaCajaUsuario();
+    getTotalFacturasDisponibles();
+    
+    // Actualizar cada minuto
+    setInterval(() => {
+        validarAperturaCajaUsuario();
+        getTotalFacturasDisponibles();
+    }, 60000);
+});
+let lastState = null;
+
+function getTotalFacturasDisponibles() {
+    $.ajax({
+        type: 'POST',
+        url: '<?php echo SERVERURL; ?>core/getTotalFacturasDisponibles.php',
+        dataType: 'json'
+    }).done(function(datos) {
+        updateCounterUI(datos);
+    }).fail(function() {
+        showErrorState();
+    });
+}
+
+function updateCounterUI(datos) {
+    const { facturasPendientes, contador, fechaLimite } = datos;
+    const counter = $("#mensajeFacturas");
+    const daysLeft = parseInt(contador);
+    
+    // Determinar el estado actual
+    const currentState = getCurrentState(facturasPendientes, daysLeft, fechaLimite);
+    
+    // Solo actualizar si cambió el estado
+    if (currentState !== lastState) {
+        lastState = currentState;
+        
+        // Aplicar efecto de cambio
+        counter.addClass('state-change');
+        setTimeout(() => counter.removeClass('state-change'), 300);
+        
+        // Configurar según estado
+        const config = getStateConfig(currentState, facturasPendientes, daysLeft, fechaLimite);
+        
+        // Actualizar DOM
+        counter.html(`<i class="${config.icon}"></i> <div class="counter-content">${config.text}</div>`)
+              .removeClass('alert-normal alert-warning alert-danger')
+              .addClass(config.class);
+    }
+    
+    // Controlar botones
+    updateButtonsState(facturasPendientes, fechaLimite, daysLeft);
+}
+
+function getCurrentState(facturasPendientes, daysLeft, fechaLimite) {
+    if (!fechaLimite || fechaLimite.trim() === "Sin definir") return 'no-config';
+    if (facturasPendientes < 0) return 'blocked';
+    
+    if (daysLeft < 0) return 'expired';
+    if (daysLeft <= 5) return 'danger';
+    if (facturasPendientes <= 9) return 'danger';
+    if (facturasPendientes <= 30) return 'warning';
+    
+    return 'normal';
+}
+
+function getStateConfig(state, facturasPendientes, daysLeft, fechaLimite) {
+    // Formatear número con separadores de mil
+    const facturasFormateadas = facturasPendientes.toLocaleString('es-HN');
+
+    // Mensaje de vencimiento solo cuando daysLeft <= 5 o ya venció
+    const vencimientoMsg = (daysLeft <= 5) ? 
+        `<div class="counter-line days-left">
+            ${daysLeft < 0 
+                ? 'Las autorizaciones del SAR han vencido.' 
+                : (daysLeft === 0 
+                    ? '<strong>Las autorizaciones del SAR vencen hoy.</strong>' 
+                    : `Las autorizaciones del SAR vencen en <strong>${daysLeft}</strong> día(s).`)}
+        </div>` 
+        : '';
+
+    const facturasMsg = `<div class="counter-line facturas-count">
+                            Quedan <strong>${facturasFormateadas}</strong> factura(s) autorizada(s) por el SAR.
+                         </div>`;
+
+    const configs = {
+        'normal': {
+            icon: 'fas fa-file-invoice',
+            class: 'alert-normal',
+            text: facturasMsg
+        },
+        'warning': {
+            icon: 'fas fa-hourglass-half',
+            class: 'alert-warning',
+            text: facturasMsg + vencimientoMsg
+        },
+        'danger': {
+            icon: 'fas fa-exclamation-triangle',
+            class: 'alert-danger',
+            text: facturasMsg + vencimientoMsg
+        },
+        'expired': {
+            icon: 'fas fa-calendar-times',
+            class: 'alert-danger',
+            text: `<div class="counter-line">Las autorizaciones del SAR han vencido.</div>
+                   <div class="counter-line">
+                     <a href="<?php echo SERVERURL; ?>secuencia/" target="_blank" class="counter-link">Actualizar ahora</a>
+                   </div>`
+        },
+        'blocked': {
+            icon: 'fas fa-ban',
+            class: 'alert-danger',
+            text: `<div class="counter-line">Ha alcanzado el límite de facturas autorizado por el SAR.</div>
+                   <div class="counter-line">
+                     <a href="<?php echo SERVERURL; ?>secuencia/" target="_blank" class="counter-link">Configurar secuencia</a>
+                   </div>`
+        },
+        'no-config': {
+            icon: 'fas fa-calendar-times',
+            class: 'alert-warning',
+            text: `<div class="counter-line">No se ha definido una fecha límite para las autorizaciones del SAR.</div>
+                   <div class="counter-line">
+                     <a href="<?php echo SERVERURL; ?>secuencia/" target="_blank" class="counter-link">Establecer fecha</a>
+                   </div>`
+        }
+    };
+
+    return configs[state] || configs['normal'];
+}
+
+function updateButtonsState(facturasPendientes, fechaLimite, daysLeft) {
+    const facturarBtn = $("#invoice-form #reg_factura");
+    // Los botones de caja NO se deben deshabilitar aquí
+    
+    // Validación de facturas SAR
+    const vencimientoPasado = daysLeft < 0;
+    const sarDisabled = facturasPendientes <= 0 || !fechaLimite || fechaLimite.trim() === "Sin definir" || vencimientoPasado;
+    
+    // Validación de caja (2 = cerrada)
+    const cajaCerrada = getConsultarAperturaCaja() == 2;
+    
+    // Solo deshabilitar botones de facturación
+    facturarBtn.prop("disabled", sarDisabled || cajaCerrada);
+
+    // Estilos solo para SAR (la caja tiene sus propios estilos)
+    if (sarDisabled && !cajaCerrada) {
+        facturarBtn.addClass("btn-outline-danger").removeClass("btn-secondary");
+    } else {
+        facturarBtn.removeClass("btn-outline-danger").addClass("btn-secondary");
+    }
+}
+
+function validarAperturaCajaUsuario() {
+    const cajaCerrada = getConsultarAperturaCaja() == 2;
+    const elementos = [
+        "#reg_factura", "#guardar_factura", "#add_cliente", 
+        "#add_vendedor", "#addCambio", "#addQuotetoBill",
+        "#addPayCustomers", "#addRows", "#removeRows",
+        "#notasFactura", "#addDraft"
+    ];
+
+    // Aplicar estado a todos los elementos (excepto botones de caja)
+    elementos.forEach(selector => {
+        $(`#invoice-form ${selector}`).prop("disabled", cajaCerrada);
+    });
+
+    // Manejar visibilidad de botones de caja (siempre habilitados)
+    $("#invoice-form #btn_apertura")
+        .toggle(cajaCerrada)
+        .prop("disabled", false); // ← Siempre habilitado
+    
+    $("#invoice-form #btn_cierre")
+        .toggle(!cajaCerrada)
+        .prop("disabled", false); // ← Siempre habilitado
+    
+    // Forzar actualización del estado SAR
+    getTotalFacturasDisponibles();
+}
+
+function showErrorState() {
+    $("#mensajeFacturas").html(
+        `<i class="fas fa-exclamation-circle"></i> <div class="counter-content">Error al cargar disponibilidad (SAR)</div>`
+    ).addClass('alert-danger');
+}
+
+
+// -----------------------------------
+// Ready
+// -----------------------------------
+$(document).ready(function () {
+    // Pequeño delay para asegurar que el DOM objetivo exista
+    setTimeout(initializeFacturasCounter, 600);
+});
 </script>

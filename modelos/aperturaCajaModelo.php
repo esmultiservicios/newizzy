@@ -6,6 +6,10 @@ if($peticionAjax){
 }
 
 class aperturaCajaModelo extends mainModel{
+
+    /* ==========================
+       APERTURA
+       ========================== */
     protected function agregar_apertura_caja_modelo($datos) {
         $apertura_id = mainModel::correlativo("apertura_id", "apertura");
 
@@ -36,14 +40,20 @@ class aperturaCajaModelo extends mainModel{
             )
         ";
 
-        $sql = mainModel::connection()->query($insert) 
-            or die(mainModel::connection()->error);
+        $ok = mainModel::connection()->query($insert);
+        if(!$ok){ die(mainModel::connection()->error); }
 
-        return $sql;
+        // devuelve TRUE como antes
+        return $ok;
     }
 
+    /* ==========================
+       INGRESOS / MOVIMIENTOS
+       ========================== */
     protected function agregar_ingresos_contabilidad_modelo($datos) {
         $ingresos_id = mainModel::correlativo("ingresos_id", "ingresos");
+        // Valor por defecto para evitar warning
+        $recibide = isset($datos['recibide']) ? $datos['recibide'] : '';
 
         $insert = "
             INSERT INTO ingresos (
@@ -82,19 +92,18 @@ class aperturaCajaModelo extends mainModel{
                 '".$datos['estado']."', 
                 '".$datos['colaboradores_id']."', 
                 '".$datos['fecha_registro']."', 
-                '".$datos['recibide']."'
+                '".$recibide."'
             )
         ";
 
-        $sql = mainModel::connection()->query($insert) 
-            or die(mainModel::connection()->error);
+        $ok = mainModel::connection()->query($insert);
+        if(!$ok){ die(mainModel::connection()->error); }
 
-        return $sql;
+        return $ingresos_id;
     }
 
     protected function getNombreClienteModelo($clientes_id){
-        $result = mainModel::getNombreCliente($clientes_id);
-        return $result;    
+        return mainModel::getNombreCliente($clientes_id);
     }
     
     protected function agregar_movimientos_contabilidad_modelo($datos) {
@@ -125,10 +134,10 @@ class aperturaCajaModelo extends mainModel{
             )
         ";
 
-        $sql = mainModel::connection()->query($insert) 
-            or die(mainModel::connection()->error);
+        $ok = mainModel::connection()->query($insert);
+        if(!$ok){ die(mainModel::connection()->error); }
 
-        return $sql;
+        return $ok;
     }
 
     protected function consultar_saldo_movimientos_cuentas_contabilidad($cuentas_id){
@@ -137,17 +146,20 @@ class aperturaCajaModelo extends mainModel{
             WHERE cuentas_id = '$cuentas_id'
             ORDER BY movimientos_cuentas_id DESC LIMIT 1";
         
-        $sql = mainModel::connection()->query($query) or die(mainModel::connection()->error);
-        
+        $sql = mainModel::connection()->query($query);
+        if(!$sql){ die(mainModel::connection()->error); }
         return $sql;                
     }
 
+    /* ==========================
+       VALIDACIONES
+       ========================== */
     protected function valid_ingreso_cuentas_modelo($datos){
         $query = "SELECT ingresos_id 
             FROM ingresos 
             WHERE factura = '".$datos['factura']."' AND clientes_id = '".$datos['clientes_id']."'";
-        $sql = mainModel::connection()->query($query) or die(mainModel::connection()->error);
-        
+        $sql = mainModel::connection()->query($query);
+        if(!$sql){ die(mainModel::connection()->error); }
         return $sql;            
     }
 
@@ -156,7 +168,8 @@ class aperturaCajaModelo extends mainModel{
             FROM apertura 
             WHERE colaboradores_id = '".$datos['colaboradores_id']."' AND estado = 1";
 
-        $sql = mainModel::connection()->query($query) or die(mainModel::connection()->error);
+        $sql = mainModel::connection()->query($query);
+        if(!$sql){ die(mainModel::connection()->error); }
 
         return $sql;
     }
@@ -166,22 +179,27 @@ class aperturaCajaModelo extends mainModel{
             FROM cajas 
             WHERE apertura_id = '".$datos['apertura_id']."' AND estado = 1";
         
-        $sql = mainModel::connection()->query($query) or die(mainModel::connection()->error);
-        
+        $sql = mainModel::connection()->query($query);
+        if(!$sql){ die(mainModel::connection()->error); }
         return $sql;            
     }
-    
+
+    /* ==========================
+       CIERRE
+       ========================== */
     protected function cerrar_caja_modelo($datos){
         $update = "UPDATE apertura
         SET 
             factura_inicial = '".$datos['factura_inicial']."',
-            factura_final = '".$datos['factura_final']."',    
-            neto = '".$datos['neto']."',                    
-            estado = '".$datos['estado']."'
-            WHERE fecha = '".$datos['fecha']."' AND colaboradores_id = '".$datos['colaboradores_id']."' AND estado = 1";
+            factura_final   = '".$datos['factura_final']."',    
+            neto            = '".$datos['neto']."',                    
+            estado          = '".$datos['estado']."'
+        WHERE fecha = '".$datos['fecha']."' 
+          AND colaboradores_id = '".$datos['colaboradores_id']."' 
+          AND estado = 1";
         
-        $sql = mainModel::connection()->query($update) or die(mainModel::connection()->error);
-        
+        $sql = mainModel::connection()->query($update);
+        if(!$sql){ die(mainModel::connection()->error); }
         return $sql;                
     }
     
@@ -192,8 +210,8 @@ class aperturaCajaModelo extends mainModel{
             INNER JOIN documento AS d ON sf.documento_id = d.documento_id
             WHERE f.apertura_id = '$apertura_id' AND f.estado = 2 AND d.nombre = 'Factura Electronica'
             ORDER BY f.facturas_id ASC LIMIT 1";
-        $sql = mainModel::connection()->query($query) or die(mainModel::connection()->error);
-
+        $sql = mainModel::connection()->query($query);
+        if(!$sql){ die(mainModel::connection()->error); }
         return $sql;            
     }
     
@@ -205,8 +223,8 @@ class aperturaCajaModelo extends mainModel{
             WHERE f.apertura_id = '$apertura_id' AND f.estado = 2 AND d.nombre = 'Factura Electronica'
             ORDER BY f.facturas_id DESC LIMIT 1";
 
-        $sql = mainModel::connection()->query($query) or die(mainModel::connection()->error);
-
+        $sql = mainModel::connection()->query($query);
+        if(!$sql){ die(mainModel::connection()->error); }
         return $sql;            
     }    
 
@@ -217,18 +235,17 @@ class aperturaCajaModelo extends mainModel{
             INNER JOIN documento AS d ON sf.documento_id = d.documento_id
             INNER JOIN pagos AS p ON f.facturas_id = p.facturas_id
             WHERE f.apertura_id = '$apertura_id' 
-            AND f.estado = 2 
-            AND d.nombre = 'Factura Electronica'
-            AND p.estado = 1";
+              AND f.estado = 2 
+              AND d.nombre = 'Factura Electronica'
+              AND p.estado = 1";
     
-        $sql = mainModel::connection()->query($query) or die(mainModel::connection()->error);
-        
+        $sql = mainModel::connection()->query($query);
+        if(!$sql){ die(mainModel::connection()->error); }
         return $sql;            
     }
 
     protected function consulta_detalles_facturas($facturas_id){
-        $result = mainModel::getDetalleFactura($facturas_id);
-        return $result;            
+        return mainModel::getDetalleFactura($facturas_id);
     }
 
     protected function neto_factura($datos){
@@ -236,8 +253,8 @@ class aperturaCajaModelo extends mainModel{
             FROM facturas
             WHERE fecha = '".$datos['fecha']."' AND usuario = '".$datos['colaboradores_id']."' AND estado = 2";
     
-        $sql = mainModel::connection()->query($query) or die(mainModel::connection()->error);
-        
+        $sql = mainModel::connection()->query($query);
+        if(!$sql){ die(mainModel::connection()->error); }
         return $sql;            
     }    
     
@@ -246,8 +263,68 @@ class aperturaCajaModelo extends mainModel{
             FROM config
             WHERE accion = '$accion'";
 
-        $result = mainModel::connection()->query($query) or die(mainModel::connection()->error);
-        
-        return $result;
+        $sql = mainModel::connection()->query($query);
+        if(!$sql){ die(mainModel::connection()->error); }
+        return $sql;
     }            
+
+    /* ==========================
+       NUEVOS MÉTODOS (CIERRE)
+       ========================== */
+
+    // Montos por cuenta para pagos NO contabilizados (derivando cuenta desde tipo_pago)
+    protected function getMontosNoContabilizadosPorCuenta($apertura_id){
+        $query = "
+            SELECT tp.cuentas_id, SUM(pd.efectivo) AS monto
+            FROM pagos p
+            INNER JOIN facturas f         ON f.facturas_id = p.facturas_id
+            INNER JOIN pagos_detalles pd  ON pd.pagos_id   = p.pagos_id
+            INNER JOIN tipo_pago tp       ON tp.tipo_pago_id = pd.tipo_pago_id
+            INNER JOIN secuencia_facturacion sf ON f.secuencia_facturacion_id = sf.secuencia_facturacion_id
+            INNER JOIN documento d        ON sf.documento_id = d.documento_id
+            WHERE f.apertura_id = '$apertura_id'
+              AND f.estado = 2
+              AND d.nombre = 'Factura Electronica'
+              AND p.estado = 1
+              AND IFNULL(p.contabilizado,0) = 0
+            GROUP BY tp.cuentas_id
+        ";
+        $sql = mainModel::connection()->query($query);
+        if(!$sql){ die(mainModel::connection()->error); }
+        return $sql;
+    }
+
+    // Marca pagos como contabilizados por cuenta (derivada desde tipo_pago) y guarda el ingreso de referencia
+    protected function marcar_pagos_contabilizados_por_cuenta($apertura_id, $cuentas_id, $ingresos_id){
+        $update = "
+            UPDATE pagos p
+            INNER JOIN facturas f         ON f.facturas_id = p.facturas_id
+            INNER JOIN pagos_detalles pd  ON pd.pagos_id   = p.pagos_id
+            INNER JOIN tipo_pago tp       ON tp.tipo_pago_id = pd.tipo_pago_id
+            SET p.contabilizado = 1, p.referencia_ingreso_id = '$ingresos_id'
+            WHERE f.apertura_id = '$apertura_id'
+              AND f.estado = 2
+              AND p.estado = 1
+              AND IFNULL(p.contabilizado,0) = 0
+              AND tp.cuentas_id = '$cuentas_id'
+        ";
+        $ok = mainModel::connection()->query($update);
+        if(!$ok){ die(mainModel::connection()->error); }
+        return $ok;
+    }
+
+    /* (Compat) marcar por cuenta directa si la necesitas en otro lado */
+    protected function marcar_pagos_contabilizados($apertura_id, $cuentas_id, $ingresos_id){
+        $update = "
+            UPDATE pagos p
+            INNER JOIN facturas f ON f.facturas_id = p.facturas_id
+            SET p.contabilizado = 1, p.referencia_ingreso_id = '$ingresos_id'
+            WHERE f.apertura_id = '$apertura_id' 
+              AND p.estado = 1
+              AND IFNULL(p.contabilizado,0) = 0
+        ";
+        $ok = mainModel::connection()->query($update);
+        if(!$ok){ die(mainModel::connection()->error); }
+        return $ok;
+    }
 }

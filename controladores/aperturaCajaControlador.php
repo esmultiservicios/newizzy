@@ -70,9 +70,9 @@ class aperturaCajaControlador extends aperturaCajaModelo{
 
         // Procesar apertura
         if($this->validarConfigApertura() || !$this->cajaAbierta($datos)){
-            $query = aperturaCajaModelo::agregar_apertura_caja_modelo($datos);
+            $apertura_ok = aperturaCajaModelo::agregar_apertura_caja_modelo($datos);
             
-            if($query){
+            if($apertura_ok){
                 $this->registrarHistorial("Apertura", "Se aperturó la caja");
                 return mainModel::showNotification([
                     "title" => "Caja aperturada",
@@ -80,7 +80,7 @@ class aperturaCajaControlador extends aperturaCajaModelo{
                     "type" => "success",
                     "form" => "formAperturaCaja",
                     "funcion" => "validarAperturaCajaUsuario();getCajero();",
-					"closeAllModals" => true
+                    "closeAllModals" => true
                 ]);
             } else {
                 return mainModel::showNotification([
@@ -110,7 +110,7 @@ class aperturaCajaControlador extends aperturaCajaModelo{
 
         // Verificar si la caja está abierta
         $result = aperturaCajaModelo::valid_apertura_caja_modelo($datos_apertura);            
-        if($result->num_rows == 0){
+        if(!$result || $result->num_rows == 0){
             return mainModel::showNotification([
                 "title" => "Error",
                 "text" => "La caja no se encuentra abierta",
@@ -123,7 +123,7 @@ class aperturaCajaControlador extends aperturaCajaModelo{
 
         // Obtener facturas inicial y final
         $factura_inicial = $this->obtenerFactura($apertura_id, 'inicial');
-        $factura_final = $this->obtenerFactura($apertura_id, 'final');
+        $factura_final   = $this->obtenerFactura($apertura_id, 'final');
 
         // Calcular totales
         $totales = $this->calcularTotalesCaja($apertura_id);
@@ -142,7 +142,6 @@ class aperturaCajaControlador extends aperturaCajaModelo{
 
         // Cerrar caja
         $query = aperturaCajaModelo::cerrar_caja_modelo($datos_cierre);
-        
         if(!$query){
             return mainModel::showNotification([
                 "title" => "Error",
@@ -151,7 +150,7 @@ class aperturaCajaControlador extends aperturaCajaModelo{
             ]);
         }
 
-        // Registrar movimientos contables
+        // Registrar movimientos contables (solo pagos no contabilizados)
         $this->registrarMovimientosContables($apertura_id, $totales);
 
         $this->registrarHistorial("Cierre", "Se cerró la caja");
@@ -162,7 +161,7 @@ class aperturaCajaControlador extends aperturaCajaModelo{
             "type" => "success",
             "funcion" => "validarAperturaCajaUsuario();getCajero();printComprobanteCajas($apertura_id);",
             "form" => "formAperturaCaja",
-			"closeAllModals" => true
+            "closeAllModals" => true
         ]);
     }
 
@@ -171,7 +170,7 @@ class aperturaCajaControlador extends aperturaCajaModelo{
         $method = ($tipo == 'inicial') ? 'consultar_factura_inicial' : 'consultar_factura_final';
         $result = aperturaCajaModelo::$method($apertura_id);
         
-        if($result->num_rows > 0){
+        if($result && $result->num_rows > 0){
             $consulta = $result->fetch_assoc();
             return $consulta['prefijo']."".str_pad($consulta['numero'], $consulta['relleno'], "0", STR_PAD_LEFT);
         }
@@ -191,18 +190,21 @@ class aperturaCajaControlador extends aperturaCajaModelo{
             'total_despues_isv' => 0
         ];
 
-        while($data = $result->fetch_assoc()){
-            $detalles = aperturaCajaModelo::consulta_detalles_facturas($data['facturas_id']);
-            
-            while($detalle = $detalles->fetch_assoc()){
-                $totales['total'] += ($detalle["precio"] * $detalle["cantidad"]);
-                $totales['descuentos'] += $detalle["descuento"];
-                $totales['isv_neto'] += $detalle["isv_valor"];
-                
-                if($detalle["isv_valor"] > 0){
-                    $totales['importe_gravado'] += ($detalle["precio"] * $detalle["cantidad"]);
-                }else{
-                    $totales['importe_excento'] += ($detalle["precio"] * $detalle["cantidad"]);
+        if($result){
+            while($data = $result->fetch_assoc()){
+                $detalles = aperturaCajaModelo::consulta_detalles_facturas($data['facturas_id']);
+                if($detalles){
+                    while($detalle = $detalles->fetch_assoc()){
+                        $totales['total']      += ($detalle["precio"] * $detalle["cantidad"]);
+                        $totales['descuentos'] += $detalle["descuento"];
+                        $totales['isv_neto']   += $detalle["isv_valor"];
+                        
+                        if($detalle["isv_valor"] > 0){
+                            $totales['importe_gravado'] += ($detalle["precio"] * $detalle["cantidad"]);
+                        }else{
+                            $totales['importe_excento'] += ($detalle["precio"] * $detalle["cantidad"]);
+                        }
+                    }
                 }
             }
         }
@@ -214,61 +216,95 @@ class aperturaCajaControlador extends aperturaCajaModelo{
     }
 
     private function registrarMovimientosContables($apertura_id, $totales) {
-        $fecha = date('Y-m-d');
-        $fecha_registro = date('Y-m-d H:i:s');
-        $empresa_id = $_SESSION['empresa_id_sd'];
-        $colaboradores_id = $_SESSION['colaborador_id_sd'];
-        $tipo_ingreso = 1; // INGRESOS POR VENTAS
+        $cn = mainModel::connection();
+        $cn->begin_transaction();
 
-        // Obtener montos por tipo de pago
-        $montos = mainModel::getMontoTipoPago($apertura_id);
+        try{
+            $fecha = date('Y-m-d');
+            $fecha_registro = date('Y-m-d H:i:s');
+            $empresa_id = $_SESSION['empresa_id_sd'];
+            $colaboradores_id = $_SESSION['colaborador_id_sd'];
+            $tipo_ingreso = 1; // INGRESOS POR VENTAS
 
-        while($monto = $montos->fetch_assoc()){
-            $cuentas_id = $monto['cuentas_id'];
-            $total = $monto['monto'];
-            
-            // Calcular ISV
-            $porcentaje_isv = mainModel::getISV("Facturas")->fetch_assoc()['valor'];
-            $total_antes_isv = $total / ((($porcentaje_isv/100) + 1));
-            $isv_neto = $total - $total_antes_isv;
+            // ✅ Solo pagos no contabilizados
+            $montos = $this->getMontosNoContabilizadosPorCuenta($apertura_id);
 
-            // Registrar ingreso
-            $datos_ingreso = [
-                "clientes_id" => 2,
-                "cuentas_id" => $cuentas_id,
-                "empresa_id" => $empresa_id,
-                "fecha" => $fecha,
-                "factura" => $apertura_id,
-                "subtotal" => $total_antes_isv,
-                "isv" => $isv_neto,
-                "descuento" => 0,
-                "nc" => 0,
-                "total" => $total,
-                "observacion" => "Ingresos por venta Cierre de Caja",
-                "estado" => 1,
-                "fecha_registro" => $fecha_registro,
-                "colaboradores_id" => $colaboradores_id,
-                "tipo_ingreso" => $tipo_ingreso                
-            ];
-            
-            aperturaCajaModelo::agregar_ingresos_contabilidad_modelo($datos_ingreso);
+            // ISV
+            $porcentaje_isv = 0.0;
+            $rowISV = mainModel::getISV("Facturas");
+            if($rowISV && $rowISV->num_rows > 0){
+                $porcentaje_isv = (float)$rowISV->fetch_assoc()['valor'];
+            }
 
-            // Registrar movimiento
-            $saldo_actual = aperturaCajaModelo::consultar_saldo_movimientos_cuentas_contabilidad($cuentas_id)->fetch_assoc()['saldo'];
-            $nuevo_saldo = $saldo_actual + $total;
+            // “Recibí de”
+            $recibide = '';
+            $rowCli = aperturaCajaModelo::getNombreClienteModelo(1);
+            if($rowCli && $rowCli->num_rows > 0){
+                $rec = $rowCli->fetch_assoc();
+                $recibide = isset($rec['nombre']) ? $rec['nombre'] : '';
+            }
 
-            $datos_movimiento = [
-                "cuentas_id" => $cuentas_id,
-                "empresa_id" => $empresa_id,
-                "fecha" => $fecha,
-                "ingreso" => $total,
-                "egreso" => 0,
-                "saldo" => $nuevo_saldo,
-                "colaboradores_id" => $colaboradores_id,
-                "fecha_registro" => $fecha_registro,                
-            ];
-            
-            aperturaCajaModelo::agregar_movimientos_contabilidad_modelo($datos_movimiento);
+            if($montos){
+                while($monto = $montos->fetch_assoc()){
+                    $cuentas_id = $monto['cuentas_id'];
+                    $total = (float)$monto['monto'];
+                    
+                    $subtotal = ($porcentaje_isv > 0) ? ($total / (1 + ($porcentaje_isv/100))) : $total;
+                    $isv_neto = $total - $subtotal;
+
+                    // Registrar ingreso
+                    $datos_ingreso = [
+                        "clientes_id"      => 2,
+                        "cuentas_id"       => $cuentas_id,
+                        "empresa_id"       => $empresa_id,
+                        "fecha"            => $fecha,
+                        "factura"          => "AP-".$apertura_id,
+                        "subtotal"         => $subtotal,
+                        "isv"              => $isv_neto,
+                        "descuento"        => 0,
+                        "nc"               => 0,
+                        "total"            => $total,
+                        "observacion"      => "Ingresos por venta Cierre de Caja",
+                        "estado"           => 1,
+                        "fecha_registro"   => $fecha_registro,
+                        "colaboradores_id" => $colaboradores_id,
+                        "tipo_ingreso"     => $tipo_ingreso,
+                        "recibide"         => $recibide
+                    ];
+                    
+                    $ingreso_id = aperturaCajaModelo::agregar_ingresos_contabilidad_modelo($datos_ingreso);
+
+                    // ✅ marcar pagos como contabilizados
+                    aperturaCajaModelo::marcar_pagos_contabilizados_por_cuenta($apertura_id, $cuentas_id, $ingreso_id);
+
+                    // Registrar movimiento
+                    $saldo_actual = 0;
+                    $rsSaldo = aperturaCajaModelo::consultar_saldo_movimientos_cuentas_contabilidad($cuentas_id);
+                    if($rsSaldo && $rsSaldo->num_rows > 0){
+                        $filaS = $rsSaldo->fetch_assoc();
+                        $saldo_actual = isset($filaS['saldo']) ? (float)$filaS['saldo'] : 0;
+                    }
+                    $nuevo_saldo = $saldo_actual + $total;
+
+                    $datos_movimiento = [
+                        "cuentas_id"       => $cuentas_id,
+                        "empresa_id"       => $empresa_id,
+                        "fecha"            => $fecha,
+                        "ingreso"          => $total,
+                        "egreso"           => 0,
+                        "saldo"            => $nuevo_saldo,
+                        "colaboradores_id" => $colaboradores_id,
+                        "fecha_registro"   => $fecha_registro,                
+                    ];
+                    
+                    aperturaCajaModelo::agregar_movimientos_contabilidad_modelo($datos_movimiento);
+                }
+            }
+
+            $cn->commit();
+        }catch(Throwable $e){
+            $cn->rollback();
+            throw $e;
         }
     }
 }

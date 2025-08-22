@@ -5954,6 +5954,28 @@ class mainModel
 		return $conn->query($query);
 	}	
 
+	// core/mainModel.php  (reemplaza la función completa)
+	public function getMontoTipoPagoNoContabilizado($apertura_id){
+		$cn = self::connection();
+		$apertura_id = $cn->real_escape_string($apertura_id);
+
+		$sql = "
+			SELECT 
+				tp.cuentas_id,
+				SUM(pd.efectivo) AS monto
+			FROM pagos AS p
+			INNER JOIN pagos_detalles AS pd ON pd.pagos_id = p.pagos_id
+			INNER JOIN facturas AS f       ON f.facturas_id = p.facturas_id
+			INNER JOIN tipo_pago AS tp     ON tp.tipo_pago_id = pd.tipo_pago_id
+			WHERE f.apertura_id = '$apertura_id'
+			AND p.estado = 1
+			AND p.contabilizado = 0
+			GROUP BY tp.cuentas_id
+		";
+
+		return $cn->query($sql);
+	}
+
 	public function getDetalleCotizaciones($noCotizacion)
 	{
 		$query = "SELECT 

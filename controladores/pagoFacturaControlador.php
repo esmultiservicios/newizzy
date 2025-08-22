@@ -6,267 +6,290 @@ if ($peticionAjax) {
 }
 
 class pagoFacturaControlador extends pagoFacturaModelo {
+
+    /* ===========================
+     * PREPARAR DATOS DEL PAGO
+     * =========================== */
     protected function prepararDatosPago($tipoPago) {
         $validacion = mainModel::validarSesion();
-        if($validacion['error']) {
+        if ($validacion['error']) {
             return [
-                "status" => false,
-                "title" => "Error de sesión",
-                "message" => $validacion['mensaje'],
+                "status"   => false,
+                "title"    => "Error de sesión",
+                "message"  => $validacion['mensaje'],
                 "redirect" => $validacion['redireccion']
             ];
         }
 
-        $campoId = "factura_id_" . $tipoPago;
-        $campoFecha = "fecha_" . $tipoPago;
-        $campoMonto = $tipoPago === 'efectivo' ? 'efectivo_bill' : ($tipoPago === 'tarjeta' ? 'importe' : 'importe');
-        $campoUsuario = "usuario_" . $tipoPago;
+        $campoId      = "factura_id_" . $tipoPago;     // factura_id_efectivo/tarjeta/transferencia/cheque
+        $campoFecha   = "fecha_" . $tipoPago;          // fecha_efectivo/tarjeta/transferencia/cheque
+        $campoUsuario = "usuario_" . $tipoPago;        // usuario_efectivo/tarjeta/...
 
         if (!isset($_POST[$campoId])) {
-            return [
-                "status" => false,
-                "title" => "Error",
-                "message" => "No se recibió el ID de la factura"
-            ];
+            return ["status"=>false,"title"=>"Error","message"=>"No se recibió el ID de la factura"];
         }
 
-        $monto = 0;
-        if ($tipoPago === 'efectivo') {
-            $monto = isset($_POST['efectivo_bill']) ? floatval($_POST['efectivo_bill']) : 0;
-        } elseif ($tipoPago === 'tarjeta' || $tipoPago === 'transferencia' || $tipoPago === 'cheque') {
-            $monto = isset($_POST['importe']) ? floatval($_POST['importe']) : 0;
+        // === Monto según tipo de pago (y saneado) ===
+        switch ($tipoPago) {
+            case 'efectivo':
+                $monto = isset($_POST['efectivo_bill']) ? $this->parseMonto($_POST['efectivo_bill']) : 0.0;
+                break;
+            case 'tarjeta':
+                $monto = isset($_POST['importe_tarjeta']) ? $this->parseMonto($_POST['importe_tarjeta'])
+                       : (isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0);
+                break;
+            case 'transferencia':
+                $monto = isset($_POST['importe_transferencia']) ? $this->parseMonto($_POST['importe_transferencia'])
+                       : (isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0);
+                break;
+            case 'cheque':
+                $monto = isset($_POST['importe_cheque']) ? $this->parseMonto($_POST['importe_cheque'])
+                       : (isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0);
+                break;
+            default:
+                $monto = isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0;
+                break;
         }
 
+        // === Factura (usa los alias de tu getFactura) ===
         $factura = mainModel::getFactura($_POST[$campoId])->fetch_assoc();
         if(!$factura) {
             return [
                 "status" => false,
-                "title" => "Error",
-                "message" => "No se encontró la factura"
+                "title"  => "Error",
+                "message"=> "No se encontró la factura"
             ];
         }
 
         if ($monto <= 0) {
-            return [
-                "status" => false,
-                "title" => "Error",
-                "message" => "El monto debe ser mayor que cero"
-            ];
+            return ["status"=>false,"title"=>"Error","message"=>"El monto debe ser mayor que cero"];
         }
-        
-        $tipo_factura_post = isset($_POST['facturas_activo']) && $_POST['facturas_activo'] == '1' ? 1 : 2;
-        $saldoPendiente = $this->obtener_saldo_credito($_POST[$campoId]);
-        
-        // Validación CORREGIDA según tus condiciones exactas
-        if ($tipo_factura_post == 1) {
-            // PAGO COMPLETO: Solo validar que no sea menor
-            if ($monto < $saldoPendiente) {
+
+        // tipo_factura UI: 1=contado (pago completo), 2=crédito/abonos (pagos múltiples)
+        $tipo_factura_post = isset($_POST['tipo_factura']) ? intval($_POST['tipo_factura'])
+                           : (isset($_POST['tipo_factura_transferencia']) ? intval($_POST['tipo_factura_transferencia'])
+                           : (isset($_POST['tipo_factura_cheque']) ? intval($_POST['tipo_factura_cheque'])
+                           : ((isset($_POST['facturas_activo']) && $_POST['facturas_activo']=='1') ? 1 : 2)));
+
+        // Origen explícito desde JS: 'facturacion' | 'cxc'
+        $origen_pago = isset($_POST['origen_pago']) ? $_POST['origen_pago'] : 'facturacion';
+
+        // Saldo CxC
+        $saldoPendiente = 0;
+        $saldoRes = mainModel::connection()->query(
+            "SELECT saldo FROM cobrar_clientes WHERE facturas_id = '".intval($_POST[$campoId])."'"
+        );
+        if ($saldoRes && $saldoRes->num_rows > 0) {
+            $saldoData = $saldoRes->fetch_assoc();
+            $saldoPendiente = floatval($saldoData['saldo']);
+        }
+
+        // Validaciones por tipo de factura
+        if ($tipo_factura_post == 1) { // contado
+            if ($saldoPendiente > 0 && $monto < $saldoPendiente) {
                 return [
-                    "status" => false,
-                    "title" => "Error",
-                    "message" => "Para pago completo debe ingresar un monto igual o mayor al saldo pendiente (L. " . number_format($saldoPendiente, 2) . ")"
+                    "status"=>false,"title"=>"Error",
+                    "message"=>"Para pago completo debe ingresar un monto igual o mayor al saldo pendiente (L. ".number_format($saldoPendiente,2).")"
                 ];
             }
-            // No hay validación de monto máximo para pago completo
-        } else {
-            // PAGO MÚLTIPLE: Validar que no sea mayor
+        } else { // crédito / abono
             if ($monto > $saldoPendiente) {
                 return [
-                    "status" => false,
-                    "title" => "Error",
-                    "message" => "El monto no puede ser mayor al saldo pendiente (L. " . number_format($saldoPendiente, 2) . ")"
+                    "status"=>false,"title"=>"Error",
+                    "message"=>"El monto no puede ser mayor al saldo pendiente (L. ".number_format($saldoPendiente,2).")"
                 ];
             }
         }
 
-        $factura_number = isset($factura['number']) ? str_pad($factura['number'], 8, "0", STR_PAD_LEFT) : '';
-        $usuario = isset($_POST[$campoUsuario]) && $_POST[$campoUsuario] !== '' 
-                 ? intval($_POST[$campoUsuario]) 
-                 : $_SESSION['users_id_sd'];
+        // Número de factura con relleno (usa campos reales: numero_factura + relleno)
+        $relleno         = isset($factura['relleno']) ? intval($factura['relleno']) : 8;
+        $numeroEntero    = isset($factura['numero_factura']) ? intval($factura['numero_factura']) : 0;
+        $factura_number  = ($numeroEntero > 0) ? str_pad($numeroEntero, $relleno, "0", STR_PAD_LEFT) : '';
 
-        $datosBase = [
-            'multiple_pago' => $tipo_factura_post == 2 ? 1 : 0,
-            'facturas_id' => intval($_POST[$campoId]),
-            'fecha' => isset($_POST[$campoFecha]) ? $_POST[$campoFecha] : date('Y-m-d'),
-            'importe' => $tipo_factura_post == 1 ? $saldoPendiente : $monto, // Importe real a registrar (saldo pendiente para pago completo)
-            'cambio' => $tipo_factura_post == 1 ? ($monto - $saldoPendiente) : 0, // Cambio solo para pagos completos
-            'usuario' => $usuario,
-            'estado' => 1,
-            'tipo_factura' => $tipo_factura_post,
-            'fecha_registro' => date('Y-m-d H:i:s'),
-            'empresa' => intval($_SESSION['empresa_id_sd']),
-            'abono' => $saldoPendiente,
-            'print_comprobante' => isset($_POST['comprobante_print']) ? $_POST['comprobante_print'] : 0,
-            'colaboradores_id' => intval($_SESSION['colaborador_id_sd']),
-            'efectivo' => $monto, // Monto recibido del cliente (efectivo_bill)
-            'tarjeta' => 0,
-            'banco_id' => 0,
-            'referencia_pago1' => '',
-            'referencia_pago2' => '',
-            'referencia_pago3' => '',
-            'clientes_id' => $factura['clientes_id'],
-            'factura_number' => $factura_number
+        $usuario = (isset($_POST[$campoUsuario]) && $_POST[$campoUsuario] !== '')
+            ? intval($_POST[$campoUsuario])
+            : $_SESSION['users_id_sd'];
+
+        // Importe que afecta contabilidad/saldo
+        $importeReal = ($tipo_factura_post == 1
+            ? ($saldoPendiente > 0 ? $saldoPendiente : $monto)
+            : $monto
+        );
+
+        // Cambio solo contado
+        $cambio = ($tipo_factura_post == 1
+            ? max(0, $monto - ($saldoPendiente > 0 ? $saldoPendiente : $monto))
+            : 0
+        );
+
+        return [
+            'multiple_pago'      => ($tipo_factura_post == 2 ? 1 : 0),
+            'facturas_id'        => intval($_POST[$campoId]),
+            'fecha'              => isset($_POST[$campoFecha]) ? $_POST[$campoFecha] : date('Y-m-d'),
+            'importe'            => $importeReal,
+            'cambio'             => $cambio,
+            'usuario'            => $usuario,
+            'estado'             => 1,
+            'tipo_factura'       => $tipo_factura_post,
+            'fecha_registro'     => date('Y-m-d H:i:s'),
+            'empresa'            => intval($_SESSION['empresa_id_sd']),
+            'abono'              => $saldoPendiente,
+            'print_comprobante'  => isset($_POST['comprobante_print']) ? $_POST['comprobante_print'] : 0,
+            'colaboradores_id'   => intval($_SESSION['colaborador_id_sd']),
+            'efectivo'           => $monto,   // columna 'efectivo' en pagos (detallado por método en pagos_detalles)
+            'tarjeta'            => 0,
+            'banco_id'           => 0,
+            'referencia_pago1'   => '',
+            'referencia_pago2'   => '',
+            'referencia_pago3'   => '',
+            'clientes_id'        => $factura['clientes_id'],
+            'factura_number'     => $factura_number,   // SOLO número relleno; el prefijo se concatena al guardar en ingresos
+            'origen_pago'        => $origen_pago
         ];
-
-        return $datosBase;
     }
 
+    /* ===========================
+     * EFECTIVO
+     * =========================== */
     public function agregar_pago_factura_controlador_efectivo() {
         $datos = $this->prepararDatosPago('efectivo');
-        
-        if(isset($datos['status']) && !$datos['status']) {
+        if (isset($datos['status']) && !$datos['status']) {
             return mainModel::showNotification([
-                "type" => "error",
-                "title" => $datos['title'],
-                "text" => $datos['message'],
-                "redirect" => $datos['redirect'] ?? ''
+                "type"=>"error","title"=>$datos['title'],"text"=>$datos['message'],
+                "redirect"=>$datos['redirect'] ?? ''
             ]);
         }
-        
-        $datos['tipo_pago_id'] = 1;
-        $datos['banco_id'] = 0;
+        $datos['tipo_pago_id'] = 1; // efectivo
+        $datos['banco_id']     = 0;
 
         $result = pagoFacturaModelo::agregar_pago_factura_base($datos);
-        
-        if(isset($result['status']) && !$result['status']) {
+        if (isset($result['status']) && !$result['status']) {
             return mainModel::showNotification([
-                "type" => "error",
-                "title" => $result['title'],
-                "text" => $result['message']
+                "type"=>"error","title"=>$result['title'],"text"=>$result['message']
             ]);
         }
 
         return mainModel::showNotification([
-            "type" => "success",
-            "title" => $result['title'] ?? "Pago registrado",
-            "text" => $result['message'] ?? "Pago en efectivo registrado correctamente",
-            "form" => "formEfectivoBill",
-            "funcion" => $result['funcion'] ?? "listar_cuentas_por_cobrar_clientes();getCollaboradoresModalPagoFacturas();",
-            "closeAllModals" => true
+            "type"=>"success",
+            "title"=>$result['title'] ?? "Pago registrado",
+            "text"=>$result['message'] ?? "Pago en efectivo registrado correctamente",
+            "form"=>"formEfectivoBill",
+            "funcion"=>$result['funcion'] ?? "listar_cuentas_por_cobrar_clientes();getCollaboradoresModalPagoFacturas();",
+            "closeAllModals"=>true
         ]);
     }
 
+    /* ===========================
+     * TARJETA
+     * =========================== */
     public function agregar_pago_factura_controlador_tarjeta() {
         $datos = $this->prepararDatosPago('tarjeta');
-        
-        if(isset($datos['status']) && !$datos['status']) {
+        if (isset($datos['status']) && !$datos['status']) {
             return mainModel::showNotification([
-                "type" => "error",
-                "title" => $datos['title'],
-                "text" => $datos['message'],
-                "redirect" => $datos['redirect'] ?? ''
+                "type"=>"error","title"=>$datos['title'],"text"=>$datos['message'],
+                "redirect"=>$datos['redirect'] ?? ''
             ]);
         }
-        
-        $datos['tipo_pago_id'] = 2;
-        $datos['banco_id'] = isset($_POST['bk_nm']) ? intval($_POST['bk_nm']) : 0;
-        $datos['referencia_pago1'] = isset($_POST['cr_bill']) ? $_POST['cr_bill'] : '';
-        $datos['referencia_pago2'] = isset($_POST['exp']) ? $_POST['exp'] : '';
-        $datos['referencia_pago3'] = isset($_POST['cvcpwd']) ? $_POST['cvcpwd'] : '';
+        $datos['tipo_pago_id']      = 2; // tarjeta
+        $datos['banco_id']          = isset($_POST['bk_nm']) ? intval($_POST['bk_nm']) : 0;
+        // Descripciones: 1=cr_bill, 2=exp (MM/YY), 3=cvcpwd
+        $datos['referencia_pago1']  = isset($_POST['cr_bill']) ? $_POST['cr_bill'] : '';
+        $datos['referencia_pago2']  = isset($_POST['exp']) ? $_POST['exp'] : '';
+        $datos['referencia_pago3']  = isset($_POST['cvcpwd']) ? $_POST['cvcpwd'] : '';
 
         $result = pagoFacturaModelo::agregar_pago_factura_base($datos);
-        
-        if(isset($result['status']) && !$result['status']) {
+        if (isset($result['status']) && !$result['status']) {
             return mainModel::showNotification([
-                "type" => "error",
-                "title" => $result['title'],
-                "text" => $result['message']
+                "type"=>"error","title"=>$result['title'],"text"=>$result['message']
             ]);
         }
 
         return mainModel::showNotification([
-            "type" => "success",
-            "title" => $result['title'] ?? "Pago registrado",
-            "text" => $result['message'] ?? "Pago con tarjeta registrado correctamente",
-            "form" => "formTarjetaBill",
-            "funcion" => $result['funcion'] ?? "listar_cuentas_por_cobrar_clientes();getCollaboradoresModalPagoFacturas();",
-            "closeAllModals" => true
+            "type"=>"success",
+            "title"=>$result['title'] ?? "Pago registrado",
+            "text"=>$result['message'] ?? "Pago con tarjeta registrado correctamente",
+            "form"=>"formTarjetaBill",
+            "funcion"=>$result['funcion'] ?? "listar_cuentas_por_cobrar_clientes();getCollaboradoresModalPagoFacturas();",
+            "closeAllModals"=>true
         ]);
     }
 
+    /* ===========================
+     * TRANSFERENCIA
+     * =========================== */
     public function agregar_pago_factura_controlador_transferencia() {
         $datos = $this->prepararDatosPago('transferencia');
-        
-        if(isset($datos['status']) && !$datos['status']) {
+        if (isset($datos['status']) && !$datos['status']) {
             return mainModel::showNotification([
-                "type" => "error",
-                "title" => $datos['title'],
-                "text" => $datos['message'],
-                "redirect" => $datos['redirect'] ?? ''
+                "type"=>"error","title"=>$datos['title'],"text"=>$datos['message'],
+                "redirect"=>$datos['redirect'] ?? ''
             ]);
         }
-        
-        $datos['tipo_pago_id'] = 3;
-        $datos['banco_id'] = isset($_POST['bk_nm']) ? intval($_POST['bk_nm']) : 0;
-        $datos['referencia_pago1'] = isset($_POST['ref']) ? $_POST['ref'] : '';
-        $datos['referencia_pago2'] = isset($_POST['fecha_transferencia']) ? $_POST['fecha_transferencia'] : '';
-        $datos['referencia_pago3'] = isset($_POST['observacion_transferencia']) ? $_POST['observacion_transferencia'] : '';
+        $datos['tipo_pago_id']      = 3; // transferencia
+        $datos['banco_id']          = isset($_POST['bk_nm']) ? intval($_POST['bk_nm']) : 0;
+        // SOLO descripcion1 = ben_nm
+        $datos['referencia_pago1']  = isset($_POST['ben_nm']) ? $_POST['ben_nm'] : '';
+        $datos['referencia_pago2']  = '';
+        $datos['referencia_pago3']  = '';
 
         $result = pagoFacturaModelo::agregar_pago_factura_base($datos);
-        
-        if(isset($result['status']) && !$result['status']) {
+        if (isset($result['status']) && !$result['status']) {
             return mainModel::showNotification([
-                "type" => "error",
-                "title" => $result['title'],
-                "text" => $result['message']
+                "type"=>"error","title"=>$result['title'],"text"=>$result['message']
             ]);
         }
 
         return mainModel::showNotification([
-            "type" => "success",
-            "title" => $result['title'] ?? "Pago registrado",
-            "text" => $result['message'] ?? "Transferencia registrada correctamente",
-            "form" => "formTransferenciaBill",
-            "funcion" => $result['funcion'] ?? "listar_cuentas_por_cobrar_clientes();getCollaboradoresModalPagoFacturas();",
-            "closeAllModals" => true
+            "type"=>"success",
+            "title"=>$result['title'] ?? "Pago registrado",
+            "text"=>$result['message'] ?? "Transferencia registrada correctamente",
+            "form"=>"formTransferenciaBill",
+            "funcion"=>$result['funcion'] ?? "listar_cuentas_por_cobrar_clientes();getCollaboradoresModalPagoFacturas();",
+            "closeAllModals"=>true
         ]);
     }
 
+    /* ===========================
+     * CHEQUE
+     * =========================== */
     public function agregar_pago_factura_controlador_cheque() {
         $datos = $this->prepararDatosPago('cheque');
-        
-        if(isset($datos['status']) && !$datos['status']) {
+        if (isset($datos['status']) && !$datos['status']){
             return mainModel::showNotification([
-                "type" => "error",
-                "title" => $datos['title'],
-                "text" => $datos['message'],
-                "redirect" => $datos['redirect'] ?? ''
+                "type"=>"error","title"=>$datos['title'],"text"=>$datos['message'],
+                "redirect"=>$datos['redirect'] ?? ''
             ]);
         }
-        
-        $datos['tipo_pago_id'] = 4;
-        $datos['banco_id'] = isset($_POST['bk_nm_chk']) ? intval($_POST['bk_nm_chk']) : 0;
-        $datos['referencia_pago1'] = isset($_POST['num_chk']) ? $_POST['num_chk'] : '';
-        $datos['referencia_pago2'] = isset($_POST['fecha_cheque']) ? $_POST['fecha_cheque'] : '';
-        $datos['referencia_pago3'] = isset($_POST['observacion_cheque']) ? $_POST['observacion_cheque'] : '';
+        $datos['tipo_pago_id']      = 4; // cheque
+        $datos['banco_id']          = isset($_POST['bk_nm_chk']) ? intval($_POST['bk_nm_chk']) : 0;
+        // SOLO descripcion1 = check_num (o num_chk como respaldo)
+        $numCheque                  = isset($_POST['check_num']) ? $_POST['check_num'] : (isset($_POST['num_chk']) ? $_POST['num_chk'] : '');
+        $datos['referencia_pago1']  = $numCheque;
+        $datos['referencia_pago2']  = '';
+        $datos['referencia_pago3']  = '';
 
         $result = pagoFacturaModelo::agregar_pago_factura_base($datos);
-        
-        if(isset($result['status']) && !$result['status']) {
+        if (isset($result['status']) && !$result['status']){
             return mainModel::showNotification([
-                "type" => "error",
-                "title" => $result['title'],
-                "text" => $result['message']
+                "type"=>"error","title"=>$result['title'],"text"=>$result['message']
             ]);
         }
 
         return mainModel::showNotification([
-            "type" => "success",
-            "title" => $result['title'] ?? "Pago registrado",
-            "text" => $result['message'] ?? "Cheque registrado correctamente",
-            "form" => "formChequeBill",
-            "funcion" => $result['funcion'] ?? "listar_cuentas_por_cobrar_clientes();getCollaboradoresModalPagoFacturas();",
-            "closeAllModals" => true
+            "type"=>"success",
+            "title"=>$result['title'] ?? "Pago registrado",
+            "text"=>$result['message'] ?? "Cheque registrado correctamente",
+            "form"=>"formChequeBill",
+            "funcion"=>$result['funcion'] ?? "listar_cuentas_por_cobrar_clientes();getCollaboradoresModalPagoFacturas();",
+            "closeAllModals"=>true
         ]);
     }
-    
-    protected function obtener_saldo_credito($facturas_id) {
-        $result = mainModel::connection()->query("SELECT saldo FROM cobrar_clientes WHERE facturas_id = '$facturas_id'");
-        if($result->num_rows == 0) {
-            throw new Exception("No se encontró la cuenta por cobrar para esta factura");
-        }
-        
-        $data = $result->fetch_assoc();
-        return $data['saldo'];
+
+    /** Sanea montos: quita comas, moneda y deja solo dígitos, punto y signo. */
+    private function parseMonto($str){
+        $s = (string)$str;
+        $s = str_replace([',','L','l',' '], '', $s);     // quitar separadores y moneda
+        $s = preg_replace('/[^0-9.\-]/', '', $s);        // dejar dígitos, punto y signo
+        return (float)$s;
     }
 }

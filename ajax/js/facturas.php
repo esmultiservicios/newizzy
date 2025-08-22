@@ -1595,23 +1595,6 @@ $("#reg_modificar_precio_fact").on("click", function(e) {
 //FIN CAMBIAR PRECIO A PRODUCTO EN FACTURACION
 //FIN FACTURAS
 
-function getConsultarAperturaCaja() {
-    var url = '<?php echo SERVERURL; ?>core/getAperturaCajaUsuario.php';
-
-    var estado_apertura;
-
-    $.ajax({
-        type: 'POST',
-        url: url,
-        async: false,
-        success: function(registro) {
-            var valores = eval(registro);
-            estado_apertura = valores[0];
-        }
-    });
-    return estado_apertura;
-}
-
 function facturarEnCeroAlmacen(almacen_id) {
     var url = '<?php echo SERVERURL; ?>core/getFacturarCeroAlmacen.php';
     var estado = false;
@@ -2164,7 +2147,7 @@ var registrar_abono_cxc_clientes_dataTable = function(tbody, table) {
             showNotify('error', 'Error', 'No puede realizar esta accion a las facturas canceladas!');
         } else {
             console.log('cxc', data.facturas_id, 2)
-            pago(data.facturas_id, 2);
+            pago(data.facturas_id, 2, 'facturacion');
         }
     });
 }
@@ -2190,191 +2173,6 @@ var ver_abono_cxp_proveedor_dataTable = function(tbody, table) {
     });
 }
 //FIN CUENTAS POR COBRAR CLIENTES
-
-$(function() {
-    // Inicialización
-    validarAperturaCajaUsuario();
-    getTotalFacturasDisponibles();
-    
-    // Actualizar cada minuto
-    setInterval(() => {
-        validarAperturaCajaUsuario();
-        getTotalFacturasDisponibles();
-    }, 60000);
-});
-let lastState = null;
-
-function getTotalFacturasDisponibles() {
-    $.ajax({
-        type: 'POST',
-        url: '<?php echo SERVERURL; ?>core/getTotalFacturasDisponibles.php',
-        dataType: 'json'
-    }).done(function(datos) {
-        updateCounterUI(datos);
-    }).fail(function() {
-        showErrorState();
-    });
-}
-
-function updateCounterUI(datos) {
-    const { facturasPendientes, contador, fechaLimite } = datos;
-    const counter = $("#mensajeFacturas");
-    const daysLeft = parseInt(contador);
-    
-    // Determinar el estado actual
-    const currentState = getCurrentState(facturasPendientes, daysLeft, fechaLimite);
-    
-    // Solo actualizar si cambió el estado
-    if (currentState !== lastState) {
-        lastState = currentState;
-        
-        // Aplicar efecto de cambio
-        counter.addClass('state-change');
-        setTimeout(() => counter.removeClass('state-change'), 300);
-        
-        // Configurar según estado
-        const config = getStateConfig(currentState, facturasPendientes, daysLeft, fechaLimite);
-        
-        // Actualizar DOM
-        counter.html(`<i class="${config.icon}"></i> <div class="counter-content">${config.text}</div>`)
-              .removeClass('alert-normal alert-warning alert-danger')
-              .addClass(config.class);
-    }
-    
-    // Controlar botones
-    updateButtonsState(facturasPendientes, fechaLimite, daysLeft);
-}
-
-function getCurrentState(facturasPendientes, daysLeft, fechaLimite) {
-    if (!fechaLimite || fechaLimite.trim() === "Sin definir") return 'no-config';
-    if (facturasPendientes < 0) return 'blocked';
-    
-    if (daysLeft < 0) return 'expired';
-    if (daysLeft <= 5) return 'danger';
-    if (facturasPendientes <= 9) return 'danger';
-    if (facturasPendientes <= 30) return 'warning';
-    
-    return 'normal';
-}
-
-function getStateConfig(state, facturasPendientes, daysLeft, fechaLimite) {
-    // Formatear número con separadores de mil
-    const facturasFormateadas = facturasPendientes.toLocaleString('es-HN');
-
-    // Mensaje de vencimiento solo cuando daysLeft <= 5 o ya venció
-    const vencimientoMsg = (daysLeft <= 5) ? 
-        `<div class="counter-line days-left">
-            ${daysLeft < 0 
-                ? 'Las autorizaciones del SAR han vencido.' 
-                : (daysLeft === 0 
-                    ? '<strong>Las autorizaciones del SAR vencen hoy.</strong>' 
-                    : `Las autorizaciones del SAR vencen en <strong>${daysLeft}</strong> día(s).`)}
-        </div>` 
-        : '';
-
-    const facturasMsg = `<div class="counter-line facturas-count">
-                            Quedan <strong>${facturasFormateadas}</strong> factura(s) autorizada(s) por el SAR.
-                         </div>`;
-
-    const configs = {
-        'normal': {
-            icon: 'fas fa-file-invoice',
-            class: 'alert-normal',
-            text: facturasMsg
-        },
-        'warning': {
-            icon: 'fas fa-hourglass-half',
-            class: 'alert-warning',
-            text: facturasMsg + vencimientoMsg
-        },
-        'danger': {
-            icon: 'fas fa-exclamation-triangle',
-            class: 'alert-danger',
-            text: facturasMsg + vencimientoMsg
-        },
-        'expired': {
-            icon: 'fas fa-calendar-times',
-            class: 'alert-danger',
-            text: `<div class="counter-line">Las autorizaciones del SAR han vencido.</div>
-                   <div class="counter-line">
-                     <a href="<?php echo SERVERURL; ?>secuencia/" target="_blank" class="counter-link">Actualizar ahora</a>
-                   </div>`
-        },
-        'blocked': {
-            icon: 'fas fa-ban',
-            class: 'alert-danger',
-            text: `<div class="counter-line">Ha alcanzado el límite de facturas autorizado por el SAR.</div>
-                   <div class="counter-line">
-                     <a href="<?php echo SERVERURL; ?>secuencia/" target="_blank" class="counter-link">Configurar secuencia</a>
-                   </div>`
-        },
-        'no-config': {
-            icon: 'fas fa-calendar-times',
-            class: 'alert-warning',
-            text: `<div class="counter-line">No se ha definido una fecha límite para las autorizaciones del SAR.</div>
-                   <div class="counter-line">
-                     <a href="<?php echo SERVERURL; ?>secuencia/" target="_blank" class="counter-link">Establecer fecha</a>
-                   </div>`
-        }
-    };
-
-    return configs[state] || configs['normal'];
-}
-
-function updateButtonsState(facturasPendientes, fechaLimite, daysLeft) {
-    const facturarBtn = $("#invoice-form #reg_factura");
-    // Los botones de caja NO se deben deshabilitar aquí
-    
-    // Validación de facturas SAR
-    const vencimientoPasado = daysLeft < 0;
-    const sarDisabled = facturasPendientes <= 0 || !fechaLimite || fechaLimite.trim() === "Sin definir" || vencimientoPasado;
-    
-    // Validación de caja (2 = cerrada)
-    const cajaCerrada = getConsultarAperturaCaja() == 2;
-    
-    // Solo deshabilitar botones de facturación
-    facturarBtn.prop("disabled", sarDisabled || cajaCerrada);
-
-    // Estilos solo para SAR (la caja tiene sus propios estilos)
-    if (sarDisabled && !cajaCerrada) {
-        facturarBtn.addClass("btn-outline-danger").removeClass("btn-secondary");
-    } else {
-        facturarBtn.removeClass("btn-outline-danger").addClass("btn-secondary");
-    }
-}
-
-function validarAperturaCajaUsuario() {
-    const cajaCerrada = getConsultarAperturaCaja() == 2;
-    const elementos = [
-        "#reg_factura", "#guardar_factura", "#add_cliente", 
-        "#add_vendedor", "#addCambio", "#addQuotetoBill",
-        "#addPayCustomers", "#addRows", "#removeRows",
-        "#notasFactura", "#addDraft"
-    ];
-
-    // Aplicar estado a todos los elementos (excepto botones de caja)
-    elementos.forEach(selector => {
-        $(`#invoice-form ${selector}`).prop("disabled", cajaCerrada);
-    });
-
-    // Manejar visibilidad de botones de caja (siempre habilitados)
-    $("#invoice-form #btn_apertura")
-        .toggle(cajaCerrada)
-        .prop("disabled", false); // ← Siempre habilitado
-    
-    $("#invoice-form #btn_cierre")
-        .toggle(!cajaCerrada)
-        .prop("disabled", false); // ← Siempre habilitado
-    
-    // Forzar actualización del estado SAR
-    getTotalFacturasDisponibles();
-}
-
-function showErrorState() {
-    $("#mensajeFacturas").html(
-        `<i class="fas fa-exclamation-circle"></i> <div class="counter-content">Error al cargar disponibilidad (SAR)</div>`
-    ).addClass('alert-danger');
-}
 
 function getReporteCotizacion() {
     var url = '<?php echo SERVERURL; ?>core/getTipoFacturaReporte.php';
@@ -3187,6 +2985,7 @@ $(document).on('click', '#confirmarCambioTipo', function(){
   setTipoFactura(next);
   $('#confirmTipoFactura').modal('hide');
 });
+
 
 /*RECURRENCIA EN FACTURAS*/
 /* =========== RECURRENCIA EN FACTURAS =========== */

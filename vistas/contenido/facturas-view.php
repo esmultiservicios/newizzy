@@ -240,17 +240,17 @@
                                     <div class="sb-nav-link-icon"></div><i class="fas fa-minus fa-lg"></i> Quitar
                                 </button>
 
-                                <?php if ($_SESSION['planes_id_sistema'] != 1): ?>
-                                    <button class="btn btn-secondary bill-bottom-remove" 
-                                            id="addQuotetoBill" 
-                                            type="button" 
-                                            data-toggle="tooltip" 
-                                            data-placement="top" 
-                                            title="Convertir Cotización en Factura">
-                                        <div class="sb-nav-link-icon"></div>
-                                        <i class="fas fa-file-invoice-dollar fa-lg"></i> Cotizaciones
-                                    </button>
-                                <?php endif; ?>
+                                <!-- <?php if ($_SESSION['planes_id_sistema'] != 1): ?> -->
+                                <button class="btn btn-secondary bill-bottom-remove cotizacion" 
+                                        id="addQuotetoBill" 
+                                        type="button" 
+                                        data-toggle="tooltip" 
+                                        data-placement="top" 
+                                        title="Convertir Cotización en Factura">
+                                    <div class="sb-nav-link-icon"></div>
+                                    <i class="fas fa-file-invoice-dollar fa-lg"></i> Cotizaciones
+                                </button>
+                                <!-- <?php endif; ?> -->
 
                                 <?php if ($_SESSION['planes_id_sistema'] != 1): ?>
                                     <button class="btn btn-secondary bill-bottom-remove" 
@@ -264,15 +264,17 @@
                                     </button>
                                 <?php endif; ?>                                
 
-                                <?php if ($_SESSION['planes_id_sistema'] != 1): ?>
-                                    <button class="btn btn-secondary bill-bottom-remove" id="addPayCustomers" type="button"
-                                            data-toggle="tooltip" 
-                                            data-placement="top" 
-                                            title="Cobrar Cuentas por Pagar Clientes">
-                                        <div class="sb-nav-link-icon"></div>
-                                        <i class="fas fa-hand-holding-usd fa-lg"></i> CxC
-                                    </button>
-                                <?php endif; ?>
+                                <!-- <?php if ($_SESSION['planes_id_sistema'] != 1): ?> -->
+                                <button class="btn btn-secondary bill-bottom-remove cobrarClientes" 
+                                        id="addPayCustomers" 
+                                        type="button"
+                                        data-toggle="tooltip" 
+                                        data-placement="top" 
+                                        title="Cobrar Cuentas por Pagar Clientes">
+                                    <div class="sb-nav-link-icon"></div>
+                                    <i class="fas fa-hand-holding-usd fa-lg"></i> CxC
+                                </button>
+                                <!-- <?php endif; ?> -->
 
                                 <button class="btn btn-secondary bill-bottom-remove" id="addDraft" type="button" data-toggle="tooltip" data-placement="top" title="Facturas Pendientes">
                                     <div class="sb-nav-link-icon"></div><i class="fas fa-file-invoice fa-lg"></i> Pendientes

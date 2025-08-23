@@ -38,6 +38,12 @@
     }
 
     var listar_reporte_ventas = function () {
+        // --- Limpia un estado guardado que esté forzando otro orden en ese navegador ---
+        try {
+            var _dtKey = 'DataTables_' + 'dataTablaReporteVentas' + '_' + window.location.pathname;
+            localStorage.removeItem(_dtKey);
+        } catch(e){ /* ignore */ }
+
         let tipo_factura_reporte = $("#form_main_ventas #tipo_factura_reporte").val();
         tipo_factura_reporte = tipo_factura_reporte ? tipo_factura_reporte : 1;
 
@@ -52,6 +58,10 @@
         var table_reporteVentas = $("#dataTablaReporteVentas").DataTable({
             "destroy": true,
             "footer": true,
+            // Desactiva guardado de estado para que no vuelva a cambiarte el order
+            "stateSave": false,
+            "orderMulti": false,
+
             "ajax": {
                 "method": "POST",
                 "url": "<?php echo SERVERURL;?>core/llenarDataTableReporteVentas.php",
@@ -64,265 +74,191 @@
                     "factura": factura
                 }
             },
-            "columns": [{
-                    "data": "fecha"
-                },
+
+            "columns": [
+                { "data": "fecha" },
                 {
                     "data": "tipo_documento",
-                    "render": function (data, type, row) {
+                    "render": function (data, type) {
                         if (type === 'display') {
-                            var icon = data === 'Crédito' ?
-                                '<i class="fas fa-clock mr-1"></i>' :
-                                '<i class="fas fa-check-circle mr-1"></i>';
-                            var badgeClass = data === 'Crédito' ?
-                                'badge badge-pill badge-warning' :
-                                'badge badge-pill badge-success';
-                            return '<span class="' + badgeClass +
-                                '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                            var icon = data === 'Crédito'
+                                ? '<i class="fas fa-clock mr-1"></i>'
+                                : '<i class="fas fa-check-circle mr-1"></i>';
+                            var badgeClass = data === 'Crédito'
+                                ? 'badge badge-pill badge-warning'
+                                : 'badge badge-pill badge-success';
+                            return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
                                 icon + data + '</span>';
                         }
                         return data;
                     }
                 },
+                { "data": "cliente" },
+
+                // FACTURA: muestra 'numero' pero ORDENA por 'numero_sort' (si no, por 'number')
                 {
-                    "data": "cliente"
-                },
-                {
-                    data: "numero",
+                    data: {
+                        display: 'numero',  // lo que se ve
+                        _: 'numero',        // fallback
+                        filter: 'numero',   // búsqueda
+                        sort: 'numero_sort' // clave de orden (viene en tu JSON)
+                    },
                     render: function (data, type, row) {
-                        if (type === 'sort') {
-                        return parseInt(row.number); // ordena por número base
-                        }
+                        // Para sort / filter devolvemos lo que DataTables ya resolvió (numero_sort/numero)
+                        if (type !== 'display') return data;
 
-                        // Si es PROFORMA mostramos badge de estado y botón X si está Abierta (fp.estado = 0)
+                        // --- DISPLAY (tu UI actual) ---
                         if (parseInt(row.documento_id, 10) === 4) {
-                        const est = parseInt(row.proforma_estado, 10); // 0 = Abierta, 1 = Cerrada
-                        const badge = (est === 1)
-                            ? '<span class="badge badge-secondary ml-2">Cerrada</span>'
-                            : '<span class="badge badge-info ml-2">Abierta</span>';
+                            const est = parseInt(row.proforma_estado, 10); // 0 Abierta, 1 Cerrada
+                            const badge = (est === 1)
+                                ? '<span class="badge badge-secondary ml-2">Cerrada</span>'
+                                : '<span class="badge badge-info ml-2">Abierta</span>';
 
-                        // Botón X solo si está Abierta
-                        const cerrarBtn = (est === 0)
-                            ? `<button class="btn btn-sm btn-danger ml-2 cerrar_proforma"
+                            const cerrarBtn = (est === 0)
+                                ? `<button class="btn btn-sm btn-danger ml-2 cerrar_proforma"
                                         data-toggle="tooltip" data-placement="top" title="Cerrar proforma">
-                                <i class="fas fa-times-circle"></i>
-                            </button>`
-                            : '';
+                                        <i class="fas fa-times-circle"></i>
+                                </button>`
+                                : '';
 
-                        return `
-                            <div class="d-flex align-items-center justify-content-between" style="gap:.5rem;">
-                            <span>${data}</span>
-                            <span>${badge}</span>
-                            ${cerrarBtn}
-                            </div>`;
+                            return `
+                                <div class="d-flex align-items-center justify-content-between" style="gap:.5rem;">
+                                    <span>${row.numero}</span>
+                                    <span>${badge}</span>
+                                    ${cerrarBtn}
+                                </div>`;
                         }
 
-                        // Facturas normales
-                        return data;
+                        // FACTURAS normales
+                        return row.numero;
                     }
                 },
-                {
+
+                { // subtotal
                     "data": "subtotal",
                     render: function (data, type) {
-                        var number = $.fn.dataTable.render
-                            .number(',', '.', 2, 'L ')
-                            .display(data);
-
+                        var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
                         if (type === 'display') {
-                            let color = 'green';
-                            if (data < 0) {
-                                color = 'red';
-                            }
-
+                            let color = (data < 0) ? 'red' : 'green';
                             return '<span style="color:' + color + '">' + number + '</span>';
                         }
-
                         return number;
-                    },
+                    }
                 },
-                {
+                { // isv
                     "data": "isv",
                     render: function (data, type) {
-                        var number = $.fn.dataTable.render
-                            .number(',', '.', 2, 'L ')
-                            .display(data);
-
+                        var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
                         if (type === 'display') {
-                            let color = 'green';
-                            if (data < 0) {
-                                color = 'red';
-                            }
-
+                            let color = (data < 0) ? 'red' : 'green';
                             return '<span style="color:' + color + '">' + number + '</span>';
                         }
-
                         return number;
-                    },
+                    }
                 },
-                {
+                { // descuento
                     "data": "descuento",
                     render: function (data, type) {
-                        var number = $.fn.dataTable.render
-                            .number(',', '.', 2, 'L ')
-                            .display(data);
-
+                        var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
                         if (type === 'display') {
-                            let color = 'green';
-                            if (data < 0) {
-                                color = 'red';
-                            }
-
+                            let color = (data < 0) ? 'red' : 'green';
                             return '<span style="color:' + color + '">' + number + '</span>';
                         }
-
                         return number;
-                    },
+                    }
                 },
-                {
-                    data: "total",
+                { // total
+                    "data": "total",
                     render: function (data, type, row) {
                         const numberFormatted = 'L ' + parseFloat(data).toLocaleString('es-HN', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
                         });
                         if (type !== 'display') return numberFormatted;
 
                         let estado, estadoClass, borderColor, badgeColor, icon;
-
-                        // PROFORMAS
                         if (parseInt(row.documento_id, 10) === 4) {
-                        // ✅ proforma_estado: 0 = Abierta, 1 = Cerrada
-                        const proformaEstado = parseInt(row.proforma_estado, 10);
-                        if (proformaEstado === 1) {
-                            // Cerrada
-                            estado = 'Cerrada';
-                            estadoClass = 'text-white';
-                            badgeColor = 'bg-secondary';
-                            borderColor = '#343a40';
-                            icon = '<i class="fas fa-lock mr-1"></i>';
-                        } else {
-                            // Abierta (default para 0 o null)
-                            estado = 'Abierta';
-                            estadoClass = 'text-white';
-                            badgeColor = 'bg-info';
-                            borderColor = '#17a2b8';
-                            icon = '<i class="fas fa-folder-open mr-1"></i>';
-                        }
-
-                        } else {
-                        // FACTURAS (electrónicas/físicas)
-                        if (row.tipo_documento === 'Contado') {
-                            estado = 'Pagado';
-                            estadoClass = 'text-white';
-                            badgeColor = 'bg-success';
-                            borderColor = '#28a745';
-                            icon = '<i class="fas fa-check-circle mr-1"></i>';
-                        } else {
-                            const pago = row.estado_pago || 'Pendiente';
-                            if (pago === 'Pagado') {
-                            estado = 'Pagado';
-                            estadoClass = 'text-white';
-                            badgeColor = 'bg-secondary';
-                            borderColor = '#343a40';
-                            icon = '<i class="fas fa-check-double mr-1"></i>';
+                            const proformaEstado = parseInt(row.proforma_estado, 10);
+                            if (proformaEstado === 1) {
+                                estado = 'Cerrada'; estadoClass = 'text-white';
+                                badgeColor = 'bg-secondary'; borderColor = '#343a40';
+                                icon = '<i class="fas fa-lock mr-1"></i>';
                             } else {
-                            estado = 'Pendiente';
-                            estadoClass = 'text-dark';
-                            badgeColor = 'bg-warning';
-                            borderColor = '#ffc107';
-                            icon = '<i class="fas fa-clock mr-1"></i>';
+                                estado = 'Abierta'; estadoClass = 'text-white';
+                                badgeColor = 'bg-info'; borderColor = '#17a2b8';
+                                icon = '<i class="fas fa-folder-open mr-1"></i>';
                             }
-                        }
+                        } else {
+                            if (row.tipo_documento === 'Contado') {
+                                estado = 'Pagado'; estadoClass = 'text-white';
+                                badgeColor = 'bg-success'; borderColor = '#28a745';
+                                icon = '<i class="fas fa-check-circle mr-1"></i>';
+                            } else {
+                                const pago = row.estado_pago || 'Pendiente';
+                                if (pago === 'Pagado') {
+                                    estado = 'Pagado'; estadoClass = 'text-white';
+                                    badgeColor = 'bg-secondary'; borderColor = '#343a40';
+                                    icon = '<i class="fas fa-check-double mr-1"></i>';
+                                } else {
+                                    estado = 'Pendiente'; estadoClass = 'text-dark';
+                                    badgeColor = 'bg-warning'; borderColor = '#ffc107';
+                                    icon = '<i class="fas fa-clock mr-1"></i>';
+                                }
+                            }
                         }
 
                         return `
-                        <div class="total-container" style="display:flex;flex-direction:column;align-items:flex-end;min-width:0;max-width:200px;">
-                            <div style="background:#fff;border-left:6px solid ${borderColor};padding:8px 12px;border-radius:.5rem;box-shadow:0 1px 5px rgba(0,0,0,.08);font-size:1.1em;font-weight:bold;color:#212529;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                            ${numberFormatted}
-                            </div>
-                            <div class="status-badge ${badgeColor} ${estadoClass}"
-                                style="font-size:.75em!important;padding:.3em 1em!important;border-radius:999px!important;display:inline-block;line-height:1.3;margin-top:5px;white-space:nowrap;">
-                            ${icon}${estado}
-                            </div>
-                        </div>`;
+                            <div class="total-container" style="display:flex;flex-direction:column;align-items:flex-end;min-width:0;max-width:200px;">
+                                <div style="background:#fff;border-left:6px solid ${borderColor};padding:8px 12px;border-radius:.5rem;box-shadow:0 1px 5px rgba(0,0,0,.08);font-size:1.1em;font-weight:bold;color:#212529;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                                    ${numberFormatted}
+                                </div>
+                                <div class="status-badge ${badgeColor} ${estadoClass}"
+                                    style="font-size:.75em!important;padding:.3em 1em!important;border-radius:999px!important;display:inline-block;line-height:1.3;margin-top:5px;white-space:nowrap;">
+                                    ${icon}${estado}
+                                </div>
+                            </div>`;
                     }
-                    },
-                {
+                },
+                { // ganancia
                     "data": "ganancia",
                     render: function (data, type) {
-                        var number = $.fn.dataTable.render
-                            .number(',', '.', 2, 'L ')
-                            .display(data);
-
+                        var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
                         if (type === 'display') {
-                            let color = 'green';
-                            if (data < 0) {
-                                color = 'red';
-                            }
-
+                            let color = (data < 0) ? 'red' : 'green';
                             return '<span style="color:' + color + '">' + number + '</span>';
                         }
-
                         return number;
-                    },
+                    }
                 },
-                {
-                    "data": "vendedor"
-                },
-                {
-                    "data": "facturador"
-                },
-                {
-                    "defaultContent": "<button class='table_reportes detalle_factura btn btn-primary'><span class='fas fa-search fa-lg'></span> Detalle</button>"
-                },
-                {
-                    "defaultContent": "<button class='table_reportes print_factura btn btn-success'><span class='fas fa-file-download fa-lg'></span> Factura</button>"
-                },
-                {
-                    "defaultContent": "<button class='table_reportes print_comprobante btn btn-success'><span class='far fa-file-pdf fa-lg'></span> Comprobante</button>"
-                },
-                {
-                    "defaultContent": "<button class='table_reportes email_factura btn btn-secondary'><span class='fas fa-paper-plane fa-lg'></span> Enviar</button>"
-                },
-                {
-                    "defaultContent": "<button class='table_cancelar cancelar_factura btn btn-danger'><span class='fas fa-ban fa-lg'></span> Anular</button>"
-                }
+                { "data": "vendedor" },
+                { "data": "facturador" },
+                { "defaultContent": "<button class='table_reportes detalle_factura btn btn-primary'><span class='fas fa-search fa-lg'></span> Detalle</button>" },
+                { "defaultContent": "<button class='table_reportes print_factura btn btn-success'><span class='fas fa-file-download fa-lg'></span> Factura</button>" },
+                { "defaultContent": "<button class='table_reportes print_comprobante btn btn-success'><span class='far fa-file-pdf fa-lg'></span> Comprobante</button>" },
+                { "defaultContent": "<button class='table_reportes email_factura btn btn-secondary'><span class='fas fa-paper-plane fa-lg'></span> Enviar</button>" },
+                { "defaultContent": "<button class='table_cancelar cancelar_factura btn btn-danger'><span class='fas fa-ban fa-lg'></span> Anular</button>" }
             ],
-            // Ordenamos por la columna 3 (número) de forma descendente
-            "order": [[3, "desc"]], 
-            "orderFixed": {
-                "pre": [[3, "desc"]]
-            },
+
+            // ¡Clave! Orden inicial por FACTURA (col 3) DESC.
+            "order": [[3, "desc"]],
+            "columnDefs": [
+                { targets: 3, type: 'num' } // ayúdale a tratarla como numérica
+            ],
+
             "lengthMenu": lengthMenu10,
-            "stateSave": true,
             "bDestroy": true,
             "language": idioma_español,
             "dom": dom,
+
             "footerCallback": function (row, data, start, end, display) {
-                var totalSubtotal = data.reduce(function (acc, row) {
-                    return acc + (parseFloat(row.subtotal) || 0);
-                }, 0);
-
-                var totalIsv = data.reduce(function (acc, row) {
-                    return acc + (parseFloat(row.isv) || 0);
-                }, 0);
-
-                var totalDescuento = data.reduce(function (acc, row) {
-                    return acc + (parseFloat(row.descuento) || 0);
-                }, 0);
-
-                var totalVentas = data.reduce(function (acc, row) {
-                    return acc + (parseFloat(row.total) || 0);
-                }, 0);
-
-                var totalGanancia = data.reduce(function (acc, row) {
-                    return acc + (parseFloat(row.ganancia) || 0);
-                }, 0);
+                var totalSubtotal = data.reduce((acc, r) => acc + (parseFloat(r.subtotal) || 0), 0);
+                var totalIsv      = data.reduce((acc, r) => acc + (parseFloat(r.isv) || 0), 0);
+                var totalDescuento= data.reduce((acc, r) => acc + (parseFloat(r.descuento) || 0), 0);
+                var totalVentas   = data.reduce((acc, r) => acc + (parseFloat(r.total) || 0), 0);
+                var totalGanancia = data.reduce((acc, r) => acc + (parseFloat(r.ganancia) || 0), 0);
 
                 var formatter = new Intl.NumberFormat('es-HN', {
-                    style: 'currency',
-                    currency: 'HNL',
-                    minimumFractionDigits: 2,
+                    style: 'currency', currency: 'HNL', minimumFractionDigits: 2,
                 });
 
                 $('#subtotal-i').html(formatter.format(totalSubtotal));
@@ -331,21 +267,19 @@
                 $('#total-footer-ingreso').html(formatter.format(totalVentas));
                 $('#ganancia').html(formatter.format(totalGanancia));
             },
-            "buttons": [{
+
+            "buttons": [
+                {
                     text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                     titleAttr: 'Actualizar Reporte de Ventas',
                     className: 'table_actualizar btn btn-secondary ocultar',
-                    action: function () {
-                        listar_reporte_ventas();
-                    }
+                    action: function () { listar_reporte_ventas(); }
                 },
                 {
                     text: '<i class="fas fa-search fa-lg crear"></i> Detalle Ventas',
                     titleAttr: 'Detalle Ventas',
                     className: 'table_crear btn btn-primary ocultar',
-                    action: function () {
-                        modal_detalles();
-                    }
+                    action: function () { modal_detalles(); }
                 },
                 {
                     extend: 'excelHtml5',
@@ -353,12 +287,9 @@
                     text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
                     titleAttr: 'Excel',
                     title: 'Reporte de Ventas',
-                    messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' +
-                        convertDateFormat(fechaf),
+                    messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' + convertDateFormat(fechaf),
                     messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-                    exportOptions: {
-                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8]
-                    },
+                    exportOptions: { columns: [0,1,2,3,4,5,6,7,8] },
                     className: 'table_reportes btn btn-success ocultar'
                 },
                 {
@@ -367,29 +298,21 @@
                     orientation: 'landscape',
                     text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
                     titleAttr: 'PDF',
-                    orientation: 'landscape',
                     pageSize: 'LETTER',
                     title: 'Reporte de Ventas',
-                    messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' +
-                        convertDateFormat(fechaf),
+                    messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' + convertDateFormat(fechaf),
                     messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                     className: 'table_reportes btn btn-danger ocultar',
-                    exportOptions: {
-                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8]
-                    },
+                    exportOptions: { columns: [0,1,2,3,4,5,6,7,8] },
                     customize: function (doc) {
                         if (imagen) {
-                            doc.content.splice(0, 0, {
-                                image: imagen,
-                                width: 100,
-                                height: 45,
-                                margin: [0, 0, 0, 12]
-                            });
+                            doc.content.splice(0, 0, { image: imagen, width: 100, height: 45, margin: [0,0,0,12] });
                         }
                     }
                 }
             ],
-            "drawCallback": function (settings) {
+
+            "drawCallback": function () {
                 getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
             }
         });

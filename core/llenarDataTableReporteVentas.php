@@ -42,6 +42,7 @@ while ($row = $result->fetch_assoc()) {
         'tipo_documento'         => $row['tipo_documento'],
         'cliente'                => $row['cliente'],
         'numero'                 => $row['numero'],
+        'numero_sort'          => (int)$row['number'],        // <--- CLAVE DE ORDEN REAL
         'number'                 => intval($row['number']),
         'subtotal'               => $row['subtotal'],
         'ganancia'               => $ganancia,

@@ -1,3 +1,44 @@
+####22 de agosto 2025####
+CREATE TABLE facturas_recurrentes (
+  rec_id              INT AUTO_INCREMENT PRIMARY KEY,
+  empresa_id          INT NOT NULL,
+  clientes_id         INT NOT NULL,
+  colaboradores_id    INT NOT NULL,
+  tipo_documento      TINYINT NOT NULL COMMENT '0=Normal, 1=Proforma',
+  tipo_factura        TINYINT NOT NULL COMMENT '1=Contado, 2=Credito',
+  notas               VARCHAR(255) NOT NULL,
+  fecha_dolar         DATE NOT NULL,
+  exoneracion_orden           VARCHAR(100) NULL,
+  exoneracion_constancia      VARCHAR(100) NULL,
+  exoneracion_sag             VARCHAR(100) NULL,
+  exoneracion_orden_interno   VARCHAR(100) NULL,
+  periodicidad        ENUM('once','daily','weekly','monthly') NOT NULL DEFAULT 'monthly',
+  start_at            DATETIME NOT NULL,
+  next_run_at         DATETIME NOT NULL,
+  until_at            DATE NULL,
+  estado              TINYINT NOT NULL DEFAULT 1 COMMENT '1=Activa, 2=Cancelada',
+  usuario_crea        INT NOT NULL,
+  fecha_crea          DATETIME NOT NULL,
+  UNIQUE KEY (empresa_id, rec_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
+
+CREATE TABLE facturas_recurrentes_detalle (
+  rec_detalle_id      INT AUTO_INCREMENT PRIMARY KEY,
+  rec_id              INT NOT NULL,
+  productos_id        INT NOT NULL,
+  producto            VARCHAR(255) NOT NULL,
+  cantidad            DECIMAL(12,2) NOT NULL,
+  precio              DECIMAL(12,2) NOT NULL,
+  descuento           DECIMAL(12,2) NOT NULL,
+  isv_valor           DECIMAL(12,2) NOT NULL,
+  medida              VARCHAR(50) NULL,
+  almacen_id          INT NULL,
+  FOREIGN KEY (rec_id) REFERENCES facturas_recurrentes(rec_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
+
+ALTER TABLE pagos 
+  ADD contabilizado TINYINT(1) NOT NULL DEFAULT 0,
+  ADD referencia_ingreso_id INT NULL;
 
 ####18 de mayo de 2025####
 se ejecuto este alter

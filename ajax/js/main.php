@@ -6159,31 +6159,41 @@ function getConsultarAperturaCaja() {
     return estado_apertura;
 }
 
+validarAperturaCajaUsuario();
+    getTotalFacturasDisponibles();
+
+/// ==============================
+// COUNTER - CONTEO FACTURAS
 // ==============================
-// counter
-// ==============================
-/*CONTEO FACTURAS*/
 $(function() {
-    // Inicialización
+    // Inicializar variables
+    lastState = null;
+    lastFacturasCount = null;
+    
+    // Ejecutar inmediatamente al cargar
     validarAperturaCajaUsuario();
     getTotalFacturasDisponibles();
     
-    // Actualizar cada minuto
+    // Actualizar cada 5 segundos (5000 ms = 5 segundos)
     setInterval(() => {
         validarAperturaCajaUsuario();
         getTotalFacturasDisponibles();
-    }, 60000);
+    }, 5000);
 });
+
 let lastState = null;
+let lastFacturasCount = null; // Nueva variable para trackear el count
 
 function getTotalFacturasDisponibles() {
     $.ajax({
         type: 'POST',
-        url: '<?php echo SERVERURL; ?>core/getTotalFacturasDisponibles.php',
+        url: '<?php echo SERVERURL; ?>core/getTotalFacturasDisponibles.php?_=' + new Date().getTime(),
         dataType: 'json'
     }).done(function(datos) {
+        console.log('Datos recibidos:', datos); // Debug
         updateCounterUI(datos);
-    }).fail(function() {
+    }).fail(function(jqXHR, textStatus, errorThrown) {
+        console.error('Error en AJAX:', textStatus, errorThrown);
         showErrorState();
     });
 }
@@ -6193,12 +6203,17 @@ function updateCounterUI(datos) {
     const counter = $("#mensajeFacturas");
     const daysLeft = parseInt(contador);
     
+    console.log('Comparando - LastState:', lastState, 'LastCount:', lastFacturasCount, 'NewCount:', facturasPendientes);
+    
     // Determinar el estado actual
     const currentState = getCurrentState(facturasPendientes, daysLeft, fechaLimite);
     
-    // Solo actualizar si cambió el estado
-    if (currentState !== lastState) {
+    // Solo actualizar si cambió el estado O el número de facturas
+    if (currentState !== lastState || facturasPendientes !== lastFacturasCount) {
         lastState = currentState;
+        lastFacturasCount = facturasPendientes; // Guardar el nuevo count
+        
+        console.log('Actualizando UI - Estado:', currentState, 'Facturas:', facturasPendientes);
         
         // Aplicar efecto de cambio
         counter.addClass('state-change');
@@ -6209,8 +6224,8 @@ function updateCounterUI(datos) {
         
         // Actualizar DOM
         counter.html(`<i class="${config.icon}"></i> <div class="counter-content">${config.text}</div>`)
-              .removeClass('alert-normal alert-warning alert-danger')
-              .addClass(config.class);
+                .removeClass('alert-normal alert-warning alert-danger')
+                .addClass(config.class);
     }
     
     // Controlar botones
@@ -6269,7 +6284,7 @@ function getStateConfig(state, facturasPendientes, daysLeft, fechaLimite) {
             class: 'alert-danger',
             text: `<div class="counter-line">Las autorizaciones del SAR han vencido.</div>
                    <div class="counter-line">
-                     <a href="<?php echo SERVERURL; ?>secuencia/" target="_blank" class="counter-link">Actualizar ahora</a>
+                       <a href="<?php echo SERVERURL; ?>secuencia/" target="_blank" class="counter-link">Actualizar ahora</a>
                    </div>`
         },
         'blocked': {
@@ -6277,7 +6292,7 @@ function getStateConfig(state, facturasPendientes, daysLeft, fechaLimite) {
             class: 'alert-danger',
             text: `<div class="counter-line">Ha alcanzado el límite de facturas autorizado por el SAR.</div>
                    <div class="counter-line">
-                     <a href="<?php echo SERVERURL; ?>secuencia/" target="_blank" class="counter-link">Configurar secuencia</a>
+                       <a href="<?php echo SERVERURL; ?>secuencia/" target="_blank" class="counter-link">Configurar secuencia</a>
                    </div>`
         },
         'no-config': {
@@ -6285,7 +6300,7 @@ function getStateConfig(state, facturasPendientes, daysLeft, fechaLimite) {
             class: 'alert-warning',
             text: `<div class="counter-line">No se ha definido una fecha límite para las autorizaciones del SAR.</div>
                    <div class="counter-line">
-                     <a href="<?php echo SERVERURL; ?>secuencia/" target="_blank" class="counter-link">Establecer fecha</a>
+                       <a href="<?php echo SERVERURL; ?>secuencia/" target="_blank" class="counter-link">Establecer fecha</a>
                    </div>`
         }
     };
@@ -6315,6 +6330,28 @@ function updateButtonsState(facturasPendientes, fechaLimite, daysLeft) {
     }
 }
 
+function showErrorState() {
+    $("#mensajeFacturas").html(
+        `<i class="fas fa-exclamation-circle"></i> <div class="counter-content">Error al cargar disponibilidad (SAR)</div>`
+    ).addClass('alert-danger');
+}
+
+function getConsultarAperturaCaja() {
+    var url = '<?php echo SERVERURL; ?>core/getAperturaCajaUsuario.php';
+    var estado_apertura;
+
+    $.ajax({
+        type: 'POST',
+        url: url,
+        async: false,
+        success: function(registro) {
+            var valores = eval(registro);
+            estado_apertura = valores[0];
+        }
+    });
+    return estado_apertura;
+}
+
 function validarAperturaCajaUsuario() {
     const cajaCerrada = getConsultarAperturaCaja() == 2;
     const elementos = [
@@ -6332,28 +6369,14 @@ function validarAperturaCajaUsuario() {
     // Manejar visibilidad de botones de caja (siempre habilitados)
     $("#invoice-form #btn_apertura")
         .toggle(cajaCerrada)
-        .prop("disabled", false); // ← Siempre habilitado
+        .prop("disabled", false);
     
     $("#invoice-form #btn_cierre")
         .toggle(!cajaCerrada)
-        .prop("disabled", false); // ← Siempre habilitado
+        .prop("disabled", false);
     
     // Forzar actualización del estado SAR
     getTotalFacturasDisponibles();
 }
-
-function showErrorState() {
-    $("#mensajeFacturas").html(
-        `<i class="fas fa-exclamation-circle"></i> <div class="counter-content">Error al cargar disponibilidad (SAR)</div>`
-    ).addClass('alert-danger');
-}
-
-
-// -----------------------------------
-// Ready
-// -----------------------------------
-$(document).ready(function () {
-    // Pequeño delay para asegurar que el DOM objetivo exista
-    setTimeout(initializeFacturasCounter, 600);
-});
+/*FIN CONTEO FACTURAS*/
 </script>

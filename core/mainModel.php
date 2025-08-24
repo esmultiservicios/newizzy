@@ -5063,62 +5063,73 @@ class mainModel
 
 	public function getMovimientosCuentasContables($datos)
 	{
-		$query = "SELECT mc.movimientos_cuentas_id AS 'movimientos_cuentas_id', mc.fecha_registro AS 'fecha', c.codigo as 'codigo', c.nombre AS 'nombre', mc.ingreso As 'ingreso', mc.egreso AS 'egreso', mc.saldo AS 'saldo'
-				FROM movimientos_cuentas AS mc
-				INNER JOIN cuentas AS c
-				ON mc.cuentas_id = c.cuentas_id
-				AND fecha BETWEEN '" . $datos['fechai'] . "' AND '" . $datos['fechaf'] . "'
-				ORDER BY mc.fecha_registro DESC";
+	  $fechai = $datos['fechai'];
+	  $fechaf = $datos['fechaf'];
+	
+	  $query = "
+		SELECT
+		  mc.movimientos_cuentas_id AS movimientos_cuentas_id,
+		  mc.fecha_registro         AS fecha,
+		  c.codigo                  AS codigo,
+		  c.nombre                  AS nombre,
+		  mc.ingreso                AS ingreso,
+		  mc.egreso                 AS egreso,
+		  mc.saldo                  AS saldo
+		FROM movimientos_cuentas mc
+		INNER JOIN cuentas c
+		  ON mc.cuentas_id = c.cuentas_id
+		WHERE DATE(mc.fecha_registro) BETWEEN '{$fechai}' AND '{$fechaf}'
+		ORDER BY mc.fecha_registro DESC
+	  ";
+	
+	  return self::connection()->query($query);
+	}	
 
-		$result = self::connection()->query($query);
-
-		return $result;
-	}
-
+	// En mainModel.php
 	public function getIngresosContables($datos)
 	{
-		$fechai = $this->cleanString($datos['fechai']);
-		$fechaf = $this->cleanString($datos['fechaf']);
-		$estado = (int)$datos['estado'];
+	$fechai = $this->cleanString($datos['fechai']);
+	$fechaf = $this->cleanString($datos['fechaf']);
+	$estado = (int)$datos['estado'];
 
-		$query = "
-			SELECT
-				i.ingresos_id,
-				i.fecha,
-				i.cuentas_id,
-				i.clientes_id,
-				i.empresa_id,
-				c.codigo,
-				c.nombre,
-				COALESCE(cli.nombre, i.recibide) AS cliente,
-				i.factura,
-				i.subtotal,
-				i.impuesto       AS impuesto,
-				i.descuento,
-				i.nc,
-				i.total,
-				i.fecha_registro,
-				i.observacion,
-				CASE i.tipo_ingreso
-					WHEN 1 THEN 'Ingresos por Ventas'
-					WHEN 2 THEN 'Ingresos Manuales'
-					ELSE 'Otro'
-				END AS tipo_ingreso,
-				i.estado
-			FROM ingresos AS i
-			INNER JOIN cuentas AS c      ON i.cuentas_id  = c.cuentas_id
-			LEFT  JOIN clientes AS cli   ON i.clientes_id = cli.clientes_id
-			WHERE CAST(i.fecha_registro AS DATE) BETWEEN '$fechai' AND '$fechaf'
-			AND i.estado = $estado
-			ORDER BY i.fecha_registro DESC
-		";
+	$query = "
+		SELECT
+		i.ingresos_id,
+		i.fecha,
+		i.cuentas_id,
+		i.clientes_id,
+		i.empresa_id,
+		c.codigo,
+		c.nombre,
+		COALESCE(cli.nombre, i.recibide) AS cliente,
+		i.factura,
+		i.subtotal,
+		i.impuesto AS impuesto,
+		i.descuento,
+		i.nc,
+		i.total,
+		i.fecha_registro,
+		i.observacion,
+		CASE i.tipo_ingreso
+			WHEN 1 THEN 'Ingresos por Ventas'
+			WHEN 2 THEN 'Ingresos Manuales'
+			ELSE 'Otro'
+		END AS tipo_ingreso,
+		i.estado
+		FROM ingresos AS i
+		INNER JOIN cuentas  AS c   ON i.cuentas_id  = c.cuentas_id
+		LEFT  JOIN clientes AS cli ON i.clientes_id = cli.clientes_id
+		WHERE DATE(i.fecha_registro) BETWEEN '$fechai' AND '$fechaf'
+		AND i.estado = $estado
+		ORDER BY i.fecha_registro DESC
+	";
 
-		$result = self::connection()->query($query);
-		if(!$result){
-			error_log("Error en getIngresosContables: ".self::connection()->error);
-			return false;
-		}
-		return $result;
+	$result = self::connection()->query($query);
+	if (!$result) {
+		error_log('Error en getIngresosContables: ' . self::connection()->error);
+		return false;
+	}
+	return $result;
 	}
 
 	public function ejecutar_consulta_simple($query)
@@ -5154,45 +5165,40 @@ class mainModel
 		$fechai = self::cleanString($datos['fechai']);
 		$fechaf = self::cleanString($datos['fechaf']);
 		$estado = (int)$datos['estado'];
-	
+
 		$query = "
 			SELECT
-				e.egresos_id                              AS egresos_id,
-				e.fecha                                    AS fecha,
-				c.codigo                                   AS codigo,
-				c.nombre                                   AS nombre,
-				p.nombre                                   AS proveedor,
-				e.factura                                  AS factura,
-				e.subtotal                                 AS subtotal,      -- crudo
-				e.impuesto                                      AS impuesto,      -- crudo (antes lo aliasabas como 'impuesto')
-				e.descuento                                AS descuento,     -- crudo
-				e.nc                                       AS nc,            -- crudo
-				e.total                                    AS total,         -- crudo
-				e.fecha_registro                           AS fecha_registro,
-				cg.nombre                                  AS categoria,
-				e.observacion                              AS observacion,
-				e.estado                                   AS estado,
-				e.factura_pdf                              AS factura_pdf,
-	
-				-- IDs crudos extra para anular sin consultas adicionales
-				e.proveedores_id                           AS proveedores_id,
-				e.cuentas_id                               AS cuentas_id,
-				e.empresa_id                               AS empresa_id
+			e.egresos_id            AS egresos_id,
+			e.fecha                 AS fecha,
+			c.codigo                AS codigo,
+			c.nombre                AS nombre,
+			p.nombre                AS proveedor,
+			e.factura               AS factura,
+			e.subtotal              AS subtotal,
+			e.impuesto              AS impuesto,
+			e.descuento             AS descuento,
+			e.nc                    AS nc,
+			e.total                 AS total,
+			e.fecha_registro        AS fecha_registro,
+			cg.nombre               AS categoria,
+			e.observacion           AS observacion,
+			e.estado                AS estado,
+			e.factura_pdf           AS factura_pdf,
+			e.proveedores_id        AS proveedores_id,
+			e.cuentas_id            AS cuentas_id,
+			e.empresa_id            AS empresa_id
 			FROM egresos AS e
-			INNER JOIN cuentas AS c
-				ON e.cuentas_id = c.cuentas_id
-			INNER JOIN proveedores AS p
-				ON e.proveedores_id = p.proveedores_id
-			LEFT JOIN categoria_gastos AS cg
-				ON e.categoria_gastos_id = cg.categoria_gastos_id
+			INNER JOIN cuentas AS c         ON e.cuentas_id      = c.cuentas_id
+			INNER JOIN proveedores AS p     ON e.proveedores_id  = p.proveedores_id
+			LEFT JOIN categoria_gastos AS cg ON e.categoria_gastos_id = cg.categoria_gastos_id
 			WHERE CAST(e.fecha_registro AS DATE) BETWEEN '$fechai' AND '$fechaf'
-			  AND e.estado = '$estado'
+			AND e.estado = '$estado'
 			ORDER BY e.fecha_registro DESC
 		";
-	
+
 		$result = self::connection()->query($query);
 		return $result;
-	}	
+	}
 
 	public function getEgresosContablesReporte($egresos_id)
 	{
@@ -6372,39 +6378,36 @@ class mainModel
 	public function getMovimientosProductos($datos)
 	{
 		$producto = '';
-		$cliente = '';
-		$tipo = '';
-		$fecha = '';
-		$bodega = '';  // Asegúrate de que $bodega tenga un valor por defecto
+		$cliente  = '';
+		$tipo     = '';
+		$fecha    = '';
+		$bodega   = '';
 
 		$fecha_actual = date('Y-m-d');
 
 		if ($datos['fechai'] != $fecha_actual) {
-			$fecha = "AND CAST(m.fecha_registro AS DATE) BETWEEN '" . $datos['fechai'] . "' AND '" . $datos['fechaf'] . "'";
+			$fecha = "AND CAST(m.fecha_registro AS DATE) BETWEEN '" . self::cleanString($datos['fechai']) . "' AND '" . self::cleanString($datos['fechaf']) . "'";
 		}
 
 		if ($datos['bodega'] != '') {
-			$bodega = "AND a.almacen_id = '" . $datos['bodega'] . "'";
+			$bodega = "AND a.almacen_id = '" . self::cleanString($datos['bodega']) . "'";
 		}
-
-		if ($datos['bodega'] == '0') {
-			$bodega = '';  // Si bodega es '0', la variable debe ser vacía
-		}
+		if ($datos['bodega'] == '0') { $bodega = ''; }
 
 		if ($datos['producto'] != '') {
-			$producto = "AND p.productos_id = '" . $datos['producto'] . "'";
+			$producto = "AND p.productos_id = '" . self::cleanString($datos['producto']) . "'";
 		}
-
 		if ($datos['cliente'] != '') {
-			$cliente = "AND m.clientes_id = '" . $datos['cliente'] . "'";
+			$cliente  = "AND m.clientes_id = '" . self::cleanString($datos['cliente']) . "'";
+		}
+		if ($datos['tipo_producto_id'] != '') {
+			$tipo     = "AND p.tipo_producto_id = '" . self::cleanString($datos['tipo_producto_id']) . "'";
 		}
 
-		if ($datos['tipo_producto_id'] != '') {
-			$tipo = "AND p.tipo_producto_id = '" . $datos['tipo_producto_id'] . "'";
-		}
+		$empresa = self::cleanString($datos['empresa_id_sd']);
 
 		$query = "
-		SELECT 
+			SELECT 
 			m.movimientos_id,
 			m.documento,
 			m.cantidad_entrada,
@@ -6419,112 +6422,125 @@ class mainModel
 			p.nombre AS 'producto',
 			md.nombre AS 'medida',
 			m.cantidad_entrada AS 'entrada',
-			m.cantidad_salida AS 'salida',
-			COALESCE(  -- Usamos COALESCE para asegurarnos de que cuando sea NULL, devuelva 0
-				(SELECT SUM(CASE WHEN mm.cantidad_entrada > 0 THEN mm.cantidad_entrada ELSE 0 END) - 
-						SUM(CASE WHEN mm.cantidad_salida > 0 THEN mm.cantidad_salida ELSE 0 END)
+			m.cantidad_salida  AS 'salida',
+			COALESCE(
+				(SELECT 
+					SUM(CASE WHEN mm.cantidad_entrada > 0 THEN mm.cantidad_entrada ELSE 0 END) -
+					SUM(CASE WHEN mm.cantidad_salida  > 0 THEN mm.cantidad_salida  ELSE 0 END)
 				FROM movimientos mm
-				WHERE mm.productos_id = m.productos_id 
-				AND mm.almacen_id = m.almacen_id  -- Se filtra por la bodega específica
-				AND mm.fecha_registro < m.fecha_registro 
-				AND mm.empresa_id = '" . $datos['empresa_id_sd'] . "' 
+				WHERE mm.productos_id = m.productos_id
+				AND mm.almacen_id   = m.almacen_id
+				AND mm.fecha_registro < m.fecha_registro
+				AND mm.empresa_id = '$empresa'
 				$fecha
-				), 
-			0) AS saldo_anterior,  -- Aquí es donde usamos COALESCE para asegurar que NULL se convierta en 0
-			a.nombre AS 'bodega',
+				),
+			0) AS saldo_anterior,
+			a.nombre    AS 'bodega',
 			a.almacen_id,
 			p.productos_id,
 			p.file_name AS 'image',
 			COALESCE(l.numero_lote, '') AS 'numero_lote'
-		FROM 
-			movimientos m
-		LEFT JOIN 
-			productos p ON m.productos_id = p.productos_id
-		LEFT JOIN 
-			clientes c ON m.clientes_id = c.clientes_id
-		LEFT JOIN 
-			almacen a ON m.almacen_id = a.almacen_id
-		LEFT JOIN 
-			medida AS md ON p.medida_id = md.medida_id
-		LEFT JOIN 
-			lotes l ON m.lote_id = l.lote_id
-		WHERE
-			p.estado = 1 
-			AND m.empresa_id = '" . $datos['empresa_id_sd'] . "'
+			FROM movimientos m
+			LEFT JOIN productos p ON m.productos_id = p.productos_id
+			LEFT JOIN clientes  c ON m.clientes_id  = c.clientes_id
+			LEFT JOIN almacen   a ON m.almacen_id   = a.almacen_id
+			LEFT JOIN medida    md ON p.medida_id   = md.medida_id
+			LEFT JOIN lotes     l  ON m.lote_id     = l.lote_id
+			WHERE p.estado = 1
+			AND m.empresa_id = '$empresa'
 			$fecha
 			$bodega
 			$producto
 			$cliente
 			$tipo
-		";        
+			ORDER BY m.fecha_registro DESC
+		";
 
 		$result = self::connection()->query($query);
-
 		return $result;
 	}
 
 	public function getTranferenciaProductos($datos)
 	{
-		$bodega = '';
+		$bodega       = '';
 		$tipo_product = '';
-		$id_producto = '';
-		
-		// Validación mejorada para la bodega
-		$bodega = (!empty($datos['bodega']) && $datos['bodega'] != '0') ? "AND bo.almacen_id = '" . $datos['bodega'] . "'" : '';
-		
+		$id_producto  = '';
+
+		$empresa = self::cleanString($datos['empresa_id_sd']);
+
+		// Filtros
+		if (!empty($datos['bodega']) && $datos['bodega'] != '0') {
+			$bodega = "AND bo.almacen_id = '" . self::cleanString($datos['bodega']) . "'";
+		}
 		if (!empty($datos['tipo_producto_id'])) {
-			$tipo_product = "AND p.tipo_producto_id = '" . $datos['tipo_producto_id'] . "'";
+			$tipo_product = "AND p.tipo_producto_id = '" . self::cleanString($datos['tipo_producto_id']) . "'";
 		}
-		
 		if (!empty($datos['productos_id'])) {
-			$id_producto = "AND p.productos_id = '" . $datos['productos_id'] . "'";
+			$id_producto = "AND p.productos_id = '" . self::cleanString($datos['productos_id']) . "'";
 		}
-		
+
+		// Subconsulta para agrupar por producto / almacén / lote y traer la última fecha de movimiento
 		$query = "
 			SELECT
-				m.almacen_id AS 'almacen_id',
-				m.movimientos_id AS 'movimientos_id',
-				m.empresa_id,
-				p.barCode AS 'barCode',
-				p.nombre AS 'producto',
-				me.nombre AS 'medida',
-				p.file_name AS 'image',
-				SUM(m.cantidad_entrada) AS 'entrada',
-				SUM(m.cantidad_salida) AS 'salida',
-				(
-					SUM(m.cantidad_entrada) - SUM(m.cantidad_salida)
-				) AS 'saldo',
-				bo.nombre AS 'bodega',
-				DATE_FORMAT(m.fecha_registro, '%d/%m/%Y %H:%i:%s') AS 'fecha_registro',
-				p.productos_id AS 'productos_id',
-				p.id_producto_superior,
-				COALESCE(l.numero_lote, '') AS 'numero_lote',
-				COALESCE(l.lote_id, 0) AS 'lote_id',
-				COALESCE((
-					SELECT IFNULL(SUM(m2.cantidad_entrada) - SUM(m2.cantidad_salida), 0)
-					FROM movimientos AS m2
-					WHERE m2.productos_id = p.productos_id
-					AND m2.almacen_id = m.almacen_id
-					AND m2.fecha_registro < m.fecha_registro
-					AND m2.empresa_id = '" . $datos['empresa_id_sd'] . "'
-				), 0) AS 'saldo_anterior'
-			FROM
-				movimientos AS m
-			LEFT JOIN productos AS p ON m.productos_id = p.productos_id
-			LEFT JOIN medida AS me ON p.medida_id = me.medida_id
-			LEFT JOIN almacen AS bo ON m.almacen_id = bo.almacen_id
-			LEFT JOIN lotes l ON m.lote_id = l.lote_id
-			WHERE m.empresa_id = '" . $datos['empresa_id_sd'] . "' 
-			AND p.estado = 1
+			t.almacen_id,
+			t.movimientos_id,            -- último movimientos_id del grupo (opcional)
+			t.empresa_id,
+			p.barCode                AS barCode,
+			p.nombre                 AS producto,
+			me.nombre                AS medida,
+			p.file_name              AS image,
+			t.entrada,
+			t.salida,
+			(t.entrada - t.salida)   AS saldo,
+			bo.nombre                AS bodega,
+			t.ultima_fecha           AS fecha_registro,      -- RAW 'YYYY-MM-DD HH:mm:ss'
+			p.productos_id           AS productos_id,
+			p.id_producto_superior,
+			COALESCE(l.numero_lote,'') AS numero_lote,
+			t.lote_id,
+			COALESCE((
+				SELECT IFNULL(
+				SUM(CASE WHEN m2.cantidad_entrada > 0 THEN m2.cantidad_entrada ELSE 0 END) -
+				SUM(CASE WHEN m2.cantidad_salida  > 0 THEN m2.cantidad_salida  ELSE 0 END)
+				,0)
+				FROM movimientos m2
+				WHERE m2.productos_id = t.productos_id
+				AND m2.almacen_id   = t.almacen_id
+				AND m2.empresa_id   = t.empresa_id
+				AND m2.fecha_registro < t.ultima_fecha
+			),0) AS saldo_anterior
+			FROM (
+			SELECT
+				m.productos_id,
+				m.almacen_id,
+				COALESCE(m.lote_id,0)       AS lote_id,
+				MAX(m.fecha_registro)       AS ultima_fecha,
+				-- opcional: el movimientos_id asociado a la última fecha (no siempre 1:1, pero útil)
+				SUBSTRING_INDEX(
+				GROUP_CONCAT(m.movimientos_id ORDER BY m.fecha_registro DESC SEPARATOR ','),
+				',', 1
+				) AS movimientos_id,
+				SUM(m.cantidad_entrada)     AS entrada,
+				SUM(m.cantidad_salida)      AS salida,
+				m.empresa_id
+			FROM movimientos m
+			WHERE m.empresa_id = '$empresa'
+			GROUP BY m.productos_id, m.almacen_id, COALESCE(m.lote_id,0), m.empresa_id
+			) t
+			INNER JOIN productos p ON p.productos_id = t.productos_id
+			LEFT  JOIN medida   me ON p.medida_id    = me.medida_id
+			LEFT  JOIN almacen  bo ON t.almacen_id   = bo.almacen_id
+			LEFT  JOIN lotes     l ON t.lote_id      = l.lote_id
+			WHERE p.estado = 1
 			$tipo_product
 			$bodega
 			$id_producto
-			GROUP BY p.productos_id, m.almacen_id, p.nombre, me.nombre, p.file_name, bo.nombre, p.fecha_registro, p.id_producto_superior, l.numero_lote, l.lote_id
-			ORDER BY p.fecha_registro ASC";
-		
+			ORDER BY t.ultima_fecha DESC
+		";
+
 		$result = self::connection()->query($query);
 		return $result;
-	}	
+	}
 		
 	public function consultaVentas($datos)
 	{

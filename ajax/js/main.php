@@ -298,14 +298,14 @@ function getPermisosTipoUsuarioAccesosTableAccion(privilegio_id, tipo) {
     });
 }
 
-// --- 1) Ocultar todo (sin tocar display:flex); limpia estilos inline viejos
+// --- 1) Ocultar TODO (sidebar + topbar) y limpiar display inline
 function ocultarTodoNavbar() {
-  $('#sidenavAccordion .link')
+  $('#sidenavAccordion .link, .sb-topnav .link')
     .addClass('perm-hidden')
-    .removeAttr('style'); // por si quedó display:inline/block de intentos previos
+    .removeAttr('style'); // elimina display:none inline inicial
 }
 
-// --- 2) Aplica visibilidad sin show/hide
+// --- 2) Aplica visibilidad por id o clase (en cualquier zona del DOM)
 function aplicarVisibilidad(filas, keyNombre) {
   if (!Array.isArray(filas)) return;
 
@@ -318,8 +318,8 @@ function aplicarVisibilidad(filas, keyNombre) {
     const estadoPlan = row.estado_menu_plan ?? row.estado_submenu_plan ?? row.estado_submenu1_plan;
     const okPlan = (estadoPlan === undefined) ? true : Number(estadoPlan) === 1;
 
-    const selId  = '#' + nombre;
-    const selCls = '.' + nombre;
+    const selId  = '#' + nombre;  // coincide con id="reporteVentas"
+    const selCls = '.' + nombre;  // coincide con class="reporteVentas"
 
     if ($(selId).length === 0 && $(selCls).length === 0) {
       console.warn('No existe en el DOM un elemento con id/clase =', nombre);
@@ -332,7 +332,7 @@ function aplicarVisibilidad(filas, keyNombre) {
   }
 }
 
-// --- 3) Endpoints
+// --- 3) Endpoints (mismo comportamiento, sólo parseo y aplicar)
 function getMenu(privilegio_id) {
   return $.post('<?php echo SERVERURL;?>core/getMenuPrivilegios.php',
     { privilegio_id },
@@ -361,14 +361,14 @@ function getSubMenu1(privilegio_id) {
   );
 }
 
-// --- 4) Orquestador
+// --- 4) Orquestador (cubre sidebar + topbar)
 function actualizarPermisos() {
   const privilegio_id = (typeof getPrivilegioUsuario === 'function')
     ? getPrivilegioUsuario()
     : <?php echo (int)($_SESSION['privilegio_id'] ?? 0); ?>;
 
-  // Evita flash y limpia estados
-  $('#sidenavAccordion').addClass('nav-loading');
+  // Evita flash en ambos navs y limpia estados
+  $('#sidenavAccordion, .sb-topnav').addClass('nav-loading');
   ocultarTodoNavbar();
 
   $.when(
@@ -376,7 +376,7 @@ function actualizarPermisos() {
     getSubMenu(privilegio_id),
     getSubMenu1(privilegio_id)
   ).always(function () {
-    $('#sidenavAccordion').removeClass('nav-loading'); // muestra el nav ya listo
+    $('#sidenavAccordion, .sb-topnav').removeClass('nav-loading');
   });
 }
 

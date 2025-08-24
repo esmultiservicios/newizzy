@@ -27,11 +27,12 @@ if(!isset($_SESSION)){
         rel="stylesheet" crossorigin="anonymous" /> -->   
 
     <style>
-        /* Oculta todo el nav mientras carga permisos (sin parpadeo) */
-        #sidenavAccordion.nav-loading { visibility: hidden; }
-
-        /* Clase para ocultar sin romper el layout flex del sidebar */
+        /* Oculta por clase (sin romper display:flex) */
         .perm-hidden { display: none !important; }
+
+        /* Evita el “flash” mientras aplican permisos */
+        #sidenavAccordion.nav-loading,
+        .sb-topnav.nav-loading { visibility: hidden; }
     </style>
 
 </head>

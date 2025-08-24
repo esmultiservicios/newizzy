@@ -1,45 +1,84 @@
 <?php
+// asignarSubMenu1Acceso.php
 $peticionAjax = true;
 require_once "configGenerales.php";
 require_once "mainModel.php";
 
+// Siempre devolver JSON
+header('Content-Type: application/json; charset=utf-8');
+
 $mainModel = new mainModel();
 
-if (isset($_POST['submenu1_id']) && isset($_POST['privilegio_id']) && isset($_POST['estado'])) {
-    $submenu1_id = $mainModel->cleanString($_POST['submenu1_id']);
-    $privilegio_id = $mainModel->cleanString($_POST['privilegio_id']);
-    $estado = $mainModel->cleanString($_POST['estado']);
-    $fecha_registro = date("Y-m-d H:i:s");
+// Sanitizar y castear
+$submenu1_id   = isset($_POST['submenu1_id']) ? (int)$_POST['submenu1_id'] : 0;
+$privilegio_id = isset($_POST['privilegio_id']) ? (int)$_POST['privilegio_id'] : 0;
+$estado        = isset($_POST['estado']) ? (int)$_POST['estado'] : 0;
+$fecha_registro = date("Y-m-d H:i:s");
 
-    // Verificar si ya existe el registro
-    $query = "SELECT acceso_submenu1_id FROM acceso_submenu1 
-              WHERE acceso_submenu1_id = '$submenu1_id' AND privilegio_id = '$privilegio_id'";
-    $result = $mainModel->ejecutar_consulta_simple($query);
-
-    if ($result->num_rows > 0) {
-        // Actualizar
-        $update = "UPDATE acceso_submenu1 
-                   SET estado = '$estado', fecha_registro = '$fecha_registro' 
-                   WHERE acceso_submenu1_id = '$submenu1_id' AND privilegio_id = '$privilegio_id'";
-        $mainModel->ejecutar_consulta_simple($update);
-    } else {
-        // Insertar
-        $insert = "INSERT INTO acceso_submenu1 (submenu1_id, privilegio_id, estado, fecha_registro) 
-                   VALUES ('$submenu1_id', '$privilegio_id', '$estado', '$fecha_registro')";
-        $mainModel->ejecutar_consulta_simple($insert);
-    }
-
+// Validación básica
+if ($submenu1_id <= 0 || $privilegio_id <= 0) {
     echo json_encode([
-        'type' => 'success',  // El tipo de la respuesta, puede ser 'success' o 'error'
-        'title' => 'Operación exitosa',
-        'message' => 'El registro se ha actualizado correctamente.',
-        'estado' => true  // true indica éxito
+        'type'    => 'error',
+        'title'   => 'Datos incompletos',
+        'message' => 'Faltan parámetros requeridos.',
+        'estado'  => false
     ]);
-} else {
-    echo json_encode([
-        'type' => 'error',  // El tipo de la respuesta, puede ser 'error'
-        'title' => 'Error en la operación',
-        'message' => 'Hubo un problema al procesar la solicitud.',
-        'estado' => false  // false indica error
-    ]);
+    exit;
 }
+
+// --- MODO SEGURO: si no tienes índice único (submenu1_id, privilegio_id),
+// primero intenta actualizar; si no existe, inserta.
+
+$existeSql = "
+    SELECT acceso_submenu1_id
+    FROM acceso_submenu1
+    WHERE submenu1_id = {$submenu1_id}
+      AND privilegio_id = {$privilegio_id}
+    LIMIT 1
+";
+$existeRes = $mainModel->ejecutar_consulta_simple($existeSql);
+
+if ($existeRes && $existeRes->num_rows > 0) {
+    // UPDATE
+    $updateSql = "
+        UPDATE acceso_submenu1
+        SET estado = {$estado},
+            fecha_registro = '{$fecha_registro}'
+        WHERE submenu1_id = {$submenu1_id}
+          AND privilegio_id = {$privilegio_id}
+    ";
+    $ok = $mainModel->ejecutar_consulta_simple($updateSql);
+    if ($ok === false) {
+        echo json_encode([
+            'type'    => 'error',
+            'title'   => 'Error en base de datos',
+            'message' => 'No se pudo actualizar el registro.',
+            'estado'  => false
+        ]);
+        exit;
+    }
+} else {
+    // INSERT
+    $insertSql = "
+        INSERT INTO acceso_submenu1 (submenu1_id, privilegio_id, estado, fecha_registro)
+        VALUES ({$submenu1_id}, {$privilegio_id}, {$estado}, '{$fecha_registro}')
+    ";
+    $ok = $mainModel->ejecutar_consulta_simple($insertSql);
+    if ($ok === false) {
+        echo json_encode([
+            'type'    => 'error',
+            'title'   => 'Error en base de datos',
+            'message' => 'No se pudo insertar el registro.',
+            'estado'  => false
+        ]);
+        exit;
+    }
+}
+
+echo json_encode([
+    'type'    => 'success',
+    'title'   => 'Operación exitosa',
+    'message' => 'El registro se ha actualizado correctamente.',
+    'estado'  => true
+]);
+exit;

@@ -18,7 +18,7 @@
 				"fecha_registro" => $fecha_registro,					
 			];
 			
-			if(tipoUsuarioModelo::valid_tipo_usuario_modelo($nombre)->num_rows > 0){
+			if(tipoUsuarioModelo::valid_tipo_usuario_modelo(["nombre" => $nombre])->num_rows > 0){
 				return mainModel::showNotification([
 					"type" => "error",
 					"title" => "Error",

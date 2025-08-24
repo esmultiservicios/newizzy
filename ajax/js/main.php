@@ -48,13 +48,6 @@ function init() {
 // Ejecutar cuando la página ha cargado completamente
 window.addEventListener('DOMContentLoaded', init);
 
-function actualizarPermisos() {
-    const privilegio_id = getPrivilegioUsuario();
-    getMenu(privilegio_id);
-    getSubMenu(privilegio_id);
-    getSubMenu1(privilegio_id);
-}
-
 // Ejecutar al cargar la página
 window.addEventListener('DOMContentLoaded', ajustarMenuResponsivo);
 
@@ -305,84 +298,86 @@ function getPermisosTipoUsuarioAccesosTableAccion(privilegio_id, tipo) {
     });
 }
 
+// --- 1) Ocultar todo (sin tocar display:flex); limpia estilos inline viejos
+function ocultarTodoNavbar() {
+  $('#sidenavAccordion .link')
+    .addClass('perm-hidden')
+    .removeAttr('style'); // por si quedó display:inline/block de intentos previos
+}
+
+// --- 2) Aplica visibilidad sin show/hide
+function aplicarVisibilidad(filas, keyNombre) {
+  if (!Array.isArray(filas)) return;
+
+  for (let i = 0; i < filas.length; i++) {
+    const row = filas[i] || {};
+    const nombre = row[keyNombre];
+    if (!nombre) continue;
+
+    const okAcceso = Number(row.estado) === 1;
+    const estadoPlan = row.estado_menu_plan ?? row.estado_submenu_plan ?? row.estado_submenu1_plan;
+    const okPlan = (estadoPlan === undefined) ? true : Number(estadoPlan) === 1;
+
+    const selId  = '#' + nombre;
+    const selCls = '.' + nombre;
+
+    if ($(selId).length === 0 && $(selCls).length === 0) {
+      console.warn('No existe en el DOM un elemento con id/clase =', nombre);
+      continue;
+    }
+
+    const mostrar = okAcceso && okPlan;
+    $(selId).toggleClass('perm-hidden', !mostrar);
+    $(selCls).toggleClass('perm-hidden', !mostrar);
+  }
+}
+
+// --- 3) Endpoints
 function getMenu(privilegio_id) {
-    var url = '<?php echo SERVERURL;?>core/getMenuPrivilegios.php';
-
-    $.ajax({
-        type: 'POST',
-        url: url,
-        data: 'privilegio_id=' + privilegio_id,
-        success: function(registro) {
-            valores_menu = JSON.parse(registro);
-            try {
-                for (var i = 0; i < valores_menu.length; i++) {
-                    if (valores_menu[i].estado == 1) {
-                        $('#' + valores_menu[i].menu).show();
-                        $('.' + valores_menu[i].menu).show();
-                    } else {
-                        $('#' + valores_menu[i].menu).hide();
-                        $('.' + valores_menu[i].menu).hide();
-                    }
-                }
-            } catch (e) {
-
-            }
-        }
-    });
+  return $.post('<?php echo SERVERURL;?>core/getMenuPrivilegios.php',
+    { privilegio_id },
+    function (registro) {
+      let data = []; try { data = JSON.parse(registro || '[]'); } catch(e) {}
+      aplicarVisibilidad(data, 'menu');
+    }
+  );
 }
-
 function getSubMenu(privilegio_id) {
-    var url = '<?php echo SERVERURL;?>core/getSubMenuPrivilegios.php';
-
-    $.ajax({
-        type: 'POST',
-        url: url,
-        data: 'privilegio_id=' + privilegio_id,
-        success: function(registro) {
-            valores_submenu = JSON.parse(registro);
-
-            try {
-                for (var i = 0; i < valores_submenu.length; i++) {
-                    if (valores_submenu[i].estado == 1) {
-                        $('#' + valores_submenu[i].submenu).show();
-                        $('.' + valores_submenu[i].submenu).show();
-                    } else {
-                        $('#' + valores_submenu[i].submenu).hide();
-                        $('.' + valores_submenu[i].submenu).hide();
-                    }
-                }
-            } catch (e) {
-                
-            }
-        }
-    });
+  return $.post('<?php echo SERVERURL;?>core/getSubMenuPrivilegios.php',
+    { privilegio_id },
+    function (registro) {
+      let data = []; try { data = JSON.parse(registro || '[]'); } catch(e) {}
+      aplicarVisibilidad(data, 'submenu');
+    }
+  );
+}
+function getSubMenu1(privilegio_id) {
+  return $.post('<?php echo SERVERURL;?>core/getSubMenuPrivilegios1.php',
+    { privilegio_id },
+    function (registro) {
+      let data = []; try { data = JSON.parse(registro || '[]'); } catch(e) {}
+      aplicarVisibilidad(data, 'submenu1');
+    }
+  );
 }
 
-function getSubMenu1(privilegio_id) {
-    var url = '<?php echo SERVERURL;?>core/getSubMenuPrivilegios1.php';
+// --- 4) Orquestador
+function actualizarPermisos() {
+  const privilegio_id = (typeof getPrivilegioUsuario === 'function')
+    ? getPrivilegioUsuario()
+    : <?php echo (int)($_SESSION['privilegio_id'] ?? 0); ?>;
 
-    $.ajax({
-        type: 'POST',
-        url: url,
-        data: 'privilegio_id=' + privilegio_id,
-        success: function(registro) {
-            valores_submenu = JSON.parse(registro);
+  // Evita flash y limpia estados
+  $('#sidenavAccordion').addClass('nav-loading');
+  ocultarTodoNavbar();
 
-            try {
-                for (var i = 0; i < valores_submenu.length; i++) {
-                    if (valores_submenu[i].estado == 1) {
-                        $('#' + valores_submenu[i].submenu1).show();
-                        $('.' + valores_submenu[i].submenu1).show();
-                    } else {
-                        $('#' + valores_submenu[i].submenu1).hide();
-                        $('.' + valores_submenu[i].submenu1).hide();
-                    }
-                }
-            } catch (e) {
-
-            }
-        }
-    });
+  $.when(
+    getMenu(privilegio_id),
+    getSubMenu(privilegio_id),
+    getSubMenu1(privilegio_id)
+  ).always(function () {
+    $('#sidenavAccordion').removeClass('nav-loading'); // muestra el nav ya listo
+  });
 }
 
 function getPrivilegioUsuario() {

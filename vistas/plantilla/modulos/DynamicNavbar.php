@@ -112,9 +112,10 @@ class DynamicNavbar {
     
     // Generar el HTML del navbar dinámicamente
     public function generarNavbar() {
-        $html = '<nav class="sb-sidenav accordion bg-color-navarlateral" id="sidenavAccordion">
-                    <div class="sb-sidenav-menu">
-                        <div class="nav">';
+        $html = '<nav class="sb-sidenav accordion bg-color-navarlateral nav-loading" id="sidenavAccordion">
+            <div class="sb-sidenav-menu">
+                <div class="nav">';
+
         
         // Obtener todos los menús principales
         $menus = $this->getMenus();

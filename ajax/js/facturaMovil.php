@@ -2,17 +2,19 @@
 //facturaMovil.php
 $(() => {
     // ===============================
-    // Variables globales
+    // VARIABLES GLOBALES
     // ===============================
-    let productosAgregados = [];
-    let currentFacturaId = null;
-    let secuenciaFactura = null;
-    let facturasDisponibles = 0;
-    let lastState = null;
-    let currentProductPrice = 0;
-    let cajaAbierta = false;
-    let aperturaInfo = null;
+    let productosAgregados = [];        // Array para almacenar productos agregados a la factura
+    let currentFacturaId = null;        // ID de la factura actual en proceso
+    let secuenciaFactura = null;        // Secuencia de facturación del SAR
+    let facturasDisponibles = 0;        // Número de facturas disponibles del SAR
+    let lastState = null;               // Último estado del contador de facturas
+    let lastFacturasCount = null; // Nueva variable para trackear el count
+    let currentProductPrice = 0;        // Precio del producto actual seleccionado
+    let cajaAbierta = false;            // Estado de la caja (abierta/cerrada)
+    let aperturaInfo = null;            // Información de apertura de caja
 
+    // Formateador de números para montos en lempiras
     const formatter = new Intl.NumberFormat('es-HN', {
         style: 'decimal',
         minimumFractionDigits: 2,
@@ -20,18 +22,18 @@ $(() => {
     });
 
     // ===============================
-    // 1. Cargar datos iniciales
+    // 1. CARGAR DATOS INICIALES
     // ===============================
-    cargarClientes();
-    cargarVendedores();
-    cargarProductos();
-    obtenerSecuenciaFactura();
-    getTotalFacturasDisponibles();
-    getCajero();
-    verificarAperturaCaja();
+    cargarClientes();                   // Cargar lista de clientes
+    cargarVendedores();                 // Cargar lista de vendedores
+    cargarProductos();                  // Cargar lista de productos
+    obtenerSecuenciaFactura();          // Obtener secuencia de facturación
+    getTotalFacturasDisponibles();      // Obtener facturas disponibles del SAR
+    getCajero();                        // Obtener información del cajero
+    verificarAperturaCaja();            // Verificar estado de la caja
 
     // ===============================
-    // 2. Eventos principales
+    // 2. EVENTOS PRINCIPALES
     // ===============================
     $('#agregar-producto').click(agregarProducto);
     $('#procesar-factura-top, #procesar-factura-bottom').click(procesarFactura);
@@ -41,6 +43,8 @@ $(() => {
     $('#guardar-descuento').click(guardarDescuento);
     $('#nuevo-descuento-monto').on('input', actualizarDescuentoDesdeMonto);
     $('#nuevo-descuento-porcentaje').on('input', actualizarDescuentoDesdePorcentaje);
+    
+    // Evento para búsqueda por código de barras
     $('#codigo-barra').on('change keyup paste', function() {
         const codigo = $(this).val().trim();
         if (codigo.length > 3) {
@@ -48,6 +52,7 @@ $(() => {
         }
     });
 
+    // Evento para botón de apertura/cierre de caja
     $(document).on('click', '#btn-apertura-caja', function() {
         var mode = $(this).data('mode');
         if (mode === 'abrir') {
@@ -57,13 +62,19 @@ $(() => {
         }
     });
 
+    // Evento cuando se cierra el modal de apertura de caja
     $('#modal_apertura_caja').on('hidden.bs.modal', function() {
         verificarAperturaCaja();
     });
 
     // ===============================
-    // 3. Funciones de Caja
+    // 3. FUNCIONES DE CAJA
     // ===============================
+
+    /**
+     * Consulta el estado de apertura de caja del usuario
+     * @returns {number} 1 = caja abierta, 2 = caja cerrada
+     */
     function getConsultarAperturaCaja() {
         var url = '<?php echo SERVERURL; ?>core/getAperturaCajaUsuario.php';
         var estado_apertura = 2; // Por defecto cerrada
@@ -89,6 +100,9 @@ $(() => {
         return estado_apertura;
     }
 
+    /**
+     * Verifica y actualiza el estado de la caja
+     */
     function verificarAperturaCaja() {
         var estado = Number(getConsultarAperturaCaja());
         cajaAbierta = (estado === 1);
@@ -112,6 +126,10 @@ $(() => {
         getTotalFacturasDisponibles(); // Actualizar contador SAR
     }
 
+    /**
+     * Habilita/deshabilita la UI según el estado de la caja
+     * @param {boolean} abierta - Estado de la caja
+     */
     function toggleUIForCajaAbierta(abierta) {
         var disable = !abierta;
 
@@ -142,6 +160,9 @@ $(() => {
         }
     }
 
+    /**
+     * Muestra el modal para aperturar caja
+     */
     function formAperturaBill() {
         $('#formAperturaCaja #proceso_aperturaCaja').val("Aperturar Caja");
         $('#open_caja').show();
@@ -158,6 +179,9 @@ $(() => {
         });
     }
 
+    /**
+     * Muestra el modal para cerrar caja
+     */
     function formCierreBill() {
         $('#formAperturaCaja #proceso_aperturaCaja').val("Cerrar Caja");
         $('#open_caja').hide();
@@ -175,54 +199,81 @@ $(() => {
     }
 
     // ===============================
-    // 4. Funciones de facturas disponibles
+    // 4. FUNCIONES DE FACTURAS DISPONIBLES
     // ===============================
+
+    /**
+     * Obtiene el total de facturas disponibles del SAR
+     */
     function getTotalFacturasDisponibles() {
         $.ajax({
             type: 'POST',
-            url: '<?php echo SERVERURL; ?>core/getTotalFacturasDisponibles.php',
+            url: '<?php echo SERVERURL; ?>core/getTotalFacturasDisponibles.php?_=' + new Date().getTime(),
             dataType: 'json',
             success: function(datos) {
                 facturasDisponibles = datos.facturasPendientes;
                 updateCounterUI(datos);
             },
-            error: function() {
+            error: function(jqXHR, textStatus, errorThrown) {
+                console.error('Error en AJAX:', textStatus, errorThrown);
                 showErrorState();
             }
         });
     }
 
+    /**
+     * Actualiza la UI del contador de facturas
+     * @param {Object} datos - Datos de facturas disponibles
+     */
     function updateCounterUI(datos) {
         const { facturasPendientes, contador, fechaLimite } = datos;
         const counter = $("#factura-counter");
         const daysLeft = parseInt(contador);
+        
+        console.log('Comparando - LastState:', lastState, 'LastCount:', lastFacturasCount, 'NewCount:', facturasPendientes);
+        
+        // Determinar el estado actual
         const currentState = getCurrentState(facturasPendientes, daysLeft, fechaLimite);
         
-        // Forzar reinicio de animación
-        counter.removeClass('state-change');
-        void counter[0].offsetWidth; // Truco para reiniciar animación
-        
-        // Aplicar cambios
-        counter.addClass('state-change');
-        
-        // Actualizar contenido después de un pequeño delay para que se vea la animación
-        setTimeout(() => {
-            const config = getStateConfig(currentState, facturasPendientes, daysLeft, fechaLimite);
-            counter.html(`<i class="${config.icon}"></i> <span class="counter-value">${config.text}</span>`)
-                .removeClass('counter-normal counter-warning counter-danger counter-expired counter-blocked counter-no-config')
-                .addClass(config.class);
+        // Solo actualizar si cambió el estado O el número de facturas
+        if (currentState !== lastState || facturasPendientes !== lastFacturasCount) {
+            lastState = currentState;
+            lastFacturasCount = facturasPendientes; // Guardar el nuevo count
             
-            // Animación adicional para cambios importantes
-            if (lastState !== currentState) {
-                counter.addClass('counter-update');
-                setTimeout(() => counter.removeClass('counter-update'), 1000);
-            }
-        }, 300);
+            console.log('Actualizando UI - Estado:', currentState, 'Facturas:', facturasPendientes);
+            
+            // Forzar reinicio de animación
+            counter.removeClass('state-change');
+            void counter[0].offsetWidth; // Truco para reiniciar animación
+            
+            // Aplicar cambios
+            counter.addClass('state-change');
+            
+            // Actualizar contenido después de un pequeño delay para que se vea la animación
+            setTimeout(() => {
+                const config = getStateConfig(currentState, facturasPendientes, daysLeft, fechaLimite);
+                counter.html(`<i class="${config.icon}"></i> <span class="counter-value">${config.text}</span>`)
+                    .removeClass('counter-normal counter-warning counter-danger counter-expired counter-blocked counter-no-config')
+                    .addClass(config.class);
+                
+                // Animación adicional para cambios importantes
+                if (lastState !== currentState) {
+                    counter.addClass('counter-update');
+                    setTimeout(() => counter.removeClass('counter-update'), 1000);
+                }
+            }, 300);
+        }
         
-        lastState = currentState;
         updateButtonsState(facturasPendientes, fechaLimite, daysLeft);
     }
 
+    /**
+     * Determina el estado actual basado en facturas disponibles y días restantes
+     * @param {number} facturasPendientes - Facturas disponibles
+     * @param {number} daysLeft - Días restantes para vencimiento
+     * @param {string} fechaLimite - Fecha límite de autorización
+     * @returns {string} Estado actual
+     */
     function getCurrentState(facturasPendientes, daysLeft, fechaLimite) {
         if (!fechaLimite || fechaLimite.trim() === "Sin definir") return 'no-config';
         if (facturasPendientes < 0) return 'blocked';
@@ -233,6 +284,14 @@ $(() => {
         return 'normal';
     }
 
+    /**
+     * Obtiene la configuración para mostrar según el estado
+     * @param {string} state - Estado actual
+     * @param {number} facturasPendientes - Facturas disponibles
+     * @param {number} daysLeft - Días restantes
+     * @param {string} fechaLimite - Fecha límite
+     * @returns {Object} Configuración para mostrar
+     */
     function getStateConfig(state, facturasPendientes, daysLeft, fechaLimite) {
         const facturasFormateadas = facturasPendientes.toLocaleString('es-HN');
         const vencimientoMsg = (daysLeft <= 5) ? 
@@ -288,6 +347,12 @@ $(() => {
         return configs[state] || configs['normal'];
     }
 
+    /**
+     * Actualiza el estado de los botones según disponibilidad de facturas y caja
+     * @param {number} facturasPendientes - Facturas disponibles
+     * @param {string} fechaLimite - Fecha límite
+     * @param {number} daysLeft - Días restantes
+     */
     function updateButtonsState(facturasPendientes, fechaLimite, daysLeft) {
         const vencimientoPasado = daysLeft < 0;
         const sarDisabled = facturasPendientes <= 0 || !fechaLimite || fechaLimite.trim() === "Sin definir" || vencimientoPasado;
@@ -332,15 +397,24 @@ $(() => {
         }
     }
 
+    /**
+     * Muestra estado de error en el contador
+     */
     function showErrorState() {
         $('#factura-counter').html(
             `<i class="fas fa-exclamation-circle"></i> <span class="counter-value">Error al cargar</span>`
         ).addClass('counter-danger');
     }
+    
+    /*FIN CONTEO FACTURAS*/
 
     // ===============================
-    // 5. Funciones de productos y facturación
+    // 5. FUNCIONES DE PRODUCTOS Y FACTURACIÓN
     // ===============================
+
+    /**
+     * Agrega un producto a la factura actual
+     */
     function agregarProducto() {
         const productoId = $('#producto-select').val();
         const productoText = $('#producto-select option:selected').text();
@@ -374,7 +448,7 @@ $(() => {
                 closeOnEsc: false,
                 closeOnClickOutside: false
             }).then((result) => {
-                if (result && result.isConfirmed) {
+                if ((result && result.isConfirmed) || result === true) {
                     productosAgregados[index].cantidad += cantidad;
                     productosAgregados[index].descuento += descuento;
                     actualizarListaProductos();
@@ -402,6 +476,9 @@ $(() => {
         $('#codigo-barra').val('').focus();
     }
 
+    /**
+     * Actualiza la lista visual de productos agregados
+     */
     function actualizarListaProductos() {
         const $container = $('#productos-agregados');
         $container.empty();
@@ -504,6 +581,9 @@ $(() => {
         });
     }
 
+    /**
+     * Calcula los totales de la factura
+     */
     function calcularTotales() {
         let subtotal = 0;
         let totalDescuento = 0;
@@ -528,6 +608,10 @@ $(() => {
         $('#total').text(`L. ${formatter.format(total)}`);
     }
 
+    /**
+     * Procesa la factura actual
+     * @param {Event} e - Evento del click
+     */
     function procesarFactura(e) {
         e.preventDefault();
 
@@ -594,8 +678,12 @@ $(() => {
     }
 
     // ===============================
-    // 6. Funciones de pago
+    // 6. FUNCIONES DE PAGO
     // ===============================
+
+    /**
+     * Registra el pago de una factura
+     */
     function registrarPago() {
         const efectivo = parseFloat($('#efectivo-pago').val()) || 0;
         const transferencia = parseFloat($('#transferencia-pago').val()) || 0;
@@ -643,6 +731,9 @@ $(() => {
         });
     }
 
+    /**
+     * Calcula el cambio a devolver
+     */
     function calcularCambio() {
         const efectivo = parseFloat($('#efectivo-pago').val()) || 0;
         const transferencia = parseFloat($('#transferencia-pago').val()) || 0;
@@ -654,8 +745,12 @@ $(() => {
     }
 
     // ===============================
-    // 7. Funciones auxiliares
+    // 7. FUNCIONES AUXILIARES
     // ===============================
+
+    /**
+     * Carga la lista de clientes desde el servidor
+     */
     function cargarClientes() {
         $.ajax({
             url: '<?php echo SERVERURL;?>core/facturas/getClientes.php',
@@ -679,6 +774,9 @@ $(() => {
         });
     }
 
+    /**
+     * Carga la lista de vendedores desde el servidor
+     */
     function cargarVendedores() {
         $.ajax({
             url: '<?php echo SERVERURL;?>core/facturas/getVendedores.php',
@@ -697,6 +795,9 @@ $(() => {
         });
     }
 
+    /**
+     * Carga la lista de productos desde el servidor
+     */
     function cargarProductos() {
         $.ajax({
             url: '<?php echo SERVERURL;?>core/facturas/getProductos.php',
@@ -715,6 +816,9 @@ $(() => {
         });
     }
 
+    /**
+     * Obtiene la secuencia de facturación del SAR
+     */
     function obtenerSecuenciaFactura() {
         $.ajax({
             url: '<?php echo SERVERURL;?>core/facturas/getSecuenciaFactura.php',
@@ -729,6 +833,9 @@ $(() => {
         });
     }
 
+    /**
+     * Cancela la factura en proceso
+     */
     function cancelarFactura() {
         if (productosAgregados.length === 0) {
             resetearFormulario();
@@ -759,6 +866,9 @@ $(() => {
         });
     }
 
+    /**
+     * Resetea el formulario de facturación
+     */
     function resetearFormulario() {
         productosAgregados = [];
         currentFacturaId = null;
@@ -772,6 +882,10 @@ $(() => {
         obtenerSecuenciaFactura();
     }
 
+    /**
+     * Busca un producto por código de barras
+     * @param {string} codigo - Código de barras del producto
+     */
     function buscarProductoPorCodigo(codigo) {
         $.ajax({
             url: '<?php echo SERVERURL;?>core/facturas/buscarProductoPorCodigo.php',
@@ -795,8 +909,12 @@ $(() => {
     }
 
     // ===============================
-    // 8. Funciones de Descuento
+    // 8. FUNCIONES DE DESCUENTO
     // ===============================
+
+    /**
+     * Actualiza el descuento desde el monto ingresado
+     */
     function actualizarDescuentoDesdeMonto() {
         const monto = parseFloat($('#nuevo-descuento-monto').val()) || 0;
         const porcentaje = currentProductPrice > 0 ? (monto / currentProductPrice) * 100 : 0;
@@ -804,6 +922,9 @@ $(() => {
         $('#descuento-total').val(`L. ${formatter.format(monto)} (${porcentaje.toFixed(2)}%)`);
     }
 
+    /**
+     * Actualiza el descuento desde el porcentaje ingresado
+     */
     function actualizarDescuentoDesdePorcentaje() {
         const porcentaje = parseFloat($('#nuevo-descuento-porcentaje').val()) || 0;
         const monto = (porcentaje / 100) * currentProductPrice;
@@ -811,6 +932,9 @@ $(() => {
         $('#descuento-total').val(`L. ${formatter.format(monto || 0)} (${porcentaje.toFixed(2)}%)`);
     }
 
+    /**
+     * Guarda el descuento aplicado a un producto
+     */
     function guardarDescuento() {
         const index = $('#producto-index').val();
         const nuevoDescuento = parseFloat($('#nuevo-descuento-monto').val()) || 0;
@@ -845,8 +969,9 @@ $(() => {
         $('#producto-index').val('');
     });
 
+    // Intervalo para verificar estado de caja y facturas disponibles cada minuto
     setInterval(() => {
-        validarAperturaCajaUsuario();
+        verificarAperturaCaja();
         getTotalFacturasDisponibles();
     }, 60000);
 });

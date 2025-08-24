@@ -24,7 +24,16 @@ if(!isset($_SESSION)){
     <link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/notyf.min.css" rel="stylesheet" />
     <link rel="shortcut icon" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/img/icono.png">
 <!--     <link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/sweetalert/sweetalert.css"
-        rel="stylesheet" crossorigin="anonymous" /> -->        
+        rel="stylesheet" crossorigin="anonymous" /> -->   
+
+    <style>
+        /* Oculta todo el nav mientras carga permisos (sin parpadeo) */
+        #sidenavAccordion.nav-loading { visibility: hidden; }
+
+        /* Clase para ocultar sin romper el layout flex del sidebar */
+        .perm-hidden { display: none !important; }
+    </style>
+
 </head>
 
 <body class="sb-nav-fixed">
@@ -121,7 +130,16 @@ if(!isset($_SESSION)){
     <a href="https://api.whatsapp.com/send?phone=50489136844&text=Hola%20ES%20MULTISERVICIOS,%20nos%20gustar%C3%ADa%20que%20nos%20puedan%20brindar%20asistencia%20t%C3%A9cnica,%20muchas%20gracias."
         class="float-ws" target="_blank" data-toggle="tooltip" data-placement="top" title="Soporte ES MULTISERVICIOS">
         <i class="fab fa-whatsapp my-float-ws"></i>
-    </a>
+    </a>  
+    
+    <script>
+        // Ejecuta cuando todo el HTML ya está en el DOM y jQuery está disponible
+        actualizarPermisos();
+
+        // Cuando termine de aplicar permisos, tu código quita la clase nav-loading:
+        // (esto ya lo hace el .always() dentro de actualizarPermisos())
+        // $('#sidenavAccordion').removeClass('nav-loading');
+    </script>    
 </body>
 
 </html>

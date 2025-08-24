@@ -1,3 +1,9 @@
+####24 de agosto 2025####
+ALTER TABLE acceso_submenu1
+  DROP PRIMARY KEY,
+  MODIFY acceso_submenu1_id INT(11) NOT NULL AUTO_INCREMENT,
+  ADD PRIMARY KEY (acceso_submenu1_id);
+
 ####22 de agosto 2025####
 CREATE TABLE facturas_recurrentes (
   rec_id              INT AUTO_INCREMENT PRIMARY KEY,

@@ -7248,7 +7248,7 @@ class mainModel
 
 		$query = "SELECT SUM(importe) AS 'total'
 				FROM facturas
-				WHERE fecha BETWEEN '$fecha_inicial' AND '$fecha_final'";
+				WHERE fecha BETWEEN '$fecha_inicial' AND '$fecha_final' AND estado IN(2,3)";
 
 		$result = self::connection()->query($query);
 
@@ -7285,7 +7285,7 @@ class mainModel
 
 		$query = "SELECT sum(importe) AS 'total'
 				FROM compras
-				WHERE fecha BETWEEN '$fecha_inicial' AND '$fecha_final'";
+				WHERE fecha BETWEEN '$fecha_inicial' AND '$fecha_final' AND estado IN(2,3)";
 
 		$result = self::connection()->query($query);
 

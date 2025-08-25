@@ -1,6 +1,9 @@
 <script>
 var DB_MAIN = "<?php echo DB_MAIN; ?>";
 
+// LLAMAMOS EL MÉTODO QUE IDENTIFICA EL USUARIO QUE HA INICIADO SESIÓN
+getUserSessionStart();
+
 function init() {
     // LLAMAMOS LOS MÉTODOS CORRESPONDIENTES A LOS MENÚS
     getGithubVersion();
@@ -14,9 +17,6 @@ function init() {
     // LLAMAMOS LOS MÉTODOS QUE OBTIENEN LOS PERMISOS DE LOS USUARIOS PARA LOS ACCESOS
     getPermisosTipoUsuarioAccesosForms(getPrivilegioTipoUsuario());
     getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-
-    // LLAMAMOS EL MÉTODO QUE IDENTIFICA EL USUARIO QUE HA INICIADO SESIÓN
-    getUserSessionStart();
 
     getAlmacen();
     getMedida();
@@ -47,67 +47,57 @@ function init() {
     aplicar();
 }
 
-// OCULTAR ELEMENTOS DEL MENÚ SEGUN DISPOSITIVO
-// Responsive menu visibility:
-// - Móvil + Tablet (<992px): SOLO facturaMovil en el menú
-// - Escritorio (>=992px): MOSTRAR facturas, facturaCompras, cotizacion
+// OCULTAR ELEMENTOS DEL MENÚ SEGÚN DISPOSITIVO
+// - Móvil/Tablet (<992px): SOLO #facturaMovil
+// - Escritorio (>=992px): #facturas, #facturaCompras, #cotizacion
 
 (function(){
   const BREAKPOINT = 992;
-  
-  // IDs de los elementos del menú lateral
+
   const menuItems = {
     movil: ['facturaMovil'],
     escritorio: ['facturas', 'facturaCompras', 'cotizacion']
   };
 
-  const setVisible = (id, visible) => {
-    const element = document.getElementById(id);
-    if (!element) {
-      return;
-    }
-    
-    if (visible) {
-      element.style.display = '';
-      element.classList.remove('hidden-by-responsive');
-    } else {
-      element.style.display = 'none';
-      element.classList.add('hidden-by-responsive');
-    }
-  };
+  function setVisible(id, visible) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.display = visible ? '' : 'none';
+    el.classList.toggle('hidden-by-responsive', !visible);
+  }
 
-  const aplicar = () => {
-    const currentWidth = document.documentElement.clientWidth;
-    const isTabletOrSmaller = currentWidth < BREAKPOINT;
-    
+  function aplicar() {
+    const w = document.documentElement.clientWidth;
+    const isTabletOrSmaller = w < BREAKPOINT;
+
     if (isTabletOrSmaller) {
-      // Modo móvil/tablet: mostrar solo facturaMovil, ocultar los demás
       menuItems.movil.forEach(id => setVisible(id, true));
       menuItems.escritorio.forEach(id => setVisible(id, false));
     } else {
-      // Modo escritorio: mostrar facturas, facturaCompras, cotizacion; ocultar facturaMovil
       menuItems.movil.forEach(id => setVisible(id, false));
       menuItems.escritorio.forEach(id => setVisible(id, true));
     }
-  };
+  }
 
-  const debounce = (fn, wait = 250) => {
+  function debounce(fn, wait = 250) {
     let t;
-    return () => { 
-      clearTimeout(t); 
-      t = setTimeout(fn, wait); 
-    };
-  };
+    return () => { clearTimeout(t); t = setTimeout(fn, wait); };
+  }
 
-  // Inicializar cuando el DOM esté listo
+  function init() {
+    // correr una vez
+    aplicar();
+    // escuchar eventos de cambio de tamaño/orientación
+    window.addEventListener('resize', debounce(aplicar, 250));
+    window.addEventListener('orientationchange', debounce(aplicar, 250));
+  }
+
+  // inicializar cuando el DOM esté listo
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
-  
-  // Actualizar cuando cambie el tamaño de la ventana
-  window.addEventListener('resize', debounce(aplicar, 250));
 })();
 
 // Ejecutar al cargar

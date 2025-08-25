@@ -343,7 +343,7 @@
                                     data-toggle="tooltip"
                                     data-placement="top"
                                     data-html="true"
-                                    title="<strong>Convertir cotización</strong><br>Carga una cotización como factura.<br>Trae cliente, productos, precios y descuentos.<br>Revisa existencias y folio SAR antes de emitir."
+                                    title="<strong>Convertir cotización</strong><br>Carga una cotización como factura.<br>Trae cliente, productos, precios y descuentos.<br>Revisa existencias y autorizaciones de el SAR antes de emitir."
                                     >
                                     <div class="sb-nav-link-icon"></div>
                                     <i class="fas fa-file-invoice-dollar fa-lg"></i> Cotizaciones

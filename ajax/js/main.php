@@ -45,41 +45,70 @@ function init() {
     });    
 }
 
-// Ejecutar cuando la página ha cargado completamente
-window.addEventListener('DOMContentLoaded', init);
+//OCULTAR PANTALLAS SEGUN vistas
+// Responsive visibility:
+// - Móvil + Tablet (<992px): SOLO factura móvil.
+// - Escritorio (>=992px): TODO menos factura móvil.
 
-// Ejecutar al cargar la página
-window.addEventListener('DOMContentLoaded', ajustarMenuResponsivo);
+(function(){
+  const BREAKPOINT = 992;
+  let movilElements = [];
+  let escritorioElements = [];
 
-// Ejecutar al redimensionar la ventana
-window.addEventListener('resize', ajustarMenuResponsivo);
-
-// Verifica si el elemento existe antes de modificar su estilo
-function ajustarMenuResponsivo() {
-  const anchoPantalla = window.innerWidth;
-  const facturas = document.getElementById('facturas');
-  const cotizacion = document.getElementById('cotizacion');
-  const facturaCompras = document.getElementById('facturaCompras');
-  const facturaMovil = document.getElementById('facturaMovil');
-
-  if (anchoPantalla < 769) {
-    // Oculta elementos si existen
-    if (facturas) facturas.style.display = 'none';
-    if (cotizacion) cotizacion.style.display = 'none';
-    if (facturaCompras) facturaCompras.style.display = 'none';
-    if (facturaMovil) facturaMovil.style.display = '';
-  } else {
-    // Muestra elementos si existen
-    if (facturas) facturas.style.display = '';
-    if (cotizacion) cotizacion.style.display = '';
-    if (facturaCompras) facturaCompras.style.display = '';
-    if (facturaMovil) facturaMovil.style.display = 'none';
+  function init() {
+    const collect = (selectors) =>
+      selectors.flatMap(sel => Array.from(document.querySelectorAll(sel)));
+    
+    movilElements = collect([
+      '#facturaMovil',
+      '.factura-movil-container'
+    ]);
+    
+    escritorioElements = collect([
+      '#facturas', '.facturas-container', '#view_bill',
+      '#cotizacion', '#view_quote', '.cotizacion-container',
+      '#facturaCompras', '.compras-container',
+      '.restaurante-container',
+      '.vista-cocina-container'
+    ]);
+    
+    aplicar();
+    
+    // Depuración: muestra el ancho actual en la consola
+    console.log('Ancho actual:', document.documentElement.clientWidth, 'Breakpoint:', BREAKPOINT);
   }
-}
 
-// Ejecutar al cargar y al redimensionar la ventana
-/*window.addEventListener('DOMContentLoaded', ajustarMenuResponsivo);
-window.addEventListener('resize', ajustarMenuResponsivo);*/
+  const setVisible = (els, visible) => {
+    els.forEach(el => {
+      if (!el) return;
+      el.style.display = visible ? '' : 'none';
+    });
+  };
+
+  const aplicar = () => {
+    // Usar clientWidth en lugar de innerWidth
+    const currentWidth = document.documentElement.clientWidth;
+    const isTabletOrSmaller = currentWidth < BREAKPOINT;
+    
+    if (isTabletOrSmaller) {
+      setVisible(movilElements, true);
+      setVisible(escritorioElements, false);
+      console.log('Modo móvil/tablet activado. Ancho:', currentWidth);
+    } else {
+      setVisible(movilElements, false);
+      setVisible(escritorioElements, true);
+      console.log('Modo escritorio activado. Ancho:', currentWidth);
+    }
+  };
+
+  const debounce = (fn, wait = 150) => {
+    let t;
+    return () => { clearTimeout(t); t = setTimeout(fn, wait); };
+  };
+
+  document.addEventListener('DOMContentLoaded', init);
+  window.addEventListener('resize', debounce(aplicar, 150));
+})();
 
 // Ejecutar al cargar
 actualizarPermisos();
@@ -224,16 +253,19 @@ function getPermisosTipoUsuarioAccesosTable(privilegio_id) {
             try {
                 for (var i = 0; i < valores_tipoUsuarioAccesos.length; i++) {
                     if (valores_tipoUsuarioAccesos[i].estado == 1) {
-                        $('.table_' + valores_tipoUsuarioAccesos[i].tipo_permiso).show();
+                        $('.table_' + valores_tipoUsuarioAccesos[i].tipo_permiso).attr('style', '');
                         $('.table_' + valores_tipoUsuarioAccesos[i].tipo_permiso).attr("disabled", false);
                     } else {
-                        $('.table_' + valores_tipoUsuarioAccesos[i].tipo_permiso).hide();
+                        $('.table_' + valores_tipoUsuarioAccesos[i].tipo_permiso).attr('style', 'display: none;');
                         $('.table_' + valores_tipoUsuarioAccesos[i].tipo_permiso).attr("disabled", true);
                     }
                 }
             } catch (e) {
-
+                console.log('Error en getPermisosTipoUsuarioAccesosTable:', e);
             }
+        },
+        error: function(xhr, status, error) {
+            console.log('Error Ajax getPermisosTipoUsuarioAccesosTable:', error);
         }
     });
 }
@@ -250,18 +282,20 @@ function getPermisosTipoUsuarioAccesosForms(privilegio_id) {
 
             try {
                 for (var i = 0; i < valores_tipoUsuarioAccesos.length; i++) {
-
                     if (valores_tipoUsuarioAccesos[i].estado == 1) {
-                        $('.' + valores_tipoUsuarioAccesos[i].tipo_permiso).show();
+                        $('.' + valores_tipoUsuarioAccesos[i].tipo_permiso).attr('style', '');
                         $('.' + valores_tipoUsuarioAccesos[i].tipo_permiso).attr("disabled", false);
                     } else {
-                        $('.' + valores_tipoUsuarioAccesos[i].tipo_permiso).hide();
+                        $('.' + valores_tipoUsuarioAccesos[i].tipo_permiso).attr('style', 'display: none;');
                         $('.' + valores_tipoUsuarioAccesos[i].tipo_permiso).attr("disabled", true);
                     }
                 }
             } catch (e) {
-
+                console.log('Error en getPermisosTipoUsuarioAccesosForms:', e);
             }
+        },
+        error: function(xhr, status, error) {
+            console.log('Error Ajax getPermisosTipoUsuarioAccesosForms:', error);
         }
     });
 }
@@ -280,20 +314,23 @@ function getPermisosTipoUsuarioAccesosTableAccion(privilegio_id, tipo) {
                 for (var i = 0; i < valores_tipoUsuarioAccesos.length; i++) {
                     if (valores_tipoUsuarioAccesos[i].estado == 1) {
                         if (valores_tipoUsuarioAccesos[i].tipo_permiso == tipo) {
-                            $('.' + valores_tipoUsuarioAccesos[i].tipo_permiso).show();
+                            $('.' + valores_tipoUsuarioAccesos[i].tipo_permiso).attr('style', '');
                             $('.' + valores_tipoUsuarioAccesos[i].tipo_permiso).attr("disabled", false);
                         } else {
-                            $('.' + valores_tipoUsuarioAccesos[i].tipo_permiso).hide();
+                            $('.' + valores_tipoUsuarioAccesos[i].tipo_permiso).attr('style', 'display: none;');
                             $('.' + valores_tipoUsuarioAccesos[i].tipo_permiso).attr("disabled", true);
                         }
                     } else {
-                        $('.' + valores_tipoUsuarioAccesos[i].tipo_permiso).hide();
+                        $('.' + valores_tipoUsuarioAccesos[i].tipo_permiso).attr('style', 'display: none;');
                         $('.' + valores_tipoUsuarioAccesos[i].tipo_permiso).attr("disabled", true);
                     }
                 }
             } catch (e) {
-
+                console.log('Error en getPermisosTipoUsuarioAccesosTableAccion:', e);
             }
+        },
+        error: function(xhr, status, error) {
+            console.log('Error Ajax getPermisosTipoUsuarioAccesosTableAccion:', error);
         }
     });
 }

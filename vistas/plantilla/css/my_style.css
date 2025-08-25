@@ -6106,3 +6106,154 @@ input:checked + .slider:before {
 #filePreview .existing-file > i.fa-file-pdf {
   color: var(--danger);
 }
+
+/* ====== Estilo general del modal de ayuda ====== */
+.help-modal{
+    border:0;
+    border-radius:.9rem;
+    overflow:hidden;
+  }
+  
+  /* ====== Header ====== */
+  .help-header{
+    background:#0d2742;          /* tu azul oscuro */
+    color:#fff;
+    border-bottom:none;
+    padding:1rem 1.25rem;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  
+  /* Bloque izquierdo (icono + textos) con uso de ancho */
+  .help-header > .d-flex:first-child{
+    flex:1 1 auto;
+    min-width:0;
+  }
+  
+  .help-badge{
+    width:40px;height:40px;
+    border-radius:50%;
+    display:inline-flex;align-items:center;justify-content:center;
+    background:rgba(255,255,255,.12);
+    margin-right:.75rem;
+    flex:0 0 auto;
+  }
+  .help-badge i{font-size:1.1rem;color:#fff;}
+  
+  .help-title{
+    margin:0;
+    font-weight:700;
+    line-height:1.1;
+    font-size:1.35rem;
+    white-space:nowrap;           /* una sola línea */
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .text-white-75{color:rgba(255,255,255,.8)!important;}
+  
+  /* Acciones de la derecha (botones + cerrar) */
+  .help-header .d-flex:last-child{
+    flex:0 0 auto;
+    display:flex;align-items:center;
+    gap:.6rem;
+    margin-left:1rem;
+  }
+  /* Fallback para navegadores sin gap */
+  .help-header .d-flex:last-child > * + *{ margin-left:.6rem; }
+  
+  /* ———— FIX específico para btn-group de Bootstrap ———— */
+  /* Evita que Bootstrap pegue los botones y quite el borde redondeado */
+  .help-header .btn-group{
+    display:flex; align-items:center;
+  }
+  .help-header .btn-group > .btn{
+    border-radius:.6rem !important;      /* restaura el radio en todos */
+  }
+  .help-header .btn-group > .btn + .btn{
+    margin-left:.6rem !important;        /* cancela el -1px de Bootstrap */
+    border-left-width:1px;               /* asegura borde limpio */
+  }
+  /* ———————————————————————————————————————————————— */
+  
+  .help-header .btn.btn-light{
+    background:#fff;
+    color:#212529;
+    border:1px solid rgba(255,255,255,.2);
+    padding:.38rem .7rem;
+    border-radius:.6rem;
+    font-weight:500;
+  }
+  .help-header .btn.btn-light:hover,
+  .help-header .btn.btn-light:focus{
+    background:#f8f9fa;
+    color:#212529;                 /* texto legible en hover */
+    border-color:rgba(255,255,255,.3);
+    box-shadow:none;
+  }
+  .help-header .btn.btn-light:active{
+    background:#eef1f5;
+    color:#212529;
+    border-color:rgba(255,255,255,.35);
+  }
+  .help-header .btn i{ margin-right:.35rem; }
+  
+  .help-header .close{
+    margin-left:.4rem;             /* separa de “Imprimir” */
+    color:#fff;
+    opacity:.85;
+    text-shadow:none;
+    line-height:1;
+  }
+  .help-header .close:hover{ opacity:1; }
+  
+  /* ====== Callout ====== */
+  .callout{
+    border-radius:.6rem;
+    padding:.8rem 1rem;
+    background:#f6fbff;
+    border-left:4px solid #2ea3f2;
+  }
+  .callout i{ color:#2ea3f2; }
+  
+  /* ====== Buscador ====== */
+  .help-search-icon{
+    position:absolute;
+    left:16px;top:50%;transform:translateY(-50%);
+    pointer-events:none;
+    opacity:.7;
+  }
+  
+  /* ====== Tabla ====== */
+  .table-shortcuts thead th{
+    text-transform:uppercase;
+    font-size:.75rem;
+    color:#6c757d;
+    border-top:0;
+    border-bottom:1px solid #e9ecef;
+  }
+  .table-shortcuts tbody td{ vertical-align:middle; }
+  .table-shortcuts kbd{
+    background:#111;
+    color:#fff;
+    border-radius:.35rem;
+    padding:.18rem .45rem;
+    font-size:.85rem;
+  }
+  
+  /* ====== Tarjetas laterales ====== */
+  .card.shadow-sm{
+    border:0;
+    box-shadow:0 6px 18px rgba(9,30,66,.06),0 2px 4px rgba(9,30,66,.04);
+    border-radius:.6rem;
+  }
+  
+  /* ====== Footer ====== */
+  .help-modal .modal-footer{ border-top:1px solid #eef1f5; }
+  
+  /* ====== Responsivo ====== */
+  @media (max-width: 992px){
+    .help-title{ font-size:1.15rem; }
+    .text-white-75{ display:none; }
+  }
+  

@@ -59,13 +59,12 @@ try {
     }
 
     $empresa_id = 1;
-    $documento_id = ($data['tipoFactura'] == 1) ? 1 : 2; // 1=Contado, 2=Crédito (ajusta si difiere en tu catálogo)
+    $documento_id = ($data['tipoFactura'] == 1) ? 1 : 2; // 1=Contado, 2=Crédito
 
     $cn = $mainModel->connection();
     $cn->begin_transaction();
 
-    // Obtener número de factura (con bloqueo y sin carrera)
-    // IMPORTANTE: usamos la misma conexión $cn en la función
+    // Obtener número de factura
     $numData = $mainModel->obtenerNumeroFacturaSecuencia($empresa_id, $documento_id);
     if ($numData['error']) {
         throw new Exception($numData['mensaje']);
@@ -92,7 +91,7 @@ try {
     }
     $total = ($subtotal - $totalDescuento) + $totalIsv;
 
-    // Obtener apertura de caja activa para el usuario y empresa
+    // Obtener apertura de caja activa
     $sqlApertura = "SELECT apertura_id 
                     FROM apertura 
                     WHERE colaboradores_id = ? 
@@ -111,14 +110,13 @@ try {
         throw new Exception('No hay apertura de caja activa para registrar la factura.');
     }
 
-
     // Obtener correlativo para facturas_id
     $sqlCorrelativo = "SELECT IFNULL(MAX(facturas_id), 0) + 1 AS nuevo_id FROM facturas";
     $resCorrelativo = $cn->query($sqlCorrelativo);
     $rowCorrelativo = $resCorrelativo->fetch_assoc();
     $nuevo_facturas_id = intval($rowCorrelativo['nuevo_id']);
 
-    // Insertar factura con correlativo manual
+    // Insertar factura con correlativo manual - CORREGIDO
     $query = "INSERT INTO facturas (
         facturas_id,
         clientes_id,
@@ -135,17 +133,16 @@ try {
         empresa_id,
         fecha_registro,
         fecha_dolar
-    ) VALUES (?, ?, ?, ?, ?, NOW(), ?, ?, ?, 1, ?, ?, NOW(), NOW())";
+    ) VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, 1, ?, ?, NOW(), NOW())";
 
-    // $numeroStr puede ser solo el número o prefijo + número formateado
     $numeroStr = $numero; // Ajusta si quieres mostrar con prefijo/ceros
 
     $params = [
         $nuevo_facturas_id,                          // i → facturas_id
         $data['clienteId'],                          // i
         $data['vendedorId'],                         // i
-        $secuencia_id,   
-        $apertura_id,                           // i
+        $secuencia_id,                               // i
+        $apertura_id,                                // i
         intval($numeroStr),                          // i
         floatval($total),                            // d
         isset($data['notas']) ? $mainModel->cleanString($data['notas']) : '', // s
@@ -154,8 +151,8 @@ try {
         intval($empresa_id)                          // i
     ];
 
-    // Cadena de tipos: 10 parámetros => iiiidsiiii
-    $ok = $mainModel->ejecutar_consulta_simple_preparada($query, "iiiidsiiii", $params);
+    // Cadena de tipos: 11 parámetros => iiiiiidsiiii
+    $ok = $mainModel->ejecutar_consulta_simple_preparada($query, "iiiiidsiiii", $params);
     if (!$ok) {
         throw new Exception('Error al insertar la factura: ' . $cn->error);
     }
@@ -174,14 +171,27 @@ try {
         medida
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
-    // Obtener correlativo para facturas_detalle_id
-    $correlativoDetalle = 1;
-
     foreach ($data['productos'] as $producto) {
         $sqlDetalle = "SELECT IFNULL(MAX(facturas_detalle_id), 0) + 1 AS nuevo_id FROM facturas_detalles";
         $resDetalle = $cn->query($sqlDetalle);
         $rowDetalle = $resDetalle->fetch_assoc();
         $nuevo_detalle_id = intval($rowDetalle['nuevo_id']);
+
+        // Obtener la medida del producto desde la base de datos
+        $sqlMedida = "SELECT m.nombre 
+                      FROM productos p 
+                      INNER JOIN medida m ON p.medida_id = m.medida_id 
+                      WHERE p.productos_id = ?";
+        $stmtMedida = $cn->prepare($sqlMedida);
+        $stmtMedida->bind_param("i", $producto['productoId']);
+        $stmtMedida->execute();
+        $resMedida = $stmtMedida->get_result();
+        
+        $medida = 'UN'; // Valor por defecto
+        if ($resMedida->num_rows > 0) {
+            $rowMedida = $resMedida->fetch_assoc();
+            $medida = $rowMedida['nombre'];
+        }
 
         $paramsDetalle = [
             $nuevo_detalle_id,                        // i
@@ -191,7 +201,7 @@ try {
             floatval($producto['precio']),            // d
             floatval($producto['isv'] ?? 0),          // d
             floatval($producto['descuento'] ?? 0),    // d
-            'UN'                                      // s
+            $medida                                   // s (obtenida de la BD)
         ];
 
         // Cadena de tipos: 8 parámetros => iiiiddds
@@ -201,8 +211,7 @@ try {
         }
     }
 
-
-    // Programa de puntos (opcional – igual a tu lógica)
+    // Programa de puntos
     $puntosGenerados = 0;
     $qProg = "SELECT tipo_calculo, monto, porcentaje FROM programa_puntos WHERE activo = 1 LIMIT 1";
     $programa = $mainModel->ejecutar_consulta_simple($qProg);
@@ -234,7 +243,6 @@ try {
         'total' => $total,
         'puntos_generados' => $puntosGenerados,
         'estado' => true,
-        // Si quieres devolver el número visible:
         'numero_visible' => $prefijo . str_pad($numero, $relleno, '0', STR_PAD_LEFT)
     ]);
     exit;

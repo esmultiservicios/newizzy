@@ -44,26 +44,101 @@
                             <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
                                 <!-- Primera fila de botones principales -->
                                 <div class="d-flex flex-wrap mb-2">
-                                    <button class="btn btn-secondary mr-2" type="submit" id="help_factura" form="invoice-form" data-toggle="tooltip" data-placement="top" title="Ayuda">
-                                        <div class="sb-nav-link-icon"></div><i class="fas fa-question-circle fa-lg"></i> [F1] Ayuda
+
+                                    <!-- Ayuda -->
+                                    <button
+                                        class="btn btn-secondary mr-2"
+                                        type="button"
+                                        id="help_factura"
+                                        data-toggle="tooltip"
+                                        data-placement="top"
+                                        data-html="true"
+                                        title="<strong>Ayuda</strong><br>Abre la guía rápida de facturación.<br><small>Tip: presiona <b>F1</b> en cualquier momento.</small>">
+                                        <div class="sb-nav-link-icon"></div>
+                                        <i class="fas fa-question-circle fa-lg"></i> [F1] Ayuda
                                     </button>
-                                    <button class="btn btn-secondary mr-2" type="submit" id="guardar_factura" data-toggle="tooltip" data-placement="top" title="Guardar">
-                                        <div class="sb-nav-link-icon"></div><i class="fas fa-save fa-lg"></i> [F2] Guardar
+
+                                    <!-- Guardar Factura -->
+                                    <button
+                                        class="btn btn-secondary mr-2"
+                                        type="submit"
+                                        id="guardar_factura"
+                                        data-toggle="tooltip"
+                                        data-placement="top"
+                                        data-html="true"
+                                        title="<strong>Guardar</strong><br>Almacena la factura como <u>borrador</u> para continuar más tarde.<br>No emite documento fiscal ni descuenta la secuencia del SAR.<br>Podrás <strong>reabrirla</strong>, <strong>editarla</strong> o <strong>eliminarla</strong> cuando quieras, sin afectar la numeración ni la contabilidad.">
+                                        <div class="sb-nav-link-icon"></div>
+                                        <i class="fas fa-save fa-lg"></i> [F2] Guardar
                                     </button>
-                                    <button class="btn btn-secondary mr-2" type="submit" id="reg_factura" data-toggle="tooltip" data-placement="top" title="Facturar">
-                                        <div class="sb-nav-link-icon"></div><i class="fas fa-hand-holding-usd fa-lg"></i> [F7] Facturar
+
+                                    <!-- Registrar Factura -->
+                                    <button
+                                        class="btn btn-success mr-2"
+                                        type="submit"
+                                        id="reg_factura"
+                                        data-toggle="tooltip"
+                                        data-placement="top"
+                                        data-html="true"
+                                        title="<strong>Registrar factura</strong><br>Emite el documento fiscal.<br><u>Acción definitiva</u>: no se puede editar luego. Para corregir, debes <strong>anular</strong> la factura o emitir una <strong>Nota de Crédito</strong>.">
+                                        <div class="sb-nav-link-icon"></div>
+                                        <i class="fas fa-hand-holding-usd fa-lg"></i> [F7] Registrar Factura
                                     </button>
-                                    <button class="btn btn-secondary mr-2" type="submit" id="add_cliente" data-toggle="tooltip" data-placement="top" title="Agregar Cliente">
-                                        <div class="sb-nav-link-icon"></div><i class="fas fa-user-plus fa-lg"></i> [F8] Cliente
+
+                                    <!-- Cliente -->
+                                    <button
+                                        class="btn btn-secondary mr-2"
+                                        type="button"
+                                        id="add_cliente"
+                                        data-toggle="tooltip"
+                                        data-placement="top"
+                                        data-html="true"
+                                        title="<strong>Cliente</strong><br>Busca un cliente existente o <u>créalo</u> sin salir de la venta.<br>Autocompleta: <u>Nombre</u>, <u>RTN</u> y <u>condición</u> de pago.<br>Útil para fidelización y créditos."
+                                        >
+                                        <div class="sb-nav-link-icon"></div>
+                                        <i class="fas fa-user-plus fa-lg"></i> [F8] Cliente
                                     </button>
-                                    <button class="btn btn-secondary mr-2" type="submit" id="add_vendedor" data-toggle="tooltip" data-placement="top" title="Agregar Vendeor o Empleado">
-                                        <div class="sb-nav-link-icon"></div><i class="fas fa-plus-circle fa-lg"></i> [F9] Vendedor
+
+                                    <!-- Vendedor / Empleado -->
+                                    <button
+                                        class="btn btn-secondary mr-2"
+                                        type="button"
+                                        id="add_vendedor"
+                                        data-toggle="tooltip"
+                                        data-placement="top"
+                                        data-html="true"
+                                        title="<strong>Vendedor</strong><br>Asigna el colaborador responsable de la venta.<br>Impacta <u>comisiones</u>, <u>reportes</u> y trazabilidad.<br>Requerido para facturar correctamente."
+                                        >
+                                        <div class="sb-nav-link-icon"></div>
+                                        <i class="fas fa-plus-circle fa-lg"></i> [F9] Vendedor
                                     </button>
-                                    <button class="btn btn-secondary mr-2" type="submit" id="btn_apertura" data-toggle="tooltip" data-placement="top" title="Aperturar Caja">
-                                        <div class="sb-nav-link-icon"></div><i class="fas fa-cash-register fa-lg"></i> [F10] Aperturar
+
+                                    <!-- Aperturar Caja -->
+                                    <button
+                                        class="btn btn-secondary mr-2"
+                                        type="button"
+                                        id="btn_apertura"
+                                        data-toggle="tooltip"
+                                        data-placement="top"
+                                        data-html="true"
+                                        title="<strong>Aperturar Caja</strong><br>Crea el registro de apertura (fecha, hora, usuario, caja).<br>Habilita <u>facturación</u> y <u>cobros</u> para el turno actual.<br>Puedes definir un <u>monto inicial</u> opcional."
+                                        >
+                                        <div class="sb-nav-link-icon"></div>
+                                        <i class="fas fa-cash-register fa-lg"></i> [F10] Aperturar
                                     </button>
-                                    <button class="btn btn-secondary mr-2" type="submit" id="btn_cierre" data-toggle="tooltip" data-placement="top" title="Cerrar Caja" style="display:none;">
-                                        <div class="sb-nav-link-icon"></div><i class="fas fa-cash-register fa-lg"></i> [F11] Cerrar
+
+                                    <!-- Cerrar Caja -->
+                                    <button
+                                        class="btn btn-secondary mr-2"
+                                        type="button"
+                                        id="btn_cierre"
+                                        data-toggle="tooltip"
+                                        data-placement="top"
+                                        data-html="true"
+                                        style="display:none;"
+                                        title="<strong>Cerrar Caja</strong><br>Realiza el <u>arqueo</u> del turno y bloquea nueva facturación.<br>Genera totales por forma de pago y diferencias.<br>Si tienes impresora, puedes emitir el <u>comprobante</u>."
+                                        >
+                                        <div class="sb-nav-link-icon"></div>
+                                        <i class="fas fa-cash-register fa-lg"></i> [F11] Cerrar
                                     </button>
 
                                 </div>
@@ -233,53 +308,98 @@
                         <hr class="line_table" />
                         <div class="form-group row">
                             <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-                                <button class="btn btn-secondary ml-3 bill-bottom-add" id="addRows" type="button" data-toggle="tooltip" data-placement="top" title="Agregar filas en la factura">
+
+                                <!-- Agregar fila -->
+                                <button
+                                    class="btn btn-secondary ml-3 bill-bottom-add"
+                                    id="addRows"
+                                    type="button"
+                                    data-toggle="tooltip"
+                                    data-placement="top"
+                                    data-html="true"
+                                    title="<strong>Agregar línea</strong><br>Inserta una nueva fila en el detalle de la factura.<br>Puedes añadir productos/servicios y editar <u>cantidad</u>, <u>precio</u> y <u>descuento</u>."
+                                    >
                                     <div class="sb-nav-link-icon"></div><i class="fas fa-plus fa-lg"></i> Agregar
                                 </button>
-                                <button class="btn btn-secondary delete bill-bottom-remove" id="removeRows" type="button" data-toggle="tooltip" data-placement="top" title="Remover filas en la factura">
+
+                                <!-- Quitar fila -->
+                                <button
+                                    class="btn btn-secondary delete bill-bottom-remove"
+                                    id="removeRows"
+                                    type="button"
+                                    data-toggle="tooltip"
+                                    data-placement="top"
+                                    data-html="true"
+                                    title="<strong>Quitar línea</strong><br>Elimina la(s) fila(s) seleccionada(s) del detalle.<br>No afecta inventario hasta emitir la factura."
+                                    >
                                     <div class="sb-nav-link-icon"></div><i class="fas fa-minus fa-lg"></i> Quitar
                                 </button>
 
-                                <!-- <?php if ($_SESSION['planes_id_sistema'] != 1): ?> -->
-                                <button class="btn btn-secondary bill-bottom-remove cotizacion" 
-                                        id="addQuotetoBill" 
-                                        type="button" 
-                                        data-toggle="tooltip" 
-                                        data-placement="top" 
-                                        title="Convertir Cotización en Factura">
+                                <!-- Convertir cotización en factura -->
+                                <button
+                                    class="btn btn-secondary bill-bottom-remove cotizacion"
+                                    id="addQuotetoBill"
+                                    type="button"
+                                    data-toggle="tooltip"
+                                    data-placement="top"
+                                    data-html="true"
+                                    title="<strong>Convertir cotización</strong><br>Carga una cotización como factura.<br>Trae cliente, productos, precios y descuentos.<br>Revisa existencias y folio SAR antes de emitir."
+                                    >
                                     <div class="sb-nav-link-icon"></div>
                                     <i class="fas fa-file-invoice-dollar fa-lg"></i> Cotizaciones
                                 </button>
-                                <!-- <?php endif; ?> -->
 
-                                <?php if ($_SESSION['planes_id_sistema'] != 1): ?>
-                                    <button class="btn btn-secondary bill-bottom-remove" 
-                                            id="addRecurringBill" 
-                                            type="button"
-                                            data-toggle="tooltip" 
-                                            data-placement="top" 
-                                            title="Programar Factura Recurrente">
+                                <!-- Factura recurrente -->
+                                <button
+                                    class="btn btn-secondary bill-bottom-remove"
+                                    id="addRecurringBill"
+                                    type="button"
+                                    data-toggle="tooltip"
+                                    data-placement="top"
+                                    data-html="true"
+                                    title="<strong>Factura recurrente</strong><br>Programa esta venta para generarse automáticamente.<br>Define <u>frecuencia</u>, <u>fecha inicial</u> y <u>fin</u>.<br>Opcional: envío por correo al generarse."
+                                    >
                                     <div class="sb-nav-link-icon"></div>
                                     <i class="fas fa-redo-alt fa-lg"></i> Recurrente
-                                    </button>
-                                <?php endif; ?>                                
+                                </button>
 
-                                <!-- <?php if ($_SESSION['planes_id_sistema'] != 1): ?> -->
-                                <button class="btn btn-secondary bill-bottom-remove cobrarClientes" 
-                                        id="addPayCustomers" 
-                                        type="button"
-                                        data-toggle="tooltip" 
-                                        data-placement="top" 
-                                        title="Cobrar Cuentas por Pagar Clientes">
+                                <!-- Cuentas por cobrar (CxC) -->
+                                    <button
+                                    class="btn btn-secondary bill-bottom-remove cobrarClientes"
+                                    id="addPayCustomers"
+                                    type="button"
+                                    data-toggle="tooltip"
+                                    data-placement="top"
+                                    data-html="true"
+                                    title="<strong>Cuentas por cobrar (CxC)</strong><br>Registra abonos/pagos de clientes.<br>Permite <u>pagos parciales</u> y <u>múltiples formas de pago</u>.<br>Puedes emitir comprobante."
+                                    >
                                     <div class="sb-nav-link-icon"></div>
                                     <i class="fas fa-hand-holding-usd fa-lg"></i> CxC
                                 </button>
-                                <!-- <?php endif; ?> -->
 
-                                <button class="btn btn-secondary bill-bottom-remove" id="addDraft" type="button" data-toggle="tooltip" data-placement="top" title="Facturas Pendientes">
+                                <!-- Borradores -->
+                                <button
+                                    class="btn btn-secondary bill-bottom-remove"
+                                    id="addDraft"
+                                    type="button"
+                                    data-toggle="tooltip"
+                                    data-placement="top"
+                                    data-html="true"
+                                    title="<strong>Facturas pendientes</strong><br>Lista de facturas guardadas como <u>borrador</u>.<br>Puedes reanudar, editar o emitir (asignar folio)."
+                                    >
                                     <div class="sb-nav-link-icon"></div><i class="fas fa-file-invoice fa-lg"></i> Pendientes
                                 </button>
-                                <button class="btn btn-secondary bill-bottom-remove" id="BillReports" type="button" data-toggle="tooltip" data-placement="top" title="Facturas Guardadas">
+
+                                <!-- Historial de facturas -->
+                                <button
+                                    class="btn btn-secondary bill-bottom-remove"
+                                    id="BillReports"
+                                    type="button"
+                                    data-toggle="tooltip"
+                                    data-placement="top"
+                                    data-html="true"
+                                    title="<strong>Facturas</strong><br>Consulta el historial de facturas emitidas/guardadas.<br>Filtra por fecha, cliente o estado; reimprime, envía por correo y exporta."
+                                    >
                                     <div class="sb-nav-link-icon"></div><i class="fas fa-file-invoice fa-lg"></i> Facturas
                                 </button>
                             </div>

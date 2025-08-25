@@ -223,6 +223,10 @@ function formAperturaBill() {
 }
 
 $('#reg_factura').on('click', function(e) {
+    ProcesarFactura();
+});
+
+function ProcesarFactura(){
     $('#invoice-form').attr({
         'data-form': 'save'
     });
@@ -230,9 +234,13 @@ $('#reg_factura').on('click', function(e) {
         'action': '<?php echo SERVERURL; ?>ajax/addFacturaAjax.php'
     });
     $("#invoice-form").submit();
-});
+}
 
 $("#guardar_factura").on("click", function(e) {
+    GuardarFactura();
+});
+
+function GuardarFactura(){
     $('#invoice-form').attr({
         'data-form': 'save'
     });
@@ -240,8 +248,7 @@ $("#guardar_factura").on("click", function(e) {
         'action': '<?php echo SERVERURL; ?>ajax/addFacturaOpenAjax.php'
     });
     $("#invoice-form").submit();
-});
-
+}
 
 $("#invoice-form #btn_cierre").on("click", function(e) {
     e.preventDefault();
@@ -1282,7 +1289,7 @@ function manejarPresionTeclaMasMenos(codigoTecla, row_index) {
 $(() => {
     $('#view_bill').on("keydown", function(e) {
         if (e.which === 118) { //TECLA F7 (COBRAR)
-            $("#invoice-form").submit();
+            ProcesarFactura();
             e.preventDefault();
         }
 
@@ -1364,6 +1371,14 @@ function modalAyuda() {
         backdrop: 'static'
     });
 }
+
+// Abrir modal con F1 en cualquier momento
+$(document).on('keydown', function (e) {
+    if (e.key === 'F1') {
+    e.preventDefault(); // Evita la ayuda del navegador
+    $('#modalAyuda').modal('show');
+    }
+});
 
 //INICIO AYUDA
 $("#invoice-form #help_factura").on("click", function(e) {
@@ -1459,17 +1474,7 @@ $(() => {
 
         //INICIO BUSQUEDA PRODUCTO EN FACTURACION
         if (e.which === 113) { //TECLA F2
-            listar_productos_factura_buscar();
-            var row_index = $(this).closest("tr").index();
-            var col_index = $(this).closest("td").index();
-
-            $('#formulario_busqueda_productos_facturacion #row').val(row_index);
-            $('#formulario_busqueda_productos_facturacion #col').val(col_index);
-            $('#modal_buscar_productos_facturacion').modal({
-                show: true,
-                keyboard: false,
-                backdrop: 'static'
-            });
+            alert('Me haz presionado')
             e.preventDefault();
         }
 
@@ -1508,6 +1513,8 @@ $(() => {
 
                 $('#formDescuentoFacturacion #pro_descuento_fact').val("Registrar");
 
+                getPermisosTipoUsuarioAccesosForms(getPrivilegioTipoUsuario());
+
                 $('#modalDescuentoFacturacion').modal({
                     show: true,
                     keyboard: false,
@@ -1537,6 +1544,8 @@ $(() => {
                 $('#formModificarPrecioFacturacion #producto_modificar_precio_fact').val(producto);
 
                 $('#formModificarPrecioFacturacion #pro_modificar_precio').val("Aplicar Nuevo Precio");
+
+                getPermisosTipoUsuarioAccesosForms(getPrivilegioTipoUsuario());
 
                 $('#modalModificarPrecioFacturacion').modal({
                     show: true,
@@ -2803,6 +2812,8 @@ $(() => {
 
             $('#formDescuentoFacturacion #pro_descuento_fact').val("Aplicar Descuento");
 
+            getPermisosTipoUsuarioAccesosForms(getPrivilegioTipoUsuario());
+
             $('#modalDescuentoFacturacion').modal({
                 show: true,
                 keyboard: false,
@@ -2894,6 +2905,8 @@ $(() => {
             $('#formModificarPrecioFacturacion #producto_modificar_precio_fact').val(producto);
 
             $('#formModificarPrecioFacturacion #pro_modificar_precio').val("Aplicar Nuevo Precio");
+
+            getPermisosTipoUsuarioAccesosForms(getPrivilegioTipoUsuario());
 
             $('#modalModificarPrecioFacturacion').modal({
                 show: true,
@@ -3177,4 +3190,68 @@ $(document).on('click', '#confirmRecurring', function(){
     showNotify('error','Error','Falló la petición al servidor');
   });
 });
+
+/* ===== Ayuda (lógica) ===== */
+(function(){
+  // Filtro por texto
+  function filterRows(term){
+    term = (term || '').toLowerCase();
+    $('#tableShortcuts tbody tr').each(function(){
+      const txt = $(this).text().toLowerCase();
+      $(this).toggle(txt.indexOf(term) > -1);
+    });
+  }
+
+  // Al abrir: limpiar y enfocar el buscador
+  $('#modalAyuda').on('shown.bs.modal', function(){
+    $('#helpSearch').val('').trigger('focus');
+  });
+
+  // Buscar mientras escribe
+  $(document).on('input', '#helpSearch', function(){
+    filterRows(this.value);
+  });
+
+  // Copiar a portapapeles
+  $('#helpCopy').on('click', function(){
+    const rows = [];
+    $('#tableShortcuts tbody tr:visible').each(function(){
+      const tds = $(this).find('td');
+      rows.push(
+        `${$(tds[0]).text()} — ${$(tds[1]).text()} — ${$(tds[2]).text()}`
+      );
+    });
+    const text = rows.join('\n');
+    navigator.clipboard.writeText(text).then(function(){
+      if (typeof showNotify === 'function') {
+        showNotify('success','Copiado','Atajos copiados al portapapeles');
+      }
+    }).catch(function(){ /* silencioso */ });
+  });
+
+  // Imprimir
+  $('#helpPrint').on('click', function(){
+    const htmlTable = document.querySelector('#tableShortcuts').outerHTML;
+    const w = window.open('', '_blank');
+    w.document.write(`
+      <html>
+        <head>
+          <title>Ayuda - Atajos</title>
+          <style>
+            body{font:14px/1.4 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:24px}
+            h2{margin:0 0 12px}
+            table{width:100%; border-collapse:collapse}
+            th,td{padding:8px 10px; border-bottom:1px solid #eee; text-align:left}
+            kbd{background:#111;color:#fff;padding:2px 6px;border-radius:4px}
+          </style>
+        </head>
+        <body>
+          <h2>Atajos de teclado</h2>
+          ${htmlTable}
+        </body>
+      </html>
+    `);
+    w.document.close(); w.focus(); w.print();
+  });
+})();
 </script>

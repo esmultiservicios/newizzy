@@ -728,25 +728,47 @@ function getConsumidorFinal() {
     });
 }
 
-function getCajero() {
-    var url = '<?php echo SERVERURL;?>core/getCajero.php';
+function getCajero(setAlways = false) {
+  var url = '<?php echo SERVERURL;?>core/getCajero.php';
 
-    $.ajax({
-        type: 'POST',
-        url: url,
-        success: function(valores) {
-            var datos = eval(valores);
-            $('#invoice-form #colaborador_id').val(datos[0]);
-            $('#invoice-form #colaborador').val(datos[1]);
+  $.ajax({
+    type: 'POST',
+    url: url,
+    dataType: 'json'
+  })
+  .done(function(datos){
+    // Soporta array [id, nombre] o objeto {colaboradores_id, colaborador}
+    var id  = Array.isArray(datos) ? datos[0] : (datos.colaboradores_id || '');
+    var nom = Array.isArray(datos) ? datos[1] : (datos.colaborador || '');
+    if (!id || !nom) return;
 
-            $('#quoteForm #colaborador_id').val(datos[0]);
-            $('#quoteForm #colaborador').val(datos[1]);
+    /* ===== FACTURAS ===== */
+    var emptyInvoiceSeller = !$('#invoice-form #colaborador_id').val() || !$('#invoice-form #colaborador').val();
+    if (setAlways || emptyInvoiceSeller) {
+      $('#invoice-form #colaborador_id').val(id);
+      $('#invoice-form #colaborador').val(nom);
+      // Encabezado visible (si existe)
+      var $hdrBill = $('#invoice-form #vendedor-customers-bill');
+      if ($hdrBill.length) $hdrBill.html('<b>Vendedor: </b>' + nom);
+    }
 
-            $('#formAperturaCaja #colaboradores_id_apertura').val(datos[0]);
-            $('#formAperturaCaja #usuario_apertura').val(datos[1]);
-            return false;
-        }
-    });
+    /* ===== COTIZACIONES ===== */
+    var emptyQuoteSeller = !$('#quoteForm #colaborador_id').val() || !$('#quoteForm #colaborador').val();
+    if (setAlways || emptyQuoteSeller) {
+      $('#quoteForm #colaborador_id').val(id);
+      $('#quoteForm #colaborador').val(nom);
+      // Encabezado visible en cotización (usa cualquiera que tengas en el HTML)
+      var $hdrQuote = $('#quoteForm #vendedor-customers-quote, #quoteForm #vendedor-customers-bill');
+      if ($hdrQuote.length) $hdrQuote.html('<b>Vendedor: </b>' + nom);
+    }
+
+    // Apertura de caja (como ya lo tenías)
+    $('#formAperturaCaja #colaboradores_id_apertura').val(id);
+    $('#formAperturaCaja #usuario_apertura').val(nom);
+  })
+  .fail(function(xhr){
+    console.error('getCajero error:', xhr.responseText);
+  });
 }
 
 function getPorcentajeISV(documento) {

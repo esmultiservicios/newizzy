@@ -1728,8 +1728,6 @@ $("#invoice-form #addQuotetoBill").on("click", function(e) {
     });
 });
 
-
-// Lista de cotizaciones
 // Lista de cotizaciones
 var listar_busqueda_cotizaciones = function () {
   var $form = $("#formulario_busqueda_cotizaciones");
@@ -1827,11 +1825,14 @@ $(document)
 
     const table = $('#DatatableBusquedaCotizaciones').DataTable();
     const row = table.row($(this).closest('tr')).data();
-    if (!row) { $btn.prop('disabled', false).html(originalHtml); return; }
+    if (!row) { 
+      $btn.prop('disabled', false).html(originalHtml); 
+      return; 
+    }
 
     $.ajax({
       type: 'POST',
-      url: "<?php echo SERVERURL; ?>core/getCotizacionParaFactura.php",
+      url: "<?php echo SERVERURL; ?>core/cotizacion/getCotizacionParaFactura.php",
       data: { cotizacion_id: row.cotizacion_id },
       dataType: 'json'
     })
@@ -1843,66 +1844,105 @@ $(document)
 
       const h = res.header || {};
       const d = Array.isArray(res.detalle) ? res.detalle : [];
+      const today = new Date().toISOString().slice(0,10);
 
-      // Oculta el cuerpo de la tabla de factura para evitar reflujo/repaint continuo
+      // Oculta el cuerpo de la tabla de factura para evitar reflow continuo
       const $tbody = $("#invoiceItem tbody");
       $tbody.hide();
 
+      // Limpia la tabla y deja 1 fila base
       if (typeof limpiarTablaFacturaDetalles === 'function') limpiarTablaFacturaDetalles(0);
 
-      // Header
-      $("#invoice-form #facturas_id").val(''); // nueva factura
+      /* ===== Header (campos ocultos y visibles del formulario) ===== */
+      // Es nueva factura, no conservar el id anterior
+      $("#invoice-form #facturas_id").val('');
+
+      // Campos ocultos de ids/nombres
       $("#cliente_id").val(h.clientes_id || '');
       $("#cliente").val(h.cliente_nombre || '');
       $("#colaborador_id").val(h.colaboradores_id || '');
       $("#colaborador").val(h.colaborador_nombre || '');
       $("#notesBill").val(h.notas || '');
-      $("#fecha").val(h.fecha || "<?php echo date('Y-m-d');?>");
-      $("#fecha_dolar").val(h.fecha_dolar || "<?php echo date('Y-m-d');?>");
 
+      // Fechas
+      $("#fecha").val(h.fecha || today);
+      $("#fecha_dolar").val(h.fecha_dolar || today);
+
+      // Tipo de factura (1=Contado, 2=Crédito)
       if (typeof setTipoFactura === 'function') {
         setTipoFactura(h.tipo_factura == 1 ? 'contado' : 'credito');
       } else {
-        $("#facturas_activo").val(h.tipo_factura == 1 ? 1 : 0);
+        $("#facturas_activo").val(h.tipo_factura == 1 ? 1 : 0); // compatibilidad backend
+        // (Opcional) si usas botones toggle manuales, pon/quita .active aquí
+        try {
+          const isContado = (h.tipo_factura == 1);
+          $("#btn-tipo-contado").toggleClass('active', isContado)
+                                .toggleClass('btn-primary', isContado)
+                                .toggleClass('btn-outline-primary', !isContado);
+          $("#btn-tipo-credito").toggleClass('active', !isContado)
+                                .toggleClass('btn-primary', !isContado)
+                                .toggleClass('btn-outline-primary', isContado);
+        } catch(_) {}
       }
 
+      // Cabecera “bonita” arriba del formulario
+      $("#rtn-customers-bill").text(h.cliente_rtn ? ("RTN: " + h.cliente_rtn) : "");
+      $("#client-customers-bill").text(h.cliente_nombre ? ("Cliente: " + h.cliente_nombre) : "");
+      $("#vendedor-customers-bill").text(h.colaborador_nombre ? ("Vendedor: " + h.colaborador_nombre) : "");
+
+      /* ===== Detalle ===== */
       // Pre-crear filas necesarias de una sola vez
       if (typeof addRowFacturas === 'function' && d.length > 1) {
         for (let k = 1; k < d.length; k++) addRowFacturas();
       }
 
-      // Rellenar (IDs directos = O(1))
+      // Rellenar filas
       for (let i = 0; i < d.length; i++) {
-        $("#facturas_detalle_id_"+i).val('');
+        $("#facturas_detalle_id_"+i).val(''); // viene de cotización, no reusar id de detalle
         $("#bar-code-id_"+i).val(d[i].barCode || "");
         $("#productos_id_"+i).val(d[i].productos_id || "");
         $("#productName_"+i).val(d[i].producto || "");
         $("#productName_text_"+i).text(d[i].producto || "Descripción del Producto");
+
         $("#quantity_"+i).val(d[i].cantidad || 0);
         $("#price_"+i).val(d[i].precio || 0);
         $("#precio_real_"+i).val(d[i].precio || 0);
+
         $("#isv_"+i).val(d[i].isv_venta || 0);
         $("#valor_isv_"+i).val(d[i].isv_valor || 0);
+
         $("#cantidad_mayoreo_"+i).val(d[i].cantidad_mayoreo || 0);
         $("#precio_mayoreo_"+i).val(d[i].precio_mayoreo || 0);
+
         $("#bodega_"+i).val(d[i].almacen_id || "");
         $("#medida_"+i).val(d[i].medida || "");
         $("#medida_text_"+i).text(d[i].medida || "Medida");
+
         $("#discount_"+i).val(d[i].descuento || 0);
       }
 
+      // Totales (si prefieres usar los calculados en backend al instante)
+      if (res.totales) {
+        $("#subTotalImporte").val(res.totales.subtotal || 0);
+        $("#taxDescuento").val(res.totales.descuento || 0);
+        $("#taxAmount").val(res.totales.isv || 0);
+        $("#totalAftertax").val(res.totales.total || 0);
+      }
+
+      // Recalcular por si tu lógica local maneja ISV/desc. automáticos
       if (typeof calculateTotalFacturas === 'function') calculateTotalFacturas();
 
-      // Agrega una fila vacía extra y enfoca el código
+      // Agregar una fila vacía extra y enfocar el código
       if (typeof addRowFacturas === 'function') {
         addRowFacturas();
         const next = parseInt($("#bill_row").val(), 10);
-        $("#bar-code-id_"+next).focus();
+        if (!Number.isNaN(next)) $("#bar-code-id_"+next).focus();
       }
 
       // Mostrar todo de golpe (un solo reflow)
       $tbody.show();
 
+      // Cerrar modal y avisar
       $('#modal_buscar_cotizaciones').modal('hide');
       showNotify('success', 'Cotización cargada', 'Se cargó la cotización en la factura');
     })
@@ -2327,19 +2367,59 @@ var continue_bill_draft_dataTable = function (tbody, table) {
 
     $.ajax({
       type: 'POST',
-      url: "<?php echo SERVERURL;?>core/getDraftBills.php",
+      url: "<?php echo SERVERURL;?>core/facturas/getDraftBills.php",
       data: { facturas_id: row.facturas_id },
-      success: function (resp) {
-        var datos = [];
-        try { datos = JSON.parse(resp); } catch (e) { try { datos = eval(resp); } catch (e2) {} }
-        if (!Array.isArray(datos)) datos = [];
+      dataType: 'json', // <<--- IMPORTANTE: así recibimos un objeto y no hay que parsear nada
+      success: function (r) {
+        if (!r || r.type !== 'success') {
+          return showNotify('error', 'Error', (r && r.message) ? r.message : 'No se pudo cargar la factura.');
+        }
+
+        // ====== ENCABEZADO ======
+        var h = r.header || {};
+
+        // Cliente (inputs ocultos + cabecera visible)
+        $("#cliente_id").val(h.clientes_id || "");
+        $("#cliente").val(h.cliente_nombre || "");
+        $("#rtn-customers-bill").text(h.cliente_rtn ? ("RTN: " + h.cliente_rtn) : "");
+        $("#client-customers-bill").text(h.cliente_nombre ? ("Cliente: " + h.cliente_nombre) : "");
+
+        // Vendedor (inputs ocultos + cabecera visible)
+        $("#colaborador_id").val(h.colaboradores_id || "");
+        $("#colaborador").val(h.vendedor_nombre || "");
+        $("#vendedor-customers-bill").text(h.vendedor_nombre ? ("Vendedor: " + h.vendedor_nombre) : "");
+
+        // Fecha / fecha dólar / notas
+        if (h.fecha) $("#fecha").val(h.fecha);
+        if (h.fecha_dolar) $("#fecha_dolar").val(h.fecha_dolar);
+        $("#notesBill").val(h.notas || "");
+
+        // Exoneración
+        $("#exoneracion_orden").val(h.no_orden || "");
+        $("#exoneracion_constancia").val(h.constancia || "");
+        $("#exoneracion_sag").val(h.identificativo_sag || "");
+        $("#exoneracion_orden_interno").val(h.numero_interno || "");
+
+        // Tipo de factura (tu hidden usa 1=Contado, 0=Crédito; la BD trae 1/2)
+        var tf = parseInt(h.tipo_factura, 10);
+        if (tf === 2) { // Crédito
+          $("#facturas_activo").val(0);
+          $("#btn-tipo-credito").addClass("active btn-primary").removeClass("btn-outline-primary");
+          $("#btn-tipo-contado").removeClass("active btn-primary").addClass("btn-outline-primary");
+        } else { // Contado (default)
+          $("#facturas_activo").val(1);
+          $("#btn-tipo-contado").addClass("active btn-primary").removeClass("btn-outline-primary");
+          $("#btn-tipo-credito").removeClass("active btn-primary").addClass("btn-outline-primary");
+        }
+
+        // ====== DETALLE ======
+        var datos = Array.isArray(r.detalle) ? r.detalle : [];
 
         // Limpia la tabla y deja UNA fila base (index 0)
         limpiarTablaFacturaDetalles(0);
 
         // Rellena filas guardadas
         for (var i = 0; i < datos.length; i++) {
-          // para i>0, crea la fila antes de setear valores
           if (i > 0) addRowFacturas();
 
           $("#facturas_detalle_id_" + i).val(datos[i]["facturas_detalle_id"] || "");
@@ -2364,10 +2444,16 @@ var continue_bill_draft_dataTable = function (tbody, table) {
         calculateTotalFacturas();
 
         // Agrega una fila VACÍA extra y deja el cursor en su código
-        addRowFacturas(); // esta función ya hace .focus() en #bar-code-id_count
+        addRowFacturas();
 
         // Cierra el modal
         $('#modal_buscar_bill_draft').modal('hide');
+
+        // Notificación bonita
+        showNotify('success', 'Borrador', 'Factura cargada correctamente.');
+      },
+      error: function (xhr) {
+        showNotify('error', 'Error', 'Error de comunicación (' + xhr.status + ').');
       }
     });
   });

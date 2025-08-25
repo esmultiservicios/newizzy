@@ -1,274 +1,220 @@
 <?php
+// core/getDraftBills.php
+header('Content-Type: application/json; charset=utf-8');
+
 $peticionAjax = true;
-require_once __DIR__ . '/../configGenerales.php';
-require_once __DIR__ . '/../mainModel.php';
+require_once __DIR__ . '/configGenerales.php';
+require_once __DIR__ . '/mainModel.php';
 
-$mainModel = new mainModel();
-
-$response = [
-    'type' => 'error',
-    'title' => 'Error',
-    'message' => 'Error desconocido',
-    'factura_id' => null,
-    'total' => 0,
-    'puntos_generados' => 0,
-    'estado' => false
+$Response = [
+  'ok' => false,
+  'type' => 'error',
+  'title' => 'Error',
+  'message' => 'Error desconocido',
+  'header' => null,
+  'detalle' => [],
+  'totales' => ['subtotal' => 0.0, 'descuento' => 0.0, 'isv' => 0.0, 'total' => 0.0],
 ];
 
 try {
-    if(!isset($_SESSION['user_sd'])) { 
-        session_start(['name'=>'SD']); 
-    }
-    
-    // Validar sesión
-    $validacion = mainModel::validarSesion();
-    if ($validacion['error']) {
-        echo json_encode([
-            'type' => 'error',
-            'title' => "Error de sesión",
-            'message' => $validacion['mensaje'],
-            'factura_id' => null,
-            'total' => 0,
-            'puntos_generados' => 0,
-            'estado' => false
-        ]);
-        exit;
-    }
-
-    $usuario = $_SESSION['colaborador_id_sd'];
-
-    // Validar método
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        throw new Exception('Método no permitido');
-    }
-
-    $data = json_decode(file_get_contents('php://input'), true);
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        throw new Exception('Datos JSON inválidos');
-    }
-    
-    // Validar datos requeridos
-    $requiredFields = ['clienteId', 'vendedorId', 'tipoFactura', 'productos'];
-    foreach ($requiredFields as $field) {
-        if (!isset($data[$field])) {
-            throw new Exception("Campo requerido faltante: $field");
-        }
-    }
-    if (empty($data['productos']) || !is_array($data['productos'])) {
-        throw new Exception('No hay productos para facturar');
-    }
-
-    $empresa_id = 1;
-    $documento_id = ($data['tipoFactura'] == 1) ? 1 : 2; // 1=Contado, 2=Crédito
-
-    $cn = $mainModel->connection();
-    $cn->begin_transaction();
-
-    // Obtener número de factura
-    $numData = $mainModel->obtenerNumeroFacturaSecuencia($empresa_id, $documento_id);
-    if ($numData['error']) {
-        throw new Exception($numData['mensaje']);
-    }
-
-    $secuencia_id = $numData['data']['secuencia_facturacion_id'];
-    $numero = $numData['data']['numero'];
-    $prefijo = $numData['data']['prefijo'] ?? '';
-    $relleno = intval($numData['data']['relleno'] ?? 0);
-
-    // Calcular totales
-    $subtotal = 0;
-    $totalDescuento = 0;
-    $totalIsv = 0;
-    foreach ($data['productos'] as $producto) {
-        $p = floatval($producto['precio']);
-        $c = intval($producto['cantidad']);
-        $d = floatval($producto['descuento'] ?? 0);
-        $i = floatval($producto['isv'] ?? 0);
-
-        $subtotal += $p * $c;
-        $totalDescuento += $d;
-        $totalIsv += $i * $c;
-    }
-    $total = ($subtotal - $totalDescuento) + $totalIsv;
-
-    // Obtener apertura de caja activa
-    $sqlApertura = "SELECT apertura_id 
-                    FROM apertura 
-                    WHERE colaboradores_id = ? 
-                    AND empresa_id = ? 
-                    AND estado = 1 
-                    LIMIT 1";
-    $stmt = $cn->prepare($sqlApertura);
-    $stmt->bind_param("ii", $usuario, $empresa_id);
-    $stmt->execute();
-    $resApertura = $stmt->get_result();
-
-    if ($resApertura->num_rows > 0) {
-        $rowApertura = $resApertura->fetch_assoc();
-        $apertura_id = intval($rowApertura['apertura_id']);
+  // Sesión (mantén tu nombre si usas uno específico)
+  if (session_status() !== PHP_SESSION_ACTIVE) {
+    if (!isset($_SESSION['user_sd'])) {
+      session_start(['name' => 'SD']);
     } else {
-        throw new Exception('No hay apertura de caja activa para registrar la factura.');
+      session_start();
     }
+  }
 
-    // Obtener correlativo para facturas_id
-    $sqlCorrelativo = "SELECT IFNULL(MAX(facturas_id), 0) + 1 AS nuevo_id FROM facturas";
-    $resCorrelativo = $cn->query($sqlCorrelativo);
-    $rowCorrelativo = $resCorrelativo->fetch_assoc();
-    $nuevo_facturas_id = intval($rowCorrelativo['nuevo_id']);
+  // Validar sesión si tu mainModel lo soporta
+  if (method_exists('mainModel', 'validarSesion')) {
+    $val = mainModel::validarSesion();
+    if (!empty($val['error'])) {
+      throw new Exception($val['mensaje'] ?? 'Sesión inválida');
+    }
+  }
 
-    // Insertar factura con correlativo manual - CORREGIDO
-    $query = "INSERT INTO facturas (
-        facturas_id,
-        clientes_id,
-        colaboradores_id,
-        secuencia_facturacion_id,
-        apertura_id,
-        number,
-        fecha,
-        importe,
-        notas,
-        tipo_factura,
-        estado,
-        usuario,
-        empresa_id,
-        fecha_registro,
-        fecha_dolar
-    ) VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, 1, ?, ?, NOW(), NOW())";
+  if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    throw new Exception('Método no permitido');
+  }
 
-    $numeroStr = $numero; // Ajusta si quieres mostrar con prefijo/ceros
+  // Soportar JSON y form-data
+  $raw = file_get_contents('php://input');
+  $data = null;
+  if ($raw) {
+    $tmp = json_decode($raw, true);
+    if (json_last_error() === JSON_ERROR_NONE) {
+      $data = $tmp;
+    }
+  }
+  if (!$data) {
+    $data = $_POST;
+  }
 
-    $params = [
-        $nuevo_facturas_id,                          // i → facturas_id
-        $data['clienteId'],                          // i
-        $data['vendedorId'],                         // i
-        $secuencia_id,                               // i
-        $apertura_id,                                // i
-        intval($numeroStr),                          // i
-        floatval($total),                            // d
-        isset($data['notas']) ? $mainModel->cleanString($data['notas']) : '', // s
-        intval($data['tipoFactura']),                // i
-        intval($usuario),                            // i
-        intval($empresa_id)                          // i
+  $facturas_id = isset($data['facturas_id']) ? (int)$data['facturas_id'] : 0;
+  if ($facturas_id <= 0) {
+    throw new Exception('Parámetro facturas_id inválido');
+  }
+
+  $db = (new mainModel())->connection();
+
+  // ===== HEADER =====
+  $sqlHeader = "
+    SELECT
+      f.facturas_id,
+      f.clientes_id,
+      f.colaboradores_id,
+      f.secuencia_facturacion_id,
+      f.apertura_id,
+      f.number,
+      f.tipo_factura,               -- 1=Contado, 2=Crédito
+      f.importe,
+      f.notas,
+      f.fecha,
+      f.estado,                     -- 1=Borrador 2=Pagada 3=Crédito 4=Cancelada
+      f.usuario,
+      f.empresa_id,
+      f.fecha_registro,
+      f.fecha_dolar,
+      f.no_orden,
+      f.constancia,
+      f.identificativo_sag,
+      f.numero_interno,
+      c.cliente      AS cliente_nombre,
+      c.rtn          AS cliente_rtn,
+      co.colaborador AS colaborador_nombre
+    FROM facturas f
+    LEFT JOIN clientes c       ON c.clientes_id = f.clientes_id
+    LEFT JOIN colaboradores co ON co.colaboradores_id = f.colaboradores_id
+    WHERE f.facturas_id = ?
+    LIMIT 1;
+  ";
+  $stmtH = $db->prepare($sqlHeader);
+  if (!$stmtH) throw new Exception('Error preparando header: ' . $db->error);
+  $stmtH->bind_param('i', $facturas_id);
+  $stmtH->execute();
+  $resH = $stmtH->get_result();
+  if ($resH->num_rows === 0) throw new Exception('Factura no encontrada');
+  $h = $resH->fetch_assoc();
+  $stmtH->close();
+
+  // Mapeos útiles
+  $tipo_txt = ((int)$h['tipo_factura'] === 1) ? 'contado' : 'credito';
+  $estado_map = [1 => 'borrador', 2 => 'pagada', 3 => 'credito', 4 => 'cancelada'];
+  $estado_txt = $estado_map[(int)$h['estado']] ?? 'desconocido';
+
+  $header = [
+    'facturas_id' => (int)$h['facturas_id'],
+    'clientes_id' => (int)$h['clientes_id'],
+    'colaboradores_id' => (int)$h['colaboradores_id'],
+    'secuencia_facturacion_id' => (int)$h['secuencia_facturacion_id'],
+    'apertura_id' => (int)$h['apertura_id'],
+    'number' => (int)$h['number'],
+    'tipo_factura' => (int)$h['tipo_factura'],     // 1=Contado, 2=Crédito
+    'tipo_factura_txt' => $tipo_txt,               // "contado" | "credito"
+    'importe' => (float)$h['importe'],
+    'notas' => (string)$h['notas'],
+    'fecha' => (string)$h['fecha'],
+    'estado' => (int)$h['estado'],
+    'estado_txt' => $estado_txt,
+    'usuario' => (int)$h['usuario'],
+    'empresa_id' => (int)$h['empresa_id'],
+    'fecha_registro' => (string)$h['fecha_registro'],
+    'fecha_dolar' => (string)$h['fecha_dolar'],
+    // Exoneración
+    'no_orden' => $h['no_orden'],
+    'constancia' => $h['constancia'],
+    'identificativo_sag' => $h['identificativo_sag'],
+    'numero_interno' => $h['numero_interno'],
+    // Presentación
+    'cliente_nombre' => $h['cliente_nombre'],
+    'cliente_rtn' => $h['cliente_rtn'],
+    'colaborador_nombre' => $h['colaborador_nombre'],
+  ];
+
+  // ===== DETALLE (SIN AGRUPAR: respeta líneas tal cual) =====
+  $sqlDet = "
+    SELECT
+      fd.facturas_detalle_id,
+      fd.facturas_id,
+      fd.productos_id,
+      fd.cantidad,
+      fd.precio,
+      fd.isv_valor,
+      fd.descuento,
+      COALESCE(med.nombre, fd.medida) AS medida,
+      p.barCode       AS barCode,
+      p.nombre        AS producto,
+      p.isv_venta     AS isv_venta,
+      p.almacen_id    AS almacen_id,
+      p.precio_venta  AS precio_venta,
+      p.cantidad_mayoreo,
+      p.precio_mayoreo
+    FROM facturas_detalles fd
+    INNER JOIN productos p ON p.productos_id = fd.productos_id
+    LEFT  JOIN medida   med ON med.medida_id = p.medida_id
+    WHERE fd.facturas_id = ?
+    ORDER BY fd.facturas_detalle_id ASC;
+  ";
+  $stmtD = $db->prepare($sqlDet);
+  if (!$stmtD) throw new Exception('Error preparando detalle: ' . $db->error);
+  $stmtD->bind_param('i', $facturas_id);
+  $stmtD->execute();
+  $resD = $stmtD->get_result();
+
+  $detalle = [];
+  $subtotal = 0.0;
+  $descuento = 0.0;
+  $isv = 0.0;
+
+  while ($r = $resD->fetch_assoc()) {
+    $linea = [
+      'facturas_detalle_id' => (int)$r['facturas_detalle_id'],
+      'productos_id' => (int)$r['productos_id'],
+      'cantidad' => (float)$r['cantidad'],
+      'precio' => (float)$r['precio'],
+      'isv_valor' => (float)$r['isv_valor'],
+      'descuento' => (float)$r['descuento'],
+      'medida' => $r['medida'],
+      // datos de producto
+      'barCode' => $r['barCode'],
+      'producto' => $r['producto'],
+      'isv_venta' => (float)$r['isv_venta'],
+      'almacen_id' => (int)$r['almacen_id'],
+      'precio_venta' => (float)$r['precio_venta'],
+      'cantidad_mayoreo' => (float)$r['cantidad_mayoreo'],
+      'precio_mayoreo' => (float)$r['precio_mayoreo'],
     ];
+    $detalle[] = $linea;
 
-    // Cadena de tipos: 11 parámetros => iiiiiidsiiii
-    $ok = $mainModel->ejecutar_consulta_simple_preparada($query, "iiiiidsiiii", $params);
-    if (!$ok) {
-        throw new Exception('Error al insertar la factura: ' . $cn->error);
-    }
+    // totales
+    $subtotal += ((float)$r['precio']) * ((float)$r['cantidad']);
+    $descuento += (float)$r['descuento'];
+    $isv += (float)$r['isv_valor'];
+  }
+  $stmtD->close();
 
-    $facturaId = $nuevo_facturas_id; // Usamos el que generamos arriba
+  $total = ($subtotal - $descuento) + $isv;
 
-    // Insertar detalles
-    $queryDetalle = "INSERT INTO facturas_detalles (
-        facturas_detalle_id,
-        facturas_id,
-        productos_id,
-        cantidad,
-        precio,
-        isv_valor,
-        descuento,
-        medida
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+  $Response['ok'] = true;
+  $Response['type'] = 'success';
+  $Response['title'] = 'Éxito';
+  $Response['message'] = 'Borrador cargado';
+  $Response['header'] = $header;
+  $Response['detalle'] = $detalle;
+  $Response['totales'] = [
+    'subtotal' => round($subtotal, 2),
+    'descuento' => round($descuento, 2),
+    'isv' => round($isv, 2),
+    'total' => round($total, 2),
+  ];
 
-    foreach ($data['productos'] as $producto) {
-        $sqlDetalle = "SELECT IFNULL(MAX(facturas_detalle_id), 0) + 1 AS nuevo_id FROM facturas_detalles";
-        $resDetalle = $cn->query($sqlDetalle);
-        $rowDetalle = $resDetalle->fetch_assoc();
-        $nuevo_detalle_id = intval($rowDetalle['nuevo_id']);
+  echo json_encode($Response, JSON_UNESCAPED_UNICODE);
+  exit;
 
-        // Obtener la medida del producto desde la base de datos
-        $sqlMedida = "SELECT m.nombre 
-                      FROM productos p 
-                      INNER JOIN medida m ON p.medida_id = m.medida_id 
-                      WHERE p.productos_id = ?";
-        $stmtMedida = $cn->prepare($sqlMedida);
-        $stmtMedida->bind_param("i", $producto['productoId']);
-        $stmtMedida->execute();
-        $resMedida = $stmtMedida->get_result();
-        
-        $medida = 'UN'; // Valor por defecto
-        if ($resMedida->num_rows > 0) {
-            $rowMedida = $resMedida->fetch_assoc();
-            $medida = $rowMedida['nombre'];
-        }
-
-        $paramsDetalle = [
-            $nuevo_detalle_id,                        // i
-            intval($facturaId),                       // i
-            intval($producto['productoId']),          // i
-            intval($producto['cantidad']),            // i
-            floatval($producto['precio']),            // d
-            floatval($producto['isv'] ?? 0),          // d
-            floatval($producto['descuento'] ?? 0),    // d
-            $medida                                   // s (obtenida de la BD)
-        ];
-
-        // Cadena de tipos: 8 parámetros => iiiiddds
-        $okDetalle = $mainModel->ejecutar_consulta_simple_preparada($queryDetalle, "iiiiddds", $paramsDetalle);
-        if (!$okDetalle) {
-            throw new Exception('Error al insertar el detalle de factura: ' . $cn->error);
-        }
-    }
-
-    // Programa de puntos
-    $puntosGenerados = 0;
-    $qProg = "SELECT tipo_calculo, monto, porcentaje FROM programa_puntos WHERE activo = 1 LIMIT 1";
-    $programa = $mainModel->ejecutar_consulta_simple($qProg);
-    if ($programa && $programa->num_rows > 0) {
-        $row = $programa->fetch_assoc();
-        if ($row['tipo_calculo'] == 'monto_fijo') {
-            $puntosGenerados = ($row['monto'] > 0) ? floor($total / $row['monto']) : 0;
-        } else {
-            $puntosGenerados = floor(($total * $row['porcentaje']) / 100);
-        }
-        if ($puntosGenerados > 0) {
-            $qPts = "INSERT INTO cliente_puntos (cliente_id, factura_id, puntos, fecha_creacion, fecha_expiracion, estado) 
-                     VALUES (?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 1 YEAR), 1)";
-            $okPts = $mainModel->ejecutar_consulta_simple_preparada($qPts, "iii", [$data['clienteId'], $facturaId, $puntosGenerados]);
-            if (!$okPts) {
-                throw new Exception('Error al registrar los puntos: ' . $cn->error);
-            }
-        }
-    }
-
-    // Commit
-    $cn->commit();
-
-    echo json_encode([
-        'type' => 'success',
-        'title' => 'Éxito',
-        'message' => 'Factura procesada correctamente',
-        'factura_id' => $facturaId,
-        'total' => $total,
-        'puntos_generados' => $puntosGenerados,
-        'estado' => true,
-        'numero_visible' => $prefijo . str_pad($numero, $relleno, '0', STR_PAD_LEFT)
-    ]);
-    exit;
-
-} catch (Exception $e) {
-    if ($mainModel->connection()) {
-        $mainModel->connection()->rollback();
-
-        // Registrar número fallido si lo teníamos
-        if (isset($numData['data']['numero'])) {
-            $empresa_id = $empresa_id ?? 1;
-            $documento_id = $documento_id ?? 1;
-            $qFallida = "INSERT INTO secuencia_factura_fallida (empresa_id, documento_id, numero) VALUES (?, ?, ?)";
-            $mainModel->ejecutar_consulta_simple_preparada($qFallida, "iii", [
-                $empresa_id,
-                $documento_id,
-                $numData['data']['numero']
-            ]);
-        }
-    }
-
-    echo json_encode([
-        'type' => 'error',
-        'title' => 'Error',
-        'message' => 'Error: ' . $e->getMessage(),
-        'estado' => false
-    ]);
-    exit;
+} catch (Throwable $e) {
+  $Response['message'] = $e->getMessage();
+  echo json_encode($Response, JSON_UNESCAPED_UNICODE);
+  exit;
 }

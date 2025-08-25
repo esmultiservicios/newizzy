@@ -1,30 +1,40 @@
-<?php	
-	$peticionAjax = true;
-	require_once "../core/configGenerales.php";
-	
-	if(isset($_POST['colaboradores_id_apertura']) && isset($_POST['monto_apertura'])){
-		require_once "../controladores/aperturaCajaControlador.php";
-		$insVarios = new aperturaCajaControlador();
-		
-		echo $insVarios->agregar_apertura_caja_controlador();
-	} else {
-		// Identificar campos faltantes
-		$missingFields = [];
-		
-		if (!isset($_POST['colaboradores_id_apertura'])) $missingFields[] = "ID del Colaborador";
-		if (!isset($_POST['monto_apertura'])) $missingFields[] = "Monto de la Apertura";
-	
-		// Preparar el mensaje
-		$missingText = implode(", ", $missingFields);
-		$title = "Error 🚨";
-		$message = "Faltan los siguientes campos: $missingText. Por favor, corrígelos.";
-		
-		// Escapar comillas para JavaScript
-		$title = addslashes($title);
-		$message = addslashes($message);
-		
-		// Llamar a TU función showNotify exactamente como está definida
-		echo "<script>
-			showNotify('error', '$title', '$message');
-		</script>";
-	}
+<?php
+$peticionAjax = true;
+require_once "../core/configGenerales.php";
+
+$required = [
+  'colaboradores_id_apertura' => 'ID del colaborador',
+  'monto_apertura'            => 'Monto de la apertura',
+];
+
+$missing = [];
+foreach ($required as $key => $label) {
+  if (!isset($_POST[$key]) || trim($_POST[$key]) === '') {
+    $missing[] = $label;
+  }
+}
+
+if (empty($missing)) {
+  require_once "../controladores/aperturaCajaControlador.php";
+  $ins = new aperturaCajaControlador();
+  echo $ins->agregar_apertura_caja_controlador();
+} else {
+  $title   = "Error 🚨";
+  $message = "Faltan los siguientes campos: " . implode(", ", $missing) . ".";
+
+  // Escapar por si hay comillas
+  $title   = addslashes($title);
+  $message = addslashes($message);
+
+  // Si tu flujo NO es AJAX, esto funcionará tal cual.
+  // Si lo llamas por AJAX, es mejor devolver JSON y manejarlo en JS.
+  echo "<script>
+    (function(){
+      if (typeof showNotify === 'function') {
+        showNotify('error', '$title', '$message', false);
+      } else {
+        alert('$message');
+      }
+    })();
+  </script>";
+}

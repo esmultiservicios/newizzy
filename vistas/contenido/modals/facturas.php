@@ -1,96 +1,153 @@
-<!--INICIO MODAL MODAL PARA AYUDA-->
-<div class="modal fade" id="modalAyuda">
-    <div class="modal-dialog modal-md modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title"><i class="fas fa-question-circle"></i> Ayuda</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="container"></div>
-            <div class="modal-body">
-                <form class="form-horizontal" id="formAyuda" action="" method="POST" data-form=""
-                    enctype="multipart/form-data">
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label class="text-center">
-                                <b>Las teclas de función solo se pueden utilizar posicionándose en el área de la
-                                    factura, especificamente en el campo Código del Producto</b>
-                            </label>
-                        </div>
+<?php
+// ====== Soporte / WhatsApp ======
+// Defaults por si no llegan definidas
+$telefono_ws = isset($telefono_ws) && $telefono_ws !== '' ? $telefono_ws : '50489136844';
+$mensaje_ws  = isset($mensaje_ws)  && $mensaje_ws  !== '' ? $mensaje_ws  : 'Hola ES MULTISERVICIOS, nos gustaría que nos puedan brindar asistencia técnica, muchas gracias.';
 
-                        <div class="col-md-12 mb-3">
-                            <label data-toggle="tooltip" data-placement="top"
-                                title="Permite Guardar una factura para dejarla abierta, esto le da la posibilidad de seguir agregando más items"><b>F2</b>
-                                Guardar</label>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label data-toggle="tooltip" data-placement="top"
-                                title="Permite realizar una búsqueda de productos, e inclusive permite crear nuevos productos en el sistema, siempre hacer uso del botón actualizar para refrescar la lista cuando se realiza un nuevo registro"><b>F3</b>
-                                Búsqueda de Productos</label>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label data-toggle="tooltip" data-placement="top"
-                                title="Permite aplicar descuentos a los productos, con previa autorización de un supervisor o un administrador del sistema"><b>F4</b>
-                                Agregar Descuentos a los Productos</label>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label data-toggle="tooltip" data-placement="top"
-                                title="Permite actualizar la página, si utiliza esta función tenga en cuenta que perderá todo el contenido agregado en esta pantalla"><b>F5</b>
-                                Actualizar</label>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label data-toggle="tooltip" data-placement="top"
-                                title="Esta opción puede ser útil para ingresar un nuevo precio a un producto siempre y cuando el documento original de compra y/o cotización muestre un precio diferente al que se muestra en el sistema"><b>F6</b>
-                                Modificar Precio a los Productos</label>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label data-toggle="tooltip" data-placement="top"
-                                title="Permite realizar el cobro de la factura, si la factura es al contado, la misma ermita registrar el pago, de ser al crédito solo almacena una cuenta por cobrar a clientes"><b>F7</b>
-                                Cobrar Factura</label>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label data-toggle="tooltip" data-placement="top"
-                                title="Permite realizar una búsqueda de clientes, e inclusive permite crear nuevos clientes en el sistema, siempre hacer uso del botón actualizar para refrescar la lista cuando se realiza un nuevo registro"><b>F8</b>
-                                Clientes</label>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label data-toggle="tooltip" data-placement="top"
-                                title="Permite realizar una búsqueda de vendedores y/o colaboradores, e inclusive permite crear nuevos vendedores y/o colaboradores en el sistema, siempre hacer uso del botón actualizar para refrescar la lista cuando se realiza un nuevo registro"><b>F9</b>
-                                Colaboradores</label>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label data-toggle="tooltip" data-placement="top"
-                                title="Permite poner en disponible la caja para realizar las ventas del día, y poder llevar un registro de los cajeros disponibles y el total facturado"><b>F10</b>
-                                Apertura de Caja</label>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label data-toggle="tooltip" data-placement="top"
-                                title="Cierra la caja, realizando un conteo de todas las ventas realizadas en el día, desde el comienzo del número de factura hasta la factura final emitida durante el día."><b>F11</b>
-                                Cierre de Caja</label>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label data-toggle="tooltip" data-placement="top"
-                                title="Permite aumentar la cantidad, se debe posicionar en el código del producto y presionar la tecla más (+) para que surja efecto"><b>+</b>
-                                Aumentar Cantidad</label>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label data-toggle="tooltip" data-placement="top"
-                                title="Permite disminuir la cantidad, se debe posicionar en el código del producto y presionar la tecla menos (-) para que surja efecto"><b>-</b>
-                                Disminuir Cantidad</label>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label data-toggle="tooltip" data-placement="top"
-                                title="Este comodín permite agregar un valor en la cantidad, para hacerlo debemos escribir la cantidad que requerimos, seguido del comodín y luego el código del producto para que surja efecto, por ejemplo: 10*cod_produto esto agregará un 10 automáticamente en la cantidad"><b>*</b>
-                                Comodin Asterisco</label>
-                        </div>
-                    </div>
-                </form>
-            </div>
+// Solo dígitos para la URL
+$__tel_digits = preg_replace('/\D+/', '', (string)$telefono_ws);
+
+// URL de WhatsApp (usa la tuya si ya la traes)
+if (!isset($url_ws) || $url_ws === '') {
+  $url_ws = 'https://api.whatsapp.com/send?phone=' . rawurlencode($__tel_digits)
+          . '&text=' . rawurlencode($mensaje_ws);
+}
+
+// Formateo legible del número: +504 8913-6844 (toma últimas 8 como número local)
+function __format_tel_legible($digits) {
+  if (!$digits) return '';
+  $local = substr($digits, -8);              // 8 últimas cifras
+  $pref  = substr($digits, 0, -8);           // código país (lo que sobra)
+  if (strlen($local) === 8) {
+    $local = substr($local, 0, 4) . '-' . substr($local, 4);
+  }
+  return ($pref ? '+' . $pref . ' ' : '') . $local;
+}
+$telefono_ws_legible = __format_tel_legible($__tel_digits);
+?>
+
+<!-- INICIO MODAL AYUDA (PRO) -->
+<div class="modal fade" id="modalAyuda" tabindex="-1" role="dialog" aria-labelledby="modalAyudaLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+    <div class="modal-content help-modal">
+
+      <!-- Header -->
+      <div class="modal-header help-header">
+        <div class="title-wrap">
+          <span class="help-badge"><i class="fas fa-life-ring"></i></span>
+          <div class="title-text">
+            <h4 class="modal-title help-title" id="modalAyudaLabel">Centro de Ayuda</h4>
+            <small class="help-subtitle">Atajos y operaciones rápidas de facturación</small>
+          </div>
         </div>
+
+        <div class="header-actions">
+          <div class="btn-group btn-group-sm mr-2">
+            <button type="button" class="btn btn-light" id="helpCopy">
+              <i class="fas fa-copy"></i> Copiar
+            </button>
+            <button type="button" class="btn btn-light" id="helpPrint">
+              <i class="fas fa-print"></i> Imprimir
+            </button>
+          </div>
+          <button type="button" class="close text-white ml-1" data-dismiss="modal" aria-label="Cerrar">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body pt-0">
+        <!-- Aviso -->
+        <div class="callout callout-info mb-3">
+          <div class="d-flex">
+            <i class="fas fa-info-circle mr-2 mt-1"></i>
+            <div class="small">
+              <strong>Importante:</strong> las teclas de función funcionan cuando el foco está en el campo
+              <u>Código del Producto</u>.
+            </div>
+          </div>
+        </div>
+
+        <!-- Buscador -->
+        <div class="form-group position-relative mb-4">
+          <input class="form-control form-control-lg pl-5" id="helpSearch" placeholder="Buscar atajo... (ej. F2, cotización, cliente)">
+          <i class="fas fa-search help-search-icon"></i>
+        </div>
+
+        <div class="row">
+          <!-- Atajos -->
+          <div class="col-lg-8">
+            <div class="table-responsive">
+              <table class="table table-hover table-sm table-shortcuts" id="tableShortcuts">
+                <thead>
+                  <tr>
+                    <th style="width:13%">Tecla</th>
+                    <th style="width:22%">Acción</th>
+                    <th>Descripción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td><kbd>F2</kbd></td><td>Guardar</td><td>Guarda la factura como <u>borrador</u> para continuar después. No emite documento fiscal; podrás editar/eliminar sin afectar SAR.</td></tr>
+                  <tr><td><kbd>F3</kbd></td><td>Búsqueda de productos</td><td>Abre el buscador; permite crear productos. Usa “Actualizar” para refrescar tras un alta.</td></tr>
+                  <tr><td><kbd>F4</kbd></td><td>Descuentos</td><td>Aplica descuentos a productos. Puede requerir autorización de supervisor/administrador.</td></tr>
+                  <tr><td><kbd>F5</kbd></td><td>Actualizar</td><td>Recarga la página. <u>Precaución</u>: perderás lo no guardado.</td></tr>
+                  <tr><td><kbd>F6</kbd></td><td>Modificar precio</td><td>Ajusta el precio cuando exista soporte (compra/cotización).</td></tr>
+                  <tr><td><kbd>F7</kbd></td><td>Registrar / Cobrar</td><td>Emite la factura fiscal. Acción <u>definitiva</u>: no editable (solo anulación o nota de crédito).</td></tr>
+                  <tr><td><kbd>F8</kbd></td><td>Clientes</td><td>Busca o crea clientes. Usa “Actualizar” para refrescar la lista.</td></tr>
+                  <tr><td><kbd>F9</kbd></td><td>Vendedores</td><td>Busca o crea colaboradores/vendedores.</td></tr>
+                  <tr><td><kbd>F10</kbd></td><td>Apertura de caja</td><td>Habilita caja para ventas y registro de fondo inicial.</td></tr>
+                  <tr><td><kbd>F11</kbd></td><td>Cierre de caja</td><td>Cierre del día con conteo de ventas (desde la primera hasta la última factura).</td></tr>
+                  <tr><td><kbd>+</kbd> / <kbd>−</kbd></td><td>Cantidad</td><td>Incrementa/disminuye la cantidad con el foco en <em>Código del Producto</em>.</td></tr>
+                  <tr><td><kbd>*</kbd></td><td>Comodín de cantidad</td><td>Escribe <code>10*código</code> para agregar 10 unidades del producto.</td></tr>
+                  <tr><td><kbd>F1</kbd></td><td>Ayuda</td><td>Abre esta ventana de ayuda en cualquier momento.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Lateral -->
+          <div class="col-lg-4">
+            <div class="card shadow-sm mb-3">
+              <div class="card-body py-3">
+                <h6 class="mb-2"><i class="fas fa-lightbulb mr-1"></i> Consejos rápidos</h6>
+                <ul class="list-unstyled small mb-0">
+                  <li class="mb-1">Evita <kbd>F5</kbd> si tienes cambios sin guardar.</li>
+                  <li class="mb-1">Para cantidades rápidas: <kbd>n*</kbd><code>código</code> (ej. <code>10*ABC123</code>).</li>
+                  <li class="mb-1">Verifica existencia antes de emitir.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="card shadow-sm">
+              <div class="card-body py-3">
+                <h6 class="mb-2"><i class="fas fa-headset mr-1"></i> Soporte</h6>
+                <p class="small mb-3">¿Necesitas más ayuda? Contacta al administrador del sistema.</p>
+
+                <!-- Botón WhatsApp -->
+                <a href="<?php echo htmlspecialchars($url_ws, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener" class="btn btn-success btn-sm btn-block">
+                  <i class="fab fa-whatsapp"></i> Chatear por WhatsApp
+                </a>
+                <?php if ($telefono_ws_legible): ?>
+                <div class="small text-muted mt-2">
+                  <i class="fas fa-phone-alt mr-1"></i><?php echo htmlspecialchars($telefono_ws_legible, ENT_QUOTES, 'UTF-8'); ?>
+                </div>
+                <?php endif; ?>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer">
+        <small class="text-muted mr-auto">Tip: enfoca <em>Código del Producto</em> para usar las teclas de función.</small>
+        <button type="button" class="btn btn-primary" data-dismiss="modal"><i class="fas fa-check"></i> Entendido</button>
+      </div>
     </div>
+  </div>
 </div>
+<!-- FIN MODAL AYUDA (PRO) -->
 
 <!--INICIO MODAL PARA MODIFICAR PRECIO FACTURAS-->
 <div class="modal fade" id="modalModificarPrecioFacturacion">

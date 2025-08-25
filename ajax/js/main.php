@@ -42,72 +42,72 @@ function init() {
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelector('#form_main_cobrar_clientes #cobrar_clientes_estado').value = 1;
         $('#form_main_cobrar_clientes #cobrar_clientes_estado').selectpicker('refresh');
-    });    
+    }); 
+    
+    aplicar();
 }
 
-//OCULTAR PANTALLAS SEGUN vistas
-// Responsive visibility:
-// - Móvil + Tablet (<992px): SOLO factura móvil.
-// - Escritorio (>=992px): TODO menos factura móvil.
+// OCULTAR ELEMENTOS DEL MENÚ SEGUN DISPOSITIVO
+// Responsive menu visibility:
+// - Móvil + Tablet (<992px): SOLO facturaMovil en el menú
+// - Escritorio (>=992px): MOSTRAR facturas, facturaCompras, cotizacion
 
 (function(){
   const BREAKPOINT = 992;
-  let movilElements = [];
-  let escritorioElements = [];
+  
+  // IDs de los elementos del menú lateral
+  const menuItems = {
+    movil: ['facturaMovil'],
+    escritorio: ['facturas', 'facturaCompras', 'cotizacion']
+  };
 
-  function init() {
-    const collect = (selectors) =>
-      selectors.flatMap(sel => Array.from(document.querySelectorAll(sel)));
+  const setVisible = (id, visible) => {
+    const element = document.getElementById(id);
+    if (!element) {
+      return;
+    }
     
-    movilElements = collect([
-      '#facturaMovil',
-      '.factura-movil-container'
-    ]);
-    
-    escritorioElements = collect([
-      '#facturas', '.facturas-container', '#view_bill',
-      '#cotizacion', '#view_quote', '.cotizacion-container',
-      '#facturaCompras', '.compras-container',
-      '.restaurante-container',
-      '.vista-cocina-container'
-    ]);
-    
-    aplicar();
-    
-    // Depuración: muestra el ancho actual en la consola
-    console.log('Ancho actual:', document.documentElement.clientWidth, 'Breakpoint:', BREAKPOINT);
-  }
-
-  const setVisible = (els, visible) => {
-    els.forEach(el => {
-      if (!el) return;
-      el.style.display = visible ? '' : 'none';
-    });
+    if (visible) {
+      element.style.display = '';
+      element.classList.remove('hidden-by-responsive');
+    } else {
+      element.style.display = 'none';
+      element.classList.add('hidden-by-responsive');
+    }
   };
 
   const aplicar = () => {
-    // Usar clientWidth en lugar de innerWidth
     const currentWidth = document.documentElement.clientWidth;
     const isTabletOrSmaller = currentWidth < BREAKPOINT;
     
     if (isTabletOrSmaller) {
-      setVisible(movilElements, true);
-      setVisible(escritorioElements, false);
-      console.log('Modo móvil/tablet activado. Ancho:', currentWidth);
+      // Modo móvil/tablet: mostrar solo facturaMovil, ocultar los demás
+      menuItems.movil.forEach(id => setVisible(id, true));
+      menuItems.escritorio.forEach(id => setVisible(id, false));
     } else {
-      setVisible(movilElements, false);
-      setVisible(escritorioElements, true);
-      console.log('Modo escritorio activado. Ancho:', currentWidth);
+      // Modo escritorio: mostrar facturas, facturaCompras, cotizacion; ocultar facturaMovil
+      menuItems.movil.forEach(id => setVisible(id, false));
+      menuItems.escritorio.forEach(id => setVisible(id, true));
     }
   };
 
-  const debounce = (fn, wait = 150) => {
+  const debounce = (fn, wait = 250) => {
     let t;
-    return () => { clearTimeout(t); t = setTimeout(fn, wait); };
+    return () => { 
+      clearTimeout(t); 
+      t = setTimeout(fn, wait); 
+    };
   };
 
-  document.addEventListener('DOMContentLoaded', init);
-  window.addEventListener('resize', debounce(aplicar, 150));
+  // Inicializar cuando el DOM esté listo
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+  
+  // Actualizar cuando cambie el tamaño de la ventana
+  window.addEventListener('resize', debounce(aplicar, 250));
 })();
 
 // Ejecutar al cargar
@@ -261,11 +261,11 @@ function getPermisosTipoUsuarioAccesosTable(privilegio_id) {
                     }
                 }
             } catch (e) {
-                console.log('Error en getPermisosTipoUsuarioAccesosTable:', e);
+               
             }
         },
         error: function(xhr, status, error) {
-            console.log('Error Ajax getPermisosTipoUsuarioAccesosTable:', error);
+            
         }
     });
 }
@@ -291,11 +291,11 @@ function getPermisosTipoUsuarioAccesosForms(privilegio_id) {
                     }
                 }
             } catch (e) {
-                console.log('Error en getPermisosTipoUsuarioAccesosForms:', e);
+                
             }
         },
         error: function(xhr, status, error) {
-            console.log('Error Ajax getPermisosTipoUsuarioAccesosForms:', error);
+          
         }
     });
 }
@@ -326,11 +326,11 @@ function getPermisosTipoUsuarioAccesosTableAccion(privilegio_id, tipo) {
                     }
                 }
             } catch (e) {
-                console.log('Error en getPermisosTipoUsuarioAccesosTableAccion:', e);
+                
             }
         },
         error: function(xhr, status, error) {
-            console.log('Error Ajax getPermisosTipoUsuarioAccesosTableAccion:', error);
+           
         }
     });
 }
@@ -359,7 +359,7 @@ function aplicarVisibilidad(filas, keyNombre) {
     const selCls = '.' + nombre;  // coincide con class="reporteVentas"
 
     if ($(selId).length === 0 && $(selCls).length === 0) {
-      console.warn('No existe en el DOM un elemento con id/clase =', nombre);
+      
       continue;
     }
 
@@ -6221,11 +6221,9 @@ function getTotalFacturasDisponibles() {
         type: 'POST',
         url: '<?php echo SERVERURL; ?>core/getTotalFacturasDisponibles.php?_=' + new Date().getTime(),
         dataType: 'json'
-    }).done(function(datos) {
-        console.log('Datos recibidos:', datos); // Debug
+    }).done(function(datos) {    
         updateCounterUI(datos);
     }).fail(function(jqXHR, textStatus, errorThrown) {
-        console.error('Error en AJAX:', textStatus, errorThrown);
         showErrorState();
     });
 }
@@ -6235,17 +6233,13 @@ function updateCounterUI(datos) {
     const counter = $("#mensajeFacturas");
     const daysLeft = parseInt(contador);
     
-    console.log('Comparando - LastState:', lastState, 'LastCount:', lastFacturasCount, 'NewCount:', facturasPendientes);
-    
     // Determinar el estado actual
     const currentState = getCurrentState(facturasPendientes, daysLeft, fechaLimite);
     
     // Solo actualizar si cambió el estado O el número de facturas
     if (currentState !== lastState || facturasPendientes !== lastFacturasCount) {
         lastState = currentState;
-        lastFacturasCount = facturasPendientes; // Guardar el nuevo count
-        
-        console.log('Actualizando UI - Estado:', currentState, 'Facturas:', facturasPendientes);
+        lastFacturasCount = facturasPendientes; // Guardar el nuevo count        
         
         // Aplicar efecto de cambio
         counter.addClass('state-change');

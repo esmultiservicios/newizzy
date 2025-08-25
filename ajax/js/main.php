@@ -47,11 +47,8 @@ function init() {
     aplicar();
 }
 
-// OCULTAR ELEMENTOS DEL MENÚ SEGÚN DISPOSITIVO
-// - Móvil/Tablet (<992px): SOLO #facturaMovil
-// - Escritorio (>=992px): #facturas, #facturaCompras, #cotizacion
-
-(function(){
+<!-- Responsive menú: móvil muestra #facturaMovil; escritorio muestra #facturas/#facturaCompras/#cotizacion -->
+(function () {
   const BREAKPOINT = 992;
 
   const menuItems = {
@@ -61,42 +58,63 @@ function init() {
 
   function setVisible(id, visible) {
     const el = document.getElementById(id);
-    if (!el) return;
-    el.style.display = visible ? '' : 'none';
-    el.classList.toggle('hidden-by-responsive', !visible);
+    if (!el) {
+      // console.debug('[responsive] no encontrado:', id);
+      return;
+    }
+
+    if (visible) {
+      // Quitar cualquier ocultamiento previo (permisos/estilos)
+      el.style.display = '';
+      el.classList.remove('hidden-by-responsive', 'perm-hidden', 'ocultar', 'd-none');
+
+      // Si algún padre quedó oculto por permisos, destaparlo también
+      const parentHidden = el.closest('.perm-hidden, .d-none, .ocultar');
+      if (parentHidden) {
+        parentHidden.classList.remove('perm-hidden', 'd-none', 'ocultar');
+        if (parentHidden.style && parentHidden.style.display === 'none') {
+          parentHidden.style.display = '';
+        }
+      }
+    } else {
+      el.style.display = 'none';
+      el.classList.add('hidden-by-responsive');
+    }
   }
 
-  function aplicar() {
-    const w = document.documentElement.clientWidth;
+  function applyResponsive() {
+    const w = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
     const isTabletOrSmaller = w < BREAKPOINT;
 
-    if (isTabletOrSmaller) {
-      menuItems.movil.forEach(id => setVisible(id, true));
-      menuItems.escritorio.forEach(id => setVisible(id, false));
-    } else {
-      menuItems.movil.forEach(id => setVisible(id, false));
-      menuItems.escritorio.forEach(id => setVisible(id, true));
-    }
+    const show = isTabletOrSmaller ? menuItems.movil : menuItems.escritorio;
+    const hide = isTabletOrSmaller ? menuItems.escritorio : menuItems.movil;
+
+    show.forEach(id => setVisible(id, true));
+    hide.forEach(id => setVisible(id, false));
   }
 
   function debounce(fn, wait = 250) {
     let t;
-    return () => { clearTimeout(t); t = setTimeout(fn, wait); };
+    return () => {
+      clearTimeout(t);
+      t = setTimeout(fn, wait);
+    };
   }
 
-  function init() {
-    // correr una vez
-    aplicar();
-    // escuchar eventos de cambio de tamaño/orientación
-    window.addEventListener('resize', debounce(aplicar, 250));
-    window.addEventListener('orientationchange', debounce(aplicar, 250));
+  function startResponsive() {
+    applyResponsive();
+    window.addEventListener('resize', debounce(applyResponsive, 250));
+    window.addEventListener('orientationchange', debounce(applyResponsive, 250));
   }
 
-  // inicializar cuando el DOM esté listo
+  // Exportar para poder re-ejecutar tras cargar permisos/menú
+  window.applyResponsive = applyResponsive;
+
+  // Iniciar cuando el DOM esté listo
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', startResponsive);
   } else {
-    init();
+    startResponsive();
   }
 })();
 

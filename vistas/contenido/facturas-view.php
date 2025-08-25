@@ -343,7 +343,7 @@
                                     data-toggle="tooltip"
                                     data-placement="top"
                                     data-html="true"
-                                    title="<strong>Convertir cotización</strong><br>Carga una cotización como factura.<br>Trae cliente, productos, precios y descuentos.<br>Revisa existencias y autorizaciones de el SAR antes de emitir."
+                                    title="<strong>Convertir cotización</strong><br>Carga una cotización como factura.<br>Trae cliente, productos, precios y descuentos.<br>Revisa existencias y autorizaciones de elio SAR antes de emitir."
                                     >
                                     <div class="sb-nav-link-icon"></div>
                                     <i class="fas fa-file-invoice-dollar fa-lg"></i> Cotizaciones
@@ -385,7 +385,7 @@
                                     data-toggle="tooltip"
                                     data-placement="top"
                                     data-html="true"
-                                    title="<strong>Facturas pendientes</strong><br>Lista de facturas guardadas como <u>borrador</u>.<br>Puedes reanudar, editar o emitir (asignar folio)."
+                                    title="<strong>Facturas pendientes</strong><br>Lista de facturas guardadas como <u>borrador</u>.<br>Puedes reanudar, editar o emitir (asignar autorizaciones de el SAR)."
                                     >
                                     <div class="sb-nav-link-icon"></div><i class="fas fa-file-invoice fa-lg"></i> Pendientes
                                 </button>

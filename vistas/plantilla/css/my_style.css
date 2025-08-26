@@ -5532,3 +5532,30 @@ input:checked + .slider:before {
 
 /* Si hay un modal abierto, esconde el dropdown sí o sí */
 body.modal-open .user-dropdown { display: none !important; }
+
+/* ============================
+   PARCHE Z-INDEX MODAL VS TOPBAR
+   (PÉGALO AL FINAL DE TU CSS)
+   ============================ */
+
+/* El modal siempre por encima del topbar */
+.modal {
+    z-index: 2000 !important;          /* > 1060 del topbar */
+  }
+  .modal-backdrop {
+    z-index: 1990 !important;          /* justo debajo del modal */
+  }
+  
+  /* Si usas tooltips/popovers dentro del modal */
+  .modal .popover,
+  .modal .tooltip {
+    z-index: 2010 !important;
+  }
+  
+  /* Opcional: mientras haya modal abierto, baja prioridad del topbar
+     para evitar que capture clics por error */
+  body.modal-open .sb-topnav {
+    z-index: 1000 !important;          /* menor que el backdrop */
+    pointer-events: none;              /* bloquea interacción con el topbar */
+  }
+  

@@ -1121,4 +1121,5 @@ window.addEventListener('beforeunload', function(e) {
       },
       close: hideModal
     };
-  })();  
+  })();
+  

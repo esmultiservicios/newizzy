@@ -5467,88 +5467,68 @@ input:checked + .slider:before {
     .text-white-75{ display:none; }
   }
 
-  /* ==================== */
-/* CORRECCIÓN MENÚ USUARIO EN MÓVILES */
-/* ==================== */
-@media (max-width: 768px) {
-    /* Ajustar el menú desplegable para que se abra a la izquierda en móviles */
-    .navbar-nav-user .dropdown-menu {
-      right: 0;
-      left: auto;
-      transform: translateX(0) !important;
-      width: 280px; /* Ancho adecuado para móviles */
-      max-width: 90vw;
-      position: fixed !important;
-      top: 60px !important;
-      margin-top: 0;
-    }
-    
-    /* Ajustar el texto y espaciado en el menú desplegable */
-    .navbar-nav-user .dropdown-item {
-      font-size: 0.9rem;
-      padding: 0.75rem 1.25rem;
-      white-space: normal;
-      line-height: 1.4;
-    }
-    
-    /* Ajustar iconos en el menú desplegable */
-    .navbar-nav-user .dropdown-item i {
-      font-size: 0.95rem;
-      min-width: 20px;
-      margin-right: 0.75rem;
-    }
-    
-    /* Ajustar badges en el menú desplegable */
-    .navbar-nav-user .dropdown-item .badge {
-      font-size: 0.75rem;
-      padding: 0.25rem 0.5rem;
-      margin-left: auto;
-    }
-    
-    /* Asegurar que el menú no se desborde */
-    .navbar-nav-user .dropdown-menu {
-      max-height: 80vh;
-      overflow-y: auto;
-    }
-  }
-  
-  /* Para pantallas muy pequeñas */
-  @media (max-width: 480px) {
-    .navbar-nav-user .dropdown-menu {
-      width: 250px;
-      right: -10px;
-    }
-    
-    .navbar-nav-user .dropdown-item {
-      font-size: 0.85rem;
-      padding: 0.65rem 1rem;
-    }
-  }
-  
-  /* Asegurar que el dropdown tenga un z-index alto */
-  .navbar-nav-user .dropdown-menu {
-    z-index: 1080;
-  }
-  
-  /* Mejorar la visualización del nombre de usuario en móviles */
-  @media (max-width: 576px) {
-    #user_session {
-      max-width: 120px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      display: inline-block;
-      vertical-align: middle;
-    }
-    
-    .navbar-nav-user .nav-link {
-      padding: 0.5rem;
-    }
-    
-    .navbar-nav-user .nav-link i {
-      margin-right: 0.25rem;
-      font-size: 1.1rem;
-    }
-  }
 
-  
+/* ==================== */
+/* MENÚ USUARIO EN MÓVILES + ARREGLOS FINALES */
+/* ==================== */
+
+/* Mantén el dropdown por debajo del modal si por alguna razón quedara abierto */
+.user-dropdown { z-index: 1045; }
+
+/* Mobile */
+@media (max-width: 768px) {
+  .user-dropdown {
+    position: fixed !important;
+    top: 60px !important;
+    right: 8px;
+    left: auto;
+    width: 280px;
+    max-width: 90vw;
+    transform: none !important;
+    margin-top: 0;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .user-dropdown .dropdown-item {
+    font-size: 0.9rem;
+    padding: 0.75rem 1.25rem;
+    white-space: normal;
+    line-height: 1.4;
+  }
+  .user-dropdown .dropdown-item i {
+    font-size: 0.95rem;
+    min-width: 20px;
+    margin-right: 0.75rem;
+  }
+  .user-dropdown .badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    margin-left: auto;
+  }
+}
+
+/* Muy pequeñas */
+@media (max-width: 480px) {
+  .user-dropdown { width: 250px; right: 4px; }
+  .user-dropdown .dropdown-item { font-size: 0.85rem; padding: 0.65rem 1rem; }
+}
+
+/* Nombre de usuario más pequeño y con elipsis en móviles */
+@media (max-width: 576px) {
+  #user_session {
+    max-width: 110px;
+    font-size: 0.85rem;      /* más pequeño */
+    font-weight: 600;
+    letter-spacing: .2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    vertical-align: middle;
+  }
+  .nav-link#userDropdown { padding: 0.5rem; }
+  .nav-link#userDropdown i { margin-right: 0.25rem; font-size: 1.1rem; }
+}
+
+/* Si hay un modal abierto, esconde el dropdown sí o sí */
+body.modal-open .user-dropdown { display: none !important; }

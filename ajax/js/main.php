@@ -3,32 +3,32 @@ var DB_MAIN = "<?php echo DB_MAIN; ?>";
 
 // LLAMAMOS EL MÉTODO QUE IDENTIFICA EL USUARIO QUE HA INICIADO SESIÓN
 getUserSessionStart();
+// LLAMAMOS LOS MÉTODOS CORRESPONDIENTES A LOS MENÚS
+getGithubVersion();
+// getImagenHeader();
+getPlanes();
+getSistemas();
+
+validarAperturaCajaUsuario();
+getCollaboradoresModalPagoFacturas();
+
+// LLAMAMOS LOS MÉTODOS QUE OBTIENEN LOS PERMISOS DE LOS USUARIOS PARA LOS ACCESOS
+getPermisosTipoUsuarioAccesosForms(getPrivilegioTipoUsuario());
+getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+getAlmacen();
+getMedida();
+getTipoProducto();
+getEmpresaProductos();
+getProductos();
+getCategoriaProductos();
+getEmpresaColaboradores();
+getPuestoColaboradores();
+getCollaboradoresModalPagoFacturasCompras();
+getClientesCXC();
+getProveedoresCXP();
 
 function init() {
-    // LLAMAMOS LOS MÉTODOS CORRESPONDIENTES A LOS MENÚS
-    getGithubVersion();
-    // getImagenHeader();
-    getPlanes();
-    getSistemas();
-
-    validarAperturaCajaUsuario();
-    getCollaboradoresModalPagoFacturas();
-
-    // LLAMAMOS LOS MÉTODOS QUE OBTIENEN LOS PERMISOS DE LOS USUARIOS PARA LOS ACCESOS
-    getPermisosTipoUsuarioAccesosForms(getPrivilegioTipoUsuario());
-    getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-
-    getAlmacen();
-    getMedida();
-    getTipoProducto();
-    getEmpresaProductos();
-    getProductos();
-    getCategoriaProductos();
-    getEmpresaColaboradores();
-    getPuestoColaboradores();
-    getCollaboradoresModalPagoFacturasCompras();
-    getClientesCXC();
-    getProveedoresCXP();
     document.querySelectorAll('.selectpicker').forEach(el => $(el).selectpicker());
 
     // Inicializar tooltips en las opciones del selectpicker después de la creación

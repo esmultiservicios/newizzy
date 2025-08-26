@@ -230,50 +230,6 @@
     transform: scale(1.15);
 }
 
-/* ====================== */
-/* RESPONSIVE (MOBILE FIRST) */
-/* ====================== */
-@media (max-width: 992px) {
-    .table_editar,
-    .table_eliminar {
-        padding: 0.3rem 0.6rem;
-        height: 36px;
-        min-width: 45px;
-        font-size: 0.78rem;
-    }
-}
-
-@media (max-width: 768px) {
-    .table_editar,
-    .table_eliminar {
-        padding: 0.25rem 0.5rem;
-        height: 32px;
-        min-width: 40px;
-        font-size: 0.75rem;
-        gap: 0.3rem;
-    }
-}
-
-/* SOLO ICONOS EN MÓVILES MUY PEQUEÑOS */
-@media (max-width: 480px) {
-    .table_editar span,
-    .table_eliminar span {
-        display: none;
-    }
-    .table_editar,
-    .table_eliminar {
-        min-width: 32px;
-        width: 32px;
-        justify-content: center;
-        padding: 0.25rem;
-    }
-    .table_editar i,
-    .table_eliminar i {
-        font-size: 1em;
-        margin: 0;
-    }
-}
-
 /* AJUSTES PARA PANTALLAS MUY GRANDES */
 @media (min-width: 1600px) {
     .table_editar,
@@ -406,28 +362,6 @@
 .table-header-pro thead th:hover i {
     color: #2ecc71 !important;
     transform: scale(1.1);
-}
-
-/* ====================== */
-/* RESPONSIVIDAD */
-/* ====================== */
-@media (max-width: 768px) {
-    .tableFixHead {
-        height: auto;
-        max-height: 340px;
-    }
-    
-    .tableFixHead td i {
-        font-size: 1.1em;
-    }
-    
-    .table_editar,
-    .table_eliminar {
-        padding: 0.3rem 0.6rem;
-        font-size: 0.75rem;
-        height: 28px;
-        min-width: 28px;
-    }
 }
 
 /* =================================== */
@@ -1785,23 +1719,6 @@
 .hover-effect:hover {
     transform: translateY(-3px);
     box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .dashboard-card h2 {
-        font-size: 1.875rem;
-    }
-    
-    .icon-circle {
-        width: 48px;
-        height: 48px;
-        font-size: 1.3rem;
-    }
-    
-    .card-body {
-        padding: 1.25rem;
-    }
 }
 
 /* Animación sutil al cargar */
@@ -5633,3 +5550,5 @@ input:checked + .slider:before {
       font-size: 1.1rem;
     }
   }
+
+  

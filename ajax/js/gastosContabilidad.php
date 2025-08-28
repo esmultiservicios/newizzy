@@ -747,6 +747,7 @@ $(document).ready(function(){
   $("#modalReporteCategorias").on('shown.bs.modal', function(){ $(this).find('#formularioReporteCategorias #buscar').focus(); });
   $("#modalUpdateCategoriasEgresos").on('shown.bs.modal', function(){ $(this).find('#formUpdateCategoriaEgresos #categoria').focus(); });
   $("#modalCategoriasEgresos").on('shown.bs.modal', function(){ $(this).find('#formCategoriaEgresos #t').focus(); });
+  $("#modal_registrar_proveedores").on('shown.bs.modal', function(){ $(this).find('#formProveedores #nombre_proveedores').focus(); });
 });
 
 // Lista de categorías (sin cambios de negocio)

@@ -186,7 +186,6 @@ document.addEventListener('DOMContentLoaded', initImageUpload);
    ========================= */
   var listar_productos = function(estado) {
   var estado = $('#form_main_productos #estado_producto').val() === "" ? 1 : $('#form_main_productos #estado_producto').val();
-
   var table_productos = $("#dataTableProductos").DataTable({
     "destroy": true,
     "ajax": {

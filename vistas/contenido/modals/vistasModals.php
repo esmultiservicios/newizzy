@@ -2007,7 +2007,7 @@
                                     <div class="input-group">
                                         <input type="number" class="form-control" id="identidad_clientes" name="identidad_clientes" placeholder="Número de identidad o RTN" maxlength="14" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
                                         <div class="input-group-append" id="grupo_editar_rtn">
-                                            <button type="button" class="btn btn-outline-success editar_rtn" data-toggle="tooltip" title="Editar RTN">
+                                            <button type="button" class="btn btn-success editar_rtn" data-toggle="tooltip" title="Editar RTN">
                                                 <i class="fas fa-edit"></i>
                                             </button>
                                         </div>
@@ -2209,7 +2209,7 @@
                                     <div class="input-group">
                                         <input type="number" class="form-control" id="rtn_proveedores" name="rtn_proveedores" placeholder="RTN" maxlength="14" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
                                         <div class="input-group-append" id="grupo_editar_rtn">
-                                            <button type="button" class="btn btn-outline-success editar_rtn" data-toggle="tooltip" title="Editar RTN">
+                                            <button type="button" class="btn btn-success editar_rtn" data-toggle="tooltip" title="Editar RTN">
                                                 <i class="fas fa-edit"></i>
                                             </button>
                                         </div>

@@ -31,7 +31,7 @@
                                         <!-- Las opciones se llenarán con JavaScript -->
                                     </select>
                                     <small class="form-text text-muted">Seleccione el cliente o ingrese uno nuevo</small>
-                                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="btnNuevoCliente">
+                                    <button type="button" class="btn btn-sm btn-primary mt-2" id="btnNuevoCliente">
                                         <i class="fas fa-plus-circle mr-1"></i> Agregar Nuevo Cliente
                                     </button>
                                 </div>

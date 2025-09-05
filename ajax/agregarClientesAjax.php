@@ -4,7 +4,6 @@ require_once "../core/configGenerales.php";
 
 $required = [
   'nombre_clientes'    => 'Nombre del cliente',
-  'identidad_clientes' => 'Identidad/RTN',
   'fecha_clientes'     => 'Fecha de registro'
 ];
 

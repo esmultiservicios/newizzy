@@ -152,63 +152,69 @@
     </div>
 </div>
 
-<!-- Modal de Pago (Actualizado) -->
-<div class="modal fade" id="pagoModal" tabindex="-1" aria-labelledby="pagoModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="pagoModalLabel">
-                    <i class="fas fa-cash-register me-2"></i> Registrar Pago
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-            </div>
-            <div class="modal-body">
-                <form id="pago-form">
-                    <input type="hidden" id="factura-id-pago">
-                    <div class="form-group mb-3">
-                        <label for="monto-pago" class="form-label">Monto a Pagar</label>
-                        <input type="text" class="form-control" id="monto-pago" readonly>
-                        <small class="text-muted">Total de la factura.</small>
-                    </div>
+<!-- Modal de Pago (Bootstrap 4.6) -->
+<div class="modal fade" id="pagoModal" tabindex="-1" role="dialog" aria-labelledby="pagoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="pagoModalLabel">
+          <i class="fas fa-cash-register mr-2"></i> Registrar Pago
+        </h5>
+        <!-- X de cerrar para BS4 -->
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar" style="opacity: .9;">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
 
-                    <div class="row g-2">
-                        <div class="col-12 col-sm-4">
-                            <div class="form-group mb-3">
-                                <label for="efectivo-pago" class="form-label">Efectivo</label>
-                                <input type="number" min="0" step="0.01" class="form-control" id="efectivo-pago" placeholder="0.00">
-                            </div>
-                        </div>
-                        <div class="col-12 col-sm-4">
-                            <div class="form-group mb-3">
-                                <label for="transferencia-pago" class="form-label">Transferencia</label>
-                                <input type="number" min="0" step="0.01" class="form-control" id="transferencia-pago" placeholder="0.00">
-                            </div>
-                        </div>
-                        <div class="col-12 col-sm-4">
-                            <div class="form-group mb-3">
-                                <label for="tarjeta-pago" class="form-label">Tarjeta</label>
-                                <input type="number" min="0" step="0.01" class="form-control" id="tarjeta-pago" placeholder="0.00">
-                            </div>
-                        </div>
-                    </div>
+      <div class="modal-body">
+        <form id="pago-form">
+          <input type="hidden" id="factura-id-pago">
 
-                    <div class="form-group mb-2">
-                        <label for="cambio-pago" class="form-label">Cambio</label>
-                        <input type="text" class="form-control" id="cambio-pago" readonly>
-                        <small class="text-muted">Se calcula automáticamente con base en Efectivo + Transferencia + Tarjeta.</small>
-                    </div>
-                </form>
+          <div class="form-group mb-3">
+            <label for="monto-pago" class="form-label">Monto a Pagar</label>
+            <input type="text" class="form-control" id="monto-pago" readonly>
+            <small class="text-muted">Total de la factura.</small>
+          </div>
+
+          <div class="form-row">
+            <div class="col-12 col-sm-4">
+              <div class="form-group mb-3">
+                <label for="efectivo-pago" class="form-label">Efectivo</label>
+                <input type="number" min="0" step="0.01" class="form-control" id="efectivo-pago" placeholder="0.00">
+              </div>
             </div>
-            <div class="modal-footer d-flex justify-content-between">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i> Cancelar
-                </button>
-                <button type="button" class="btn btn-primary" id="registrar-pago">
-                    <i class="fas fa-check me-1"></i> Registrar Pago
-                </button>
+            <div class="col-12 col-sm-4">
+              <div class="form-group mb-3">
+                <label for="transferencia-pago" class="form-label">Transferencia</label>
+                <input type="number" min="0" step="0.01" class="form-control" id="transferencia-pago" placeholder="0.00">
+              </div>
             </div>
-        </div>
+            <div class="col-12 col-sm-4">
+              <div class="form-group mb-3">
+                <label for="tarjeta-pago" class="form-label">Tarjeta</label>
+                <input type="number" min="0" step="0.01" class="form-control" id="tarjeta-pago" placeholder="0.00">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group mb-2">
+            <label for="cambio-pago" class="form-label">Cambio</label>
+            <input type="text" class="form-control" id="cambio-pago" readonly>
+            <small class="text-muted">Se calcula automáticamente con base en Efectivo + Transferencia + Tarjeta.</small>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer d-flex justify-content-between">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+          <i class="fas fa-times mr-1"></i> Cancelar
+        </button>
+        <button type="button" class="btn btn-primary" id="registrar-pago">
+          <i class="fas fa-check mr-1"></i> Registrar Pago
+        </button>
+      </div>
     </div>
+  </div>
 </div>
 
 <!-- Modal para editar descuento -->

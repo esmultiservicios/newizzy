@@ -22,16 +22,16 @@ class clientesControlador extends clientesModelo {
         $validacion = mainModel::validarSesion();
         if($validacion['error']) {
             return mainModel::showNotification([
-                "title" => "Error de sesión",
-                "text"  => $validacion['mensaje'],
-                "type"  => "error",
+                "title"   => "Error de sesión",
+                "text"    => $validacion['mensaje'],
+                "type"    => "error",
                 "funcion" => "window.location.href = '".$validacion['redireccion']."'"
             ]);
         }
     
         // Sanitizar
         $nombre = trim(mainModel::cleanString($_POST['nombre_clientes'] ?? ''));
-        $rtn    = trim(mainModel::cleanString($_POST['identidad_clientes'] ?? ''));
+        $rtn    = trim(mainModel::cleanString($_POST['identidad_clientes'] ?? '')); // opcional
         $fecha  = mainModel::cleanString($_POST['fecha_clientes'] ?? '');
         $depto  = isset($_POST['departamento_cliente']) ? (int)$_POST['departamento_cliente'] : 0;
         $muni   = isset($_POST['municipio_cliente']) ? (int)$_POST['municipio_cliente'] : 0;
@@ -42,17 +42,17 @@ class clientesControlador extends clientesModelo {
         $colab  = $_SESSION['colaborador_id_sd'] ?? 1;
         $freg   = date("Y-m-d H:i:s");
     
-        // Validaciones duras
-        if ($nombre === '' || $rtn === '') {
+        // Obligatorios mínimos -> SOLO nombre
+        if ($nombre === '') {
             return mainModel::showNotification([
                 "type"  => "error",
                 "title" => "Campos obligatorios",
-                "text"  => "Nombre y RTN/Identidad son obligatorios."
+                "text"  => "El nombre es obligatorio."
             ]);
         }
     
-        // RTN / Identidad 13 o 14 dígitos (solo números)
-        if (!preg_match('/^\d{13,14}$/', $rtn)) {
+        // RTN / Identidad: VALIDAR SOLO SI VIENE
+        if ($rtn !== '' && !preg_match('/^\d{13,14}$/', $rtn)) {
             return mainModel::showNotification([
                 "type"  => "error",
                 "title" => "RTN/Identidad inválido",
@@ -79,7 +79,7 @@ class clientesControlador extends clientesModelo {
         }
     
         // Límite por plan (si aplica)
-        $mainModel = new mainModel();
+        $mainModel  = new mainModel();
         $planConfig = $mainModel->getPlanConfiguracionMainModel();
         if (isset($planConfig['clientes'])) {
             $limiteClientes = (int)$planConfig['clientes'];
@@ -100,8 +100,8 @@ class clientesControlador extends clientesModelo {
             }
         }
     
-        // Duplicado por RTN
-        if (clientesModelo::valid_clientes_modelo($rtn)->num_rows > 0) {
+        // Duplicado por RTN/Identidad: SOLO si se envió RTN
+        if ($rtn !== '' && clientesModelo::valid_clientes_modelo($rtn)->num_rows > 0) {
             return mainModel::showNotification([
                 "type"  => "error",
                 "title" => "Duplicado",
@@ -109,10 +109,10 @@ class clientesControlador extends clientesModelo {
             ]);
         }
     
-        // Preparar datos
+        // Preparar datos (si tu columna no acepta NULL, dejamos cadena vacía)
         $datos = [
             "nombre"           => $nombre,
-            "rtn"              => $rtn,
+            "rtn"              => $rtn,                       // puede ir '' si no se proporcionó
             "fecha"            => $fecha ?: date("Y-m-d"),
             "departamento_id"  => $depto,
             "municipio_id"     => $muni,
@@ -135,13 +135,13 @@ class clientesControlador extends clientesModelo {
             ]);
         }
     
-        // Historial
+        // Historial (manejar ausencia de RTN)
         mainModel::guardarHistorial([
-            "modulo" => 'Clientes',
-            "colaboradores_id" => $_SESSION['colaborador_id_sd'],
-            "status" => "Registro",
-            "observacion" => "Se registró el cliente {$nombre} con RTN {$rtn}",
-            "fecha_registro" => date("Y-m-d H:i:s")
+            "modulo"           => 'Clientes',
+            "colaboradores_id" => $_SESSION['colaborador_id_sd'] ?? $colab,
+            "status"           => "Registro",
+            "observacion"      => "Se registró el cliente {$nombre}".($rtn !== '' ? " con RTN {$rtn}" : " (sin RTN)"),
+            "fecha_registro"   => date("Y-m-d H:i:s")
         ]);
     
         return mainModel::showNotification([

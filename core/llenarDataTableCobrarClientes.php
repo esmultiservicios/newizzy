@@ -1,87 +1,75 @@
 <?php
-//llenarDataTableCobrarClientes.php
+// core/llenarDataTableCobrarClientes.php
 $peticionAjax = true;
 require_once "configGenerales.php";
 require_once "mainModel.php";
 
-// Instanciar mainModel
 $insMainModel = new mainModel();
 
-// Validar sesión primero
+// Validar sesión
 $validacion = $insMainModel->validarSesion();
 if($validacion['error']) {
-    return $insMainModel->showNotification([
+    echo $insMainModel->showNotification([
         "title" => "Error de sesión",
-        "text" => $validacion['mensaje'],
-        "type" => "error",
+        "text"  => $validacion['mensaje'],
+        "type"  => "error",
         "funcion" => "window.location.href = '".$validacion['redireccion']."'"
     ]);
+    exit;
 }
 
 $datos = [
-    "estado" => $_POST['estado'],
-    "clientes_id" => $_POST['clientes_id'],
-    "fechai" => $_POST['fechai'],
-    "fechaf" => $_POST['fechaf'],
-    "empresa_id_sd" => $_SESSION['empresa_id_sd'],        
-];    
+    "estado"        => $_POST['estado'],
+    "clientes_id"   => $_POST['clientes_id'],
+    "fechai"        => $_POST['fechai'],
+    "fechaf"        => $_POST['fechaf'],
+    "empresa_id_sd" => $_SESSION['empresa_id_sd'],
+];
 
 $result = $insMainModel->getCuentasporCobrarClientes($datos);
 
-$arreglo = array();
-$data = array();
-$estadoColor = 'bg-warning';
-$credito = 0.00;
-$abono = 0.00;
-$saldo = 0.00;
-$totalCredito = 0;
-$totalAbono = 0;
-$totalPendiente = 0;
+$data = [];
+$totalCredito = 0.0;
+$totalAbono   = 0.0;
+$totalPend    = 0.0;
 
-while($row = $result->fetch_assoc()){
-    $resultAbonos = $insMainModel->getAbonosCobrarClientes($row['facturas_id']);
-    $rowAbonos = $resultAbonos->fetch_assoc();
+while ($row = $result->fetch_assoc()) {
+    // Abonos de la factura
+    $resAb = $insMainModel->getAbonosCobrarClientes($row['facturas_id']);
+    $rowAb = $resAb ? $resAb->fetch_assoc() : null;
 
-    if ($rowAbonos['total'] != null || $rowAbonos['total'] != ""){
-        $abono = $rowAbonos['total'];
-    }else{
-        $abono = 0.00;
-    }
-
-    $credito = $row['importe'];
-    $saldo = $row['importe'] - $abono;
+    $abono   = isset($rowAb['total']) && $rowAb['total'] !== null ? (float)$rowAb['total'] : 0.0;
+    $credito = (float)$row['importe'];
+    $saldo   = $credito - $abono;
 
     $totalCredito += $credito;
-    $totalAbono += $abono;
-    $totalPendiente += $saldo;
+    $totalAbono   += $abono;
+    $totalPend    += $saldo;
 
-    // Extraer el número base para ordenamiento
-    $numero_ordenamiento = intval($row['number']);
+    $numero_ordenamiento = (int)$row['number'];
 
-    $data[] = array( 
-        "cobrar_clientes_id"=>$row['cobrar_clientes_id'],
-        "facturas_id"=>$row['facturas_id'],
-        "fecha"=>$row['fecha'],
-        "cliente"=> $row['cliente'],
-        "numero"=>$row['numero'],
-        "numero_ordenamiento"=>$numero_ordenamiento, // Campo para ordenamiento
-        "credito"=> $credito,
-        "abono"=>$abono,                        
-        "saldo"=>$saldo,
-        "estado"=>$row['estado'],
-        "tipo_factura"=>$row['tipo_factura'],
-        "total_credito"=> $totalCredito,
-        "total_abono"=>$totalAbono,
-        "total_pendiente"=> $totalPendiente,
-        "vendedor"=>$row['vendedor'],
-    );        
+    $data[] = [
+        "cobrar_clientes_id"   => (int)$row['cobrar_clientes_id'],
+        "facturas_id"          => (int)$row['facturas_id'],
+        "fecha"                => $row['fecha'],
+        "cliente"              => $row['cliente'],
+        "numero"               => $row['numero'],
+        "numero_ordenamiento"  => $numero_ordenamiento,
+        "credito"              => round($credito, 2),
+        "abono"                => round($abono, 2),
+        "saldo"                => round($saldo, 2),
+        "estado"               => (int)$row['estado'],
+        "tipo_factura"         => (int)$row['tipo_factura'],
+        "total_credito"        => round($totalCredito, 2),
+        "total_abono"          => round($totalAbono, 2),
+        "total_pendiente"      => round($totalPend, 2),
+        "vendedor"             => $row['vendedor'],
+    ];
 }
 
-$arreglo = array(
-    "echo" => 1,
-    "totalrecords" => count($data),
-    "totaldisplayrecords" => count($data),
-    "data" => $data
-);
-
-echo json_encode($arreglo);
+echo json_encode([
+    "echo"                  => 1,
+    "totalrecords"          => count($data),
+    "totaldisplayrecords"   => count($data),
+    "data"                  => $data
+], JSON_UNESCAPED_UNICODE);

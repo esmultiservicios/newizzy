@@ -1,4 +1,5 @@
 <?php
+//pagoFacturaModelo.php
 if ($peticionAjax) {
     require_once "../core/mainModel.php";
 } else {
@@ -91,21 +92,27 @@ class pagoFacturaModelo extends mainModel {
     }
 
     protected function consultar_factura_cuentas_por_cobrar($facturas_id) {
-        $query = "SELECT * FROM cobrar_clientes WHERE facturas_id = '$facturas_id'";
+        $query = "SELECT cobrar_clientes_id, facturas_id, clientes_id,
+                         DATE(fecha) AS fecha,
+                         ROUND(saldo,2) AS saldo,
+                         estado, tipo_factura, usuario, empresa_id, fecha_registro
+                  FROM cobrar_clientes
+                  WHERE facturas_id = '$facturas_id'";
         $rs = mainModel::connection()->query($query);
         if ($rs === false) throw new Exception("Error en consultar_factura_cuentas_por_cobrar: ".mainModel::connection()->error);
         return $rs;
-    }
+    }    
 
     protected function update_status_factura_cuentas_por_cobrar($facturas_id, $estado = 2, $importe = '') {
         if ($importe !== '' || $importe == 0) {
-            $importe = ', saldo = '.$importe;
+            // fuerza 2 decimales exactos en BD
+            $importe = ', saldo = '.sprintf('%.2f', round((float)$importe + 1e-9, 2));
         }
         $update = "UPDATE cobrar_clientes SET estado = '$estado' $importe WHERE facturas_id = '$facturas_id'";
         $ok = mainModel::connection()->query($update);
         if (!$ok) throw new Exception("Error en update_status_factura_cuentas_por_cobrar: ".mainModel::connection()->error);
         return true;
-    }
+    }    
 
     protected function update_status_factura($facturas_id) {
         $update = "UPDATE facturas SET estado = 2 WHERE facturas_id = '$facturas_id'";
@@ -257,11 +264,17 @@ class pagoFacturaModelo extends mainModel {
         $saldoRes = $this->consultar_factura_cuentas_por_cobrar($datos['facturas_id']);
         if ($saldoRes->num_rows == 0) { throw new Exception("No se encontró la cuenta por cobrar para esta factura"); }
         $saldoRow = $saldoRes->fetch_assoc();
-        $saldo = floatval($saldoRow['saldo']);
-        if ($datos['importe'] > $saldo) {
+        
+        $saldo = round((float)$saldoRow['saldo'] + 1e-9, 2);
+
+        // valida con tolerancia
+        $EPS = 0.005;
+        if ($datos['importe'] - $saldo > $EPS) {
             throw new Exception("El abono es mayor al importe pendiente (L. ".number_format($saldo,2).")");
         }
-        $nuevoSaldo = $saldo - $datos['importe'];
+
+        // nuevo saldo redondeado (nunca negativo)
+        $nuevoSaldo = max(0, round($saldo - $datos['importe'] + 1e-9, 2));
 
         // Insert pago
         $pagoId = $this->agregar_pago_factura_modelo($datos);

@@ -6921,30 +6921,28 @@ class mainModel
 
 	public function getDatosFactura($facturas_id)
 	{
-		$query = "SELECT
-			f.facturas_id AS facturas_id,
-			DATE_FORMAT(f.fecha, '%d/%m/%Y') AS fecha,
-			c.clientes_id AS clientes_id,
-			c.nombre AS cliente,
-			c.rtn AS rtn,
-			ven.nombre AS profesional,
-			f.colaboradores_id AS colaborador_id,
-			f.estado AS estado,
-			f.fecha AS fecha_factura,
-			f.notas AS notas,
-			f.tipo_factura AS credito,
-			cobrar_clientes.saldo
-			FROM facturas AS f
-			INNER JOIN clientes AS c ON f.clientes_id = c.clientes_id
-			INNER JOIN colaboradores AS ven ON f.colaboradores_id = ven.colaboradores_id
-			INNER JOIN cobrar_clientes ON f.facturas_id = cobrar_clientes.facturas_id
-			WHERE
-				f.facturas_id = '$facturas_id'";
-
-		$result = self::connection()->query($query);
-
-		return $result;
-	}
+		$query = "
+		  SELECT
+			f.facturas_id                     AS facturas_id,
+			DATE_FORMAT(f.fecha, '%d/%m/%Y')  AS fecha,
+			c.clientes_id                     AS clientes_id,
+			c.nombre                          AS cliente,
+			ven.nombre                        AS profesional,
+			f.colaboradores_id                AS colaborador_id,
+			f.estado                          AS estado,
+			f.fecha                           AS fecha_factura,
+			f.notas                           AS notas,
+			f.tipo_factura                    AS credito,
+			ROUND(f.importe, 2)               AS importe,
+			ROUND(cc.saldo, 2)                AS saldo
+		  FROM facturas f
+		  INNER JOIN clientes c   ON f.clientes_id = c.clientes_id
+		  INNER JOIN colaboradores ven ON f.colaboradores_id = ven.colaboradores_id
+		  INNER JOIN cobrar_clientes cc ON cc.facturas_id = f.facturas_id
+		  WHERE f.facturas_id = '".intval($facturas_id)."'
+		  LIMIT 1";
+		return self::connection()->query($query);
+	}	
 
 	public function getDetalleProductosFactura($facturas_id)
 	{
@@ -6986,48 +6984,52 @@ class mainModel
 	public function getCuentasporCobrarClientes($datos)
 	{
 		$clientes_id = '';
-		$fecha_actual = date('Y-m-d');
 		$fecha = '';
 	
-		if ($datos['fechai'] != $fecha_actual) {
-			$fecha = "AND cc.fecha BETWEEN '" . $datos['fechai'] . "' AND '" . $datos['fechaf'] . "'";
+		if (!empty($datos['fechai']) && !empty($datos['fechaf'])) {
+			$fechai = $this->connection()->real_escape_string($datos['fechai']);
+			$fechaf = $this->connection()->real_escape_string($datos['fechaf']);
+			$fecha  = "AND cc.fecha BETWEEN '{$fechai}' AND '{$fechaf}'";
 		}
 	
-		if ($datos['clientes_id'] != 0 && $datos['clientes_id'] != '') {
-			$clientes_id = "AND cc.clientes_id = '" . $datos['clientes_id'] . "'";
+		if (!empty($datos['clientes_id'])) {
+			$cli = (int)$datos['clientes_id'];
+			$clientes_id = "AND cc.clientes_id = {$cli}";
 		}
 	
-		$query = "SELECT 
-					cc.cobrar_clientes_id AS 'cobrar_clientes_id', 
-					f.facturas_id AS 'facturas_id', 
-					c.nombre AS 'cliente',
-					f.fecha AS 'fecha', 
-					cc.saldo AS 'saldo', 
-					cc.tipo_factura,
-					CASE 
-						WHEN d.documento_id = 4 THEN CONCAT('PROFORMA-', sf.prefijo, LPAD(f.number, sf.relleno, 0)) 
-						ELSE CONCAT(sf.prefijo,'',LPAD(f.number, sf.relleno, 0))
-					END AS 'numero', 
-					f.number AS 'number',
-					cc.estado,
-					f.importe, 
-					co.nombre AS 'vendedor'
-				FROM 
-					cobrar_clientes AS cc
-					INNER JOIN clientes AS c ON cc.clientes_id = c.clientes_id
-					INNER JOIN facturas AS f ON cc.facturas_id = f.facturas_id
-					INNER JOIN secuencia_facturacion AS sf ON f.secuencia_facturacion_id = sf.secuencia_facturacion_id
-					INNER JOIN colaboradores AS co ON f.colaboradores_id = co.colaboradores_id
-					INNER JOIN documento AS d ON sf.documento_id = d.documento_id            
-				WHERE cc.empresa_id = '" . $datos['empresa_id_sd'] . "' AND cc.estado = '" . $datos['estado'] . "'
-				$fecha
-				$clientes_id
-				ORDER BY f.number DESC, cc.fecha DESC";
+		$empresa = (int)$datos['empresa_id_sd'];
+		$estado  = (int)$datos['estado'];
 	
-		$result = self::connection()->query($query);
+		$query = "
+			SELECT 
+				cc.cobrar_clientes_id,
+				f.facturas_id,
+				c.nombre AS cliente,
+				f.fecha,
+				cc.saldo,
+				cc.tipo_factura,
+				CASE 
+					WHEN d.documento_id = 4 THEN CONCAT('PROFORMA-', sf.prefijo, LPAD(f.number, sf.relleno, '0'))
+					ELSE CONCAT(sf.prefijo, LPAD(f.number, sf.relleno, '0'))
+				END AS numero,
+				f.number,
+				cc.estado,
+				f.importe,
+				co.nombre AS vendedor
+			FROM cobrar_clientes cc
+			INNER JOIN clientes c              ON cc.clientes_id = c.clientes_id
+			INNER JOIN facturas f              ON cc.facturas_id = f.facturas_id
+			INNER JOIN secuencia_facturacion sf ON f.secuencia_facturacion_id = sf.secuencia_facturacion_id
+			INNER JOIN colaboradores co        ON f.colaboradores_id = co.colaboradores_id
+			INNER JOIN documento d             ON sf.documento_id = d.documento_id
+			WHERE cc.empresa_id = {$empresa} AND cc.estado = {$estado}
+			  {$fecha}
+			  {$clientes_id}
+			ORDER BY f.number DESC, cc.fecha DESC
+		";
 	
-		return $result;
-	}
+		return self::connection()->query($query);
+	}	
 
 	public function getAbonosCobrarClientes($facturas_id)
 	{

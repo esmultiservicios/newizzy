@@ -11,9 +11,9 @@
 			$stmt = null;
 		
 			try {
-				// No aceptar inserción si faltan nombre o rtn
-				if (trim($datos['nombre']) === '' || trim($datos['rtn']) === '') {
-					throw new Exception("Nombre o RTN vacíos");
+				// No aceptar inserción si faltan nombre
+				if (trim($datos['nombre']) === '') {
+					throw new Exception("Nombre vacío");
 				}
 		
 				$conexion->autocommit(false);

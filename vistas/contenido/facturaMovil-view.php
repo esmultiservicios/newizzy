@@ -205,14 +205,18 @@
         </form>
       </div>
 
-      <div class="modal-footer d-flex justify-content-between">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">
-          <i class="fas fa-times mr-1"></i> Cancelar
-        </button>
-        <button type="button" class="btn btn-primary" id="registrar-pago">
-          <i class="fas fa-check mr-1"></i> Registrar Pago
-        </button>
+      <div class="modal-footer">
+        <div class="d-flex flex-wrap flex-sm-nowrap w-100 justify-content-between">
+          <button type="button" class="btn btn-secondary mr-sm-2 mb-2 mb-sm-0" data-dismiss="modal">
+            <i class="fas fa-times mr-1"></i> Cancelar
+          </button>
+          <button type="button" class="btn btn-primary" id="registrar-pago">
+            <i class="fas fa-check mr-1"></i> Registrar Pago
+          </button>
+        </div>
       </div>
+
+
     </div>
   </div>
 </div>

@@ -4504,7 +4504,6 @@ function saldoCompras(compras_id) {
 }
 //FIN ACCIONES FROMULARIO CLIENTES
 
-/*FIN DE PAGOS*/
 // INICIO MODAL REGISTRAR PAGO FACTURACIÓN CLIENTES
 function customRound(number) {
     const truncated = Math.floor(number * 100) / 100;

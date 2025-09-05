@@ -678,8 +678,12 @@ $(() => {
       return;
     }
 
-    if (!$('#cliente-select').val() || !$('#vendedor-select').val()) {
-      showNotify("warning", "Advertencia", "Seleccione cliente y vendedor");
+    // Toma el valor desde selectpicker si .val() viniera vacío
+    const clienteId  = $('#cliente-select').val()  || $('#cliente-select').selectpicker('val');
+    const vendedorId = $('#vendedor-select').val() || $('#vendedor-select').selectpicker('val') || 0;
+
+    if (!clienteId) {
+      showNotify("warning", "Advertencia", "Seleccione un cliente");
       return;
     }
 
@@ -688,14 +692,16 @@ $(() => {
       return;
     }
 
-    const tipoFactura = $('input[name="tipo-factura"]:checked').val();
+    const tipoFactura = parseInt($('input[name="tipo-factura"]:checked').val(), 10);
+
     const datos = {
-      clienteId: $('#cliente-select').val(),
-      vendedorId: $('#vendedor-select').val(),
+      clienteId: clienteId,
+      vendedorId: vendedorId,
       tipoFactura: tipoFactura,
       productos: productosAgregados,
       notas: $('#notas').val(),
       aperturaId: (aperturaInfo && aperturaInfo.apertura_id) ? aperturaInfo.apertura_id : null
+      // secuencia_facturacion_id: <id> // si algún día quieres forzar uno
     };
 
     showNotify("info", "Procesando factura", "Por favor espere...", true);
@@ -710,7 +716,8 @@ $(() => {
         if (response.estado) {
           currentFacturaId = response.factura_id;
 
-          if (tipoFactura == 1) {
+          if (tipoFactura === 1) {
+            // contado → abrir modal de pago
             $('#factura-id-pago').val(response.factura_id);
             $('#monto-pago').val(response.total);
             $('#efectivo-pago').val('');
@@ -719,8 +726,10 @@ $(() => {
             $('#cambio-pago').val('');
             $('#pagoModal').modal('show');
           } else {
+            // crédito
             showNotify("success", "Éxito", "Factura registrada correctamente");
             resetearFormulario();
+            cargarClientes();                // deja “Consumidor Final” (ID 1)
           }
 
           getTotalFacturasDisponibles();
@@ -750,7 +759,8 @@ $(() => {
       return;
     }
 
-    const cambioDesdeEfectivo = Math.max(0, efectivo - Math.max(0, montoFactura - (transferencia + tarjeta)));
+    const faltanteTrasNoEfectivo = Math.max(0, montoFactura - (transferencia + tarjeta));
+    const cambioDesdeEfectivo = Math.max(0, efectivo - faltanteTrasNoEfectivo);
     $('#cambio-pago').val(formatter.format(cambioDesdeEfectivo));
 
     const datos = {
@@ -773,7 +783,14 @@ $(() => {
         if (response.success) {
           $('#pagoModal').modal('hide');
           showNotify("success", "Éxito", "Pago registrado correctamente");
+
+          // <<<<< aquí imprimimos si es contado >>>>>
+          if (response.imprimir && response.factura_id) {
+            try { printBill(response.factura_id); } catch (e) { console.error(e); }
+          }
+
           resetearFormulario();
+          cargarClientes();  
           getTotalFacturasDisponibles();
         } else {
           showNotify("error", "Error", response.message || 'Error al registrar el pago');
@@ -794,6 +811,12 @@ $(() => {
     const cambioDesdeEfectivo = Math.max(0, efectivo - Math.max(0, montoFactura - (transferencia + tarjeta)));
     $('#cambio-pago').val(cambioDesdeEfectivo > 0 ? formatter.format(cambioDesdeEfectivo) : '');
   }
+
+  // Cuando se muestre el modal de pago, enfocar en "Efectivo"
+  $('#pagoModal').on('shown.bs.modal', function () {
+    $('#efectivo-pago').trigger('focus');
+  });
+
 
   // ===============================
   // 7. AUXILIARES

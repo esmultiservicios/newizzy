@@ -1,4 +1,5 @@
 <?php
+//pagoFacturaControlador.php
 if ($peticionAjax) {
     require_once "../modelos/pagoFacturaModelo.php";
 } else {
@@ -8,8 +9,9 @@ if ($peticionAjax) {
 class pagoFacturaControlador extends pagoFacturaModelo {
 
     /* ===========================
-     * PREPARAR DATOS DEL PAGO
-     * =========================== */
+    /* ===========================
+    * PREPARAR DATOS DEL PAGO
+    * =========================== */
     protected function prepararDatosPago($tipoPago) {
         $validacion = mainModel::validarSesion();
         if ($validacion['error']) {
@@ -29,71 +31,71 @@ class pagoFacturaControlador extends pagoFacturaModelo {
             return ["status"=>false,"title"=>"Error","message"=>"No se recibió el ID de la factura"];
         }
 
-        // === Monto según tipo de pago (y saneado) ===
+        // === Monto según tipo de pago ===
         switch ($tipoPago) {
             case 'efectivo':
                 $monto = isset($_POST['efectivo_bill']) ? $this->parseMonto($_POST['efectivo_bill']) : 0.0;
                 break;
             case 'tarjeta':
                 $monto = isset($_POST['importe_tarjeta']) ? $this->parseMonto($_POST['importe_tarjeta'])
-                       : (isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0);
+                    : (isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0);
                 break;
             case 'transferencia':
                 $monto = isset($_POST['importe_transferencia']) ? $this->parseMonto($_POST['importe_transferencia'])
-                       : (isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0);
+                    : (isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0);
                 break;
             case 'cheque':
                 $monto = isset($_POST['importe_cheque']) ? $this->parseMonto($_POST['importe_cheque'])
-                       : (isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0);
+                    : (isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0);
                 break;
             default:
                 $monto = isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0;
                 break;
         }
 
-        // === Factura (usa los alias de tu getFactura) ===
+        // Normaliza a 2 decimales y elimina residuos binarios
+        $monto = round($monto + 1e-9, 2);
+
+        // === Factura ===
         $factura = mainModel::getFactura($_POST[$campoId])->fetch_assoc();
         if(!$factura) {
-            return [
-                "status" => false,
-                "title"  => "Error",
-                "message"=> "No se encontró la factura"
-            ];
+            return ["status"=>false,"title"=>"Error","message"=>"No se encontró la factura"];
         }
 
         if ($monto <= 0) {
             return ["status"=>false,"title"=>"Error","message"=>"El monto debe ser mayor que cero"];
         }
 
-        // tipo_factura UI: 1=contado (pago completo), 2=crédito/abonos (pagos múltiples)
+        // 1=contado, 2=crédito/abonos
         $tipo_factura_post = isset($_POST['tipo_factura']) ? intval($_POST['tipo_factura'])
-                           : (isset($_POST['tipo_factura_transferencia']) ? intval($_POST['tipo_factura_transferencia'])
-                           : (isset($_POST['tipo_factura_cheque']) ? intval($_POST['tipo_factura_cheque'])
-                           : ((isset($_POST['facturas_activo']) && $_POST['facturas_activo']=='1') ? 1 : 2)));
+                        : (isset($_POST['tipo_factura_transferencia']) ? intval($_POST['tipo_factura_transferencia'])
+                        : (isset($_POST['tipo_factura_cheque']) ? intval($_POST['tipo_factura_cheque'])
+                        : ((isset($_POST['facturas_activo']) && $_POST['facturas_activo']=='1') ? 1 : 2)));
 
-        // Origen explícito desde JS: 'facturacion' | 'cxc'
         $origen_pago = isset($_POST['origen_pago']) ? $_POST['origen_pago'] : 'facturacion';
 
-        // Saldo CxC
-        $saldoPendiente = 0;
+        // === Saldo pendiente CxC (redondeado) ===
+        $saldoPendiente = 0.00;
         $saldoRes = mainModel::connection()->query(
-            "SELECT saldo FROM cobrar_clientes WHERE facturas_id = '".intval($_POST[$campoId])."'"
+            "SELECT ROUND(saldo,2) AS saldo FROM cobrar_clientes WHERE facturas_id = '".intval($_POST[$campoId])."'"
         );
         if ($saldoRes && $saldoRes->num_rows > 0) {
-            $saldoData = $saldoRes->fetch_assoc();
-            $saldoPendiente = floatval($saldoData['saldo']);
+            $saldoPendiente = round((float)$saldoRes->fetch_assoc()['saldo'] + 1e-9, 2);
         }
 
-        // Validaciones por tipo de factura
-        if ($tipo_factura_post == 1) { // contado
-            if ($saldoPendiente > 0 && $monto < $saldoPendiente) {
+        // Tolerancia para comparaciones (½ centavo)
+        $EPS = 0.005;
+
+        // === Validaciones por tipo ===
+        if ($tipo_factura_post == 1) { // contado (pago total)
+            if ($monto + $EPS < $saldoPendiente) {
                 return [
                     "status"=>false,"title"=>"Error",
                     "message"=>"Para pago completo debe ingresar un monto igual o mayor al saldo pendiente (L. ".number_format($saldoPendiente,2).")"
                 ];
             }
         } else { // crédito / abono
-            if ($monto > $saldoPendiente) {
+            if ($monto - $saldoPendiente > $EPS) {
                 return [
                     "status"=>false,"title"=>"Error",
                     "message"=>"El monto no puede ser mayor al saldo pendiente (L. ".number_format($saldoPendiente,2).")"
@@ -101,7 +103,7 @@ class pagoFacturaControlador extends pagoFacturaModelo {
             }
         }
 
-        // Número de factura con relleno (usa campos reales: numero_factura + relleno)
+        // Número formateado (si lo ocupas después)
         $relleno         = isset($factura['relleno']) ? intval($factura['relleno']) : 8;
         $numeroEntero    = isset($factura['numero_factura']) ? intval($factura['numero_factura']) : 0;
         $factura_number  = ($numeroEntero > 0) ? str_pad($numeroEntero, $relleno, "0", STR_PAD_LEFT) : '';
@@ -110,15 +112,15 @@ class pagoFacturaControlador extends pagoFacturaModelo {
             ? intval($_POST[$campoUsuario])
             : $_SESSION['users_id_sd'];
 
-        // Importe que afecta contabilidad/saldo
+        // Importe que afecta saldo
         $importeReal = ($tipo_factura_post == 1
             ? ($saldoPendiente > 0 ? $saldoPendiente : $monto)
             : $monto
         );
 
-        // Cambio solo contado
+        // Cambio contado
         $cambio = ($tipo_factura_post == 1
-            ? max(0, $monto - ($saldoPendiente > 0 ? $saldoPendiente : $monto))
+            ? max(0, round($monto - ($saldoPendiente > 0 ? $saldoPendiente : $monto), 2))
             : 0
         );
 
@@ -136,14 +138,14 @@ class pagoFacturaControlador extends pagoFacturaModelo {
             'abono'              => $saldoPendiente,
             'print_comprobante'  => isset($_POST['comprobante_print']) ? $_POST['comprobante_print'] : 0,
             'colaboradores_id'   => intval($_SESSION['colaborador_id_sd']),
-            'efectivo'           => $monto,   // columna 'efectivo' en pagos (detallado por método en pagos_detalles)
+            'efectivo'           => $monto,
             'tarjeta'            => 0,
             'banco_id'           => 0,
             'referencia_pago1'   => '',
             'referencia_pago2'   => '',
             'referencia_pago3'   => '',
             'clientes_id'        => $factura['clientes_id'],
-            'factura_number'     => $factura_number,   // SOLO número relleno; el prefijo se concatena al guardar en ingresos
+            'factura_number'     => $factura_number,
             'origen_pago'        => $origen_pago
         ];
     }

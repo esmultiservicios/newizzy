@@ -377,6 +377,53 @@ body.vista-facturacion-restaurante { overflow: hidden; }
     .btn-cantidad { width: 18px; height: 18px; font-size: 10px; }
     .comanda-item-cantidad input { width: 25px; font-size: 10px; }
     .btn-eliminar { font-size: 12px; }
+    
+    /* Optimizaciones específicas para tablets */
+    .comanda-totales { 
+        padding: 8px 10px; 
+    }
+    .totales-row { 
+        margin-bottom: 4px; 
+        font-size: 12px; 
+        line-height: 1.2;
+    }
+    .totales-row span:last-child { 
+        font-size: 12px; 
+        min-width: 60px;
+        margin-left: 10px;
+    }
+    .totales-row.total { 
+        font-size: 14px; 
+        padding: 8px 10px; 
+        margin: 6px -10px 0 -10px;
+    }
+    .totales-row.total span:last-child { 
+        font-size: 14px; 
+    }
+    
+    .comanda-pago {
+        padding: 8px 10px;
+        border-top: 1px solid var(--border-color);
+        margin-top: 5px;
+    }
+    .comanda-pago h4 {
+        font-size: 13px;
+        margin-bottom: 6px;
+    }
+    .pago-options {
+        gap: 6px;
+        justify-content: space-between;
+    }
+    .radio-container {
+        font-size: 11px;
+        padding: 5px 8px;
+        flex: 1;
+        min-width: 80px;
+        justify-content: center;
+    }
+    .radio-container i {
+        font-size: 12px;
+    }
 }
 
 /* ========== RESPONSIVE MÓVILES ========== */
@@ -514,4 +561,3 @@ body.vista-facturacion-restaurante { overflow: hidden; }
   .productos-search button:active {
     transform: translateY(1px);
   }
-  

@@ -1190,6 +1190,98 @@ function getDepartamentoClientes() {
 /*FIN FORMULARIO CLIENTES*/
 //FIN CLIENTES
 
+// Función para cargar la configuración ISV (VERSIÓN CORREGIDA)
+function cargarConfiguracionISV() {
+    $.ajax({
+        url: 'core/productos/getIsvConfig.php',
+        type: 'POST',
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                console.log('Configuración ISV recibida:', response);
+                
+                // Procesar ISV tipo 1
+                $('#producto_isv1').closest('.col-md-6').show();
+                $('#producto_isv1').prop('checked', response.isv1.activar === 1);
+                
+                // Actualizar etiqueta con el porcentaje real desde la BD
+                $('#producto_isv1').next('.custom-control-label').html(
+                    '<i class="fas fa-percentage mr-1"></i>Aplica ISV ' + response.isv1.valor + '%'
+                );
+                
+                // Procesar ISV tipo 2
+                $('#producto_isv2').closest('.col-md-6').show();
+                $('#producto_isv2').prop('checked', response.isv2.activar === 1);
+                
+                // Actualizar etiqueta con el porcentaje real desde la BD
+                $('#producto_isv2').next('.custom-control-label').html(
+                    '<i class="fas fa-percentage mr-1"></i>Aplica ISV ' + response.isv2.valor + '%'
+                );
+                
+                // Guardar los valores en data attributes para uso posterior
+                $('#producto_isv1').data('valor', response.isv1.valor / 100);
+                $('#producto_isv2').data('valor', response.isv2.valor / 100);
+                
+                // Aplicar lógica de selección exclusiva automática
+                aplicarSeleccionExclusivaISV();
+            } else {
+                console.error('Error al cargar configuración ISV:', response.message);
+                // Mostrar ambos con valores por defecto en caso de error
+                $('#producto_isv1').closest('.col-md-6').show();
+                $('#producto_isv2').closest('.col-md-6').show();
+                aplicarSeleccionExclusivaISV();
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error en la solicitud AJAX:', error);
+            // Mostrar ambos con valores por defecto en caso de error
+            $('#producto_isv1').closest('.col-md-6').show();
+            $('#producto_isv2').closest('.col-md-6').show();
+            aplicarSeleccionExclusivaISV();
+        }
+    });
+}
+
+// Función para selección exclusiva automática de ISV
+function aplicarSeleccionExclusivaISV() {
+    // Cuando se selecciona ISV 1, desmarcar ISV 2 automáticamente
+    $('#producto_isv1').change(function() {
+        if ($(this).is(':checked')) {
+            $('#producto_isv2').prop('checked', false);
+        }
+    });
+    
+    // Cuando se selecciona ISV 2, desmarcar ISV 1 automáticamente
+    $('#producto_isv2').change(function() {
+        if ($(this).is(':checked')) {
+            $('#producto_isv1').prop('checked', false);
+        }
+    });
+    
+    // Validar que al menos uno esté seleccionado al enviar el formulario, SOLO si producto_isv_factura está activo
+    $('#formProductos').submit(function(e) {
+        // Verificar si el checkbox de "Calcular ISV en Factura" está activado
+        var calcularISVFactura = $('#producto_isv_factura').is(':checked');
+        
+        // Solo validar los ISV si el checkbox de factura está activado
+        if (calcularISVFactura && !$('#producto_isv1').is(':checked') && !$('#producto_isv2').is(':checked')) {
+            e.preventDefault();
+            
+            // Obtener los porcentajes actuales de las etiquetas
+            var porcentaje1 = $('#producto_isv1').next('.custom-control-label').text().match(/\d+/);
+            var porcentaje2 = $('#producto_isv2').next('.custom-control-label').text().match(/\d+/);
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Debe seleccionar al menos un tipo de ISV (' + (porcentaje1 ? porcentaje1[0] : '15') + '% o ' + (porcentaje2 ? porcentaje2[0] : '16') + '%)',
+            });
+            return false;
+        }
+        return true;
+    });
+}
+
 /*INICIO FORMULARIO PRODUCTOS*/
 function modal_productos() {
     $('#formProductos').attr({
@@ -1206,6 +1298,8 @@ function modal_productos() {
     //MOSTRAR OBJETOS
     $('#formProductos #cantidad').show();
     $('#div_cantidad_editar_producto').show();
+
+    cargarConfiguracionISV();
 
     //HABILITAR OBJETOS
     $('#formProductos #producto').attr("readonly", false);

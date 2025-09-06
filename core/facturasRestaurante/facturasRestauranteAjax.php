@@ -1,189 +1,178 @@
 <?php
+// core/facturasRestaurante/facturasRestauranteAjax.php
 $peticionAjax = true;
 require_once __DIR__ . '/../configGenerales.php';
 require_once __DIR__ . '/facturasRestauranteModelo.php';
 
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
 try {
-    $modelo = new facturasRestauranteModelo();
-
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        throw new Exception('Método no permitido', 405);
+        http_response_code(405);
+        echo json_encode(['status'=>false,'message'=>'Método no permitido']);
+        exit;
     }
 
-    if (!isset($_POST['action'])) {
-        throw new Exception('Acción no especificada', 400);
+    // Soportar form + JSON
+    $raw      = file_get_contents('php://input');
+    $asJson   = json_decode($raw, true);
+    $action   = $_POST['action'] ?? ($asJson['action'] ?? null);
+    $payload  = $asJson['data']   ?? null;
+
+    if (!$action) {
+        http_response_code(400);
+        echo json_encode(['status'=>false,'message'=>'Acción no especificada']);
+        exit;
     }
 
-    $action = $modelo->cleanString($_POST['action']);
+    $m = new facturasRestauranteModelo();
 
     switch ($action) {
+
+        /* ======= DATA CATÁLOGO / ISV / MESAS ======= */
+        case 'loadISV':
+            echo json_encode(['status'=>true,'isv'=>$m->obtenerISVTiposPublico()]);
+            break;
+
         case 'loadMesas':
-            $mesas = $modelo->obtenerMesas();
-            echo json_encode([
-                'status' => true,
-                'mesas' => $mesas
-            ]);
+            echo json_encode(['status'=>true,'mesas'=>$m->obtenerMesas()]);
             break;
-            
+
         case 'saveMesa':
-            if (!isset($_POST['numero']) || !isset($_POST['ubicacion'])) {
-                throw new Exception('Datos incompletos para crear mesa', 400);
-            }
-
-            $numero = $modelo->cleanString($_POST['numero']);
-            $capacidad = isset($_POST['capacidad']) ? intval($_POST['capacidad']) : 4;
-            $ubicacion = $modelo->cleanString($_POST['ubicacion']);
-            
-            if (empty($numero)) {
-                throw new Exception('El número de mesa es requerido', 400);
-            }
-            
-            $result = $modelo->guardarMesa($numero, $capacidad, $ubicacion);
-            echo json_encode($result);
+            $numero    = $_POST['numero']    ?? '';
+            $capacidad = $_POST['capacidad'] ?? 4;
+            $ubicacion = $_POST['ubicacion'] ?? 'Interior';
+            echo json_encode($m->guardarMesa($numero, intval($capacidad), $ubicacion));
             break;
-            
+
         case 'loadCategorias':
-            $categorias = $modelo->obtenerCategoriasProductos();
-            echo json_encode([
-                'status' => true,
-                'categorias' => $categorias
-            ]);
+            echo json_encode(['status'=>true,'categorias'=>$m->obtenerCategoriasProductos()]);
             break;
-            
+
         case 'loadProductos':
-            $productos = $modelo->obtenerProductos();
-            echo json_encode([
-                'status' => true,
-                'productos' => $productos
-            ]);
+            echo json_encode(['status'=>true,'productos'=>$m->obtenerProductos()]);
             break;
-            
+
         case 'loadClientes':
-            $clientes = $modelo->obtenerClientes();
-            echo json_encode([
-                'status' => true,
-                'clientes' => $clientes
-            ]);
+            echo json_encode(['status'=>true,'clientes'=>$m->obtenerClientes()]);
             break;
-            
+
+        /* ======= NUEVO: GUARDAR CAT/PROD/CLI ======= */
+        case 'saveCategoria':
+            $nombre = trim($_POST['nombre'] ?? ($payload['nombre'] ?? ''));
+            echo json_encode($m->guardarCategoria($nombre));
+            break;
+
+        case 'saveProductoBasico':
+            // data llega como JSON -> $payload
+            if (!$payload) {
+                http_response_code(400);
+                echo json_encode(['status'=>false,'message'=>'Datos de producto inválidos']);
+                break;
+            }
+            echo json_encode($m->guardarProductoBasico($payload));
+            break;
+
+        case 'saveClienteBasico':
+            // data llega como JSON -> $payload
+            if (!$payload) {
+                // aceptar también por POST form-url-encoded
+                $payload = [
+                    'nombre'           => $_POST['nombre'] ?? '',
+                    'rtn'              => $_POST['rtn'] ?? '',
+                    'fecha'            => $_POST['fecha'] ?? date('Y-m-d'),
+                    'departamentos_id' => intval($_POST['departamentos_id'] ?? 0),
+                    'municipios_id'    => intval($_POST['municipios_id'] ?? 0),
+                    'localidad'        => $_POST['localidad'] ?? '',
+                    'telefono'         => $_POST['telefono'] ?? '',
+                    'correo'           => $_POST['correo'] ?? '',
+                    'estado'           => intval($_POST['estado'] ?? 1),
+                ];
+            }
+            echo json_encode($m->guardarClienteBasico($payload));
+            break;
+
+        /* ======= FACTURA / COMANDA ======= */
         case 'loadFacturaMesa':
-            if (!isset($_POST['mesa_id'])) {
-                throw new Exception('ID de mesa no especificado', 400);
+            $mesa_id = intval($_POST['mesa_id'] ?? 0);
+            if ($mesa_id<=0) {
+                echo json_encode(['status'=>false,'message'=>'Mesa inválida']); break;
             }
-
-            $mesa_id = intval($_POST['mesa_id']);
-            
-            if ($mesa_id <= 0) {
-                throw new Exception('ID de mesa inválido', 400);
+            $factura = $m->obtenerFacturaMesa($mesa_id);
+            if (!$factura) {
+                http_response_code(404);
+                echo json_encode(['status'=>false,'message'=>'No hay factura activa para esta mesa']);
+                break;
             }
-            
-            $factura = $modelo->obtenerFacturaMesa($mesa_id);
-            
-            if ($factura) {
-                echo json_encode([
-                    'status' => true,
-                    'factura' => $factura,
-                    'mesa' => [
-                        'id' => $factura['mesa_id'],
-                        'numero' => $factura['numero_mesa'],
-                        'capacidad' => $factura['capacidad_mesa'],
-                        'ubicacion' => $factura['ubicacion_mesa'],
-                        'estado' => 'ocupada'
-                    ],
-                    'items' => $modelo->obtenerDetallesFactura($factura['facturas_id'])
-                ]);
-            } else {
-                throw new Exception('No se encontró factura activa para esta mesa', 404);
-            }
-            break;
-            
-        case 'saveFactura':
-            $data = json_decode(file_get_contents('php://input'), true);
-            
-            if (!isset($data['data'])) {
-                throw new Exception('Datos de factura inválidos', 400);
-            }
-            
-            $result = $modelo->guardarFactura($data['data']);
-            echo json_encode($result);
-            break;
-            
-        case 'updateFactura':
-            $data = json_decode(file_get_contents('php://input'), true);
-            
-            if (!isset($data['data']) || !isset($data['data']['factura_id'])) {
-                throw new Exception('Datos de factura inválidos', 400);
-            }
-            
-            $result = $modelo->actualizarFactura($data['data']);
-            echo json_encode($result);
-            break;
-            
-        case 'closeFactura':
-            if (!isset($_POST['factura_id'])) {
-                throw new Exception('ID de factura no especificado', 400);
-            }
-
-            $factura_id = intval($_POST['factura_id']);
-            
-            if ($factura_id <= 0) {
-                throw new Exception('ID de factura inválido', 400);
-            }
-            
-            $result = $modelo->cerrarFactura($factura_id);
-            echo json_encode($result);
-            break;
-
-        case 'loadComandasCocina':
-            $comandas = $modelo->obtenerComandasCocina();
             echo json_encode([
-                'status' => true,
-                'comandas' => $comandas
+                'status'=>true,
+                'factura'=>$factura,
+                'mesa'=>[
+                    'id'        => intval($factura['mesa_id']),
+                    'numero'    => $factura['numero_mesa'],
+                    'capacidad' => intval($factura['capacidad_mesa']),
+                    'ubicacion' => $factura['ubicacion_mesa'],
+                    'estado'    => 'ocupada'
+                ],
+                'items'=>$m->obtenerDetallesFactura(intval($factura['facturas_id']))
             ]);
             break;
-            
+
+        case 'saveFactura':   // crea (borrador o pagada)
+            if (!$payload) {
+                $payload = [
+                    'mesa_id'       => intval($_POST['mesa_id'] ?? 0),
+                    'cliente_id'    => intval($_POST['cliente_id'] ?? 0),
+                    'items'         => json_decode($_POST['items'] ?? '[]', true),
+                    'metodo_pago'   => $_POST['metodo_pago'] ?? '',
+                    'observaciones' => $_POST['observaciones'] ?? '',
+                ];
+            }
+            $r = $m->guardarFactura($payload);
+            echo json_encode($r);
+            break;
+
+        case 'updateFactura': // agrega items y/o paga
+            if (!$payload || !isset($payload['factura_id'])) {
+                echo json_encode(['status'=>false,'message'=>'Datos inválidos']); break;
+            }
+            echo json_encode($m->actualizarFactura($payload));
+            break;
+
+        case 'closeFactura':
+            $factura_id = intval($_POST['factura_id'] ?? 0);
+            echo json_encode($m->cerrarFactura($factura_id));
+            break;
+
+        /* ======= COCINA ======= */
+        case 'enviarComandaCocina':
+            $data = $payload ?? [
+                'factura_id'    => intval($_POST['factura_id'] ?? 0),
+                'mesa'          => $_POST['mesa'] ?? '',
+                'observaciones' => $_POST['observaciones'] ?? '',
+                'items'         => json_decode($_POST['items'] ?? '[]', true),
+            ];
+            echo json_encode($m->enviarComandaCocina($data));
+            break;
+
         case 'marcarComandaPreparada':
-            if (!isset($_POST['comanda_id'])) {
-                throw new Exception('ID de comanda no especificado', 400);
-            }
-        
-            $comanda_id = intval($_POST['comanda_id']);
-            $result = $modelo->marcarComandaPreparada($comanda_id);
-            echo json_encode($result);
+            echo json_encode($m->marcarComandaPreparada(intval($_POST['comanda_id'] ?? 0)));
             break;
-            
+
         case 'marcarComandaUrgente':
-            if (!isset($_POST['factura_id']) || !isset($_POST['urgente'])) {
-                throw new Exception('Datos incompletos para marcar comanda', 400);
-            }
-        
-            $factura_id = intval($_POST['factura_id']);
-            $urgente = filter_var($_POST['urgente'], FILTER_VALIDATE_BOOLEAN);
-            $result = $modelo->marcarComandaUrgente($factura_id, $urgente);
-            echo json_encode($result);
+            echo json_encode($m->marcarComandaUrgente(intval($_POST['factura_id'] ?? 0), !!($_POST['urgente'] ?? false)));
             break;
-            
+
         case 'marcarComandaEnPreparacion':
-            if (!isset($_POST['factura_id'])) {
-                throw new Exception('ID de factura no especificado', 400);
-            }
-        
-            $factura_id = intval($_POST['factura_id']);
-            $result = $modelo->marcarComandaEnPreparacion($factura_id);
-            echo json_encode($result);
-            break;            
-            
+            echo json_encode($m->marcarComandaEnPreparacion(intval($_POST['factura_id'] ?? 0)));
+            break;
+
         default:
-            throw new Exception('Acción no válida', 400);
+            http_response_code(400);
+            echo json_encode(['status'=>false,'message'=>'Acción no válida']);
     }
-} catch (Exception $e) {
-    http_response_code($e->getCode() ?: 500);
-    echo json_encode([
-        'status' => false,
-        'message' => $e->getMessage(),
-        'error' => true,
-        'code' => $e->getCode()
-    ]);
+
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode(['status'=>false,'message'=>$e->getMessage()]);
 }

@@ -6,14 +6,14 @@
     <title>Sistema de Restaurante</title>
     <!-- Estilos -->
     <link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/facturasRestaurante.css">
+    <!-- (opcional) FontAwesome si usas los íconos -->
+    <link rel="stylesheet" href="<?php echo SERVERURL; ?>fontawesome/css/all.min.css">
 </head>
-<body>
+<body class="vista-facturacion-restaurante">
     <script>
-        // Definir SERVERURL antes de cargar cualquier script
         var SERVERURL = '<?php echo SERVERURL; ?>';
     </script>
 
-    <!-- Vista principal optimizada para tablet -->
     <div class="restaurante-container">
         <!-- Barra superior de control -->
         <div class="control-bar">
@@ -32,7 +32,7 @@
         
         <!-- Contenido principal -->
         <div class="restaurante-content">
-            <!-- Sidebar de Mesas (oculto por defecto en móvil) -->
+            <!-- Sidebar de Mesas -->
             <div class="mesas-sidebar">
                 <div class="sidebar-header">
                     <h3><i class="fas fa-chair"></i> Mesas</h3>
@@ -57,6 +57,10 @@
                             <button id="btn-cambiar-cliente" class="btn btn-sm btn-primary">
                                 <i class="fas fa-edit"></i> Cambiar
                             </button>
+                            <!-- Botón adicional siempre visible para crear cliente rápido -->
+                            <button id="btn-nuevo-cliente-rapido" class="btn btn-sm btn-success">
+                                <i class="fas fa-user-plus"></i> Crear cliente
+                            </button>
                         </div>
                     </div>
                     <div class="factura-actions">
@@ -72,7 +76,7 @@
                     </div>
                 </div>
 
-                <!-- Agrega esto después del div con clase factura-header -->
+                <!-- Botones móviles para alternar vistas -->
                 <button id="btn-mostrar-productos" class="btn btn-primary btn-mostrar-productos" style="display: none;">
                     <i class="fas fa-box-open"></i> Ver Productos
                 </button>
@@ -80,15 +84,23 @@
                     <i class="fas fa-clipboard-list"></i> Ver Comanda
                 </button>
 
-                <!-- Contenido de la factura -->
+                <!-- Cuerpo -->
                 <div class="factura-body">
                     <!-- Panel de productos -->
-                    <div class="productos-panel">
+                    <div class="productos-panel" id="panel-productos">
                         <div class="productos-header">
                             <h3><i class="fas fa-boxes"></i> Productos</h3>
                             <div class="productos-search">
                                 <input type="text" id="buscar-producto" placeholder="Buscar producto...">
-                                <button id="btn-buscar"><i class="fas fa-search"></i></button>
+                                <button id="btn-buscar" class="btn btn-light btn-sm"><i class="fas fa-search"></i></button>
+                            </div>
+                            <div class="productos-actions">
+                                <button id="btn-nueva-categoria" class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-folder-plus"></i> + Categoría
+                                </button>
+                                <button id="btn-nuevo-producto" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-plus"></i> Nuevo producto
+                                </button>
                             </div>
                         </div>
                         <div class="categorias-tabs">
@@ -99,8 +111,8 @@
                         </div>
                     </div>
 
-                    <!-- Panel de la comanda optimizado para tablet -->
-                    <div class="comanda-panel">
+                    <!-- Panel de la comanda -->
+                    <div class="comanda-panel" id="panel-comanda">
                         <div class="comanda-header">
                             <h3><i class="fas fa-clipboard-list"></i> Comanda</h3>
                             <button id="btn-limpiar" class="btn btn-warning btn-sm">
@@ -108,7 +120,7 @@
                             </button>
                         </div>
                         <div class="comanda-items" id="comanda-items">
-                            <!-- Los items de la comanda se agregarán aquí dinámicamente -->
+                            <!-- Items de comanda -->
                         </div>
                         <div class="comanda-totales">
                             <div class="totales-row">
@@ -116,8 +128,12 @@
                                 <span id="subtotal">L 0.00</span>
                             </div>
                             <div class="totales-row">
-                                <span>Impuesto (15%):</span>
-                                <span id="impuesto">L 0.00</span>
+                                <span id="impuesto1-label">Impuesto (ISV 1):</span>
+                                <span id="impuesto1">L 0.00</span>
+                            </div>
+                            <div class="totales-row">
+                                <span id="impuesto2-label">Impuesto (ISV 2):</span>
+                                <span id="impuesto2">L 0.00</span>
                             </div>
                             <div class="totales-row total">
                                 <span>Total:</span>
@@ -131,18 +147,19 @@
                         <div class="comanda-pago">
                             <h4><i class="fas fa-money-bill-wave"></i> Método de Pago</h4>
                             <div class="pago-options">
-                                <label class="radio-container">Efectivo
-                                    <input type="radio" name="metodo-pago" value="efectivo" checked>
+                                <label class="radio-container"><i class="fas fa-money-bill"></i> Efectivo
+                                    <input type="radio" name="metodo-pago" value="" checked>
                                     <span class="radio-checkmark"></span>
                                 </label>
-                                <label class="radio-container">Tarjeta
+                                <label class="radio-container"><i class="fas fa-credit-card"></i> Tarjeta
                                     <input type="radio" name="metodo-pago" value="tarjeta">
                                     <span class="radio-checkmark"></span>
                                 </label>
-                                <label class="radio-container">Transferencia
+                                <label class="radio-container"><i class="fas fa-university"></i> Transferencia
                                     <input type="radio" name="metodo-pago" value="transferencia">
                                     <span class="radio-checkmark"></span>
                                 </label>
+                                <!-- Nota: valor vacío = guardar como borrador (pedido tomado por mesero) -->
                             </div>
                         </div>
                     </div>
@@ -156,7 +173,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3><i class="fas fa-plus-circle"></i> Nueva Mesa</h3>
-                <span class="close">&times;</span>
+                <span class="close" data-close="#modal-mesa">&times;</span>
             </div>
             <div class="modal-body">
                 <form id="form-mesa">
@@ -189,26 +206,142 @@
         <div class="modal-content modal-centered">
             <div class="modal-header">
                 <h3><i class="fas fa-user-tag"></i> Seleccionar Cliente</h3>
-                <span class="close">&times;</span>
+                <span class="close" data-close="#modal-cliente">&times;</span>
             </div>
             <div class="modal-body">
                 <div class="search-container">
                     <input type="text" id="buscar-cliente" placeholder="Buscar cliente...">
-                    <button id="btn-buscar-cliente"><i class="fas fa-search"></i></button>
+                    <button id="btn-buscar-cliente" class="btn btn-light btn-sm"><i class="fas fa-search"></i></button>
                 </div>
                 <div class="clientes-list" id="clientes-container">
                     <!-- Los clientes se cargarán aquí -->
                 </div>
                 <div class="modal-footer">
                     <button id="btn-nuevo-cliente" class="btn btn-success">
-                        <i class="fas fa-plus"></i> Nuevo Cliente
+                        <i class="fas fa-user-plus"></i> Nuevo Cliente
+                    </button>
+                    <button class="btn btn-danger" data-close="#modal-cliente">
+                        <i class="fas fa-times"></i> Cerrar
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Modal Registro Rápido de Cliente -->
+    <div id="modal-nuevo-cliente" class="modal">
+        <div class="modal-content" style="max-width:560px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-plus"></i> Nuevo Cliente</h3>
+                <span class="close" data-close="#modal-nuevo-cliente">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="form-nuevo-cliente">
+                    <div class="form-group">
+                        <label><i class="fas fa-signature"></i> Nombre / Razón social *</label>
+                        <input type="text" id="cli-nombre" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label><i class="fas fa-id-card"></i> RTN / Identidad</label>
+                        <input type="text" id="cli-rtn" maxlength="14">
+                    </div>
+
+                    <div class="form-group">
+                        <label><i class="fas fa-map-marker-alt"></i> Localidad / Dirección</label>
+                        <input type="text" id="cli-localidad" maxlength="150">
+                    </div>
+
+                    <div class="form-group">
+                        <label><i class="fas fa-phone"></i> Teléfono</label>
+                        <input type="text" id="cli-telefono" maxlength="8">
+                    </div>
+
+                    <div class="form-group">
+                        <label><i class="fas fa-envelope"></i> Correo</label>
+                        <input type="email" id="cli-correo" maxlength="70">
+                    </div>
+
+                    <div class="modal-footer" style="margin-top:10px;">
+                        <button class="btn btn-danger" type="button" data-close="#modal-nuevo-cliente">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                        <button class="btn btn-success" type="submit">
+                            <i class="fas fa-save"></i> Guardar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nueva Categoría -->
+    <div id="modal-categoria" class="modal">
+        <div class="modal-content" style="max-width:480px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-folder-plus"></i> Nueva Categoría</h3>
+                <span class="close" data-close="#modal-categoria">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="cat-nombre"><i class="fas fa-tag"></i> Nombre de la categoría</label>
+                    <input type="text" id="cat-nombre" placeholder="Ej. Bebidas" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" data-close="#modal-categoria">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button id="btn-guardar-categoria" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nuevo Producto -->
+    <div id="modal-producto" class="modal">
+        <div class="modal-content" style="max-width:760px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus-circle"></i> Nuevo Producto</h3>
+                <span class="close" data-close="#modal-producto">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="prod-nombre"><i class="fas fa-quote-left"></i> Nombre</label>
+                    <input type="text" id="prod-nombre" placeholder="Ej. Refresco Pepsi" />
+                </div>
+                <div class="form-group">
+                    <label for="prod-descripcion"><i class="fas fa-align-left"></i> Descripción (opcional)</label>
+                    <input type="text" id="prod-descripcion" placeholder="Descripción corta" />
+                </div>
+                <div class="form-group">
+                    <label for="prod-categoria"><i class="fas fa-sitemap"></i> Categoría</label>
+                    <select id="prod-categoria"></select>
+                </div>
+                <div class="form-group">
+                    <label for="prod-precio"><i class="fas fa-dollar-sign"></i> Precio de venta</label>
+                    <input type="number" id="prod-precio" step="0.01" min="0" value="0.00" />
+                </div>
+                <div class="form-group" style="display:flex; gap:14px; flex-wrap:wrap;">
+                    <label class="radio-container"><input type="checkbox" id="prod-isv1"/> ISV 1</label>
+                    <label class="radio-container"><input type="checkbox" id="prod-isv2"/> ISV 2</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" data-close="#modal-producto">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button id="btn-guardar-producto" class="btn btn-success">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
+    <script src="<?php echo SERVERURL; ?>ajax/query/jquery-3.5.1.min.js"></script>
+    <script src="<?php echo SERVERURL; ?>ajax/sweetalert/sweetalert.min.js"></script>
     <script src="<?php echo SERVERURL; ?>ajax/js/facturasRestaurante.js"></script>
 </body>
 </html>

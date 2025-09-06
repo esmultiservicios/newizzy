@@ -1,3 +1,19 @@
+####05 de septiembr 2025####
+-- Bandera restaurante e ISV por producto
+ALTER TABLE productos 
+  ADD COLUMN restaurante TINYINT NOT NULL DEFAULT 0,
+  ADD COLUMN isv1 TINYINT NOT NULL DEFAULT 0,
+  ADD COLUMN isv2 TINYINT NOT NULL DEFAULT 0;
+
+-- (Opcional) Rápidos índices
+CREATE INDEX idx_productos_restaurante ON productos(restaurante);
+CREATE INDEX idx_productos_isv1 ON productos(isv1);
+CREATE INDEX idx_productos_isv2 ON productos(isv2);
+
+-- ISV (ya la tienes, solo ejemplo de datos)
+-- Asegúrate de reflejar tus valores reales (15% y 18%, etc.)
+-- Nota: tu dump mostró 15% en ambos. Ajusta si corresponde.
+
 ####24 de agosto 2025####
 ALTER TABLE acceso_submenu1
   DROP PRIMARY KEY,

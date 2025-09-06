@@ -1,4 +1,5 @@
 <?php
+// productosControlador.php
 if ($peticionAjax) {
     require_once '../modelos/productosModelo.php';
 } else {
@@ -39,6 +40,19 @@ class productosControlador extends productosModelo
         $precio_mayoreo     = mainModel::cleanString($_POST['precio_mayoreo'] === '' ? 0 : $_POST['precio_mayoreo']);
         $cantidad_minima    = mainModel::cleanString($_POST['cantidad_minima'] === '' ? 0 : $_POST['cantidad_minima']);
         $cantidad_maxima    = mainModel::cleanString($_POST['cantidad_maxima'] === '' ? 0 : $_POST['cantidad_maxima']);
+
+        $restaurante = isset($_POST['producto_restaurante']) ? 1 : 0;
+        $isv1        = isset($_POST['producto_isv1']) ? 1 : 0;
+        $isv2        = isset($_POST['producto_isv2']) ? 1 : 0;
+
+        // Validar que solo un ISV esté seleccionado
+        if ($isv1 == 1 && $isv2 == 1) {
+            return mainModel::showNotification([
+                "title" => "Error en ISV",
+                "text"  => "Solo puede seleccionar un tipo de ISV (15% o 16%)",
+                "type"  => "error"
+            ]);
+        }
 
         // Requeridos
         $requiredFields = [
@@ -201,7 +215,7 @@ class productosControlador extends productosModelo
             'medida_id'           => $medida_id,
             'id_producto_superior'=> $producto_superior,
             'categoria_id'        => $categoria_id,
-            'tipo_producto'       => $tipo_producto, // tu modelo lo mapea a tipo_producto_id
+            'tipo_producto'       => $tipo_producto,
             'nombre'              => $nombre,
             'descripcion'         => $descripcion,
             'precio_compra'       => $precio_compra,
@@ -216,8 +230,11 @@ class productosControlador extends productosModelo
             'estado'              => $estado,
             'isv_venta'           => $isv_venta,
             'isv_compra'          => $isv_compra,
-            'file'                => $file,     // el modelo insertará en file_name
-            'empresa'             => $empresa,  // el modelo insertará en empresa_id
+            'file'                => $file,
+            'empresa'             => $empresa,
+            'restaurante'         => $restaurante,
+            'isv1'                => $isv1,
+            'isv2'                => $isv2,
         ];
 
         // Insert
@@ -325,6 +342,19 @@ class productosControlador extends productosModelo
         $cantidad_minima  = (int)mainModel::cleanString($_POST['cantidad_minima'] ?? 0);
         $cantidad_maxima  = (int)mainModel::cleanString($_POST['cantidad_maxima'] ?? 0);
 
+        $restaurante = isset($_POST['producto_restaurante']) ? 1 : 0;
+        $isv1        = isset($_POST['producto_isv1']) ? 1 : 0;
+        $isv2        = isset($_POST['producto_isv2']) ? 1 : 0;
+
+        // Validar que solo un ISV esté seleccionado
+        if ($isv1 == 1 && $isv2 == 1) {
+            return mainModel::showNotification([
+                "title" => "Error en ISV",
+                "text"  => "Solo puede seleccionar un tipo de ISV (15% o 16%)",
+                "type"  => "error"
+            ]);
+        }
+
         if ($precio_compra < 0 || $precio_venta < 0) {
             return mainModel::showNotification([
                 "title" => "Error en precios",
@@ -427,8 +457,11 @@ class productosControlador extends productosModelo
             'estado'           => $estado,
             'isv_venta'        => $isv_venta,
             'isv_compra'       => $isv_compra,
-            'file'             => $file,       // el modelo actualizará file_name
-            'cargarLogo'       => $subioNueva, // el modelo debe actualizar file_name solo si true
+            'file'             => $file,
+            'cargarLogo'       => $subioNueva,
+            'restaurante'      => $restaurante,
+            'isv1'             => $isv1,
+            'isv2'             => $isv2,
         ];
 
         // Update
@@ -471,11 +504,9 @@ class productosControlador extends productosModelo
 
     /* =========================
        TRANSFERENCIA ENTRE BODEGAS
-       (tu lógica original)
        ========================= */
     public function edit_bodega_productos_controlador()
     {
-        // ... (igual que tu versión actual; sin cambios en imagen) ...
         $validacion = mainModel::validarSesion();
         if($validacion['error']) {
             return mainModel::showNotification([

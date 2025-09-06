@@ -3454,35 +3454,87 @@
                     
                     <!-- Sección de Configuración Adicional -->
                     <div class="card border-primary mb-4">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="fas fa-cogs mr-2"></i>Configuración Adicional</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="form-row">
-                                <div class="col-md-6 mb-3" id="estado_producto">
-                                    <div class="custom-control custom-switch">
-                                        <input type="checkbox" class="custom-control-input" id="producto_activo" name="producto_activo" checked>
-                                        <label class="custom-control-label" for="producto_activo"><i class="fas fa-power-off mr-1"></i>Estado del Producto</label>
-                                        <small class="form-text text-muted">Activar/Desactivar producto en el sistema</small>
-                                    </div>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <div class="custom-control custom-switch">
-                                        <input type="checkbox" class="custom-control-input" id="producto_isv_factura" name="producto_isv_factura" value="1">
-                                        <label class="custom-control-label" for="producto_isv_factura"><i class="fas fa-percent mr-1"></i>Calcular ISV en Factura</label>
-                                        <small class="form-text text-muted">Aplicar impuesto en ventas</small>
-                                    </div>
-                                </div>
-                                <div class="col-md-6 mb-3" style="display: none;">
-                                    <div class="custom-control custom-switch">
-                                        <input type="checkbox" class="custom-control-input" id="producto_isv_compra" name="producto_isv_compra" value="1">
-                                        <label class="custom-control-label" for="producto_isv_compra"><i class="fas fa-percent mr-1"></i>Calcular ISV en Compra</label>
-                                        <small class="form-text text-muted">Aplicar impuesto en compras</small>
-                                    </div>
-                                </div>
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-cogs mr-2"></i>Configuración Adicional</h5>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="form-row">
+
+                        <!-- Estado del producto -->
+                        <div class="col-md-6 mb-3" id="estado_producto">
+                            <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="producto_activo" name="producto_activo" checked>
+                            <label class="custom-control-label" for="producto_activo">
+                                <i class="fas fa-power-off mr-1"></i>Estado del Producto
+                            </label>
+                            <small class="form-text text-muted">Activar/Desactivar producto en el sistema</small>
                             </div>
                         </div>
+
+                        <!-- Calcular ISV en factura -->
+                        <div class="col-md-6 mb-3">
+                            <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="producto_isv_factura" name="producto_isv_factura" value="1" checked>
+                            <label class="custom-control-label" for="producto_isv_factura">
+                                <i class="fas fa-percent mr-1"></i>Calcular ISV en Factura
+                            </label>
+                            <small class="form-text text-muted">Aplicar impuesto en ventas</small>
+                            </div>
+                        </div>
+
+                        <!-- Calcular ISV en compra (oculto si no se usa) -->
+                        <div class="col-md-6 mb-3" style="display: none;">
+                            <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="producto_isv_compra" name="producto_isv_compra" value="1">
+                            <label class="custom-control-label" for="producto_isv_compra">
+                                <i class="fas fa-percent mr-1"></i>Calcular ISV en Compra
+                            </label>
+                            <small class="form-text text-muted">Aplicar impuesto en compras</small>
+                            </div>
+                        </div>
+
+                        <!-- NUEVOS CAMPOS -->
+
+                        <!-- Producto visible en módulo restaurante -->
+                        <div class="col-md-6 mb-3">
+                            <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="producto_restaurante" name="producto_restaurante" value="1">
+                            <label class="custom-control-label" for="producto_restaurante">
+                                <i class="fas fa-utensils mr-1"></i>Producto para Restaurante
+                            </label>
+                            <small class="form-text text-muted">Si está activo, aparecerá en el módulo restaurante</small>
+                            </div>
+                        </div>
+
+                        <!-- ISV tipo 1 (valor tomado de tabla isv_id=1) -->
+                        <div class="col-md-6 mb-3">
+                            <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="producto_isv1" name="producto_isv1" value="1" checked>
+                            <label class="custom-control-label" for="producto_isv1">
+                                <i class="fas fa-percentage mr-1"></i>Aplica ISV 15%
+                            </label>
+                            <small class="form-text text-muted">Se calculará el impuesto ISV tipo 1</small>
+                            </div>
+                        </div>
+
+                        <!-- ISV tipo 2 (valor tomado de tabla isv_id=2) -->
+                        <div class="col-md-6 mb-3">
+                            <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="producto_isv2" name="producto_isv2" value="1">
+                            <label class="custom-control-label" for="producto_isv2">
+                                <i class="fas fa-percentage mr-1"></i>Aplica ISV 18%
+                            </label>
+                            <small class="form-text text-muted">Se calculará el impuesto ISV tipo 2</small>
+                            </div>
+                        </div>
+
+                        <!-- FIN NUEVOS CAMPOS -->
+
+                        </div>
                     </div>
+                    </div>
+
 
                     <div class="RespuestaAjax"></div>
                 </form>

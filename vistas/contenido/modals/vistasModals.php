@@ -2824,27 +2824,30 @@
                         </div>
                         <div class="card-body">                           
                             <div class="form-row">
-                                <div class="col-md-6 mb-3">
+                                <div class="col-md-12 mb-3">
                                     <label for="empresa_razon_social"><i class="fas fa-file-signature mr-1"></i>Razón Social <span class="priority">*</span></label>
                                     <div class="input-group">
-                                        <input type="text" name="empresa_razon_social" id="empresa_razon_social" class="form-control" placeholder="Razón Social" maxlength="100" required>
+                                        <input type="text" name="empresa_razon_social" id="empresa_razon_social" class="form-control" placeholder="Razón Social" maxlength="254" required>
                                         <div class="input-group-append">
                                             <span class="input-group-text"><i class="far fa-building"></i></span>
                                         </div>
                                     </div>
                                     <small class="form-text text-muted">Nombre legal de la empresa</small>
                                 </div>
-                                <div class="col-md-6 mb-3">
+                            </div>
+
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
                                     <label for="empresa_empresa"><i class="fas fa-signature mr-1"></i>Empresa <span class="priority">*</span></label>
                                     <div class="input-group">
-                                        <input type="text" name="empresa_empresa" id="empresa_empresa" class="form-control" placeholder="Nombre comercial" maxlength="50" required>
+                                        <input type="text" name="empresa_empresa" id="empresa_empresa" class="form-control" placeholder="Nombre comercial" maxlength="254" required>
                                         <div class="input-group-append">
                                             <span class="input-group-text"><i class="fas fa-store"></i></span>
                                         </div>
                                     </div>
                                     <small class="form-text text-muted">Nombre comercial de la empresa</small>
                                 </div>
-                            </div>
+                            </div>                            
                             
                             <div class="form-row">
                                 <div class="col-md-6 mb-3">

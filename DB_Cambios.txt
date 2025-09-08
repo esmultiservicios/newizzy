@@ -1,4 +1,15 @@
-####05 de septiembr 2025####
+####06 de septiembre 2025####
+ALTER TABLE `categoria`
+  ADD COLUMN `estacion` ENUM('ninguna','cocina','barra') NOT NULL DEFAULT 'ninguna'
+  AFTER `nombre`;
+
+-- Opcional: si ya tienes categorías y quieres “marcar” algunas rápidamente:
+-- (ajusta los WHERE a tus nombres reales)
+UPDATE categoria SET estacion='barra'  WHERE nombre IN ('Bebidas','Cocteles','Café');
+UPDATE categoria SET estacion='cocina' WHERE nombre IN ('Platos','Desayunos','Hamburguesas');
+
+
+####05 de septiembre 2025####
 -- Bandera restaurante e ISV por producto
 ALTER TABLE productos 
   ADD COLUMN restaurante TINYINT NOT NULL DEFAULT 0,

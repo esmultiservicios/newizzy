@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pantalla de Cocina</title>
+    <!-- FontAwesome (iconos) -->
+    <link rel="stylesheet" href="<?php echo SERVERURL; ?>fontawesome/css/all.min.css">       
     <!-- Estilos -->
     <link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/cocina.css">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <script>

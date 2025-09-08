@@ -414,7 +414,7 @@
 
                 <div class="form-group">
                     <label for="prod-precio"><i class="fas fa-dollar-sign"></i> Precio de venta</label>
-                    <input type="number" id="prod-precio" step="0.01" min="0" value="0.00" />
+                    <input type="number" id="prod-precio" step="0.01" min="0" value="" placeholder="0.00"/>
                 </div>
 
                 <div class="form-group" style="display:flex; gap:14px; flex-wrap:wrap;">
@@ -459,7 +459,7 @@
             <div class="modal-body">
                 <div class="inline-actions" style="margin-bottom:10px;">
                     <button id="btn-nuevo-combo" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Nuevo combo</button>
-                    <span class="muted">Define un producto “combo” y sus componentes.</span>
+                    <span class="muted help-message">Define un producto “combo” y sus componentes.</span>
                 </div>
 
                 <!-- Grid de tarjetas -->

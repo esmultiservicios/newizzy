@@ -375,7 +375,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const { selCat, inpNombre, inpDesc, inpPrecio, chkISV1, chkISV2 } = getProdControls();
       if (inpNombre) inpNombre.value='';
       if (inpDesc) inpDesc.value='';
-      if (inpPrecio) inpPrecio.value='0.00';
+      if (inpPrecio) inpPrecio.value='';
       if (chkISV1) chkISV1.checked=false;
       if (chkISV2) chkISV2.checked=false;
 
@@ -861,58 +861,60 @@ document.addEventListener('DOMContentLoaded', function () {
       .catch(()=> showNotify && showNotify('error','Error','No se pudo guardar'));
   }
 
-  function guardarProductoBasico(){
+  function guardarProductoBasico() {
     const { inpNombre, inpDesc, selCat, inpPrecio, chkISV1, chkISV2 } = getProdControls();
-    const id     = (document.getElementById('prod-id')||{}).value || '';
-    const nombre = (inpNombre||{}).value?.trim() || '';
-    const desc   = (inpDesc||{}).value?.trim() || '';
-    const catId  = (selCat||{}).value || '';
-    const precio = parseFloat((inpPrecio||{}).value || '0') || 0;
-    const isv1   = !!(chkISV1||{}).checked;
-    const isv2   = !!(chkISV2||{}).checked;
-
-    if (!nombre) { showNotify && showNotify('warning','Validación','Nombre requerido'); return; }
-    if (!catId)  { showNotify && showNotify('warning','Validación','Seleccione categoría'); return; }
-
-    const payload = {
-      productos_id: id ? parseInt(id) : undefined,
-      nombre, descripcion: desc, categoria_id: parseInt(catId),
-      precio_venta: precio,
-      isv1: isv1 ? 1 : 0,
-      isv2: (!isv1 && isv2) ? 1 : 0
-    };
-
-    const action = id ? 'updateProductoBasico' : 'saveProductoBasico';
-
+    const id = (document.getElementById('prod-id') || {}).value || '';
+    const nombre = (inpNombre || {}).value?.trim() || '';
+    const desc = (inpDesc || {}).value?.trim() || '';
+    const catId = (selCat || {}).value || '';
+    const precio = parseFloat((inpPrecio || {}).value || '0') || 0;
+    const isv1 = !!(chkISV1 || {}).checked;
+    const isv2 = !!(chkISV2 || {}).checked;
+  
+    if (!nombre) { showNotify && showNotify('warning', 'Validación', 'Nombre requerido'); return; }
+    if (!catId) { showNotify && showNotify('warning', 'Validación', 'Seleccione categoría'); return; }
+  
+    // Usar FormData para enviar tanto los datos como la imagen
+    const formData = new FormData();
+    formData.append('action', id ? 'updateProductoBasico' : 'saveProductoBasico');
+    
+    if (id) {
+      formData.append('productos_id', id);
+      formData.append('producto_id', id);
+    }
+    
+    formData.append('nombre', nombre);
+    formData.append('descripcion', desc);
+    formData.append('categoria_id', catId);
+    formData.append('precio_venta', precio);
+    formData.append('isv1', isv1 ? 1 : 0);
+    formData.append('isv2', isv2 ? 1 : 0);
+  
+    // Agregar la imagen si existe
+    const imagenFile = getProductoImagenFile();
+    if (imagenFile) {
+      formData.append('imagen_producto', imagenFile);
+    }
+  
     fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ action, data: payload })
+      method: 'POST',
+      body: formData // ¡Importante! No establecer Content-Type cuando se usa FormData
     })
-      .then(r=>r.json())
-      .then(async d=>{
-        if (!d.status) { showNotify && showNotify('error','Error', d.message||'No se pudo guardar'); return; }
-
-        const pid  = id || d.producto_id;
-        const file = getProductoImagenFile();
-
-        if (pid && file) {
-          try {
-            const ok = await subirImagenProducto(pid, file);
-            if (!ok) showNotify && showNotify('warning','Atención','Guardado, pero falló la imagen');
-          } catch {
-            showNotify && showNotify('warning','Atención','Guardado, pero falló la imagen');
-          }
+      .then(r => r.json())
+      .then(d => {
+        if (!d.status) { 
+          showNotify && showNotify('error', 'Error', d.message || 'No se pudo guardar'); 
+          return; 
         }
-
-        showNotify && showNotify('success','Éxito', id ? 'Producto actualizado' : 'Producto guardado');
-        if (modalProducto) modalProducto.style.display='none';
-        (document.getElementById('prod-id')||{}).value = '';
+  
+        showNotify && showNotify('success', 'Éxito', id ? 'Producto actualizado' : 'Producto guardado');
+        if (modalProducto) modalProducto.style.display = 'none';
+        (document.getElementById('prod-id') || {}).value = '';
         document.getElementById('titulo-modal-producto') && (document.getElementById('titulo-modal-producto').textContent = 'Nuevo Producto');
         resetProductoImagen();
         cargarProductos();
       })
-      .catch(()=> showNotify && showNotify('error','Error','No se pudo guardar el producto'));
+      .catch(() => showNotify && showNotify('error', 'Error', 'No se pudo guardar el producto'));
   }
 
   // ===== Clientes =====

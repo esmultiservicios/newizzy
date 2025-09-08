@@ -15,8 +15,17 @@ class facturasRestauranteModelo extends mainModel {
     protected function hasColumn(string $table, string $column): bool {
         $k = $table.'.'.$column;
         if (isset($this->columnCache[$k])) return $this->columnCache[$k];
-        $rs = $this->ejecutar_consulta_simple_preparada("SHOW COLUMNS FROM `$table` LIKE ?", "s", [$column]);
-        $ok = ($rs && $rs->num_rows>0);
+
+        // Usar INFORMATION_SCHEMA con prepared statements (SHOW no soporta placeholders)
+        $sql = "SELECT 1
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = ?
+                AND COLUMN_NAME = ?
+                LIMIT 1";
+        $rs = $this->ejecutar_consulta_simple_preparada($sql, "ss", [$table, $column]);
+        $ok = ($rs && $rs->num_rows > 0);
+
         $this->columnCache[$k] = $ok;
         return $ok;
     }
@@ -225,8 +234,9 @@ class facturasRestauranteModelo extends mainModel {
         return $out;
     }
 
-    /** Guardar producto básico para restaurante */
+    /** Guardar producto básico para restaurante (con imagen OPCIONAL en la misma petición) */
     public function guardarProductoBasico($data){
+        // Lee campos de $data (que ahora viene de $_POST)
         $nombre   = $this->cleanString($data['nombre'] ?? '');
         $desc     = $this->cleanString($data['descripcion'] ?? '');
         $catId    = intval($data['categoria_id'] ?? 0);
@@ -254,12 +264,13 @@ class facturasRestauranteModelo extends mainModel {
         $estado            = 1;
         $isv_venta         = ($isv1||$isv2) ? 1 : 2; // 1=Sí, 2=No
         $isv_compra        = 2;                      // por ahora no
-        $file_name         = '';                     // se podrá actualizar luego
+        $file_name         = '';                     // se actualizará si viene imagen
         $empresa_id        = $this->empresaId();
         $colaborador_id    = $this->colaboradorId();
         $id_producto_sup   = 0;
         $restaurante       = 1;
 
+        // Insertar
         $ok = $this->ejecutar_consulta_simple_preparada(
             "INSERT INTO productos(
                 productos_id, barCode, almacen_id, medida_id, categoria_id, nombre, descripcion,
@@ -278,35 +289,154 @@ class facturasRestauranteModelo extends mainModel {
             ]
         );
 
-        return $ok ? ['status'=>true,'producto_id'=>$productos_id]
-                   : ['status'=>false,'message'=>'No se pudo guardar el producto'];
+        if(!$ok){
+            return ['status'=>false,'message'=>'No se pudo guardar el producto'];
+        }
+
+        // ===== Imagen opcional (misma petición) =====
+        $imagenGuardada = false; 
+        $nombreArchivo = '';
+        
+        if (!empty($_FILES['imagen_producto']) && is_uploaded_file($_FILES['imagen_producto']['tmp_name'])) {
+            $tmp  = $_FILES['imagen_producto']['tmp_name'];
+            $orig = $_FILES['imagen_producto']['name'];
+            $size = intval($_FILES['imagen_producto']['size'] ?? 0);
+
+            // Validaciones
+            if ($size > 0 && $size <= 2*1024*1024) { // 2MB
+                $fi   = finfo_open(FILEINFO_MIME_TYPE);
+                $mime = finfo_file($fi, $tmp) ?: '';
+                finfo_close($fi);
+
+                // Aceptados
+                $ext = '';
+                if (strpos($mime,'image/')===0) {
+                    $ext = strtolower(substr($mime, 6)); // png, jpeg, webp...
+                    if ($ext === 'jpeg') $ext = 'jpg';
+                } else {
+                    $ext = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
+                }
+                
+                if (in_array($ext, ['jpg','jpeg','png','webp','gif'], true)) {
+                    $baseDir = dirname(__DIR__,2).'/vistas/plantilla/img/products';
+                    if (!is_dir($baseDir)) @mkdir($baseDir, 0775, true);
+                    
+                    if (is_dir($baseDir) && is_writable($baseDir)) {
+                        $nombreArchivo = 'prod_'.$productos_id.'_'.date('YmdHis').'.'.$ext;
+                        $dest = rtrim($baseDir,'/').'/'.$nombreArchivo;
+                        
+                        if (@move_uploaded_file($tmp, $dest)) {
+                            $this->ejecutar_consulta_simple_preparada(
+                                "UPDATE productos SET file_name=? WHERE productos_id=?",
+                                "si",
+                                [$nombreArchivo, $productos_id]
+                            );
+                            $imagenGuardada = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return [
+            'status'=>true,
+            'producto_id'=>$productos_id,
+            'image_saved'=>$imagenGuardada,
+            'file_name'=>$nombreArchivo
+        ];
     }
 
-    /** Actualizar producto básico */
+    /** Actualizar producto básico (con imagen OPCIONAL en la misma petición) */
     public function actualizarProductoBasico($data){
-        $productos_id = intval($data['productos_id'] ?? 0);
+        $productos_id = intval($data['productos_id'] ?? $data['producto_id'] ?? 0);
         $nombre   = $this->cleanString($data['nombre'] ?? '');
         $desc     = $this->cleanString($data['descripcion'] ?? '');
         $catId    = intval($data['categoria_id'] ?? 0);
         $precio   = floatval($data['precio_venta'] ?? 0);
         $isv1     = intval($data['isv1'] ?? 0) ? 1 : 0;
         $isv2     = intval($data['isv2'] ?? 0) ? 1 : 0;
-        $isv_venta= ($isv1||$isv2) ? 1 : 2;
 
-        if($productos_id<=0 || $nombre==='' || $catId<=0){
-            return ['status'=>false,'message'=>'Datos de producto inválidos'];
-        }
+        if($productos_id<=0){ return ['status'=>false,'message'=>'ID de producto inválido']; }
+        if($nombre==='' || $catId<=0){ return ['status'=>false,'message'=>'Nombre y categoría son obligatorios']; }
 
+        $isv_venta      = ($isv1||$isv2) ? 1 : 2;
+        $empresa_id     = $this->empresaId();
+        $colaborador_id = $this->colaboradorId();
+
+        // Update de campos básicos
         $ok = $this->ejecutar_consulta_simple_preparada(
             "UPDATE productos
-             SET categoria_id=?, nombre=?, descripcion=?, precio_venta=?, isv1=?, isv2=?, isv_venta=?, restaurante=1
-             WHERE productos_id=?",
-            "issdiiii",
-            [$catId,$nombre,$desc,$precio,$isv1,$isv2,$isv_venta,$productos_id]
+            SET categoria_id=?, nombre=?, descripcion=?, precio_venta=?,
+                isv_venta=?, isv1=?, isv2=?, colaborador_id=?, empresa_id=?
+            WHERE productos_id=?",
+            "issdiiiiii",
+            [$catId, $nombre, $desc, $precio, $isv_venta, $isv1, $isv2, $colaborador_id, $empresa_id, $productos_id]
         );
-        return $ok ? ['status'=>true,'message'=>'Producto actualizado'] : ['status'=>false,'message'=>'No se pudo actualizar el producto'];
-    }
 
+        if(!$ok){
+            return ['status'=>false,'message'=>'No se pudo actualizar el producto'];
+        }
+
+        // ===== Imagen opcional (misma petición) =====
+        $imagenGuardada = false; 
+        $nombreArchivo = '';
+        
+        if (!empty($_FILES['imagen_producto']) && is_uploaded_file($_FILES['imagen_producto']['tmp_name'])) {
+            // (Opcional) eliminar anterior
+            $old = $this->ejecutar_consulta_simple("SELECT file_name FROM productos WHERE productos_id=".$productos_id);
+            $oldName = ($old && $old->num_rows) ? ($old->fetch_assoc()['file_name'] ?? '') : '';
+
+            $tmp  = $_FILES['imagen_producto']['tmp_name'];
+            $orig = $_FILES['imagen_producto']['name'];
+            $size = intval($_FILES['imagen_producto']['size'] ?? 0);
+
+            if ($size > 0 && $size <= 2*1024*1024) {
+                $fi   = finfo_open(FILEINFO_MIME_TYPE);
+                $mime = finfo_file($fi, $tmp) ?: '';
+                finfo_close($fi);
+
+                $ext = '';
+                if (strpos($mime,'image/')===0) {
+                    $ext = strtolower(substr($mime, 6));
+                    if ($ext === 'jpeg') $ext = 'jpg';
+                } else {
+                    $ext = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
+                }
+
+                if (in_array($ext, ['jpg','jpeg','png','webp','gif'], true)) {
+                    $baseDir = dirname(__DIR__,2).'/vistas/plantilla/img/products';
+                    if (!is_dir($baseDir)) @mkdir($baseDir, 0775, true);
+                    
+                    if (is_dir($baseDir) && is_writable($baseDir)) {
+                        $nombreArchivo = 'prod_'.$productos_id.'_'.date('YmdHis').'.'.$ext;
+                        $dest = rtrim($baseDir,'/').'/'.$nombreArchivo;
+                        
+                        if (@move_uploaded_file($tmp, $dest)) {
+                            // borra anterior si existe
+                            if ($oldName) {
+                                $oldPath = rtrim($baseDir,'/').'/'.$oldName;
+                                if (is_file($oldPath)) @unlink($oldPath);
+                            }
+                            
+                            $this->ejecutar_consulta_simple_preparada(
+                                "UPDATE productos SET file_name=? WHERE productos_id=?",
+                                "si",
+                                [$nombreArchivo, $productos_id]
+                            );
+                            $imagenGuardada = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return [
+            'status'=>true,
+            'producto_id'=>$productos_id,
+            'image_saved'=>$imagenGuardada,
+            'file_name'=>$nombreArchivo
+        ];
+    }  
     public function obtenerClientes(){
         $sql="SELECT clientes_id, nombre, rtn AS identificacion
               FROM clientes WHERE estado=1 ORDER BY nombre ASC";

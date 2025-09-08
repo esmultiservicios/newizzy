@@ -94,41 +94,31 @@ try {
             break;
 
         case 'saveProductoBasico':
-            if (!$payload && !isset($_POST['nombre'])) {
-                http_response_code(400);
-                echo json_encode(['status'=>false,'message'=>'Datos de producto inválidos']);
-                break;
-            }
-            if (!$payload) {
-                $payload = [
-                    'nombre'        => (string)$in('nombre',''),
-                    'descripcion'   => (string)$in('descripcion',''),
-                    'categoria_id'  => intval($in('categoria_id',0)),
-                    'precio_venta'  => floatval($in('precio_venta',0)),
-                    'isv1'          => intval($in('isv1',0)),
-                    'isv2'          => intval($in('isv2',0)),
-                ];
-            }
+            // Para FormData, los datos vienen en $_POST
+            $payload = [
+                'nombre'        => (string)($_POST['nombre'] ?? ''),
+                'descripcion'   => (string)($_POST['descripcion'] ?? ''),
+                'categoria_id'  => intval($_POST['categoria_id'] ?? 0),
+                'precio_venta'  => floatval($_POST['precio_venta'] ?? 0),
+                'isv1'          => intval($_POST['isv1'] ?? 0),
+                'isv2'          => intval($_POST['isv2'] ?? 0)
+            ];
+            
             echo json_encode($m->guardarProductoBasico($payload));
             break;
-
+        
         case 'updateProductoBasico':
-            if ((!$payload || !isset($payload['productos_id'])) && !isset($_POST['productos_id'])) {
-                http_response_code(400);
-                echo json_encode(['status'=>false,'message'=>'Datos de producto inválidos']);
-                break;
-            }
-            if (!$payload) {
-                $payload = [
-                    'productos_id'  => intval($in('productos_id',0)),
-                    'nombre'        => (string)$in('nombre',''),
-                    'descripcion'   => (string)$in('descripcion',''),
-                    'categoria_id'  => intval($in('categoria_id',0)),
-                    'precio_venta'  => floatval($in('precio_venta',0)),
-                    'isv1'          => intval($in('isv1',0)),
-                    'isv2'          => intval($in('isv2',0)),
-                ];
-            }
+            // Para FormData, los datos vienen en $_POST
+            $payload = [
+                'productos_id'  => intval($_POST['productos_id'] ?? $_POST['producto_id'] ?? 0),
+                'nombre'        => (string)($_POST['nombre'] ?? ''),
+                'descripcion'   => (string)($_POST['descripcion'] ?? ''),
+                'categoria_id'  => intval($_POST['categoria_id'] ?? 0),
+                'precio_venta'  => floatval($_POST['precio_venta'] ?? 0),
+                'isv1'          => intval($_POST['isv1'] ?? 0),
+                'isv2'          => intval($_POST['isv2'] ?? 0)
+            ];
+            
             echo json_encode($m->actualizarProductoBasico($payload));
             break;
 

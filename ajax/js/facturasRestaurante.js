@@ -1,5 +1,5 @@
 // ==============================
-// facturasRestaurante.js (FULL)
+// facturasRestaurante.js (FULL + edición + uploader imagen + editar MESAS/CLIENTES + selección/edición cliente + GESTIÓN DE COMBOS MEJORADA)
 // ==============================
 
 (function(){
@@ -18,95 +18,6 @@ document.addEventListener('DOMContentLoaded', function () {
   if (navbarLateral) navbarLateral.style.display = "none";
   document.body.classList.add('vista-facturacion-restaurante');
 
-  // ==============================
-  // BOTONES: VOLVER y CERRAR SESIÓN
-  // ==============================
-  const btnVolver = document.getElementById('btn-volver-dashboard');
-  if (btnVolver) {
-    btnVolver.addEventListener('click', function() {
-      // Redirige al dashboard
-      window.location.href = SERVERURL + 'dashboard/';
-    });
-  }
-
-  const btnSalir = document.getElementById('btn-cerrar-sesion');
-  if (btnSalir) {
-    btnSalir.addEventListener('click', function(e) {
-      e.preventDefault();
-      const token = this.getAttribute('data-token') || '';
-      swal({
-        content: {
-          element: "div",
-          attributes: {
-            innerHTML: `
-              <h2 style="color:#f39c12;font-size:22px;margin-bottom:15px;">⚠️ ¿Está seguro?</h2>
-              <p style="font-size:16px;color:#555;">Está a punto de cerrar su sesión. ¿Desea continuar?</p>
-            `
-          }
-        },
-        icon: "warning",
-        buttons: true,
-        dangerMode: true
-      }).then((willExit) => {
-        if (willExit) {
-          salir(token);
-        }
-      });
-    });
-
-    function salir(token) {
-      // Requiere jQuery (ya está cargado en tu HTML)
-      $.ajax({
-        url: SERVERURL + 'login/cerrarSesion?token=' + encodeURIComponent(token),
-        success: function(data) {
-          if (String(data).trim() == '1') {
-            window.location.href = SERVERURL + 'login/';
-          } else {
-            swal({
-              content: {
-                element: "div",
-                attributes: {
-                  innerHTML: `
-                    <h2 style="color:#e74c3c;font-size:22px;margin-bottom:15px;">❌ Ocurrió un error inesperado</h2>
-                    <p style="font-size:16px;color:#555;">Algo salió mal al cerrar la sesión. Por favor, intente de nuevo.</p>
-                  `
-                }
-              },
-              icon: "error",
-              dangerMode: true,
-              closeOnEsc: false,
-              closeOnClickOutside: false
-            });
-          }
-        },
-        error: function() {
-          swal({
-            content: {
-              element: "div",
-              attributes: {
-                innerHTML: `
-                  <h2 style="color:#e74c3c;font-size:22px;margin-bottom:15px;">❌ Ocurrió un error inesperado</h2>
-                  <p style="font-size:16px;color:#555;">Por favor, intente de nuevo.</p>
-                `
-              }
-            },
-            icon: "error",
-            dangerMode: true,
-            closeOnEsc: false,
-            closeOnClickOutside: false
-          });
-        }
-      });
-    }
-  }
-
-  // Restaurar layout al salir
-  window.addEventListener("beforeunload", function () {
-    if (navbarTop) navbarTop.style.display = "";
-    if (navbarLateral) navbarLateral.style.display = "";
-    document.body.classList.remove('vista-facturacion-restaurante');
-  });
-
   // ===== Estado =====
   let mesaSeleccionada = null;
   let facturaActual = null;
@@ -116,13 +27,23 @@ document.addEventListener('DOMContentLoaded', function () {
   let clientes = [];
   let mesas = [];
   let isvRates = { 1: 0, 2: 0 };
-
+  let combos = [];
   let clienteSeleccionado = { id: 0, nombre: 'CONSUMIDOR FINAL', identificacion: '' };
+
+  // Edición
+  let editContext = {
+    productoId: null,
+    categoriaId: null,
+    clienteId: null
+  };
+
+  // selección en el modal de clientes
+  let selectedClienteForModal = null;
 
   // ====== Referencias DOM ======
   const mesasContainer = document.getElementById('mesas-container');
   const productosContainer = document.getElementById('productos-container');
-  const categoriasTabs = document.querySelector('.categorias-tabs');
+  const categoriasTabs = document.getElementById('categorias-tabs') || document.querySelector('.categorias-tabs');
   const comandaItemsContainer = document.getElementById('comanda-items');
   const subtotalElement = document.getElementById('subtotal');
   const impuesto1Element = document.getElementById('impuesto1');
@@ -149,6 +70,15 @@ document.addEventListener('DOMContentLoaded', function () {
   const panelProductos = document.getElementById('panel-productos');
   const panelComanda   = document.getElementById('panel-comanda');
 
+  // Gestión de combos - botones y modales
+  const btnGestionarCombos  = document.getElementById('btn-gestionar-combos');
+  const modalCombos         = document.getElementById('modal-combos');
+  const modalComboEditor    = document.getElementById('modal-combo-editor');
+  const combosGrid          = document.getElementById('combos-grid');
+  const btnNuevoCombo       = document.getElementById('btn-nuevo-combo');
+  const btnAddComboItem     = document.getElementById('btn-add-combo-item');
+  const btnGuardarCombo     = document.getElementById('btn-guardar-combo');
+
   // Modales
   const modalMesa = document.getElementById('modal-mesa');
   const modalCliente = document.getElementById('modal-cliente');
@@ -163,7 +93,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const formMesa = document.getElementById('form-mesa');
   const formNuevoCliente = document.getElementById('form-nuevo-cliente');
 
-  // Helpers de controles del modal producto
+  // ===== Helpers =====
   function getProdControls() {
     return {
       selCat: document.getElementById('prod-categoria'),
@@ -175,16 +105,141 @@ document.addEventListener('DOMContentLoaded', function () {
     };
   }
 
+  function findProductoById(pid){
+    pid = String(pid);
+    return productos.find(p => String(p.productos_id) === pid);
+  }
+
+  // ==== SELECT2 ====
+  function initSelect2All(){
+    if (!(window.jQuery && jQuery.fn && jQuery.fn.select2)) {
+      console.warn('Select2 no encontrado. Verifica que el JS/CSS estén cargados.');
+      return;
+    }
+    // Selects del modal de Mesa
+    if ($('#ubicacion-mesa').length) {
+      $('#ubicacion-mesa').select2({
+        width: '100%',
+        minimumResultsForSearch: -1,
+        dropdownParent: $('#modal-mesa')
+      });
+    }
+    if ($('#estado-mesa').length) {
+      $('#estado-mesa').select2({
+        width: '100%',
+        minimumResultsForSearch: -1,
+        dropdownParent: $('#modal-mesa')
+      });
+    }
+    // Select de categoría del Producto
+    if ($('#prod-categoria').length) {
+      $('#prod-categoria').select2({
+        width: '100%',
+        allowClear: true,
+        placeholder: $('#prod-categoria').data('placeholder') || '',
+        dropdownParent: $('#modal-producto')
+      }).on('change', actualizarProdEstacionInfo);
+    }
+    // Selects del editor de combo
+    if ($('#combo-producto').length) {
+      if ($('#combo-producto').data('select2')) $('#combo-producto').select2('destroy');
+      $('#combo-producto').select2({
+        width: '100%',
+        allowClear: true,
+        placeholder: $('#combo-producto').data('placeholder') || 'Selecciona el producto combo',
+        dropdownParent: $('#modal-combo-editor')
+      });
+    }
+  }
+  function reinitSelect2ProdCategoria(){
+    if (!(window.jQuery && jQuery.fn && jQuery.fn.select2)) return;
+    const $el = $('#prod-categoria');
+    if (!$el.length) return;
+    if ($el.data('select2')) $el.select2('destroy');
+    $el.select2({
+      width: '100%',
+      allowClear: true,
+      placeholder: $el.data('placeholder') || '',
+      dropdownParent: $('#modal-producto')
+    }).on('change', actualizarProdEstacionInfo);
+  }
+  function initSelect2ForComboRow(rowEl){
+    if (!(window.jQuery && jQuery.fn && jQuery.fn.select2)) return;
+    const $sel = $(rowEl).find('select.combo-item-producto');
+    if ($sel.length){
+      if ($sel.data('select2')) $sel.select2('destroy');
+      $sel.select2({
+        width:'100%',
+        placeholder: $sel.data('placeholder') || 'Producto del combo',
+        dropdownParent: $('#modal-combo-editor')
+      });
+    }
+  }
+
+  // ==== ESTACIONES (Cocina/Barra) ====
+  function normalizeEstacion(cat){
+    let est = (cat.estacion || cat.station || cat.ruta || cat.tipo || '').toString().toLowerCase();
+    if (!est) {
+      if (String(cat.es_cocina || '') === '1') est = 'cocina';
+      else if (String(cat.es_barra || '') === '1') est = 'barra';
+      else est = 'ninguna';
+    }
+    if (!['cocina','barra','ninguna'].includes(est)) est = 'ninguna';
+    return est;
+  }
+  function estacionSeleccionadaUI(){
+    const r = document.querySelector('#filtro-estacion input[name="filEst"]:checked');
+    return r ? r.value : 'todas';
+  }
+  function prodEstacionSeleccionadaUI(){
+    const r = document.querySelector('#prod-estacion input[name="prodEstacion"]:checked');
+    return r ? r.value : 'cocina';
+  }
+  function fillProdCategoriaOptionsByEstacion(preselectId){
+    const { selCat } = getProdControls();
+    if (!selCat) return;
+    const est = prodEstacionSeleccionadaUI();
+    const list = categorias.filter(c => normalizeEstacion(c) === est);
+    if (!list.length) {
+      selCat.innerHTML = '<option value="">(No hay categorías)</option>';
+    } else {
+      selCat.innerHTML = list.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+    }
+    if (preselectId) {
+      selCat.value = String(preselectId);
+    }
+    reinitSelect2ProdCategoria();
+    actualizarProdEstacionInfo();
+  }
+  function actualizarProdEstacionInfo(){
+    const sel = document.getElementById('prod-categoria');
+    const wrap = document.getElementById('prod-estacion-info');
+    const val  = document.getElementById('prod-estacion-info-val');
+    if (!sel || !wrap || !val) return;
+    const cid = sel.value ? String(sel.value) : '';
+    const cat = categorias.find(c => String(c.id) === cid);
+    if (cat){
+      wrap.style.display = 'block';
+      const est = normalizeEstacion(cat);
+      val.textContent = est.charAt(0).toUpperCase() + est.slice(1);
+    } else {
+      wrap.style.display = 'none';
+      val.textContent = '—';
+    }
+  }
+
   // ====== Inicio ======
   init();
   function init() {
     cargarISV().then(actualizarEtiquetasISVCabecera);
     cargarMesas();
     cargarCategorias();
-    cargarProductos();
+    cargarProductos().then(()=>{ /* productos listos para editor de combo */ });
     cargarClientes();
     setupEventListeners();
     bloquearCierrePorFondoYEsc();
+    initProductoImageUpload();
+    initSelect2All();
   }
 
   function setupEventListeners() {
@@ -199,17 +254,18 @@ document.addEventListener('DOMContentLoaded', function () {
           const m = document.querySelector(target);
           if (m) m.style.display = 'none';
         } else {
-          // fallback si no trae data-close: apagar todos
           if (modalMesa) modalMesa.style.display = 'none';
           if (modalCliente) modalCliente.style.display = 'none';
           if (modalCategoria) modalCategoria.style.display = 'none';
           if (modalProducto) modalProducto.style.display = 'none';
           if (modalNuevoCliente) modalNuevoCliente.style.display = 'none';
+          if (modalCombos) modalCombos.style.display = 'none';
+          if (modalComboEditor) modalComboEditor.style.display = 'none';
         }
       });
     });
 
-    // Cierre por botones con data-close (Cancelar/Cerrar)
+    // Cierre por botones con data-close
     closeModalButtonsData.forEach(btn => {
       btn.addEventListener('click', function () {
         const target = this.getAttribute('data-close');
@@ -219,7 +275,7 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     });
 
-    // Guardar mesa
+    // Guardar mesa (crear/editar)
     if (formMesa) {
       formMesa.addEventListener('submit', function (e) {
         e.preventDefault();
@@ -268,7 +324,17 @@ document.addEventListener('DOMContentLoaded', function () {
     if (btnNuevoCliente) btnNuevoCliente.addEventListener('click', abrirModalNuevoCliente);
     if (btnNuevoClienteRapido) btnNuevoClienteRapido.addEventListener('click', abrirModalNuevoCliente);
 
-    // Guardar nuevo cliente
+    // Acciones del modal de clientes
+    const btnEditarSel = document.getElementById('btn-editar-cliente-seleccionado');
+    const btnSeleccionar = document.getElementById('btn-seleccionar-cliente');
+    if (btnEditarSel) btnEditarSel.addEventListener('click', ()=> {
+      if (selectedClienteForModal && selectedClienteForModal.id !== 0) {
+        abrirEdicionCliente(mapearClienteObjeto(selectedClienteForModal));
+      }
+    });
+    if (btnSeleccionar) btnSeleccionar.addEventListener('click', confirmarSeleccionCliente);
+
+    // Guardar nuevo/editar cliente
     if (formNuevoCliente) {
       formNuevoCliente.addEventListener('submit', function(e){
         e.preventDefault();
@@ -280,26 +346,50 @@ document.addEventListener('DOMContentLoaded', function () {
     if (btnMostrarProductos) btnMostrarProductos.addEventListener('click', () => mostrarVista('productos'));
     if (btnMostrarComanda)   btnMostrarComanda.addEventListener('click', () => mostrarVista('comanda'));
 
+    // Filtro Estación (Todas/Cocina/Barra) — refresca pestañas
+    document.querySelectorAll('#filtro-estacion input[name="filEst"]').forEach(radio=>{
+      radio.addEventListener('change', ()=> renderizarCategorias());
+    });
+
+    // Segmentado estación del modal de Producto -> filtra categorías del select
+    document.querySelectorAll('#prod-estacion input[name="prodEstacion"]').forEach(radio=>{
+      radio.addEventListener('change', ()=> fillProdCategoriaOptionsByEstacion());
+    });
+
     // Categoría / Producto
     const btnNuevaCategoria = document.getElementById('btn-nueva-categoria');
     const btnNuevoProducto  = document.getElementById('btn-nuevo-producto');
 
     if (btnNuevaCategoria) btnNuevaCategoria.addEventListener('click', ()=>{
       const inp = document.getElementById('cat-nombre');
+      const hid = document.getElementById('cat-id');
+      document.getElementById('titulo-modal-categoria') && (document.getElementById('titulo-modal-categoria').textContent = 'Nueva Categoría');
       if (inp) inp.value='';
+      if (hid) hid.value='';
       if (modalCategoria) modalCategoria.style.display='block';
       setTimeout(()=>inp && inp.focus(),10);
     });
 
     if (btnNuevoProducto) btnNuevoProducto.addEventListener('click', ()=>{
-      const { selCat, inpNombre, inpDesc, inpPrecio } = getProdControls();
-      if (selCat) selCat.innerHTML = categorias.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+      editContext.productoId = null;
+      const { selCat, inpNombre, inpDesc, inpPrecio, chkISV1, chkISV2 } = getProdControls();
       if (inpNombre) inpNombre.value='';
       if (inpDesc) inpDesc.value='';
       if (inpPrecio) inpPrecio.value='0.00';
+      if (chkISV1) chkISV1.checked=false;
+      if (chkISV2) chkISV2.checked=false;
 
-      // Cargar % ISV reales y aplicar exclusividad
+      const el = document.getElementById('prod-id');
+      if (el) el.value = '';
+
+      document.getElementById('titulo-modal-producto') && (document.getElementById('titulo-modal-producto').textContent = 'Nuevo Producto');
+
       prepararModalProductoISV();
+
+      resetProductoImagen();
+      initProductoImageUpload();
+
+      fillProdCategoriaOptionsByEstacion();
 
       if (modalProducto) modalProducto.style.display='block';
       setTimeout(()=>{ inpNombre && inpNombre.focus(); },10);
@@ -310,7 +400,42 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnGuardarProducto = document.getElementById('btn-guardar-producto');
     if (btnGuardarProducto) btnGuardarProducto.addEventListener('click', guardarProductoBasico);
 
-    // Exponer refrescar clientes al global (por si lo llamas desde otro lado)
+    // Gestión de combos - listeners
+    if (btnGestionarCombos) btnGestionarCombos.addEventListener('click', abrirModalCombos);
+    if (btnNuevoCombo) btnNuevoCombo.addEventListener('click', ()=> {
+      abrirEditorComboNuevo();
+    });
+    if (btnAddComboItem) btnAddComboItem.addEventListener('click', ()=> addComboItemRow());
+    if (btnGuardarCombo) btnGuardarCombo.addEventListener('click', guardarCombo);
+
+    // Delegación: acciones en grid de combos (editar / eliminar)
+    if (combosGrid) {
+      combosGrid.addEventListener('click', (e)=>{
+        const btn = e.target.closest('button[data-action]');
+        if (!btn) return;
+        const action = btn.getAttribute('data-action');
+        const id = btn.getAttribute('data-id');
+        if (!id) return;
+        if (action === 'edit') abrirEditorComboExistente(parseInt(id,10));
+        if (action === 'delete') eliminarCombo(parseInt(id,10));
+      });
+    }
+
+    // Delegación: quitar fila en items de combo
+    const comboItemsContainer = document.getElementById('combo-items-container');
+    if (comboItemsContainer) {
+      comboItemsContainer.addEventListener('click', (e)=>{
+        const btn = e.target.closest('button[data-remove-row="1"]');
+        if (!btn) return;
+        const row = btn.closest('.component-row');
+        if (row && row.parentNode) {
+          row.parentNode.removeChild(row);
+          reindexComboItems();
+        }
+      });
+    }
+
+    // Exponer refrescar clientes al global
     window.refrescarClientes = function (nuevoCliente) {
       cargarClientes().then(() => {
         if (nuevoCliente && nuevoCliente.clientes_id) {
@@ -327,7 +452,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Evitar cerrar modales por fondo/ESC
   function bloquearCierrePorFondoYEsc(){
-    [modalMesa, modalCliente, modalCategoria, modalProducto, modalNuevoCliente].forEach(m => {
+    [modalMesa, modalCliente, modalCategoria, modalProducto, modalNuevoCliente, modalCombos, modalComboEditor].forEach(m => {
       if (!m) return;
       m.addEventListener('click', (ev)=>{ if (ev.target === m) { ev.stopPropagation(); ev.preventDefault(); } });
     });
@@ -389,13 +514,14 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!mesas.length) {
       mesasContainer.innerHTML = `<div class="mesa-item" style="opacity:.8;">
         <div class="mesa-header"><span class="mesa-numero">Sin mesas</span></div>
-        <div class="mesa-info"><span class="mesa-ubicacion">Crea una con “Nueva”.</span></div>
+        <div class="mesa-info"><span class="mesa-ubicacion">Crea una con "Nueva".</span></div>
       </div>`;
       return;
     }
     mesas.forEach(mesa => {
       const mesaElement = document.createElement('div');
       mesaElement.className = `mesa-item ${mesa.estado === 'ocupada' ? 'ocupada' : ''}`;
+      mesaElement.dataset.id = String(mesa.id);
       mesaElement.innerHTML = `
         <div class="mesa-header">
           <span class="mesa-numero">Mesa: ${mesa.numero}</span>
@@ -405,33 +531,80 @@ document.addEventListener('DOMContentLoaded', function () {
           <span class="mesa-ubicacion"><i class="fas fa-map-marker-alt"></i> ${mesa.ubicacion}</span>
           <span class="mesa-estado ${mesa.estado}">${mesa.estado === 'ocupada' ? '<i class="fas fa-times-circle"></i>' : '<i class="fas fa-check-circle"></i>'} ${mesa.estado.toUpperCase()}</span>
         </div>
+        <div class="mesa-actions">
+          <button class="btn-icon btn-icon--sm btn-edit-mesa" title="Editar" type="button"><i class="fas fa-pen"></i></button>
+        </div>
       `;
       mesaElement.addEventListener('click', () => seleccionarMesa(mesa));
+      mesaElement.querySelector('.btn-edit-mesa').addEventListener('click', (e)=>{
+        e.stopPropagation();
+        abrirEdicionMesa(mesa);
+      });
       mesasContainer.appendChild(mesaElement);
     });
+
+    highlightMesaSeleccionada();
   }
 
-  function seleccionarMesa(mesa) {
-    if (mesa.estado === 'ocupada') {
-      if (confirm(`La mesa ${mesa.numero} está ocupada. ¿Desea cargar la factura existente?`)) cargarFacturaMesa(mesa.id);
-      return;
-    }
-    mesaSeleccionada = mesa;
-    facturaActual = null;
-    if (mesaSeleccionadaElement) mesaSeleccionadaElement.textContent = `Mesa: ${mesa.numero}`;
+  function highlightMesaSeleccionada(){
+    document.querySelectorAll('.mesa-item').forEach(el => el.classList.remove('seleccionada'));
+    if (!mesaSeleccionada) return;
+    const el = document.querySelector(`.mesa-item[data-id="${mesaSeleccionada.id}"]`);
+    if (el) el.classList.add('seleccionada');
+  }
+
+  function seleccionarMesa(mesa){
+    mesaSeleccionada = {
+      id: mesa.id || mesa.mesa_id,
+      numero: mesa.numero,
+      capacidad: mesa.capacidad,
+      ubicacion: mesa.ubicacion,
+      estado: mesa.estado
+    };
+
+    if (mesaSeleccionadaElement) mesaSeleccionadaElement.textContent = `Mesa: ${mesaSeleccionada.numero}`;
     if (facturaTitle) facturaTitle.textContent = 'Nueva Comanda';
     if (btnImprimir) btnImprimir.disabled = true;
-    document.querySelectorAll('.mesa-item').forEach(item => item.classList.remove('seleccionada'));
-    const mEl = Array.from(document.querySelectorAll('.mesa-item')).find(el => el.querySelector('.mesa-numero').textContent.includes(mesa.numero));
-    if (mEl) mEl.classList.add('seleccionada');
+
+    clienteSeleccionado = { id: 0, nombre: 'CONSUMIDOR FINAL', identificacion: '' };
+    if (clienteInfoElement) clienteInfoElement.textContent = `Cliente: ${clienteSeleccionado.nombre}`;
+
     comandaItems = [];
     actualizarComandaUI();
+
+    highlightMesaSeleccionada();
+
+    if (mesaSeleccionada.id) {
+      cargarFacturaMesa(mesaSeleccionada.id);
+    }
+  }
+
+  function abrirEdicionMesa(mesa){
+    const n  = document.getElementById('numero-mesa');
+    const c  = document.getElementById('capacidad-mesa');
+    const u  = document.getElementById('ubicacion-mesa');
+    const id = document.getElementById('mesa-id');
+    const t  = document.getElementById('titulo-modal-mesa');
+
+    if (t) t.textContent = 'Editar Mesa';
+    if (id) id.value = mesa.id || mesa.mesa_id || '';
+    if (n) n.value  = mesa.numero || '';
+    if (c) c.value  = mesa.capacidad || 4;
+    if (u) u.value  = mesa.ubicacion || 'Interior';
+
+    if (modalMesa) modalMesa.style.display = 'block';
+    setTimeout(()=> n && n.focus(), 10);
   }
 
   function mostrarModalMesa() {
     const n = document.getElementById('numero-mesa');
     const c = document.getElementById('capacidad-mesa');
     const u = document.getElementById('ubicacion-mesa');
+    const id = document.getElementById('mesa-id');
+    const t = document.getElementById('titulo-modal-mesa');
+
+    if (t) t.textContent = 'Nueva Mesa';
+    if (id) id.value = '';
     if (n) n.value = '';
     if (c) c.value = '4';
     if (u) u.value = 'Interior';
@@ -440,13 +613,16 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function guardarMesa() {
+    const mesaId     = (document.getElementById('mesa-id') || {}).value || '';
     const numeroMesa = (document.getElementById('numero-mesa') || {}).value?.trim() || '';
-    const capacidad = (document.getElementById('capacidad-mesa') || {}).value || '4';
-    const ubicacion = (document.getElementById('ubicacion-mesa') || {}).value || 'Interior';
+    const capacidad  = (document.getElementById('capacidad-mesa') || {}).value || '4';
+    const ubicacion  = (document.getElementById('ubicacion-mesa') || {}).value || 'Interior';
     if (!numeroMesa) { showNotify && showNotify('error', 'Error', 'El número de mesa es requerido'); return; }
 
     const formData = new FormData();
-    formData.append('action', 'saveMesa');
+    const action = mesaId ? 'updateMesa' : 'saveMesa';
+    formData.append('action', action);
+    if (mesaId) formData.append('mesa_id', mesaId);
     formData.append('numero', numeroMesa);
     formData.append('capacidad', capacidad);
     formData.append('ubicacion', ubicacion);
@@ -455,11 +631,12 @@ document.addEventListener('DOMContentLoaded', function () {
       .then(r => r.json())
       .then(data => {
         if (data.status) {
-          showNotify && showNotify('success', 'Éxito', 'Mesa guardada correctamente');
+          showNotify && showNotify('success', 'Éxito', mesaId ? 'Mesa actualizada correctamente' : 'Mesa guardada correctamente');
           if (modalMesa) modalMesa.style.display = 'none';
+          (document.getElementById('mesa-id')||{}).value = '';
           cargarMesas();
         } else {
-          showNotify && showNotify('error', 'Error', data.message || 'Error al guardar la mesa');
+          showNotify && showNotify('error', 'Error', data.message || 'No se pudo guardar la mesa');
         }
       })
       .catch(() => { showNotify && showNotify('error', 'Error', 'Error al guardar la mesa'); });
@@ -473,12 +650,26 @@ document.addEventListener('DOMContentLoaded', function () {
       body: 'action=loadCategorias'
     })
       .then(r => r.json())
-      .then(data => { if (data.status) { categorias = data.categorias || []; renderizarCategorias(); } });
+      .then(data => {
+        if (data.status) {
+          categorias = (data.categorias || []).map(c => ({
+            id: c.id || c.categoria_id,
+            nombre: c.nombre || c.categoria || `Cat ${c.id || c.categoria_id}`,
+            estacion: normalizeEstacion(c)
+          }));
+          renderizarCategorias();
+        }
+      });
   }
 
   function renderizarCategorias() {
     if (!categoriasTabs) return;
     categoriasTabs.innerHTML = '';
+
+    const estSel = estacionSeleccionadaUI();
+    const catsFiltradas = (estSel === 'todas') ? categorias
+      : categorias.filter(c => normalizeEstacion(c) === estSel);
+
     const todasCategoria = document.createElement('div');
     todasCategoria.className = 'categoria-tab active';
     todasCategoria.textContent = 'Todas';
@@ -489,11 +680,26 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     categoriasTabs.appendChild(todasCategoria);
 
-    categorias.forEach(categoria => {
+    catsFiltradas.forEach(categoria => {
       const categoriaElement = document.createElement('div');
       categoriaElement.className = 'categoria-tab';
-      categoriaElement.textContent = categoria.nombre;
       categoriaElement.dataset.id = categoria.id;
+
+      const spanText = document.createElement('span');
+      spanText.textContent = categoria.nombre;
+      categoriaElement.appendChild(spanText);
+
+      const btnEditCat = document.createElement('button');
+      btnEditCat.className = 'edit-cat-btn';
+      btnEditCat.title = 'Editar categoría';
+      btnEditCat.type = 'button';
+      btnEditCat.innerHTML = '<i class="fas fa-pen"></i>';
+      btnEditCat.addEventListener('click', (e) => {
+        e.stopPropagation();
+        abrirEdicionCategoria(categoria);
+      });
+      categoriaElement.appendChild(btnEditCat);
+
       categoriaElement.addEventListener('click', () => {
         document.querySelectorAll('.categoria-tab').forEach(tab => tab.classList.remove('active'));
         categoriaElement.classList.add('active');
@@ -517,7 +723,7 @@ document.addEventListener('DOMContentLoaded', function () {
           if (!categorias.length) {
             const map = new Map();
             productos.forEach(p => { map.set(p.categoria_id, true); });
-            categorias = [...map.keys()].map(id => ({ id, nombre: `Cat. ${id}` }));
+            categorias = [...map.keys()].map(id => ({ id, nombre: `Cat. ${id}`, estacion: 'ninguna' }));
             renderizarCategorias();
           }
         } else {
@@ -533,9 +739,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (!productosList.length) {
       productosContainer.innerHTML = `
-        <div style="grid-column:1/-1; text-align:center; padding:30px;">
-          <i class="fas fa-shopping-basket" style="font-size:42px; opacity:.4;"></i>
-          <p style="margin-top:8px;color:#666">Sin productos que mostrar.</p>
+        <div class="state-empty">
+          <div class="icon"><i class="fas fa-shopping-basket"></i></div>
+          <h4>Sin productos</h4>
+          <p>Agrega uno con el botón "Nuevo producto".</p>
         </div>`;
       return;
     }
@@ -545,6 +752,20 @@ document.addEventListener('DOMContentLoaded', function () {
     productosList.forEach(producto => {
       const productoElement = document.createElement('div');
       productoElement.className = 'producto-item';
+
+      const actions = document.createElement('div');
+      actions.className = 'card-actions';
+      const btnEditar = document.createElement('button');
+      btnEditar.type = 'button';
+      btnEditar.className = 'btn-icon btn-icon--sm';
+      btnEditar.title = 'Editar';
+      btnEditar.innerHTML = '<i class="fas fa-pen"></i>';
+      btnEditar.addEventListener('click', (e) => {
+        e.stopPropagation();
+        abrirEdicionProducto(producto);
+      });
+      actions.appendChild(btnEditar);
+      productoElement.appendChild(actions);
 
       const imagenContainer = document.createElement('div');
       imagenContainer.className = 'producto-imagen-container';
@@ -614,16 +835,27 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function guardarCategoriaDesdeModal(){
     const nombre = (document.getElementById('cat-nombre')||{}).value?.trim() || '';
+    const idCat  = (document.getElementById('cat-id')||{}).value || '';
+
     if (!nombre) { showNotify && showNotify('warning','Validación','Nombre de categoría requerido'); return; }
     const fd = new FormData();
-    fd.append('action','saveCategoria');
     fd.append('nombre', nombre);
+
+    if (idCat) {
+      fd.append('action','updateCategoria');
+      fd.append('categoria_id', idCat);
+    } else {
+      fd.append('action','saveCategoria');
+    }
+
     fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, { method:'POST', body: fd })
       .then(r=>r.json())
       .then(d=>{
         if (!d.status) { showNotify && showNotify('error','Error', d.message||'No se pudo guardar'); return; }
-        showNotify && showNotify('success','Éxito','Categoría guardada');
+        showNotify && showNotify('success','Éxito', idCat ? 'Categoría actualizada' : 'Categoría guardada');
         if (modalCategoria) modalCategoria.style.display='none';
+        (document.getElementById('cat-id')||{}).value = '';
+        document.getElementById('titulo-modal-categoria') && (document.getElementById('titulo-modal-categoria').textContent = 'Nueva Categoría');
         cargarCategorias();
       })
       .catch(()=> showNotify && showNotify('error','Error','No se pudo guardar'));
@@ -631,30 +863,53 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function guardarProductoBasico(){
     const { inpNombre, inpDesc, selCat, inpPrecio, chkISV1, chkISV2 } = getProdControls();
+    const id     = (document.getElementById('prod-id')||{}).value || '';
     const nombre = (inpNombre||{}).value?.trim() || '';
     const desc   = (inpDesc||{}).value?.trim() || '';
     const catId  = (selCat||{}).value || '';
     const precio = parseFloat((inpPrecio||{}).value || '0') || 0;
     const isv1   = !!(chkISV1||{}).checked;
     const isv2   = !!(chkISV2||{}).checked;
+
     if (!nombre) { showNotify && showNotify('warning','Validación','Nombre requerido'); return; }
     if (!catId)  { showNotify && showNotify('warning','Validación','Seleccione categoría'); return; }
 
     const payload = {
+      productos_id: id ? parseInt(id) : undefined,
       nombre, descripcion: desc, categoria_id: parseInt(catId),
-      precio_venta: precio, isv1: isv1?1:0, isv2: (!isv1 && isv2)?1:0
+      precio_venta: precio,
+      isv1: isv1 ? 1 : 0,
+      isv2: (!isv1 && isv2) ? 1 : 0
     };
+
+    const action = id ? 'updateProductoBasico' : 'saveProductoBasico';
 
     fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ action:'saveProductoBasico', data: payload })
+      body: JSON.stringify({ action, data: payload })
     })
       .then(r=>r.json())
-      .then(d=>{
-        if (!d.status) { showNotify && showNotify('error','Error', d.message||'No se pudo guardar el producto'); return; }
-        showNotify && showNotify('success','Éxito','Producto guardado');
+      .then(async d=>{
+        if (!d.status) { showNotify && showNotify('error','Error', d.message||'No se pudo guardar'); return; }
+
+        const pid  = id || d.producto_id;
+        const file = getProductoImagenFile();
+
+        if (pid && file) {
+          try {
+            const ok = await subirImagenProducto(pid, file);
+            if (!ok) showNotify && showNotify('warning','Atención','Guardado, pero falló la imagen');
+          } catch {
+            showNotify && showNotify('warning','Atención','Guardado, pero falló la imagen');
+          }
+        }
+
+        showNotify && showNotify('success','Éxito', id ? 'Producto actualizado' : 'Producto guardado');
         if (modalProducto) modalProducto.style.display='none';
+        (document.getElementById('prod-id')||{}).value = '';
+        document.getElementById('titulo-modal-producto') && (document.getElementById('titulo-modal-producto').textContent = 'Nuevo Producto');
+        resetProductoImagen();
         cargarProductos();
       })
       .catch(()=> showNotify && showNotify('error','Error','No se pudo guardar el producto'));
@@ -679,36 +934,101 @@ document.addEventListener('DOMContentLoaded', function () {
       .catch(() => { showNotify && showNotify('error', 'Error', 'Error al cargar los clientes'); });
   }
 
+  function mapearClienteObjeto(c){
+    return {
+      clientes_id: c.id || c.clientes_id,
+      nombre: c.nombre,
+      identificacion: c.identificacion || c.rtn || ''
+    };
+  }
+
   function renderizarClientes() {
     const cont = document.getElementById('clientes-container');
+    const btnEditarSel = document.getElementById('btn-editar-cliente-seleccionado');
+    const btnSeleccionar = document.getElementById('btn-seleccionar-cliente');
+
     if (!cont) return;
     cont.innerHTML = '';
+    selectedClienteForModal = null;
+    actualizarBotonesModalCliente();
+
+    // Consumidor Final
     const cf = document.createElement('div');
     cf.className = 'cliente-item';
-    cf.innerHTML = `<div class="cliente-nombre">CONSUMIDOR FINAL</div><div class="cliente-identificacion">Cliente genérico</div>`;
+    cf.dataset.id = '0';
+    cf.innerHTML = `
+      <div class="cliente-nombre">CONSUMIDOR FINAL</div>
+      <div class="cliente-identificacion">Cliente genérico</div>`;
     cf.addEventListener('click', () => {
-      clienteSeleccionado = { id: 0, nombre: 'CONSUMIDOR FINAL', identificacion: '' };
-      if (clienteInfoElement) clienteInfoElement.textContent = 'Cliente: Consumidor final';
-      if (modalCliente) modalCliente.style.display = 'none';
+      marcarSeleccionClienteItem(cf);
+      selectedClienteForModal = { id: 0, nombre: 'CONSUMIDOR FINAL', identificacion: '' };
+      actualizarBotonesModalCliente();
     });
+    cf.addEventListener('dblclick', confirmarSeleccionCliente);
     cont.appendChild(cf);
 
+    // Resto de clientes
     clientes.forEach(c => {
       const el = document.createElement('div');
       el.className = 'cliente-item';
-      el.innerHTML = `<div class="cliente-nombre">${c.nombre}</div><div class="cliente-identificacion">${c.identificacion || 'Sin identificación'}</div>`;
-      el.addEventListener('click', () => {
-        clienteSeleccionado = { id: c.clientes_id, nombre: c.nombre, identificacion: c.identificacion || '' };
-        if (clienteInfoElement) clienteInfoElement.textContent = `Cliente: ${c.nombre}`;
-        if (modalCliente) modalCliente.style.display = 'none';
+      el.dataset.id = String(c.clientes_id);
+      el.innerHTML = `
+        <div class="cliente-nombre">${c.nombre}</div>
+        <div class="cliente-identificacion">${c.identificacion || 'Sin identificación'}</div>
+        <button class="btn-edit-cli btn-icon btn-icon--sm" title="Editar" type="button"><i class="fas fa-pen"></i></button>
+      `;
+      el.querySelector('.btn-edit-cli').addEventListener('click', (e)=>{
+        e.stopPropagation();
+        abrirEdicionCliente(c);
       });
+      el.addEventListener('click', () => {
+        marcarSeleccionClienteItem(el);
+        selectedClienteForModal = { id: c.clientes_id, nombre: c.nombre, identificacion: c.identificacion || '' };
+        actualizarBotonesModalCliente();
+      });
+      el.addEventListener('dblclick', confirmarSeleccionCliente);
+
       cont.appendChild(el);
     });
+
+    function actualizarBotonesModalCliente(){
+      if (btnSeleccionar) btnSeleccionar.disabled = !selectedClienteForModal;
+      if (btnEditarSel) {
+        const editable = !!(selectedClienteForModal && selectedClienteForModal.id && Number(selectedClienteForModal.id) > 0);
+        btnEditarSel.disabled = !editable;
+      }
+    }
+  }
+
+  function marcarSeleccionClienteItem(el){
+    const cont = document.getElementById('clientes-container');
+    if (!cont) return;
+    cont.querySelectorAll('.cliente-item').forEach(n => n.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  function confirmarSeleccionCliente(){
+    if (!selectedClienteForModal) return;
+    clienteSeleccionado = {
+      id: Number(selectedClienteForModal.id || selectedClienteForModal.clientes_id || 0),
+      nombre: selectedClienteForModal.nombre,
+      identificacion: selectedClienteForModal.identificacion || ''
+    };
+    const clienteInfoElement = document.getElementById('cliente-info');
+    if (clienteInfoElement) clienteInfoElement.textContent = `Cliente: ${clienteSeleccionado.nombre}`;
+    if (modalCliente) modalCliente.style.display = 'none';
   }
 
   function mostrarModalCliente() {
     renderizarClientes();
     const buscador = document.getElementById('buscar-cliente');
+    const btnSeleccionar = document.getElementById('btn-seleccionar-cliente');
+    const btnEditarSel = document.getElementById('btn-editar-cliente-seleccionado');
+
+    selectedClienteForModal = null;
+    if (btnSeleccionar) btnSeleccionar.disabled = true;
+    if (btnEditarSel) btnEditarSel.disabled = true;
+
     if (buscador) buscador.value = '';
     if (modalCliente) modalCliente.style.display = 'block';
     setTimeout(() => { if (buscador) { buscador.focus(); buscador.select && buscador.select(); } }, 10);
@@ -720,23 +1040,25 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!cont) return;
     const items = cont.querySelectorAll('.cliente-item');
     if (!items.length) return;
-    items[0].style.display = 'block';
-    for (let i = 1; i < items.length; i++) {
+
+    for (let i = 0; i < items.length; i++) {
       const nombre = items[i].querySelector('.cliente-nombre').textContent.toLowerCase();
-      const ident = items[i].querySelector('.cliente-identificacion').textContent.toLowerCase();
+      const identEl = items[i].querySelector('.cliente-identificacion');
+      const ident = identEl ? identEl.textContent.toLowerCase() : '';
       items[i].style.display = (nombre.includes(t) || ident.includes(t)) ? 'block' : 'none';
     }
   }
 
   function abrirModalNuevoCliente(){
-    // limpiar campos
-    const campos = ['cli-nombre','cli-rtn','cli-localidad','cli-telefono','cli-correo'];
+    const campos = ['cli-id','cli-nombre','cli-rtn','cli-localidad','cli-telefono','cli-correo'];
     campos.forEach(id => { const el = document.getElementById(id); if (el) el.value=''; });
+    document.getElementById('titulo-modal-cliente') && (document.getElementById('titulo-modal-cliente').textContent = 'Nuevo Cliente');
     if (modalNuevoCliente) modalNuevoCliente.style.display = 'block';
     setTimeout(()=>{ const el = document.getElementById('cli-nombre'); el && el.focus(); },10);
   }
 
   function guardarClienteBasico(){
+    const id         = (document.getElementById('cli-id')||{}).value || '';
     const nombre     = (document.getElementById('cli-nombre')||{}).value?.trim() || '';
     const rtn        = (document.getElementById('cli-rtn')||{}).value?.trim() || '';
     const localidad  = (document.getElementById('cli-localidad')||{}).value?.trim() || '';
@@ -746,41 +1068,68 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!nombre){ showNotify && showNotify('warning','Validación','Nombre/ Razón social es obligatorio'); return; }
 
     const payload = {
+      clientes_id: id ? parseInt(id) : undefined,
       nombre,
       rtn,
-      fecha: new Date().toISOString().slice(0,10), // yyyy-mm-dd
+      fecha: new Date().toISOString().slice(0,10),
       departamentos_id: 0,
       municipios_id: 0,
       localidad,
       telefono,
       correo,
-      estado: 1 // por defecto activo
-      // colaboradores_id y fecha_registro los pones en PHP desde la sesión/now()
+      estado: 1
     };
+
+    const action = id ? 'updateClienteBasico' : 'saveClienteBasico';
 
     fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ action:'saveClienteBasico', data: payload })
+      body: JSON.stringify({ action, data: payload })
     })
       .then(r=>r.json())
       .then(d=>{
         if (!d.status){ showNotify && showNotify('error','Error', d.message || 'No se pudo guardar el cliente'); return; }
-        showNotify && showNotify('success','Éxito','Cliente guardado');
+        showNotify && showNotify('success','Éxito', id ? 'Cliente actualizado' : 'Cliente guardado');
         if (modalNuevoCliente) modalNuevoCliente.style.display = 'none';
-        // refrescar lista y seleccionar el nuevo
+        (document.getElementById('cli-id')||{}).value = '';
+        document.getElementById('titulo-modal-cliente') && (document.getElementById('titulo-modal-cliente').textContent = 'Nuevo Cliente');
+
         cargarClientes().then(()=>{
-          if (d.cliente && d.cliente.clientes_id){
+          const cli = d.cliente;
+          if (cli && cli.clientes_id){
             clienteSeleccionado = {
-              id: d.cliente.clientes_id,
-              nombre: d.cliente.nombre || nombre,
-              identificacion: d.cliente.rtn || rtn
+              id: cli.clientes_id,
+              nombre: cli.nombre || nombre,
+              identificacion: cli.rtn || rtn
             };
             if (clienteInfoElement) clienteInfoElement.textContent = `Cliente: ${clienteSeleccionado.nombre}`;
           }
         });
       })
       .catch(()=> showNotify && showNotify('error','Error','No se pudo guardar el cliente'));
+  }
+
+  function abrirEdicionCliente(c){
+    editContext.clienteId = c.clientes_id;
+    if (modalNuevoCliente) modalNuevoCliente.style.display = 'block';
+    document.getElementById('titulo-modal-cliente') && (document.getElementById('titulo-modal-cliente').textContent = 'Editar Cliente');
+
+    setTimeout(()=>{
+      const map = {
+        'cli-id': c.clientes_id || '',
+        'cli-nombre': c.nombre || '',
+        'cli-rtn': (c.identificacion||''),
+        'cli-localidad': '',
+        'cli-telefono': '',
+        'cli-correo': ''
+      };
+      Object.keys(map).forEach(id=>{
+        const el = document.getElementById(id);
+        if (el) el.value = map[id];
+      });
+      const focus = document.getElementById('cli-nombre'); focus && focus.focus();
+    }, 10);
   }
 
   // ===== FACTURAS =====
@@ -824,15 +1173,22 @@ document.addEventListener('DOMContentLoaded', function () {
           }
 
           actualizarComandaUI();
-          document.querySelectorAll('.mesa-item').forEach(item => {
-            item.classList.remove('seleccionada');
-            if (item.querySelector('.mesa-numero').textContent.includes(mesaSeleccionada.numero)) item.classList.add('seleccionada');
-          });
+          highlightMesaSeleccionada();
         } else {
-          showNotify && showNotify('error', 'Error', data.message || 'No se pudo cargar la factura');
+          facturaActual = null;
+          comandaItems = [];
+          actualizarComandaUI();
+          if (facturaTitle) facturaTitle.textContent = 'Nueva Comanda';
+          if (btnImprimir) btnImprimir.disabled = true;
+          if (mesaSeleccionada && mesaSeleccionadaElement) {
+            mesaSeleccionadaElement.textContent = `Mesa: ${mesaSeleccionada.numero}`;
+          }
+          highlightMesaSeleccionada();
         }
       })
-      .catch(() => { showNotify && showNotify('error', 'Error', 'Error al cargar la factura'); });
+      .catch(() => {
+        showNotify && showNotify('error', 'Error', 'Error al cargar la factura');
+      });
   }
 
   function agregarProductoComanda(producto) {
@@ -1048,18 +1404,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function limpiarComanda() { comandaItems = []; actualizarComandaUI(); }
 
-  // ======= ISV del modal de Producto (lee getIsvConfig.php) =======
+  // ======= ISV del modal de Producto =======
   function prepararModalProductoISV(){
-    const chk1 = document.getElementById('prod-isv1'); // equivalente a producto_isv1
-    const chk2 = document.getElementById('prod-isv2'); // equivalente a producto_isv2
+    const chk1 = document.getElementById('prod-isv1');
+    const chk2 = document.getElementById('prod-isv2');
 
     if (chk1) chk1.checked = false;
     if (chk2) chk2.checked = false;
 
-    // Reescribe el label para una sola línea "ISV 15%"
     function setIsvLabelSingleLine(chk, rate){
       if (!chk) return;
-      const label = chk.closest('label'); // tu HTML usa <label class="radio-container"><input ...> TEXT
+      const label = chk.closest('label');
       if (!label) return;
 
       const cb = chk;
@@ -1072,7 +1427,7 @@ document.addEventListener('DOMContentLoaded', function () {
       span.style.marginLeft = '8px';
       label.appendChild(span);
 
-      cb.dataset.valor = (Number(rate) || 0) / 100;
+      cb.setAttribute('data-valor', (Number(rate) || 0) / 100);
     }
 
     fetch(`${SERVERURL}core/productos/getIsvConfig.php`, {
@@ -1096,7 +1451,6 @@ document.addEventListener('DOMContentLoaded', function () {
       if (chk1 && chk2 && chk1.checked && chk2.checked){ chk2.checked = false; }
     })
     .catch(()=>{
-      // Fallback simple si falla el endpoint
       setIsvLabelSingleLine(chk1, isvRates[1] || 0);
       setIsvLabelSingleLine(chk2, isvRates[2] || 0);
       aplicarSeleccionExclusivaISVProducto();
@@ -1111,6 +1465,803 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     if (chk2){
       chk2.onchange = function(){ if (this.checked && chk1) chk1.checked = false; };
+    }
+  }
+
+  // ===== Edición: abrir modales precargados =====
+  function abrirEdicionProducto(prod){
+    editContext.productoId = prod.productos_id;
+
+    const { selCat, inpNombre, inpDesc, inpPrecio, chkISV1, chkISV2 } = getProdControls();
+
+    if (inpNombre) inpNombre.value = prod.nombre || '';
+    if (inpDesc)   inpDesc.value   = prod.descripcion || '';
+    if (inpPrecio) inpPrecio.value = (parseFloat(prod.precio_venta)||0).toFixed(2);
+    if (chkISV1)   chkISV1.checked = parseInt(prod.isv1)==1;
+    if (chkISV2)   chkISV2.checked = parseInt(prod.isv2)==1 && !chkISV1.checked;
+
+    const hid = document.getElementById('prod-id');
+    if (hid) hid.value = String(prod.productos_id || '');
+
+    document.getElementById('titulo-modal-producto') && (document.getElementById('titulo-modal-producto').textContent = 'Editar Producto');
+
+    const catActual = categorias.find(c => String(c.id) === String(prod.categoria_id));
+    if (catActual){
+      const est = normalizeEstacion(catActual);
+      const radio = document.querySelector(`#prod-estacion input[value="${est}"]`);
+      if (radio) radio.checked = true;
+    }
+
+    fillProdCategoriaOptionsByEstacion(prod.categoria_id);
+
+    resetProductoImagen();
+    setTimeout(()=>{
+      if (prod.file_name) {
+        const preview = document.getElementById('productoPreview');
+        const info    = document.getElementById('productoInfo');
+        if (preview && info){
+          const img = document.createElement('img');
+          img.src = `${SERVERURL}vistas/plantilla/img/products/${prod.file_name}?${Date.now()}`;
+          img.alt = prod.nombre;
+          preview.innerHTML = '';
+          preview.appendChild(img);
+
+          const removeBtn = document.createElement('button');
+          removeBtn.className = 'btn-remove-image';
+          removeBtn.type = 'button';
+          removeBtn.title = 'Eliminar imagen';
+          removeBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+          removeBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            resetProductoImagen();
+          });
+          preview.appendChild(removeBtn);
+
+          preview.style.display = 'block';
+          info.textContent = prod.file_name;
+        }
+      }
+    }, 50);
+
+    prepararModalProductoISV();
+    initProductoImageUpload();
+    if (modalProducto) modalProducto.style.display = 'block';
+  }
+
+  function abrirEdicionCategoria(cat){
+    editContext.categoriaId = cat.id;
+    const inp = document.getElementById('cat-nombre');
+    const hid = document.getElementById('cat-id');
+    if (inp) inp.value = cat.nombre || '';
+    if (hid) hid.value = String(cat.id || '');
+    document.getElementById('titulo-modal-categoria') && (document.getElementById('titulo-modal-categoria').textContent = 'Editar Categoría');
+    if (modalCategoria) modalCategoria.style.display = 'block';
+  }
+
+  // ===== Uploader de imagen producto =====
+  function initProductoImageUpload() {
+    const dropArea   = document.getElementById('productoDropArea');
+    const fileInput  = document.getElementById('imagen_producto');
+    const preview    = document.getElementById('productoPreview');
+    const fileInfo   = document.getElementById('productoInfo');
+    const selectBtn  = document.getElementById('btnSeleccionarImagen');
+
+    if (!dropArea || !fileInput || fileInput.dataset.initialized) return;
+    fileInput.dataset.initialized = 'true';
+
+    let isProcessing = false;
+
+    ['dragenter','dragoover','dragleave','drop'].forEach(ev =>
+      dropArea.addEventListener(ev, preventDefaults, false)
+    );
+    ['dragenter','dragover'].forEach(ev =>
+      dropArea.addEventListener(ev, () => dropArea.classList.add('drag-over'), false)
+    );
+    ['dragleave','drop'].forEach(ev =>
+      dropArea.addEventListener(ev, () => dropArea.classList.remove('drag-over'), false)
+    );
+    dropArea.addEventListener('drop', e => {
+      const files = e.dataTransfer?.files || [];
+      if (files.length) handleFiles(files);
+    });
+
+    if (selectBtn) {
+      const openChooser = (e) => { e.preventDefault(); e.stopPropagation(); fileInput.click(); };
+      selectBtn.addEventListener('click', openChooser);
+    }
+
+    fileInput.addEventListener('change', e => {
+      if (isProcessing) return;
+      isProcessing = true;
+      handleFiles(e.target.files);
+      isProcessing = false;
+    });
+
+    document.addEventListener('paste', e => {
+      const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items || [];
+      let file = null;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].kind === 'file' && items[i].type.startsWith('image/')) {
+          file = items[i].getAsFile();
+          break;
+        }
+      }
+      if (file) {
+        e.preventDefault();
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        handleFiles(dt.files);
+      }
+    });
+
+    function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+
+    function handleFiles(fileList) {
+      if (!fileList || !fileList.length) return;
+      const file = fileList[0];
+
+      if (!file.type.startsWith('image/')) {
+        (window.swal
+          ? swal({ title: 'Error', text: 'Selecciona una imagen válida (JPG, PNG, GIF)', icon: 'error' })
+          : alert('Selecciona una imagen válida (JPG, PNG, GIF)'));
+        resetProductoImagen();
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        (typeof showNotify === 'function'
+          ? showNotify('error', 'Error', 'La imagen no debe exceder 2MB')
+          : alert('La imagen no debe exceder 2MB'));
+        resetProductoImagen();
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = ev => {
+        if (preview) {
+          preview.innerHTML = '';
+
+          const img = document.createElement('img');
+          img.src = ev.target.result;
+          img.alt = file.name;
+          preview.appendChild(img);
+
+          const removeBtn = document.createElement('button');
+          removeBtn.className = 'btn-remove-image';
+          removeBtn.type = 'button';
+          removeBtn.title = 'Eliminar imagen';
+          removeBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+          removeBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            resetProductoImagen();
+          });
+          preview.appendChild(removeBtn);
+
+          preview.style.display = 'block';
+        }
+        if (fileInfo) fileInfo.textContent = `${file.name} (${formatFileSize(file.size)})`;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024, sizes = ['Bytes','KB','MB','GB'], i = Math.floor(Math.log(bytes)/Math.log(k));
+      return (bytes/Math.pow(k,i)).toFixed(2) + ' ' + sizes[i];
+    }
+  }
+
+  function resetProductoImagen() {
+    const fileInput = document.getElementById('imagen_producto');
+    const preview = document.getElementById('productoPreview');
+    const fileInfo = document.getElementById('productoInfo');
+    if (fileInput) fileInput.value = '';
+    if (preview) { preview.innerHTML = ''; preview.style.display = 'none'; }
+    if (fileInfo) fileInfo.textContent = 'Ningún archivo seleccionado';
+  }
+
+  function getProductoImagenFile(){
+    const fileInput = document.getElementById('imagen_producto');
+    return fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+  }
+
+  function subirImagenProducto(productoId, file){
+    const fd = new FormData();
+    fd.append('producto_id', productoId);
+    fd.append('imagen_producto', file);
+    return fetch(`${SERVERURL}core/productos/uploadImagenProducto.php`, {
+      method: 'POST',
+      body: fd
+    }).then(r=>r.json())
+      .then(j=> !!(j && j.status))
+      .catch(()=>false);
+  }
+
+// ======== GESTIÓN DE COMBOS MEJORADA ========
+
+function abrirModalCombos(){
+  if (!modalCombos) return;
+  modalCombos.style.display = 'block';
+  cargarCombos();
+}
+
+function cargarCombos(){
+  return fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body: 'action=loadCombos'
+  })
+  .then(r=>r.json())
+  .then(data=>{
+    if (!data || !data.status){ 
+      showNotify && showNotify('error','Error','No se pudieron cargar los combos'); 
+      return; 
+    }
+    combos = data.combos || [];
+    renderizarCombos();
+  })
+  .catch(()=> showNotify && showNotify('error','Error','Error al cargar combos'));
+}
+
+function renderizarCombos(){
+  if (!combosGrid) return;
+  combosGrid.innerHTML = '';
+
+  if (!combos.length){
+    combosGrid.innerHTML = `
+      <div class="state-empty">
+        <div class="icon"><i class="fas fa-layer-group"></i></div>
+        <h4>No hay combos configurados</h4>
+        <p>Crea tu primer combo con el botón "Nuevo combo"</p>
+      </div>`;
+    return;
+  }
+
+  const formatNumber = (n) => new Intl.NumberFormat('es-HN',{minimumFractionDigits:2, maximumFractionDigits:2}).format(n);
+
+  combos.forEach(c => {
+    const comboId = c.combo_id || c.id;
+    const pid = c.productos_id || c.producto_id;
+    const prod = findProductoById(pid) || { nombre: c.nombre_combo || `Producto #${pid}`, precio_venta: 0 };
+    const nombre = c.nombre_combo || prod.nombre || `Combo #${comboId}`;
+    const precio = prod.precio_venta ? `L ${formatNumber(parseFloat(prod.precio_venta))}` : '-';
+    const itemsResumen = c.componentes_resumen || c.items_resumen || c.items_count || '-';
+    const activo = (String(c.activo)==='1' || c.activo===true);
+
+    const card = document.createElement('div');
+    card.className = 'combo-card';
+    card.innerHTML = `
+      <div class="combo-card-header">
+        <h4 class="combo-card-title">${nombre}</h4>
+        <div class="combo-card-status ${activo ? 'active' : 'inactive'}">
+          <span class="status-indicator ${activo ? 'active' : 'inactive'}"></span>
+          ${activo ? 'Activo' : 'Inactivo'}
+        </div>
+      </div>
+      <div class="combo-card-body">
+        <div class="combo-card-info">
+          <div class="combo-card-price">${precio}</div>
+          <div class="combo-card-items">${itemsResumen} componentes</div>
+        </div>
+      </div>
+      <div class="combo-card-actions">
+        <button class="btn btn-sm btn-primary" data-action="edit" data-id="${comboId}">
+          <i class="fas fa-edit"></i> Editar
+        </button>
+        <button class="btn btn-sm btn-danger" data-action="delete" data-id="${comboId}">
+          <i class="fas fa-trash"></i> Eliminar
+        </button>
+      </div>
+    `;
+    combosGrid.appendChild(card);
+  });
+
+  // Delegación de eventos (editar/eliminar)
+  combosGrid.onclick = (e)=>{
+    const btn = e.target.closest('button[data-action]');
+    if(!btn) return;
+    const id = btn.getAttribute('data-id');
+    const action = btn.getAttribute('data-action');
+    if (action==='edit')   abrirEditorComboExistente(id);
+    if (action==='delete') eliminarCombo(id);
+  };
+}
+
+function abrirEditorComboNuevo(){
+  if (!modalComboEditor) return;
+
+  setComboEditorTitle('Nuevo combo');
+  setComboEditorIds('', 1, ''); // comboId vacío, activo=1, sin maestro
+  clearComboItemsContainer();
+  fillComboProductoOptions(null, null);
+  initSelect2All();
+  addComboItemRow();
+
+  // Mensaje de ayuda
+  const helpMessage = document.getElementById('combo-help-message');
+  if (helpMessage) {
+    helpMessage.innerHTML = `
+      <div class="help-message">
+        <h5>Define un producto "combo" y sus componentes</h5>
+        <p>Organiza por <strong>Grupo</strong> (ej. Bebida, Acompañante). Usa <strong>Max selección</strong> cuando corresponda.</p>
+      </div>
+    `;
+  }
+
+  modalComboEditor.style.display = 'block';
+  setTimeout(()=> $("#combo-producto").trigger('focus'), 10);
+}
+
+function abrirEditorComboExistente(comboId){
+  const combo = combos.find(x => parseInt(x.combo_id||x.id,10) === parseInt(comboId,10));
+  const maestroPid = combo ? (combo.productos_id || combo.producto_id) : null;
+  const activo = combo ? (String(combo.activo)==='1' ? 1 : 0) : 1;
+
+  fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`,{
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body: `action=loadComboDetalle&combo_id=${encodeURIComponent(comboId)}`
+  })
+  .then(r=>r.json())
+  .then(data=>{
+    if (!data || !data.status){ 
+      showNotify && showNotify('error','Error','No se pudo cargar el detalle del combo'); 
+      return; 
+    }
+
+    const items = data.combo_detalle || [];
+    setComboEditorTitle('Editar combo');
+    setComboEditorIds(comboId, activo, maestroPid); // ← guarda hidden con el maestro
+    clearComboItemsContainer();
+    fillComboProductoOptions(maestroPid, comboId);  // excluye maestros usados en otros combos
+    initSelect2All();
+
+    if (Array.isArray(items) && items.length){
+      items.sort((a,b)=> (parseInt(a.orden||1)-parseInt(b.orden||1)));
+      items.forEach(it => addComboItemRow({
+        productos_id: it.productos_id,
+        cantidad: it.cantidad,
+        es_opcional: String(it.es_opcional)==='1',
+        grupo: it.grupo || '',
+        max_seleccion: (it.max_seleccion ?? ''),
+        precio_extra: it.precio_extra || 0,
+        orden: it.orden || ''
+      }));
+    } else {
+      addComboItemRow();
+    }
+
+    modalComboEditor.style.display = 'block';
+  })
+  .catch(()=> showNotify && showNotify('error','Error','Error al cargar el detalle del combo'));
+}
+
+function setComboEditorTitle(text){
+  const el = document.getElementById('titulo-modal-combo');
+  if (el) el.textContent = text;
+}
+
+// Crea/actualiza: también fija un hidden con el productos_id maestro
+function setComboEditorIds(comboId, activo, productos_id){
+  const hid = document.getElementById('combo-id');
+  if (hid) hid.value = comboId ? String(comboId) : '';
+
+  // Hidden para el maestro (necesario en edición)
+  let hidProd = document.getElementById('combo-producto-hidden');
+  if (!hidProd){
+    hidProd = document.createElement('input');
+    hidProd.type = 'hidden';
+    hidProd.id   = 'combo-producto-hidden';
+    hidProd.name = 'combo_producto_hidden';
+    (modalComboEditor || document.body).appendChild(hidProd);
+  }
+  hidProd.value = productos_id ? String(productos_id) : '';
+
+  // Switch Activo
+  const switchContainer = document.getElementById('combo-activo-container');
+  if (switchContainer) {
+    switchContainer.innerHTML = `
+      <label class="switch">
+        <input type="checkbox" id="combo-activo-switch" ${activo ? 'checked' : ''}>
+        <span class="slider round"></span>
+      </label>
+      <span class="switch-label">Combo activo</span>
+    `;
+  }
+
+  // Mostrar producto seleccionado en edición
+  const productoDisplay = document.getElementById('combo-producto-display');
+  const productoSelectContainer = document.getElementById('combo-producto-container');
+
+  if (productos_id && comboId) {
+    const producto = findProductoById(productos_id);
+    if (producto && productoDisplay) {
+      productoDisplay.innerHTML = `
+        <div class="selected-product-display">
+          <strong>Producto que representa el combo:</strong>
+          <span class="product-name-highlight">${producto.nombre}</span>
+        </div>
+        <p class="help-text"><small>Este producto debe existir y será el "maestro" del combo.</small></p>
+      `;
+      productoDisplay.style.display = 'block';
+    }
+    if (productoSelectContainer) productoSelectContainer.style.display = 'none';
+  } else {
+    if (productoDisplay) productoDisplay.style.display = 'none';
+    if (productoSelectContainer) productoSelectContainer.style.display = 'block';
+    const helpText = document.getElementById('combo-producto-help');
+    if (helpText) {
+      helpText.innerHTML = '<small>Este producto debe existir y será el "maestro" del combo.</small>';
+    }
+  }
+}
+
+function fillComboProductoOptions(selectedProductoId, currentComboId){
+  const sel = document.getElementById('combo-producto');
+  if (!sel) return;
+
+  // Productos ya usados por otros combos (excluir)
+  const usados = new Set(
+    combos
+      .filter(c => currentComboId ? (String(c.combo_id||c.id) !== String(currentComboId)) : true)
+      .map(c => String(c.productos_id || c.producto_id))
+  );
+
+  const opts = productos
+    .filter(p => !usados.has(String(p.productos_id)))
+    .map(p => {
+      const selected = (String(p.productos_id) === String(selectedProductoId)) ? 'selected' : '';
+      return `<option value="${p.productos_id}" ${selected}>${p.nombre}</option>`;
+    }).join('');
+
+  sel.innerHTML = `<option value=""></option>${opts}`;
+  if (selectedProductoId) sel.value = String(selectedProductoId);
+
+  initSelect2All();
+}
+
+function clearComboItemsContainer(){
+  const container = document.getElementById('combo-items-container');
+  if (container) container.innerHTML = '';
+}
+
+function addComboItemRow(data){
+  const container = document.getElementById('combo-items-container');
+  if (!container) return;
+
+  const idx = container.children.length + 1;
+  const d = Object.assign({
+    productos_id: '',
+    cantidad: 1,
+    es_opcional: false,
+    grupo: '',
+    max_seleccion: '',
+    precio_extra: 0,
+    orden: idx
+  }, data || {});
+
+  // ID maestro (toma hidden en edición o select en creación)
+  const productoMaestroId =
+    (document.getElementById('combo-producto-hidden')?.value) ||
+    (document.getElementById('combo-producto')?.value) || '';
+
+  // Excluir maestro del listado de componentes
+  const productosFiltrados = productos.filter(p =>
+    String(p.productos_id) !== String(productoMaestroId)
+  );
+
+  const options = productosFiltrados.map(p => {
+    const sel = (String(p.productos_id) === String(d.productos_id)) ? 'selected' : '';
+    return `<option value="${p.productos_id}" ${sel}>${p.nombre}</option>`;
+  }).join('');
+
+  const row = document.createElement('div');
+  row.className = 'component-row card';
+  row.innerHTML = `
+  <div class="component-header">
+    <h5>Componente #${idx}</h5>
+    <button type="button" class="btn btn-sm btn-danger" data-remove-row="1">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <div class="component-body">
+    <!-- 1) PRODUCTO -->
+    <div class="form-group">
+      <label>Producto <small class="text-muted">(No puede ser el producto combo)</small></label>
+      <select class="combo-item-producto select2" data-placeholder="Selecciona un producto">
+        <option value=""></option>
+        ${options}
+      </select>
+    </div>
+
+    <!-- 2) CANTIDAD -->
+    <div class="form-group">
+      <label>Cantidad <small class="text-muted">(Cantidad de este producto en el combo)</small></label>
+      <input type="number" class="form-control combo-item-cantidad" min="0.001" step="0.001" value="${d.cantidad}" placeholder="Cantidad">
+    </div>
+
+    <!-- 3) OPCIONAL (label separado del input para igualar alturas) -->
+    <div class="form-group">
+      <label>Opcional <small class="text-muted">(El cliente puede elegir si lo incluye)</small></label>
+      <label class="checkbox-container" style="margin-top:4px;">
+        <input type="checkbox" class="combo-item-opcional" ${d.es_opcional ? 'checked' : ''}>
+        <span class="checkmark"></span>
+        <span style="margin-left:6px;">Permitir omitir</span>
+      </label>
+    </div>
+
+    <!-- 4) GRUPO -->
+    <div class="form-group">
+      <label>Grupo <small class="text-muted">(Ej. Bebida, Acompañante, Plato fuerte)</small></label>
+      <input type="text" class="form-control combo-item-grupo" placeholder="Grupo" value="${d.grupo}">
+    </div>
+
+    <!-- 5) MÁX. SELECCIÓN -->
+    <div class="form-group">
+      <label>Máx. selección <small class="text-muted">(Máximo de opciones que se pueden elegir de este grupo)</small></label>
+      <input type="number" class="form-control combo-item-max" min="0" step="1" placeholder="Máx. selección" value="${d.max_seleccion}">
+    </div>
+
+    <!-- 6) PRECIO EXTRA -->
+    <div class="form-group">
+      <label>Precio extra <small class="text-muted">(Precio adicional si se selecciona esta opción)</small></label>
+      <input type="number" class="form-control combo-item-extra" min="0" step="0.01" value="${d.precio_extra}" placeholder="Precio extra">
+    </div>
+
+    <!-- 7) ORDEN -->
+    <div class="form-group">
+      <label>Orden <small class="text-muted">(Orden de visualización)</small></label>
+      <input type="number" class="form-control combo-item-orden" min="1" step="1" value="${d.orden}" placeholder="Orden">
+    </div>
+  </div>
+`;
+  container.appendChild(row);
+
+  // Eliminar fila
+  row.querySelector('[data-remove-row]')?.addEventListener('click', ()=>{
+    row.remove();
+    reindexComboItems();
+  });
+
+  initSelect2ForComboRow(row);
+  reindexComboItems();
+}
+
+function reindexComboItems(){
+  const rows = document.querySelectorAll('#combo-items-container .component-row');
+  let n = 1;
+  rows.forEach(r => {
+    const ord = r.querySelector('.combo-item-orden');
+    if (ord) ord.value = n++;
+    const header = r.querySelector('.component-header h5');
+    if (header) header.textContent = `Componente #${n-1}`;
+  });
+}
+
+function collectComboItems(){
+  const rows = document.querySelectorAll('#combo-items-container .component-row');
+  const items = [];
+  for (let r of rows){
+    const prodSel = r.querySelector('select.combo-item-producto');
+    const producto_id = prodSel ? (prodSel.value || '') : '';
+    if (!producto_id) continue;
+
+    const cantidad       = parseFloat((r.querySelector('.combo-item-cantidad')||{}).value || '1') || 1;
+    const es_opcional    = (r.querySelector('.combo-item-opcional')||{}).checked ? 1 : 0;
+    const grupo          = (r.querySelector('.combo-item-grupo')||{}).value?.trim() || '';
+    const max_sel_raw    = (r.querySelector('.combo-item-max')||{}).value;
+    const max_seleccion  = max_sel_raw === '' ? null : parseInt(max_sel_raw,10);
+    const precio_extra   = parseFloat((r.querySelector('.combo-item-extra')||{}).value || '0') || 0;
+    const orden          = parseInt((r.querySelector('.combo-item-orden')||{}).value || '1',10) || 1;
+
+    items.push({
+      productos_id: parseInt(producto_id,10),
+      cantidad,
+      es_opcional,
+      grupo: grupo || null,
+      max_seleccion: (max_seleccion===null ? null : max_seleccion),
+      precio_extra,
+      orden
+    });
+  }
+  return items;
+}
+
+function guardarCombo(){
+  const comboId = (document.getElementById('combo-id')||{}).value || '';
+
+  // Obtener el ID del producto maestro según modo
+  const productos_id =
+    comboId
+      ? (document.getElementById('combo-producto-hidden')?.value || '')       // ← edición (hidden)
+      : (document.getElementById('combo-producto')?.value || '');             // ← creación (select)
+
+  const activoSwitch = document.getElementById('combo-activo-switch');
+  const activo = activoSwitch ? (activoSwitch.checked ? 1 : 0) : 1;
+
+  if (!productos_id){ 
+    showNotify && showNotify('warning','Validación','Seleccione el producto que representa el combo'); 
+    return; 
+  }
+
+  const items = collectComboItems();
+  if (!items.length){ 
+    showNotify && showNotify('warning','Validación','Agregue al menos un ítem al combo'); 
+    return; 
+  }
+
+  const payload = {
+    productos_id: parseInt(productos_id,10),
+    activo,
+    items
+  };
+  let action = 'saveCombo';
+  if (comboId){
+    action = 'updateCombo';
+    payload.combo_id = parseInt(comboId,10);
+  }
+
+  // Unifica envío: application/json (si tu PHP espera urlencoded, cambia abajo)
+  fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ action, data: payload })
+  })
+  .then(r=>r.json())
+  .then(d=>{
+    if (!d || !d.status){ 
+      showNotify && showNotify('error','Error', d && d.message ? d.message : 'No se pudo guardar el combo'); 
+      return; 
+    }
+    showNotify && showNotify('success','Éxito', comboId ? 'Combo actualizado' : 'Combo creado');
+    if (modalComboEditor) modalComboEditor.style.display = 'none';
+    if (modalCombos && modalCombos.style.display === 'block'){
+      cargarCombos();
+    }
+  })
+  .catch(()=> showNotify && showNotify('error','Error','Error al guardar combo'));
+}
+
+function eliminarCombo(comboId){
+  if (!confirm('¿Eliminar este combo?')) return;
+  const fd = new FormData();
+  fd.append('action','deleteCombo');
+  fd.append('combo_id', String(comboId));
+  fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`,{
+    method:'POST',
+    body: fd
+  })
+  .then(r=>r.json())
+  .then(d=>{
+    if (!d || !d.status){ 
+      showNotify && showNotify('error','Error', d && d.message ? d.message : 'No se pudo eliminar'); 
+      return; 
+    }
+    showNotify && showNotify('success','Éxito','Combo eliminado');
+    cargarCombos();
+  })
+  .catch(()=> showNotify && showNotify('error','Error','Error al eliminar combo'));
+}
+
+/* ========= Helpers ========= */
+
+function findProductoById(id){
+  id = parseInt(id,10);
+  return productos.find(p => parseInt(p.productos_id,10) === id);
+}
+
+// Select2 global para el modal (evita “distorsión” y dropdown fuera)
+function initSelect2All(){
+  if (typeof $ === 'undefined' || !$.fn.select2) return;
+  const $modal = $('#modal-combo-editor'); // contenedor del modal
+  $('#combo-producto').select2({
+    width: '100%',
+    dropdownParent: $modal
+  });
+}
+
+function initSelect2ForComboRow(row){
+  if (typeof $ === 'undefined' || !$.fn.select2) return;
+  const $modal = $('#modal-combo-editor');
+  $(row).find('select.select2').select2({
+    width: '100%',
+    dropdownParent: $modal
+  });
+}
+
+  // ===== Abrir selectores =====
+  window.abrirEdicionProducto = abrirEdicionProducto;
+  window.abrirEdicionCategoria = abrirEdicionCategoria;
+  window.abrirEdicionCliente = abrirEdicionCliente;
+  window.abrirEdicionMesa = abrirEdicionMesa;
+
+  // ======= FIN JS =======
+
+  // Restaurar layout al salir
+  window.addEventListener("beforeunload", function () {
+    if (navbarTop) navbarTop.style.display = "";
+    if (navbarLateral) navbarLateral.style.display = "";
+    document.body.classList.remove('vista-facturacion-restaurante');
+  });
+
+  // ==============================
+  // BOTONES: VOLVER y CERRAR SESIÓN
+  // ==============================
+
+  const btnVolver = document.getElementById('btn-volver-dashboard');
+  if (btnVolver) {
+    btnVolver.addEventListener('click', function() {
+      window.location.href = SERVERURL + 'dashboard/';
+    });
+  }
+
+  const btnSalir = document.getElementById('btn-cerrar-sesion');
+  if (btnSalir) {
+    btnSalir.addEventListener('click', function(e) {
+      e.preventDefault();
+      const token = this.getAttribute('data-token') || '';
+      swal({
+        content: {
+          element: "div",
+          attributes: {
+            innerHTML: `
+              <h2 style="color:#f39c12;font-size:22px;margin-bottom:15px;">⚠️ ¿Está seguro?</h2>
+              <p style="font-size:16px;color:#555;">Está a punto de cerrar su sesión. ¿Desea continuar?</p>
+            `
+          }
+        },
+        icon: "warning",
+        buttons: true,
+        dangerMode: true
+      }).then((willExit) => {
+        if (willExit) {
+          salir(token);
+        }
+      });
+    });
+
+    function salir(token) {
+      $.ajax({
+        url: SERVERURL + 'login/cerrarSesion?token=' + encodeURIComponent(token),
+        success: function(data) {
+          if (String(data).trim() == '1') {
+            window.location.href = SERVERURL + 'login/';
+          } else {
+            swal({
+              content: {
+                element: "div",
+                attributes: {
+                  innerHTML: `
+                    <h2 style="color:#e74c3c;font-size:22px;margin-bottom:15px;">❌ Ocurrió un error inesperado</h2>
+                    <p style="font-size:16px;color:#555;">Algo salió mal al cerrar la sesión. Por favor, intente de nuevo.</p>
+                  `
+                }
+              },
+              icon: "error",
+              dangerMode: true,
+              closeOnEsc: false,
+              closeOnClickOutside: false
+            });
+          }
+        },
+        error: function() {
+          swal({
+            content: {
+              element: "div",
+              attributes: {
+                innerHTML: `
+                  <h2 style="color:#e74c3c;font-size:22px;margin-bottom:15px;">❌ Ocurrió un error inesperado</h2>
+                  <p style="font-size:16px;color:#555;">Por favor, intente de nuevo.</p>
+                `
+              }
+            },
+            icon: "error",
+            dangerMode: true,
+              closeOnEsc: false,
+              closeOnClickOutside: false
+          });
+        }
+      });
     }
   }
 

@@ -3306,12 +3306,14 @@ class mainModel
 					fd.isv_valor AS ISV,
 					fd.descuento AS Descuento,
 					(fd.precio * fd.cantidad + fd.isv_valor - fd.descuento) AS Total,
-					c.nombre AS Vendedor
+					c.nombre AS Vendedor,
+					cl.nombre AS Cliente
 				FROM 
 					facturas_detalles fd
 					INNER JOIN productos p ON fd.productos_id = p.productos_id              
 					INNER JOIN facturas f ON fd.facturas_id = f.facturas_id
 					INNER JOIN colaboradores c ON f.colaboradores_id = c.colaboradores_id
+					INNER JOIN clientes AS cl ON f.clientes_id  = cl.clientes_id 
 					INNER JOIN secuencia_facturacion sf ON f.secuencia_facturacion_id = sf.secuencia_facturacion_id
 					INNER JOIN documento AS d ON sf.documento_id = d.documento_id
 			";

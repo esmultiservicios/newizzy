@@ -38,7 +38,8 @@
 			"ISV"=>$row['ISV'],
 			"Descuento"=>$row['Descuento'],
 			"Total"=>$row['Total'],
-			"Vendedor"=>$row['Vendedor']		  
+			"Vendedor"=>$row['Vendedor'],
+			"Cliente"=>$row['Cliente']		  
 		);		
 	}
 	

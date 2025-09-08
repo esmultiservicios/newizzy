@@ -687,6 +687,9 @@
                     "data": "numero"
                 },
                 {
+                    "data": "Cliente"
+                },                
+                {
                     "data": "Precio",
                     render: function (data, type) {
                         var number = $.fn.dataTable.render

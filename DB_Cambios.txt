@@ -1,13 +1,91 @@
-####06 de septiembre 2025####
+####09 de septiembre 2025#### (Pendiente ejecutar esto y borrar la de combo y combo_detalles que ya habiamos creado)
 ALTER TABLE `categoria`
   ADD COLUMN `estacion` ENUM('ninguna','cocina','barra') NOT NULL DEFAULT 'ninguna'
   AFTER `nombre`;
 
--- Opcional: si ya tienes categorías y quieres “marcar” algunas rápidamente:
--- (ajusta los WHERE a tus nombres reales)
-UPDATE categoria SET estacion='barra'  WHERE nombre IN ('Bebidas','Cocteles','Café');
-UPDATE categoria SET estacion='cocina' WHERE nombre IN ('Platos','Desayunos','Hamburguesas');
+/*==========================================================
+ Paso 0: convertir productos a InnoDB
+ (requerido para soportar claves foráneas)
+==========================================================*/
+ALTER TABLE productos ENGINE=InnoDB;
 
+/*==========================================================
+ Tabla combos 
+ Guarda la definición de combos (producto padre vendible) 
+==========================================================*/
+CREATE TABLE combos (
+  combo_id              INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Identificador único del combo',
+  productos_id          INT NOT NULL COMMENT 'Producto padre en la tabla productos',
+  activo                TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Estado del combo (1=activo, 0=inactivo)',
+  precio_venta          DECIMAL(12,2) NULL COMMENT 'Si es NULL, usa el precio del producto padre',
+  version_actual        INT NOT NULL DEFAULT 1 COMMENT 'Número de versión de la receta vigente',
+  fecha_creacion        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Fecha de creación del registro',
+  fecha_actualizacion   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Última fecha de actualización',
+  UNIQUE KEY uq_combo_producto (productos_id),
+  CONSTRAINT fk_combos_producto_padre
+    FOREIGN KEY (productos_id) REFERENCES productos(productos_id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci
+COMMENT='Tabla combos: guarda los productos que son combos y que se venden como un todo';
+
+/*==========================================================
+ Tabla combo_detalle 
+ Guarda la receta: componentes hijos que se descuentan del inventario
+==========================================================*/
+CREATE TABLE combo_detalle (
+  combo_detalle_id        INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Identificador único del detalle del combo',
+  combo_id                INT NOT NULL COMMENT 'Referencia al combo (padre)',
+  productos_id            INT NOT NULL COMMENT 'Producto hijo que compone el combo',
+  cantidad_por_porcion    DECIMAL(12,4) NOT NULL DEFAULT 1.0000 COMMENT 'Cantidad de insumo consumido por porción',
+  unidad                  VARCHAR(20) NULL COMMENT 'Unidad de medida (ej: g, ml, und)',
+  merma_pct               DECIMAL(5,2) NOT NULL DEFAULT 0.00 COMMENT 'Porcentaje de merma (ej: 10.00 = 10%)',
+  obligatorio             TINYINT(1) NOT NULL DEFAULT 1 COMMENT '1=fijo (siempre incluido), 0=opcional',
+  precio_extra            DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT 'Recargo si el insumo opcional se selecciona',
+  version                 INT NOT NULL DEFAULT 1 COMMENT 'Número de versión de la receta',
+  orden                   SMALLINT NOT NULL DEFAULT 1 COMMENT 'Orden de presentación',
+  fecha_registro          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Fecha de registro del detalle',
+  CONSTRAINT fk_detalle_combo
+    FOREIGN KEY (combo_id) REFERENCES combos(combo_id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE,
+  CONSTRAINT fk_detalle_producto_hijo
+    FOREIGN KEY (productos_id) REFERENCES productos(productos_id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT,
+  KEY idx_detalle_combo (combo_id),
+  KEY idx_detalle_producto (productos_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci
+COMMENT='Tabla combo_detalle: define los productos hijos que forman parte de cada combo';
+
+/*==========================================================
+ Tabla combo_categoria_regla 
+ Reglas de selección máxima por categoría de los productos hijos
+ (ej: Bebida: máximo 1). Usa la tabla categoria para identificar estación.
+==========================================================*/
+CREATE TABLE combo_categoria_regla (
+  combo_categoria_regla_id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Identificador único de la regla de categoría',
+  combo_id                 INT NOT NULL COMMENT 'Referencia al combo (padre)',
+  categoria_id             INT NOT NULL COMMENT 'Categoría de los productos hijos (ej: Bebidas)',
+  max_seleccion            TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Número máximo de items seleccionables de esta categoría',
+  fecha_creacion           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Fecha de creación de la regla',
+  CONSTRAINT fk_ccr_combo
+    FOREIGN KEY (combo_id) REFERENCES combos(combo_id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE,
+  UNIQUE KEY uq_combo_categoria (combo_id, categoria_id),
+  KEY idx_ccr_combo (combo_id),
+  KEY idx_ccr_categoria (categoria_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci
+COMMENT='Tabla combo_categoria_regla: guarda las restricciones por categoría dentro de un combo';
+
+ALTER TABLE categoria ENGINE=InnoDB;
+
+ALTER TABLE combo_categoria_regla
+  ADD CONSTRAINT fk_ccr_categoria
+  FOREIGN KEY (categoria_id) REFERENCES categoria(categoria_id)
+  ON UPDATE CASCADE
+  ON DELETE RESTRICT;
 
 ####05 de septiembre 2025####
 -- Bandera restaurante e ISV por producto

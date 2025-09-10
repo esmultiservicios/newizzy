@@ -93,6 +93,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const formMesa = document.getElementById('form-mesa');
   const formNuevoCliente = document.getElementById('form-nuevo-cliente');
 
+  // === Combos === ///
   // ===== Helpers =====
   function getProdControls() {
     return {
@@ -163,6 +164,7 @@ document.addEventListener('DOMContentLoaded', function () {
       dropdownParent: $('#modal-producto')
     }).on('change', actualizarProdEstacionInfo);
   }
+
   function initSelect2ForComboRow(rowEl){
     if (!(window.jQuery && jQuery.fn && jQuery.fn.select2)) return;
     const $sel = $(rowEl).find('select.combo-item-producto');
@@ -178,39 +180,72 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ==== ESTACIONES (Cocina/Barra) ====
   function normalizeEstacion(cat){
-    let est = (cat.estacion || cat.station || cat.ruta || cat.tipo || '').toString().toLowerCase();
+    // tomar la mejor fuente, recortar y bajar a minúsculas
+    let est = (cat.estacion || cat.station || cat.ruta || cat.tipo || '')
+      .toString()
+      .trim()          // <- importante para "cocina " / " barra"
+      .toLowerCase();
+  
+    // alias comunes por si llegan de BD/servicios
+    if (est === 'kitchen' || est === 'cuisine') est = 'cocina';
+    if (est === 'bar' || est === 'barra de tragos') est = 'barra';
+  
+    // compatibilidad con flags antiguos
     if (!est) {
-      if (String(cat.es_cocina || '') === '1') est = 'cocina';
-      else if (String(cat.es_barra || '') === '1') est = 'barra';
+      if (String(cat.es_cocina || '').trim() === '1') est = 'cocina';
+      else if (String(cat.es_barra || '').trim() === '1') est = 'barra';
       else est = 'ninguna';
     }
+  
     if (!['cocina','barra','ninguna'].includes(est)) est = 'ninguna';
     return est;
-  }
+  }  
+
   function estacionSeleccionadaUI(){
     const r = document.querySelector('#filtro-estacion input[name="filEst"]:checked');
     return r ? r.value : 'todas';
   }
-  function prodEstacionSeleccionadaUI(){
-    const r = document.querySelector('#prod-estacion input[name="prodEstacion"]:checked');
+
+  function prodEstacionSeleccionadaUI() {
+    const wrap = document.getElementById('prod-estacion');
+    const r = wrap ? wrap.querySelector('input[name="prodEstacion"]:checked') : null;
     return r ? r.value : 'cocina';
   }
+
   function fillProdCategoriaOptionsByEstacion(preselectId){
     const { selCat } = getProdControls();
     if (!selCat) return;
-    const est = prodEstacionSeleccionadaUI();
-    const list = categorias.filter(c => normalizeEstacion(c) === est);
-    if (!list.length) {
+  
+    // Si aún no hay categorías, espera y vuelve a intentarlo
+    if (!Array.isArray(categorias) || !categorias.length){
+      ensureCategoriasReady().then(()=> fillProdCategoriaOptionsByEstacion(preselectId));
+      return;
+    }
+  
+    const est = prodEstacionSeleccionadaUI(); // 'cocina' | 'barra'
+    let list = categorias.filter(c => normalizeEstacion(c) === est);
+  
+    // Fallback: si no hay por estación, muestra todas (para no dejar vacío)
+    if (!list.length && categorias.length){
+      list = categorias.slice();
+    }
+  
+    if (!list.length){
       selCat.innerHTML = '<option value="">(No hay categorías)</option>';
     } else {
-      selCat.innerHTML = list.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+      selCat.innerHTML = list.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+      // Seleccionar algo para activar el badge
+      if (preselectId){
+        selCat.value = String(preselectId);
+      } else if (!selCat.value && list.length){
+        selCat.value = String(list[0].id);
+      }
     }
-    if (preselectId) {
-      selCat.value = String(preselectId);
-    }
+  
     reinitSelect2ProdCategoria();
     actualizarProdEstacionInfo();
-  }
+  }  
+
   function actualizarProdEstacionInfo(){
     const sel = document.getElementById('prod-categoria');
     const wrap = document.getElementById('prod-estacion-info');
@@ -290,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (btnImprimir) {
       btnImprimir.addEventListener('click', function () {
         const id = (facturaActual && (facturaActual.factura_id || facturaActual.id)) ? (facturaActual.factura_id || facturaActual.id) : null;
-        if (!id) { showNotify && showNotify('warning', 'Sin factura', 'No hay una factura cargada para imprimir'); return; }
+        if (!id) { showAlert('warning', 'Sin factura', 'No hay una factura cargada para imprimir'); return; }
         if (typeof printBill === 'function') printBill(id); else window.print();
       });
     }
@@ -366,34 +401,42 @@ document.addEventListener('DOMContentLoaded', function () {
       document.getElementById('titulo-modal-categoria') && (document.getElementById('titulo-modal-categoria').textContent = 'Nueva Categoría');
       if (inp) inp.value='';
       if (hid) hid.value='';
+    
+      setCatEstacion('cocina'); // ← **este es el fix**
+    
       if (modalCategoria) modalCategoria.style.display='block';
       setTimeout(()=>inp && inp.focus(),10);
-    });
+    });    
 
     if (btnNuevoProducto) btnNuevoProducto.addEventListener('click', ()=>{
       editContext.productoId = null;
-      const { selCat, inpNombre, inpDesc, inpPrecio, chkISV1, chkISV2 } = getProdControls();
+      const { inpNombre, inpDesc, inpPrecio, chkISV1, chkISV2 } = getProdControls();
+    
       if (inpNombre) inpNombre.value='';
-      if (inpDesc) inpDesc.value='';
-      if (inpPrecio) inpPrecio.value='';
-      if (chkISV1) chkISV1.checked=false;
-      if (chkISV2) chkISV2.checked=false;
-
-      const el = document.getElementById('prod-id');
-      if (el) el.value = '';
-
-      document.getElementById('titulo-modal-producto') && (document.getElementById('titulo-modal-producto').textContent = 'Nuevo Producto');
-
+      if (inpDesc)   inpDesc.value='';
+      if (inpPrecio) inpPrecio.value='0.00';
+      if (chkISV1)   chkISV1.checked=false;
+      if (chkISV2)   chkISV2.checked=false;
+    
+      const hid = document.getElementById('prod-id');
+      if (hid) hid.value = '';
+    
+      const t = document.getElementById('titulo-modal-producto');
+      if (t) t.textContent = 'Nuevo Producto';
+    
       prepararModalProductoISV();
-
       resetProductoImagen();
       initProductoImageUpload();
-
-      fillProdCategoriaOptionsByEstacion();
-
+    
+      // 1) Selecciona REALMENTE Cocina
+      setProdEstacion('cocina');
+    
+      // 2) Si por timing aún no hay categorías, espera y llena; si ya hay, no pasa nada
+      ensureCategoriasReady().then(()=> fillProdCategoriaOptionsByEstacion());
+    
       if (modalProducto) modalProducto.style.display='block';
       setTimeout(()=>{ inpNombre && inpNombre.focus(); },10);
-    });
+    });    
 
     const btnGuardarCategoria = document.getElementById('btn-guardar-categoria');
     if (btnGuardarCategoria) btnGuardarCategoria.addEventListener('click', guardarCategoriaDesdeModal);
@@ -442,12 +485,13 @@ document.addEventListener('DOMContentLoaded', function () {
           clienteSeleccionado = {
             id: nuevoCliente.clientes_id,
             nombre: nuevoCliente.nombre || 'Cliente',
-            identificacion: nuevoCliente.identificacion || ''
+            identificacion: (nuevoCliente.identificacion || nuevoCliente.rtn || '').trim()
           };
-          if (clienteInfoElement) clienteInfoElement.textContent = `Cliente: ${clienteSeleccionado.nombre}`;
+          pintarClienteInfoHeader();
         }
       });
-    };
+    };    
+
   }
 
   // Evitar cerrar modales por fondo/ESC
@@ -503,9 +547,9 @@ document.addEventListener('DOMContentLoaded', function () {
       .then(response => response.json())
       .then(data => {
         if (data.status) { mesas = data.mesas; renderizarMesas(); }
-        else { showNotify && showNotify('error', 'Error', 'No se pudieron cargar las mesas'); }
+        else { showAlert('error', 'Error', 'No se pudieron cargar las mesas'); }
       })
-      .catch(() => { showNotify && showNotify('error', 'Error', 'Error al cargar las mesas'); });
+      .catch(() => { showAlert('error', 'Error', 'Error al cargar las mesas'); });
   }
 
   function renderizarMesas() {
@@ -554,6 +598,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function seleccionarMesa(mesa){
+    // Guardar mesa seleccionada
     mesaSeleccionada = {
       id: mesa.id || mesa.mesa_id,
       numero: mesa.numero,
@@ -561,23 +606,27 @@ document.addEventListener('DOMContentLoaded', function () {
       ubicacion: mesa.ubicacion,
       estado: mesa.estado
     };
-
+  
+    // Actualizar UI básica
     if (mesaSeleccionadaElement) mesaSeleccionadaElement.textContent = `Mesa: ${mesaSeleccionada.numero}`;
     if (facturaTitle) facturaTitle.textContent = 'Nueva Comanda';
     if (btnImprimir) btnImprimir.disabled = true;
-
-    clienteSeleccionado = { id: 0, nombre: 'CONSUMIDOR FINAL', identificacion: '' };
-    if (clienteInfoElement) clienteInfoElement.textContent = `Cliente: ${clienteSeleccionado.nombre}`;
-
+  
+    // IMPORTANTE: NO resetear clienteSeleccionado aquí para evitar que parpadee a "CONSUMIDOR FINAL".
+    // Deja que cargarFacturaMesa() ponga el cliente correcto (o CF si no hay factura).
+  
+    // Reiniciar comanda visualmente
     comandaItems = [];
     actualizarComandaUI();
-
+  
+    // Marcar mesa activa
     highlightMesaSeleccionada();
-
+  
+    // Cargar factura (si existe) para esta mesa
     if (mesaSeleccionada.id) {
       cargarFacturaMesa(mesaSeleccionada.id);
     }
-  }
+  }  
 
   function abrirEdicionMesa(mesa){
     const n  = document.getElementById('numero-mesa');
@@ -617,29 +666,36 @@ document.addEventListener('DOMContentLoaded', function () {
     const numeroMesa = (document.getElementById('numero-mesa') || {}).value?.trim() || '';
     const capacidad  = (document.getElementById('capacidad-mesa') || {}).value || '4';
     const ubicacion  = (document.getElementById('ubicacion-mesa') || {}).value || 'Interior';
-    if (!numeroMesa) { showNotify && showNotify('error', 'Error', 'El número de mesa es requerido'); return; }
+    if (!numeroMesa) { showAlert('error', 'Error', 'El número de mesa es requerido'); return; }
 
-    const formData = new FormData();
-    const action = mesaId ? 'updateMesa' : 'saveMesa';
-    formData.append('action', action);
-    if (mesaId) formData.append('mesa_id', mesaId);
-    formData.append('numero', numeroMesa);
-    formData.append('capacidad', capacidad);
-    formData.append('ubicacion', ubicacion);
+    const accion = mesaId ? 'editar' : 'guardar';
+    const mensaje = mesaId ? 
+      `¿Está seguro que desea editar la mesa ${numeroMesa}?` : 
+      `¿Está seguro que desea guardar la nueva mesa ${numeroMesa}?`;
+    
+    showConfirm(accion === 'editar' ? 'Editar Mesa' : 'Nueva Mesa', mensaje, () => {
+      const formData = new FormData();
+      const action = mesaId ? 'updateMesa' : 'saveMesa';
+      formData.append('action', action);
+      if (mesaId) formData.append('mesa_id', mesaId);
+      formData.append('numero', numeroMesa);
+      formData.append('capacidad', capacidad);
+      formData.append('ubicacion', ubicacion);
 
-    fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, { method: 'POST', body: formData })
-      .then(r => r.json())
-      .then(data => {
-        if (data.status) {
-          showNotify && showNotify('success', 'Éxito', mesaId ? 'Mesa actualizada correctamente' : 'Mesa guardada correctamente');
-          if (modalMesa) modalMesa.style.display = 'none';
-          (document.getElementById('mesa-id')||{}).value = '';
-          cargarMesas();
-        } else {
-          showNotify && showNotify('error', 'Error', data.message || 'No se pudo guardar la mesa');
-        }
-      })
-      .catch(() => { showNotify && showNotify('error', 'Error', 'Error al guardar la mesa'); });
+      fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+          if (data.status) {
+            showAlert('success', 'Éxito', mesaId ? 'Mesa actualizada correctamente' : 'Mesa guardada correctamente');
+            if (modalMesa) modalMesa.style.display = 'none';
+            (document.getElementById('mesa-id')||{}).value = '';
+            cargarMesas();
+          } else {
+            showAlert('error', 'Error', data.message || 'No se pudo guardar la mesa');
+          }
+        })
+        .catch(() => { showAlert('error', 'Error', 'Error al guardar la mesa'); });
+    });
   }
 
   // ===== Categorías / Productos =====
@@ -727,10 +783,10 @@ document.addEventListener('DOMContentLoaded', function () {
             renderizarCategorias();
           }
         } else {
-          showNotify && showNotify('error', 'Error', 'No se pudieron cargar los productos');
+          showAlert('error', 'Error', 'No se pudieron cargar los productos');
         }
       })
-      .catch(() => { showNotify && showNotify('error', 'Error', 'Error al cargar los productos'); });
+      .catch(() => { showAlert('error', 'Error', 'Error al cargar los productos'); });
   }
 
   function renderizarProductos(productosList) {
@@ -837,84 +893,97 @@ document.addEventListener('DOMContentLoaded', function () {
     const nombre = (document.getElementById('cat-nombre')||{}).value?.trim() || '';
     const idCat  = (document.getElementById('cat-id')||{}).value || '';
 
-    if (!nombre) { showNotify && showNotify('warning','Validación','Nombre de categoría requerido'); return; }
-    const fd = new FormData();
-    fd.append('nombre', nombre);
+    if (!nombre) { showAlert('warning','Validación','Nombre de categoría requerido'); return; }
+    
+    const accion = idCat ? 'editar' : 'guardar';
+    const mensaje = idCat ? 
+      `¿Está seguro que desea editar la categoría "${nombre}"?` : 
+      `¿Está seguro que desea guardar la nueva categoría "${nombre}"?`;
+    
+    showConfirm(accion === 'editar' ? 'Editar Categoría' : 'Nueva Categoría', mensaje, () => {
+      const fd = new FormData();
+      fd.append('nombre', nombre);
 
-    if (idCat) {
-      fd.append('action','updateCategoria');
-      fd.append('categoria_id', idCat);
-    } else {
-      fd.append('action','saveCategoria');
-    }
+      if (idCat) {
+        fd.append('action','updateCategoria');
+        fd.append('categoria_id', idCat);
+      } else {
+        fd.append('action','saveCategoria');
+      }
 
-    fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, { method:'POST', body: fd })
-      .then(r=>r.json())
-      .then(d=>{
-        if (!d.status) { showNotify && showNotify('error','Error', d.message||'No se pudo guardar'); return; }
-        showNotify && showNotify('success','Éxito', idCat ? 'Categoría actualizada' : 'Categoría guardada');
-        if (modalCategoria) modalCategoria.style.display='none';
-        (document.getElementById('cat-id')||{}).value = '';
-        document.getElementById('titulo-modal-categoria') && (document.getElementById('titulo-modal-categoria').textContent = 'Nueva Categoría');
-        cargarCategorias();
-      })
-      .catch(()=> showNotify && showNotify('error','Error','No se pudo guardar'));
+      fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, { method:'POST', body: fd })
+        .then(r=>r.json())
+        .then(d=>{
+          if (!d.status) { showAlert('error','Error', d.message||'No se pudo guardar'); return; }
+          showAlert('success','Éxito', idCat ? 'Categoría actualizada' : 'Categoría guardada');
+          if (modalCategoria) modalCategoria.style.display='none';
+          (document.getElementById('cat-id')||{}).value = '';
+          document.getElementById('titulo-modal-categoria') && (document.getElementById('titulo-modal-categoria').textContent = 'Nueva Categoría');
+          cargarCategorias();
+        })
+        .catch(()=> showAlert('error','Error','No se pudo guardar'));
+    });
   }
 
-  function guardarProductoBasico() {
+  function guardarProductoBasico(){
     const { inpNombre, inpDesc, selCat, inpPrecio, chkISV1, chkISV2 } = getProdControls();
-    const id = (document.getElementById('prod-id') || {}).value || '';
-    const nombre = (inpNombre || {}).value?.trim() || '';
-    const desc = (inpDesc || {}).value?.trim() || '';
-    const catId = (selCat || {}).value || '';
-    const precio = parseFloat((inpPrecio || {}).value || '0') || 0;
-    const isv1 = !!(chkISV1 || {}).checked;
-    const isv2 = !!(chkISV2 || {}).checked;
-  
-    if (!nombre) { showNotify && showNotify('warning', 'Validación', 'Nombre requerido'); return; }
-    if (!catId) { showNotify && showNotify('warning', 'Validación', 'Seleccione categoría'); return; }
-  
-    // Usar FormData para enviar tanto los datos como la imagen
-    const formData = new FormData();
-    formData.append('action', id ? 'updateProductoBasico' : 'saveProductoBasico');
+    const id     = (document.getElementById('prod-id')||{}).value || '';
+    const nombre = (inpNombre||{}).value?.trim() || '';
+    const desc   = (inpDesc||{}).value?.trim() || '';
+    const catId  = (selCat||{}).value || '';
+    const precio = parseFloat((inpPrecio||{}).value || '0') || 0;
+    const isv1   = !!(chkISV1||{}).checked;
+    const isv2   = !!(chkISV2||{}).checked;
+
+    if (!nombre) { showAlert('warning','Validación','Nombre requerido'); return; }
+    if (!catId)  { showAlert('warning','Validación','Seleccione categoría'); return; }
+
+    const accion = id ? 'editar' : 'guardar';
+    const mensaje = id ? 
+      `¿Está seguro que desea editar el producto "${nombre}"?` : 
+      `¿Está seguro que desea guardar el nuevo producto "${nombre}"?`;
     
-    if (id) {
-      formData.append('productos_id', id);
-      formData.append('producto_id', id);
-    }
-    
-    formData.append('nombre', nombre);
-    formData.append('descripcion', desc);
-    formData.append('categoria_id', catId);
-    formData.append('precio_venta', precio);
-    formData.append('isv1', isv1 ? 1 : 0);
-    formData.append('isv2', isv2 ? 1 : 0);
-  
-    // Agregar la imagen si existe
-    const imagenFile = getProductoImagenFile();
-    if (imagenFile) {
-      formData.append('imagen_producto', imagenFile);
-    }
-  
-    fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
-      method: 'POST',
-      body: formData // ¡Importante! No establecer Content-Type cuando se usa FormData
-    })
-      .then(r => r.json())
-      .then(d => {
-        if (!d.status) { 
-          showNotify && showNotify('error', 'Error', d.message || 'No se pudo guardar'); 
-          return; 
-        }
-  
-        showNotify && showNotify('success', 'Éxito', id ? 'Producto actualizado' : 'Producto guardado');
-        if (modalProducto) modalProducto.style.display = 'none';
-        (document.getElementById('prod-id') || {}).value = '';
-        document.getElementById('titulo-modal-producto') && (document.getElementById('titulo-modal-producto').textContent = 'Nuevo Producto');
-        resetProductoImagen();
-        cargarProductos();
+    showConfirm(accion === 'editar' ? 'Editar Producto' : 'Nuevo Producto', mensaje, () => {
+      const payload = {
+        productos_id: id ? parseInt(id) : undefined,
+        nombre, descripcion: desc, categoria_id: parseInt(catId),
+        precio_venta: precio,
+        isv1: isv1 ? 1 : 0,
+        isv2: (!isv1 && isv2) ? 1 : 0
+      };
+
+      const action = id ? 'updateProductoBasico' : 'saveProductoBasico';
+
+      fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ action, data: payload })
       })
-      .catch(() => showNotify && showNotify('error', 'Error', 'No se pudo guardar el producto'));
+        .then(r=>r.json())
+        .then(async d=>{
+          if (!d.status) { showAlert('error','Error', d.message||'No se pudo guardar'); return; }
+
+          const pid  = id || d.producto_id;
+          const file = getProductoImagenFile();
+
+          if (pid && file) {
+            try {
+              const ok = await subirImagenProducto(pid, file);
+              if (!ok) showAlert('warning','Atención','Guardado, pero falló la imagen');
+            } catch {
+              showAlert('warning','Atención','Guardado, pero falló la imagen');
+            }
+          }
+
+          showAlert('success','Éxito', id ? 'Producto actualizado' : 'Producto guardado');
+          if (modalProducto) modalProducto.style.display='none';
+          (document.getElementById('prod-id')||{}).value = '';
+          document.getElementById('titulo-modal-producto') && (document.getElementById('titulo-modal-producto').textContent = 'Nuevo Producto');
+          resetProductoImagen();
+          cargarProductos();
+        })
+        .catch(()=> showAlert('error','Error','No se pudo guardar el producto'));
+    });
   }
 
   // ===== Clientes =====
@@ -930,10 +999,10 @@ document.addEventListener('DOMContentLoaded', function () {
           clientes = data.clientes || [];
           if (modalCliente && modalCliente.style.display === 'block') renderizarClientes();
         } else {
-          showNotify && showNotify('error', 'Error', 'No se pudieron cargar los clientes');
+          showAlert('error', 'Error', 'No se pudieron cargar los clientes');
         }
       })
-      .catch(() => { showNotify && showNotify('error', 'Error', 'Error al cargar los clientes'); });
+      .catch(() => { showAlert('error', 'Error', 'Error al cargar los clientes'); });
   }
 
   function mapearClienteObjeto(c){
@@ -1011,15 +1080,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function confirmarSeleccionCliente(){
     if (!selectedClienteForModal) return;
+  
     clienteSeleccionado = {
       id: Number(selectedClienteForModal.id || selectedClienteForModal.clientes_id || 0),
       nombre: selectedClienteForModal.nombre,
-      identificacion: selectedClienteForModal.identificacion || ''
+      identificacion: (selectedClienteForModal.identificacion || '').trim()
     };
-    const clienteInfoElement = document.getElementById('cliente-info');
-    if (clienteInfoElement) clienteInfoElement.textContent = `Cliente: ${clienteSeleccionado.nombre}`;
+  
+    pintarClienteInfoHeader();
+  
     if (modalCliente) modalCliente.style.display = 'none';
-  }
+  }  
 
   function mostrarModalCliente() {
     renderizarClientes();
@@ -1067,49 +1138,56 @@ document.addEventListener('DOMContentLoaded', function () {
     const telefono   = (document.getElementById('cli-telefono')||{}).value?.trim() || '';
     const correo     = (document.getElementById('cli-correo')||{}).value?.trim() || '';
 
-    if (!nombre){ showNotify && showNotify('warning','Validación','Nombre/ Razón social es obligatorio'); return; }
+    if (!nombre){ showAlert('warning','Validación','Nombre/ Razón social es obligatorio'); return; }
 
-    const payload = {
-      clientes_id: id ? parseInt(id) : undefined,
-      nombre,
-      rtn,
-      fecha: new Date().toISOString().slice(0,10),
-      departamentos_id: 0,
-      municipios_id: 0,
-      localidad,
-      telefono,
-      correo,
-      estado: 1
-    };
+    const accion = id ? 'editar' : 'guardar';
+    const mensaje = id ? 
+      `¿Está seguro que desea editar el cliente "${nombre}"?` : 
+      `¿Está seguro que desea guardar el nuevo cliente "${nombre}"?`;
+    
+    showConfirm(accion === 'editar' ? 'Editar Cliente' : 'Nuevo Cliente', mensaje, () => {
+      const payload = {
+        clientes_id: id ? parseInt(id) : undefined,
+        nombre,
+        rtn,
+        fecha: new Date().toISOString().slice(0,10),
+        departamentos_id: 0,
+        municipios_id: 0,
+        localidad,
+        telefono,
+        correo,
+        estado: 1
+      };
 
-    const action = id ? 'updateClienteBasico' : 'saveClienteBasico';
+      const action = id ? 'updateClienteBasico' : 'saveClienteBasico';
 
-    fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ action, data: payload })
-    })
-      .then(r=>r.json())
-      .then(d=>{
-        if (!d.status){ showNotify && showNotify('error','Error', d.message || 'No se pudo guardar el cliente'); return; }
-        showNotify && showNotify('success','Éxito', id ? 'Cliente actualizado' : 'Cliente guardado');
-        if (modalNuevoCliente) modalNuevoCliente.style.display = 'none';
-        (document.getElementById('cli-id')||{}).value = '';
-        document.getElementById('titulo-modal-cliente') && (document.getElementById('titulo-modal-cliente').textContent = 'Nuevo Cliente');
-
-        cargarClientes().then(()=>{
-          const cli = d.cliente;
-          if (cli && cli.clientes_id){
-            clienteSeleccionado = {
-              id: cli.clientes_id,
-              nombre: cli.nombre || nombre,
-              identificacion: cli.rtn || rtn
-            };
-            if (clienteInfoElement) clienteInfoElement.textContent = `Cliente: ${clienteSeleccionado.nombre}`;
-          }
-        });
+      fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ action, data: payload })
       })
-      .catch(()=> showNotify && showNotify('error','Error','No se pudo guardar el cliente'));
+        .then(r=>r.json())
+        .then(d=>{
+          if (!d.status){ showAlert('error','Error', d.message || 'No se pudo guardar el cliente'); return; }
+          showAlert('success','Éxito', id ? 'Cliente actualizado' : 'Cliente guardado');
+          if (modalNuevoCliente) modalNuevoCliente.style.display = 'none';
+          (document.getElementById('cli-id')||{}).value = '';
+          document.getElementById('titulo-modal-cliente') && (document.getElementById('titulo-modal-cliente').textContent = 'Nuevo Cliente');
+
+          cargarClientes().then(()=>{
+            const cli = d.cliente;
+            if (cli && cli.clientes_id){
+              clienteSeleccionado = {
+                id: cli.clientes_id,
+                nombre: cli.nombre || nombre,
+                identificacion: (cli.identificacion || cli.rtn || rtn || '').trim()
+              };
+              pintarClienteInfoHeader();
+            }
+          });          
+        })
+        .catch(()=> showAlert('error','Error','No se pudo guardar el cliente'));
+    });
   }
 
   function abrirEdicionCliente(c){
@@ -1160,6 +1238,7 @@ document.addEventListener('DOMContentLoaded', function () {
             precio: parseFloat(item.precio),
             total: parseFloat(item.precio) * parseFloat(item.cantidad)
           }));
+          
 
           if (mesaSeleccionadaElement) mesaSeleccionadaElement.textContent = `Mesa: ${mesaSeleccionada.numero}`;
           if (facturaTitle) facturaTitle.textContent = `Factura #${facturaActual.number}`;
@@ -1167,12 +1246,15 @@ document.addEventListener('DOMContentLoaded', function () {
           if (btnImprimir) btnImprimir.disabled = false;
 
           if (facturaActual.cliente_id && facturaActual.cliente_nombre) {
-            clienteSeleccionado = { id: facturaActual.cliente_id, nombre: facturaActual.cliente_nombre, identificacion: facturaActual.cliente_identificacion || '' };
-            if (clienteInfoElement) clienteInfoElement.textContent = `Cliente: ${facturaActual.cliente_nombre}`;
+            clienteSeleccionado = {
+              id: facturaActual.cliente_id,
+              nombre: facturaActual.cliente_nombre,
+              identificacion: (facturaActual.cliente_identificacion || '').trim()
+            };
           } else {
             clienteSeleccionado = { id: 0, nombre: 'CONSUMIDOR FINAL', identificacion: '' };
-            if (clienteInfoElement) clienteInfoElement.textContent = 'Cliente: Consumidor final';
           }
+          pintarClienteInfoHeader();          
 
           actualizarComandaUI();
           highlightMesaSeleccionada();
@@ -1189,7 +1271,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       })
       .catch(() => {
-        showNotify && showNotify('error', 'Error', 'Error al cargar la factura');
+        showAlert('error', 'Error', 'Error al cargar la factura');
       });
   }
 
@@ -1322,7 +1404,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function guardarFactura() {
-    if (comandaItems.length === 0) { showNotify && showNotify('warning', 'Advertencia', 'La comanda está vacía'); return; }
+    if (comandaItems.length === 0) { showAlert('warning', 'Advertencia', 'La comanda está vacía'); return; }
     const metodoPago = document.querySelector('input[name="metodo-pago"]:checked')?.value || '';
     const observaciones = observacionesTextarea ? observacionesTextarea.value : '';
 
@@ -1341,43 +1423,48 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     const accion = facturaData.factura_id ? 'updateFactura' : 'saveFactura';
-
-    fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: accion, data: facturaData })
-    })
-      .then(r => r.json())
-      .then(data => {
-        if (!data.status) { showNotify && showNotify('error', 'Error', data.message || 'Error al guardar la factura'); return; }
-        showNotify && showNotify('success', 'Éxito', facturaData.factura_id ? 'Factura actualizada' : 'Factura guardada');
-        if (accion === 'saveFactura' && data.factura) {
-          facturaActual = data.factura;
-        } else if (accion === 'updateFactura' && data.factura_id) {
-          if (!facturaActual) facturaActual = {};
-          facturaActual.factura_id = data.factura_id;
-          facturaActual.id = data.factura_id;
-        }
-        if (facturaActual && facturaActual.number && facturaTitle) facturaTitle.textContent = `Factura #${facturaActual.number}`;
-        if (btnImprimir) btnImprimir.disabled = false;
-        cargarMesas();
-
-        if (metodoPago !== '') {
-          const fid = (data.factura_id) ? data.factura_id
-            : (data.factura && (data.factura.factura_id || data.factura.id)) ? (data.factura.factura_id || data.factura.id)
-              : (facturaActual && (facturaActual.factura_id || facturaActual.id)) ? (facturaActual.factura_id || facturaActual.id)
-                : null;
-          if (fid && typeof printBill === 'function') printBill(fid);
-        }
+    const mensaje = facturaData.factura_id ? 
+      '¿Está seguro que desea actualizar esta factura?' : 
+      '¿Está seguro que desea guardar esta factura?';
+    
+    showConfirm(facturaData.factura_id ? 'Actualizar Factura' : 'Guardar Factura', mensaje, () => {
+      fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: accion, data: facturaData })
       })
-      .catch(() => { showNotify && showNotify('error', 'Error', 'Error al guardar la factura'); });
+        .then(r => r.json())
+        .then(data => {
+          if (!data.status) { showAlert('error', 'Error', data.message || 'Error al guardar la factura'); return; }
+          showAlert('success', 'Éxito', facturaData.factura_id ? 'Factura actualizada' : 'Factura guardada');
+          if (accion === 'saveFactura' && data.factura) {
+            facturaActual = data.factura;
+          } else if (accion === 'updateFactura' && data.factura_id) {
+            if (!facturaActual) facturaActual = {};
+            facturaActual.factura_id = data.factura_id;
+            facturaActual.id = data.factura_id;
+          }
+          if (facturaActual && facturaActual.number && facturaTitle) facturaTitle.textContent = `Factura #${facturaActual.number}`;
+          if (btnImprimir) btnImprimir.disabled = false;
+          cargarMesas();
+
+          if (metodoPago !== '') {
+            const fid = (data.factura_id) ? data.factura_id
+              : (data.factura && (data.factura.factura_id || data.factura.id)) ? (data.factura.factura_id || data.factura.id)
+                : (facturaActual && (facturaActual.factura_id || facturaActual.id)) ? (facturaActual.factura_id || facturaActual.id)
+                  : null;
+            if (fid && typeof printBill === 'function') printBill(fid);
+          }
+        })
+        .catch(() => { showAlert('error', 'Error', 'Error al guardar la factura'); });
+    });
   }
 
   function cerrarFactura() {
-    if (!facturaActual || !(facturaActual.id || facturaActual.factura_id)) { showNotify && showNotify('warning', 'Advertencia', 'No hay factura abierta'); return; }
+    if (!facturaActual || !(facturaActual.id || facturaActual.factura_id)) { showAlert('warning', 'Advertencia', 'No hay factura abierta'); return; }
     const fid = facturaActual.id || facturaActual.factura_id;
 
-    if (confirm('¿Está seguro que desea cerrar esta factura?')) {
+    showConfirm('Cerrar Factura', '¿Está seguro que desea cerrar esta factura?', () => {
       fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -1386,22 +1473,24 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(r => r.json())
         .then(data => {
           if (data.status) {
-            showNotify && showNotify('success', 'Éxito', 'Factura cerrada correctamente');
+            showAlert('success', 'Éxito', 'Factura cerrada correctamente');
             limpiarComanda();
             mesaSeleccionada = null;
             facturaActual = null;
             if (mesaSeleccionadaElement) mesaSeleccionadaElement.textContent = 'Mesa: No seleccionada';
             if (facturaTitle) facturaTitle.textContent = 'Nueva Comanda';
             if (btnImprimir) btnImprimir.disabled = true;
+
             clienteSeleccionado = { id: 0, nombre: 'CONSUMIDOR FINAL', identificacion: '' };
-            if (clienteInfoElement) clienteInfoElement.textContent = 'Cliente: Consumidor final';
+            pintarClienteInfoHeader();
+
             cargarMesas();
           } else {
-            showNotify && showNotify('error', 'Error', data.message || 'Error al cerrar la factura');
+            showAlert('error', 'Error', data.message || 'Error al cerrar la factura');
           }
         })
-        .catch(() => { showNotify && showNotify('error', 'Error', 'Error al cerrar la factura'); });
-    }
+        .catch(() => { showAlert('error', 'Error', 'Error al cerrar la factura'); });
+    });
   }
 
   function limpiarComanda() { comandaItems = []; actualizarComandaUI(); }
@@ -1537,6 +1626,12 @@ document.addEventListener('DOMContentLoaded', function () {
     if (inp) inp.value = cat.nombre || '';
     if (hid) hid.value = String(cat.id || '');
     document.getElementById('titulo-modal-categoria') && (document.getElementById('titulo-modal-categoria').textContent = 'Editar Categoría');
+    
+    // CAMBIO: Determinar y establecer la estación correcta
+    const estacionActual = normalizeEstacion(cat);
+    const radioEstacion = document.querySelector(`#prod-estacion input[value="${estacionActual}"]`);
+    if (radioEstacion) radioEstacion.checked = true;
+    
     if (modalCategoria) modalCategoria.style.display = 'block';
   }
 
@@ -1603,18 +1698,14 @@ document.addEventListener('DOMContentLoaded', function () {
       const file = fileList[0];
 
       if (!file.type.startsWith('image/')) {
-        (window.swal
-          ? swal({ title: 'Error', text: 'Selecciona una imagen válida (JPG, PNG, GIF)', icon: 'error' })
-          : alert('Selecciona una imagen válida (JPG, PNG, GIF)'));
+        showNotify('error', 'Error', 'No puede realizar esta accion a las facturas canceladas!');
         resetProductoImagen();
         return;
       }
       if (file.size > 2 * 1024 * 1024) {
-        (typeof showNotify === 'function'
-          ? showNotify('error', 'Error', 'La imagen no debe exceder 2MB')
-          : alert('La imagen no debe exceder 2MB'));
-        resetProductoImagen();
-        return;
+          showNotify('error', 'Error', 'La imagen no debe exceder 2MB')
+          resetProductoImagen();
+          return;
       }
 
       const reader = new FileReader();
@@ -1695,13 +1786,13 @@ function cargarCombos(){
   .then(r=>r.json())
   .then(data=>{
     if (!data || !data.status){ 
-      showNotify && showNotify('error','Error','No se pudieron cargar los combos'); 
+      showAlert('error','Error','No se pudieron cargar los combos'); 
       return; 
     }
     combos = data.combos || [];
     renderizarCombos();
   })
-  .catch(()=> showNotify && showNotify('error','Error','Error al cargar combos'));
+  .catch(()=> showAlert('error','Error','Error al cargar combos'));
 }
 
 function renderizarCombos(){
@@ -1806,7 +1897,7 @@ function abrirEditorComboExistente(comboId){
   .then(r=>r.json())
   .then(data=>{
     if (!data || !data.status){ 
-      showNotify && showNotify('error','Error','No se pudo cargar el detalle del combo'); 
+      showAlert('error','Error','No se pudo cargar el detalle del combo'); 
       return; 
     }
 
@@ -1821,8 +1912,8 @@ function abrirEditorComboExistente(comboId){
       items.sort((a,b)=> (parseInt(a.orden||1)-parseInt(b.orden||1)));
       items.forEach(it => addComboItemRow({
         productos_id: it.productos_id,
-        cantidad: it.cantidad,
-        es_opcional: String(it.es_opcional)==='1',
+        cantidad: it.cantidad_por_porcion || it.cantidad,
+        es_opcional: String(it.obligatorio)==='0',
         grupo: it.grupo || '',
         max_seleccion: (it.max_seleccion ?? ''),
         precio_extra: it.precio_extra || 0,
@@ -1834,7 +1925,7 @@ function abrirEditorComboExistente(comboId){
 
     modalComboEditor.style.display = 'block';
   })
-  .catch(()=> showNotify && showNotify('error','Error','Error al cargar el detalle del combo'));
+  .catch(()=> showAlert('error','Error','Error al cargar el detalle del combo'));
 }
 
 function setComboEditorTitle(text){
@@ -2058,8 +2149,8 @@ function collectComboItems(){
 
     items.push({
       productos_id: parseInt(producto_id,10),
-      cantidad,
-      es_opcional,
+      cantidad_por_porcion: cantidad,
+      obligatorio: es_opcional ? 0 : 1,
       grupo: grupo || null,
       max_seleccion: (max_seleccion===null ? null : max_seleccion),
       precio_extra,
@@ -2082,77 +2173,185 @@ function guardarCombo(){
   const activo = activoSwitch ? (activoSwitch.checked ? 1 : 0) : 1;
 
   if (!productos_id){ 
-    showNotify && showNotify('warning','Validación','Seleccione el producto que representa el combo'); 
+    showAlert('warning','Validación','Seleccione el producto que representa el combo'); 
     return; 
   }
 
   const items = collectComboItems();
   if (!items.length){ 
-    showNotify && showNotify('warning','Validación','Agregue al menos un ítem al combo'); 
+    showAlert('warning','Validación','Agregue al menos un ítem al combo'); 
     return; 
   }
 
-  const payload = {
-    productos_id: parseInt(productos_id,10),
-    activo,
-    items
-  };
-  let action = 'saveCombo';
-  if (comboId){
-    action = 'updateCombo';
-    payload.combo_id = parseInt(comboId,10);
-  }
+  const accion = comboId ? 'editar' : 'guardar';
+  const mensaje = comboId ? 
+    '¿Está seguro que desea actualizar este combo?' : 
+    '¿Está seguro que desea guardar este combo?';
+  
+  showConfirm(accion === 'editar' ? 'Editar Combo' : 'Nuevo Combo', mensaje, () => {
+    const payload = {
+      productos_id: parseInt(productos_id,10),
+      activo,
+      items
+    };
+    let action = 'saveCombo';
+    if (comboId){
+      action = 'updateCombo';
+      payload.combo_id = parseInt(comboId,10);
+    }
 
-  // Unifica envío: application/json (si tu PHP espera urlencoded, cambia abajo)
-  fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ action, data: payload })
-  })
-  .then(r=>r.json())
-  .then(d=>{
-    if (!d || !d.status){ 
-      showNotify && showNotify('error','Error', d && d.message ? d.message : 'No se pudo guardar el combo'); 
-      return; 
-    }
-    showNotify && showNotify('success','Éxito', comboId ? 'Combo actualizado' : 'Combo creado');
-    if (modalComboEditor) modalComboEditor.style.display = 'none';
-    if (modalCombos && modalCombos.style.display === 'block'){
-      cargarCombos();
-    }
-  })
-  .catch(()=> showNotify && showNotify('error','Error','Error al guardar combo'));
+    // Unifica envío: application/json (si tu PHP espera urlencoded, cambia abajo)
+    fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action, data: payload })
+    })
+    .then(r=>r.json())
+    .then(d=>{
+      if (!d || !d.status){ 
+        showAlert('error','Error', d && d.message ? d.message : 'No se pudo guardar el combo'); 
+        return; 
+      }
+      showAlert('success','Éxito', comboId ? 'Combo actualizado' : 'Combo creado');
+      if (modalComboEditor) modalComboEditor.style.display = 'none';
+      if (modalCombos && modalCombos.style.display === 'block'){
+        cargarCombos();
+      }
+    })
+    .catch(()=> showAlert('error','Error','Error al guardar combo'));
+  });
 }
 
 function eliminarCombo(comboId){
-  if (!confirm('¿Eliminar este combo?')) return;
-  const fd = new FormData();
-  fd.append('action','deleteCombo');
-  fd.append('combo_id', String(comboId));
-  fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`,{
-    method:'POST',
-    body: fd
-  })
-  .then(r=>r.json())
-  .then(d=>{
-    if (!d || !d.status){ 
-      showNotify && showNotify('error','Error', d && d.message ? d.message : 'No se pudo eliminar'); 
-      return; 
-    }
-    showNotify && showNotify('success','Éxito','Combo eliminado');
-    cargarCombos();
-  })
-  .catch(()=> showNotify && showNotify('error','Error','Error al eliminar combo'));
+  showConfirm('Eliminar Combo', '¿Está seguro que desea eliminar este combo?', () => {
+    const fd = new FormData();
+    fd.append('action','deleteCombo');
+    fd.append('combo_id', String(comboId));
+    fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`,{
+      method:'POST',
+      body: fd
+    })
+    .then(r=>r.json())
+    .then(d=>{
+      if (!d || !d.status){ 
+        showAlert('error','Error', d && d.message ? d.message : 'No se pudo eliminar'); 
+        return; 
+      }
+      showAlert('success','Éxito','Combo eliminado');
+      cargarCombos();
+    })
+    .catch(()=> showAlert('error','Error','Error al eliminar combo'));
+  });
 }
 
 /* ========= Helpers ========= */
+// === Mostrar cliente en la cabecera (NOMBRE + RTN en línea) ===
+function pintarClienteInfoHeader() {
+  const wrap = document.getElementById('cliente-info');
+  if (!wrap) return;
+
+  const nombreSpan = wrap.querySelector('.cli-nombre');
+  const rtnWrap    = wrap.querySelector('.cli-rtn-wrap');
+  const rtnSpan    = wrap.querySelector('.cli-rtn');
+
+  // Nombre
+  if (nombreSpan) {
+    nombreSpan.textContent = (clienteSeleccionado?.nombre || 'Consumidor final');
+  }
+
+  // RTN/identificación
+  const id = (clienteSeleccionado?.identificacion || '').toString().trim();
+  if (rtnWrap && rtnSpan) {
+    if (id) {
+      rtnSpan.textContent = id;
+      rtnWrap.style.display = 'inline-flex'; // mostrar cuando hay RTN
+    } else {
+      rtnSpan.textContent = '';
+      rtnWrap.style.display = 'none';        // ocultar cuando no hay RTN
+    }
+  }
+}
+
+// Mapa rápido producto_id -> categoria_id
+function getCategoriaIdDeProducto(pid){
+  pid = parseInt(pid,10);
+  const p = productos.find(x => parseInt(x.productos_id,10) === pid);
+  return p ? parseInt(p.categoria_id,10) : null;
+}
+
+// Nombre de categoría por id
+function getCategoriaNombre(cid){
+  const c = categorias.find(x => parseInt(x.id,10) === parseInt(cid,10));
+  return c ? c.nombre : `Cat #${cid}`;
+}
+
+// Evita maestro como hijo y duplicados de hijo (mismo producto dentro del combo)
+function validarComponentesCombo(items, maestroId){
+  const seen = new Set();
+  for (const it of items){
+    if (String(it.productos_id) === String(maestroId)){
+      return { ok:false, msg:'El producto maestro no puede estar entre los componentes.' };
+    }
+    const key = String(it.productos_id);
+    if (seen.has(key)){
+      return { ok:false, msg:'Hay productos repetidos entre los componentes.' };
+    }
+    seen.add(key);
+    if (!(it.cantidad_por_porcion>0)){
+      return { ok:false, msg:'Todas las cantidades deben ser mayores a 0.' };
+    }
+    if (it.precio_extra<0){
+      return { ok:false, msg:'El precio extra no puede ser negativo.' };
+    }
+  }
+  return { ok:true };
+}
+
+// === CATEGORÍA: estación (Cocina/Barra) ===
+function setProdEstacion(value = 'cocina') {
+  const wrap = document.getElementById('prod-estacion');
+  if (!wrap) return;
+
+  const inputs = wrap.querySelectorAll('input[name="prodEstacion"]');
+  inputs.forEach(inp => {
+    const active = (inp.value === value);
+    inp.checked = active;
+
+    // Mantén sincronizado el aspecto visual (label .active si usas estilos tipo btn-group)
+    const btn = inp.closest('label') || inp.closest('.btn');
+    if (btn) {
+      btn.classList.toggle('active', active);
+    }
+  });
+
+  // Dispara change en el que quedó seleccionado para refrescar categorías
+  const checked = wrap.querySelector('input[name="prodEstacion"]:checked');
+  if (checked) checked.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+function setCatEstacion(value='cocina'){
+  const radio = document.querySelector(`#cat-estacion input[value="${value}"]`);
+  if (radio) radio.checked = true;
+}
+
+function setProdEstacion(value='cocina'){
+  const r = document.querySelector(`#prod-estacion input[name="prodEstacion"][value="${value}"]`);
+  if (r) r.checked = true;
+}
+
+// Asegura que 'categorias' esté cargado antes de usarlo
+function ensureCategoriasReady(){
+  if (Array.isArray(categorias) && categorias.length) return Promise.resolve();
+  return cargarCategorias(); // ya devuelve Promise
+}
+
 
 function findProductoById(id){
   id = parseInt(id,10);
   return productos.find(p => parseInt(p.productos_id,10) === id);
 }
 
-// Select2 global para el modal (evita “distorsión” y dropdown fuera)
+// Select2 global para el modal (evita "distorsión" y dropdown fuera)
 function initSelect2All(){
   if (typeof $ === 'undefined' || !$.fn.select2) return;
   const $modal = $('#modal-combo-editor'); // contenedor del modal
@@ -2176,6 +2375,31 @@ function initSelect2ForComboRow(row){
   window.abrirEdicionCategoria = abrirEdicionCategoria;
   window.abrirEdicionCliente = abrirEdicionCliente;
   window.abrirEdicionMesa = abrirEdicionMesa;
+
+  // ======= SweetAlert Helpers =======
+  function showAlert(icon, title, text) {
+    showNotify(icon, title, text);
+  }
+
+  function showConfirm(title, text, callback) {
+    if (typeof swal !== 'undefined') {
+      swal({
+        title: title,
+        text: text,
+        icon: "warning",
+        buttons: true,
+        dangerMode: true,
+      }).then((willConfirm) => {
+        if (willConfirm) {
+          callback();
+        }
+      });
+    } else {
+      if (confirm(`${title}: ${text}`)) {
+        callback();
+      }
+    }
+  }
 
   // ======= FIN JS =======
 

@@ -11,7 +11,7 @@ class facturasRestauranteModelo extends mainModel {
     protected function aperturaId()    { return intval($_SESSION['apertura_id_sd'] ?? 0); } // 0 si no hay caja abierta
 
     /* ===== Cache columnas (para manejar categoria.estacion opcional) ===== */
-    private array $columnCache = [];
+    private $columnCache = [];
     protected function hasColumn(string $table, string $column): bool {
         $k = $table.'.'.$column;
         if (isset($this->columnCache[$k])) return $this->columnCache[$k];
@@ -110,25 +110,47 @@ class facturasRestauranteModelo extends mainModel {
 
     /** Solo categorías con productos restaurante=1; incluye estacion SI existe la columna */
     public function obtenerCategoriasProductos(){
+        // ¿La tabla categoria tiene columna 'estacion'?
         $tieneEst = $this->hasColumn('categoria','estacion');
-        $estSel   = $tieneEst ? 'c.estacion' : "'ninguna'";
-        $sql="SELECT DISTINCT c.categoria_id AS id, c.nombre, $estSel AS estacion
-              FROM categoria c
-              INNER JOIN productos p ON p.categoria_id=c.categoria_id
-              WHERE c.estado=1 AND p.estado=1 AND p.restaurante=1
-              ORDER BY c.nombre ASC";
-        $rs=$this->ejecutar_consulta_simple($sql);
-        $out=[];
-        while($r=$rs->fetch_assoc()){
-            $out[]=[
-                'id'=>intval($r['id']),
-                'nombre'=>$r['nombre'],
-                'estacion'=>($r['estacion'] ?? 'ninguna')
+    
+        // Valor a devolver en 'estacion'
+        $selEst = $tieneEst
+            ? "LOWER(COALESCE(NULLIF(c.estacion,''),'ninguna'))"
+            : "'ninguna'";
+    
+        // WHERE base
+        $where = "WHERE c.estado = 1";
+        // Si existe la columna estación, excluye 'ninguna'
+        if ($tieneEst) {
+            $where .= " AND c.estacion IN ('cocina','barra')";
+        }
+    
+        // **Sin INNER JOIN con productos**: debe traer TODAS las categorías activas
+        $sql = "SELECT
+                    c.categoria_id AS id,
+                    c.nombre,
+                    {$selEst} AS estacion
+                FROM categoria AS c
+                {$where}
+                ORDER BY c.nombre ASC";
+    
+        $rs = $this->ejecutar_consulta_simple($sql);
+    
+        $out = [];
+        while ($r = $rs->fetch_assoc()){
+            $est = strtolower($r['estacion'] ?? 'ninguna');
+            if (!in_array($est, ['cocina','barra','ninguna'], true)) {
+                $est = 'ninguna';
+            }
+            $out[] = [
+                'id'       => (int)$r['id'],
+                'nombre'   => $r['nombre'],
+                'estacion' => $est,
             ];
         }
         return $out;
-    }
-
+    }    
+         
     /** Guardar categoría (si no existe la columna estacion, se ignora y se asume 'ninguna') */
     public function guardarCategoria($nombre, $estacion='ninguna'){
         $nombre = $this->cleanString($nombre);
@@ -363,41 +385,61 @@ class facturasRestauranteModelo extends mainModel {
         $empresa_id     = $this->empresaId();
         $colaborador_id = $this->colaboradorId();
 
-        // Update de campos básicos
-        $ok = $this->ejecutar_consulta_simple_preparada(
-            "UPDATE productos
-            SET categoria_id=?, nombre=?, descripcion=?, precio_venta=?,
-                isv_venta=?, isv1=?, isv2=?, colaborador_id=?, empresa_id=?
-            WHERE productos_id=?",
-            "issdiiiiii",
-            [$catId, $nombre, $desc, $precio, $isv_venta, $isv1, $isv2, $colaborador_id, $empresa_id, $productos_id]
-        );
-
-        if(!$ok){
-            return ['status'=>false,'message'=>'No se pudo actualizar el producto'];
+        // ===== UPDATE de campos básicos usando prepare/execute directo
+        $cnn  = $this->connection();
+        $sqlU = "UPDATE productos
+                 SET categoria_id=?, nombre=?, descripcion=?, precio_venta=?,
+                     isv_venta=?, isv1=?, isv2=?, colaborador_id=?, empresa_id=?
+                 WHERE productos_id=?";
+        $stmt = $cnn->prepare($sqlU);
+        if(!$stmt){
+            return ['status'=>false,'message'=>'No se pudo preparar la actualización'];
         }
+        $stmt->bind_param(
+            "issdiiiiii",
+            $catId, $nombre, $desc, $precio,
+            $isv_venta, $isv1, $isv2, $colaborador_id, $empresa_id,
+            $productos_id
+        );
+        $execOk = $stmt->execute();
+        if(!$execOk){
+            $msg = $stmt->error ?: 'No se pudo actualizar el producto';
+            $stmt->close();
+            return ['status'=>false,'message'=>$msg];
+        }
+        // No importa si affected_rows==0 (mismos valores); la ejecución fue correcta
+        $stmt->close();
 
-        // ===== Imagen opcional (misma petición) =====
+        // ===== Imagen opcional (misma petición): si llega nueva, guarda y borra la anterior
         $imagenGuardada = false; 
-        $nombreArchivo = '';
+        $nombreArchivo  = '';
         
         if (!empty($_FILES['imagen_producto']) && is_uploaded_file($_FILES['imagen_producto']['tmp_name'])) {
-            // (Opcional) eliminar anterior
-            $old = $this->ejecutar_consulta_simple("SELECT file_name FROM productos WHERE productos_id=".$productos_id);
-            $oldName = ($old && $old->num_rows) ? ($old->fetch_assoc()['file_name'] ?? '') : '';
+            // obtener nombre anterior de forma segura
+            $oldStmt = $cnn->prepare("SELECT file_name FROM productos WHERE productos_id=?");
+            $oldStmt->bind_param("i", $productos_id);
+            $oldStmt->execute();
+            $res = $oldStmt->get_result();
+            $oldName = ($res && $res->num_rows) ? ($res->fetch_assoc()['file_name'] ?? '') : '';
+            $oldStmt->close();
 
             $tmp  = $_FILES['imagen_producto']['tmp_name'];
             $orig = $_FILES['imagen_producto']['name'];
             $size = intval($_FILES['imagen_producto']['size'] ?? 0);
 
-            if ($size > 0 && $size <= 2*1024*1024) {
+            if ($size > 0 && $size <= 2*1024*1024) { // 2MB
                 $fi   = finfo_open(FILEINFO_MIME_TYPE);
                 $mime = finfo_file($fi, $tmp) ?: '';
                 finfo_close($fi);
 
+                // bloquear extensiones peligrosas
+                if (preg_match('/\.(php|phtml|phar)$/i', (string)$orig)) {
+                    return ['status'=>false,'message'=>'Extensión de archivo no permitida'];
+                }
+
                 $ext = '';
                 if (strpos($mime,'image/')===0) {
-                    $ext = strtolower(substr($mime, 6));
+                    $ext = strtolower(substr($mime, 6)); // png, jpeg, webp...
                     if ($ext === 'jpeg') $ext = 'jpg';
                 } else {
                     $ext = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
@@ -412,17 +454,20 @@ class facturasRestauranteModelo extends mainModel {
                         $dest = rtrim($baseDir,'/').'/'.$nombreArchivo;
                         
                         if (@move_uploaded_file($tmp, $dest)) {
+                            @chmod($dest, 0644);
+
                             // borra anterior si existe
                             if ($oldName) {
                                 $oldPath = rtrim($baseDir,'/').'/'.$oldName;
                                 if (is_file($oldPath)) @unlink($oldPath);
                             }
                             
-                            $this->ejecutar_consulta_simple_preparada(
-                                "UPDATE productos SET file_name=? WHERE productos_id=?",
-                                "si",
-                                [$nombreArchivo, $productos_id]
-                            );
+                            // actualizar file_name solo cuando realmente hay nueva imagen
+                            $upImg = $cnn->prepare("UPDATE productos SET file_name=? WHERE productos_id=?");
+                            $upImg->bind_param("si", $nombreArchivo, $productos_id);
+                            $upImg->execute();
+                            $upImg->close();
+
                             $imagenGuardada = true;
                         }
                     }
@@ -436,7 +481,9 @@ class facturasRestauranteModelo extends mainModel {
             'image_saved'=>$imagenGuardada,
             'file_name'=>$nombreArchivo
         ];
-    }  
+    }
+
+        
     public function obtenerClientes(){
         $sql="SELECT clientes_id, nombre, rtn AS identificacion
               FROM clientes WHERE estado=1 ORDER BY nombre ASC";
@@ -780,7 +827,7 @@ class facturasRestauranteModelo extends mainModel {
                 $this->ejecutar_consulta_simple_preparada(
                     "INSERT INTO facturas_detalles(facturas_detalle_id, facturas_id, productos_id, cantidad, precio, isv_valor, descuento, medida)
                      VALUES(?, ?, ?, ?, ?, ?, 0, 'UNIDAD')",
-                    "iiiiid", [$det_id,$factura_id,$pid,$qty,$pu,$isv_line]
+                    "iiiidd", [$det_id,$factura_id,$pid,$qty,$pu,$isv_line]
                 );
             }
 
@@ -906,7 +953,7 @@ class facturasRestauranteModelo extends mainModel {
                 $this->ejecutar_consulta_simple_preparada(
                     "INSERT INTO facturas_detalles(facturas_detalle_id, facturas_id, productos_id, cantidad, precio, isv_valor, descuento, medida)
                      VALUES(?, ?, ?, ?, ?, ?, 0, 'UNIDAD')",
-                    "iiiiid", [$det_id,$factura_id,$pid,$qty,$pu,$isv_line]
+                    "iiiidd", [$det_id,$factura_id,$pid,$qty,$pu,$isv_line]
                 );
             }
 
@@ -1113,16 +1160,16 @@ class facturasRestauranteModelo extends mainModel {
         return $ok ? ['status'=>true] : ['status'=>false,'message'=>'No se pudo actualizar'];
     }
 
-
     /* ============================================================
      * ===================== COMBOS ===============================
      * ============================================================ */
 
-    /** Lista de combos visibles para la empresa (por el producto maestro) */
+    /** Lista de combos por empresa (lee del producto maestro) */
     public function obtenerCombos(){
         $sql = "SELECT c.combo_id, c.productos_id, c.activo,
-                       p.nombre AS combo_nombre, p.precio_venta AS combo_precio
-                FROM combo c
+                       COALESCE(c.precio_venta, p.precio_venta) AS combo_precio,
+                       p.nombre AS combo_nombre
+                FROM combos c
                 INNER JOIN productos p ON p.productos_id = c.productos_id
                 WHERE p.empresa_id = ?
                 ORDER BY c.combo_id DESC";
@@ -1146,100 +1193,160 @@ class facturasRestauranteModelo extends mainModel {
         return $out;
     }
 
-    /** Detalle de un combo (componentes) */
+    /** Reglas por categoría (max_seleccion) de un combo */
+    public function obtenerComboCategoriaReglas($combo_id){
+        $combo_id = intval($combo_id);
+        $sql = "SELECT r.combo_categoria_regla_id, r.categoria_id, r.max_seleccion,
+                       c.nombre AS categoria_nombre
+                FROM combo_categoria_regla r
+                LEFT JOIN categoria c ON c.categoria_id = r.categoria_id
+                WHERE r.combo_id = ?
+                ORDER BY c.nombre ASC";
+        $rs = $this->ejecutar_consulta_simple_preparada($sql, "i", [$combo_id]);
+        $out = [];
+        while($r = $rs->fetch_assoc()){
+            $out[] = [
+                'combo_categoria_regla_id' => intval($r['combo_categoria_regla_id']),
+                'categoria_id'             => intval($r['categoria_id']),
+                'categoria_nombre'         => $r['categoria_nombre'] ?? '',
+                'max_seleccion'            => intval($r['max_seleccion']),
+            ];
+        }
+        return $out;
+    }
+
+    /** Detalle de un combo (componentes) – nueva estructura */
     public function obtenerComboDetalle($combo_id){
         $combo_id = intval($combo_id);
+
+        // Cabecera (con precio_venta del combo si lo definiste en combos)
         $cab = $this->ejecutar_consulta_simple_preparada(
-            "SELECT c.combo_id, c.productos_id, c.activo, p.nombre AS combo_nombre, p.precio_venta AS combo_precio
-             FROM combo c
+            "SELECT c.combo_id, c.productos_id, c.activo,
+                    COALESCE(c.precio_venta, p.precio_venta) AS combo_precio,
+                    p.nombre AS combo_nombre
+             FROM combos c
              INNER JOIN productos p ON p.productos_id = c.productos_id
              WHERE c.combo_id=?","i",[$combo_id]
         );
         if(!$cab || !$cab->num_rows) return null;
         $head = $cab->fetch_assoc();
-    
-        $sql="SELECT cd.combo_detalle_id, cd.productos_id, pr.nombre, pr.precio_venta,
-                     cd.cantidad, cd.es_opcional, cd.grupo, cd.max_seleccion, cd.precio_extra, cd.orden
-              FROM combo_detalle cd
-              INNER JOIN productos pr ON pr.productos_id = cd.productos_id
-              WHERE cd.combo_id = ?
-              ORDER BY cd.orden ASC, pr.nombre ASC";
+
+        // Detalle (receta)
+        $sql="SELECT d.combo_detalle_id, d.productos_id,
+                     pr.nombre, pr.precio_venta,
+                     d.cantidad_por_porcion, d.unidad, d.merma_pct, d.obligatorio,
+                     d.precio_extra, d.version, d.orden
+              FROM combo_detalle d
+              INNER JOIN productos pr ON pr.productos_id = d.productos_id
+              WHERE d.combo_id = ?
+              ORDER BY d.obligatorio DESC, d.orden ASC, pr.nombre ASC";
         $rs = $this->ejecutar_consulta_simple_preparada($sql,"i",[$combo_id]);
-    
+
         $det=[];
         while($r=$rs->fetch_assoc()){
             $det[]=[
-                'combo_detalle_id'=>intval($r['combo_detalle_id']),
-                'productos_id'    =>intval($r['productos_id']),
-                'nombre'          =>$r['nombre'],
-                'precio_venta'    =>floatval($r['precio_venta']),
-                'cantidad'        =>floatval($r['cantidad']),
-                'es_opcional'     =>intval($r['es_opcional'])?1:0,
-                'grupo'           =>$r['grupo'],
-                'max_seleccion'   =>$r['max_seleccion']!==null?intval($r['max_seleccion']):null,
-                'precio_extra'    =>floatval($r['precio_extra']),
-                'orden'           =>intval($r['orden'])
+                'combo_detalle_id'    => intval($r['combo_detalle_id']),
+                'productos_id'        => intval($r['productos_id']),
+                'nombre'              => $r['nombre'],
+                'precio_venta'        => floatval($r['precio_venta']),
+                'cantidad_por_porcion'=> floatval($r['cantidad_por_porcion']),
+                'unidad'              => $r['unidad'],
+                'merma_pct'           => floatval($r['merma_pct']),
+                'obligatorio'         => intval($r['obligatorio']) ? 1 : 0,
+                'precio_extra'        => floatval($r['precio_extra']),
+                'version'             => intval($r['version']),
+                'orden'               => intval($r['orden'])
             ];
         }
-    
-        return $det; // Solo devolvemos el array de detalles
+
+        // Puedes devolver también cabecera si la necesitas
+        // return ['cabecera'=>$head, 'detalle'=>$det];
+        return $det; // como ya usabas
     }
 
-    /** Crear combo y su detalle */
+    /** Crear combo + receta + reglas por categoría (transaccional) */
     public function guardarCombo($payload){
-        $prod_combo = intval($payload['productos_id'] ?? 0);
-        $activo     = intval($payload['activo'] ?? 1) ? 1 : 0;
-        $items      = is_array($payload['items'] ?? null) ? $payload['items'] : [];
+        $prod_combo   = intval($payload['productos_id'] ?? 0);
+        $activo       = intval($payload['activo'] ?? 1) ? 1 : 0;
+        $precio_combo = array_key_exists('precio_venta', $payload) ? $payload['precio_venta'] : '__omit__'; // null o decimal o __omit__
+        $version      = intval($payload['version'] ?? 1);
+        $items        = is_array($payload['items']  ?? null) ? $payload['items']  : [];
+        $reglas       = is_array($payload['reglas'] ?? null) ? $payload['reglas'] : [];
 
         if($prod_combo<=0){ return ['status'=>false,'message'=>'Producto combo inválido']; }
 
-        // verificar que el producto pertenece a la empresa
+        // verificar producto dueño
         $chk = $this->ejecutar_consulta_simple_preparada(
             "SELECT productos_id FROM productos WHERE productos_id=? AND empresa_id=? LIMIT 1",
             "ii", [$prod_combo,$this->empresaId()]
         );
-        if(!$chk || !$chk->num_rows){ return ['status'=>false,'message'=>'Producto combo no pertenece a la empresa']; }
+        if(!$chk || !$chk->num_rows){ return ['status'=>false,'message'=>'El producto combo no pertenece a la empresa']; }
 
-        // evitar duplicado por UNIQUE uq_combo_producto
-        $dup = $this->ejecutar_consulta_simple_preparada("SELECT combo_id FROM combo WHERE productos_id=? LIMIT 1","i",[$prod_combo]);
+        // evitar duplicado
+        $dup = $this->ejecutar_consulta_simple_preparada("SELECT combo_id FROM combos WHERE productos_id=? LIMIT 1","i",[$prod_combo]);
         if($dup && $dup->num_rows){ return ['status'=>false,'message'=>'Ya existe un combo para ese producto']; }
 
         $cnn = $this->connection();
         try{
             $cnn->begin_transaction();
 
-            $combo_id = mainModel::correlativo("combo_id","combo");
-            $ok = $this->ejecutar_consulta_simple_preparada(
-                "INSERT INTO combo(combo_id, productos_id, activo, fecha_registro) VALUES(?, ?, ?, NOW())",
-                "iii", [$combo_id,$prod_combo,$activo]
-            );
+            $combo_id = mainModel::correlativo("combo_id","combos");
+
+            // Insert encabezado
+            if ($precio_combo === '__omit__') {
+                $ok = $this->ejecutar_consulta_simple_preparada(
+                    "INSERT INTO combos(combo_id, productos_id, activo, version_actual, fecha_creacion, fecha_actualizacion)
+                     VALUES(?, ?, ?, ?, NOW(), NOW())",
+                    "iiii", [$combo_id,$prod_combo,$activo,$version]
+                );
+            } else {
+                // precio_venta puede ser NULL
+                $ok = $this->ejecutar_consulta_simple_preparada(
+                    "INSERT INTO combos(combo_id, productos_id, activo, precio_venta, version_actual, fecha_creacion, fecha_actualizacion)
+                     VALUES(?, ?, ?, ?, ?, NOW(), NOW())",
+                    "iiidi",
+                    [$combo_id,$prod_combo,$activo,
+                     ($precio_combo===null ? null : floatval($precio_combo)),
+                     $version]
+                );
+            }
             if(!$ok){ throw new Exception("No se pudo crear el combo"); }
 
+            // Insert detalle (receta)
             foreach($items as $idx=>$it){
-                $cd_id = mainModel::correlativo("combo_detalle_id","combo_detalle");
+                $cd_id   = mainModel::correlativo("combo_detalle_id","combo_detalle");
                 $prod_id = intval($it['productos_id'] ?? 0);
-                $cant    = floatval($it['cantidad'] ?? 1);
-                $op      = intval($it['es_opcional'] ?? 0) ? 1 : 0;
-                $grupo   = $this->cleanString($it['grupo'] ?? null);
-                $maxSel  = isset($it['max_seleccion']) && $it['max_seleccion']!=='' ? intval($it['max_seleccion']) : null;
-                $extra   = floatval($it['precio_extra'] ?? 0);
-                $orden   = intval($it['orden'] ?? ($idx+1));
-
                 if($prod_id<=0) continue;
 
-                if ($maxSel === null) {
-                    $q = "INSERT INTO combo_detalle(combo_detalle_id, combo_id, productos_id, cantidad, es_opcional, grupo, max_seleccion, precio_extra, orden, fecha_registro)
-                          VALUES(?, ?, ?, ?, ?, ?, NULL, ?, ?, NOW())";
-                    $this->ejecutar_consulta_simple_preparada($q,"iiidisdi",[
-                        $cd_id,$combo_id,$prod_id,$cant,$op,$grupo,$extra,$orden
-                    ]);
-                } else {
-                    $q = "INSERT INTO combo_detalle(combo_detalle_id, combo_id, productos_id, cantidad, es_opcional, grupo, max_seleccion, precio_extra, orden, fecha_registro)
-                          VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
-                    $this->ejecutar_consulta_simple_preparada($q,"iiidisidi",[
-                        $cd_id,$combo_id,$prod_id,$cant,$op,$grupo,$maxSel,$extra,$orden
-                    ]);
-                }
+                $cant  = floatval($it['cantidad_por_porcion'] ?? $it['cantidad'] ?? 1);
+                $unidad= $this->cleanString($it['unidad'] ?? null);
+                $merma = floatval($it['merma_pct'] ?? 0);
+                $obli  = intval($it['obligatorio'] ?? (isset($it['es_opcional']) ? (intval($it['es_opcional'])?0:1) : 1)) ? 1 : 0;
+                $extra = floatval($it['precio_extra'] ?? 0);
+                $ord   = intval($it['orden'] ?? ($idx+1));
+                $ver   = intval($it['version'] ?? $version);
+
+                $q = "INSERT INTO combo_detalle(
+                        combo_detalle_id, combo_id, productos_id, cantidad_por_porcion, unidad,
+                        merma_pct, obligatorio, precio_extra, version, orden, fecha_registro
+                      ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+                $this->ejecutar_consulta_simple_preparada(
+                    $q, "iiidsdidii",
+                    [$cd_id,$combo_id,$prod_id,$cant,$unidad,$merma,$obli,$extra,$ver,$ord]
+                );
+            }
+
+            // Insert reglas por categoría (si llegan)
+            foreach($reglas as $rg){
+                $catId = intval($rg['categoria_id'] ?? 0);
+                $max   = max(1, intval($rg['max_seleccion'] ?? 1));
+                if ($catId<=0) continue;
+                $rid = mainModel::correlativo("combo_categoria_regla_id","combo_categoria_regla");
+                $this->ejecutar_consulta_simple_preparada(
+                    "INSERT INTO combo_categoria_regla(combo_categoria_regla_id, combo_id, categoria_id, max_seleccion, fecha_creacion)
+                     VALUES(?, ?, ?, ?, NOW())",
+                    "iiii", [$rid,$combo_id,$catId,$max]
+                );
             }
 
             $cnn->commit();
@@ -1251,68 +1358,92 @@ class facturasRestauranteModelo extends mainModel {
         }
     }
 
-    /** Actualizar combo (cambia maestro/activo y opcionalmente reemplaza detalle completo) */
+    /** Actualizar combo (puede reemplazar receta y reglas completas) */
     public function actualizarCombo($payload){
-        $combo_id   = intval($payload['combo_id'] ?? 0);
-        $prod_combo = isset($payload['productos_id']) ? intval($payload['productos_id']) : null;
-        $activo     = isset($payload['activo']) ? (intval($payload['activo'])?1:0) : null;
-        $items      = array_key_exists('items',$payload) ? (is_array($payload['items']) ? $payload['items'] : null) : null;
-
+        $combo_id    = intval($payload['combo_id'] ?? 0);
         if($combo_id<=0){ return ['status'=>false,'message'=>'Combo inválido']; }
+
+        $prod_combo  = array_key_exists('productos_id',$payload) ? intval($payload['productos_id']) : null;
+        $activo      = array_key_exists('activo',$payload)       ? (intval($payload['activo'])?1:0) : null;
+        $precioCombo = array_key_exists('precio_venta',$payload) ? $payload['precio_venta'] : '__omit__'; // null, decimal o __omit__
+        $version     = array_key_exists('version',$payload)      ? intval($payload['version']) : null;
+
+        $items       = array_key_exists('items',$payload)  ? (is_array($payload['items'])  ? $payload['items']  : null) : null;
+        $reglas      = array_key_exists('reglas',$payload) ? (is_array($payload['reglas']) ? $payload['reglas'] : null) : null;
 
         $cnn = $this->connection();
         try{
             $cnn->begin_transaction();
 
+            // Validaciones/duplicados si cambia el producto padre
             if($prod_combo !== null){
                 $chk = $this->ejecutar_consulta_simple_preparada(
                     "SELECT productos_id FROM productos WHERE productos_id=? AND empresa_id=? LIMIT 1",
                     "ii", [$prod_combo,$this->empresaId()]
                 );
-                if(!$chk || !$chk->num_rows){ throw new Exception('Producto combo no pertenece a la empresa'); }
+                if(!$chk || !$chk->num_rows){ throw new Exception('El producto combo no pertenece a la empresa'); }
 
                 $dup = $this->ejecutar_consulta_simple_preparada(
-                    "SELECT combo_id FROM combo WHERE productos_id=? AND combo_id<>? LIMIT 1","ii",[$prod_combo,$combo_id]);
+                    "SELECT combo_id FROM combos WHERE productos_id=? AND combo_id<>? LIMIT 1","ii",[$prod_combo,$combo_id]);
                 if($dup && $dup->num_rows){ throw new Exception('Ese producto ya está asignado a otro combo'); }
             }
 
-            // armar update dinámico
+            // UPDATE dinámico en combos
             $sets=[]; $types=''; $vals=[];
-            if($prod_combo !== null){ $sets[]="productos_id=?"; $types.='i'; $vals[]=$prod_combo; }
-            if($activo !== null){ $sets[]="activo=?"; $types.='i'; $vals[]=$activo; }
+            if($prod_combo !== null){ $sets[]="productos_id=?";  $types.='i'; $vals[]=$prod_combo; }
+            if($activo     !== null){ $sets[]="activo=?";        $types.='i'; $vals[]=$activo; }
+            if($version    !== null){ $sets[]="version_actual=?";$types.='i'; $vals[]=$version; }
+            if($precioCombo !== '__omit__'){
+                $sets[]="precio_venta=?"; $types.='d'; $vals[] = ($precioCombo===null ? null : floatval($precioCombo));
+            }
             if(!empty($sets)){
+                $sets[]="fecha_actualizacion=NOW()";
                 $types.='i'; $vals[]=$combo_id;
-                $q="UPDATE combo SET ".implode(',',$sets)." WHERE combo_id=?";
+                $q="UPDATE combos SET ".implode(',', $sets)." WHERE combo_id=?";
                 $this->ejecutar_consulta_simple_preparada($q,$types,$vals);
             }
 
+            // Reemplazo total del detalle si llega 'items'
             if($items !== null){
-                // Reemplazo total del detalle
                 $this->ejecutar_consulta_simple_preparada("DELETE FROM combo_detalle WHERE combo_id=?","i",[$combo_id]);
+                $ver = $version ?? 1;
                 foreach($items as $idx=>$it){
-                    $cd_id = mainModel::correlativo("combo_detalle_id","combo_detalle");
+                    $cd_id   = mainModel::correlativo("combo_detalle_id","combo_detalle");
                     $prod_id = intval($it['productos_id'] ?? 0);
-                    $cant    = floatval($it['cantidad'] ?? 1);
-                    $op      = intval($it['es_opcional'] ?? 0) ? 1 : 0;
-                    $grupo   = $this->cleanString($it['grupo'] ?? null);
-                    $maxSel  = isset($it['max_seleccion']) && $it['max_seleccion']!=='' ? intval($it['max_seleccion']) : null;
-                    $extra   = floatval($it['precio_extra'] ?? 0);
-                    $orden   = intval($it['orden'] ?? ($idx+1));
                     if($prod_id<=0) continue;
 
-                    if ($maxSel === null) {
-                        $q = "INSERT INTO combo_detalle(combo_detalle_id, combo_id, productos_id, cantidad, es_opcional, grupo, max_seleccion, precio_extra, orden, fecha_registro)
-                              VALUES(?, ?, ?, ?, ?, ?, NULL, ?, ?, NOW())";
-                        $this->ejecutar_consulta_simple_preparada($q,"iiidisdi",[
-                            $cd_id,$combo_id,$prod_id,$cant,$op,$grupo,$extra,$orden
-                        ]);
-                    } else {
-                        $q = "INSERT INTO combo_detalle(combo_detalle_id, combo_id, productos_id, cantidad, es_opcional, grupo, max_seleccion, precio_extra, orden, fecha_registro)
-                              VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
-                        $this->ejecutar_consulta_simple_preparada($q,"iiidisidi",[
-                            $cd_id,$combo_id,$prod_id,$cant,$op,$grupo,$maxSel,$extra,$orden
-                        ]);
-                    }
+                    $cant  = floatval($it['cantidad_por_porcion'] ?? $it['cantidad'] ?? 1);
+                    $unidad= $this->cleanString($it['unidad'] ?? null);
+                    $merma = floatval($it['merma_pct'] ?? 0);
+                    $obli  = intval($it['obligatorio'] ?? (isset($it['es_opcional']) ? (intval($it['es_opcional'])?0:1) : 1)) ? 1 : 0;
+                    $extra = floatval($it['precio_extra'] ?? 0);
+                    $ord   = intval($it['orden'] ?? ($idx+1));
+                    $verIt = intval($it['version'] ?? $ver);
+
+                    $q = "INSERT INTO combo_detalle(
+                            combo_detalle_id, combo_id, productos_id, cantidad_por_porcion, unidad,
+                            merma_pct, obligatorio, precio_extra, version, orden, fecha_registro
+                          ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+                    $this->ejecutar_consulta_simple_preparada(
+                        $q, "iiidsdidii",
+                        [$cd_id,$combo_id,$prod_id,$cant,$unidad,$merma,$obli,$extra,$verIt,$ord]
+                    );
+                }
+            }
+
+            // Reglas por categoría (reemplazo total si llegan)
+            if($reglas !== null){
+                $this->ejecutar_consulta_simple_preparada("DELETE FROM combo_categoria_regla WHERE combo_id=?","i",[$combo_id]);
+                foreach($reglas as $rg){
+                    $catId = intval($rg['categoria_id'] ?? 0);
+                    $max   = max(1, intval($rg['max_seleccion'] ?? 1));
+                    if ($catId<=0) continue;
+                    $rid = mainModel::correlativo("combo_categoria_regla_id","combo_categoria_regla");
+                    $this->ejecutar_consulta_simple_preparada(
+                        "INSERT INTO combo_categoria_regla(combo_categoria_regla_id, combo_id, categoria_id, max_seleccion, fecha_creacion)
+                         VALUES(?, ?, ?, ?, NOW())",
+                        "iiii", [$rid,$combo_id,$catId,$max]
+                    );
                 }
             }
 
@@ -1325,7 +1456,7 @@ class facturasRestauranteModelo extends mainModel {
         }
     }
 
-    /** Eliminar combo (y su detalle) */
+    /** Eliminar combo (por FK se borran detalle y reglas) */
     public function eliminarCombo($combo_id){
         $combo_id = intval($combo_id);
         if($combo_id<=0) return ['status'=>false,'message'=>'Combo inválido'];
@@ -1333,13 +1464,90 @@ class facturasRestauranteModelo extends mainModel {
         $cnn = $this->connection();
         try{
             $cnn->begin_transaction();
-            $this->ejecutar_consulta_simple_preparada("DELETE FROM combo_detalle WHERE combo_id=?","i",[$combo_id]);
-            $this->ejecutar_consulta_simple_preparada("DELETE FROM combo WHERE combo_id=?","i",[$combo_id]);
+            // Basta borrar el encabezado; detalle y reglas caen por ON DELETE CASCADE
+            $this->ejecutar_consulta_simple_preparada("DELETE FROM combos WHERE combo_id=?","i",[$combo_id]);
             $cnn->commit();
             return ['status'=>true,'message'=>'Combo eliminado'];
         }catch(Throwable $e){
             $cnn->rollback();
             return ['status'=>false,'message'=>'Error al eliminar combo: '.$e->getMessage()];
         }
+    }
+
+    /** Disponibilidad del combo según hijos OBLIGATORIOS (backflush) usando 'movimientos' */
+    public function calcularDisponibilidadCombo($combo_id, $cantidadSolicitada = 1){
+        $combo_id = intval($combo_id);
+        $cantidadSolicitada = max(1, intval($cantidadSolicitada));
+
+        // 1) Receta obligatoria
+        $sql = "SELECT d.productos_id,
+                       d.cantidad_por_porcion,
+                       d.merma_pct
+                FROM combo_detalle d
+                WHERE d.combo_id = ? AND d.obligatorio = 1";
+        $rs = $this->ejecutar_consulta_simple_preparada($sql, "i", [$combo_id]);
+        if(!$rs || !$rs->num_rows){
+            return ['status'=>false,'message'=>'El combo no tiene componentes obligatorios'];
+        }
+
+        $insumos = [];
+        while($r=$rs->fetch_assoc()){
+            $pid   = intval($r['productos_id']);
+            $cant  = (float)$r['cantidad_por_porcion'];
+            $merma = (float)$r['merma_pct'];
+            $consumoEfectivo = $cant * (1.0 + ($merma/100.0));
+            if ($consumoEfectivo <= 0) $consumoEfectivo = $cant; // seguridad
+            $insumos[$pid] = $consumoEfectivo; // map pid => consumo
+        }
+        if (empty($insumos)){
+            return ['status'=>false,'message'=>'Receta inválida'];
+        }
+
+        // 2) Saldos actuales desde 'movimientos' (último movimiento por producto y empresa)
+        $ids = array_keys($insumos);
+        $place = implode(',', array_fill(0,count($ids),'?'));
+        $types = str_repeat('i', count($ids));
+
+        $params = $ids;
+        array_unshift($params, $this->empresaId());
+        $typesAll = 'i'.$types;
+
+        $qSaldo = "
+            SELECT m.productos_id, m.saldo
+            FROM movimientos m
+            INNER JOIN (
+                SELECT productos_id, MAX(movimientos_id) AS mid
+                FROM movimientos
+                WHERE empresa_id = ?
+                  AND productos_id IN ($place)
+                GROUP BY productos_id
+            ) ult
+              ON ult.productos_id = m.productos_id
+             AND ult.mid = m.movimientos_id
+        ";
+
+        $rsStk = $this->ejecutar_consulta_simple_preparada($qSaldo, $typesAll, $params);
+        $stockMap = [];
+        if ($rsStk) {
+            while($s = $rsStk->fetch_assoc()){
+                $stockMap[(int)$s['productos_id']] = (float)$s['saldo'];
+            }
+        }
+
+        // 3) Combos posibles = piso( MIN (stock(pid) / consumo(pid)) )
+        $posibles = PHP_INT_MAX;
+        foreach($insumos as $pid => $consumo){
+            $stk = $stockMap[$pid] ?? 0.0;
+            $porciones = ($consumo > 0) ? floor($stk / $consumo) : 0;
+            if ($porciones < $posibles) $posibles = $porciones;
+        }
+        if ($posibles < 0 || $posibles === PHP_INT_MAX) $posibles = 0;
+
+        return [
+            'status'        => true,
+            'disponibles'   => (int)$posibles,
+            'alcanza_para'  => ($posibles >= $cantidadSolicitada) ? 'si' : 'no',
+            'solicitados'   => $cantidadSolicitada
+        ];
     }
 }

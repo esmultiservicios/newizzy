@@ -57,9 +57,17 @@
                         <h2 id="factura-title"><i class="fas fa-receipt"></i> Nueva Comanda</h2>
                         <div class="factura-meta">
                             <span id="mesa-seleccionada"><i class="fas fa-table"></i> No seleccionada</span>
-                            <span id="cliente-info"><i class="fas fa-user"></i> Consumidor final</span>
+                            <span id="cliente-info" class="cliente-info">
+                            <i class="fas fa-user"></i>
+                                <span class="cli-nombre">Consumidor final</span>
+
+                                <span class="cli-rtn-wrap" style="display:none;">
+                                    <i class="fas fa-id-card"></i>
+                                    <span class="cli-rtn"></span>
+                                </span>
+                            </span>
                             <button id="btn-cambiar-cliente" class="btn btn-sm btn-primary">
-                                <i class="fas fa-user-switch"></i> Cambiar
+                                <i class="fa-solid fa-right-left"></i> Cambiar
                             </button>
                             <!-- Botón adicional siempre visible para crear cliente rápido -->
                             <button id="btn-nuevo-cliente-rapido" class="btn btn-sm btn-success">
@@ -223,10 +231,15 @@
                             <option value="ocupada">Ocupada</option>
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-block">
-                        <i class="fas fa-save"></i> Guardar Mesa
-                    </button>
                 </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" data-close="#modal-mesa" type="button">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+                <button class="btn btn-success" type="submit" form="form-mesa">
+                    <i class="fas fa-save"></i> Guardar Mesa
+                </button>
             </div>
         </div>
     </div>
@@ -301,7 +314,7 @@
                 </div>
 
                 <div class="form-group">
-                <label for="cli-correo"><i class="fas fa-envelope"></i> Correo</label>
+                <label for="cli-correo"><i class="fas a-envelope"></i> Correo</label>
                 <input type="email" id="cli-correo" placeholder="cliente@correo.com">
                 </div>
             </form>
@@ -309,7 +322,7 @@
 
             <div class="modal-footer">
             <button class="btn btn-danger" data-close="#modal-nuevo-cliente" type="button">
-                <i class="fas fa-times"></i> Cancelar
+                <i class="fas fa-times"></i> Cerrar
             </button>
             <button class="btn btn-success" type="submit" form="form-nuevo-cliente">
                 <i class="fas fa-save"></i> Guardar
@@ -331,14 +344,11 @@
                     <label for="cat-nombre"><i class="fas fa-tag"></i> Nombre de la categoría</label>
                     <input type="text" id="cat-nombre" placeholder="Ej. Bebidas" />
                 </div>
-                <!-- === Estación para la CATEGORÍA (Cocina/Barra/Ninguna) === -->
+                <!-- === Estación para la CATEGORÍA (Cocina/Barra) === -->
                 <div class="form-group">
                     <label class="label-strong" for="cat-estacion">Estación (ruta de comanda)</label>
                     <div class="segmented-control" id="cat-estacion">
-                        <input type="radio" name="catEstacion" id="cat-est-ninguna" value="ninguna" checked>
-                        <label for="cat-est-ninguna" title="No se envía a ninguna estación">Ninguna</label>
-
-                        <input type="radio" name="catEstacion" id="cat-est-cocina" value="cocina">
+                         <input type="radio" name="catEstacion" id="cat-est-cocina" value="cocina" checked>
                         <label for="cat-est-cocina" title="Todo producto de esta categoría va a Cocina">Cocina</label>
 
                         <input type="radio" name="catEstacion" id="cat-est-barra" value="barra">
@@ -346,15 +356,15 @@
                     </div>
                     <small class="hint">
                         Si eliges <b>Cocina</b>, los productos de esta categoría se imprimirán en cocina por defecto. 
-                        Si eliges <b>Barra</b>, se imprimirán en barra. <b>Ninguna</b> no manda comanda.
+                        Si eliges <b>Barra</b>, se imprimirán en barra.
                     </small>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-danger" data-close="#modal-categoria">
-                    <i class="fas fa-times"></i> Cancelar
+                <button class="btn btn-danger" data-close="#modal-categoria" type="button">
+                    <i class="fas fa-times"></i> Cerrar
                 </button>
-                <button id="btn-guardar-categoria" class="btn btn-primary">
+                <button id="btn-guardar-categoria" class="btn btn-success" type="button">
                     <i class="fas fa-save"></i> Guardar
                 </button>
             </div>
@@ -380,9 +390,6 @@
 
                         <input type="radio" name="prodEstacion" id="prod-est-barra" value="barra">
                         <label for="prod-est-barra">Barra</label>
-
-                        <input type="radio" name="prodEstacion" id="prod-est-ninguna" value="ninguna">
-                        <label for="prod-est-ninguna">Ninguna</label>
                     </div>
                     <small class="hint">
                         Al elegir la estación, el selector de <b>categoría</b> te mostrará solo las categorías de esa estación.
@@ -414,7 +421,7 @@
 
                 <div class="form-group">
                     <label for="prod-precio"><i class="fas fa-dollar-sign"></i> Precio de venta</label>
-                    <input type="number" id="prod-precio" step="0.01" min="0" value="" placeholder="0.00"/>
+                    <input type="number" id="prod-precio" step="0.01" min="0" value="0.00" />
                 </div>
 
                 <div class="form-group" style="display:flex; gap:14px; flex-wrap:wrap;">
@@ -429,7 +436,9 @@
                         <i class="fas fa-image fa-3x mb-2"></i>
                         <p class="file-upload-instructions">
                             <span class="drag-text">Arrastra la imagen aquí</span>
-                            <button class="btn btn-sm btn-secondary" id="btnSeleccionarImagen" type="button">Seleccionar imagen</button>
+                            <button class="btn btn-sm btn-secondary" id="btnSeleccionarImagen" type="button">
+                                <i class="fas fa-image"></i> Seleccionar imagen
+                            </button>
                             <input type="file" id="imagen_producto" name="imagen_producto" accept="image/*" class="file-upload-input">
                             <span class="paste-text">o pega (Ctrl+V)</span>
                         </p>
@@ -439,10 +448,10 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-danger" data-close="#modal-producto">
-                    <i class="fas fa-times"></i> Cancelar
+                <button class="btn btn-danger" data-close="#modal-producto" type="button">
+                    <i class="fas fa-times"></i> Cerrar
                 </button>
-                <button id="btn-guardar-producto" class="btn btn-success">
+                <button id="btn-guardar-producto" class="btn btn-success" type="button">
                     <i class="fas fa-save"></i> Guardar
                 </button>
             </div>
@@ -459,7 +468,7 @@
             <div class="modal-body">
                 <div class="inline-actions" style="margin-bottom:10px;">
                     <button id="btn-nuevo-combo" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Nuevo combo</button>
-                    <span class="muted help-message">Define un producto “combo” y sus componentes.</span>
+                    <span class="muted">Define un producto "combo" y sus componentes.</span>
                 </div>
 
                 <!-- Grid de tarjetas -->
@@ -468,7 +477,9 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-close="#modal-combos"><i class="fas fa-times"></i> Cerrar</button>
+                <button class="btn btn-danger" data-close="#modal-combos" type="button">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
             </div>
         </div>
     </div>
@@ -517,8 +528,8 @@
             </div>
 
             <div class="modal-footer">
-            <button type="button" class="btn btn-danger" data-close="#modal-combo-editor"><i class="fas fa-times"></i> Cancelar</button>
-            <button type="button" id="btn-guardar-combo" class="btn btn-primary"><i class="fas fa-save"></i> Guardar combo</button>
+            <button type="button" class="btn btn-danger" data-close="#modal-combo-editor"><i class="fas fa-times"></i> Cerrar</button>
+            <button type="button" id="btn-guardar-combo" class="btn btn-success"><i class="fas fa-save"></i> Guardar combo</button>
             </div>
         </div>
     </div>

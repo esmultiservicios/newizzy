@@ -63,10 +63,16 @@ try {
             break;
 
         case 'loadCategorias':
-            echo json_encode(['status'=>true,'categorias'=>$m->obtenerCategoriasProductos()]);
-            break;
+            // opcional: 'cocina' | 'barra' | 'todas'
+            $estacion = strtolower((string)$in('estacion', 'todas'));
+            if (!in_array($estacion, ['cocina','barra','todas'], true)) {
+                $estacion = 'todas';
+            }
+            echo json_encode(['status'=>true,'categorias'=>$m->obtenerCategoriasProductos($estacion)]);
+            break;            
 
         case 'loadProductos':
+            // Puedes filtrar por restaurante=1 dentro del modelo si lo deseas
             echo json_encode(['status'=>true,'productos'=>$m->obtenerProductos()]);
             break;
 
@@ -101,9 +107,9 @@ try {
                 'categoria_id'  => intval($_POST['categoria_id'] ?? 0),
                 'precio_venta'  => floatval($_POST['precio_venta'] ?? 0),
                 'isv1'          => intval($_POST['isv1'] ?? 0),
-                'isv2'          => intval($_POST['isv2'] ?? 0)
+                'isv2'          => intval($_POST['isv2'] ?? 0),
+                'restaurante'   => intval($_POST['restaurante'] ?? 0), // opcional
             ];
-            
             echo json_encode($m->guardarProductoBasico($payload));
             break;
         
@@ -116,9 +122,9 @@ try {
                 'categoria_id'  => intval($_POST['categoria_id'] ?? 0),
                 'precio_venta'  => floatval($_POST['precio_venta'] ?? 0),
                 'isv1'          => intval($_POST['isv1'] ?? 0),
-                'isv2'          => intval($_POST['isv2'] ?? 0)
+                'isv2'          => intval($_POST['isv2'] ?? 0),
+                'restaurante'   => intval($_POST['restaurante'] ?? 0), // opcional
             ];
-            
             echo json_encode($m->actualizarProductoBasico($payload));
             break;
 
@@ -200,7 +206,7 @@ try {
                 $payload = [
                     'mesa_id'       => intval($in('mesa_id',0)),
                     'cliente_id'    => intval($in('cliente_id',0)),
-                    'items'         => json_decode((string)$in('items','[]'), true),
+                    'items'         => json_decode((string)$in('items','[]'), true), // [{producto_id, qty, ...}]
                     'metodo_pago'   => (string)$in('metodo_pago',''),
                     'observaciones' => (string)$in('observaciones',''),
                 ];
@@ -235,13 +241,12 @@ try {
          * ======= COCINA =============================================
          * ============================================================ */
 
-        // NUEVO: listado para la pantalla de cocina
         case 'loadComandasCocina':
             // opcionalmente puedes filtrar por estado: pendiente|en_preparacion|preparada|urgente|completada
             $estado = $in('estado', null);
             echo json_encode([
                 'status'   => true,
-                'comandas' => $m->obtenerComandasCocina($estado) // el modelo devolverá el formato que espera tu JS
+                'comandas' => $m->obtenerComandasCocina($estado)
             ]);
             break;
 
@@ -256,7 +261,7 @@ try {
             break;
 
         case 'marcarComandaPreparada':
-            // Acepta comanda_id o factura_id (por compatibilidad con diferentes llamadas del front)
+            // Acepta comanda_id o factura_id (compatibilidad con diferentes llamadas del front)
             $fid = intval($in('factura_id', 0));
             if ($fid<=0) { $fid = intval($in('comanda_id', 0)); }
             echo json_encode($m->marcarComandaPreparada($fid));
@@ -273,7 +278,7 @@ try {
             break;
 
         /* ============================================================
-         * ======= COMBOS (MAESTRO / DETALLE) =========================
+         * ======= COMBOS (MAESTRO / DETALLE / REGLAS) ================
          * ============================================================ */
         case 'loadCombos':
             echo json_encode(['status'=>true,'combos'=>$m->obtenerCombos()]);
@@ -285,10 +290,21 @@ try {
                 echo json_encode(['status'=>false,'message'=>'Combo inválido']);
                 break;
             }
-            $detalle = $m->obtenerComboDetalle($combo_id);
+            $detalle = $m->obtenerComboDetalle($combo_id); // hijos (obligatorio/opcional, cantidades, merma, unidad, precio_extra)
             echo json_encode(['status'=>true,'combo_detalle'=>$detalle]);
             break;
 
+        // NUEVO: cargar reglas por categoría (max_seleccion) del combo
+        case 'loadComboCategoriaReglas':
+            $combo_id = intval($in('combo_id', 0));
+            if ($combo_id<=0) {
+                echo json_encode(['status'=>false,'message'=>'Combo inválido']);
+                break;
+            }
+            echo json_encode(['status'=>true,'reglas'=>$m->obtenerComboCategoriaReglas($combo_id)]);
+            break;
+
+        // Guardar combo + receta + reglas por categoría
         case 'saveCombo':
             if (!$payload && !isset($_POST['productos_id'])) {
                 http_response_code(400);
@@ -297,14 +313,20 @@ try {
             }
             if (!$payload) {
                 $payload = [
-                    'productos_id' => intval($in('productos_id',0)),
+                    'productos_id' => intval($in('productos_id',0)),       // producto PADRE
                     'activo'       => intval($in('activo',1)) ? 1 : 0,
-                    'items'        => json_decode((string)$in('items','[]'), true)
+                    'precio_venta' => ($in('precio_venta', null) === null ? null : floatval($in('precio_venta',0))), // NULL o decimal
+                    'version'      => intval($in('version',1)),           // opcional
+                    // items: [{productos_id, cantidad_por_porcion, unidad, merma_pct, obligatorio, precio_extra, orden}]
+                    'items'        => json_decode((string)$in('items','[]'), true),
+                    // reglas: [{categoria_id, max_seleccion}]
+                    'reglas'       => json_decode((string)$in('reglas','[]'), true),
                 ];
             }
             echo json_encode($m->guardarCombo($payload));
             break;
 
+        // Actualizar combo (parcial o total)
         case 'updateCombo':
             if ((!$payload || !isset($payload['combo_id'])) && !isset($_POST['combo_id'])) {
                 http_response_code(400);
@@ -314,9 +336,15 @@ try {
             if (!$payload) {
                 $payload = [
                     'combo_id'     => intval($in('combo_id',0)),
-                    'productos_id' => intval($in('productos_id',0)),
-                    'activo'       => (isset($_POST['activo']) ? (intval($in('activo',1)) ? 1 : 0) : null),
-                    'items'        => (isset($_POST['items']) ? json_decode((string)$in('items','[]'), true) : null)
+                    'productos_id' => ($in('productos_id', null) !== null) ? intval($in('productos_id',0)) : null,
+                    'activo'       => (isset($_POST['activo']) || (is_array($payload) && array_key_exists('activo', $payload)))
+                                      ? (intval($in('activo',1)) ? 1 : 0) : null,
+                    'precio_venta' => ($in('precio_venta', '__omit__') === '__omit__') ? '__omit__'
+                                      : (($in('precio_venta', null) === null) ? null : floatval($in('precio_venta',0))),
+                    'version'      => ($in('version', null) !== null) ? intval($in('version',1)) : null,
+                    // Si se envía items/reglas, se reemplaza la receta/reglas actuales (transacción en el modelo)
+                    'items'        => (isset($_POST['items']) ? json_decode((string)$in('items','[]'), true) : ($payload['items'] ?? null)),
+                    'reglas'       => (isset($_POST['reglas']) ? json_decode((string)$in('reglas','[]'), true) : ($payload['reglas'] ?? null)),
                 ];
             }
             echo json_encode($m->actualizarCombo($payload));
@@ -329,6 +357,17 @@ try {
                 break;
             }
             echo json_encode($m->eliminarCombo($combo_id));
+            break;
+
+        // NUEVO: calcular disponibilidad del combo según inventario de hijos obligatorios
+        case 'calcComboDisponibilidad':
+            $combo_id  = intval($in('combo_id', 0));
+            $cantidad  = max(1, intval($in('cantidad', 1))); // opcional: para validar si hay stock para N combos
+            if ($combo_id<=0) {
+                echo json_encode(['status'=>false,'message'=>'Combo inválido']);
+                break;
+            }
+            echo json_encode($m->calcularDisponibilidadCombo($combo_id, $cantidad));
             break;
 
         default:

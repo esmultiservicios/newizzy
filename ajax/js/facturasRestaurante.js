@@ -389,6 +389,7 @@ function initSelect2All(){
     // Estado inicial de cabecera
     setMesaSeleccionadaUI(null);
     setClienteInfoUI({ nombre:'Consumidor final', rtn:'' });
+    getCajero();
   }
 
   function setupEventListeners() {
@@ -3252,3 +3253,288 @@ function initHotkeys(){
     });
   }
 }
+
+/* ===========================================================
+   CAJA + CONTADOR SAR (robusto BS4/BS5) – FACTURAS RESTO
+   =========================================================== */
+   (function ($, window, document) {
+    'use strict';
+  
+    // --- Helpers de entorno ---
+    // SERVERURL puede venir de PHP en la vista o como global JS
+    var BASE = (typeof SERVERURL !== 'undefined' && SERVERURL) ? SERVERURL : (window.SERVERURL || '/');
+  
+    // Soporte modal para Bootstrap 4 (jQuery) y Bootstrap 5 (ES6)
+    // --- Helper para abrir modales con BS4 (jQuery) y BS5 (todas las versiones)
+    function showModalById(id) {
+      var el = (typeof id === 'string') ? document.querySelector(id) : id;
+      if (!el) return;
+
+      // 1) Bootstrap 4 con jQuery (plugin $.fn.modal)
+      if (window.jQuery && jQuery.fn && jQuery.fn.modal) {
+        jQuery(el).modal({ show: true, keyboard: false, backdrop: 'static' });
+        return;
+      }
+
+      // 2) Bootstrap 5 sin jQuery
+      if (window.bootstrap && bootstrap.Modal) {
+        var Modal = bootstrap.Modal;
+        var opts = { keyboard: false, backdrop: 'static' };
+
+        // BS 5.2+: getOrCreateInstance
+        if (typeof Modal.getOrCreateInstance === 'function') {
+          var instA = Modal.getOrCreateInstance(el, opts);
+          instA.show();
+          return;
+        }
+
+        // BS 5.0 / 5.1: usa getInstance() o crea con new Modal()
+        var instB = (typeof Modal.getInstance === 'function') ? Modal.getInstance(el) : null;
+        if (!instB) instB = new Modal(el, opts);
+        instB.show();
+        return;
+      }
+
+      // 3) Fallback muy básico
+      el.style.display = 'block';
+      el.classList.add('show');
+    }
+  
+    // --- Estado global ---
+    var cajaAbierta = false;
+    var lastState = null;
+  
+    // ===========================================================
+    //  AJAX de backend
+    // ===========================================================
+  
+    // 1) Consulta si la caja está abierta (1) o cerrada (2)
+    function getConsultarAperturaCaja() {
+      var estado_apertura = 2; // default cerrada
+      $.ajax({
+        type: 'POST',
+        url: BASE + 'core/getAperturaCajaUsuario.php',
+        async: false
+      }).done(function (r) {
+        try {
+          var data = JSON.parse(r);
+          estado_apertura = Number(data[0]) || 2;
+        } catch (e) {
+          console.error('getAperturaCajaUsuario parse:', e);
+        }
+      }).fail(function () {
+        console.error('AJAX getAperturaCajaUsuario');
+      });
+      return estado_apertura;
+    }
+  
+    // 2) Contador SAR
+    function getTotalFacturasDisponibles() {
+      $.ajax({
+        type: 'POST',
+        url: BASE + 'core/getTotalFacturasDisponibles.php?_=' + Date.now(),
+        dataType: 'json'
+      }).done(function (datos) {
+        if (!datos || typeof datos.facturasPendientes === 'undefined') {
+          paintCounterError();
+          return;
+        }
+        renderCounter(datos);
+      }).fail(function () {
+        paintCounterError();
+      });
+    }
+  
+    // ===========================================================
+    //  UI: Botón Apertura/Cierre + Modal
+    // ===========================================================
+  
+    // Abre modal para APERTURA
+    function formAperturaBill() {
+      $('#formAperturaCaja #proceso_aperturaCaja').val('Aperturar Caja');
+      $('#open_caja').show();
+      $('#close_caja').hide();
+      $('#formAperturaCaja #monto_apertura_grupo').show();
+  
+      // Si tu JS está embebido en .php, puedes dejar la acción en PHP.
+      // En archivo .js externo, usa BASE:
+      $('#formAperturaCaja')
+        .attr('data-form', 'save')
+        .attr('action', BASE + 'ajax/addAperturaCajaAjax.php');
+  
+      showModalById('#modal_apertura_caja');
+    }
+  
+    // Abre modal para CIERRE
+    function formCierreBill() {
+      $('#formAperturaCaja #proceso_aperturaCaja').val('Cerrar Caja');
+      $('#open_caja').hide();
+      $('#close_caja').show();
+      $('#formAperturaCaja #monto_apertura_grupo').hide();
+  
+      $('#formAperturaCaja')
+        .attr('data-form', 'save')
+        .attr('action', BASE + 'ajax/addCierreCajaFacturasAjax.php');
+  
+      showModalById('#modal_apertura_caja');
+    }
+  
+    // Verifica y actualiza estado de caja + texto del botón
+    function verificarAperturaCaja() {
+      var estado = Number(getConsultarAperturaCaja());
+      cajaAbierta = (estado === 1);
+  
+      var $btn = $('#btn-apertura-caja');
+      if ($btn.length) {
+        if (cajaAbierta) {
+          $btn.removeClass('btn-primary').addClass('btn-warning')
+            .html('<i class="fas fa-lock mr-1"></i> Cerrar Caja')
+            .data('mode', 'cerrar');
+        } else {
+          $btn.removeClass('btn-warning').addClass('btn-primary')
+            .html('<i class="fas fa-lock-open mr-1"></i> Aperturar Caja')
+            .data('mode', 'abrir');
+        }
+      }
+  
+      // tras validar caja, refresca contador
+      getTotalFacturasDisponibles();
+    }
+  
+    // Click del botón único (abre el modal correcto)
+    $(document).on('click', '#btn-apertura-caja', function (e) {
+      e.preventDefault();
+      var mode = $(this).data('mode');
+      if (mode === 'cerrar' || (mode == null && cajaAbierta)) {
+        formCierreBill();
+      } else {
+        formAperturaBill();
+      }
+    });
+  
+    // Si el modal se cierra, revalida
+    $(document).on('hidden.bs.modal', '#modal_apertura_caja', function () {
+      verificarAperturaCaja();
+    });
+  
+    // ===========================================================
+    //  UI: Contador SAR
+    // ===========================================================
+    function renderCounter(datos) {
+      var count = Number(datos.facturasPendientes) || 0;
+      var daysLeft = parseInt(datos.contador, 10);
+      var fechaLimite = datos.fechaLimite;
+  
+      var state = getCurrentState(count, daysLeft, fechaLimite);
+      var cfg = getStateConfig(state, count, daysLeft, fechaLimite);
+  
+      var $counter = $('#factura-counter');
+      if (!$counter.length) return;
+  
+      // icono
+      if ($counter.find('i').length) {
+        $counter.find('i').first().attr('class', cfg.icon);
+      } else {
+        $counter.prepend('<i class="' + cfg.icon + '"></i> ');
+      }
+  
+      // valor + hint
+      var $value = $('#factura-disponibles');
+      if (!$value.length) {
+        $counter.append('<span id="factura-disponibles" class="counter-value"></span>');
+        $value = $('#factura-disponibles');
+      }
+      $value.text(cfg.mainText);
+  
+      $counter.find('.counter-hint').remove();
+      if (cfg.hintHtml) {
+        $counter.append('<span class="counter-hint">' + cfg.hintHtml + '</span>');
+      }
+  
+      // clases de estado
+      $counter
+        .removeClass(function (i, c) { return (c.match(/\bcounter-\S+/g) || []).join(' '); })
+        .addClass(cfg.class)
+        .attr('title', cfg.mainText);
+  
+      // animación leve
+      $counter.removeClass('state-change');
+      void $counter[0].offsetWidth;
+      $counter.addClass('state-change');
+  
+      lastState = state;
+  
+      updateButtonsState(count, fechaLimite, daysLeft);
+    }
+  
+    function paintCounterError() {
+      var $counter = $('#factura-counter');
+      if (!$counter.length) return;
+      if ($counter.find('i').length) $counter.find('i').first().attr('class', 'fas fa-exclamation-circle');
+      var $value = $('#factura-disponibles');
+      if (!$value.length) {
+        $counter.append('<span id="factura-disponibles" class="counter-value"></span>');
+        $value = $('#factura-disponibles');
+      }
+      $value.text('Error al cargar');
+      $counter
+        .removeClass(function (i, c) { return (c.match(/\bcounter-\S+/g) || []).join(' '); })
+        .addClass('counter-danger');
+    }
+  
+    function getCurrentState(count, daysLeft, fechaLimite) {
+      if (!fechaLimite || String(fechaLimite).trim() === 'Sin definir') return 'no-config';
+      if (count < 0) return 'blocked';
+      if (daysLeft < 0) return 'expired';
+      if (daysLeft <= 5) return 'danger';
+      if (count <= 9) return 'danger';
+      if (count <= 30) return 'warning';
+      return 'normal';
+    }
+  
+    function getStateConfig(state, count, daysLeft, fechaLimite) {
+      var main = (Number(count).toLocaleString('es-HN') + ' facturas');
+      var hint = '';
+      if (daysLeft <= 5) {
+        hint = (daysLeft < 0) ? 'Autorizaciones vencidas' : (daysLeft === 0 ? 'Vencen hoy' : ('Vencen en ' + daysLeft + ' día(s)'));
+      }
+      var base = { mainText: main, hintHtml: hint ? ('<small class="d-block">' + hint + '</small>') : '' };
+  
+      var linkCfg = '<small class="d-block"><a href="' + BASE + 'secuencia/" target="_blank" class="text-white">Configurar</a></small>';
+      var linkUpd = '<small class="d-block"><a href="' + BASE + 'secuencia/" target="_blank" class="text-white">Actualizar</a></small>';
+  
+      return {
+        normal:  { icon:'fas fa-file-invoice',           class:'counter-normal',  mainText: main,  hintHtml: base.hintHtml },
+        warning: { icon:'fas fa-hourglass-half',         class:'counter-warning', mainText: main,  hintHtml: base.hintHtml },
+        danger:  { icon:'fas fa-exclamation-triangle',   class:'counter-danger',  mainText: main,  hintHtml: base.hintHtml },
+        expired: { icon:'fas fa-calendar-times',         class:'counter-expired', mainText:'Autorizaciones vencidas', hintHtml: linkUpd },
+        blocked: { icon:'fas fa-ban',                    class:'counter-blocked', mainText:'Límite alcanzado',        hintHtml: linkCfg },
+        'no-config': { icon:'fas fa-calendar-times',     class:'counter-no-config', mainText:'Sin fecha límite',      hintHtml: linkCfg }
+      }[state] || { icon:'fas fa-file-invoice', class:'counter-normal', mainText: main, hintHtml: base.hintHtml };
+    }
+  
+    // Habilitar / deshabilitar acciones según caja + SAR
+    function updateButtonsState(count, fechaLimite, daysLeft) {
+      var vencido = daysLeft < 0;
+      var sarOK = (count > 0) && !!fechaLimite && String(fechaLimite).trim() !== 'Sin definir' && !vencido;
+  
+      // ejemplo: imprimir bloqueado si no hay caja o SAR invalidado
+      $('#btn-imprimir').prop('disabled', !(sarOK && cajaAbierta));
+    }
+  
+    // ===========================================================
+    //  Arranque + auto-refresh
+    // ===========================================================
+    $(function () {
+      verificarAperturaCaja();
+      getTotalFacturasDisponibles();
+  
+      // refresca cada 5s (seguro)
+      setInterval(function () {
+        verificarAperturaCaja();
+        getTotalFacturasDisponibles();
+      }, 5000);
+    });
+  
+  })(window.jQuery, window, document);
+  

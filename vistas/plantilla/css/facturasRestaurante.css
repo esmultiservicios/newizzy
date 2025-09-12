@@ -1238,38 +1238,145 @@ select.select2.form-control {
     background:linear-gradient(135deg,#4b5563,#111827);
   }
   
-  /* ===========================
-     CABECERA PRODUCTOS: búsqueda/escaneo
-     =========================== */
+/* ===========================
+    CABECERA PRODUCTOS: búsqueda/escaneo
+    =========================== */
+.productos-header{
+  display:flex; align-items:center; gap:8px; flex-wrap:nowrap;
+  padding-bottom:18px; overflow:visible;
+}
+.productos-header h3{ margin:0; white-space:nowrap }
+.productos-header .productos-search{
+  display:flex; gap:10px; align-items:center; flex:1 1 auto; flex-wrap:nowrap; overflow:visible;
+}
+  
+/* campo + ayuda debajo (no rompe la fila) */
+.search-group{ position:relative; display:flex; align-items:center; gap:6px; flex:0 0 auto }
+.search-group .help-under{
+  position:absolute; top:100%; left:4px;
+  font-size:12px; line-height:1.2; color:#6b7280; white-space:nowrap; pointer-events:none;
+}
+
+/* tamaños cómodos */
+.input-lg{ height:40px; padding:6px 10px; font-size:14px }
+#buscar-producto{ width:360px }
+#scan-codigo{ width:300px }
+#btn-buscar.btn{ height:40px; display:inline-flex; align-items:center; justify-content:center }
+
+@media (max-width:1100px){
+  #buscar-producto{ width:300px }
+  #scan-codigo{ width:260px }
+}
+
+/* meta (cambiar/crear/gestión) */
+  /* Meta (donde están Cambiar/Crear cliente + NUEVOS botones) */
+  .factura-header .factura-meta{
+    display:flex; align-items:center; gap:8px;
+    flex-wrap:nowrap; white-space:nowrap;
+  }
+  .meta-divider{
+    width:1px; height:22px; background:#e5e7eb; margin:0 2px;
+    display:inline-block;
+  }
+  .gestion-productos-actions{ display:flex; gap:8px; }
+
+  /* Cabecera de productos: todo en una sola línea */
   .productos-header{
     display:flex; align-items:center; gap:8px; flex-wrap:nowrap;
-    padding-bottom:18px; overflow:visible;
+    padding-bottom:18px; /* espacio para los small debajo sin romper la fila */
+    overflow:visible;
   }
-  .productos-header h3{ margin:0; white-space:nowrap }
+  .productos-header h3{ margin:0; white-space:nowrap; }
+
   .productos-header .productos-search{
-    display:flex; gap:10px; align-items:center; flex:1 1 auto; flex-wrap:nowrap; overflow:visible;
+    display:flex; gap:10px; align-items:center;
+    flex:1 1 auto; flex-wrap:nowrap; overflow:visible;
   }
-  
-  /* campo + ayuda debajo (no rompe la fila) */
-  .search-group{ position:relative; display:flex; align-items:center; gap:6px; flex:0 0 auto }
+
+  /* Grupo de campo + ayuda debajo */
+  .search-group{
+    position:relative; display:flex; align-items:center; gap:6px;
+    flex:0 0 auto;
+  }
   .search-group .help-under{
     position:absolute; top:100%; left:4px;
-    font-size:12px; line-height:1.2; color:#6b7280; white-space:nowrap; pointer-events:none;
+    font-size:12px; line-height:1.2; color:#6b7280; white-space:nowrap;
+    pointer-events:none;
   }
-  
-  /* tamaños cómodos */
-  .input-lg{ height:40px; padding:6px 10px; font-size:14px }
-  #buscar-producto{ width:360px }
-  #scan-codigo{ width:300px }
-  #btn-buscar.btn{ height:40px; display:inline-flex; align-items:center; justify-content:center }
-  
+
+  /* Tamaños de inputs y botón lupa */
+  .input-lg{ height:40px; padding:6px 10px; font-size:14px; }
+  #buscar-producto{ width:360px; }
+  #scan-codigo{ width:300px; }
+  #btn-buscar.btn{ height:40px; display:inline-flex; align-items:center; justify-content:center; }
+
+  /* En pantallas más estrechas sigue en una sola línea */
   @media (max-width:1100px){
-    #buscar-producto{ width:300px }
-    #scan-codigo{ width:260px }
+    #buscar-producto{ width:300px; }
+    #scan-codigo{ width:260px; }
   }
-  
-  /* meta (cambiar/crear/gestión) */
-  .factura-header .factura-meta{ display:flex; align-items:center; gap:8px; flex-wrap:nowrap; white-space:nowrap }
-  .meta-divider{ width:1px; height:22px; background:#e5e7eb; margin:0 2px; display:inline-block }
-  .gestion-productos-actions{ display:flex; gap:8px }
-  
+
+
+/* ======= Barra superior ======= */
+.control-bar{display:flex;align-items:center;gap:12px}
+.control-user{flex:0 0 auto}
+.control-buttons{flex:0 0 auto;display:flex;gap:8px}
+.control-center{flex:1 1 auto;display:flex;align-items:center;justify-content:center}
+
+/* ======= Counter SAR (píldora) ======= */
+.control-counter{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:8px 14px;border-radius:9999px;color:#fff;font-weight:600;min-width:220px;
+  box-shadow:0 8px 24px rgba(0,0,0,.18);user-select:none;
+}
+.control-counter i{opacity:.95}
+.control-counter .counter-value{white-space:nowrap}
+.state-change{animation:counter-pop .25s ease}
+@keyframes counter-pop{from{transform:scale(.98)}to{transform:scale(1)}}
+
+/* Estados visuales */
+.counter-normal{background:linear-gradient(135deg,#2563eb,#1d4ed8)}
+.counter-warning{background:linear-gradient(135deg,#f59e0b,#d97706)}
+.counter-danger{background:linear-gradient(135deg,#ef4444,#dc2626)}
+.counter-expired,.counter-no-config{background:#6b7280}
+.counter-blocked{background:#374151}
+
+/* ======= Cabecera de factura ======= */
+.factura-header .factura-meta{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;white-space:normal;row-gap:6px
+}
+.meta-divider{width:1px;height:22px;background:#e5e7eb;margin:0 2px;display:inline-block}
+.gestion-productos-actions{display:flex;gap:8px}
+
+/* ======= Menú compacto (tablets) ======= */
+.gestion-compact{display:none;position:relative}
+.gestion-compact .gest-menu{
+  position:absolute;top:100%;left:0;background:#fff;border:1px solid #e5e7eb;
+  border-radius:12px;padding:6px;box-shadow:0 10px 30px rgba(0,0,0,.12);
+  min-width:220px;display:none;z-index:20;
+}
+.gestion-compact .gest-menu.show{display:block}
+.gestion-compact .gest-menu button{
+  width:100%;text-align:left;background:#fff;border:0;padding:8px 10px;border-radius:8px;cursor:pointer;
+}
+.gestion-compact .gest-menu button:hover{background:#f3f4f6}
+
+@media (max-width:1280px){
+  .gestion-productos-actions{display:none!important}
+  .gestion-compact{display:inline-block}
+}
+
+/* ======= Productos header (línea única) ======= */
+.productos-header{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;padding-bottom:18px;overflow:visible}
+.productos-header h3{margin:0;white-space:nowrap}
+.productos-header .productos-search{display:flex;gap:10px;align-items:center;flex:1 1 auto;flex-wrap:nowrap;overflow:visible}
+.search-group{position:relative;display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.search-group .help-under{position:absolute;top:100%;left:4px;font-size:12px;line-height:1.2;color:#6b7280;white-space:nowrap;pointer-events:none}
+.input-lg{height:40px;padding:6px 10px;font-size:14px}
+#buscar-producto{width:360px}
+#scan-codigo{width:300px}
+#btn-buscar.btn{height:40px;display:inline-flex;align-items:center;justify-content:center}
+@media (max-width:1100px){
+  #buscar-producto{width:300px}
+  #scan-codigo{width:260px}
+}

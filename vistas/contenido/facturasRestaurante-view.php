@@ -10,85 +10,42 @@
   <link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/facturasRestaurante.css">
   <!-- Select2 CSS -->
   <link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/select2.min.css">
-
-  <!-- Ajustes: fila de búsqueda/escaneo + nueva ubicación de botones -->
-  <style>
-    /* Meta (donde están Cambiar/Crear cliente + NUEVOS botones) */
-    .factura-header .factura-meta{
-      display:flex; align-items:center; gap:8px;
-      flex-wrap:nowrap; white-space:nowrap;
-    }
-    .meta-divider{
-      width:1px; height:22px; background:#e5e7eb; margin:0 2px;
-      display:inline-block;
-    }
-    .gestion-productos-actions{ display:flex; gap:8px; }
-
-    /* Cabecera de productos: todo en una sola línea */
-    .productos-header{
-      display:flex; align-items:center; gap:8px; flex-wrap:nowrap;
-      padding-bottom:18px; /* espacio para los small debajo sin romper la fila */
-      overflow:visible;
-    }
-    .productos-header h3{ margin:0; white-space:nowrap; }
-
-    .productos-header .productos-search{
-      display:flex; gap:10px; align-items:center;
-      flex:1 1 auto; flex-wrap:nowrap; overflow:visible;
-    }
-
-    /* Grupo de campo + ayuda debajo */
-    .search-group{
-      position:relative; display:flex; align-items:center; gap:6px;
-      flex:0 0 auto;
-    }
-    .search-group .help-under{
-      position:absolute; top:100%; left:4px;
-      font-size:12px; line-height:1.2; color:#6b7280; white-space:nowrap;
-      pointer-events:none;
-    }
-
-    /* Tamaños de inputs y botón lupa */
-    .input-lg{ height:40px; padding:6px 10px; font-size:14px; }
-    #buscar-producto{ width:360px; }
-    #scan-codigo{ width:300px; }
-    #btn-buscar.btn{ height:40px; display:inline-flex; align-items:center; justify-content:center; }
-
-    /* En pantallas más estrechas sigue en una sola línea */
-    @media (max-width:1100px){
-      #buscar-producto{ width:300px; }
-      #scan-codigo{ width:260px; }
-    }
-  </style>
 </head>
 <body class="vista-facturacion-restaurante">
 <script>var SERVERURL = '<?php echo SERVERURL; ?>';</script>
 
 <div class="restaurante-container">
   <!-- Barra superior de control -->
-  <div class="control-bar">
-    <div class="control-user">
-      <span id="cajero-actual">
-        <i class="fas fa-user"></i> Cajero: <?php echo $_SESSION['nombre_usuario'] ?? 'Usuario'; ?>
-      </span>
-    </div>
+<!-- Barra superior de control -->
+<div class="control-bar">
+  <div class="control-user">
+    <span id="cajero-actual">
+      <i class="fas fa-user"></i> Cajero: <?php echo $_SESSION['nombre_usuario'] ?? 'Usuario'; ?>
+    </span>
+  </div>
 
-    <div class="control-buttons">
-      <button id="btn-volver-dashboard" class="btn btn-light">
-        <i class="fas fa-arrow-left"></i> Volver
-      </button>
-
-      <!-- Botón de Ayuda (abre modal táctil-friendly) -->
-      <button id="btn-help" class="btn btn-info">
-        <i class="fas fa-circle-question"></i> Ayuda
-      </button>
-
-      <button id="btn-cerrar-sesion" class="btn btn-danger"
-              data-token="<?php echo $lc->encryption($_SESSION['token_sd']); ?>">
-        <i class="fas fa-sign-out-alt"></i> Salir
-      </button>
+  <!-- CENTRO: SOLO el counter -->
+  <div class="control-center">
+    <div id="factura-counter" class="control-counter counter-normal" title="">
+      <i class="fas fa-file-invoice"></i>
+      <span id="factura-disponibles" class="counter-value">Cargando…</span>
     </div>
   </div>
+
+  <div class="control-buttons">
+    <button id="btn-volver-dashboard" class="btn btn-light">
+      <i class="fas fa-arrow-left"></i> Volver
+    </button>
+    <button id="btn-help" class="btn btn-info">
+      <i class="fas fa-circle-question"></i> Ayuda
+    </button>
+    <button id="btn-cerrar-sesion" class="btn btn-danger"
+            data-token="<?php echo $lc->encryption($_SESSION['token_sd']); ?>">
+      <i class="fas fa-sign-out-alt"></i> Salir
+    </button>
+  </div>
+</div>
+
 
   <!-- Contenido principal -->
   <div class="restaurante-content">
@@ -114,7 +71,7 @@
         <div class="factura-info">
           <h2 id="factura-title"><i class="fas fa-receipt"></i> Nueva Comanda</h2>
 
-          <!-- NUEVO: selector de tipo de servicio -->
+          <!-- selector de tipo de servicio -->
           <div class="factura-servicio" id="servicio-switch" title="Elige si es para llevar o en mesa">
             <div class="segmented-control" aria-label="Tipo de servicio">
               <input type="radio" name="servicioTipo" id="srv-llevar" value="llevar" checked>
@@ -148,7 +105,7 @@
             <!-- DIVISOR -->
             <span class="meta-divider" aria-hidden="true"></span>
 
-            <!-- NUEVA UBICACIÓN de: + Categoría, Nuevo producto, Combos -->
+            <!-- Botones gestión (desktop) -->
             <div class="gestion-productos-actions">
               <button id="btn-nueva-categoria" class="btn btn-secondary btn-sm">
                 <i class="fas fa-folder-plus"></i> + Categoría
@@ -160,9 +117,34 @@
                 <i class="fas fa-layer-group"></i> Combos
               </button>
             </div>
+
+            <!-- Menú compacto (tablets) -->
+            <div class="gestion-compact">
+              <button id="btn-gestion" class="btn btn-secondary btn-sm">
+                <i class="fas fa-tools"></i> Gestionar
+              </button>
+              <div class="gest-menu" id="gest-menu">
+                <button type="button" data-target="#btn-nueva-categoria">
+                  <i class="fas fa-folder-plus"></i> + Categoría
+                </button>
+                <button type="button" data-target="#btn-nuevo-producto">
+                  <i class="fas fa-plus"></i> Nuevo producto
+                </button>
+                <button type="button" data-target="#btn-gestionar-combos">
+                  <i class="fas fa-layer-group"></i> Combos
+                </button>
+              </div>
+            </div>
           </div>
         </div>
+
+        <!-- Acciones de la factura -->
         <div class="factura-actions">
+          <!-- Botón de CAJA aquí (no arriba) -->
+          <button id="btn-apertura-caja" class="btn btn-primary">
+            <i class="fas fa-lock-open"></i> Aperturar Caja
+          </button>
+
           <button id="btn-guardar" class="btn btn-success">
             <i class="fas fa-save"></i> Guardar
           </button>
@@ -207,8 +189,6 @@
                 <small class="help-under">Coloca el foco y escanea (<b>Enter</b>).</small>
               </div>
             </div>
-
-            <!-- OJO: Eliminado el bloque .productos-actions aquí para que no se oculte -->
           </div>
 
           <!-- Filtro por estación (Todas / Cocina / Barra) -->
@@ -223,12 +203,8 @@
             </div>
           </div>
 
-          <div class="categorias-tabs" id="categorias-tabs">
-            <!-- Las categorías se cargarán dinámicamente (cada chip tendrá botón editar) -->
-          </div>
-          <div class="productos-grid" id="productos-container">
-            <!-- Los productos se cargarán aquí dinámicamente; cada tarjeta tendrá botón editar -->
-          </div>
+          <div class="categorias-tabs" id="categorias-tabs"></div>
+          <div class="productos-grid" id="productos-container"></div>
         </div>
 
         <!-- Panel de la comanda -->
@@ -239,9 +215,7 @@
               <i class="fas fa-broom"></i> Limpiar
             </button>
           </div>
-          <div class="comanda-items" id="comanda-items">
-            <!-- Items de comanda -->
-          </div>
+          <div class="comanda-items" id="comanda-items"></div>
           <div class="comanda-totales">
             <div class="totales-row">
               <span>Subtotal:</span>
@@ -279,7 +253,6 @@
                 <input type="radio" name="metodo-pago" value="transferencia">
                 <span class="radio-checkmark"></span>
               </label>
-              <!-- Nota: valor vacío = guardar como borrador (pedido tomado por mesero) -->
             </div>
           </div>
         </div>
@@ -527,7 +500,7 @@
   </div>
 </div>
 
-<!-- =================== MODAL: LISTA DE COMBOS (Tarjetas) =================== -->
+<!-- =================== MODAL: LISTA DE COMBOS =================== -->
 <div id="modal-combos" class="modal rs-modal">
   <div class="modal-content" style="max-width:980px;">
     <div class="modal-header">
@@ -539,11 +512,7 @@
         <button id="btn-nuevo-combo" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Nuevo combo</button>
         <span class="muted">Define un producto "combo" y sus componentes.</span>
       </div>
-
-      <!-- Grid de tarjetas -->
-      <div id="combos-grid" class="combos-grid">
-        <!-- tarjetas dinámicas -->
-      </div>
+      <div id="combos-grid" class="combos-grid"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-danger" data-close="#modal-combos" type="button">
@@ -553,7 +522,7 @@
   </div>
 </div>
 
-<!-- =================== MODAL: EDITOR DE COMBO (Componentes + Reglas) =================== -->
+<!-- =================== MODAL: EDITOR DE COMBO =================== -->
 <div id="modal-combo-editor" class="modal rs-modal" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-combo">
   <div class="modal-content" style="max-width:1080px;">
     <div class="modal-header">
@@ -562,17 +531,12 @@
     </div>
 
     <div class="modal-body">
-      <!-- hidden útiles -->
       <input type="hidden" id="combo-id" value="">
       <input type="hidden" id="combo-producto-hidden" value="">
 
-      <!-- Ayuda arriba -->
       <div id="combo-help-message" class="mb-2"></div>
-
-      <!-- Display solo en edición -->
       <div id="combo-producto-display" style="display:none"></div>
 
-      <!-- Selector en creación -->
       <div id="combo-producto-container" class="mb-3">
         <label class="label-strong">Producto que representa el combo</label>
         <div style="display:flex; gap:.5rem; align-items:stretch;">
@@ -580,7 +544,6 @@
                   data-placeholder="Selecciona el producto combo" style="width:100%;">
             <option value=""></option>
           </select>
-
           <button type="button" class="btn btn-outline-info"
                   onclick="calcularDisponibilidadComboUI(document.getElementById('combo-id').value, 1)">
             <i class="fas fa-boxes"></i> Disponibilidad
@@ -595,7 +558,6 @@
 
       <hr>
 
-      <!-- COMPONENTES -->
       <h4>Componentes</h4>
       <p class="help-text">Organiza por <strong>Grupo</strong> (ej. Bebida, Acompañante). Usa <strong>Max selección</strong> cuando corresponda.</p>
       <div id="combo-items-container"></div>
@@ -607,12 +569,8 @@
 
       <hr>
 
-      <!-- REGLAS POR CATEGORÍA -->
       <h4>Reglas por categoría (opcional)</h4>
-      <p class="help-text">
-        Define límites de selección para categorías de componentes opcionales.
-        Ej.: <strong>Bebidas: máx. 1</strong>.
-      </p>
+      <p class="help-text">Define límites de selección para categorías de componentes opcionales.</p>
 
       <div id="combo-reglas-container" class="table-responsive" style="margin-top:10px;">
         <table class="table table-sm">
@@ -623,15 +581,13 @@
               <th style="width:20%"></th>
             </tr>
           </thead>
-          <tbody id="combo-reglas-rows">
-            <!-- filas dinámicas -->
-          </tbody>
+          <tbody id="combo-reglas-rows"></tbody>
         </table>
         <button type="button" class="btn btn-secondary" id="btn-add-regla">
           <i class="fas fa-plus"></i> Agregar regla
         </button>
       </div>
-    </div> <!-- /modal-body -->
+    </div>
 
     <div class="modal-footer">
       <button type="button" class="btn btn-danger" data-close="#modal-combo-editor">
@@ -644,69 +600,17 @@
   </div>
 </div>
 
-<!-- =================== MODAL: AYUDA / ATAJOS (versión UI PRO) =================== -->
+<!-- =================== MODAL: AYUDA =================== -->
 <div id="modal-help" class="modal rs-modal modal--help" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-help">
   <div class="modal-content" style="max-width:900px;">
     <div class="modal-header">
       <h3 id="titulo-modal-help"><i class="fas fa-circle-question"></i> Ayuda y atajos</h3>
       <span class="close" data-close="#modal-help" title="Cerrar">&times;</span>
     </div>
-
     <div class="modal-body help-body">
-      <!-- Hero -->
-      <div class="help-hero">
-        <div class="help-hero-icon"><i class="fas fa-keyboard"></i></div>
-        <div class="help-hero-text">
-          <h4>Atajos (evitan errores al escribir)</h4>
-          <p>Usa <b>Ctrl</b>/<b>⌘</b> + letra para no activar acciones al escribir.
-            Algunas combinaciones usan <b>Alt</b> para evitar choques con el navegador.</p>
-          <ul class="help-bullets">
-            <li><span class="kbd">Ctrl</span> + letra (Windows/Linux)</li>
-            <li><span class="kbd">⌘</span> + letra (Mac)</li>
-            <li>Si no funciona, prueba con <span class="kbd">Alt</span> adicional</li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Grid -->
-      <div class="help-grid">
-        <div class="help-card">
-          <div class="help-card-title"><i class="fas fa-clipboard-list"></i> Operaciones de comanda</div>
-          <ul class="help-keys">
-            <li><span>Guardar</span><span class="keys"><span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> + <span class="kbd">G</span></span></li>
-            <li><span>Imprimir</span><span class="keys"><span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> + <span class="kbd">I</span></span></li>
-            <li><span>Limpiar</span><span class="keys"><span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> + <span class="kbd">Alt</span> + <span class="kbd">L</span></span></li>
-            <li><span>Cerrar</span><span class="keys"><span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> + <span class="kbd">Alt</span> + <span class="kbd">X</span></span></li>
-            <li><span>Buscar producto</span><span class="keys"><span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> + <span class="kbd">Alt</span> + <span class="kbd">F</span></span></li>
-            <li><span>Alternar vista</span><span class="keys"><span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> + <span class="kbd">Alt</span> + <span class="kbd">V</span></span></li>
-          </ul>
-        </div>
-
-        <div class="help-card">
-          <div class="help-card-title"><i class="fas fa-cogs"></i> Gestión</div>
-          <ul class="help-keys">
-            <li><span>Nueva mesa</span><span class="keys"><span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> + <span class="kbd">M</span></span></li>
-            <li><span>Cambiar cliente</span><span class="keys"><span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> + <span class="kbd">Alt</span> + <span class="kbd">C</span></span></li>
-            <li><span>Crear cliente</span><span class="keys"><span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> + <span class="kbd">Alt</span> + <span class="kbd">R</span></span></li>
-            <li><span>Nuevo producto</span><span class="keys"><span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> + <span class="kbd">Alt</span> + <span class="kbd">P</span></span></li>
-            <li><span>Nueva categoría</span><span class="keys"><span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> + <span class="kbd">Alt</span> + <span class="kbd">K</span></span></li>
-            <li><span>Combos</span><span class="keys"><span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> + <span class="kbd">Alt</span> + <span class="kbd">B</span></span></li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="help-split">
-        <div class="help-subtitle"><i class="fas fa-lightbulb"></i> Combos: conceptos rápidos</div>
-      </div>
-
-      <div class="help-concepts">
-        <div class="concept"><span class="badge">Producto combo</span> ítem padre que vendes (p. ej. “Salchi Papa”).</div>
-        <div class="concept"><span class="badge">Componentes</span> hijos que descuentan inventario (p. ej. Papas, Salchicha, Aderezos).</div>
-        <div class="concept"><span class="badge">Merma (%)</span> % extra al consumo por pérdidas/cortes (10 = 10% extra).</div>
-        <div class="concept"><span class="badge">Reglas por categoría</span> limitan opcionales (p. ej. Bebidas máx. 1).</div>
-      </div>
+      <!-- (contenido de ayuda existente) -->
+      <p class="muted">Usa los atajos del teclado para acelerar la toma de pedidos.</p>
     </div>
-
     <div class="modal-footer">
       <button class="btn btn-danger" data-close="#modal-help" type="button">
         <i class="fas fa-times"></i> Cerrar
@@ -715,11 +619,25 @@
   </div>
 </div>
 
-
 <!-- Scripts (orden correcto) -->
 <script src="<?php echo SERVERURL; ?>ajax/query/jquery-3.5.1.min.js"></script>
 <script src="<?php echo SERVERURL; ?>ajax/sweetalert/sweetalert.min.js"></script>
 <script src="<?php echo SERVERURL; ?>ajax/librerias/select2.min.js"></script>
 <script src="<?php echo SERVERURL; ?>ajax/js/facturasRestaurante.js"></script>
+
+<!-- JS pequeño: menú compacto (tablets) -->
+<script>
+  // Menú compacto "Gestionar"
+  $(document).on('click','#btn-gestion',function(e){
+    e.stopPropagation();
+    $('#gest-menu').toggleClass('show');
+  });
+  $(document).on('click',function(){ $('#gest-menu').removeClass('show'); });
+  $(document).on('click','#gest-menu button',function(){
+    var t = $(this).data('target');
+    $(t).trigger('click');
+    $('#gest-menu').removeClass('show');
+  });
+</script>
 </body>
 </html>

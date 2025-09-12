@@ -8,7 +8,11 @@
     jQuery.fn.selectpicker = function(){ return this; };
   }
 })();
-if (typeof SERVERURL === 'undefined') { console.error('SERVERURL no está definido.'); var SERVERURL = ''; }
+
+if (typeof SERVERURL === 'undefined') { 
+  console.error('SERVERURL no está definido.'); 
+  var SERVERURL = ''; 
+}
 
 document.addEventListener('DOMContentLoaded', function () {
   // Ocultar barras del layout si existen
@@ -78,6 +82,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const btnNuevoCombo       = document.getElementById('btn-nuevo-combo');
   const btnAddComboItem     = document.getElementById('btn-add-combo-item');
   const btnGuardarCombo     = document.getElementById('btn-guardar-combo');
+  const btnAddRegla         = document.getElementById('btn-add-regla');
+  const scanCodigoInput     = document.getElementById('scan-codigo');
 
   // Modales
   const modalMesa = document.getElementById('modal-mesa');
@@ -95,6 +101,49 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // === Combos === ///
   // ===== Helpers =====
+    // === Servicio: helpers y estado de UI ===
+  const srvLlevar = document.getElementById('srv-llevar');
+  const srvMesa   = document.getElementById('srv-mesa');
+
+  function getServicioTipo(){
+    const chk = document.querySelector('input[name="servicioTipo"]:checked');
+    return chk ? chk.value : 'llevar';
+  }
+
+  function setServicioTipo(tipo){
+    if (tipo === 'mesa') {
+      if (srvMesa)   srvMesa.checked = true;
+    } else {
+      if (srvLlevar) srvLlevar.checked = true;
+    }
+    toggleServicioUI(tipo);
+  }
+
+  function toggleServicioUI(tipo){
+    // Si es "para llevar", no exigimos mesa y mostramos "No seleccionada"
+    if (tipo === 'llevar') {
+      mesaSeleccionada = null;
+      setMesaSeleccionadaUI(null); // mantiene el ícono y pone "No seleccionada"
+    } else {
+      // En mesa: si aún no hay mesa, solo dejamos el label con "No seleccionada"
+      // hasta que el usuario haga click en una mesa.
+      if (!mesaSeleccionada) setMesaSeleccionadaUI(null);
+    }
+  }
+
+  // Cambios por usuario en el control
+  const servicioSwitch = document.getElementById('servicio-switch');
+  if (servicioSwitch){
+    servicioSwitch.addEventListener('change', ()=>{
+      setServicioTipo(getServicioTipo());
+    });
+  }
+
+  // Estado inicial recomendado:
+  setServicioTipo('llevar');  // Por defecto funciona como "supermercado"
+  setMesaSeleccionadaUI(null);
+
+
   function getProdControls() {
     return {
       selCat: document.getElementById('prod-categoria'),
@@ -112,46 +161,87 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ==== SELECT2 ====
-  function initSelect2All(){
-    if (!(window.jQuery && jQuery.fn && jQuery.fn.select2)) {
+function initSelect2All(){
+  if (!(window.jQuery && jQuery.fn && jQuery.fn.select2)) {
       console.warn('Select2 no encontrado. Verifica que el JS/CSS estén cargados.');
       return;
-    }
-    // Selects del modal de Mesa
-    if ($('#ubicacion-mesa').length) {
-      $('#ubicacion-mesa').select2({
-        width: '100%',
-        minimumResultsForSearch: -1,
-        dropdownParent: $('#modal-mesa')
-      });
-    }
-    if ($('#estado-mesa').length) {
-      $('#estado-mesa').select2({
-        width: '100%',
-        minimumResultsForSearch: -1,
-        dropdownParent: $('#modal-mesa')
-      });
-    }
-    // Select de categoría del Producto
-    if ($('#prod-categoria').length) {
-      $('#prod-categoria').select2({
-        width: '100%',
-        allowClear: true,
-        placeholder: $('#prod-categoria').data('placeholder') || '',
-        dropdownParent: $('#modal-producto')
-      }).on('change', actualizarProdEstacionInfo);
-    }
-    // Selects del editor de combo
-    if ($('#combo-producto').length) {
-      if ($('#combo-producto').data('select2')) $('#combo-producto').select2('destroy');
-      $('#combo-producto').select2({
-        width: '100%',
-        allowClear: true,
-        placeholder: $('#combo-producto').data('placeholder') || 'Selecciona el producto combo',
-        dropdownParent: $('#modal-combo-editor')
-      });
-    }
   }
+  
+  // Configuración base para todos los Select2
+  const baseConfig = {
+      width: '100%',
+      theme: 'bootstrap'
+  };
+  
+  // Función optimizada para inicializar Select2 en modales
+  function initSelect2WithModal(selector, modalSelector, config) {
+      const $element = $(selector);
+      const $modal = $(modalSelector);
+      
+      if ($element.length && $modal.length) {
+          // Destruir si ya estaba inicializado
+          if ($element.data('select2')) {
+              try {
+                  $element.select2('destroy');
+              } catch (e) {
+                  console.warn('Error al destruir Select2:', e);
+              }
+          }
+          
+          // Inicializar con la modal como parent
+          try {
+              $element.select2({
+                  ...config,
+                  dropdownParent: $modal
+              });
+              
+              // Forzar actualización visual
+              setTimeout(() => {
+                  $element.trigger('change.select2');
+              }, 50);
+              
+              return $element;
+          } catch (e) {
+              console.error('Error al inicializar Select2:', e);
+          }
+      }
+      
+      return null;
+  }
+
+  // Selects del modal de Mesa
+  initSelect2WithModal('#ubicacion-mesa', '#modal-mesa', {
+      ...baseConfig,
+      minimumResultsForSearch: -1
+  });
+  
+  initSelect2WithModal('#estado-mesa', '#modal-mesa', {
+      ...baseConfig,
+      minimumResultsForSearch: -1
+  });
+  
+  // Select de categoría del Producto
+  initSelect2WithModal('#prod-categoria', '#modal-producto', {
+      ...baseConfig,
+      allowClear: true,
+      placeholder: $('#prod-categoria').data('placeholder') || ''
+  }).on('change', actualizarProdEstacionInfo);
+  
+  // Select del editor de combo (el más importante)
+  initSelect2WithModal('#combo-producto', '#modal-combo-editor', {
+      ...baseConfig,
+      allowClear: true,
+      placeholder: $('#combo-producto').data('placeholder') || 'Selecciona el producto combo'
+  });
+  
+  // Inicializar otros Select2 que no están en modales
+  $('select.select2').not('#ubicacion-mesa, #estado-mesa, #prod-categoria, #combo-producto').each(function() {
+      if (!$(this).data('select2')) {
+          $(this).select2(baseConfig);
+      }
+  });
+}
+  
   function reinitSelect2ProdCategoria(){
     if (!(window.jQuery && jQuery.fn && jQuery.fn.select2)) return;
     const $el = $('#prod-categoria');
@@ -263,6 +353,26 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  // ================= Header helpers =================
+  function setMesaSeleccionadaUI(nombreMesa){
+    if (!mesaSeleccionadaElement) return;
+    if (!nombreMesa){
+      mesaSeleccionadaElement.innerHTML = `<i class="fas fa-table"></i> No seleccionada`;
+    } else {
+      mesaSeleccionadaElement.innerHTML = `<i class="fas fa-table"></i> Mesa: ${nombreMesa}`;
+    }
+  }  
+
+  function setClienteInfoUI({ nombre = 'Consumidor final', rtn = '' } = {}){
+    if (!clienteInfoElement) return;
+    const htmlRTN = rtn ? `<span class="cli-rtn-wrap"><i class="fas fa-id-card"></i><span class="cli-rtn">${rtn}</span></span>` : '';
+    clienteInfoElement.innerHTML = `
+      <i class="fas fa-user"></i>
+      <span class="cli-nombre">${nombre}</span>
+      ${htmlRTN}
+    `;
+  }
+
   // ====== Inicio ======
   init();
   function init() {
@@ -275,9 +385,55 @@ document.addEventListener('DOMContentLoaded', function () {
     bloquearCierrePorFondoYEsc();
     initProductoImageUpload();
     initSelect2All();
+    initHotkeys();
+    // Estado inicial de cabecera
+    setMesaSeleccionadaUI(null);
+    setClienteInfoUI({ nombre:'Consumidor final', rtn:'' });
   }
 
   function setupEventListeners() {
+    // ===== Búsqueda productos =====
+    if (buscarProductoInput) {
+      // filtra por nombre/desc al escribir
+      buscarProductoInput.addEventListener('input', function () {
+        filtrarProductos(this.value);
+      });
+      // Enter: intenta como código primero; si no, filtra
+      buscarProductoInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (!tryBarcodeAdd(this.value)) {
+            filtrarProductos(this.value);
+          } else {
+            this.value = '';
+          }
+        }
+      });
+    }
+
+    if (btnBuscar) {
+      btnBuscar.addEventListener('click', function () {
+        const t = buscarProductoInput ? buscarProductoInput.value : '';
+        if (!tryBarcodeAdd(t)) {
+          filtrarProductos(t);
+        } else if (buscarProductoInput) {
+          buscarProductoInput.value = '';
+        }
+      });
+    }
+
+    // Campo dedicado al escáner (recomendado)
+    if (scanCodigoInput) {
+      scanCodigoInput.addEventListener('keydown', function(e){
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const ok = tryBarcodeAdd(this.value);
+          this.value = '';
+          if (!ok) showAlert('warning','No encontrado','Código no corresponde a ningún producto');
+        }
+      });
+    }
+
     // Nueva mesa
     if (btnNuevaMesa) btnNuevaMesa.addEventListener('click', mostrarModalMesa);
 
@@ -464,6 +620,12 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
+    if (btnAddRegla) btnAddRegla.addEventListener('click', ()=>{
+      const cur = collectReglasCategoria();
+      cur.push({ categoria_id: (categorias[0]?.id || null), max_seleccion: 1 });
+      renderReglasCategoria(cur);
+    });
+
     // Delegación: quitar fila en items de combo
     const comboItemsContainer = document.getElementById('combo-items-container');
     if (comboItemsContainer) {
@@ -491,7 +653,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       });
     };    
-
   }
 
   // Evitar cerrar modales por fondo/ESC
@@ -517,6 +678,18 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+    // ===== cargarReglasCombo =====
+  function cargarReglasCombo(comboId){
+    return fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:`action=loadComboCategoriaReglas&combo_id=${comboId}`
+    })
+    .then(r=>r.json())
+    .then(d => (d && d.status) ? (d.reglas || []) : []);
+  }
+
+  
   // ===== ISV (para totales de la comanda) =====
   function cargarISV() {
     return fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
@@ -532,6 +705,7 @@ document.addEventListener('DOMContentLoaded', function () {
       })
       .catch(()=>{});
   }
+  
   function actualizarEtiquetasISVCabecera(){
     if (impuesto1Label) impuesto1Label.textContent = `Impuesto (ISV ${isvRates[1]||0}%):`;
     if (impuesto2Label) impuesto2Label.textContent = `Impuesto (ISV ${isvRates[2]||0}%):`;
@@ -598,6 +772,9 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function seleccionarMesa(mesa){
+    // Si el usuario elige una mesa, la modalidad pasa a "mesa"
+    setServicioTipo('mesa');
+  
     // Guardar mesa seleccionada
     mesaSeleccionada = {
       id: mesa.id || mesa.mesa_id,
@@ -607,13 +784,10 @@ document.addEventListener('DOMContentLoaded', function () {
       estado: mesa.estado
     };
   
-    // Actualizar UI básica
-    if (mesaSeleccionadaElement) mesaSeleccionadaElement.textContent = `Mesa: ${mesaSeleccionada.numero}`;
-    if (facturaTitle) facturaTitle.textContent = 'Nueva Comanda';
+    // Actualizar UI sin perder iconos
+    setMesaSeleccionadaUI(mesaSeleccionada.numero);
+    // ¡NO cambies el título con textContent para no borrar el <i>!
     if (btnImprimir) btnImprimir.disabled = true;
-  
-    // IMPORTANTE: NO resetear clienteSeleccionado aquí para evitar que parpadee a "CONSUMIDOR FINAL".
-    // Deja que cargarFacturaMesa() ponga el cliente correcto (o CF si no hay factura).
   
     // Reiniciar comanda visualmente
     comandaItems = [];
@@ -658,8 +832,12 @@ document.addEventListener('DOMContentLoaded', function () {
     if (c) c.value = '4';
     if (u) u.value = 'Interior';
     if (modalMesa) modalMesa.style.display = 'block';
+    
+    // Añade esta línea:
+    reinitSelect2InModal('#modal-mesa');
+    
     setTimeout(() => { if (n) { n.focus(); n.select && n.select(); } }, 10);
-  }
+}
 
   function guardarMesa() {
     const mesaId     = (document.getElementById('mesa-id') || {}).value || '';
@@ -792,8 +970,8 @@ document.addEventListener('DOMContentLoaded', function () {
   function renderizarProductos(productosList) {
     if (!productosContainer) return;
     productosContainer.innerHTML = '';
-
-    if (!productosList.length) {
+  
+    if (!Array.isArray(productosList) || !productosList.length) {
       productosContainer.innerHTML = `
         <div class="state-empty">
           <div class="icon"><i class="fas fa-shopping-basket"></i></div>
@@ -802,13 +980,19 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>`;
       return;
     }
-
+  
     const formatNumber = (num) => new Intl.NumberFormat('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
-
+  
     productosList.forEach(producto => {
+      const isCombo = !!(window.__comboProductoIds && window.__comboProductoIds.has(parseInt(producto.productos_id,10)));
+      const comboBadge = isCombo
+        ? '<span class="badge badge-pill badge-primary" style="position:absolute;top:8px;left:8px;z-index:2;">Combo</span>'
+        : '';
+  
       const productoElement = document.createElement('div');
       productoElement.className = 'producto-item';
-
+      if (!productoElement.style.position) productoElement.style.position = 'relative';
+  
       const actions = document.createElement('div');
       actions.className = 'card-actions';
       const btnEditar = document.createElement('button');
@@ -822,7 +1006,7 @@ document.addEventListener('DOMContentLoaded', function () {
       });
       actions.appendChild(btnEditar);
       productoElement.appendChild(actions);
-
+  
       const imagenContainer = document.createElement('div');
       imagenContainer.className = 'producto-imagen-container';
       const imagenDiv = document.createElement('div');
@@ -840,23 +1024,24 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       imagenContainer.appendChild(imagenDiv);
       productoElement.appendChild(imagenContainer);
-
+  
       const contenidoDiv = document.createElement('div');
       contenidoDiv.className = 'producto-contenido';
       const mostrarMayoreo = (producto.cantidad_mayoreo > 0 && producto.precio_mayoreo > 0);
       contenidoDiv.innerHTML = `
+        ${comboBadge}
         <h4 class="producto-nombre">${producto.nombre}</h4>                
         <div class="producto-precios">
           <div class="precio-regular"><span class="precio-valor">L ${formatNumber(producto.precio_venta)}</span></div>
           ${mostrarMayoreo ? `<div class="precio-mayoreo"><span class="mayoreo-info">${producto.cantidad_mayoreo} x L ${formatNumber(producto.precio_mayoreo)}</span></div>` : ''}
         </div>`;
       productoElement.appendChild(contenidoDiv);
-
+  
       const btnAgregar = document.createElement('button');
       btnAgregar.className = 'btn-agregar';
       btnAgregar.innerHTML = '<i class="fas fa-cart-plus"></i> Agregar';
       productoElement.appendChild(btnAgregar);
-
+  
       const datosProducto = {
         id: producto.productos_id,
         nombre: producto.nombre,
@@ -866,16 +1051,17 @@ document.addEventListener('DOMContentLoaded', function () {
         categoria_id: producto.categoria_id,
         isv1: parseInt(producto.isv1 || 0) === 1,
         isv2: parseInt(producto.isv2 || 0) === 1,
-        para_cocina: 0
+        para_cocina: 0,
+        barCode: producto.barCode || ''
       };
-
+  
       btnAgregar.addEventListener('click', (e) => { e.stopPropagation(); agregarProductoComanda(datosProducto); });
       productoElement.addEventListener('click', () => agregarProductoComanda(datosProducto));
-
+  
       productosContainer.appendChild(productoElement);
     });
   }
-
+    
   function filtrarProductos(termino, categoriaId = null) {
     let productosFiltrados = productos;
     if (termino) {
@@ -887,6 +1073,28 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     if (categoriaId) productosFiltrados = productosFiltrados.filter(p => parseInt(p.categoria_id) === parseInt(categoriaId));
     renderizarProductos(productosFiltrados);
+  }
+
+  function tryBarcodeAdd(code){
+    const c = String(code || '').trim();
+    if (!c) return false;
+    const prod = productos.find(p => String(p.barCode || '').trim() === c);
+    if (!prod) return false;
+    // Mapear el producto a la estructura que usa la comanda
+    const datosProducto = {
+      id: prod.productos_id,
+      nombre: prod.nombre,
+      precio: parseFloat(prod.precio_venta),
+      descripcion: prod.descripcion || '',
+      imagen: prod.file_name ? `${SERVERURL}vistas/plantilla/img/products/${prod.file_name}` : `${SERVERURL}vistas/plantilla/img/products/image_preview.png`,
+      categoria_id: prod.categoria_id,
+      isv1: parseInt(prod.isv1 || 0) === 1,
+      isv2: parseInt(prod.isv2 || 0) === 1,
+      para_cocina: 0,
+      barCode: prod.barCode || ''
+    };
+    agregarProductoComanda(datosProducto);
+    return true;
   }
 
   function guardarCategoriaDesdeModal(){
@@ -1222,6 +1430,9 @@ document.addEventListener('DOMContentLoaded', function () {
       .then(r => r.json())
       .then(data => {
         if (data.status) {
+          // En mesa
+          setServicioTipo('mesa');
+  
           facturaActual = data.factura;
           mesaSeleccionada = data.mesa;
           comandaItems = data.items.map(item => ({
@@ -1238,13 +1449,12 @@ document.addEventListener('DOMContentLoaded', function () {
             precio: parseFloat(item.precio),
             total: parseFloat(item.precio) * parseFloat(item.cantidad)
           }));
-          
-
-          if (mesaSeleccionadaElement) mesaSeleccionadaElement.textContent = `Mesa: ${mesaSeleccionada.numero}`;
-          if (facturaTitle) facturaTitle.textContent = `Factura #${facturaActual.number}`;
+  
+          setMesaSeleccionadaUI(mesaSeleccionada.numero);
+          if (facturaTitle) facturaTitle.innerHTML = `<i class="fas fa-receipt"></i> Factura #${facturaActual.number}`;
           if (observacionesTextarea) observacionesTextarea.value = facturaActual.notas || '';
           if (btnImprimir) btnImprimir.disabled = false;
-
+  
           if (facturaActual.cliente_id && facturaActual.cliente_nombre) {
             clienteSeleccionado = {
               id: facturaActual.cliente_id,
@@ -1254,18 +1464,21 @@ document.addEventListener('DOMContentLoaded', function () {
           } else {
             clienteSeleccionado = { id: 0, nombre: 'CONSUMIDOR FINAL', identificacion: '' };
           }
-          pintarClienteInfoHeader();          
-
+          pintarClienteInfoHeader();
+  
           actualizarComandaUI();
           highlightMesaSeleccionada();
         } else {
+          // Sin factura previa (sigue servicio "mesa")
+          setServicioTipo('mesa');
+  
           facturaActual = null;
           comandaItems = [];
           actualizarComandaUI();
-          if (facturaTitle) facturaTitle.textContent = 'Nueva Comanda';
+          if (facturaTitle) facturaTitle.innerHTML = `<i class="fas fa-receipt"></i> Nueva Comanda`;
           if (btnImprimir) btnImprimir.disabled = true;
           if (mesaSeleccionada && mesaSeleccionadaElement) {
-            mesaSeleccionadaElement.textContent = `Mesa: ${mesaSeleccionada.numero}`;
+            setMesaSeleccionadaUI(mesaSeleccionada.numero);
           }
           highlightMesaSeleccionada();
         }
@@ -1273,8 +1486,8 @@ document.addEventListener('DOMContentLoaded', function () {
       .catch(() => {
         showAlert('error', 'Error', 'Error al cargar la factura');
       });
-  }
-
+  }  
+  
   function agregarProductoComanda(producto) {
     const existente = comandaItems.find(i => i.producto.id === producto.id);
     if (existente) {
@@ -1404,12 +1617,17 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function guardarFactura() {
-    if (comandaItems.length === 0) { showAlert('warning', 'Advertencia', 'La comanda está vacía'); return; }
-    const metodoPago = document.querySelector('input[name="metodo-pago"]:checked')?.value || '';
-    const observaciones = observacionesTextarea ? observacionesTextarea.value : '';
-
+    if (!comandaItems.length) { showAlert('warning','Advertencia','Agregue productos a la comanda'); return; }
+  
+    const metodoPago = (document.querySelector('input[name="metodo-pago"]:checked') || {}).value || '';
+    const observaciones = (observacionesTextarea && observacionesTextarea.value || '').trim();
+  
+    const servicio_tipo = getServicioTipo(); // 'mesa' | 'llevar'
+    const mesa_id = (servicio_tipo === 'mesa' && mesaSeleccionada) ? mesaSeleccionada.id : 0;
+  
     const facturaData = {
-      mesa_id: mesaSeleccionada ? mesaSeleccionada.id : 0,
+      servicio_tipo: servicio_tipo,     // <--- NUEVO
+      mesa_id: mesa_id,                 // 0 si es para llevar
       cliente_id: clienteSeleccionado.id,
       items: comandaItems.map(item => ({
         producto_id: item.producto.id,
@@ -1421,12 +1639,12 @@ document.addEventListener('DOMContentLoaded', function () {
       observaciones: observaciones,
       factura_id: (facturaActual && (facturaActual.factura_id || facturaActual.id)) ? (facturaActual.factura_id || facturaActual.id) : null
     };
-
+  
     const accion = facturaData.factura_id ? 'updateFactura' : 'saveFactura';
-    const mensaje = facturaData.factura_id ? 
-      '¿Está seguro que desea actualizar esta factura?' : 
-      '¿Está seguro que desea guardar esta factura?';
-    
+    const mensaje = facturaData.factura_id
+      ? '¿Está seguro que desea actualizar esta factura?'
+      : '¿Está seguro que desea guardar esta factura?';
+  
     showConfirm(facturaData.factura_id ? 'Actualizar Factura' : 'Guardar Factura', mensaje, () => {
       fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
         method: 'POST',
@@ -1435,8 +1653,9 @@ document.addEventListener('DOMContentLoaded', function () {
       })
         .then(r => r.json())
         .then(data => {
-          if (!data.status) { showAlert('error', 'Error', data.message || 'Error al guardar la factura'); return; }
+          if (!data.status) { showAlert('error','Error', data.message || 'Error al guardar la factura'); return; }
           showAlert('success', 'Éxito', facturaData.factura_id ? 'Factura actualizada' : 'Factura guardada');
+  
           if (accion === 'saveFactura' && data.factura) {
             facturaActual = data.factura;
           } else if (accion === 'updateFactura' && data.factura_id) {
@@ -1444,26 +1663,36 @@ document.addEventListener('DOMContentLoaded', function () {
             facturaActual.factura_id = data.factura_id;
             facturaActual.id = data.factura_id;
           }
+  
           if (facturaActual && facturaActual.number && facturaTitle) facturaTitle.textContent = `Factura #${facturaActual.number}`;
           if (btnImprimir) btnImprimir.disabled = false;
+  
+          // Refrescar estado de mesas (por si ocupó/liberó)
           cargarMesas();
-
+  
+          // Si se pagó (metodo_pago != ''), imprime
           if (metodoPago !== '') {
-            const fid = (data.factura_id) ? data.factura_id
-              : (data.factura && (data.factura.factura_id || data.factura.id)) ? (data.factura.factura_id || data.factura.id)
-                : (facturaActual && (facturaActual.factura_id || facturaActual.id)) ? (facturaActual.factura_id || facturaActual.id)
+            const fid = (data.factura_id)
+              ? data.factura_id
+              : (data.factura && (data.factura.factura_id || data.factura.id))
+                ? (data.factura.factura_id || data.factura.id)
+                : (facturaActual && (facturaActual.factura_id || facturaActual.id))
+                  ? (facturaActual.factura_id || facturaActual.id)
                   : null;
             if (fid && typeof printBill === 'function') printBill(fid);
           }
         })
-        .catch(() => { showAlert('error', 'Error', 'Error al guardar la factura'); });
+        .catch(() => { showAlert('error','Error','Error al guardar la factura'); });
     });
   }
-
+  
   function cerrarFactura() {
-    if (!facturaActual || !(facturaActual.id || facturaActual.factura_id)) { showAlert('warning', 'Advertencia', 'No hay factura abierta'); return; }
+    if (!facturaActual || !(facturaActual.id || facturaActual.factura_id)) {
+      showAlert('warning','Advertencia','No hay factura abierta'); 
+      return; 
+    }
     const fid = facturaActual.id || facturaActual.factura_id;
-
+  
     showConfirm('Cerrar Factura', '¿Está seguro que desea cerrar esta factura?', () => {
       fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
         method: 'POST',
@@ -1472,26 +1701,24 @@ document.addEventListener('DOMContentLoaded', function () {
       })
         .then(r => r.json())
         .then(data => {
-          if (data.status) {
-            showAlert('success', 'Éxito', 'Factura cerrada correctamente');
-            limpiarComanda();
-            mesaSeleccionada = null;
-            facturaActual = null;
-            if (mesaSeleccionadaElement) mesaSeleccionadaElement.textContent = 'Mesa: No seleccionada';
-            if (facturaTitle) facturaTitle.textContent = 'Nueva Comanda';
-            if (btnImprimir) btnImprimir.disabled = true;
-
-            clienteSeleccionado = { id: 0, nombre: 'CONSUMIDOR FINAL', identificacion: '' };
-            pintarClienteInfoHeader();
-
-            cargarMesas();
-          } else {
-            showAlert('error', 'Error', data.message || 'Error al cerrar la factura');
-          }
+          if (!data.status) { showAlert('error','Error', data.message || 'Error al cerrar la factura'); return; }
+  
+          showAlert('success','Cerrada','La factura fue cerrada');
+          facturaActual = null;
+          comandaItems = [];
+          actualizarComandaUI();
+  
+          // UI neutral
+          setServicioTipo('llevar');      
+          setMesaSeleccionadaUI(null);    
+          if (facturaTitle) facturaTitle.innerHTML = `<i class="fas fa-receipt"></i> Nueva Comanda`;
+          if (btnImprimir) btnImprimir.disabled = true;
+  
+          cargarMesas();
         })
-        .catch(() => { showAlert('error', 'Error', 'Error al cerrar la factura'); });
+        .catch(() => { showAlert('error','Error','Error al cerrar la factura'); });
     });
-  }
+  }  
 
   function limpiarComanda() { comandaItems = []; actualizarComandaUI(); }
 
@@ -1769,14 +1996,20 @@ document.addEventListener('DOMContentLoaded', function () {
       .catch(()=>false);
   }
 
-// ======== GESTIÓN DE COMBOS MEJORADA ========
+// ======== GESTIÓN DE COMBOS (v2, alineado a BD) ========
 
+// --- Config UI ---
+const UNIDADES_COMBO = ['und','porción','g','kg','ml','l'];
+const MAX_COMPONENTES = 100;
+
+// Abre modal principal (listado) y refresca
 function abrirModalCombos(){
   if (!modalCombos) return;
   modalCombos.style.display = 'block';
   cargarCombos();
 }
 
+// Lista combos (grid)
 function cargarCombos(){
   return fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
     method:'POST',
@@ -1785,21 +2018,35 @@ function cargarCombos(){
   })
   .then(r=>r.json())
   .then(data=>{
-    if (!data || !data.status){ 
-      showAlert('error','Error','No se pudieron cargar los combos'); 
-      return; 
+    if (!data || !data.status){
+      showAlert('error','Error','No se pudieron cargar los combos');
+      return;
     }
     combos = data.combos || [];
+
+    window.__comboProductoIds = new Set((combos || []).map(c => parseInt(c.productos_id || c.producto_id, 10)).filter(Boolean));
+    
     renderizarCombos();
   })
   .catch(()=> showAlert('error','Error','Error al cargar combos'));
 }
 
+// Render tarjetas de combos
 function renderizarCombos(){
   if (!combosGrid) return;
   combosGrid.innerHTML = '';
 
-  if (!combos.length){
+  // 🔹 Construye (o actualiza) el Set global de productos que SON combos
+  //    Lo usamos luego al pintar la grilla de productos para mostrar el badge.
+  try {
+    window.__comboProductoIds = new Set((combos || [])
+      .map(c => parseInt(c.productos_id || c.producto_id, 10))
+      .filter(Boolean));
+  } catch(e){
+    window.__comboProductoIds = new Set();
+  }
+
+  if (!combos || !combos.length){
     combosGrid.innerHTML = `
       <div class="state-empty">
         <div class="icon"><i class="fas fa-layer-group"></i></div>
@@ -1809,22 +2056,25 @@ function renderizarCombos(){
     return;
   }
 
-  const formatNumber = (n) => new Intl.NumberFormat('es-HN',{minimumFractionDigits:2, maximumFractionDigits:2}).format(n);
+  const fmt = (n)=> new Intl.NumberFormat('es-HN',{minimumFractionDigits:2, maximumFractionDigits:2}).format(n);
 
   combos.forEach(c => {
-    const comboId = c.combo_id || c.id;
-    const pid = c.productos_id || c.producto_id;
-    const prod = findProductoById(pid) || { nombre: c.nombre_combo || `Producto #${pid}`, precio_venta: 0 };
-    const nombre = c.nombre_combo || prod.nombre || `Combo #${comboId}`;
-    const precio = prod.precio_venta ? `L ${formatNumber(parseFloat(prod.precio_venta))}` : '-';
-    const itemsResumen = c.componentes_resumen || c.items_resumen || c.items_count || '-';
-    const activo = (String(c.activo)==='1' || c.activo===true);
+    const comboId   = c.combo_id || c.id;
+    const maestroId = c.productos_id || c.producto_id;
+    const prod      = findProductoById(maestroId) || { nombre: c.nombre_combo || `Producto #${maestroId}`, precio_venta: 0 };
+    const nombre    = c.nombre_combo || prod.nombre || `Combo #${comboId}`;
+    // Si combo.precio_venta es NULL => usa precio del producto padre
+    const precio    = (c.precio_venta===null || typeof c.precio_venta==='undefined')
+                        ? (prod.precio_venta ? `L ${fmt(parseFloat(prod.precio_venta))}` : '-')
+                        : `L ${fmt(parseFloat(c.precio_venta))}`;
+    const activo    = (String(c.activo)==='1' || c.activo===true);
+    const version   = c.version_actual ? `v${c.version_actual}` : '';
 
     const card = document.createElement('div');
     card.className = 'combo-card';
     card.innerHTML = `
       <div class="combo-card-header">
-        <h4 class="combo-card-title">${nombre}</h4>
+        <h4 class="combo-card-title">${nombre} <small class="text-muted">${version}</small></h4>
         <div class="combo-card-status ${activo ? 'active' : 'inactive'}">
           <span class="status-indicator ${activo ? 'active' : 'inactive'}"></span>
           ${activo ? 'Activo' : 'Inactivo'}
@@ -1833,7 +2083,8 @@ function renderizarCombos(){
       <div class="combo-card-body">
         <div class="combo-card-info">
           <div class="combo-card-price">${precio}</div>
-          <div class="combo-card-items">${itemsResumen} componentes</div>
+          <div class="combo-card-items">${c.items_count ?? (c.componentes_resumen || '-') } componentes</div>
+          <div class="combo-card-producto">Maestro: <strong>${prod.nombre}</strong></div>
         </div>
       </div>
       <div class="combo-card-actions">
@@ -1843,12 +2094,10 @@ function renderizarCombos(){
         <button class="btn btn-sm btn-danger" data-action="delete" data-id="${comboId}">
           <i class="fas fa-trash"></i> Eliminar
         </button>
-      </div>
-    `;
+      </div>`;
     combosGrid.appendChild(card);
   });
 
-  // Delegación de eventos (editar/eliminar)
   combosGrid.onclick = (e)=>{
     const btn = e.target.closest('button[data-action]');
     if(!btn) return;
@@ -1859,36 +2108,68 @@ function renderizarCombos(){
   };
 }
 
-function abrirEditorComboNuevo(){
+// ----- Editor de Combo -----
+
+function abrirEditorComboNuevo() {
   if (!modalComboEditor) return;
 
   setComboEditorTitle('Nuevo combo');
-  setComboEditorIds('', 1, ''); // comboId vacío, activo=1, sin maestro
+  setComboEditorIds('', 1, '');   // comboId vacío, activo=1, sin maestro
   clearComboItemsContainer();
-  fillComboProductoOptions(null, null);
-  initSelect2All();
+  fillComboProductoOptions(null, null); // llena selector maestro excluyendo ya usados
+  setPrecioComboUI(null);          // null => hereda precio del producto maestro
   addComboItemRow();
 
-  // Mensaje de ayuda
-  const helpMessage = document.getElementById('combo-help-message');
-  if (helpMessage) {
-    helpMessage.innerHTML = `
+  const help = document.getElementById('combo-help-message');
+  if (help){
+    help.innerHTML = `
       <div class="help-message">
-        <h5>Define un producto "combo" y sus componentes</h5>
-        <p>Organiza por <strong>Grupo</strong> (ej. Bebida, Acompañante). Usa <strong>Max selección</strong> cuando corresponda.</p>
-      </div>
-    `;
+        <h5>¿Cómo configurar un combo?</h5>
+        <p><strong>Producto que representa el combo:</strong> el artículo padre que vendes (ticket).</p>
+        <p><strong>Componentes:</strong> insumos o artículos hijos que se descuentan del inventario.</p>
+        <p><strong>Cantidad por porción:</strong> cuánto consume el combo de este insumo por unidad vendida.</p>
+        <p><strong>Unidad:</strong> g, ml, und u otra unidad compatible con tu inventario.</p>
+        <p><strong>Merma (%):</strong> pérdida prevista. <em>Ej. 10 = suma 10% al consumo</em> para evitar quedarte corto.</p>
+        <p><strong>Componente obligatorio:</strong> si está marcado, siempre se incluye y descuenta. Si no, es opcional.</p>
+        <p><strong>Precio extra:</strong> si el componente es opcional y el cliente lo elige, se suma este monto.</p>
+        <p><strong>Orden:</strong> posición de visualización en la lista del combo.</p>
+      </div>`;
   }
 
   modalComboEditor.style.display = 'block';
-  setTimeout(()=> $("#combo-producto").trigger('focus'), 10);
+  
+  // Añade estas líneas:
+  setTimeout(() => {
+      reinitSelect2InModal('#modal-combo-editor');
+      $('#combo-producto').trigger('focus');
+  }, 150);
 }
 
+// Llamar esta función cuando se cierre cualquier modal
+$(document).on('click', '.close, [data-close]', function() {
+  // Cerrar el modal
+  const target = $(this).data('close');
+  if (target) {
+      $(target).css('display', 'none');
+  }
+  
+  // Destruir Select2 para liberar memoria
+  $('select.select2').each(function() {
+      if ($(this).data('select2')) {
+          $(this).select2('destroy');
+      }
+  });
+});
+
 function abrirEditorComboExistente(comboId){
+  // Busca info básica del combo en la lista ya cargada
   const combo = combos.find(x => parseInt(x.combo_id||x.id,10) === parseInt(comboId,10));
   const maestroPid = combo ? (combo.productos_id || combo.producto_id) : null;
   const activo = combo ? (String(combo.activo)==='1' ? 1 : 0) : 1;
+  // Si el combo tiene precio propio -> número; si hereda -> null/undefined
+  const precioCombo = (combo && combo.hasOwnProperty('precio_venta')) ? combo.precio_venta : null;
 
+  // Carga el detalle de componentes
   fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`,{
     method:'POST',
     headers:{'Content-Type':'application/x-www-form-urlencoded'},
@@ -1896,34 +2177,45 @@ function abrirEditorComboExistente(comboId){
   })
   .then(r=>r.json())
   .then(data=>{
-    if (!data || !data.status){ 
-      showAlert('error','Error','No se pudo cargar el detalle del combo'); 
-      return; 
+    if (!data || !data.status){
+      showAlert('error','Error','No se pudo cargar el detalle del combo');
+      return;
     }
 
     const items = data.combo_detalle || [];
-    setComboEditorTitle('Editar combo');
-    setComboEditorIds(comboId, activo, maestroPid); // ← guarda hidden con el maestro
-    clearComboItemsContainer();
-    fillComboProductoOptions(maestroPid, comboId);  // excluye maestros usados en otros combos
-    initSelect2All();
 
+    // Configura encabezado/estado/maestro
+    setComboEditorTitle('Editar combo');
+    setComboEditorIds(comboId, activo, maestroPid);               // setea hidden del padre
+    clearComboItemsContainer();
+    fillComboProductoOptions(maestroPid, comboId);                 // llena select del padre
+    initSelect2All();
+    setPrecioComboUI(precioCombo);                                 // precio propio vs heredado
+
+    // Pinta filas
     if (Array.isArray(items) && items.length){
       items.sort((a,b)=> (parseInt(a.orden||1)-parseInt(b.orden||1)));
       items.forEach(it => addComboItemRow({
         productos_id: it.productos_id,
-        cantidad: it.cantidad_por_porcion || it.cantidad,
-        es_opcional: String(it.obligatorio)==='0',
-        grupo: it.grupo || '',
-        max_seleccion: (it.max_seleccion ?? ''),
+        cantidad_por_porcion: it.cantidad_por_porcion,
+        unidad: it.unidad || '',
+        merma_pct: it.merma_pct || 0,
+        obligatorio: (String(it.obligatorio)==='1'),
         precio_extra: it.precio_extra || 0,
-        orden: it.orden || ''
+        orden: it.orden || 1
       }));
     } else {
       addComboItemRow();
     }
+    
+    // 🔒 FILTRO DURO: oculta el padre en TODAS las filas ya pintadas
+    refiltrarComponentesContraPadre();
 
-    modalComboEditor.style.display = 'block';
+     // 🔹 Cargar y pintar reglas por categoría
+    cargarReglasCombo(comboId).then(reglas => renderReglasCategoria(reglas));
+
+    // Muestra modal
+    if (modalComboEditor) modalComboEditor.style.display = 'block';
   })
   .catch(()=> showAlert('error','Error','Error al cargar el detalle del combo'));
 }
@@ -1933,12 +2225,12 @@ function setComboEditorTitle(text){
   if (el) el.textContent = text;
 }
 
-// Crea/actualiza: también fija un hidden con el productos_id maestro
+// comboId + switch activo + maestro (hidden en edición o select en creación)
 function setComboEditorIds(comboId, activo, productos_id){
   const hid = document.getElementById('combo-id');
   if (hid) hid.value = comboId ? String(comboId) : '';
 
-  // Hidden para el maestro (necesario en edición)
+  // Hidden maestro (edición) para mantener relación
   let hidProd = document.getElementById('combo-producto-hidden');
   if (!hidProd){
     hidProd = document.createElement('input');
@@ -1957,11 +2249,10 @@ function setComboEditorIds(comboId, activo, productos_id){
         <input type="checkbox" id="combo-activo-switch" ${activo ? 'checked' : ''}>
         <span class="slider round"></span>
       </label>
-      <span class="switch-label">Combo activo</span>
-    `;
+      <span class="switch-label">Combo activo</span>`;
   }
 
-  // Mostrar producto seleccionado en edición
+  // Mostrar maestro en edición
   const productoDisplay = document.getElementById('combo-producto-display');
   const productoSelectContainer = document.getElementById('combo-producto-container');
 
@@ -1970,48 +2261,163 @@ function setComboEditorIds(comboId, activo, productos_id){
     if (producto && productoDisplay) {
       productoDisplay.innerHTML = `
         <div class="selected-product-display">
-          <strong>Producto que representa el combo:</strong>
+          <strong>Producto maestro:</strong>
           <span class="product-name-highlight">${producto.nombre}</span>
         </div>
-        <p class="help-text"><small>Este producto debe existir y será el "maestro" del combo.</small></p>
-      `;
+        <p class="help-text"><small>Este producto representa el combo en ventas.</small></p>`;
       productoDisplay.style.display = 'block';
     }
     if (productoSelectContainer) productoSelectContainer.style.display = 'none';
   } else {
     if (productoDisplay) productoDisplay.style.display = 'none';
     if (productoSelectContainer) productoSelectContainer.style.display = 'block';
-    const helpText = document.getElementById('combo-producto-help');
-    if (helpText) {
-      helpText.innerHTML = '<small>Este producto debe existir y será el "maestro" del combo.</small>';
-    }
   }
 }
 
+// Precio del combo: null => hereda del producto maestro; número => precio propio
+function setPrecioComboUI(precio){
+  const wrap = document.getElementById('combo-precio-wrap');
+  if (!wrap) return;
+
+  wrap.innerHTML = `
+    <div class="form-group" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <label style="margin-right:8px;">Precio del combo</label>
+      <label class="radio-container">
+        <input type="radio" name="comboPrecioModo" value="heredar" ${ (precio===null || precio===undefined) ? 'checked':'' }>
+        <span style="margin-left:6px;">Heredar del producto maestro</span>
+      </label>
+      <label class="radio-container">
+        <input type="radio" name="comboPrecioModo" value="propio" ${ (precio!==null && precio!==undefined) ? 'checked':'' }>
+        <span style="margin-left:6px;">Fijar precio propio</span>
+      </label>
+      <input type="number" class="form-control" id="combo-precio-valor" min="0" step="0.01" placeholder="L 0.00" style="max-width:160px;" ${ (precio===null || precio===undefined) ? 'disabled':'' } value="${ (precio!==null && precio!==undefined) ? Number(precio).toFixed(2) : '' }">
+    </div>
+  `;
+
+  const radios = wrap.querySelectorAll('input[name="comboPrecioModo"]');
+  const inputPrecio = document.getElementById('combo-precio-valor');
+  radios.forEach(r=>{
+    r.addEventListener('change', ()=>{
+      if (r.value==='propio'){
+        inputPrecio.disabled = false;
+        if (!inputPrecio.value) inputPrecio.value = '0.00';
+        inputPrecio.focus();
+      } else {
+        inputPrecio.value = '';
+        inputPrecio.disabled = true;
+      }
+    });
+  });
+}
+
+// Llena el select del producto maestro (excluye los ya usados por otros combos)
+// === Helpers para saber qué productos ya son padre de un combo
+function getUsadosComoPadreSet(currentComboId){
+  const usados = new Set();
+  (combos || []).forEach(c=>{
+    const cid = String(c.combo_id || c.id || '');
+    const pid = String(c.productos_id || c.producto_id || '');
+    if (!pid) return;
+    // Si estoy editando, permito el padre del combo actual
+    if (currentComboId && String(currentComboId) === cid) return;
+    usados.add(pid);
+  });
+  return usados;
+}
+
+function isProductoUsadoComoPadre(pid, currentComboId){
+  return getUsadosComoPadreSet(currentComboId).has(String(pid));
+}
+
+// === Llenar el select del producto maestro (mostrar todos, marcar los ya usados)
 function fillComboProductoOptions(selectedProductoId, currentComboId){
   const sel = document.getElementById('combo-producto');
   if (!sel) return;
 
-  // Productos ya usados por otros combos (excluir)
-  const usados = new Set(
-    combos
-      .filter(c => currentComboId ? (String(c.combo_id||c.id) !== String(currentComboId)) : true)
-      .map(c => String(c.productos_id || c.producto_id))
-  );
+  // Productos ya usados como padre por otros combos (excepto el actual al editar)
+  const usados = getUsadosComoPadreSet(currentComboId);
 
-  const opts = productos
-    .filter(p => !usados.has(String(p.productos_id)))
-    .map(p => {
-      const selected = (String(p.productos_id) === String(selectedProductoId)) ? 'selected' : '';
-      return `<option value="${p.productos_id}" ${selected}>${p.nombre}</option>`;
-    }).join('');
+  const opts = productos.map(p=>{
+    const idStr = String(p.productos_id);
+    const selected = (String(selectedProductoId) === idStr) ? 'selected' : '';
+    const disabled = (usados.has(idStr) && !selected) ? 'disabled' : '';
+    const badge = (usados.has(idStr) && !selected) ? ' (ya es combo)' : '';
+    return `<option value="${p.productos_id}" ${selected} ${disabled}>${p.nombre}${badge}</option>`;
+  }).join('');
 
   sel.innerHTML = `<option value=""></option>${opts}`;
   if (selectedProductoId) sel.value = String(selectedProductoId);
 
-  initSelect2All();
+  // Select2 para que el dropdown quede dentro del modal
+  if (typeof $ !== 'undefined' && $.fn.select2){
+    const $modal = $('#modal-combo-editor');
+    $(sel).select2({ width:'100%', dropdownParent: $modal });
+  }
+
+  // Cuando cambie el padre, actualiza hidden + refiltra componentes
+  sel.onchange = ()=>{
+    const hid = document.getElementById('combo-producto-hidden');
+    if (hid) hid.value = sel.value || '';
+    refiltrarComponentesContraPadre();
+  };
 }
 
+// Re-filtra TODAS las filas de componentes para ocultar el producto padre actual
+function refiltrarComponentesContraPadre(){
+  // Padre vigente: usa hidden (edición) o select (creación)
+  const padreId = (document.getElementById('combo-producto-hidden')?.value)
+               || (document.getElementById('combo-producto')?.value) || '';
+
+  const rows = document.querySelectorAll('#combo-items-container .component-row');
+  rows.forEach(row=>{
+    const selProd = row.querySelector('select.combo-item-producto');
+    if (!selProd) return;
+
+    // Valor actual antes de reconstruir opciones
+    const valorPrevio = selProd.value || '';
+
+    // Reconstruye opciones EXCLUYENDO al padre
+    const opciones = productos
+      .filter(p => String(p.productos_id) !== String(padreId))
+      .map(p => `<option value="${p.productos_id}">${p.nombre}</option>`)
+      .join('');
+
+    selProd.innerHTML = `<option value=""></option>${opciones}`;
+
+    // Restaura selección si no era el padre; si era el padre, se limpia
+    if (valorPrevio && String(valorPrevio) !== String(padreId)){
+      selProd.value = valorPrevio;
+    } else {
+      selProd.value = '';
+    }
+
+    // Refresca Select2 si está activo
+    if (typeof $ !== 'undefined' && $.fn.select2){
+      $(selProd).trigger('change.select2');
+    }
+  });
+}
+
+function calcularDisponibilidadComboUI(comboId, cantidad=1){
+  if (!comboId){
+    showAlert('info','Info','Guarda el combo primero para calcular disponibilidad.');
+    return;
+  }
+  const fd = new FormData();
+  fd.append('action','calcComboDisponibilidad');
+  fd.append('combo_id', String(comboId));
+  fd.append('cantidad', String(cantidad));
+
+  fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, { method:'POST', body: fd })
+    .then(r=>r.json())
+    .then(res=>{
+      if(!res || !res.status){ showAlert('error','Error',res?.message||'No se pudo calcular'); return; }
+      showAlert('success','Disponibilidad', `Disponibles: ${res.disponibles} | ¿Alcanza para ${cantidad}? ${res.alcanza_para.toUpperCase()}`);
+    })
+    .catch(()=> showAlert('error','Error','Error al consultar disponibilidad'));
+}
+
+// Limpia contenedor de componentes
 function clearComboItemsContainer(){
   const container = document.getElementById('combo-items-container');
   if (container) container.innerHTML = '';
@@ -2021,23 +2427,28 @@ function addComboItemRow(data){
   const container = document.getElementById('combo-items-container');
   if (!container) return;
 
+  if (container.children.length >= MAX_COMPONENTES){
+    showAlert('warning','Máximo alcanzado',`Solo se permiten ${MAX_COMPONENTES} componentes por combo.`);
+    return;
+  }
+
   const idx = container.children.length + 1;
   const d = Object.assign({
     productos_id: '',
-    cantidad: 1,
-    es_opcional: false,
-    grupo: '',
-    max_seleccion: '',
+    cantidad_por_porcion: 1,
+    unidad: 'und',
+    merma_pct: 0,
+    obligatorio: true,
     precio_extra: 0,
     orden: idx
   }, data || {});
 
-  // ID maestro (toma hidden en edición o select en creación)
+  // Padre actual (hidden o select)
   const productoMaestroId =
-    (document.getElementById('combo-producto-hidden')?.value) ||
-    (document.getElementById('combo-producto')?.value) || '';
+      (document.getElementById('combo-producto-hidden')?.value) ||
+      (document.getElementById('combo-producto')?.value) || '';
 
-  // Excluir maestro del listado de componentes
+  // Lista filtrada: NUNCA incluir el padre
   const productosFiltrados = productos.filter(p =>
     String(p.productos_id) !== String(productoMaestroId)
   );
@@ -2047,78 +2458,119 @@ function addComboItemRow(data){
     return `<option value="${p.productos_id}" ${sel}>${p.nombre}</option>`;
   }).join('');
 
+  const unidadOpts = UNIDADES_COMBO.map(u=>{
+    const sel = (String(u).toLowerCase()===String(d.unidad||'').toLowerCase()) ? 'selected':'';
+    return `<option value="${u}" ${sel}>${u}</option>`;
+  }).join('');
+
   const row = document.createElement('div');
   row.className = 'component-row card';
   row.innerHTML = `
-  <div class="component-header">
-    <h5>Componente #${idx}</h5>
-    <button type="button" class="btn btn-sm btn-danger" data-remove-row="1">
-      <i class="fas fa-times"></i>
-    </button>
-  </div>
-
-  <div class="component-body">
-    <!-- 1) PRODUCTO -->
-    <div class="form-group">
-      <label>Producto <small class="text-muted">(No puede ser el producto combo)</small></label>
-      <select class="combo-item-producto select2" data-placeholder="Selecciona un producto">
-        <option value=""></option>
-        ${options}
-      </select>
+    <div class="component-header">
+      <h5>Componente #${idx}</h5>
+      <button type="button" class="btn btn-sm btn-danger" data-remove-row="1" title="Quitar">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
 
-    <!-- 2) CANTIDAD -->
-    <div class="form-group">
-      <label>Cantidad <small class="text-muted">(Cantidad de este producto en el combo)</small></label>
-      <input type="number" class="form-control combo-item-cantidad" min="0.001" step="0.001" value="${d.cantidad}" placeholder="Cantidad">
-    </div>
+    <div class="component-body">
+      <!-- PRODUCTO -->
+      <div class="form-group">
+        <label>Producto <small class="text-muted">(insumo o artículo hijo)</small></label>
+        <select class="combo-item-producto select2" data-placeholder="Selecciona un producto">
+          <option value=""></option>
+          ${options}
+        </select>
+      </div>
 
-    <!-- 3) OPCIONAL (label separado del input para igualar alturas) -->
-    <div class="form-group">
-      <label>Opcional <small class="text-muted">(El cliente puede elegir si lo incluye)</small></label>
-      <label class="checkbox-container" style="margin-top:4px;">
-        <input type="checkbox" class="combo-item-opcional" ${d.es_opcional ? 'checked' : ''}>
-        <span class="checkmark"></span>
-        <span style="margin-left:6px;">Permitir omitir</span>
-      </label>
-    </div>
+      <!-- CANTIDAD -->
+      <div class="form-group">
+        <label>Cantidad por porción</label>
+        <input type="number" class="form-control combo-item-cantidad" min="0.0001" step="0.0001" value="${d.cantidad_por_porcion}">
+      </div>
 
-    <!-- 4) GRUPO -->
-    <div class="form-group">
-      <label>Grupo <small class="text-muted">(Ej. Bebida, Acompañante, Plato fuerte)</small></label>
-      <input type="text" class="form-control combo-item-grupo" placeholder="Grupo" value="${d.grupo}">
-    </div>
+      <!-- UNIDAD -->
+      <div class="form-group">
+        <label>Unidad</label>
+        <select class="form-control combo-item-unidad">
+          ${unidadOpts}
+        </select>
+      </div>
 
-    <!-- 5) MÁX. SELECCIÓN -->
-    <div class="form-group">
-      <label>Máx. selección <small class="text-muted">(Máximo de opciones que se pueden elegir de este grupo)</small></label>
-      <input type="number" class="form-control combo-item-max" min="0" step="1" placeholder="Máx. selección" value="${d.max_seleccion}">
-    </div>
+      <!-- MERMA -->
+      <div class="form-group">
+        <label>Merma (%) <small class="text-muted">Ej.: 10 = consumir 10% extra (pérdidas)</small></label>
+        <input type="number" class="form-control combo-item-merma" min="0" max="100" step="0.01" value="${Number(d.merma_pct).toFixed(2)}">
+      </div>
 
-    <!-- 6) PRECIO EXTRA -->
-    <div class="form-group">
-      <label>Precio extra <small class="text-muted">(Precio adicional si se selecciona esta opción)</small></label>
-      <input type="number" class="form-control combo-item-extra" min="0" step="0.01" value="${d.precio_extra}" placeholder="Precio extra">
-    </div>
+      <!-- OBLIGATORIO -->
+      <div class="form-group">
+        <label>Componente obligatorio</label>
+        <label class="checkbox-container" style="margin-top:4px;">
+          <input type="checkbox" class="combo-item-obligatorio" ${d.obligatorio ? 'checked' : ''}>
+          <span class="checkmark"></span>
+          <span style="margin-left:6px;">Siempre incluido</span>
+        </label>
+      </div>
 
-    <!-- 7) ORDEN -->
-    <div class="form-group">
-      <label>Orden <small class="text-muted">(Orden de visualización)</small></label>
-      <input type="number" class="form-control combo-item-orden" min="1" step="1" value="${d.orden}" placeholder="Orden">
+      <!-- PRECIO EXTRA -->
+      <div class="form-group">
+        <label>Precio extra <small class="text-muted">(si aplica)</small></label>
+        <input type="number" class="form-control combo-item-extra" min="0" step="0.01" value="${Number(d.precio_extra).toFixed(2)}">
+      </div>
+
+      <!-- ORDEN -->
+      <div class="form-group">
+        <label>Orden</label>
+        <input type="number" class="form-control combo-item-orden" min="1" step="1" value="${d.orden}">
+      </div>
     </div>
-  </div>
-`;
+  `;
   container.appendChild(row);
 
-  // Eliminar fila
+  appendInlineHelpsForComboRow(row);
+
+  // Quitar fila
   row.querySelector('[data-remove-row]')?.addEventListener('click', ()=>{
     row.remove();
     reindexComboItems();
   });
 
+  // Activa Select2 en la fila
   initSelect2ForComboRow(row);
   reindexComboItems();
 }
+
+  // Pegarlo en facturasRestaurante.js (por ejemplo, debajo de addComboItemRow)
+  function appendInlineHelpsForComboRow(row){
+    const defs = [
+      ['.combo-item-producto',      'Insumo que compone el combo y se descuenta del inventario.'],
+      ['.combo-item-cantidad',      'Consumo por 1 combo. Debe ser > 0.'],
+      ['.combo-item-unidad',        'Unidad compatible con tu inventario (g, ml, und, etc.).'],
+      ['.combo-item-merma',         'Pérdida prevista. 10 = +10% al consumo para cubrir desperdicio.'],
+      ['.combo-item-precio-extra',  'Si el componente es opcional y se elige, suma este monto.'],
+      ['.combo-item-obligatorio',   'Si está marcado, siempre se incluye y descuenta.'],
+      ['.combo-item-orden',         'Posición de visualización del componente.']
+    ];
+
+    defs.forEach(([selector, help])=>{
+      const input = row.querySelector(selector);
+      if (!input) return;
+
+      const group = input.closest('.form-group');
+      const label = group ? group.querySelector('label') : null;
+
+      // small debajo del label
+      if (label && !label.querySelector('.help-inline')){
+        const sm = document.createElement('small');
+        sm.className = 'help-inline text-muted';
+        sm.textContent = help;
+        label.appendChild(sm);
+      }
+      // tooltip nativo
+      input.setAttribute('title', help);
+    });
+  }
 
 function reindexComboItems(){
   const rows = document.querySelectorAll('#combo-items-container .component-row');
@@ -2131,68 +2583,191 @@ function reindexComboItems(){
   });
 }
 
+// Recolecta items listos para enviar a combo_detalle
 function collectComboItems(){
   const rows = document.querySelectorAll('#combo-items-container .component-row');
   const items = [];
   for (let r of rows){
-    const prodSel = r.querySelector('select.combo-item-producto');
+    const prodSel   = r.querySelector('select.combo-item-producto');
     const producto_id = prodSel ? (prodSel.value || '') : '';
     if (!producto_id) continue;
 
-    const cantidad       = parseFloat((r.querySelector('.combo-item-cantidad')||{}).value || '1') || 1;
-    const es_opcional    = (r.querySelector('.combo-item-opcional')||{}).checked ? 1 : 0;
-    const grupo          = (r.querySelector('.combo-item-grupo')||{}).value?.trim() || '';
-    const max_sel_raw    = (r.querySelector('.combo-item-max')||{}).value;
-    const max_seleccion  = max_sel_raw === '' ? null : parseInt(max_sel_raw,10);
-    const precio_extra   = parseFloat((r.querySelector('.combo-item-extra')||{}).value || '0') || 0;
-    const orden          = parseInt((r.querySelector('.combo-item-orden')||{}).value || '1',10) || 1;
+    const cantidad   = parseFloat((r.querySelector('.combo-item-cantidad')||{}).value || '1') || 1;
+    const unidad     = (r.querySelector('.combo-item-unidad')||{}).value || 'und';
+    const merma      = parseFloat((r.querySelector('.combo-item-merma')||{}).value || '0') || 0;
+    const obligatorio= (r.querySelector('.combo-item-obligatorio')||{}).checked ? 1 : 0;
+    const precioExtra= parseFloat((r.querySelector('.combo-item-extra')||{}).value || '0') || 0;
+    const orden      = parseInt((r.querySelector('.combo-item-orden')||{}).value || '1',10) || 1;
 
     items.push({
       productos_id: parseInt(producto_id,10),
       cantidad_por_porcion: cantidad,
-      obligatorio: es_opcional ? 0 : 1,
-      grupo: grupo || null,
-      max_seleccion: (max_seleccion===null ? null : max_seleccion),
-      precio_extra,
+      unidad: unidad || null,
+      merma_pct: Math.max(0, Math.min(100, merma)),
+      obligatorio,
+      precio_extra: precioExtra,
       orden
     });
   }
   return items;
 }
 
+// ====== Reglas por categoría (UI) ======
+function renderReglasCategoria(reglas = []) {
+  const body = document.getElementById('combo-reglas-rows');
+  if (!body) return;
+
+  // 'categorias' debe estar cargado (ya lo usas en otros lados)
+  const opts = (Array.isArray(categorias) ? categorias : []).map(c => {
+    const id = c.id || c.categoria_id || c.categoriaId || '';
+    const nombre = c.nombre || c.text || '';
+    return `<option value="${id}">${nombre}</option>`;
+  }).join('');
+
+  body.innerHTML = '';
+
+  (reglas || []).forEach(r => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>
+        <select class="form-control regla-categoria">
+          <option value=""></option>
+          ${opts}
+        </select>
+      </td>
+      <td>
+        <input type="number" class="form-control regla-max" min="1" value="${parseInt(r.max_seleccion||1,10)}">
+      </td>
+      <td class="text-right">
+        <button type="button" class="btn btn-danger btn-sm" data-remove-regla="1">
+          <i class="fas fa-trash"></i>
+        </button>
+      </td>
+    `;
+    body.appendChild(row);
+    const sel = row.querySelector('.regla-categoria');
+    if (sel) sel.value = String(r.categoria_id || '');
+  });
+
+  // Delegación para quitar
+  body.onclick = (e)=>{
+    const btn = e.target.closest('button[data-remove-regla="1"]');
+    if (!btn) return;
+    const tr = btn.closest('tr');
+    if (tr && tr.parentNode) tr.parentNode.removeChild(tr);
+  };
+}
+
+function collectReglasCategoria(){
+  const rows = Array.from(document.querySelectorAll('#combo-reglas-rows tr'));
+  return rows.map(tr => {
+    const cat = tr.querySelector('.regla-categoria')?.value || '';
+    const max = parseInt(tr.querySelector('.regla-max')?.value || '1', 10);
+    if (!cat) return null;
+    return { categoria_id: parseInt(cat,10), max_seleccion: isNaN(max) ? 1 : Math.max(1, max) };
+  }).filter(Boolean);
+}
+
+function cargarReglasCombo(comboId){
+  return fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:`action=loadComboCategoriaReglas&combo_id=${encodeURIComponent(comboId)}`
+  })
+  .then(r=>r.json())
+  .then(d => (d && d.status) ? (d.reglas || []) : []);
+}
+
+// Botón Añadir regla
+(function(){
+  const btnAddRegla = document.getElementById('btn-add-regla');
+  if (btnAddRegla){
+    btnAddRegla.addEventListener('click', ()=>{
+      const cur = collectReglasCategoria();
+      // intenta seleccionar la primera categoría disponible por defecto
+      const primeraCatId = (Array.isArray(categorias) && categorias.length) ? (categorias[0].id || categorias[0].categoria_id) : null;
+      cur.push({ categoria_id: primeraCatId, max_seleccion: 1 });
+      renderReglasCategoria(cur);
+    });
+  }
+})();
+
+// Validaciones adicionales
+function validarComponentesComboV2(items, maestroId){
+  if (!items.length) return { ok:false, msg:'Agregue al menos un componente.' };
+  const seen = new Set();
+  for (const it of items){
+    if (String(it.productos_id) === String(maestroId)){
+      return { ok:false, msg:'El producto maestro no puede estar entre los componentes.' };
+    }
+    const key = String(it.productos_id);
+    if (seen.has(key)){
+      return { ok:false, msg:'Hay productos repetidos entre los componentes.' };
+    }
+    seen.add(key);
+    if (!(it.cantidad_por_porcion>0)){
+      return { ok:false, msg:'Todas las cantidades deben ser mayores a 0.' };
+    }
+    if (it.precio_extra<0){
+      return { ok:false, msg:'El precio extra no puede ser negativo.' };
+    }
+    if (it.merma_pct<0 || it.merma_pct>100){
+      return { ok:false, msg:'La merma debe estar entre 0 y 100%.' };
+    }
+  }
+  return { ok:true };
+}
+
+// Guardar / Actualizar combo
 function guardarCombo(){
   const comboId = (document.getElementById('combo-id')||{}).value || '';
 
-  // Obtener el ID del producto maestro según modo
+  // Maestro (hidden en edición o select en creación)
   const productos_id =
     comboId
-      ? (document.getElementById('combo-producto-hidden')?.value || '')       // ← edición (hidden)
-      : (document.getElementById('combo-producto')?.value || '');             // ← creación (select)
+      ? (document.getElementById('combo-producto-hidden')?.value || '')
+      : (document.getElementById('combo-producto')?.value || '');
 
   const activoSwitch = document.getElementById('combo-activo-switch');
   const activo = activoSwitch ? (activoSwitch.checked ? 1 : 0) : 1;
 
-  if (!productos_id){ 
-    showAlert('warning','Validación','Seleccione el producto que representa el combo'); 
-    return; 
+  if (!productos_id){
+    showAlert('warning','Validación','Seleccione el producto maestro del combo');
+    return;
   }
 
   const items = collectComboItems();
-  if (!items.length){ 
-    showAlert('warning','Validación','Agregue al menos un ítem al combo'); 
-    return; 
+  const valid = validarComponentesComboV2(items, productos_id);
+  if (!valid.ok){
+    showAlert('warning','Validación', valid.msg);
+    return;
+  }
+
+  // Precio del combo (heredado vs propio)
+  const modo = document.querySelector('input[name="comboPrecioModo"]:checked')?.value || 'heredar';
+  const precioInput = document.getElementById('combo-precio-valor');
+  let precio_venta = null;
+  if (modo === 'propio'){
+    const v = parseFloat(precioInput?.value || '0');
+    if (isNaN(v) || v < 0){
+      showAlert('warning','Validación','Precio del combo inválido');
+      return;
+    }
+    precio_venta = Number(v.toFixed(2));
+  } else {
+    precio_venta = null; // heredado
   }
 
   const accion = comboId ? 'editar' : 'guardar';
-  const mensaje = comboId ? 
-    '¿Está seguro que desea actualizar este combo?' : 
-    '¿Está seguro que desea guardar este combo?';
-  
-  showConfirm(accion === 'editar' ? 'Editar Combo' : 'Nuevo Combo', mensaje, () => {
+  const mensaje = comboId ? '¿Desea actualizar este combo?' : '¿Desea guardar este combo?';
+
+  showConfirm(accion==='editar' ? 'Editar Combo' : 'Nuevo Combo', mensaje, () => {
     const payload = {
       productos_id: parseInt(productos_id,10),
       activo,
-      items
+      precio_venta, // null -> back debe interpretar como "usar precio del producto maestro"
+      items,
+      reglas: collectReglasCategoria()
     };
     let action = 'saveCombo';
     if (comboId){
@@ -2200,7 +2775,6 @@ function guardarCombo(){
       payload.combo_id = parseInt(comboId,10);
     }
 
-    // Unifica envío: application/json (si tu PHP espera urlencoded, cambia abajo)
     fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -2208,13 +2782,13 @@ function guardarCombo(){
     })
     .then(r=>r.json())
     .then(d=>{
-      if (!d || !d.status){ 
-        showAlert('error','Error', d && d.message ? d.message : 'No se pudo guardar el combo'); 
-        return; 
+      if (!d || !d.status){
+        showAlert('error','Error', d && d.message ? d.message : 'No se pudo guardar el combo');
+        return;
       }
       showAlert('success','Éxito', comboId ? 'Combo actualizado' : 'Combo creado');
       if (modalComboEditor) modalComboEditor.style.display = 'none';
-      if (modalCombos && modalCombos.style.display === 'block'){
+      if (modalCombos && modalCombos.style.display==='block'){
         cargarCombos();
       }
     })
@@ -2233,9 +2807,9 @@ function eliminarCombo(comboId){
     })
     .then(r=>r.json())
     .then(d=>{
-      if (!d || !d.status){ 
-        showAlert('error','Error', d && d.message ? d.message : 'No se pudo eliminar'); 
-        return; 
+      if (!d || !d.status){
+        showAlert('error','Error', d && d.message ? d.message : 'No se pudo eliminar');
+        return;
       }
       showAlert('success','Éxito','Combo eliminado');
       cargarCombos();
@@ -2245,6 +2819,14 @@ function eliminarCombo(comboId){
 }
 
 /* ========= Helpers ========= */
+  // ===== Helper para el título "Nueva Comanda" (con ícono) =====
+  function setFacturaTitle(text){
+    const el = document.getElementById('factura-title') || facturaTitle;
+    if (!el) return;
+    const label = (text && String(text).trim()) ? text : 'Nueva Comanda';
+    el.innerHTML = `<i class="fas fa-receipt"></i> ${label}`;
+  }
+
 // === Mostrar cliente en la cabecera (NOMBRE + RTN en línea) ===
 function pintarClienteInfoHeader() {
   const wrap = document.getElementById('cliente-info');
@@ -2345,7 +2927,6 @@ function ensureCategoriasReady(){
   return cargarCategorias(); // ya devuelve Promise
 }
 
-
 function findProductoById(id){
   id = parseInt(id,10);
   return productos.find(p => parseInt(p.productos_id,10) === id);
@@ -2353,13 +2934,98 @@ function findProductoById(id){
 
 // Select2 global para el modal (evita "distorsión" y dropdown fuera)
 function initSelect2All(){
-  if (typeof $ === 'undefined' || !$.fn.select2) return;
-  const $modal = $('#modal-combo-editor'); // contenedor del modal
-  $('#combo-producto').select2({
-    width: '100%',
-    dropdownParent: $modal
+  if (!(window.jQuery && jQuery.fn && jQuery.fn.select2)) {
+      console.warn('Select2 no encontrado. Verifica que el JS/CSS estén cargados.');
+      return;
+  }
+  
+  // Configuración base para todos los Select2
+  const baseConfig = {
+      width: '100%',
+      theme: 'bootstrap'
+  };
+  
+  // Inicializar otros Select2 que no están en modales
+  $('select.select2').not('#ubicacion-mesa, #estado-mesa, #prod-categoria, #combo-producto').each(function() {
+      if (!$(this).data('select2')) {
+          $(this).select2(baseConfig);
+      }
   });
 }
+
+  // Función optimizada para inicializar Select2 en modales
+  function initSelect2WithModal(selector, modalSelector, config) {
+    const $element = $(selector);
+    const $modal = $(modalSelector);
+    
+    if ($element.length && $modal.length) {
+        // Destruir si ya estaba inicializado
+        if ($element.data('select2')) {
+            try {
+                $element.select2('destroy');
+            } catch (e) {
+                console.warn('Error al destruir Select2:', e);
+            }
+        }
+        
+        // Inicializar con la modal como parent
+        try {
+            $element.select2({
+                ...config,
+                dropdownParent: $modal
+            });
+            
+            // Forzar actualización visual
+            setTimeout(() => {
+                $element.trigger('change.select2');
+            }, 50);
+            
+            return $element;
+        } catch (e) {
+            console.error('Error al inicializar Select2:', e);
+        }
+    }
+    
+    return null;
+  }
+  
+  // Función especial para reinicializar Select2 en modales cuando se abren
+  function reinitSelect2InModal(modalSelector) {
+    const $modal = $(modalSelector);
+    if (!$modal.length) return;
+    
+    // Pequeña demora para asegurar que el modal esté visible
+    setTimeout(() => {
+        $modal.find('select.select2').each(function() {
+            const $select = $(this);
+            const selectId = $select.attr('id');
+            
+            // Configuración según el tipo de select
+            let config = {
+                width: '100%',
+                theme: 'bootstrap',
+                dropdownParent: $modal
+            };
+            
+            if (selectId === 'combo-producto') {
+                config.allowClear = true;
+                config.placeholder = $select.data('placeholder') || 'Selecciona el producto combo';
+            } else if (selectId === 'prod-categoria') {
+                config.allowClear = true;
+                config.placeholder = $select.data('placeholder') || '';
+            } else {
+                config.minimumResultsForSearch = -1;
+            }
+            
+            // Reinicializar
+            if ($select.data('select2')) {
+                $select.select2('destroy');
+            }
+            
+            $select.select2(config);
+        });
+    }, 100);
+  }
 
 function initSelect2ForComboRow(row){
   if (typeof $ === 'undefined' || !$.fn.select2) return;
@@ -2492,3 +3158,97 @@ function initSelect2ForComboRow(row){
   }
 
 });
+
+// ==============================
+// ATAJOS DE TECLADO – SOLO combinaciones (evita disparos al escribir)
+// Windows/Linux: Ctrl; Mac: Cmd (metaKey)
+// Algunas acciones usan Alt para no chocar con el navegador
+// ==============================
+function initHotkeys(){
+  const clickFirst = (selectors=[])=>{
+    for (const sel of selectors){
+      const el = document.querySelector(sel);
+      if (el && !el.disabled){ el.click(); return true; }
+    }
+    return false;
+  };
+  const focusFirst = (selectors=[])=>{
+    for (const sel of selectors){
+      const el = document.querySelector(sel);
+      if (el){ el.focus(); el.select && el.select(); return true; }
+    }
+    return false;
+  };
+
+  // Mapa de combinaciones seguras
+  // ctrlOrMeta = Ctrl (Win/Linux) o Cmd (Mac)
+  // alt = true para combos que podrían chocar con atajos del navegador
+  const HK = [
+    // Comanda
+    { key:'g', ctrlOrMeta:true, alt:false, type:'click', targets:['#btn-guardar'] },
+    { key:'i', ctrlOrMeta:true, alt:false, type:'click', targets:['#btn-imprimir'] },
+    { key:'l', ctrlOrMeta:true, alt:true,  type:'click', targets:['#btn-limpiar'] },
+    { key:'x', ctrlOrMeta:true, alt:true,  type:'click', targets:['#btn-cerrar'] },
+    { key:'f', ctrlOrMeta:true, alt:true,  type:'focus', targets:['#buscar-producto'] },
+    { key:'v', ctrlOrMeta:true, alt:true,  type:'toggleView' },
+
+    // Gestión
+    { key:'m', ctrlOrMeta:true, alt:false, type:'click', targets:['#btn-nueva-mesa'] },
+    { key:'c', ctrlOrMeta:true, alt:true,  type:'click', targets:['#btn-cambiar-cliente'] },
+    { key:'r', ctrlOrMeta:true, alt:true,  type:'click', targets:['#btn-nuevo-cliente-rapido', '#btn-nuevo-cliente'] },
+    { key:'p', ctrlOrMeta:true, alt:true,  type:'click', targets:['#btn-nuevo-producto'] },
+    { key:'k', ctrlOrMeta:true, alt:true,  type:'click', targets:['#btn-nueva-categoria'] },
+    { key:'b', ctrlOrMeta:true, alt:true,  type:'click', targets:['#btn-gestionar-combos'] },
+  ];
+
+  document.addEventListener('keydown', (e)=>{
+    // Requiere SIEMPRE ctrl/meta: sin modificadores, no hacemos nada.
+    const ctrlOrMeta = !!e.ctrlKey || !!e.metaKey;
+    if (!ctrlOrMeta) return;
+
+    const alt = !!e.altKey;
+    const k   = (e.key || '').toLowerCase();
+
+    // Si estás escribiendo en inputs/selects/textarea, SÍ permitimos combos (porque llevan Ctrl/Cmd)
+    // Esto NO interfiere con texto normal (no hay letra suelta).
+    const match = HK.find(h => h.key === k && h.ctrlOrMeta === true && (!!h.alt) === alt);
+    if (!match) return;
+
+    // Evita que el navegador se “robe” el atajo (ej. Ctrl+P, Ctrl+F, etc.)
+    // OJO: Nosotros solo usamos 'i' (imprimir), NO 'p'; y usamos Alt para F, P, etc., así que es seguro.
+    e.preventDefault();
+
+    if (match.type === 'click'){ clickFirst(match.targets); return; }
+    if (match.type === 'focus'){ focusFirst(match.targets); return; }
+    if (match.type === 'toggleView'){
+      const panelProductos = document.getElementById('panel-productos');
+      const panelComanda   = document.getElementById('panel-comanda');
+      const btnVerProd     = document.getElementById('btn-mostrar-productos');
+      const btnVerCom      = document.getElementById('btn-mostrar-comanda');
+
+      const productosVisibles = panelProductos && panelProductos.style.display !== 'none';
+      if (productosVisibles){
+        if (btnVerCom) btnVerCom.click();
+        else {
+          if (panelProductos) panelProductos.style.display = 'none';
+          if (panelComanda)   panelComanda.style.display   = '';
+        }
+      } else {
+        if (btnVerProd) btnVerProd.click();
+        else {
+          if (panelProductos) panelProductos.style.display = '';
+          if (panelComanda)   panelComanda.style.display   = 'none';
+        }
+      }
+    }
+  });
+
+  // Abrir modal de ayuda con clic (friendly para táctil)
+  const btnHelp = document.getElementById('btn-help');
+  if (btnHelp){
+    btnHelp.addEventListener('click', ()=>{
+      const modal = document.getElementById('modal-help');
+      if (modal) modal.style.display = 'block';
+    });
+  }
+}

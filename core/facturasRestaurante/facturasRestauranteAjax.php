@@ -201,36 +201,43 @@ try {
             ]);
             break;
 
-        case 'saveFactura':
-            if (!$payload) {
-                $payload = [
-                    'mesa_id'       => intval($in('mesa_id',0)),
-                    'cliente_id'    => intval($in('cliente_id',0)),
-                    'items'         => json_decode((string)$in('items','[]'), true), // [{producto_id, qty, ...}]
-                    'metodo_pago'   => (string)$in('metodo_pago',''),
-                    'observaciones' => (string)$in('observaciones',''),
-                ];
+        // === GUARDAR FACTURA (NUEVA) ===
+        case 'saveFactura': {
+            // El JS te manda JSON: { action:'saveFactura', data:{...} }
+            $payload = json_decode(file_get_contents('php://input'), true);
+            if (!$payload) { // fallback por si viniera como x-www-form-urlencoded
+                $payload = ['data' => $_POST];
             }
-            echo json_encode($m->guardarFactura($payload));
-            break;
+            $data = $payload['data'] ?? [];
 
-        case 'updateFactura':
-            if ((!$payload || !isset($payload['factura_id'])) && !isset($_POST['factura_id'])) {
-                echo json_encode(['status'=>false,'message'=>'Datos inválidos']);
-                break;
-            }
+            // Normalizamos extras de restaurante
+            //  - servicio_tipo: 'mesa' | 'llevar'  (default: 'llevar')
+            //  - mesa_id: entero (0 si no hay mesa)
+            $servicioTipo = (isset($data['servicio_tipo']) && $data['servicio_tipo'] === 'mesa') ? 'mesa' : 'llevar';
+            $mesaId       = !empty($data['mesa_id']) ? (int)$data['mesa_id'] : 0;
+
+            // Pasamos TODO el payload original al modelo,
+            // y además mesa/servicio para la factura_comanda
+            $resp = $m->guardarFactura($data, $mesaId, $servicioTipo);
+            echo json_encode($resp);
+            exit;
+        }
+
+        // === EDITAR/ACTUALIZAR FACTURA EXISTENTE ===
+        case 'updateFactura': {
+            $payload = json_decode(file_get_contents('php://input'), true);
             if (!$payload) {
-                $payload = [
-                    'factura_id'    => intval($in('factura_id',0)),
-                    'mesa_id'       => intval($in('mesa_id',0)),
-                    'cliente_id'    => intval($in('cliente_id',0)),
-                    'items'         => json_decode((string)$in('items','[]'), true),
-                    'metodo_pago'   => (string)$in('metodo_pago',''),
-                    'observaciones' => (string)$in('observaciones',''),
-                ];
+                $payload = ['data' => $_POST];
             }
-            echo json_encode($m->actualizarFactura($payload));
-            break;
+            $data = $payload['data'] ?? [];
+
+            $servicioTipo = (isset($data['servicio_tipo']) && $data['servicio_tipo'] === 'mesa') ? 'mesa' : 'llevar';
+            $mesaId       = !empty($data['mesa_id']) ? (int)$data['mesa_id'] : 0;
+
+            $resp = $m->actualizarFactura($data, $mesaId, $servicioTipo);
+            echo json_encode($resp);
+            exit;
+        }
 
         case 'closeFactura':
             $factura_id = intval($in('factura_id', 0));

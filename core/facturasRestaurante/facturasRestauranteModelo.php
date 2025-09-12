@@ -222,7 +222,8 @@ class facturasRestauranteModelo extends mainModel {
         $estSel   = $tieneEst ? 'c.estacion' : "'ninguna'";
         $sql="SELECT p.productos_id, p.nombre, p.descripcion, p.precio_venta,
                      p.cantidad_mayoreo, p.precio_mayoreo, p.file_name, p.categoria_id,
-                     p.isv1, p.isv2, c.nombre AS categoria_nombre, $estSel AS categoria_estacion
+                     p.isv1, p.isv2, p.barCode,
+                     c.nombre AS categoria_nombre, $estSel AS categoria_estacion
               FROM productos p
               INNER JOIN categoria c ON c.categoria_id = p.categoria_id
               WHERE p.estado=1 AND p.restaurante=1
@@ -232,12 +233,12 @@ class facturasRestauranteModelo extends mainModel {
         while($r=$rs->fetch_assoc()){
             $catEst = strtolower($r['categoria_estacion'] ?? 'ninguna');
             if(!in_array($catEst,['ninguna','cocina','barra'],true)) $catEst='ninguna';
-
+    
             $para_cocina = 0;
             if ($catEst === 'cocina')      $para_cocina = 1;
             elseif ($catEst === 'barra')   $para_cocina = 0;
             else $para_cocina = $this->esParaCocinaHeuristica($r['categoria_nombre'],$r['nombre']) ? 1 : 0;
-
+    
             $out[]=[
                 'productos_id'     => intval($r['productos_id']),
                 'nombre'           => $r['nombre'],
@@ -249,12 +250,13 @@ class facturasRestauranteModelo extends mainModel {
                 'categoria_id'     => intval($r['categoria_id']),
                 'isv1'             => intval($r['isv1']),
                 'isv2'             => intval($r['isv2']),
+                'barCode'          => $r['barCode'] ?? '',
                 'estacion'         => $catEst,
                 'para_cocina'      => $para_cocina ? 1 : 0
             ];
         }
         return $out;
-    }
+    }    
 
     /** Guardar producto básico para restaurante (con imagen OPCIONAL en la misma petición) */
     public function guardarProductoBasico($data){
@@ -744,13 +746,19 @@ class facturasRestauranteModelo extends mainModel {
         return 1; // efectivo
     }
 
-    /** Crea una factura como borrador o pagada */
-    public function guardarFactura($data){
+    /** Crea una factura como borrador o pagada (con comanda mesa/para llevar) */
+    public function guardarFactura($data, $mesaId = 0, $servicioTipo = 'llevar'){
         $cnn = $this->connection();
         $numeroReservado = null;
 
+        // Normaliza mesa/servicio por si vienen en $data
+        $mesaId = intval($mesaId ?: ($data['mesa_id'] ?? 0));
+        $servicioTipo = strtolower(trim((string)$servicioTipo));
+        if (!in_array($servicioTipo, ['mesa','llevar'], true)) {
+            $servicioTipo = ((($data['servicio_tipo'] ?? '') === 'mesa') ? 'mesa' : 'llevar');
+        }
+
         try {
-            $mesa_id   = intval($data['mesa_id'] ?? 0);
             $cliente_id= intval($data['cliente_id'] ?? 0);
             $items     = is_array($data['items'] ?? null) ? $data['items'] : [];
             $metodo    = trim((string)($data['metodo_pago'] ?? ''));
@@ -769,7 +777,6 @@ class facturasRestauranteModelo extends mainModel {
 
             // Insert factura
             $factura_id = mainModel::correlativo("facturas_id","facturas");
-
             $estado = ($metodo==='') ? 1 : 2; // 1=Borrador, 2=Pagada
             $tipo_factura = 1; // contado
             $hoy = date('Y-m-d');
@@ -779,8 +786,8 @@ class facturasRestauranteModelo extends mainModel {
                     tipo_factura, colaboradores_id, importe, notas, fecha, estado,
                     usuario, empresa_id, fecha_registro, fecha_dolar,
                     no_orden, constancia, identificativo_sag, numero_interno
-                  )
-                  VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, NULL, NULL, NULL, NULL)";
+                )
+                VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, NULL, NULL, NULL, NULL)";
             $ok = $this->ejecutar_consulta_simple_preparada($q,"iiiiiiidssiiis",
                 [
                     $factura_id,
@@ -806,15 +813,15 @@ class facturasRestauranteModelo extends mainModel {
             $ids = [];
             foreach ($items as $i) { $ids[] = intval($i['producto_id'] ?? $i['productos_id'] ?? 0); }
             $ids = array_values(array_filter($ids));
+            $flags=[];
             if (!empty($ids)) {
                 $place = implode(',', array_fill(0,count($ids),'?'));
                 $types = str_repeat('i', count($ids));
                 $rs = $this->ejecutar_consulta_simple_preparada("SELECT productos_id,isv1,isv2 FROM productos WHERE productos_id IN ($place)", $types, $ids);
-                $flags=[]; while($r=$rs->fetch_assoc()){ $flags[intval($r['productos_id'])]=['isv1'=>intval($r['isv1'])==1,'isv2'=>intval($r['isv2'])==1]; }
-            } else {
-                $flags=[];
+                while($r=$rs->fetch_assoc()){
+                    $flags[intval($r['productos_id'])]=['isv1'=>intval($r['isv1'])==1,'isv2'=>intval($r['isv2'])==1];
+                }
             }
-
             foreach($items as $it){
                 $pid=intval($it['producto_id'] ?? $it['productos_id'] ?? 0);
                 $qty=max(1,intval($it['cantidad'] ?? 0));
@@ -826,20 +833,52 @@ class facturasRestauranteModelo extends mainModel {
                 $det_id = mainModel::correlativo("facturas_detalle_id","facturas_detalles");
                 $this->ejecutar_consulta_simple_preparada(
                     "INSERT INTO facturas_detalles(facturas_detalle_id, facturas_id, productos_id, cantidad, precio, isv_valor, descuento, medida)
-                     VALUES(?, ?, ?, ?, ?, ?, 0, 'UNIDAD')",
+                    VALUES(?, ?, ?, ?, ?, ?, 0, 'UNIDAD')",
                     "iiiidd", [$det_id,$factura_id,$pid,$qty,$pu,$isv_line]
                 );
             }
 
-            // Mesa
-            if ($mesa_id>0) {
-                $com_id = mainModel::correlativo("id","factura_comanda");
-                $this->ejecutar_consulta_simple_preparada(
-                    "INSERT INTO factura_comanda(id,factura_id,mesa_id,comentarios_cocina,estado,fecha_registro)
-                     VALUES(?, ?, ?, ?, 'pendiente', NOW())",
-                    "iiis", [$com_id,$factura_id,$mesa_id,$notas]
+            // ===================== COMANDA PARA COCINA/BARRA =====================
+            // Creamos/actualizamos la comanda si hay mesa O si es "para llevar".
+            // (para llevar se registra con mesa_id = 0; la vista de cocina lo sabe por servicio_tipo)
+            if ($mesaId > 0 || $servicioTipo === 'llevar') {
+
+                // ¿ya existe comanda ligada a esta factura?
+                $existe = $this->ejecutar_consulta_simple_preparada(
+                    "SELECT id FROM factura_comanda WHERE factura_id=?",
+                    "i",
+                    [$factura_id]
                 );
-                $this->ejecutar_consulta_simple_preparada("UPDATE mesas SET estado='ocupada' WHERE mesa_id=?","i",[$mesa_id]);
+
+                if ($existe && $existe->num_rows) {
+                    // UPDATE incluye servicio_tipo
+                    $this->ejecutar_consulta_simple_preparada(
+                        "UPDATE factura_comanda 
+                        SET mesa_id=?, comentarios_cocina=?, servicio_tipo=? 
+                        WHERE factura_id=?",
+                        "issi",
+                        [$mesaId, $notas, $servicioTipo, $factura_id]
+                    );
+                } else {
+                    // INSERT con servicio_tipo
+                    $cid = mainModel::correlativo("id","factura_comanda");
+                    $this->ejecutar_consulta_simple_preparada(
+                        "INSERT INTO factura_comanda 
+                            (id, factura_id, mesa_id, comentarios_cocina, estado, servicio_tipo, fecha_registro) 
+                        VALUES (?,?,?,?, 'pendiente', ?, NOW())",
+                        "iiiss",
+                        [$cid, $factura_id, $mesaId, $notas, $servicioTipo]
+                    );
+                }
+
+                // Si es en mesa, marcamos la mesa como ocupada
+                if ($mesaId > 0) {
+                    $this->ejecutar_consulta_simple_preparada(
+                        "UPDATE mesas SET estado='ocupada' WHERE mesa_id=?",
+                        "i",
+                        [$mesaId]
+                    );
+                }
             }
 
             // Pago (si ya viene método)
@@ -851,7 +890,7 @@ class facturasRestauranteModelo extends mainModel {
 
                 $this->ejecutar_consulta_simple_preparada(
                     "INSERT INTO pagos(pagos_id, facturas_id, tipo_pago, fecha, importe, efectivo, cambio, tarjeta, usuario, estado, empresa_id, fecha_registro, contabilizado, referencia_ingreso_id)
-                     VALUES(?, ?, ?, CURDATE(), ?, ?, 0, ?, ?, 1, ?, NOW(), 0, NULL)",
+                    VALUES(?, ?, ?, CURDATE(), ?, ?, 0, ?, ?, 1, ?, NOW(), 0, NULL)",
                     "iiidddii",
                     [$pagos_id, $factura_id, $tipo, $tot['total'], $efectivo, $tarjeta, $this->usuarioId(), $this->empresaId()]
                 );
@@ -860,7 +899,7 @@ class facturasRestauranteModelo extends mainModel {
                 $tipo_det = $this->tipoPagoIdDetalle($metodo);
                 $this->ejecutar_consulta_simple_preparada(
                     "INSERT INTO pagos_detalles(pagos_detalles_id, pagos_id, tipo_pago_id, banco_id, efectivo, descripcion1, descripcion2, descripcion3)
-                     VALUES(?, ?, ?, 0, ?, '', '', '')",
+                    VALUES(?, ?, ?, 0, ?, '', '', '')",
                     "iiid", [$pd_id,$pagos_id,$tipo_det,$tot['total']]
                 );
             }
@@ -887,12 +926,19 @@ class facturasRestauranteModelo extends mainModel {
         }
     }
 
-    /** Actualiza items y puede registrar pago */
-    public function actualizarFactura($data){
+    /** Actualiza items y puede registrar pago (mantiene comanda mesa/para llevar) */
+    public function actualizarFactura($data, $mesaId = 0, $servicioTipo = 'llevar'){
         $cnn = $this->connection();
+
+        // Normaliza mesa/servicio por si vienen en $data
+        $mesaId = intval($mesaId ?: ($data['mesa_id'] ?? 0));
+        $servicioTipo = strtolower(trim((string)$servicioTipo));
+        if (!in_array($servicioTipo, ['mesa','llevar'], true)) {
+            $servicioTipo = ((($data['servicio_tipo'] ?? '') === 'mesa') ? 'mesa' : 'llevar');
+        }
+
         try{
             $factura_id = intval($data['factura_id']);
-            $mesa_id    = intval($data['mesa_id'] ?? 0);
             $cliente_id = intval($data['cliente_id'] ?? 0);
             $items      = is_array($data['items'] ?? null) ? $data['items'] : [];
             $metodo     = trim((string)($data['metodo_pago'] ?? ''));
@@ -915,16 +961,41 @@ class facturasRestauranteModelo extends mainModel {
                 "idsii", [$cliente_id, $tot['total'], $notas, $nuevoEstado, $factura_id]
             );
 
-            // Mesa
-            if ($mesa_id>0) {
-                $chk = $this->ejecutar_consulta_simple_preparada("SELECT id FROM factura_comanda WHERE factura_id=?","i",[$factura_id]);
-                if($chk && $chk->num_rows){
-                    $this->ejecutar_consulta_simple_preparada("UPDATE factura_comanda SET mesa_id=?, comentarios_cocina=? WHERE factura_id=?","isi",[$mesa_id,$notas,$factura_id]);
-                }else{
-                    $cid=mainModel::correlativo("id","factura_comanda");
-                    $this->ejecutar_consulta_simple_preparada("INSERT INTO factura_comanda(id,factura_id,mesa_id,comentarios_cocina,estado,fecha_registro) VALUES(?, ?, ?, ?, 'pendiente', NOW())","iiis",[$cid,$factura_id,$mesa_id,$notas]);
+            // ===================== COMANDA PARA COCINA/BARRA =====================
+            if ($mesaId > 0 || $servicioTipo === 'llevar') {
+
+                $existe = $this->ejecutar_consulta_simple_preparada(
+                    "SELECT id FROM factura_comanda WHERE factura_id=?",
+                    "i",
+                    [$factura_id]
+                );
+
+                if ($existe && $existe->num_rows) {
+                    $this->ejecutar_consulta_simple_preparada(
+                        "UPDATE factura_comanda 
+                        SET mesa_id=?, comentarios_cocina=?, servicio_tipo=? 
+                        WHERE factura_id=?",
+                        "issi",
+                        [$mesaId, $notas, $servicioTipo, $factura_id]
+                    );
+                } else {
+                    $cid = mainModel::correlativo("id","factura_comanda");
+                    $this->ejecutar_consulta_simple_preparada(
+                        "INSERT INTO factura_comanda 
+                            (id, factura_id, mesa_id, comentarios_cocina, estado, servicio_tipo, fecha_registro) 
+                        VALUES (?,?,?,?, 'pendiente', ?, NOW())",
+                        "iiiss",
+                        [$cid, $factura_id, $mesaId, $notas, $servicioTipo]
+                    );
                 }
-                $this->ejecutar_consulta_simple_preparada("UPDATE mesas SET estado='ocupada' WHERE mesa_id=?","i",[$mesa_id]);
+
+                if ($mesaId > 0) {
+                    $this->ejecutar_consulta_simple_preparada(
+                        "UPDATE mesas SET estado='ocupada' WHERE mesa_id=?",
+                        "i",
+                        [$mesaId]
+                    );
+                }
             }
 
             // Reemplazar detalles
@@ -952,7 +1023,7 @@ class facturasRestauranteModelo extends mainModel {
                 $det_id = mainModel::correlativo("facturas_detalle_id","facturas_detalles");
                 $this->ejecutar_consulta_simple_preparada(
                     "INSERT INTO facturas_detalles(facturas_detalle_id, facturas_id, productos_id, cantidad, precio, isv_valor, descuento, medida)
-                     VALUES(?, ?, ?, ?, ?, ?, 0, 'UNIDAD')",
+                    VALUES(?, ?, ?, ?, ?, ?, 0, 'UNIDAD')",
                     "iiiidd", [$det_id,$factura_id,$pid,$qty,$pu,$isv_line]
                 );
             }
@@ -975,7 +1046,7 @@ class facturasRestauranteModelo extends mainModel {
                     $tarjeta  = ($metodo==='tarjeta'||$metodo==='transferencia') ? $tot['total'] : 0.00;
                     $this->ejecutar_consulta_simple_preparada(
                         "INSERT INTO pagos(pagos_id, facturas_id, tipo_pago, fecha, importe, efectivo, cambio, tarjeta, usuario, estado, empresa_id, fecha_registro, contabilizado, referencia_ingreso_id)
-                         VALUES(?, ?, ?, CURDATE(), ?, ?, 0, ?, ?, 1, ?, NOW(), 0, NULL)",
+                        VALUES(?, ?, ?, CURDATE(), ?, ?, 0, ?, ?, 1, ?, NOW(), 0, NULL)",
                         "iiidddii",
                         [$pid, $factura_id, $tipo, $tot['total'], $efectivo, $tarjeta, $this->usuarioId(), $this->empresaId()]
                     );
@@ -984,7 +1055,7 @@ class facturasRestauranteModelo extends mainModel {
                 $tipo_det = $this->tipoPagoIdDetalle($metodo);
                 $this->ejecutar_consulta_simple_preparada(
                     "INSERT INTO pagos_detalles(pagos_detalles_id, pagos_id, tipo_pago_id, banco_id, efectivo, descripcion1, descripcion2, descripcion3)
-                     VALUES(?, ?, ?, 0, ?, '', '', '')",
+                    VALUES(?, ?, ?, 0, ?, '', '', '')",
                     "iiid", [$pd_id,$pid,$tipo_det,$tot['total']]
                 );
             }
@@ -997,7 +1068,6 @@ class facturasRestauranteModelo extends mainModel {
             return ['status'=>false,'message'=>'Error al actualizar: '.$e->getMessage()];
         }
     }
-
     public function cerrarFactura($factura_id){
         try{
             $factura_id=intval($factura_id);

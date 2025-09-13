@@ -650,3 +650,194 @@ select.select2.form-control{height:38px;padding:6px 12px;font-size:14px;line-hei
   .comanda-header h3{font-size:17px}
   .comanda-panel{border-left:1px solid #dde3ed;background:#fff}
 }
+
+/* =========================================================
+   PACK COMPACTO: menos espacios verticales + UI más densa
+   (PÉGALO AL FINAL DEL CSS)
+   ========================================================= */
+
+/* Un pelín más bajo el topbar para ganar viewport */
+body.vista-facturacion-restaurante{
+  --bar-h: 56px !important; /* antes 60px */
+}
+
+/* -------- Barra superior -------- */
+.vista-facturacion-restaurante .control-bar{
+  padding: 6px 10px !important;
+}
+.vista-facturacion-restaurante .control-bar .btn{
+  padding: 6px 10px !important;
+  font-size: .92rem !important;
+}
+
+/* -------- Header: "Nueva Comanda" -------- */
+.vista-facturacion-restaurante .factura-header{
+  padding: 8px 12px !important;
+  gap: 6px !important;
+  margin-bottom: 4px !important;
+}
+.vista-facturacion-restaurante .factura-info h2{
+  margin: 0 !important;
+  font-size: 1.05rem !important;
+  line-height: 1.2 !important;
+}
+.vista-facturacion-restaurante .fh-row{
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
+  gap: 8px !important;
+}
+.vista-facturacion-restaurante .fh-row-top{ margin-bottom: 0 !important; }
+.vista-facturacion-restaurante .fh-row-bottom{ margin-top: 0 !important; }
+
+/* Acciones (Guardar/Imprimir/Cerrar) más compactas */
+.vista-facturacion-restaurante .factura-actions .btn{
+  padding: 6px 10px !important;
+  margin-left: 6px !important;
+  font-size: .92rem !important;
+}
+
+/* -------- Switch "Para llevar / En mesa" + meta -------- */
+.vista-facturacion-restaurante .factura-servicio{
+  margin: 0 !important;
+}
+#servicio-switch .segmented-control label{
+  padding: 6px 12px !important;
+  min-width: 110px !important;
+  font-size: .92rem !important;
+}
+.vista-facturacion-restaurante .factura-meta{
+  gap: 8px !important;
+  font-size: .92rem !important;
+}
+.vista-facturacion-restaurante .factura-meta .btn{
+  padding: 4px 8px !important;
+  font-size: .88rem !important;
+}
+
+/* -------- Panel Productos -------- */
+#panel-productos{ margin-top: 2px !important; }
+.vista-facturacion-restaurante .productos-header{
+  padding: 8px 12px !important;
+  margin-bottom: 6px !important;
+}
+.vista-facturacion-restaurante .productos-header h3{
+  font-size: 15px !important;
+}
+.vista-facturacion-restaurante .productos-search{
+  gap: 6px !important;
+}
+.vista-facturacion-restaurante .productos-search .input-lg{
+  height: 34px !important;
+  padding: 6px 10px !important;
+}
+#btn-buscar.btn{
+  height: 34px !important;
+  padding: 0 10px !important;
+}
+
+/* Filtro estación + Tabs más pegados */
+.vista-facturacion-restaurante .estacion-filter{
+  padding: 6px 12px 0 12px !important;
+  margin: 0 !important;
+}
+.vista-facturacion-restaurante .estacion-filter .segmented-control label{
+  min-width: 80px !important;
+}
+.vista-facturacion-restaurante .categorias-tabs{
+  padding: 6px 12px !important;
+  margin-top: 2px !important;
+  margin-bottom: 4px !important;
+  gap: 6px !important;
+}
+
+/* Grilla de productos con menos padding/gap */
+.vista-facturacion-restaurante .productos-grid{
+  padding: 10px !important;
+  gap: 10px !important;
+}
+
+/* -------- Panel Comanda -------- */
+#panel-comanda{ margin-top: 2px !important; }
+.vista-facturacion-restaurante .comanda-header{
+  padding: 8px 12px !important;
+  margin-bottom: 6px !important;
+}
+.vista-facturacion-restaurante .comanda-header h3{
+  font-size: 15px !important;
+}
+.vista-facturacion-restaurante .comanda-header .btn{
+  padding: 4px 8px !important;
+  font-size: .9rem !important;
+}
+
+/* Filas de totales más densas */
+.vista-facturacion-restaurante .comanda-totales{
+  padding: 8px 12px !important;
+}
+.vista-facturacion-restaurante .comanda-totales .totales-row{
+  margin: 2px 0 !important;
+  padding: 1px 0 !important;
+}
+.vista-facturacion-restaurante .totales-row.total{
+  margin-top: 4px !important;
+}
+
+/* Observaciones un poco más bajas */
+.vista-facturacion-restaurante .comanda-observaciones{
+  padding: 6px 12px !important;
+}
+.vista-facturacion-restaurante .comanda-observaciones textarea{
+  min-height: 56px !important;
+}
+
+/* Pago: títulos y cápsulas más compactos */
+.vista-facturacion-restaurante .comanda-pago{
+  padding: 8px 12px !important;
+}
+.vista-facturacion-restaurante .comanda-pago h4{
+  margin-bottom: 6px !important;
+  font-size: 13px !important;
+}
+.vista-facturacion-restaurante .pago-options{
+  gap: 6px !important;
+}
+.vista-facturacion-restaurante .pago-options .radio-container{
+  padding: 4px 8px !important;
+  min-width: 100px !important;
+  font-size: 11px !important;
+}
+
+/* -------- Ajustes generales / inputs / select2 -------- */
+.vista-facturacion-restaurante .btn{
+  line-height: 1.1 !important;
+}
+.vista-facturacion-restaurante input[type="text"],
+.vista-facturacion-restaurante input[type="number"],
+.vista-facturacion-restaurante input[type="date"],
+.vista-facturacion-restaurante input[type="time"],
+.vista-facturacion-restaurante select,
+.vista-facturacion-restaurante textarea{
+  padding: 6px 10px !important;
+}
+
+/* Select2 más bajito para alinear con inputs */
+.vista-facturacion-restaurante .select2-container .select2-selection--single{
+  height: 36px !important;
+}
+.vista-facturacion-restaurante .select2-container--default .select2-selection--single .select2-selection__rendered{
+  line-height: 36px !important;
+}
+.vista-facturacion-restaurante .select2-container--default .select2-selection--single .select2-selection__arrow{
+  height: 36px !important;
+}
+
+/* -------- Responsive: tablets y móviles -------- */
+@media (max-width: 992px){
+  .vista-facturacion-restaurante .factura-actions .btn{
+    padding: 5px 8px !important;
+    font-size: .9rem !important;
+  }
+  .vista-facturacion-restaurante .productos-search .input-lg{
+    height: 32px !important;
+  }
+}

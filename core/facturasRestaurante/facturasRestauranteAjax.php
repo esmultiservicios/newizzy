@@ -4,6 +4,21 @@ $peticionAjax = true;
 require_once __DIR__ . '/../configGenerales.php';
 require_once __DIR__ . '/facturasRestauranteModelo.php';
 
+if (session_status() === PHP_SESSION_NONE) session_start();
+
+/* --- Protección de sesión para AJAX --- */
+$validacion = mainModel::validarSesion(); // devuelve ['error'=>bool,'mensaje'=>..., 'redireccion'=>...]
+if (!empty($validacion['error'])) {
+  http_response_code(401);
+  header('Content-Type: application/json; charset=utf-8');
+  echo json_encode([
+    'status'   => false,
+    'message'  => $validacion['mensaje'] ?? 'Sesión expirada',
+    'redirect' => $validacion['redireccion'] ?? ((defined('SERVERURL')?SERVERURL:'/').'login/')
+  ]);
+  exit;
+}
+
 header('Content-Type: application/json; charset=utf-8');
 
 try {

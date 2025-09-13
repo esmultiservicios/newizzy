@@ -3225,7 +3225,7 @@
                                         <div class="input-group-prepend">
                                             <span class="input-group-text">L</span>
                                         </div>
-                                        <input type="number" class="form-control" placeholder="0.00" id="monto_apertura" name="monto_apertura" step="0.01" value="0.00">
+                                        <input type="number" class="form-control" placeholder="0.00" id="monto_apertura" name="monto_apertura" step="0.01" value="">
                                     </div>
                                     <small class="form-text text-muted">Monto inicial en la caja</small>
                                 </div>

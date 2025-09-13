@@ -468,11 +468,11 @@ function initSelect2All(){
     if (disable) {
       $('#btn-guardar')
         .removeClass('btn-success')
-        .addClass('btn-outline-danger')
+        .addClass('btn-danger')
         .html('<i class="fas fa-ban mr-1"></i> No disponible (Caja cerrada)');
     } else {
       $('#btn-guardar')
-        .removeClass('btn-outline-danger')
+        .removeClass('btn-danger')
         .addClass('btn-success')
         .html('<i class="fas fa-save"></i> Guardar');
     }

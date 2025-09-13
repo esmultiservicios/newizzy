@@ -413,17 +413,17 @@ $(() => {
       if (sarDisabled && cajaAbierta) {
         $('#procesar-factura-top, #procesar-factura-bottom')
           .removeClass('btn-success')
-          .addClass('btn-outline-danger')
+          .addClass('btn-danger')
           .html('<i class="fas fa-ban mr-1"></i> No disponible (Límite SAR)');
       } else if (!cajaAbierta) {
         $('#procesar-factura-top, #procesar-factura-bottom')
           .removeClass('btn-success')
-          .addClass('btn-outline-danger')
+          .addClass('btn-danger')
           .html('<i class="fas fa-ban mr-1"></i> No disponible (Caja cerrada)');
       }
     } else {
       $('#procesar-factura-top, #procesar-factura-bottom')
-        .removeClass('btn-outline-danger')
+        .removeClass('btn-danger')
         .addClass('btn-success')
         .html('<i class="fas fa-save mr-1"></i> Registrar Factura');
     }

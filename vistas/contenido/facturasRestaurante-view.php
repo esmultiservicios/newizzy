@@ -328,27 +328,28 @@
         <span class="close" data-close="#modal-mesa">&times;</span>
       </div>
       <div class="modal-body">
-        <form id="form-mesa">
-          <input type="hidden" id="mesa-id" value="">
+        <form id="form-mesa" novalidate onsubmit="return false;">
+          <input type="hidden" class="form-control" id="mesa-id" value="">
           <div class="form-group">
             <label for="numero-mesa"><i class="fas fa-hashtag"></i> Número de Mesa</label>
-            <input type="text" id="numero-mesa" required>
+            <input type="text" class="form-control" id="numero-mesa" required>
           </div>
           <div class="form-group">
             <label for="capacidad-mesa"><i class="fas fa-users"></i> Capacidad</label>
-            <input type="number" id="capacidad-mesa" min="1" value="4" required>
+            <input type="number" class="form-control" id="capacidad-mesa" min="1" value="4" required>
           </div>
           <div class="form-group">
             <label for="ubicacion-mesa"><i class="fas fa-map-marker-alt"></i> Ubicación</label>
-            <select id="ubicacion-mesa" class="select2">
+            <select id="ubicacion-mesa" class="form-control select2" required>
+              <option value="">Seleccione…</option>
               <option value="Interior">Interior</option>
               <option value="Terraza">Terraza</option>
               <option value="Barra">Barra</option>
             </select>
           </div>
           <div class="form-group">
-            <label for="estado-mesa"><i class="fas a-traffic-light"></i> Estado</label>
-            <select id="estado-mesa" class="select2">
+            <label for="estado-mesa"><i class="fas fa-traffic-light"></i> Estado</label>
+            <select id="estado-mesa" class="forn-control select2">
               <option value="">(auto)</option>
               <option value="disponible">Disponible</option>
               <option value="ocupada">Ocupada</option>
@@ -404,27 +405,27 @@
         <span class="close" data-close="#modal-nuevo-cliente">&times;</span>
       </div>
       <div class="modal-body">
-        <form id="form-nuevo-cliente" autocomplete="off">
+        <form id="form-nuevo-cliente" autocomplete="off" novalidate onsubmit="return false;">
           <input type="hidden" id="cli-id">
           <div class="form-group">
-            <label for="cli-nombre"><i class="fas a-quote-left"></i> Nombre / Razón social *</label>
-            <input type="text" id="cli-nombre" required>
+            <label for="cli-nombre"><i class="fas fa-quote-left"></i> Nombre / Razón social</label>
+            <input class="form-control" type="text" id="cli-nombre" required>
           </div>
           <div class="form-group">
             <label for="cli-rtn"><i class="fas fa-id-card"></i> Identificación / RTN</label>
-            <input type="text" id="cli-rtn" placeholder="Opcional">
+            <input type="text" class="form-control" id="cli-rtn" placeholder="Opcional">
           </div>
           <div class="form-group">
             <label for="cli-localidad"><i class="fas fa-map-marker-alt"></i> Localidad</label>
-            <input type="text" id="cli-localidad" placeholder="Barrio/Colonia">
+            <input type="text" class="form-control" id="cli-localidad" placeholder="Barrio/Colonia">
           </div>
           <div class="form-group">
             <label for="cli-telefono"><i class="fas fa-phone"></i> Teléfono</label>
-            <input type="text" id="cli-telefono" placeholder="+504 ...">
+            <input type="text" class="form-control" id="cli-telefono" placeholder="+504 ...">
           </div>
           <div class="form-group">
-            <label for="cli-correo"><i class="fas a-envelope"></i> Correo</label>
-            <input type="email" id="cli-correo" placeholder="cliente@correo.com">
+            <label for="cli-correo"><i class="fas fa-envelope"></i> Correo</label>
+            <input type="email" class="form-control" id="cli-correo" placeholder="cliente@correo.com">
           </div>
         </form>
       </div>
@@ -447,29 +448,34 @@
         <span class="close" data-close="#modal-categoria">&times;</span>
       </div>
       <div class="modal-body">
-        <input type="hidden" id="cat-id" value="">
-        <div class="form-group">
-          <label for="cat-nombre"><i class="fas fa-tag"></i> Nombre de la categoría</label>
-          <input type="text" id="cat-nombre" placeholder="Ej. Bebidas" />
-        </div>
-        <div class="form-group">
-          <label class="label-strong" for="cat-estacion">Estación (ruta de comanda)</label>
-          <div class="segmented-control" id="cat-estacion">
-            <input type="radio" name="catEstacion" id="cat-est-cocina" value="cocina" checked>
-            <label for="cat-est-cocina">Cocina</label>
-            <input type="radio" name="catEstacion" id="cat-est-barra" value="barra">
-            <label for="cat-est-barra">Barra</label>
+        <!-- FORM CATEGORÍA -->
+        <form id="form-categoria" novalidate onsubmit="return false;">
+          <input type="hidden" id="cat-id" value="">
+          <div class="form-group">
+            <label for="cat-nombre"><i class="fas fa-tag"></i> Nombre de la categoría</label>
+            <input type="text" class="form-control" id="cat-nombre" placeholder="Ej. Bebidas" required />
           </div>
-          <small class="hint">
-            Si eliges <b>Cocina</b>, los productos de esta categoría se imprimirán en cocina por defecto.
-            Si eliges <b>Barra</b>, se imprimirán en barra.
-          </small>
-        </div>
+          <div class="form-group">
+            <label class="label-strong" for="cat-estacion">Estación (ruta de comanda)</label>
+            <div class="segmented-control" id="cat-estacion">
+              <input type="radio" name="catEstacion" id="cat-est-cocina" value="cocina" checked>
+              <label for="cat-est-cocina">Cocina</label>
+              <input type="radio" name="catEstacion" id="cat-est-barra" value="barra">
+              <label for="cat-est-barra">Barra</label>
+            </div>
+            <small class="hint">
+              Si eliges <b>Cocina</b>, los productos de esta categoría se imprimirán en cocina por defecto.
+              Si eliges <b>Barra</b>, se imprimirán en barra.
+            </small>
+          </div>
+        </form>
+        <!-- /FORM CATEGORÍA -->
       </div>
       <div class="modal-footer">
         <button class="btn btn-danger" data-close="#modal-categoria" type="button">
           <i class="fas fa-times"></i> Cerrar
         </button>
+        <!-- Sigue como button; valida desde JS con validateForm('form-categoria') -->
         <button id="btn-guardar-categoria" class="btn btn-success" type="button">
           <i class="fas fa-save"></i> Guardar
         </button>
@@ -485,71 +491,76 @@
         <span class="close" data-close="#modal-producto">&times;</span>
       </div>
       <div class="modal-body">
-        <input type="hidden" id="prod-id" value="">
-        <div class="form-group">
-          <label class="label-strong">¿A qué estación pertenece este producto?</label>
-          <div class="segmented-control" id="prod-estacion">
-            <input type="radio" name="prodEstacion" id="prod-est-cocina" value="cocina" checked>
-            <label for="prod-est-cocina">Cocina</label>
-            <input type="radio" name="prodEstacion" id="prod-est-barra" value="barra">
-            <label for="prod-est-barra">Barra</label>
+        <!-- FORM PRODUCTO -->
+        <form id="form-producto" novalidate onsubmit="return false;">
+          <input type="hidden" id="prod-id" value="">
+          <div class="form-group">
+            <label class="label-strong">¿A qué estación pertenece este producto?</label>
+            <div class="segmented-control" id="prod-estacion">
+              <input type="radio" name="prodEstacion" id="prod-est-cocina" value="cocina" checked>
+              <label for="prod-est-cocina">Cocina</label>
+              <input type="radio" name="prodEstacion" id="prod-est-barra" value="barra">
+              <label for="prod-est-barra">Barra</label>
+            </div>
+            <small class="hint">Al elegir la estación, el selector de <b>categoría</b> te mostrará solo las categorías de esa estación.</small>
           </div>
-          <small class="hint">Al elegir la estación, el selector de <b>categoría</b> te mostrará solo las categorías de esa estación.</small>
-        </div>
 
-        <div class="form-group" id="prod-estacion-info" style="display:none;">
-          <div class="info-chip">
-            Estación de la categoría seleccionada: <b id="prod-estacion-info-val">—</b>
+          <div class="form-group" id="prod-estacion-info" style="display:none;">
+            <div class="info-chip">
+              Estación de la categoría seleccionada: <b id="prod-estacion-info-val">—</b>
+            </div>
           </div>
-        </div>
 
-        <div class="form-group">
-          <label for="prod-categoria"><i class="fas fa-sitemap"></i> Categoría</label>
-          <select id="prod-categoria" class="select2" data-placeholder="Selecciona una categoría" required></select>
-        </div>
-
-        <div class="form-group">
-          <label for="prod-nombre"><i class="fas a-quote-left"></i> Nombre</label>
-          <input type="text" id="prod-nombre" placeholder="Ej. Refresco Pepsi" required/>
-        </div>
-
-        <div class="form-group">
-          <label for="prod-descripcion"><i class="fas fa-align-left"></i> Descripción (opcional)</label>
-          <input type="text" id="prod-descripcion" placeholder="Descripción corta" />
-        </div>
-
-        <div class="form-group">
-          <label for="prod-precio"><i class="fas fa-dollar-sign"></i> Precio de venta</label>
-          <input type="number" id="prod-precio" step="0.01" min="0" value=""  placeholder="0.00" required />
-        </div>
-
-        <div class="form-group" style="display:flex; gap:14px; flex-wrap:wrap;">
-          <label class="radio-container"><input type="checkbox" id="prod-isv1"/> ISV 1</label>
-          <label class="radio-container"><input type="checkbox" id="prod-isv2"/> ISV 2</label>
-        </div>
-
-        <!-- Uploader de imagen -->
-        <div class="file-upload-container">
-          <label><i class="fas fa-image mr-1"></i> Imagen del Producto</label>
-          <div class="file-upload-area image-upload-area" id="productoDropArea" tabindex="0" aria-label="Zona para arrastrar y soltar imagen">
-            <i class="fas fa-image fa-3x mb-2"></i>
-            <p class="file-upload-instructions">
-              <span class="drag-text">Arrastra la imagen aquí</span>
-              <button class="btn btn-sm btn-secondary" id="btnSeleccionarImagen" type="button">
-                <i class="fas fa-image"></i> Seleccionar imagen
-              </button>
-              <input type="file" id="imagen_producto" name="imagen_producto" accept="image/*" class="file-upload-input">
-              <span class="paste-text">o pega (Ctrl+V)</span>
-            </p>
-            <div class="file-preview" id="productoPreview"></div>
+          <div class="form-group">
+            <label for="prod-categoria"><i class="fas fa-sitemap"></i> Categoría</label>
+            <select id="prod-categoria" class="form-control select2" data-placeholder="Selecciona una categoría" required></select>
           </div>
-          <div class="file-info" id="productoInfo">Ningún archivo seleccionado</div>
-        </div>
+
+          <div class="form-group">
+            <label for="prod-nombre"><i class="fas fa-quote-left"></i> Nombre</label>
+            <input type="text" class="form-control" id="prod-nombre" placeholder="Ej. Refresco Pepsi" required/>
+          </div>
+
+          <div class="form-group">
+            <label for="prod-descripcion"><i class="fas fa-align-left"></i> Descripción (opcional)</label>
+            <input type="text" class="form-control" id="prod-descripcion" placeholder="Descripción corta" />
+          </div>
+
+          <div class="form-group">
+            <label for="prod-precio"><i class="fas fa-dollar-sign"></i> Precio de venta</label>
+            <input type="number" class="form-control" id="prod-precio" step="0.01" min="0" value=""  placeholder="0.00" required />
+          </div>
+
+          <div class="form-group" style="display:flex; gap:14px; flex-wrap:wrap;">
+            <label class="radio-container"><input type="checkbox" id="prod-isv1"/> ISV 1</label>
+            <label class="radio-container"><input type="checkbox" id="prod-isv2"/> ISV 2</label>
+          </div>
+
+          <!-- Uploader de imagen -->
+          <div class="file-upload-container">
+            <label><i class="fas fa-image mr-1"></i> Imagen del Producto</label>
+            <div class="file-upload-area image-upload-area" id="productoDropArea" tabindex="0" aria-label="Zona para arrastrar y soltar imagen">
+              <i class="fas fa-image fa-3x mb-2"></i>
+              <p class="file-upload-instructions">
+                <span class="drag-text">Arrastra la imagen aquí</span>
+                <button class="btn btn-sm btn-secondary" id="btnSeleccionarImagen" type="button">
+                  <i class="fas fa-image"></i> Seleccionar imagen
+                </button>
+                <input type="file" id="imagen_producto" name="imagen_producto" accept="image/*" class="file-upload-input">
+                <span class="paste-text">o pega (Ctrl+V)</span>
+              </p>
+              <div class="file-preview" id="productoPreview"></div>
+            </div>
+            <div class="file-info" id="productoInfo">Ningún archivo seleccionado</div>
+          </div>
+        </form>
+        <!-- /FORM PRODUCTO -->
       </div>
       <div class="modal-footer">
         <button class="btn btn-danger" data-close="#modal-producto" type="button">
           <i class="fas fa-times"></i> Cerrar
         </button>
+        <!-- Sigue como button; valida desde JS con validateForm('form-producto') -->
         <button id="btn-guardar-producto" class="btn btn-success" type="button">
           <i class="fas fa-save"></i> Guardar
         </button>
@@ -588,62 +599,66 @@
       </div>
 
       <div class="modal-body">
-        <input type="hidden" id="combo-id" value="">
-        <input type="hidden" id="combo-producto-hidden" value="">
+        <!-- FORM COMBO (para validar si luego lo necesitas) -->
+        <form id="form-combo-editor" novalidate onsubmit="return false;">
+          <input type="hidden" id="combo-id" value="">
+          <input type="hidden" id="combo-producto-hidden" value="">
 
-        <div id="combo-help-message" class="mb-2"></div>
-        <div id="combo-producto-display" style="display:none"></div>
+          <div id="combo-help-message" class="mb-2"></div>
+          <div id="combo-producto-display" style="display:none"></div>
 
-        <div id="combo-producto-container" class="mb-3">
-          <label class="label-strong">Producto que representa el combo</label>
-          <div style="display:flex; gap:.5rem; align-items:stretch;">
-            <select id="combo-producto" class="form-control select2"
-                    data-placeholder="Selecciona el producto combo" style="width:100%;">
-              <option value=""></option>
-            </select>
-            <button type="button" class="btn btn-info"
-                    onclick="calcularDisponibilidadComboUI(document.getElementById('combo-id').value, 1)">
-              <i class="fas fa-boxes"></i> Disponibilidad
+          <div id="combo-producto-container" class="mb-3">
+            <label class="label-strong">Producto que representa el combo</label>
+            <div style="display:flex; gap:.5rem; align-items:stretch;">
+              <select id="combo-producto" class="form-control select2"
+                      data-placeholder="Selecciona el producto combo" style="width:100%;" required>
+                <option value=""></option>
+              </select>
+              <button type="button" class="btn btn-info"
+                      onclick="calcularDisponibilidadComboUI(document.getElementById('combo-id').value, 1)">
+                <i class="fas fa-boxes"></i> Disponibilidad
+              </button>
+            </div>
+            <p id="combo-producto-help" class="help-text"></p>
+          </div>
+
+          <div class="form-group">
+            <div id="combo-activo-container"></div>
+          </div>
+
+          <hr>
+
+          <h4>Componentes</h4>
+          <p class="help-text">Organiza por <strong>Grupo</strong> (ej. Bebida, Acompañante). Usa <strong>Max selección</strong> cuando corresponda.</p>
+          <div id="combo-items-container"></div>
+          <div class="mt-2">
+            <button type="button" id="btn-add-combo-item" class="btn btn-secondary">
+              <i class="fas fa-plus"></i> Agregar componente
             </button>
           </div>
-          <p id="combo-producto-help" class="help-text"></p>
-        </div>
 
-        <div class="form-group">
-          <div id="combo-activo-container"></div>
-        </div>
+          <hr>
 
-        <hr>
+          <h4>Reglas por categoría (opcional)</h4>
+          <p class="help-text">Define límites de selección para categorías de componentes opcionales.</p>
 
-        <h4>Componentes</h4>
-        <p class="help-text">Organiza por <strong>Grupo</strong> (ej. Bebida, Acompañante). Usa <strong>Max selección</strong> cuando corresponda.</p>
-        <div id="combo-items-container"></div>
-        <div class="mt-2">
-          <button type="button" id="btn-add-combo-item" class="btn btn-secondary">
-            <i class="fas fa-plus"></i> Agregar componente
-          </button>
-        </div>
-
-        <hr>
-
-        <h4>Reglas por categoría (opcional)</h4>
-        <p class="help-text">Define límites de selección para categorías de componentes opcionales.</p>
-
-        <div id="combo-reglas-container" class="table-responsive" style="margin-top:10px;">
-          <table class="table table-sm">
-            <thead>
-              <tr>
-                <th style="width:55%">Categoría</th>
-                <th style="width:25%">Máx. selección</th>
-                <th style="width:20%"></th>
-              </tr>
-            </thead>
-            <tbody id="combo-reglas-rows"></tbody>
-          </table>
-          <button type="button" class="btn btn-secondary" id="btn-add-regla">
-            <i class="fas fa-plus"></i> Agregar regla
-          </button>
-        </div>
+          <div id="combo-reglas-container" class="table-responsive" style="margin-top:10px;">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th style="width:55%">Categoría</th>
+                  <th style="width:25%">Máx. selección</th>
+                  <th style="width:20%"></th>
+                </tr>
+              </thead>
+              <tbody id="combo-reglas-rows"></tbody>
+            </table>
+            <button type="button" class="btn btn-secondary" id="btn-add-regla">
+              <i class="fas fa-plus"></i> Agregar regla
+            </button>
+          </div>
+        </form>
+        <!-- /FORM COMBO -->
       </div>
 
       <div class="modal-footer">
@@ -781,6 +796,7 @@
       </div>
     </div>
   </div>
+
   <!-- =================== MODALES NUEVOS: PROMOCIONES =================== -->
 
   <!-- LISTA DE PROMOCIONES -->
@@ -825,7 +841,6 @@
     </div>
   </div>
 
-  <!-- CREAR / EDITAR PROMOCIÓN -->
   <!-- CREAR / EDITAR PROMOCIÓN (UI simplificado: fecha=DÍAS, horario opcional) -->
   <div id="modal-promocion" class="modal rs-modal">
     <div class="modal-content" style="max-width:760px;">
@@ -835,50 +850,50 @@
       </div>
 
       <div class="modal-body">
-        <form id="form-promocion" autocomplete="off">
-          <input type="hidden" id="promo-id">
-          <input type="hidden" id="promo-empresa-id" value="<?php echo $_SESSION['empresa_id'] ?? 1; ?>">
+        <form id="form-promocion" autocomplete="off" novalidate onsubmit="return false;">
+          <input type="hidden" class="form-control" id="promo-id">
+          <input type="hidden" class="form-control" id="promo-empresa-id" value="<?php echo $_SESSION['empresa_id'] ?? 1; ?>">
 
           <div class="form-group">
-            <label for="promo-nombre"><i class="fas fa-heading"></i> Nombre *</label>
-            <input type="text" id="promo-nombre" required>
+            <label for="promo-nombre"><i class="fas fa-heading"></i> Nombre</label>
+            <input type="text" class="form-control" id="promo-nombre" required>
           </div>
 
           <div class="form-group">
             <label for="promo-descripcion"><i class="fas fa-align-left"></i> Descripción</label>
-            <input type="text" id="promo-descripcion" placeholder="Opcional">
+            <input type="text" class="form-control" id="promo-descripcion" placeholder="Opcional">
           </div>
 
           <div class="form-group" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
             <div>
               <label for="promo-tipo"><i class="fas fa-balance-scale"></i> Tipo de descuento</label>
-              <select id="promo-tipo" class="select2">
+              <select id="promo-tipo" class="form-control select2" required>
                 <option value="PORC">PORC (%)</option>
                 <option value="MONTO">MONTO (L)</option>
               </select>
             </div>
             <div>
-              <label for="promo-valor"><i class="fas fa-percentage"></i> Valor *</label>
-              <input type="number" id="promo-valor" step="0.01" min="0" value="0.00" required>
+              <label for="promo-valor"><i class="fas fa-percentage"></i> Valor</label>
+              <input type="number" class="form-control" id="promo-valor" step="0.01" min="0" value="0.00" required>
             </div>
           </div>
 
           <!-- Rango de fechas (días) -->
           <div class="form-group" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
             <div>
-              <label for="promo-fecha-inicio"><i class="fas fa-calendar-plus"></i> Fecha inicio *</label>
-              <input type="date" id="promo-fecha-inicio" required>
+              <label for="promo-fecha-inicio"><i class="fas fa-calendar-plus"></i> Fecha inicio</label>
+              <input type="date" class="form-control" id="promo-fecha-inicio" required>
             </div>
             <div>
-              <label for="promo-fecha-fin"><i class="fas fa-calendar-check"></i> Fecha fin *</label>
-              <input type="date" id="promo-fecha-fin" required>
+              <label for="promo-fecha-fin"><i class="fas fa-calendar-check"></i> Fecha fin</label>
+              <input type="date" class="form-control" id="promo-fecha-fin" required>
             </div>
           </div>
 
           <!-- Toggle de horario diario -->
           <div class="form-group" style="display:flex; align-items:center; gap:12px; margin-top:2px;">
             <label class="radio-container" title="Restringir la promo a un horario por día dentro del rango">
-              <input type="checkbox" id="promo-usa-horario"> Usar horario diario
+              <input type="checkbox" class="form-control" id="promo-usa-horario"> Usar horario diario
             </label>
             <small class="hint">Si lo activas, las horas aplican <b>cada día</b> entre las fechas seleccionadas.</small>
           </div>
@@ -887,11 +902,11 @@
           <div class="form-group" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
             <div>
               <label for="promo-hora-inicio"><i class="fas fa-clock"></i> Hora inicio</label>
-              <input type="time" id="promo-hora-inicio" disabled>
+              <input type="time" class="form-control" id="promo-hora-inicio" disabled>
             </div>
             <div>
               <label for="promo-hora-fin"><i class="fas fa-clock"></i> Hora fin</label>
-              <input type="time" id="promo-hora-fin" disabled>
+              <input type="time" class="form-control" id="promo-hora-fin" disabled>
             </div>
           </div>
 
@@ -913,7 +928,7 @@
           <div class="form-group" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
             <div>
               <label for="promo-aplica-a"><i class="fas fa-bullseye"></i> Aplica a</label>
-              <select id="promo-aplica-a" class="select2">
+              <select id="promo-aplica-a" class="form-control select2" required>
                 <option value="PRODUCTO">PRODUCTO(s)</option>
                 <option value="CATEGORIA">CATEGORIA(s)</option>
                 <option value="TODOS">TODOS</option>
@@ -921,7 +936,7 @@
             </div>
             <div>
               <label for="promo-prioridad"><i class="fas fa-sort-amount-up"></i> Prioridad</label>
-              <input type="number" id="promo-prioridad" value="0" step="1">
+              <input type="number" class="form-control" id="promo-prioridad" value="0" step="1">
             </div>
           </div>
 
@@ -951,17 +966,17 @@
         <span class="close" data-close="#modal-promo-productos">&times;</span>
       </div>
       <div class="modal-body">
-        <form id="form-promo-productos">
+        <form id="form-promo-productos" novalidate onsubmit="return false;">
           <div class="form-group">
             <label for="pp-promocion"><i class="fas fa-tags"></i> Promoción</label>
-            <select id="pp-promocion" class="select2" data-placeholder="Selecciona la promoción">
+            <select id="pp-promocion" class="select2" data-placeholder="Selecciona la promoción" required>
               <option value=""></option>
             </select>
           </div>
 
           <div class="form-group">
             <label for="pp-productos"><i class="fas fa-boxes"></i> Productos (múltiple)</label>
-            <select id="pp-productos" class="select2" multiple data-placeholder="Selecciona uno o más productos">
+            <select id="pp-productos" class="select2" multiple data-placeholder="Selecciona uno o más productos" required>
               <option value=""></option>
             </select>
             <small class="hint">Pulsa Guardar para vincular los productos seleccionados a la promo.</small>
@@ -1002,17 +1017,17 @@
         <span class="close" data-close="#modal-promo-categorias">&times;</span>
       </div>
       <div class="modal-body">
-        <form id="form-promo-categorias">
+        <form id="form-promo-categorias" novalidate onsubmit="return false;">
           <div class="form-group">
             <label for="pc-promocion"><i class="fas fa-tags"></i> Promoción</label>
-            <select id="pc-promocion" class="select2" data-placeholder="Selecciona la promoción">
+            <select id="pc-promocion" class="select2" data-placeholder="Selecciona la promoción" required>
               <option value=""></option>
             </select>
           </div>
 
           <div class="form-group">
             <label for="pc-categorias"><i class="fas fa-layer-group"></i> Categorías (múltiple)</label>
-            <select id="pc-categorias" class="select2" multiple data-placeholder="Selecciona una o más categorías">
+            <select id="pc-categorias" class="select2" multiple data-placeholder="Selecciona una o más categorías" required>
               <option value=""></option>
             </select>
             <small class="hint">Pulsa Guardar para vincular las categorías seleccionadas a la promo.</small>
@@ -1038,7 +1053,7 @@
           <i class="fas fa-times"></i> Cerrar
         </button>
         <button id="btn-guardar-promo-categorias" class="btn btn-success" type="button">
-          <i class="fas fa-save"></i> Guardar asignación
+            <i class="fas fa-save"></i> Guardar asignación
         </button>
       </div>
     </div>

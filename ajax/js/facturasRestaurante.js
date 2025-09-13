@@ -154,6 +154,50 @@ let PROMOS_TICKER = null;    // Interval ID para el contador
   // ===========================================================
   //  UI: Botón Apertura/Cierre + Modal
   // ===========================================================
+  function validateForm(formId) {
+      const form = document.getElementById(formId);
+      if (!form) {
+          console.error('Formulario no encontrado:', formId);
+          return false;
+      }
+      
+      form.classList.remove('was-validated');
+      
+      if (!form.checkValidity()) {
+          form.classList.add('was-validated');
+          form.reportValidity();
+          
+          // Enfocar el primer campo inválido
+          const firstInvalid = form.querySelector(':invalid');
+          if (firstInvalid) {
+              firstInvalid.focus();
+          }
+          
+          return false;
+      }
+      
+      return true;
+  }
+
+  function limpiarValidacionFormulario(formId) {
+      const form = document.getElementById(formId);
+      if (!form) return;
+      
+      // Remover clase de validación
+      form.classList.remove('was-validated');
+      
+      // Limpiar estilos de campos
+      const campos = form.querySelectorAll('.form-control, .form-select');
+      campos.forEach(campo => {
+          campo.classList.remove('is-valid', 'is-invalid');
+      });
+      
+      // Ocultar mensajes de error
+      const mensajesError = form.querySelectorAll('.invalid-feedback');
+      mensajesError.forEach(mensaje => {
+          mensaje.style.display = 'none';
+      });
+  }
 
   // --- Helper para abrir modales con BS4 (jQuery) y BS5 (todas las versiones)
   function getCajero() {
@@ -896,6 +940,10 @@ function initHotkeys(){
       $('#titulo-modal-promocion').text('Nueva promoción');
       // limpiar checks de días
       $('.promo-dia').prop('checked', false);
+
+      // LIMPIAR VALIDACIÓN ANTES DE MOSTRAR
+      limpiarValidacionFormulario('form-promocion');
+
       $('#modal-promocion').show();
       setTimeout(function() {
         initSelectsPromos();
@@ -931,8 +979,13 @@ function initHotkeys(){
     // Guardar promoción (Crear/Actualizar)
     $(document).on('click', '#btn-guardar-promocion', async function(){
       try{
+        if (!validateForm('form-promocion')) { // Asumiendo que tu formulario tiene id="form-producto"
+          return;
+        }   
+        
         const data = recogerFormPromocion(); // arma el payload
-        const accion = data.promo_id ? 'updatePromocion' : 'savePromocion';
+        const accion = data.promo_id ? 'updatePromocion' : 'savePromocion';     
+
         const res = await apiPromos(accion, data);
         if(!res || !res.status){ throw new Error(res && res.message ? res.message : 'No se pudo guardar'); }
         showAlert('success','Éxito', data.promo_id ? 'Promoción actualizada' : 'Promoción creada');
@@ -1052,7 +1105,7 @@ function initHotkeys(){
     // ====== Añadir esta funcionalidad a otros modales existentes
     // Modal para nueva/editar mesa
     $(document).on('click', '#btn-nueva-mesa', function() {
-      $('#modal-mesa').show();
+      $('#modal-mesa').show();      
       setTimeout(function() {
         $('#numero-mesa').focus();
       }, 100);
@@ -1084,6 +1137,9 @@ function initHotkeys(){
 
     // Modal para nuevo producto
     $(document).on('click', '#btn-nuevo-producto', function() {
+      // LIMPIAR VALIDACIÓN ANTES DE MOSTRAR
+      limpiarValidacionFormulario('form-producto');
+
       $('#modal-producto').show();
       setTimeout(function() {
         $('#prod-nombre').focus();
@@ -1272,6 +1328,10 @@ function initHotkeys(){
       setCatEstacion('cocina'); // ← **este es el fix**
     
       if (modalCategoria) modalCategoria.style.display='block';
+
+      // LIMPIAR VALIDACIÓN ANTES DE MOSTRAR
+      limpiarValidacionFormulario('form-categoria');
+
       setTimeout(()=>inp && inp.focus(),10);
     });    
 
@@ -1513,7 +1573,7 @@ function initHotkeys(){
 
   // Construye el payload desde el form del modal de promoción
   function recogerFormPromocion(){
-    const promo_id   = ($('#promo-id').val() || '').triguardarProductoBasicom();
+    const promo_id   = ($('#promo-id').val() || '').trim();
     const empresa_id = parseInt($('#promo-empresa-id').val(),10) || 1;
     const nombre     = ($('#promo-nombre').val() || '').trim();
     const descripcion= ($('#promo-descripcion').val() || '').trim();
@@ -1849,6 +1909,8 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     if (c) c.value  = mesa.capacidad || 4;
     if (u) u.value  = mesa.ubicacion || 'Interior';
 
+    limpiarValidacionFormulario('form-mesa');
+
     if (modalMesa) modalMesa.style.display = 'block';
     setTimeout(()=> n && n.focus(), 10);
   }
@@ -1867,6 +1929,8 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     if (u) u.value = 'Interior';
     if (modalMesa) modalMesa.style.display = 'block';
     
+     // LIMPIAR VALIDACIÓN ANTES DE MOSTRAR
+    limpiarValidacionFormulario('form-mesa');
     // Añade esta línea:
     reinitSelect2InModal('#modal-mesa');
     
@@ -1878,7 +1942,10 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     const numeroMesa = (document.getElementById('numero-mesa') || {}).value?.trim() || '';
     const capacidad  = (document.getElementById('capacidad-mesa') || {}).value || '4';
     const ubicacion  = (document.getElementById('ubicacion-mesa') || {}).value || 'Interior';
-    if (!numeroMesa) { showAlert('error', 'Error', 'El número de mesa es requerido'); return; }
+ 
+    if (!validateForm('form-mesa')) { // Asumiendo que tu formulario tiene id="form-producto"
+      return;
+    }
 
     const accion = mesaId ? 'editar' : 'guardar';
     const mensaje = mesaId ? 
@@ -2197,7 +2264,10 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     const nombre = (document.getElementById('cat-nombre')||{}).value?.trim() || '';
     const idCat  = (document.getElementById('cat-id')||{}).value || '';
 
-    if (!nombre) { showAlert('warning','Validación','Nombre de categoría requerido'); return; }
+    // Primero validar el formulario
+    if (!validateForm('form-categoria')) { // Asumiendo que tu formulario tiene id="form-producto"
+      return;
+    }
     
     const accion = idCat ? 'editar' : 'guardar';
     const mensaje = idCat ? 
@@ -2232,6 +2302,11 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
   function guardarProductoBasico(){
     const { inpNombre, inpDesc, selCat, inpPrecio, chkISV1, chkISV2 } = getProdControls();
   
+     // Primero validar el formulario
+     if (!validateForm('form-producto')) { // Asumiendo que tu formulario tiene id="form-producto"
+        return;
+    }
+
     const id     = (document.getElementById('prod-id')||{}).value || '';
     const nombre = (inpNombre||{}).value?.trim() || '';
     const desc   = (inpDesc||{}).value?.trim() || '';
@@ -2239,9 +2314,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     const precio = parseFloat((inpPrecio||{}).value || '0') || 0;
     const isv1   = !!(chkISV1||{}).checked;
     const isv2   = !!(chkISV2||{}).checked;
-  
-    if (!nombre){ showAlert('warning','Validación','Nombre requerido'); return; }
-    if (!catId){  showAlert('warning','Validación','Seleccione categoría'); return; }
+
   
     const esEdicion = !!id;
     const titulo    = esEdicion ? 'Editar Producto' : 'Nuevo Producto';
@@ -2440,6 +2513,10 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     campos.forEach(id => { const el = document.getElementById(id); if (el) el.value=''; });
     document.getElementById('titulo-modal-cliente') && (document.getElementById('titulo-modal-cliente').textContent = 'Nuevo Cliente');
     if (modalNuevoCliente) modalNuevoCliente.style.display = 'block';
+
+    // LIMPIAR VALIDACIÓN ANTES DE MOSTRAR
+    limpiarValidacionFormulario('form-nuevo-cliente');
+
     setTimeout(()=>{ const el = document.getElementById('cli-nombre'); el && el.focus(); },10);
   }
 
@@ -2451,7 +2528,10 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     const telefono   = (document.getElementById('cli-telefono')||{}).value?.trim() || '';
     const correo     = (document.getElementById('cli-correo')||{}).value?.trim() || '';
 
-    if (!nombre){ showAlert('warning','Validación','Nombre/ Razón social es obligatorio'); return; }
+    // Primero validar el formulario
+    if (!validateForm('form-nuevo-cliente')) { // Asumiendo que tu formulario tiene id="form-producto"
+      return;
+    }
 
     const accion = id ? 'editar' : 'guardar';
     const mensaje = id ? 
@@ -2505,6 +2585,10 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
 
   function abrirEdicionCliente(c){
     editContext.clienteId = c.clientes_id;
+
+    // LIMPIAR VALIDACIÓN ANTES DE MOSTRAR
+    limpiarValidacionFormulario('form-nuevo-cliente');
+
     if (modalNuevoCliente) modalNuevoCliente.style.display = 'block';
     document.getElementById('titulo-modal-cliente') && (document.getElementById('titulo-modal-cliente').textContent = 'Editar Cliente');
 
@@ -2994,6 +3078,10 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
 
     prepararModalProductoISV();
     initProductoImageUpload();
+
+    // LIMPIAR VALIDACIÓN ANTES DE MOSTRAR
+    limpiarValidacionFormulario('form-producto');
+
     if (modalProducto) modalProducto.style.display = 'block';
   }
 
@@ -3010,6 +3098,9 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     const radioEstacion = document.querySelector(`#prod-estacion input[value="${estacionActual}"]`);
     if (radioEstacion) radioEstacion.checked = true;
     
+    // LIMPIAR VALIDACIÓN ANTES DE MOSTRAR
+    limpiarValidacionFormulario('form-categoria');
+
     if (modalCategoria) modalCategoria.style.display = 'block';
   }
 

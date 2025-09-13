@@ -760,3 +760,45 @@ select.select2.form-control{height:38px;padding:6px 12px;font-size:14px;line-hei
   .vista-facturacion-restaurante .select2-container--default .select2-selection--single .select2-selection__arrow{ height:34px !important; }
 }
 /* ===== FIN PACK SÚPER COMPACTO SOLO TABLET (LANDSCAPE) ===== */
+/* Asterisco rojo para campos requeridos */
+.form-group label:has(+ input[required]),
+.form-group label:has(+ select[required]),
+.form-group label:has(+ textarea[required]),
+label:has(input[required]),
+label:has(select[required]), 
+label:has(textarea[required]) {
+    position: relative;
+}
+
+.form-group label:has(+ input[required])::after,
+.form-group label:has(+ select[required])::after,
+.form-group label:has(+ textarea[required])::after,
+label:has(input[required])::after,
+label:has(select[required])::after,
+label:has(textarea[required])::after {
+    content: "*";
+    color: #dc3545;
+    margin-left: 4px;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+/* Versión alternativa más compatible si :has() no funciona */
+.required-field::after {
+    content: "*";
+    color: #dc3545;
+    margin-left: 4px;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+/* Para inputs dentro de otros contenedores */
+.form-group:has(> input[required]) > label::after,
+.form-group:has(> select[required]) > label::after,
+.form-group:has(> textarea[required]) > label::after {
+    content: "*";
+    color: #dc3545;
+    margin-left: 4px;
+    font-weight: bold;
+    font-size: 1.1em;
+}

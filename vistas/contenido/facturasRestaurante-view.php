@@ -66,9 +66,72 @@
       <div class="main-content">
         <!-- Header de la factura -->
         <div class="factura-header">
-          <div class="factura-info">
-            <h2 id="factura-title"><i class="fas fa-receipt"></i> Nueva Comanda</h2>
+          <!-- Fila superior: Título a la izquierda / Acciones a la derecha -->
+          <div class="fh-row fh-row-top">
+            <div class="factura-info">
+              <h2 id="factura-title"><i class="fas fa-receipt"></i> Nueva Comanda</h2>
+            </div>
 
+            <!-- Acciones de la factura (MISMA LÍNEA, DERECHA) -->
+            <div class="factura-actions">
+              <button id="btn-apertura-caja" class="btn btn-primary">
+                <i class="fas fa-lock-open"></i> Aperturar Caja
+              </button>
+
+              <button id="btn-guardar" class="btn btn-success">
+                <i class="fas fa-save"></i> Guardar
+              </button>
+              <button id="btn-imprimir" class="btn btn-info" disabled>
+                <i class="fas fa-print"></i> Imprimir
+              </button>
+              <button id="btn-cerrar" class="btn btn-danger">
+                <i class="fas fa-times"></i> Cerrar
+              </button>
+
+              <!-- GESTIONAR: SIEMPRE AQUÍ -->
+              <div class="gestion-compact" id="gestion-fija" style="display:inline-block; position:relative;">
+                <button id="btn-gestionar-acciones" class="btn btn-secondary">
+                  <i class="fas fa-tools"></i> Gestionar
+                </button>
+                <div class="gest-menu" id="gestionar-menu">
+                  <button type="button" data-target="#btn-nuevo-cliente-rapido">
+                    <i class="fas fa-user-plus"></i> Crear cliente
+                  </button>
+
+                  <div class="dropdown-divider" style="margin:.35rem 0;border-top:1px solid #e5e7eb;"></div>
+
+                  <button type="button" data-target="#btn-nueva-categoria">
+                    <i class="fas fa-folder-plus"></i> + Categoría
+                  </button>
+                  <button type="button" data-target="#btn-nuevo-producto">
+                    <i class="fas fa-plus-square"></i> Nuevo producto
+                  </button>
+                  <button type="button" data-target="#btn-gestionar-combos">
+                    <i class="fas fa-layer-group"></i> Combos
+                  </button>
+
+                  <div class="dropdown-divider" style="margin:.35rem 0;border-top:1px solid #e5e7eb;"></div>
+
+                  <!-- === NUEVOS ACCESOS DE PROMOS === -->
+                  <button type="button" data-target="#btn-gestionar-promos">
+                    <i class="fas fa-tags"></i> Promociones
+                  </button>
+                  <button type="button" data-target="#btn-nueva-promocion">
+                    <i class="fas fa-tag"></i> Nueva promoción
+                  </button>
+                  <button type="button" data-target="#btn-asignar-promo-productos">
+                    <i class="fas fa-cart-plus"></i> Asignar productos a promo
+                  </button>
+                  <button type="button" data-target="#btn-asignar-promo-categorias">
+                    <i class="fas fa-sitemap"></i> Asignar categorías a promo
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fila inferior: Servicio + (Mesa/Cliente/Cambiar) en la misma línea -->
+          <div class="fh-row fh-row-bottom">
             <!-- selector de tipo de servicio -->
             <div class="factura-servicio" id="servicio-switch" title="Elige si es para llevar o en mesa">
               <div class="segmented-control" aria-label="Tipo de servicio">
@@ -80,15 +143,18 @@
               </div>
             </div>
 
+            <!-- Meta compacta a la par del servicio -->
             <div class="factura-meta">
               <span id="mesa-seleccionada"><i class="fas fa-table"></i> No seleccionada</span>
 
               <span id="cliente-info" class="cliente-info">
                 <i class="fas fa-user"></i>
-                <span class="cli-nombre">Consumidor final</span>
-                <span class="cli-rtn-wrap" style="display:none;">
-                  <i class="fas fa-id-card"></i>
-                  <span class="cli-rtn"></span>
+                <span class="cli-datos">
+                  <span class="cli-nombre">Consumidor final</span>
+                  <small class="cli-rtn-wrap is-hidden">
+                    <i class="fas fa-id-card"></i>
+                    <span class="cli-rtn"></span>
+                  </small>
                 </span>
               </span>
 
@@ -143,63 +209,6 @@
                     <i class="fas fa-layer-group"></i> Combos
                   </button>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Acciones de la factura (MISMA LÍNEA, DERECHA) -->
-          <div class="factura-actions" style="margin-left:auto; display:flex; align-items:center; gap:8px;">
-            <button id="btn-apertura-caja" class="btn btn-primary">
-              <i class="fas fa-lock-open"></i> Aperturar Caja
-            </button>
-
-            <button id="btn-guardar" class="btn btn-success">
-              <i class="fas fa-save"></i> Guardar
-            </button>
-            <button id="btn-imprimir" class="btn btn-info" disabled>
-              <i class="fas fa-print"></i> Imprimir
-            </button>
-            <button id="btn-cerrar" class="btn btn-danger">
-              <i class="fas fa-times"></i> Cerrar
-            </button>          
-
-            <!-- GESTIONAR: SIEMPRE AQUÍ -->
-            <div class="gestion-compact" id="gestion-fija" style="display:inline-block; position:relative;">
-              <button id="btn-gestionar-acciones" class="btn btn-secondary">
-                <i class="fas fa-tools"></i> Gestionar
-              </button>
-              <div class="gest-menu" id="gestionar-menu">
-                <button type="button" data-target="#btn-nuevo-cliente-rapido">
-                  <i class="fas fa-user-plus"></i> Crear cliente
-                </button>
-
-                <div class="dropdown-divider" style="margin:.35rem 0;border-top:1px solid #e5e7eb;"></div>
-
-                <button type="button" data-target="#btn-nueva-categoria">
-                  <i class="fas fa-folder-plus"></i> + Categoría
-                </button>
-                <button type="button" data-target="#btn-nuevo-producto">
-                  <i class="fas fa-plus-square"></i> Nuevo producto
-                </button>
-                <button type="button" data-target="#btn-gestionar-combos">
-                  <i class="fas fa-layer-group"></i> Combos
-                </button>
-
-                <div class="dropdown-divider" style="margin:.35rem 0;border-top:1px solid #e5e7eb;"></div>
-
-                <!-- === NUEVOS ACCESOS DE PROMOS === -->
-                <button type="button" data-target="#btn-gestionar-promos">
-                  <i class="fas fa-tags"></i> Promociones
-                </button>
-                <button type="button" data-target="#btn-nueva-promocion">
-                  <i class="fas fa-tag"></i> Nueva promoción
-                </button>
-                <button type="button" data-target="#btn-asignar-promo-productos">
-                  <i class="fas fa-cart-plus"></i> Asignar productos a promo
-                </button>
-                <button type="button" data-target="#btn-asignar-promo-categorias">
-                  <i class="fas fa-sitemap"></i> Asignar categorías a promo
-                </button>
               </div>
             </div>
           </div>
@@ -496,12 +505,12 @@
 
         <div class="form-group">
           <label for="prod-categoria"><i class="fas fa-sitemap"></i> Categoría</label>
-          <select id="prod-categoria" class="select2" data-placeholder="Selecciona una categoría"></select>
+          <select id="prod-categoria" class="select2" data-placeholder="Selecciona una categoría" required></select>
         </div>
 
         <div class="form-group">
           <label for="prod-nombre"><i class="fas a-quote-left"></i> Nombre</label>
-          <input type="text" id="prod-nombre" placeholder="Ej. Refresco Pepsi" />
+          <input type="text" id="prod-nombre" placeholder="Ej. Refresco Pepsi" required/>
         </div>
 
         <div class="form-group">
@@ -511,7 +520,7 @@
 
         <div class="form-group">
           <label for="prod-precio"><i class="fas fa-dollar-sign"></i> Precio de venta</label>
-          <input type="number" id="prod-precio" step="0.01" min="0" value="0.00" />
+          <input type="number" id="prod-precio" step="0.01" min="0" value=""  placeholder="0.00" required />
         </div>
 
         <div class="form-group" style="display:flex; gap:14px; flex-wrap:wrap;">

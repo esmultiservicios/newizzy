@@ -401,14 +401,42 @@ function initSelect2All(){
     }
   }
 
-  function setClienteInfoUI({ nombre = 'Consumidor final', rtn = '' } = {}){
+  // Asume que tienes: const clienteInfoElement = document.getElementById('cliente-info');
+  function setClienteInfoUI({ nombre = 'Consumidor final', rtn = '' } = {}) {
     if (!clienteInfoElement) return;
-    const htmlRTN = rtn ? `<span class="cli-rtn-wrap"><i class="fas fa-id-card"></i><span class="cli-rtn">${rtn}</span></span>` : '';
-    clienteInfoElement.innerHTML = `
-      <i class="fas fa-user"></i>
-      <span class="cli-nombre">${nombre}</span>
-      ${htmlRTN}
-    `;
+
+    // Asegurar la estructura (icono + .cli-datos con nombre y RTN)
+    let datos = clienteInfoElement.querySelector('.cli-datos');
+    if (!datos) {
+      clienteInfoElement.innerHTML = `
+        <i class="fas fa-user"></i>
+        <span class="cli-datos">
+          <span class="cli-nombre"></span>
+          <small class="cli-rtn-wrap is-hidden">
+            <i class="fas fa-id-card"></i>
+            <span class="cli-rtn"></span>
+          </small>
+        </span>
+      `;
+      datos = clienteInfoElement.querySelector('.cli-datos');
+    }
+
+    const elNombre = clienteInfoElement.querySelector('.cli-nombre');
+    const elWrap   = clienteInfoElement.querySelector('.cli-rtn-wrap');
+    const elRtn    = clienteInfoElement.querySelector('.cli-rtn');
+
+    // Setear nombre
+    elNombre.textContent = (nombre || 'Consumidor final').trim();
+
+    // Mostrar/ocultar RTN debajo del nombre
+    const hasRtn = !!(rtn && String(rtn).trim());
+    if (hasRtn) {
+      elRtn.textContent = String(rtn).trim();
+      elWrap.classList.remove('is-hidden');
+    } else {
+      elRtn.textContent = '';
+      elWrap.classList.add('is-hidden');
+    }
   }
 
   /**
@@ -1485,7 +1513,7 @@ function initHotkeys(){
 
   // Construye el payload desde el form del modal de promoción
   function recogerFormPromocion(){
-    const promo_id   = ($('#promo-id').val() || '').trim();
+    const promo_id   = ($('#promo-id').val() || '').triguardarProductoBasicom();
     const empresa_id = parseInt($('#promo-empresa-id').val(),10) || 1;
     const nombre     = ($('#promo-nombre').val() || '').trim();
     const descripcion= ($('#promo-descripcion').val() || '').trim();
@@ -2203,6 +2231,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
 
   function guardarProductoBasico(){
     const { inpNombre, inpDesc, selCat, inpPrecio, chkISV1, chkISV2 } = getProdControls();
+  
     const id     = (document.getElementById('prod-id')||{}).value || '';
     const nombre = (inpNombre||{}).value?.trim() || '';
     const desc   = (inpDesc||{}).value?.trim() || '';
@@ -2210,57 +2239,65 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     const precio = parseFloat((inpPrecio||{}).value || '0') || 0;
     const isv1   = !!(chkISV1||{}).checked;
     const isv2   = !!(chkISV2||{}).checked;
-
-    if (!nombre) { showAlert('warning','Validación','Nombre requerido'); return; }
-    if (!catId)  { showAlert('warning','Validación','Seleccione categoría'); return; }
-
-    const accion = id ? 'editar' : 'guardar';
-    const mensaje = id ? 
-      `¿Está seguro que desea editar el producto "${nombre}"?` : 
-      `¿Está seguro que desea guardar el nuevo producto "${nombre}"?`;
-    
-    showConfirm(accion === 'editar' ? 'Editar Producto' : 'Nuevo Producto', mensaje, () => {
-      const payload = {
-        productos_id: id ? parseInt(id) : undefined,
-        nombre, descripcion: desc, categoria_id: parseInt(catId),
-        precio_venta: precio,
-        isv1: isv1 ? 1 : 0,
-        isv2: (!isv1 && isv2) ? 1 : 0
-      };
-
-      const action = id ? 'updateProductoBasico' : 'saveProductoBasico';
-
-      fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ action, data: payload })
-      })
-        .then(r=>r.json())
-        .then(async d=>{
-          if (!d.status) { showAlert('error','Error', d.message||'No se pudo guardar'); return; }
-
-          const pid  = id || d.producto_id;
-          const file = getProductoImagenFile();
-
-          if (pid && file) {
-            try {
-              const ok = await subirImagenProducto(pid, file);
-              if (!ok) showAlert('warning','Atención','Guardado, pero falló la imagen');
-            } catch {
-              showAlert('warning','Atención','Guardado, pero falló la imagen');
-            }
-          }
-
-          showAlert('success','Éxito', id ? 'Producto actualizado' : 'Producto guardado');
-          if (modalProducto) modalProducto.style.display='none';
-          (document.getElementById('prod-id')||{}).value = '';
-          document.getElementById('titulo-modal-producto') && (document.getElementById('titulo-modal-producto').textContent = 'Nuevo Producto');
-          resetProductoImagen();
-          cargarProductos();
-        })
-        .catch(()=> showAlert('error','Error','No se pudo guardar el producto'));
+  
+    if (!nombre){ showAlert('warning','Validación','Nombre requerido'); return; }
+    if (!catId){  showAlert('warning','Validación','Seleccione categoría'); return; }
+  
+    const esEdicion = !!id;
+    const titulo    = esEdicion ? 'Editar Producto' : 'Nuevo Producto';
+    const mensaje   = esEdicion
+      ? `¿Está seguro que desea editar el producto "${nombre}"?`
+      : `¿Está seguro que desea guardar el nuevo producto "${nombre}"?`;
+  
+    showConfirm(titulo, mensaje, async () => {
+      try{
+        // FormData para que PHP reciba $_POST y $_FILES
+        const fd = new FormData();
+        fd.append('action', esEdicion ? 'updateProductoBasico' : 'saveProductoBasico');
+        if (esEdicion) fd.append('productos_id', String(parseInt(id,10)));
+  
+        fd.append('nombre', nombre);
+        fd.append('descripcion', desc);
+        fd.append('categoria_id', String(parseInt(catId,10)));
+        fd.append('precio_venta', String(precio.toFixed(2)));
+        fd.append('isv1', isv1 ? '1' : '0');
+        fd.append('isv2', isv2 ? '1' : '0'); // permite marcar ambos si aplica
+  
+        // Imagen (opcional)
+        const file = getProductoImagenFile && getProductoImagenFile();
+        if (file) fd.append('imagen_producto', file);
+  
+        const resp = await fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
+          method: 'POST',
+          body: fd
+        });
+  
+        // Manejo de respuesta
+        let d = null;
+        try { d = await resp.json(); } catch(e){ /* respuesta inválida */ }
+        if (!d || !d.status){
+          const msg = (d && (d.message||d.msg)) || 'No se pudo guardar';
+          showAlert('error','Error', msg);
+          return;
+        }
+  
+        showAlert('success','Éxito', esEdicion ? 'Producto actualizado' : 'Producto guardado');
+  
+        // Cerrar modal y limpiar
+        if (typeof modalProducto !== 'undefined' && modalProducto) modalProducto.style.display = 'none';
+        const elId = document.getElementById('prod-id'); if (elId) elId.value = '';
+        const t = document.getElementById('titulo-modal-producto'); if (t) t.textContent = 'Nuevo Producto';
+        if (typeof resetProductoImagen === 'function') resetProductoImagen();
+  
+        // Refrescar listado
+        if (typeof cargarProductos === 'function') cargarProductos();
+  
+      } catch(err){
+        console.error(err);
+        showAlert('error','Error','No se pudo guardar el producto');
+      }
     });
-  }
+  }  
 
   // ===== Clientes =====
   function cargarClientes() {
@@ -3942,30 +3979,13 @@ function eliminarCombo(comboId){
   }
 
 // === Mostrar cliente en la cabecera (NOMBRE + RTN en línea) ===
-function pintarClienteInfoHeader() {
-  const wrap = document.getElementById('cliente-info');
-  if (!wrap) return;
+function pintarClienteInfoHeader(){
+  // Usa el estado global que ya manejas
+  const nombre = (clienteSeleccionado && clienteSeleccionado.nombre) ? clienteSeleccionado.nombre : 'Consumidor final';
+  const rtn    = (clienteSeleccionado && clienteSeleccionado.identificacion) ? String(clienteSeleccionado.identificacion).trim() : '';
 
-  const nombreSpan = wrap.querySelector('.cli-nombre');
-  const rtnWrap    = wrap.querySelector('.cli-rtn-wrap');
-  const rtnSpan    = wrap.querySelector('.cli-rtn');
-
-  // Nombre
-  if (nombreSpan) {
-    nombreSpan.textContent = (clienteSeleccionado?.nombre || 'Consumidor final');
-  }
-
-  // RTN/identificación
-  const id = (clienteSeleccionado?.identificacion || '').toString().trim();
-  if (rtnWrap && rtnSpan) {
-    if (id) {
-      rtnSpan.textContent = id;
-      rtnWrap.style.display = 'inline-flex'; // mostrar cuando hay RTN
-    } else {
-      rtnSpan.textContent = '';
-      rtnWrap.style.display = 'none';        // ocultar cuando no hay RTN
-    }
-  }
+  // Pinta: nombre arriba, RTN (si hay) abajo en pequeño
+  setClienteInfoUI({ nombre, rtn });
 }
 
 // Mapa rápido producto_id -> categoria_id

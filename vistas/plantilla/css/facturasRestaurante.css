@@ -1,6 +1,6 @@
 /* ================================================================
    SISTEMA DE FACTURACIÓN PARA RESTAURANTE - CSS OPTIMIZADO (FULL)
-   (Desktop/Laptop por defecto) + Pack Súper Compacto SOLO para Tablets
+   (Desktop/Laptop por defecto) + Pack Súper Compacto SOLO Tablets
    ================================================================ */
 
 /* ==============================
@@ -21,7 +21,7 @@
   --border-radius:8px;
   --transition:all .3s ease;
   --combo-label-minh:56px;
-  --bar-h:60px;
+  --bar-h:60px; /* altura por defecto (escritorio) */
 }
 
 /* ==============================
@@ -267,12 +267,22 @@ body.vista-facturacion-restaurante{overflow:hidden;height:100dvh}
 .comanda-producto-info{display:flex;flex-direction:column;width:100%;min-width:0;max-width:100%}
 .comanda-producto-nombre{font-weight:600;color:var(--primary-color);margin-bottom:2px;line-height:1.2;display:block;font-size:11px;white-space:normal}
 .comanda-producto-desc{font-size:9px;color:#666;line-height:1.2;display:block}
+
+/* Cantidad: botones e input – LEGIBLE SIEMPRE */
 .comanda-item-cantidad{display:flex;align-items:center;justify-content:center;gap:2px}
-.btn-cantidad{background:var(--light-color);border:1px solid var(--border-color);border-radius:3px;width:20px;height:20px;cursor:pointer;font-weight:bold;color:var(--primary-color);transition:var(--transition);display:flex;align-items:center;justify-content:center;font-size:11px}
+.btn-cantidad{
+  background:var(--light-color);border:1px solid var(--border-color);border-radius:3px;width:20px;height:20px;cursor:pointer;
+  font-weight:700;color:var(--primary-color);transition:var(--transition);display:flex;align-items:center;justify-content:center;font-size:11px;line-height:1
+}
 .btn-cantidad:hover{background:var(--secondary-color);color:#fff}
-.comanda-item-cantidad input{width:30px;text-align:center;padding:2px;border:1px solid var(--border-color);border-radius:3px;font-size:11px;margin:0 1px}
+.comanda-item-cantidad input{
+  width:32px;min-width:32px;text-align:center;padding:2px;border:1px solid var(--border-color);border-radius:3px;font-size:12px;
+  font-weight:700;color:#111;background:#fff;margin:0 1px;line-height:1.2;font-variant-numeric:tabular-nums;letter-spacing:.02em;
+  -webkit-appearance:none;appearance:none;
+}
 .btn-eliminar{background:none;border:none;color:var(--danger-color);cursor:pointer;font-size:14px;transition:var(--transition);padding:2px;display:flex;align-items:center;justify-content:center;margin:0 auto}
 .btn-eliminar:hover{color:#c0392b;transform:scale(1.1)}
+
 .comanda-totales{padding:10px 15px;border-top:2px solid var(--border-color);background:#f9f9f9;flex-shrink:0;position:relative;z-index:10}
 .totales-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;font-size:13px;padding:0 3px;line-height:1.2}
 .totales-row span:first-child{flex:1;text-align:left}
@@ -637,70 +647,73 @@ select.select2.form-control{height:38px;padding:6px 12px;font-size:14px;line-hei
    ========================================================= */
 @media (hover: none) and (pointer: coarse) and (min-width:600px) and (max-width:1368px){
 
-  /* Menor altura del topbar para ganar viewport */
-  body.vista-facturacion-restaurante{ --bar-h:52px !important; }
+  /* Menor altura del topbar para ganar viewport (más compacto) */
+  body.vista-facturacion-restaurante{ --bar-h:48px !important; }
 
-  /* Barra superior */
-  .vista-facturacion-restaurante .control-bar{ padding:6px 10px !important; }
-  .vista-facturacion-restaurante .control-bar .btn{ padding:6px 10px !important; font-size:.92rem !important; }
-  .vista-facturacion-restaurante .control-user{ min-height:32px !important; padding:0 10px !important; }
-  .vista-facturacion-restaurante .control-user i{ width:24px !important; height:24px !important; font-size:13px !important; padding:5px !important; }
+  /* Barra superior (todo más pequeño pero legible) */
+  .vista-facturacion-restaurante .control-bar{ padding:5px 10px !important; }
+  .vista-facturacion-restaurante .control-bar .btn{ padding:6px 10px !important; font-size:.9rem !important; }
+  .vista-facturacion-restaurante .control-user{ min-height:30px !important; padding:0 10px !important; font-size:.9rem !important; }
+  .vista-facturacion-restaurante .control-user i{ width:22px !important; height:22px !important; font-size:12px !important; padding:4px !important; }
   .vista-facturacion-restaurante .btn-icon{ width:22px !important; height:22px !important; font-size:11px !important; }
 
   /* Counter central más pequeño */
   .vista-facturacion-restaurante .control-counter{
-    height:36px !important; min-width:200px !important; font-size:13px !important; padding:8px 12px !important;
+    height:34px !important; min-width:190px !important; font-size:12.5px !important; padding:6px 10px !important;
   }
-  .vista-facturacion-restaurante .control-counter i{ font-size:14px !important; }
+  .vista-facturacion-restaurante .control-counter i{ font-size:13px !important; }
 
   /* Header: "Nueva Comanda" */
-  .vista-facturacion-restaurante .factura-header{ padding:8px 12px !important; gap:6px !important; margin-bottom:4px !important; }
-  .vista-facturacion-restaurante .factura-info h2{ margin:0 !important; font-size:1.05rem !important; line-height:1.2 !important; }
+  .vista-facturacion-restaurante .factura-header{ padding:6px 10px !important; gap:6px !important; margin-bottom:2px !important; }
+  .vista-facturacion-restaurante .factura-info h2{ margin:0 !important; font-size:1.02rem !important; line-height:1.2 !important; }
   .vista-facturacion-restaurante .fh-row{ padding-top:2px !important; padding-bottom:2px !important; gap:8px !important; }
-  .vista-facturacion-restaurante .factura-actions .btn{ padding:6px 10px !important; margin-left:6px !important; font-size:.92rem !important; }
+  .vista-facturacion-restaurante .factura-actions .btn{ padding:6px 8px !important; margin-left:6px !important; font-size:.88rem !important; }
 
-  /* Switch de servicio + meta */
+  /* Switch de servicio + meta (radios más pequeños) */
   .vista-facturacion-restaurante .factura-servicio{ margin:0 !important; }
-  #servicio-switch .segmented-control label{ padding:6px 12px !important; min-width:110px !important; font-size:.92rem !important; }
-  .vista-facturacion-restaurante .factura-meta{ gap:8px !important; font-size:.92rem !important; }
-  .vista-facturacion-restaurante .factura-meta .btn{ padding:4px 8px !important; font-size:.88rem !important; }
+  #servicio-switch .segmented-control label{ padding:5px 10px !important; min-width:96px !important; font-size:.88rem !important; }
+  .vista-facturacion-restaurante .factura-meta{ gap:6px !important; font-size:.9rem !important; }
+  .vista-facturacion-restaurante .factura-meta .btn{ padding:4px 8px !important; font-size:.86rem !important; }
 
   /* Panel Productos */
   #panel-productos{ margin-top:2px !important; }
-  .vista-facturacion-restaurante .productos-header{ padding:8px 12px !important; margin-bottom:6px !important; }
-  .vista-facturacion-restaurante .productos-header h3{ font-size:15px !important; }
+  .vista-facturacion-restaurante .productos-header{ padding:6px 10px !important; margin-bottom:4px !important; }
+  .vista-facturacion-restaurante .productos-header h3{ font-size:14px !important; }
   .vista-facturacion-restaurante .productos-search{ gap:6px !important; }
-  .vista-facturacion-restaurante .productos-search .input-lg{ height:34px !important; padding:6px 10px !important; }
-  #btn-buscar.btn{ height:34px !important; padding:0 10px !important; }
+  .vista-facturacion-restaurante .productos-search .input-lg{ height:32px !important; padding:6px 8px !important; }
+  #btn-buscar.btn{ height:32px !important; padding:0 10px !important; }
 
-  /* Filtro estación + Tabs */
-  .vista-facturacion-restaurante .estacion-filter{ padding:6px 12px 0 12px !important; margin:0 !important; }
-  .vista-facturacion-restaurante .estacion-filter .segmented-control label{ min-width:80px !important; }
-  .vista-facturacion-restaurante .categorias-tabs{ padding:6px 12px !important; margin-top:2px !important; margin-bottom:4px !important; gap:6px !important; }
+  /* Filtro estación + Tabs (radios más pequeños) */
+  .vista-facturacion-restaurante .estacion-filter{ padding:4px 10px 0 10px !important; margin:0 !important; }
+  .vista-facturacion-restaurante .estacion-filter .segmented-control label{ min-width:70px !important; padding:5px 10px !important; font-size:.88rem !important; }
+  .vista-facturacion-restaurante .categorias-tabs{ padding:6px 10px !important; margin:2px 0 4px 0 !important; gap:6px !important; }
 
-  /* Cards de productos más bajas para que quepa más contenido en vertical */
-  .vista-facturacion-restaurante .productos-grid{ padding:10px !important; gap:10px !important; }
-  .vista-facturacion-restaurante .producto-item{ height:188px !important; }
-  .vista-facturacion-restaurante .producto-imagen-container{ height:76px !important; }
+  /* Cards de productos más bajas */
+  .vista-facturacion-restaurante .productos-grid{ padding:8px !important; gap:8px !important; }
+  .vista-facturacion-restaurante .producto-item{ height:180px !important; }
+  .vista-facturacion-restaurante .producto-imagen-container{ height:72px !important; }
   .vista-facturacion-restaurante .producto-contenido{ padding:8px !important; }
-  .vista-facturacion-restaurante .producto-nombre{ font-size:12px !important; margin-bottom:4px !important; }
-  .vista-facturacion-restaurante .precio-valor{ font-size:14px !important; }
-  .vista-facturacion-restaurante .btn-agregar{ height:28px !important; font-size:12px !important; padding:6px !important; }
+  .vista-facturacion-restaurante .producto-nombre{ font-size:12px !important; margin-bottom:3px !important; }
+  .vista-facturacion-restaurante .precio-valor{ font-size:13.5px !important; }
+  .vista-facturacion-restaurante .btn-agregar{ height:26px !important; font-size:12px !important; padding:5px !important; }
 
   /* Panel Comanda */
   #panel-comanda{ margin-top:2px !important; }
   .vista-facturacion-restaurante .comanda-header{ padding:6px 10px !important; margin-bottom:4px !important; }
   .vista-facturacion-restaurante .comanda-header h3{ font-size:14px !important; }
-  .vista-facturacion-restaurante .comanda-header .btn{ padding:4px 8px !important; font-size:.9rem !important; }
+  .vista-facturacion-restaurante .comanda-header .btn{ padding:4px 8px !important; font-size:.88rem !important; }
 
-  /* Tabla de comanda más densa (cabecera + filas + controles cantidad) */
+  /* Tabla de comanda (compacta + cantidad visible) */
   .vista-facturacion-restaurante .comanda-table{ font-size:12px !important; }
   .vista-facturacion-restaurante .comanda-table th{ padding:5px 4px !important; font-size:11px !important; }
   .vista-facturacion-restaurante .comanda-table td{ padding:5px 4px !important; }
   .vista-facturacion-restaurante .comanda-producto-nombre{ font-size:10.5px !important; }
   .vista-facturacion-restaurante .comanda-item-cantidad{ gap:2px !important; }
   .vista-facturacion-restaurante .btn-cantidad{ width:16px !important; height:16px !important; font-size:10px !important; }
-  .vista-facturacion-restaurante .comanda-item-cantidad input{ width:24px !important; font-size:10px !important; padding:1px !important; }
+  .vista-facturacion-restaurante .comanda-item-cantidad input{
+    width:28px !important; min-width:28px !important; font-size:11.5px !important; padding:1px !important;
+    font-weight:800 !important; color:#0f172a !important; background:#fff !important; border-color:#cbd5e1 !important;
+  }
   .vista-facturacion-restaurante .btn-eliminar{ font-size:13px !important; padding:0 !important; }
 
   /* Totales muy compactos */
@@ -732,5 +745,15 @@ select.select2.form-control{height:38px;padding:6px 12px;font-size:14px;line-hei
   .vista-facturacion-restaurante .select2-container .select2-selection--single{ height:34px !important; }
   .vista-facturacion-restaurante .select2-container--default .select2-selection--single .select2-selection__rendered{ line-height:34px !important; }
   .vista-facturacion-restaurante .select2-container--default .select2-selection--single .select2-selection__arrow{ height:34px !important; }
+
+  /* Eliminar espacios innecesarios en landscape (aprovechar ancho) */
+  @media (orientation: landscape){
+    .vista-facturacion-restaurante .factura-header,
+    .vista-facturacion-restaurante .productos-header,
+    .vista-facturacion-restaurante .estacion-filter,
+    .vista-facturacion-restaurante .categorias-tabs{margin-top:0 !important;margin-bottom:0 !important}
+    .vista-facturacion-restaurante .fh-row{gap:6px !important}
+    .vista-facturacion-restaurante .productos-grid{gap:8px !important}
+  }
 }
 /* ===== FIN PACK SÚPER COMPACTO SOLO TABLET ===== */

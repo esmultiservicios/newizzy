@@ -143,31 +143,34 @@ try {
             break;
 
         case 'saveProductoBasico':
-            // Para FormData, los datos vienen en $_POST
-            $payload = [
-                'nombre'        => (string)($_POST['nombre'] ?? ''),
-                'descripcion'   => (string)($_POST['descripcion'] ?? ''),
-                'categoria_id'  => intval($_POST['categoria_id'] ?? 0),
-                'precio_venta'  => floatval($_POST['precio_venta'] ?? 0),
-                'isv1'          => intval($_POST['isv1'] ?? 0),
-                'isv2'          => intval($_POST['isv2'] ?? 0),
-                'restaurante'   => intval($_POST['restaurante'] ?? 0), // opcional
-            ];
+            // Si vino JSON, $payload ya está; si no, leer desde POST
+            if (!$payload) {
+                $payload = [
+                    'nombre'       => (string)$in('nombre',''),
+                    'descripcion'  => (string)$in('descripcion',''),
+                    'categoria_id' => intval($in('categoria_id',0)),
+                    'precio_venta' => floatval($in('precio_venta',0)),
+                    'isv1'         => intval($in('isv1',0)),
+                    'isv2'         => intval($in('isv2',0)),
+                    'restaurante'  => intval($in('restaurante',1)),
+                ];
+            }
             echo json_encode($m->guardarProductoBasico($payload));
             break;
-
+        
         case 'updateProductoBasico':
-            // Para FormData, los datos vienen en $_POST
-            $payload = [
-                'productos_id'  => intval($_POST['productos_id'] ?? $_POST['producto_id'] ?? 0),
-                'nombre'        => (string)($_POST['nombre'] ?? ''),
-                'descripcion'   => (string)($_POST['descripcion'] ?? ''),
-                'categoria_id'  => intval($_POST['categoria_id'] ?? 0),
-                'precio_venta'  => floatval($_POST['precio_venta'] ?? 0),
-                'isv1'          => intval($_POST['isv1'] ?? 0),
-                'isv2'          => intval($_POST['isv2'] ?? 0),
-                'restaurante'   => intval($_POST['restaurante'] ?? 0), // opcional
-            ];
+            if (!$payload) {
+                $payload = [
+                    'productos_id' => intval($in('productos_id', $in('producto_id', 0))),
+                    'nombre'       => (string)$in('nombre',''),
+                    'descripcion'  => (string)$in('descripcion',''),
+                    'categoria_id' => intval($in('categoria_id',0)),
+                    'precio_venta' => floatval($in('precio_venta',0)),
+                    'isv1'         => intval($in('isv1',0)),
+                    'isv2'         => intval($in('isv2',0)),
+                    'restaurante'  => intval($in('restaurante',1)),
+                ];
+            }
             echo json_encode($m->actualizarProductoBasico($payload));
             break;
 

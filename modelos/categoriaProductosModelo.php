@@ -8,7 +8,9 @@
 	class categoriaProductosModelo extends mainModel{
 		protected function agregar_categoria_productos_modelo($datos){
 			$categoria_id = mainModel::correlativo("categoria_id", "categoria");
-			$insert = "INSERT INTO categoria VALUES('$categoria_id','".$datos['nombre']."','".$datos['estado']."','".$datos['fecha_registro']."')";
+			
+			$insert = "INSERT INTO categoria (categoria_id, nombre, estacion, estado, fecha_registro) 
+					   VALUES('$categoria_id','".$datos['nombre']."','".$datos['estacion']."','".$datos['estado']."','".$datos['fecha_registro']."')";
 
 			$sql = mainModel::connection()->query($insert) or die(mainModel::connection()->error);
 			

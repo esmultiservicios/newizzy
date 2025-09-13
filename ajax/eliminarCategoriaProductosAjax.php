@@ -2,7 +2,7 @@
 	$peticionAjax = true;
 	require_once "../core/configGenerales.php";
 	
-	if(isset($_POST['categoria_id']) && isset($_POST['categoria_productos'])){
+	if(isset($_POST['categoria_id'])){
 		require_once "../controladores/categoriaProductosControlador.php";
 		$insVarios = new categoriaProductosControlador();
 		

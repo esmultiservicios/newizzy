@@ -32,6 +32,49 @@ try {
         return $default;
     };
 
+    // -------- Helpers locales (normalización/validación) ----------
+    $toBool = function($v, $default=0){
+        if (is_null($v)) return $default ? 1 : 0;
+        if (is_bool($v)) return $v ? 1 : 0;
+        $s = strtolower((string)$v);
+        return in_array($s, ['1','true','sí','si','on','yes'], true) ? 1 : 0;
+    };
+    $onlyTime = function($t){
+        if ($t === null || $t === '') return null;
+        // soporta "HH:MM" y "HH:MM:SS"
+        if (preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $t)) {
+            return strlen($t)===5 ? $t.':00' : $t;
+        }
+        // soporta "YYYY-MM-DD HH:MM" o con segundos
+        if (preg_match('/^\d{4}-\d{2}-\d{2}[ T](\d{2}:\d{2}(:\d{2})?)$/', $t, $m)) {
+            return strlen($m[1])===5 ? $m[1].':00' : $m[1];
+        }
+        return null;
+    };
+    $onlyDate = function($d){
+        if ($d === null || $d === '') return null;
+        // soporta "YYYY-MM-DD"
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $d)) return $d;
+        // soporta "YYYY-MM-DDTHH:MM(:SS)"
+        if (preg_match('/^(\d{4}-\d{2}-\d{2})[ T]\d{2}:\d{2}(:\d{2})?$/', $d, $m)) return $m[1];
+        return null;
+    };
+    $normDiasSemana = function($csv){
+        if ($csv===null || $csv==='') return null;
+        $allow = ['mon','tue','wed','thu','fri','sat','sun'];
+        $parts = array_filter(array_map('trim', explode(',', strtolower((string)$csv))));
+        $parts = array_values(array_unique(array_intersect($parts, $allow)));
+        return count($parts) ? implode(',', $parts) : null;
+    };
+    $normTipoDesc = function($v){
+        $v = strtoupper(trim((string)$v));
+        return in_array($v, ['PORC','MONTO'], true) ? $v : 'PORC';
+    };
+    $normAplicaA = function($v){
+        $v = strtoupper(trim((string)$v));
+        return in_array($v, ['PRODUCTO','CATEGORIA','TODOS'], true) ? $v : 'PRODUCTO';
+    };
+
     $m = new facturasRestauranteModelo();
 
     switch ($action) {
@@ -69,7 +112,7 @@ try {
                 $estacion = 'todas';
             }
             echo json_encode(['status'=>true,'categorias'=>$m->obtenerCategoriasProductos($estacion)]);
-            break;            
+            break;
 
         case 'loadProductos':
             // Puedes filtrar por restaurante=1 dentro del modelo si lo deseas
@@ -112,7 +155,7 @@ try {
             ];
             echo json_encode($m->guardarProductoBasico($payload));
             break;
-        
+
         case 'updateProductoBasico':
             // Para FormData, los datos vienen en $_POST
             $payload = [
@@ -173,33 +216,184 @@ try {
             break;
 
         /* ============================================================
+         * ====================  PROMOCIONES  =========================
+         * ============================================================ */
+
+        // Listado mínimo para selects {promo_id, nombre}
+        case 'loadPromocionesMin':
+            echo json_encode([
+                'status'=>true,
+                'promociones'=>$m->obtenerPromocionesMin() // Implementar en modelo
+            ]);
+            break;
+
+        // Crear promoción
+        case 'savePromocion': {
+            // admite JSON o form
+            $empresa_id = intval($in('empresa_id', 0)) ?: (isset($_SESSION['empresa_id']) ? intval($_SESSION['empresa_id']) : 0);
+            $nombre     = trim((string)$in('nombre',''));
+            if ($nombre===''){
+                echo json_encode(['status'=>false,'message'=>'El nombre es obligatorio']); break;
+            }
+            $tipo_descuento = $normTipoDesc($in('tipo_descuento','PORC'));
+            $valor          = floatval($in('valor',0));
+            $fecha_inicio   = $onlyDate($in('fecha_inicio',null));
+            $fecha_fin      = $onlyDate($in('fecha_fin',null));
+            if(!$fecha_inicio || !$fecha_fin){
+                echo json_encode(['status'=>false,'message'=>'Fecha inicio y fin son obligatorias']); break;
+            }
+            $hora_inicio    = $onlyTime($in('hora_inicio',null));
+            $hora_fin       = $onlyTime($in('hora_fin',null));
+            $dias_semana    = $normDiasSemana($in('dias_semana',null));
+            $prioridad      = intval($in('prioridad',0));
+            $aplica_a       = $normAplicaA($in('aplica_a','PRODUCTO'));
+            $acumula        = $toBool($in('acumula_con_mayoreo',0));
+            $estado         = $toBool($in('estado',1));
+            $descripcion    = (string)$in('descripcion', '');
+
+            $data = compact(
+                'empresa_id','nombre','descripcion','tipo_descuento','valor',
+                'fecha_inicio','fecha_fin','hora_inicio','hora_fin','dias_semana',
+                'prioridad','aplica_a','acumula','estado'
+            );
+            // Mapea clave del modelo si usa "acumula_con_mayoreo"
+            $data['acumula_con_mayoreo'] = $data['acumula']; unset($data['acumula']);
+
+            echo json_encode($m->guardarPromocion($data)); // Implementar en modelo
+            break;
+        }
+
+        // Actualizar promoción
+        case 'updatePromocion': {
+            $promo_id = intval($in('promo_id',0));
+            if ($promo_id<=0){ echo json_encode(['status'=>false,'message'=>'Promoción inválida']); break; }
+
+            $fields = [];
+            if (($v=$in('empresa_id', null))!==null)  $fields['empresa_id']=intval($v);
+            if (($v=$in('nombre', null))!==null)      $fields['nombre']=trim((string)$v);
+            if (($v=$in('descripcion', null))!==null) $fields['descripcion']=(string)$v;
+            if (($v=$in('tipo_descuento', null))!==null) $fields['tipo_descuento']=$normTipoDesc($v);
+            if (($v=$in('valor', null))!==null)       $fields['valor']=floatval($v);
+            if (($v=$in('fecha_inicio', null))!==null) $fields['fecha_inicio']=$onlyDate($v);
+            if (($v=$in('fecha_fin', null))!==null)     $fields['fecha_fin']=$onlyDate($v);
+            if (($v=$in('hora_inicio', null))!==null)   $fields['hora_inicio']=$onlyTime($v);
+            if (($v=$in('hora_fin', null))!==null)      $fields['hora_fin']=$onlyTime($v);
+            if (($v=$in('dias_semana', null))!==null)   $fields['dias_semana']=$normDiasSemana($v);
+            if (($v=$in('prioridad', null))!==null)     $fields['prioridad']=intval($v);
+            if (($v=$in('aplica_a', null))!==null)      $fields['aplica_a']=$normAplicaA($v);
+            if (($v=$in('acumula_con_mayoreo', null))!==null) $fields['acumula_con_mayoreo']=$toBool($v);
+            if (($v=$in('estado', null))!==null)        $fields['estado']=$toBool($v);
+
+            echo json_encode($m->actualizarPromocion($promo_id, $fields)); // Implementar en modelo
+            break;
+        }
+
+        // Productos asignados a una promo
+        case 'loadPromoProductos': {
+            $promo_id = intval($in('promo_id',0));
+            if ($promo_id<=0){ echo json_encode(['status'=>false,'message'=>'Promoción inválida']); break; }
+            echo json_encode([
+                'status'=>true,
+                'items'=>$m->obtenerProductosDePromo($promo_id) // Implementar en modelo
+            ]);
+            break;
+        }
+
+        // Asignar productos a una promo (multi)
+        case 'assignPromoProductos': {
+            $promo_id = intval($in('promo_id',0));
+            $productos_ids = $in('productos_ids', []);
+            if ($promo_id<=0){ echo json_encode(['status'=>false,'message'=>'Promoción inválida']); break; }
+            if (!is_array($productos_ids) || !count($productos_ids)){
+                echo json_encode(['status'=>false,'message'=>'Seleccione al menos un producto']); break;
+            }
+            $productos_ids = array_values(array_filter(array_map('intval', $productos_ids)));
+            echo json_encode($m->asignarProductosAPromo($promo_id, $productos_ids)); // Implementar en modelo
+            break;
+        }
+
+        // Quitar 1 producto de la promo
+        case 'removePromoProducto': {
+            $promo_id    = intval($in('promo_id',0));
+            $producto_id = intval($in('producto_id',0));
+            if ($promo_id<=0 || $producto_id<=0){
+                echo json_encode(['status'=>false,'message'=>'Datos inválidos']); break;
+            }
+            echo json_encode($m->quitarProductoDePromo($promo_id, $producto_id)); // Implementar en modelo
+            break;
+        }
+
+        // Categorías asignadas a una promo
+        case 'loadPromoCategorias': {
+            $promo_id = intval($in('promo_id',0));
+            if ($promo_id<=0){ echo json_encode(['status'=>false,'message'=>'Promoción inválida']); break; }
+            echo json_encode([
+                'status'=>true,
+                'items'=>$m->obtenerCategoriasDePromo($promo_id) // Implementar en modelo
+            ]);
+            break;
+        }
+
+        // Asignar categorías a una promo (multi)
+        case 'assignPromoCategorias': {
+            $promo_id = intval($in('promo_id',0));
+            $categorias_ids = $in('categorias_ids', []);
+            if ($promo_id<=0){ echo json_encode(['status'=>false,'message'=>'Promoción inválida']); break; }
+            if (!is_array($categorias_ids) || !count($categorias_ids)){
+                echo json_encode(['status'=>false,'message'=>'Seleccione al menos una categoría']); break;
+            }
+            $categorias_ids = array_values(array_filter(array_map('intval', $categorias_ids)));
+            echo json_encode($m->asignarCategoriasAPromo($promo_id, $categorias_ids)); // Implementar en modelo
+            break;
+        }
+
+        // Quitar 1 categoría de la promo
+        case 'removePromoCategoria': {
+            $promo_id     = intval($in('promo_id',0));
+            $categoria_id = intval($in('categoria_id',0));
+            if ($promo_id<=0 || $categoria_id<=0){
+                echo json_encode(['status'=>false,'message'=>'Datos inválidos']); break;
+            }
+            echo json_encode($m->quitarCategoriaDePromo($promo_id, $categoria_id)); // Implementar en modelo
+            break;
+        }
+
+        /* ============================================================
          * ======= FACTURA / COMANDA =================================
          * ============================================================ */
         case 'loadFacturaMesa':
             $mesa_id = intval($in('mesa_id', 0));
-            if ($mesa_id<=0) {
-                echo json_encode(['status'=>false,'message'=>'Mesa inválida']);
+            if ($mesa_id <= 0) {
+                echo json_encode(['status' => false, 'message' => 'Mesa inválida']);
                 break;
             }
+        
             $factura = $m->obtenerFacturaMesa($mesa_id);
+        
             if (!$factura) {
-                http_response_code(404);
-                echo json_encode(['status'=>false,'message'=>'No hay factura activa para esta mesa']);
+                echo json_encode([
+                    'status'  => false,
+                    'message' => 'No hay factura activa para esta mesa',
+                    // opcional: devuelve la mesa (si tienes método). Si no, quita este bloque.
+                    // 'mesa' => $m->obtenerMesa($mesa_id) ?: null,
+                    'items'   => []
+                ]);
                 break;
             }
+        
             echo json_encode([
-                'status'=>true,
-                'factura'=>$factura,
-                'mesa'=>[
+                'status' => true,
+                'factura' => $factura,
+                'mesa' => [
                     'id'        => intval($factura['mesa_id']),
                     'numero'    => $factura['numero_mesa'],
                     'capacidad' => intval($factura['capacidad_mesa']),
                     'ubicacion' => $factura['ubicacion_mesa'],
                     'estado'    => 'ocupada'
                 ],
-                'items'=>$m->obtenerDetallesFactura(intval($factura['facturas_id']))
+                'items' => $m->obtenerDetallesFactura(intval($factura['facturas_id']))
             ]);
-            break;
+            break;        
 
         // === GUARDAR FACTURA (NUEVA) ===
         case 'saveFactura': {
@@ -376,6 +570,13 @@ try {
             }
             echo json_encode($m->calcularDisponibilidadCombo($combo_id, $cantidad));
             break;
+
+        /* ============================================================
+         * ======= OBTENER PROMOCIONES VIGENTES PARA PRODUCTOS ========
+         * ============================================================ */
+        case 'loadPromocionesVigentesProductos':
+            echo json_encode(['status'=>true,'promociones'=>$m->obtenerPromocionesVigentesProductos()]);
+            break;            
 
         default:
             http_response_code(400);

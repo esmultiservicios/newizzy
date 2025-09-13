@@ -1,18 +1,28 @@
 // ==============================
 // facturasRestaurante.js (FULL + edición + uploader imagen + editar MESAS/CLIENTES + selección/edición cliente + GESTIÓN DE COMBOS MEJORADA)
 // ==============================
-
 (function(){
   // Evitar error si algún plugin de bootstrap intenta usar selectpicker
   if (typeof window.jQuery !== "undefined" && !jQuery.fn.selectpicker) {
     jQuery.fn.selectpicker = function(){ return this; };
   }
+
+  const cb = document.getElementById('promo-usa-horario');
+  const hi = document.getElementById('promo-hora-inicio');
+  const hf = document.getElementById('promo-hora-fin');
+  function toggle(){
+    const on = cb.checked;
+    [hi, hf].forEach(el => { el.disabled = !on; });
+  }
+  if (cb) { cb.addEventListener('change', toggle); toggle(); }  
 })();
 
 if (typeof SERVERURL === 'undefined') { 
   console.error('SERVERURL no está definido.'); 
   var SERVERURL = ''; 
 }
+
+var BASE = (typeof SERVERURL !== 'undefined' && SERVERURL) ? SERVERURL : (window.SERVERURL || '/');
 
 document.addEventListener('DOMContentLoaded', function () {
   // Ocultar barras del layout si existen
@@ -34,6 +44,16 @@ document.addEventListener('DOMContentLoaded', function () {
   let combos = [];
   let clienteSeleccionado = { id: 0, nombre: 'CONSUMIDOR FINAL', identificacion: '' };
 
+  let promocionesVigentes = {};
+
+  // --- Estado global ---
+  var cajaAbierta = false;
+  var lastState = null;
+
+// ===== NUEVO: Variables para promociones =====
+let PROMOS_VIGENTES = {};    // Mapa de promociones por producto
+let PROMOS_TICKER = null;    // Interval ID para el contador
+
   // Edición
   let editContext = {
     productoId: null,
@@ -45,6 +65,9 @@ document.addEventListener('DOMContentLoaded', function () {
   let selectedClienteForModal = null;
 
   // ====== Referencias DOM ======
+  const servicioSwitch = document.getElementById('servicio-switch');
+  const srvLlevar = document.getElementById('srv-llevar');
+  const srvMesa   = document.getElementById('srv-mesa');
   const mesasContainer = document.getElementById('mesas-container');
   const productosContainer = document.getElementById('productos-container');
   const categoriasTabs = document.getElementById('categorias-tabs') || document.querySelector('.categorias-tabs');
@@ -99,50 +122,62 @@ document.addEventListener('DOMContentLoaded', function () {
   const formMesa = document.getElementById('form-mesa');
   const formNuevoCliente = document.getElementById('form-nuevo-cliente');
 
-  // === Combos === ///
-  // ===== Helpers =====
-    // === Servicio: helpers y estado de UI ===
-  const srvLlevar = document.getElementById('srv-llevar');
-  const srvMesa   = document.getElementById('srv-mesa');
+  // ====== Inicio ======
+  init();
+  function init() {
+    cargarISV().then(actualizarEtiquetasISVCabecera);
+    cargarMesas();
+    cargarCategorias();
+    cargarProductos().then(()=>{ /* productos listos para editor de combo */ });
+    cargarClientes();
+    setupEventListeners();
+    bloquearCierrePorFondoYEsc();
+    initProductoImageUpload();
+    initSelect2All();
+    initHotkeys();
+    // Estado inicial de cabecera
+    setMesaSeleccionadaUI(null);
+    setClienteInfoUI({ nombre:'Consumidor final', rtn:'' });
+    initSelectsPromos();
 
-  function getServicioTipo(){
-    const chk = document.querySelector('input[name="servicioTipo"]:checked');
-    return chk ? chk.value : 'llevar';
+    getCajero();
+    verificarAperturaCaja();
+    getTotalFacturasDisponibles();
   }
 
-  function setServicioTipo(tipo){
-    if (tipo === 'mesa') {
-      if (srvMesa)   srvMesa.checked = true;
-    } else {
-      if (srvLlevar) srvLlevar.checked = true;
-    }
-    toggleServicioUI(tipo);
-  }
+  // refresca cada 5s (seguro)
+  setInterval(function () {
+    verificarAperturaCaja();
+    getTotalFacturasDisponibles();
+  }, 5000);
 
-  function toggleServicioUI(tipo){
-    // Si es "para llevar", no exigimos mesa y mostramos "No seleccionada"
-    if (tipo === 'llevar') {
-      mesaSeleccionada = null;
-      setMesaSeleccionadaUI(null); // mantiene el ícono y pone "No seleccionada"
-    } else {
-      // En mesa: si aún no hay mesa, solo dejamos el label con "No seleccionada"
-      // hasta que el usuario haga click en una mesa.
-      if (!mesaSeleccionada) setMesaSeleccionadaUI(null);
-    }
-  }
+  // ===========================================================
+  //  UI: Botón Apertura/Cierre + Modal
+  // ===========================================================
 
-  // Cambios por usuario en el control
-  const servicioSwitch = document.getElementById('servicio-switch');
-  if (servicioSwitch){
-    servicioSwitch.addEventListener('change', ()=>{
-      setServicioTipo(getServicioTipo());
+  // --- Helper para abrir modales con BS4 (jQuery) y BS5 (todas las versiones)
+  function getCajero() {
+    var url = BASE + 'core/getCajero.php';
+
+    $.ajax({
+      type: 'POST',
+      url: url,
+      dataType: 'json'
+    })
+    .done(function(datos){
+      // Soporta array [id, nombre] o objeto {colaboradores_id, colaborador}
+      var id  = Array.isArray(datos) ? datos[0] : (datos.colaboradores_id || '');
+      var nom = Array.isArray(datos) ? datos[1] : (datos.colaborador || '');
+      if (!id || !nom) return;
+      // Apertura de caja (como ya lo tenías)
+      $('#formAperturaCaja #colaboradores_id_apertura').val(id);
+      $('#formAperturaCaja #usuario_apertura').val(nom);
+      $('#cajero-nombre').html('Cajero: ' + nom);
+    })
+    .fail(function(xhr){
+      console.error('getCajero error:', xhr.responseText);
     });
   }
-
-  // Estado inicial recomendado:
-  setServicioTipo('llevar');  // Por defecto funciona como "supermercado"
-  setMesaSeleccionadaUI(null);
-
 
   function getProdControls() {
     return {
@@ -354,14 +389,17 @@ function initSelect2All(){
   }
 
   // ================= Header helpers =================
-  function setMesaSeleccionadaUI(nombreMesa){
-    if (!mesaSeleccionadaElement) return;
-    if (!nombreMesa){
-      mesaSeleccionadaElement.innerHTML = `<i class="fas fa-table"></i> No seleccionada`;
+  function setMesaSeleccionadaUI(nombreMesa) {
+    // Buscar el nodo SIEMPRE, así no depende de variables de otro ámbito
+    var el = document.getElementById('mesa-seleccionada');
+    if (!el) return; // si el span no existe aún, no rompas
+
+    if (!nombreMesa) {
+      el.innerHTML = '<i class="fas fa-table"></i> No seleccionada';
     } else {
-      mesaSeleccionadaElement.innerHTML = `<i class="fas fa-table"></i> Mesa: ${nombreMesa}`;
+      el.innerHTML = '<i class="fas fa-table"></i> Mesa: ' + nombreMesa;
     }
-  }  
+  }
 
   function setClienteInfoUI({ nombre = 'Consumidor final', rtn = '' } = {}){
     if (!clienteInfoElement) return;
@@ -373,26 +411,670 @@ function initSelect2All(){
     `;
   }
 
-  // ====== Inicio ======
-  init();
-  function init() {
-    cargarISV().then(actualizarEtiquetasISVCabecera);
-    cargarMesas();
-    cargarCategorias();
-    cargarProductos().then(()=>{ /* productos listos para editor de combo */ });
-    cargarClientes();
-    setupEventListeners();
-    bloquearCierrePorFondoYEsc();
-    initProductoImageUpload();
-    initSelect2All();
-    initHotkeys();
-    // Estado inicial de cabecera
-    setMesaSeleccionadaUI(null);
-    setClienteInfoUI({ nombre:'Consumidor final', rtn:'' });
-    getCajero();
+  /**
+   * Habilita/deshabilita la UI según el estado de la caja
+   * @param {boolean} abierta
+   */
+  function toggleUIForCajaAbierta(abierta) {
+    var disable = !abierta;
+
+    // Bloquear botones principales
+    $('#btn-guardar').prop('disabled', disable);
+    $('#btn-imprimir').prop('disabled', disable);
+    $('#btn-cerrar').prop('disabled', disable);
+    
+    // Bloquear otros elementos de la UI (manteniendo tu código original)
+    $('#agregar-producto').prop('disabled', disable);
+    $('#procesar-factura-top, #procesar-factura-bottom').prop('disabled', disable);
+    $('#cancelar-factura-top, #cancelar-factura-bottom').prop('disabled', disable);
+
+    $('#cliente-select, #vendedor-select, #producto-select, #cantidad, #descuento, #codigo-barra, #notas')
+      .prop('disabled', disable);
+
+    // Refrescar selects bootstrap-select
+    if ($('#cliente-select').hasClass('selectpicker')) $('#cliente-select').selectpicker('refresh');
+    if ($('#vendedor-select').hasClass('selectpicker')) $('#vendedor-select').selectpicker('refresh');
+    if ($('#producto-select').hasClass('selectpicker')) $('#producto-select').selectpicker('refresh');
+
+    // Cambiar texto y estilo del botón Guardar cuando la caja está cerrada
+    if (disable) {
+      $('#btn-guardar')
+        .removeClass('btn-success')
+        .addClass('btn-outline-danger')
+        .html('<i class="fas fa-ban mr-1"></i> No disponible (Caja cerrada)');
+    } else {
+      $('#btn-guardar')
+        .removeClass('btn-outline-danger')
+        .addClass('btn-success')
+        .html('<i class="fas fa-save"></i> Guardar');
+    }
+  }
+
+// ==============================
+// ATAJOS DE TECLADO – SOLO combinaciones (evita disparos al escribir)
+// Windows/Linux: Ctrl; Mac: Cmd (metaKey)
+// Algunas acciones usan Alt para no chocar con el navegador
+// ==============================
+function initHotkeys(){
+  const clickFirst = (selectors=[])=>{
+    for (const sel of selectors){
+      const el = document.querySelector(sel);
+      if (el && !el.disabled){ el.click(); return true; }
+    }
+    return false;
+  };
+  const focusFirst = (selectors=[])=>{
+    for (const sel of selectors){
+      const el = document.querySelector(sel);
+      if (el){ el.focus(); el.select && el.select(); return true; }
+    }
+    return false;
+  };
+
+  // Mapa de combinaciones seguras
+  // ctrlOrMeta = Ctrl (Win/Linux) o Cmd (Mac)
+  // alt = true para combos que podrían chocar con atajos del navegador
+  const HK = [
+    // Comanda
+    { key:'g', ctrlOrMeta:true, alt:false, type:'click', targets:['#btn-guardar'] },
+    { key:'i', ctrlOrMeta:true, alt:false, type:'click', targets:['#btn-imprimir'] },
+    { key:'l', ctrlOrMeta:true, alt:true,  type:'click', targets:['#btn-limpiar'] },
+    { key:'x', ctrlOrMeta:true, alt:true,  type:'click', targets:['#btn-cerrar'] },
+    { key:'f', ctrlOrMeta:true, alt:true,  type:'focus', targets:['#buscar-producto'] },
+    { key:'v', ctrlOrMeta:true, alt:true,  type:'toggleView' },
+
+    // Gestión
+    { key:'m', ctrlOrMeta:true, alt:false, type:'click', targets:['#btn-nueva-mesa'] },
+    { key:'c', ctrlOrMeta:true, alt:true,  type:'click', targets:['#btn-cambiar-cliente'] },
+    { key:'r', ctrlOrMeta:true, alt:true,  type:'click', targets:['#btn-nuevo-cliente-rapido', '#btn-nuevo-cliente'] },
+    { key:'p', ctrlOrMeta:true, alt:true,  type:'click', targets:['#btn-nuevo-producto'] },
+    { key:'k', ctrlOrMeta:true, alt:true,  type:'click', targets:['#btn-nueva-categoria'] },
+    { key:'b', ctrlOrMeta:true, alt:true,  type:'click', targets:['#btn-gestionar-combos'] },
+  ];
+
+  document.addEventListener('keydown', (e)=>{
+    // Requiere SIEMPRE ctrl/meta: sin modificadores, no hacemos nada.
+    const ctrlOrMeta = !!e.ctrlKey || !!e.metaKey;
+    if (!ctrlOrMeta) return;
+
+    const alt = !!e.altKey;
+    const k   = (e.key || '').toLowerCase();
+
+    // Si estás escribiendo en inputs/selects/textarea, SÍ permitimos combos (porque llevan Ctrl/Cmd)
+    // Esto NO interfiere con texto normal (no hay letra suelta).
+    const match = HK.find(h => h.key === k && h.ctrlOrMeta === true && (!!h.alt) === alt);
+    if (!match) return;
+
+    // Evita que el navegador se “robe” el atajo (ej. Ctrl+P, Ctrl+F, etc.)
+    // OJO: Nosotros solo usamos 'i' (imprimir), NO 'p'; y usamos Alt para F, P, etc., así que es seguro.
+    e.preventDefault();
+
+    if (match.type === 'click'){ clickFirst(match.targets); return; }
+    if (match.type === 'focus'){ focusFirst(match.targets); return; }
+    if (match.type === 'toggleView'){
+      const panelProductos = document.getElementById('panel-productos');
+      const panelComanda   = document.getElementById('panel-comanda');
+      const btnVerProd     = document.getElementById('btn-mostrar-productos');
+      const btnVerCom      = document.getElementById('btn-mostrar-comanda');
+
+      const productosVisibles = panelProductos && panelProductos.style.display !== 'none';
+      if (productosVisibles){
+        if (btnVerCom) btnVerCom.click();
+        else {
+          if (panelProductos) panelProductos.style.display = 'none';
+          if (panelComanda)   panelComanda.style.display   = '';
+        }
+      } else {
+        if (btnVerProd) btnVerProd.click();
+        else {
+          if (panelProductos) panelProductos.style.display = '';
+          if (panelComanda)   panelComanda.style.display   = 'none';
+        }
+      }
+    }
+  });
+
+  // Abrir modal de ayuda con clic (friendly para táctil)
+  const btnHelp = document.getElementById('btn-help');
+  if (btnHelp){
+    btnHelp.addEventListener('click', ()=>{
+      const modal = document.getElementById('modal-help');
+      if (modal) modal.style.display = 'block';
+    });
+  }
+}   
+  // ===========================================================
+  //  AJAX de backend
+  // ===========================================================
+
+  // 1) Consulta si la caja está abierta (1) o cerrada (2)
+  function getConsultarAperturaCaja() {
+    var estado_apertura = 2; // default cerrada
+    $.ajax({
+      type: 'POST',
+      url: BASE + 'core/getAperturaCajaUsuario.php',
+      async: false
+    }).done(function (r) {
+      try {
+        var data = JSON.parse(r);
+        estado_apertura = Number(data[0]) || 2;
+      } catch (e) {
+        console.error('getAperturaCajaUsuario parse:', e);
+      }
+    }).fail(function () {
+      console.error('AJAX getAperturaCajaUsuario');
+    });
+    return estado_apertura;
+  }
+
+  // 2) Contador SAR
+  function getTotalFacturasDisponibles() {
+    $.ajax({
+      type: 'POST',
+      url: BASE + 'core/getTotalFacturasDisponibles.php?_=' + Date.now(),
+      dataType: 'json'
+    })
+      .done(function (datos) {
+        console.log('[SAR] Datos recibidos:', datos);
+        if (!datos || typeof datos.facturasPendientes === 'undefined') {
+          showErrorState();
+          return;
+        }
+        facturasDisponibles = Number(datos.facturasPendientes) || 0;
+        renderCounter(datos);
+      })
+      .fail(function (jqXHR, textStatus, errorThrown) {
+        console.error('Error en AJAX:', textStatus, errorThrown);
+        showErrorState();
+      });
+  }
+
+  function showErrorState(){ if (typeof paintCounterError === 'function') paintCounterError(); } 
+
+  // Abre modal para APERTURA
+  function formAperturaBill() {
+      $('#formAperturaCaja #proceso_aperturaCaja').val("Aperturar Caja");
+      $('#open_caja').show();
+      $('#close_caja').hide();
+      $('#formAperturaCaja #monto_apertura_grupo').show();
+
+      $('#formAperturaCaja').attr({ 'data-form': 'save' });
+      $('#formAperturaCaja').attr({ 'action': '<?php echo SERVERURL; ?>ajax/addAperturaCajaAjax.php' });
+
+      $('#modal_apertura_caja').modal({
+          show: true,
+          keyboard: false,
+          backdrop: 'static'
+      });
+      
+      // Enfocar un campo específico (por ejemplo, el campo de monto)
+      $('#modal_apertura_caja').on('shown.bs.modal', function () {
+          $('#monto_apertura').focus(); // Reemplaza con el ID de tu campo
+      });
+  }
+  // Abre modal para CIERRE
+  function formCierreBill() {
+    $('#formAperturaCaja #proceso_aperturaCaja').val("Cerrar Caja");
+    $('#open_caja').hide();
+    $('#close_caja').show();
+    $('#formAperturaCaja #monto_apertura_grupo').hide();
+
+    $('#formAperturaCaja').attr({ 'data-form': 'save' });
+    $('#formAperturaCaja').attr({ 'action': '<?php echo SERVERURL; ?>ajax/addCierreCajaFacturasAjax.php' });
+
+    $('#modal_apertura_caja').modal({
+      show: true,
+      keyboard: false,
+      backdrop: 'static'
+    });
+  }
+
+  // ===== Verificación de estado de caja y bloqueo de UI =====
+  function verificarAperturaCaja() {
+    var estado = Number(getConsultarAperturaCaja());
+    cajaAbierta = (estado === 1);
+
+    // Actualizar botón de apertura/cierre
+    var $btn = $('#btn-apertura-caja');
+    if ($btn.length) {
+      if (cajaAbierta) {
+        $btn.removeClass('btn-primary').addClass('btn-warning')
+          .html('<i class="fas fa-lock mr-1"></i> Cerrar Caja')
+          .data('mode', 'cerrar');
+      } else {
+        $btn.removeClass('btn-warning').addClass('btn-primary')
+          .html('<i class="fas fa-lock-open mr-1"></i> Aperturar Caja')
+          .data('mode', 'abrir');
+      }
+    }
+
+    // Habilitar/Deshabilitar UI
+    toggleUIForCajaAbierta(cajaAbierta);
+
+    // Actualizar contador SAR
+    getTotalFacturasDisponibles();
+  }
+
+  // Si el modal se cierra, revalida
+  $(document).on('hidden.bs.modal', '#modal_apertura_caja', function () {
+    verificarAperturaCaja();
+  });
+
+  // ===========================================================
+  //  UI: Contador SAR
+  // ===========================================================
+  function renderCounter(datos) {
+    var count = Number(datos.facturasPendientes) || 0;
+    var daysLeft = parseInt(datos.contador, 10);
+    var fechaLimite = datos.fechaLimite;
+
+    var state = getCurrentState(count, daysLeft, fechaLimite);
+    var cfg = getStateConfig(state, count, daysLeft, fechaLimite);
+
+    var $counter = $('#factura-counter');
+    if (!$counter.length) return;
+
+    // icono
+    if ($counter.find('i').length) {
+      $counter.find('i').first().attr('class', cfg.icon);
+    } else {
+      $counter.prepend('<i class="' + cfg.icon + '"></i> ');
+    }
+
+    // valor + hint
+    var $value = $('#factura-disponibles');
+    if (!$value.length) {
+      $counter.append('<span id="factura-disponibles" class="counter-value"></span>');
+      $value = $('#factura-disponibles');
+    }
+    $value.text(cfg.mainText);
+
+    $counter.find('.counter-hint').remove();
+    if (cfg.hintHtml) {
+      $counter.append('<span class="counter-hint">' + cfg.hintHtml + '</span>');
+    }
+
+    // clases de estado
+    $counter
+      .removeClass(function (i, c) { return (c.match(/\bcounter-\S+/g) || []).join(' '); })
+      .addClass(cfg.class)
+      .attr('title', cfg.mainText);
+
+    // animación leve
+    $counter.removeClass('state-change');
+    void $counter[0].offsetWidth;
+    $counter.addClass('state-change');
+
+    lastState = state;
+
+    updateButtonsState(count, fechaLimite, daysLeft);
+  }
+
+  function paintCounterError() {
+    var $counter = $('#factura-counter');
+    if (!$counter.length) return;
+    if ($counter.find('i').length) $counter.find('i').first().attr('class', 'fas fa-exclamation-circle');
+    var $value = $('#factura-disponibles');
+    if (!$value.length) {
+      $counter.append('<span id="factura-disponibles" class="counter-value"></span>');
+      $value = $('#factura-disponibles');
+    }
+    $value.text('Error al cargar');
+    $counter
+      .removeClass(function (i, c) { return (c.match(/\bcounter-\S+/g) || []).join(' '); })
+      .addClass('counter-danger');
+  }
+
+  function getCurrentState(count, daysLeft, fechaLimite) {
+    if (!fechaLimite || String(fechaLimite).trim() === 'Sin definir') return 'no-config';
+    if (count < 0) return 'blocked';
+    if (daysLeft < 0) return 'expired';
+    if (daysLeft <= 5) return 'danger';
+    if (count <= 9) return 'danger';
+    if (count <= 30) return 'warning';
+    return 'normal';
+  }
+
+  /**
+   * Devuelve la config visual del contador SAR.
+   * @param {('normal'|'warning'|'danger'|'expired'|'blocked'|'no-config'|string)} state
+   * @param {number} count        Cantidad de facturas disponibles
+   * @param {?number} daysLeft    Días para vencer (negativo = vencido). Puede ser null/undefined.
+   * @param {?string|Date} fechaLimite  (Opcional) fecha de límite, solo informativo
+   */
+  function getStateConfig(state, count, daysLeft, fechaLimite) {
+    // Sanitizar entradas
+    var nCount = Number.isFinite(Number(count)) ? Number(count) : 0;
+    var nDays  = (typeof daysLeft === 'number' && Number.isFinite(daysLeft)) ? daysLeft : null;
+
+    // Texto principal
+    var main = nCount.toLocaleString('es-HN') + ' facturas';
+
+    // Hint dinámico (solo cuando faltan <= 5 días)
+    var hint = '';
+    if (nDays !== null && nDays <= 5) {
+      if (nDays < 0)       hint = 'Autorizaciones vencidas';
+      else if (nDays === 0) hint = 'Vencen hoy';
+      else                  hint = 'Vencen en ' + nDays + ' día(s)';
+    }
+
+    // (Opcional) agrega fecha límite al hint si la tienes y aplica
+    if (hint && fechaLimite) {
+      try {
+        var d = (fechaLimite instanceof Date) ? fechaLimite : new Date(String(fechaLimite).replace(' ', 'T'));
+        if (!Number.isNaN(d.getTime())) {
+          var fechaTxt = d.toLocaleDateString('es-HN', { year:'numeric', month:'2-digit', day:'2-digit' });
+          hint += ' · límite: ' + fechaTxt;
+        }
+      } catch (_e) { /* noop */ }
+    }
+
+    var hintHtml = hint ? ('<small class="d-block">' + hint + '</small>') : '';
+
+    // Enlaces reutilizables
+    var linkHtml = function (texto) {
+      return '<small class="d-block"><a href="' + BASE + 'secuencia/" target="_blank" rel="noopener" class="text-white text-decoration-underline">' + texto + '</a></small>';
+    };
+    var linkCfg = linkHtml('Configurar');
+    var linkUpd = linkHtml('Actualizar');
+
+    // Tabla de estados
+    var configs = {
+      normal:     { icon:'fas fa-file-invoice',         class:'counter-normal',     mainText: main,                         hintHtml: hintHtml },
+      warning:    { icon:'fas fa-hourglass-half',       class:'counter-warning',    mainText: main,                         hintHtml: hintHtml },
+      danger:     { icon:'fas fa-exclamation-triangle', class:'counter-danger',     mainText: main,                         hintHtml: hintHtml },
+      expired:    { icon:'fas fa-calendar-times',       class:'counter-expired',    mainText:'Autorizaciones vencidas',     hintHtml: linkUpd  },
+      blocked:    { icon:'fas fa-ban',                  class:'counter-blocked',    mainText:'Límite alcanzado',            hintHtml: linkCfg  },
+      'no-config':{ icon:'fas fa-calendar-times',       class:'counter-no-config',  mainText:'Sin fecha límite',            hintHtml: linkCfg  }
+    };
+
+    return configs[state] || configs.normal;
+  }
+
+  // Habilitar / deshabilitar acciones según caja + SAR
+  function updateButtonsState(count, fechaLimite, daysLeft) {
+    var vencido = daysLeft < 0;
+    var sarOK = (count > 0) && !!fechaLimite && String(fechaLimite).trim() !== 'Sin definir' && !vencido;
+
+    // ejemplo: imprimir bloqueado si no hay caja o SAR invalidado
+    $('#btn-imprimir').prop('disabled', !(sarOK && cajaAbierta));
+  }
+
+  function initSelectsPromos(){
+    try{
+      $('#promo-tipo').select2({width:'100%'});
+      $('#promo-aplica-a').select2({width:'100%'});
+      $('#pp-promocion').select2({width:'100%'});
+      $('#pp-productos').select2({width:'100%'});
+      $('#pc-promocion').select2({width:'100%'});
+      $('#pc-categorias').select2({width:'100%'});
+    }catch(e){}
   }
 
   function setupEventListeners() {
+    // Click del botón único (abre el modal correcto)
+    $(document).on('click', '#btn-apertura-caja', function () {
+      var mode = $(this).data('mode');
+      if (mode === 'abrir') {
+        formAperturaBill();
+      } else {
+        formCierreBill();
+      }
+    });
+  
+    // Cuando se cierra el modal de apertura/cierre
+    $('#modal_apertura_caja').on('hidden.bs.modal', function () {
+      verificarAperturaCaja();
+    });
+
+      // Dropdown Gestionar
+    $(document).on('click','#btn-gestionar-acciones',function(e){
+      e.stopPropagation();
+      $('#gestionar-menu').toggleClass('show');
+    });
+    $(document).on('click',function(){ $('#gestionar-menu').removeClass('show'); });
+    $(document).on('click','#gestionar-menu button',function(){
+      var t = $(this).data('target');
+      if(t){ $(t).trigger('click'); }
+      $('#gestionar-menu').removeClass('show');
+    });
+
+    // Dispara los botones ocultos originales
+    $(document).on('click','#gestionar-menu button',function(){
+      var t = $(this).data('target');
+      if(t){ try{ $(t).trigger('click'); }catch(e){} }
+      $('#gestionar-menu').removeClass('show');
+    });
+
+    // ====== Apertura y cierre genérico de modales .rs-modal
+    $(document).on('click','[data-close]',function(){
+      var sel = $(this).data('close'); $(sel).hide();
+    });
+
+    // ====== Promos: abrir modales
+    $('#btn-gestionar-promos').on('click', function(){
+      $('#modal-promociones-list').show();
+      // Enfocar el primer elemento del modal después de mostrarlo
+      setTimeout(function() {
+        $('#modal-promociones-list').find('input, select, textarea').first().focus();
+      }, 100);
+      // TODO: cargar listado por AJAX
+    });
+
+    $('#btn-nueva-promocion, #btn-abrir-nueva-promocion').on('click', function(){
+      // reset simple
+      $('#form-promocion')[0].reset();
+      $('#promo-id').val('');
+      $('#titulo-modal-promocion').text('Nueva promoción');
+      // limpiar checks de días
+      $('.promo-dia').prop('checked', false);
+      $('#modal-promocion').show();
+      setTimeout(function() {
+        initSelectsPromos();
+        // Enfocar el primer input después de inicializar los selects
+        $('#promo-nombre').focus();
+      }, 0);
+    });
+
+    $('#btn-asignar-promo-productos').on('click', function(){
+      $('#modal-promo-productos').show();
+      setTimeout(function() {
+        initSelectsPromos();
+        // Enfocar el primer select después de inicializar
+        $('#pp-promocion').select2('focus');
+      }, 0);
+      // TODO: cargar promos, productos y asignados por AJAX
+    });
+
+    $('#btn-asignar-promo-categorias').on('click', function(){
+      $('#modal-promo-categorias').show();
+      setTimeout(function() {
+        initSelectsPromos();
+        // Enfocar el primer select después de inicializar
+        $('#pc-promocion').select2('focus');
+      }, 0);
+      // TODO: cargar promos, categorías y asignados por AJAX
+    });
+
+    /* ============================================================
+    * ========== PROMOS - EVENTOS (dentro de setupEventListeners) =
+    * ============================================================ */
+
+    // Guardar promoción (Crear/Actualizar)
+    $(document).on('click', '#btn-guardar-promocion', async function(){
+      try{
+        const data = recogerFormPromocion(); // arma el payload
+        const accion = data.promo_id ? 'updatePromocion' : 'savePromocion';
+        const res = await apiPromos(accion, data);
+        if(!res || !res.status){ throw new Error(res && res.message ? res.message : 'No se pudo guardar'); }
+        showAlert('success','Éxito', data.promo_id ? 'Promoción actualizada' : 'Promoción creada');
+        $('#modal-promocion').hide();
+
+        // Refrescar selects de otros modales (productos/categorías)
+        await Promise.all([
+          llenarPromosSelect($('#pp-promocion')),
+          llenarPromosSelect($('#pc-promocion')),
+        ]);
+      }catch(e){
+        showAlert('error','Error', e.message || 'Error al guardar la promoción');
+      }
+    });
+
+    if (srvLlevar) srvLlevar.addEventListener('change', () => setServicioTipo('llevar'));
+    if (srvMesa)   srvMesa.addEventListener('change',   () => setServicioTipo('mesa'));
+
+    // Cambiar promo en "Asignar productos": carga la lista asignada
+    $(document).on('change', '#pp-promocion', async function(){
+      const pid = $(this).val();
+      $('#pp-listado').html('');
+      if (pid) await cargarAsignadosProductos(pid);
+    });
+
+    // Guardar asignación productos -> promo
+    $(document).on('click', '#btn-guardar-promo-productos', async function(){
+      const promo_id = $('#pp-promocion').val();
+      const productos_ids = ($('#pp-productos').val() || []).map(v => parseInt(v,10)).filter(Boolean);
+      if(!promo_id){ showAlert('warning','Atención','Seleccione una promoción'); return; }
+      if(!productos_ids.length){ showAlert('warning','Atención','Seleccione al menos un producto'); return; }
+      try{
+        const res = await apiPromos('assignPromoProductos', { promo_id, productos_ids });
+        if(!res || !res.status){ throw new Error(res && res.message ? res.message : 'No se pudo asignar'); }
+        showAlert('success','Éxito','Productos asignados');
+        $('#pp-productos').val(null).trigger('change');
+        await cargarAsignadosProductos(promo_id);
+      }catch(e){
+        showAlert('error','Error', e.message || 'Error al asignar productos');
+      }
+    });
+
+    // Quitar producto de una promo (delegado)
+    $(document).on('click', '.pp-del', async function(){
+      const producto_id = $(this).data('pid');
+      const promo_id    = $(this).data('promo');
+      if(!promo_id || !producto_id) return;
+      showConfirm('Quitar producto','¿Desea quitar este producto de la promoción?', async ()=>{
+        try{
+          const res = await apiPromos('removePromoProducto', { promo_id, producto_id });
+          if(!res || !res.status){ throw new Error(res && res.message ? res.message : 'No se pudo quitar'); }
+          await cargarAsignadosProductos(promo_id);
+        }catch(e){
+          showAlert('error','Error', e.message || 'Error al quitar producto');
+        }
+      });
+    });
+
+    // Cambiar promo en "Asignar categorías": carga la lista asignada
+    $(document).on('change', '#pc-promocion', async function(){
+      const pid = $(this).val();
+      $('#pc-listado').html('');
+      if (pid) await cargarAsignadosCategorias(pid);
+    });
+
+    // Guardar asignación categorías -> promo
+    $(document).on('click', '#btn-guardar-promo-categorias', async function(){
+      const promo_id = $('#pc-promocion').val();
+      const categorias_ids = ($('#pc-categorias').val() || []).map(v => parseInt(v,10)).filter(Boolean);
+      if(!promo_id){ showAlert('warning','Atención','Seleccione una promoción'); return; }
+      if(!categorias_ids.length){ showAlert('warning','Atención','Seleccione al menos una categoría'); return; }
+      try{
+        const res = await apiPromos('assignPromoCategorias', { promo_id, categorias_ids });
+        if(!res || !res.status){ throw new Error(res && res.message ? res.message : 'No se pudo asignar'); }
+        showAlert('success','Éxito','Categorías asignadas');
+        $('#pc-categorias').val(null).trigger('change');
+        await cargarAsignadosCategorias(promo_id);
+      }catch(e){
+        showAlert('error','Error', e.message || 'Error al asignar categorías');
+      }
+    });
+
+    // Quitar categoría de una promo (delegado)
+    $(document).on('click', '.pc-del', async function(){
+      const categoria_id = $(this).data('cid');
+      const promo_id     = $(this).data('promo');
+      if(!promo_id || !categoria_id) return;
+      showConfirm('Quitar categoría','¿Desea quitar esta categoría de la promoción?', async ()=>{
+        try{
+          const res = await apiPromos('removePromoCategoria', { promo_id, categoria_id });
+          if(!res || !res.status){ throw new Error(res && res.message ? res.message : 'No se pudo quitar'); }
+          await cargarAsignadosCategorias(promo_id);
+        }catch(e){
+          showAlert('error','Error', e.message || 'Error al quitar categoría');
+        }
+      });
+    });
+
+    // ====== Función genérica para enfocar el primer input en modales
+    $(document).on('shown', '.rs-modal', function() {
+      var $modal = $(this);
+      // Pequeña demora para asegurar que el modal esté completamente visible
+      setTimeout(function() {
+        // Buscar el primer input, select o textarea que no esté oculto o deshabilitado
+        var $firstInput = $modal.find('input:visible:not(:disabled), select:visible:not(:disabled), textarea:visible:not(:disabled)').first();
+        if ($firstInput.length) {
+          // Si es un select2, usar el método específico de select2
+          if ($firstInput.hasClass('select2-hidden-accessible')) {
+            $firstInput.select2('focus');
+          } else {
+            $firstInput.focus();
+          }
+        }
+      }, 100);
+    });
+
+    // ====== Añadir esta funcionalidad a otros modales existentes
+    // Modal para nueva/editar mesa
+    $(document).on('click', '#btn-nueva-mesa', function() {
+      $('#modal-mesa').show();
+      setTimeout(function() {
+        $('#numero-mesa').focus();
+      }, 100);
+    });
+
+    // Modal para seleccionar cliente
+    $(document).on('click', '#btn-cambiar-cliente', function() {
+      $('#modal-cliente').show();
+      setTimeout(function() {
+        $('#buscar-cliente').focus();
+      }, 100);
+    });
+
+    // Modal para nuevo/editar cliente
+    $(document).on('click', '#btn-nuevo-cliente', function() {
+      $('#modal-nuevo-cliente').show();
+      setTimeout(function() {
+        $('#cli-nombre').focus();
+      }, 100);
+    });
+
+    // Modal para nueva categoría
+    $(document).on('click', '#btn-nueva-categoria', function() {
+      $('#modal-categoria').show();
+      setTimeout(function() {
+        $('#cat-nombre').focus();
+      }, 100);
+    });
+
+    // Modal para nuevo producto
+    $(document).on('click', '#btn-nuevo-producto', function() {
+      $('#modal-producto').show();
+      setTimeout(function() {
+        $('#prod-nombre').focus();
+      }, 100);
+    });
+
+    // Modal para combos
+    $(document).on('click', '#btn-gestionar-combos', function() {
+      $('#modal-combos').show();
+      setTimeout(function() {
+        $('#modal-combos').find('input, select, textarea').first().focus();
+      }, 100);
+    });
+
+    // Modal de ayuda
+    $(document).on('click', '#btn-help', function() {
+      $('#modal-help').show();
+      // No es necesario enfocar en el modal de ayuda ya que es principalmente de lectura
+    });
     // ===== Búsqueda productos =====
     if (buscarProductoInput) {
       // filtra por nombre/desc al escribir
@@ -571,7 +1253,10 @@ function initSelect2All(){
     
       if (inpNombre) inpNombre.value='';
       if (inpDesc)   inpDesc.value='';
-      if (inpPrecio) inpPrecio.value='0.00';
+      if (inpPrecio) {
+        inpPrecio.value = '';
+        inpPrecio.placeholder = '0.00';
+      }
       if (chkISV1)   chkISV1.checked=false;
       if (chkISV2)   chkISV2.checked=false;
     
@@ -656,6 +1341,295 @@ function initSelect2All(){
     };    
   }
 
+  /* ============================================================
+  * ===== PROMOS - FUNCIONES (fuera de setupEventListeners) =====
+  *    PÉGALAS en el mismo archivo, dentro del scope de
+  *    DOMContentLoaded, por ejemplo después de tus helpers de
+  *    productos/categorías y antes de "/* ========= Helpers =========
+  * ============================================================ */
+  // URL de AJAX
+  const AJAX_PROMOS = BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php';
+
+  // Post JSON con manejo de error
+  async function apiPromos(action, data){
+    const r = await fetch(AJAX_PROMOS, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action, data })
+    });
+    let j=null; try{ j = await r.json(); }catch(_){}
+    return j;
+  }
+
+  // ======= PROMOS: estado y utilidades =======
+  const nfHNL = new Intl.NumberFormat('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtHNL = n => nfHNL.format(Number(n || 0));
+
+  /**
+   * Carga las promociones vigentes desde el servidor
+   */
+  function fetchPromosVigentesProductos() {
+    return fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'action=loadPromocionesVigentesProductos'
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.status && data.promociones) {
+        PROMOS_VIGENTES = data.promociones;
+      }
+      return data;
+    })
+    .catch(error => {
+      console.error('Error cargando promociones:', error);
+      return {status: false};
+    });
+  }
+
+  /**
+   * Calcula el precio con descuento de promoción
+   */
+  function precioConPromo(producto, promo) {
+    const base = Number(producto.precio_venta || 0);
+    if (!promo) return { base, promo: null };
+
+    if (promo.tipo_descuento === 'PORC') {
+      const p = Math.max(0, base * (1 - (Number(promo.valor) / 100)));
+      return { base, promo: p };
+    }
+    if (promo.tipo_descuento === 'MONTO') {
+      const p = Math.max(0, base - Number(promo.valor));
+      return { base, promo: p };
+    }
+    return { base, promo: null };
+  }
+
+  /**
+   * Formatea el tiempo restante para una promoción
+   */
+  function countdownLabel(finISO) {
+    try {
+      const fin = new Date(finISO.replace(' ', 'T'));
+      if (Number.isNaN(fin.getTime())) return '';
+      
+      const diff = fin - new Date();
+      if (diff <= 0) return 'expirada';
+      
+      const s = Math.floor(diff / 1000);
+      const d = Math.floor(s / 86400);
+      const h = Math.floor((s % 86400) / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      
+      if (d > 0) return `${d}d ${h}h`;
+      if (h > 0) return `${h}h ${m}m`;
+      return `${m}m`;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  /**
+   * Crea el HTML del badge de promoción
+   */
+  function buildPromoBadge(promo) {
+    const tipo = promo.tipo_descuento; // PORC | MONTO
+    const fmt = (n) => new Intl.NumberFormat('es-HN', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    }).format(n);
+    
+    const etiqueta = (tipo === 'PORC') ? 
+      `-${promo.valor}%` : 
+      `-L ${fmt(promo.valor)}`;
+    
+    const fin = promo.fin_iso || `${promo.fecha_fin} ${promo.hora_fin || '23:59:59'}`;
+    const tooltip = `${promo.nombre || 'Promoción'} · finaliza ${fin}`;
+
+    return `
+      <div class="badge-promocion" data-tipo="${tipo}" data-tooltip="${tooltip}">
+        <i class="fas fa-bolt"></i>
+        <span class="badge-promo-text">${etiqueta}</span>
+        <span class="badge-promo-count" data-ends="${fin}">${countdownLabel(fin)}</span>
+      </div>
+    `;
+  }
+
+  /**
+   * Inicia el contador que actualiza los badges de promoción cada 30 segundos
+   */
+  function startPromosTicker() {
+    // Detener ticker anterior si existe
+    stopPromosTicker();
+    
+    PROMOS_TICKER = setInterval(() => {
+      // Actualizar contadores de promociones
+      document.querySelectorAll('.badge-promo-count').forEach(el => {
+        const fin = el.getAttribute('data-ends');
+        if (fin) {
+          el.textContent = countdownLabel(fin);
+        }
+      });
+    }, 30000); // 30 segundos
+  }
+
+  /**
+   * Detiene el contador de promociones
+   */
+  function stopPromosTicker() {
+    if (PROMOS_TICKER) {
+      clearInterval(PROMOS_TICKER);
+      PROMOS_TICKER = null;
+    }
+  }
+
+  // Construye el payload desde el form del modal de promoción
+  function recogerFormPromocion(){
+    const promo_id   = ($('#promo-id').val() || '').trim();
+    const empresa_id = parseInt($('#promo-empresa-id').val(),10) || 1;
+    const nombre     = ($('#promo-nombre').val() || '').trim();
+    const descripcion= ($('#promo-descripcion').val() || '').trim();
+    const tipo_descuento = $('#promo-tipo').val();
+    const valor      = parseFloat($('#promo-valor').val() || '0') || 0;
+
+    const fecha_inicio = $('#promo-fecha-inicio').val(); // YYYY-MM-DD
+    const fecha_fin    = $('#promo-fecha-fin').val();
+
+    // Horario diario opcional
+    const usaHorario   = $('#promo-usa-horario').is(':checked');
+    const hora_inicio  = usaHorario ? ($('#promo-hora-inicio').val() || null) : null;
+    const hora_fin     = usaHorario ? ($('#promo-hora-fin').val() || null) : null;
+
+    // Días de la semana: SET en MySQL => "mon,tue,wed"
+    const dias_semana = $('.promo-dia:checked').map(function(){ return $(this).val(); }).get().join(',') || null;
+
+    const prioridad   = parseInt($('#promo-prioridad').val(),10) || 0;
+    const aplica_a    = $('#promo-aplica-a').val();  // 'PRODUCTO' | 'CATEGORIA' | 'TODOS'
+    const acumula_con_mayoreo = $('#promo-acumula').is(':checked') ? 1 : 0;
+    const estado      = $('#promo-estado').is(':checked') ? 1 : 0;
+
+    if(!nombre){ throw new Error('El nombre es obligatorio'); }
+    if(!fecha_inicio || !fecha_fin){ throw new Error('Seleccione fecha inicio y fin'); }
+
+    return {
+      promo_id: promo_id ? parseInt(promo_id,10) : null,
+      empresa_id, nombre, descripcion,
+      tipo_descuento, valor,
+      fecha_inicio, fecha_fin,
+      hora_inicio, hora_fin,
+      dias_semana,
+      prioridad, aplica_a, acumula_con_mayoreo, estado
+    };
+  }
+
+  /* ---------- SELECTS (llenado) ---------- */
+  async function llenarPromosSelect($sel){
+    const res = await apiPromos('loadPromocionesMin', {});
+    const list = (res && res.promociones) ? res.promociones : [];
+    const selected = String($sel.val() || '');
+    $sel.empty().append(`<option value=""></option>`);
+    list.forEach(p => {
+      const opt = new Option(`${p.nombre}`, p.promo_id, false, selected===String(p.promo_id));
+      $sel.append(opt);
+    });
+    $sel.trigger('change');
+  }
+
+  async function llenarProductosSelect($sel){
+    // Si ya tienes productos cargados globalmente, puedes usarlos.
+    // Para ser autónomos, pedimos al backend:
+    const res = await apiPromos('loadProductos', {});
+    const list = (res && res.productos) ? res.productos : [];
+    $sel.empty();
+    list.forEach(p=>{
+      const opt = new Option(`${p.nombre} (${p.barCode||''})`, p.productos_id, false, false);
+      $sel.append(opt);
+    });
+    $sel.trigger('change');
+  }
+
+  async function llenarCategoriasSelect($sel){
+    const res = await apiPromos('loadCategorias', { estacion:'todas' });
+    const list = (res && res.categorias) ? res.categorias : [];
+    $sel.empty();
+    list.forEach(c=>{
+      const opt = new Option(`${c.nombre}`, c.id, false, false);
+      $sel.append(opt);
+    });
+    $sel.trigger('change');
+  }
+
+  // Helpers para apertura de modales de asignación
+  async function llenarSelectsPromoProductos(){
+    await Promise.all([
+      llenarPromosSelect($('#pp-promocion')),
+      llenarProductosSelect($('#pp-productos'))
+    ]);
+    // Si la promo ya está seleccionada, cargar asignados
+    const pid = $('#pp-promocion').val();
+    if (pid) await cargarAsignadosProductos(pid);
+  }
+
+  async function llenarSelectsPromoCategorias(){
+    await Promise.all([
+      llenarPromosSelect($('#pc-promocion')),
+      llenarCategoriasSelect($('#pc-categorias'))
+    ]);
+    const pid = $('#pc-promocion').val();
+    if (pid) await cargarAsignadosCategorias(pid);
+  }
+
+  /* ---------- Listados asignados + render ---------- */
+  async function cargarAsignadosProductos(promo_id){
+    const res = await apiPromos('loadPromoProductos', { promo_id });
+    const items = (res && res.items) ? res.items : [];
+    const tbody = $('#pp-listado');
+    tbody.html('');
+    if(!items.length){
+      tbody.append('<tr><td colspan="3" class="text-center muted">Sin productos asignados</td></tr>');
+      return;
+    }
+    items.forEach(row=>{
+      const tr = `
+        <tr>
+          <td>${escapeHtml(row.nombre || '')}</td>
+          <td>${escapeHtml(row.barCode || '')}</td>
+          <td class="text-right">
+            <button type="button" class="btn btn-sm btn-danger pp-del" data-promo="${promo_id}" data-pid="${row.producto_id}">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        </tr>`;
+      tbody.append(tr);
+    });
+  }
+
+  async function cargarAsignadosCategorias(promo_id){
+    const res = await apiPromos('loadPromoCategorias', { promo_id });
+    const items = (res && res.items) ? res.items : [];
+    const tbody = $('#pc-listado');
+    tbody.html('');
+    if(!items.length){
+      tbody.append('<tr><td colspan="2" class="text-center muted">Sin categorías asignadas</td></tr>');
+      return;
+    }
+    items.forEach(row=>{
+      const tr = `
+        <tr>
+          <td>${escapeHtml(row.nombre || '')}</td>
+          <td class="text-right">
+            <button type="button" class="btn btn-sm btn-danger pc-del" data-promo="${promo_id}" data-cid="${row.categoria_id}">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        </tr>`;
+      tbody.append(tr);
+    });
+  }
+
+// Utilidad: escapar HTML (si ya tienes escapeHtml, esta usa la tuya)
+function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+
   // Evitar cerrar modales por fondo/ESC
   function bloquearCierrePorFondoYEsc(){
     [modalMesa, modalCliente, modalCategoria, modalProducto, modalNuevoCliente, modalCombos, modalComboEditor].forEach(m => {
@@ -681,7 +1655,7 @@ function initSelect2All(){
 
     // ===== cargarReglasCombo =====
   function cargarReglasCombo(comboId){
-    return fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
+    return fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
       method:'POST',
       headers:{'Content-Type':'application/x-www-form-urlencoded'},
       body:`action=loadComboCategoriaReglas&combo_id=${comboId}`
@@ -693,7 +1667,7 @@ function initSelect2All(){
   
   // ===== ISV (para totales de la comanda) =====
   function cargarISV() {
-    return fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
+    return fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: 'action=loadISV'
@@ -727,6 +1701,37 @@ function initSelect2All(){
       .catch(() => { showAlert('error', 'Error', 'Error al cargar las mesas'); });
   }
 
+  function setServicioTipo(tipo){
+    if (tipo === 'mesa') {
+      if (srvMesa)   srvMesa.checked = true;
+    } else {
+      if (srvLlevar) srvLlevar.checked = true;
+    }
+    toggleServicioUI(tipo);
+  }
+
+  function toggleServicioUI(tipo){
+    // Si es "para llevar", no exigimos mesa y mostramos "No seleccionada"
+    if (tipo === 'llevar') {
+      mesaSeleccionada = null;
+      setMesaSeleccionadaUI(null);   // mantiene el ícono y pone "No seleccionada"
+      highlightMesaSeleccionada();   // <-- agrega esto para quitar el highlight
+    } else {
+      if (!mesaSeleccionada) setMesaSeleccionadaUI(null);
+    }
+  }  
+
+  // Cambios por usuario en el control
+  if (servicioSwitch){
+    servicioSwitch.addEventListener('change', ()=>{
+      setServicioTipo(getServicioTipo());
+    });
+  }
+
+  // Estado inicial recomendado:
+  setServicioTipo('llevar');  // Por defecto funciona como "supermercado"
+  setMesaSeleccionadaUI(null);
+    
   function renderizarMesas() {
     if (!mesasContainer) return;
     mesasContainer.innerHTML = '';
@@ -838,7 +1843,7 @@ function initSelect2All(){
     reinitSelect2InModal('#modal-mesa');
     
     setTimeout(() => { if (n) { n.focus(); n.select && n.select(); } }, 10);
-}
+  }
 
   function guardarMesa() {
     const mesaId     = (document.getElementById('mesa-id') || {}).value || '';
@@ -950,24 +1955,43 @@ function initSelect2All(){
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: 'action=loadProductos'
     })
-      .then(r => r.json())
-      .then(data => {
-        if (data.status) {
-          productos = data.productos || [];
-          renderizarProductos(productos);
-          if (!categorias.length) {
-            const map = new Map();
-            productos.forEach(p => { map.set(p.categoria_id, true); });
-            categorias = [...map.keys()].map(id => ({ id, nombre: `Cat. ${id}`, estacion: 'ninguna' }));
-            renderizarCategorias();
-          }
-        } else {
-          showAlert('error', 'Error', 'No se pudieron cargar los productos');
+    .then(r => r.json())
+    .then(async data => {
+      if (data.status) {
+        productos = data.productos || [];
+  
+        // === CARGAR PROMOCIONES ===
+        try {
+          await fetchPromosVigentesProductos();
+        } catch (e) {
+          console.warn('No se pudieron cargar promociones:', e);
+          // Continuar aunque falle las promociones
         }
-      })
-      .catch(() => { showAlert('error', 'Error', 'Error al cargar los productos'); });
+  
+        renderizarProductos(productos);
+  
+        // Iniciar contador de promociones
+        try {
+          startPromosTicker();
+        } catch (e) {
+          console.warn('No se pudo iniciar el ticker de promociones:', e);
+        }
+  
+        if (!categorias.length) {
+          const map = new Map();
+          productos.forEach(p => { map.set(p.categoria_id, true); });
+          categorias = [...map.keys()].map(id => ({ id, nombre: `Cat. ${id}`, estacion: 'ninguna' }));
+          renderizarCategorias();
+        }
+      } else {
+        showAlert('error', 'Error', 'No se pudieron cargar los productos');
+      }
+    })
+    .catch(() => { 
+      showAlert('error', 'Error', 'Error al cargar los productos'); 
+    });
   }
-
+  
   function renderizarProductos(productosList) {
     if (!productosContainer) return;
     productosContainer.innerHTML = '';
@@ -982,7 +2006,8 @@ function initSelect2All(){
       return;
     }
   
-    const formatNumber = (num) => new Intl.NumberFormat('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+    const formatNumber = (num) =>
+      new Intl.NumberFormat('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
   
     productosList.forEach(producto => {
       const isCombo = !!(window.__comboProductoIds && window.__comboProductoIds.has(parseInt(producto.productos_id,10)));
@@ -994,6 +2019,7 @@ function initSelect2All(){
       productoElement.className = 'producto-item';
       if (!productoElement.style.position) productoElement.style.position = 'relative';
   
+      // Acciones (editar)
       const actions = document.createElement('div');
       actions.className = 'card-actions';
       const btnEditar = document.createElement('button');
@@ -1008,6 +2034,7 @@ function initSelect2All(){
       actions.appendChild(btnEditar);
       productoElement.appendChild(actions);
   
+      // ==== Imagen (SE QUEDA IGUAL con tu file_name) ====
       const imagenContainer = document.createElement('div');
       imagenContainer.className = 'producto-imagen-container';
       const imagenDiv = document.createElement('div');
@@ -1023,26 +2050,66 @@ function initSelect2All(){
       } else {
         imagenDiv.classList.add('sin-imagen');
       }
+  
+      // ==== BADGE de PROMO sobre la imagen (nuevo) ====
+      let promoData = PROMOS_VIGENTES[ Number(producto.productos_id) ];
+      // si viniera array, toma la de mayor prioridad
+      if (Array.isArray(promoData) && promoData.length) {
+        promoData = promoData.sort((a,b)=> (b.prioridad||0)-(a.prioridad||0))[0];
+      }
+      if (promoData) {
+        const wrap = document.createElement('div');
+        wrap.innerHTML = buildPromoBadge(promoData); // helper nuevo (abajo)
+        imagenContainer.appendChild(wrap.firstElementChild);
+      }
+  
       imagenContainer.appendChild(imagenDiv);
       productoElement.appendChild(imagenContainer);
   
+      // Contenido
       const contenidoDiv = document.createElement('div');
       contenidoDiv.className = 'producto-contenido';
+  
       const mostrarMayoreo = (producto.cantidad_mayoreo > 0 && producto.precio_mayoreo > 0);
+  
+      // calcular precio con promo (si hay)
+      const calc = precioConPromo(producto, promoData); // helper nuevo (abajo)
+  
+      // nombre + (si era combo, badge se queda)
+      const nombreHtml = `<h4 class="producto-nombre">${producto.nombre}</h4>`;
+  
+      // precios (si hay promo: tachado + nuevo precio)
+      let preciosHtml = '';
+      if (calc.promo !== null) {
+        preciosHtml = `
+          <div class="producto-precios">
+            <div class="precio-regular"><span class="precio-valor"><del>L ${formatNumber(calc.base)}</del></span></div>
+            <div class="precio-regular"><span class="precio-valor">L ${formatNumber(calc.promo)}</span></div>
+            ${mostrarMayoreo ? `<div class="precio-mayoreo"><span class="mayoreo-info">${producto.cantidad_mayoreo} x L ${formatNumber(producto.precio_mayoreo)}</span></div>` : ''}
+          </div>`;
+      } else {
+        preciosHtml = `
+          <div class="producto-precios">
+            <div class="precio-regular"><span class="precio-valor">L ${formatNumber(producto.precio_venta)}</span></div>
+            ${mostrarMayoreo ? `<div class="precio-mayoreo"><span class="mayoreo-info">${producto.cantidad_mayoreo} x L ${formatNumber(producto.precio_mayoreo)}</span></div>` : ''}
+          </div>`;
+      }
+  
+      // mete todo el contenido
       contenidoDiv.innerHTML = `
         ${comboBadge}
-        <h4 class="producto-nombre">${producto.nombre}</h4>                
-        <div class="producto-precios">
-          <div class="precio-regular"><span class="precio-valor">L ${formatNumber(producto.precio_venta)}</span></div>
-          ${mostrarMayoreo ? `<div class="precio-mayoreo"><span class="mayoreo-info">${producto.cantidad_mayoreo} x L ${formatNumber(producto.precio_mayoreo)}</span></div>` : ''}
-        </div>`;
+        ${nombreHtml}
+        ${preciosHtml}
+      `;
       productoElement.appendChild(contenidoDiv);
   
+      // Botón Agregar (igual)
       const btnAgregar = document.createElement('button');
       btnAgregar.className = 'btn-agregar';
       btnAgregar.innerHTML = '<i class="fas fa-cart-plus"></i> Agregar';
       productoElement.appendChild(btnAgregar);
   
+      // Datos que mandas al carrito (igual, respetando tu imagen)
       const datosProducto = {
         id: producto.productos_id,
         nombre: producto.nombre,
@@ -1061,7 +2128,7 @@ function initSelect2All(){
   
       productosContainer.appendChild(productoElement);
     });
-  }
+  }  
     
   function filtrarProductos(termino, categoriaId = null) {
     let productosFiltrados = productos;
@@ -1422,72 +2489,118 @@ function initSelect2All(){
   }
 
   // ===== FACTURAS =====
-  function cargarFacturaMesa(mesaId) {
-    fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `action=loadFacturaMesa&mesa_id=${encodeURIComponent(mesaId)}`
+ function cargarFacturaMesa(mesaId) {
+  fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `action=loadFacturaMesa&mesa_id=${encodeURIComponent(mesaId)}`
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data && data.status) {
+      // En mesa
+      setServicioTipo('mesa');
+
+      facturaActual    = data.factura || null;
+      mesaSeleccionada = data.mesa    || mesaSeleccionada;
+
+      const itemsArr = Array.isArray(data.items) ? data.items : [];
+      comandaItems = itemsArr.map(item => ({
+        producto: {
+          id: item.productos_id,
+          nombre: item.nombre_producto,
+          precio: parseFloat(item.precio),
+          descripcion: item.descripcion_producto || '',
+          isv1: false,
+          isv2: false,
+          para_cocina: 0
+        },
+        cantidad: parseFloat(item.cantidad),
+        precio:   parseFloat(item.precio),
+        total:    parseFloat(item.precio) * parseFloat(item.cantidad)
+      }));
+
+      // Mesa en el header (sin depender de variables externas)
+      const nomMesa = mesaSeleccionada
+        ? (mesaSeleccionada.numero || mesaSeleccionada.Numero || mesaSeleccionada.nombre || mesaSeleccionada.nombre_mesa || null)
+        : null;
+      setMesaSeleccionadaUI(nomMesa);
+
+      // Título de factura robusto
+      const numFactura = facturaActual
+        ? (facturaActual.number || facturaActual.numero || facturaActual.factura_numero || facturaActual.id || facturaActual.factura_id)
+        : null;
+      if (facturaTitle) {
+        facturaTitle.innerHTML = `<i class="fas fa-receipt"></i> ${numFactura ? 'Factura #' + numFactura : 'Factura abierta'}`;
+      }
+
+      // Observaciones (notas/observaciones)
+      if (observacionesTextarea) {
+        observacionesTextarea.value = (facturaActual && (facturaActual.notas || facturaActual.observaciones || '')) || '';
+      }
+      if (btnImprimir) btnImprimir.disabled = false;
+
+      // --- Cliente de la factura (tolerante a diferentes llaves) ---
+      (function () {
+        const f = data.factura || {};
+        const c = f.cliente || data.cliente || {};
+
+        const clienteId = parseInt(
+          (f.cliente_id ?? c.id ?? c.clientes_id ?? 0),
+          10
+        ) || 0;
+
+        const clienteNombre = (
+          f.cliente_nombre ??
+          f.nombre_cliente ??
+          c.nombre ??
+          ''
+        ).toString().trim();
+
+        const clienteIdent = (
+          f.cliente_identificacion ??
+          f.cliente_rtn ??
+          c.identificacion ??
+          c.rtn ??
+          ''
+        ).toString().trim();
+
+        clienteSeleccionado = (clienteId > 0 || clienteNombre)
+          ? { id: clienteId, nombre: (clienteNombre || 'Cliente'), identificacion: clienteIdent }
+          : { id: 0, nombre: 'CONSUMIDOR FINAL', identificacion: '' };
+
+        pintarClienteInfoHeader();
+      })();
+
+      actualizarComandaUI();
+      highlightMesaSeleccionada();
+
+    } else {
+      // Sin factura previa (sigue servicio "mesa")
+      setServicioTipo('mesa');
+
+      facturaActual = null;
+      comandaItems = [];
+      actualizarComandaUI();
+
+      if (facturaTitle) {
+        facturaTitle.innerHTML = `<i class="fas fa-receipt"></i> Nueva Comanda`;
+      }
+      if (btnImprimir) btnImprimir.disabled = true;
+
+      // Evita ReferenceError: no uses mesaSeleccionadaElement aquí
+      const nomMesa = mesaSeleccionada
+        ? (mesaSeleccionada.numero || mesaSeleccionada.Numero || null)
+        : null;
+      setMesaSeleccionadaUI(nomMesa);
+
+      highlightMesaSeleccionada();
+      }
     })
-      .then(r => r.json())
-      .then(data => {
-        if (data.status) {
-          // En mesa
-          setServicioTipo('mesa');
-  
-          facturaActual = data.factura;
-          mesaSeleccionada = data.mesa;
-          comandaItems = data.items.map(item => ({
-            producto: {
-              id: item.productos_id,
-              nombre: item.nombre_producto,
-              precio: parseFloat(item.precio),
-              descripcion: item.descripcion_producto || '',
-              isv1: false,
-              isv2: false,
-              para_cocina: 0
-            },
-            cantidad: parseFloat(item.cantidad),
-            precio: parseFloat(item.precio),
-            total: parseFloat(item.precio) * parseFloat(item.cantidad)
-          }));
-  
-          setMesaSeleccionadaUI(mesaSeleccionada.numero);
-          if (facturaTitle) facturaTitle.innerHTML = `<i class="fas fa-receipt"></i> Factura #${facturaActual.number}`;
-          if (observacionesTextarea) observacionesTextarea.value = facturaActual.notas || '';
-          if (btnImprimir) btnImprimir.disabled = false;
-  
-          if (facturaActual.cliente_id && facturaActual.cliente_nombre) {
-            clienteSeleccionado = {
-              id: facturaActual.cliente_id,
-              nombre: facturaActual.cliente_nombre,
-              identificacion: (facturaActual.cliente_identificacion || '').trim()
-            };
-          } else {
-            clienteSeleccionado = { id: 0, nombre: 'CONSUMIDOR FINAL', identificacion: '' };
-          }
-          pintarClienteInfoHeader();
-  
-          actualizarComandaUI();
-          highlightMesaSeleccionada();
-        } else {
-          // Sin factura previa (sigue servicio "mesa")
-          setServicioTipo('mesa');
-  
-          facturaActual = null;
-          comandaItems = [];
-          actualizarComandaUI();
-          if (facturaTitle) facturaTitle.innerHTML = `<i class="fas fa-receipt"></i> Nueva Comanda`;
-          if (btnImprimir) btnImprimir.disabled = true;
-          if (mesaSeleccionada && mesaSeleccionadaElement) {
-            setMesaSeleccionadaUI(mesaSeleccionada.numero);
-          }
-          highlightMesaSeleccionada();
-        }
-      })
-      .catch(() => {
-        showAlert('error', 'Error', 'Error al cargar la factura');
-      });
-  }  
+    .catch(() => {
+      showAlert('error', 'Error', 'Error al cargar la factura');
+    });
+  }
   
   function agregarProductoComanda(producto) {
     const existente = comandaItems.find(i => i.producto.id === producto.id);
@@ -1647,7 +2760,7 @@ function initSelect2All(){
       : '¿Está seguro que desea guardar esta factura?';
   
     showConfirm(facturaData.factura_id ? 'Actualizar Factura' : 'Guardar Factura', mensaje, () => {
-      fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
+      fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: accion, data: facturaData })
@@ -1695,7 +2808,7 @@ function initSelect2All(){
     const fid = facturaActual.id || facturaActual.factura_id;
   
     showConfirm('Cerrar Factura', '¿Está seguro que desea cerrar esta factura?', () => {
-      fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
+      fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `action=closeFactura&factura_id=${encodeURIComponent(fid)}`
@@ -2012,7 +3125,7 @@ function abrirModalCombos(){
 
 // Lista combos (grid)
 function cargarCombos(){
-  return fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
+  return fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
     method:'POST',
     headers:{'Content-Type':'application/x-www-form-urlencoded'},
     body: 'action=loadCombos'
@@ -2171,7 +3284,7 @@ function abrirEditorComboExistente(comboId){
   const precioCombo = (combo && combo.hasOwnProperty('precio_venta')) ? combo.precio_venta : null;
 
   // Carga el detalle de componentes
-  fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`,{
+  fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php',{
     method:'POST',
     headers:{'Content-Type':'application/x-www-form-urlencoded'},
     body: `action=loadComboDetalle&combo_id=${encodeURIComponent(comboId)}`
@@ -2409,7 +3522,7 @@ function calcularDisponibilidadComboUI(comboId, cantidad=1){
   fd.append('combo_id', String(comboId));
   fd.append('cantidad', String(cantidad));
 
-  fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, { method:'POST', body: fd })
+  fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', { method:'POST', body: fd })
     .then(r=>r.json())
     .then(res=>{
       if(!res || !res.status){ showAlert('error','Error',res?.message||'No se pudo calcular'); return; }
@@ -2776,7 +3889,7 @@ function guardarCombo(){
       payload.combo_id = parseInt(comboId,10);
     }
 
-    fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`,{
+    fetch(BASE + ' core/facturasRestaurante/facturasRestauranteAjax.php',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ action, data: payload })
@@ -2802,7 +3915,7 @@ function eliminarCombo(comboId){
     const fd = new FormData();
     fd.append('action','deleteCombo');
     fd.append('combo_id', String(comboId));
-    fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`,{
+    fetch(BASE + ' core/facturasRestaurante/facturasRestauranteAjax.php',{
       method:'POST',
       body: fd
     })
@@ -2991,42 +4104,59 @@ function initSelect2All(){
   }
   
   // Función especial para reinicializar Select2 en modales cuando se abren
-  function reinitSelect2InModal(modalSelector) {
-    const $modal = $(modalSelector);
-    if (!$modal.length) return;
-    
-    // Pequeña demora para asegurar que el modal esté visible
-    setTimeout(() => {
-        $modal.find('select.select2').each(function() {
-            const $select = $(this);
-            const selectId = $select.attr('id');
-            
-            // Configuración según el tipo de select
-            let config = {
-                width: '100%',
-                theme: 'bootstrap',
-                dropdownParent: $modal
-            };
-            
-            if (selectId === 'combo-producto') {
-                config.allowClear = true;
-                config.placeholder = $select.data('placeholder') || 'Selecciona el producto combo';
-            } else if (selectId === 'prod-categoria') {
-                config.allowClear = true;
-                config.placeholder = $select.data('placeholder') || '';
-            } else {
-                config.minimumResultsForSearch = -1;
-            }
-            
-            // Reinicializar
-            if ($select.data('select2')) {
-                $select.select2('destroy');
-            }
-            
-            $select.select2(config);
-        });
-    }, 100);
-  }
+ // Función especial para reinicializar Select2 en modales cuando se abren
+function reinitSelect2InModal(modalSelector) {
+  const $modal = $(modalSelector);
+  if (!$modal.length) return;
+  
+  // Intentar múltiples veces en caso de que Select2 no esté listo
+  let attempts = 0;
+  const maxAttempts = 5;
+  
+  const tryInitSelect2 = () => {
+      if (typeof $.fn.select2 === 'undefined') {
+          attempts++;
+          if (attempts < maxAttempts) {
+              setTimeout(tryInitSelect2, 200);
+          } else {
+              console.error('Select2 no se cargó después de varios intentos');
+          }
+          return;
+      }
+      
+      $modal.find('select.select2').each(function() {
+          const $select = $(this);
+          const selectId = $select.attr('id');
+          
+          let config = {
+              width: '100%',
+              theme: 'bootstrap',
+              dropdownParent: $modal
+          };
+          
+          if (selectId === 'combo-producto') {
+              config.allowClear = true;
+              config.placeholder = $select.data('placeholder') || 'Selecciona el producto combo';
+          } else if (selectId === 'prod-categoria') {
+              config.allowClear = true;
+              config.placeholder = $select.data('placeholder') || '';
+          } else {
+              config.minimumResultsForSearch = -1;
+          }
+          
+          try {
+              if ($select.data('select2')) {
+                  $select.select2('destroy');
+              }
+              $select.select2(config);
+          } catch (error) {
+              console.error('Error al inicializar Select2 para', selectId, error);
+          }
+      });
+  };
+  
+  setTimeout(tryInitSelect2, 100);
+}
 
 function initSelect2ForComboRow(row){
   if (typeof $ === 'undefined' || !$.fn.select2) return;
@@ -3157,384 +4287,4 @@ function initSelect2ForComboRow(row){
       });
     }
   }
-
 });
-
-// ==============================
-// ATAJOS DE TECLADO – SOLO combinaciones (evita disparos al escribir)
-// Windows/Linux: Ctrl; Mac: Cmd (metaKey)
-// Algunas acciones usan Alt para no chocar con el navegador
-// ==============================
-function initHotkeys(){
-  const clickFirst = (selectors=[])=>{
-    for (const sel of selectors){
-      const el = document.querySelector(sel);
-      if (el && !el.disabled){ el.click(); return true; }
-    }
-    return false;
-  };
-  const focusFirst = (selectors=[])=>{
-    for (const sel of selectors){
-      const el = document.querySelector(sel);
-      if (el){ el.focus(); el.select && el.select(); return true; }
-    }
-    return false;
-  };
-
-  // Mapa de combinaciones seguras
-  // ctrlOrMeta = Ctrl (Win/Linux) o Cmd (Mac)
-  // alt = true para combos que podrían chocar con atajos del navegador
-  const HK = [
-    // Comanda
-    { key:'g', ctrlOrMeta:true, alt:false, type:'click', targets:['#btn-guardar'] },
-    { key:'i', ctrlOrMeta:true, alt:false, type:'click', targets:['#btn-imprimir'] },
-    { key:'l', ctrlOrMeta:true, alt:true,  type:'click', targets:['#btn-limpiar'] },
-    { key:'x', ctrlOrMeta:true, alt:true,  type:'click', targets:['#btn-cerrar'] },
-    { key:'f', ctrlOrMeta:true, alt:true,  type:'focus', targets:['#buscar-producto'] },
-    { key:'v', ctrlOrMeta:true, alt:true,  type:'toggleView' },
-
-    // Gestión
-    { key:'m', ctrlOrMeta:true, alt:false, type:'click', targets:['#btn-nueva-mesa'] },
-    { key:'c', ctrlOrMeta:true, alt:true,  type:'click', targets:['#btn-cambiar-cliente'] },
-    { key:'r', ctrlOrMeta:true, alt:true,  type:'click', targets:['#btn-nuevo-cliente-rapido', '#btn-nuevo-cliente'] },
-    { key:'p', ctrlOrMeta:true, alt:true,  type:'click', targets:['#btn-nuevo-producto'] },
-    { key:'k', ctrlOrMeta:true, alt:true,  type:'click', targets:['#btn-nueva-categoria'] },
-    { key:'b', ctrlOrMeta:true, alt:true,  type:'click', targets:['#btn-gestionar-combos'] },
-  ];
-
-  document.addEventListener('keydown', (e)=>{
-    // Requiere SIEMPRE ctrl/meta: sin modificadores, no hacemos nada.
-    const ctrlOrMeta = !!e.ctrlKey || !!e.metaKey;
-    if (!ctrlOrMeta) return;
-
-    const alt = !!e.altKey;
-    const k   = (e.key || '').toLowerCase();
-
-    // Si estás escribiendo en inputs/selects/textarea, SÍ permitimos combos (porque llevan Ctrl/Cmd)
-    // Esto NO interfiere con texto normal (no hay letra suelta).
-    const match = HK.find(h => h.key === k && h.ctrlOrMeta === true && (!!h.alt) === alt);
-    if (!match) return;
-
-    // Evita que el navegador se “robe” el atajo (ej. Ctrl+P, Ctrl+F, etc.)
-    // OJO: Nosotros solo usamos 'i' (imprimir), NO 'p'; y usamos Alt para F, P, etc., así que es seguro.
-    e.preventDefault();
-
-    if (match.type === 'click'){ clickFirst(match.targets); return; }
-    if (match.type === 'focus'){ focusFirst(match.targets); return; }
-    if (match.type === 'toggleView'){
-      const panelProductos = document.getElementById('panel-productos');
-      const panelComanda   = document.getElementById('panel-comanda');
-      const btnVerProd     = document.getElementById('btn-mostrar-productos');
-      const btnVerCom      = document.getElementById('btn-mostrar-comanda');
-
-      const productosVisibles = panelProductos && panelProductos.style.display !== 'none';
-      if (productosVisibles){
-        if (btnVerCom) btnVerCom.click();
-        else {
-          if (panelProductos) panelProductos.style.display = 'none';
-          if (panelComanda)   panelComanda.style.display   = '';
-        }
-      } else {
-        if (btnVerProd) btnVerProd.click();
-        else {
-          if (panelProductos) panelProductos.style.display = '';
-          if (panelComanda)   panelComanda.style.display   = 'none';
-        }
-      }
-    }
-  });
-
-  // Abrir modal de ayuda con clic (friendly para táctil)
-  const btnHelp = document.getElementById('btn-help');
-  if (btnHelp){
-    btnHelp.addEventListener('click', ()=>{
-      const modal = document.getElementById('modal-help');
-      if (modal) modal.style.display = 'block';
-    });
-  }
-}
-
-/* ===========================================================
-   CAJA + CONTADOR SAR (robusto BS4/BS5) – FACTURAS RESTO
-   =========================================================== */
-   (function ($, window, document) {
-    'use strict';
-  
-    // --- Helpers de entorno ---
-    // SERVERURL puede venir de PHP en la vista o como global JS
-    var BASE = (typeof SERVERURL !== 'undefined' && SERVERURL) ? SERVERURL : (window.SERVERURL || '/');
-  
-    // Soporte modal para Bootstrap 4 (jQuery) y Bootstrap 5 (ES6)
-    // --- Helper para abrir modales con BS4 (jQuery) y BS5 (todas las versiones)
-    function showModalById(id) {
-      var el = (typeof id === 'string') ? document.querySelector(id) : id;
-      if (!el) return;
-
-      // 1) Bootstrap 4 con jQuery (plugin $.fn.modal)
-      if (window.jQuery && jQuery.fn && jQuery.fn.modal) {
-        jQuery(el).modal({ show: true, keyboard: false, backdrop: 'static' });
-        return;
-      }
-
-      // 2) Bootstrap 5 sin jQuery
-      if (window.bootstrap && bootstrap.Modal) {
-        var Modal = bootstrap.Modal;
-        var opts = { keyboard: false, backdrop: 'static' };
-
-        // BS 5.2+: getOrCreateInstance
-        if (typeof Modal.getOrCreateInstance === 'function') {
-          var instA = Modal.getOrCreateInstance(el, opts);
-          instA.show();
-          return;
-        }
-
-        // BS 5.0 / 5.1: usa getInstance() o crea con new Modal()
-        var instB = (typeof Modal.getInstance === 'function') ? Modal.getInstance(el) : null;
-        if (!instB) instB = new Modal(el, opts);
-        instB.show();
-        return;
-      }
-
-      // 3) Fallback muy básico
-      el.style.display = 'block';
-      el.classList.add('show');
-    }
-  
-    // --- Estado global ---
-    var cajaAbierta = false;
-    var lastState = null;
-  
-    // ===========================================================
-    //  AJAX de backend
-    // ===========================================================
-  
-    // 1) Consulta si la caja está abierta (1) o cerrada (2)
-    function getConsultarAperturaCaja() {
-      var estado_apertura = 2; // default cerrada
-      $.ajax({
-        type: 'POST',
-        url: BASE + 'core/getAperturaCajaUsuario.php',
-        async: false
-      }).done(function (r) {
-        try {
-          var data = JSON.parse(r);
-          estado_apertura = Number(data[0]) || 2;
-        } catch (e) {
-          console.error('getAperturaCajaUsuario parse:', e);
-        }
-      }).fail(function () {
-        console.error('AJAX getAperturaCajaUsuario');
-      });
-      return estado_apertura;
-    }
-  
-    // 2) Contador SAR
-    function getTotalFacturasDisponibles() {
-      $.ajax({
-        type: 'POST',
-        url: BASE + 'core/getTotalFacturasDisponibles.php?_=' + Date.now(),
-        dataType: 'json'
-      }).done(function (datos) {
-        if (!datos || typeof datos.facturasPendientes === 'undefined') {
-          paintCounterError();
-          return;
-        }
-        renderCounter(datos);
-      }).fail(function () {
-        paintCounterError();
-      });
-    }
-  
-    // ===========================================================
-    //  UI: Botón Apertura/Cierre + Modal
-    // ===========================================================
-  
-    // Abre modal para APERTURA
-    function formAperturaBill() {
-      $('#formAperturaCaja #proceso_aperturaCaja').val('Aperturar Caja');
-      $('#open_caja').show();
-      $('#close_caja').hide();
-      $('#formAperturaCaja #monto_apertura_grupo').show();
-  
-      // Si tu JS está embebido en .php, puedes dejar la acción en PHP.
-      // En archivo .js externo, usa BASE:
-      $('#formAperturaCaja')
-        .attr('data-form', 'save')
-        .attr('action', BASE + 'ajax/addAperturaCajaAjax.php');
-  
-      showModalById('#modal_apertura_caja');
-    }
-  
-    // Abre modal para CIERRE
-    function formCierreBill() {
-      $('#formAperturaCaja #proceso_aperturaCaja').val('Cerrar Caja');
-      $('#open_caja').hide();
-      $('#close_caja').show();
-      $('#formAperturaCaja #monto_apertura_grupo').hide();
-  
-      $('#formAperturaCaja')
-        .attr('data-form', 'save')
-        .attr('action', BASE + 'ajax/addCierreCajaFacturasAjax.php');
-  
-      showModalById('#modal_apertura_caja');
-    }
-  
-    // Verifica y actualiza estado de caja + texto del botón
-    function verificarAperturaCaja() {
-      var estado = Number(getConsultarAperturaCaja());
-      cajaAbierta = (estado === 1);
-  
-      var $btn = $('#btn-apertura-caja');
-      if ($btn.length) {
-        if (cajaAbierta) {
-          $btn.removeClass('btn-primary').addClass('btn-warning')
-            .html('<i class="fas fa-lock mr-1"></i> Cerrar Caja')
-            .data('mode', 'cerrar');
-        } else {
-          $btn.removeClass('btn-warning').addClass('btn-primary')
-            .html('<i class="fas fa-lock-open mr-1"></i> Aperturar Caja')
-            .data('mode', 'abrir');
-        }
-      }
-  
-      // tras validar caja, refresca contador
-      getTotalFacturasDisponibles();
-    }
-  
-    // Click del botón único (abre el modal correcto)
-    $(document).on('click', '#btn-apertura-caja', function (e) {
-      e.preventDefault();
-      var mode = $(this).data('mode');
-      if (mode === 'cerrar' || (mode == null && cajaAbierta)) {
-        formCierreBill();
-      } else {
-        formAperturaBill();
-      }
-    });
-  
-    // Si el modal se cierra, revalida
-    $(document).on('hidden.bs.modal', '#modal_apertura_caja', function () {
-      verificarAperturaCaja();
-    });
-  
-    // ===========================================================
-    //  UI: Contador SAR
-    // ===========================================================
-    function renderCounter(datos) {
-      var count = Number(datos.facturasPendientes) || 0;
-      var daysLeft = parseInt(datos.contador, 10);
-      var fechaLimite = datos.fechaLimite;
-  
-      var state = getCurrentState(count, daysLeft, fechaLimite);
-      var cfg = getStateConfig(state, count, daysLeft, fechaLimite);
-  
-      var $counter = $('#factura-counter');
-      if (!$counter.length) return;
-  
-      // icono
-      if ($counter.find('i').length) {
-        $counter.find('i').first().attr('class', cfg.icon);
-      } else {
-        $counter.prepend('<i class="' + cfg.icon + '"></i> ');
-      }
-  
-      // valor + hint
-      var $value = $('#factura-disponibles');
-      if (!$value.length) {
-        $counter.append('<span id="factura-disponibles" class="counter-value"></span>');
-        $value = $('#factura-disponibles');
-      }
-      $value.text(cfg.mainText);
-  
-      $counter.find('.counter-hint').remove();
-      if (cfg.hintHtml) {
-        $counter.append('<span class="counter-hint">' + cfg.hintHtml + '</span>');
-      }
-  
-      // clases de estado
-      $counter
-        .removeClass(function (i, c) { return (c.match(/\bcounter-\S+/g) || []).join(' '); })
-        .addClass(cfg.class)
-        .attr('title', cfg.mainText);
-  
-      // animación leve
-      $counter.removeClass('state-change');
-      void $counter[0].offsetWidth;
-      $counter.addClass('state-change');
-  
-      lastState = state;
-  
-      updateButtonsState(count, fechaLimite, daysLeft);
-    }
-  
-    function paintCounterError() {
-      var $counter = $('#factura-counter');
-      if (!$counter.length) return;
-      if ($counter.find('i').length) $counter.find('i').first().attr('class', 'fas fa-exclamation-circle');
-      var $value = $('#factura-disponibles');
-      if (!$value.length) {
-        $counter.append('<span id="factura-disponibles" class="counter-value"></span>');
-        $value = $('#factura-disponibles');
-      }
-      $value.text('Error al cargar');
-      $counter
-        .removeClass(function (i, c) { return (c.match(/\bcounter-\S+/g) || []).join(' '); })
-        .addClass('counter-danger');
-    }
-  
-    function getCurrentState(count, daysLeft, fechaLimite) {
-      if (!fechaLimite || String(fechaLimite).trim() === 'Sin definir') return 'no-config';
-      if (count < 0) return 'blocked';
-      if (daysLeft < 0) return 'expired';
-      if (daysLeft <= 5) return 'danger';
-      if (count <= 9) return 'danger';
-      if (count <= 30) return 'warning';
-      return 'normal';
-    }
-  
-    function getStateConfig(state, count, daysLeft, fechaLimite) {
-      var main = (Number(count).toLocaleString('es-HN') + ' facturas');
-      var hint = '';
-      if (daysLeft <= 5) {
-        hint = (daysLeft < 0) ? 'Autorizaciones vencidas' : (daysLeft === 0 ? 'Vencen hoy' : ('Vencen en ' + daysLeft + ' día(s)'));
-      }
-      var base = { mainText: main, hintHtml: hint ? ('<small class="d-block">' + hint + '</small>') : '' };
-  
-      var linkCfg = '<small class="d-block"><a href="' + BASE + 'secuencia/" target="_blank" class="text-white">Configurar</a></small>';
-      var linkUpd = '<small class="d-block"><a href="' + BASE + 'secuencia/" target="_blank" class="text-white">Actualizar</a></small>';
-  
-      return {
-        normal:  { icon:'fas fa-file-invoice',           class:'counter-normal',  mainText: main,  hintHtml: base.hintHtml },
-        warning: { icon:'fas fa-hourglass-half',         class:'counter-warning', mainText: main,  hintHtml: base.hintHtml },
-        danger:  { icon:'fas fa-exclamation-triangle',   class:'counter-danger',  mainText: main,  hintHtml: base.hintHtml },
-        expired: { icon:'fas fa-calendar-times',         class:'counter-expired', mainText:'Autorizaciones vencidas', hintHtml: linkUpd },
-        blocked: { icon:'fas fa-ban',                    class:'counter-blocked', mainText:'Límite alcanzado',        hintHtml: linkCfg },
-        'no-config': { icon:'fas fa-calendar-times',     class:'counter-no-config', mainText:'Sin fecha límite',      hintHtml: linkCfg }
-      }[state] || { icon:'fas fa-file-invoice', class:'counter-normal', mainText: main, hintHtml: base.hintHtml };
-    }
-  
-    // Habilitar / deshabilitar acciones según caja + SAR
-    function updateButtonsState(count, fechaLimite, daysLeft) {
-      var vencido = daysLeft < 0;
-      var sarOK = (count > 0) && !!fechaLimite && String(fechaLimite).trim() !== 'Sin definir' && !vencido;
-  
-      // ejemplo: imprimir bloqueado si no hay caja o SAR invalidado
-      $('#btn-imprimir').prop('disabled', !(sarOK && cajaAbierta));
-    }
-  
-    // ===========================================================
-    //  Arranque + auto-refresh
-    // ===========================================================
-    $(function () {
-      verificarAperturaCaja();
-      getTotalFacturasDisponibles();
-  
-      // refresca cada 5s (seguro)
-      setInterval(function () {
-        verificarAperturaCaja();
-        getTotalFacturasDisponibles();
-      }, 5000);
-    });
-  
-  })(window.jQuery, window, document);
-  

@@ -1,3 +1,99 @@
+####12 de septiembre 2025####
+-- Promoción (encabezado)
+CREATE TABLE promociones (
+  promo_id            INT AUTO_INCREMENT PRIMARY KEY,
+  empresa_id          INT NOT NULL,
+  nombre              VARCHAR(120) NOT NULL,
+  descripcion         VARCHAR(255) NULL,
+
+  -- 'PORC' = % ; 'MONTO' = rebaja fija (moneda)
+  tipo_descuento      ENUM('PORC','MONTO') NOT NULL,
+  valor               DECIMAL(12,2) NOT NULL,
+
+  -- Vigencia por días (solo fecha)
+  fecha_inicio        DATE NOT NULL,
+  fecha_fin           DATE NOT NULL,
+
+  -- Ventana diaria opcional (aplica cada día del rango si se define)
+  hora_inicio         TIME NULL,
+  hora_fin            TIME  NULL,
+
+  -- Días de la semana opcionales
+  dias_semana         SET('mon','tue','wed','thu','fri','sat','sun') NULL,
+
+  prioridad           INT NOT NULL DEFAULT 0,
+  aplica_a            ENUM('PRODUCTO','CATEGORIA','TODOS') NOT NULL,
+  acumula_con_mayoreo TINYINT(1) NOT NULL DEFAULT 0,
+  estado              TINYINT(1) NOT NULL DEFAULT 1,
+  creado_por          INT NULL,
+  creado_en           TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+  INDEX ix_promos_vigencia (empresa_id, estado, fecha_inicio, fecha_fin, prioridad)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Relación con productos concretos
+CREATE TABLE promo_productos (
+  promo_id     INT NOT NULL,
+  producto_id  INT NOT NULL,
+  PRIMARY KEY (promo_id, producto_id),
+  CONSTRAINT fk_pp_promo FOREIGN KEY (promo_id) REFERENCES promociones(promo_id) ON DELETE CASCADE,
+  CONSTRAINT fk_pp_prod  FOREIGN KEY (producto_id) REFERENCES productos(productos_id) ON DELETE CASCADE,
+  INDEX ix_pp_prod (producto_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Relación con categorías completas
+CREATE TABLE promo_categorias (
+  promo_id     INT NOT NULL,
+  categoria_id INT NOT NULL,
+  PRIMARY KEY (promo_id, categoria_id),
+  CONSTRAINT fk_pc_promo FOREIGN KEY (promo_id) REFERENCES promociones(promo_id) ON DELETE CASCADE,
+  -- asumiendo que tienes tabla categorias(id)
+  INDEX ix_pc_cat (categoria_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+CREATE OR REPLACE VIEW v_promos_vigentes_producto AS
+SELECT
+    pr.promo_id, pr.empresa_id, p.productos_id AS producto_id,
+    pr.tipo_descuento, pr.valor, pr.prioridad, pr.acumula_con_mayoreo
+FROM promociones pr
+JOIN promo_productos pp   ON pp.promo_id = pr.promo_id
+JOIN productos p          ON p.productos_id = pp.producto_id
+WHERE pr.estado=1
+  AND NOW() BETWEEN pr.fecha_inicio AND pr.fecha_fin
+  AND (pr.hora_inicio IS NULL OR pr.hora_fin IS NULL OR TIME(NOW()) BETWEEN pr.hora_inicio AND pr.hora_fin)
+  AND (pr.dias_semana IS NULL OR FIND_IN_SET(LOWER(DAYNAME(NOW())), pr.dias_semana) > 0)
+
+UNION ALL
+SELECT
+    pr.promo_id, pr.empresa_id, p.productos_id AS producto_id,
+    pr.tipo_descuento, pr.valor, pr.prioridad, pr.acumula_con_mayoreo
+FROM promociones pr
+JOIN promo_categorias pc ON pc.promo_id = pr.promo_id
+JOIN productos p         ON p.categoria_id = pc.categoria_id
+WHERE pr.estado=1
+  AND NOW() BETWEEN pr.fecha_inicio AND pr.fecha_fin
+  AND (pr.hora_inicio IS NULL OR pr.hora_fin IS NULL OR TIME(NOW()) BETWEEN pr.hora_inicio AND pr.hora_fin)
+  AND (pr.dias_semana IS NULL OR FIND_IN_SET(LOWER(DAYNAME(NOW())), pr.dias_semana) > 0)
+
+UNION ALL
+-- Promos globales (TODOS los productos)
+SELECT
+    pr.promo_id, pr.empresa_id, p.productos_id AS producto_id,
+    pr.tipo_descuento, pr.valor, pr.prioridad, pr.acumula_con_mayoreo
+FROM promociones pr
+JOIN productos p ON p.empresa_id = pr.empresa_id
+WHERE pr.estado=1
+  AND pr.aplica_a='TODOS'
+  AND NOW() BETWEEN pr.fecha_inicio AND pr.fecha_fin
+  AND (pr.hora_inicio IS NULL OR pr.hora_fin IS NULL OR TIME(NOW()) BETWEEN pr.hora_inicio AND pr.hora_fin)
+  AND (pr.dias_semana IS NULL OR FIND_IN_SET(LOWER(DAYNAME(NOW())), pr.dias_semana) > 0);
+
+
+####11 de septiembre 2025####
+ALTER TABLE factura_comanda
+  ADD COLUMN servicio_tipo ENUM('mesa','llevar') NOT NULL DEFAULT 'llevar' AFTER estado;
+
 ####09 de septiembre 2025#### (Pendiente ejecutar esto y borrar la de combo y combo_detalles que ya habiamos creado)
 ALTER TABLE `categoria`
   ADD COLUMN `estacion` ENUM('ninguna','cocina','barra') NOT NULL DEFAULT 'ninguna'

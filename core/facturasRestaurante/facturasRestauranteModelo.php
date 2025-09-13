@@ -109,7 +109,7 @@ class facturasRestauranteModelo extends mainModel {
     /* ===== Catálogo ===== */
 
     /** Solo categorías con productos restaurante=1; incluye estacion SI existe la columna */
-    public function obtenerCategoriasProductos(){
+    public function obtenerCategoriasProductos($estacion = 'todas'){
         // ¿La tabla categoria tiene columna 'estacion'?
         $tieneEst = $this->hasColumn('categoria','estacion');
     
@@ -120,9 +120,14 @@ class facturasRestauranteModelo extends mainModel {
     
         // WHERE base
         $where = "WHERE c.estado = 1";
-        // Si existe la columna estación, excluye 'ninguna'
-        if ($tieneEst) {
-            $where .= " AND c.estacion IN ('cocina','barra')";
+        
+        // Filtrar por estación si se especifica
+        if ($tieneEst && $estacion !== 'todas') {
+            if ($estacion === 'cocina') {
+                $where .= " AND c.estacion = 'cocina'";
+            } elseif ($estacion === 'barra') {
+                $where .= " AND c.estacion = 'barra'";
+            }
         }
     
         // **Sin INNER JOIN con productos**: debe traer TODAS las categorías activas
@@ -1619,5 +1624,471 @@ class facturasRestauranteModelo extends mainModel {
             'alcanza_para'  => ($posibles >= $cantidadSolicitada) ? 'si' : 'no',
             'solicitados'   => $cantidadSolicitada
         ];
+    }
+
+    /* ============================================================
+     * ====================  PROMOCIONES  =========================
+     * ============================================================ */
+
+    /** Obtener listado mínimo de promociones para selects */
+    public function obtenerPromocionesMin() {
+        $sql = "SELECT promo_id, nombre 
+                FROM promociones 
+                WHERE empresa_id = ? AND estado = 1
+                ORDER BY nombre ASC";
+        $rs = $this->ejecutar_consulta_simple_preparada($sql, "i", [$this->empresaId()]);
+        $out = [];
+        while($r = $rs->fetch_assoc()) {
+            $out[] = [
+                'promo_id' => intval($r['promo_id']),
+                'nombre' => $r['nombre']
+            ];
+        }
+        return $out;
+    }
+
+    /** Guardar una nueva promoción */
+    public function guardarPromocion($data) {
+        $empresa_id = intval($data['empresa_id'] ?? $this->empresaId());
+        $nombre = $this->cleanString($data['nombre'] ?? '');
+        $descripcion = $this->cleanString($data['descripcion'] ?? '');
+        $tipo_descuento = $this->cleanString($data['tipo_descuento'] ?? 'PORC');
+        $valor = floatval($data['valor'] ?? 0);
+        $fecha_inicio = $this->cleanString($data['fecha_inicio'] ?? '');
+        $fecha_fin = $this->cleanString($data['fecha_fin'] ?? '');
+        $hora_inicio = $this->cleanString($data['hora_inicio'] ?? null);
+        $hora_fin = $this->cleanString($data['hora_fin'] ?? null);
+        $dias_semana = $this->cleanString($data['dias_semana'] ?? null);
+        $prioridad = intval($data['prioridad'] ?? 0);
+        $aplica_a = $this->cleanString($data['aplica_a'] ?? 'PRODUCTO');
+        $acumula_con_mayoreo = intval($data['acumula_con_mayoreo'] ?? 0) ? 1 : 0;
+        $estado = intval($data['estado'] ?? 1) ? 1 : 0;
+        $creado_por = $this->colaboradorId();
+
+        // Validaciones básicas
+        if (empty($nombre)) {
+            return ['status' => false, 'message' => 'El nombre es obligatorio'];
+        }
+        if (empty($fecha_inicio) || empty($fecha_fin)) {
+            return ['status' => false, 'message' => 'Las fechas de inicio y fin son obligatorias'];
+        }
+
+        try {
+            $promo_id = mainModel::correlativo("promo_id", "promociones");
+            
+            $sql = "INSERT INTO promociones (
+                promo_id, empresa_id, nombre, descripcion, tipo_descuento, valor,
+                fecha_inicio, fecha_fin, hora_inicio, hora_fin, dias_semana,
+                prioridad, aplica_a, acumula_con_mayoreo, estado, creado_por, creado_en
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+            
+            $ok = $this->ejecutar_consulta_simple_preparada(
+                $sql, 
+                "iisssdssssiisiii", 
+                [
+                    $promo_id, $empresa_id, $nombre, $descripcion, $tipo_descuento, $valor,
+                    $fecha_inicio, $fecha_fin, $hora_inicio, $hora_fin, $dias_semana,
+                    $prioridad, $aplica_a, $acumula_con_mayoreo, $estado, $creado_por
+                ]
+            );
+            
+            if ($ok) {
+                return ['status' => true, 'message' => 'Promoción guardada', 'promo_id' => $promo_id];
+            } else {
+                return ['status' => false, 'message' => 'No se pudo guardar la promoción'];
+            }
+        } catch (Throwable $e) {
+            return ['status' => false, 'message' => 'Error al guardar promoción: ' . $e->getMessage()];
+        }
+    }
+
+    /** Actualizar una promoción existente */
+    public function actualizarPromocion($promo_id, $fields) {
+        $promo_id = intval($promo_id);
+        if ($promo_id <= 0) {
+            return ['status' => false, 'message' => 'ID de promoción inválido'];
+        }
+
+        // Construir la consulta dinámicamente
+        $sets = [];
+        $types = '';
+        $values = [];
+        
+        if (isset($fields['empresa_id'])) {
+            $sets[] = "empresa_id = ?";
+            $types .= 'i';
+            $values[] = intval($fields['empresa_id']);
+        }
+        
+        if (isset($fields['nombre'])) {
+            $sets[] = "nombre = ?";
+            $types .= 's';
+            $values[] = $this->cleanString($fields['nombre']);
+        }
+        
+        if (isset($fields['descripcion'])) {
+            $sets[] = "descripcion = ?";
+            $types .= 's';
+            $values[] = $this->cleanString($fields['descripcion']);
+        }
+        
+        if (isset($fields['tipo_descuento'])) {
+            $sets[] = "tipo_descuento = ?";
+            $types .= 's';
+            $values[] = $this->cleanString($fields['tipo_descuento']);
+        }
+        
+        if (isset($fields['valor'])) {
+            $sets[] = "valor = ?";
+            $types .= 'd';
+            $values[] = floatval($fields['valor']);
+        }
+        
+        if (isset($fields['fecha_inicio'])) {
+            $sets[] = "fecha_inicio = ?";
+            $types .= 's';
+            $values[] = $this->cleanString($fields['fecha_inicio']);
+        }
+        
+        if (isset($fields['fecha_fin'])) {
+            $sets[] = "fecha_fin = ?";
+            $types .= 's';
+            $values[] = $this->cleanString($fields['fecha_fin']);
+        }
+        
+        if (isset($fields['hora_inicio'])) {
+            $sets[] = "hora_inicio = ?";
+            $types .= 's';
+            $values[] = $this->cleanString($fields['hora_inicio']);
+        }
+        
+        if (isset($fields['hora_fin'])) {
+            $sets[] = "hora_fin = ?";
+            $types .= 's';
+            $values[] = $this->cleanString($fields['hora_fin']);
+        }
+        
+        if (isset($fields['dias_semana'])) {
+            $sets[] = "dias_semana = ?";
+            $types .= 's';
+            $values[] = $this->cleanString($fields['dias_semana']);
+        }
+        
+        if (isset($fields['prioridad'])) {
+            $sets[] = "prioridad = ?";
+            $types .= 'i';
+            $values[] = intval($fields['prioridad']);
+        }
+        
+        if (isset($fields['aplica_a'])) {
+            $sets[] = "aplica_a = ?";
+            $types .= 's';
+            $values[] = $this->cleanString($fields['aplica_a']);
+        }
+        
+        if (isset($fields['acumula_con_mayoreo'])) {
+            $sets[] = "acumula_con_mayoreo = ?";
+            $types .= 'i';
+            $values[] = intval($fields['acumula_con_mayoreo']) ? 1 : 0;
+        }
+        
+        if (isset($fields['estado'])) {
+            $sets[] = "estado = ?";
+            $types .= 'i';
+            $values[] = intval($fields['estado']) ? 1 : 0;
+        }
+        
+        if (empty($sets)) {
+            return ['status' => false, 'message' => 'No se proporcionaron campos para actualizar'];
+        }
+        
+        $types .= 'i'; // Para el ID al final
+        $values[] = $promo_id;
+        
+        $sql = "UPDATE promociones SET " . implode(', ', $sets) . " WHERE promo_id = ?";
+        
+        $ok = $this->ejecutar_consulta_simple_preparada($sql, $types, $values);
+        
+        if ($ok) {
+            return ['status' => true, 'message' => 'Promoción actualizada'];
+        } else {
+            return ['status' => false, 'message' => 'No se pudo actualizar la promoción'];
+        }
+    }
+
+    /** Obtener productos asignados a una promoción */
+    public function obtenerProductosDePromo($promo_id) {
+        $promo_id = intval($promo_id);
+        if ($promo_id <= 0) {
+            return [];
+        }
+        
+        $sql = "SELECT pp.producto_id, p.nombre, p.precio_venta
+                FROM promo_productos pp
+                INNER JOIN productos p ON p.productos_id = pp.producto_id
+                WHERE pp.promo_id = ?
+                ORDER BY p.nombre ASC";
+        
+        $rs = $this->ejecutar_consulta_simple_preparada($sql, "i", [$promo_id]);
+        $out = [];
+        
+        while ($r = $rs->fetch_assoc()) {
+            $out[] = [
+                'producto_id' => intval($r['producto_id']),
+                'nombre' => $r['nombre'],
+                'precio_venta' => floatval($r['precio_venta'])
+            ];
+        }
+        
+        return $out;
+    }
+
+    /** Asignar productos a una promoción */
+    public function asignarProductosAPromo($promo_id, $productos_ids) {
+        $promo_id = intval($promo_id);
+        if ($promo_id <= 0) {
+            return ['status' => false, 'message' => 'Promoción inválida'];
+        }
+        
+        if (empty($productos_ids)) {
+            return ['status' => false, 'message' => 'No se proporcionaron productos'];
+        }
+        
+        try {
+            $cnn = $this->connection();
+            $cnn->begin_transaction();
+            
+            // Eliminar asignaciones existentes
+            $this->ejecutar_consulta_simple_preparada(
+                "DELETE FROM promo_productos WHERE promo_id = ?",
+                "i", [$promo_id]
+            );
+            
+            // Insertar nuevas asignaciones
+            foreach ($productos_ids as $producto_id) {
+                $producto_id = intval($producto_id);
+                if ($producto_id > 0) {
+                    $this->ejecutar_consulta_simple_preparada(
+                        "INSERT INTO promo_productos (promo_id, producto_id) VALUES (?, ?)",
+                        "ii", [$promo_id, $producto_id]
+                    );
+                }
+            }
+            
+            $cnn->commit();
+            return ['status' => true, 'message' => 'Productos asignados correctamente'];
+            
+        } catch (Throwable $e) {
+            $cnn->rollback();
+            return ['status' => false, 'message' => 'Error al asignar productos: ' . $e->getMessage()];
+        }
+    }
+
+    /** Quitar un producto de una promoción */
+    public function quitarProductoDePromo($promo_id, $producto_id) {
+        $promo_id = intval($promo_id);
+        $producto_id = intval($producto_id);
+        
+        if ($promo_id <= 0 || $producto_id <= 0) {
+            return ['status' => false, 'message' => 'Datos inválidos'];
+        }
+        
+        $ok = $this->ejecutar_consulta_simple_preparada(
+            "DELETE FROM promo_productos WHERE promo_id = ? AND producto_id = ?",
+            "ii", [$promo_id, $producto_id]
+        );
+        
+        if ($ok) {
+            return ['status' => true, 'message' => 'Producto eliminado de la promoción'];
+        } else {
+            return ['status' => false, 'message' => 'No se pudo eliminar el producto de la promoción'];
+        }
+    }
+
+    /** Obtener categorías asignadas a una promoción */
+    public function obtenerCategoriasDePromo($promo_id) {
+        $promo_id = intval($promo_id);
+        if ($promo_id <= 0) {
+            return [];
+        }
+        
+        $sql = "SELECT pc.categoria_id, c.nombre
+                FROM promo_categorias pc
+                INNER JOIN categoria c ON c.categoria_id = pc.categoria_id
+                WHERE pc.promo_id = ?
+                ORDER BY c.nombre ASC";
+        
+        $rs = $this->ejecutar_consulta_simple_preparada($sql, "i", [$promo_id]);
+        $out = [];
+        
+        while ($r = $rs->fetch_assoc()) {
+            $out[] = [
+                'categoria_id' => intval($r['categoria_id']),
+                'nombre' => $r['nombre']
+            ];
+        }
+        
+        return $out;
+    }
+
+    /** Asignar categorías a una promoción */
+    public function asignarCategoriasAPromo($promo_id, $categorias_ids) {
+        $promo_id = intval($promo_id);
+        if ($promo_id <= 0) {
+            return ['status' => false, 'message' => 'Promoción inválida'];
+        }
+        
+        if (empty($categorias_ids)) {
+            return ['status' => false, 'message' => 'No se proporcionaron categorías'];
+        }
+        
+        try {
+            $cnn = $this->connection();
+            $cnn->begin_transaction();
+            
+            // Eliminar asignaciones existentes
+            $this->ejecutar_consulta_simple_preparada(
+                "DELETE FROM promo_categorias WHERE promo_id = ?",
+                "i", [$promo_id]
+            );
+            
+            // Insertar nuevas asignaciones
+            foreach ($categorias_ids as $categoria_id) {
+                $categoria_id = intval($categoria_id);
+                if ($categoria_id > 0) {
+                    $this->ejecutar_consulta_simple_preparada(
+                        "INSERT INTO promo_categorias (promo_id, categoria_id) VALUES (?, ?)",
+                        "ii", [$promo_id, $categoria_id]
+                    );
+                }
+            }
+            
+            $cnn->commit();
+            return ['status' => true, 'message' => 'Categorías asignadas correctamente'];
+            
+        } catch (Throwable $e) {
+            $cnn->rollback();
+            return ['status' => false, 'message' => 'Error al asignar categorías: ' . $e->getMessage()];
+        }
+    }
+
+    /** Quitar una categoría de una promoción */
+    public function quitarCategoriaDePromo($promo_id, $categoria_id) {
+        $promo_id = intval($promo_id);
+        $categoria_id = intval($categoria_id);
+        
+        if ($promo_id <= 0 || $categoria_id <= 0) {
+            return ['status' => false, 'message' => 'Datos inválidos'];
+        }
+        
+        $ok = $this->ejecutar_consulta_simple_preparada(
+            "DELETE FROM promo_categorias WHERE promo_id = ? AND categoria_id = ?",
+            "ii", [$promo_id, $categoria_id]
+        );
+        
+        if ($ok) {
+            return ['status' => true, 'message' => 'Categoría eliminada de la promoción'];
+        } else {
+            return ['status' => false, 'message' => 'No se pudo eliminar la categoría de la promoción'];
+        }
+    }
+
+    /** Obtener, para cada producto, la promoción vigente con MAYOR prioridad
+     *  e incluir fecha/hora de fin para el contador en el front. */
+    public function obtenerPromocionesVigentesProductos() {
+        $sql = "SELECT
+                    x.producto_id,
+                    x.promo_nombre,
+                    x.tipo_descuento,
+                    x.valor,
+                    x.prioridad,
+                    x.fecha_fin,
+                    x.hora_fin
+                FROM (
+                    -- 1) promos por producto
+                    SELECT 
+                        pp.producto_id,
+                        pr.nombre AS promo_nombre,
+                        pr.tipo_descuento,
+                        pr.valor,
+                        pr.prioridad,
+                        pr.fecha_fin,
+                        pr.hora_fin
+                    FROM promo_productos pp
+                    INNER JOIN promociones pr ON pr.promo_id = pp.promo_id
+                    WHERE pr.empresa_id = ?
+                    AND pr.estado = 1
+                    AND CURDATE() BETWEEN pr.fecha_inicio AND pr.fecha_fin
+                    AND (pr.hora_inicio IS NULL OR pr.hora_fin IS NULL OR TIME(NOW()) BETWEEN pr.hora_inicio AND pr.hora_fin)
+                    AND (pr.dias_semana IS NULL OR FIND_IN_SET(LOWER(DAYNAME(NOW())), pr.dias_semana) > 0)
+
+                    UNION ALL
+
+                    -- 2) promos por categoría, proyectadas a sus productos
+                    SELECT
+                        p.productos_id AS producto_id,
+                        pr.nombre AS promo_nombre,
+                        pr.tipo_descuento,
+                        pr.valor,
+                        pr.prioridad,
+                        pr.fecha_fin,
+                        pr.hora_fin
+                    FROM productos p
+                    INNER JOIN promo_categorias pc ON pc.categoria_id = p.categoria_id
+                    INNER JOIN promociones pr       ON pr.promo_id = pc.promo_id
+                    WHERE pr.empresa_id = ?
+                    AND pr.estado = 1
+                    AND CURDATE() BETWEEN pr.fecha_inicio AND pr.fecha_fin
+                    AND (pr.hora_inicio IS NULL OR pr.hora_fin IS NULL OR TIME(NOW()) BETWEEN pr.hora_inicio AND pr.hora_fin)
+                    AND (pr.dias_semana IS NULL OR FIND_IN_SET(LOWER(DAYNAME(NOW())), pr.dias_semana) > 0)
+                ) x
+                JOIN (
+                    -- elegir la promo de mayor prioridad por producto
+                    SELECT producto_id, MAX(prioridad) AS maxp
+                    FROM (
+                        SELECT pp.producto_id, pr.prioridad
+                        FROM promo_productos pp
+                        INNER JOIN promociones pr ON pr.promo_id = pp.promo_id
+                        WHERE pr.empresa_id = ?
+                        AND pr.estado = 1
+                        AND CURDATE() BETWEEN pr.fecha_inicio AND pr.fecha_fin
+                        AND (pr.hora_inicio IS NULL OR pr.hora_fin IS NULL OR TIME(NOW()) BETWEEN pr.hora_inicio AND pr.hora_fin)
+                        AND (pr.dias_semana IS NULL OR FIND_IN_SET(LOWER(DAYNAME(NOW())), pr.dias_semana) > 0)
+                        UNION ALL
+                        SELECT p.productos_id, pr.prioridad
+                        FROM productos p
+                        INNER JOIN promo_categorias pc ON pc.categoria_id = p.categoria_id
+                        INNER JOIN promociones pr ON pr.promo_id = pc.promo_id
+                        WHERE pr.empresa_id = ?
+                        AND pr.estado = 1
+                        AND CURDATE() BETWEEN pr.fecha_inicio AND pr.fecha_fin
+                        AND (pr.hora_inicio IS NULL OR pr.hora_fin IS NULL OR TIME(NOW()) BETWEEN pr.hora_inicio AND pr.hora_fin)
+                        AND (pr.dias_semana IS NULL OR FIND_IN_SET(LOWER(DAYNAME(NOW())), pr.dias_semana) > 0)
+                    ) t
+                    GROUP BY producto_id
+                ) pick ON pick.producto_id = x.producto_id AND pick.maxp = x.prioridad";
+
+        $rs = $this->ejecutar_consulta_simple_preparada($sql, "iiii", [
+            $this->empresaId(), $this->empresaId(), $this->empresaId(), $this->empresaId()
+        ]);
+
+        $promos = [];
+        while ($r = $rs->fetch_assoc()) {
+            $pid = (int)$r['producto_id'];
+            $fecha_fin = (string)$r['fecha_fin'];
+            $hora_fin  = $r['hora_fin'] ? (string)$r['hora_fin'] : '23:59:59';
+            $fin_iso   = trim($fecha_fin . ' ' . $hora_fin);
+
+            $promos[$pid] = [
+                'nombre'         => $r['promo_nombre'],
+                'tipo_descuento' => $r['tipo_descuento'],
+                'valor'          => (float)$r['valor'],
+                'prioridad'      => (int)$r['prioridad'],
+                'fecha_fin'      => $fecha_fin,
+                'hora_fin'       => $r['hora_fin'],
+                'fin_iso'        => $fin_iso
+            ];
+        }
+        return $promos;
     }
 }

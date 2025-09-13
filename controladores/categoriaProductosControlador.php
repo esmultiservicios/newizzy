@@ -21,11 +21,12 @@
 			$categoria_productos = mainModel::cleanStringConverterCase($_POST['categoria_productos']);
 			$tipo_user_id_sd = $_SESSION['tipo_user_id_sd'];
 			$estado = 1;
-			
+			$estacion = 'ninguna'; // Establecemos la estación como 'ninguna'
 			$fecha_registro = date("Y-m-d H:i:s");	
 			
 			$datos = [
 				"nombre" => $categoria_productos,
+				"estacion" => $estacion,
 				"estado" => $estado,
 				"fecha_registro" => $fecha_registro,				
 			];
@@ -120,7 +121,7 @@
 			$categoria_id = $_POST['categoria_id'];
 			
 			$campos = ['categoria_id'];
-			$tabla = "categoria_productos";
+			$tabla = "categoria";
 			$condicion = "categoria_id = {$categoria_id}";
 
 			$categoria_productos = mainModel::consultar_tabla($tabla, $campos, $condicion);
@@ -138,7 +139,7 @@
 			$nombre = $categoria_productos[0]['nombre'] ?? '';
 
 			// VALIDAMOS QUE EL PRODCUTO NO TENGA MOVIMIENTOS, PARA PODER ELIMINARSE
-			if(categoriaProductosModelo::valid_categoria_productos_modelo($categoria_id)->num_rows > 0){
+			if(categoriaProductosModelo::valid_categoria_id_productos_modelo($categoria_id)->num_rows > 0){
 				header('Content-Type: application/json');
 				echo json_encode([
 					"status" => "error",

@@ -7029,7 +7029,7 @@ class mainModel
 			  {$clientes_id}
 			ORDER BY f.number DESC, cc.fecha DESC
 		";
-	
+
 		return self::connection()->query($query);
 	}	
 
@@ -7038,6 +7038,7 @@ class mainModel
 		$query = "SELECT SUM(importe) As 'total'
 			FROM pagos
 			WHERE facturas_id = '$facturas_id'";
+			
 		$result = self::connection()->query($query);
 
 		return $result;

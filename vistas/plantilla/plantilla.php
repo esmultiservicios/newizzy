@@ -129,6 +129,30 @@ if(!isset($_SESSION)){
     }                    
     endif; 		
     ?>
+
+    <script>
+        // Parche global: evita que reviente si selectpicker aún no existe
+        (function() {
+            if (!window.jQuery) { console.error('jQuery no cargó aún'); return; }
+
+            // No-op para que no explote .selectpicker()
+            if (!$.fn.selectpicker) {
+                $.fn.selectpicker = function(){ return this; };
+            }
+
+            // Helper seguro para refrescar
+            window.safeRefresh = function($el){
+                try {
+                if ($el && $el.length && $.fn && $.fn.selectpicker) {
+                    $el.selectpicker('refresh');
+                }
+                } catch(e) {
+                // silenciar
+                }
+            };
+        })();
+    </script>
+
     <a href="https://api.whatsapp.com/send?phone=50489136844&text=Hola%20ES%20MULTISERVICIOS,%20nos%20gustar%C3%ADa%20que%20nos%20puedan%20brindar%20asistencia%20t%C3%A9cnica,%20muchas%20gracias."
         class="float-ws" target="_blank" data-toggle="tooltip" data-placement="top" title="Soporte ES MULTISERVICIOS">
         <i class="fab fa-whatsapp my-float-ws"></i>
@@ -137,10 +161,6 @@ if(!isset($_SESSION)){
     <script>
         // Ejecuta cuando todo el HTML ya está en el DOM y jQuery está disponible
         actualizarPermisos();
-
-        // Cuando termine de aplicar permisos, tu código quita la clase nav-loading:
-        // (esto ya lo hace el .always() dentro de actualizarPermisos())
-        // $('#sidenavAccordion').removeClass('nav-loading');
     </script>    
 </body>
 

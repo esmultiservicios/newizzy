@@ -18,29 +18,31 @@
 
 	<div class="card mb-4">
 		<div class="card-body">
-			<form id="form_main_cobrar_clientes">
+			<form id="form_main_cobrar_clientes" autocomplete="off">
 				<div class="row">
 					<div class="col-md-3 col-sm-6 mb-3">
 						<div class="form-group">
 							<label class="small mb-1">Estado</label>
-							<select id="cobrar_clientes_estado" name="cobrar_clientes_estado" 
+							<!-- name debe ser “estado” -->
+							<select id="main_cobrar_clientes_estado" name="estado"
 								class="form-control selectpicker" title="Estado" data-live-search="true">
-								<option value="1">Pendientes</option>
+								<option value="1" selected>Pendientes</option>
 								<option value="2">Pagadas</option>
 							</select>
 						</div>
 					</div>
-					
+
 					<div class="col-md-3 col-sm-6 mb-3">
 						<div class="form-group">
 							<label class="small mb-1">Clientes</label>
-							<select id="cobrar_clientes" name="cobrar_clientes" 
+							<!-- name debe ser “clientes_id” -->
+							<select id="main_cobrar_clientes" name="clientes_id"
 								class="form-control selectpicker" title="Clientes" data-live-search="true">
 								<option value="">Seleccione</option>
 							</select>
 						</div>
 					</div>
-					
+
 					<div class="col-md-3 col-sm-6 mb-3">
 						<div class="form-group">
 							<label class="small mb-1">Fecha Inicio</label>
@@ -48,23 +50,20 @@
 								<div class="input-group-prepend">
 									<span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
 								</div>
-								<input type="date" class="form-control" id="fechai" name="fechai" value="<?php 
+								<input type="date" class="form-control" id="main_cobrarclientes_fechai" name="main_cobrarclientes_fechai" value="<?php 
 									$fecha = date ("Y-m-d");
-									
 									$año = date("Y", strtotime($fecha));
 									$mes = date("m", strtotime($fecha));
 									$dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
-
 									$dia1 = date('d', mktime(0,0,0, $mes, 1, $año));
 									$dia2 = date('d', mktime(0,0,0, $mes, $dia, $año));
-
 									$fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
 									echo $fecha_inicial;
 								?>">
 							</div>
 						</div>
 					</div>
-					
+
 					<div class="col-md-3 col-sm-6 mb-3">
 						<div class="form-group">
 							<label class="small mb-1">Fecha Fin</label>
@@ -72,50 +71,50 @@
 								<div class="input-group-prepend">
 									<span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
 								</div>
-								<input type="date" class="form-control" id="fechaf" name="fechaf" value="<?php echo date('Y-m-d');?>">
+								<input type="date" class="form-control" id="main_cobrarclientes_fechaf" name="main_cobrarclientes_fechaf" value="<?php echo date('Y-m-d');?>">
 							</div>
 						</div>
 					</div>
 				</div>
-				
+
 				<div class="row">
 					<div class="col-12 text-right">
 						<button type="submit" class="btn btn-primary mr-2" id="search">
 							<i class="fas fa-filter fa-lg"></i> Filtrar
 						</button>
-                        <button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary">
-                            <i class="fas fa-broom fa-lg"></i> Limpiar
-                        </button>     						
+						<button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary">
+							<i class="fas fa-broom fa-lg"></i> Limpiar
+						</button>
 					</div>
 				</div>
-				
+
 			</form>
 		</div>
-	</div>  
+	</div>
 
-    <div class="card mb-4">
-        <div class="card-header">
-            <i class="fas fa-hand-holding-usd  fa-lg mr-1"></i>
-            Cuentas por Cobrar Clientes
-        </div>
-        <div class="card-body"> 
-            <div class="table-responsive">
-                <table id="dataTableCuentasPorCobrarClientes" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-                    <thead>
-                        <tr>
+	<div class="card mb-4">
+		<div class="card-header">
+			<i class="fas fa-hand-holding-usd  fa-lg mr-1"></i>
+			Cuentas por Cobrar Clientes
+		</div>
+		<div class="card-body">
+			<div class="table-responsive">
+				<table id="dataTableCuentasPorCobrarClientes" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
+					<thead>
+						<tr>
 							<th>Fecha</th>
-                            <th>Cliente</th>
+							<th>Cliente</th>
 							<th>Estado</th>
-                            <th>Factura</th>
-                            <th>Crédito</th>
-                            <th>Abonos</th>
-                            <th>Saldo</th>		
+							<th>Factura</th>
+							<th>Crédito</th>
+							<th>Abonos</th>
+							<th>Saldo</th>
 							<th>Vendedor</th>
-                            <th>Abonar</th>
-							<th>Abonos Realizados</th>							
-							<th>Factura</th>				
-                        </tr>
-                    </thead>
+							<th>Abonar</th>
+							<th>Abonos Realizados</th>
+							<th>Factura</th>
+						</tr>
+					</thead>
 					<tfoot class="bg-secondary">
 						<tr>
 							<td colspan='1'>Total</td>
@@ -126,16 +125,15 @@
 							<td colspan="4"></td>
 						</tr>
 					</tfoot>
-                </table>  
-            </div>                   
-        </div>
-        <div class="card-footer small text-muted">
- 			<?php
+				</table>
+			</div>
+		</div>
+		<div class="card-footer small text-muted">
+			<?php
 				require_once "./core/mainModel.php";
-				
 				$insMainModel = new mainModel();
 				$entidad = "cobrar_clientes";
-				
+
 				if($insMainModel->getlastUpdate($entidad)->num_rows > 0){
 					$consulta_last_update = $insMainModel->getlastUpdate($entidad)->fetch_assoc();
 					$fecha_registro = htmlspecialchars($consulta_last_update['fecha_registro'], ENT_QUOTES, 'UTF-8');
@@ -143,10 +141,10 @@
 					echo "Última Actualización ".htmlspecialchars($insMainModel->getTheDay($fecha_registro, $hora), ENT_QUOTES, 'UTF-8');
 				} else {
 					echo "No se encontraron registros ";
-				}					
+				}
 			?>
-        </div>
-    </div>
+		</div>
+	</div>
 </div>
 <?php
 	$insMainModel->guardar_historial_accesos("Ingreso al modulo Cuentas por Cobrar Clientes");

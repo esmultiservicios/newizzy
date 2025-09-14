@@ -3,8 +3,7 @@ $peticionAjax = true;
 require_once "../core/configGenerales.php";
 
 $required = [
-  'colaboradores_id_apertura' => 'ID del colaborador',
-  'monto_apertura'            => 'Monto de la apertura',
+  'colaboradores_id_apertura' => 'ID del colaborador'
 ];
 
 $missing = [];

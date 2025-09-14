@@ -5558,4 +5558,36 @@ body.modal-open .user-dropdown { display: none !important; }
     z-index: 1000 !important;          /* menor que el backdrop */
     pointer-events: none;              /* bloquea interacción con el topbar */
   }
+
+  /* Botón "Menú principal" SOLO en móviles/tablets */
+#mobile-mainmenu-btn {
+    display: none;             /* oculto por defecto */
+    background: var(--topnav-hover-bg, #f2f3f5);
+    color: var(--topnav-text, #333);
+    border: 1px solid rgba(0,0,0,.06);
+    border-radius: 12px;
+    padding: .5rem .9rem;
+    font-weight: 600;
+  }
+  
+  /* Contenedor centrado (usa el flex del topnav) */
+  .sb-topnav {
+    display: flex;
+    align-items: center;
+  }
+  .mobile-mainmenu-wrapper {
+    margin: 0 auto;           /* centrado horizontal */
+  }
+  
+  @media (max-width: 991.98px) {
+    #mobile-mainmenu-btn { display: inline-flex; align-items: center; gap: .5rem; }
+  }
+  
+  @media (min-width: 992px) {
+    #mobile-mainmenu-btn { display: none !important; }
+  }
+  
+  /* Dropdown móvil: ancho cómodo */
+  #mobile-mainmenu { min-width: 260px; }
+  #mobile-mainmenu .dropdown-item i { width: 1.25rem; text-align:center; margin-right:.5rem; }
   

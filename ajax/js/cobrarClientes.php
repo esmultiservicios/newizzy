@@ -1,4 +1,5 @@
 <script>
+//cobrarClientes.php
 $(() => {
   // Evitar submit normal
   $('#form_main_cobrar_clientes').on('submit', function (e) {

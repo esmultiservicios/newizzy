@@ -4,7 +4,6 @@ require_once "../core/configGenerales.php";
 
 $required = [
   'nombre_proveedores' => 'Nombre del Proveedor',
-  'rtn_proveedores'    => 'RTN del Proveedor',
   'fecha_proveedores'  => 'Fecha de Registro',
 ];
 

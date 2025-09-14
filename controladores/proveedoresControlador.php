@@ -6,6 +6,7 @@
     }
 	
 	class proveedoresControlador extends proveedoresModelo{
+
 		public function agregar_proveedores_controlador(){
 			// Validar sesión primero
 			$validacion = mainModel::validarSesion();
@@ -32,21 +33,23 @@
 			$estado = 1;
 		
 			// Validaciones duras
-			if ($nombre === '' || $rtn === '') {
+			if ($nombre === '') {
 				return mainModel::showNotification([
 					"type"  => "error",
 					"title" => "Campos obligatorios",
-					"text"  => "Nombre y RTN del proveedor son obligatorios."
+					"text"  => "El nombre del proveedor es obligatorio."
 				]);
 			}
-		
-			// RTN: exactamente 14 dígitos numéricos (según tu tabla char(14))
-			if (!preg_match('/^\d{14}$/', $rtn)) {
-				return mainModel::showNotification([
-					"type"  => "error",
-					"title" => "RTN inválido",
-					"text"  => "El RTN debe contener exactamente 14 dígitos numéricos."
-				]);
+
+			// RTN: SOLO validar si viene con valor (exactamente 14 dígitos numéricos)
+			if ($rtn !== '') {
+				if (!preg_match('/^\d{14}$/', $rtn)) {
+					return mainModel::showNotification([
+						"type"  => "error",
+						"title" => "RTN inválido",
+						"text"  => "El RTN debe contener exactamente 14 dígitos numéricos."
+					]);
+				}
 			}
 		
 			// Teléfono (opcional) máximo 8 dígitos
@@ -89,8 +92,8 @@
 				}
 			}
 		
-			// Duplicado por RTN
-			if (proveedoresModelo::valid_proveedores_modelo($rtn)->num_rows > 0) {
+			// Duplicado por RTN: SOLO si el RTN viene con valor
+			if ($rtn !== '' && proveedoresModelo::valid_proveedores_modelo($rtn)->num_rows > 0) {
 				return mainModel::showNotification([
 					"type"  => "error",
 					"title" => "Duplicado",
@@ -101,7 +104,7 @@
 			// Armar datos
 			$datos = [
 				"nombre"          => $nombre,
-				"rtn"             => $rtn,
+				"rtn"             => $rtn, // puede ir vacío si así viene
 				"fecha"           => $fecha ?: date("Y-m-d"),
 				"departamento_id" => $depto,
 				"municipio_id"    => $muni,
@@ -123,12 +126,13 @@
 				]);
 			}
 		
-			// Historial (corrijo el módulo y el texto)
+			// Historial
+			$rtx = ($rtn !== '') ? $rtn : 'N/A';
 			mainModel::guardarHistorial([
 				"modulo" => 'Proveedores',
 				"colaboradores_id" => $_SESSION['colaborador_id_sd'],
 				"status" => "Registro",
-				"observacion" => "Se registró el proveedor {$nombre} con RTN {$rtn}",
+				"observacion" => "Se registró el proveedor {$nombre} con RTN {$rtx}",
 				"fecha_registro" => date("Y-m-d H:i:s")
 			]);
 		
@@ -142,51 +146,93 @@
 		}		
 		
 		public function edit_proveedores_controlador(){
-			$proveedores_id = $_POST['proveedores_id'];
-			$nombre = mainModel::cleanStringConverterCase($_POST['nombre_proveedores']);		
+			$proveedores_id  = $_POST['proveedores_id'];
+			$nombre          = mainModel::cleanStringConverterCase($_POST['nombre_proveedores']);		
 			$departamento_id = isset($_POST['departamento_proveedores']) ? intval($_POST['departamento_proveedores']) : 0;
-			$municipio_id = isset($_POST['municipio_proveedores']) ? intval($_POST['municipio_proveedores']) : 0;
-			$localidad = mainModel::cleanString($_POST['dirección_proveedores']);
-			$telefono = mainModel::cleanString($_POST['telefono_proveedores']);
-			$correo = mainModel::cleanStringStrtolower($_POST['correo_proveedores']);
-			$rtn = mainModel::cleanString($_POST['rtn_proveedores']);
+			$municipio_id    = isset($_POST['municipio_proveedores']) ? intval($_POST['municipio_proveedores']) : 0;
+			$localidad       = mainModel::cleanString($_POST['dirección_proveedores']);
+			$telefono        = mainModel::cleanString($_POST['telefono_proveedores']);
+			$correo          = mainModel::cleanStringStrtolower($_POST['correo_proveedores']);
+			$rtn             = trim(mainModel::cleanString($_POST['rtn_proveedores']));
 
-			$estado = isset($_POST['proveedores_activo']) && $_POST['proveedores_activo'] == 'on' ? 1 : 0;	
+			$estado = isset($_POST['proveedores_activo']) && $_POST['proveedores_activo'] == 'on' ? 1 : 0;
+
+			// Validaciones opcionales en edición
+			if ($nombre === '') {
+				return mainModel::showNotification([
+					"type"  => "error",
+					"title" => "Campos obligatorios",
+					"text"  => "El nombre del proveedor es obligatorio."
+				]);
+			}
+
+			// Teléfono (opcional) máximo 8 dígitos
+			if ($telefono !== '' && !preg_match('/^\d{1,8}$/', $telefono)) {
+				return mainModel::showNotification([
+					"type"  => "error",
+					"title" => "Teléfono inválido",
+					"text"  => "El teléfono debe tener máximo 8 dígitos numéricos."
+				]);
+			}
+
+			// Correo (opcional) formato
+			if ($correo !== '' && !filter_var($correo, FILTER_VALIDATE_EMAIL)) {
+				return mainModel::showNotification([
+					"type"  => "error",
+					"title" => "Correo inválido",
+					"text"  => "El formato del correo no es válido."
+				]);
+			}
+
+			// RTN: SOLO validar si viene con valor (exactamente 14 dígitos numéricos)
+			if ($rtn !== '') {
+				if (!preg_match('/^\d{14}$/', $rtn)) {
+					return mainModel::showNotification([
+						"type"  => "error",
+						"title" => "RTN inválido",
+						"text"  => "El RTN debe contener exactamente 14 dígitos numéricos."
+					]);
+				}
+				// Si deseas validar duplicado en edición (opcional) y tienes un método que excluya el id actual, podrías hacerlo aquí.
+				// Ejemplo hipotético:
+				// if (proveedoresModelo::existe_rtn_otro_proveedor($rtn, $proveedores_id)) { ... }
+			}
 			
 			$datos = [
 				"proveedores_id" => $proveedores_id,
-				"nombre" => $nombre,
-				"departamento_id" => $departamento_id,
-				"municipio_id" => $municipio_id,
-				"localidad" => $localidad,
-				"telefono" => $telefono,
-				"correo" => $correo,
-				"estado" => $estado,
-				"rtn" => $rtn,
+				"nombre"         => $nombre,
+				"departamento_id"=> $departamento_id,
+				"municipio_id"   => $municipio_id,
+				"localidad"      => $localidad,
+				"telefono"       => $telefono,
+				"correo"         => $correo,
+				"estado"         => $estado,
+				"rtn"            => $rtn, // puede ir vacío si así viene
 			];
 
 			if(!proveedoresModelo::edit_proveedores_modelo($datos)){
 				return mainModel::showNotification([
-					"type" => "error",
+					"type"  => "error",
 					"title" => "Error",
-					"text" => "No se pudo actualizar el proveedor",                
+					"text"  => "No se pudo actualizar el proveedor",
 				]);
 			}
 
 			// Registrar en historial
+			$rtx = ($rtn !== '') ? $rtn : 'N/A';
 			mainModel::guardarHistorial([
-				"modulo" => 'Clientes',
+				"modulo" => 'Proveedores',
 				"colaboradores_id" => $_SESSION['colaborador_id_sd'],
 				"status" => "Edición",
-				"observacion" => "Se editó el proveedor {$datos['nombre']} con RTN {$datos['rtn']}",
+				"observacion" => "Se editó el proveedor {$datos['nombre']} con RTN {$rtx}",
 				"fecha_registro" => date("Y-m-d H:i:s")
 			]);
 			
 			return mainModel::showNotification([
-				"type" => "success",
-				"title" => "Actualización exitosa",
-				"text" => "Proveedor actualizado correctamente",
-				"funcion" => "listar_proveedores();getDepartamentoProveedores();getMunicipiosProveedores(0);"
+				"type"   => "success",
+				"title"  => "Actualización exitosa",
+				"text"   => "Proveedor actualizado correctamente",
+				"funcion"=> "listar_proveedores();getDepartamentoProveedores();getMunicipiosProveedores(0);"
 			]);
 		}
 		
@@ -194,7 +240,7 @@
 			$proveedores_id = $_POST['proveedores_id'];
 			
 			$campos = ['nombre', 'rtn'];
-			$tabla = "proveedores";;
+			$tabla = "proveedores";
 			$condicion = "proveedores_id = {$proveedores_id}";
 
 			$proveedor = mainModel::consultar_tabla($tabla, $campos, $condicion);
@@ -211,7 +257,7 @@
 			
 			$nombre = $proveedor[0]['nombre'] ?? '';
 
-			// VALIDAMOS QUE EL PRODCUTO NO TENGA MOVIMIENTOS, PARA PODER ELIMINARSE
+			// VALIDAMOS QUE EL PROVEEDOR NO TENGA MOVIMIENTOS, PARA PODER ELIMINARSE
 			if(proveedoresModelo::valid_proveedores_compras($proveedores_id)->num_rows > 0){
 				header('Content-Type: application/json');
 				echo json_encode([
@@ -219,7 +265,7 @@
 					"title" => "No se puede eliminar",
 					"message" => "El proveedor {$nombre} tiene compras asociadas"
 				]);
-				exit();                
+				exit();
 			}
 
 			if(!proveedoresModelo::delete_proveedores_modelo($proveedores_id)){
@@ -238,6 +284,6 @@
 				"title" => "Eliminado",
 				"message" => "Proveedor {$nombre} eliminado correctamente"
 			]);
-			exit();					
-		}		
+			exit();
+		}
 	}

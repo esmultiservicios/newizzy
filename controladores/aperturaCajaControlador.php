@@ -52,7 +52,7 @@ class aperturaCajaControlador extends aperturaCajaModelo{
             "fecha" => $_POST['fecha_apertura'],
             "factura_inicial" => "",
             "factura_final" => "",
-            "monto" => $_POST['monto_apertura'],
+            "monto" => !empty($_POST['monto_apertura']) ? $_POST['monto_apertura'] : 0,
             "neto" => 0,                
             "estado" => 1,
             "fecha_registro" => date("Y-m-d H:i:s"),
@@ -60,7 +60,7 @@ class aperturaCajaControlador extends aperturaCajaModelo{
         ];
 
         // Validaciones
-        if(empty($_POST['colaboradores_id_apertura']) || empty($_POST['monto_apertura'])){
+        if(empty($_POST['colaboradores_id_apertura'])){
             return mainModel::showNotification([
                 "title" => "Error",
                 "text" => "Todos los campos son obligatorios",

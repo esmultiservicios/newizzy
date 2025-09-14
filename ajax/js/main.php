@@ -1,4 +1,5 @@
 <script>
+//main.php
 var DB_MAIN = "<?php echo DB_MAIN; ?>";
 
 // LLAMAMOS EL MÉTODO QUE IDENTIFICA EL USUARIO QUE HA INICIADO SESIÓN
@@ -29,22 +30,33 @@ getClientesCXC();
 getProveedoresCXP();
 
 function init() {
-    document.querySelectorAll('.selectpicker').forEach(el => $(el).selectpicker());
+  // Activa selectpicker y tooltips de inmediato
+  if (window.jQuery && $.fn && $.fn.selectpicker) {
+    $('.selectpicker').selectpicker();
+  }
+  if (window.jQuery && $.fn && $.fn.tooltip) {
+    $('[data-toggle="tooltip"]').tooltip();
+  }
 
-    // Inicializar tooltips en las opciones del selectpicker después de la creación
-    document.querySelectorAll('[data-toggle="tooltip"]').forEach(el => $(el).tooltip());      
+  // ❌ NO usar DOMContentLoaded aquí: ya ocurrió
+  // ✅ Fijar valores por defecto AHORA y refrescar selectpicker
 
-    document.addEventListener('DOMContentLoaded', function () {
-        document.querySelector('#form_main_pagar_proveedores #pagar_proveedores_estado').value = 1;
-        $('#form_main_pagar_proveedores #pagar_proveedores_estado').selectpicker('refresh');
-    });
+  // Pagar Proveedores > Estado = 1
+  var $estadoPP = $('#form_main_pagar_proveedores #pagar_proveedores_estado');
+  if ($estadoPP.length) {
+    $estadoPP.val('1');
+    if ($estadoPP.selectpicker) $estadoPP.selectpicker('refresh');
+  }
 
-    document.addEventListener('DOMContentLoaded', function () {
-        document.querySelector('#form_main_cobrar_clientes #cobrar_clientes_estado').value = 1;
-        $('#form_main_cobrar_clientes #cobrar_clientes_estado').selectpicker('refresh');
-    }); 
-    
-    aplicar();
+  // Cuentas por Cobrar Clientes > Estado = 1
+  var $estadoCXC = $('#form_main_cobrar_clientes #main_cobrar_clientes_estado');
+  if ($estadoCXC.length) {
+    $estadoCXC.val('1');
+    if ($estadoCXC.selectpicker) $estadoCXC.selectpicker('refresh');
+  }
+
+  // El resto de tu inicialización global
+  aplicar();
 }
 
 <!-- Responsive menú: móvil muestra #facturaMovil; escritorio muestra #facturas/#facturaCompras/#cotizacion -->
@@ -241,11 +253,6 @@ async function validarSesion() {
         }
     }
 }
-// Ejecutar validarSesion inicialmente
-//validarSesion();
-
-// Configurar intervalo para validar la sesión cada minuto
-//setInterval(validarSesion, 1000); // 1000 milisegundos = 1 segundo
 
 //IICIO MENUS
 function getPermisosTipoUsuarioAccesosTable(privilegio_id) {
@@ -2968,16 +2975,16 @@ function getConsultarAperturaCaja() {
 var listar_cuentas_por_cobrar_clientes = function() {
     var estado = "";
 
-    if ($("#form_main_cobrar_clientes #cobrar_clientes_estado").val() == "" || $(
+    if ($("#form_main_cobrar_clientes #main_cobrar_clientes_estado").val() == "" || $(
             "#form_main_cobrar_clientes #cobrar_clientes_estado").val() == null) {
         estado = 1;
     } else {
         estado = $("#form_main_cobrar_clientes #cobrar_clientes_estado").val();
     }
 
-    var clientes_id = $("#form_main_cobrar_clientes #cobrar_clientes").val();
-    var fechai = $("#form_main_cobrar_clientes #fechai").val();
-    var fechaf = $("#form_main_cobrar_clientes #fechaf").val();
+    var clientes_id = $("#form_main_cobrar_clientes #main_cobrar_clientes").val();
+    var fechai = $("#form_main_cobrar_clientes #main_cobrarclientes_fechai").val();
+    var fechaf = $("#form_main_cobrar_clientes #main_cobrarclientes_fechaf").val();
 
     var table_cuentas_por_cobrar_clientes = $("#dataTableCuentasPorCobrarClientes").DataTable({
         "destroy": true,
@@ -3296,9 +3303,9 @@ function getClientesCXC() {
         url: url,
         async: true,
         success: function(data) {
-            $('#form_main_cobrar_clientes #cobrar_clientes').html("");
-            $('#form_main_cobrar_clientes #cobrar_clientes').html(data);
-            $('#form_main_cobrar_clientes #cobrar_clientes').selectpicker('refresh');
+            $('#form_main_cobrar_clientes #main_cobrar_clientes').html("");
+            $('#form_main_cobrar_clientes #main_cobrar_clientes').html(data);
+            $('#form_main_cobrar_clientes #main_cobrar_clientes').selectpicker('refresh');
         }
     });
 }

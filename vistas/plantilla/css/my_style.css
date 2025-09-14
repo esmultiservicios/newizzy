@@ -5535,59 +5535,51 @@ body.modal-open .user-dropdown { display: none !important; }
 
 /* ============================
    PARCHE Z-INDEX MODAL VS TOPBAR
-   (PÉGALO AL FINAL DE TU CSS)
    ============================ */
 
-/* El modal siempre por encima del topbar */
-.modal {
-    z-index: 2000 !important;          /* > 1060 del topbar */
-  }
-  .modal-backdrop {
-    z-index: 1990 !important;          /* justo debajo del modal */
-  }
-  
-  /* Si usas tooltips/popovers dentro del modal */
-  .modal .popover,
-  .modal .tooltip {
-    z-index: 2010 !important;
-  }
-  
-  /* Opcional: mientras haya modal abierto, baja prioridad del topbar
-     para evitar que capture clics por error */
-  body.modal-open .sb-topnav {
-    z-index: 1000 !important;          /* menor que el backdrop */
-    pointer-events: none;              /* bloquea interacción con el topbar */
-  }
-
-  /* Botón "Menú principal" SOLO en móviles/tablets */
-#mobile-mainmenu-btn {
-    display: none;             /* oculto por defecto */
-    background: var(--topnav-hover-bg, #f2f3f5);
-    color: var(--topnav-text, #333);
-    border: 1px solid rgba(0,0,0,.06);
-    border-radius: 12px;
-    padding: .5rem .9rem;
-    font-weight: 600;
-  }
-  
-  /* Contenedor centrado (usa el flex del topnav) */
-  .sb-topnav {
-    display: flex;
-    align-items: center;
-  }
-  .mobile-mainmenu-wrapper {
-    margin: 0 auto;           /* centrado horizontal */
-  }
-  
-  @media (max-width: 991.98px) {
-    #mobile-mainmenu-btn { display: inline-flex; align-items: center; gap: .5rem; }
-  }
-  
-  @media (min-width: 992px) {
-    #mobile-mainmenu-btn { display: none !important; }
-  }
-  
-  /* Dropdown móvil: ancho cómodo */
-  #mobile-mainmenu { min-width: 260px; }
-  #mobile-mainmenu .dropdown-item i { width: 1.25rem; text-align:center; margin-right:.5rem; }
+   .modal { z-index: 2000 !important; }
+   .modal-backdrop { z-index: 1990 !important; }
+   .modal .popover,
+   .modal .tooltip { z-index: 2010 !important; }
+   
+   body.modal-open .sb-topnav {
+     z-index: 1000 !important;
+     pointer-events: none;
+   }
+   
+   /* Botón "Menú principal" */
+   #mobile-mainmenu-btn {
+     display: none; /* por defecto oculto, lo controlamos con media queries abajo */
+     background: var(--topnav-hover-bg, #f2f3f5);
+     color: var(--topnav-text, #333);
+     border: 1px solid rgba(0,0,0,.06);
+     border-radius: 12px;
+     padding: .5rem .9rem;
+     font-weight: 600;
+   }
+   
+   .sb-topnav { display: flex; align-items: center; }
+   .mobile-mainmenu-wrapper { margin: 0 auto; }
+   
+   /* --- NUEVO: usamos XL como corte ---
+      Hasta 1199.98px = usar menú móvil (botón y dropdown).
+      Desde 1200px = menú desktop normal.
+   */
+   @media (max-width: 1199.98px) {
+     /* Mostrar botón en tablet/landscape y móviles */
+     #mobile-mainmenu-btn { display: inline-flex; align-items: center; gap: .5rem; }
+   
+     /* Ocultar el menú desktop para liberar espacio y que se vea el de usuario */
+     .navbar-nav.d-none.d-lg-flex { display: none !important; }
+   }
+   
+   @media (min-width: 1200px) {
+     /* En escritorio grande, ocultar el botón y mostrar el UL desktop (por Bootstrap) */
+     #mobile-mainmenu-btn { display: none !important; }
+   }
+   
+   /* Dropdown móvil: ancho cómodo */
+   #mobile-mainmenu { min-width: 260px; }
+   #mobile-mainmenu .dropdown-item i { width: 1.25rem; text-align:center; margin-right:.5rem; }
+   
   

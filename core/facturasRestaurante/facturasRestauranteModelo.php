@@ -115,22 +115,25 @@ class facturasRestauranteModelo extends mainModel {
     
         // Valor a devolver en 'estacion'
         $selEst = $tieneEst
-            ? "LOWER(COALESCE(NULLIF(c.estacion,''),'ninguna'))"
+            ? "LOWER(TRIM(COALESCE(NULLIF(c.estacion,''),'ninguna')))"
             : "'ninguna'";
     
         // WHERE base
         $where = "WHERE c.estado = 1";
-        
-        // Filtrar por estación si se especifica
-        if ($tieneEst && $estacion !== 'todas') {
+    
+        // Filtrar por estación según el parámetro
+        if ($tieneEst) {
             if ($estacion === 'cocina') {
-                $where .= " AND c.estacion = 'cocina'";
+                $where .= " AND LOWER(TRIM(c.estacion)) = 'cocina'";
             } elseif ($estacion === 'barra') {
-                $where .= " AND c.estacion = 'barra'";
+                $where .= " AND LOWER(TRIM(c.estacion)) = 'barra'";
+            } elseif ($estacion === 'todas') {
+                // IMPORTANT: incluir solo cocina y barra, excluir 'ninguna'
+                $where .= " AND LOWER(TRIM(c.estacion)) IN ('cocina','barra')";
             }
+            // cualquier otro valor/por defecto no agrega filtro extra
         }
     
-        // **Sin INNER JOIN con productos**: debe traer TODAS las categorías activas
         $sql = "SELECT
                     c.categoria_id AS id,
                     c.nombre,
@@ -143,7 +146,7 @@ class facturasRestauranteModelo extends mainModel {
     
         $out = [];
         while ($r = $rs->fetch_assoc()){
-            $est = strtolower($r['estacion'] ?? 'ninguna');
+            $est = strtolower(trim($r['estacion'] ?? 'ninguna'));
             if (!in_array($est, ['cocina','barra','ninguna'], true)) {
                 $est = 'ninguna';
             }
@@ -156,61 +159,149 @@ class facturasRestauranteModelo extends mainModel {
         return $out;
     }    
          
-    /** Guardar categoría (si no existe la columna estacion, se ignora y se asume 'ninguna') */
-    public function guardarCategoria($nombre, $estacion='ninguna'){
-        $nombre = $this->cleanString($nombre);
+    /** Guardar categoría (requiere estacion cocina|barra si existe la columna) */
+    public function guardarCategoria($nombre, $estacion){
+        $nombre   = $this->cleanString($nombre);
         $estacion = strtolower($this->cleanString($estacion));
-        if(!in_array($estacion,['ninguna','cocina','barra'],true)) $estacion='ninguna';
-        if($nombre===''){ return ['status'=>false,'message'=>'Nombre requerido']; }
+
+        if ($nombre === '') {
+            return ['status'=>false,'message'=>'Nombre requerido'];
+        }
+        if (!in_array($estacion, ['cocina','barra'], true)) {
+            return ['status'=>false,'message'=>'Seleccione estación válida (cocina o barra)'];
+        }
 
         $dup = $this->ejecutar_consulta_simple_preparada(
             "SELECT 1 FROM categoria WHERE nombre=? LIMIT 1", "s", [$nombre]
         );
-        if($dup && $dup->num_rows){ return ['status'=>false,'message'=>'La categoría ya existe']; }
+        if ($dup && $dup->num_rows) {
+            return ['status'=>false,'message'=>'La categoría ya existe'];
+        }
 
         $id = mainModel::correlativo("categoria_id","categoria");
 
         if ($this->hasColumn('categoria','estacion')) {
             $ok = $this->ejecutar_consulta_simple_preparada(
-                "INSERT INTO categoria(categoria_id,nombre,estacion,estado,fecha_registro) VALUES(?, ?, ?, 1, NOW())",
+                "INSERT INTO categoria(categoria_id,nombre,estacion,estado,fecha_registro) 
+                VALUES(?, ?, ?, 1, NOW())",
                 "iss",
                 [$id,$nombre,$estacion]
             );
         } else {
+            // Si tu esquema SIEMPRE tiene columna 'estacion', esto no ocurrirá,
+            // pero lo dejamos por compatibilidad.
             $ok = $this->ejecutar_consulta_simple_preparada(
-                "INSERT INTO categoria(categoria_id,nombre,estado,fecha_registro) VALUES(?, ?, 1, NOW())",
+                "INSERT INTO categoria(categoria_id,nombre,estado,fecha_registro) 
+                VALUES(?, ?, 1, NOW())",
                 "is",
                 [$id,$nombre]
             );
         }
-        return $ok ? ['status'=>true,'categoria_id'=>$id] : ['status'=>false,'message'=>'No se pudo guardar la categoría'];
+
+        return $ok ? ['status'=>true,'categoria_id'=>$id]
+                : ['status'=>false,'message'=>'No se pudo guardar la categoría'];
     }
 
-    public function actualizarCategoria($categoria_id, $nombre, $estacion='ninguna'){
+    /** Actualizar categoría con mensajes claros y sin falsos errores */
+    public function actualizarCategoria($categoria_id, $nombre, $estacion){
         $categoria_id = intval($categoria_id);
-        $nombre = $this->cleanString($nombre);
+        $nombre   = $this->cleanString($nombre);
         $estacion = strtolower($this->cleanString($estacion));
-        if(!in_array($estacion,['ninguna','cocina','barra'],true)) $estacion='ninguna';
 
-        if($categoria_id<=0 || $nombre===''){ return ['status'=>false,'message'=>'Datos inválidos']; }
+        if ($categoria_id <= 0 || $nombre === '') {
+            return ['status'=>false,'message'=>'Datos inválidos'];
+        }
+        $usaEstacion = $this->hasColumn('categoria','estacion');
+        if ($usaEstacion && !in_array($estacion, ['cocina','barra'], true)) {
+            return ['status'=>false,'message'=>'Seleccione estación válida (cocina o barra)'];
+        }
 
-        $dup = $this->ejecutar_consulta_simple_preparada(
-            "SELECT 1 FROM categoria WHERE nombre=? AND categoria_id<>? LIMIT 1", "si", [$nombre,$categoria_id]
+        // 1) Cargar valores actuales para detectar "sin cambios"
+        $curr = $this->ejecutar_consulta_simple_preparada(
+            $usaEstacion
+                ? "SELECT nombre, estacion FROM categoria WHERE categoria_id=? LIMIT 1"
+                : "SELECT nombre FROM categoria WHERE categoria_id=? LIMIT 1",
+            "i",
+            [$categoria_id]
         );
-        if($dup && $dup->num_rows){ return ['status'=>false,'message'=>'Ya existe una categoría con ese nombre']; }
+        if (!$curr || !$curr->num_rows) {
+            return ['status'=>false,'message'=>'Categoría no encontrada'];
+        }
+        $row = $curr->fetch_assoc();
+        if ($usaEstacion) {
+            $actualIgual = (strcasecmp($row['nombre'] ?? '', $nombre) === 0)
+                        && (strcasecmp($row['estacion'] ?? '', $estacion) === 0);
+        } else {
+            $actualIgual = (strcasecmp($row['nombre'] ?? '', $nombre) === 0);
+        }
+        if ($actualIgual) {
+            // Nada cambió: éxito “silencioso”
+            return ['status'=>true,'message'=>'Sin cambios'];
+        }
 
-        if ($this->hasColumn('categoria','estacion')) {
-            $ok = $this->ejecutar_consulta_simple_preparada(
-                "UPDATE categoria SET nombre=?, estacion=? WHERE categoria_id=?", "ssi", [$nombre,$estacion,$categoria_id]
+        // 2) Chequear duplicado EXCLUYENDO el propio ID
+        if ($usaEstacion) {
+            $dup = $this->ejecutar_consulta_simple_preparada(
+                "SELECT 1 FROM categoria WHERE nombre=? AND estacion=? AND categoria_id<>? LIMIT 1",
+                "ssi",
+                [$nombre, $estacion, $categoria_id]
             );
         } else {
-            $ok = $this->ejecutar_consulta_simple_preparada(
-                "UPDATE categoria SET nombre=? WHERE categoria_id=?", "si", [$nombre,$categoria_id]
+            $dup = $this->ejecutar_consulta_simple_preparada(
+                "SELECT 1 FROM categoria WHERE nombre=? AND categoria_id<>? LIMIT 1",
+                "si",
+                [$nombre, $categoria_id]
             );
         }
-        return $ok ? ['status'=>true,'message'=>'Categoría actualizada'] : ['status'=>false,'message'=>'No se pudo actualizar la categoría'];
-    }
+        if ($dup && $dup->num_rows) {
+            return [
+                'status'=>false,
+                'message'=>'Ya existe una categoría con ese nombre' . ($usaEstacion ? ' en esa estación' : '')
+            ];
+        }
 
+        // 3) Ejecutar UPDATE
+        if ($usaEstacion) {
+            $res = $this->ejecutar_consulta_simple_preparada(
+                "UPDATE categoria SET nombre=?, estacion=? WHERE categoria_id=?",
+                "ssi",
+                [$nombre, $estacion, $categoria_id]
+            );
+        } else {
+            $res = $this->ejecutar_consulta_simple_preparada(
+                "UPDATE categoria SET nombre=? WHERE categoria_id=?",
+                "si",
+                [$nombre, $categoria_id]
+            );
+        }
+
+        // 4) Si falló el UPDATE, re-verifica por si es un choque de índice único
+        if ($res === false) {
+            if ($usaEstacion) {
+                $dup2 = $this->ejecutar_consulta_simple_preparada(
+                    "SELECT 1 FROM categoria WHERE nombre=? AND estacion=? AND categoria_id<>? LIMIT 1",
+                    "ssi",
+                    [$nombre, $estacion, $categoria_id]
+                );
+            } else {
+                $dup2 = $this->ejecutar_consulta_simple_preparada(
+                    "SELECT 1 FROM categoria WHERE nombre=? AND categoria_id<>? LIMIT 1",
+                    "si",
+                    [$nombre, $categoria_id]
+                );
+            }
+            if ($dup2 && $dup2->num_rows) {
+                return [
+                    'status'=>false,
+                    'message'=>'Ya existe una categoría con ese nombre' . ($usaEstacion ? ' en esa estación' : '')
+                ];
+            }
+            return ['status'=>false,'message'=>'No se pudo actualizar la categoría'];
+        }
+
+        // 5) Éxito (aunque affected_rows sea 0, ya filtramos “sin cambios” arriba)
+        return ['status'=>true,'message'=>'Categoría actualizada'];
+    }
     /** Heurística de estación cuando no está definida */
     protected function esParaCocinaHeuristica($catNombre, $prodNombre){
         $s = mb_strtolower($catNombre.' '.$prodNombre,'UTF-8');
@@ -671,7 +762,7 @@ class facturasRestauranteModelo extends mainModel {
               FROM facturas f
               INNER JOIN factura_comanda fc ON fc.factura_id = f.facturas_id
               INNER JOIN mesas m ON m.mesa_id = fc.mesa_id
-              LEFT JOIN clientes c ON c.clientes_id = f.clientes_id
+              INNER JOIN clientes c ON c.clientes_id = f.clientes_id
               WHERE fc.mesa_id = ? AND f.estado IN (1,2,3)
               ORDER BY f.facturas_id DESC
               LIMIT 1";
@@ -1233,6 +1324,99 @@ class facturasRestauranteModelo extends mainModel {
     public function marcarComandaEnPreparacion($factura_id){
         $ok = $this->ejecutar_consulta_simple_preparada("UPDATE factura_comanda SET estado='en_preparacion' WHERE factura_id=?","i",[intval($factura_id)]);
         return $ok ? ['status'=>true] : ['status'=>false,'message'=>'No se pudo actualizar'];
+    }
+
+    /* SOLO items cuya categoría.estacion = $estacion (p.ej. 'cocina') */
+    public function getComandasPorEstacion(string $estacion = 'cocina'): array {
+        $cnn = $this->connection();
+
+        // Traigo las comandas con sus items filtrados por estación
+        $sql = "
+            SELECT
+                fc.id              AS comanda_id,
+                fc.factura_id      AS factura_id,
+                fc.mesa_id         AS mesa_id,
+                fc.estado          AS estado,
+                fc.fecha_registro  AS fecha_registro,
+                fc.comentarios_cocina,
+                f.notas            AS notas,
+                COALESCE(cli.nombre, 'Consumidor Final') AS cliente_nombre,
+                fd.cantidad        AS cantidad,
+                p.nombre           AS producto_nombre
+            FROM factura_comanda fc
+            INNER JOIN facturas f             ON f.facturas_id = fc.factura_id
+            LEFT  JOIN clientes cli           ON cli.clientes_id = f.clientes_id
+            INNER JOIN facturas_detalles fd   ON fd.facturas_id = f.facturas_id
+            INNER JOIN productos p            ON p.productos_id = fd.productos_id
+            INNER JOIN categoria c            ON c.categoria_id = p.categoria_id
+            WHERE c.estacion = ?
+            AND fc.estado IN ('pendiente','en_preparacion','urgente')
+            ORDER BY fc.fecha_registro ASC, fc.id ASC
+        ";
+
+        $rs = $this->ejecutar_consulta_simple_preparada($sql, "s", [$estacion]);
+
+        $out = [];
+        if ($rs) {
+            while ($row = $rs->fetch_assoc()) {
+                $cid  = (int)$row['comanda_id'];
+                $fid  = (int)$row['factura_id'];
+
+                if (!isset($out[$cid])) {
+                    $out[$cid] = [
+                        'id'                 => $cid,                  // id de factura_comanda
+                        'factura_id'         => $fid,                  // para mostrar Orden #
+                        'mesa'               => (int)$row['mesa_id'],
+                        'estado'             => (string)$row['estado'],
+                        'urgente'            => ((string)$row['estado'] === 'urgente'),
+                        'hora'               => date('H:i', strtotime($row['fecha_registro'] ?? date('Y-m-d H:i:s'))),
+                        'cliente_nombre'     => (string)$row['cliente_nombre'],
+                        'observaciones'      => (string)($row['notas'] ?? ''),
+                        'comentarios_cocina' => (string)($row['comentarios_cocina'] ?? ''),
+                        'items'              => []
+                    ];
+                }
+
+                $out[$cid]['items'][] = [
+                    'nombre'   => (string)$row['producto_nombre'],
+                    'cantidad' => (float)$row['cantidad']
+                ];
+            }
+        }
+
+        // Volver a índice numérico
+        return array_values($out);
+    }
+
+    /* Update por FACTURA (para: en_preparacion, urgente/pendiente) */
+    public function updateComandaEstadoByFactura(int $factura_id, string $nuevoEstado): bool {
+        $factura_id   = max(0, $factura_id);
+        $nuevoEstado  = $this->cleanString($nuevoEstado);
+        if ($factura_id <= 0) return false;
+
+        // Solo cambio si existe el registro
+        return (bool) $this->ejecutar_consulta_simple_preparada(
+            "UPDATE factura_comanda 
+            SET estado = ?, fecha_actualizacion = NOW()
+            WHERE factura_id = ?",
+            "si",
+            [$nuevoEstado, $factura_id]
+        );
+    }
+
+    /* Update por COMANDA (para: preparada) */
+    public function updateComandaEstadoById(int $comanda_id, string $nuevoEstado): bool {
+        $comanda_id   = max(0, $comanda_id);
+        $nuevoEstado  = $this->cleanString($nuevoEstado);
+        if ($comanda_id <= 0) return false;
+
+        return (bool) $this->ejecutar_consulta_simple_preparada(
+            "UPDATE factura_comanda 
+            SET estado = ?, fecha_actualizacion = NOW()
+            WHERE id = ?",
+            "si",
+            [$nuevoEstado, $comanda_id]
+        );
     }
 
     /* ============================================================
@@ -2090,5 +2274,561 @@ class facturasRestauranteModelo extends mainModel {
             ];
         }
         return $promos;
+    }
+    
+    /** Crear factura en BORRADOR (estado=1) + detalle, sin usar $db externo */
+    public function crearFacturaBorrador(array $params){
+        // $params: clientes_id, secuencia_facturacion_id, apertura_id, number,
+        // tipo_factura, colaboradores_id, notas, (opcional importe),
+        // usuario, empresa_id, detalle (array con productos_id,cantidad,precio, isv_valor?,descuento?,medida?)
+        $cnn = $this->connection();
+
+        // Normalizar detalle de entrada
+        $detalle = is_array($params['detalle'] ?? null) ? $params['detalle'] : [];
+        if (empty($detalle)) {
+            return ['status'=>false,'message'=>'Detalle vacío'];
+        }
+
+        // Calcular totales desde items (para “importe”)
+        $itemsCalc = [];
+        foreach($detalle as $d){
+            $itemsCalc[] = [
+                'productos_id' => intval($d['productos_id'] ?? 0),
+                'cantidad'     => floatval($d['cantidad'] ?? 0),
+                'precio'       => floatval($d['precio'] ?? 0),
+            ];
+        }
+        $tot = $this->calcularTotalesDesdeItems($itemsCalc);
+
+        // Campos base
+        $clientes_id = intval($params['clientes_id'] ?? 0);
+        $secuencia_facturacion_id = intval($params['secuencia_facturacion_id'] ?? 0);
+        $apertura_id = intval($params['apertura_id'] ?? $this->aperturaId());
+        $number = intval($params['number'] ?? 0);
+        $tipo_factura = intval($params['tipo_factura'] ?? 1); // 1=Contado
+        $colaboradores_id = intval($params['colaboradores_id'] ?? $this->colaboradorId());
+        $importe = isset($params['importe']) ? floatval($params['importe']) : floatval($tot['total']);
+        $notas = $this->cleanString($params['notas'] ?? '');
+        $usuario = intval($params['usuario'] ?? $this->usuarioId());
+        $empresa_id = intval($params['empresa_id'] ?? $this->empresaId());
+        $hoy = date('Y-m-d');
+
+        try{
+            $cnn->begin_transaction();
+
+            // facturas_id no es autoincrement — usamos correlativo
+            $factura_id = mainModel::correlativo("facturas_id","facturas");
+
+            // ⚠️ FIX 1: tipos y placeholders alineados (13 ?)
+            $ok = $this->ejecutar_consulta_simple_preparada(
+                "INSERT INTO facturas(
+                    facturas_id, clientes_id, secuencia_facturacion_id, apertura_id, number,
+                    tipo_factura, colaboradores_id, importe, notas, fecha, estado,
+                    usuario, empresa_id, fecha_registro, fecha_dolar,
+                    no_orden, constancia, identificativo_sag, numero_interno
+                ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, NOW(), ?, NULL, NULL, NULL, NULL)",
+                /* i i i i i i i d  s  s  i  i  s */
+                "iiiiiiidssiis",
+                [
+                    $factura_id, $clientes_id, $secuencia_facturacion_id, $apertura_id, $number,
+                    $tipo_factura, $colaboradores_id, $importe, $notas, $hoy,
+                    $usuario, $empresa_id, $hoy
+                ]
+            );
+            if(!$ok){ throw new Exception("No se pudo insertar la factura"); }
+
+            // ===== Flags de ISV por producto =====
+            $ids = array_values(array_filter(array_map(function($d){ return intval($d['productos_id'] ?? 0); }, $detalle)));
+            $flags = [];
+            if (!empty($ids)){
+                $place = implode(',', array_fill(0,count($ids),'?'));
+                $types = str_repeat('i', count($ids));
+                $rs = $this->ejecutar_consulta_simple_preparada(
+                    "SELECT productos_id, isv1, isv2 FROM productos WHERE productos_id IN ($place)", $types, $ids
+                );
+                while($r=$rs->fetch_assoc()){
+                    $flags[intval($r['productos_id'])] = [
+                        'isv1' => intval($r['isv1'])==1,
+                        'isv2' => intval($r['isv2'])==1
+                    ];
+                }
+            }
+            $isv = $this->getISVActivosMap(); $r1 = ($isv[1]??0)/100.0; $r2 = ($isv[2]??0)/100.0;
+
+            // ===== Detalle =====
+            foreach($detalle as $d){
+                $pid = intval($d['productos_id'] ?? 0);
+                $qty = floatval($d['cantidad'] ?? 0);
+                $pu  = floatval($d['precio']   ?? 0);
+                if ($pid<=0 || $qty<=0) continue;
+
+                $f = $flags[$pid] ?? ['isv1'=>false,'isv2'=>false];
+                $isvUnit = ($f['isv1']?($pu*$r1):0) + ($f['isv2']?($pu*$r2):0);
+                $isvVal  = $isvUnit * $qty;
+
+                $det_id = mainModel::correlativo("facturas_detalle_id","facturas_detalles");
+                $this->ejecutar_consulta_simple_preparada(
+                    "INSERT INTO facturas_detalles
+                        (facturas_detalle_id, facturas_id, productos_id, cantidad, precio, isv_valor, descuento, medida)
+                    VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
+                    "iiiiddis",
+                    [
+                        $det_id, $factura_id, $pid, $qty, $pu,
+                        (isset($d['isv_valor']) ? floatval($d['isv_valor']) : $isvVal),
+                        (isset($d['descuento']) ? floatval($d['descuento']) : 0),
+                        (isset($d['medida']) ? (string)$d['medida'] : 'UNIDAD')
+                    ]
+                );
+            }
+
+            $cnn->commit();
+            return ['status'=>true, 'factura_id'=>$factura_id];
+
+        }catch(Throwable $e){
+            $cnn->rollback();
+            return ['status'=>false,'message'=>'Error al crear borrador: '.$e->getMessage()];
+        }
+    }
+
+    /**
+     * Registra/actualiza la comanda para cocina ligada a una factura.
+     * - Si ya existe registro en factura_comanda para esa factura: UPDATE (mesa_id, comentarios, fecha_actualizacion)
+     * - Si no existe: INSERT (id, factura_id, mesa_id, comentarios, estado='pendiente', fecha_registro=NOW())
+     *
+     * @param int    $factura_id   ID de la factura (obligatorio)
+     * @param int    $mesa_id      ID de la mesa (0 = para llevar)
+     * @param string $comentarios  Observaciones/comentarios para cocina
+     * @param string $servicio     (opcional, ignorado; se mantiene por compatibilidad)
+     * @return array               ['status'=>bool, 'factura_comanda_id'=>int, 'message'=>string?]
+     */
+    public function registrarComandaCocina($factura_id, $mesa_id = 0, $comentarios = '', $servicio = null){
+        $cnn = $this->connection();
+
+        $factura_id  = intval($factura_id);
+        $mesa_id     = intval($mesa_id);
+        $comentarios = $this->cleanString((string)$comentarios);
+
+        if ($factura_id <= 0) {
+            return ['status'=>false, 'message'=>'Factura inválida', 'factura_comanda_id'=>0];
+        }
+
+        try {
+            $cnn->begin_transaction();
+
+            // Validar que la factura exista
+            $rsF = $this->ejecutar_consulta_simple_preparada(
+                "SELECT facturas_id FROM facturas WHERE facturas_id=?",
+                "i",
+                [$factura_id]
+            );
+            if (!$rsF || !$rsF->num_rows) {
+                $cnn->rollback();
+                return ['status'=>false, 'message'=>'Factura no encontrada', 'factura_comanda_id'=>0];
+            }
+
+            // ¿Existe ya una comanda para esta factura?
+            $rsC = $this->ejecutar_consulta_simple_preparada(
+                "SELECT id FROM factura_comanda WHERE factura_id=?",
+                "i",
+                [$factura_id]
+            );
+
+            if ($rsC && $rsC->num_rows) {
+                // UPDATE existente (sin servicio_tipo)
+                $row = $rsC->fetch_assoc();
+                $cid = intval($row['id']);
+
+                $okU = $this->ejecutar_consulta_simple_preparada(
+                    "UPDATE factura_comanda
+                    SET mesa_id=?,
+                        comentarios_cocina=?,
+                        fecha_actualizacion=NOW()
+                    WHERE factura_id=?",
+                    "isi",
+                    [$mesa_id, $comentarios, $factura_id]
+                );
+                if (!$okU) {
+                    $cnn->rollback();
+                    return ['status'=>false, 'message'=>'No se pudo actualizar la comanda', 'factura_comanda_id'=>0];
+                }
+
+                $cnn->commit();
+                return ['status'=>true, 'factura_comanda_id'=>$cid];
+
+            } else {
+                // INSERT nuevo (sin servicio_tipo)
+                $cid = mainModel::correlativo("id","factura_comanda");
+
+                $okI = $this->ejecutar_consulta_simple_preparada(
+                    "INSERT INTO factura_comanda
+                    (id, factura_id, mesa_id, comentarios_cocina, estado, fecha_registro)
+                    VALUES (?,?,?,?, 'pendiente', NOW())",
+                    "iiis",
+                    [$cid, $factura_id, $mesa_id, $comentarios]
+                );
+                if (!$okI) {
+                    $cnn->rollback();
+                    return ['status'=>false, 'message'=>'No se pudo crear la comanda', 'factura_comanda_id'=>0];
+                }
+
+                $cnn->commit();
+                return ['status'=>true, 'factura_comanda_id'=>$cid];
+            }
+
+        } catch (Throwable $e) {
+            $cnn->rollback();
+            return ['status'=>false, 'message'=>$e->getMessage(), 'factura_comanda_id'=>0];
+        }
+    }
+
+    /** Cambiar estado de mesa a ocupada/disponible – sin $db externo */
+    public function setMesaEstado($mesa_id, $ocupada = true){
+        $mesa_id = intval($mesa_id);
+        if ($mesa_id <= 0) return ['status'=>false,'message'=>'Mesa inválida'];
+
+        // En tu esquema la PK es mesa_id y estados usados en el resto son 'ocupada' / 'disponible'
+        $estado = $ocupada ? 'ocupada' : 'disponible';
+        $ok = $this->ejecutar_consulta_simple_preparada(
+            "UPDATE mesas SET estado=? WHERE mesa_id=?",
+            "si", [$estado, $mesa_id]
+        );
+        return $ok ? ['status'=>true] : ['status'=>false,'message'=>'No se pudo actualizar la mesa'];
+    }
+
+    /** Traer última factura ABIERTA (estado=1) por mesa + su detalle – sin $db externo */
+    public function getFacturaAbiertaPorMesa($mesa_id){
+        $mesa_id = intval($mesa_id);
+        if ($mesa_id <= 0) return [null, []];
+
+        // Se apoya en la relación factura_comanda (no_orden NO se usa aquí)
+        $sql = "SELECT f.*
+                FROM facturas f
+                INNER JOIN factura_comanda fc ON fc.factura_id = f.facturas_id
+                WHERE fc.mesa_id = ? AND f.estado = 1
+                ORDER BY f.facturas_id DESC
+                LIMIT 1";
+        $rs = $this->ejecutar_consulta_simple_preparada($sql, "i", [$mesa_id]);
+        if (!$rs || !$rs->num_rows) return [null, []];
+
+        $factura = $rs->fetch_assoc();
+        $factura_id = intval($factura['facturas_id']);
+
+        // Reusar helper existente para detalle
+        $detalle = $this->obtenerDetallesFactura($factura_id);
+
+        return [$factura, $detalle];
+    }
+
+/** Marcar estado de factura: 1=Borrador, 2=Pagada, 3=Crédito, 4=Cancelada */
+public function marcarFacturaEstado(int $factura_id, int $estado, ?string $notas = null){
+    $factura_id = intval($factura_id);
+    $estado     = intval($estado);
+    if ($factura_id <= 0) return ['status'=>false,'message'=>'ID de factura inválido'];
+
+    if ($notas !== null) {
+        $notas = $this->cleanString($notas);
+        $ok = $this->ejecutar_consulta_simple_preparada(
+            "UPDATE facturas SET estado=?, notas=? WHERE facturas_id=?",
+            "isi", [$estado, $notas, $factura_id]
+        );
+    } else {
+        $ok = $this->ejecutar_consulta_simple_preparada(
+            "UPDATE facturas SET estado=? WHERE facturas_id=?",
+            "ii", [$estado, $factura_id]
+        );
+    }
+    return $ok ? ['status'=>true] : ['status'=>false,'message'=>'No se pudo actualizar el estado de la factura'];
+}
+
+/**
+ * Crear pago contado (o el que indiques en tipo_pago) + detalle de pago.
+ * $data = [
+ *   'facturas_id'=>int, 'tipo_pago'=>int(1 contado, 2 crédito), 'importe'=>float,
+ *   'efectivo'=>float, 'cambio'=>float, 'tarjeta'=>float,
+ *   'usuario'=>int, 'empresa_id'=>int, 'tipo_pago_id'=>int(1 efectivo,2 tarjeta,3 transf),
+ *   'banco_id'=>int
+ * ]
+ */
+public function crearPagoContado(array $data){
+    $facturas_id = intval($data['facturas_id'] ?? 0);
+    if ($facturas_id <= 0) return ['status'=>false,'message'=>'Factura inválida'];
+
+    $tipo_pago    = intval($data['tipo_pago']    ?? 1);          // 1=Contado
+    $importe      = floatval($data['importe']    ?? 0);
+    $efectivo     = floatval($data['efectivo']   ?? 0);
+    $cambio       = floatval($data['cambio']     ?? 0);
+    $tarjeta      = floatval($data['tarjeta']    ?? 0);
+    $usuario      = intval($data['usuario']      ?? $this->usuarioId());
+    $empresa_id   = intval($data['empresa_id']   ?? $this->empresaId());
+    $tipo_pago_id = intval($data['tipo_pago_id'] ?? 1);
+    $banco_id     = intval($data['banco_id']     ?? 0);
+
+    // Crear encabezado de pago
+    $pagos_id = mainModel::correlativo("pagos_id","pagos");
+    $ok = $this->ejecutar_consulta_simple_preparada(
+        "INSERT INTO pagos(
+            pagos_id, facturas_id, tipo_pago, fecha, importe, efectivo, cambio, tarjeta,
+            usuario, estado, empresa_id, fecha_registro, contabilizado, referencia_ingreso_id
+        ) VALUES(
+            ?, ?, ?, CURDATE(), ?, ?, ?, ?, ?, 1, ?, NOW(), 0, NULL
+        )",
+        // tipos: i i i d d d d i i i  (10 params)
+        "iiiddddiii",
+        [$pagos_id, $facturas_id, $tipo_pago, $importe, $efectivo, $cambio, $tarjeta, $usuario, $empresa_id]
+    );
+    if (!$ok) return ['status'=>false,'message'=>'No se pudo registrar el pago'];
+
+    // Detalle del pago
+    $pagos_detalles_id = mainModel::correlativo("pagos_detalles_id","pagos_detalles");
+    $desc1=''; $desc2=''; $desc3='';
+    $okDet = $this->ejecutar_consulta_simple_preparada(
+        "INSERT INTO pagos_detalles(
+            pagos_detalles_id, pagos_id, tipo_pago_id, banco_id, efectivo, descripcion1, descripcion2, descripcion3
+        ) VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
+        // tipos: i i i i d s s s
+        "iiiidsss",
+        [$pagos_detalles_id, $pagos_id, $tipo_pago_id, $banco_id, $importe, $desc1, $desc2, $desc3]
+    );
+    if (!$okDet) return ['status'=>false,'message'=>'Pago creado, pero no se pudo registrar el detalle'];
+
+    return ['status'=>true,'pagos_id'=>$pagos_id,'pagos_detalles_id'=>$pagos_detalles_id];
+}
+
+
+    /* ===== Mesas (acciones directas para el front) ===== */
+
+    /** Marca una mesa como ocupada */
+    public function ocuparMesa($mesa_id){
+        $mesa_id = intval($mesa_id);
+        if($mesa_id <= 0){
+            return ['ok'=>false,'msg'=>'Mesa inválida'];
+        }
+        $ok = $this->ejecutar_consulta_simple_preparada(
+            "UPDATE mesas SET estado='ocupada' WHERE mesa_id=?",
+            "i", [$mesa_id]
+        );
+        return $ok ? ['ok'=>true] : ['ok'=>false,'msg'=>'No se pudo ocupar la mesa'];
+    }
+
+    /**
+     * Devuelve la última factura "abierta" (estado=1) asociada a la mesa,
+     * junto con su detalle, para que el front reconstruya la comanda.
+     */
+    public function getFacturaMesaAbierta($mesa_id){
+        $mesa_id = intval($mesa_id);
+        if($mesa_id <= 0){
+            return ['ok'=>false,'msg'=>'Mesa inválida'];
+        }
+
+        // Buscamos la factura más reciente en estado 1 vinculada a esa mesa
+        $sql = "SELECT 
+                    f.facturas_id,
+                    f.clientes_id,
+                    f.importe,
+                    f.notas,
+                    f.estado,
+                    f.number
+                FROM facturas f
+                INNER JOIN factura_comanda fc ON fc.factura_id = f.facturas_id
+                WHERE fc.mesa_id = ?
+                  AND f.estado = 1
+                ORDER BY f.facturas_id DESC
+                LIMIT 1";
+        $rs = $this->ejecutar_consulta_simple_preparada($sql, "i", [$mesa_id]);
+        if(!$rs || !$rs->num_rows){
+            return ['ok'=>false,'msg'=>'No hay factura abierta para esta mesa'];
+        }
+
+        $factura = $rs->fetch_assoc();
+        $factura_id = intval($factura['facturas_id']);
+
+        // Traemos detalle usando tu helper existente
+        $detalle = $this->obtenerDetallesFactura($factura_id);
+
+        // Formato que tu front ya consume
+        return [
+            'ok'      => true,
+            'factura' => [
+                'facturas_id' => $factura_id,
+                'factura_id'  => $factura_id,
+                'clientes_id' => intval($factura['clientes_id']),
+                'importe'     => floatval($factura['importe']),
+                'notas'       => (string)$factura['notas'],
+                'estado'      => intval($factura['estado']),
+                'number'      => intval($factura['number'])
+            ],
+            'detalle' => array_map(function($d){
+                return [
+                    'facturas_detalle_id' => $d['facturas_detalle_id'],
+                    'productos_id'        => $d['productos_id'],
+                    'cantidad'            => $d['cantidad'],
+                    'precio'              => $d['precio'],
+                    'isv_valor'           => $d['isv_valor'],
+                    'descuento'           => $d['descuento'],
+                    'medida'              => $d['medida'],
+                ];
+            }, $detalle)
+        ];
+    } 
+    
+    /** 
+     * Devuelve el ID de la apertura de caja activa.
+     * Prioriza lo que tengas en $_SESSION['apertura_id_sd']; si no, consulta BD.
+     * Guarda el resultado en sesión para reutilizarlo.
+     */
+    public function obtenerAperturaCajaActiva(?int $colaborador_id = null, ?int $empresa_id = null): int {
+        // 1) Si ya está en sesión, úsalo.
+        $aid = intval($_SESSION['apertura_id_sd'] ?? 0);
+        if ($aid > 0) return $aid;
+
+        // 2) Defaults desde helpers del modelo
+        $colaborador_id = intval($colaborador_id ?? $this->colaboradorId());
+        $empresa_id     = intval($empresa_id     ?? $this->empresaId());
+
+        $encontrada = 0;
+
+        /* ===== Intento 1: tabla apertura_caja ===== */
+        if ($this->hasColumn('apertura_caja', 'apertura_id')) {
+            $where = " WHERE 1=1 ";
+            $types = "";
+            $vals  = [];
+
+            if ($this->hasColumn('apertura_caja', 'empresa_id')) {
+                $where .= " AND empresa_id=?"; $types .= "i"; $vals[] = $empresa_id;
+            }
+            if ($this->hasColumn('apertura_caja', 'colaboradores_id')) {
+                $where .= " AND colaboradores_id=?"; $types .= "i"; $vals[] = $colaborador_id;
+            }
+
+            // Abierta: por fecha_cierre NULL o por estado=1
+            if ($this->hasColumn('apertura_caja','fecha_cierre')) {
+                $where .= " AND (fecha_cierre IS NULL OR fecha_cierre='0000-00-00 00:00:00')";
+            } elseif ($this->hasColumn('apertura_caja','estado')) {
+                $where .= " AND estado=1";
+            }
+
+            $sql = "SELECT apertura_id FROM apertura_caja {$where} ORDER BY apertura_id DESC LIMIT 1";
+            $rs = $this->ejecutar_consulta_simple_preparada($sql, $types, $vals);
+            if ($rs && $rs->num_rows) {
+                $encontrada = intval($rs->fetch_assoc()['apertura_id']);
+            }
+        }
+
+        /* ===== Intento 2: tabla aperturas ===== */
+        if ($encontrada <= 0 && $this->hasColumn('aperturas', 'apertura_id')) {
+            $where = " WHERE 1=1 ";
+            $types = "";
+            $vals  = [];
+
+            if ($this->hasColumn('aperturas', 'empresa_id')) {
+                $where .= " AND empresa_id=?"; $types .= "i"; $vals[] = $empresa_id;
+            }
+            if ($this->hasColumn('aperturas', 'colaboradores_id')) {
+                $where .= " AND colaboradores_id=?"; $types .= "i"; $vals[] = $colaborador_id;
+            }
+
+            if ($this->hasColumn('aperturas','fecha_cierre')) {
+                $where .= " AND (fecha_cierre IS NULL OR fecha_cierre='0000-00-00 00:00:00')";
+            } elseif ($this->hasColumn('aperturas','estado')) {
+                $where .= " AND estado=1";
+            } elseif ($this->hasColumn('aperturas','activo')) {
+                $where .= " AND activo=1";
+            }
+
+            $sql = "SELECT apertura_id FROM aperturas {$where} ORDER BY apertura_id DESC LIMIT 1";
+            $rs = $this->ejecutar_consulta_simple_preparada($sql, $types, $vals);
+            if ($rs && $rs->num_rows) {
+                $encontrada = intval($rs->fetch_assoc()['apertura_id']);
+            }
+        }
+
+        if ($encontrada > 0) {
+            $_SESSION['apertura_id_sd'] = $encontrada;
+        }
+        return $encontrada;
+    }
+
+    /* ===============================
+    * FILTROS POR ESTACIÓN (cocina/barra)
+    * =============================== */
+
+    /** Devuelve los items de una factura filtrados por estación (cocina/barra) */
+    public function obtenerItemsFacturaPorEstacion(int $factura_id, string $estacion){
+        $factura_id = intval($factura_id);
+        $estacion   = ($estacion === 'barra') ? 'barra' : 'cocina'; // default cocina
+
+        $sql = "SELECT 
+                    fd.facturas_detalle_id,
+                    fd.facturas_id,
+                    fd.productos_id,
+                    fd.cantidad,
+                    fd.precio,
+                    p.nombre AS producto_nombre,
+                    c.estacion
+                FROM facturas_detalles fd
+                INNER JOIN productos p  ON p.productos_id = fd.productos_id
+                INNER JOIN categoria c  ON c.categoria_id = p.categoria_id
+                WHERE fd.facturas_id = ? AND c.estacion = ?";
+
+        $rs = $this->ejecutar_consulta_simple_preparada($sql, "is", [$factura_id, $estacion]);
+        $out = [];
+        while($row = $rs->fetch_assoc()){
+            $out[] = [
+                'facturas_detalle_id' => (int)$row['facturas_detalle_id'],
+                'facturas_id'         => (int)$row['facturas_id'],
+                'productos_id'        => (int)$row['productos_id'],
+                'cantidad'            => (float)$row['cantidad'],
+                'precio'              => (float)$row['precio'],
+                'producto_nombre'     => (string)$row['producto_nombre'],
+                'estacion'            => (string)$row['estacion'],
+            ];
+        }
+        return $out;
+    }
+
+    /** Lista comandas pendientes/en_preparacion para una estación dada, incluyendo items filtrados */
+    public function listarComandasPorEstacion(string $estacion){
+        $estacion = ($estacion === 'barra') ? 'barra' : 'cocina'; // default cocina
+
+        // Trae encabezados de comanda ligados a factura
+        $sql = "SELECT 
+                    fc.id                 AS factura_comanda_id,
+                    fc.factura_id,
+                    fc.mesa_id,
+                    fc.comentarios_cocina,
+                    fc.estado,
+                    fc.fecha_registro,
+                    f.clientes_id,
+                    f.fecha,
+                    f.notas
+                FROM factura_comanda fc
+                INNER JOIN facturas f ON f.facturas_id = fc.factura_id
+                WHERE fc.estado IN ('pendiente','en_preparacion')
+                ORDER BY fc.fecha_registro ASC";
+        $rs = $this->ejecutar_consulta_simple($sql);
+
+        $out = [];
+        while($row = $rs->fetch_assoc()){
+            $factura_id = (int)$row['factura_id'];
+            // Filtra items por estación
+            $items = $this->obtenerItemsFacturaPorEstacion($factura_id, $estacion);
+            if (!count($items)) {
+                // Si la factura no tiene items de esta estación, no la mostramos
+                continue;
+            }
+            $out[] = [
+                'factura_comanda_id' => (int)$row['factura_comanda_id'],
+                'factura_id'         => $factura_id,
+                'mesa_id'            => (int)$row['mesa_id'],
+                'comentarios'        => (string)$row['comentarios_cocina'],
+                'estado'             => (string)$row['estado'],
+                'fecha_registro'     => (string)$row['fecha_registro'],
+                'clientes_id'        => (int)$row['clientes_id'],
+                'fecha'              => (string)$row['fecha'],
+                'notas'              => (string)$row['notas'],
+                'items'              => $items
+            ];
+        }
+        return $out;
     }
 }

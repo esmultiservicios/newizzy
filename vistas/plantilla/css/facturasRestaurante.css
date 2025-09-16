@@ -111,10 +111,55 @@ body.vista-facturacion-restaurante{overflow:hidden;height:100dvh}
 .mesa-capacidad i{font-size:12px}
 .mesa-info{display:flex;justify-content:space-between;font-size:12px}
 .mesa-ubicacion{color:#666;display:flex;align-items:center;gap:4px}
-.mesa-estado{font-weight:500;font-size:11px;text-transform:uppercase;display:flex;align-items:center;gap:4px}
+
+/* Chip/Badge del estado (lo genera el JS como .mesa-estado.estado ...) */
+.mesa-estado{
+  font-weight:700;font-size:11px;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px;
+  padding:4px 10px;border-radius:999px;line-height:1;background:rgba(0,0,0,.04);
+  position:static; /* evita superposiciones */
+}
+.mesa-estado i{font-size:12px;opacity:.9}
+
+/* Colores por defecto existentes */
 .mesa-estado.disponible{color:var(--success-color)}
 .mesa-estado.ocupada{color:var(--danger-color)}
 .mesa-actions{position:absolute;top:6px;right:8px;display:flex;gap:6px;z-index:5;pointer-events:auto}
+
+/* ========== NUEVOS ESTADOS: RESERVADA / MANTENIMIENTO ========== */
+
+/* RESERVADA */
+.mesa-item.reservada{
+  border-left-color:var(--warning-color, #f39c12);
+  background:#fff7e6; /* ámbar muy suave */
+}
+.mesa-item.reservada .mesa-numero{color:var(--warning-color, #f39c12)}
+.mesa-estado.reservada{
+  color:#7a4a00;background:#ffe8bf;border:1px solid rgba(243,156,18,.25);
+}
+
+/* MANTENIMIENTO */
+.mesa-item.mantenimiento{
+  border-left-color:#7f8c8d;
+  background:repeating-linear-gradient(45deg,#f3f4f6,#f3f4f6 10px,#e9ecef 10px,#e9ecef 20px);
+  cursor:not-allowed;
+}
+.mesa-item.mantenimiento:hover{transform:none}
+.mesa-item.mantenimiento .mesa-numero{color:#7f8c8d}
+.mesa-estado.mantenimiento{
+  color:#fff;background:linear-gradient(135deg,#7f8c8d 0%, #5f6b73 100%);
+}
+
+/* Uniformar badge para disponible/ocupada con fondo suave (opcional) */
+.mesa-estado.disponible{background:rgba(40,167,69,.08);border:1px solid rgba(40,167,69,.15)}
+.mesa-estado.ocupada{background:rgba(220,53,69,.08);border:1px solid rgba(220,53,69,.15)}
+
+/* Quitar cualquier pseudo-badge anterior que pudiera tapar contenido */
+.mesa-item.reservada::after,
+.mesa-item.mantenimiento::after{content:none!important}
+
+/* Compatibilidad visual al seleccionar */
+.mesa-item.seleccionada.reservada{box-shadow:0 0 0 2px rgba(243,156,18,.25) inset}
+.mesa-item.seleccionada.mantenimiento{box-shadow:0 0 0 2px rgba(127,140,141,.25) inset}
 
 /* ==============================
    CONTENIDO PRINCIPAL
@@ -279,7 +324,7 @@ body.vista-facturacion-restaurante{overflow:hidden;height:100dvh}
 .btn-cantidad:hover{background:var(--secondary-color);color:#fff}
 .comanda-item-cantidad input{
   width:30px;text-align:center;padding:2px;border:1px solid var(--border-color);border-radius:3px;font-size:12px;
-  color:#111;background:#fff;font-weight:800;line-height:1.1;margin:0 1px;font-variant-numeric:tabular-nums; /* números parejos */
+  color:#111;background:#fff;font-weight:400;line-height:1.1;margin:0 1px;font-variant-numeric:tabular-nums;
 }
 /* oculta spinners nativos (usamos - / + personalizados) */
 .comanda-item-cantidad input[type=number]::-webkit-outer-spin-button,
@@ -725,8 +770,8 @@ select.select2.form-control{height:38px;padding:6px 12px;font-size:14px;line-hei
   .vista-facturacion-restaurante .comanda-item-cantidad{ gap:3px !important; }
   .vista-facturacion-restaurante .btn-cantidad{ width:22px !important; height:22px !important; font-size:13px !important; border-radius:4px !important; }
   .vista-facturacion-restaurante .comanda-item-cantidad input{
-    width:34px !important; font-size:13px !important; padding:2px !important; font-weight:800 !important; color:#111 !important;
-  }
+    width:34px !important; font-size:13px !important; padding:2px !important; font-weight:400 !important; color:#111 !important;
+  }  
   .vista-facturacion-restaurante .btn-eliminar{ font-size:13px !important; padding:0 !important; }
 
   /* Totales muy compactos */
@@ -802,3 +847,149 @@ label:has(textarea[required])::after {
     font-weight: bold;
     font-size: 1.1em;
 }
+
+/* =========================================================
+   PRODUCTOS: Pill "En comanda" elegante (no estorba)
+   ========================================================= */
+   [data-producto-id] { position: relative; }
+
+   /* icono verde (check) */
+   [data-producto-id][data-selected="1"]::before {
+     content: "";
+     position: absolute;
+     z-index: 6;
+     pointer-events: none;
+     width: 18px; height: 18px; border-radius: 50%;
+     background: #10b981;                     /* verde */
+     box-shadow: 0 0 0 2px #fff inset, 0 4px 10px rgba(0,0,0,.18);
+     top: 10px; left: 10px;                   /* esquina izq. sup. (libre del lápiz) */
+   }
+   
+   /* chip blanco con texto */
+   [data-producto-id][data-selected="1"]::after {
+     content: "En comanda";
+     position: absolute;
+     z-index: 6;
+     pointer-events: none;
+     top: 8px; left: 34px;                    /* al lado del icono */
+     padding: 4px 10px;
+     border-radius: 999px;
+     font-size: 11px; font-weight: 800; letter-spacing: .2px;
+     color: #0b1324;
+     background: rgba(255,255,255,.92);
+     backdrop-filter: saturate(140%) blur(2px);
+     border: 1px solid rgba(16,24,40,.12);
+     box-shadow: 0 6px 16px rgba(2,6,23,.15);
+     text-shadow: 0 1px 0 rgba(255,255,255,.4);
+   }
+   @keyframes pill-in { from { transform: translateY(-6px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+   [data-producto-id][data-selected="1"]::before,
+   [data-producto-id][data-selected="1"]::after { animation: pill-in .18s ease-out; }
+   
+   @media (max-width: 480px) {
+     [data-producto-id][data-selected="1"]::before { top: 8px; left: 8px; }
+     [data-producto-id][data-selected="1"]::after  { top: 6px; left: 32px; font-size: 10px; padding: 3px 8px; }
+   }
+   
+   /* =========================================================
+      MESAS: estados y selección (premium, claro y consistente)
+      - Usa el contenedor de cada mesa: [data-mesa-id]
+      - Dentro suele vivir .estado (texto "DISPONIBLE"/"OCUPADA")
+      ========================================================= */
+   [data-mesa-id] { position: relative; transition: box-shadow .15s ease, background .15s ease; }
+   
+   /* borde lateral "disponible" (azul, como tu estilo actual) */
+   [data-mesa-id]:not(.ocupada) {
+     box-shadow: inset 4px 0 0 0 #2f80ed;            /* barra izquierda azul */
+   }
+   
+   /* estado disponible (pill verde) cuando exista el span .estado */
+   [data-mesa-id]:not(.ocupada) .estado {
+     display: inline-flex; align-items: center; gap: 6px;
+     background: #e8f7ef; color: #0f5132; border: 1px solid rgba(16,185,129,.25);
+     border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 700;
+   }
+   
+   /* ========== Ocupada ========== */
+   [data-mesa-id].ocupada {
+     background: #fff8f8;                       /* fondo muy sutil rojo */
+     box-shadow: inset 4px 0 0 0 #db4a4a;       /* barra izquierda roja */
+     outline: 1px solid rgba(219,74,74,.25);
+   }
+   
+   /* pill de estado dentro de la tarjeta */
+   [data-mesa-id].ocupada .estado {
+     display: inline-flex; align-items: center; gap: 6px;
+     background: #ffe2e2; color: #7a1111; border: 1px solid rgba(219,74,74,.28);
+     border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 800;
+   }
+   
+   /* ========== Seleccionada ========== */
+   [data-mesa-id].seleccionada {
+     outline: 2px solid rgba(47,128,237,.55);
+     box-shadow: 0 0 0 3px rgba(47,128,237,.15), inset 4px 0 0 0 #2f80ed;
+   }
+   
+   /* Si además está ocupada y seleccionada, prioriza el color rojo en la barra
+      y añade un glow azul para indicar "estoy trabajando en esta" */
+   [data-mesa-id].ocupada.seleccionada {
+     box-shadow:
+       0 0 0 3px rgba(47,128,237,.14),           /* glow azul suave fuera */
+       inset 4px 0 0 0 #db4a4a;                  /* barra roja (ocupada) */
+   }
+   
+   /* Responsive: acomoda el badge ocupada en móviles */
+   @media (max-width: 480px) {
+     [data-mesa-id].ocupada::after { right: 8px; top: 36px; font-size: 10px; padding: 3px 8px; }
+   }
+   
+   /* ===== Botón Guardar/Cobrar contextual ===== */
+  #btn-guardar {
+    transition: background-color .2s ease, box-shadow .2s ease, color .2s ease, transform .02s;
+  }
+
+/* Modo: Llevar -> "Cobrar" (verde) */
+body[data-servicio="llevar"] #btn-guardar.btn-success {
+  background-color: #198754;
+  border-color: #198754;
+  color: #fff;
+}
+body[data-servicio="llevar"] #btn-guardar.btn-success:hover,
+body[data-servicio="llevar"] #btn-guardar.btn-success:focus {
+  background-color: #157347;
+  border-color: #146c43;
+  color: #fff; /* alta legibilidad */
+}
+
+/* Modo: En mesa -> "Enviar a cocina" (naranja) */
+body[data-servicio="mesa"] #btn-guardar.btn-warning {
+  background-color: #fd7e14;
+  border-color: #fd7e14;
+  color: #212529;  /* texto oscuro para contraste */
+}
+body[data-servicio="mesa"] #btn-guardar.btn-warning:hover,
+body[data-servicio="mesa"] #btn-guardar.btn-warning:focus {
+  background-color: #e46f10;
+  border-color: #e06910;
+  color: #212529; /* mantiene lectura */
+}
+
+/* descripción en card de producto */
+.producto-desc{
+  display:block;
+  font-size:11px;
+  color:#666;
+  text-align:center;
+  line-height:1.25;
+  margin-top:2px;
+  margin-bottom:4px;
+  /* evita tapar y evita crecer: máximo 2 líneas con ellipsis */
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  min-height: 0;           /* no fuerza altura extra */
+}
+.producto-contenido { min-height: 0; } /* permite recortar sin empujar */
+.producto-precios { margin-top:auto; }  /* asegura que el precio quede abajo */

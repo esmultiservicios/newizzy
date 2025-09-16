@@ -28,28 +28,27 @@ document.addEventListener('DOMContentLoaded', function() {
         const hora = ahora.getHours().toString().padStart(2, '0');
         const minutos = ahora.getMinutes().toString().padStart(2, '0');
         const segundos = ahora.getSeconds().toString().padStart(2, '0');
-        document.getElementById('hora-actual').textContent = `${hora}:${minutos}:${segundos}`;
+        var el = document.getElementById('hora-actual');
+        if (el) el.textContent = `${hora}:${minutos}:${segundos}`;
     }
     
     setInterval(actualizarHora, 1000);
     actualizarHora();
 
-    // Cargar comandas pendientes
+    // Cargar comandas pendientes (SOLO COCINA)
     function cargarComandas() {
         fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: 'action=loadComandasCocina'
         })
         .then(response => {
             if (!response.ok) {
                 return response.json().then(errData => {
-                    showNotify('error', 'Error', 'Error al cargar las comandas');
+                    showNotify && showNotify('error', 'Error', 'Error al cargar las comandas');
                     throw new Error(errData.message || 'Error en el servidor');
                 }).catch(() => {
-                    showNotify('error', 'Error', 'Error al conectar con el servidor');
+                    showNotify && showNotify('error', 'Error', 'Error al conectar con el servidor');
                     throw new Error('Error al procesar la respuesta');
                 });
             }
@@ -59,18 +58,20 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.status) {
                 renderizarComandas(data.comandas);
             } else {
-                showNotify('error', 'Error', data.message || 'Error desconocido al cargar comandas');
+                showNotify && showNotify('error', 'Error', data.message || 'Error desconocido al cargar comandas');
             }
         })
         .catch(error => {
             console.error('Error al cargar comandas:', error);
-            showNotify('error', 'Error', 'Error al conectar con el servidor');
+            showNotify && showNotify('error', 'Error', 'Error al conectar con el servidor');
         });
     }
 
     function renderizarComandas(comandas) {
         const container = document.getElementById('comandas-container');
         
+        if (!container) return;
+
         if (!comandas || comandas.length === 0) {
             container.innerHTML = `
                 <div class="no-comandas">
@@ -98,23 +99,24 @@ document.addEventListener('DOMContentLoaded', function() {
             `).join('');
             
             const mesaInfo = comanda.mesa ? `Mesa ${comanda.mesa}` : 'Sin mesa asignada';
-            
+            const ordenNum = comanda.factura_id || comanda.id || '';
+
             comandaElement.innerHTML = `
                 <div class="comanda-header">
                     <div class="comanda-mesa">
                         ${mesaInfo}
                         ${comanda.urgente ? '<span class="badge-urgente">URGENTE</span>' : ''}
-                        <span class="badge-estado ${comanda.estado}">${comanda.estado.toUpperCase()}</span>
+                        <span class="badge-estado ${comanda.estado}">${(comanda.estado || '').toUpperCase()}</span>
                     </div>
                     <div class="comanda-hora">${comanda.hora || ''}</div>
                 </div>
                 
                 <div class="comanda-info">
                     <div class="comanda-cliente">
-                        <strong>Cliente:</strong> ${comanda.cliente_nombre || 'Sin nombre'}
+                        <strong>Cliente:</strong> ${comanda.cliente_nombre || 'Consumidor Final'}
                     </div>
                     <div class="comanda-id">
-                        <strong>Orden #:</strong> ${comanda.id}
+                        <strong>Orden #:</strong> ${ordenNum}
                     </div>
                 </div>
                 
@@ -130,19 +132,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 ` : ''}
                 
                 <div class="comanda-actions">
-                    ${comanda.estado === 'pendiente' || comanda.estado === 'urgente' ? `
-                    <button class="btn btn-primary btn-preparacion" data-id="${comanda.id}">
+                    ${(comanda.estado === 'pendiente' || comanda.estado === 'urgente') ? `
+                    <button class="btn btn-primary btn-preparacion" 
+                            data-factura-id="${comanda.factura_id || ''}" 
+                            data-comanda-id="${comanda.id || ''}">
                         <i class="fas fa-utensils"></i> En Preparación
                     </button>
                     ` : ''}
                     
                     ${comanda.estado === 'en_preparacion' ? `
-                    <button class="btn btn-success btn-completar" data-id="${comanda.id}">
+                    <button class="btn btn-success btn-completar" 
+                            data-comanda-id="${comanda.id || ''}">
                         <i class="fas fa-check"></i> Completado
                     </button>
                     ` : ''}
                     
-                    <button class="btn btn-warning btn-urgente" data-id="${comanda.id}" data-urgente="${comanda.urgente ? 'true' : 'false'}">
+                    <button class="btn btn-warning btn-urgente" 
+                            data-factura-id="${comanda.factura_id || ''}" 
+                            data-urgente="${comanda.urgente ? 'true' : 'false'}">
                         <i class="fas fa-exclamation"></i> ${comanda.urgente ? 'Quitar Urgente' : 'Marcar como Urgente'}
                     </button>
                 </div>
@@ -154,102 +161,103 @@ document.addEventListener('DOMContentLoaded', function() {
         // Agregar event listeners a los botones
         document.querySelectorAll('.btn-preparacion').forEach(btn => {
             btn.addEventListener('click', function() {
-                marcarComandaEnPreparacion(this.getAttribute('data-id'));
+                const facturaId = this.getAttribute('data-factura-id');
+                if (!facturaId) return;
+                marcarComandaEnPreparacion(facturaId);
             });
         });
 
         document.querySelectorAll('.btn-completar').forEach(btn => {
             btn.addEventListener('click', function() {
-                marcarComandaCompleta(this.getAttribute('data-id'));
+                const comandaId = this.getAttribute('data-comanda-id');
+                if (!comandaId) return;
+                marcarComandaCompleta(comandaId);
             });
         });
 
         document.querySelectorAll('.btn-urgente').forEach(btn => {
             btn.addEventListener('click', function() {
                 const esUrgente = this.getAttribute('data-urgente') === 'true';
-                marcarComandaUrgente(this.getAttribute('data-id'), !esUrgente);
+                const facturaId = this.getAttribute('data-factura-id');
+                if (!facturaId) return;
+                marcarComandaUrgente(facturaId, !esUrgente);
             });
         });
     }
 
-    function marcarComandaEnPreparacion(comandaId) {
+    function marcarComandaEnPreparacion(facturaId) {
         fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `action=marcarComandaEnPreparacion&factura_id=${comandaId}`
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `action=marcarComandaEnPreparacion&factura_id=${encodeURIComponent(facturaId)}`
         })
-        .then(response => response.json())
+        .then(r => r.json())
         .then(data => {
             if (data.status) {
                 cargarComandas();
-                showNotify('success', 'Éxito', 'Comanda marcada como en preparación');
+                showNotify && showNotify('success', 'Éxito', 'Comanda marcada como en preparación');
             } else {
-                showNotify('error', 'Error', data.message || 'Error al cambiar estado de comanda');
+                showNotify && showNotify('error', 'Error', data.message || 'Error al cambiar estado de comanda');
             }
         })
-        .catch(error => {
-            console.error('Error al cambiar estado de comanda:', error);
-            showNotify('error', 'Error', 'Error al conectar con el servidor');
+        .catch(err => {
+            console.error('Error al cambiar estado de comanda:', err);
+            showNotify && showNotify('error', 'Error', 'Error al conectar con el servidor');
         });
     }
 
     function marcarComandaCompleta(comandaId) {
         fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `action=marcarComandaPreparada&comanda_id=${comandaId}`
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `action=marcarComandaPreparada&comanda_id=${encodeURIComponent(comandaId)}`
         })
-        .then(response => response.json())
+        .then(r => r.json())
         .then(data => {
             if (data.status) {
                 cargarComandas();
-                showNotify('success', 'Éxito', 'Comanda marcada como completada');
+                showNotify && showNotify('success', 'Éxito', 'Comanda marcada como completada');
             } else {
-                showNotify('error', 'Error', data.message || 'Error al completar comanda');
+                showNotify && showNotify('error', 'Error', data.message || 'Error al completar comanda');
             }
         })
-        .catch(error => {
-            console.error('Error al completar comanda:', error);
-            showNotify('error', 'Error', 'Error al conectar con el servidor');
+        .catch(err => {
+            console.error('Error al completar comanda:', err);
+            showNotify && showNotify('error', 'Error', 'Error al conectar con el servidor');
         });
     }
 
-    function marcarComandaUrgente(comandaId, urgente) {
+    function marcarComandaUrgente(facturaId, urgente) {
         fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `action=marcarComandaUrgente&factura_id=${comandaId}&urgente=${urgente}`
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `action=marcarComandaUrgente&factura_id=${encodeURIComponent(facturaId)}&urgente=${urgente ? 1 : 0}`
         })
-        .then(response => response.json())
+        .then(r => r.json())
         .then(data => {
             if (data.status) {
                 cargarComandas();
-                showNotify('success', 'Éxito', urgente ? 'Comanda marcada como urgente' : 'Comanda marcada como normal');
+                showNotify && showNotify('success', 'Éxito', urgente ? 'Comanda marcada como urgente' : 'Comanda marcada como normal');
             } else {
-                showNotify('error', 'Error', data.message || 'Error al cambiar estado de urgencia');
+                showNotify && showNotify('error', 'Error', data.message || 'Error al cambiar estado de urgencia');
             }
         })
-        .catch(error => {
-            console.error('Error al cambiar estado de urgencia:', error);
-            showNotify('error', 'Error', 'Error al conectar con el servidor');
+        .catch(err => {
+            console.error('Error al cambiar estado de urgencia:', err);
+            showNotify && showNotify('error', 'Error', 'Error al conectar con el servidor');
         });
     }
 
     // Botón de refrescar
-    document.getElementById('btn-refresh').addEventListener('click', function() {
-        cargarComandas();
-        showNotify('info', 'Actualizando', 'Cargando comandas...');
-    });
+    var refreshBtn = document.getElementById('btn-refresh');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            cargarComandas();
+            showNotify && showNotify('info', 'Actualizando', 'Cargando comandas...');
+        });
+    }
 
-    // Cargar comandas inicialmente
+    // Cargar comandas inicialmente y cada 30s
     cargarComandas();
-
-    // Actualizar comandas automáticamente cada 30 segundos
     setInterval(cargarComandas, 30000);
 });

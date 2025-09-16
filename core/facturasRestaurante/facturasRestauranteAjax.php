@@ -1,607 +1,967 @@
 <?php
 // core/facturasRestaurante/facturasRestauranteAjax.php
+declare(strict_types=1);
+
 $peticionAjax = true;
+
 require_once __DIR__ . '/../configGenerales.php';
 require_once __DIR__ . '/facturasRestauranteModelo.php';
 
-if (session_status() === PHP_SESSION_NONE) session_start();
-
-/* --- Protección de sesión para AJAX --- */
-$validacion = mainModel::validarSesion(); // devuelve ['error'=>bool,'mensaje'=>..., 'redireccion'=>...]
-if (!empty($validacion['error'])) {
-  http_response_code(401);
-  header('Content-Type: application/json; charset=utf-8');
-  echo json_encode([
-    'status'   => false,
-    'message'  => $validacion['mensaje'] ?? 'Sesión expirada',
-    'redirect' => $validacion['redireccion'] ?? ((defined('SERVERURL')?SERVERURL:'/').'login/')
-  ]);
-  exit;
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
-header('Content-Type: application/json; charset=utf-8');
+/* ============================
+ *  Helpers de Entrada / Normalización
+ * ============================ */
+final class AjaxHelper
+{
+    /** @var array|null */
+    public static $payload = null;
 
-try {
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        http_response_code(405);
-        echo json_encode(['status'=>false,'message'=>'Método no permitido']);
-        exit;
-    }
-
-    // Soportar form-data + JSON (raw)
-    $raw     = file_get_contents('php://input');
-    $asJson  = json_decode($raw, true);
-    $action  = $_POST['action'] ?? ($asJson['action'] ?? null);
-    $payload = $asJson['data']   ?? null;
-
-    if (!$action) {
-        http_response_code(400);
-        echo json_encode(['status'=>false,'message'=>'Acción no especificada']);
-        exit;
-    }
-
-    // Helper para leer valores en form o JSON con default
-    $in = function(string $key, $default=null) use ($payload) {
-        if (isset($_POST[$key])) return $_POST[$key];
-        if (is_array($payload) && array_key_exists($key, $payload)) return $payload[$key];
+    /** Lee del POST o del payload JSON */
+    public static function in(string $key, $default = null) {
+        if (isset($_POST[$key])) {
+            return $_POST[$key];
+        }
+        if (is_array(self::$payload) && array_key_exists($key, self::$payload)) {
+            return self::$payload[$key];
+        }
         return $default;
-    };
+    }
 
-    // -------- Helpers locales (normalización/validación) ----------
-    $toBool = function($v, $default=0){
-        if (is_null($v)) return $default ? 1 : 0;
+    /** Convierte a 0/1 según truthy “humano” */
+    public static function toBool($v, int $default = 0): int {
+        if ($v === null) return $default ? 1 : 0;
         if (is_bool($v)) return $v ? 1 : 0;
         $s = strtolower((string)$v);
         return in_array($s, ['1','true','sí','si','on','yes'], true) ? 1 : 0;
-    };
-    $onlyTime = function($t){
+    }
+
+    /** Devuelve “HH:MM:SS” o null */
+    public static function onlyTime($t): ?string {
         if ($t === null || $t === '') return null;
-        // soporta "HH:MM" y "HH:MM:SS"
-        if (preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $t)) {
-            return strlen($t)===5 ? $t.':00' : $t;
+        $s = (string)$t;
+        if (preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $s)) {
+            return (strlen($s) === 5) ? $s . ':00' : $s;
         }
-        // soporta "YYYY-MM-DD HH:MM" o con segundos
-        if (preg_match('/^\d{4}-\d{2}-\d{2}[ T](\d{2}:\d{2}(:\d{2})?)$/', $t, $m)) {
-            return strlen($m[1])===5 ? $m[1].':00' : $m[1];
+        if (preg_match('/^\d{4}-\d{2}-\d{2}[ T](\d{2}:\d{2}(:\d{2})?)$/', $s, $m)) {
+            return (strlen($m[1]) === 5) ? $m[1] . ':00' : $m[1];
         }
         return null;
-    };
-    $onlyDate = function($d){
+    }
+
+    /** Devuelve “YYYY-MM-DD” o null */
+    public static function onlyDate($d): ?string {
         if ($d === null || $d === '') return null;
-        // soporta "YYYY-MM-DD"
-        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $d)) return $d;
-        // soporta "YYYY-MM-DDTHH:MM(:SS)"
-        if (preg_match('/^(\d{4}-\d{2}-\d{2})[ T]\d{2}:\d{2}(:\d{2})?$/', $d, $m)) return $m[1];
+        $s = (string)$d;
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $s)) return $s;
+        if (preg_match('/^(\d{4}-\d{2}-\d{2})[ T]\d{2}:\d{2}(:\d{2})?$/', $s, $m)) return $m[1];
         return null;
-    };
-    $normDiasSemana = function($csv){
-        if ($csv===null || $csv==='') return null;
+    }
+
+    /** Normaliza csv de días (mon,tue,...) */
+    public static function normDiasSemana($csv): ?string {
+        if ($csv === null || $csv === '') return null;
         $allow = ['mon','tue','wed','thu','fri','sat','sun'];
         $parts = array_filter(array_map('trim', explode(',', strtolower((string)$csv))));
         $parts = array_values(array_unique(array_intersect($parts, $allow)));
         return count($parts) ? implode(',', $parts) : null;
-    };
-    $normTipoDesc = function($v){
+    }
+
+    /** PORC|MONTO */
+    public static function normTipoDesc($v): string {
         $v = strtoupper(trim((string)$v));
         return in_array($v, ['PORC','MONTO'], true) ? $v : 'PORC';
-    };
-    $normAplicaA = function($v){
+    }
+
+    /** PRODUCTO|CATEGORIA|TODOS */
+    public static function normAplicaA($v): string {
         $v = strtoupper(trim((string)$v));
         return in_array($v, ['PRODUCTO','CATEGORIA','TODOS'], true) ? $v : 'PRODUCTO';
-    };
+    }
+
+    /** Lee body crudo y configura payload + action */
+    public static function bootstrapPayloadAndAction(): array {
+        $raw = file_get_contents('php://input');
+        $json = json_decode($raw, true);
+        self::$payload = (is_array($json) && isset($json['data']) && is_array($json['data'])) ? $json['data'] : ($json ?? null);
+
+        $action = $_POST['action'] ?? null;
+        if (!$action && is_array($json) && isset($json['action'])) {
+            $action = $json['action'];
+        }
+        return [$raw, $json, $action];
+    }
+
+    /** Respuesta JSON estándar */
+    public static function json($data, int $code = 200): void {
+        http_response_code($code);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($data);
+    }
+
+    /** Forzar método POST */
+    public static function assertPost(): void {
+        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+            self::json(['status' => false, 'message' => 'Método no permitido'], 405);
+            exit;
+        }
+    }
+}
+
+/* --- Protección de sesión para AJAX --- */
+$validacion = mainModel::validarSesion(); // ['error'=>bool,'mensaje'=>..., 'redireccion'=>...]
+if (!empty($validacion['error'])) {
+    AjaxHelper::json([
+        'status'   => false,
+        'message'  => $validacion['mensaje'] ?? 'Sesión expirada',
+        'redirect' => $validacion['redireccion'] ?? ((defined('SERVERURL') ? SERVERURL : '/') . 'login/')
+    ], 401);
+    exit;
+}
+
+try {
+    AjaxHelper::assertPost();
+
+    // Cargar payload y acción
+    [, $asJson, $action] = AjaxHelper::bootstrapPayloadAndAction();
+
+    if (!$action) {
+        AjaxHelper::json(['status' => false, 'message' => 'Acción no especificada'], 400);
+        exit;
+    }
 
     $m = new facturasRestauranteModelo();
 
     switch ($action) {
-
         /* ============================================================
          * ======= DATA CATÁLOGO / ISV / MESAS ========================
          * ============================================================ */
         case 'loadISV':
-            echo json_encode(['status'=>true,'isv'=>$m->obtenerISVTiposPublico()]);
+            AjaxHelper::json(['status' => true, 'isv' => $m->obtenerISVTiposPublico()]);
             break;
 
         case 'loadMesas':
-            echo json_encode(['status'=>true,'mesas'=>$m->obtenerMesas()]);
+            AjaxHelper::json(['status' => true, 'mesas' => $m->obtenerMesas()]);
             break;
 
-        case 'saveMesa':
-            $numero    = $in('numero', '');
-            $capacidad = intval($in('capacidad', 4));
-            $ubicacion = $in('ubicacion', 'Interior');
-            echo json_encode($m->guardarMesa($numero, $capacidad, $ubicacion));
+        case 'saveMesa': {
+            $numero    = (string) AjaxHelper::in('numero', '');
+            $capacidad = (int) AjaxHelper::in('capacidad', 4);
+            $ubicacion = (string) AjaxHelper::in('ubicacion', 'Interior');
+            AjaxHelper::json($m->guardarMesa($numero, $capacidad, $ubicacion));
             break;
+        }
 
-        case 'updateMesa':
-            $mesa_id   = intval($in('mesa_id', 0));
-            $numero    = $in('numero', '');
-            $capacidad = intval($in('capacidad', 4));
-            $ubicacion = $in('ubicacion', 'Interior');
-            echo json_encode($m->actualizarMesa($mesa_id, $numero, $capacidad, $ubicacion));
+        case 'updateMesa': {
+            $mesa_id   = (int) AjaxHelper::in('mesa_id', 0);
+            $numero    = (string) AjaxHelper::in('numero', '');
+            $capacidad = (int) AjaxHelper::in('capacidad', 4);
+            $ubicacion = (string) AjaxHelper::in('ubicacion', 'Interior');
+            AjaxHelper::json($m->actualizarMesa($mesa_id, $numero, $capacidad, $ubicacion));
             break;
+        }
 
-        case 'loadCategorias':
-            // opcional: 'cocina' | 'barra' | 'todas'
-            $estacion = strtolower((string)$in('estacion', 'todas'));
-            if (!in_array($estacion, ['cocina','barra','todas'], true)) {
-                $estacion = 'todas';
-            }
-            echo json_encode(['status'=>true,'categorias'=>$m->obtenerCategoriasProductos($estacion)]);
+        case 'loadCategorias': {
+            $estacion = strtolower((string) AjaxHelper::in('estacion', 'todas'));
+            if (!in_array($estacion, ['cocina','barra','todas'], true)) $estacion = 'todas';
+            AjaxHelper::json(['status' => true, 'categorias' => $m->obtenerCategoriasProductos($estacion)]);
             break;
+        }
 
         case 'loadProductos':
-            // Puedes filtrar por restaurante=1 dentro del modelo si lo deseas
-            echo json_encode(['status'=>true,'productos'=>$m->obtenerProductos()]);
+            AjaxHelper::json(['status' => true, 'productos' => $m->obtenerProductos()]);
             break;
 
         case 'loadClientes':
-            echo json_encode(['status'=>true,'clientes'=>$m->obtenerClientes()]);
+            AjaxHelper::json(['status' => true, 'clientes' => $m->obtenerClientes()]);
             break;
 
         /* ============================================================
          * ======= GUARDAR / ACTUALIZAR CAT/PROD/CLI =================
          * ============================================================ */
-
-        case 'saveCategoria':
-            $nombre   = trim((string)$in('nombre', ''));
-            $estacion = strtolower(trim((string)$in('estacion', 'ninguna')));
-            if (!in_array($estacion, ['ninguna','cocina','barra'], true)) { $estacion = 'ninguna'; }
-            echo json_encode($m->guardarCategoria($nombre, $estacion));
-            break;
-
-        case 'updateCategoria':
-            $categoria_id = intval($in('categoria_id', 0));
-            $nombre       = trim((string)$in('nombre', ''));
-            $estacion     = strtolower(trim((string)$in('estacion', 'ninguna')));
-            if (!in_array($estacion, ['ninguna','cocina','barra'], true)) { $estacion = 'ninguna'; }
-            echo json_encode($m->actualizarCategoria($categoria_id, $nombre, $estacion));
-            break;
-
-        case 'saveProductoBasico':
-            // Si vino JSON, $payload ya está; si no, leer desde POST
-            if (!$payload) {
-                $payload = [
-                    'nombre'       => (string)$in('nombre',''),
-                    'descripcion'  => (string)$in('descripcion',''),
-                    'categoria_id' => intval($in('categoria_id',0)),
-                    'precio_venta' => floatval($in('precio_venta',0)),
-                    'isv1'         => intval($in('isv1',0)),
-                    'isv2'         => intval($in('isv2',0)),
-                    'restaurante'  => intval($in('restaurante',1)),
-                ];
-            }
-            echo json_encode($m->guardarProductoBasico($payload));
-            break;
+        case 'saveCategoria': {
+            $nombre   = trim((string) AjaxHelper::in('nombre', ''));
+            $estacion = strtolower(trim((string) AjaxHelper::in('estacion', '')));
         
-        case 'updateProductoBasico':
-            if (!$payload) {
+            if ($nombre === '') {
+                AjaxHelper::json(['status'=>false,'message'=>'Nombre requerido']); break;
+            }
+            if (!in_array($estacion, ['cocina','barra'], true)) {
+                AjaxHelper::json(['status'=>false,'message'=>'Seleccione estación (cocina o barra)']); break;
+            }
+        
+            AjaxHelper::json($m->guardarCategoria($nombre, $estacion));
+            break;
+        }
+        
+        case 'updateCategoria': {
+            $categoria_id = (int) AjaxHelper::in('categoria_id', 0);
+            $nombre       = trim((string) AjaxHelper::in('nombre', ''));
+            $estacion     = strtolower(trim((string) AjaxHelper::in('estacion', '')));
+        
+            if ($categoria_id <= 0) {
+                AjaxHelper::json(['status'=>false,'message'=>'ID de categoría inválido']); break;
+            }
+            if ($nombre === '') {
+                AjaxHelper::json(['status'=>false,'message'=>'Nombre requerido']); break;
+            }
+            if (!in_array($estacion, ['cocina','barra'], true)) {
+                AjaxHelper::json(['status'=>false,'message'=>'Seleccione estación (cocina o barra)']); break;
+            }
+        
+            AjaxHelper::json($m->actualizarCategoria($categoria_id, $nombre, $estacion));
+            break;
+        }        
+
+        case 'saveProductoBasico': {
+            $payload = AjaxHelper::$payload;
+            if (!$payload || !is_array($payload)) {
                 $payload = [
-                    'productos_id' => intval($in('productos_id', $in('producto_id', 0))),
-                    'nombre'       => (string)$in('nombre',''),
-                    'descripcion'  => (string)$in('descripcion',''),
-                    'categoria_id' => intval($in('categoria_id',0)),
-                    'precio_venta' => floatval($in('precio_venta',0)),
-                    'isv1'         => intval($in('isv1',0)),
-                    'isv2'         => intval($in('isv2',0)),
-                    'restaurante'  => intval($in('restaurante',1)),
+                    'nombre'       => (string) AjaxHelper::in('nombre',''),
+                    'descripcion'  => (string) AjaxHelper::in('descripcion',''),
+                    'categoria_id' => (int) AjaxHelper::in('categoria_id',0),
+                    'precio_venta' => (float) AjaxHelper::in('precio_venta',0),
+                    'isv1'         => (int) AjaxHelper::in('isv1',0),
+                    'isv2'         => (int) AjaxHelper::in('isv2',0),
+                    'restaurante'  => (int) AjaxHelper::in('restaurante',1),
                 ];
             }
-            echo json_encode($m->actualizarProductoBasico($payload));
+            AjaxHelper::json($m->guardarProductoBasico($payload));
             break;
+        }
 
-        case 'saveClienteBasico':
-            if (!$payload) {
+        case 'updateProductoBasico': {
+            $payload = AjaxHelper::$payload;
+            if (!$payload || !is_array($payload)) {
                 $payload = [
-                    'nombre'           => (string)$in('nombre',''),
-                    'rtn'              => (string)$in('rtn',''),
-                    'fecha'            => (string)$in('fecha', date('Y-m-d')),
-                    'departamentos_id' => intval($in('departamentos_id',0)),
-                    'municipios_id'    => intval($in('municipios_id',0)),
-                    'localidad'        => (string)$in('localidad',''),
-                    'telefono'         => (string)$in('telefono',''),
-                    'correo'           => (string)$in('correo',''),
-                    'estado'           => intval($in('estado',1)),
+                    'productos_id' => (int) AjaxHelper::in('productos_id', (int) AjaxHelper::in('producto_id', 0)),
+                    'nombre'       => (string) AjaxHelper::in('nombre',''),
+                    'descripcion'  => (string) AjaxHelper::in('descripcion',''),
+                    'categoria_id' => (int) AjaxHelper::in('categoria_id',0),
+                    'precio_venta' => (float) AjaxHelper::in('precio_venta',0),
+                    'isv1'         => (int) AjaxHelper::in('isv1',0),
+                    'isv2'         => (int) AjaxHelper::in('isv2',0),
+                    'restaurante'  => (int) AjaxHelper::in('restaurante',1),
                 ];
             }
-            echo json_encode($m->guardarClienteBasico($payload));
+            AjaxHelper::json($m->actualizarProductoBasico($payload));
             break;
+        }
 
-        case 'updateClienteBasico':
-            if ((!$payload || !isset($payload['clientes_id'])) && !isset($_POST['clientes_id'])) {
-                http_response_code(400);
-                echo json_encode(['status'=>false,'message'=>'Datos de cliente inválidos']);
+        case 'saveClienteBasico': {
+            $payload = AjaxHelper::$payload;
+            if (!$payload || !is_array($payload)) {
+                $payload = [
+                    'nombre'           => (string) AjaxHelper::in('nombre',''),
+                    'rtn'              => (string) AjaxHelper::in('rtn',''),
+                    'fecha'            => (string) AjaxHelper::in('fecha', date('Y-m-d')),
+                    'departamentos_id' => (int) AjaxHelper::in('departamentos_id',0),
+                    'municipios_id'    => (int) AjaxHelper::in('municipios_id',0),
+                    'localidad'        => (string) AjaxHelper::in('localidad',''),
+                    'telefono'         => (string) AjaxHelper::in('telefono',''),
+                    'correo'           => (string) AjaxHelper::in('correo',''),
+                    'estado'           => (int) AjaxHelper::in('estado',1),
+                ];
+            }
+            AjaxHelper::json($m->guardarClienteBasico($payload));
+            break;
+        }
+
+        case 'updateClienteBasico': {
+            $payload = AjaxHelper::$payload;
+            $cliIdFromPost = AjaxHelper::in('clientes_id', null);
+            if ((!$payload || !isset($payload['clientes_id'])) && $cliIdFromPost === null) {
+                AjaxHelper::json(['status'=>false,'message'=>'Datos de cliente inválidos'], 400);
                 break;
             }
-            if (!$payload) {
+            if (!$payload || !is_array($payload)) {
                 $payload = [
-                    'clientes_id'      => intval($in('clientes_id',0)),
-                    'nombre'           => (string)$in('nombre',''),
-                    'rtn'              => (string)$in('rtn',''),
-                    'fecha'            => (string)$in('fecha', date('Y-m-d')),
-                    'departamentos_id' => intval($in('departamentos_id',0)),
-                    'municipios_id'    => intval($in('municipios_id',0)),
-                    'localidad'        => (string)$in('localidad',''),
-                    'telefono'         => (string)$in('telefono',''),
-                    'correo'           => (string)$in('correo',''),
-                    'estado'           => intval($in('estado',1)),
-                    'empresa'          => (string)$in('empresa',''),
-                    'eslogan'          => (string)$in('eslogan',''),
-                    'otra_informacion' => (string)$in('otra_informacion',''),
-                    'whatsapp'         => (string)$in('whatsapp',''),
+                    'clientes_id'      => (int) AjaxHelper::in('clientes_id',0),
+                    'nombre'           => (string) AjaxHelper::in('nombre',''),
+                    'rtn'              => (string) AjaxHelper::in('rtn',''),
+                    'fecha'            => (string) AjaxHelper::in('fecha', date('Y-m-d')),
+                    'departamentos_id' => (int) AjaxHelper::in('departamentos_id',0),
+                    'municipios_id'    => (int) AjaxHelper::in('municipios_id',0),
+                    'localidad'        => (string) AjaxHelper::in('localidad',''),
+                    'telefono'         => (string) AjaxHelper::in('telefono',''),
+                    'correo'           => (string) AjaxHelper::in('correo',''),
+                    'estado'           => (int) AjaxHelper::in('estado',1),
+                    'empresa'          => (string) AjaxHelper::in('empresa',''),
+                    'eslogan'          => (string) AjaxHelper::in('eslogan',''),
+                    'otra_informacion' => (string) AjaxHelper::in('otra_informacion',''),
+                    'whatsapp'         => (string) AjaxHelper::in('whatsapp',''),
                 ];
             }
-            echo json_encode($m->actualizarClienteBasico($payload));
+            AjaxHelper::json($m->actualizarClienteBasico($payload));
             break;
+        }
 
         /* ============================================================
          * ====================  PROMOCIONES  =========================
          * ============================================================ */
-
-        // Listado mínimo para selects {promo_id, nombre}
         case 'loadPromocionesMin':
-            echo json_encode([
-                'status'=>true,
-                'promociones'=>$m->obtenerPromocionesMin() // Implementar en modelo
-            ]);
+            AjaxHelper::json(['status'=>true,'promociones'=>$m->obtenerPromocionesMin()]);
             break;
 
-        // Crear promoción
         case 'savePromocion': {
-            // admite JSON o form
-            $empresa_id = intval($in('empresa_id', 0)) ?: (isset($_SESSION['empresa_id']) ? intval($_SESSION['empresa_id']) : 0);
-            $nombre     = trim((string)$in('nombre',''));
-            if ($nombre===''){
-                echo json_encode(['status'=>false,'message'=>'El nombre es obligatorio']); break;
+            $empresa_id     = (int) AjaxHelper::in('empresa_id', 0);
+            if ($empresa_id === 0 && isset($_SESSION['empresa_id'])) {
+                $empresa_id = (int) $_SESSION['empresa_id'];
             }
-            $tipo_descuento = $normTipoDesc($in('tipo_descuento','PORC'));
-            $valor          = floatval($in('valor',0));
-            $fecha_inicio   = $onlyDate($in('fecha_inicio',null));
-            $fecha_fin      = $onlyDate($in('fecha_fin',null));
-            if(!$fecha_inicio || !$fecha_fin){
-                echo json_encode(['status'=>false,'message'=>'Fecha inicio y fin son obligatorias']); break;
+            $nombre         = trim((string) AjaxHelper::in('nombre',''));
+            if ($nombre === '') {
+                AjaxHelper::json(['status'=>false,'message'=>'El nombre es obligatorio']);
+                break;
             }
-            $hora_inicio    = $onlyTime($in('hora_inicio',null));
-            $hora_fin       = $onlyTime($in('hora_fin',null));
-            $dias_semana    = $normDiasSemana($in('dias_semana',null));
-            $prioridad      = intval($in('prioridad',0));
-            $aplica_a       = $normAplicaA($in('aplica_a','PRODUCTO'));
-            $acumula        = $toBool($in('acumula_con_mayoreo',0));
-            $estado         = $toBool($in('estado',1));
-            $descripcion    = (string)$in('descripcion', '');
+            $tipo_descuento = AjaxHelper::normTipoDesc(AjaxHelper::in('tipo_descuento','PORC'));
+            $valor          = (float) AjaxHelper::in('valor',0);
+            $fecha_inicio   = AjaxHelper::onlyDate(AjaxHelper::in('fecha_inicio',null));
+            $fecha_fin      = AjaxHelper::onlyDate(AjaxHelper::in('fecha_fin',null));
+            if (!$fecha_inicio || !$fecha_fin) {
+                AjaxHelper::json(['status'=>false,'message'=>'Fecha inicio y fin son obligatorias']);
+                break;
+            }
+            $hora_inicio    = AjaxHelper::onlyTime(AjaxHelper::in('hora_inicio',null));
+            $hora_fin       = AjaxHelper::onlyTime(AjaxHelper::in('hora_fin',null));
+            $dias_semana    = AjaxHelper::normDiasSemana(AjaxHelper::in('dias_semana',null));
+            $prioridad      = (int) AjaxHelper::in('prioridad',0);
+            $aplica_a       = AjaxHelper::normAplicaA(AjaxHelper::in('aplica_a','PRODUCTO'));
+            $acumula        = AjaxHelper::toBool(AjaxHelper::in('acumula_con_mayoreo',0));
+            $estado         = AjaxHelper::toBool(AjaxHelper::in('estado',1));
+            $descripcion    = (string) AjaxHelper::in('descripcion', '');
 
-            $data = compact(
-                'empresa_id','nombre','descripcion','tipo_descuento','valor',
-                'fecha_inicio','fecha_fin','hora_inicio','hora_fin','dias_semana',
-                'prioridad','aplica_a','acumula','estado'
-            );
-            // Mapea clave del modelo si usa "acumula_con_mayoreo"
-            $data['acumula_con_mayoreo'] = $data['acumula']; unset($data['acumula']);
+            $data = [
+                'empresa_id' => $empresa_id,
+                'nombre' => $nombre,
+                'descripcion' => $descripcion,
+                'tipo_descuento' => $tipo_descuento,
+                'valor' => $valor,
+                'fecha_inicio' => $fecha_inicio,
+                'fecha_fin' => $fecha_fin,
+                'hora_inicio' => $hora_inicio,
+                'hora_fin' => $hora_fin,
+                'dias_semana' => $dias_semana,
+                'prioridad' => $prioridad,
+                'aplica_a' => $aplica_a,
+                'acumula_con_mayoreo' => $acumula,
+                'estado' => $estado
+            ];
 
-            echo json_encode($m->guardarPromocion($data)); // Implementar en modelo
+            AjaxHelper::json($m->guardarPromocion($data));
             break;
         }
 
-        // Actualizar promoción
         case 'updatePromocion': {
-            $promo_id = intval($in('promo_id',0));
-            if ($promo_id<=0){ echo json_encode(['status'=>false,'message'=>'Promoción inválida']); break; }
+            $promo_id = (int) AjaxHelper::in('promo_id',0);
+            if ($promo_id <= 0) {
+                AjaxHelper::json(['status'=>false,'message'=>'Promoción inválida']);
+                break;
+            }
 
             $fields = [];
-            if (($v=$in('empresa_id', null))!==null)  $fields['empresa_id']=intval($v);
-            if (($v=$in('nombre', null))!==null)      $fields['nombre']=trim((string)$v);
-            if (($v=$in('descripcion', null))!==null) $fields['descripcion']=(string)$v;
-            if (($v=$in('tipo_descuento', null))!==null) $fields['tipo_descuento']=$normTipoDesc($v);
-            if (($v=$in('valor', null))!==null)       $fields['valor']=floatval($v);
-            if (($v=$in('fecha_inicio', null))!==null) $fields['fecha_inicio']=$onlyDate($v);
-            if (($v=$in('fecha_fin', null))!==null)     $fields['fecha_fin']=$onlyDate($v);
-            if (($v=$in('hora_inicio', null))!==null)   $fields['hora_inicio']=$onlyTime($v);
-            if (($v=$in('hora_fin', null))!==null)      $fields['hora_fin']=$onlyTime($v);
-            if (($v=$in('dias_semana', null))!==null)   $fields['dias_semana']=$normDiasSemana($v);
-            if (($v=$in('prioridad', null))!==null)     $fields['prioridad']=intval($v);
-            if (($v=$in('aplica_a', null))!==null)      $fields['aplica_a']=$normAplicaA($v);
-            if (($v=$in('acumula_con_mayoreo', null))!==null) $fields['acumula_con_mayoreo']=$toBool($v);
-            if (($v=$in('estado', null))!==null)        $fields['estado']=$toBool($v);
+            $v = AjaxHelper::in('empresa_id', null);        if ($v !== null) $fields['empresa_id'] = (int)$v;
+            $v = AjaxHelper::in('nombre', null);            if ($v !== null) $fields['nombre'] = trim((string)$v);
+            $v = AjaxHelper::in('descripcion', null);       if ($v !== null) $fields['descripcion'] = (string)$v;
+            $v = AjaxHelper::in('tipo_descuento', null);    if ($v !== null) $fields['tipo_descuento'] = AjaxHelper::normTipoDesc($v);
+            $v = AjaxHelper::in('valor', null);             if ($v !== null) $fields['valor'] = (float)$v;
+            $v = AjaxHelper::in('fecha_inicio', null);      if ($v !== null) $fields['fecha_inicio'] = AjaxHelper::onlyDate($v);
+            $v = AjaxHelper::in('fecha_fin', null);         if ($v !== null) $fields['fecha_fin'] = AjaxHelper::onlyDate($v);
+            $v = AjaxHelper::in('hora_inicio', null);       if ($v !== null) $fields['hora_inicio'] = AjaxHelper::onlyTime($v);
+            $v = AjaxHelper::in('hora_fin', null);          if ($v !== null) $fields['hora_fin'] = AjaxHelper::onlyTime($v);
+            $v = AjaxHelper::in('dias_semana', null);       if ($v !== null) $fields['dias_semana'] = AjaxHelper::normDiasSemana($v);
+            $v = AjaxHelper::in('prioridad', null);         if ($v !== null) $fields['prioridad'] = (int)$v;
+            $v = AjaxHelper::in('aplica_a', null);          if ($v !== null) $fields['aplica_a'] = AjaxHelper::normAplicaA($v);
+            $v = AjaxHelper::in('acumula_con_mayoreo', null); if ($v !== null) $fields['acumula_con_mayoreo'] = AjaxHelper::toBool($v);
+            $v = AjaxHelper::in('estado', null);            if ($v !== null) $fields['estado'] = AjaxHelper::toBool($v);
 
-            echo json_encode($m->actualizarPromocion($promo_id, $fields)); // Implementar en modelo
+            AjaxHelper::json($m->actualizarPromocion($promo_id, $fields));
             break;
         }
 
-        // Productos asignados a una promo
         case 'loadPromoProductos': {
-            $promo_id = intval($in('promo_id',0));
-            if ($promo_id<=0){ echo json_encode(['status'=>false,'message'=>'Promoción inválida']); break; }
-            echo json_encode([
-                'status'=>true,
-                'items'=>$m->obtenerProductosDePromo($promo_id) // Implementar en modelo
-            ]);
+            $promo_id = (int) AjaxHelper::in('promo_id',0);
+            if ($promo_id <= 0) {
+                AjaxHelper::json(['status'=>false,'message'=>'Promoción inválida']);
+                break;
+            }
+            AjaxHelper::json(['status'=>true,'items'=>$m->obtenerProductosDePromo($promo_id)]);
             break;
         }
 
-        // Asignar productos a una promo (multi)
         case 'assignPromoProductos': {
-            $promo_id = intval($in('promo_id',0));
-            $productos_ids = $in('productos_ids', []);
-            if ($promo_id<=0){ echo json_encode(['status'=>false,'message'=>'Promoción inválida']); break; }
-            if (!is_array($productos_ids) || !count($productos_ids)){
-                echo json_encode(['status'=>false,'message'=>'Seleccione al menos un producto']); break;
+            $promo_id = (int) AjaxHelper::in('promo_id',0);
+            $productos_ids = AjaxHelper::in('productos_ids', []);
+            if ($promo_id <= 0) {
+                AjaxHelper::json(['status'=>false,'message'=>'Promoción inválida']);
+                break;
+            }
+            if (!is_array($productos_ids) || !count($productos_ids)) {
+                AjaxHelper::json(['status'=>false,'message'=>'Seleccione al menos un producto']);
+                break;
             }
             $productos_ids = array_values(array_filter(array_map('intval', $productos_ids)));
-            echo json_encode($m->asignarProductosAPromo($promo_id, $productos_ids)); // Implementar en modelo
+            AjaxHelper::json($m->asignarProductosAPromo($promo_id, $productos_ids));
             break;
         }
 
-        // Quitar 1 producto de la promo
         case 'removePromoProducto': {
-            $promo_id    = intval($in('promo_id',0));
-            $producto_id = intval($in('producto_id',0));
-            if ($promo_id<=0 || $producto_id<=0){
-                echo json_encode(['status'=>false,'message'=>'Datos inválidos']); break;
+            $promo_id    = (int) AjaxHelper::in('promo_id',0);
+            $producto_id = (int) AjaxHelper::in('producto_id',0);
+            if ($promo_id <= 0 || $producto_id <= 0) {
+                AjaxHelper::json(['status'=>false,'message'=>'Datos inválidos']);
+                break;
             }
-            echo json_encode($m->quitarProductoDePromo($promo_id, $producto_id)); // Implementar en modelo
+            AjaxHelper::json($m->quitarProductoDePromo($promo_id, $producto_id));
             break;
         }
 
-        // Categorías asignadas a una promo
         case 'loadPromoCategorias': {
-            $promo_id = intval($in('promo_id',0));
-            if ($promo_id<=0){ echo json_encode(['status'=>false,'message'=>'Promoción inválida']); break; }
-            echo json_encode([
-                'status'=>true,
-                'items'=>$m->obtenerCategoriasDePromo($promo_id) // Implementar en modelo
-            ]);
+            $promo_id = (int) AjaxHelper::in('promo_id',0);
+            if ($promo_id <= 0) {
+                AjaxHelper::json(['status'=>false,'message'=>'Promoción inválida']);
+                break;
+            }
+            AjaxHelper::json(['status'=>true,'items'=>$m->obtenerCategoriasDePromo($promo_id)]);
             break;
         }
 
-        // Asignar categorías a una promo (multi)
         case 'assignPromoCategorias': {
-            $promo_id = intval($in('promo_id',0));
-            $categorias_ids = $in('categorias_ids', []);
-            if ($promo_id<=0){ echo json_encode(['status'=>false,'message'=>'Promoción inválida']); break; }
-            if (!is_array($categorias_ids) || !count($categorias_ids)){
-                echo json_encode(['status'=>false,'message'=>'Seleccione al menos una categoría']); break;
+            $promo_id = (int) AjaxHelper::in('promo_id',0);
+            $categorias_ids = AjaxHelper::in('categorias_ids', []);
+           	if ($promo_id <= 0) {
+                AjaxHelper::json(['status'=>false,'message'=>'Promoción inválida']);
+                break;
+            }
+            if (!is_array($categorias_ids) || !count($categorias_ids)) {
+                AjaxHelper::json(['status'=>false,'message'=>'Seleccione al menos una categoría']);
+                break;
             }
             $categorias_ids = array_values(array_filter(array_map('intval', $categorias_ids)));
-            echo json_encode($m->asignarCategoriasAPromo($promo_id, $categorias_ids)); // Implementar en modelo
+            AjaxHelper::json($m->asignarCategoriasAPromo($promo_id, $categorias_ids));
             break;
         }
 
-        // Quitar 1 categoría de la promo
         case 'removePromoCategoria': {
-            $promo_id     = intval($in('promo_id',0));
-            $categoria_id = intval($in('categoria_id',0));
-            if ($promo_id<=0 || $categoria_id<=0){
-                echo json_encode(['status'=>false,'message'=>'Datos inválidos']); break;
+            $promo_id     = (int) AjaxHelper::in('promo_id',0);
+            $categoria_id = (int) AjaxHelper::in('categoria_id',0);
+            if ($promo_id <= 0 || $categoria_id <= 0) {
+                AjaxHelper::json(['status'=>false,'message'=>'Datos inválidos']);
+                break;
             }
-            echo json_encode($m->quitarCategoriaDePromo($promo_id, $categoria_id)); // Implementar en modelo
+            AjaxHelper::json($m->quitarCategoriaDePromo($promo_id, $categoria_id));
             break;
         }
 
         /* ============================================================
          * ======= FACTURA / COMANDA =================================
          * ============================================================ */
-        case 'loadFacturaMesa':
-            $mesa_id = intval($in('mesa_id', 0));
+        case 'loadFacturaMesa': {
+            $mesa_id = (int) AjaxHelper::in('mesa_id', 0);
             if ($mesa_id <= 0) {
-                echo json_encode(['status' => false, 'message' => 'Mesa inválida']);
+                AjaxHelper::json(['status'=>false,'message'=>'Mesa inválida']);
                 break;
             }
-        
             $factura = $m->obtenerFacturaMesa($mesa_id);
-        
             if (!$factura) {
-                echo json_encode([
+                AjaxHelper::json([
                     'status'  => false,
                     'message' => 'No hay factura activa para esta mesa',
-                    // opcional: devuelve la mesa (si tienes método). Si no, quita este bloque.
-                    // 'mesa' => $m->obtenerMesa($mesa_id) ?: null,
                     'items'   => []
                 ]);
                 break;
             }
-        
-            echo json_encode([
+            AjaxHelper::json([
                 'status' => true,
                 'factura' => $factura,
                 'mesa' => [
-                    'id'        => intval($factura['mesa_id']),
+                    'id'        => (int) $factura['mesa_id'],
                     'numero'    => $factura['numero_mesa'],
-                    'capacidad' => intval($factura['capacidad_mesa']),
+                    'capacidad' => (int) $factura['capacidad_mesa'],
                     'ubicacion' => $factura['ubicacion_mesa'],
                     'estado'    => 'ocupada'
                 ],
-                'items' => $m->obtenerDetallesFactura(intval($factura['facturas_id']))
+                'items' => $m->obtenerDetallesFactura((int) $factura['facturas_id'])
             ]);
-            break;        
-
-        // === GUARDAR FACTURA (NUEVA) ===
-        case 'saveFactura': {
-            // El JS te manda JSON: { action:'saveFactura', data:{...} }
-            $payload = json_decode(file_get_contents('php://input'), true);
-            if (!$payload) { // fallback por si viniera como x-www-form-urlencoded
-                $payload = ['data' => $_POST];
-            }
-            $data = $payload['data'] ?? [];
-
-            // Normalizamos extras de restaurante
-            //  - servicio_tipo: 'mesa' | 'llevar'  (default: 'llevar')
-            //  - mesa_id: entero (0 si no hay mesa)
-            $servicioTipo = (isset($data['servicio_tipo']) && $data['servicio_tipo'] === 'mesa') ? 'mesa' : 'llevar';
-            $mesaId       = !empty($data['mesa_id']) ? (int)$data['mesa_id'] : 0;
-
-            // Pasamos TODO el payload original al modelo,
-            // y además mesa/servicio para la factura_comanda
-            $resp = $m->guardarFactura($data, $mesaId, $servicioTipo);
-            echo json_encode($resp);
-            exit;
+            break;
         }
 
-        // === EDITAR/ACTUALIZAR FACTURA EXISTENTE ===
-        case 'updateFactura': {
-            $payload = json_decode(file_get_contents('php://input'), true);
-            if (!$payload) {
-                $payload = ['data' => $_POST];
-            }
-            $data = $payload['data'] ?? [];
-
+        case 'saveFactura': {
+            // { action:'saveFactura', data:{...} }
+            $data = is_array($asJson) ? ($asJson['data'] ?? []) : $_POST;
             $servicioTipo = (isset($data['servicio_tipo']) && $data['servicio_tipo'] === 'mesa') ? 'mesa' : 'llevar';
             $mesaId       = !empty($data['mesa_id']) ? (int)$data['mesa_id'] : 0;
+            AjaxHelper::json($m->guardarFactura($data, $mesaId, $servicioTipo));
+            break;
+        }
 
-            $resp = $m->actualizarFactura($data, $mesaId, $servicioTipo);
-            echo json_encode($resp);
-            exit;
+        case 'updateFactura': {
+            $data = is_array($asJson) ? ($asJson['data'] ?? []) : $_POST;
+            $servicioTipo = (isset($data['servicio_tipo']) && $data['servicio_tipo'] === 'mesa') ? 'mesa' : 'llevar';
+            $mesaId       = !empty($data['mesa_id']) ? (int)$data['mesa_id'] : 0;
+            AjaxHelper::json($m->actualizarFactura($data, $mesaId, $servicioTipo));
+            break;
         }
 
         case 'closeFactura':
-            $factura_id = intval($in('factura_id', 0));
-            echo json_encode($m->cerrarFactura($factura_id));
+            $factura_id = (int) AjaxHelper::in('factura_id', 0);
+            AjaxHelper::json($m->cerrarFactura($factura_id));
             break;
 
-        /* ============================================================
-         * ======= COCINA =============================================
-         * ============================================================ */
-
-        case 'loadComandasCocina':
-            // opcionalmente puedes filtrar por estado: pendiente|en_preparacion|preparada|urgente|completada
-            $estado = $in('estado', null);
-            echo json_encode([
-                'status'   => true,
-                'comandas' => $m->obtenerComandasCocina($estado)
-            ]);
+        /* =======================
+        Cargar comandas SOLO de cocina
+        ======================= */
+        case 'loadComandasCocina': {
+            try {
+                $comandas = $m->getComandasPorEstacion('cocina'); // <- SOLO cocina
+                AjaxHelper::json(['status'=>true, 'comandas'=>$comandas]);
+            } catch (Throwable $e) {
+                AjaxHelper::json(['status'=>false, 'message'=>$e->getMessage()]);
+            }
             break;
+        }
 
-        case 'enviarComandaCocina':
-            $data = $payload ?? [
-                'factura_id'    => intval($in('factura_id',0)),
-                'mesa'          => (string)$in('mesa',''),
-                'observaciones' => (string)$in('observaciones',''),
-                'items'         => json_decode((string)$in('items','[]'), true),
-            ];
-            echo json_encode($m->enviarComandaCocina($data));
+        case 'enviarComandaCocina': {
+            $data = AjaxHelper::$payload;
+            if (!$data || !is_array($data)) {
+                $data = [
+                    'factura_id'    => (int) AjaxHelper::in('factura_id',0),
+                    'mesa'          => (string) AjaxHelper::in('mesa',''),
+                    'observaciones' => (string) AjaxHelper::in('observaciones',''),
+                    'items'         => json_decode((string) AjaxHelper::in('items','[]'), true),
+                ];
+            }
+            AjaxHelper::json($m->enviarComandaCocina($data));
             break;
+        }
 
-        case 'marcarComandaPreparada':
-            // Acepta comanda_id o factura_id (compatibilidad con diferentes llamadas del front)
-            $fid = intval($in('factura_id', 0));
-            if ($fid<=0) { $fid = intval($in('comanda_id', 0)); }
-            echo json_encode($m->marcarComandaPreparada($fid));
-            break;
+        /* =======================
+        Marcar COMPLETADA (por comanda_id)
+        ======================= */
+        case 'marcarComandaPreparada': {
+            $comanda_id = (int) AjaxHelper::in('comanda_id', 0);
+            if ($comanda_id <= 0) { AjaxHelper::json(['status'=>false,'message'=>'Comanda inválida']); break; }
 
-        case 'marcarComandaUrgente':
-            $urg = $in('urgente', false);
-            $urgente = is_bool($urg) ? $urg : (in_array(strtolower((string)$urg), ['1','true','sí','si','on','yes'], true));
-            echo json_encode($m->marcarComandaUrgente(intval($in('factura_id', 0)), $urgente));
+            $ok = $m->updateComandaEstadoById($comanda_id, 'preparada');
+            AjaxHelper::json($ok ? ['status'=>true] : ['status'=>false,'message'=>'No se pudo actualizar']);
             break;
+        }
 
-        case 'marcarComandaEnPreparacion':
-            echo json_encode($m->marcarComandaEnPreparacion(intval($in('factura_id', 0))));
+        /* =======================
+        Toggle URGENTE (por factura)
+        ======================= */
+        case 'marcarComandaUrgente': {
+            $factura_id = (int) AjaxHelper::in('factura_id', 0);
+            $urgente    = (int) AjaxHelper::in('urgente', 0) === 1;
+            if ($factura_id <= 0) { AjaxHelper::json(['status'=>false,'message'=>'Factura inválida']); break; }
+
+            $nuevoEstado = $urgente ? 'urgente' : 'pendiente';
+            $ok = $m->updateComandaEstadoByFactura($factura_id, $nuevoEstado);
+            AjaxHelper::json($ok ? ['status'=>true] : ['status'=>false,'message'=>'No se pudo actualizar']);
             break;
+        }
+
+        /* =======================
+        Marcar EN PREPARACIÓN (por factura)
+        ======================= */
+        case 'marcarComandaEnPreparacion': {
+            $factura_id = (int) AjaxHelper::in('factura_id', 0);
+            if ($factura_id <= 0) { AjaxHelper::json(['status'=>false,'message'=>'Factura inválida']); break; }
+
+            $ok = $m->updateComandaEstadoByFactura($factura_id, 'en_preparacion');
+            AjaxHelper::json($ok ? ['status'=>true] : ['status'=>false,'message'=>'No se pudo actualizar']);
+            break;
+        }
 
         /* ============================================================
          * ======= COMBOS (MAESTRO / DETALLE / REGLAS) ================
          * ============================================================ */
         case 'loadCombos':
-            echo json_encode(['status'=>true,'combos'=>$m->obtenerCombos()]);
+            AjaxHelper::json(['status'=>true,'combos'=>$m->obtenerCombos()]);
             break;
 
-        case 'loadComboDetalle':
-            $combo_id = intval($in('combo_id', 0));
-            if ($combo_id<=0) {
-                echo json_encode(['status'=>false,'message'=>'Combo inválido']);
+        case 'loadComboDetalle': {
+            $combo_id = (int) AjaxHelper::in('combo_id', 0);
+            if ($combo_id <= 0) {
+                AjaxHelper::json(['status'=>false,'message'=>'Combo inválido']);
                 break;
             }
-            $detalle = $m->obtenerComboDetalle($combo_id); // hijos (obligatorio/opcional, cantidades, merma, unidad, precio_extra)
-            echo json_encode(['status'=>true,'combo_detalle'=>$detalle]);
+            $detalle = $m->obtenerComboDetalle($combo_id);
+            AjaxHelper::json(['status'=>true,'combo_detalle'=>$detalle]);
             break;
+        }
 
-        // NUEVO: cargar reglas por categoría (max_seleccion) del combo
-        case 'loadComboCategoriaReglas':
-            $combo_id = intval($in('combo_id', 0));
-            if ($combo_id<=0) {
-                echo json_encode(['status'=>false,'message'=>'Combo inválido']);
+        case 'loadComboCategoriaReglas': {
+            $combo_id = (int) AjaxHelper::in('combo_id', 0);
+            if ($combo_id <= 0) {
+                AjaxHelper::json(['status'=>false,'message'=>'Combo inválido']);
                 break;
             }
-            echo json_encode(['status'=>true,'reglas'=>$m->obtenerComboCategoriaReglas($combo_id)]);
+            AjaxHelper::json(['status'=>true,'reglas'=>$m->obtenerComboCategoriaReglas($combo_id)]);
             break;
+        }
 
-        // Guardar combo + receta + reglas por categoría
-        case 'saveCombo':
+        case 'saveCombo': {
+            $payload = AjaxHelper::$payload;
             if (!$payload && !isset($_POST['productos_id'])) {
-                http_response_code(400);
-                echo json_encode(['status'=>false,'message'=>'Datos de combo inválidos']);
+                AjaxHelper::json(['status'=>false,'message'=>'Datos de combo inválidos'], 400);
                 break;
             }
-            if (!$payload) {
+            if (!$payload || !is_array($payload)) {
                 $payload = [
-                    'productos_id' => intval($in('productos_id',0)),       // producto PADRE
-                    'activo'       => intval($in('activo',1)) ? 1 : 0,
-                    'precio_venta' => ($in('precio_venta', null) === null ? null : floatval($in('precio_venta',0))), // NULL o decimal
-                    'version'      => intval($in('version',1)),           // opcional
-                    // items: [{productos_id, cantidad_por_porcion, unidad, merma_pct, obligatorio, precio_extra, orden}]
-                    'items'        => json_decode((string)$in('items','[]'), true),
-                    // reglas: [{categoria_id, max_seleccion}]
-                    'reglas'       => json_decode((string)$in('reglas','[]'), true),
+                    'productos_id' => (int) AjaxHelper::in('productos_id',0),
+                    'activo'       => (AjaxHelper::in('activo',1) ? 1 : 0),
+                    'precio_venta' => (AjaxHelper::in('precio_venta', null) === null ? null : (float) AjaxHelper::in('precio_venta',0)),
+                    'version'      => (int) AjaxHelper::in('version',1),
+                    'items'        => json_decode((string) AjaxHelper::in('items','[]'), true),
+                    'reglas'       => json_decode((string) AjaxHelper::in('reglas','[]'), true),
                 ];
             }
-            echo json_encode($m->guardarCombo($payload));
+            AjaxHelper::json($m->guardarCombo($payload));
             break;
+        }
 
-        // Actualizar combo (parcial o total)
-        case 'updateCombo':
-            if ((!$payload || !isset($payload['combo_id'])) && !isset($_POST['combo_id'])) {
-                http_response_code(400);
-                echo json_encode(['status'=>false,'message'=>'Datos de combo inválidos']);
+        case 'updateCombo': {
+            $payload = AjaxHelper::$payload;
+            $comboIdFromPost = AjaxHelper::in('combo_id', null);
+            if ((!$payload || !isset($payload['combo_id'])) && $comboIdFromPost === null) {
+                AjaxHelper::json(['status'=>false,'message'=>'Datos de combo inválidos'], 400);
                 break;
             }
-            if (!$payload) {
+            if (!$payload || !is_array($payload)) {
+                $precioParam = AjaxHelper::in('precio_venta', '__omit__');
                 $payload = [
-                    'combo_id'     => intval($in('combo_id',0)),
-                    'productos_id' => ($in('productos_id', null) !== null) ? intval($in('productos_id',0)) : null,
-                    'activo'       => (isset($_POST['activo']) || (is_array($payload) && array_key_exists('activo', $payload)))
-                                      ? (intval($in('activo',1)) ? 1 : 0) : null,
-                    'precio_venta' => ($in('precio_venta', '__omit__') === '__omit__') ? '__omit__'
-                                      : (($in('precio_venta', null) === null) ? null : floatval($in('precio_venta',0))),
-                    'version'      => ($in('version', null) !== null) ? intval($in('version',1)) : null,
-                    // Si se envía items/reglas, se reemplaza la receta/reglas actuales (transacción en el modelo)
-                    'items'        => (isset($_POST['items']) ? json_decode((string)$in('items','[]'), true) : ($payload['items'] ?? null)),
-                    'reglas'       => (isset($_POST['reglas']) ? json_decode((string)$in('reglas','[]'), true) : ($payload['reglas'] ?? null)),
+                    'combo_id'     => (int) AjaxHelper::in('combo_id',0),
+                    'productos_id' => (AjaxHelper::in('productos_id', null) !== null) ? (int) AjaxHelper::in('productos_id',0) : null,
+                    'activo'       => (isset($_POST['activo']) ? ((int) AjaxHelper::in('activo',1) ? 1 : 0) : null),
+                    'precio_venta' => ($precioParam === '__omit__') ? '__omit__' : ((AjaxHelper::in('precio_venta', null) === null) ? null : (float) AjaxHelper::in('precio_venta',0)),
+                    'version'      => (AjaxHelper::in('version', null) !== null) ? (int) AjaxHelper::in('version',1) : null,
+                    'items'        => (isset($_POST['items']) ? json_decode((string) AjaxHelper::in('items','[]'), true) : null),
+                    'reglas'       => (isset($_POST['reglas']) ? json_decode((string) AjaxHelper::in('reglas','[]'), true) : null),
                 ];
             }
-            echo json_encode($m->actualizarCombo($payload));
+            AjaxHelper::json($m->actualizarCombo($payload));
             break;
+        }
 
-        case 'deleteCombo':
-            $combo_id = intval($in('combo_id', 0));
-            if ($combo_id<=0) {
-                echo json_encode(['status'=>false,'message'=>'Combo inválido']);
+        case 'deleteCombo': {
+            $combo_id = (int) AjaxHelper::in('combo_id', 0);
+            if ($combo_id <= 0) {
+                AjaxHelper::json(['status'=>false,'message'=>'Combo inválido']);
                 break;
             }
-            echo json_encode($m->eliminarCombo($combo_id));
+            AjaxHelper::json($m->eliminarCombo($combo_id));
             break;
+        }
 
-        // NUEVO: calcular disponibilidad del combo según inventario de hijos obligatorios
-        case 'calcComboDisponibilidad':
-            $combo_id  = intval($in('combo_id', 0));
-            $cantidad  = max(1, intval($in('cantidad', 1))); // opcional: para validar si hay stock para N combos
-            if ($combo_id<=0) {
-                echo json_encode(['status'=>false,'message'=>'Combo inválido']);
+        case 'calcComboDisponibilidad': {
+            $combo_id  = (int) AjaxHelper::in('combo_id', 0);
+            $cantidad  = max(1, (int) AjaxHelper::in('cantidad', 1));
+            if ($combo_id <= 0) {
+                AjaxHelper::json(['status'=>false,'message'=>'Combo inválido']);
                 break;
             }
-            echo json_encode($m->calcularDisponibilidadCombo($combo_id, $cantidad));
+            AjaxHelper::json($m->calcularDisponibilidadCombo($combo_id, $cantidad));
             break;
+        }
 
         /* ============================================================
          * ======= OBTENER PROMOCIONES VIGENTES PARA PRODUCTOS ========
          * ============================================================ */
         case 'loadPromocionesVigentesProductos':
-            echo json_encode(['status'=>true,'promociones'=>$m->obtenerPromocionesVigentesProductos()]);
-            break;            
+            AjaxHelper::json(['status'=>true,'promociones'=>$m->obtenerPromocionesVigentesProductos()]);
+            break;
+
+        /* ============================================================
+         * ======= M ESAS rápidas / flujo corto =======================
+         * ============================================================ */
+        case 'ocuparMesa': {
+            $mesa_id = (int) AjaxHelper::in('mesa_id', 0);
+            if ($mesa_id <= 0) throw new Exception('Mesa inválida');
+            $m->setMesaEstado($mesa_id, true);
+            AjaxHelper::json(['ok' => true]);
+            break;
+        }
+
+        case 'liberarMesa': {
+            $mesa_id = (int) AjaxHelper::in('mesa_id', 0);
+            if ($mesa_id <= 0) throw new Exception('Mesa inválida');
+            $m->setMesaEstado($mesa_id, false);
+            AjaxHelper::json(['ok' => true]);
+            break;
+        }
+
+        case 'getFacturaMesaAbierta': {
+            $mesa_id = (int) AjaxHelper::in('mesa_id', 0);
+            if ($mesa_id <= 0) throw new Exception('Mesa inválida');
+            [$factura, $detalle] = $m->getFacturaAbiertaPorMesa($mesa_id);
+            AjaxHelper::json(['ok' => (bool)$factura, 'factura' => $factura, 'detalle' => $detalle]);
+            break;
+        }
+
+        case 'registrarComandaCocina': {
+            $factura_id  = (int) AjaxHelper::in('factura_id', 0);
+            $mesa_id     = (int) AjaxHelper::in('mesa_id', 0);
+            $comentarios = trim((string) AjaxHelper::in('comentarios', ''));
+        
+            if ($factura_id <= 0) {
+                AjaxHelper::json(['ok'=>false,'msg'=>'Factura inválida']);
+                break;
+            }
+        
+            $res = $m->registrarComandaCocina($factura_id, $mesa_id, $comentarios);
+        
+            if (!is_array($res) || empty($res['status'])) {
+                AjaxHelper::json([
+                    'ok'  => false,
+                    'msg' => $res['message'] ?? 'No se pudo registrar la comanda'
+                ]);
+            } else {
+                AjaxHelper::json([
+                    'ok'                 => true,
+                    'factura_comanda_id' => (int)($res['factura_comanda_id'] ?? 0)
+                ]);
+            }
+            break;
+        }        
+
+        case 'guardarFacturaRestaurante': {
+            $servicio      = ((string) AjaxHelper::in('servicio', 'mesa')) === 'llevar' ? 'llevar' : 'mesa';
+            $mesa_id       = (int) AjaxHelper::in('mesa_id', 0);
+            $clientes_id   = (int) AjaxHelper::in('clientes_id', 0);
+            $observaciones = trim((string) AjaxHelper::in('observaciones', ''));
+            $detalle       = json_decode((string) AjaxHelper::in('detalle', '[]'), true);
+        
+            if (!is_array($detalle) || !count($detalle)) {
+                AjaxHelper::json(['ok'=>false,'msg'=>'Detalle vacío']);
+                break;
+            }
+            if ($servicio === 'mesa' && $mesa_id <= 0) {
+                AjaxHelper::json(['ok'=>false,'msg'=>'Debe seleccionar una mesa antes de enviar a cocina']);
+                break;
+            }
+        
+            $importe = 0.0;
+            foreach ($detalle as $d) {
+                $cant   = (int)($d['cantidad'] ?? 1);
+                $precio = (float)($d['precio'] ?? 0);
+                $importe += $cant * $precio;
+            }
+        
+            $empresa_id     = (int)($_SESSION['empresa_id'] ?? 1);
+            $usuario_id     = (int)($_SESSION['usuario'] ?? 1);
+            $colaborador_id = (int)($_SESSION['colaboradores_id'] ?? $_SESSION['colaborador_id'] ?? 1);
+        
+            $apertura_id = 1;
+            if (method_exists($m, 'obtenerAperturaCajaActiva')) {
+                $tmp = (int)$m->obtenerAperturaCajaActiva($colaborador_id, $empresa_id);
+                if ($tmp > 0) $apertura_id = $tmp;
+            }
+        
+            $params = [
+                'clientes_id'              => $clientes_id,
+                'secuencia_facturacion_id' => 1,
+                'apertura_id'              => $apertura_id,
+                'number'                   => 0,
+                'tipo_factura'             => 1,
+                'colaboradores_id'         => $colaborador_id,
+                'importe'                  => $importe,
+                'notas'                    => $observaciones,
+                'usuario'                  => $usuario_id,
+                'empresa_id'               => $empresa_id,
+                'detalle'                  => $detalle
+            ];
+        
+            // 🚑 OJO: crearFacturaBorrador devuelve un ARRAY
+            $resCrear = $m->crearFacturaBorrador($params);
+        
+            if (!is_array($resCrear) || empty($resCrear['status'])) {
+                AjaxHelper::json(['ok'=>false,'msg'=>($resCrear['message'] ?? 'No se pudo crear la factura')]);
+                break;
+            }
+        
+            $factura_id = (int)($resCrear['factura_id'] ?? 0);
+            if ($factura_id <= 0) {
+                AjaxHelper::json(['ok'=>false,'msg'=>'No se obtuvo el ID de la factura']);
+                break;
+            }
+        
+            if ($servicio === 'mesa' && $mesa_id) {
+                // marca mesa ocupada (si aplica) y registra comanda
+                if (method_exists($m, 'setMesaEstado')) {
+                    $m->setMesaEstado($mesa_id, true);
+                }
+                $resComanda = $m->registrarComandaCocina($factura_id, $mesa_id, $observaciones, 'mesa');
+                // No rompas el flujo si falla la comanda; solo informa
+                if (is_array($resComanda) && empty($resComanda['status'])) {
+                    // Opcional: log interno
+                    // error_log('Comanda no registrada: '.($resComanda['message'] ?? ''));
+                }
+            }
+        
+            // ✅ Respuesta limpia y solo JSON
+            AjaxHelper::json(['ok' => true, 'factura_id' => $factura_id]);
+            break;                
+        }
+
+        case 'finalizarParaLlevar': {
+            $clientes_id   = (int) AjaxHelper::in('clientes_id', 0);
+            $observaciones = trim((string) AjaxHelper::in('observaciones', ''));
+            $detalle       = json_decode((string) AjaxHelper::in('detalle', '[]'), true);
+
+            if (!is_array($detalle) || !count($detalle)) {
+                AjaxHelper::json(['ok'=>false,'msg'=>'Detalle vacío']);
+                break;
+            }
+
+            $importe = 0.0;
+            foreach ($detalle as $d) {
+                $importe += ((int)($d['cantidad'] ?? 1)) * ((float)($d['precio'] ?? 0));
+            }
+
+            $empresa_id     = (int)($_SESSION['empresa_id'] ?? 1);
+            $usuario_id     = (int)($_SESSION['usuario'] ?? 1);
+            $colaborador_id = (int)($_SESSION['colaboradores_id'] ?? $_SESSION['colaborador_id'] ?? 1);
+
+            $apertura_id = 1;
+            if (method_exists($m, 'obtenerAperturaCajaActiva')) {
+                $tmp = (int)$m->obtenerAperturaCajaActiva($colaborador_id, $empresa_id);
+                if ($tmp > 0) $apertura_id = $tmp;
+            }
+
+            $params = [
+                'clientes_id'              => $clientes_id,
+                'secuencia_facturacion_id' => 1,
+                'apertura_id'              => $apertura_id,
+                'number'                   => 0,
+                'tipo_factura'             => 1, // contado
+                'colaboradores_id'         => $colaborador_id,
+                'importe'                  => $importe,
+                'notas'                    => $observaciones,
+                'usuario'                  => $usuario_id,
+                'empresa_id'               => $empresa_id,
+                'detalle'                  => $detalle
+            ];
+
+            $resB = $m->crearFacturaBorrador($params);
+            $factura_id = is_array($resB) ? (int)($resB['factura_id'] ?? 0) : (int)$resB;
+
+            if ($factura_id <= 0) {
+                $msg = is_array($resB) ? ($resB['message'] ?? 'No se pudo crear factura') : 'No se obtuvo factura_id';
+                AjaxHelper::json(['ok'=>false,'msg'=>$msg]);
+                break;
+            }
+
+            // Pagada
+            $m->marcarFacturaEstado($factura_id, 2);
+
+            // Pago contado
+            $tipo_pago    = (int) AjaxHelper::in('tipo_pago', 1);
+            $efectivo     = (float) AjaxHelper::in('efectivo', 0);
+            $tarjeta      = (float) AjaxHelper::in('tarjeta', 0);
+            $cambio       = (float) AjaxHelper::in('cambio', 0);
+            $tipo_pago_id = (int) AjaxHelper::in('tipo_pago_id', 1);
+            $banco_id     = (int) AjaxHelper::in('banco_id', 0);
+
+            $resP = $m->crearPagoContado([
+                'facturas_id' => $factura_id,
+                'tipo_pago'   => $tipo_pago,
+                'importe'     => $importe,
+                'efectivo'    => $efectivo,
+                'cambio'      => $cambio,
+                'tarjeta'     => $tarjeta,
+                'usuario'     => $usuario_id,
+                'empresa_id'  => $empresa_id,
+                'tipo_pago_id'=> $tipo_pago_id,
+                'banco_id'    => $banco_id
+            ]);
+
+            if (!$resP || (is_array($resP) && empty($resP['status']))) {
+                $msg = is_array($resP) ? ($resP['message'] ?? 'No se pudo registrar el pago') : 'No se pudo registrar el pago';
+                AjaxHelper::json(['ok'=>false,'msg'=>$msg]);
+                break;
+            }
+
+            // Comanda opcional
+            $forzar_cocina = ((string) AjaxHelper::in('forzar_cocina','0') === '1');
+            if ($forzar_cocina) {
+                $m->registrarComandaCocina($factura_id, 0, $observaciones, 'llevar');
+            }
+
+            AjaxHelper::json(['ok'=>true,'factura_id'=>$factura_id]);
+            break;
+        }
+
+        case 'cobrarFacturaMesa': {
+            $mesa_id     = (int) AjaxHelper::in('mesa_id', 0);
+            $factura_id  = (int) AjaxHelper::in('factura_id', 0);
+            $tipo_pago   = (int) AjaxHelper::in('tipo_pago', 1);
+            $efectivo    = (float) AjaxHelper::in('efectivo', 0);
+            $tarjeta     = (float) AjaxHelper::in('tarjeta', 0);
+            $cambio      = (float) AjaxHelper::in('cambio', 0);
+            $tipo_pago_id= (int) AjaxHelper::in('tipo_pago_id', 1);
+            $banco_id    = (int) AjaxHelper::in('banco_id', 0);
+
+            if ($factura_id <= 0) {
+                $row = $m->getFacturaMesaAbierta($mesa_id);
+                if (is_array($row) && !empty($row['ok']) && !empty($row['factura']['facturas_id'])) {
+                    $factura_id = (int) $row['factura']['facturas_id'];
+                }
+            }
+            if ($factura_id <= 0) {
+                AjaxHelper::json(['ok'=>false,'msg'=>'No se encontró factura abierta para cobrar']);
+                break;
+            }
+
+            $rsImp = $m->ejecutar_consulta_simple_preparada(
+                "SELECT importe FROM facturas WHERE facturas_id=?",
+                "i",
+                [$factura_id]
+            );
+            $importe = ($rsImp && $rsImp->num_rows) ? (float) $rsImp->fetch_assoc()['importe'] : 0.0;
+
+            $m->marcarFacturaEstado($factura_id, 2);
+
+            $resP = $m->crearPagoContado([
+                'facturas_id' => $factura_id,
+                'tipo_pago'   => $tipo_pago,
+                'importe'     => $importe,
+                'efectivo'    => $efectivo,
+                'cambio'      => $cambio,
+                'tarjeta'     => $tarjeta,
+                'tipo_pago_id'=> $tipo_pago_id,
+                'banco_id'    => $banco_id
+            ]);
+
+            if (!$resP || (is_array($resP) && empty($resP['status']))) {
+                $msg = is_array($resP) ? ($resP['message'] ?? 'No se pudo registrar el pago') : 'No se pudo registrar el pago';
+                AjaxHelper::json(['ok'=>false,'msg'=>$msg]);
+                break;
+            }
+
+            AjaxHelper::json(['ok'=>true,'factura_id'=>$factura_id]);
+            break;
+        }
+
+        case 'listarComandasPorEstacion': {
+            // recibe estacion = cocina | barra
+            $estacion = strtolower(trim((string) AjaxHelper::in('estacion', 'cocina')));
+            if ($estacion !== 'barra') $estacion = 'cocina';
+        
+            try {
+                $data = $m->listarComandasPorEstacion($estacion);
+                AjaxHelper::json(['ok' => true, 'estacion' => $estacion, 'data' => $data]);
+            } catch (Throwable $e) {
+                AjaxHelper::json(['ok' => false, 'msg' => $e->getMessage()]);
+            }
+            break;
+        }        
 
         default:
-            http_response_code(400);
-            echo json_encode(['status'=>false,'message'=>'Acción no válida']);
+            AjaxHelper::json(['status'=>false,'message'=>'Acción no válida'], 400);
     }
 
 } catch (Throwable $e) {
-    http_response_code(500);
-    echo json_encode(['status'=>false,'message'=>$e->getMessage()]);
+    AjaxHelper::json(['status'=>false,'message'=>$e->getMessage()], 500);
 }

@@ -148,6 +148,7 @@
               <span id="mesa-seleccionada"><i class="fas fa-table"></i> No seleccionada</span>
 
               <span id="cliente-info" class="cliente-info">
+                <input type="hidden" class="cli-id" id="clientes_id" name="clientes_id" value="0">
                 <i class="fas fa-user"></i>
                 <span class="cli-datos">
                   <span class="cli-nombre">Consumidor final</span>
@@ -483,90 +484,125 @@
     </div>
   </div>
 
-  <!-- Modal Nuevo/Editar Producto -->
-  <div id="modal-producto" class="modal rs-modal">
-    <div class="modal-content" style="max-width:760px;">
-      <div class="modal-header">
-        <h3><i class="fas fa-plus-circle"></i> <span id="titulo-modal-producto">Nuevo Producto</span></h3>
-        <span class="close" data-close="#modal-producto">&times;</span>
-      </div>
-      <div class="modal-body">
-        <!-- FORM PRODUCTO -->
-        <form id="form-producto" novalidate onsubmit="return false;">
-          <input type="hidden" id="prod-id" value="">
-          <div class="form-group">
-            <label class="label-strong">¿A qué estación pertenece este producto?</label>
-            <div class="segmented-control" id="prod-estacion">
-              <input type="radio" name="prodEstacion" id="prod-est-cocina" value="cocina" checked>
-              <label for="prod-est-cocina">Cocina</label>
-              <input type="radio" name="prodEstacion" id="prod-est-barra" value="barra">
-              <label for="prod-est-barra">Barra</label>
-            </div>
-            <small class="hint">Al elegir la estación, el selector de <b>categoría</b> te mostrará solo las categorías de esa estación.</small>
-          </div>
+<!-- Modal Nuevo/Editar Producto -->
+<div id="modal-producto" class="modal rs-modal modal--xl">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3><i class="fas fa-plus-circle"></i> <span id="titulo-modal-producto">Nuevo Producto</span></h3>
+      <span class="close" data-close="#modal-producto">&times;</span>
+    </div>
+    <div class="modal-body">
+      <!-- FORM PRODUCTO -->
+      <form id="form-producto" novalidate onsubmit="return false;">
+  <input type="hidden" id="prod-id" value="">
 
-          <div class="form-group" id="prod-estacion-info" style="display:none;">
-            <div class="info-chip">
-              Estación de la categoría seleccionada: <b id="prod-estacion-info-val">—</b>
-            </div>
-          </div>
+  <div class="container-fluid px-0">
+    <!-- fila 1: Estación (izq) + Hint + Chip (der) -->
+<div class="form-row">
+  <!-- Izquierda: radios -->
+  <div class="form-group col-lg-4 col-md-6">
+    <label class="label-strong d-block">¿A qué estación pertenece este producto?</label>
+    <div class="segmented-control" id="prod-estacion">
+      <input type="radio" name="prodEstacion" id="prod-est-cocina" value="cocina" checked>
+      <label for="prod-est-cocina" class="mr-2">Cocina</label>
+      <input type="radio" name="prodEstacion" id="prod-est-barra" value="barra">
+      <label for="prod-est-barra">Barra</label>
+    </div>
+  </div>
 
-          <div class="form-group">
-            <label for="prod-categoria"><i class="fas fa-sitemap"></i> Categoría</label>
-            <select id="prod-categoria" class="form-control select2" data-placeholder="Selecciona una categoría" required></select>
-          </div>
+  <!-- Derecha: hint en una sola línea + chip (opcional) -->
+  <div class="form-group col-lg-8 col-md-6">
+    <small class="hint d-block text-muted text-nowrap mb-2">
+      Al elegir la estación, el selector de <b>categoría</b> te mostrará solo las categorías de esa estación.
+    </small>
 
-          <div class="form-group">
-            <label for="prod-nombre"><i class="fas fa-quote-left"></i> Nombre</label>
-            <input type="text" class="form-control" id="prod-nombre" placeholder="Ej. Refresco Pepsi" required/>
-          </div>
-
-          <div class="form-group">
-            <label for="prod-descripcion"><i class="fas fa-align-left"></i> Descripción (opcional)</label>
-            <input type="text" class="form-control" id="prod-descripcion" placeholder="Descripción corta" />
-          </div>
-
-          <div class="form-group">
-            <label for="prod-precio"><i class="fas fa-dollar-sign"></i> Precio de venta</label>
-            <input type="number" class="form-control" id="prod-precio" step="0.01" min="0" value=""  placeholder="0.00" required />
-          </div>
-
-          <div class="form-group" style="display:flex; gap:14px; flex-wrap:wrap;">
-            <label class="radio-container"><input type="checkbox" id="prod-isv1"/> ISV 1</label>
-            <label class="radio-container"><input type="checkbox" id="prod-isv2"/> ISV 2</label>
-          </div>
-
-          <!-- Uploader de imagen -->
-          <div class="file-upload-container">
-            <label><i class="fas fa-image mr-1"></i> Imagen del Producto</label>
-            <div class="file-upload-area image-upload-area" id="productoDropArea" tabindex="0" aria-label="Zona para arrastrar y soltar imagen">
-              <i class="fas fa-image fa-3x mb-2"></i>
-              <p class="file-upload-instructions">
-                <span class="drag-text">Arrastra la imagen aquí</span>
-                <button class="btn btn-sm btn-secondary" id="btnSeleccionarImagen" type="button">
-                  <i class="fas fa-image"></i> Seleccionar imagen
-                </button>
-                <input type="file" id="imagen_producto" name="imagen_producto" accept="image/*" class="file-upload-input">
-                <span class="paste-text">o pega (Ctrl+V)</span>
-              </p>
-              <div class="file-preview" id="productoPreview"></div>
-            </div>
-            <div class="file-info" id="productoInfo">Ningún archivo seleccionado</div>
-          </div>
-        </form>
-        <!-- /FORM PRODUCTO -->
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-danger" data-close="#modal-producto" type="button">
-          <i class="fas fa-times"></i> Cerrar
-        </button>
-        <!-- Sigue como button; valida desde JS con validateForm('form-producto') -->
-        <button id="btn-guardar-producto" class="btn btn-success" type="button">
-          <i class="fas fa-save"></i> Guardar
-        </button>
+    <div id="prod-estacion-info" style="display:none;">
+      <div class="info-chip">
+        Estación de la categoría seleccionada: <b id="prod-estacion-info-val">—</b>
       </div>
     </div>
   </div>
+</div>
+
+
+    <!-- fila 2 -->
+    <div class="form-row">
+      <div class="form-group col-md-6">
+        <label for="prod-categoria"><i class="fas fa-sitemap"></i> Categoría</label>
+        <select id="prod-categoria" class="form-control w-100 select2"
+                data-placeholder="Selecciona una categoría"></select>
+      </div>
+
+      <div class="form-group col-md-6">
+        <label for="prod-nombre"><i class="fas fa-quote-left"></i> Nombre</label>
+        <input type="text" class="form-control" id="prod-nombre" placeholder="Ej. Refresco Pepsi">
+      </div>
+    </div>
+
+    <!-- fila 3 -->
+    <div class="form-row">
+      <div class="form-group col-12">
+        <label for="prod-descripcion"><i class="fas fa-align-left"></i> Descripción (opcional)</label>
+        <input type="text" class="form-control" id="prod-descripcion" placeholder="Descripción corta">
+      </div>
+    </div>
+
+    <!-- fila 4 -->
+    <div class="form-row">
+      <div class="form-group col-lg-4 col-md-6">
+        <label for="prod-precio"><i class="fas fa-dollar-sign"></i> Precio de venta</label>
+        <input type="number" class="form-control" id="prod-precio" step="0.01" min="0" placeholder="0.00">
+      </div>
+
+      <div class="form-group col-lg-4 col-md-6">
+        <label class="label-strong d-block"><i class="fas fa-receipt"></i> Impuestos</label>
+        <div class="d-flex align-items-center flex-wrap">
+          <label class="radio-container mr-3 mb-0">
+            <input type="checkbox" id="prod-isv1"> ISV 15%
+          </label>
+          <label class="radio-container mb-0">
+            <input type="checkbox" id="prod-isv2"> ISV 15%
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- fila 5 -->
+    <div class="form-row">
+      <div class="form-group col-12">
+        <label><i class="fas fa-image mr-1"></i> Imagen del Producto</label>
+        <div class="file-upload-area image-upload-area" id="productoDropArea" tabindex="0"
+             aria-label="Zona para arrastrar y soltar imagen">
+          <i class="fas fa-image fa-3x mb-2"></i>
+          <p class="file-upload-instructions mb-2">
+            <span class="drag-text mr-2">Arrastra la imagen aquí</span>
+            <button class="btn btn-sm btn-secondary" id="btnSeleccionarImagen" type="button">
+              <i class="fas fa-image"></i> Seleccionar imagen
+            </button>
+            <input type="file" id="imagen_producto" name="imagen_producto" accept="image/*"
+                   class="file-upload-input d-none">
+            <span class="paste-text ml-2">o pega (Ctrl+V)</span>
+          </p>
+          <div class="file-preview" id="productoPreview"></div>
+        </div>
+        <div class="file-info" id="productoInfo">Ningún archivo seleccionado</div>
+      </div>
+    </div>
+  </div>
+</form>
+
+      <!-- /FORM PRODUCTO -->
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" data-close="#modal-producto" type="button">
+        <i class="fas fa-times"></i> Cerrar
+      </button>
+      <button id="btn-guardar-producto" class="btn btn-success" type="button">
+        <i class="fas fa-save"></i> Guardar
+      </button>
+    </div>
+  </div>
+</div>
 
   <!-- =================== MODAL: LISTA DE COMBOS =================== -->
   <div id="modal-combos" class="modal rs-modal">

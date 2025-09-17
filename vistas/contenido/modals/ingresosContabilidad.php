@@ -21,7 +21,7 @@
                             <div class="form-row">
                                 <div class="col-md-3 mb-3">
                                     <label for="fecha_ingresos"><i class="fas fa-calendar-day mr-1"></i>Fecha Factura <span class="priority">*</span></label>
-                                    <input type="date" required id="fecha_ingresos" name="fecha_ingresos" value="<?php echo date ("Y-m-d");?>" class="form-control">
+                                    <input type="date" required id="fecha_ingresos" name="fecha_ingresos" data-remember="date" data-rem-key="ingresos:lastFecha" value="<?php echo date ("Y-m-d");?>" class="form-control">
                                     <small class="form-text text-muted">Fecha del documento del ingreso</small>
                                 </div>
                                 <div class="col-md-6 mb-3">

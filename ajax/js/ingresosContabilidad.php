@@ -426,14 +426,35 @@ function modal_ingresos_contabilidad() {
     'action': '<?php echo SERVERURL;?>ajax/addIngresoContabilidadAjax.php'
   });
 
+  // Reset total del form
   $('#formIngresosContables')[0].reset();
   $('#formIngresosContables select.selectpicker').val('').selectpicker('refresh');
   $('#formIngresosContables input[type="text"], #formIngresosContables input[type="number"], #formIngresosContables textarea').val('');
 
+  // >>> RE-APLICAR FECHA MEMORIZADA TRAS EL RESET <<<
+  setTimeout(function () {
+    var remembered = localStorage.getItem('ingresos:lastFecha');
+    if (!remembered) {
+      var d = new Date();
+      var mm = String(d.getMonth() + 1).padStart(2, '0');
+      var dd = String(d.getDate()).padStart(2, '0');
+      remembered = d.getFullYear() + '-' + mm + '-' + dd;
+    }
+    var $f = $('#formIngresosContables #fecha_ingresos');
+    if ($f.length) {
+      $f.val(remembered)
+        .prop('defaultValue', remembered)
+        .attr('value', remembered)
+        .trigger('change'); // guarda nuevamente por si acaso
+    }
+  }, 0);
+
+  // Botones
   $('#reg_ingresosContabilidad').show();
   $('#edi_ingresosContabilidad').hide();
   $('#delete_ingresosContabilidad').hide();
 
+  // Habilitar campos
   $('#formIngresosContables #cuenta_codigo').prop("readonly", false);
   $('#formIngresosContables #cuenta_nombre').prop("readonly", false);
   $('#formIngresosContables #cuentas_activo').prop('disabled', false).prop('checked', false);

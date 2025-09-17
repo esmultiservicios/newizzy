@@ -21,7 +21,7 @@
                             <div class="form-row">
                                 <div class="col-md-3 mb-3">
                                     <label for="fecha_egresos"><i class="fas fa-calendar-day mr-1"></i>Fecha Factura <span class="priority">*</span></label>
-                                    <input type="date" required id="fecha_egresos" name="fecha_egresos" value="<?php echo date ("Y-m-d");?>" class="form-control">
+                                    <input type="date" required id="fecha_egresos" name="fecha_egresos" data-remember="date" data-rem-key="egresos:lastFecha" value="<?php echo date ("Y-m-d");?>" class="form-control">
                                     <small class="form-text text-muted">Fecha de la factura del egreso</small>
                                 </div>
                                 <div class="col-md-6 mb-3">
@@ -69,24 +69,29 @@
                                 <div class="col-md-12 col-sm-6 mb-3">
                                     <div class="form-group">
                                         <label class="small mb-1"><strong>Factura PDF</strong></label>
+
                                         <div class="file-upload-container">
-                                            <div class="file-upload-area" id="fileDropArea">
-                                                <i class="fas fa-file-pdf fa-3x mb-2"></i>
-                                                <p>
-                                                    <span class="drag-text">Arrastra tu archivo PDF aquí o </span>
-                                                    <span class="select-file-container">
-                                                        <span class="select-file-text">haz clic aquí para seleccionar</span>
-                                                        <input type="file" id="factura_pdf" name="factura_pdf" accept=".pdf" class="file-upload-input">
-                                                    </span>
-                                                    <span class="paste-text">, o pega en cualquier área</span>
-                                                </p>
-                                                <div class="file-preview" id="filePreview"></div>
-                                            </div>
-                                            <div class="file-info" id="fileInfo">Ningún archivo seleccionado</div>
+                                        <div class="file-upload-area" id="fileDropArea">
+                                            <i class="fas fa-file-pdf fa-3x mb-2"></i>
+                                            <p class="mb-2">
+                                            <span class="drag-text">Arrastra tu archivo PDF aquí,</span>
+                                            <button type="button" class="btn btn-primary btn-sm ml-1 btn-file-chooser" id="btnSelectPdf">
+                                                <i class="fas fa-file-pdf mr-1"></i> Seleccionar PDF
+                                            </button>
+                                            <span class="paste-text ml-1">o pega en cualquier área</span>
+                                            </p>
+
+                                            <!-- input file oculto, disparado por el botón -->
+                                            <input type="file" id="factura_pdf" name="factura_pdf" accept=".pdf" class="file-upload-input d-none">
+                                            <div class="file-preview" id="filePreview"></div>
                                         </div>
+
+                                        <div class="file-info" id="fileInfo">Ningún archivo seleccionado</div>
+                                        </div>
+
                                         <small class="form-text text-muted">Documento PDF de la factura (Máx. 5MB)</small>
                                     </div>
-                                </div>                           
+                                </div>                       
 
                             </div>
                         </div>
@@ -158,129 +163,6 @@
                 </button>
                 <button class="btn btn-success" type="submit" style="display: none;" id="edi_egresosContabilidad" form="formEgresosContables">
                     <i class="fas fa-edit fa-lg mr-1"></i> Confirmar
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-<!--FIN MODAL PARA EL FORMULARIO DE EGRESOS CONTABLES-->
-
-<div class="modal fade" id="modalEgresosContables">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Egresos</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="container"></div>
-            <div class="modal-body">
-                <form class="form-horizontal FormularioAjax" id="formEgresosContables" action="" method="POST" data-form="" enctype="multipart/form-data">
-					<input type="hidden" required="required" readonly id="egresos_id" name="egresos_id" />					
-					
-                    <div class="form-row">
-                        <div class="col-md-3 mb-3">
-                            <label for="fecha_egresos">Fecha Factura <span class="priority">*<span /></label>
-                            <input type="date" required id="fecha_egresos" name="fecha_egresos"
-                                value="<?php echo date ("Y-m-d");?>" class="form-control" />
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="proveedor_egresos">Proveedor <span class="priority">*<span /></label>
-                            <div class="input-group mb-3">
-                                <select id="proveedor_egresos" name="proveedor_egresos" class="selectpicker"
-                                    data-width="100%" data-size="10" data-live-search="true" title="Proveedor">
-                                    <option value="">Seleccione</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="cuenta_egresos">Cuenta <span class="priority">*<span /></label>
-                            <div class="input-group mb-3">
-                                <select id="cuenta_egresos" name="cuenta_egresos" class="selectpicker" data-size="10"
-                                    data-width="100%" data-live-search="true" title="Cuenta">
-                                    <option value="">Seleccione</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="empresa_egresos">Empresa <span class="priority">*<span /></label>
-                            <div class="input-group mb-3">
-                                <select id="empresa_egresos" name="empresa_egresos" class="selectpicker" data-size="10"
-                                    data-width="100%" data-live-search="true" title="Empresa">
-                                    <option value="">Seleccione</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="col-md-3 mb-3">
-                            <label for="prefijo">Categoria</label>
-                            <div class="input-group mb-3">
-                                <select id="categoria_gastos" name="categoria_gastos" class="selectpicker"
-                                    data-width="100%" data-size="10" data-live-search="true" title="Categoria">
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-9 mb-3">
-                            <label for="factura_egresos">Factura <span class="priority">*<span /></label>
-                            <input type="text" required id="factura_egresos" name="factura_egresos"
-                                placeholder="Factura" class="form-control" maxlength="19"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="col-md-3 mb-3">
-                            <label for="subtotal_egresos">Subtotal <span class="priority">*<span /></label>
-                            <input type="text" required id="subtotal_egresos" name="subtotal_egresos"
-                                placeholder="Subtotal" class="form-control" step="0.01" />
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="isv_egresos">ISV <span class="priority">*<span /></label>
-                            <input type="number" required id="isv_egresos" name="isv_egresos" placeholder="ISV"
-                                class="form-control" step="0.01" value="0" />
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="descuento_egresos">Descuento</label>
-                            <input type="number" id="descuento_egresos" name="descuento_egresos" placeholder="Descuento"
-                                class="form-control" step="0.01" value="0" />
-                        </div>
-                        <div class="col-md-3 mb-4">
-                            <label for="nc_egresos">Nota Crédito </label>
-                            <input type="number" id="nc_egresos" name="nc_egresos" placeholder="NC" class="form-control"
-                                step="0.01" value="0" />
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="col-md-3 mb-4">
-                            <label for="total_egresos">Total </label>
-                            <input type="number" readonly id="total_egresos" name="total_egresos" placeholder="Total"
-                                class="form-control" step="0.01" value="0" />
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="col-md-12 mb-4">
-                            <label for="observacion_egresos">Observación </label>
-                            <input type="text" id="observacion_egresos" name="observacion_egresos"
-                                placeholder="Observacion" class="form-control" step="0.01" maxlength="150"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
-                        </div>
-                    </div>
-                    <div class="RespuestaAjax"></div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-danger" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
-                </button>                   
-                <button class="guardar btn btn-success ml-2" type="submit" style="display: none;" id="reg_egresosContabilidad" form="formEgresosContables">
-                    <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
-                </button>
-                <button class="editar btn btn-success ml-2" type="submit" style="display: none;" id="edi_egresosContabilidad" form="formEgresosContables">
-                    <div class="sb-nav-link-icon"></div><i class="fas fa-edit fa-lg fa-lg"></i> Confirmar
                 </button>
             </div>
         </div>

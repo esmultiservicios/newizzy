@@ -34,6 +34,13 @@ $fechaf      = isset($_POST['fechaf']) ? $_POST['fechaf'] : date('Y-m-d');
 
 // Si el select está en "Seleccione", llegará "" o "0". Lo tratamos como "sin filtro".
 $cli = (is_numeric($clientes_id) ? (int)$clientes_id : 0);
+
+/*echo "El estado es: ".$estado."***";
+echo "El clientes_id es: ".$clientes_id."***";
+echo "La fechai es: ".$fechai."***";
+echo "La fechaf es: ".$fechaf."***";
+echo "El cli es: ".$cli."***";*/
+
 if ($cli <= 0) { $clientes_id = ""; }
 
 // Armar datos para el modelo

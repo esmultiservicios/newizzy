@@ -99,18 +99,16 @@ $(() => {
       handleFiles(e.target.files, { drop: dropArea, input: fileInput, preview: previewEl, info: infoEl, maxMB });
     });
 
-    // SOLO abrir file chooser al hacer clic en .select-file-text (si la agregas en el HTML)
+    // Abrir file chooser desde botón reutilizable (.btn-file-chooser) o el viejo .select-file-text
+    const chooseBtn  = dropArea.querySelector('.btn-file-chooser');
     const selectLink = dropArea.querySelector('.select-file-text');
+
+    const openChooser = (e) => { e.preventDefault(); e.stopPropagation(); fileInput.click(); };
+
+    if (chooseBtn)  chooseBtn.addEventListener('click', openChooser);
     if (selectLink) {
-      const openChooser = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        fileInput.click();
-      };
       selectLink.addEventListener('click', openChooser);
-      selectLink.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') openChooser(e);
-      });
+      selectLink.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') openChooser(e); });
     }
 
     function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }

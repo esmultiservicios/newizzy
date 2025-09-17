@@ -1,3 +1,103 @@
+// ===========================================
+// GLOBAL recordar fecha en inputs date
+// data-remember="date" + data-rem-key="egresos:lastFecha"
+// ===========================================
+(function () {
+    const ATTR_FLAG = 'data-remember-init';
+    const ATTR_TYPE = 'data-remember';
+    const ATTR_KEY  = 'data-rem-key';
+  
+    function todayISO() {
+      const d  = new Date();
+      const mm = String(d.getMonth() + 1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      return `${d.getFullYear()}-${mm}-${dd}`;
+    }
+    function getSaved(key){ return localStorage.getItem(key) || todayISO(); }
+    function save(key, val){ if (key && val) localStorage.setItem(key, val); }
+    function apply($input, val){
+      $input.val(val);
+      $input.prop('defaultValue', val);
+      $input.attr('value', val);
+    }
+    function removeHint($input){ $input.nextAll('.remember-hint').remove(); }
+  
+    function buildHint($input, key, currentVal){
+      const tiso = todayISO();
+      if (!currentVal || currentVal === tiso) { removeHint($input); return; }
+      removeHint($input);
+  
+      const $hint = $(`
+        <div class="remember-hint py-2 px-3 mt-1 mb-0 d-flex align-items-center flex-wrap" role="alert">
+          <i class="fas fa-exclamation-triangle mr-2"></i>
+          <span class="mr-2">
+            Usando <b>última fecha</b>:
+            <span class="remember-date"></span>
+          </span>
+          <button type="button" class="btn btn-sm btn-use-today">
+            <i class="far fa-calendar-check"></i> Usar hoy
+          </button>
+          <button type="button" class="btn btn-hide-hint" aria-label="Cerrar" title="Ocultar">×</button>
+        </div>
+      `);
+      try { $hint.find('.remember-date').text(currentVal.split('-').reverse().join('/')); }
+      catch(e){ $hint.find('.remember-date').text(currentVal); }
+  
+      $hint.insertAfter($input);
+  
+      // pulso suave en el input
+      $input.addClass('remembered-highlight');
+      setTimeout(()=> $input.removeClass('remembered-highlight'), 1200);
+  
+      $hint.on('click', '.btn-use-today', function(){
+        const t = todayISO();
+        save(key, t);
+        apply($input, t);
+        removeHint($input);
+      });
+      $hint.on('click', '.btn-hide-hint', function(){ removeHint($input); });
+    }
+  
+    function attachRememberDate($input){
+      if (!$input.length || $input.attr(ATTR_FLAG)) return;
+  
+      const key     = $input.attr(ATTR_KEY) || $input.attr('id') || 'lastDate';
+      const initial = getSaved(key);
+  
+      apply($input, initial);
+      buildHint($input, key, initial);
+  
+      $input.on('change', function(){
+        const v = $(this).val();
+        save(key, v);
+        apply($input, v);
+        buildHint($input, key, v);
+      });
+  
+      const $form = $input.closest('form');
+      if ($form.length){
+        $form.on('reset', function(){
+          const last = getSaved(key);
+          setTimeout(()=>{
+            apply($input, last);
+            buildHint($input, key, last);
+          }, 0);
+        });
+      }
+  
+      $input.attr(ATTR_FLAG, '1');
+    }
+  
+    function initRememberDates(root){
+      $(root).find('input[type="date"][' + ATTR_TYPE + '="date"]').each(function(){
+        attachRememberDate($(this));
+      });
+    }
+  
+    $(function(){ initRememberDates(document); });
+    $(document).on('shown.bs.modal', function(e){ initRememberDates(e.target); });
+  })();
+ 
 $('.FormularioAjax').submit(function (e) {
 	e.preventDefault();
 
@@ -99,7 +199,6 @@ $('.FormularioAjax').submit(function (e) {
 		}
 	});
 });
-//FIN LOGIN FORM
 
 const notyf = new Notyf({
     position: {

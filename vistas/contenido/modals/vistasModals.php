@@ -2920,67 +2920,72 @@
                     
                     <!-- Sección de Imágenes -->
                     <div class="card border-primary mb-4">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="fas fa-images mr-2"></i>Imágenes y Logos</h5>
-                    </div>
-
-                    <div class="card-body">
-                        <div class="form-row">
-                        <!-- Columna: Logotipo -->
-                        <div class="col-md-6 mb-3">
-                            <label for="logotipo"><i class="fas fa-image mr-1"></i>Logotipo</label>
-
-                            <div class="file-upload-container">
-                            <div class="file-upload-area image-upload-area" id="logoDropArea" tabindex="0" aria-label="Zona para arrastrar y soltar logotipo">
-                                <i class="fas fa-image fa-3x mb-2"></i>
-                                <p class="mb-2">
-                                Arrastra tu logotipo aquí
-                                <span class="select-file-container">
-                                    <span class="select-file-text" role="button" tabindex="0"> o haz clic para seleccionar</span>
-                                    <input type="file" id="logotipo" name="logotipo" accept="image/*" class="file-upload-input">
-                                </span>
-                                <span class="paste-text">, o pega en cualquier área</span>
-                                </p>
-
-                                <div class="file-preview" id="logoPreview"></div>
-                            </div>
-
-                            <div class="file-info" id="logoInfo">Ningún archivo seleccionado</div>
-                            </div>
-
-                            <small class="form-text text-muted">
-                            Logo principal de la empresa (formatos: JPG, PNG, GIF • Máx. 2MB)
-                            </small>
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-images mr-2"></i>Imágenes y Logos</h5>
                         </div>
 
-                        <!-- Columna: Firma Documento -->
-                        <div class="col-md-6 mb-3">
-                            <label for="firma_documento"><i class="fas fa-signature mr-1"></i>Firma Documento</label>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <!-- Columna: Logotipo -->
+                                <div class="col-md-6 mb-3">
+                                    <label><i class="fas fa-image mr-1"></i>Logotipo</label>
 
-                            <div class="file-upload-container">
-                            <div class="file-upload-area image-upload-area" id="firmaDropArea" tabindex="0" aria-label="Zona para arrastrar y soltar firma">
-                                <i class="fas fa-signature fa-3x mb-2"></i>
-                                <p class="mb-2">
-                                Arrastra tu firma aquí
-                                <span class="select-file-container">
-                                    <span class="select-file-text" role="button" tabindex="0"> o haz clic para seleccionar</span>
-                                    <input type="file" id="firma_documento" name="firma_documento" accept="image/*" class="file-upload-input">
-                                </span>
-                                <span class="paste-text">, o pega en cualquier área</span>
-                                </p>
+                                    <div class="file-upload-container">
+                                        <div class="file-upload-area image-upload-area" id="logoDropArea" tabindex="0" aria-label="Zona para arrastrar y soltar logotipo">
+                                        <i class="fas fa-image fa-3x mb-2"></i>
+                                        <p class="mb-2">
+                                            Arrastra tu logotipo aquí,
+                                            <button type="button" class="btn btn-primary btn-sm ml-1 btn-file-chooser" id="btnSelectLogo">
+                                            <i class="fas fa-image mr-1"></i> Seleccionar logotipo
+                                            </button>
+                                            <span class="paste-text ml-1">o pega en cualquier área</span>
+                                        </p>
 
-                                <div class="file-preview" id="firmaPreview"></div>
+                                        <!-- input file oculto (lo dispara el botón) -->
+                                        <input type="file" id="logotipo" name="logotipo" accept="image/*" class="file-upload-input d-none">
+
+                                        <div class="file-preview" id="logoPreview"></div>
+                                        </div>
+
+                                        <div class="file-info" id="logoInfo">Ningún archivo seleccionado</div>
+                                    </div>
+
+                                    <small class="form-text text-muted">
+                                        Logo principal de la empresa (formatos: JPG, PNG, GIF • Máx. 2MB)
+                                    </small>
+                                </div>
+
+                               <!-- Columna: Firma Documento -->
+                                <div class="col-md-6 mb-3">
+                                    <label><i class="fas fa-signature mr-1"></i>Firma Documento</label>
+
+                                    <div class="file-upload-container">
+                                        <div class="file-upload-area image-upload-area" id="firmaDropArea" tabindex="0" aria-label="Zona para arrastrar y soltar firma">
+                                        <i class="fas fa-signature fa-3x mb-2"></i>
+                                        <p class="mb-2">
+                                            Arrastra tu firma aquí,
+                                            <button type="button" class="btn btn-primary btn-sm ml-1 btn-file-chooser" id="btnSelectFirma">
+                                            <i class="fas fa-signature mr-1"></i> Seleccionar firma
+                                            </button>
+                                            <span class="paste-text ml-1">o pega en cualquier área</span>
+                                        </p>
+
+                                        <!-- input file oculto (lo dispara el botón) -->
+                                        <input type="file" id="firma_documento" name="firma_documento" accept="image/*" class="file-upload-input d-none">
+
+                                        <div class="file-preview" id="firmaPreview"></div>
+                                        </div>
+
+                                        <div class="file-info" id="firmaInfo">Ningún archivo seleccionado</div>
+                                    </div>
+
+                                    <small class="form-text text-muted">
+                                        Firma para documentos oficiales (formatos: JPG, PNG, GIF • Máx. 2MB)
+                                    </small>
+                                </div>
+
                             </div>
-
-                            <div class="file-info" id="firmaInfo">Ningún archivo seleccionado</div>
-                            </div>
-
-                            <small class="form-text text-muted">
-                            Firma para documentos oficiales (formatos: JPG, PNG, GIF • Máx. 2MB)
-                            </small>
                         </div>
-                        </div>
-                    </div>
                     </div>
 
                     
@@ -3310,22 +3315,24 @@
                             </div>
                             
                             <div class="col-md-6 mb-3">
-                                <!-- Quitamos el for="imagen_producto" para que NO abra el chooser al hacer click en el label -->
+                                <!-- sin for="imagen_producto" -->
                                 <label><i class="fas fa-image mr-1"></i>Imagen del Producto</label>
 
                                 <div class="file-upload-container">
                                     <div class="file-upload-area image-upload-area" id="productoDropArea" tabindex="0" aria-label="Zona para arrastrar y soltar imagen">
-                                        <i class="fas fa-image fa-3x mb-2"></i>
-                                        <p>
-                                            <span class="drag-text">Arrastra la imagen del producto aquí</span>
-                                            <span class="select-file-container">
-                                                <span class="select-file-text" role="button" tabindex="0"> o haz clic para seleccionar</span>
-                                                <input type="file" id="imagen_producto" name="imagen_producto" accept="image/*" class="file-upload-input">
-                                            </span>
-                                            <span class="paste-text">, o pega en cualquier área</span>
-                                        </p>
+                                    <i class="fas fa-image fa-3x mb-2"></i>
+                                    <p class="mb-2">
+                                        <span class="drag-text">Arrastra la imagen del producto aquí,</span>
+                                        <button type="button" class="btn btn-primary btn-sm ml-1 btn-file-chooser" id="btnSelectProductImage">
+                                        <i class="fas fa-image mr-1"></i> Seleccionar imagen
+                                        </button>
+                                        <span class="paste-text ml-1">o pega en cualquier área</span>
+                                    </p>
 
-                                        <div class="file-preview" id="productoPreview"></div>
+                                    <!-- input file oculto, lo disparamos con el botón -->
+                                    <input type="file" id="imagen_producto" name="imagen_producto" accept="image/*" class="file-upload-input d-none">
+
+                                    <div class="file-preview" id="productoPreview"></div>
                                     </div>
 
                                     <div class="file-info" id="productoInfo">Ningún archivo seleccionado</div>

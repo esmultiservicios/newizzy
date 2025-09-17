@@ -35,16 +35,19 @@ $(function initApp() {
 });
 // ===================== FIN INICIO APP =====================
 
-
-
 /* =========================
    Uploader de imagen (Producto)
    ========================= */
-function initImageUpload() {
+   function initImageUpload() {
   const dropArea   = document.getElementById('productoDropArea');
   const fileInput  = document.getElementById('imagen_producto');
   const preview    = document.getElementById('productoPreview');
   const fileInfo   = document.getElementById('productoInfo');
+
+  // NUEVO: botón que dispara el chooser
+  const btnSelect  = document.getElementById('btnSelectProductImage');
+
+  // (Compat) si en algún lado aún existe un texto clickeable
   const selectLink = dropArea ? dropArea.querySelector('.select-file-text') : null;
 
   if (!dropArea || !fileInput || fileInput.dataset.initialized) return;
@@ -52,6 +55,7 @@ function initImageUpload() {
 
   let isProcessing = false;
 
+  // Drag & Drop
   ['dragenter','dragover','dragleave','drop'].forEach(ev =>
     dropArea.addEventListener(ev, preventDefaults, false)
   );
@@ -66,12 +70,19 @@ function initImageUpload() {
     if (files.length) handleFiles(files);
   });
 
+  // Botón "Seleccionar imagen"
+  const openChooser = (e) => { e.preventDefault(); e.stopPropagation(); fileInput.click(); };
+  if (btnSelect) {
+    btnSelect.addEventListener('click', openChooser);
+    btnSelect.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') openChooser(e); });
+  }
+  // (Compat) por si mantienes el texto clickeable antiguo
   if (selectLink) {
-    const openChooser = (e) => { e.preventDefault(); e.stopPropagation(); fileInput.click(); };
     selectLink.addEventListener('click', openChooser);
     selectLink.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') openChooser(e); });
   }
 
+  // File chooser
   fileInput.addEventListener('change', e => {
     if (isProcessing) return;
     isProcessing = true;
@@ -79,6 +90,7 @@ function initImageUpload() {
     isProcessing = false;
   });
 
+  // Pegar desde el portapapeles
   document.addEventListener('paste', e => {
     const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items || [];
     let file = null;
@@ -125,6 +137,7 @@ function initImageUpload() {
       preview.style.display = 'block';
       fileInfo.textContent = `${file.name} (${formatFileSize(file.size)})`;
 
+      // Si estás editando y tienes un <img id="preview"> en el form
       if (window.jQuery && $("#formProductos #productos_id").val()) {
         $("#formProductos #preview").attr("src", ev.target.result);
       }
@@ -148,11 +161,10 @@ function initImageUpload() {
     }
   }
 
+  // Exponer reset si lo usas fuera
   window.resetProductoImagen = resetImage;
 }
 document.addEventListener('DOMContentLoaded', initImageUpload);
-
-
 
 /* =========================
    DataTable: Productos

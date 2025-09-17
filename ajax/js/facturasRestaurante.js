@@ -767,25 +767,31 @@ function initHotkeys(){
 
   // Abre modal para APERTURA
   function formAperturaBill() {
-      $('#formAperturaCaja #proceso_aperturaCaja').val("Aperturar Caja");
-      $('#open_caja').show();
-      $('#close_caja').hide();
-      $('#formAperturaCaja #monto_apertura_grupo').show();
+    $('#formAperturaCaja #proceso_aperturaCaja').val("Aperturar Caja");
+    $('#open_caja').show();
+    $('#close_caja').hide();
+    $('#formAperturaCaja #monto_apertura_grupo').show();
 
-      $('#formAperturaCaja').attr({ 'data-form': 'save' });
-      $('#formAperturaCaja').attr({ 'action': '<?php echo SERVERURL; ?>ajax/addAperturaCajaAjax.php' });
+    // Ruta en JS puro (sin PHP). BASE ya se usa en el archivo.
+    var _BASE = (typeof BASE !== 'undefined' && BASE)
+                ? BASE
+                : ((typeof SERVERURL !== 'undefined' && SERVERURL) ? SERVERURL : '/');
 
-      $('#modal_apertura_caja').modal({
-          show: true,
-          keyboard: false,
-          backdrop: 'static'
-      });
-      
-      // Enfocar un campo específico (por ejemplo, el campo de monto)
-      $('#modal_apertura_caja').on('shown.bs.modal', function () {
-          $('#monto_apertura').focus(); // Reemplaza con el ID de tu campo
-      });
+    $('#formAperturaCaja')
+      .attr({ 'data-form': 'save', 'action': _BASE + 'ajax/addAperturaCajaAjax.php' });
+
+    $('#modal_apertura_caja').modal({
+      show: true,
+      keyboard: false,
+      backdrop: 'static'
+    });
+
+    // Evitar múltiples binds al reabrir: enfoca una sola vez
+    $('#modal_apertura_caja').one('shown.bs.modal', function () {
+      $('#monto_apertura').trigger('focus');
+    });
   }
+
   // Abre modal para CIERRE
   function formCierreBill() {
     $('#formAperturaCaja #proceso_aperturaCaja').val("Cerrar Caja");
@@ -793,13 +799,22 @@ function initHotkeys(){
     $('#close_caja').show();
     $('#formAperturaCaja #monto_apertura_grupo').hide();
 
-    $('#formAperturaCaja').attr({ 'data-form': 'save' });
-    $('#formAperturaCaja').attr({ 'action': '<?php echo SERVERURL; ?>ajax/addCierreCajaFacturasAjax.php' });
+    var _BASE = (typeof BASE !== 'undefined' && BASE)
+                ? BASE
+                : ((typeof SERVERURL !== 'undefined' && SERVERURL) ? SERVERURL : '/');
+
+    $('#formAperturaCaja')
+      .attr({ 'data-form': 'save', 'action': _BASE + 'ajax/addCierreCajaFacturasAjax.php' });
 
     $('#modal_apertura_caja').modal({
       show: true,
       keyboard: false,
       backdrop: 'static'
+    });
+
+    // (Opcional) Enfocar el primer campo visible del modal al abrir
+    $('#modal_apertura_caja').one('shown.bs.modal', function () {
+      $(this).find('input,select,textarea,button:enabled:visible').first().trigger('focus');
     });
   }
 

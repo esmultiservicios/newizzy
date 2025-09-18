@@ -582,89 +582,156 @@ class facturasModelo extends mainModel{
         }
     }
 
+    // --- REEMPLAZA TODO ESTE MÉTODO ---
     protected function registrar_salida_lote_modelo($datos) {
         $mysqli = mainModel::connection();
-        
-        // Verificar si existe un lote activo para el producto
-        $checkLoteQuery = $mysqli->prepare("SELECT lote_id, cantidad FROM lotes 
-                                            WHERE productos_id = ? AND estado = 'Activo' 
-                                            ORDER BY fecha_vencimiento ASC LIMIT 1");
-        $checkLoteQuery->bind_param("i", $datos['productos_id']);
-        $checkLoteQuery->execute();
-        $resultLote = $checkLoteQuery->get_result();
-    
-        if ($resultLote->num_rows > 0) {
-            // Si hay lote, tomamos su saldo
-            $lote = $resultLote->fetch_assoc();
-            $lote_id = $lote['lote_id'];
-            $saldo = $lote['cantidad'];
-        } else {
-            // Si no hay fecha de vencimiento, el lote no se maneja, obtener saldo desde movimientos
-            $resultSaldo = $this->getSaldoProductosMovimientos($datos['productos_id']);
 
-            if ($resultSaldo->num_rows > 0) {
-                $consulta = $resultSaldo->fetch_assoc();  // Accede a los resultados correctamente
-                $saldo = $consulta['saldo'];  // Obtén el saldo desde la consulta
-            } else {
-                $saldo = 0;  // Si no hay resultados, asigna 0 al saldo
-            }
+        $producto_id         = (int)$datos['productos_id'];
+        $empresa_id          = (int)$datos['empresa_id'];
+        $clientes_id         = (int)($datos['clientes_id'] ?? 0);
+        $documento           = (string)$datos['documento'];
+        $comentario          = (string)$datos['comentario'];
+        $cantidad_solicitada = (float)$datos['cantidad'];
+        $almacen_solicitado  = isset($datos['almacen_id']) ? (int)$datos['almacen_id'] : 0;
 
-            $nuevoSaldo = $saldo + $datos['cantidad'];
-            $lote_id = 0;  // No hay lote asociado
+        // 1) Traer lotes activos con stock > 0 en FIFO REAL (fecha_ingreso), filtrando por almacén si viene
+        $sql = "
+            SELECT lote_id, cantidad, almacen_id
+            FROM lotes
+            WHERE productos_id = ?
+            AND estado = 'Activo'
+            AND cantidad > 0
+            ".($almacen_solicitado > 0 ? " AND almacen_id = ? " : "")."
+            ORDER BY fecha_ingreso ASC, fecha_vencimiento ASC, lote_id ASC
+        ";
+        $stmt = $mysqli->prepare($sql);
+        if (!$stmt) {
+            return ["status" => "error", "message" => "Error prepare lotes: ".$mysqli->error];
         }
-    
-        // Verificamos si hay saldo suficiente para la salida
-        if ($saldo >= $datos['cantidad']) {
-            $cantidad_salida = $datos['cantidad'];
-            $nuevo_saldo = $saldo - $datos['cantidad'];
-    
-            // Insertar el movimiento de salida
-            $insertMovimiento = "INSERT INTO movimientos (productos_id, cantidad_entrada, cantidad_salida, saldo, empresa_id, fecha_registro, almacen_id, lote_id, clientes_id, documento, comentario) 
-                                 VALUES (?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?)";
-    
-            $cantidadEntrada = 0;
+        if ($almacen_solicitado > 0) {
+            $stmt->bind_param("ii", $producto_id, $almacen_solicitado);
+        } else {
+            $stmt->bind_param("i", $producto_id);
+        }
+        $stmt->execute();
+        $rs = $stmt->get_result();
 
-            $stmtMovimiento = $mysqli->prepare($insertMovimiento);
-            $stmtMovimiento->bind_param("iiiiiiiiss", 
-                $datos['productos_id'], 
-                $cantidadEntrada,
-                $cantidad_salida, 
-                $nuevo_saldo, 
-                $datos['empresa_id'], 
-                $datos['almacen_id'], 
-                $lote_id,
-                $datos['clientes_id'],
-                $datos['documento'],
-                $datos['comentario']
+        $restante = $cantidad_solicitada;
+        $consumos = [];
+
+        // 2) Consumir por lotes
+        while ($restante > 0 && ($lote = $rs->fetch_assoc())) {
+            $lote_id      = (int)$lote['lote_id'];
+            $en_lote      = (float)$lote['cantidad'];
+            $almacen_lote = (int)$lote['almacen_id'];
+            if ($en_lote <= 0) continue;
+
+            $a_usar           = ($en_lote >= $restante) ? $restante : $en_lote;
+            $nuevo_saldo_lote = $en_lote - $a_usar;
+
+            // 2.1) Registrar MOVIMIENTO usando la BODEGA DEL LOTE
+            $insertMov = "INSERT INTO movimientos
+                (productos_id, cantidad_entrada, cantidad_salida, saldo, empresa_id, fecha_registro,
+                almacen_id, lote_id, clientes_id, documento, comentario)
+                VALUES (?, 0, ?, ?, ?, NOW(), ?, ?, ?, ?, ?)";
+            $stmtMov = $mysqli->prepare($insertMov);
+            if (!$stmtMov) {
+                return ["status" => "error", "message" => "Error prepare mov: ".$mysqli->error];
+            }
+            // Tipos: i d d i i i i s s  => "iddiiiiss"
+            $stmtMov->bind_param(
+                "iddiiiiss",
+                $producto_id,        // i
+                $a_usar,             // d
+                $nuevo_saldo_lote,   // d
+                $empresa_id,         // i
+                $almacen_lote,       // i
+                $lote_id,            // i
+                $clientes_id,        // i
+                $documento,          // s
+                $comentario          // s
             );
-    
-            if ($stmtMovimiento->execute()) {
-                $movimientos_id = $mysqli->insert_id; // Obtener ID del movimiento insertado
-    
-                // Actualizar el saldo del lote si se utilizó un lote
-                if ($lote_id > 0) {
-                    // Actualizar el lote con el nuevo saldo
-                    $updateLote = $mysqli->prepare("UPDATE lotes SET cantidad = ? WHERE lote_id = ?");
-                    $updateLote->bind_param("ii", $nuevo_saldo, $lote_id);
-                    $updateLote->execute();
-    
-                    // Si el saldo del lote es 0, marcar el lote como inactivo
-                    if ($nuevo_saldo == 0) {
-                        $updateEstadoLote = $mysqli->prepare("UPDATE lotes SET estado = 'Inactivo' WHERE lote_id = ?");
-                        $updateEstadoLote->bind_param("i", $lote_id);
-                        $updateEstadoLote->execute();
-                    }
-                }
-    
-                return ["status" => "success", "message" => "Movimiento registrado con éxito", "movimientos_id" => $movimientos_id];
-            } else {
-                return ["status" => "error", "message" => "Error al registrar el movimiento: " . $stmtMovimiento->error];
+            if (!$stmtMov->execute()) {
+                return ["status" => "error", "message" => "Error ejecutar mov: ".$stmtMov->error];
             }
-        } else {
-            return ["status" => "error", "message" => "Saldo insuficiente para la salida"];
+
+            // 2.2) Actualizar el LOTE
+            $sqlUp = "UPDATE lotes SET cantidad = ?".($nuevo_saldo_lote <= 0 ? ", estado='Inactivo' " : " ")."WHERE lote_id = ?";
+            $up = $mysqli->prepare($sqlUp);
+            if (!$up) {
+                return ["status" => "error", "message" => "Error prepare update lote: ".$mysqli->error];
+            }
+            $up->bind_param("di", $nuevo_saldo_lote, $lote_id);
+            if (!$up->execute()) {
+                return ["status" => "error", "message" => "Error update lote: ".$up->error];
+            }
+
+            $consumos[] = [
+                "lote_id"     => $lote_id,
+                "usado"       => $a_usar,
+                "almacen_id"  => $almacen_lote,
+                "saldo_final" => $nuevo_saldo_lote
+            ];
+            $restante -= $a_usar;
         }
-    }    
-    
+        $stmt->close();
+
+        // 3) Si no hay lotes o no alcanzó, probar flujo sin lotes (producto sin control de lotes)
+        if ($restante > 0) {
+            // Saldo global por movimientos
+            $saldo_global = (float)$this->getSaldoProductosMovimientosModelo($producto_id);
+            if ($saldo_global < $restante) {
+                return ["status" => "error", "message" => "Saldo insuficiente para la salida (falta $restante)"];
+            }
+            $nuevo_saldo_global = $saldo_global - $restante;
+
+            // Elegir almacén: el solicitado (>0) o el almacén por defecto del producto
+            $almacen_mov = $almacen_solicitado > 0 ? $almacen_solicitado : (int)$this->getAlmacenProducto($producto_id);
+
+            $insertMov = "INSERT INTO movimientos
+                (productos_id, cantidad_entrada, cantidad_salida, saldo, empresa_id, fecha_registro,
+                almacen_id, lote_id, clientes_id, documento, comentario)
+                VALUES (?, 0, ?, ?, ?, NOW(), ?, 0, ?, ?, ?)";
+            $stmtMov = $mysqli->prepare($insertMov);
+            if (!$stmtMov) {
+                return ["status" => "error", "message" => "Error prepare mov (sin lote): ".$mysqli->error];
+            }
+            $stmtMov->bind_param(
+                "iddiiiiss",
+                $producto_id,
+                $restante,
+                $nuevo_saldo_global,
+                $empresa_id,
+                $almacen_mov,
+                $clientes_id,
+                $documento,
+                $comentario
+            );
+            if (!$stmtMov->execute()) {
+                return ["status" => "error", "message" => "Error ejecutar mov (sin lote): ".$stmtMov->error];
+            }
+            $consumos[] = [
+                "lote_id"     => 0,
+                "usado"       => $restante,
+                "almacen_id"  => $almacen_mov,
+                "saldo_final" => $nuevo_saldo_global
+            ];
+            $restante = 0;
+        }
+
+        return ["status" => "success", "message" => "Salida registrada (FIFO)", "detalle" => $consumos];
+    }
+
+    // --- HELPER: almacén por defecto del producto (por si no hay lotes) ---
+    protected function getAlmacenProducto($producto_id) {
+        $cn = mainModel::connection();
+        $stmt = $cn->prepare("SELECT almacen_id FROM productos WHERE productos_id = ?");
+        $stmt->bind_param("i", $producto_id);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($res && $row = $res->fetch_assoc()) return (int)$row['almacen_id'];
+        return 0;
+    }
     
     protected function getSaldoProductosMovimientosModelo($productos_id)
     {

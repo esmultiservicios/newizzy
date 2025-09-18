@@ -1,3 +1,7 @@
+####18 de septiembre 2025####
+ALTER TABLE movimientos ENGINE=InnoDB;
+
+
 ####12 de septiembre 2025####
 -- Promoción (encabezado)
 CREATE TABLE promociones (

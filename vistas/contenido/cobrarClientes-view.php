@@ -36,7 +36,7 @@
 						<div class="form-group">
 							<label class="small mb-1">Clientes</label>
 							<!-- name debe ser “clientes_id” -->
-							<select id="main_cobrar_clientes" name="clientes_id"
+							<select id="main_cobrar_clientes" name="main_cobrar_clientes"
 								class="form-control selectpicker" title="Clientes" data-live-search="true">
 								<option value="">Seleccione</option>
 							</select>

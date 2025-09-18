@@ -2977,14 +2977,14 @@ var listar_cuentas_por_cobrar_clientes = function() {
 
     if ($("#form_main_cobrar_clientes #main_cobrar_clientes_estado").val() == "" || $(
             "#form_main_cobrar_clientes #cobrar_clientes_estado").val() == null) {
-        estado = 1;
+        cobrar_estado = 1;
     } else {
-        estado = $("#form_main_cobrar_clientes #cobrar_clientes_estado").val();
+        cobrar_estado = $("#form_main_cobrar_clientes #cobrar_clientes_estado").val();
     }
 
-    var clientes_id = $("#form_main_cobrar_clientes #main_cobrar_clientes").val();
-    var fechai = $("#form_main_cobrar_clientes #main_cobrarclientes_fechai").val();
-    var fechaf = $("#form_main_cobrar_clientes #main_cobrarclientes_fechaf").val();
+    var cobrar_clientes_id = $("#form_main_cobrar_clientes #main_cobrar_clientes").val();
+    var cobrar_fechai = $("#form_main_cobrar_clientes #main_cobrarclientes_fechai").val();
+    var cobrar_fechaf = $("#form_main_cobrar_clientes #main_cobrarclientes_fechaf").val();
 
     var table_cuentas_por_cobrar_clientes = $("#dataTableCuentasPorCobrarClientes").DataTable({
         "destroy": true,
@@ -2992,10 +2992,10 @@ var listar_cuentas_por_cobrar_clientes = function() {
             "method": "POST",
             "url": "<?php echo SERVERURL;?>core/llenarDataTableCobrarClientes.php",
             "data": {
-                "estado": estado,
-                "clientes_id": clientes_id,
-                "fechai": fechai,
-                "fechaf": fechaf
+                "estado": cobrar_estado,
+                "clientes_id": cobrar_clientes_id,
+                "fechai": cobrar_fechai,
+                "fechaf": cobrar_fechaf
             }
         },
         "columns": [{
@@ -3209,8 +3209,8 @@ var listar_cuentas_por_cobrar_clientes = function() {
                 text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
                 titleAttr: 'PDF',
                 title: 'Reporte Cuentas por Cobrar Clientes',
-                messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' +
-                    convertDateFormat(fechaf),
+                messageTop: 'Fecha desde: ' + convertDateFormat(cobrar_fechai) + ' Fecha hasta: ' +
+                    convertDateFormat(cobrar_fechaf),
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-danger ocultar',
                 exportOptions: {
@@ -3296,18 +3296,28 @@ var ver_abono_cxp_proveedor_dataTable = function(tbody, table) {
 }
 
 function getClientesCXC() {
-    var url = '<?php echo SERVERURL;?>core/getClientesCXC.php';
+  var url = '<?php echo SERVERURL;?>core/getClientesCXC.php';
+  
+  return $.ajax({
+    type: "POST",
+    url: url,
+    dataType: "html",
+    cache: false
+  }).then(function (html) {
+    const $sel = $('#form_main_cobrar_clientes #main_cobrar_clientes');
 
-    $.ajax({
-        type: "POST",
-        url: url,
-        async: true,
-        success: function(data) {
-            $('#form_main_cobrar_clientes #main_cobrar_clientes').html("");
-            $('#form_main_cobrar_clientes #main_cobrar_clientes').html(data);
-            $('#form_main_cobrar_clientes #main_cobrar_clientes').selectpicker('refresh');
-        }
-    });
+    // placeholder fijo
+    $sel.empty().append('<option value="">Clientes</option>');
+
+    // elimina cualquier selected que venga del backend
+    const $opts = $(html);
+    $opts.filter('option').prop('selected', false).removeAttr('selected');
+    $sel.append($opts);
+
+    // **FORZAR vacío real** antes de refrescar el UI
+    $sel.val('');
+    if ($sel.selectpicker) $sel.selectpicker('refresh');
+  });
 }
 
 function getProveedoresCXP() {
@@ -4605,7 +4615,8 @@ function saldoCompras(compras_id) {
 }
 //FIN ACCIONES FROMULARIO CLIENTES
 
-// INICIO MODAL REGISTRAR PAGO FACTURACIÓN CLIENTES
+// INICIO PAGO MODAL
+/*
 function customRound(number) {
     const truncated = Math.floor(number * 100) / 100;
     const secondDecimal = Math.floor((number * 100) % 10);
@@ -4878,8 +4889,479 @@ $(function() {
             setTimeout(() => { $('#formEfectivoBill #efectivo_bill').focus(); }, 300);
         }
     });
+});*/
+/*FIN DE PAGO MODAL*/
+
+/* ============================================================
+   MODAL PAGOS UNIFICADO – JS COMPLETO (EFECTIVO/TARJETA/TRANSF/CHEQUE/PUNTOS)
+   ============================================================ */
+
+/* === Config redención de puntos === */
+let VALOR_POR_PUNTO = 1;
+let CURRENT_FACTURA_ID = null;
+
+/* === Utilidades numéricas === */
+function normalizarMontoEntrada(str){
+  let v = (str || '').toString().replace(/[^0-9.]/g,'');
+  const p = v.split('.');
+  if (p.length > 2) v = p[0] + '.' + p.slice(1).join('');
+  if (p.length > 1) v = p[0] + '.' + p[1].slice(0, 2);
+  return v;
+}
+function parseMonto(str){ const n = parseFloat(normalizarMontoEntrada(str)); return isNaN(n) ? 0 : n; }
+function fixed2(v){ return (parseFloat(v||0) || 0).toFixed(2); }
+function fmtMiles(v){
+  const n = (typeof v === 'number') ? v : parseMonto(v);
+  return n.toLocaleString('es-HN',{minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+/* === Estado del wizard / selección === */
+let CURRENT_STEP = 1;                      // 1: métodos, 2: detalles
+const ALL_METHODS = ['cash','card','transfer','check','points'];
+let SELECTED_METHODS = new Set();
+let LAST_SELECTED = null;
+
+/* Helpers (soporta duplicados de ID dentro del modal) */
+const isMultiOn = () => $('#modal_pagos_unificado input[id="pagos_multiples_switch"]:checked').length > 0;
+
+/* Mapeos */
+const methodIdMap = {
+  cash:'#payment_cash',
+  card:'#payment_card',
+  transfer:'#payment_transfer',
+  check:'#payment_check',
+  points:'#payment_points'
+};
+
+function updateMethodsUI(){
+  $('#paymentMethodsGrid .method-card').each(function(){
+    const m = $(this).data('method');
+    $(this).toggleClass('selected', SELECTED_METHODS.has(m))
+           .attr('aria-pressed', SELECTED_METHODS.has(m) ? 'true' : 'false');
+  });
+  if (SELECTED_METHODS.size === 0){
+    $('#paymentMethodsGrid .method-card').removeClass('default-focus');
+    $('#paymentMethodsGrid .method-card[data-method="cash"]').addClass('default-focus');
+  }else{
+    $('#paymentMethodsGrid .method-card').removeClass('default-focus');
+  }
+  $('#btnNext').prop('disabled', SELECTED_METHODS.size === 0);
+}
+
+/* === Pasos (UI) === */
+function setStepActive(stepIdx){
+  const $m = $('#modal_pagos_unificado');
+  $m.find('.payment-header .step').removeClass('active');
+  $m.find('.payment-header .step[data-step="'+stepIdx+'"]').addClass('active');
+  $m.find('#paymentSteps').css('--progress-width', stepIdx===1 ? '33%' : (stepIdx===2 ? '66%' : '100%'));
+}
+function goToStep(step){
+  const $m = $('#modal_pagos_unificado');
+  CURRENT_STEP = step;
+
+  if (step === 1) {
+    $m.find('#section_methods').show();
+    $m.find('#section_details').hide();
+    setStepActive(1);
+    $m.find('#btnPrev').prop('disabled', true);
+    $m.find('#btnNext').show().prop('disabled', SELECTED_METHODS.size === 0);
+    updateMethodsUI();
+  } else {
+    $m.find('#section_methods').hide();
+    $m.find('#section_details').show();
+    setStepActive(2);
+    $m.find('#btnPrev').prop('disabled', false);
+    $m.find('#btnNext').hide();
+    showDetailsForSelected();
+  }
+}
+
+/* === Reglas de combinación (múltiple) ===
+   - Máximo 2 métodos.
+   - La combinación válida SIEMPRE incluye EFECTIVO.
+   - PUNTOS solo con EFECTIVO.
+*/
+function isValidCombo(newSet){
+  if (newSet.size > 2) return {ok:false, msg:'Máximo 2 métodos en pagos múltiples.'};
+  const hasCash   = newSet.has('cash');
+  const hasPoints = newSet.has('points');
+  const nonCash = [...newSet].filter(m => m!=='cash');
+  if (newSet.size === 2 && !hasCash) return {ok:false, msg:'La combinación múltiple debe incluir Efectivo.'};
+  if (hasPoints && nonCash.some(m => m!=='points' && m!=='cash'))
+    return {ok:false, msg:'Puntos solo puede combinarse con Efectivo.'};
+  return {ok:true};
+}
+
+/* Elegir/quitar método */
+function toggleMethod(method){
+  LAST_SELECTED = method;
+
+  if (!isMultiOn()){
+    SELECTED_METHODS = new Set([method]);
+    updateMethodsUI();
+    return;
+  }
+
+  let candidate = new Set(SELECTED_METHODS);
+  if (candidate.has(method)) candidate.delete(method);
+  else candidate.add(method);
+
+  const v = isValidCombo(candidate);
+  if (!v.ok){
+    if (typeof showNotify === 'function') showNotify('warning','Atención', v.msg);
+    else alert(v.msg);
+    return;
+  }
+  SELECTED_METHODS = candidate;
+
+  if (method === 'points' && SELECTED_METHODS.has('points') && CURRENT_FACTURA_ID){
+    cargarPuntosClienteAjax(CURRENT_FACTURA_ID);
+  }
+
+  updateMethodsUI();
+}
+
+/* === Mostrar formularios según selección === */
+function showDetailsForSelected(){
+  $('.payment-details.payment-step').removeClass('active').hide();
+  if (SELECTED_METHODS.size === 0) return;
+
+  SELECTED_METHODS.forEach(m => {
+    const sel = methodIdMap[m];
+    if (sel) $(sel).addClass('active').show();
+  });
+
+  refreshMultipleButton();
+  $('.payment-details-container').scrollTop(0);
+}
+
+/* === Botón combinado (crear/mostrar/ocultar) === */
+function ensureMultipleButton(){
+  const $wrap = $('.payment-details-container');
+  if (!$('#pago_multiple').length){
+    const $btn = $('<button/>',{
+      id:'pago_multiple',
+      class:'btn btn-primary btn-block mt-2',
+      html:'<i class="fas fa-check mr-1"></i> Efectuar Pago (múltiple)'
+    });
+    $wrap.append($('<div id="multipleBtnHolder" class="mt-2"></div>').append($btn));
+    $btn.on('click', doMultiplePayment);
+  }
+}
+function refreshMultipleButton(){
+  ensureMultipleButton();
+  const multiple = isMultiOn();
+  const twoSelected = SELECTED_METHODS.size === 2;
+  const singleBtns = '#pago_efectivo,#pago_tarjeta,#pago_transferencia,#pago_cheque,#pago_puntos';
+  $(singleBtns).toggle(!(multiple && twoSelected));
+  $('#multipleBtnHolder').toggle(multiple && twoSelected);
+}
+
+/* === Envío múltiple: mandar formularios UNO A UNO (reusa endpoints) === */
+function submitFormAjax($f){
+  return $.ajax({ type: ($f.attr('method')||'POST'), url: $f.attr('action'), data: $f.serialize(), dataType:'json' });
+}
+function doMultiplePayment(){
+  const order = ['points','card','transfer','check','cash']; // efectivo al final
+  const formMap = {
+    cash: $('#formEfectivoBill'),
+    card: $('#formTarjetaBill'),
+    transfer: $('#formTransferenciaBill'),
+    check: $('#formChequeBill'),
+    points: $('#formPuntosBill')
+  };
+  const forms = order.filter(m => SELECTED_METHODS.has(m)).map(m => formMap[m]).filter($f => $f && $f.length);
+
+  let chain = Promise.resolve();
+  forms.forEach(($f) => { chain = chain.then(() => submitFormAjax($f)); });
+
+  chain.then(() => {
+    if (typeof showNotify === 'function') showNotify('success','Éxito','Pago múltiple registrado.');
+    $('#modal_pagos_unificado').modal('hide');
+  }).catch(() => {
+    if (typeof showNotify === 'function') showNotify('error','Error','No se pudo registrar el pago múltiple.');
+    else alert('No se pudo registrar el pago múltiple.');
+  });
+}
+
+/* === Config de cada formulario === */
+function configurarFormularioEfectivo(facturas_id,tipoPago,monto,origen){
+  const $f = $('#modal_pagos_unificado #formEfectivoBill'); if ($f[0]) $f[0].reset();
+  const m = parseMonto(monto);
+  $f.find('#monto_efectivo').val(fixed2(m));
+  $f.find('#factura_id_efectivo').val(facturas_id);
+  $f.find('#tipo_factura').val(tipoPago);
+  $f.find('#origen_pago').val(origen);
+  $f.find('#pago_efectivo').prop('disabled', true);
+
+  if (isMultiOn()){
+    $f.find('#grupo_cambio_efectivo').hide();
+    $f.find('#cambio_efectivo').val('0.00');
+  }else{
+    $f.find('#grupo_cambio_efectivo').show();
+  }
+  calcularCambioEfectivo();
+}
+function configurarFormularioTarjeta(facturas_id,tipoPago,monto,origen){
+  const $f = $('#modal_pagos_unificado #formTarjetaBill'); if ($f[0]) $f[0].reset();
+  const m = parseMonto(monto);
+  $f.find('#monto_efectivo, #importe_tarjeta').val(fixed2(m));
+  $f.find('#factura_id_tarjeta').val(facturas_id);
+  $f.find('#tipo_factura').val(tipoPago);
+  $f.find('#origen_pago').val(origen);
+  $f.find('#pago_tarjeta').prop('disabled', false);
+}
+function configurarFormularioTransferencia(facturas_id,tipoPago,monto,origen){
+  const $f = $('#modal_pagos_unificado #formTransferenciaBill'); if ($f[0]) $f[0].reset();
+  const m = parseMonto(monto);
+  $f.find('#monto_efectivo').val(fixed2(m));
+  $f.find('#factura_id_transferencia').val(facturas_id);
+  $f.find('#tipo_factura_transferencia').val(tipoPago);
+  $f.find('#origen_pago').val(origen);
+  $f.find('#pago_transferencia').prop('disabled', false);
+}
+function configurarFormularioCheque(facturas_id,tipoPago,monto,origen){
+  const $f = $('#modal_pagos_unificado #formChequeBill'); if ($f[0]) $f[0].reset();
+  const m = parseMonto(monto);
+  $f.find('#monto_efectivo').val(fixed2(m));
+  $f.find('#factura_id_cheque').val(facturas_id);
+  $f.find('#tipo_factura_cheque').val(tipoPago);
+  $f.find('#origen_pago').val(origen);
+  $f.find('#pago_cheque').prop('disabled', false);
+}
+function configurarFormularioPuntos(facturas_id,tipoPago,monto,origen){
+  const $f = $('#modal_pagos_unificado #formPuntosBill'); if ($f[0]) $f[0].reset();
+  $f.find('#factura_id_puntos').val(facturas_id);
+  $f.find('#tipo_factura_puntos').val(tipoPago);
+  $f.find('#origen_pago').val(origen);
+  $f.find('#importe_puntos').val('0');
+  $f.find('#puntos_disponibles').val('');
+  $f.find('#puntos_uso').val('');
+  $f.find('#equivalente_puntos').val('');
+  $('#modal_pagos_unificado #pago_puntos').prop('disabled', true);
+}
+
+/* === Efectivo: cálculo de cambio === */
+function calcularCambioEfectivo(){
+  const $f = $('#modal_pagos_unificado #formEfectivoBill'); if (!$f.length) return;
+  const efectivo = parseMonto($f.find('#efectivo_bill').val());
+  const monto    = parseMonto($f.find('#monto_efectivo').val());
+
+  if (isMultiOn()){
+    $f.find('#cambio_efectivo').val('0.00');
+    $f.find('#pago_efectivo').prop('disabled', !(efectivo > 0));
+    return;
+  }
+  const cambio = Math.max(efectivo - monto, 0);
+  $f.find('#cambio_efectivo').val(fmtMiles(cambio));
+  $f.find('#pago_efectivo').prop('disabled', !(monto > 0 && efectivo >= monto));
+}
+
+/* === Parse respuesta de editarPagoFacturas.php === */
+function extractPagoData(datos){
+  if (Array.isArray(datos)) {
+    const cliente = (typeof datos[0] === 'string' && datos[0].trim()) ? datos[0] : '';
+    let total = 0;
+    if (!isNaN(parseFloat(datos[6]))) total = parseFloat(datos[6]);
+    else {
+      const nums = datos.map(x => parseFloat(x)).filter(x => !isNaN(x) && x >= 0);
+      if (nums.length) total = nums[nums.length-1];
+    }
+    return { cliente, total };
+  }
+  if (datos && typeof datos === 'object') {
+    const cliente = (datos.cliente||datos.nombre||datos.razon_social||datos.Cliente||datos.Nombre||'').toString();
+    const cand = datos.total ?? datos.total_pagar ?? datos.importe ?? datos.monto ?? datos.saldo ?? datos.Total ?? datos.Importe ?? 0;
+    const total = isNaN(parseFloat(cand)) ? 0 : parseFloat(cand);
+    return { cliente, total };
+  }
+  return { cliente:'', total:0 };
+}
+
+/* === AJAX: carga de puntos del cliente === */
+function cargarPuntosClienteAjax(facturas_id){
+  const $m = $('#modal_pagos_unificado');
+  $.ajax({
+    type : 'POST',
+    url  : '<?php echo SERVERURL;?>core/programaPuntos/getPuntosCliente.php',
+    data : { facturas_id },
+    dataType: 'json'
+  }).done(function(resp){
+    const $f = $m.find('#formPuntosBill');
+    if (!resp || resp.error || resp.success === false) {
+      VALOR_POR_PUNTO = 1;
+      $f.find('#puntos_disponibles').val('0');
+      $f.find('#puntos_uso').val('');
+      $f.find('#equivalente_puntos').val('');
+      $m.find('#pago_puntos').prop('disabled', true);
+      return;
+    }
+    VALOR_POR_PUNTO = parseFloat(resp.valor_por_punto || 1) || 1;
+    const disponibles = parseFloat(resp.puntos_disponibles || 0);
+    $f.find('#puntos_disponibles').val(fixed2(disponibles));
+
+    const montoFactura = parseMonto($m.find('#customer_bill_pay').val());
+    const maxPorMonto  = Math.floor(montoFactura / VALOR_POR_PUNTO);
+    const sugeridos    = Math.min(maxPorMonto, Math.floor(disponibles));
+    $f.find('#puntos_uso').attr('placeholder', sugeridos > 0 ? ('Hasta ' + sugeridos + ' pts') : '0');
+    $f.find('#equivalente_puntos').val('');
+    $f.find('#importe_puntos').val('0');
+    $m.find('#pago_puntos').prop('disabled', true);
+  }).fail(function(){
+    const $f = $m.find('#formPuntosBill');
+    VALOR_POR_PUNTO = 1;
+    $f.find('#puntos_disponibles').val('0');
+    $f.find('#puntos_uso').val('');
+    $f.find('#equivalente_puntos').val('');
+    $m.find('#pago_puntos').prop('disabled', true);
+  });
+}
+
+/* === ABRIR MODAL === */
+function pago(facturas_id, tipoPago, origen){
+  const $m = $('#modal_pagos_unificado');
+  const url = '<?php echo SERVERURL;?>core/editarPagoFacturas.php';
+  CURRENT_FACTURA_ID = facturas_id;
+
+  // Reset switches y etiquetas (en TODOS los duplicados)
+  $m.find('input[id="comprobante_print_switch"]').prop('checked', false).val(0);
+  $m.find('[id="label_print_comprobant"]').text('No');
+  $m.find('input[id="pagos_multiples_switch"]').prop('checked', false).val(0);
+  $m.find('[id="label_pagos_multiples"]').text('Desactivado');
+  $m.find('.comprobante_print_value').val(0);
+  $m.find('.multiple_pago').val(0);
+
+  // Reset selección
+  SELECTED_METHODS = new Set();
+  LAST_SELECTED = null;
+  updateMethodsUI();
+  refreshMultipleButton();
+
+  // Cargar combos
+  if (typeof getCollaboradoresModalPagoFacturas === 'function') getCollaboradoresModalPagoFacturas();
+  if (typeof getBanco === 'function') getBanco();
+
+  $.ajax({
+    type    : 'POST',
+    url     : url,
+    data    : { facturas_id },
+    dataType: 'json'
+  }).done(function(datos){
+    const info = extractPagoData(datos);
+    $m.find('#customer-name-bill').text(info.cliente || '—');
+    $m.find('#customer_bill_pay').val(fixed2(info.total || 0));
+    $m.find('#bill-pay').text('L. ' + fmtMiles(info.total || 0));
+
+    configurarFormularioEfectivo(facturas_id, tipoPago, info.total, origen);
+    configurarFormularioTarjeta(facturas_id, tipoPago, info.total, origen);
+    configurarFormularioTransferencia(facturas_id, tipoPago, info.total, origen);
+    configurarFormularioCheque(facturas_id, tipoPago, info.total, origen);
+    configurarFormularioPuntos(facturas_id, tipoPago, info.total, origen);
+
+    goToStep(1);
+    $m.modal({ show:true, keyboard:false, backdrop:'static' });
+    if ($.fn.selectpicker) { setTimeout(()=>{ $m.find('.selectpicker').selectpicker('refresh'); }, 300); }
+  }).fail(function(){
+    if (typeof showNotify === 'function') showNotify('error','Error','No se pudieron cargar los datos del pago');
+    else alert('No se pudieron cargar los datos del pago');
+  });
+}
+
+/* === INIT (eventos) === */
+$(function(){
+  const $m = $('#modal_pagos_unificado');
+  $m.find('[data-toggle="tooltip"]').tooltip();
+
+  // Elegir / deseleccionar métodos (soporta múltiple)
+  $m.on('click keypress', '#paymentMethodsGrid .method-card', function(e){
+    if (e.type === 'click' || (e.type === 'keypress' && (e.which === 13 || e.which === 32))) {
+      toggleMethod($(this).data('method'));
+    }
+  });
+
+  // Botonera
+  $m.find('#btnPrev').on('click', function(){ if (CURRENT_STEP === 2) goToStep(1); });
+  $m.find('#btnNext').on('click', function(){
+    if (!isMultiOn() && SELECTED_METHODS.size > 1){
+      const keep = LAST_SELECTED && SELECTED_METHODS.has(LAST_SELECTED) ? LAST_SELECTED : Array.from(SELECTED_METHODS)[0];
+      SELECTED_METHODS = new Set([keep]);
+      updateMethodsUI();
+    }
+    goToStep(2);
+  });
+
+  // Máscaras tarjeta
+  if ($.fn.inputmask){
+    $m.find('#formTarjetaBill #cr_bill').inputmask('9999');
+    $m.find('#formTarjetaBill #exp').inputmask('99/99');
+    $m.find('#formTarjetaBill #cvcpwd').inputmask('999999');
+  }
+
+  // Switch comprobante (actualiza todos los duplicados)
+  $m.on('change', 'input[id="comprobante_print_switch"]', function(){
+    const on = $(this).is(':checked');
+    $('input[id="comprobante_print_switch"]').val(on ? 1 : 0);
+    $m.find('.comprobante_print_value').val(on ? 1 : 0);
+    $('[id="label_print_comprobant"]').text(on ? 'Sí' : 'No');
+  });
+
+  // Switch pagos múltiples (actualiza todos los duplicados)
+  $m.on('change', 'input[id="pagos_multiples_switch"]', function(){
+    const on = $('input[id="pagos_multiples_switch"]:checked').length > 0;
+    $('input[id="pagos_multiples_switch"]').val(on ? 1 : 0);
+    $m.find('.multiple_pago').val(on ? 1 : 0);
+    $('[id="label_pagos_multiples"]').text(on ? 'Activado' : 'Desactivado');
+
+    configurarFormularioEfectivo(
+      CURRENT_FACTURA_ID,
+      $('#formEfectivoBill #tipo_factura').val() || 1,
+      parseMonto($('#customer_bill_pay').val()),
+      $('#formEfectivoBill #origen_pago').val() || 0
+    );
+
+    if (!on && SELECTED_METHODS.size > 1){
+      const keep = LAST_SELECTED && SELECTED_METHODS.has(LAST_SELECTED) ? LAST_SELECTED : Array.from(SELECTED_METHODS)[0];
+      SELECTED_METHODS = new Set([keep]);
+    }
+    updateMethodsUI();
+    if (CURRENT_STEP === 2) showDetailsForSelected();
+  });
+
+  // Entradas numéricas
+  $m.on('input', '#formEfectivoBill #efectivo_bill', function(e){
+    const cur = e.target.selectionStart, orig = $(this).val(), clean = normalizarMontoEntrada(orig);
+    $(this).val(clean);
+    try{ e.target.setSelectionRange(cur+(clean.length-orig.length), cur+(clean.length-orig.length)); }catch(_){}
+    calcularCambioEfectivo();
+  });
+  $m.on('input', '#formTransferenciaBill #importe_transferencia, #formChequeBill #importe_cheque', function(e){
+    const cur = e.target.selectionStart, orig = $(this).val(), clean = normalizarMontoEntrada(orig);
+    $(this).val(clean);
+    try{ e.target.setSelectionRange(cur+(clean.length-orig.length), cur+(clean.length-orig.length)); }catch(_){}
+  });
+  $m.on('blur', '#efectivo_bill, #importe_transferencia, #importe_cheque', function(){
+    const v = $(this).val(); if (v) $(this).val(fixed2(v));
+  });
+
+  // Puntos
+  $m.on('input', '#formPuntosBill #puntos_uso', function(){
+    let val = (this.value || '').replace(/[^\d]/g,'');
+    this.value = val;
+    const pts  = parseInt(val || '0', 10);
+    const disp = parseFloat(($m.find('#formPuntosBill #puntos_disponibles').val() || '0').replace(',','.')) || 0;
+    const monto = parseMonto($m.find('#customer_bill_pay').val());
+    const ptsCap = Math.max(0, Math.min(pts, Math.floor(disp)));
+    if (ptsCap !== pts) this.value = String(ptsCap);
+    const eq = Math.min(ptsCap * VALOR_POR_PUNTO, monto);
+    $m.find('#formPuntosBill #equivalente_puntos').val(fixed2(eq));
+    $m.find('#formPuntosBill #importe_puntos').val(fixed2(eq));
+    $m.find('#formPuntosBill #pago_puntos').prop('disabled', !(eq > 0));
+  });
+
+  // Al abrir modal
+  $m.on('shown.bs.modal', function(){ goToStep(1); });
 });
-/*FIN DE PAGOS*/
+/*FIN NUEVO PAGO*/
 
 // Función para obtener los colaboradores
 function getCollaboradoresModalPagoFacturas() {
@@ -4933,7 +5415,7 @@ function getBanco() {
     });
 }
 // FIN MODAL REGISTRAR PAGO FACTURACIÓN CLIENTES
-
+  
 //INICIO ABONO CXC
 $(document).ready(function() {
     $("#ver_abono_cxc").on('shown.bs.modal', function() {

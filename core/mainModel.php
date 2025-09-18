@@ -6988,15 +6988,19 @@ class mainModel
 		$clientes_id = '';
 		$fecha = '';
 	
+		// Filtro de fecha
 		if (!empty($datos['fechai']) && !empty($datos['fechaf'])) {
 			$fechai = $this->connection()->real_escape_string($datos['fechai']);
 			$fechaf = $this->connection()->real_escape_string($datos['fechaf']);
 			$fecha  = "AND cc.fecha BETWEEN '{$fechai}' AND '{$fechaf}'";
 		}
 	
-		if (!empty($datos['clientes_id'])) {
+		// Filtro por cliente (solo si llega válido)
+		if (!empty($datos['clientes_id']) && ctype_digit((string)$datos['clientes_id'])) {
 			$cli = (int)$datos['clientes_id'];
-			$clientes_id = "AND cc.clientes_id = {$cli}";
+			if ($cli > 0) {
+				$clientes_id = "AND cc.clientes_id = {$cli}";
+			}
 		}
 	
 		$empresa = (int)$datos['empresa_id_sd'];
@@ -7019,29 +7023,28 @@ class mainModel
 				f.importe,
 				co.nombre AS vendedor
 			FROM cobrar_clientes cc
-			INNER JOIN clientes c              ON cc.clientes_id = c.clientes_id
-			INNER JOIN facturas f              ON cc.facturas_id = f.facturas_id
+			INNER JOIN clientes c               ON cc.clientes_id = c.clientes_id
+			INNER JOIN facturas f               ON cc.facturas_id = f.facturas_id
 			INNER JOIN secuencia_facturacion sf ON f.secuencia_facturacion_id = sf.secuencia_facturacion_id
-			INNER JOIN colaboradores co        ON f.colaboradores_id = co.colaboradores_id
-			INNER JOIN documento d             ON sf.documento_id = d.documento_id
+			INNER JOIN colaboradores co         ON f.colaboradores_id = co.colaboradores_id
+			INNER JOIN documento d              ON sf.documento_id = d.documento_id
 			WHERE cc.empresa_id = {$empresa} AND cc.estado = {$estado}
 			  {$fecha}
 			  {$clientes_id}
 			ORDER BY f.number DESC, cc.fecha DESC
 		";
-
+	
+		// Debug opcional:
+		// error_log("SQL CxC: " . $query);
+	
 		return self::connection()->query($query);
-	}	
-
+	}
+	
 	public function getAbonosCobrarClientes($facturas_id)
 	{
-		$query = "SELECT SUM(importe) As 'total'
-			FROM pagos
-			WHERE facturas_id = '$facturas_id'";
-			
-		$result = self::connection()->query($query);
-
-		return $result;
+		$facturas_id = (int)$facturas_id;
+		$query = "SELECT SUM(importe) AS total FROM pagos WHERE facturas_id = {$facturas_id}";
+		return self::connection()->query($query);
 	}
 
 	public function getCuentasporPagarProveedores($datos)

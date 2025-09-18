@@ -1123,7 +1123,6 @@
                 </button>
             </div>
             <div class="modal-body">
-
                 <div class="row justify-content-center">
                     <div class="col-lg-12 col-12">
                         <div class="card card0">
@@ -1671,310 +1670,422 @@
 </div>
 <!--FIN MODAL PAGOS FACTURACION-->
 
-<!-- MODAL PAGOS UNIFICADO MEJORADO -->
-<div class="modal fade" id="modal_pagos_unificado" tabindex="-1" aria-hidden="true" data-keyboard="false" data-backdrop="static">
-  <div class="modal-dialog modal-xl modal-dialog-centered payment-modal">
-    <div class="modal-content payment-content">
-      <!-- Header con progreso -->
-      <div class="modal-header payment-header">
-        <div class="payment-steps">
+<!-- =============== MODAL DE PAGOS UNIFICADO (FULL HTML) =============== -->
+<div class="modal fade" id="modal_pagos_unificado" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog payment-modal modal-dialog-centered modal-dialog-scrollable" role="document">
+    <div class="payment-content modal-content">
+
+      <!-- Encabezado -->
+      <div class="payment-header">
+        <h4 class="mb-2 d-flex align-items-center">
+          <i class="far fa-credit-card mr-2"></i> Método de pago
+        </h4>
+
+        <!-- Pasos -->
+        <div class="payment-steps" id="paymentSteps" style="--progress-width: 33%;">
           <div class="step active" data-step="1">
-            <div class="step-icon"><i class="fas fa-wallet"></i></div>
-            <div class="step-label">Método</div>
+            <div class="step-icon">1</div>
+            <div class="step-label">Elegir método</div>
           </div>
           <div class="step" data-step="2">
-            <div class="step-icon"><i class="fas fa-edit"></i></div>
+            <div class="step-icon">2</div>
             <div class="step-label">Detalles</div>
           </div>
           <div class="step" data-step="3">
-            <div class="step-icon"><i class="fas fa-check"></i></div>
+            <div class="step-icon">3</div>
             <div class="step-label">Confirmar</div>
           </div>
         </div>
-        <button type="button" class="btn-close payment-close" data-dismiss="modal" aria-label="Close">
-          <i class="fas fa-times"></i>
+
+        <button type="button" class="payment-close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true"><i class="fas fa-times"></i></span>
         </button>
       </div>
-      <!-- Cuerpo del modal -->
-      <div class="modal-body payment-body">
-        <!-- Información de pago común -->
+
+      <!-- Cuerpo -->
+      <div class="payment-body">
+
+        <!-- ===== Info cliente / total (pills) ===== -->
         <div class="payment-info-card">
           <div class="customer-info">
-            <span id="customer-name-payment"></span>
-            <input type="hidden" name="customer_payment_id" id="customer_payment_id">
+            <i class="far fa-user"></i>
+            <span class="label">Cliente:</span>
+            <span class="value" id="customer-name-bill">—</span>
           </div>
+
           <div class="amount-info">
-            <span>Total a pagar:</span>
-            <span class="amount" id="payment-amount">L 0.00</span>
+            <i class="far fa-credit-card"></i>
+            <span class="label">Pagar</span>
+            <span class="amount" id="bill-pay">L. 0.00</span>
+          </div>
+
+          <input type="hidden" name="customer_bill_pay" id="customer_bill_pay">
+        </div>
+
+        <!-- ===== Opciones globales (siempre arriba de los métodos) ===== -->
+        <div class="payment-options-card" id="global_options_bar" style="margin-top:.25rem; margin-bottom:.75rem;">
+          <div class="option-item">
+            <label class="payment-switch mb-0">
+              <span class="switch-label">Imprimir comprobante</span>
+              <input type="checkbox" id="comprobante_print_switch" name="comprobante_print_switch" value="0">
+              <span class="payment-slider round"></span>
+            </label>
+            <span class="question mb-0 ml-2" id="label_print_comprobant">No</span>
+          </div>
+
+          <div class="option-item">
+            <label class="payment-switch mb-0">
+              <span class="switch-label">Pagos múltiples</span>
+              <input type="checkbox" id="pagos_multiples_switch" name="pagos_multiples_switch" value="0">
+              <span class="payment-slider round"></span>
+            </label>
+            <span class="question mb-0 ml-2" id="label_pagos_multiples">Desactivado</span>
           </div>
         </div>
-        <!-- Paso 1: Selección de método -->
-        <div class="payment-step active" data-step-content="1">
+
+        <!-- ===== PASO 1: MÉTODOS ===== -->
+        <div class="section-methods" id="section_methods">
           <div class="payment-methods-container">
-            <div class="payment-methods-grid">
-              <!-- Efectivo -->
-              <div class="method-card selected" data-method="cash">
-                <div class="method-icon">
-                  <i class="fas fa-money-bill-wave"></i>
-                </div>
+            <div class="payment-methods-grid" id="paymentMethodsGrid">
+
+              <!-- EFECTIVO -->
+              <div class="method-card default-focus" data-method="cash" tabindex="0" role="button" aria-pressed="false">
+                <i class="fas fa-money-bill-wave method-icon" style="color:#26a269;"></i>
                 <div class="method-name">Efectivo</div>
                 <div class="method-badge">Rápido</div>
-                <i class="fas fa-info-circle info-icon" id="cash-info"></i>
+                <i class="fas fa-info-circle info-icon" data-toggle="tooltip" title="Pagos en efectivo"></i>
               </div>
-              <!-- Tarjeta -->
-              <div class="method-card" data-method="card">
-                <div class="method-icon">
-                  <i class="far fa-credit-card"></i>
-                </div>
+
+              <!-- TARJETA -->
+              <div class="method-card" data-method="card" tabindex="0" role="button" aria-pressed="false">
+                <i class="far fa-credit-card method-icon" style="color:#2d7ef7;"></i>
                 <div class="method-name">Tarjeta</div>
-                <div class="method-badge">Seguro</div>
-                <i class="fas fa-info-circle info-icon" id="card-info"></i>
+                <div class="method-badge">POS</div>
+                <i class="fas fa-info-circle info-icon" data-toggle="tooltip" title="Débito/Crédito"></i>
               </div>
-              <!-- Transferencia -->
-              <div class="method-card" data-method="transfer">
-                <div class="method-icon">
-                  <i class="fas fa-exchange-alt"></i>
-                </div>
+
+              <!-- TRANSFERENCIA -->
+              <div class="method-card" data-method="transfer" tabindex="0" role="button" aria-pressed="false">
+                <i class="fas fa-exchange-alt method-icon" style="color:#06b6d4;"></i>
                 <div class="method-name">Transferencia</div>
-                <i class="fas fa-info-circle info-icon" id="transfer-info"></i>
+                <div class="method-badge">Bancaria</div>
+                <i class="fas fa-info-circle info-icon" data-toggle="tooltip" title="Transferencia bancaria"></i>
               </div>
-              <!-- Cheque -->
-              <div class="method-card" data-method="check">
-                <div class="method-icon">
-                  <i class="fas fa-money-check"></i>
-                </div>
+
+              <!-- CHEQUE -->
+              <div class="method-card" data-method="check" tabindex="0" role="button" aria-pressed="false">
+                <i class="fas fa-money-check method-icon" style="color:#8b5cf6;"></i>
                 <div class="method-name">Cheque</div>
-                <i class="fas fa-info-circle info-icon" id="check-info"></i>
+                <div class="method-badge">Empresarial</div>
+                <i class="fas fa-info-circle info-icon" data-toggle="tooltip" title="Pago con cheque"></i>
               </div>
-              <!-- Puntos -->
-              <div class="method-card premium" data-method="points" style="display: none;">
-                <div class="method-icon">
-                  <i class="fas fa-coins"></i>
-                </div>
+
+              <!-- PUNTOS -->
+              <div class="method-card premium" data-method="points" tabindex="0" role="button" aria-pressed="false">
+                <i class="fas fa-coins method-icon"></i>
                 <div class="method-name">Puntos</div>
-                <div class="method-badge">Exclusivo</div>
-                <i class="fas fa-info-circle info-icon" id="points-info"></i>
+                <div class="method-badge">Loyalty</div>
+                <i class="fas fa-info-circle info-icon" data-toggle="tooltip" title="Redimir puntos del cliente (solo con Efectivo)"></i>
               </div>
-            </div>
-          </div>
-          <!-- Configuración adicional -->
-          <div class="payment-options-card" id="factura-options" style="display: none;">
-            <div class="option-item">
-              <label class="payment-switch">
-                <input type="checkbox" id="pagos_multiples_switch" name="pagos_multiples_switch">
-                <div class="payment-slider round"></div>
-                <span class="switch-label">Pagos múltiples</span>
-              </label>
-            </div>
-            <div class="option-item">
-              <label class="payment-switch">
-                <input type="checkbox" id="comprobante_print_switch" name="comprobante_print_switch">
-                <div class="payment-slider round"></div>
-                <span class="switch-label">Imprimir comprobante</span>
-              </label>
+
             </div>
           </div>
         </div>
-        <!-- Paso 2: Detalles de pago -->
-        <div class="payment-step" data-step-content="2">
-          <!-- Contenido dinámico -->
+
+        <!-- ===== PASO 2: DETALLES ===== -->
+        <div id="section_details" style="display:none;">
+
+          <!-- Contenedor de formularios -->
           <div class="payment-details-container">
-            <!-- Efectivo -->
-            <div class="payment-details active" data-method="cash">
+
+            <!-- ================= EFECTIVO ================= -->
+            <section class="payment-details payment-step" id="payment_cash" data-method="cash">
               <div class="detail-header">
-                <div class="method-display">
-                  <i class="fas fa-money-bill-wave"></i>
-                  <span>Pago en Efectivo</span>
-                </div>
+                <div class="method-display"><i class="fas fa-money-bill-wave"></i><span>Efectivo</span></div>
               </div>
-              <form id="form-efectivo" class="detail-form">
+
+              <form class="FormularioAjax" id="formEfectivoBill"
+                    action="<?php echo SERVERURL; ?>ajax/addPagoFacturasEfectivoAjax.php"
+                    method="POST" data-form="save" autocomplete="off" enctype="multipart/form-data">
+
                 <div class="payment-form-group">
-                  <input type="number" id="cash_amount" class="payment-form-control" placeholder=" " step="0.01" required>
-                  <label for="cash_amount">Monto recibido</label>
-                  <div class="currency-symbol">L</div>
+                  <input type="date" name="fecha_efectivo" id="fecha_efectivo" class="payment-form-control"
+                         value="<?php echo date('Y-m-d'); ?>" placeholder=" ">
+                  <label for="fecha_efectivo">Fecha</label>
                 </div>
-                <div class="change-display">
-                  <span>Cambio:</span>
-                  <span class="change-amount">L 0.00</span>
+
+                <input type="hidden" class="comprobante_print_value" name="comprobante_print" value="0">
+                <input type="hidden" class="multiple_pago" name="multiple_pago" value="0">
+                <input type="hidden" name="factura_id_efectivo" id="factura_id_efectivo">
+                <input type="hidden" name="tipo_factura" id="tipo_factura" value="1">
+                <input type="hidden" name="origen_pago" id="origen_pago" value="0">
+                <input type="hidden" name="monto_efectivo" id="monto_efectivo" step="0.01" placeholder="0.00">
+
+                <div class="payment-form-group">
+                  <input type="text" inputmode="decimal" name="efectivo_bill" id="efectivo_bill"
+                         class="payment-form-control" placeholder=" ">
+                  <label for="efectivo_bill">Efectivo</label>
+                  <span class="currency-symbol">L.</span>
                 </div>
+
+                <div class="payment-form-group" id="grupo_cambio_efectivo">
+                  <input type="text" readonly name="cambio_efectivo" id="cambio_efectivo"
+                         class="payment-form-control" placeholder=" ">
+                  <label for="cambio_efectivo">Cambio</label>
+                  <span class="currency-symbol">L.</span>
+                </div>
+
+                <div class="payment-form-group">
+                  <select id="usuario_efectivo" name="usuario_efectivo" class="selectpicker form-control"
+                          data-size="5" data-live-search="true" title="Usuario que Recibe" data-width="100%"></select>
+                </div>
+
+                <button type="submit" id="pago_efectivo" class="btn btn-info btn-block mt-2">
+                  <i class="fas fa-check mr-1"></i> Efectuar Pago
+                </button>
+                <div class="RespuestaAjax"></div>
               </form>
-            </div>
-            <!-- Tarjeta -->
-            <div class="payment-details" data-method="card">
+            </section>
+
+            <!-- ================= TARJETA ================= -->
+            <section class="payment-details payment-step" id="payment_card" data-method="card">
               <div class="detail-header">
-                <div class="method-display">
-                  <i class="far fa-credit-card"></i>
-                  <span>Pago con Tarjeta</span>
-                </div>
+                <div class="method-display"><i class="far fa-credit-card"></i><span>Tarjeta</span></div>
               </div>
-              <form id="form-tarjeta" class="detail-form">
+
+              <form class="FormularioAjax" id="formTarjetaBill" method="POST" data-form="save"
+                    action="<?php echo SERVERURL; ?>ajax/addPagoFacturasTarjetaAjax.php"
+                    autocomplete="off" enctype="multipart/form-data">
+
                 <div class="payment-form-group">
-                  <select id="card_type" class="payment-form-control" required>
-                    <option value=""></option>
-                    <option value="visa">Visa</option>
-                    <option value="mastercard">Mastercard</option>
-                    <option value="amex">American Express</option>
-                  </select>
-                  <label for="card_type">Tipo de tarjeta</label>
+                  <input type="date" name="fecha_tarjeta" id="fecha_tarjeta" class="payment-form-control"
+                         value="<?php echo date('Y-m-d'); ?>" placeholder=" ">
+                  <label for="fecha_tarjeta">Fecha</label>
                 </div>
+
+                <input type="hidden" name="factura_id_tarjeta" id="factura_id_tarjeta">
+                <input type="hidden" name="origen_pago" id="origen_pago" value="0">
+                <input type="hidden" class="comprobante_print_value" name="comprobante_print" value="0">
+                <input type="hidden" class="multiple_pago" name="multiple_pago" value="0">
+                <input type="number" style="display:none;" name="monto_efectivo" id="monto_efectivo_tarjeta"
+                       class="payment-form-control" step="0.01" placeholder="0.00">
+                <input type="hidden" name="importe" id="importe_tarjeta" step="0.01" placeholder="0.00">
+                <input type="hidden" name="tipo_factura" id="tipo_factura" value="1">
+
                 <div class="payment-form-group">
-                  <input type="text" id="card_last_four" class="payment-form-control" placeholder=" " maxlength="4" required>
-                  <label for="card_last_four">Últimos 4 dígitos</label>
+                  <input type="text" id="cr_bill" name="cr_bill" class="payment-form-control" placeholder=" ">
+                  <label for="cr_bill">Número de Tarjeta</label>
                 </div>
+
+                <div class="form-row">
+                  <div class="col-md-6">
+                    <div class="payment-form-group">
+                      <input type="text" name="exp" id="exp" class="payment-form-control" placeholder=" ">
+                      <label for="exp">Fecha de Expiración (MM/YY)</label>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="payment-form-group">
+                      <input type="text" name="cvcpwd" id="cvcpwd" class="payment-form-control" placeholder=" ">
+                      <label for="cvcpwd">Número Aprobación</label>
+                    </div>
+                  </div>
+                </div>
+
                 <div class="payment-form-group">
-                  <input type="text" id="card_auth_code" class="payment-form-control" placeholder=" " required>
-                  <label for="card_auth_code">Código de autorización</label>
+                  <select id="usuario_tarjeta" name="usuario_tarjeta" class="selectpicker form-control"
+                          data-size="5" data-live-search="true" title="Usuario que Recibe" data-width="100%"></select>
                 </div>
-                <div class="payment-form-group">
-                  <input type="number" id="card_amount" class="payment-form-control" placeholder=" " step="0.01" required>
-                  <label for="card_amount">Monto</label>
-                  <div class="currency-symbol">L</div>
-                </div>
+
+                <button type="submit" id="pago_tarjeta" class="btn btn-info btn-block mt-2">
+                  <i class="fas fa-check mr-1"></i> Efectuar Pago
+                </button>
+                <div class="RespuestaAjax"></div>
               </form>
-            </div>
-            <!-- Transferencia -->
-            <div class="payment-details" data-method="transfer">
+            </section>
+
+            <!-- =============== TRANSFERENCIA =============== -->
+            <section class="payment-details payment-step" id="payment_transfer" data-method="transfer">
               <div class="detail-header">
-                <div class="method-display">
-                  <i class="fas fa-exchange-alt"></i>
-                  <span>Transferencia Bancaria</span>
-                </div>
+                <div class="method-display"><i class="fas fa-exchange-alt"></i><span>Transferencia</span></div>
               </div>
-              <form id="form-transferencia" class="detail-form">
+
+              <form class="FormularioAjax" id="formTransferenciaBill" method="POST" data-form="save"
+                    action="<?php echo SERVERURL; ?>ajax/addPagoFacturasTransferenciaAjax.php"
+                    autocomplete="off" enctype="multipart/form-data">
+
                 <div class="payment-form-group">
-                  <select id="transfer_bank" class="payment-form-control" required>
-                    <option value=""></option>
-                    <option value="BAC">BAC</option>
-                    <option value="Ficohsa">Ficohsa</option>
-                    <option value="Lafise">Lafise</option>
-                  </select>
-                  <label for="transfer_bank">Banco</label>
+                  <input type="date" name="fecha_transferencia" id="fecha_transferencia" class="payment-form-control"
+                         value="<?php echo date('Y-m-d'); ?>" placeholder=" ">
+                  <label for="fecha_transferencia">Fecha</label>
                 </div>
+
+                <input type="hidden" name="factura_id_transferencia" id="factura_id_transferencia">
+                <input type="hidden" name="origen_pago" id="origen_pago" value="0">
+                <input type="hidden" class="multiple_pago" name="multiple_pago" value="0">
+                <input type="hidden" class="comprobante_print_value" name="comprobante_print" value="0">
+                <input type="hidden" name="monto_efectivo" id="monto_efectivo" placeholder="0.00">
+                <input type="hidden" name="tipo_factura" id="tipo_factura_transferencia" value="1" step="0.01" placeholder="0.00">
+
                 <div class="payment-form-group">
-                  <input type="text" id="transfer_reference" class="payment-form-control" placeholder=" " required>
-                  <label for="transfer_reference">Número de referencia</label>
+                  <select id="bk_nm" name="bk_nm" required class="selectpicker form-control"
+                          data-size="5" data-live-search="true" title="Banco" data-width="100%"></select>
                 </div>
+
                 <div class="payment-form-group">
-                  <input type="number" id="transfer_amount" class="payment-form-control" placeholder=" " step="0.01" required>
-                  <label for="transfer_amount">Monto</label>
-                  <div class="currency-symbol">L</div>
+                  <input type="text" name="importe_transferencia" id="importe_transferencia"
+                         class="payment-form-control" placeholder=" ">
+                  <label for="importe_transferencia">Importe</label>
+                  <span class="currency-symbol">L.</span>
                 </div>
+
+                <div class="payment-form-group">
+                  <input type="text" name="ben_nm" id="ben_nm" class="payment-form-control" placeholder=" ">
+                  <label for="ben_nm">Número de Autorización</label>
+                </div>
+
+                <div class="payment-form-group">
+                  <select id="usuario_transferencia" name="usuario_transferencia" class="selectpicker form-control"
+                          data-size="5" data-live-search="true" title="Usuario que Recibe" data-width="100%"></select>
+                </div>
+
+                <button type="submit" id="pago_transferencia" class="btn btn-info btn-block mt-2">
+                  <i class="fas fa-check mr-1"></i> Efectuar Pago
+                </button>
+                <div class="RespuestaAjax"></div>
               </form>
-            </div>
-            <!-- Cheque -->
-            <div class="payment-details" data-method="check">
+            </section>
+
+            <!-- ================= CHEQUE ================= -->
+            <section class="payment-details payment-step" id="payment_check" data-method="check">
               <div class="detail-header">
-                <div class="method-display">
-                  <i class="fas fa-money-check"></i>
-                  <span>Pago con Cheque</span>
-                </div>
+                <div class="method-display"><i class="fas fa-money-check"></i><span>Cheque</span></div>
               </div>
-              <form id="form-cheque" class="detail-form">
+
+              <form class="FormularioAjax" id="formChequeBill" method="POST" data-form="save"
+                    action="<?php echo SERVERURL; ?>ajax/addPagoFacturasChequeAjax.php"
+                    autocomplete="off" enctype="multipart/form-data">
+
                 <div class="payment-form-group">
-                  <select id="check_bank" class="payment-form-control" required>
-                    <option value=""></option>
-                    <option value="BAC">BAC</option>
-                    <option value="Ficohsa">Ficohsa</option>
-                    <option value="Lafise">Lafise</option>
-                  </select>
-                  <label for="check_bank">Banco</label>
+                  <input type="date" name="fecha_cheque" id="fecha_cheque" class="payment-form-control"
+                         value="<?php echo date('Y-m-d'); ?>" placeholder=" ">
+                  <label for="fecha_cheque">Fecha</label>
                 </div>
+
+                <input type="hidden" class="multiple_pago" name="multiple_pago" value="0">
+                <input type="hidden" class="comprobante_print_value" name="comprobante_print" value="0">
+                <input type="hidden" name="origen_pago" id="origen_pago" value="0">
+                <input type="hidden" name="factura_id_cheque" id="factura_id_cheque">
+                <input type="hidden" name="monto_efectivo" id="monto_efectivo" placeholder="0.00">
+                <input type="hidden" name="tipo_factura" id="tipo_factura_cheque" value="1" step="0.01" placeholder="0.00">
+
                 <div class="payment-form-group">
-                  <input type="text" id="check_number" class="payment-form-control" placeholder=" " required>
-                  <label for="check_number">Número de cheque</label>
+                  <select id="bk_nm_chk" name="bk_nm_chk" required class="selectpicker form-control"
+                          data-size="5" data-live-search="true" title="Banco" data-width="100%"></select>
                 </div>
+
                 <div class="payment-form-group">
-                  <input type="number" id="check_amount" class="payment-form-control" placeholder=" " step="0.01" required>
-                  <label for="check_amount">Monto</label>
-                  <div class="currency-symbol">L</div>
+                  <input type="text" name="importe_cheque" id="importe_cheque" class="payment-form-control" placeholder=" ">
+                  <label for="importe_cheque">Importe</label>
+                  <span class="currency-symbol">L.</span>
                 </div>
+
+                <div class="payment-form-group">
+                  <input type="text" name="check_num" id="check_num" class="payment-form-control" placeholder=" ">
+                  <label for="check_num">Número de Cheque</label>
+                </div>
+
+                <div class="payment-form-group">
+                  <select id="usuario_cheque" name="usuario_cheque" class="selectpicker form-control"
+                          data-size="5" data-live-search="true" title="Usuario que Recibe" data-width="100%"></select>
+                </div>
+
+                <button type="submit" id="pago_cheque" class="btn btn-info btn-block mt-2">
+                  <i class="fas fa-check mr-1"></i> Efectuar Pago
+                </button>
+                <div class="RespuestaAjax"></div>
               </form>
-            </div>
-            <!-- Puntos -->
-            <div class="payment-details" data-method="points">
+            </section>
+
+            <!-- ================= PUNTOS ================= -->
+            <section class="payment-details payment-step" id="payment_points" data-method="points">
               <div class="detail-header">
-                <div class="method-display">
-                  <i class="fas fa-coins"></i>
-                  <span>Pago con Puntos</span>
-                </div>
+                <div class="method-display"><i class="fas fa-coins"></i><span>Puntos</span></div>
               </div>
-              <form id="form-puntos" class="detail-form">
-                <div class="points-balance">
-                  <span>Puntos disponibles:</span>
-                  <span class="points-amount">0 pts (L 0.00)</span>
-                </div>
+
+              <form class="FormularioAjax" id="formPuntosBill" method="POST" data-form="save"
+                    action="<?php echo SERVERURL; ?>ajax/addPagoFacturasPuntosAjax.php"
+                    autocomplete="off" enctype="multipart/form-data">
+
                 <div class="payment-form-group">
-                  <input type="number" id="points_amount" class="payment-form-control" placeholder=" " step="100" required>
-                  <label for="points_amount">Puntos a usar</label>
-                  <div class="points-symbol">pts</div>
+                  <input type="date" name="fecha_puntos" id="fecha_puntos" class="payment-form-control"
+                         value="<?php echo date('Y-m-d'); ?>" placeholder=" ">
+                  <label for="fecha_puntos">Fecha</label>
                 </div>
-                <div class="points-conversion">
-                  <span>Equivalente:</span>
-                  <span class="converted-amount">L 0.00</span>
+
+                <!-- Hidden comunes -->
+                <input type="hidden" class="comprobante_print_value" name="comprobante_print" value="0">
+                <input type="hidden" class="multiple_pago" name="multiple_pago" value="0">
+                <input type="hidden" name="factura_id_puntos" id="factura_id_puntos">
+                <input type="hidden" name="tipo_factura" id="tipo_factura_puntos" value="1">
+                <input type="hidden" name="origen_pago" id="origen_pago" value="0">
+
+                <!-- Datos puntos -->
+                <div class="payment-form-group">
+                  <input type="text" name="puntos_disponibles" id="puntos_disponibles"
+                         class="payment-form-control" placeholder=" " readonly>
+                  <label for="puntos_disponibles">Puntos disponibles</label>
                 </div>
+
+                <div class="payment-form-group">
+                  <input type="text" inputmode="decimal" name="puntos_usar" id="puntos_uso"
+                         class="payment-form-control" placeholder=" ">
+                  <label for="puntos_uso">Puntos a usar</label>
+                </div>
+
+                <div class="payment-form-group">
+                  <input type="text" name="equivalente_lempiras" id="equivalente_puntos"
+                         class="payment-form-control" placeholder=" " readonly>
+                  <label for="equivalente_puntos">Equivalente en Lempiras</label>
+                  <span class="currency-symbol">L.</span>
+                </div>
+
+                <input type="hidden" name="importe" id="importe_puntos" value="0">
+
+                <div class="payment-form-group">
+                  <select id="usuario_puntos" name="usuario_puntos" class="selectpicker form-control"
+                          data-size="5" data-live-search="true" title="Usuario que Recibe" data-width="100%"></select>
+                </div>
+
+                <button type="submit" id="pago_puntos" class="btn btn-info btn-block mt-2" disabled>
+                  <i class="fas fa-check mr-1"></i> Efectuar Pago
+                </button>
+                <div class="RespuestaAjax"></div>
               </form>
-            </div>
-          </div>
-          <!-- Sección común -->
-          <div class="payment-receiver-section">
-            <div class="payment-form-group">
-              <select id="payment_receiver" name="payment_receiver" class="payment-form-control" required>
-                <option value=""></option>
-                <option value="1">Cajero Principal</option>
-                <option value="2">Asistente de Ventas</option>
-                <option value="3">Gerente</option>
-              </select>
-              <label for="payment_receiver">Quien recibe</label>
-            </div>
-          </div>
-        </div>
-        <!-- Paso 3: Confirmación -->
-        <div class="payment-step" data-step-content="3">
-          <div class="payment-complete">
-            <div class="complete-icon">
-              <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
-                <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
-                <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
-              </svg>
-            </div>
-            <h3 class="complete-title">¡Pago completado!</h3>
-            <p class="receipt-amount">L 0.00</p>
-            <div class="receipt-details">
-              <div class="detail">
-                <span>Método:</span>
-                <span class="method-used">-</span>
-              </div>
-              <div class="detail">
-                <span>Transacción:</span>
-                <span class="transaction-id">#PAY-0000</span>
-              </div>
-              <div class="detail">
-                <span>Fecha:</span>
-                <span class="transaction-date">-</span>
-              </div>
-              <div class="detail">
-                <span>Recibido por:</span>
-                <span class="receiver-name">-</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- Footer del modal -->
-      <div class="modal-footer payment-actions">
-        <button type="button" class="btn payment-btn payment-btn-prev" disabled>
+            </section>
+
+          </div><!-- /payment-details-container -->
+        </div><!-- /section_details -->
+
+      </div><!-- /payment-body -->
+
+      <!-- Footer (navegación de pasos) -->
+      <div class="payment-actions">
+        <button type="button" class="payment-btn payment-btn-prev" id="btnPrev">
           <i class="fas fa-arrow-left"></i> Atrás
         </button>
-        <button type="button" class="btn payment-btn payment-btn-next">
-          Continuar <i class="fas fa-arrow-right"></i>
+        <button type="button" class="payment-btn payment-btn-next" id="btnNext">
+          <i class="fas fa-arrow-right"></i> Continuar
         </button>
-        <button type="submit" class="btn payment-btn payment-btn-complete" style="display: none;">
-          Finalizar pago <i class="fas fa-check"></i>
+        <button type="button" class="payment-btn payment-btn-close" data-dismiss="modal">
+          <i class="fas fa-times"></i> Cerrar
         </button>
       </div>
+
     </div>
   </div>
 </div>
+<!-- =============== /MODAL DE PAGOS UNIFICADO =============== -->
 
 <!--INICIO MODAL CLIENTES-->
 <div class="modal fade" id="modal_registrar_clientes">

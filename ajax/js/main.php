@@ -61,26 +61,46 @@ function init() {
 
 <!-- Responsive menú: móvil muestra #facturaMovil; escritorio muestra #facturas/#facturaCompras/#cotizacion -->
 (function () {
-  const BREAKPOINT = 992;
+  // ===== CONFIG =====
+  const BREAKPOINT_DESKTOP = 992;      // lg en Bootstrap 4.6
+  const MAX_TABLET_WIDTH   = 1366;     // iPad Pro 12.9 en landscape
+  const MAX_TABLET_HEIGHT  = 900;      // altura típica tablet en landscape
 
   const menuItems = {
     movil: ['facturaMovil'],
     escritorio: ['facturas', 'facturaCompras', 'cotizacion']
   };
 
+  // ====== UTILS ======
+  function getViewportSize(){
+    return {
+      w: Math.max(document.documentElement.clientWidth,  window.innerWidth  || 0),
+      h: Math.max(document.documentElement.clientHeight, window.innerHeight || 0)
+    };
+  }
+  function isCoarsePointer(){
+    // true en la mayoría de tablets/teléfonos
+    return window.matchMedia && matchMedia('(pointer: coarse)').matches;
+  }
+  function isLandscape(w, h){ return w > h; }
+
+  // Detecta "tablet en landscape" para forzar vista móvil de factura
+  function isTabletLandscape(w, h){
+    // Heurística: dispositivo de puntero "grueso", apaisado y dentro de rangos de tablet
+    return isCoarsePointer() && isLandscape(w, h) &&
+           w <= MAX_TABLET_WIDTH && h <= MAX_TABLET_HEIGHT;
+  }
+
   function setVisible(id, visible) {
     const el = document.getElementById(id);
-    if (!el) {
-      // console.debug('[responsive] no encontrado:', id);
-      return;
-    }
+    if (!el) return;
 
     if (visible) {
-      // Quitar cualquier ocultamiento previo (permisos/estilos)
+      // Quitar ocultamientos previos
       el.style.display = '';
       el.classList.remove('hidden-by-responsive', 'perm-hidden', 'ocultar', 'd-none');
 
-      // Si algún padre quedó oculto por permisos, destaparlo también
+      // Si algún padre quedó oculto por permisos/estilos, destaparlo también
       const parentHidden = el.closest('.perm-hidden, .d-none, .ocultar');
       if (parentHidden) {
         parentHidden.classList.remove('perm-hidden', 'd-none', 'ocultar');
@@ -95,34 +115,39 @@ function init() {
   }
 
   function applyResponsive() {
-    const w = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
-    const isTabletOrSmaller = w < BREAKPOINT;
+    const { w, h } = getViewportSize();
 
-    const show = isTabletOrSmaller ? menuItems.movil : menuItems.escritorio;
-    const hide = isTabletOrSmaller ? menuItems.escritorio : menuItems.movil;
+    // Regla base: móviles/tablets (ancho < 992) → facturaMovil
+    // Excepción/plus: tablet en landscape → también facturaMovil
+    const smallOrTabletLandscape = (w < BREAKPOINT_DESKTOP) || isTabletLandscape(w, h);
+
+    const show = smallOrTabletLandscape ? menuItems.movil      : menuItems.escritorio;
+    const hide = smallOrTabletLandscape ? menuItems.escritorio : menuItems.movil;
 
     show.forEach(id => setVisible(id, true));
     hide.forEach(id => setVisible(id, false));
   }
 
-  function debounce(fn, wait = 250) {
+  function debounce(fn, wait = 200) {
     let t;
-    return () => {
-      clearTimeout(t);
-      t = setTimeout(fn, wait);
-    };
+    return () => { clearTimeout(t); t = setTimeout(fn, wait); };
   }
 
   function startResponsive() {
     applyResponsive();
-    window.addEventListener('resize', debounce(applyResponsive, 250));
-    window.addEventListener('orientationchange', debounce(applyResponsive, 250));
+    // Ajusta al rotar o cambiar tamaño/zoom
+    window.addEventListener('resize',          debounce(applyResponsive, 200));
+    window.addEventListener('orientationchange', debounce(applyResponsive, 200));
+    // iPadOS a veces no dispara bien orientationchange; este extra ayuda
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) applyResponsive();
+    });
   }
 
-  // Exportar para poder re-ejecutar tras cargar permisos/menú
+  // Exportar para re-ejecutar cuando cargues permisos/menú dinámico
   window.applyResponsive = applyResponsive;
 
-  // Iniciar cuando el DOM esté listo
+  // Iniciar cuando el DOM esté listo (sin jQuery/document.ready)
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', startResponsive);
   } else {

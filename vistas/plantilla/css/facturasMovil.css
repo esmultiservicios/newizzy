@@ -1,6 +1,6 @@
 /*
     FACTURA MOVIL - CSS ORDENADO Y OPTIMIZADO
-    Versión completa y corregida (FIX responsive product-details)
+    Versión completa y corregida (FIX responsive product-details + orden móvil)
 */
 
 /* ===== ESTILOS GENERALES ===== */
@@ -254,47 +254,17 @@
     font-size: 0.85rem;
 }
 
-.btn-primary {
-    background-color: #3498db;
-    border-color: #3498db;
-}
+.btn-primary { background-color: #3498db; border-color: #3498db; }
+.btn-primary:hover { background-color: #2980b9; border-color: #2980b9; }
 
-.btn-primary:hover {
-    background-color: #2980b9;
-    border-color: #2980b9;
-}
+.btn-success { background-color: #27ae60; border-color: #27ae60; }
+.btn-success:hover { background-color: #219653; border-color: #219653; }
 
-.btn-success {
-    background-color: #27ae60;
-    border-color: #27ae60;
-}
+.btn-danger { background-color: #e74c3c; border-color: #e74c3c; }
+.btn-danger:hover { background-color: #c0392b; border-color: #c0392b; }
 
-.btn-success:hover {
-    background-color: #219653;
-    border-color: #219653;
-}
-
-.btn-danger {
-    background-color: #e74c3c;
-    border-color: #e74c3c;
-}
-
-.btn-danger:hover {
-    background-color: #c0392b;
-    border-color: #c0392b;
-}
-
-.btn-warning {
-    background-color: #f39c12;
-    border-color: #f39c12;
-    color: white;
-}
-
-.btn-warning:hover {
-    background-color: #d35400;
-    border-color: #d35400;
-    color: white;
-}
+.btn-warning { background-color: #f39c12; border-color: #f39c12; color: white; }
+.btn-warning:hover { background-color: #d35400; border-color: #d35400; color: white; }
 
 /* ===== CONTENEDOR DE PRODUCTOS ===== */
 .products-container {
@@ -305,20 +275,12 @@
     margin-top: 10px;
 }
 
-.product-list {
-    margin: 10px;
-    padding-bottom: 20px;
-}
+.product-list { margin: 10px; padding-bottom: 20px; }
 
-/* Grid para mostrar productos en 2 columnas en pantallas grandes */
+/* Grid 2 col en pantallas grandes */
 @media (min-width: 769px) {
-    .products-container {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .products-container:has(.product-item:only-child) .product-item {
-        grid-column: span 2;
-    }
+    .products-container { grid-template-columns: repeat(2, 1fr); }
+    .products-container:has(.product-item:only-child) .product-item { grid-column: span 2; }
 }
 
 /* ===== ITEMS DE PRODUCTO ===== */
@@ -334,7 +296,6 @@
     display: flex;
     align-items: center;
 }
-
 .section-title::before {
     content: '';
     display: inline-block;
@@ -350,7 +311,6 @@
     border-radius: 8px;
     padding: 15px;
     margin-bottom: 15px;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
     border-left: 4px solid #3498db;
     position: relative;
     width: 100%;
@@ -360,22 +320,10 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     overflow: hidden;
 }
+.product-item:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+.product-item .card-body { padding: 15px; }
 
-.product-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-
-.product-item .card-body {
-    padding: 15px;
-}
-
-.product-header {
-    font-weight: 600;
-    margin-bottom: 8px;
-    display: flex;
-    flex-wrap: wrap;
-}
+.product-header { font-weight: 600; margin-bottom: 8px; display: flex; flex-wrap: wrap; }
 
 .product-code {
     font-weight: bold;
@@ -399,44 +347,21 @@
     line-clamp: 2;
     -webkit-box-orient: vertical;
     font-weight: 600;
+    white-space: normal;
 }
 
-.product-name {
-    flex: 1;
-    min-width: 60%;
-    font-size: 0.95rem;
-    color: #2c3e50;
-}
+.product-name { flex: 1; min-width: 60%; font-size: 0.95rem; color: #2c3e50; }
 
-.product-actions {
-    display: flex;
-    gap: 5px;
-    margin-top: 10px;
-    justify-content: flex-end;
-}
+.product-actions { display: flex; gap: 5px; margin-top: 10px; justify-content: flex-end; }
 
-.remove-product {
-    background-color: #e74c3c;
-    color: white;
-    border: none;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-}
+.remove-product { background-color: #e74c3c; color: white; border: none; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; padding: 0; }
+.remove-product:hover { background-color: #c0392b; }
 
-.remove-product:hover {
-    background-color: #c0392b;
-}
-
-/* ===== DETALLES DEL PRODUCTO (FIX RESPONSIVE) ===== */
+/* ===== DETALLES DEL PRODUCTO ===== */
 .product-details {
-    display: grid;                /* base grid */
-    grid-template-columns: 1fr;   /* móvil: 1 columna */
-    gap: 10px;                    
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
     margin-top: 10px;
     background-color: #f9f9f9;
     padding: 10px;
@@ -481,20 +406,11 @@
     box-shadow: 0 0 0 0.2rem rgba(52,152,219,0.25);
 }
 
-.apply-discount {
-    height: 32px;
-    font-size: 0.8rem;
-}
+.apply-discount { height: 32px; font-size: 0.8rem; }
 
-/* FIX: columnas responsivas reales para grid */
-@media (min-width: 576px) {
-    .product-details { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (min-width: 992px) {
-    .product-details { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
-
-/* (quitamos los media-queries que volvían a 1fr o usaban flex) */
+/* columnas responsivas */
+@media (min-width: 576px) { .product-details { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 992px) { .product-details { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 
 .product-subtotal {
     text-align: right;
@@ -528,7 +444,6 @@
     margin-top: 20px;
     margin-bottom: 20px;
 }
-
 .total-display::before {
     content: '';
     position: absolute;
@@ -538,16 +453,9 @@
     height: 100%;
     background-color: #3498db;
 }
+.total-display:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
 
-.total-display:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-
-@keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(15px); }
-    to   { opacity: 1; transform: translateY(0);   }
-}
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
 .total-row {
     display: flex;
@@ -558,35 +466,15 @@
     border-bottom: 1px solid #f1f1f1;
     margin-bottom: 8px;
 }
-
-.total-row:last-of-type {
-    border-bottom: none;
-    margin-bottom: 0;
-}
-
-.total-row .total-label {
-    color: #2c3e50;
-    font-weight: 500;
-}
-
-.total-row .total-value {
-    font-weight: 600;
-    color: #3498db;
-}
+.total-row:last-of-type { border-bottom: none; margin-bottom: 0; }
+.total-row .total-label { color: #2c3e50; font-weight: 500; }
+.total-row .total-value { font-weight: 600; color: #3498db; }
 
 .total-item { margin-bottom: 5px; }
-
-.total-item small {
-    color: #7f8c8d;
-    font-size: 0.8rem;
-    display: block;
-}
-
+.total-item small { color: #7f8c8d; font-size: 0.8rem; display: block; }
 .total-value { font-weight: 600; color: #2c3e50; font-size: 1rem; }
-
 #totalAftertax-mobile { color: #27ae60; font-weight: 700; }
 
-/* Total general */
 .grand-total {
     font-weight: bold;
     font-size: 1.2rem;
@@ -599,22 +487,9 @@
     background-color: #2c3e50;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
+.total-row.grand-total { font-weight: bold; font-size: 1.1rem; border-top: 1px solid #dee2e6; padding-top: 10px; margin-top: 10px; }
 
-.total-row.grand-total {
-    font-weight: bold;
-    font-size: 1.1rem;
-    border-top: 1px solid #dee2e6;
-    padding-top: 10px;
-    margin-top: 10px;
-}
-
-.totals-summary {
-    border: none;
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    margin: 10px;
-}
-
+.totals-summary { border: none; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 10px; }
 .totals-summary .card-body { padding: 15px; }
 
 /* ===== FORMULARIOS Y CONTROLES ===== */
@@ -624,18 +499,9 @@
     padding: 10px 15px;
     height: auto;
 }
+.form-control:focus, .selectpicker:focus { border-color: #3498db; box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25); }
 
-.form-control:focus, .selectpicker:focus {
-    border-color: #3498db;
-    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
-}
-
-.form-label {
-    font-weight: 500;
-    color: #2c3e50;
-    margin-bottom: 8px;
-    font-size: 0.9rem;
-}
+.form-label { font-weight: 500; color: #2c3e50; margin-bottom: 8px; font-size: 0.9rem; }
 
 .selectpicker { width: 100% !important; }
 
@@ -646,7 +512,6 @@
     border-radius: 8px;
     border: 1px solid #ddd;
 }
-
 #charNum_notasBill-mobile { margin: 0 10px; font-size: 0.75rem; }
 
 .form-check.form-switch { padding-left: 3rem; margin: 10px 0; }
@@ -661,7 +526,6 @@
     margin-right: 10px;
     gap: 2px;
 }
-
 .cantidad-group .btn {
     padding: 0.15rem 0.3rem;
     height: 28px;
@@ -671,7 +535,6 @@
     align-items: center;
     justify-content: center;
 }
-
 .cantidad-group .input-cantidad {
     text-align: center;
     width: 60px;
@@ -680,7 +543,6 @@
     height: 28px;
     font-size: 0.85rem;
 }
-
 .input-cantidad { text-align: center; border-left: 0; border-right: 0; margin: 0; }
 
 /* Contenedor específico para la sección de cantidad y descuento */
@@ -690,12 +552,7 @@
 .cantidad-section { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .cantidad-wrapper { display: flex; align-items: center; gap: 10px; }
 
-.cantidad-section .form-label {
-    margin-bottom: 0;
-    margin-right: 8px;
-    font-weight: 500;
-    white-space: nowrap;
-}
+.cantidad-section .form-label { margin-bottom: 0; margin-right: 8px; font-weight: 500; white-space: nowrap; }
 
 .descuento-section { display: flex; flex-direction: column; }
 .descuento-wrapper { display: flex; flex-direction: column; }
@@ -719,36 +576,11 @@
     justify-content: center;
     transition: all 0.2s ease;
 }
-
-.btn-cantidad-minus:hover, .btn-cantidad-plus:hover {
-    background-color: #545b62;
-    border-color: #545b62;
-    color: white;
-}
-
-.btn-cantidad-minus {
-    background-color: #e74c3c;
-    border-color: #e74c3c;
-    color: white;
-}
-
-.btn-cantidad-minus:hover {
-    background-color: #c0392b;
-    border-color: #c0392b;
-    color: white;
-}
-
-.btn-cantidad-plus {
-    background-color: #27ae60;
-    border-color: #27ae60;
-    color: white;
-}
-
-.btn-cantidad-plus:hover {
-    background-color: #219653;
-    border-color: #219653;
-    color: white;
-}
+.btn-cantidad-minus:hover, .btn-cantidad-plus:hover { background-color: #545b62; border-color: #545b62; color: white; }
+.btn-cantidad-minus { background-color: #e74c3c; border-color: #e74c3c; color: white; }
+.btn-cantidad-minus:hover { background-color: #c0392b; border-color: #c0392b; color: white; }
+.btn-cantidad-plus { background-color: #27ae60; border-color: #27ae60; color: white; }
+.btn-cantidad-plus:hover { background-color: #219653; border-color: #219653; color: white; }
 
 /* ===== BOTONES DE EDICIÓN/ELIMINACIÓN ===== */
 .btn-edit-product, .btn-eliminar-producto {
@@ -763,32 +595,10 @@
     transition: all 0.2s;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
-
-.btn-edit-product {
-    background-color: #f39c12;
-    border-color: #f39c12;
-    color: white;
-}
-
-.btn-edit-product:hover {
-    background-color: #d35400;
-    border-color: #d35400;
-    color: white;
-    transform: scale(1.05);
-}
-
-.btn-eliminar-producto {
-    background-color: #e74c3c;
-    border-color: #e74c3c;
-    color: white;
-}
-
-.btn-eliminar-producto:hover {
-    background-color: #c0392b;
-    border-color: #c0392b;
-    color: white;
-    transform: scale(1.05);
-}
+.btn-edit-product { background-color: #f39c12; border-color: #f39c12; color: white; }
+.btn-edit-product:hover { background-color: #d35400; border-color: #d35400; color: white; transform: scale(1.05); }
+.btn-eliminar-producto { background-color: #e74c3c; border-color: #e74c3c; color: white; }
+.btn-eliminar-producto:hover { background-color: #c0392b; border-color: #c0392b; color: white; transform: scale(1.05); }
 
 /* ===== ALERTAS ===== */
 .alert { border-radius: 8px; padding: 10px 15px; }
@@ -798,11 +608,7 @@
 #editarDescuentoModal .modal-header { background-color: #f39c12; color: white; }
 #editarDescuentoModal .modal-content { border: none; }
 
-.nav-tabs .nav-link {
-    padding: 0.5rem 1rem;
-    font-size: 0.85rem;
-    transition: color 0.3s ease, background-color 0.3s ease;
-}
+.nav-tabs .nav-link { padding: 0.5rem 1rem; font-size: 0.85rem; transition: color 0.3s ease, background-color 0.3s ease; }
 .nav-tabs .nav-link:hover { color: #f39c12; background-color: transparent; border-color: transparent; }
 .nav-tabs .nav-link.active { font-weight: bold; }
 #editarDescuentoModal .nav-tabs { border-bottom: 1px solid #dee2e6; }
@@ -810,12 +616,7 @@
 #editarDescuentoModal .nav-tabs .nav-link:hover { color: #f39c12; background-color: transparent; border-color: transparent; }
 #editarDescuentoModal .nav-tabs .nav-link.active { color: #f39c12; background-color: #fff; border-color: #dee2e6 #dee2e6 #fff; }
 
-#editarDescuentoModal .modal-footer {
-    border-top: 1px solid #dee2e6;
-    padding: 15px;
-    display: flex;
-    justify-content: space-between;
-}
+#editarDescuentoModal .modal-footer { border-top: 1px solid #dee2e6; padding: 15px; display: flex; justify-content: space-between; }
 
 .modal-content { border-radius: 15px; border: none; box-shadow: 0 5px 20px rgba(0,0,0,0.2); }
 .modal-header { background-color: #2c3e50; color: white; border-radius: 15px 15px 0 0 !important; padding: 15px; }
@@ -835,15 +636,7 @@
     right: 0;
     z-index: 1030;
 }
-
-.mobile-actions .btn {
-    padding: 10px 5px;
-    font-size: 0.85rem;
-    border-radius: 0;
-    border: none;
-    margin: 0 2px;
-}
-
+.mobile-actions .btn { padding: 10px 5px; font-size: 0.85rem; border-radius: 0; border: none; margin: 0 2px; }
 .mobile-actions .btn-primary { background-color: #3498db; }
 .mobile-actions .btn-info    { background-color: #2ecc71; }
 .mobile-actions .btn-success { background-color: #27ae60; }
@@ -870,7 +663,7 @@
     .card-body { padding: 15px; }
     .product-item { padding: 12px; width: 100%; }
 
-    /* Título: permitir que "· ISV …" baje de línea si no cabe */
+    /* Forzar que el título pueda partir y que el ISV baje si no cabe */
     .product-item h6 {
         -webkit-line-clamp: unset;
         line-clamp: unset;
@@ -913,7 +706,6 @@
     .row.mb-3:has(.cantidad-section) .col-6 { flex: 0 0 100%; max-width: 100%; margin-bottom: 15px; }
     .row.mb-3:has(.cantidad-section) .col-6:last-child { margin-bottom: 0; }
 }
-
 @media (min-width: 769px) { .action-buttons-bottom { display: none !important; } }
 
 /* Ajustes para pantallas muy pequeñas */
@@ -950,36 +742,11 @@
 #productos-agregados { margin-top: 15px; }
 
 /* Ajustes para el formulario de facturación */
-.factura-movil-container .card {
-    border: none;
-    border-radius: 10px;
-    box-shadow: 0 2px 15px rgba(0,0,0,0.1);
-}
-
-.factura-movil-container .card-header {
-    background-color: #f8f9fa;
-    border-bottom: 1px solid #e9ecef;
-    border-radius: 10px 10px 0 0 !important;
-}
-
-.factura-movil-container .card-header h5 {
-    color: #2c3e50;
-    font-weight: 600;
-}
-
-.factura-movil-container .form-label {
-    font-weight: 500;
-    color: #495057;
-    margin-bottom: 0.5rem;
-}
-
-.factura-movil-container .section-title {
-    color: #2c3e50;
-    font-weight: 600;
-    border-bottom: 1px solid #e9ecef;
-    padding-bottom: 0.5rem;
-    margin-bottom: 1rem;
-}
+.factura-movil-container .card { border: none; border-radius: 10px; box-shadow: 0 2px 15px rgba(0,0,0,0.1); }
+.factura-movil-container .card-header { background-color: #f8f9fa; border-bottom: 1px solid #e9ecef; border-radius: 10px 10px 0 0 !important; }
+.factura-movil-container .card-header h5 { color: #2c3e50; font-weight: 600; }
+.factura-movil-container .form-label { font-weight: 500; color: #495057; margin-bottom: 0.5rem; }
+.factura-movil-container .section-title { color: #2c3e50; font-weight: 600; border-bottom: 1px solid #e9ecef; padding-bottom: 0.5rem; margin-bottom: 1rem; }
 
 /* ===== DARK MODE SUPPORT ===== */
 @media (prefers-color-scheme: dark) {
@@ -1009,61 +776,62 @@
 }
 
 /* =========================================================
-   MEJORA RESPONSIVA PARA DETALLES DE PRODUCTO EN MÓVIL
+   ORDEN Y LAYOUT FORZADO EN MÓVIL (Precio -> Cantidad -> Descuento -> ISV)
    ========================================================= */
 @media (max-width: 768px) {
-    /* Asegura grid de una columna para el contenedor */
+    /* 1 columna y orden explícito */
     .product-details {
         display: grid !important;
         grid-template-columns: 1fr !important;
-        gap: 15px;
+        grid-template-areas:
+            "precio"
+            "cantidad"
+            "descuento"
+            "isv";
+        gap: 12px !important;
+        white-space: normal !important;
+        overflow: visible !important;
     }
 
-    /* Cada item (Precio, Cantidad, etc.) se apila en 2 filas */
-    .product-detail {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: flex-start !important;
-        gap: 5px;
-        padding: 8px 0;
-    }
+    .product-details .product-detail:nth-child(1) { grid-area: precio; }
+    .product-details .product-detail:nth-child(2) { grid-area: cantidad; }
+    .product-details .product-detail:nth-child(3) { grid-area: descuento; }
+    .product-details .product-detail:nth-child(4) { grid-area: isv; }
 
-    /* Etiqueta arriba alineada a la izquierda */
-    .product-detail span {
-        font-weight: 500;
-        color: #7f8c8d;
-        font-size: 0.8rem;
-    }
-
-    /* El valor/control ocupa todo el ancho debajo de la etiqueta */
-    .product-detail strong,
-    .product-detail > div {
-        width: 100% !important;
-        text-align: left !important;
+    /* Cada bloque en 2 filas: etiqueta arriba, valor/control abajo */
+    .product-details .product-detail {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        row-gap: 6px !important;
+        align-items: start !important;
         min-width: 0 !important;
     }
 
-    /* Grupo de cantidad: se expande completamente */
-    .cantidad-group {
+    .product-details .product-detail span {
+        font-weight: 600;
+        font-size: 0.85rem;
+        background: transparent;
+        padding: 0;
+    }
+
+    .product-details .product-detail strong {
+        text-align: left !important;
+        min-width: 0 !important;
         width: 100% !important;
-        justify-content: space-between;
-        margin-top: 5px;
-    }
-    
-    .cantidad-group .input-cantidad {
-        flex: 1;
-        margin: 0 8px;
-        max-width: 80px;
     }
 
-    /* Botones de cantidad más grandes para móvil */
-    .btn-cantidad-minus, 
-    .btn-cantidad-plus {
-        width: 36px !important;
-        height: 36px !important;
+    .product-details .product-detail > *:not(span) {
+        width: 100% !important;
+        max-width: 100% !important;
+        justify-self: stretch !important;
+        min-width: 0 !important;
     }
 
-    /* Subtotal visible y sin recortes */
+    /* Cantidad ocupa toda la fila y no se desborda */
+    .cantidad-group { width: 100% !important; justify-content: space-between; margin-top: 4px; }
+    .cantidad-group .input-cantidad { flex: 1; margin: 0 8px; max-width: 96px; }
+
+    /* Subtotal sin recortes */
     .product-subtotal {
         display: block;
         width: 100%;
@@ -1075,21 +843,11 @@
     }
 }
 
-/* Mantén tus columnas en tablets/escritorio como ya las tenías */
+/* Mantén columnas para tablet/escritorio */
 @media (min-width: 576px) {
-    .product-details { 
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important; 
-    }
-    
-    .product-detail {
-        flex-direction: row !important;
-        justify-content: space-between;
-        align-items: center;
-    }
+    .product-details { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    .product-detail { flex-direction: row !important; justify-content: space-between; align-items: center; }
 }
-
 @media (min-width: 992px) {
-    .product-details { 
-        grid-template-columns: repeat(4, minmax(0, 1fr)) !important; 
-    }
+    .product-details { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
 }

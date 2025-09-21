@@ -7,6 +7,7 @@
   position: fixed;
   top:0; right:0; bottom:0; left:0;
   overflow: hidden;
+  z-index: 2000 !important; /* + alto que cualquier flotante externo */
 }
 .modal-open { overflow: hidden !important; }
 
@@ -226,7 +227,7 @@
   font-weight:800; color:#0f172a; font-size:.85rem;
 }
 
-/* ======= MÉTODOS APLICADOS (MEJORA DESDE AQUÍ) ======= */
+/* ======= MÉTODOS APLICADOS ======= */
 .payment-methods-summary h6{
   position:relative; margin:0 0 .75rem 0; padding-left:12px;
   font-weight:800; color:#0f172a; font-size:1rem; letter-spacing:.2px;
@@ -235,51 +236,38 @@
   content:''; position:absolute; left:0; top:3px; bottom:3px; width:4px; border-radius:4px;
   background:linear-gradient(180deg,#3ba0e0,#2f87c8);
 }
-
-/* Lista de métodos: tiles con zebra + separadores suaves */
 .method-summary-item{
   display:flex; align-items:center; justify-content:space-between;
   padding:.65rem .9rem; border-radius:10px;
   border:1px dashed #e7ecf5; background:#fff;
-  margin-bottom:.5rem;
-  transition:.2s;
+  margin-bottom:.5rem; transition:.2s;
 }
 .method-summary-item:hover{ box-shadow:0 6px 16px rgba(2,6,23,.06); transform:translateY(-1px); }
 .method-summary-item:nth-child(even){ background:linear-gradient(180deg,#ffffff 0%, #f9fbff 100%); }
-
-.method-summary-name{
-  display:flex; align-items:center; gap:.55rem;
-  font-weight:700; color:#1f2937;
-}
+.method-summary-name{ display:flex; align-items:center; gap:.55rem; font-weight:700; color:#1f2937; }
 .method-summary-name::before{
   content:''; width:10px; height:10px; border-radius:50%;
   background:linear-gradient(135deg,#93c5fd,#3b82f6);
   box-shadow:0 0 0 2px rgba(59,130,246,.15);
 }
-
 .method-summary-amount{
-  font-weight:900; color:#0b1220;
-  font-size:1.02rem;
+  font-weight:900; color:#0b1220; font-size:1.02rem;
   font-variant-numeric: tabular-nums lining-nums;
 }
 
-/* Totales: tarjetas con jerarquía clara */
+/* Totales */
 .confirm-totals-grid{ display:grid; gap:.65rem; margin:1rem 0 .4rem 0; }
-
 .total-line{
   display:flex; align-items:center; justify-content:space-between;
   padding:.85rem 1.1rem; border-radius:12px;
   background:linear-gradient(180deg,#f8fafc 0%, #f1f5f9 100%);
-  border:1px solid #e6ebf3;
-  font-weight:800;
+  border:1px solid #e6ebf3; font-weight:800;
 }
 .total-line .total-label{ color:#334155; font-size:.95rem; }
 .total-line .total-amount{
   color:#0b1220; font-size:1.15rem; font-weight:900;
   font-variant-numeric: tabular-nums lining-nums;
 }
-
-/* Línea de diferencia (warning/ok) */
 .total-line.difference{
   background:linear-gradient(180deg,#fffbeb 0%, #fff7d6 100%);
   border-color:#fde68a;
@@ -290,8 +278,6 @@
   border-color:#a7f3d0;
 }
 .total-line.difference.ok .total-amount{ color:#047857; }
-
-/* Soporte al id #difference-line si lo utilizas en HTML */
 #difference-line{
   border-radius:12px; padding:.85rem 1.1rem; border:1px solid #fde68a;
   background:linear-gradient(180deg,#fffbeb 0%, #fff7d6 100%);
@@ -301,14 +287,14 @@
   background:linear-gradient(180deg,#ecfdf5 0%, #dcfce7 100%);
 }
 
-/* Botón Registrar pago full-width con mejor foco */
+/* Botón Registrar pago y botones base */
 .confirm-submit-btn,
 .payment-btn {
   padding:1rem; font-weight:900; border-radius:12px;
-  border:none; box-shadow:0 6px 16px rgba(16,185,129,.35); transition:transform .12s, box-shadow .2s, filter .2s;
+  border:none; box-shadow:0 6px 16px rgba(16,185,129,.35);
+  transition:transform .12s, box-shadow .2s, filter .2s;
   min-width:160px; display:inline-flex; align-items:center; gap:8px; justify-content:center; cursor:pointer;
 }
-
 .confirm-submit-btn{
   background:linear-gradient(180deg,#10b981,#059669); color:#fff; width:100%;
 }
@@ -329,33 +315,56 @@
 .payment-btn:hover{ filter:brightness(1.03); box-shadow:0 12px 20px rgba(0,0,0,.12); }
 .payment-btn:active{ transform:translateY(1px); }
 .payment-btn:disabled{ opacity:.6; cursor:not-allowed; box-shadow:none; }
+.payment-btn-prev{ background:linear-gradient(180deg,#f59e0b,#d97706); color:#fff; border-color:#d97706; }
+.payment-btn-next{ background:linear-gradient(180deg,#3ba0e0,#2f87c8); color:#fff; border-color:#2f87c8; }
+.payment-btn-close{ background:linear-gradient(180deg,#6b7280,#4b5563); color:#fff; border-color:#4b5563; }
 
-.payment-btn-prev{
-  background:linear-gradient(180deg,#f59e0b,#d97706);
-  color:#fff; border-color:#d97706;
-}
-.payment-btn-next{
-  background:linear-gradient(180deg,#3ba0e0,#2f87c8);
-  color:#fff; border-color:#2f87c8;
-}
-.payment-btn-close{
-  background:linear-gradient(180deg,#6b7280,#4b5563);
-  color:#fff; border-color:#4b5563;
+/* ----------------- Breakpoints ----------------- */
+@media (max-width:992px){
+  .modal-dialog.payment-modal{ max-width:95%; }
 }
 
-@media (max-width:992px){ .modal-dialog.payment-modal{ max-width:95%; } }
+/* ====== MÓVIL (≤576px): tarjetas compactas + 3 botones en UNA FILA ====== */
 @media (max-width:576px){
+  /* Pasos más compactos */
   .step-icon{ width:34px; height:34px; font-size:.9rem; }
   .step-label{ font-size:.75rem; }
-  .method-card{ min-width:106px; padding:.95rem .6rem; }
-  .payment-actions{ flex-direction:column; }
-  .payment-btn{ width:100%; }
+
+  /* Métodos de pago en 2 columnas */
+  .payment-methods-grid{
+    display:grid !important;
+    grid-template-columns:repeat(2, minmax(0, 1fr)) !important;
+    gap:10px !important; min-width:0 !important; justify-content:unset !important;
+  }
+  .method-card{
+    min-width:0 !important; padding:.7rem .55rem !important; border-radius:10px !important;
+  }
+  .method-icon{ font-size:1.25rem !important; margin-bottom:6px !important; }
+  .method-name{ font-size:.85rem !important; margin:2px 0 0 !important; }
+  .method-badge{ font-size:.62rem !important; padding:2px 6px !important; margin-top:4px !important; }
+
+  /* Footer: TRES BOTONES EN UNA SOLA LÍNEA */
+  .payment-actions{
+    display:grid !important;
+    grid-template-columns:repeat(3, minmax(0,1fr)) !important;
+    gap:8px !important;
+    padding:.6rem .7rem !important;
+  }
+  .payment-btn{
+    width:auto !important;
+    min-width:0 !important;          /* anula min-width:160px */
+    padding:.55rem .7rem !important;
+    font-size:.85rem !important;
+    border-radius:10px !important;
+    box-shadow:0 4px 10px rgba(0,0,0,.06) !important;
+  }
+  .payment-btn i{ font-size:.9rem !important; }
 
   /* Confirm compact en móvil */
   .confirm-info-grid,
-  .confirm-options-grid{ grid-template-columns:1fr; }
-  .method-summary-item{ padding:.6rem .75rem; }
-  .total-line{ padding:.75rem .9rem; }
+  .confirm-options-grid{ grid-template-columns:1fr !important; }
+  .method-summary-item{ padding:.6rem .75rem !important; }
+  .total-line{ padding:.75rem .9rem !important; }
 }
 
 /* Publicidad */

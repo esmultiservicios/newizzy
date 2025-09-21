@@ -7,7 +7,6 @@ $peticionAjax = true;
 require_once "configGenerales.php";
 require_once "mainModel.php";
 
-// Asegura la sesión SIEMPRE con el mismo nombre
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_name('SD');
     session_start();
@@ -16,14 +15,11 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 try {
     $insMainModel = new mainModel();
 
-    // Entrada segura
-    $estado = isset($_POST['estado']) ? (int)$_POST['estado'] : 1;
+    $estado    = isset($_POST['estado']) ? (int)$_POST['estado'] : 1;
     $empresaId = $_SESSION['empresa_id_sd'] ?? null;
 
-    // --- OJO: tu getProductos original NO usa empresa. Si necesitas filtrar por empresa,
-    // agrega la condición en la consulta. Aquí dejamos el mismo comportamiento que tenías.
     $datos = [
-        "estado" => $estado,
+        "estado"        => $estado,
         "empresa_id_sd" => $empresaId
     ];
 
@@ -32,14 +28,6 @@ try {
     $data = [];
     if ($result) {
         while ($row = $result->fetch_assoc()) {
-            // Si no usas saldo, puedes quitar este bloque para ganar performance
-            $saldo_productos = 0;
-            $result_mov = $insMainModel->getSaldoProductosMovimientos($row['productos_id']);
-            if ($result_mov && $result_mov->num_rows > 0) {
-                $consulta = $result_mov->fetch_assoc();
-                $saldo_productos = (float)$consulta['saldo'];
-            }
-
             $data[] = [
                 "productos_id"     => $row['productos_id'],
                 "image"            => $row['image'],
@@ -49,11 +37,15 @@ try {
                 "categoria"        => $row['categoria'],
                 "precio_compra"    => (float)$row['precio_compra'],
                 "precio_venta"     => (float)$row['precio_venta'],
-                "isv_venta"        => $row['isv_venta'],
+                "isv_venta"        => $row['isv_venta'],   // "Si"/"No" (texto, se usa para mostrar)
                 "isv_compra"       => $row['isv_compra'],
                 "porcentaje_venta" => (float)$row['porcentaje_venta'],
                 "estado"           => (int)$row['estado'],
-                // "saldo"         => $saldo_productos,  // si lo quieres mostrar
+
+                // ---- NUEVO: valores crudos para switches del modal (0/1)
+                "restaurante"      => (int)$row['restaurante'],
+                "isv1"             => (int)$row['isv1'],   // 15%
+                "isv2"             => (int)$row['isv2']    // 18%
             ];
         }
     }
@@ -66,11 +58,10 @@ try {
     ], JSON_UNESCAPED_UNICODE);
 
 } catch (Throwable $e) {
-    // Nunca envíes HTML; responde JSON controlado
     http_response_code(500);
     echo json_encode([
-        "error" => true,
+        "error"   => true,
         "message" => "Error cargando productos",
-        "detail" => $e->getMessage()
+        "detail"  => $e->getMessage()
     ], JSON_UNESCAPED_UNICODE);
 }

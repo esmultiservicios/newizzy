@@ -1,6 +1,6 @@
 /*
     FACTURA MOVIL - CSS ORDENADO Y OPTIMIZADO
-    Versión completa y corregida (FIX responsive product-details + orden móvil)
+    Versión completa (FIX responsive + orden móvil + botones cantidad)
 */
 
 /* ===== ESTILOS GENERALES ===== */
@@ -249,10 +249,7 @@
     font-size: 0.875rem;
 }
 
-.btn-sm {
-    padding: 8px 12px;
-    font-size: 0.85rem;
-}
+.btn-sm { padding: 8px 12px; font-size: 0.85rem; }
 
 .btn-primary { background-color: #3498db; border-color: #3498db; }
 .btn-primary:hover { background-color: #2980b9; border-color: #2980b9; }
@@ -369,13 +366,11 @@
     font-size: 0.75rem;
     color: #7f8c8d;
 }
-
 .product-details span {
     background-color: #f8f9fa;
     padding: 2px 6px;
     border-radius: 4px;
 }
-
 .product-detail {
     display: flex;
     justify-content: space-between;
@@ -385,7 +380,6 @@
     padding: 4px 0;
     min-width: 0;
 }
-
 .product-detail strong {
     color: #2c3e50;
     text-align: right;
@@ -395,16 +389,10 @@
 .product-quantity, 
 .product-price, 
 .product-total,
-.product-discount {
-    font-size: 0.85rem;
-    height: 32px;
-}
+.product-discount { font-size: 0.85rem; height: 32px; }
 
 .product-quantity:focus, 
-.product-discount:focus {
-    border-color: #3498db;
-    box-shadow: 0 0 0 0.2rem rgba(52,152,219,0.25);
-}
+.product-discount:focus { border-color: #3498db; box-shadow: 0 0 0 0.2rem rgba(52,152,219,0.25); }
 
 .apply-discount { height: 32px; font-size: 0.8rem; }
 
@@ -663,7 +651,7 @@
     .card-body { padding: 15px; }
     .product-item { padding: 12px; width: 100%; }
 
-    /* Forzar que el título pueda partir y que el ISV baje si no cabe */
+    /* Título permite saltos de línea (ISV baja si no cabe) */
     .product-item h6 {
         -webkit-line-clamp: unset;
         line-clamp: unset;
@@ -702,10 +690,23 @@
 
     #editarDescuentoModal .modal-footer .btn { flex: 1; margin: 0 5px; padding: 12px 15px; }
 
-    .row.mb-3:has(.cantidad-section) { flex-direction: column; align-items: stretch; }
-    .row.mb-3:has(.cantidad-section) .col-6 { flex: 0 0 100%; max-width: 100%; margin-bottom: 15px; }
-    .row.mb-3:has(.cantidad-section) .col-6:last-child { margin-bottom: 0; }
+    /* En el FORM de arriba (Cantidad/Descuento) apilar col-6 en móvil */
+    .row.mb-3:has(.cantidad-group),
+    .row.mb-3:has(#cantidad) {
+        display: flex;
+        flex-wrap: wrap;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .row.mb-3:has(.cantidad-group) > [class*="col-"],
+    .row.mb-3:has(#cantidad) > [class*="col-"] {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    .row.mb-3:has(#cantidad) > .col-6 + .col-6,
+    .row.mb-3:has(.cantidad-group) > .col-6 + .col-6 { margin-top: 12px; }
 }
+
 @media (min-width: 769px) { .action-buttons-bottom { display: none !important; } }
 
 /* Ajustes para pantallas muy pequeñas */
@@ -776,10 +777,11 @@
 }
 
 /* =========================================================
-   ORDEN Y LAYOUT FORZADO EN MÓVIL (Precio -> Cantidad -> Descuento -> ISV)
+   ORDEN Y LAYOUT EN MÓVIL (Precio -> Cantidad -> Descuento -> ISV)
+   + Botones ± pegados al input
    ========================================================= */
 @media (max-width: 768px) {
-    /* 1 columna y orden explícito */
+    /* Orden explícito */
     .product-details {
         display: grid !important;
         grid-template-columns: 1fr !important;
@@ -792,7 +794,6 @@
         white-space: normal !important;
         overflow: visible !important;
     }
-
     .product-details .product-detail:nth-child(1) { grid-area: precio; }
     .product-details .product-detail:nth-child(2) { grid-area: cantidad; }
     .product-details .product-detail:nth-child(3) { grid-area: descuento; }
@@ -806,20 +807,17 @@
         align-items: start !important;
         min-width: 0 !important;
     }
-
     .product-details .product-detail span {
         font-weight: 600;
         font-size: 0.85rem;
         background: transparent;
         padding: 0;
     }
-
     .product-details .product-detail strong {
         text-align: left !important;
         min-width: 0 !important;
         width: 100% !important;
     }
-
     .product-details .product-detail > *:not(span) {
         width: 100% !important;
         max-width: 100% !important;
@@ -827,9 +825,33 @@
         min-width: 0 !important;
     }
 
-    /* Cantidad ocupa toda la fila y no se desborda */
-    .cantidad-group { width: 100% !important; justify-content: space-between; margin-top: 4px; }
-    .cantidad-group .input-cantidad { flex: 1; margin: 0 8px; max-width: 96px; }
+    /* --- Cantidad: mantener ± al lado del input --- */
+    /* Evitar que el contenedor intermedio empuje a los lados */
+    .product-details .product-detail:nth-child(2) > .d-flex { 
+        width: auto !important;
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        row-gap: 6px !important;
+        justify-content: start !important;
+    }
+    .product-details .product-detail:nth-child(2) .cantidad-group {
+        display: inline-flex !important;
+        width: auto !important;
+        justify-content: flex-start !important;
+        align-items: center !important;
+        gap: 8px !important;
+        margin-top: 4px;
+    }
+    .product-details .product-detail:nth-child(2) .cantidad-group .input-cantidad {
+        flex: 0 0 64px !important;
+        width: 64px !important;
+        margin: 0 2px !important;
+        max-width: 64px !important;
+    }
+    .btn-cantidad-minus, .btn-cantidad-plus {
+        width: 36px !important;
+        height: 36px !important;
+    }
 
     /* Subtotal sin recortes */
     .product-subtotal {

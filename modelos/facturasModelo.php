@@ -84,27 +84,28 @@ class facturasModelo extends mainModel{
         return $result ? true : false;
     }
     
+    /* ===========================
+    * DETALLE: INSERT/UPDATE con isv_valor1
+    * =========================== */
     protected function agregar_detalle_facturas_modelo($datos) {
-        // Verificar si ya existe un registro con el mismo facturas_id y productos_id
         $check = "SELECT COUNT(*) as count FROM facturas_detalles 
-                  WHERE facturas_id = '".$datos['facturas_id']."' 
-                  AND productos_id = '".$datos['productos_id']."'";
+                WHERE facturas_id = '".$datos['facturas_id']."' 
+                AND productos_id = '".$datos['productos_id']."'";
         $result_check = mainModel::connection()->query($check) or die(mainModel::connection()->error);
         $row = $result_check->fetch_assoc();
-    
+
         if ($row['count'] > 0) {
-            // Si existe, realizar un UPDATE
             $update = "UPDATE facturas_detalles SET
-                        `cantidad` = '".$datos['cantidad']."',
-                        `precio` = '".$datos['precio']."',
-                        `isv_valor` = '".$datos['isv_valor']."',
-                        `descuento` = '".$datos['descuento']."',
-                        `medida` = '".$datos['medida']."'
+                        `cantidad`   = '".$datos['cantidad']."',
+                        `precio`     = '".$datos['precio']."',
+                        `isv_valor`  = '".$datos['isv_valor']."',
+                        `isv_valor1` = '".$datos['isv_valor1']."',
+                        `descuento`  = '".$datos['descuento']."',
+                        `medida`     = '".$datos['medida']."'
                     WHERE `facturas_id` = '".$datos['facturas_id']."' 
                     AND `productos_id` = '".$datos['productos_id']."'";
             $result = mainModel::connection()->query($update);
         } else {
-            // Si no existe, realizar un INSERT
             $facturas_detalle_id = mainModel::correlativo("facturas_detalle_id", "facturas_detalles");
             $insert = "INSERT INTO facturas_detalles (
                             `facturas_detalle_id`, 
@@ -112,7 +113,8 @@ class facturasModelo extends mainModel{
                             `productos_id`, 
                             `cantidad`, 
                             `precio`, 
-                            `isv_valor`, 
+                            `isv_valor`,
+                            `isv_valor1`,
                             `descuento`, 
                             `medida`
                         )
@@ -123,15 +125,14 @@ class facturasModelo extends mainModel{
                             '".$datos['cantidad']."',
                             '".$datos['precio']."',
                             '".$datos['isv_valor']."',
+                            '".$datos['isv_valor1']."',
                             '".$datos['descuento']."',
                             '".$datos['medida']."'
                         )";
             $result = mainModel::connection()->query($insert);
         }
-    
-        // Devolver true si la consulta fue exitosa, false en caso contrario
         return $result ? true : false;
-    }    
+    } 
     
     protected function agregar_cambio_dolar_modelo($datos){
         $insert = "INSERT INTO cambio_dolar 
@@ -302,11 +303,14 @@ class facturasModelo extends mainModel{
     protected function actualizar_detalle_facturas($datos){
         $update = "UPDATE facturas_detalles
                     SET 
-                        cantidad = '".$datos['cantidad']."',
-                        precio = '".$datos['precio']."',
-                        isv_valor = '".$datos['isv_valor']."',
-                        descuento = '".$datos['descuento']."'
-                    WHERE facturas_id = '".$datos['facturas_id']."' AND productos_id = '".$datos['productos_id']."'";        
+                        cantidad   = '".$datos['cantidad']."',
+                        precio     = '".$datos['precio']."',
+                        isv_valor  = '".$datos['isv_valor']."',
+                        isv_valor1 = '".$datos['isv_valor1']."',
+                        descuento  = '".$datos['descuento']."',
+                        medida     = '".$datos['medida']."'
+                    WHERE facturas_id = '".$datos['facturas_id']."' 
+                      AND productos_id = '".$datos['productos_id']."'";        
     
         $result = mainModel::connection()->query($update) or die(mainModel::connection()->error);        
         return $result;                    
@@ -582,10 +586,12 @@ class facturasModelo extends mainModel{
         }
     }
 
-    // --- REEMPLAZA TODO ESTE MÉTODO ---
+    /* ===========================
+    * INVENTARIO: ARREGLA bind_param (con/sin lote)
+    * =========================== */
     protected function registrar_salida_lote_modelo($datos) {
         $mysqli = mainModel::connection();
-
+    
         $producto_id         = (int)$datos['productos_id'];
         $empresa_id          = (int)$datos['empresa_id'];
         $clientes_id         = (int)($datos['clientes_id'] ?? 0);
@@ -593,15 +599,15 @@ class facturasModelo extends mainModel{
         $comentario          = (string)$datos['comentario'];
         $cantidad_solicitada = (float)$datos['cantidad'];
         $almacen_solicitado  = isset($datos['almacen_id']) ? (int)$datos['almacen_id'] : 0;
-
-        // 1) Traer lotes activos con stock > 0 en FIFO REAL (fecha_ingreso), filtrando por almacén si viene
+    
+        // 1) Traer lotes activos con stock > 0 (FIFO real)
         $sql = "
             SELECT lote_id, cantidad, almacen_id
             FROM lotes
             WHERE productos_id = ?
-            AND estado = 'Activo'
-            AND cantidad > 0
-            ".($almacen_solicitado > 0 ? " AND almacen_id = ? " : "")."
+              AND estado = 'Activo'
+              AND cantidad > 0
+              ".($almacen_solicitado > 0 ? " AND almacen_id = ? " : "")."
             ORDER BY fecha_ingreso ASC, fecha_vencimiento ASC, lote_id ASC
         ";
         $stmt = $mysqli->prepare($sql);
@@ -615,30 +621,29 @@ class facturasModelo extends mainModel{
         }
         $stmt->execute();
         $rs = $stmt->get_result();
-
+    
         $restante = $cantidad_solicitada;
         $consumos = [];
-
+    
         // 2) Consumir por lotes
         while ($restante > 0 && ($lote = $rs->fetch_assoc())) {
             $lote_id      = (int)$lote['lote_id'];
             $en_lote      = (float)$lote['cantidad'];
             $almacen_lote = (int)$lote['almacen_id'];
             if ($en_lote <= 0) continue;
-
+    
             $a_usar           = ($en_lote >= $restante) ? $restante : $en_lote;
             $nuevo_saldo_lote = $en_lote - $a_usar;
-
-            // 2.1) Registrar MOVIMIENTO usando la BODEGA DEL LOTE
+    
+            // INSERT con lote (9 placeholders → 9 tipos/valores)
             $insertMov = "INSERT INTO movimientos
                 (productos_id, cantidad_entrada, cantidad_salida, saldo, empresa_id, fecha_registro,
-                almacen_id, lote_id, clientes_id, documento, comentario)
+                 almacen_id, lote_id, clientes_id, documento, comentario)
                 VALUES (?, 0, ?, ?, ?, NOW(), ?, ?, ?, ?, ?)";
             $stmtMov = $mysqli->prepare($insertMov);
             if (!$stmtMov) {
                 return ["status" => "error", "message" => "Error prepare mov: ".$mysqli->error];
             }
-            // Tipos: i d d i i i i s s  => "iddiiiiss"
             $stmtMov->bind_param(
                 "iddiiiiss",
                 $producto_id,        // i
@@ -654,8 +659,8 @@ class facturasModelo extends mainModel{
             if (!$stmtMov->execute()) {
                 return ["status" => "error", "message" => "Error ejecutar mov: ".$stmtMov->error];
             }
-
-            // 2.2) Actualizar el LOTE
+    
+            // Actualizar lote
             $sqlUp = "UPDATE lotes SET cantidad = ?".($nuevo_saldo_lote <= 0 ? ", estado='Inactivo' " : " ")."WHERE lote_id = ?";
             $up = $mysqli->prepare($sqlUp);
             if (!$up) {
@@ -665,7 +670,7 @@ class facturasModelo extends mainModel{
             if (!$up->execute()) {
                 return ["status" => "error", "message" => "Error update lote: ".$up->error];
             }
-
+    
             $consumos[] = [
                 "lote_id"     => $lote_id,
                 "usado"       => $a_usar,
@@ -675,41 +680,41 @@ class facturasModelo extends mainModel{
             $restante -= $a_usar;
         }
         $stmt->close();
-
-        // 3) Si no hay lotes o no alcanzó, probar flujo sin lotes (producto sin control de lotes)
+    
+        // 3) Sin lote (saldo global)
         if ($restante > 0) {
-            // Saldo global por movimientos
             $saldo_global = (float)$this->getSaldoProductosMovimientosModelo($producto_id);
             if ($saldo_global < $restante) {
                 return ["status" => "error", "message" => "Saldo insuficiente para la salida (falta $restante)"];
             }
             $nuevo_saldo_global = $saldo_global - $restante;
-
-            // Elegir almacén: el solicitado (>0) o el almacén por defecto del producto
+    
             $almacen_mov = $almacen_solicitado > 0 ? $almacen_solicitado : (int)$this->getAlmacenProducto($producto_id);
-
+    
             $insertMov = "INSERT INTO movimientos
                 (productos_id, cantidad_entrada, cantidad_salida, saldo, empresa_id, fecha_registro,
-                almacen_id, lote_id, clientes_id, documento, comentario)
+                 almacen_id, lote_id, clientes_id, documento, comentario)
                 VALUES (?, 0, ?, ?, ?, NOW(), ?, 0, ?, ?, ?)";
             $stmtMov = $mysqli->prepare($insertMov);
             if (!$stmtMov) {
                 return ["status" => "error", "message" => "Error prepare mov (sin lote): ".$mysqli->error];
             }
+            // 8 placeholders → 8 tipos/valores
             $stmtMov->bind_param(
-                "iddiiiiss",
-                $producto_id,
-                $restante,
-                $nuevo_saldo_global,
-                $empresa_id,
-                $almacen_mov,
-                $clientes_id,
-                $documento,
-                $comentario
+                "iddiiiss",
+                $producto_id,        // i
+                $restante,           // d
+                $nuevo_saldo_global, // d
+                $empresa_id,         // i
+                $almacen_mov,        // i
+                $clientes_id,        // i
+                $documento,          // s
+                $comentario          // s
             );
             if (!$stmtMov->execute()) {
                 return ["status" => "error", "message" => "Error ejecutar mov (sin lote): ".$stmtMov->error];
             }
+    
             $consumos[] = [
                 "lote_id"     => 0,
                 "usado"       => $restante,
@@ -718,9 +723,9 @@ class facturasModelo extends mainModel{
             ];
             $restante = 0;
         }
-
+    
         return ["status" => "success", "message" => "Salida registrada (FIFO)", "detalle" => $consumos];
-    }
+    }    
 
     // --- HELPER: almacén por defecto del producto (por si no hay lotes) ---
     protected function getAlmacenProducto($producto_id) {

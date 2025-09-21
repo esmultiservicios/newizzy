@@ -1,4 +1,5 @@
-<?php	
+<?php
+	//ajax/addPagoFacturasChequeAjax.php
 	$peticionAjax = true;
 	require_once "../core/configGenerales.php";
 	

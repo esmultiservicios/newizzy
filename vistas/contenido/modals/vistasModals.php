@@ -1670,31 +1670,21 @@
 </div>
 <!--FIN MODAL PAGOS FACTURACION-->
 
-<!-- =============== MODAL DE PAGOS UNIFICADO (FULL HTML) =============== -->
+<!-- MODAL PAGOS UNIFICADO -->
 <div class="modal fade" id="modal_pagos_unificado" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-dialog payment-modal modal-dialog-centered modal-dialog-scrollable" role="document">
     <div class="payment-content modal-content">
 
-      <!-- Encabezado -->
+      <!-- Header -->
       <div class="payment-header">
         <h4 class="mb-2 d-flex align-items-center">
           <i class="far fa-credit-card mr-2"></i> Método de pago
         </h4>
 
-        <!-- Pasos -->
         <div class="payment-steps" id="paymentSteps" style="--progress-width: 33%;">
-          <div class="step active" data-step="1">
-            <div class="step-icon">1</div>
-            <div class="step-label">Elegir método</div>
-          </div>
-          <div class="step" data-step="2">
-            <div class="step-icon">2</div>
-            <div class="step-label">Detalles</div>
-          </div>
-          <div class="step" data-step="3">
-            <div class="step-icon">3</div>
-            <div class="step-label">Confirmar</div>
-          </div>
+          <div class="step active" data-step="1"><div class="step-icon">1</div><div class="step-label">Elegir método</div></div>
+          <div class="step" data-step="2"><div class="step-icon">2</div><div class="step-label">Detalles</div></div>
+          <div class="step" data-step="3"><div class="step-icon">3</div><div class="step-label">Confirmar</div></div>
         </div>
 
         <button type="button" class="payment-close" data-dismiss="modal" aria-label="Close">
@@ -1702,61 +1692,58 @@
         </button>
       </div>
 
-      <!-- Cuerpo -->
+      <!-- Body -->
       <div class="payment-body">
 
-        <!-- ===== Info cliente / total (pills) ===== -->
-        <div class="payment-info-card">
+        <!-- Pills Cliente / Total -->
+        <div class="payment-info-card" id="pills_info">
           <div class="customer-info">
             <i class="far fa-user"></i>
-            <span class="label">Cliente:</span>
+            <span class="label">Cliente: </span>
             <span class="value" id="customer-name-bill">—</span>
           </div>
-
           <div class="amount-info">
             <i class="far fa-credit-card"></i>
-            <span class="label">Pagar</span>
+            <span class="label">Pagar: </span>
             <span class="amount" id="bill-pay">L. 0.00</span>
           </div>
-
           <input type="hidden" name="customer_bill_pay" id="customer_bill_pay">
         </div>
 
-        <!-- ===== Opciones globales (siempre arriba de los métodos) ===== -->
-        <div class="payment-options-card" id="global_options_bar" style="margin-top:.25rem; margin-bottom:.75rem;">
-          <div class="option-item">
+        <!-- Opciones -->
+        <div class="payment-options-card" id="global_options_bar">
+          <div class="option-item" id="opt_print_wrap">
             <label class="payment-switch mb-0">
               <span class="switch-label">Imprimir comprobante</span>
-              <input type="checkbox" id="comprobante_print_switch" name="comprobante_print_switch" value="0">
+              <input type="checkbox" id="comprobante_print_switch" value="0">
               <span class="payment-slider round"></span>
             </label>
             <span class="question mb-0 ml-2" id="label_print_comprobant">No</span>
           </div>
 
-          <div class="option-item">
+          <!-- PAGO MÚLTIPLE: visible en paso 1, oculto en 2–3 (JS) -->
+          <div class="option-item" id="opt_multi_wrap">
             <label class="payment-switch mb-0">
               <span class="switch-label">Pagos múltiples</span>
-              <input type="checkbox" id="pagos_multiples_switch" name="pagos_multiples_switch" value="0">
+              <input type="checkbox" id="pagos_multiples_switch" value="0">
               <span class="payment-slider round"></span>
             </label>
             <span class="question mb-0 ml-2" id="label_pagos_multiples">Desactivado</span>
           </div>
         </div>
 
-        <!-- ===== PASO 1: MÉTODOS ===== -->
+        <!-- PASO 1: métodos (centrados) -->
         <div class="section-methods" id="section_methods">
           <div class="payment-methods-container">
             <div class="payment-methods-grid" id="paymentMethodsGrid">
 
-              <!-- EFECTIVO -->
-              <div class="method-card default-focus" data-method="cash" tabindex="0" role="button" aria-pressed="false">
+              <div class="method-card default-focus selected" data-method="cash" tabindex="0" role="button" aria-pressed="true">
                 <i class="fas fa-money-bill-wave method-icon" style="color:#26a269;"></i>
                 <div class="method-name">Efectivo</div>
                 <div class="method-badge">Rápido</div>
                 <i class="fas fa-info-circle info-icon" data-toggle="tooltip" title="Pagos en efectivo"></i>
               </div>
 
-              <!-- TARJETA -->
               <div class="method-card" data-method="card" tabindex="0" role="button" aria-pressed="false">
                 <i class="far fa-credit-card method-icon" style="color:#2d7ef7;"></i>
                 <div class="method-name">Tarjeta</div>
@@ -1764,7 +1751,6 @@
                 <i class="fas fa-info-circle info-icon" data-toggle="tooltip" title="Débito/Crédito"></i>
               </div>
 
-              <!-- TRANSFERENCIA -->
               <div class="method-card" data-method="transfer" tabindex="0" role="button" aria-pressed="false">
                 <i class="fas fa-exchange-alt method-icon" style="color:#06b6d4;"></i>
                 <div class="method-name">Transferencia</div>
@@ -1772,7 +1758,6 @@
                 <i class="fas fa-info-circle info-icon" data-toggle="tooltip" title="Transferencia bancaria"></i>
               </div>
 
-              <!-- CHEQUE -->
               <div class="method-card" data-method="check" tabindex="0" role="button" aria-pressed="false">
                 <i class="fas fa-money-check method-icon" style="color:#8b5cf6;"></i>
                 <div class="method-name">Cheque</div>
@@ -1780,28 +1765,34 @@
                 <i class="fas fa-info-circle info-icon" data-toggle="tooltip" title="Pago con cheque"></i>
               </div>
 
-              <!-- PUNTOS -->
               <div class="method-card premium" data-method="points" tabindex="0" role="button" aria-pressed="false">
                 <i class="fas fa-coins method-icon"></i>
                 <div class="method-name">Puntos</div>
                 <div class="method-badge">Loyalty</div>
-                <i class="fas fa-info-circle info-icon" data-toggle="tooltip" title="Redimir puntos del cliente (solo con Efectivo)"></i>
+                <i class="fas fa-info-circle info-icon" data-toggle="tooltip" title="Redimir puntos (solo con Efectivo)"></i>
               </div>
 
             </div>
           </div>
+
+          <!-- Publicidad -->
+          <div class="ad-space mt-3 p-2 text-center">
+            <small class="text-muted">
+              <i class="fas fa-star text-warning"></i>
+              Potenciado por <strong>Su Sistema Premium</strong> · <a href="#" class="ad-link">Conozca más</a>
+              <i class="fas fa-star text-warning"></i>
+            </small>
+          </div>
         </div>
 
-        <!-- ===== PASO 2: DETALLES ===== -->
+        <!-- PASO 2: Detalles -->
         <div id="section_details" style="display:none;">
-
-          <!-- Contenedor de formularios -->
           <div class="payment-details-container">
 
-            <!-- ================= EFECTIVO ================= -->
-            <section class="payment-details payment-step" id="payment_cash" data-method="cash">
-              <div class="detail-header">
-                <div class="method-display"><i class="fas fa-money-bill-wave"></i><span>Efectivo</span></div>
+            <!-- EFECTIVO -->
+            <section class="payment-details payment-step active" id="payment_cash" data-method="cash">
+              <div class="detail-header"><div class="method-display">
+                <i class="fas fa-money-bill-wave"></i><span>Efectivo</span></div>
               </div>
 
               <form class="FormularioAjax" id="formEfectivoBill"
@@ -1847,10 +1838,10 @@
               </form>
             </section>
 
-            <!-- ================= TARJETA ================= -->
+            <!-- TARJETA -->
             <section class="payment-details payment-step" id="payment_card" data-method="card">
-              <div class="detail-header">
-                <div class="method-display"><i class="far fa-credit-card"></i><span>Tarjeta</span></div>
+              <div class="detail-header"><div class="method-display">
+                <i class="far fa-credit-card"></i><span>Tarjeta</span></div>
               </div>
 
               <form class="FormularioAjax" id="formTarjetaBill" method="POST" data-form="save"
@@ -1867,9 +1858,8 @@
                 <input type="hidden" name="origen_pago" id="origen_pago" value="0">
                 <input type="hidden" class="comprobante_print_value" name="comprobante_print" value="0">
                 <input type="hidden" class="multiple_pago" name="multiple_pago" value="0">
-                <input type="number" style="display:none;" name="monto_efectivo" id="monto_efectivo_tarjeta"
-                       class="payment-form-control" step="0.01" placeholder="0.00">
-                <input type="hidden" name="importe" id="importe_tarjeta" step="0.01" placeholder="0.00">
+                <input type="number" style="display:none;" name="monto_efectivo" id="monto_efectivo_tarjeta" step="0.01">
+                <input type="hidden" name="importe_tarjeta" id="importe_tarjeta" step="0.01">
                 <input type="hidden" name="tipo_factura" id="tipo_factura" value="1">
 
                 <div class="payment-form-group">
@@ -1881,7 +1871,7 @@
                   <div class="col-md-6">
                     <div class="payment-form-group">
                       <input type="text" name="exp" id="exp" class="payment-form-control" placeholder=" ">
-                      <label for="exp">Fecha de Expiración (MM/YY)</label>
+                      <label for="exp">Expiración (MM/YY)</label>
                     </div>
                   </div>
                   <div class="col-md-6">
@@ -1904,10 +1894,10 @@
               </form>
             </section>
 
-            <!-- =============== TRANSFERENCIA =============== -->
+            <!-- TRANSFERENCIA -->
             <section class="payment-details payment-step" id="payment_transfer" data-method="transfer">
-              <div class="detail-header">
-                <div class="method-display"><i class="fas fa-exchange-alt"></i><span>Transferencia</span></div>
+              <div class="detail-header"><div class="method-display">
+                <i class="fas fa-exchange-alt"></i><span>Transferencia</span></div>
               </div>
 
               <form class="FormularioAjax" id="formTransferenciaBill" method="POST" data-form="save"
@@ -1924,8 +1914,8 @@
                 <input type="hidden" name="origen_pago" id="origen_pago" value="0">
                 <input type="hidden" class="multiple_pago" name="multiple_pago" value="0">
                 <input type="hidden" class="comprobante_print_value" name="comprobante_print" value="0">
-                <input type="hidden" name="monto_efectivo" id="monto_efectivo" placeholder="0.00">
-                <input type="hidden" name="tipo_factura" id="tipo_factura_transferencia" value="1" step="0.01" placeholder="0.00">
+                <input type="hidden" name="monto_efectivo" id="monto_efectivo">
+                <input type="hidden" name="tipo_factura" id="tipo_factura_transferencia" value="1" step="0.01">
 
                 <div class="payment-form-group">
                   <select id="bk_nm" name="bk_nm" required class="selectpicker form-control"
@@ -1956,10 +1946,10 @@
               </form>
             </section>
 
-            <!-- ================= CHEQUE ================= -->
+            <!-- CHEQUE -->
             <section class="payment-details payment-step" id="payment_check" data-method="check">
-              <div class="detail-header">
-                <div class="method-display"><i class="fas fa-money-check"></i><span>Cheque</span></div>
+              <div class="detail-header"><div class="method-display">
+                <i class="fas fa-money-check"></i><span>Cheque</span></div>
               </div>
 
               <form class="FormularioAjax" id="formChequeBill" method="POST" data-form="save"
@@ -1976,8 +1966,8 @@
                 <input type="hidden" class="comprobante_print_value" name="comprobante_print" value="0">
                 <input type="hidden" name="origen_pago" id="origen_pago" value="0">
                 <input type="hidden" name="factura_id_cheque" id="factura_id_cheque">
-                <input type="hidden" name="monto_efectivo" id="monto_efectivo" placeholder="0.00">
-                <input type="hidden" name="tipo_factura" id="tipo_factura_cheque" value="1" step="0.01" placeholder="0.00">
+                <input type="hidden" name="monto_efectivo" id="monto_efectivo">
+                <input type="hidden" name="tipo_factura" id="tipo_factura_cheque" value="1" step="0.01">
 
                 <div class="payment-form-group">
                   <select id="bk_nm_chk" name="bk_nm_chk" required class="selectpicker form-control"
@@ -2007,10 +1997,10 @@
               </form>
             </section>
 
-            <!-- ================= PUNTOS ================= -->
+            <!-- PUNTOS -->
             <section class="payment-details payment-step" id="payment_points" data-method="points">
-              <div class="detail-header">
-                <div class="method-display"><i class="fas fa-coins"></i><span>Puntos</span></div>
+              <div class="detail-header"><div class="method-display">
+                <i class="fas fa-coins"></i><span>Puntos</span></div>
               </div>
 
               <form class="FormularioAjax" id="formPuntosBill" method="POST" data-form="save"
@@ -2023,14 +2013,12 @@
                   <label for="fecha_puntos">Fecha</label>
                 </div>
 
-                <!-- Hidden comunes -->
                 <input type="hidden" class="comprobante_print_value" name="comprobante_print" value="0">
                 <input type="hidden" class="multiple_pago" name="multiple_pago" value="0">
                 <input type="hidden" name="factura_id_puntos" id="factura_id_puntos">
                 <input type="hidden" name="tipo_factura" id="tipo_factura_puntos" value="1">
                 <input type="hidden" name="origen_pago" id="origen_pago" value="0">
 
-                <!-- Datos puntos -->
                 <div class="payment-form-group">
                   <input type="text" name="puntos_disponibles" id="puntos_disponibles"
                          class="payment-form-control" placeholder=" " readonly>
@@ -2050,7 +2038,7 @@
                   <span class="currency-symbol">L.</span>
                 </div>
 
-                <input type="hidden" name="importe" id="importe_puntos" value="0">
+                <input type="hidden" name="importe_puntos" id="importe_puntos" value="0">
 
                 <div class="payment-form-group">
                   <select id="usuario_puntos" name="usuario_puntos" class="selectpicker form-control"
@@ -2064,20 +2052,78 @@
               </form>
             </section>
 
-          </div><!-- /payment-details-container -->
-        </div><!-- /section_details -->
+          </div>
+        </div>
 
-      </div><!-- /payment-body -->
+        <!-- PASO 3: Confirmar (premium) -->
+        <div id="section_confirm" style="display:none;">
+          <div class="confirm-card premium">
+            <div class="confirm-header">
+              <i class="fas fa-check-circle"></i>
+              <span>Confirmar pago</span>
+            </div>
 
-      <!-- Footer (navegación de pasos) -->
+            <div class="confirm-info-grid">
+              <div class="confirm-info-pill">
+                <i class="far fa-user"></i>
+                <span class="label">Cliente: </span>
+                <span class="value" id="confirm-customer-name">—</span>
+              </div>
+              <div class="confirm-info-pill amount">
+                <i class="far fa-credit-card"></i>
+                <span class="label">Total factura: </span>
+                <span class="value" id="confirm-total-amount">L. 0.00</span>
+              </div>
+            </div>
+
+            <div class="confirm-options-grid">
+              <div class="confirm-option">
+                <span class="option-label">Imprimir comprobante</span>
+                <span class="option-value pill" id="confirm-print-option">No</span>
+              </div>
+              <div class="confirm-option">
+                <span class="option-label">Pagos múltiples</span>
+                <span class="option-value pill" id="confirm-multi-option">Desactivado</span>
+              </div>
+            </div>
+
+            <div class="confirm-separator"></div>
+
+            <div class="payment-methods-summary">
+              <h6>Métodos de pago aplicados:</h6>
+              <div id="confirm-methods-list"></div>
+            </div>
+
+            <div class="confirm-separator"></div>
+
+            <div class="confirm-totals-grid">
+              <div class="total-line">
+                <span>Total a aplicar</span>
+                <span class="total-amount" id="confirm-total-apply">L. 0.00</span>
+              </div>
+              <div class="total-line difference" id="difference-line">
+                <span>Diferencia</span>
+                <span class="total-amount" id="confirm-difference">L. 0.00</span>
+              </div>
+            </div>
+
+            <button type="button" class="btn btn-success btn-block confirm-submit-btn" id="btnConfirmPay">
+              <i class="fas fa-check-circle mr-2"></i> Registrar pago
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer con botones mejorados -->
       <div class="payment-actions">
-        <button type="button" class="payment-btn payment-btn-prev" id="btnPrev">
+        <button type="button" class="payment-btn payment-btn-prev btn-warning" id="btnPrev">
           <i class="fas fa-arrow-left"></i> Atrás
         </button>
         <button type="button" class="payment-btn payment-btn-next" id="btnNext">
           <i class="fas fa-arrow-right"></i> Continuar
         </button>
-        <button type="button" class="payment-btn payment-btn-close" data-dismiss="modal">
+        <button type="button" class="payment-btn payment-btn-close btn-secondary" data-dismiss="modal">
           <i class="fas fa-times"></i> Cerrar
         </button>
       </div>
@@ -2085,7 +2131,7 @@
     </div>
   </div>
 </div>
-<!-- =============== /MODAL DE PAGOS UNIFICADO =============== -->
+<!-- /MODAL PAGOS UNIFICADO -->
 
 <!--INICIO MODAL CLIENTES-->
 <div class="modal fade" id="modal_registrar_clientes">

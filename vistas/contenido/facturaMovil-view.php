@@ -117,8 +117,12 @@
                                 <span id="subtotal">L. 0.00</span>
                             </div>
                             <div class="total-row">
-                                <span>ISV:</span>
-                                <span id="isv">L. 0.00</span>
+                                <span>ISV 15%:</span>
+                                <span id="isv-15">L. 0.00</span>
+                            </div>
+                            <div class="total-row">
+                                <span>ISV 18%:</span>
+                                <span id="isv-18">L. 0.00</span>
                             </div>
                             <div class="total-row">
                                 <span>Descuento:</span>
@@ -215,7 +219,6 @@
           </button>
         </div>
       </div>
-
 
     </div>
   </div>

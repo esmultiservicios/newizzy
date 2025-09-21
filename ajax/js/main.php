@@ -811,6 +811,80 @@ function getCajero(setAlways = false) {
   });
 }
 
+/* ============================================================
+   ÚNICA función para resolver % ISV desde la BD según flags
+   - isv2Flag=1  => consulta isv_id=2 (18%)
+   - else isv1=1 => consulta isv_id=1 (15%)
+   Devuelve: { id: 0|1|2, valor: number }  (valor en %)
+============================================================ */
+function getPorcentajeISV(isv1Flag, isv2Flag) {
+    try {
+        var isv1 = parseInt(isv1Flag, 10) === 1;
+        var isv2 = parseInt(isv2Flag, 10) === 1;
+        var id = 0;
+
+        if (isv2)      id = 2;
+        else if (isv1) id = 1;
+
+        if (id === 0) return { id: 0, valor: 0 };
+
+        var resp = { id: id, valor: 0 };
+        $.ajax({
+            type: 'POST',
+            url: '<?php echo SERVERURL; ?>core/facturas/getISVValor.php',
+            data: { isv_id: id },
+            async: false,
+            success: function(r){
+                try{
+                    var j = (typeof r === 'string') ? JSON.parse(r) : r;
+                    resp.id    = parseInt(j.id || 0, 10);
+                    resp.valor = parseFloat(j.valor || 0);
+                }catch(_){}
+            }
+        });
+        return resp;
+    } catch(_) {
+        return { id: 0, valor: 0 };
+    }
+}
+
+/* ============================
+   Cache y fetch de % ISV 1/2
+   ============================ */
+   const ISV_CACHE = {
+  1: { valor: 0, activar: 0, loaded: false }, // ejemplo 15
+  2: { valor: 0, activar: 0, loaded: false }  // ejemplo 18
+};
+
+// Devuelve Promise<number> con el % (0..100)
+function fetchISVPercent(isv_id){
+  return new Promise((resolve) => {
+    if (ISV_CACHE[isv_id] && ISV_CACHE[isv_id].loaded){
+      resolve(ISV_CACHE[isv_id].activar === 1 ? ISV_CACHE[isv_id].valor : 0);
+      return;
+    }
+    $.ajax({
+      url: "<?php echo SERVERURL; ?>core/facturas/getISVValor.php",
+      type: "POST",
+      dataType: "json",
+      data: { isv_id },
+      success: function(r){
+        const val = parseFloat(r && r.valor ? r.valor : 0);
+        const act = parseInt(r && r.activar ? r.activar : 0, 10);
+        ISV_CACHE[isv_id] = { valor: isNaN(val)?0:val, activar: act===1?1:0, loaded:true };
+        resolve(ISV_CACHE[isv_id].activar === 1 ? ISV_CACHE[isv_id].valor : 0);
+      },
+      error: function(){
+        ISV_CACHE[isv_id] = { valor:0, activar:0, loaded:true };
+        resolve(0);
+      }
+    });
+  });
+}
+
+// (opcional) precarga ambos una vez
+(function prefetchISVs(){ Promise.all([fetchISVPercent(1), fetchISVPercent(2)]); })();
+
 function getPorcentajeISV(documento) {
     var url = '<?php echo SERVERURL;?>core/getISV.php';
 
@@ -4917,13 +4991,16 @@ $(function() {
 });*/
 /*FIN DE PAGO MODAL*/
 
+
 /* ============================================================
-   MODAL PAGOS UNIFICADO – JS COMPLETO (EFECTIVO/TARJETA/TRANSF/CHEQUE/PUNTOS)
+   MODAL PAGOS UNIFICADO – JS (pasos + reglas Factura/CxC + confirm pro)
    ============================================================ */
 
 /* === Config redención de puntos === */
 let VALOR_POR_PUNTO = 1;
 let CURRENT_FACTURA_ID = null;
+let CURRENT_TIPO_PAGO = 1;     // 1: factura, 2: CxC
+let CURRENT_ORIGEN = '';       // 'cxc' para CxC
 
 /* === Utilidades numéricas === */
 function normalizarMontoEntrada(str){
@@ -4933,23 +5010,24 @@ function normalizarMontoEntrada(str){
   if (p.length > 1) v = p[0] + '.' + p[1].slice(0, 2);
   return v;
 }
-function parseMonto(str){ const n = parseFloat(normalizarMontoEntrada(str)); return isNaN(n) ? 0 : n; }
+function parseMonto(str){
+  const n = parseFloat(normalizarMontoEntrada(str));
+  return isNaN(n) ? 0 : n;
+}
 function fixed2(v){ return (parseFloat(v||0) || 0).toFixed(2); }
 function fmtMiles(v){
   const n = (typeof v === 'number') ? v : parseMonto(v);
-  return n.toLocaleString('es-HN',{minimumFractionDigits:2, maximumFractionDigits:2});
+  return n.toLocaleString('es-HN', {minimumFractionDigits:2, maximumFractionDigits:2});
 }
 
-/* === Estado del wizard / selección === */
-let CURRENT_STEP = 1;                      // 1: métodos, 2: detalles
-const ALL_METHODS = ['cash','card','transfer','check','points'];
-let SELECTED_METHODS = new Set();
-let LAST_SELECTED = null;
+/* === Estado del wizard === */
+let CURRENT_STEP = 1;               // 1: métodos, 2: detalles, 3: confirmar
+let SELECTED_METHODS = new Set(['cash']);   // efectivo por defecto
+let LAST_SELECTED = 'cash';
 
-/* Helpers (soporta duplicados de ID dentro del modal) */
-const isMultiOn = () => $('#modal_pagos_unificado input[id="pagos_multiples_switch"]:checked').length > 0;
+/* Guardamos los importes que realmente se aplicarán al confirmar */
+let LAST_APPLIED_AMOUNTS = { cash:0, card:0, transfer:0, check:0, points:0 };
 
-/* Mapeos */
 const methodIdMap = {
   cash:'#payment_cash',
   card:'#payment_card',
@@ -4958,54 +5036,205 @@ const methodIdMap = {
   points:'#payment_points'
 };
 
-function updateMethodsUI(){
-  $('#paymentMethodsGrid .method-card').each(function(){
-    const m = $(this).data('method');
-    $(this).toggleClass('selected', SELECTED_METHODS.has(m))
-           .attr('aria-pressed', SELECTED_METHODS.has(m) ? 'true' : 'false');
+const formMap = {
+  cash: () => $('#formEfectivoBill'),
+  card: () => $('#formTarjetaBill'),
+  transfer: () => $('#formTransferenciaBill'),
+  check: () => $('#formChequeBill'),
+  points: () => $('#formPuntosBill')
+};
+
+/* === Primer input por método (para focus) === */
+const firstFieldByMethod = {
+  cash     : '#efectivo_bill',
+  card     : '#cr_bill',
+  transfer : '#importe_transferencia',
+  check    : '#importe_cheque',
+  points   : '#puntos_uso'
+};
+
+/* === Campo de importe por método (para validaciones) === */
+const amountFieldByMethod = {
+  cash     : '#efectivo_bill',
+  card     : '#importe_tarjeta',
+  transfer : '#importe_transferencia',
+  check    : '#importe_cheque',
+  points   : '#puntos_uso'
+};
+
+/* ====== FOCUS ROBUSTO ====== */
+/* Espera hasta que el elemento exista, esté visible y habilitado */
+function waitForVisible($root, selector, maxTries = 20, delay = 40){
+  return new Promise((resolve, reject) => {
+    let tries = 0;
+    const tick = () => {
+      const $el = $root.find(selector).first();
+      if ($el.length && $el.is(':visible') && !$el.is(':disabled') && $el[0].offsetParent !== null){
+        resolve($el);
+        return;
+      }
+      if (++tries >= maxTries) {
+        resolve($()); // vacío -> el caller hará fallback
+        return;
+      }
+      // usar rAF para sincronizar con el layout
+      requestAnimationFrame(()=> setTimeout(tick, delay));
+    };
+    tick();
   });
-  if (SELECTED_METHODS.size === 0){
-    $('#paymentMethodsGrid .method-card').removeClass('default-focus');
-    $('#paymentMethodsGrid .method-card[data-method="cash"]').addClass('default-focus');
-  }else{
-    $('#paymentMethodsGrid .method-card').removeClass('default-focus');
-  }
-  $('#btnNext').prop('disabled', SELECTED_METHODS.size === 0);
 }
 
-/* === Pasos (UI) === */
+/* Enfoca con múltiples intentos, cuidando inputmask/caret y scroll */
+async function forceFocus(selector, opts = {}){
+  const $m = $('#modal_pagos_unificado');
+  const $candidate = await waitForVisible($m, selector, 25, 30);
+  let $el = $candidate;
+
+  // Fallback: primer input visible/habilitado dentro del form activo
+  if (!$el.length){
+    const $activeForms = $m.find('.payment-details.payment-step.active:visible');
+    const $fallback = $activeForms.find('input:visible:enabled,select:visible:enabled,textarea:visible:enabled').first();
+    if ($fallback.length) $el = $fallback;
+  }
+
+  if (!$el.length) return false;
+
+  try{
+    // Asegurar que el elemento esté a la vista antes del focus
+    if ($el[0].scrollIntoView) {
+      $el[0].scrollIntoView({behavior: 'instant', block: 'center', inline: 'nearest'});
+    }
+
+    // Intento 1
+    $el.trigger('focus');
+    if (document.activeElement !== $el[0]) $el[0].focus({preventScroll:true});
+
+    // Si usa inputmask, a veces requiere un micro delay para fijar caret
+    const masked = !!($el.data && $el.data('inputmask'));
+    setTimeout(() => {
+      try{
+        const v = ($el.val() || '').toString();
+        if ($el[0].setSelectionRange && $el[0].type !== 'date') {
+          $el[0].setSelectionRange(v.length, v.length);
+        }
+      }catch(_){}
+    }, masked ? 60 : 10);
+
+    // Efecto visual
+    $el.addClass('focus-field');
+    setTimeout(()=> $el.removeClass('focus-field'), 800);
+
+    return true;
+  }catch(e){
+    console.log('Error en forceFocus:', e);
+    return false;
+  }
+}
+
+/* Garantiza que el contenedor y el form del método estén visibles en el modal y luego enfoca */
+async function focusFirstFieldFor(method){
+  const $m = $('#modal_pagos_unificado');
+  const selField = firstFieldByMethod[method] || null;
+  const formSelector = methodIdMap[method];
+
+  // Asegurar contenedor de detalles visible
+  $m.find('#section_details').show().css('display','block');
+
+  // Asegurar que el form del método esté visible y marcado como activo
+  if (formSelector){
+    const $form = $m.find(formSelector);
+    if ($form.length){
+      // Si no estás en múltiples, desactiva los demás para que :visible no se confunda
+      if (!isMultiOn()){
+        $m.find('.payment-details.payment-step').removeClass('active').hide();
+      }
+      $form.addClass('active').show().css('display','block');
+    }
+  }
+
+  // Enfocar el mapeado; si no existe, fallback al primer input visible
+  if (selField){
+    const ok = await forceFocus(selField);
+    if (!ok){
+      const $activeForms = $m.find('.payment-details.payment-step.active:visible');
+      const $fallback = $activeForms.find('input:visible:enabled,select:visible:enabled,textarea:visible:enabled').first();
+      if ($fallback.length) await forceFocus('#'+($fallback.attr('id')||'')); // intenta por id si existe
+    }
+  }else{
+    const $activeForms = $m.find('.payment-details.payment-step.active:visible');
+    const $fallback = $activeForms.find('input:visible:enabled,select:visible:enabled,textarea:visible:enabled').first();
+    if ($fallback.length) await forceFocus('#'+($fallback.attr('id')||''));
+  }
+}
+
+/* Helpers de estado */
+const isMultiOn = () => $('#modal_pagos_unificado').find('#pagos_multiples_switch').is(':checked');
+const isCxC      = () => (String(CURRENT_TIPO_PAGO) === '2') || (String(CURRENT_ORIGEN).toLowerCase() === 'cxc');
+const isFactura  = () => !isCxC();
+
+/* Pasos (UI) */
 function setStepActive(stepIdx){
   const $m = $('#modal_pagos_unificado');
   $m.find('.payment-header .step').removeClass('active');
   $m.find('.payment-header .step[data-step="'+stepIdx+'"]').addClass('active');
   $m.find('#paymentSteps').css('--progress-width', stepIdx===1 ? '33%' : (stepIdx===2 ? '66%' : '100%'));
 }
+
 function goToStep(step){
   const $m = $('#modal_pagos_unificado');
   CURRENT_STEP = step;
 
+  const $singleBtns = $m.find('#pago_efectivo,#pago_tarjeta,#pago_transferencia,#pago_cheque,#pago_puntos');
+
   if (step === 1) {
+    $('#pills_info').show();
+    $('#global_options_bar').show();
+    $('#opt_multi_wrap').show();      /* Pagos múltiples visible SOLO en Paso 1 */
     $m.find('#section_methods').show();
     $m.find('#section_details').hide();
+    $m.find('#section_confirm').hide();
     setStepActive(1);
     $m.find('#btnPrev').prop('disabled', true);
-    $m.find('#btnNext').show().prop('disabled', SELECTED_METHODS.size === 0);
-    updateMethodsUI();
-  } else {
+    $m.find('#btnNext').show().prop('disabled', SELECTED_METHODS.size===0);
+
+  } else if (step === 2) {
+    $('#pills_info').show();
+    $('#global_options_bar').show();
+    $('#opt_multi_wrap').hide();      /* múltiples oculto en Paso 2 */
     $m.find('#section_methods').hide();
-    $m.find('#section_details').show();
+    $m.find('#section_details').show(); // IMPORTANTE: Mostrar primero el contenedor
+    $m.find('#section_confirm').hide();
     setStepActive(2);
     $m.find('#btnPrev').prop('disabled', false);
-    $m.find('#btnNext').hide();
+    $m.find('#btnNext').show().prop('disabled', false);
+
+    // Mostrar formularios después de mostrar el contenedor
     showDetailsForSelected();
+    $singleBtns.hide();
+
+    // Focus con timing mejorado - esperar a que todo esté visible
+    setTimeout(async ()=>{
+      const method = (SELECTED_METHODS.size > 1)
+        ? (LAST_SELECTED && SELECTED_METHODS.has(LAST_SELECTED) ? LAST_SELECTED : Array.from(SELECTED_METHODS)[0])
+        : Array.from(SELECTED_METHODS)[0];
+
+      await focusFirstFieldFor(method);
+    }, 220);
+
+  } else { // step 3
+    $('#pills_info').hide();
+    $('#global_options_bar').hide();  /* En confirmar no se muestran switches */
+    $m.find('#section_methods').hide();
+    $m.find('#section_details').hide();
+    $m.find('#section_confirm').show();
+    setStepActive(3);
+    $m.find('#btnPrev').prop('disabled', false);
+    $m.find('#btnNext').hide();
+    buildConfirmSummary();
   }
 }
 
-/* === Reglas de combinación (múltiple) ===
-   - Máximo 2 métodos.
-   - La combinación válida SIEMPRE incluye EFECTIVO.
-   - PUNTOS solo con EFECTIVO.
-*/
+/* === Reglas múltiple === */
 function isValidCombo(newSet){
   if (newSet.size > 2) return {ok:false, msg:'Máximo 2 métodos en pagos múltiples.'};
   const hasCash   = newSet.has('cash');
@@ -5017,99 +5246,358 @@ function isValidCombo(newSet){
   return {ok:true};
 }
 
-/* Elegir/quitar método */
+/* Métodos: selección */
+function updateMethodsUI(){
+  const $m = $('#modal_pagos_unificado');
+  const $cards = $m.find('#paymentMethodsGrid .method-card');
+
+  $cards.removeClass('selected').attr('aria-pressed','false');
+  $cards.each(function(){
+    const k = $(this).data('method');
+    if (SELECTED_METHODS.has(k)) $(this).addClass('selected').attr('aria-pressed','true');
+  });
+
+  $m.find('#paymentMethodsGrid .method-card').removeClass('default-focus');
+  if (SELECTED_METHODS.size===0){
+    $m.find('#paymentMethodsGrid .method-card[data-method="cash"]').addClass('default-focus');
+  }
+
+  if (CURRENT_STEP===1){
+    $m.find('#btnNext').prop('disabled', SELECTED_METHODS.size===0);
+  }
+
+  if (CURRENT_STEP===2){
+    showDetailsForSelected();
+    // Focus mejorado para paso 2
+    setTimeout(async () => {
+      const method = LAST_SELECTED && SELECTED_METHODS.has(LAST_SELECTED) ? LAST_SELECTED : Array.from(SELECTED_METHODS)[0];
+      if (method) {
+        await focusFirstFieldFor(method);
+      }
+    }, 200);
+  }
+}
+
 function toggleMethod(method){
   LAST_SELECTED = method;
 
   if (!isMultiOn()){
     SELECTED_METHODS = new Set([method]);
     updateMethodsUI();
+    if (CURRENT_STEP===2) {
+      setTimeout(async ()=> { await focusFirstFieldFor(method); }, 150);
+    }
     return;
   }
 
-  let candidate = new Set(SELECTED_METHODS);
+  const candidate = new Set(SELECTED_METHODS);
   if (candidate.has(method)) candidate.delete(method);
   else candidate.add(method);
 
   const v = isValidCombo(candidate);
   if (!v.ok){
-    if (typeof showNotify === 'function') showNotify('warning','Atención', v.msg);
-    else alert(v.msg);
+    if (typeof showNotify === 'function') {
+      showNotify('warning','Atención', v.msg);
+      setTimeout(async () => {
+        const focusM = LAST_SELECTED && SELECTED_METHODS.has(LAST_SELECTED) ? LAST_SELECTED : Array.from(SELECTED_METHODS)[0] || 'cash';
+        if (CURRENT_STEP === 2) await focusFirstFieldFor(focusM);
+      }, 320);
+    } else {
+      alert(v.msg);
+      const focusM = LAST_SELECTED && SELECTED_METHODS.has(LAST_SELECTED) ? LAST_SELECTED : Array.from(SELECTED_METHODS)[0] || 'cash';
+      setTimeout(async () => {
+        if (CURRENT_STEP === 2) await focusFirstFieldFor(focusM);
+      }, 160);
+    }
     return;
   }
-  SELECTED_METHODS = candidate;
 
+  SELECTED_METHODS = candidate;
   if (method === 'points' && SELECTED_METHODS.has('points') && CURRENT_FACTURA_ID){
     cargarPuntosClienteAjax(CURRENT_FACTURA_ID);
   }
-
   updateMethodsUI();
 }
 
-/* === Mostrar formularios según selección === */
+/* Mostrar formularios (paso 2) */
 function showDetailsForSelected(){
-  $('.payment-details.payment-step').removeClass('active').hide();
+  const $m = $('#modal_pagos_unificado');
+
+  // Primero ocultar todo
+  $m.find('.payment-details.payment-step').removeClass('active').hide();
+
   if (SELECTED_METHODS.size === 0) return;
 
+  // Asegurar que el contenedor principal esté visible
+  $m.find('#section_details').show().css('display', 'block');
+
+  // Mostrar los formularios seleccionados
   SELECTED_METHODS.forEach(m => {
     const sel = methodIdMap[m];
-    if (sel) $(sel).addClass('active').show();
+    if (sel) {
+      const $form = $m.find(sel);
+      $form.addClass('active').show().css('display', 'block');
+    }
   });
 
-  refreshMultipleButton();
-  $('.payment-details-container').scrollTop(0);
-}
-
-/* === Botón combinado (crear/mostrar/ocultar) === */
-function ensureMultipleButton(){
-  const $wrap = $('.payment-details-container');
-  if (!$('#pago_multiple').length){
-    const $btn = $('<button/>',{
-      id:'pago_multiple',
-      class:'btn btn-primary btn-block mt-2',
-      html:'<i class="fas fa-check mr-1"></i> Efectuar Pago (múltiple)'
-    });
-    $wrap.append($('<div id="multipleBtnHolder" class="mt-2"></div>').append($btn));
-    $btn.on('click', doMultiplePayment);
+  // efectivo: mostrar/ocultar "Cambio" según reglas
+  const $f = $('#formEfectivoBill');
+  if ($f.length){
+    if (isMultiOn() || isCxC()) $f.find('#grupo_cambio_efectivo').hide();
+    else $f.find('#grupo_cambio_efectivo').show();
   }
-}
-function refreshMultipleButton(){
-  ensureMultipleButton();
-  const multiple = isMultiOn();
-  const twoSelected = SELECTED_METHODS.size === 2;
-  const singleBtns = '#pago_efectivo,#pago_tarjeta,#pago_transferencia,#pago_cheque,#pago_puntos';
-  $(singleBtns).toggle(!(multiple && twoSelected));
-  $('#multipleBtnHolder').toggle(multiple && twoSelected);
+
+  $m.find('.payment-details-container').scrollTop(0);
 }
 
-/* === Envío múltiple: mandar formularios UNO A UNO (reusa endpoints) === */
+/* Envío múltiple en cadena */
 function submitFormAjax($f){
-  return $.ajax({ type: ($f.attr('method')||'POST'), url: $f.attr('action'), data: $f.serialize(), dataType:'json' });
+  const method = ($f.attr('method')||'POST');
+  const url    = $f.attr('action');
+  const data   = $f.serialize();
+
+  return $.ajax({ type: method, url, data /* SIN dataType */ })
+    .then(function(resp){
+      // 1) Si viene JSON, úsalo
+      try {
+        const j = (typeof resp === 'string') ? JSON.parse(resp) : resp;
+        if (j && j.status === false) return $.Deferred().reject(j).promise();
+        return j;
+      } catch(e) {
+        // 2) No es JSON -> inyecta para ejecutar el <script> showNotify(...)
+        let $box = $f.find('.RespuestaAjax');
+        if (!$box.length) $box = $('<div class="RespuestaAjax" style="display:none;"></div>').appendTo($f);
+        $box.html(resp);
+        return { ok:true, html:true };
+      }
+    }, function(xhr){
+      return $.Deferred().reject({ error:true, message:xhr.statusText || 'Ajax error' }).promise();
+    });
 }
+
 function doMultiplePayment(){
   const order = ['points','card','transfer','check','cash']; // efectivo al final
-  const formMap = {
-    cash: $('#formEfectivoBill'),
-    card: $('#formTarjetaBill'),
-    transfer: $('#formTransferenciaBill'),
-    check: $('#formChequeBill'),
-    points: $('#formPuntosBill')
-  };
-  const forms = order.filter(m => SELECTED_METHODS.has(m)).map(m => formMap[m]).filter($f => $f && $f.length);
-
+  const forms = order.filter(m => SELECTED_METHODS.has(m)).map(m => formMap[m]()).filter($f => $f && $f.length);
   let chain = Promise.resolve();
   forms.forEach(($f) => { chain = chain.then(() => submitFormAjax($f)); });
+  return chain;
+}
 
-  chain.then(() => {
-    if (typeof showNotify === 'function') showNotify('success','Éxito','Pago múltiple registrado.');
-    $('#modal_pagos_unificado').modal('hide');
-  }).catch(() => {
-    if (typeof showNotify === 'function') showNotify('error','Error','No se pudo registrar el pago múltiple.');
-    else alert('No se pudo registrar el pago múltiple.');
+/* Lectura de importes digitados (no aplicados) */
+function readAmounts(){
+  const $m = $('#modal_pagos_unificado');
+  const totalFactura = parseMonto($m.find('#customer_bill_pay').val());
+  const amounts = {
+    cash     : parseMonto($m.find('#formEfectivoBill #efectivo_bill').val()),
+    card     : parseMonto($m.find('#formTarjetaBill #importe_tarjeta').val()),
+    transfer : parseMonto($m.find('#formTransferenciaBill #importe_transferencia').val()),
+    check    : parseMonto($m.find('#formChequeBill #importe_cheque').val()),
+    points   : parseMonto($m.find('#formPuntosBill #importe_puntos').val())
+  };
+  const sumSel = [...SELECTED_METHODS].reduce((acc,m)=>acc+(amounts[m]||0),0);
+  return { totalFactura, amounts, sumSel };
+}
+
+/* === Cálculo de importes APLICADOS (lo que realmente se guarda) === */
+function computeAppliedAmounts(){
+  const { totalFactura, amounts } = readAmounts();
+  const apply = { cash:0, card:0, transfer:0, check:0, points:0 };
+
+  if (isFactura()){
+    if (isMultiOn() && SELECTED_METHODS.size === 2){
+      // No-efectivo se aplica tal cual digitado, efectivo es el restante
+      apply.card     = amounts.card;
+      apply.transfer = amounts.transfer;
+      apply.check    = amounts.check;
+      apply.points   = amounts.points;
+      const nonCash  = (apply.card + apply.transfer + apply.check + apply.points);
+      apply.cash     = Math.max(totalFactura - nonCash, 0);
+    }else{
+      // Pago único en factura: siempre se aplica el total (aunque digitaste más)
+      const only = [...SELECTED_METHODS][0];
+      if (only) apply[only] = totalFactura;
+    }
+  }else{
+    // CxC: se aplica lo digitado (con validaciones ya controladas)
+    apply.cash     = amounts.cash;
+    apply.card     = amounts.card;
+    apply.transfer = amounts.transfer;
+    apply.check    = amounts.check;
+    apply.points   = amounts.points;
+  }
+
+  const sumApplied = [...SELECTED_METHODS].reduce((acc,m)=> acc + (apply[m]||0), 0);
+  return { totalFactura, amounts, apply, sumApplied };
+}
+
+/* Validación antes de confirmar (paso 2 -> 3) */
+function validateBeforeConfirm(){
+  const { totalFactura, amounts, sumSel } = readAmounts();
+  const multi = isMultiOn();
+
+  for (const m of SELECTED_METHODS){
+    const v = amounts[m] || 0;
+    const focusField = amountFieldByMethod[m] || null;
+
+    if (m === 'points'){
+      if (v <= 0){ warn('Debes ingresar puntos válidos.', focusField); return false; }
+      continue;
+    }
+
+    if (v <= 0){ warn('El importe debe ser mayor que 0.', focusField); return false; }
+
+    if (!multi){
+      if (isCxC()){
+        // CxC pago único: cualquier método >0 y ≤ total
+        if (v > totalFactura + 0.0001){ warn('En CxC, el importe no puede exceder el total.', focusField); return false; }
+      }else{
+        // Factura pago único
+        if (m !== 'cash'){
+          if (Math.abs(v - totalFactura) > 0.005){ warn('En factura, pago único NO efectivo debe ser igual al total.', focusField); return false; }
+        }else{
+          if (v + 0.0001 < totalFactura){ warn('En factura, efectivo debe ser igual o mayor al total.', focusField); return false; }
+        }
+      }
+    }
+  }
+
+  if (multi){
+    if (isFactura()){
+      if (!SELECTED_METHODS.has('cash')){ warn('En factura, el pago múltiple debe incluir efectivo.', amountFieldByMethod[Array.from(SELECTED_METHODS)[0]]); return false; }
+      const noCashSum = (amounts.card + amounts.transfer + amounts.check + amounts.points);
+      if (noCashSum > totalFactura + 0.0001){
+        const firstNonCash = ['card','transfer','check','points'].find(k => SELECTED_METHODS.has(k));
+        warn('La parte no efectiva no puede exceder el total.', amountFieldByMethod[firstNonCash]); return false;
+      }
+      // No exijo que el efectivo digitado sea >= restante; el botón Confirmar se habilita por suma total
+    }else{
+      if (sumSel > totalFactura + 0.0001){
+        const focusM = LAST_SELECTED && SELECTED_METHODS.has(LAST_SELECTED) ? LAST_SELECTED : Array.from(SELECTED_METHODS)[0];
+        warn('En CxC, la suma de métodos no puede exceder el total.', amountFieldByMethod[focusM]); return false;
+      }
+    }
+  }
+
+  return true;
+
+  function warn(msg, selectorToFocus){
+    if (typeof showNotify === 'function') {
+      showNotify('warning','Atención', msg);
+      // Restaurar foco después de que se muestre la notificación
+      setTimeout(async () => {
+        if (selectorToFocus) {
+          await forceFocus(selectorToFocus);
+          const $field = $(selectorToFocus).first();
+        if ($field.length && $field[0]) {
+            $field[0].setCustomValidity(msg);
+            $field[0].reportValidity();
+            setTimeout(() => { try{ $field[0].setCustomValidity(""); }catch(_){ } }, 2000);
+          }
+        }
+      }, 280);
+    } else {
+      alert(msg);
+      if (selectorToFocus) {
+        setTimeout(async () => {
+          await forceFocus(selectorToFocus);
+          const $field = $(selectorToFocus).first();
+          if ($field.length) {
+            $field.addClass('error-field');
+            setTimeout(() => { $field.removeClass('error-field'); }, 1800);
+          }
+        }, 140);
+      }
+    }
+  }
+}
+
+/* Paso 3: resumen y confirmación */
+function buildConfirmSummary(){
+  const $m = $('#modal_pagos_unificado');
+
+  const { totalFactura, amounts, apply, sumApplied } = computeAppliedAmounts();
+  LAST_APPLIED_AMOUNTS = apply; // guardar para usar al confirmar
+
+  $('#confirm-customer-name').text($m.find('#customer-name-bill').text() || '—');
+  $('#confirm-total-amount').text('L. ' + fmtMiles(totalFactura));
+  $('#confirm-print-option').text($('#comprobante_print_switch').is(':checked') ? 'Sí' : 'No');
+  $('#confirm-multi-option').text(isMultiOn() ? 'Activado' : 'Desactivado');
+
+  const pretty = {cash:'Efectivo',card:'Tarjeta',transfer:'Transferencia',check:'Cheque',points:'Puntos'};
+  let listHtml = '';
+  [...SELECTED_METHODS].forEach(m=>{
+    // Mostrar lo que SE APLICARÁ realmente
+    listHtml += `<div class="method-summary-item">
+      <span class="method-summary-name">${pretty[m]}</span>
+      <span class="method-summary-amount">L. ${fmtMiles(apply[m]||0)}</span>
+    </div>`;
+  });
+  if (!listHtml) listHtml = '<div class="text-muted">No hay métodos seleccionados.</div>';
+  $('#confirm-methods-list').html(listHtml);
+
+  const diff = totalFactura - sumApplied;
+  $('#confirm-total-apply').text('L. ' + fmtMiles(sumApplied));
+  $('#confirm-difference').text('L. ' + fmtMiles(diff));
+  $('#difference-line').toggleClass('ok', Math.abs(diff) < 0.005);
+
+  // Habilitar según tus reglas (mantenemos la misma lógica de habilitación)
+  const canConfirm = (isFactura() ? ( (amounts.cash + amounts.card + amounts.transfer + amounts.check + amounts.points) >= totalFactura )
+                                   : ( (amounts.cash + amounts.card + amounts.transfer + amounts.check + amounts.points) > 0
+                                       && (amounts.cash + amounts.card + amounts.transfer + amounts.check + amounts.points) <= totalFactura ));
+  $('#btnConfirmPay').prop('disabled', !canConfirm).off('click').on('click', function(){
+    $(this).prop('disabled', true);
+
+    const finishOk  = () => { if (typeof showNotify === 'function') showNotify('success','Éxito','Pago registrado.'); $('#modal_pagos_unificado').modal('hide'); };
+    const finishErr = () => { if (typeof showNotify === 'function') showNotify('error','Error','No se pudo registrar el pago.'); $('#btnConfirmPay').prop('disabled', false); };
+
+    // Valor de impresión para TODOS los formularios
+    const printVal = $('#comprobante_print_switch').is(':checked') ? 1 : 0;
+    $('.comprobante_print_value').val(printVal);
+
+    // === ANTES DE ENVIAR: sincronizamos cada formulario con el IMPORTE APLICADO ===
+    const applyVal = (m) => parseFloat(fixed2(LAST_APPLIED_AMOUNTS[m] || 0));
+
+    if (isMultiOn() && SELECTED_METHODS.size===2){
+      $('.multiple_pago').val(1);
+      const order = ['points','card','transfer','check','cash'];
+      order.filter(m => SELECTED_METHODS.has(m)).forEach(m => {
+        ensureFacturaId(m);
+        syncAmountToForm(m, applyVal(m)); // override con el aplicado
+      });
+      doMultiplePayment().then(finishOk).catch(finishErr);
+
+    } else {
+      $('.multiple_pago').val(0);
+      const only = [...SELECTED_METHODS][0];
+      ensureFacturaId(only);
+      syncAmountToForm(only, applyVal(only)); // override con el aplicado
+
+      const $f = formMap[only]();
+      $f.find('.comprobante_print_value').val(printVal);
+      $f.find('.multiple_pago').val(0);
+      submitFormAjax($f).then(finishOk).catch(finishErr);
+    }
   });
 }
 
-/* === Config de cada formulario === */
+/* === Efectivo: cálculo de cambio (según lo digitado) === */
+function calcularCambioEfectivo(){
+  const $f = $('#modal_pagos_unificado #formEfectivoBill'); if (!$f.length) return;
+  const efectivo = parseMonto($f.find('#efectivo_bill').val());
+  const monto    = parseMonto($('#modal_pagos_unificado #customer_bill_pay').val());
+
+  if (isMultiOn() || isCxC()){
+    $f.find('#cambio_efectivo').val('0.00');
+    $f.find('#pago_efectivo').prop('disabled', !(efectivo > 0));
+    return;
+  }
+
+  const cambio = Math.max(efectivo - monto, 0);
+  $f.find('#cambio_efectivo').val(fmtMiles(cambio));
+  $f.find('#pago_efectivo').prop('disabled', !(efectivo > 0));
+}
+
+/* Config formularios */
 function configurarFormularioEfectivo(facturas_id,tipoPago,monto,origen){
   const $f = $('#modal_pagos_unificado #formEfectivoBill'); if ($f[0]) $f[0].reset();
   const m = parseMonto(monto);
@@ -5118,15 +5606,13 @@ function configurarFormularioEfectivo(facturas_id,tipoPago,monto,origen){
   $f.find('#tipo_factura').val(tipoPago);
   $f.find('#origen_pago').val(origen);
   $f.find('#pago_efectivo').prop('disabled', true);
+  $f.find('#efectivo_bill').prop('required', true).val(''); // **mostrar vacío siempre**
 
-  if (isMultiOn()){
-    $f.find('#grupo_cambio_efectivo').hide();
-    $f.find('#cambio_efectivo').val('0.00');
-  }else{
-    $f.find('#grupo_cambio_efectivo').show();
-  }
+  if (isMultiOn() || isCxC()){ $f.find('#grupo_cambio_efectivo').hide(); $f.find('#cambio_efectivo').val('0.00'); }
+  else { $f.find('#grupo_cambio_efectivo').show(); }
   calcularCambioEfectivo();
 }
+
 function configurarFormularioTarjeta(facturas_id,tipoPago,monto,origen){
   const $f = $('#modal_pagos_unificado #formTarjetaBill'); if ($f[0]) $f[0].reset();
   const m = parseMonto(monto);
@@ -5135,7 +5621,9 @@ function configurarFormularioTarjeta(facturas_id,tipoPago,monto,origen){
   $f.find('#tipo_factura').val(tipoPago);
   $f.find('#origen_pago').val(origen);
   $f.find('#pago_tarjeta').prop('disabled', false);
+  $f.find('#cr_bill').prop('required', true);
 }
+
 function configurarFormularioTransferencia(facturas_id,tipoPago,monto,origen){
   const $f = $('#modal_pagos_unificado #formTransferenciaBill'); if ($f[0]) $f[0].reset();
   const m = parseMonto(monto);
@@ -5144,7 +5632,9 @@ function configurarFormularioTransferencia(facturas_id,tipoPago,monto,origen){
   $f.find('#tipo_factura_transferencia').val(tipoPago);
   $f.find('#origen_pago').val(origen);
   $f.find('#pago_transferencia').prop('disabled', false);
+  $f.find('#importe_transferencia').prop('required', true);
 }
+
 function configurarFormularioCheque(facturas_id,tipoPago,monto,origen){
   const $f = $('#modal_pagos_unificado #formChequeBill'); if ($f[0]) $f[0].reset();
   const m = parseMonto(monto);
@@ -5153,7 +5643,9 @@ function configurarFormularioCheque(facturas_id,tipoPago,monto,origen){
   $f.find('#tipo_factura_cheque').val(tipoPago);
   $f.find('#origen_pago').val(origen);
   $f.find('#pago_cheque').prop('disabled', false);
+  $f.find('#importe_cheque').prop('required', true);
 }
+
 function configurarFormularioPuntos(facturas_id,tipoPago,monto,origen){
   const $f = $('#modal_pagos_unificado #formPuntosBill'); if ($f[0]) $f[0].reset();
   $f.find('#factura_id_puntos').val(facturas_id);
@@ -5161,28 +5653,13 @@ function configurarFormularioPuntos(facturas_id,tipoPago,monto,origen){
   $f.find('#origen_pago').val(origen);
   $f.find('#importe_puntos').val('0');
   $f.find('#puntos_disponibles').val('');
-  $f.find('#puntos_uso').val('');
+  $f.find('#puntos_uso, #puntos_usar').val('');
   $f.find('#equivalente_puntos').val('');
   $('#modal_pagos_unificado #pago_puntos').prop('disabled', true);
+  $f.find('#puntos_uso').prop('required', true);
 }
 
-/* === Efectivo: cálculo de cambio === */
-function calcularCambioEfectivo(){
-  const $f = $('#modal_pagos_unificado #formEfectivoBill'); if (!$f.length) return;
-  const efectivo = parseMonto($f.find('#efectivo_bill').val());
-  const monto    = parseMonto($f.find('#monto_efectivo').val());
-
-  if (isMultiOn()){
-    $f.find('#cambio_efectivo').val('0.00');
-    $f.find('#pago_efectivo').prop('disabled', !(efectivo > 0));
-    return;
-  }
-  const cambio = Math.max(efectivo - monto, 0);
-  $f.find('#cambio_efectivo').val(fmtMiles(cambio));
-  $f.find('#pago_efectivo').prop('disabled', !(monto > 0 && efectivo >= monto));
-}
-
-/* === Parse respuesta de editarPagoFacturas.php === */
+/* Parse respuesta editarPagoFacturas.php */
 function extractPagoData(datos){
   if (Array.isArray(datos)) {
     const cliente = (typeof datos[0] === 'string' && datos[0].trim()) ? datos[0] : '';
@@ -5203,7 +5680,7 @@ function extractPagoData(datos){
   return { cliente:'', total:0 };
 }
 
-/* === AJAX: carga de puntos del cliente === */
+/* AJAX: puntos */
 function cargarPuntosClienteAjax(facturas_id){
   const $m = $('#modal_pagos_unificado');
   $.ajax({
@@ -5216,7 +5693,7 @@ function cargarPuntosClienteAjax(facturas_id){
     if (!resp || resp.error || resp.success === false) {
       VALOR_POR_PUNTO = 1;
       $f.find('#puntos_disponibles').val('0');
-      $f.find('#puntos_uso').val('');
+      $f.find('#puntos_uso, #puntos_usar').val('');
       $f.find('#equivalente_puntos').val('');
       $m.find('#pago_puntos').prop('disabled', true);
       return;
@@ -5224,11 +5701,10 @@ function cargarPuntosClienteAjax(facturas_id){
     VALOR_POR_PUNTO = parseFloat(resp.valor_por_punto || 1) || 1;
     const disponibles = parseFloat(resp.puntos_disponibles || 0);
     $f.find('#puntos_disponibles').val(fixed2(disponibles));
-
     const montoFactura = parseMonto($m.find('#customer_bill_pay').val());
     const maxPorMonto  = Math.floor(montoFactura / VALOR_POR_PUNTO);
     const sugeridos    = Math.min(maxPorMonto, Math.floor(disponibles));
-    $f.find('#puntos_uso').attr('placeholder', sugeridos > 0 ? ('Hasta ' + sugeridos + ' pts') : '0');
+    $f.find('#puntos_uso, #puntos_usar').attr('placeholder', sugeridos > 0 ? ('Hasta ' + sugeridos + ' pts') : '0');
     $f.find('#equivalente_puntos').val('');
     $f.find('#importe_puntos').val('0');
     $m.find('#pago_puntos').prop('disabled', true);
@@ -5236,33 +5712,92 @@ function cargarPuntosClienteAjax(facturas_id){
     const $f = $m.find('#formPuntosBill');
     VALOR_POR_PUNTO = 1;
     $f.find('#puntos_disponibles').val('0');
-    $f.find('#puntos_uso').val('');
+    $f.find('#puntos_uso, #puntos_usar').val('');
     $f.find('#equivalente_puntos').val('');
     $m.find('#pago_puntos').prop('disabled', true);
   });
 }
 
-/* === ABRIR MODAL === */
+const facturaIdFieldByMethod = {
+  cash:      'factura_id_efectivo',
+  card:      'factura_id_tarjeta',
+  transfer:  'factura_id_transferencia',
+  check:     'factura_id_cheque',
+  points:    'factura_id_puntos'
+};
+
+function ensureFacturaId(method){
+  const $f = formMap[method] && formMap[method]();
+  const field = facturaIdFieldByMethod[method];
+  if ($f && field){
+    const $inp = $f.find(`[name="${field}"]`);
+    if (!$inp.val()) $inp.val(CURRENT_FACTURA_ID || '');
+  }
+}
+
+/* === Mapa: nombre del campo de importe que espera el PHP por método === */
+const amountNameByMethod = {
+  cash     : 'efectivo_bill',
+  card     : 'importe_tarjeta',      // Cambiado de 'importe' a 'importe_tarjeta'
+  transfer : 'importe_transferencia', 
+  check    : 'importe_cheque',
+  points   : 'importe_puntos'        // Cambiado de 'importe' a 'importe_puntos'
+};
+
+/* Lee el monto actualmente digitado/mostrado para un método */
+function getMethodAmount(method){
+  const sel = amountFieldByMethod[method];
+  return parseMonto($(sel).val());
+}
+
+/* Copia/normaliza el monto hacia el campo con el name que PHP espera (con override opcional) */
+function syncAmountToForm(method, override){
+  const $f = formMap[method](); 
+  if (!$f || !$f.length) return 0;
+  
+  const srcVal = (typeof override === 'number' ? override : getMethodAmount(method));
+  const uiVal  = fixed2(srcVal);
+  const amountName = amountNameByMethod[method];
+  if (!amountName) return 0;
+
+  // Busca por ID primero, luego por name
+  let $dest = $f.find(`#${amountName}`);
+  if (!$dest.length) {
+    $dest = $f.find(`[name="${amountName}"]`);
+  }
+  
+  if ($dest.length) {
+    $dest.val(uiVal);
+    // Para debugging
+    console.log(`Método: ${method}, Campo: ${amountName}, Aplicado: ${uiVal}`);
+  } else {
+    console.error(`No se encontró el campo: ${amountName} para método: ${method}`);
+  }
+
+  return parseMonto(uiVal);
+}
+
+/* ABRIR MODAL */
 function pago(facturas_id, tipoPago, origen){
   const $m = $('#modal_pagos_unificado');
   const url = '<?php echo SERVERURL;?>core/editarPagoFacturas.php';
   CURRENT_FACTURA_ID = facturas_id;
+  CURRENT_TIPO_PAGO  = (typeof tipoPago === 'undefined' || tipoPago === null) ? 1 : tipoPago;
+  CURRENT_ORIGEN     = (origen || '');
 
-  // Reset switches y etiquetas (en TODOS los duplicados)
-  $m.find('input[id="comprobante_print_switch"]').prop('checked', false).val(0);
-  $m.find('[id="label_print_comprobant"]').text('No');
-  $m.find('input[id="pagos_multiples_switch"]').prop('checked', false).val(0);
-  $m.find('[id="label_pagos_multiples"]').text('Desactivado');
+  // Reset switches y etiquetas
+  $m.find('#comprobante_print_switch').prop('checked', false).val(0);
+  $m.find('#label_print_comprobant').text('No');
+  $m.find('#pagos_multiples_switch').prop('checked', false).val(0);
+  $m.find('#label_pagos_multiples').text('Desactivado');
   $m.find('.comprobante_print_value').val(0);
   $m.find('.multiple_pago').val(0);
 
-  // Reset selección
-  SELECTED_METHODS = new Set();
-  LAST_SELECTED = null;
+  // Selección por defecto: EFECTIVO
+  SELECTED_METHODS = new Set(['cash']);
+  LAST_SELECTED = 'cash';
   updateMethodsUI();
-  refreshMultipleButton();
 
-  // Cargar combos
   if (typeof getCollaboradoresModalPagoFacturas === 'function') getCollaboradoresModalPagoFacturas();
   if (typeof getBanco === 'function') getBanco();
 
@@ -5277,42 +5812,84 @@ function pago(facturas_id, tipoPago, origen){
     $m.find('#customer_bill_pay').val(fixed2(info.total || 0));
     $m.find('#bill-pay').text('L. ' + fmtMiles(info.total || 0));
 
-    configurarFormularioEfectivo(facturas_id, tipoPago, info.total, origen);
-    configurarFormularioTarjeta(facturas_id, tipoPago, info.total, origen);
-    configurarFormularioTransferencia(facturas_id, tipoPago, info.total, origen);
-    configurarFormularioCheque(facturas_id, tipoPago, info.total, origen);
-    configurarFormularioPuntos(facturas_id, tipoPago, info.total, origen);
+    configurarFormularioEfectivo(facturas_id, CURRENT_TIPO_PAGO, info.total, CURRENT_ORIGEN);
+    configurarFormularioTarjeta(facturas_id, CURRENT_TIPO_PAGO, info.total, CURRENT_ORIGEN);
+    configurarFormularioTransferencia(facturas_id, CURRENT_TIPO_PAGO, info.total, CURRENT_ORIGEN);
+    configurarFormularioCheque(facturas_id, CURRENT_TIPO_PAGO, info.total, CURRENT_ORIGEN);
+    configurarFormularioPuntos(facturas_id, CURRENT_TIPO_PAGO, info.total, CURRENT_ORIGEN);
 
     goToStep(1);
     $m.modal({ show:true, keyboard:false, backdrop:'static' });
-    if ($.fn.selectpicker) { setTimeout(()=>{ $m.find('.selectpicker').selectpicker('refresh'); }, 300); }
+
+    if ($.fn.selectpicker) { setTimeout(()=>{ $m.find('.selectpicker').selectpicker('refresh'); }, 250); }
   }).fail(function(){
     if (typeof showNotify === 'function') showNotify('error','Error','No se pudieron cargar los datos del pago');
     else alert('No se pudieron cargar los datos del pago');
   });
 }
 
-/* === INIT (eventos) === */
+/* INIT */
 $(function(){
   const $m = $('#modal_pagos_unificado');
   $m.find('[data-toggle="tooltip"]').tooltip();
 
-  // Elegir / deseleccionar métodos (soporta múltiple)
+  // Estilos (con id para no duplicar)
+  if (!$('#payment-button-styles').length) {
+    const buttonStyles = `
+      <style id="payment-button-styles">
+        .payment-btn { position: relative; overflow: hidden; transition: all 0.3s ease; transform: translateY(0px); }
+        .payment-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .payment-btn:active { transform: translateY(0px); transition: all 0.1s ease; }
+        .payment-btn::before { content: ''; position: absolute; top: 50%; left: 50%; width: 0; height: 0; background: rgba(255,255,255,0.3); border-radius: 50%; transform: translate(-50%, -50%); transition: width 0.6s, height 0.6s; }
+        .payment-btn:active::before { width: 300px; height: 300px; }
+        .payment-btn-prev { background: linear-gradient(135deg, #ffc107 0%, #ff8f00 100%); border: none; color: white; }
+        .payment-btn-prev:hover { background: linear-gradient(135deg, #ff8f00 0%, #f57c00 100%); color: white; }
+        .payment-btn-next { background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); border: none; color: white; }
+        .payment-btn-next:hover { background: linear-gradient(135deg, #0056b3 0%, #004085 100%); color: white; }
+        .payment-btn-close { background: linear-gradient(135deg, #6c757d 0%, #495057 100%); border: none; color: white; }
+        .payment-btn-close:hover { background: linear-gradient(135deg, #495057 0%, #343a40 100%); color: white; }
+        .confirm-submit-btn { position: relative; overflow: hidden; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border: none; transition: all 0.3s ease; transform: translateY(0px); }
+        .confirm-submit-btn:hover { background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4); color: white; }
+        .confirm-submit-btn:active { transform: translateY(0px); transition: all 0.1s ease; }
+        .focus-field { border-color: #007bff !important; box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25) !important; }
+        .error-field { border-color: #dc3545 !important; box-shadow: 0 0 0 0.2rem rgba(220,53,69,.25) !important; }
+      </style>
+    `;
+    $('head').append(buttonStyles);
+  }
+
+  // Selección de métodos (click/teclado) -> enfocar de inmediato en Paso 2
   $m.on('click keypress', '#paymentMethodsGrid .method-card', function(e){
     if (e.type === 'click' || (e.type === 'keypress' && (e.which === 13 || e.which === 32))) {
-      toggleMethod($(this).data('method'));
+      const method = $(this).data('method');
+      toggleMethod(method);
+      if (CURRENT_STEP === 2) setTimeout(async ()=> { await focusFirstFieldFor(method); }, 120);
     }
   });
 
   // Botonera
-  $m.find('#btnPrev').on('click', function(){ if (CURRENT_STEP === 2) goToStep(1); });
+  $m.find('#btnPrev').on('click', function(){
+    if (CURRENT_STEP === 2) goToStep(1);
+    else if (CURRENT_STEP === 3) goToStep(2);
+  });
+
   $m.find('#btnNext').on('click', function(){
-    if (!isMultiOn() && SELECTED_METHODS.size > 1){
-      const keep = LAST_SELECTED && SELECTED_METHODS.has(LAST_SELECTED) ? LAST_SELECTED : Array.from(SELECTED_METHODS)[0];
-      SELECTED_METHODS = new Set([keep]);
-      updateMethodsUI();
+    if (CURRENT_STEP === 1){
+      if (SELECTED_METHODS.size===0){
+        if (typeof showNotify === 'function') {
+          showNotify('warning','Atención','Selecciona al menos un método.');
+          setTimeout(() => { focusFirstFieldFor('cash'); }, 220);
+        } else {
+          alert('Selecciona al menos un método.');
+          setTimeout(()=> focusFirstFieldFor('cash'), 120);
+        }
+        return;
+      }
+      goToStep(2);
+    }else if (CURRENT_STEP === 2){
+      if (!validateBeforeConfirm()) return;
+      goToStep(3);
     }
-    goToStep(2);
   });
 
   // Máscaras tarjeta
@@ -5322,20 +5899,20 @@ $(function(){
     $m.find('#formTarjetaBill #cvcpwd').inputmask('999999');
   }
 
-  // Switch comprobante (actualiza todos los duplicados)
-  $m.on('change', 'input[id="comprobante_print_switch"]', function(){
+  // Switch comprobante
+  $m.on('change', '#comprobante_print_switch', function(){
     const on = $(this).is(':checked');
-    $('input[id="comprobante_print_switch"]').val(on ? 1 : 0);
+    $(this).val(on ? 1 : 0);
     $m.find('.comprobante_print_value').val(on ? 1 : 0);
-    $('[id="label_print_comprobant"]').text(on ? 'Sí' : 'No');
+    $m.find('#label_print_comprobant').text(on ? 'Sí' : 'No');
   });
 
-  // Switch pagos múltiples (actualiza todos los duplicados)
-  $m.on('change', 'input[id="pagos_multiples_switch"]', function(){
-    const on = $('input[id="pagos_multiples_switch"]:checked').length > 0;
-    $('input[id="pagos_multiples_switch"]').val(on ? 1 : 0);
+  // Switch pagos múltiples (visible solo en Paso 1)
+  $m.on('change', '#pagos_multiples_switch', function(){
+    const on = $(this).is(':checked');
+    $(this).val(on ? 1 : 0);
     $m.find('.multiple_pago').val(on ? 1 : 0);
-    $('[id="label_pagos_multiples"]').text(on ? 'Activado' : 'Desactivado');
+    $m.find('#label_pagos_multiples').text(on ? 'Activado' : 'Desactivado');
 
     configurarFormularioEfectivo(
       CURRENT_FACTURA_ID,
@@ -5359,17 +5936,19 @@ $(function(){
     try{ e.target.setSelectionRange(cur+(clean.length-orig.length), cur+(clean.length-orig.length)); }catch(_){}
     calcularCambioEfectivo();
   });
-  $m.on('input', '#formTransferenciaBill #importe_transferencia, #formChequeBill #importe_cheque', function(e){
+
+  $m.on('input', '#formTransferenciaBill #importe_transferencia, #formChequeBill #importe_cheque, #formTarjetaBill #importe_tarjeta', function(e){
     const cur = e.target.selectionStart, orig = $(this).val(), clean = normalizarMontoEntrada(orig);
     $(this).val(clean);
     try{ e.target.setSelectionRange(cur+(clean.length-orig.length), cur+(clean.length-orig.length)); }catch(_){}
   });
-  $m.on('blur', '#efectivo_bill, #importe_transferencia, #importe_cheque', function(){
+
+  $m.on('blur', '#efectivo_bill, #importe_transferencia, #importe_cheque, #importe_tarjeta', function(){
     const v = $(this).val(); if (v) $(this).val(fixed2(v));
   });
 
   // Puntos
-  $m.on('input', '#formPuntosBill #puntos_uso', function(){
+  $m.on('input', '#formPuntosBill #puntos_uso, #formPuntosBill #puntos_usar', function(){
     let val = (this.value || '').replace(/[^\d]/g,'');
     this.value = val;
     const pts  = parseInt(val || '0', 10);
@@ -5380,13 +5959,65 @@ $(function(){
     const eq = Math.min(ptsCap * VALOR_POR_PUNTO, monto);
     $m.find('#formPuntosBill #equivalente_puntos').val(fixed2(eq));
     $m.find('#formPuntosBill #importe_puntos').val(fixed2(eq));
-    $m.find('#formPuntosBill #pago_puntos').prop('disabled', !(eq > 0));
+    $m.find('#pago_puntos').prop('disabled', !(eq > 0));
   });
 
-  // Al abrir modal
-  $m.on('shown.bs.modal', function(){ goToStep(1); });
+  // Validación HTML5 en formularios
+  $m.on('submit', '.FormularioAjax', function(e){
+    const $form = $(this);
+    let isValid = true;
+    let firstInvalid = null;
+
+    $form.find('input[required]').each(function(){
+      if (!this.value.trim()) {
+        this.setCustomValidity('Este campo es requerido');
+        this.reportValidity();
+        isValid = false;
+        if (!firstInvalid) { firstInvalid = this; }
+      } else {
+        this.setCustomValidity('');
+      }
+    });
+
+    if (!isValid) {
+      e.preventDefault();
+      if (firstInvalid) {
+        setTimeout(() => { forceFocus('#' + firstInvalid.id); }, 120);
+      }
+      return false;
+    }
+  });
+
+  // Al abrir modal => paso 1 y enfoque al entrar a detalles
+  $m.on('shown.bs.modal', function(){
+    goToStep(1);
+    updateMethodsUI();
+    setTimeout(() => {
+      $('#paymentMethodsGrid .method-card.default-focus').focus();
+    }, 220);
+  });
+
+  // Cambio de paso (hook opcional)
+  $m.on('changeStep', function(e, step){
+    if (step === 2) {
+      setTimeout(async () => {
+        const method = (SELECTED_METHODS.size > 1)
+          ? (LAST_SELECTED && SELECTED_METHODS.has(LAST_SELECTED) ? LAST_SELECTED : Array.from(SELECTED_METHODS)[0])
+          : Array.from(SELECTED_METHODS)[0];
+        await focusFirstFieldFor(method);
+      }, 220);
+    }
+  });
+
+  // Marcar foco visual en inputs en Paso 2
+  $m.on('focus', 'input[type="text"], input[type="number"], input[type="tel"], input[type="password"]', function(){
+    if (CURRENT_STEP === 2) $(this).addClass('focus-field');
+  });
+  $m.on('blur', 'input[type="text"], input[type="number"], input[type="tel"], input[type="password"]', function(){
+    $(this).removeClass('focus-field');
+  });
 });
-/*FIN NUEVO PAGO*/
+/* FIN NUEVO PAGO */
 
 // Función para obtener los colaboradores
 function getCollaboradoresModalPagoFacturas() {

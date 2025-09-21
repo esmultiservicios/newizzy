@@ -709,13 +709,7 @@ $(() => {
 
           if (tipoFactura === 1) {
             // contado → abrir modal de pago
-            $('#factura-id-pago').val(response.factura_id);
-            $('#monto-pago').val(response.total);
-            $('#efectivo-pago').val('');
-            $('#transferencia-pago').val('');
-            $('#tarjeta-pago').val('');
-            $('#cambio-pago').val('');
-            $('#pagoModal').modal('show');
+            pago(currentFacturaId, 1, 'facturacion');
           } else {
             // crédito
             showNotify("success", "Éxito", "Factura registrada correctamente");

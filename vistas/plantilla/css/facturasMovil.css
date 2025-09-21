@@ -434,10 +434,9 @@
 
 /* ===== DETALLES DEL PRODUCTO (FIX RESPONSIVE) ===== */
 .product-details {
-    /* FIX: usar GRID siempre; no sobrescribir con flex */
-    display: grid;                /* << */
+    display: grid;                /* base grid */
     grid-template-columns: 1fr;   /* móvil: 1 columna */
-    gap: 10px;                    /* unificamos gap */
+    gap: 10px;                    
     margin-top: 10px;
     background-color: #f9f9f9;
     padding: 10px;
@@ -459,7 +458,7 @@
     font-size: 0.85rem;
     color: #7f8c8d;
     padding: 4px 0;
-    min-width: 0; /* FIX: evita desbordes dentro de grid */
+    min-width: 0;
 }
 
 .product-detail strong {
@@ -870,7 +869,18 @@
     .container-fluid { padding: 0 10px; }
     .card-body { padding: 15px; }
     .product-item { padding: 12px; width: 100%; }
-    .product-item h6 { -webkit-line-clamp: 3; line-clamp: 3; padding-right: 0; }
+
+    /* Título: permitir que “· ISV …” baje de línea si no cabe */
+    .product-item h6 {
+        -webkit-line-clamp: unset;
+        line-clamp: unset;
+        display: block;
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        padding-right: 0;
+        margin-bottom: 10px;
+    }
 
     .action-buttons-top {
         position: static;
@@ -1000,86 +1010,80 @@
 
 /* =========================================================
    PARCHE RESPONSIVO MINIMAL (no cambia estilos visuales)
-   Apila cada campo de .product-detail en móvil
+   Apila cada campo de .product-detail en móvil + wrap en título
    ========================================================= */
-   @media (max-width: 768px) {
+@media (max-width: 768px) {
 
-    /* Permite saltos de línea dentro de los detalles */
-    .product-details,
-    .product-details * {
-      white-space: normal !important;
-      word-break: break-word;
-      text-overflow: clip;
-      overflow: visible;
-    }
-  
-    /* Asegura grid de una columna para el contenedor */
-    .product-details {
-      display: grid !important;
-      grid-template-columns: 1fr !important;
-      gap: 10px;
-    }
-  
-    /* Cada item (Precio, Cantidad, etc.) se apila en 2 filas */
-    .product-detail {
-      display: grid !important;
-      grid-template-columns: 1fr !important; /* etiqueta arriba, valor abajo */
-      row-gap: 6px;
-      align-items: start;
-      min-width: 0;
-    }
-  
-    /* Etiqueta arriba alineada a la izquierda */
-    .product-detail strong {
-      text-align: left !important;
-      min-width: 0 !important;
-      margin: 0;
-    }
-  
-    /* El valor/control ocupa todo el ancho debajo de la etiqueta */
-    .product-detail > *:not(strong) {
-      width: 100% !important;
-      max-width: 100% !important;
-      justify-self: stretch;
-      min-width: 0;
-    }
-  
-    /* Entradas y selects típicos en esa fila */
-    .product-detail input,
-    .product-detail select,
-    .product-detail .form-control,
-    .product-detail .bootstrap-select,
-    .product-detail .bootstrap-select > .dropdown-toggle,
-    .product-quantity,
-    .product-price,
-    .product-total,
-    .product-discount,
-    .apply-discount {
-      width: 100% !important;
-      max-width: 100% !important;
-    }
-  
-    /* Grupo de cantidad: evitar desbordes */
-    .cantidad-section { flex-wrap: wrap !important; gap: 8px; }
-    .cantidad-group { flex: 1 1 160px; min-width: 160px; }
-    .cantidad-group .input-cantidad { width: 100% !important; }
-  
-    /* Botonera de acciones del item sin empujar contenido */
-    .product-actions { justify-content: space-between; gap: 10px; }
-  
-    /* Subtotal visible y sin recortes */
-    .product-subtotal {
-      display: block;
-      width: 100%;
-      text-align: right;
-    }
+  /* Permite saltos de línea dentro de los detalles */
+  .product-details,
+  .product-details * {
+    white-space: normal !important;
+    word-break: break-word;
+    text-overflow: clip;
+    overflow: visible;
   }
-  
-  /* Mantén tus columnas en tablets/escritorio como ya las tenías */
-  @media (min-width: 576px) {
-    .product-details { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+
+  /* Asegura grid de una columna para el contenedor */
+  .product-details {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px;
   }
-  @media (min-width: 992px) {
-    .product-details { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+
+  /* Cada item (Precio, Cantidad, etc.) se apila en 2 filas */
+  .product-detail {
+    display: grid !important;
+    grid-template-columns: 1fr !important; /* etiqueta arriba, valor abajo */
+    row-gap: 6px;
+    align-items: start;
+    min-width: 0;
   }
-  
+
+  /* Etiqueta arriba alineada a la izquierda */
+  .product-detail strong {
+    text-align: left !important;
+    min-width: 0 !important;
+    margin: 0;
+  }
+
+  /* El valor/control ocupa todo el ancho debajo de la etiqueta */
+  .product-detail > *:not(strong) {
+    width: 100% !important;
+    max-width: 100% !important;
+    justify-self: stretch;
+    min-width: 0;
+  }
+
+  /* Si hay divs con .d-flex internos (como la fila de Cantidad), permitir salto */
+  .product-detail .d-flex { 
+    flex-wrap: wrap !important; 
+    width: 100%;
+    gap: 6px;
+  }
+
+  /* Grupo de cantidad: evitar que se pegue al precio */
+  .cantidad-group { 
+    flex: 1 1 160px; 
+    min-width: 160px; 
+    margin-top: 6px;
+  }
+  .cantidad-group .input-cantidad { width: 100% !important; }
+
+  /* Botonera de acciones del item sin empujar contenido */
+  .product-actions { justify-content: space-between; gap: 10px; }
+
+  /* Subtotal visible y sin recortes */
+  .product-subtotal {
+    display: block;
+    width: 100%;
+    text-align: right;
+  }
+}
+
+/* Mantén tus columnas en tablets/escritorio como ya las tenías */
+@media (min-width: 576px) {
+  .product-details { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+@media (min-width: 992px) {
+  .product-details { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+}

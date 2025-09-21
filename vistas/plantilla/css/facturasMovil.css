@@ -997,3 +997,89 @@
     .factura-movil-container .form-label { color: #e0e0e0; }
     .factura-movil-container .section-title { color: #e0e0e0; border-bottom-color: #444; }
 }
+
+/* =========================================================
+   PARCHE RESPONSIVO MINIMAL (no cambia estilos visuales)
+   Apila cada campo de .product-detail en móvil
+   ========================================================= */
+   @media (max-width: 768px) {
+
+    /* Permite saltos de línea dentro de los detalles */
+    .product-details,
+    .product-details * {
+      white-space: normal !important;
+      word-break: break-word;
+      text-overflow: clip;
+      overflow: visible;
+    }
+  
+    /* Asegura grid de una columna para el contenedor */
+    .product-details {
+      display: grid !important;
+      grid-template-columns: 1fr !important;
+      gap: 10px;
+    }
+  
+    /* Cada item (Precio, Cantidad, etc.) se apila en 2 filas */
+    .product-detail {
+      display: grid !important;
+      grid-template-columns: 1fr !important; /* etiqueta arriba, valor abajo */
+      row-gap: 6px;
+      align-items: start;
+      min-width: 0;
+    }
+  
+    /* Etiqueta arriba alineada a la izquierda */
+    .product-detail strong {
+      text-align: left !important;
+      min-width: 0 !important;
+      margin: 0;
+    }
+  
+    /* El valor/control ocupa todo el ancho debajo de la etiqueta */
+    .product-detail > *:not(strong) {
+      width: 100% !important;
+      max-width: 100% !important;
+      justify-self: stretch;
+      min-width: 0;
+    }
+  
+    /* Entradas y selects típicos en esa fila */
+    .product-detail input,
+    .product-detail select,
+    .product-detail .form-control,
+    .product-detail .bootstrap-select,
+    .product-detail .bootstrap-select > .dropdown-toggle,
+    .product-quantity,
+    .product-price,
+    .product-total,
+    .product-discount,
+    .apply-discount {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+  
+    /* Grupo de cantidad: evitar desbordes */
+    .cantidad-section { flex-wrap: wrap !important; gap: 8px; }
+    .cantidad-group { flex: 1 1 160px; min-width: 160px; }
+    .cantidad-group .input-cantidad { width: 100% !important; }
+  
+    /* Botonera de acciones del item sin empujar contenido */
+    .product-actions { justify-content: space-between; gap: 10px; }
+  
+    /* Subtotal visible y sin recortes */
+    .product-subtotal {
+      display: block;
+      width: 100%;
+      text-align: right;
+    }
+  }
+  
+  /* Mantén tus columnas en tablets/escritorio como ya las tenías */
+  @media (min-width: 576px) {
+    .product-details { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  }
+  @media (min-width: 992px) {
+    .product-details { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+  }
+  

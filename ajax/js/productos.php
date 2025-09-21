@@ -32,8 +32,83 @@ $(function initApp() {
     e.preventDefault();
     listar_productos();
   });
+
+  initISVSwitches();
 });
 // ===================== FIN INICIO APP =====================
+
+/* =========================
+   ISV: lógica de exclusión y habilitado
+   ========================= */
+  function initISVSwitches(){
+    const $isvFactura = $('#formProductos #producto_isv_factura');
+    const $isv1 = $('#formProductos #producto_isv1');
+    const $isv2 = $('#formProductos #producto_isv2');
+
+    // Limpia handlers previos (por si abres/cerras el modal varias veces)
+    $isv1.off('change.isv');
+    $isv2.off('change.isv');
+    $isvFactura.off('change.isvmain');
+
+    // Exclusión mutua
+    $isv1.on('change.isv', function(){
+      if (this.checked) { $isv2.prop('checked', false); }
+    });
+    $isv2.on('change.isv', function(){
+      if (this.checked) { $isv1.prop('checked', false); }
+    });
+
+    // Si NO calcula ISV en factura → desactiva ISV1/ISV2
+    function applyIsvMainState(){
+      const enabled = $isvFactura.is(':checked');
+      if (!enabled){
+        $isv1.prop('checked', false);
+        $isv2.prop('checked', false);
+      }
+      $isv1.prop('disabled', !enabled);
+      $isv2.prop('disabled', !enabled);
+    }
+
+    $isvFactura.on('change.isvmain', applyIsvMainState);
+    applyIsvMainState(); // aplica estado al cargar
+  }
+
+  /* Seteo seguro al abrir “Editar”
+    - Soporta respuesta como array (datos[?]) o como objeto (datos.isv1/isv2)
+  */
+  function setISVFromData(datos, rowData){
+    const $isvFactura = $('#formProductos #producto_isv_factura');
+    const $isv1 = $('#formProductos #producto_isv1');           // 15%
+    const $isv2 = $('#formProductos #producto_isv2');           // 18%
+    const $rest = $('#formProductos #producto_restaurante');    // restaurante
+
+    // 1) Tomar de la fila del DataTable (ahora vienen 0/1)
+    let vIsv1 = rowData?.isv1;
+    let vIsv2 = rowData?.isv2;
+    let vRes  = rowData?.restaurante;
+
+    // 2) Fallback: del arreglo 'datos' si tu editarProductos.php también los envía
+    if (vIsv1 == null && Array.isArray(datos)) vIsv1 = datos[25]; // ajusta si difieren
+    if (vIsv2 == null && Array.isArray(datos)) vIsv2 = datos[26];
+    if (vRes  == null && Array.isArray(datos)) vRes  = datos[24];
+
+    // 3) Normaliza
+    vIsv1 = Number(vIsv1) === 1 ? 1 : 0;
+    vIsv2 = Number(vIsv2) === 1 ? 1 : 0;
+    vRes  = Number(vRes)  === 1 ? 1 : 0;
+
+    // 4) Aplica
+    $rest.prop('checked', vRes === 1);
+
+    const on1 = vIsv1 === 1;
+    const on2 = (vIsv2 === 1) && !on1;  // exclusión
+
+    $isv1.prop('checked', on1);
+    $isv2.prop('checked', on2);
+
+    // 5) Reaplica reglas (exclusión y bloqueo por isv_factura)
+    initISVSwitches();
+  }
 
 /* =========================
    Uploader de imagen (Producto)
@@ -164,7 +239,6 @@ $(function initApp() {
   // Exponer reset si lo usas fuera
   window.resetProductoImagen = resetImage;
 }
-document.addEventListener('DOMContentLoaded', initImageUpload);
 
 /* =========================
    DataTable: Productos
@@ -331,13 +405,14 @@ var listar_productos = function() {
 };
 
 
-
 // ======= EDITAR / ELIMINAR (tu código original) =======
 var editar_producto_dataTable = function(tbody, table) {
   $(tbody).off("click", "button.table_editar");
   $(tbody).on("click", "button.table_editar", function() {
     var data = table.row($(this).parents("tr")).data();
     var url = '<?php echo SERVERURL;?>core/editarProductos.php';
+
+    // Reset y seteo id
     $('#formProductos')[0].reset();
     $('#formProductos #productos_id').val(data.productos_id);
 
@@ -347,10 +422,16 @@ var editar_producto_dataTable = function(tbody, table) {
       data: $('#formProductos').serialize(),
       success: function(registro) {
         var datos = eval(registro);
+
+        // ---- Modo edición / acciones ----
         $('#formProductos').attr({'data-form': 'update'});
         $('#formProductos').attr({'action': '<?php echo SERVERURL;?>ajax/modificarProductosAjax.php'});
-        $('#reg_producto').hide(); $('#edi_producto').show(); $('#delete_producto').hide();
+        $('#reg_producto').hide(); 
+        $('#edi_producto').show(); 
+        $('#delete_producto').hide();
         $('#formProductos #proceso_productos').val("Editar Productos");
+
+        // ---- Campos base ----
         evaluarCategoriaDetalle(datos[13]);
         $('#formProductos #medida').val(datos[1]).selectpicker('refresh');
         $('#formProductos #almacen').val(datos[0]).selectpicker('refresh');
@@ -369,18 +450,25 @@ var editar_producto_dataTable = function(tbody, table) {
         $('#formProductos #bar_code_product').val(datos[19]);
         $('#formProductos #producto_superior').val(datos[20]);
 
+        // ---- Switches principales (ya venían) ----
         $('#formProductos #producto_isv_factura').prop('checked', datos[7] == 1);
         $('#formProductos #producto_isv_compra').prop('checked', datos[8] == 1);
         $('#formProductos #producto_activo').prop('checked', datos[9] == 1);
 
+        // ---- Imagen ----
         if (datos[11] != "image_preview.png") {
           $('#formProductos #preview').attr('src', datos[21]);
           var preview = document.getElementById('productoPreview');
           preview.innerHTML = '';
-          const img = document.createElement('img'); img.src = datos[21]; preview.appendChild(img);
+          const img = document.createElement('img'); 
+          img.src = datos[21]; 
+          preview.appendChild(img);
           preview.style.display = 'block';
           const removeBtn = document.createElement('button');
-          removeBtn.type = 'button'; removeBtn.className = 'btn-remove-image'; removeBtn.title = 'Eliminar imagen'; removeBtn.innerHTML = '×';
+          removeBtn.type = 'button'; 
+          removeBtn.className = 'btn-remove-image'; 
+          removeBtn.title = 'Eliminar imagen'; 
+          removeBtn.innerHTML = '×';
           removeBtn.addEventListener('click', function (e) {
             e.preventDefault(); e.stopPropagation();
             if (typeof window.resetProductoImagen === 'function') window.resetProductoImagen();
@@ -391,7 +479,7 @@ var editar_producto_dataTable = function(tbody, table) {
           $("#formProductos #preview").attr("src", "<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png");
         }
 
-        // habilita / deshabilita
+        // ---- Habilita / deshabilita ----
         $('#formProductos #producto').prop("readonly", false);
         $('#formProductos #cantidad').prop("readonly", true);
         $('#formProductos #precio_compra').prop("readonly", false);
@@ -421,6 +509,13 @@ var editar_producto_dataTable = function(tbody, table) {
         $('#formProductos #cantidad').hide();
         $('#div_cantidad_editar_producto').hide();
 
+        // ---- NUEVO: sincroniza switches especiales desde el listado/PHP ----
+        //  - data.restaurante (0/1)     -> #producto_restaurante
+        //  - data.isv1 (0/1) 15%        -> #producto_isv1
+        //  - data.isv2 (0/1) 18%        -> #producto_isv2
+        setISVFromData(datos, data);
+
+        // ---- Abre modal ----
         $('#modal_registrar_productos').modal({ show: true, keyboard: false, backdrop: 'static' });
       }
     });
@@ -516,8 +611,6 @@ function evaluarCategoria() {
     $('#formProductos #precio_venta').prop('readonly', false);
     $('#formProductos #precio_mayoreo').prop('readonly', false);
     $('#formProductos #cantidad_minima, #formProductos #cantidad_maxima').prop('readonly', true);
-    $('#formProductos #isv_si').prop('checked', false);
-    $('#formProductos #isv_no').prop('checked', true);
     $('#formProductos #cantidad').val(1);
     $('#formProductos #precio_compra').val(0);
   } else if ($('#formProductos #tipo_producto').find('option:selected').text() == "Insumos") {
@@ -527,12 +620,7 @@ function evaluarCategoria() {
     $('#formProductos #cantidad_minima, #formProductos #cantidad_maxima').prop('readonly', false);
     $('#formProductos #cantidad').val(1);
     $('#formProductos #precio_venta, #formProductos #precio_mayoreo').val(0);
-    $('#formProductos #isv_si').prop('checked', true);
-    $('#formProductos #isv_no').prop('checked', false);
-  } else {
     $('#formProductos #cantidad, #formProductos #precio_compra, #formProductos #precio_venta, #formProductos #precio_mayoreo, #formProductos #cantidad_minima, #formProductos #cantidad_maxima').prop('readonly', false);
-    $('#formProductos #isv_si').prop('checked', true);
-    $('#formProductos #isv_no').prop('checked', false);
     $('#formProductos #cantidad, #formProductos #precio_compra').val('');
   }
 }
@@ -543,8 +631,6 @@ function evaluarCategoriaDetalle(TipoProducto) {
     $('#formProductos #precio_compra').prop('readonly', true);
     $('#formProductos #precio_venta, #formProductos #precio_mayoreo').prop('readonly', false);
     $('#formProductos #cantidad_minima, #formProductos #cantidad_maxima').prop('readonly', true);
-    $('#formProductos #isv_si').prop('checked', false);
-    $('#formProductos #isv_no').prop('checked', true);
     $('#formProductos #cantidad').val(1);
     $('#formProductos #precio_compra').val(0);
   } else if (TipoProducto == "Insumos") {
@@ -554,12 +640,8 @@ function evaluarCategoriaDetalle(TipoProducto) {
     $('#formProductos #concentracion').val("");
     $('#formProductos #cantidad').val(1);
     $('#formProductos #precio_venta').val(0);
-    $('#formProductos #isv_si').prop('checked', true);
-    $('#formProductos #isv_no').prop('checked', false);
   } else {
     $('#formProductos #cantidad, #formProductos #precio_compra, #formProductos #precio_venta, #formProductos #precio_mayoreo, #formProductos #cantidad_minima, #formProductos #cantidad_maxima').prop('readonly', false);
-    $('#formProductos #isv_si').prop('checked', true);
-    $('#formProductos #isv_no').prop('checked', false);
     $('#formProductos #cantidad, #formProductos #precio_compra').val('');
   }
 }

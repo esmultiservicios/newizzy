@@ -4250,24 +4250,43 @@ class mainModel
 
 	public function getProductos($datos)
 	{
-		$query = "SELECT p.barCode AS 'barCode', p.productos_id AS 'productos_id', p.nombre AS 'nombre', p.descripcion AS 'descripcion', p.precio_compra AS 'precio_compra', p.precio_venta AS 'precio_venta',m.nombre AS 'medida', a.nombre AS 'almacen', u.nombre AS 'ubicacion', e.nombre AS 'empresa',
-				p.estado AS 'estado', (CASE WHEN p.isv_venta = '1' THEN 'Sí' ELSE 'No' END) AS 'isv',
-				tp.tipo_producto_id AS 'tipo_producto_id', tp.nombre AS 'categoria', (CASE WHEN p.isv_venta = '1' THEN 'Si' ELSE 'No' END) AS 'isv_venta', (CASE WHEN p.isv_compra = '1' THEN 'Si' ELSE 'No' END) AS 'isv_compra', p.file_name AS 'image', p.porcentaje_venta
-					FROM productos AS p
-					INNER JOIN medida AS m
-					ON p.medida_id = m.medida_id
-					INNER JOIN almacen AS a
-					ON p.almacen_id = a.almacen_id
-					INNER JOIN ubicacion AS u
-					ON a.ubicacion_id = u.ubicacion_id
-					INNER JOIN empresa AS e
-					ON u.empresa_id = e.empresa_id
-					INNER JOIN tipo_producto AS tp
-					ON p.tipo_producto_id = tp.tipo_producto_id
-					WHERE p.estado = '" . $datos['estado'] . "'";
+		$estado = (int)$datos['estado'];
+
+		$query = "
+			SELECT
+				p.barCode              AS barCode,
+				p.productos_id         AS productos_id,
+				p.nombre               AS nombre,
+				p.descripcion          AS descripcion,
+				p.precio_compra        AS precio_compra,
+				p.precio_venta         AS precio_venta,
+				m.nombre               AS medida,
+				a.nombre               AS almacen,
+				u.nombre               AS ubicacion,
+				e.nombre               AS empresa,
+				p.estado               AS estado,
+				(CASE WHEN p.isv_venta = '1' THEN 'Sí' ELSE 'No' END) AS isv,
+				tp.tipo_producto_id    AS tipo_producto_id,
+				tp.nombre              AS categoria,
+				(CASE WHEN p.isv_venta  = '1' THEN 'Si' ELSE 'No' END) AS isv_venta,
+				(CASE WHEN p.isv_compra = '1' THEN 'Si' ELSE 'No' END) AS isv_compra,
+				p.file_name            AS image,
+				p.porcentaje_venta     AS porcentaje_venta,
+
+				/* ---- NUEVO: campos crudos para los switches ---- */
+				p.restaurante          AS restaurante,
+				p.isv1                 AS isv1,
+				p.isv2                 AS isv2
+
+			FROM productos AS p
+			INNER JOIN medida       AS m ON p.medida_id      = m.medida_id
+			INNER JOIN almacen      AS a ON p.almacen_id     = a.almacen_id
+			INNER JOIN ubicacion    AS u ON a.ubicacion_id   = u.ubicacion_id
+			INNER JOIN empresa      AS e ON u.empresa_id     = e.empresa_id
+			INNER JOIN tipo_producto AS tp ON p.tipo_producto_id = tp.tipo_producto_id
+			WHERE p.estado = {$estado}";
 
 		$result = self::connection()->query($query);
-
 		return $result;
 	}
 

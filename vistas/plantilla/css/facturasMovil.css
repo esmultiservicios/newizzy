@@ -870,7 +870,7 @@
     .card-body { padding: 15px; }
     .product-item { padding: 12px; width: 100%; }
 
-    /* Título: permitir que “· ISV …” baje de línea si no cabe */
+    /* Título: permitir que "· ISV …" baje de línea si no cabe */
     .product-item h6 {
         -webkit-line-clamp: unset;
         line-clamp: unset;
@@ -1009,81 +1009,87 @@
 }
 
 /* =========================================================
-   PARCHE RESPONSIVO MINIMAL (no cambia estilos visuales)
-   Apila cada campo de .product-detail en móvil + wrap en título
+   MEJORA RESPONSIVA PARA DETALLES DE PRODUCTO EN MÓVIL
    ========================================================= */
 @media (max-width: 768px) {
+    /* Asegura grid de una columna para el contenedor */
+    .product-details {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 15px;
+    }
 
-  /* Permite saltos de línea dentro de los detalles */
-  .product-details,
-  .product-details * {
-    white-space: normal !important;
-    word-break: break-word;
-    text-overflow: clip;
-    overflow: visible;
-  }
+    /* Cada item (Precio, Cantidad, etc.) se apila en 2 filas */
+    .product-detail {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 5px;
+        padding: 8px 0;
+    }
 
-  /* Asegura grid de una columna para el contenedor */
-  .product-details {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    gap: 10px;
-  }
+    /* Etiqueta arriba alineada a la izquierda */
+    .product-detail span {
+        font-weight: 500;
+        color: #7f8c8d;
+        font-size: 0.8rem;
+    }
 
-  /* Cada item (Precio, Cantidad, etc.) se apila en 2 filas */
-  .product-detail {
-    display: grid !important;
-    grid-template-columns: 1fr !important; /* etiqueta arriba, valor abajo */
-    row-gap: 6px;
-    align-items: start;
-    min-width: 0;
-  }
+    /* El valor/control ocupa todo el ancho debajo de la etiqueta */
+    .product-detail strong,
+    .product-detail > div {
+        width: 100% !important;
+        text-align: left !important;
+        min-width: 0 !important;
+    }
 
-  /* Etiqueta arriba alineada a la izquierda */
-  .product-detail strong {
-    text-align: left !important;
-    min-width: 0 !important;
-    margin: 0;
-  }
+    /* Grupo de cantidad: se expande completamente */
+    .cantidad-group {
+        width: 100% !important;
+        justify-content: space-between;
+        margin-top: 5px;
+    }
+    
+    .cantidad-group .input-cantidad {
+        flex: 1;
+        margin: 0 8px;
+        max-width: 80px;
+    }
 
-  /* El valor/control ocupa todo el ancho debajo de la etiqueta */
-  .product-detail > *:not(strong) {
-    width: 100% !important;
-    max-width: 100% !important;
-    justify-self: stretch;
-    min-width: 0;
-  }
+    /* Botones de cantidad más grandes para móvil */
+    .btn-cantidad-minus, 
+    .btn-cantidad-plus {
+        width: 36px !important;
+        height: 36px !important;
+    }
 
-  /* Si hay divs con .d-flex internos (como la fila de Cantidad), permitir salto */
-  .product-detail .d-flex { 
-    flex-wrap: wrap !important; 
-    width: 100%;
-    gap: 6px;
-  }
-
-  /* Grupo de cantidad: evitar que se pegue al precio */
-  .cantidad-group { 
-    flex: 1 1 160px; 
-    min-width: 160px; 
-    margin-top: 6px;
-  }
-  .cantidad-group .input-cantidad { width: 100% !important; }
-
-  /* Botonera de acciones del item sin empujar contenido */
-  .product-actions { justify-content: space-between; gap: 10px; }
-
-  /* Subtotal visible y sin recortes */
-  .product-subtotal {
-    display: block;
-    width: 100%;
-    text-align: right;
-  }
+    /* Subtotal visible y sin recortes */
+    .product-subtotal {
+        display: block;
+        width: 100%;
+        text-align: right;
+        margin-top: 15px;
+        padding: 10px;
+        background-color: #edf7ff;
+        border-radius: 6px;
+    }
 }
 
 /* Mantén tus columnas en tablets/escritorio como ya las tenías */
 @media (min-width: 576px) {
-  .product-details { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    .product-details { 
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important; 
+    }
+    
+    .product-detail {
+        flex-direction: row !important;
+        justify-content: space-between;
+        align-items: center;
+    }
 }
+
 @media (min-width: 992px) {
-  .product-details { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+    .product-details { 
+        grid-template-columns: repeat(4, minmax(0, 1fr)) !important; 
+    }
 }

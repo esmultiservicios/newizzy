@@ -3936,19 +3936,36 @@ class mainModel
 		return $result;
 	}
 
-	public function getISV($documento)
+	public function getISV($documento, $isv_id = 0)
 	{
-		$query = "SELECT i.isv_id AS 'isv_id', i.isv_tipo_id AS 'isv_tipo_id', i.valor AS 'valor', it.nombre AS 'tipo_isv', i.activar
-				FROM isv AS i
-				INNER JOIN isv_tipo As it
-				ON i.isv_tipo_id = it.isv_tipo_id
-				WHERE it.nombre = '$documento'";
-
-		$result = self::connection()->query($query);
-
-		return $result;
+		$conexion = self::connection();
+	
+		// Escapar la variable con real_escape_string para evitar inyección
+		$documento = $conexion->real_escape_string($documento);
+	
+		$filtroId = '';
+		if ($isv_id === 1 || $isv_id === 2) {
+			$filtroId = " AND i.isv_id = " . intval($isv_id) . " ";
+		}
+	
+		$query = "
+			SELECT 
+				i.isv_id,
+				i.isv_tipo_id,
+				i.valor,
+				it.nombre AS tipo_isv,
+				i.activar
+			FROM isv AS i
+			INNER JOIN isv_tipo AS it ON i.isv_tipo_id = it.isv_tipo_id
+			WHERE it.nombre = '$documento'
+			$filtroId
+			ORDER BY i.isv_id ASC
+			LIMIT 1;
+		";
+	
+		return $conexion->query($query);
 	}
-
+	
 	public function getHoraInicio($colaborador_id)
 	{
 		$query = "SELECT horai
@@ -4267,114 +4284,124 @@ class mainModel
 
 	public function getProductosConInventarioYServicios($datos)
 	{
-		$bodega = '';
-		$barCode = '';
-
-		// Filtro por bodega (solo para productos, no para servicios)
-		if ($datos['bodega'] != '' && $datos['bodega'] != '0') {
-			$bodega = "AND (m.almacen_id = '" . $datos['bodega'] . "' OR m.almacen_id IS NULL OR m.almacen_id = 0)";
+		$empresa_id = $this->connection()->real_escape_string($datos['empresa_id_sd']);
+		$barCode    = '';
+		$bodegaSQL  = '';
+	
+		// Filtro por código de barras (opcional)
+		if (!empty($datos['barcode'])) {
+			$barcodeVal = $this->connection()->real_escape_string($datos['barcode']);
+			$barCode    = "AND p.barCode = '{$barcodeVal}'";
 		}
-
-		// Filtro por código de barras
-		if ($datos['barcode'] != '') {
-			$barCode = "AND p.barCode = '" . $datos['barcode'] . "'";
+	
+		// Filtro por bodega (aplicado a la bodega efectiva)
+		// Usamos COALESCE(inv.almacen_id, p.almacen_id) = bodega
+		if (!empty($datos['bodega']) && $datos['bodega'] !== '0') {
+			$bodegaVal = $this->connection()->real_escape_string($datos['bodega']);
+			$bodegaSQL = "AND COALESCE(inv.almacen_id, p.almacen_id) = '{$bodegaVal}'";
 		}
-
-		// Consulta unificada: Productos + Servicios
+	
+		// Subconsulta de inventario por producto/bodega
+		// Suma entradas - salidas por producto y almacen
 		$query = "
-			-- Consulta para productos (siempre incluye todos)
+			/* ===== Productos (con inventario por bodega) ===== */
 			SELECT
-				m.almacen_id,
-				m.movimientos_id AS 'movimientos_id',
-				p.barCode AS 'barCode',
-				p.nombre AS 'nombre',
-				me.nombre AS 'medida',
-				IFNULL(SUM(m.cantidad_entrada), 0) AS 'entrada',
-				IFNULL(SUM(m.cantidad_salida), 0) AS 'salida',
-				IFNULL((SUM(m.cantidad_entrada) - SUM(m.cantidad_salida)), 0) AS 'cantidad',
-				bo.nombre AS 'almacen',
-				DATE_FORMAT(m.fecha_registro, '%d/%m/%Y %H:%i:%s') AS 'fecha_registro',
-				p.productos_id AS 'productos_id',
+				COALESCE(inv.almacen_id, p.almacen_id)                     AS almacen_id,
+				inv.movimientos_id                                         AS movimientos_id,
+				p.barCode                                                  AS barCode,
+				p.nombre                                                   AS nombre,
+				me.nombre                                                  AS medida,
+				COALESCE(inv.cantidad, 0)                                  AS cantidad,
+				bo.nombre                                                  AS almacen,
+				inv.fecha_registro                                         AS fecha_registro,
+				p.productos_id                                             AS productos_id,
 				p.id_producto_superior,
-				p.precio_compra AS 'precio_compra',
+				p.precio_compra                                            AS precio_compra,
 				p.precio_venta,
 				p.precio_mayoreo,
 				p.cantidad_mayoreo,
-				p.isv_venta AS 'impuesto_venta',
-				p.isv_compra AS 'isv_compra',
-				p.file_name AS 'image',
-				tp.tipo_producto_id AS 'tipo_producto_id',
-				tp.nombre AS 'tipo_producto',
-				CASE WHEN p.estado = '1' THEN 'Activo' ELSE 'Inactivo' END AS 'estado',
-				CASE WHEN p.isv_venta = '1' THEN 'Sí' ELSE 'No' END AS 'isv',
-				tp.nombre AS 'tipo_producto_nombre',
-				CASE WHEN p.isv_venta = '1' THEN 'Si' ELSE 'No' END AS 'isv_venta',
-				CASE WHEN p.isv_compra = '1' THEN 'Si' ELSE 'No' END AS 'isv_compra',
-				(SELECT id_producto_superior FROM productos WHERE productos_id = p.productos_id) AS 'id_producto_superior'
-			FROM
-				productos AS p
-			LEFT JOIN movimientos AS m 
-				ON m.productos_id = p.productos_id 
-				AND m.empresa_id = '" . $datos['empresa_id_sd'] . "'
-			LEFT JOIN medida AS me 
-				ON p.medida_id = me.medida_id
-			LEFT JOIN almacen AS bo 
-				ON m.almacen_id = bo.almacen_id
-			INNER JOIN tipo_producto AS tp 
-				ON p.tipo_producto_id = tp.tipo_producto_id
+				p.isv_venta                                                AS impuesto_venta,
+				p.isv_compra                                               AS isv_compra,
+				p.file_name                                                AS image,
+				tp.tipo_producto_id                                        AS tipo_producto_id,
+				tp.nombre                                                  AS tipo_producto,
+				CASE WHEN p.estado = '1' THEN 'Activo' ELSE 'Inactivo' END AS estado,
+				CASE WHEN p.isv_venta = '1' THEN 'Sí' ELSE 'No' END        AS isv,
+				tp.nombre                                                  AS tipo_producto_nombre,
+				CASE WHEN p.isv_venta = '1' THEN 'Si' ELSE 'No' END        AS isv_venta,
+				CASE WHEN p.isv_compra = '1' THEN 'Si' ELSE 'No' END       AS isv_compra,
+				(SELECT id_producto_superior FROM productos WHERE productos_id = p.productos_id) AS id_producto_superior,
+				COALESCE(p.isv1, 0)                                        AS isv1,
+				COALESCE(p.isv2, 0)                                        AS isv2
+			FROM productos AS p
+			/* Inventario agregado por producto/bodega */
+			LEFT JOIN (
+				SELECT 
+					m.productos_id,
+					m.almacen_id,
+					MAX(m.movimientos_id)                                   AS movimientos_id,
+					SUM(IFNULL(m.cantidad_entrada,0)) - SUM(IFNULL(m.cantidad_salida,0)) AS cantidad,
+					MAX(DATE_FORMAT(m.fecha_registro, '%d/%m/%Y %H:%i:%s')) AS fecha_registro
+				FROM movimientos AS m
+				WHERE m.empresa_id = '{$empresa_id}'
+				GROUP BY m.productos_id, m.almacen_id
+			) AS inv
+				ON inv.productos_id = p.productos_id
+			LEFT JOIN medida  AS me ON p.medida_id     = me.medida_id
+			LEFT JOIN tipo_producto AS tp ON p.tipo_producto_id = tp.tipo_producto_id
+			/* Importante: unir a la bodega efectiva (de inv o, si no hay, la que tenga el producto) */
+			LEFT JOIN almacen AS bo ON bo.almacen_id = COALESCE(inv.almacen_id, p.almacen_id)
 			WHERE
 				p.estado = 1
-				AND tp.tipo_producto_id = 1  -- Solo productos
-				$barCode
-				$bodega
-			GROUP BY
-				p.productos_id, m.almacen_id
+				AND tp.tipo_producto_id = 1 -- Solo productos
+				{$barCode}
+				{$bodegaSQL}
+	
 			UNION ALL
-			-- Consulta para servicios
+	
+			/* ===== Servicios (sin bodega) ===== */
 			SELECT
-				NULL AS 'almacen_id',
-				NULL AS 'movimientos_id',
-				p.barCode AS 'barCode',
-				p.nombre AS 'nombre',
-				me.nombre AS 'medida',
-				0 AS 'entrada',
-				0 AS 'salida',
-				0 AS 'cantidad',
-				NULL AS 'almacen',
-				NULL AS 'fecha_registro',
-				p.productos_id AS 'productos_id',
+				NULL AS almacen_id,
+				NULL AS movimientos_id,
+				p.barCode                     AS barCode,
+				p.nombre                      AS nombre,
+				me.nombre                     AS medida,
+				0                             AS cantidad,
+				NULL                          AS almacen,
+				NULL                          AS fecha_registro,
+				p.productos_id                AS productos_id,
 				p.id_producto_superior,
-				p.precio_compra AS 'precio_compra',
+				p.precio_compra               AS precio_compra,
 				p.precio_venta,
 				p.precio_mayoreo,
 				p.cantidad_mayoreo,
-				p.isv_venta AS 'impuesto_venta',
-				p.isv_compra AS 'isv_compra',
-				p.file_name AS 'image',
-				tp.tipo_producto_id AS 'tipo_producto_id',
-				tp.nombre AS 'tipo_producto',
-				CASE WHEN p.estado = '1' THEN 'Activo' ELSE 'Inactivo' END AS 'estado',
-				CASE WHEN p.isv_venta = '1' THEN 'Sí' ELSE 'No' END AS 'isv',
-				tp.nombre AS 'tipo_producto_nombre',
-				CASE WHEN p.isv_venta = '1' THEN 'Si' ELSE 'No' END AS 'isv_venta',
-				CASE WHEN p.isv_compra = '1' THEN 'Si' ELSE 'No' END AS 'isv_compra',
-				(SELECT id_producto_superior FROM productos WHERE productos_id = p.productos_id) AS 'id_producto_superior'
-			FROM
-				productos AS p
-			LEFT JOIN medida AS me 
-				ON p.medida_id = me.medida_id
-			INNER JOIN tipo_producto AS tp 
-				ON p.tipo_producto_id = tp.tipo_producto_id
+				p.isv_venta                   AS impuesto_venta,
+				p.isv_compra                  AS isv_compra,
+				p.file_name                   AS image,
+				tp.tipo_producto_id           AS tipo_producto_id,
+				tp.nombre                     AS tipo_producto,
+				CASE WHEN p.estado = '1' THEN 'Activo' ELSE 'Inactivo' END AS estado,
+				CASE WHEN p.isv_venta = '1' THEN 'Sí' ELSE 'No' END        AS isv,
+				tp.nombre                     AS tipo_producto_nombre,
+				CASE WHEN p.isv_venta = '1' THEN 'Si' ELSE 'No' END        AS isv_venta,
+				CASE WHEN p.isv_compra = '1' THEN 'Si' ELSE 'No' END       AS isv_compra,
+				(SELECT id_producto_superior FROM productos WHERE productos_id = p.productos_id) AS id_producto_superior,
+				COALESCE(p.isv1, 0)           AS isv1,
+				COALESCE(p.isv2, 0)           AS isv2
+			FROM productos AS p
+			LEFT JOIN medida AS me  ON p.medida_id = me.medida_id
+			INNER JOIN tipo_producto AS tp ON p.tipo_producto_id = tp.tipo_producto_id
 			WHERE
 				p.estado = 1
 				AND tp.tipo_producto_id = 2  -- Solo servicios
-				$barCode
-			ORDER BY
-				tipo_producto_id ASC, nombre ASC;
+				{$barCode}
+	
+			ORDER BY tipo_producto_id ASC, nombre ASC;
 		";
+	
 		$result = self::connection()->query($query);
 		return $result;
-	}
+	}	
 	
 	public function getProductosConInventarioYServiciosCotizacion($datos)
 	{
@@ -4486,25 +4513,22 @@ class mainModel
 		$result = self::connection()->query($query);
 		return $result;
 	}
+
 	public function getProductosCantidad($datos)
 	{
 		$bodega = '';
 		$barCode = '';
 
-		// Condición para filtrar por bodega
 		if ($datos['bodega'] != '') {
 			$bodega = "AND m.almacen_id = '" . $datos['bodega'] . "'";
 		}
 		if ($datos['bodega'] == '0') {
-			$bodega = '';  // Si la bodega es 0, se ignora el filtro de bodega
+			$bodega = '';
 		}
-
-		// Condición para filtrar por código de barras
 		if ($datos['barcode'] != '') {
 			$barCode = "AND p.barCode = '" . $datos['barcode'] . "'";
 		}
 
-		// Consulta ajustada con filtros dinámicos para bodega y código de barras
 		$query = "
 			SELECT
 				m.almacen_id,
@@ -4525,6 +4549,10 @@ class mainModel
 				p.cantidad_mayoreo,
 				p.isv_venta AS 'impuesto_venta',
 				p.isv_compra AS 'isv_compra',
+				/* === FLAGS DE ISV POR PRODUCTO (AJUSTA NOMBRES SI DIFIEREN) === */
+				COALESCE(p.isv1, 0) AS 'isv1',
+				COALESCE(p.isv2, 0) AS 'isv2',
+				/* =============================================================== */
 				p.file_name AS 'image',
 				tp.tipo_producto_id AS 'tipo_producto_id',
 				tp.nombre AS 'tipo_producto',
@@ -4552,9 +4580,7 @@ class mainModel
 				p.fecha_registro ASC;
 		";
 
-		$result = self::connection()->query($query);
-
-		return $result;
+		return self::connection()->query($query);
 	}
 
 	/*public function getProductosCantidad($datos)

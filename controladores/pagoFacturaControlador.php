@@ -37,20 +37,40 @@ class pagoFacturaControlador extends pagoFacturaModelo {
                 $monto = isset($_POST['efectivo_bill']) ? $this->parseMonto($_POST['efectivo_bill']) : 0.0;
                 break;
             case 'tarjeta':
-                $monto = isset($_POST['importe_tarjeta']) ? $this->parseMonto($_POST['importe_tarjeta'])
-                    : (isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0);
+                $monto = isset($_POST['importe_tarjeta']) ? $this->parseMonto($_POST['importe_tarjeta']) : 0.0;
+                if ($monto <= 0) {
+                    $monto = isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0;
+                }
                 break;
             case 'transferencia':
-                $monto = isset($_POST['importe_transferencia']) ? $this->parseMonto($_POST['importe_transferencia'])
-                    : (isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0);
+                $monto = isset($_POST['importe_transferencia']) ? $this->parseMonto($_POST['importe_transferencia']) : 0.0;
+                if ($monto <= 0) {
+                    $monto = isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0;
+                }
                 break;
             case 'cheque':
-                $monto = isset($_POST['importe_cheque']) ? $this->parseMonto($_POST['importe_cheque'])
-                    : (isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0);
+                $monto = isset($_POST['importe_cheque']) ? $this->parseMonto($_POST['importe_cheque']) : 0.0;
+                if ($monto <= 0) {
+                    $monto = isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0;
+                }
+                break;
+            case 'puntos':
+                $monto = isset($_POST['importe_puntos']) ? $this->parseMonto($_POST['importe_puntos']) : 0.0;
+                if ($monto <= 0) {
+                    $monto = isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0;
+                }
                 break;
             default:
                 $monto = isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0;
                 break;
+        }
+
+        // Añade logging para debugging (elimina después de probar)
+        error_log("Tipo pago: $tipoPago, Monto: $monto");
+        foreach ($_POST as $key => $value) {
+            if (strpos($key, 'importe') !== false || strpos($key, 'efectivo') !== false) {
+                error_log("Campo: $key = $value");
+            }
         }
 
         // Normaliza a 2 decimales y elimina residuos binarios

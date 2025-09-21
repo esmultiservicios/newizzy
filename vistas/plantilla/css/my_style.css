@@ -1827,145 +1827,157 @@
     padding-left: 2.5rem !important;
 }
 
-/* ==================== */
-/* FOOTER RESPONSIVO QUE SE AJUSTA AL NAVBAR */
-/* ==================== */
-.footer1 {
+/* ========================== */
+/* FOOTER DE TOTALES – PREMIUM COMPACTO (CENTRADO) */
+/* ========================== */
+
+/* Variables para alturas */
+:root{
+    --footer-h: 118px;   /* alto aprox del footer en desktop */
+    --control-h: 52px;   /* alto de cada campo en desktop */
+    --metric-w: 240px;   /* ANCHO de cada tarjeta del total (clave para centrar) */
+  }
+  
+  .footer1{
     position: fixed;
-    left: 0; /* Ancho inicial del sidebar expandido */
+    left: 0;
     right: 0;
     bottom: 0;
-    height: auto;
-    background-color: white;
-    padding: 15px 0;
     z-index: 1000;
-    box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.1);
+    background: #fff;
     border-top: 1px solid #e0e0e0;
-    transition: all 0.3s ease;
-    width: 100%; /* Ocupa todo el espacio menos el sidebar */
-}
-
-/* Cuando el sidebar está colapsado */
-.sb-sidenav.collapsed ~ .footer1 {
-    left: 70px; /* Ancho del sidebar colapsado */
-    width: calc(100% - 70px); /* Ajuste del ancho */
-}
-
-/* Contenedor principal que siempre está centrado */
-.footer1 .form-row {
-    max-width: 1200px;
+    box-shadow: 0 -4px 12px rgba(0,0,0,.08);
+    padding: 10px 0;               /* compacto */
+    transition: all .3s ease;
+    width: 100%;
+  }
+  
+  /* deja espacio para que el footer no tape el contenido */
+  body#view_bill{
+    padding-bottom: calc(var(--footer-h) + 12px);
+  }
+  
+  .footer1 .form-row{
+    max-width: 1280px;
     margin: 0 auto;
+    padding: 0 12px;
+  }
+  
+  /* ========= GRILLA CENTRADA =========
+     Usamos columnas de ancho fijo y centramos el bloque completo */
+  .footer1 .totals-grid{
+    display: grid;
+    grid-template-columns: repeat(5, var(--metric-w));  /* 5 columnas fijas */
+    gap: 12px;
+    justify-content: center;      /* centra el conjunto dentro del contenedor */
+    align-items: start;
+  }
+  
+  /* Tarjeta de cada métrica */
+  .footer1 .metric{
+    width: var(--metric-w);
+    margin: 0 auto;
+    text-align: center;           /* centra textos dentro de la tarjeta */
+  }
+  
+  .footer1 .metric label{
+    display: block;
+    font-size: 20px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 6px 0;
+    text-align: center;           /* centrado */
+  }
+  
+  /* Grupo L | campo */
+  .footer1 .metric .input-group{
     display: flex;
-    flex-wrap: wrap;
+    align-items: stretch;
     justify-content: center;
-    padding: 0 15px;
-}
-
-/* Ajustes para el contenido del footer */
-.footer1 .col-md-3 {
-    flex: 1 1 200px;
-    max-width: 23%;
-    margin: 0 1%;
-    padding: 0 10px;
-    min-width: 200px;
-}
-
-/* ==================== */
-/* AJUSTES RESPONSIVE */
-/* ==================== */
-@media (max-width: 768px) {
-    /* Para pantallas pequeñas (móviles) */
-    .footer1 {
-        position: relative !important;
-        left: 0 !important;
-        width: 100% !important;
-        padding-left: 15px !important;
-        padding-right: 15px;
-        margin-top: 20px;
-    }
-    
-    .footer1 .col-md-3 {
-        max-width: 48%;  /* Cambiado de 100% a 48% para 2 por fila */
-        flex: 0 0 48%;  /* Cambiado de 100% a 48% para 2 por fila */
-        margin: 0 1% 15px 1%;
-    }
-    
-    .footer1 .form-row {
-        justify-content: space-between;  /* Esto ayuda a distribuir los elementos */
-    }
-    
-    /* Ajuste para moneda en móviles */
-    .input-group-prepend .input-group-text {
-        font-size: 1rem;
-        padding: 0.25rem 0.5rem;
-    }
-
-    /* Manejo del sidebar colapsado en móviles */
-    .sb-sidenav.collapsed ~ .footer1 {
-        padding-left: 15px !important;
-    }
-}
-
-  /* ==================== */
-  /* ESTILO PARA FORMATO DE MONEDA (LEMPIRAS) */
-  /* ==================== */
-  .input-group-prepend .input-group-text {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%; /* Misma altura que el elemento adyacente */
-    font-size: 1.25rem; /* Tamaño más apropiado */
-    padding: 0.375rem 0.75rem; /* Padding estándar de inputs */
-    background-color: #f8f9fa;
+  }
+  
+  /* Caja del símbolo de moneda */
+  .footer1 .metric .input-group .input-group-text{
+    font-size: 20px;
+    padding: .25rem .5rem;
+    background: #f8f9fa;
     border: 1px solid #ced4da;
-    border-radius: 0.25rem 0 0 0.25rem;
+    border-right: 0;
+    border-radius: .5rem 0 0 .5rem;
+    display: flex;
+    align-items: center;     /* centra vertical */
+    justify-content: center; /* centra horizontal */
+    height: var(--control-h);
+    min-width: 36px;
   }
   
-  /* Asegurar que el símbolo de moneda esté alineado verticalmente */
-  .input-group-prepend .input-group-text[for="basic-addon1"] {
-    line-height: 1.5; /* Igual que los inputs */
+  /* Campo de valor (textarea como display) */
+  .footer1 .metric .form-control{
+    text-align: center;                 /* centra horizontal */
+    background: #eef2f5;
+    color: #495057;
+    border: 1px solid #ced4da;
+    border-left: 0;
+    border-radius: 0 .5rem .5rem 0;
+    height: var(--control-h);           /* alto fijo */
+    line-height: var(--control-h);      /* centra vertical una línea */
+    padding: 0;                         /* sin padding para que el line-height mande */
+    resize: none;
+    overflow: hidden;
   }
   
-  /* Ajuste para inputs específicos */
-  .input-group > .form-control,
-  .input-group > .form-select {
-    height: calc(1.5em + 0.75rem + 2px); /* Altura estándar de Bootstrap */
+  /* ==================== */
+  /* RESPONSIVE (centrado real por número de columnas) */
+  /* ==================== */
+  
+  @media (max-width: 1399.98px){
+    :root{ --footer-h: 114px; }
   }
   
-  /* Responsive para pantallas más pequeñas */
-  @media (max-width: 992px) {
-    .footer1 {
-      left: 0 !important;
-      width: 100% !important;
-      padding-left: 70px; /* Respeta el sidebar colapsado */
-    }
-    
-    .sb-sidenav.collapsed ~ .footer1 {
-      padding-left: 70px;
-    }
-    
-    .footer1 .col-md-3 {
-      max-width: 48%;
-      margin-bottom: 15px;
-    }
+  /* 4 columnas centradas */
+  @media (max-width: 1199.98px){
+    .footer1 .totals-grid{ grid-template-columns: repeat(4, var(--metric-w)); }
+    :root{ --footer-h: 112px; }
   }
   
-  @media (max-width: 768px) {
-    .footer1 {
-      padding-left: 15px !important;
+  /* 3 columnas centradas */
+  @media (max-width: 991.98px){
+    :root{
+      --control-h: 48px;
+      --footer-h: 108px;
+      --metric-w: 230px;  /* un poco más compacto */
     }
-    
-    .footer1 .col-md-3 {
-      max-width: 100%;
-      margin: 0 0 15px 0;
-    }
-    
-    /* Ajuste para moneda en móviles */
-    .input-group-prepend .input-group-text {
-      font-size: 1rem;
-      padding: 0.25rem 0.5rem;
-    }
+    .footer1{ padding: 8px 0; }
+    .footer1 .metric label{ font-size: 18px; }
+    .footer1 .metric .input-group .input-group-text{ font-size: 18px; }
+    .footer1 .totals-grid{ grid-template-columns: repeat(3, var(--metric-w)); }
   }
+  
+  /* 2 columnas centradas y footer relativo en móvil */
+  @media (max-width: 767.98px){
+    .footer1{ position: relative !important; width: 100% !important; }
+    body#view_bill{ padding-bottom: 24px; }
+  
+    :root{
+      --control-h: 44px;
+      --metric-w: 220px;
+      --footer-h: 0px; /* no se usa en relative */
+    }
+  
+    .footer1 .metric label{ font-size: 16px; }
+    .footer1 .metric .input-group .input-group-text{ font-size: 16px; }
+    .footer1 .totals-grid{ grid-template-columns: repeat(2, var(--metric-w)); }
+  }
+  
+  /* 1 columna centrada */
+  @media (max-width: 575.98px){
+    :root{ --control-h: 40px; --metric-w: 260px; }
+    .footer1 .totals-grid{ grid-template-columns: repeat(1, var(--metric-w)); }
+    .footer1 .metric label{ font-size: 15px; }
+    .footer1 .metric .input-group .input-group-text{ font-size: 15px; }
+  }
+  
+  
 
 /* MODO SOPORTE */
 .modo_soporte {

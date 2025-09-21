@@ -245,7 +245,17 @@
                                             <td>
                                                 <input type="hidden" name="referenciaProducto[]" id="referenciaProducto_0" class="form-control inputfield-details1" placeholder="Referencia Producto Precio" autocomplete="off">
                                                 <input type="hidden" name="isv[]" id="isv_0" class="form-control inputfield-details1" placeholder="Producto ISV" autocomplete="off">
-                                                <input type="hidden" name="valor_isv[]" id="valor_isv_0" class="form-control inputfield-details1" placeholder="Valor ISV" autocomplete="off">
+
+                                                <!-- ISV1 (15% u otro valor que venga como ISV id=1) -->
+                                                <input type="hidden" name="valor_isv[]" id="valor_isv_0" class="form-control inputfield-details1" placeholder="Valor ISV (id=1)" autocomplete="off">
+
+                                                <!-- NUEVO: ISV2 (18% u otro valor que venga como ISV id=2) -->
+                                                <input type="hidden" name="valor_isv1[]" id="valor_isv1_0" class="form-control inputfield-details1" placeholder="Valor ISV2 (id=2)" autocomplete="off">
+
+                                                <!-- ¿qué ISV aplica a ESTA fila? 1/0 -->
+                                                <input type="hidden" name="isv1_flag[]" id="isv1_flag_0" value="0">  <!-- 1 => usa ISV id=1 (15%) -->
+                                                <input type="hidden" name="isv2_flag[]" id="isv2_flag_0" value="0">  <!-- 1 => usa ISV id=2 (18%) -->
+
                                                 <input type="hidden" name="facturas_detalle_id[]" id="facturas_detalle_id_0" class="form-control" placeholder="Código Producto" autocomplete="off">
                                                 <input type="hidden" name="productos_id[]" id="productos_id_0" class="form-control inputfield-details1" placeholder="Código del Producto" autocomplete="off">
                                                 <div class="input-group mb-3">
@@ -409,7 +419,7 @@
                                 <div class="col-sm-12 col-md-12">
                                     <h3>Notas: </h3>
                                     <div class="form-group">
-                                        <textarea class="form-control txt" rows="6" name="notesBill" id="notesBill" placeholder="Notas" maxlength="2000"></textarea>
+                                        <textarea class="form-control txt" rows="3" name="notesBill" id="notesBill" placeholder="Notas" maxlength="2000"></textarea>
                                         <p id="charNum_notasQuote">2000 Caracteres</p>
                                     </div>
                                 </div>
@@ -477,7 +487,7 @@
                                     </div>
                                     <div class="row">
                                         <div class="col-sm-3 form-inline">
-                                            <label>ISV:</label>
+                                            <label>ISV 15%:</label>
                                         </div>
                                         <div class="col-sm-9">
                                             <div class="input-group mb-1">
@@ -490,6 +500,21 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="row">
+                                        <div class="col-sm-3 form-inline">
+                                            <label>ISV 18%:</label>
+                                        </div>
+                                        <div class="col-sm-9">
+                                            <div class="input-group mb-1">
+                                                <div class="input-group-append">
+                                                    <span class="input-group-text">
+                                                        <div class="sb-nav-link-icon"></div>L</i>
+                                                    </span>
+                                                </div>
+                                                <input value="" type="number" class="form-control" name="taxAmount18" id="taxAmount18" readonly placeholder="Impuesto">
+                                            </div>
+                                        </div>
+                                    </div>                                    
                                     <div class="row">
                                         <div class="col-sm-3 form-inline">
                                             <label>Total:</label>

@@ -1,3 +1,8 @@
+####20 de septiembre 2025####
+ALTER TABLE facturas_detalles
+  ADD COLUMN isv_valor1 FLOAT(12,4) NOT NULL DEFAULT 0.0000
+  AFTER isv_valor;
+  
 ####18 de septiembre 2025####
 ALTER TABLE movimientos ENGINE=InnoDB;
 

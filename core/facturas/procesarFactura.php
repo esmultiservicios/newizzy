@@ -15,7 +15,7 @@ $out = [
 try {
   $mainModel = new mainModel();
 
-  // Validar sesión si tu mainModel lo soporta
+  // (Opcional) si tu mainModel lo soporta
   if (method_exists($mainModel, 'validarSesion')) {
     $val = $mainModel->validarSesion();
     if (!empty($val['error']) && $val['error']) {
@@ -28,7 +28,7 @@ try {
     throw new Exception('Método no permitido');
   }
 
-  // Entrada JSON o form
+  // Body: JSON o form
   $raw = file_get_contents('php://input');
   $data = null;
   if ($raw) {
@@ -41,13 +41,13 @@ try {
   $clienteId   = isset($data['clienteId']) ? (int)$data['clienteId'] : 0;
   $vendedorId  = isset($data['vendedorId']) ? (int)$data['vendedorId'] : 0;
   $tipoFactura = isset($data['tipoFactura']) ? (int)$data['tipoFactura'] : 0; // 1 contado, 2 crédito
-  $aperturaId  = isset($data['aperturaId']) ? (int)$data['aperturaId'] : 0;
+  $aperturaId  = isset($data['aperturaId']) ? (int)$data['aperturaId'] : 0;   // puede venir del front
   $notas       = isset($data['notas']) ? trim((string)$data['notas']) : '';
   $productos   = isset($data['productos']) && is_array($data['productos']) ? $data['productos'] : [];
   $secIdClient = isset($data['secuencia_facturacion_id']) ? (int)$data['secuencia_facturacion_id'] : 0;
 
   if ($clienteId <= 0) throw new Exception('Cliente inválido');
-  // Si no enviaron vendedor, usar el colaborador logueado (si existe)
+  // si no enviaron vendedor, usar colaborador logueado
   if ($vendedorId === 0) {
     $vendedorId = (int)($_SESSION['colaborador_id_sd']
                   ?? $_SESSION['colaborador_id']
@@ -63,17 +63,50 @@ try {
   $db = $mainModel->connection();
   if (!$db) throw new Exception('Sin conexión a BD');
 
-  // === 0) Obtener % ISV desde tabla isv (isv_id = 1) ===
-  $isvPercent = 0.0; // en decimal (p.ej. 0.15)
-  $qIsv = "SELECT valor FROM isv WHERE isv_id = 1 AND activar = 1 LIMIT 1";
-  if ($resIsv = $db->query($qIsv)) {
-    if ($resIsv->num_rows > 0) {
-      $valIsv = (float)$resIsv->fetch_assoc()['valor']; // por ejemplo 15.00
-      $isvPercent = $valIsv / 100.0;
+  // ==================================================
+  // 0) Obtener los % ISV activos por isv_id (1 y 2)
+  //     - Siempre leemos tabla isv porque pueden cambiar
+  // ==================================================
+  $isv1Rate = 0.00; // decimal (0.15)
+  $isv2Rate = 0.00; // decimal (0.18)
+
+  $qISV = "SELECT isv_id, valor FROM isv WHERE activar = 1 AND isv_id IN (1,2)";
+  $rISV = $db->query($qISV);
+  if (!$rISV) throw new Exception('No se pudieron leer valores ISV: '.$db->error);
+  while ($row = $rISV->fetch_assoc()) {
+    $id = (int)$row['isv_id'];
+    $val = ((float)$row['valor']) / 100.0;
+    if ($id === 1) $isv1Rate = $val;
+    if ($id === 2) $isv2Rate = $val;
+  }
+  $rISV->free();
+
+  // ==================================================
+  // 0.1) Resolver apertura_id (OBLIGATORIO)
+  //      - Si no viene, buscamos apertura de HOY, del
+  //        usuario logueado (cajero) y empresa, estado=1
+  // ==================================================
+  if ($aperturaId <= 0) {
+    $sqlA = "SELECT apertura_id
+             FROM apertura
+             WHERE colaboradores_id = ?
+               AND fecha = CURDATE()
+               AND estado = 1
+               AND empresa_id = ?
+             LIMIT 1";
+    $stA = $db->prepare($sqlA);
+    if (!$stA) throw new Exception('Error preparando consulta de apertura: '.$db->error);
+    $stA->bind_param('ii', $usuarioId, $empresaId);
+    $stA->execute();
+    $rsA = $stA->get_result();
+    if ($rsA && $rsA->num_rows > 0) {
+      $aperturaId = (int)$rsA->fetch_assoc()['apertura_id'];
     }
-    $resIsv->free();
-  } else {
-    throw new Exception("No se pudo obtener el ISV: ".$db->error);
+    $stA->close();
+  }
+
+  if ($aperturaId <= 0) {
+    throw new Exception('Caja no aperturada para este usuario hoy. Debe aperturar caja antes de facturar.');
   }
 
   // ================================================
@@ -215,7 +248,8 @@ try {
   $nextDetId = (int)$rd['next_id'];
   if ($nextDetId <= 0) $nextDetId = 1;
 
-  $sqlProd = "SELECT p.productos_id, p.isv_venta, COALESCE(m.nombre,'UND') AS medida
+  // Traemos banderas isv1/isv2 e isv_venta por producto
+  $sqlProd = "SELECT p.productos_id, p.isv_venta, p.isv1, p.isv2, COALESCE(m.nombre,'UND') AS medida
               FROM productos p
               LEFT JOIN medida m ON m.medida_id = p.medida_id
               WHERE p.productos_id = ?
@@ -223,9 +257,10 @@ try {
   $stp = $db->prepare($sqlProd);
   if (!$stp) throw new Exception('Error preparando consulta producto: '.$db->error);
 
+  // Ajustado: ahora insertamos también isv_valor1
   $sqlDetIns = "INSERT INTO facturas_detalles
-    (facturas_detalle_id, facturas_id, productos_id, cantidad, precio, isv_valor, descuento, medida)
-    VALUES (?,?,?,?,?,?,?,?)";
+    (facturas_detalle_id, facturas_id, productos_id, cantidad, precio, isv_valor, isv_valor1, descuento, medida)
+    VALUES (?,?,?,?,?,?,?,?,?)";
   $std = $db->prepare($sqlDetIns);
   if (!$std) throw new Exception('Error preparando insert de detalle: '.$db->error);
 
@@ -247,16 +282,41 @@ try {
     }
     $prow = $rp->fetch_assoc();
 
-    $isvVenta = ((int)$prow['isv_venta'] === 1);     // 1 = grava ISV
+    // isv_venta: 1 = Sí, 2 = No
+    $isvVenta = ((int)$prow['isv_venta'] === 1);
+    $flagIsv1 = (int)$prow['isv1']; // 0 o 1
+    $flagIsv2 = (int)$prow['isv2']; // 0 o 1
     $medida   = (string)$prow['medida'];
 
-    // Calcular por unidad y luego por línea
     $precioUnit = round($precio, 4);
-    $isvUnit    = $isvVenta ? round($precioUnit * $isvPercent, 4) : 0.0;
-    $isvLinea   = $isvUnit * $cantidad;
 
-    // tipos: i i i i d d d s => 'iiiiddds'
-    $std->bind_param('iiiiddds', $nextDetId, $facturaId, $prodId, $cantidad, $precioUnit, $isvLinea, $desc, $medida);
+    // Calculamos por UNIDAD y luego por LÍNEA
+    $isv15Unit = 0.0;
+    $isv18Unit = 0.0;
+
+    if ($isvVenta) {
+      if ($flagIsv1 === 1) {               // usa isv_id = 1
+        $isv15Unit = round($precioUnit * $isv1Rate, 4);
+        $isv18Unit = 0.0;
+      } elseif ($flagIsv2 === 1) {         // usa isv_id = 2
+        $isv18Unit = round($precioUnit * $isv2Rate, 4);
+        $isv15Unit = 0.0;
+      } else {
+        // ni isv1 ni isv2 activos => no grava
+        $isv15Unit = 0.0;
+        $isv18Unit = 0.0;
+      }
+    }
+
+    $isv15Linea = $isv15Unit * $cantidad;
+    $isv18Linea = $isv18Unit * $cantidad;
+
+    // bind: iiiidddds (i,i,i,i, d, d, d, d, s)
+    $std->bind_param(
+      'iiiidddds',
+      $nextDetId, $facturaId, $prodId, $cantidad,
+      $precioUnit, $isv15Linea, $isv18Linea, $desc, $medida
+    );
     if (!$std->execute()) throw new Exception('Error insertando detalle: '.$std->error);
     $nextDetId++;
   }
@@ -265,8 +325,9 @@ try {
 
   // ===========================================================
   // 5) Recalcular TOTAL desde facturas_detalles (consistente)
+  //     Incluye ambos ISV: isv_valor (15) + isv_valor1 (18)
   // ===========================================================
-  $qTotal = "SELECT ROUND(SUM((cantidad * precio) - descuento + isv_valor), 2) AS total
+  $qTotal = "SELECT ROUND(SUM((cantidad * precio) - descuento + isv_valor + isv_valor1), 2) AS total
              FROM facturas_detalles
              WHERE facturas_id = ?";
   $stt = $db->prepare($qTotal);
@@ -277,8 +338,8 @@ try {
   $rowT = $rt->fetch_assoc();
   $stt->close();
 
-  $total = (float)($rowT['total'] ?? 0.00);           // total consistente
-  $total = round($total + 1e-9, 2);                   // redondeo seguro a 2 decimales
+  $total = (float)($rowT['total'] ?? 0.00);
+  $total = round($total + 1e-9, 2);
 
   // 5b) Actualizar TOTAL en facturas
   $sqlUpd = "UPDATE facturas SET importe = ? WHERE facturas_id = ?";
@@ -291,7 +352,6 @@ try {
   // ===========================
   // 6) Registrar en COBRAR_CLIENTES (siempre)
   // ===========================
-  // correlativo manual con LOCK (MyISAM)
   if (!$db->query("LOCK TABLES cobrar_clientes WRITE")) {
     throw new Exception('No se pudo bloquear la tabla cobrar_clientes');
   }
@@ -312,7 +372,6 @@ try {
     $db->query("UNLOCK TABLES");
     throw new Exception('Error preparando registro en cobrar_clientes: '.$db->error);
   }
-  // tipos: i i i d i i i  => 'iiidiii'
   $stc->bind_param('iiidiii', $cxcId, $clienteId, $facturaId, $total, $tipoFactura, $usuarioId, $empresaId);
   if (!$stc->execute()) {
     $db->query("UNLOCK TABLES");

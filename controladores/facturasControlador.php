@@ -157,58 +157,98 @@ class facturasControlador extends facturasModelo {
     }
 
     /* ===========================
-     * DETALLE DE FACTURA
-     * =========================== */
+    * DETALLE DE FACTURA (totales por ISV separados)
+    * =========================== */
     protected function procesarDetalleFactura($facturas_id, $clientes_id, $fecha, $fecha_registro, $empresa_id) {
-        $total_valor = 0; $descuentos = 0; $isv_neto = 0;
+        $total_valor  = 0.0;
+        $descuentos   = 0.0;
+        $isv15_total  = 0.0; // isv_valor
+        $isv18_total  = 0.0; // isv_valor1
 
-        for ($i=0; $i<count($_POST['productName']); $i++) {
-            if(empty($_POST['productos_id'][$i]) || empty($_POST['productName'][$i]) ||
-               empty($_POST['quantity'][$i]) || empty($_POST['price'][$i])) continue;
+        for ($i = 0; $i < count($_POST['productName']); $i++) {
+            if (empty($_POST['productos_id'][$i]) || empty($_POST['productName'][$i]) ||
+                $_POST['quantity'][$i] === '' || $_POST['price'][$i] === '') {
+                continue;
+            }
 
-            $p = $this->procesarProducto($facturas_id,$clientes_id,$fecha,$fecha_registro,$empresa_id,$i);
+            $p = $this->procesarProducto($facturas_id, $clientes_id, $fecha, $fecha_registro, $empresa_id, $i);
+
             $total_valor += $p['subtotal'];
             $descuentos  += $p['descuento'];
-            $isv_neto    += $p['isv_valor'];
+            $isv15_total += $p['isv_valor'];
+            $isv18_total += $p['isv_valor1'];
         }
 
         return [
-            'total_valor'=>$total_valor,
-            'descuentos'=>$descuentos,
-            'isv_neto'=>$isv_neto,
-            'total_despues_isv'=>($total_valor + $isv_neto) - $descuentos
+            'total_valor'       => $total_valor,
+            'descuentos'        => $descuentos,
+            'isv15_total'       => $isv15_total,
+            'isv18_total'       => $isv18_total,
+            'total_despues_isv' => ($total_valor - $descuentos) + $isv15_total + $isv18_total,
         ];
-    }
+    } 
 
+    /* ===========================
+    * PRODUCTO (envía isv_valor e isv_valor1 por separado)
+    * =========================== */
     protected function procesarProducto($facturas_id, $clientes_id, $fecha, $fecha_registro, $empresa_id, $index) {
-        $discount = number_format((float)($_POST['discount'][$index] ?? 0), 2, '.', '');
-        $isv_valor = number_format((float)($_POST['valor_isv'][$index] ?? 0), 2, '.', '');
-        $productos_id = $_POST['productos_id'][$index];
-        $quantity = $_POST['quantity'][$index];
-        $price = $_POST['price'][$index];
-        $medida = $_POST['medida'][$index];
-        $bodega = $_POST['bodega'][$index] ?? 0;
-        $referenciaProducto = $_POST['referenciaProducto'][$index] ?? '';
-        $price_anterior = $_POST['precio_real'][$index] ?? 0;
+        $isv_1 = number_format((float)($_POST['valor_isv'][$index]  ?? 0), 4, '.', '');  // ISV id=1 (monto)
+        $isv_2 = number_format((float)($_POST['valor_isv1'][$index] ?? 0), 4, '.', '');  // ISV id=2 (monto)
 
-        $this->guardarDetalleFactura($facturas_id,$productos_id,$quantity,$price,$isv_valor,$discount,$medida);
-        $this->procesarInventario($facturas_id,$clientes_id,$productos_id,$quantity,$bodega,$empresa_id,$medida);
+        $discount       = number_format((float)($_POST['discount'][$index] ?? 0), 4, '.', '');
+        $productos_id   = $_POST['productos_id'][$index];
+        $quantity       = (float)$_POST['quantity'][$index];
+        $price          = number_format((float)$_POST['price'][$index], 4, '.', '');
+        $medida         = $_POST['medida'][$index] ?? 'Und';  // ← evita undefined
+        $bodega         = $_POST['bodega'][$index] ?? 0;
+        $referenciaProd = $_POST['referenciaProducto'][$index] ?? '';
+        $price_anterior = number_format((float)($_POST['precio_real'][$index] ?? 0), 4, '.', '');
 
-        if($referenciaProducto !== ""){
-            $this->registrarCambioPrecio($facturas_id,$productos_id,$clientes_id,$fecha,$referenciaProducto,$price_anterior,$price,$fecha_registro);
+        $this->guardarDetalleFactura(
+            $facturas_id,
+            $productos_id,
+            $quantity,
+            $price,
+            $isv_1,  // isv_valor
+            $isv_2,  // isv_valor1
+            $discount,
+            $medida
+        );
+
+        $this->procesarInventario($facturas_id, $clientes_id, $productos_id, $quantity, $bodega, $empresa_id, $medida);
+
+        if ($referenciaProd !== "") {
+            $this->registrarCambioPrecio($facturas_id, $productos_id, $clientes_id, $fecha, $referenciaProd, $price_anterior, $price, $fecha_registro);
         }
 
-        return ['subtotal'=>$price*$quantity,'descuento'=>$discount,'isv_valor'=>$isv_valor];
+        return [
+            'subtotal'   => (float)$price * (float)$quantity,
+            'descuento'  => (float)$discount,
+            'isv_valor'  => (float)$isv_1,
+            'isv_valor1' => (float)$isv_2,
+        ];
     }
 
-    protected function guardarDetalleFactura($facturas_id,$productos_id,$quantity,$price,$isv_valor,$discount,$medida){
+    /* ===========================
+    * GUARDA DETALLE (con isv_valor1)
+    * =========================== */
+    protected function guardarDetalleFactura($facturas_id, $productos_id, $quantity, $price, $isv_valor, $isv_valor1, $discount, $medida){
         $datos = [
-            "facturas_id"=>$facturas_id,"productos_id"=>$productos_id,"cantidad"=>$quantity,
-            "precio"=>$price,"isv_valor"=>$isv_valor,"descuento"=>$discount,"medida"=>$medida
+            "facturas_id"  => $facturas_id,
+            "productos_id" => $productos_id,
+            "cantidad"     => $quantity,
+            "precio"       => $price,
+            "isv_valor"    => $isv_valor,
+            "isv_valor1"   => $isv_valor1,
+            "descuento"    => $discount,
+            "medida"       => $medida
         ];
         $result = facturasModelo::validDetalleFactura($facturas_id,$productos_id);
-        if($result->num_rows>0) facturasModelo::actualizar_detalle_facturas($datos);
-        else facturasModelo::agregar_detalle_facturas_modelo($datos);
+        if ($result->num_rows > 0) {
+            facturasModelo::actualizar_detalle_facturas($datos);
+        } else {
+            facturasModelo::agregar_detalle_facturas_modelo($datos);
+        }
     }
 
     /* ===========================

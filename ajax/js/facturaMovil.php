@@ -30,11 +30,11 @@ $(() => {
   // ===============================
   cargarClientes();                   // Cargar lista de clientes
   cargarVendedores();                 // Cargar lista de vendedores
-  cargarProductos();                  // Cargar lista de productos
+  cargarProductos();                  // Cargar lista de productos (con ISV desde PHP)
   obtenerSecuenciaFactura();          // Obtener secuencia de facturación
   getTotalFacturasDisponibles();      // Obtener facturas disponibles del SAR
   verificarAperturaCaja();            // Verificar estado de la caja
-  getCajero();                        // (stub) si tienes endpoint, aquí puedes cargar info del cajero
+  getCajero();                        // Tu método global (no tocar)
 
   // ===============================
   // 2. EVENTOS PRINCIPALES
@@ -139,7 +139,7 @@ $(() => {
 
     $('#agregar-producto').prop('disabled', disable);
     $('#procesar-factura-top, #procesar-factura-bottom').prop('disabled', disable);
-    $('#cancelar-factura-top, #cancelar-factura-bottom').prop('disabled', disable);
+    $('#cancelar-factura-top, #cancelar-factura-bottom').prop('disabled', !cajaAbierta);
 
     $('#cliente-select, #vendedor-select, #producto-select, #cantidad, #descuento, #codigo-barra, #notas')
       .prop('disabled', disable);
@@ -202,12 +202,9 @@ $(() => {
   }
 
   // ===============================
-  // 4. FACTURAS DISPONIBLES (CONTADOR) — FIX
+  // 4. FACTURAS DISPONIBLES (CONTADOR)
   // ===============================
 
-  /**
-   * Llama al backend y actualiza el contador
-   */
   function getTotalFacturasDisponibles() {
     $.ajax({
       type: 'POST',
@@ -215,7 +212,6 @@ $(() => {
       dataType: 'json'
     })
       .done(function (datos) {
-        console.log('[SAR] Datos recibidos:', datos);
         if (!datos || typeof datos.facturasPendientes === 'undefined') {
           showErrorState();
           return;
@@ -229,21 +225,15 @@ $(() => {
       });
   }
 
-  /**
-   * Renderiza el contador sin romper #factura-disponibles ni el contenedor
-   * @param {{facturasPendientes:number|string, contador:number|string, fechaLimite:string}} datos
-   */
   function renderCounter(datos) {
     const rawCount = datos.facturasPendientes;
     const facturasPendientes = Number(rawCount) || 0;
     const daysLeft = parseInt(datos.contador, 10);
     const fechaLimite = datos.fechaLimite;
 
-    // Estado actual
     const state = getCurrentState(facturasPendientes, daysLeft, fechaLimite);
     const cfg = getStateConfig(state, facturasPendientes, daysLeft, fechaLimite);
 
-    // Selecciones DOM (crea el span si no existe)
     const $counter = $('#factura-counter');
     let $value = $('#factura-disponibles');
     if (!$value.length) {
@@ -252,62 +242,46 @@ $(() => {
     }
     const $icon = $counter.find('i').first();
 
-    // Texto deseado
     const desiredText = (cfg.mainText ?? `${facturasPendientes.toLocaleString('es-HN')} facturas`).trim();
     const currentText = $value.text().trim();
 
-    // ¿De verdad no hay nada que actualizar?
     if (state === lastState && facturasPendientes === lastFacturasCount && currentText === desiredText) {
       updateButtonsState(facturasPendientes, fechaLimite, daysLeft);
       return;
     }
 
-    // Icono
     if ($icon.length) {
       $icon.attr('class', cfg.icon);
     } else {
       $counter.prepend(`<i class="${cfg.icon}"></i> `);
     }
 
-    // Actualiza número/leyenda visible
     $value.text(desiredText);
 
-    // Mensaje secundario (hint)
     $counter.find('.counter-hint').remove();
     if (cfg.hintHtml) {
       $counter.append(`<span class="counter-hint">${cfg.hintHtml}</span>`);
     }
 
-    // Data attribute por si el CSS usa content: attr()
     $counter.attr('data-count', String(facturasPendientes));
     $counter.attr('title', desiredText);
 
-    // Clases de estado: limpiar counter-* y aplicar la actual
     $counter
       .removeClass(function (_i, c) {
         return (c.match(/\bcounter-\S+/g) || []).join(' ');
       })
       .addClass(cfg.class);
 
-    // Animación ligera
     $counter.removeClass('state-change');
     if ($counter.length) { void $counter[0].offsetWidth; }
     $counter.addClass('state-change');
 
-    // **Importante**: marca como mostrado SOLO después de pintar
     lastState = state;
     lastFacturasCount = facturasPendientes;
 
-    // Botones según disponibilidad/caja
     updateButtonsState(facturasPendientes, fechaLimite, daysLeft);
-
-    // Debug útil
-    console.log(`[SAR] Pintado => ${desiredText} | state=${state}`);
   }
 
-  /**
-   * Determina el estado actual
-   */
   function getCurrentState(facturasPendientes, daysLeft, fechaLimite) {
     if (!fechaLimite || String(fechaLimite).trim() === 'Sin definir') return 'no-config';
     if (facturasPendientes < 0) return 'blocked';
@@ -318,9 +292,6 @@ $(() => {
     return 'normal';
   }
 
-  /**
-   * Configuración visual por estado
-   */
   function getStateConfig(state, facturasPendientes, daysLeft, fechaLimite) {
     const facturasFormateadas = Number(facturasPendientes).toLocaleString('es-HN');
 
@@ -372,9 +343,6 @@ $(() => {
     return map[state] || map.normal;
   }
 
-  /**
-   * Estado de error (red/servidor)
-   */
   function showErrorState() {
     const $counter = $('#factura-counter');
     let $value = $('#factura-disponibles');
@@ -398,9 +366,6 @@ $(() => {
     $counter.attr('data-count', '0');
   }
 
-  /**
-   * Habilita/Deshabilita botones según disponibilidad SAR y caja
-   */
   function updateButtonsState(facturasPendientes, fechaLimite, daysLeft) {
     const vencimientoPasado = daysLeft < 0;
     const sarDisabled = facturasPendientes <= 0 || !fechaLimite || String(fechaLimite).trim() === "Sin definir" || vencimientoPasado;
@@ -449,17 +414,33 @@ $(() => {
   // ===============================
 
   function agregarProducto() {
-    const productoId = $('#producto-select').val();
-    const productoText = $('#producto-select option:selected').text();
-    const precio = parseFloat($('#producto-select option:selected').data('precio'));
-    const cantidad = parseInt($('#cantidad').val()) || 1;
-    const descuento = parseFloat($('#descuento').val()) || 0;
-    const isv = $('#producto-select option:selected').data('isv') == 1 ? precio * 0.15 : 0;
+    const $opt = $('#producto-select option:selected');
+    const productoId   = $opt.val();
+    const productoText = $opt.text();
+    const precio       = parseFloat($opt.data('precio'));
+    const cantidad     = parseInt($('#cantidad').val()) || 1;
+    const descuento    = parseFloat($('#descuento').val()) || 0;
+
+    // Nuevos data-* desde getProductos.php
+    const isvVenta   = parseInt($opt.data('isvventa')) === 1;     // 1 = sí aplica
+    const isvRate    = parseFloat($opt.data('isvrate')) || 0;     // 0.15 / 0.18 / 0
+    const isvLabel   = ($opt.data('isvlabel') || '').toString();  // "ISV 15.00%" / "ISV 18.00%" / ""
+    let   isvId      = parseInt($opt.data('isvid') || 0);         // 1 ó 2 (si viene)
 
     if (!productoId) {
       showNotify("warning", "Advertencia", "Seleccione un producto");
       return;
     }
+
+    // Inferir isvId si no vino en el option
+    if (!isvId) {
+      if (Math.abs(isvRate - 0.15) < 1e-6) isvId = 1;
+      else if (Math.abs(isvRate - 0.18) < 1e-6) isvId = 2;
+      else isvId = 0;
+    }
+
+    // isv por unidad
+    const isvUnit = isvVenta ? ((precio || 0) * isvRate) : 0;
 
     const index = productosAgregados.findIndex(p => p.productoId == productoId);
 
@@ -477,23 +458,23 @@ $(() => {
         closeOnClickOutside: false
       }).then((result) => {
         if ((result && result.isConfirmed) || result === true) {
-          productosAgregados[index].cantidad += cantidad;
+          productosAgregados[index].cantidad  += cantidad;
           productosAgregados[index].descuento += descuento;
           actualizarListaProductos();
           calcularTotales();
         } else if (result && result.isDenied) {
-          productosAgregados.push({ productoId, productoText, precio, cantidad, descuento, isv });
+          productosAgregados.push({ productoId, productoText, precio, cantidad, descuento, isv: isvUnit, isvRate, isvId, isvLabel });
           actualizarListaProductos();
           calcularTotales();
         } else if (result === true) {
-          productosAgregados[index].cantidad += cantidad;
+          productosAgregados[index].cantidad  += cantidad;
           productosAgregados[index].descuento += descuento;
           actualizarListaProductos();
           calcularTotales();
         }
       });
     } else {
-      productosAgregados.push({ productoId, productoText, precio, cantidad, descuento, isv });
+      productosAgregados.push({ productoId, productoText, precio, cantidad, descuento, isv: isvUnit, isvRate, isvId, isvLabel });
       actualizarListaProductos();
       calcularTotales();
     }
@@ -514,18 +495,21 @@ $(() => {
     }
 
     productosAgregados.forEach((producto, index) => {
-      producto.precio = producto.precio || 0;
-      producto.cantidad = producto.cantidad || 1;
+      producto.precio    = producto.precio || 0;
+      producto.cantidad  = producto.cantidad || 1;
       producto.descuento = producto.descuento || 0;
-      producto.isv = producto.isv || 0;
+      producto.isv       = producto.isv || 0; // por unidad
+      producto.isvRate   = producto.isvRate || 0;
+      producto.isvLabel  = producto.isvLabel || '';
+      producto.isvId     = producto.isvId || 0;
 
       const subtotal = (producto.precio * producto.cantidad) - producto.descuento;
-      const isvTotal = producto.isv * producto.cantidad;
+      const isvTotal = (producto.isv) * producto.cantidad;
 
       $container.append(`
         <div class="product-item" data-index="${index}">
           <div class="d-flex justify-content-between align-items-start">
-            <h6 class="mb-0">${producto.productoText}</h6>
+            <h6 class="mb-0">${producto.productoText}${producto.isvLabel ? ' · ' + producto.isvLabel : ''}</h6>
           </div>
           <div class="product-details">
             <div class="product-detail">
@@ -551,7 +535,7 @@ $(() => {
               <strong>L. ${formatter.format(producto.descuento)}</strong>
             </div>
             <div class="product-detail">
-              <span>ISV:</span>
+              <span>${producto.isvLabel ? producto.isvLabel : 'ISV'}:</span>
               <strong>L. ${formatter.format(isvTotal)}</strong>
             </div>
           </div>
@@ -648,23 +632,30 @@ $(() => {
   function calcularTotales() {
     let subtotal = 0;
     let totalDescuento = 0;
-    let totalIsv = 0;
+    let isv15 = 0;
+    let isv18 = 0;
 
     productosAgregados.forEach(producto => {
-      producto.precio = producto.precio || 0;
-      producto.cantidad = producto.cantidad || 1;
+      producto.precio    = producto.precio || 0;
+      producto.cantidad  = producto.cantidad || 1;
       producto.descuento = producto.descuento || 0;
-      producto.isv = producto.isv || 0;
+      const isvUnit      = producto.isv || 0;     // isv por unidad
+      const isvId        = producto.isvId || 0;   // 1 ó 2 (si 0, no acumula)
 
-      subtotal += producto.precio * producto.cantidad;
+      subtotal       += producto.precio * producto.cantidad;
       totalDescuento += producto.descuento;
-      totalIsv += producto.isv * producto.cantidad;
+
+      const isvLinea = isvUnit * producto.cantidad;
+      if (isvId === 1)      isv15 += isvLinea;
+      else if (isvId === 2) isv18 += isvLinea;
     });
 
-    const total = (subtotal - totalDescuento) + totalIsv;
+    const totalIsv = isv15 + isv18;
+    const total    = (subtotal - totalDescuento) + totalIsv;
 
     $('#subtotal').text(`L. ${formatter.format(subtotal - totalDescuento)}`);
-    $('#isv').text(`L. ${formatter.format(totalIsv)}`);
+    $('#isv-15').text(`L. ${formatter.format(isv15)}`);
+    $('#isv-18').text(`L. ${formatter.format(isv18)}`);
     $('#total-descuento').text(`L. ${formatter.format(totalDescuento)}`);
     $('#total').text(`L. ${formatter.format(total)}`);
   }
@@ -698,10 +689,10 @@ $(() => {
       clienteId: clienteId,
       vendedorId: vendedorId,
       tipoFactura: tipoFactura,
-      productos: productosAgregados,
+      productos: productosAgregados, // incluye isvId e isvRate; el backend recalcula con BD igualmente.
       notas: $('#notas').val(),
       aperturaId: (aperturaInfo && aperturaInfo.apertura_id) ? aperturaInfo.apertura_id : null
-      // secuencia_facturacion_id: <id> // si algún día quieres forzar uno
+      // secuencia_facturacion_id opcional
     };
 
     showNotify("info", "Procesando factura", "Por favor espere...", true);
@@ -784,7 +775,7 @@ $(() => {
           $('#pagoModal').modal('hide');
           showNotify("success", "Éxito", "Pago registrado correctamente");
 
-          // <<<<< aquí imprimimos si es contado >>>>>
+          // imprimir si es contado
           if (response.imprimir && response.factura_id) {
             try { printBill(response.factura_id); } catch (e) { console.error(e); }
           }
@@ -868,20 +859,55 @@ $(() => {
     });
   }
 
+  /**
+   * IMPORTANTE: este PHP debe devolver por producto:
+   * - productos_id, nombre, precio_venta, isv_venta
+   * - isv_id_aplicado (1 o 2), isv_rate_decimal (0.15/0.18), isv_label ("ISV 15.00%" / "ISV 18.00%")
+   *   tomando prioridad isv2=1 sobre isv1=1 y solo cuando isv_venta=1
+   */
   function cargarProductos() {
     $.ajax({
       url: '<?php echo SERVERURL;?>core/facturas/getProductos.php',
       type: 'GET',
       dataType: 'json',
       success: function (data) {
+        // Asegurar que 'lista' sea realmente un array de productos
+        let lista = [];
+        if (Array.isArray(data)) {
+          lista = data;
+        } else if (data && Array.isArray(data.productos)) {
+          lista = data.productos;
+        } else if (data && Array.isArray(data.items)) {
+          lista = data.items;
+        } else {
+          console.warn('Formato inesperado en getProductos.php:', data);
+        }
+
         $('#producto-select').empty().append('<option value="">Seleccione un producto</option>');
-        $.each(data, function (index, producto) {
+
+        lista.forEach((p) => {
+          const id        = (p.productos_id != null) ? p.productos_id : p.id;
+          const nombre    = (p.nombre != null) ? p.nombre : p.descripcion || 'Producto';
+          const precio    = Number(p.precio_venta != null ? p.precio_venta : p.precio) || 0;
+          const isvVenta  = Number(p.isv_venta || 0);
+          const isvId     = Number(p.isv_id_aplicado || 0);
+          const isvRate   = Number(p.isv_rate_decimal || 0);
+          const isvLabel  = (p.isv_label || '').toString();
+
+          if (!id || !nombre) return;
+
           $('#producto-select').append(
-            `<option value="${producto.productos_id}" data-precio="${producto.precio_venta}" data-isv="${producto.isv_venta}">
-               ${producto.nombre} - L. ${formatter.format(producto.precio_venta)}
+            `<option value="${id}"
+                     data-precio="${precio}"
+                     data-isvventa="${isvVenta}"
+                     data-isvid="${isvId}"
+                     data-isvrate="${isvRate}"
+                     data-isvlabel="${isvLabel}">
+               ${nombre} - L. ${formatter.format(precio)}${isvLabel ? ' · ' + isvLabel : ''}
              </option>`
           );
         });
+
         $('#producto-select').selectpicker('refresh');
       },
       error: function () {
@@ -942,6 +968,9 @@ $(() => {
     obtenerSecuenciaFactura();
   }
 
+  /**
+   * Este PHP debe devolver los mismos campos ISV que getProductos.php para el item encontrado.
+   */
   function buscarProductoPorCodigo(codigo) {
     $.ajax({
       url: '<?php echo SERVERURL;?>core/facturas/buscarProductoPorCodigo.php',
@@ -950,8 +979,27 @@ $(() => {
       dataType: 'json',
       success: function (response) {
         if (response.success && response.producto) {
-          const producto = response.producto;
-          $('#producto-select').val(producto.productos_id).selectpicker('refresh');
+          const p = response.producto;
+
+          // Si no existe la opción aún, la agregamos al select con los data-* correctos
+          if (!$(`#producto-select option[value="${p.productos_id}"]`).length) {
+            const isvId   = Number(p.isv_id_aplicado || 0);
+            const isvRate = Number(p.isv_rate_decimal || 0);
+            const isvLbl  = (p.isv_label || '');
+
+            $('#producto-select').append(
+              `<option value="${p.productos_id}"
+                       data-precio="${p.precio_venta}"
+                       data-isvventa="${p.isv_venta}"
+                       data-isvid="${isvId}"
+                       data-isvrate="${isvRate}"
+                       data-isvlabel="${isvLbl}">
+                 ${p.nombre} - L. ${formatter.format(p.precio_venta)}${isvLbl ? ' · ' + isvLbl : ''}
+               </option>`
+            ).selectpicker('refresh');
+          }
+
+          $('#producto-select').val(p.productos_id).selectpicker('refresh');
           agregarProducto();
           $('#codigo-barra').val('').focus();
         } else {
@@ -1019,7 +1067,7 @@ $(() => {
   // ===============================
   // 9. INTERVALOS
   // ===============================
-  // Cada minuto: comprobar caja y contador SAR
+  // Cada 5s: comprobar caja y contador SAR
   setInterval(() => {
     verificarAperturaCaja();
     getTotalFacturasDisponibles();
@@ -1028,6 +1076,6 @@ $(() => {
   // ===============================
   // 10. STUBS OPCIONALES
   // ===============================
-  getCajero();
+  // (Ninguno: tus globales showNotify/getCajero ya existen)
 });
 </script>

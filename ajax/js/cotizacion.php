@@ -721,8 +721,8 @@ $(document).ready(function() {
         listar_productos_cotizacion_buscar();
         var row_index = $(this).closest("tr").index();
         var col_index = $(this).closest("td").index();
-        $('#formulario_busqueda_productos_facturacion #row').val(row_index);
-        $('#formulario_busqueda_productos_facturacion #col').val(col_index);
+        $('#formulario_busqueda_productos_cotizacion #row').val(row_index);
+        $('#formulario_busqueda_productos_cotizacion #col').val(col_index);
         console.log('row_index', row_index)
 
         $('#modal_buscar_productos_cotizacion').modal({
@@ -734,8 +734,8 @@ $(document).ready(function() {
 });
 
 var listar_productos_cotizacion_buscar = function() {
-    var bodega = $("#formulario_busqueda_productos_facturacion #almacen").val() === "" ? 1 : $(
-        "#formulario_busqueda_productos_facturacion #almacen").val();
+    var bodega = $("#formulario_busqueda_productos_cotizacion #almacen").val() === "" ? 1 : $(
+        "#formulario_busqueda_productos_cotizacion #almacen").val();
 
     var table_productos_cotizacion_buscar = $("#DatatableProductosBusquedaCotizacion").DataTable({
         "destroy": true,

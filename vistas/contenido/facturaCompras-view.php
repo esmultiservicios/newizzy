@@ -132,9 +132,18 @@
                                         <td>
                                             <div class="input-group mb-3">
                                                 <input type="hidden" name="isvPurchase[]" id="isvPurchase_0"
-                                                    class="form-control" placeholder="Producto ISV" autocomplete="off">
-                                                <input type="hidden" name="valor_isvPurchase[]" id="valor_isvPurchase_0"
-                                                    class="form-control" placeholder="Valor ISV" autocomplete="off">
+                                                    class="form-control" placeholder="Producto ISV" autocomplete="off">                                                
+
+                                                <!-- ISV1 (15% u otro valor que venga como ISV id=1) -->
+                                                <input type="hidden" name="valor_isvPurchase[]" id="valor_isvPurchase_0" class="form-control inputfield-details1" placeholder="Valor ISV (id=1)" autocomplete="off">
+
+                                                <!-- NUEVO: ISV2 (18% u otro valor que venga como ISV id=2) -->
+                                                <input type="hidden" name="valor_isvPurchase1[]" id="valor_isvPurchase1_0" class="form-control inputfield-details1" placeholder="Valor ISV2 (id=2)" autocomplete="off">
+
+                                                <!-- ¿qué ISV aplica a ESTA fila? 1/0 -->
+                                                <input type="hidden" name="isv1_flagPurchase[]" id="isv1_flagPurchase_0" value="0">  <!-- 1 => usa ISV id=1 (15%) -->
+                                                <input type="hidden" name="isv2_flagPurchase[]" id="isv2_flagPurchase_0" value="0">  <!-- 1 => usa ISV id=2 (18%) -->
+
                                                 <input type="hidden" name="productos_idPurchase[]"
                                                     id="productos_idPurchase_0" class="form-control" autocomplete="off">
                                                 <input type="text" name="productNamePurchase[]"
@@ -190,7 +199,7 @@
                             <div class="col-sm-12 col-md-12">
                                 <h3>Notas: </h3>
                                 <div class="form-group">
-                                    <textarea class="form-control txt" rows="6" name="notesPurchase" id="notesPurchase"
+                                    <textarea class="form-control txt" rows="3" name="notesPurchase" id="notesPurchase"
                                         placeholder="Notas" maxlength="2000"></textarea>
                                     <p id="charNum_notasPurchase">2000 Caracteres</p>
                                 </div>
@@ -262,9 +271,10 @@
                                         </div>
                                     </div>
                                 </div>
+
                                 <div class="row">
                                     <div class="col-sm-3 form-inline">
-                                        <label>ISV:</label>
+                                        <label>ISV 15%:</label>
                                     </div>
                                     <div class="col-sm-9">
                                         <div class="input-group mb-1">
@@ -278,6 +288,24 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                <div class="row">
+                                    <div class="col-sm-3 form-inline">
+                                        <label>ISV 18%:</label>
+                                    </div>
+                                    <div class="col-sm-9">
+                                        <div class="input-group mb-1">
+                                            <div class="input-group-append">
+                                                <span class="input-group-text">
+                                                    <div class="sb-nav-link-icon"></div>L</i>
+                                                </span>
+                                            </div>
+                                            <input value="" type="number" class="form-control" name="taxAmountPurchase18"
+                                                id="taxAmountPurchase18" readonly placeholder="Monto del Impuesto">
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="row">
                                     <div class="col-sm-3 form-inline">
                                         <label>Total:</label>

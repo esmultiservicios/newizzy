@@ -191,33 +191,67 @@ class pagoFacturaModelo extends mainModel {
        ENTRADA PRINCIPAL
        ========================================================== */
 
-    protected function agregar_pago_factura_base($datos) {
+       protected function agregar_pago_factura_base($datos) {
         $conexion = mainModel::connection();
         $conexion->begin_transaction();
+    
         try {
             $esProforma = $this->es_factura_proforma($datos['facturas_id']);
-
-            // Evitar doble pago en contado si ya existe
+    
+            /* -----------------------------------------------------------
+             * Normalizar flags que vienen del front
+             *  - tipo_factura: 1=contado, 2=crédito/abono
+             *  - multiple_pago: 1 cuando el usuario activó “Pagos múltiples”
+             *    (aceptamos tanto $datos['flag_multiple'] como $_POST['multiple_pago'])
+             * ----------------------------------------------------------- */
+            $tipoFactura   = isset($datos['tipo_factura']) ? intval($datos['tipo_factura']) : 1;
+            $multipleFlag  = 0;
+            if (isset($datos['flag_multiple'])) {
+                $multipleFlag = intval($datos['flag_multiple']);
+            } elseif (isset($_POST['multiple_pago'])) {
+                $multipleFlag = intval($_POST['multiple_pago']);
+            }
+    
+            // Si el usuario habilitó PAGOS MÚLTIPLES pero por error vino tipo_factura=1,
+            // lo forzamos a crédito/abono (2) para permitir abonos adicionales.
+            if ($multipleFlag === 1 && $tipoFactura === 1) {
+                $tipoFactura = 2;
+                $datos['tipo_factura'] = 2; // reflejar el cambio aguas abajo
+            }
+    
+            /* -----------------------------------------------------------
+             * Regla anti-doble pago de contado:
+             *  - Solo aplica si se mantiene tipo_factura = 1
+             *  - Si ya existe un pago activo para esa factura, bloquear
+             * ----------------------------------------------------------- */
             $rsExist = $this->valid_pagos_factura($datos['facturas_id']);
-            if ($datos['tipo_factura'] == 1 && $rsExist->num_rows > 0) {
+            if ($tipoFactura === 1 && $rsExist->num_rows > 0) {
                 throw new Exception("Ya existe un pago para esta factura. Habilite pagos múltiples si desea agregar otro pago.");
             }
-
-            // 1 = contado, 2 = crédito/abono
-            if ($datos['tipo_factura'] == 1) {
+    
+            /* -----------------------------------------------------------
+             * Enrutamiento por tipo de factura
+             * ----------------------------------------------------------- */
+            if ($tipoFactura === 1) {
+                // Contado
                 $res = $this->procesar_pago_contado_transaccion($conexion, $datos, $esProforma);
             } else {
+                // Crédito / Abono (incluye flujo de pagos múltiples)
                 $res = $this->procesar_pago_credito_transaccion($conexion, $datos, $esProforma);
             }
-
+    
             $conexion->commit();
             return $res;
-
+    
         } catch (Exception $e) {
             $conexion->rollback();
-            return ["status"=>false,"title"=>"Error","message"=>$e->getMessage()];
+            return [
+                "status"  => false,
+                "title"   => "Error",
+                "message" => $e->getMessage()
+            ];
         }
-    }
+    }    
 
     protected function procesar_pago_contado_transaccion($conexion, $datos, $esProforma) {
         // Insert pago

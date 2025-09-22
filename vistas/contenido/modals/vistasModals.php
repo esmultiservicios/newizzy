@@ -2497,7 +2497,7 @@
                                     <span class="input-group-text">
                                         <div class="sb-nav-link-icon"></div>Bodega
                                     </span>
-                                    <select id="almacen_facturas" name="almacen" class="selectpicker" title="Bodega"
+                                    <select id="almacen_facturas" name="almacen_facturas" class="selectpicker" title="Bodega"
                                         data-width="100%" data-size="5" data-live-search="true">
                                     </select>
                                 </div>

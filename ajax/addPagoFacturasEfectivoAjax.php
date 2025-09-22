@@ -1,31 +1,23 @@
-<?php	
-	//ajax/addPagoFacturasEfectivoAjax.php
-	$peticionAjax = true;
-	require_once "../core/configGenerales.php";
-	
-	if(isset($_POST['monto_efectivo']) && isset($_POST['efectivo_bill'])){
-		require_once "../controladores/pagoFacturaControlador.php";
-		$insVarios = new pagoFacturaControlador();
-		
-		echo $insVarios->agregar_pago_factura_controlador_efectivo();
-	} else {
-		// Identificar campos faltantes
-		$missingFields = [];
-		
-		if (!isset($_POST['monto_efectivo'])) $missingFields[] = "Monto Efectivo";
-		if (!isset($_POST['efectivo_bill'])) $missingFields[] = "Efectivo Bill";
-	
-		// Preparar el mensaje
-		$missingText = implode(", ", $missingFields);
-		$title = "Error 🚨";
-		$message = "Faltan los siguientes campos: $missingText. Por favor, corrígelos.";
-		
-		// Escapar comillas para JavaScript
-		$title = addslashes($title);
-		$message = addslashes($message);
-		
-		// Llamar a TU función showNotify exactamente como está definida
-		echo "<script>
-			showNotify('error', '$title', '$message');
-		</script>";
-	}
+<?php
+// ajax/addPagoFacturasEfectivoAjax.php
+$peticionAjax = true;
+require_once "../core/configGenerales.php";
+require_once "../controladores/pagoFacturaControlador.php";
+
+header('Content-Type: application/json; charset=utf-8');
+
+// Validación mínima (si te sirve mantenerla):
+$required = ['monto_efectivo', 'efectivo_bill', 'factura_id_efectivo'];
+$missing  = array_values(array_diff($required, array_keys($_POST)));
+if (!empty($missing)) {
+    echo json_encode([
+        "status"=>false,
+        "title"=>"Error",
+        "message"=>"Faltan los siguientes campos: ".implode(", ", $missing)."."
+    ]);
+    exit;
+}
+
+$ctrl = new pagoFacturaControlador();
+// IMPORTANTE: este método imprime JSON y hace exit por dentro.
+$ctrl->agregar_pago_factura_controlador_efectivo();

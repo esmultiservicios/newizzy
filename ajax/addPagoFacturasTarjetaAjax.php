@@ -1,32 +1,21 @@
-<?php	
-	//ajax/addPagoFacturasTarjetaAjax
-	$peticionAjax = true;
-	require_once "../core/configGenerales.php";
-	
-	if(isset($_POST['monto_efectivo']) && isset($_POST['exp']) && isset($_POST['cvcpwd']) ){
-		require_once "../controladores/pagoFacturaControlador.php";
-		$insVarios = new pagoFacturaControlador();
-		
-		echo $insVarios->agregar_pago_factura_controlador_tarjeta();
-	} else {
-		// Identificar campos faltantes
-		$missingFields = [];
-		
-		if (!isset($_POST['monto_efectivo'])) $missingFields[] = "Monto Efectivo";
-		if (!isset($_POST['exp'])) $missingFields[] = "Exp";
-		if (!isset($_POST['cvcpwd'])) $missingFields[] = "Cvcpwd";
-	
-		// Preparar el mensaje
-		$missingText = implode(", ", $missingFields);
-		$title = "Error 🚨";
-		$message = "Faltan los siguientes campos: $missingText. Por favor, corrígelos.";
-		
-		// Escapar comillas para JavaScript
-		$title = addslashes($title);
-		$message = addslashes($message);
-		
-		// Llamar a TU función showNotify exactamente como está definida
-		echo "<script>
-			showNotify('error', '$title', '$message');
-		</script>";
-	}
+<?php
+// ajax/addPagoFacturasTarjetaAjax.php
+$peticionAjax = true;
+require_once "../core/configGenerales.php";
+require_once "../controladores/pagoFacturaControlador.php";
+
+header('Content-Type: application/json; charset=utf-8');
+
+$required = ['monto_efectivo', 'exp', 'cvcpwd', 'factura_id_tarjeta'];
+$missing  = array_values(array_diff($required, array_keys($_POST)));
+if (!empty($missing)) {
+    echo json_encode([
+        "status"=>false,
+        "title"=>"Error",
+        "message"=>"Faltan los siguientes campos: ".implode(", ", $missing)."."
+    ]);
+    exit;
+}
+
+$ctrl = new pagoFacturaControlador();
+$ctrl->agregar_pago_factura_controlador_tarjeta();

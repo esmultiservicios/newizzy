@@ -9,7 +9,6 @@ if ($peticionAjax) {
 class pagoFacturaControlador extends pagoFacturaModelo {
 
     /* ===========================
-    /* ===========================
     * PREPARAR DATOS DEL PAGO
     * =========================== */
     protected function prepararDatosPago($tipoPago) {
@@ -31,49 +30,61 @@ class pagoFacturaControlador extends pagoFacturaModelo {
             return ["status"=>false,"title"=>"Error","message"=>"No se recibió el ID de la factura"];
         }
 
+        // === valores digitados / aplicados ===
+        $montoEntregadoCliente = 0.0;   // lo que escribe el cajero (solo efectivo)
+        $montoAplicado         = 0.0;   // lo que realmente se aplica al saldo
+
         // === Monto según tipo de pago ===
         switch ($tipoPago) {
             case 'efectivo':
-                $monto = isset($_POST['efectivo_bill']) ? $this->parseMonto($_POST['efectivo_bill']) : 0.0;
+                // El cajero escribe en "efectivo_bill" (puede ser mayor que el saldo).
+                $montoEntregadoCliente = isset($_POST['efectivo_bill']) ? $this->parseMonto($_POST['efectivo_bill']) : 0.0;
+                // El JS coloca en "monto_efectivo" el monto que se APLICA a la factura.
+                $montoAplicado = isset($_POST['monto_efectivo']) ? $this->parseMonto($_POST['monto_efectivo']) : 0.0;
+
+                // Si, por cualquier razón, no vino el entregado pero sí el aplicado, usa el aplicado como respaldo.
+                if ($montoEntregadoCliente <= 0 && $montoAplicado > 0) {
+                    $montoEntregadoCliente = $montoAplicado;
+                }
+
+                // Para validaciones generales usamos lo ENTREGADO.
+                $monto = $montoEntregadoCliente;
                 break;
+
             case 'tarjeta':
                 $monto = isset($_POST['importe_tarjeta']) ? $this->parseMonto($_POST['importe_tarjeta']) : 0.0;
-                if ($monto <= 0) {
-                    $monto = isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0;
-                }
+                if ($monto <= 0) $monto = isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0;
+                $montoAplicado = $monto;
                 break;
+
             case 'transferencia':
                 $monto = isset($_POST['importe_transferencia']) ? $this->parseMonto($_POST['importe_transferencia']) : 0.0;
-                if ($monto <= 0) {
-                    $monto = isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0;
-                }
+                if ($monto <= 0) $monto = isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0;
+                $montoAplicado = $monto;
                 break;
+
             case 'cheque':
                 $monto = isset($_POST['importe_cheque']) ? $this->parseMonto($_POST['importe_cheque']) : 0.0;
-                if ($monto <= 0) {
-                    $monto = isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0;
-                }
+                if ($monto <= 0) $monto = isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0;
+                $montoAplicado = $monto;
                 break;
+
             case 'puntos':
                 $monto = isset($_POST['importe_puntos']) ? $this->parseMonto($_POST['importe_puntos']) : 0.0;
-                if ($monto <= 0) {
-                    $monto = isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0;
-                }
+                if ($monto <= 0) $monto = isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0;
+                $montoAplicado = $monto;
                 break;
+
             default:
                 $monto = isset($_POST['importe']) ? $this->parseMonto($_POST['importe']) : 0.0;
+                $montoAplicado = $monto;
                 break;
         }
 
-        // Añade logging para debugging (elimina después de probar)
-        error_log("Tipo pago: $tipoPago, Monto: $monto");
-        foreach ($_POST as $key => $value) {
-            if (strpos($key, 'importe') !== false || strpos($key, 'efectivo') !== false) {
-                error_log("Campo: $key = $value");
-            }
-        }
+        // Logs (borralos si querés)
+        error_log("Tipo pago: $tipoPago, Entregado: $montoEntregadoCliente, Aplicado: $montoAplicado");
 
-        // Normaliza a 2 decimales y elimina residuos binarios
+        // Normaliza a 2 decimales
         $monto = round($monto + 1e-9, 2);
 
         // === Factura ===
@@ -94,7 +105,7 @@ class pagoFacturaControlador extends pagoFacturaModelo {
 
         $origen_pago = isset($_POST['origen_pago']) ? $_POST['origen_pago'] : 'facturacion';
 
-        // === Saldo pendiente CxC (redondeado) ===
+        // === Saldo pendiente CxC ===
         $saldoPendiente = 0.00;
         $saldoRes = mainModel::connection()->query(
             "SELECT ROUND(saldo,2) AS saldo FROM cobrar_clientes WHERE facturas_id = '".intval($_POST[$campoId])."'"
@@ -103,11 +114,11 @@ class pagoFacturaControlador extends pagoFacturaModelo {
             $saldoPendiente = round((float)$saldoRes->fetch_assoc()['saldo'] + 1e-9, 2);
         }
 
-        // Tolerancia para comparaciones (½ centavo)
+        // Tolerancia
         $EPS = 0.005;
 
-        // === Validaciones por tipo ===
-        if ($tipo_factura_post == 1) { // contado (pago total)
+        // === Validaciones por tipo de factura ===
+        if ($tipo_factura_post == 1) { // contado
             if ($monto + $EPS < $saldoPendiente) {
                 return [
                     "status"=>false,"title"=>"Error",
@@ -123,7 +134,7 @@ class pagoFacturaControlador extends pagoFacturaModelo {
             }
         }
 
-        // Número formateado (si lo ocupas después)
+        // Número formateado
         $relleno         = isset($factura['relleno']) ? intval($factura['relleno']) : 8;
         $numeroEntero    = isset($factura['numero_factura']) ? intval($factura['numero_factura']) : 0;
         $factura_number  = ($numeroEntero > 0) ? str_pad($numeroEntero, $relleno, "0", STR_PAD_LEFT) : '';
@@ -132,24 +143,27 @@ class pagoFacturaControlador extends pagoFacturaModelo {
             ? intval($_POST[$campoUsuario])
             : $_SESSION['users_id_sd'];
 
-        // Importe que afecta saldo
+        // === Importe que afecta saldo ===
+        // - Contado: se aplica el SALDO (o el total) – lo que liquida la factura.
+        // - Abono: lo digitado.
         $importeReal = ($tipo_factura_post == 1
             ? ($saldoPendiente > 0 ? $saldoPendiente : $monto)
-            : $monto
+            : ($montoAplicado > 0 ? $montoAplicado : $monto)
         );
 
-        // Cambio contado
-        $cambio = ($tipo_factura_post == 1
-            ? max(0, round($monto - ($saldoPendiente > 0 ? $saldoPendiente : $monto), 2))
-            : 0
-        );
+        // === Cambio (solo contado, solo efectivo) ===
+        $cambio = 0.00;
+        if ($tipo_factura_post == 1) {
+            $entregado = ($tipoPago === 'efectivo') ? $montoEntregadoCliente : $monto;
+            $cambio = max(0, round($entregado - $importeReal, 2));
+        }
 
         return [
             'multiple_pago'      => ($tipo_factura_post == 2 ? 1 : 0),
             'facturas_id'        => intval($_POST[$campoId]),
             'fecha'              => isset($_POST[$campoFecha]) ? $_POST[$campoFecha] : date('Y-m-d'),
-            'importe'            => $importeReal,
-            'cambio'             => $cambio,
+            'importe'            => $importeReal,                       // lo que aplica al saldo
+            'cambio'             => $cambio,                             // cambio correcto
             'usuario'            => $usuario,
             'estado'             => 1,
             'tipo_factura'       => $tipo_factura_post,
@@ -158,7 +172,7 @@ class pagoFacturaControlador extends pagoFacturaModelo {
             'abono'              => $saldoPendiente,
             'print_comprobante'  => isset($_POST['comprobante_print']) ? $_POST['comprobante_print'] : 0,
             'colaboradores_id'   => intval($_SESSION['colaborador_id_sd']),
-            'efectivo'           => $monto,
+            'efectivo'           => ($tipoPago === 'efectivo') ? $montoEntregadoCliente : 0.0, // <<<<<< guarda lo digitado
             'tarjeta'            => 0,
             'banco_id'           => 0,
             'referencia_pago1'   => '',
@@ -175,26 +189,22 @@ class pagoFacturaControlador extends pagoFacturaModelo {
      * =========================== */
     public function agregar_pago_factura_controlador_efectivo() {
         $datos = $this->prepararDatosPago('efectivo');
-        if (isset($datos['status']) && !$datos['status']) {
-            return mainModel::showNotification([
-                "type"=>"error","title"=>$datos['title'],"text"=>$datos['message'],
-                "redirect"=>$datos['redirect'] ?? ''
-            ]);
+        if (isset($datos['status']) && $datos['status'] === false) {
+            $this->json(["status"=>false, "title"=>$datos['title'], "message"=>$datos['message'], "redirect"=>$datos['redirect'] ?? ""]);
         }
+
         $datos['tipo_pago_id'] = 1; // efectivo
         $datos['banco_id']     = 0;
 
         $result = pagoFacturaModelo::agregar_pago_factura_base($datos);
-        if (isset($result['status']) && !$result['status']) {
-            return mainModel::showNotification([
-                "type"=>"error","title"=>$result['title'],"text"=>$result['message']
-            ]);
+        if (isset($result['status']) && $result['status'] === false) {
+            $this->json(["status"=>false, "title"=>$result['title'] ?? "Error", "message"=>$result['message'] ?? "No se pudo registrar el pago"]);
         }
 
-        return mainModel::showNotification([
-            "type"=>"success",
+        $this->json([
+            "status"=>true,
             "title"=>$result['title'] ?? "Pago registrado",
-            "text"=>$result['message'] ?? "Pago en efectivo registrado correctamente",
+            "message"=>$result['message'] ?? "Pago en efectivo registrado correctamente",
             "form"=>"formEfectivoBill",
             "funcion"=>$result['funcion'] ?? "listar_cuentas_por_cobrar_clientes();getCollaboradoresModalPagoFacturas();",
             "closeAllModals"=>true
@@ -206,11 +216,8 @@ class pagoFacturaControlador extends pagoFacturaModelo {
      * =========================== */
     public function agregar_pago_factura_controlador_tarjeta() {
         $datos = $this->prepararDatosPago('tarjeta');
-        if (isset($datos['status']) && !$datos['status']) {
-            return mainModel::showNotification([
-                "type"=>"error","title"=>$datos['title'],"text"=>$datos['message'],
-                "redirect"=>$datos['redirect'] ?? ''
-            ]);
+        if (isset($datos['status']) && $datos['status'] === false) {
+            $this->json(["status"=>false, "title"=>$datos['title'], "message"=>$datos['message'], "redirect"=>$datos['redirect'] ?? ""]);
         }
         $datos['tipo_pago_id']      = 2; // tarjeta
         $datos['banco_id']          = isset($_POST['bk_nm']) ? intval($_POST['bk_nm']) : 0;
@@ -220,17 +227,15 @@ class pagoFacturaControlador extends pagoFacturaModelo {
         $datos['referencia_pago3']  = isset($_POST['cvcpwd']) ? $_POST['cvcpwd'] : '';
 
         $result = pagoFacturaModelo::agregar_pago_factura_base($datos);
-        if (isset($result['status']) && !$result['status']) {
-            return mainModel::showNotification([
-                "type"=>"error","title"=>$result['title'],"text"=>$result['message']
-            ]);
+        if (isset($result['status']) && $result['status'] === false) {
+            $this->json(["status"=>false, "title"=>$result['title'] ?? "Error", "message"=>$result['message'] ?? "No se pudo registrar el pago"]);
         }
 
-        return mainModel::showNotification([
-            "type"=>"success",
+        $this->json([
+            "status"=>true,
             "title"=>$result['title'] ?? "Pago registrado",
-            "text"=>$result['message'] ?? "Pago con tarjeta registrado correctamente",
-            "form"=>"formTarjetaBill",
+            "message"=>$result['message'] ?? "Transferencia registrada correctamente",
+            "form"=>"formTransferenciaBill",
             "funcion"=>$result['funcion'] ?? "listar_cuentas_por_cobrar_clientes();getCollaboradoresModalPagoFacturas();",
             "closeAllModals"=>true
         ]);
@@ -241,46 +246,37 @@ class pagoFacturaControlador extends pagoFacturaModelo {
      * =========================== */
     public function agregar_pago_factura_controlador_transferencia() {
         $datos = $this->prepararDatosPago('transferencia');
-        if (isset($datos['status']) && !$datos['status']) {
-            return mainModel::showNotification([
-                "type"=>"error","title"=>$datos['title'],"text"=>$datos['message'],
-                "redirect"=>$datos['redirect'] ?? ''
-            ]);
+        if (isset($datos['status']) && $datos['status'] === false) {
+            $this->json(["status"=>false, "title"=>$datos['title'], "message"=>$datos['message'], "redirect"=>$datos['redirect'] ?? ""]);
         }
-        $datos['tipo_pago_id']      = 3; // transferencia
-        $datos['banco_id']          = isset($_POST['bk_nm']) ? intval($_POST['bk_nm']) : 0;
-        // SOLO descripcion1 = ben_nm
-        $datos['referencia_pago1']  = isset($_POST['ben_nm']) ? $_POST['ben_nm'] : '';
-        $datos['referencia_pago2']  = '';
-        $datos['referencia_pago3']  = '';
+        $datos['tipo_pago_id']     = 3; // transferencia
+        $datos['banco_id']         = isset($_POST['bk_nm']) ? intval($_POST['bk_nm']) : 0;
+        $datos['referencia_pago1'] = isset($_POST['ben_nm']) ? $_POST['ben_nm'] : '';
+        $datos['referencia_pago2'] = '';
+        $datos['referencia_pago3'] = '';
 
         $result = pagoFacturaModelo::agregar_pago_factura_base($datos);
-        if (isset($result['status']) && !$result['status']) {
-            return mainModel::showNotification([
-                "type"=>"error","title"=>$result['title'],"text"=>$result['message']
-            ]);
+        if (isset($result['status']) && $result['status'] === false) {
+            $this->json(["status"=>false, "title"=>$result['title'] ?? "Error", "message"=>$result['message'] ?? "No se pudo registrar el pago"]);
         }
 
-        return mainModel::showNotification([
-            "type"=>"success",
+        $this->json([
+            "status"=>true,
             "title"=>$result['title'] ?? "Pago registrado",
-            "text"=>$result['message'] ?? "Transferencia registrada correctamente",
+            "message"=>$result['message'] ?? "Transferencia registrada correctamente",
             "form"=>"formTransferenciaBill",
             "funcion"=>$result['funcion'] ?? "listar_cuentas_por_cobrar_clientes();getCollaboradoresModalPagoFacturas();",
             "closeAllModals"=>true
         ]);
     }
-
+    
     /* ===========================
      * CHEQUE
      * =========================== */
     public function agregar_pago_factura_controlador_cheque() {
         $datos = $this->prepararDatosPago('cheque');
-        if (isset($datos['status']) && !$datos['status']){
-            return mainModel::showNotification([
-                "type"=>"error","title"=>$datos['title'],"text"=>$datos['message'],
-                "redirect"=>$datos['redirect'] ?? ''
-            ]);
+        if (isset($datos['status']) && $datos['status'] === false) {
+            $this->json(["status"=>false, "title"=>$datos['title'], "message"=>$datos['message'], "redirect"=>$datos['redirect'] ?? ""]);
         }
         $datos['tipo_pago_id']      = 4; // cheque
         $datos['banco_id']          = isset($_POST['bk_nm_chk']) ? intval($_POST['bk_nm_chk']) : 0;
@@ -291,16 +287,14 @@ class pagoFacturaControlador extends pagoFacturaModelo {
         $datos['referencia_pago3']  = '';
 
         $result = pagoFacturaModelo::agregar_pago_factura_base($datos);
-        if (isset($result['status']) && !$result['status']){
-            return mainModel::showNotification([
-                "type"=>"error","title"=>$result['title'],"text"=>$result['message']
-            ]);
+        if (isset($result['status']) && $result['status'] === false) {
+            $this->json(["status"=>false, "title"=>$result['title'] ?? "Error", "message"=>$result['message'] ?? "No se pudo registrar el pago"]);
         }
 
-        return mainModel::showNotification([
-            "type"=>"success",
+        $this->json([
+            "status"=>true,
             "title"=>$result['title'] ?? "Pago registrado",
-            "text"=>$result['message'] ?? "Cheque registrado correctamente",
+            "message"=>$result['message'] ?? "Cheque registrado correctamente",
             "form"=>"formChequeBill",
             "funcion"=>$result['funcion'] ?? "listar_cuentas_por_cobrar_clientes();getCollaboradoresModalPagoFacturas();",
             "closeAllModals"=>true
@@ -314,4 +308,10 @@ class pagoFacturaControlador extends pagoFacturaModelo {
         $s = preg_replace('/[^0-9.\-]/', '', $s);        // dejar dígitos, punto y signo
         return (float)$s;
     }
+
+    private function json($arr){
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($arr);
+        exit;
+    }    
 }

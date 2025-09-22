@@ -6594,11 +6594,11 @@ class mainModel
 		$tipo_factura_reporte = '';
 		$facturador = '';
 		$vendedor = '';
-
+	
 		// Si es PROFORMA (documento_id = 4) -> NO filtrar por estado (trae 0 y 1)
 		// Si es FACTURA normal -> mantener tus filtros previos
 		if ((int)$datos['factura'] === 4) {
-			// $tipo_factura_reporte = ''; // explícitamente sin filtro por estado de proforma
+			// sin filtro por estado de proforma
 		} else {
 			if ((int)$datos['tipo_factura_reporte'] === 1) {
 				$tipo_factura_reporte = "AND f.estado IN (2,3)";
@@ -6606,14 +6606,14 @@ class mainModel
 				$tipo_factura_reporte = "AND f.estado = 4";
 			}
 		}
-
+	
 		if (!empty($datos['facturador'])) {
 			$facturador = "AND f.usuario = '" . $datos['facturador'] . "'";
 		}
 		if (!empty($datos['vendedor'])) {
 			$vendedor = "AND f.colaboradores_id = '" . $datos['vendedor'] . "'";
 		}
-
+	
 		$query = "
 		SELECT 
 			f.facturas_id AS 'facturas_id', 
@@ -6632,35 +6632,39 @@ class mainModel
 			END AS 'tipo_documento', 
 			co.nombre  AS 'vendedor', 
 			co1.nombre AS 'facturador',
-
-			(SELECT SUM(fd.cantidad * fd.precio)
-			FROM facturas_detalles fd
-			WHERE fd.facturas_id = f.facturas_id) AS 'subtotal',
-
-			(SELECT SUM(fd.cantidad * p.precio_compra)
-			FROM facturas_detalles fd
-			INNER JOIN productos p ON fd.productos_id = p.productos_id
-			WHERE fd.facturas_id = f.facturas_id) AS 'subCosto',
-
-			(SELECT SUM(fd.isv_valor)
-			FROM facturas_detalles fd
-			WHERE fd.facturas_id = f.facturas_id) AS 'isv',
-
-			(SELECT SUM(fd.descuento)
-			FROM facturas_detalles fd
-			WHERE fd.facturas_id = f.facturas_id) AS 'descuento',
-
-			-- Estado de pago solo aplica a facturas (no proformas)
+	
+			/* Subtotal: suma (cantidad * precio) */
+			(SELECT COALESCE(SUM(fd.cantidad * fd.precio), 0)
+			 FROM facturas_detalles fd
+			 WHERE fd.facturas_id = f.facturas_id) AS 'subtotal',
+	
+			/* subCosto: costo de compra */
+			(SELECT COALESCE(SUM(fd.cantidad * p.precio_compra), 0)
+			 FROM facturas_detalles fd
+			 INNER JOIN productos p ON fd.productos_id = p.productos_id
+			 WHERE fd.facturas_id = f.facturas_id) AS 'subCosto',
+	
+			/* ISV: ahora suma isv_valor + isv_valor1 */
+			(SELECT COALESCE(SUM(fd.isv_valor + fd.isv_valor1), 0)
+			 FROM facturas_detalles fd
+			 WHERE fd.facturas_id = f.facturas_id) AS 'isv',
+	
+			/* Descuento */
+			(SELECT COALESCE(SUM(fd.descuento), 0)
+			 FROM facturas_detalles fd
+			 WHERE fd.facturas_id = f.facturas_id) AS 'descuento',
+	
+			/* Estado de pago solo aplica a facturas (no proformas) */
 			CASE
 				WHEN d.documento_id = 4 THEN NULL
 				WHEN f.tipo_factura = 1 THEN 'Pagado'
 				WHEN (SELECT COUNT(*) FROM pagos WHERE facturas_id = f.facturas_id) > 0 THEN 'Pagado'
 				ELSE 'Pendiente'
 			END AS 'estado_pago',
-
+	
 			f.tipo_factura              AS 'tipo_factura',
 			d.documento_id              AS 'documento_id',
-			fp.estado                   AS 'proforma_estado',        -- 0 = Abierta, 1 = Cerrada
+			fp.estado                   AS 'proforma_estado',        -- según tu tabla
 			fp.facturas_proforma_id     AS 'facturas_proforma_id'
 		FROM 
 			facturas f
@@ -6680,14 +6684,14 @@ class mainModel
 			$vendedor
 		ORDER BY 
 			f.number DESC, f.fecha DESC";
-
+	
 		$conn = $this->connection();
 		$result = $conn->query($query);
 		if (!$result) {
 			die('Error en la consulta SQL: ' . $conn->error);
 		}
 		return $result;
-	}
+	}	
 
 	public function consultaCXPagoFactura($facturas_id)
 	{

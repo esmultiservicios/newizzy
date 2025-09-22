@@ -213,13 +213,21 @@
         $('#ganancia').html(fmt.format(totalGanancia));
       },
 
-      buttons: [
+      buttons: [        
         {
           text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
           titleAttr: 'Actualizar Reporte de Ventas',
           className: 'table_actualizar btn btn-secondary ocultar',
           action: function () { listar_reporte_ventas(); }
         },
+        {
+          text: '<i class="fas fa-search fa-lg crear"></i> Reporte de Pagos',
+          titleAttr: 'Reporte de Pagos',
+          className: 'table_crear btn btn-primary ocultar',
+          action: function () { 
+            modal_pagos_cliente();
+          }
+        },        
         {
           text: '<i class="fas fa-search fa-lg crear"></i> Detalle Ventas',
           titleAttr: 'Detalle Ventas',
@@ -642,4 +650,203 @@
     table_puestos.search('').draw();
     $('#buscar').focus();
   };
+
+// =============================
+// PAGOS POR CLIENTE (FIX DEFINITIVO)
+// =============================
+var dtPagosCliente = null;
+
+function listar_pagos_cliente(){
+  const $m = $('#ModalPagosCliente');
+
+  if (!dtPagosCliente) {
+    dtPagosCliente = $("#DataTablePagosCliente").DataTable({
+      destroy: true,
+      processing: true,
+      deferRender: true,
+      stateSave: false,
+      ajax: {
+        method: "POST",
+        url: "<?php echo SERVERURL; ?>core/facturas/llenarDataTablePagosCliente.php",
+        // ¡LEER SIEMPRE DESDE EL DOM EN CADA REQUEST!
+        data: function(d){
+          d.fechai     = $m.find('#PagosFechai').val();
+          d.fechaf     = $m.find('#PagosFechaf').val();
+          d.cliente_id = $m.find('#ClientePagos').val() || '';
+        },
+        dataSrc: function(json){
+          // útil para ver qué está regresando el PHP:
+          // console.log('RESP PAGOS:', json);
+          return json.data || [];
+        }
+      },
+      columns: [
+        { defaultContent: "<button class='table_reportes print_factura_pagos btn btn-success'><span class='fas fa-file-download fa-lg'></span> Factura</button>" },        
+        { data: "fecha_pago" },
+        { data: "numero" },
+        { data: "fecha_factura" },
+        { data: "total_factura", render: d => moneyFmt(d) },
+        { data: "aplicado",      render: d => moneyFmt(d) },
+        { data: "efectivo",      render: d => moneyFmt(d) },
+        { data: "tarjeta",       render: d => moneyFmt(d) },
+        { data: "cambio",        render: d => moneyFmt(d) },
+        { data: "metodo" },
+        { data: "tipo" },
+        {
+          data: "estado",
+          render: d => {
+            let cls = "badge-secondary";
+            let icon = "fa-circle";
+            let text = d || "";
+
+            if (d === "Pagado") {
+              cls = "badge-success";
+              icon = "fa-check-circle";
+            } else if (d === "Cancelado") {
+              cls = "badge-danger";
+              icon = "fa-times-circle";
+            } else if (d === "Pendiente") {
+              cls = "badge-warning";
+              icon = "fa-exclamation-circle";
+            }
+
+            return `
+              <span class="badge badge-pill ${cls}">
+                <i class="fas ${icon} mr-1"></i> ${text}
+              </span>
+            `;
+          }
+        },
+        { data: "usuario" }
+      ],
+      order: [[1,'desc']],
+      lengthMenu: typeof lengthMenu10 !== 'undefined' ? lengthMenu10 : [[10,25,50,-1],[10,25,50,"Todos"]],
+      language: typeof idioma_español !== 'undefined' ? idioma_español : {},
+      dom: typeof dom !== 'undefined' ? dom : 'Bfrtip',
+      buttons: [
+        {
+          text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
+          className: 'table_actualizar btn btn-secondary ocultar',
+          action: function(){ dtPagosCliente.ajax.reload(); }
+        },
+        {
+          extend: 'excelHtml5',
+          text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
+          className: 'table_reportes btn btn-success ocultar',
+          title: 'Pagos del Cliente',
+          exportOptions: { columns: [1,2,3,4,5,6,7,8,9,10,11,12] }
+        },
+        {
+          extend: 'pdfHtml5',
+          text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
+          className: 'table_reportes btn btn-danger ocultar',
+          orientation: 'landscape',
+          pageSize: 'LETTER',
+          title: 'Pagos del Cliente',
+          exportOptions: { columns: [1,2,3,4,5,6,7,8,9,10,11,12] }
+        }
+      ],
+      footerCallback: function(row, data){
+          var totalFactura = 0, totalAplicado = 0, totalEfectivo = 0, totalTarjeta = 0, totalCambio = 0;
+          
+          data.forEach(function (r) {
+              totalFactura += parseFloat(r.total_factura) || 0;
+              totalAplicado += parseFloat(r.aplicado) || 0;
+              totalEfectivo += parseFloat(r.efectivo) || 0;
+              totalTarjeta += parseFloat(r.tarjeta) || 0;
+              totalCambio += parseFloat(r.cambio) || 0;
+          });
+          
+          var fmt = new Intl.NumberFormat('es-HN', {style: 'currency', currency: 'HNL', minimumFractionDigits: 2});
+          
+          $('#pg_total_factura').html(fmt.format(totalFactura));
+          $('#pg_aplicado').html(fmt.format(totalAplicado));
+          $('#pg_efectivo').html(fmt.format(totalEfectivo));
+          $('#pg_tarjeta').html(fmt.format(totalTarjeta));
+          $('#pg_cambio').html(fmt.format(totalCambio));
+      },
+      drawCallback: function(){
+        if (typeof getPermisosTipoUsuarioAccesosTable === 'function'){
+          getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+        }
+      }
+    });
+
+    view_reporte_facturas_pagos_dataTable("#DataTablePagosCliente tbody", dtPagosCliente);
+  } else {
+    // para re-consultar con los filtros actuales
+    dtPagosCliente.ajax.reload();
+  }
+}
+
+var view_reporte_facturas_pagos_dataTable = function (tbody, table) {
+    $(tbody).off("click", "button.print_factura_pagos");
+    $(tbody).on("click", "button.print_factura_pagos", function (e) {
+      e.preventDefault();
+      var data = table.row($(this).parents("tr")).data();
+      printBillReporteVentas(data.facturas_id);
+    });
+  };
+
+  
+function modal_pagos_cliente(){
+  const $m = $('#ModalPagosCliente');
+
+  // Fechas por defecto (mes actual)
+  const hoy = new Date();
+  const y = hoy.getFullYear(), m = hoy.getMonth();
+  const firstDay = new Date(y, m, 1).toISOString().slice(0,10);
+  const today    = new Date().toISOString().slice(0,10);
+
+  $m.find('#PagosFechai').val(firstDay);
+  $m.find('#PagosFechaf').val(today);
+
+  // Cargar clientes y, cuando termine, hacer la primer consulta
+  getClientesPagos();
+  setTimeout(() => listar_pagos_cliente(), 150); // primer fetch
+
+  // Botones
+  $m.off('click', '#btnFiltrarPagosCliente').on('click', '#btnFiltrarPagosCliente', function(){
+    listar_pagos_cliente();
+  });
+
+  $m.off('click', '#btnLimpiarPagosCliente').on('click', '#btnLimpiarPagosCliente', function(){
+    $m.find('#ClientePagos').val('');
+    if ($.fn.selectpicker) $m.find('#ClientePagos').selectpicker('refresh');
+    listar_pagos_cliente();
+  });
+
+  $m.modal({show:true, keyboard:false, backdrop:'static'});
+}
+
+// helper dinero
+function moneyFmt(n){
+  const v = parseFloat(n || 0);
+  return 'L ' + v.toLocaleString('es-HN',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+function getClientesPagos(){
+  $.ajax({
+    url: "<?php echo SERVERURL; ?>core/facturas/getClientes.php",
+    type: "POST",
+    dataType: "json"
+  }).done(function(resp){
+    const $sel = $('#ModalPagosCliente #ClientePagos');
+    $sel.empty();
+    if (resp && resp.success && Array.isArray(resp.data) && resp.data.length){
+      resp.data.forEach(c => {
+        $sel.append(
+          `<option value="${c.clientes_id}" data-subtext="${c.rtn ? c.rtn : 'Sin RTN'}">${c.nombre}</option>`
+        );
+      });
+    }else{
+      $sel.append('<option value="">Sin clientes</option>');
+    }
+    if ($.fn.selectpicker) $sel.selectpicker('refresh');
+  }).fail(function(){
+    const $sel = $('#ModalPagosCliente #ClientePagos');
+    $sel.html('<option value="">Error al cargar</option>');
+    if ($.fn.selectpicker) $sel.selectpicker('refresh');
+  });
+}
 </script>

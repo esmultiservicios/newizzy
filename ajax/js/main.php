@@ -851,7 +851,7 @@ function getPorcentajeISV(isv1Flag, isv2Flag) {
 /* ============================
    Cache y fetch de % ISV 1/2
    ============================ */
-   const ISV_CACHE = {
+const ISV_CACHE = {
   1: { valor: 0, activar: 0, loaded: false }, // ejemplo 15
   2: { valor: 0, activar: 0, loaded: false }  // ejemplo 18
 };
@@ -5089,6 +5089,7 @@ function waitForVisible($root, selector, maxTries = 20, delay = 40){
     tick();
   });
 }
+/* ====== FOCUS que NO mueve el scroll ====== */
 async function forceFocus(selector){
   const $m = $('#modal_pagos_unificado');
   const $candidate = await waitForVisible($m, selector, 25, 30);
@@ -5101,20 +5102,27 @@ async function forceFocus(selector){
   if (!$el.length) return false;
 
   try{
-    if ($el[0].scrollIntoView) $el[0].scrollIntoView({behavior: 'instant', block: 'center', inline: 'nearest'});
+    if (document.activeElement !== $el[0]) $el[0].focus({ preventScroll: true });
     $el.trigger('focus');
-    if (document.activeElement !== $el[0]) $el[0].focus({preventScroll:true});
-    const masked = !!($el.data && $el.data('inputmask'));
+
     setTimeout(() => {
       try{
         const v = ($el.val() || '').toString();
         if ($el[0].setSelectionRange && $el[0].type !== 'date') $el[0].setSelectionRange(v.length, v.length);
       }catch(_){}
-    }, masked ? 60 : 10);
+    }, 20);
+
     $el.addClass('focus-field'); setTimeout(()=> $el.removeClass('focus-field'), 800);
     return true;
   }catch(e){ console.log('Error en forceFocus:', e); return false; }
 }
+/* Forzar que el panel de detalles inicie arriba */
+function resetDetailsScroll(){
+  const $m = $('#modal_pagos_unificado');
+  $m.find('.payment-details-container').scrollTop(0);
+  $m.find('.modal-body').scrollTop(0);
+}
+
 async function focusFirstFieldFor(method){
   const $m = $('#modal_pagos_unificado');
   const selField = firstFieldByMethod[method] || null;
@@ -5131,6 +5139,8 @@ async function focusFirstFieldFor(method){
       $form.addClass('active').show().css('display','block');
     }
   }
+
+  resetDetailsScroll();
 
   if (selField){
     const ok = await forceFocus(selField);
@@ -5250,7 +5260,6 @@ function toggleMethod(method){
   LAST_SELECTED = method;
 
   if (!isMultiOn()){
-    // switch OFF = solo un método
     SELECTED_METHODS = new Set([method]);
     updateMethodsUI();
     if (CURRENT_STEP===2) setTimeout(async ()=> { await focusFirstFieldFor(method); }, 150);
@@ -5306,7 +5315,12 @@ function showDetailsForSelected(){
     else $f.find('#grupo_cambio_efectivo').show();
   }
 
-  $m.find('.payment-details-container').scrollTop(0);
+  $m.find('#pago_efectivo, #pago_tarjeta, #pago_transferencia, #pago_cheque, #pago_puntos')
+    .hide()
+    .prop('disabled', true)
+    .attr('type','button');
+
+  resetDetailsScroll();
 }
 
 /* ============= AJAX ============= */
@@ -5329,6 +5343,9 @@ function handleServerResponse(resp){
 }
 
 function submitFormAjax($f){
+  // Asegura que nada esté disabled al serializar
+  $f.find(':input').prop('disabled', false);
+
   return $.ajax({
     type: $f.attr('method') || 'POST',
     url:  $f.attr('action'),
@@ -5337,7 +5354,6 @@ function submitFormAjax($f){
   }).then(function(resp){
     return resp; // ya es JSON
   }, function(xhr){
-    // intenta extraer JSON del error; si no, arma uno
     try { return $.Deferred().reject(JSON.parse(xhr.responseText)).promise(); }
     catch(_) { return $.Deferred().reject({status:false,title:'Error',message:xhr.statusText||'Ajax error'}).promise(); }
   });
@@ -5515,6 +5531,108 @@ function packCashForSubmit(){
   $bkCam.val(cambioStr);
 }
 
+/* ======== PACKERS EXTRA para que TODO viaje en POST ======== */
+function stripDigits(s){ return (s||'').replace(/[^\d]/g,''); }
+
+// TARJETA: respeta 4 últimos dígitos; no cambiamos la máscara
+function packCardForSubmit(){
+  const $f = $('#formTarjetaBill'); if (!$f.length) return;
+
+  const numero4 = stripDigits(($f.find('#cr_bill').val() || '')).slice(-4);
+  if (!$f.find('#cr_bill').val()) $f.find('#cr_bill').val(numero4);
+
+  const exp = ($f.find('#exp').val() || '').trim();         // MM/YY (como lo tienes)
+  const aprob = ($f.find('#cvcpwd').val() || '').trim();
+  const usuario = $f.find('#usuario_tarjeta').val() || '';
+  const bancoSel = $f.find('#bk_nm'); // tu select de banco (si lo usas)
+  const bancoId = bancoSel.length ? (bancoSel.val() || '0') : ($f.find('[name="banco_id_tarjeta"]').val() || '0');
+
+  // Importe que PHP espera
+  const calc = computeAppliedAmounts();
+  const importeFinal = calc.apply.card || parseMonto($f.find('#importe_tarjeta').val());
+  $f.find('#importe_tarjeta').val(fixed2(importeFinal));
+
+  // monto_efectivo hidden que tu backend lee a veces
+  if (!$f.find('#monto_efectivo_tarjeta').length){
+    $('<input type="hidden" id="monto_efectivo_tarjeta" name="monto_efectivo">').appendTo($f);
+  }
+  $f.find('#monto_efectivo_tarjeta').val(fixed2(importeFinal));
+
+  // Copias BK opcionales por si las usas en PHP
+  if (!$f.find('input[name="numero_tarjeta_bk"]').length) $('<input type="hidden" name="numero_tarjeta_bk">').appendTo($f);
+  $f.find('input[name="numero_tarjeta_bk"]').val(numero4);
+
+  if (!$f.find('input[name="expiracion_bk"]').length) $('<input type="hidden" name="expiracion_bk">').appendTo($f);
+  $f.find('input[name="expiracion_bk"]').val(exp.replace('/',''));
+
+  if (!$f.find('input[name="numero_aprobacion_bk"]').length) $('<input type="hidden" name="numero_aprobacion_bk">').appendTo($f);
+  $f.find('input[name="numero_aprobacion_bk"]').val(aprob);
+
+  if (!$f.find('[name="usuario_tarjeta"]').length) $('<input type="hidden" name="usuario_tarjeta">').appendTo($f);
+  $f.find('[name="usuario_tarjeta"]').val(usuario);
+
+  if (!$f.find('[name="banco_id_tarjeta"]').length) $('<input type="hidden" name="banco_id_tarjeta">').appendTo($f);
+  $f.find('[name="banco_id_tarjeta"]').val(bancoId || '0');
+}
+
+// TRANSFERENCIA: mapea número autorización a ref_transferencia para tu PHP
+function packTransferForSubmit(){
+  const $f = $('#formTransferenciaBill'); if (!$f.length) return;
+
+  const importe = parseMonto($f.find('#importe_transferencia').val());
+  const calc = computeAppliedAmounts();
+  const importeFinal = calc.apply.transfer || importe;
+  $f.find('#importe_transferencia').val(fixed2(importeFinal));
+
+  const auth = ($f.find('#ben_nm').val() || '').trim(); // "Número de Autorización" en tu UI
+  if (!$f.find('input[name="ref_transferencia"]').length) $('<input type="hidden" name="ref_transferencia">').appendTo($f);
+  $f.find('input[name="ref_transferencia"]').val(auth);
+
+  // Banco id desde select bk_nm (si existe)
+  const bk = $f.find('#bk_nm').val() || '0';
+  if (!$f.find('input[name="banco_id_transferencia"]').length) $('<input type="hidden" name="banco_id_transferencia">').appendTo($f);
+  $f.find('input[name="banco_id_transferencia"]').val(bk);
+
+  // Campo opcional cta_transferencia (tu PHP lo admite como alterno)
+  if (!$f.find('input[name="cta_transferencia"]').length) $('<input type="hidden" name="cta_transferencia">').appendTo($f);
+}
+
+// CHEQUE: rellena banco_id y nombre banco como banco_cheque
+function packChequeForSubmit(){
+  const $f = $('#formChequeBill'); if (!$f.length) return;
+
+  const importe = parseMonto($f.find('#importe_cheque').val());
+  const calc = computeAppliedAmounts();
+  const importeFinal = calc.apply.check || importe;
+  $f.find('#importe_cheque').val(fixed2(importeFinal));
+
+  const bkId = $f.find('#bk_nm_chk').val() || '0';
+  if (!$f.find('input[name="banco_id_cheque"]').length) $('<input type="hidden" name="banco_id_cheque">').appendTo($f);
+  $f.find('input[name="banco_id_cheque"]').val(bkId);
+
+  // banco_cheque (nombre) para referencia2 (tu PHP usa banco_cheque/banco)
+  let bancoTexto = '';
+  const $opt = $f.find('#bk_nm_chk option:selected');
+  if ($opt.length) bancoTexto = $opt.text().trim();
+  if (!$f.find('input[name="banco_cheque"]').length) $('<input type="hidden" name="banco_cheque">').appendTo($f);
+  $f.find('input[name="banco_cheque"]').val(bancoTexto);
+}
+
+// PUNTOS: ya tienes campos; solo aseguro importe y duplico puntos_uso si hace falta
+function packPuntosForSubmit(){
+  const $f = $('#formPuntosBill'); if (!$f.length) return;
+
+  const importe = parseMonto($f.find('#importe_puntos').val());
+  const calc = computeAppliedAmounts();
+  const importeFinal = calc.apply.points || importe;
+  $f.find('#importe_puntos').val(fixed2(importeFinal));
+
+  // Asegura que puntos_usar exista (tu PHP lee puntos_uso o puntos_usar)
+  const pts = ($f.find('#puntos_uso').val() || '').trim();
+  if (!$f.find('input[name="puntos_usar"]').length) $('<input type="hidden" name="puntos_usar">').appendTo($f);
+  $f.find('input[name="puntos_usar"]').val(pts);
+}
+
 /* Paso 3: resumen y confirmación */
 function buildConfirmSummary(){
   const $m = $('#modal_pagos_unificado');
@@ -5551,7 +5669,6 @@ function buildConfirmSummary(){
   $('#btnConfirmPay').prop('disabled', !canConfirm).off('click').on('click', function(){
     $(this).prop('disabled', true);
 
-    // asegurar tipo_factura correcto al momento de enviar
     const tipoFinal = isMultiOn() ? 2 : 1;
     $('#formEfectivoBill #tipo_factura, \
        #formTarjetaBill #tipo_factura, \
@@ -5562,42 +5679,26 @@ function buildConfirmSummary(){
     const printVal = $('#comprobante_print_switch').is(':checked') ? 1 : 0;
     $('.comprobante_print_value').val(printVal);
 
-    // PISA LOS 5 FACTURAS_ID CON EL ACTUAL ANTES DE ENVIAR
     ensureAllFacturaIds();
 
     const applyVal = (m) => parseFloat(fixed2(LAST_APPLIED_AMOUNTS[m] || 0));
 
-    // Logs defensivos
-    console.log('[CONFIRM] facturas_id actual:', CURRENT_FACTURA_ID, 'tipoFinal:', tipoFinal, 'multiple:', $('#pagos_multiples_switch').is(':checked'));
-    ['cash','card','transfer','check','points'].forEach(m=>{
-      const $f = formMap[m] && formMap[m]();
-      if (!$f || !$f.length) return;
-      const name = {cash:'factura_id_efectivo',card:'factura_id_tarjeta',transfer:'factura_id_transferencia',check:'factura_id_cheque',points:'factura_id_puntos'}[m];
-      console.log(m,'=>',$f.find(`[name="${name}"]`).val());
-    });
+    // Empaquetar SIEMPRE antes de enviar (garantiza que viajen)
+    if (SELECTED_METHODS.has('cash'))      packCashForSubmit();
+    if (SELECTED_METHODS.has('card'))      { syncAmountToForm('card', applyVal('card'));         packCardForSubmit(); }
+    if (SELECTED_METHODS.has('transfer'))  { syncAmountToForm('transfer', applyVal('transfer')); packTransferForSubmit(); }
+    if (SELECTED_METHODS.has('check'))     { syncAmountToForm('check', applyVal('check'));       packChequeForSubmit(); }
+    if (SELECTED_METHODS.has('points'))    { syncAmountToForm('points', applyVal('points'));     packPuntosForSubmit(); }
 
     const finishOk  = (resp) => { handleServerResponse(resp || {status:true,title:'Éxito',message:'Pago registrado.'}); };
     const finishErr = (resp) => { $('#btnConfirmPay').prop('disabled', false); handleServerResponse(resp || {status:false,title:'Error',message:'No se pudo registrar el pago.'}); };
 
     if (isMultiOn() && SELECTED_METHODS.size===2){
       $('.multiple_pago').val(1);
-      const order = ['points','card','transfer','check','cash']; // efectivo al final
-      order
-        .filter(m => SELECTED_METHODS.has(m))
-        .forEach(m => {
-          ensureFacturaId(m); // redundante pero seguro
-          if (m === 'cash') { packCashForSubmit(); }
-          else { syncAmountToForm(m, applyVal(m)); }
-        });
-
       doMultiplePayment().then(finishOk).catch(finishErr);
-
     } else {
       $('.multiple_pago').val(0);
       const only = [...SELECTED_METHODS][0];
-      ensureFacturaId(only);
-      if (only === 'cash') { packCashForSubmit(); }
-      else { syncAmountToForm(only, applyVal(only)); }
       const $f = formMap[only]();
       $f.find('.comprobante_print_value').val(printVal);
       $f.find('.multiple_pago').val(0);
@@ -5612,7 +5713,7 @@ function calcularCambioEfectivo(){
   const efectivo = parseMonto($f.find('#efectivo_bill').val());
   const monto    = parseMonto($('#modal_pagos_unificado #customer_bill_pay').val());
 
-  CASH_TYPED = efectivo; // guarda lo que va tecleando el cajero
+  CASH_TYPED = efectivo;
 
   if (isMultiOn() || isCxC()){
     CASH_CAMBIO = 0;
@@ -5757,7 +5858,7 @@ function ensureFacturaId(method){
   const field = facturaIdFieldByMethod[method];
   if ($f && field){
     const $inp = $f.find(`[name="${field}"]`);
-    if ($inp.length) $inp.val(CURRENT_FACTURA_ID || ''); // SIEMPRE pisa con el actual
+    if ($inp.length) $inp.val(CURRENT_FACTURA_ID || '');
   }
 }
 
@@ -5825,7 +5926,6 @@ function hardResetModalState(){
   LAST_APPLIED_AMOUNTS = { cash:0, card:0, transfer:0, check:0, points:0 };
   CASH_TYPED = 0; CASH_CAMBIO = 0;
 
-  // NUEVO: limpia también contexto global
   CURRENT_FACTURA_ID = null;
   CURRENT_TIPO_PAGO  = 1;
   CURRENT_ORIGEN     = '';
@@ -5856,7 +5956,6 @@ function pago(facturas_id, tipoPago, origen){
   const $m = $('#modal_pagos_unificado');
   const url = '<?php echo SERVERURL;?>core/editarPagoFacturas.php';
 
-  // Reset duro ANTES de cargar datos
   hardResetModalState();
 
   CURRENT_FACTURA_ID = facturas_id;
@@ -5885,6 +5984,21 @@ function pago(facturas_id, tipoPago, origen){
 
     goToStep(1);
     $m.modal({ show:true, keyboard:false, backdrop:'static' });
+
+    // Refuerzo: NO cerrar con ESC ni click fuera
+    $m.off('keydown.blockEsc').on('keydown.blockEsc', function(e){
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); }
+    });
+    $m.off('click.stopBackdrop').on('click.stopBackdrop', function(e){
+      if ($(e.target).is('.modal')) { e.preventDefault(); e.stopPropagation(); }
+    });
+    try {
+      const modalData = $m.data('bs.modal');
+      if (modalData && modalData._config){
+        modalData._config.backdrop = 'static';
+        modalData._config.keyboard = false;
+      }
+    } catch(_){}
 
     if ($.fn.selectpicker) { setTimeout(()=>{ $m.find('.selectpicker').selectpicker('refresh'); }, 250); }
   }).fail(function(){
@@ -5944,11 +6058,29 @@ $(function(){
     }
   });
 
-  // Masks
+  // Masks (MISMAS que tenías, con opciones para no borrar input)
   if ($.fn.inputmask){
-    $m.find('#formTarjetaBill #cr_bill').inputmask('9999');
-    $m.find('#formTarjetaBill #exp').inputmask('99/99');
-    $m.find('#formTarjetaBill #cvcpwd').inputmask('999999');
+    $m.find('#formTarjetaBill #cr_bill').inputmask('9999', {
+      placeholder: '',
+      clearIncomplete: false,
+      greedy: false,
+      showMaskOnHover: false,
+      showMaskOnFocus: false
+    });
+    $m.find('#formTarjetaBill #exp').inputmask('99/99', {
+      placeholder: '',
+      clearIncomplete: false,
+      greedy: false,
+      showMaskOnHover: false,
+      showMaskOnFocus: false
+    });
+    $m.find('#formTarjetaBill #cvcpwd').inputmask('999999', {
+      placeholder: '',
+      clearIncomplete: false,
+      greedy: false,
+      showMaskOnHover: false,
+      showMaskOnFocus: false
+    });
   }
 
   // Switch imprimir comprobante
@@ -6080,6 +6212,7 @@ $(function(){
   });
 });
 /* FIN NUEVO PAGO */
+
 
 // Función para obtener los colaboradores
 function getCollaboradoresModalPagoFacturas() {

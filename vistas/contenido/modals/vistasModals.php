@@ -1765,12 +1765,14 @@
                 <i class="fas fa-info-circle info-icon" data-toggle="tooltip" title="Pago con cheque"></i>
               </div>
 
-              <div class="method-card premium" data-method="points" tabindex="0" role="button" aria-pressed="false">
-                <i class="fas fa-coins method-icon"></i>
-                <div class="method-name">Puntos</div>
-                <div class="method-badge">Loyalty</div>
-                <i class="fas fa-info-circle info-icon" data-toggle="tooltip" title="Redimir puntos (solo con Efectivo)"></i>
-              </div>
+              <?php if ($_SESSION['planes_id_sistema'] == 5 || $_SESSION['planes_id_sistema'] == 7): ?>
+                <div class="method-card premium" data-method="points" tabindex="0" role="button" aria-pressed="false">
+                    <i class="fas fa-coins method-icon"></i>
+                    <div class="method-name">Puntos</div>
+                    <div class="method-badge">Loyalty</div>
+                    <i class="fas fa-info-circle info-icon" data-toggle="tooltip" title="Redimir puntos (solo con Efectivo)"></i>
+                </div>
+              <?php endif; ?>
 
             </div>
           </div>

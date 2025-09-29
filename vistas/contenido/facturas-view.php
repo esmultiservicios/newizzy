@@ -346,46 +346,48 @@
                                 </button>
 
                                 <!-- Convertir cotización en factura -->
-                                <button
-                                    class="btn btn-secondary bill-bottom-remove cotizacion"
-                                    id="addQuotetoBill"
-                                    type="button"
-                                    data-toggle="tooltip"
-                                    data-placement="top"
-                                    data-html="true"
-                                    title="<strong>Convertir cotización</strong><br>Carga una cotización como factura.<br>Trae cliente, productos, precios y descuentos.<br>Revisa existencias y autorizaciones de elio SAR antes de emitir."
-                                    >
-                                    <div class="sb-nav-link-icon"></div>
-                                    <i class="fas fa-file-invoice-dollar fa-lg"></i> Cotizaciones
-                                </button>
-
-                                <!-- Factura recurrente -->
-                                <button
-                                    class="btn btn-secondary bill-bottom-remove"
-                                    id="addRecurringBill"
-                                    type="button"
-                                    data-toggle="tooltip"
-                                    data-placement="top"
-                                    data-html="true"
-                                    title="<strong>Factura recurrente</strong><br>Programa esta venta para generarse automáticamente.<br>Define <u>frecuencia</u>, <u>fecha inicial</u> y <u>fin</u>.<br>Opcional: envío por correo al generarse."
-                                    >
-                                    <div class="sb-nav-link-icon"></div>
-                                    <i class="fas fa-redo-alt fa-lg"></i> Recurrente
-                                </button>
-
-                                <!-- Cuentas por cobrar (CxC) -->
+                                <?php if ($_SESSION['planes_id_sistema'] != 1): ?>
                                     <button
-                                    class="btn btn-secondary bill-bottom-remove cobrarClientes"
-                                    id="addPayCustomers"
-                                    type="button"
-                                    data-toggle="tooltip"
-                                    data-placement="top"
-                                    data-html="true"
-                                    title="<strong>Cuentas por cobrar (CxC)</strong><br>Registra abonos/pagos de clientes.<br>Permite <u>pagos parciales</u> y <u>múltiples formas de pago</u>.<br>Puedes emitir comprobante."
-                                    >
-                                    <div class="sb-nav-link-icon"></div>
-                                    <i class="fas fa-hand-holding-usd fa-lg"></i> CxC
-                                </button>
+                                        class="btn btn-secondary bill-bottom-remove cotizacion"
+                                        id="addQuotetoBill"
+                                        type="button"
+                                        data-toggle="tooltip"
+                                        data-placement="top"
+                                        data-html="true"
+                                        title="<strong>Convertir cotización</strong><br>Carga una cotización como factura.<br>Trae cliente, productos, precios y descuentos.<br>Revisa existencias y autorizaciones de elio SAR antes de emitir."
+                                        >
+                                        <div class="sb-nav-link-icon"></div>
+                                        <i class="fas fa-file-invoice-dollar fa-lg"></i> Cotizaciones
+                                    </button>
+
+                                    <!-- Factura recurrente -->
+                                    <button
+                                        class="btn btn-secondary bill-bottom-remove"
+                                        id="addRecurringBill"
+                                        type="button"
+                                        data-toggle="tooltip"
+                                        data-placement="top"
+                                        data-html="true"
+                                        title="<strong>Factura recurrente</strong><br>Programa esta venta para generarse automáticamente.<br>Define <u>frecuencia</u>, <u>fecha inicial</u> y <u>fin</u>.<br>Opcional: envío por correo al generarse."
+                                        >
+                                        <div class="sb-nav-link-icon"></div>
+                                        <i class="fas fa-redo-alt fa-lg"></i> Recurrente
+                                    </button>
+
+                                    <!-- Cuentas por cobrar (CxC) -->
+                                    <button
+                                        class="btn btn-secondary bill-bottom-remove cobrarClientes"
+                                        id="addPayCustomers"
+                                        type="button"
+                                        data-toggle="tooltip"
+                                        data-placement="top"
+                                        data-html="true"
+                                        title="<strong>Cuentas por cobrar (CxC)</strong><br>Registra abonos/pagos de clientes.<br>Permite <u>pagos parciales</u> y <u>múltiples formas de pago</u>.<br>Puedes emitir comprobante."
+                                        >
+                                        <div class="sb-nav-link-icon"></div>
+                                        <i class="fas fa-hand-holding-usd fa-lg"></i> CxC
+                                    </button>                                    
+                                <?php endif; ?>                                 
 
                                 <!-- Borradores -->
                                 <button

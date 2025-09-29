@@ -46,7 +46,7 @@
             <span class="input-group-text">L</span>
           </div>
           <textarea class="form-control" rows="2"
-            name="taxAmountQuoteFooter" id="taxAmountQuoteFooter18"
+            name="taxAmountQuoteFooter18" id="taxAmountQuoteFooter18"
             placeholder="0.00" readonly></textarea>
         </div>
       </div>

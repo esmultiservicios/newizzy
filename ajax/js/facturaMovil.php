@@ -807,32 +807,35 @@ $(() => {
   // 7. AUXILIARES
   // ===============================
   function cargarClientes() {
-      $.ajax({
-          url: '<?php echo SERVERURL;?>core/facturas/getClientes.php',
-          type: 'GET',
-          dataType: 'json',
-          success: function (data) {
-              $('#cliente-select').empty().append('<option value="">Seleccione un cliente</option>');
-              
-              $.each(data, function (index, cliente) {
-                  $('#cliente-select').append(`<option value="${cliente.clientes_id}">${cliente.nombre} - ${cliente.rtn || 'Sin RTN'}</option>`);
-              });
-              
-              // Refrescar el selectpicker primero
-              $('#cliente-select').selectpicker('refresh');
-              
-              // Luego seleccionar "Consumidor Final" (ID = 1)
-              $('#cliente-select').selectpicker('val', '1');
-              
-              if ($(window).width() < 768) {
-                  $('.bootstrap-select').addClass('mobile-select');
-                  $('.dropdown-menu').addClass('mobile-dropdown');
-              }
-          },
-          error: function () {
-              showNotify("error", "Error", "No se pudieron cargar los clientes");
-          }
-      });
+    $.ajax({
+      url: '<?php echo SERVERURL;?>core/facturas/getClientes.php',
+      type: 'GET',
+      dataType: 'json',
+      success: function (resp) {
+        const clientes = Array.isArray(resp) ? resp : (resp.data || []);
+        const $sel = $('#cliente-select');
+
+        $sel.empty().append('<option value="">Seleccione un cliente</option>');
+
+        clientes.forEach(c => {
+          const nombre = (c && c.nombre) ? c.nombre : 'Sin nombre';
+          const rtn    = (c && c.rtn && c.rtn.trim() !== '') ? c.rtn : 'Sin RTN';
+          $sel.append(`<option value="${c.clientes_id}">${nombre} - ${rtn}</option>`);
+        });
+
+        // Refrescar y seleccionar "Consumidor Final" (ID = 1)
+        $sel.selectpicker('refresh');
+        $sel.selectpicker('val', '1');
+
+        if (window.innerWidth < 768) {
+          $('.bootstrap-select').addClass('mobile-select');
+          $('.dropdown-menu').addClass('mobile-dropdown');
+        }
+      },
+      error: function () {
+        showNotify("error", "Error", "No se pudieron cargar los clientes");
+      }
+    });
   }
 
   function cargarVendedores() {

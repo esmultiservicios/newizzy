@@ -5634,9 +5634,11 @@ function packPuntosForSubmit(){
 }
 
 /* Paso 3: resumen y confirmación */
+/* Paso 3: resumen y confirmación */
 function buildConfirmSummary(){
   const $m = $('#modal_pagos_unificado');
 
+  const esCxC = isCxC(); // <-- NUEVO: resolvemos una vez
   const { totalFactura, amounts, apply, sumApplied } = computeAppliedAmounts();
   LAST_APPLIED_AMOUNTS = apply;
 
@@ -5661,15 +5663,22 @@ function buildConfirmSummary(){
   $('#confirm-difference').text('L. ' + fmtMiles(diff));
   $('#difference-line').toggleClass('ok', Math.abs(diff) < 0.005);
 
+  // Total digitado (solo para referencia UI)
   const totalDigitado = (amounts.cash + amounts.card + amounts.transfer + amounts.check + amounts.points);
-  const canConfirm = (isFactura()
-    ? ( totalDigitado >= totalFactura )
-    : ( totalDigitado > 0 && totalDigitado <= totalFactura ));
-  
+
+  // ====== REGLA DE HABILITACIÓN ======
+  // CxC: permitir registrar si 0 < suma aplicada <= total
+  // Factura: permitir si lo aplicado cubre el total
+  const canConfirm = esCxC
+    ? (sumApplied > 0 && sumApplied <= totalFactura)
+    : (sumApplied >= totalFactura);
+
   $('#btnConfirmPay').prop('disabled', !canConfirm).off('click').on('click', function(){
     $(this).prop('disabled', true);
 
-    const tipoFinal = isMultiOn() ? 2 : 1;
+    // ====== TIPO FACTURA CORRECTO ======
+    // CxC => 2, de lo contrario: 2 si es múltiple, 1 si no.
+    const tipoFinal = esCxC ? 2 : (isMultiOn() ? 2 : 1);
     $('#formEfectivoBill #tipo_factura, \
        #formTarjetaBill #tipo_factura, \
        #formTransferenciaBill #tipo_factura_transferencia, \

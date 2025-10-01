@@ -324,17 +324,87 @@ class pagoCompraModelo extends mainModel{
     }
 
     protected function agregar_egresos_contabilidad_modelo($datos){
+        // Conexión para escapar cadenas
+        $db = mainModel::connection();
+    
+        // --- Scalars / normalización ---
+        $egresos_id          = (int)$datos['egresos_id'];
+        $cuentas_id          = (int)$datos['cuentas_id'];
+        $proveedores_id      = (int)$datos['proveedores_id'];
+        $empresa_id          = (int)$datos['empresa_id'];
+        $tipo_egreso         = (int)$datos['tipo_egreso']; // 1 Compras, 2 Gastos
+        $fecha               = $db->real_escape_string($datos['fecha']);
+        $factura             = $db->real_escape_string($datos['factura']);
+        // Puede venir o no; si no, va NULL
+        $factura_pdf_raw     = isset($datos['factura_pdf']) ? trim($datos['factura_pdf']) : null;
+        $factura_pdf         = $factura_pdf_raw !== null && $factura_pdf_raw !== ''
+                                ? $db->real_escape_string($factura_pdf_raw)
+                                : null;
+    
+        // Númericos a 2 decimales
+        $subtotal            = number_format((float)($datos['subtotal']  ?? 0), 2, '.', '');
+        $descuento           = number_format((float)($datos['descuento'] ?? 0), 2, '.', '');
+        $nc                  = number_format((float)($datos['nc']        ?? 0), 2, '.', '');
+        // Mapeo: si te llega 'isv' desde arriba, úsalo como 'impuesto'
+        $impuesto_val        = (isset($datos['impuesto']) ? $datos['impuesto'] : ($datos['isv'] ?? 0));
+        $impuesto            = number_format((float)$impuesto_val, 2, '.', '');
+        $total               = number_format((float)($datos['total']     ?? 0), 2, '.', '');
+    
+        $observacion         = $db->real_escape_string($datos['observacion'] ?? '');
+        $estado              = (int)($datos['estado'] ?? 1);
+        $colaboradores_id    = (int)($datos['colaboradores_id'] ?? 0);
+        $fecha_registro      = $db->real_escape_string($datos['fecha_registro']);
+        $categoria_gastos_id = (int)($datos['categoria_gastos_id'] ?? 0);
+    
+        // --- INSERT con columnas explícitas (exactas a tu tabla) ---
         $insert = "
-        INSERT INTO egresos 
-        VALUES('".$datos['egresos_id']."','".$datos['cuentas_id']."','".$datos['proveedores_id']."',
-        '".$datos['empresa_id']."','".$datos['tipo_egreso']."','".$datos['fecha']."','".$datos['factura']."',
-        '".$datos['subtotal']."','".$datos['descuento']."','".$datos['nc']."','".$datos['isv']."','".$datos['total']."',
-        '".$datos['observacion']."','".$datos['estado']."','".$datos['colaboradores_id']."','".$datos['fecha_registro']."','".$datos['categoria_gastos_id']."')";
-        
-        $sql = mainModel::connection()->query($insert) or die(mainModel::connection()->error);
-        
-        return $sql;            
-    }
+            INSERT INTO egresos
+            (
+                egresos_id,
+                cuentas_id,
+                proveedores_id,
+                empresa_id,
+                tipo_egreso,
+                fecha,
+                factura,
+                factura_pdf,
+                subtotal,
+                descuento,
+                nc,
+                impuesto,
+                total,
+                observacion,
+                estado,
+                colaboradores_id,
+                fecha_registro,
+                categoria_gastos_id
+            )
+            VALUES
+            (
+                $egresos_id,
+                $cuentas_id,
+                $proveedores_id,
+                $empresa_id,
+                $tipo_egreso,
+                '$fecha',
+                '$factura',
+                ".($factura_pdf === null ? "NULL" : "'$factura_pdf'").",
+                $subtotal,
+                $descuento,
+                $nc,
+                $impuesto,
+                $total,
+                '$observacion',
+                $estado,
+                $colaboradores_id,
+                '$fecha_registro',
+                $categoria_gastos_id
+            )
+        ";
+    
+        $sql = $db->query($insert) or die($db->error);
+        return $sql;
+    }    
 
     protected function cancelar_pago_modelo($pagoscompras_id){
         $estado = 2;//FACTURA CANCELADA

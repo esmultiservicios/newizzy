@@ -323,132 +323,156 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
     }
 
     public function edit_egresos_contabilidad_controlador(){
-        // Validar sesión
+        // 1) Validar sesión
         $validacion = mainModel::validarSesion();
-        if($validacion['error']) {
+        if ($validacion['error']) {
             return mainModel::showNotification([
-                "title" => "Error de sesión",
-                "text" => $validacion['mensaje'],
-                "type" => "error",
+                "title"   => "Error de sesión",
+                "text"    => $validacion['mensaje'],
+                "type"    => "error",
                 "funcion" => "window.location.href = '".$validacion['redireccion']."'"
             ]);
         }
-
-        $egresos_id = $_POST['egresos_id'];
-        $proveedores_id = $_POST['proveedor_egresos'];
-        $factura = mainModel::cleanString($_POST['factura_egresos']);
-        $observacion = mainModel::cleanString($_POST['observacion_egresos']);
-        $fecha = $_POST['fecha_egresos'];
-
-        // Obtener nombre del proveedor para armar el nombre del PDF
-        $proveedorNombre = egresosContabilidadModelo::getProveedorNombreById($proveedores_id);
-
-        // Obtener el nombre del archivo actual si existe
-        $consulta_archivo = mainModel::connection()->query("SELECT factura_pdf FROM egresos WHERE egresos_id = '$egresos_id'");
-        $archivo_actual = $consulta_archivo->fetch_assoc()['factura_pdf'];
-        
-        // Manejar la eliminación del archivo existente si se solicitó
-        if(isset($_POST['remove_existing_file']) && $_POST['remove_existing_file'] == '1' && $archivo_actual) {
-            $ruta_archivo = '../vistas/plantilla/gastos/' . $archivo_actual;
-            if(file_exists($ruta_archivo)) {
-                unlink($ruta_archivo);
-            }
-            $archivo_actual = '';
-        }
-        
-        // Manejar la carga de un nuevo archivo
-        $nuevo_archivo = $archivo_actual;
-        if(isset($_FILES['factura_pdf']) && $_FILES['factura_pdf']['error'] === UPLOAD_ERR_OK) {
-            // Eliminar el archivo anterior si existe (vamos a reemplazar por el nuevo)
-            if($archivo_actual) {
-                $ruta_archivo = '../vistas/plantilla/gastos/' . $archivo_actual;
-                if(file_exists($ruta_archivo)) {
-                    unlink($ruta_archivo);
-                }
-            }
-            
-            // Subir el nuevo archivo
-            $archivo = $_FILES['factura_pdf'];
-            $extension = pathinfo($archivo['name'], PATHINFO_EXTENSION);
-            
-            // Validar que sea PDF
-            if(strtolower($extension) !== 'pdf') {
-                return mainModel::showNotification([
-                    "title" => "Error",
-                    "text" => "Solo se permiten archivos PDF",
-                    "type" => "error"
-                ]);
-            }
-            
-            // Validar tamaño (5MB máximo)
-            if($archivo['size'] > 5 * 1024 * 1024) {
-                return mainModel::showNotification([
-                    "title" => "Error",
-                    "text" => "El archivo no debe exceder los 5MB",
-                    "type" => "error"
-                ]);
-            }
-
-            // Nombre de archivo: factura_<proveedor>_<factura>.pdf (colisión controlada)
-            $nombre_archivo = $this->buildPdfFileName($egresos_id, $proveedorNombre, $factura);
-            $ruta_destino = '../vistas/plantilla/gastos/' . $nombre_archivo;
-            
-            if(move_uploaded_file($archivo['tmp_name'], $ruta_destino)) {
-                $nuevo_archivo = $nombre_archivo;
-            } else {
-                return mainModel::showNotification([
-                    "title" => "Error",
-                    "text" => "No se pudo guardar el nuevo archivo PDF",
-                    "type" => "error"
-                ]);
-            }
-        }
-
-        $datos = [
-            "egresos_id" => $egresos_id,
-            "proveedores_id" => $proveedores_id,
-            "factura" => $factura,
-            "fecha" => $fecha,
-            "observacion" => $observacion,
-            "factura_pdf" => $nuevo_archivo                            
-        ];        
-        
-        $query = egresosContabilidadModelo::edit_egresos_contabilidad_modelo($datos);
-
-        if($query){
-            // Historial
-            mainModel::guardarHistorial([
-                "modulo" => 'Egresos Contabilidad',
-                "colaboradores_id" => $_SESSION['colaborador_id_sd'],
-                "status" => "Edición",
-                "observacion" => "Se editó egreso contable ID: {$egresos_id}",
-                "fecha_registro" => date("Y-m-d H:i:s")
-            ]);
-
-            return mainModel::showNotification([
-                "type" => "success",
-                "title" => "Registro editado",
-                "text" => "Registro editado correctamente",
-                "form" => "formEgresosContables",
-                "funcion" => "listar_gastos_contabilidad();getEmpresaEgresos(); getCuentaEgresos(); getProveedorEgresos();printGastos(".$egresos_id.")",
-                "modal" => "modalEgresosContables"
-            ]);
-        }else{
-            // Si falla la actualización y se había subido un nuevo archivo, elimínalo
-            if(isset($nombre_archivo) && $nombre_archivo != $archivo_actual) {
-                $ruta_archivo = '../vistas/plantilla/gastos/' . $nombre_archivo;
-                if(file_exists($ruta_archivo)) {
-                    unlink($ruta_archivo);
-                }
-            }
-            
+    
+        // 2) POST (sanitiza lo sensible)
+        $egresos_id     = isset($_POST['egresos_id']) ? trim($_POST['egresos_id']) : '';
+        $proveedores_id = isset($_POST['proveedor_egresos']) ? trim($_POST['proveedor_egresos']) : '';
+        $factura        = mainModel::cleanString($_POST['factura_egresos']     ?? '');
+        $observacion    = mainModel::cleanString($_POST['observacion_egresos'] ?? '');
+        // $fecha         = $_POST['fecha_egresos'] ?? '';  // <- NO USAMOS la fecha enviada
+    
+        // 3) Obtener fecha y PDF actuales desde BD (la fecha queda CONGELADA en edición)
+        $db  = mainModel::connection();
+        $eid = $db->real_escape_string($egresos_id);
+        $res = $db->query("SELECT fecha, factura_pdf FROM egresos WHERE egresos_id = '$eid' LIMIT 1");
+        if (!$res || $res->num_rows === 0) {
             return mainModel::showNotification([
                 "title" => "Error",
-                "text" => "No se pudo editar el egreso contable",
-                "type" => "error"
-            ]);    
+                "text"  => "No se encontró el egreso especificado.",
+                "type"  => "error"
+            ]);
         }
-    }
+        $row            = $res->fetch_assoc();
+        $fecha_bd       = trim($row['fecha']);          // <- Usaremos SIEMPRE esta fecha en edición
+        $archivo_actual = trim($row['factura_pdf'] ?? '');
+    
+        // 4) Nombre proveedor (para filename)
+        $proveedorNombre = egresosContabilidadModelo::getProveedorNombreById($proveedores_id);
+    
+        // 5) Ruta ABSOLUTA segura a la carpeta de PDFs
+        $BASE_DIR = realpath(__DIR__ . '/../vistas/plantilla/gastos');
+        if ($BASE_DIR === false) {
+            return mainModel::showNotification([
+                "title" => "Error",
+                "text"  => "No existe la carpeta de gastos para almacenar PDF.",
+                "type"  => "error"
+            ]);
+        }
+    
+        // 6) Quitar archivo existente (si lo pidió el usuario)
+        if (isset($_POST['remove_existing_file']) && $_POST['remove_existing_file'] === '1' && $archivo_actual !== '') {
+            $ruta_actual = $BASE_DIR . DIRECTORY_SEPARATOR . $archivo_actual;
+            if (is_file($ruta_actual)) { @unlink($ruta_actual); }
+            $archivo_actual = '';
+        }
+    
+        // 7) Subida de nuevo PDF (si viene)
+        $nuevo_archivo = $archivo_actual;
+        $subio_nuevo   = false;
+        $ruta_nuevo    = '';
+    
+        if (isset($_FILES['factura_pdf']) && is_array($_FILES['factura_pdf']) && $_FILES['factura_pdf']['error'] === UPLOAD_ERR_OK) {
+            $archivo    = $_FILES['factura_pdf'];
+            $extension  = strtolower(pathinfo($archivo['name'], PATHINFO_EXTENSION));
+    
+            // Validaciones
+            if ($extension !== 'pdf') {
+                return mainModel::showNotification([
+                    "title" => "Error",
+                    "text"  => "Solo se permiten archivos PDF.",
+                    "type"  => "error"
+                ]);
+            }
+            if ((int)$archivo['size'] > (5 * 1024 * 1024)) {
+                return mainModel::showNotification([
+                    "title" => "Error",
+                    "text"  => "El archivo no debe exceder 5MB.",
+                    "type"  => "error"
+                ]);
+            }
+    
+            // Armar nombre destino (puede coincidir con el actual)
+            $nombre_archivo = $this->buildPdfFileName($egresos_id, $proveedorNombre, $factura);
+            $nombre_archivo = preg_replace('/[^A-Za-z0-9._-]/', '_', $nombre_archivo);
+            $ruta_destino   = $BASE_DIR . DIRECTORY_SEPARATOR . $nombre_archivo;
+    
+            // Reemplazo seguro si ya existe con el MISMO nombre
+            if (is_file($ruta_destino)) { @unlink($ruta_destino); }
+    
+            // Mover primero el nuevo archivo
+            if (!is_uploaded_file($archivo['tmp_name']) || !move_uploaded_file($archivo['tmp_name'], $ruta_destino)) {
+                return mainModel::showNotification([
+                    "title" => "Error",
+                    "text"  => "No se pudo guardar el nuevo archivo PDF.",
+                    "type"  => "error"
+                ]);
+            }
+    
+            // Éxito en disco → quedará como nuevo_archivo
+            $nuevo_archivo = $nombre_archivo;
+            $ruta_nuevo    = $ruta_destino;
+            $subio_nuevo   = true;
+        }
+    
+        // 8) Persistir cambios en BD (fecha congelada = $fecha_bd)
+        $datos = [
+            "egresos_id"     => $egresos_id,
+            "proveedores_id" => $proveedores_id,
+            "factura"        => $factura,
+            "fecha"          => $fecha_bd,        // <- AQUÍ aseguramos que no cambie
+            "observacion"    => $observacion,
+            "factura_pdf"    => $nuevo_archivo
+        ];
+    
+        $ok = egresosContabilidadModelo::edit_egresos_contabilidad_modelo($datos);
+    
+        if ($ok) {
+            // 9) Si subimos uno nuevo y el nombre cambió, borra el anterior (si existía)
+            if ($subio_nuevo && $archivo_actual !== '' && $archivo_actual !== $nuevo_archivo) {
+                $ruta_anterior = $BASE_DIR . DIRECTORY_SEPARATOR . $archivo_actual;
+                if (is_file($ruta_anterior)) { @unlink($ruta_anterior); }
+            }
+    
+            // Historial
+            mainModel::guardarHistorial([
+                "modulo"           => 'Egresos Contabilidad',
+                "colaboradores_id" => $_SESSION['colaborador_id_sd'],
+                "status"           => "Edición",
+                "observacion"      => "Se editó egreso contable ID: {$egresos_id}",
+                "fecha_registro"   => date("Y-m-d H:i:s")
+            ]);
+    
+            return mainModel::showNotification([
+                "type"    => "success",
+                "title"   => "Registro editado",
+                "text"    => "Registro editado correctamente",
+                "form"    => "formEgresosContables",
+                "funcion" => "listar_gastos_contabilidad();getEmpresaEgresos();getCuentaEgresos();getProveedorEgresos();printGastos(".$egresos_id.")",
+                "modal"   => "modalEgresosContables"
+            ]);
+        }
+    
+        // 10) Rollback de archivo si la BD falló
+        if ($subio_nuevo && $ruta_nuevo !== '' && is_file($ruta_nuevo)) {
+            @unlink($ruta_nuevo);
+        }
+    
+        return mainModel::showNotification([
+            "title" => "Error",
+            "text"  => "No se pudo editar el egreso contable.",
+            "type"  => "error"
+        ]);
+    }    
 
     public function edit_categoria_egresos_contabilidad_controlador() {
         // Validar sesión

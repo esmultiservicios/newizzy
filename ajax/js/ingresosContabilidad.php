@@ -322,20 +322,25 @@ var anular_ingresos_dataTable = function (tbody, table) {
   });
 };
 
+// ===== Acciones de la tabla: EDITAR (fecha bloqueada y sin "remember") =====
 var edit_reporte_ingresos_dataTable = function (tbody, table) {
   $(tbody).off("click", "button.table_editar");
   $(tbody).on("click", "button.table_editar", function () {
     var data = table.row($(this).parents("tr")).data();
-    var url = '<?php echo SERVERURL;?>core/editarIngresos.php';
+    var url  = '<?php echo SERVERURL;?>core/editarIngresos.php';
+
+    // set id al form
     $('#formIngresosContables #ingresos_id').val(data.ingresos_id);
 
-    // Cargar clientes y luego el ingreso
+    // 1) Cargar clientes y LUEGO el ingreso
     $.ajax({
       url: "<?php echo SERVERURL; ?>core/getClientes.php",
       type: "POST",
       dataType: "json",
       beforeSend: function () {
-        $('#formIngresosContables #recibide_ingresos').html('<option value="">Cargando clientes...</option>').selectpicker('refresh');
+        $('#formIngresosContables #recibide_ingresos')
+          .html('<option value="">Cargando clientes...</option>')
+          .selectpicker('refresh');
       }
     }).done(function (response) {
       const select = $('#formIngresosContables #recibide_ingresos');
@@ -343,38 +348,80 @@ var edit_reporte_ingresos_dataTable = function (tbody, table) {
 
       if (response.success && response.data.length > 0) {
         select.append('<option value="">Seleccione cliente</option>');
-        response.data.forEach(cliente => {
-          select.append(`<option value="${cliente.clientes_id}" data-subtext="${cliente.rtn || 'Sin RTN o Identidad'}">${cliente.nombre}</option>`);
+        response.data.forEach(function(c){
+          select.append(
+            `<option value="${c.clientes_id}" data-subtext="${c.rtn || 'Sin RTN o Identidad'}">${c.nombre}</option>`
+          );
         });
         select.selectpicker('refresh');
 
+        // 2) Cargar el registro del ingreso
         $.ajax({
-          type: 'POST', url: url, data: $('#formIngresosContables').serialize(),
+          type: 'POST',
+          url: url,
+          data: $('#formIngresosContables').serialize(),
           success: function (registro) {
-            var valores = eval(registro);
-            $('#formIngresosContables').attr({'data-form': 'update', 'action': '<?php echo SERVERURL;?>ajax/modificarIngresosAjax.php'});
-            $('#formIngresosContables')[0].reset();
-            $('#reg_ingresosContabilidad').hide(); $('#edi_ingresosContabilidad').show(); $('#delete_ingresosContabilidad').hide();
+            var v = eval(registro); // [cliente_id, cuenta_id, empresa_id, fecha, factura, subtotal, isv, descuento, nc, total, obs, clienteId]
 
+            // preparar el form para UPDATE
+            var $form = $('#formIngresosContables');
+            $form.attr({
+              'data-form': 'update',
+              'action': '<?php echo SERVERURL;?>ajax/modificarIngresosAjax.php'
+            })[0].reset();
+
+            // botones
+            $('#reg_ingresosContabilidad').hide();
+            $('#edi_ingresosContabilidad').show();
+            $('#delete_ingresosContabilidad').hide();
             $('#formIngresosContables #pro_ingresos_contabilidad').val("Editar");
-            $('#formIngresosContables #fecha_ingresos').val(valores[3]);
-            $('#formIngresosContables #factura_ingresos').val(valores[4]);
-            $('#formIngresosContables #subtotal_ingresos').val(valores[5]);
-            $('#formIngresosContables #isv_ingresos').val(valores[6]);
-            $('#formIngresosContables #descuento_ingresos').val(valores[7]);
-            $('#formIngresosContables #nc_ingresos').val(valores[8]);
-            $('#formIngresosContables #total_ingresos').val(valores[9]);
-            $('#formIngresosContables #observacion_ingresos').val(valores[10]);
 
-            $('#formIngresosContables #cuenta_ingresos').val(valores[1]).selectpicker('refresh');
-            $('#formIngresosContables #empresa_ingresos').val(valores[2]).selectpicker('refresh');
+            // === FECHA: bloquear y eliminar cualquier "remember" ya renderizado ===
+            var fechaReg = v[3];
+            var $fecha = $form.find('#fecha_ingresos');
 
-            var clienteId = valores[11];
+            $form.addClass('modo-editar');                 // para que el CSS oculte el hint
+            $fecha.removeClass('remembered-highlight')     // limpiar estilo
+                  .off('change.__remember change')         // cortar listeners
+                  .removeAttr('data-remember data-rem-key')
+                  .val(fechaReg)
+                  .prop('disabled', true);
+
+            // si el aviso ya está en el DOM, quítalo
+            $fecha.closest('.col-md-3').find('.remember-hint').remove();
+
+            // reforzar la fecha unos ticks por si otro script la pisa
+            $('#modalIngresosContables').one('shown.bs.modal', function(){
+              var i = 0;
+              (function keep(){
+                var $f = $('#formIngresosContables #fecha_ingresos');
+                $f.off('change.__remember change')
+                  .val(fechaReg)
+                  .attr('value', fechaReg)
+                  .prop('defaultValue', fechaReg);
+                if (++i < 8) setTimeout(keep, 60);
+              })();
+            });
+
+            // resto de campos
+            $('#formIngresosContables #factura_ingresos').val(v[4]);
+            $('#formIngresosContables #subtotal_ingresos').val(v[5]);
+            $('#formIngresosContables #isv_ingresos').val(v[6]);
+            $('#formIngresosContables #descuento_ingresos').val(v[7]);
+            $('#formIngresosContables #nc_ingresos').val(v[8]);
+            $('#formIngresosContables #total_ingresos').val(v[9]);
+            $('#formIngresosContables #observacion_ingresos').val(v[10]);
+
+            $('#formIngresosContables #cuenta_ingresos').val(v[1]).selectpicker('refresh');
+            $('#formIngresosContables #empresa_ingresos').val(v[2]).selectpicker('refresh');
+
+            var clienteId = v[11];
             if (clienteId) {
-              var optionExists = select.find('option[value="' + clienteId + '"]').length > 0;
-              select.val(optionExists ? clienteId : '').selectpicker('refresh');
+              var exists = select.find('option[value="'+clienteId+'"]').length > 0;
+              select.val(exists ? clienteId : '').selectpicker('refresh');
             }
 
+            // deshabilitar campos no editables
             $('#formIngresosContables #cuenta_ingresos').prop('disabled', true);
             $('#formIngresosContables #empresa_ingresos').prop('disabled', true);
             $('#formIngresosContables #subtotal_ingresos').prop('disabled', true);
@@ -386,24 +433,36 @@ var edit_reporte_ingresos_dataTable = function (tbody, table) {
             $('#formIngresosContables #buscar_cuenta_ingresos').hide();
             $('#formIngresosContables #buscar_empresa_ingresos').hide();
 
+            // abrir modal
             $('#modalIngresosContables').modal({ show: true, keyboard: false, backdrop: 'static' });
           },
-          error: function (xhr, status, error) {
-            console.error('Error al cargar datos del ingreso:', error);
+          error: function (xhr) {
+            console.error('Error al cargar datos del ingreso:', xhr.responseText);
             showNotify("error", "Error", "No se pudieron cargar los datos del ingreso");
           }
         });
+
       } else {
         select.append('<option value="">No hay clientes disponibles</option>').selectpicker('refresh');
         showNotify("warning", "Advertencia", "No hay clientes disponibles para seleccionar");
       }
-    }).fail(function (xhr, status, error) {
-      console.error('Error al cargar clientes:', error);
-      $('#formIngresosContables #recibide_ingresos').html('<option value="">Error al cargar clientes</option>').selectpicker('refresh');
+    }).fail(function (xhr) {
+      console.error('Error al cargar clientes:', xhr.responseText);
+      $('#formIngresosContables #recibide_ingresos')
+        .html('<option value="">Error al cargar clientes</option>')
+        .selectpicker('refresh');
       showNotify("error", "Error", "No se pudieron cargar los clientes");
     });
   });
 };
+
+// Al cerrar el modal, salir de modo-editar y re-habilitar fecha para "Nuevo"
+$(document).on('hidden.bs.modal', '#modalIngresosContables', function(){
+  $('#formIngresosContables').removeClass('modo-editar');
+  $('#formIngresosContables #fecha_ingresos')
+    .prop('disabled', false)
+    .removeAttr('data-original-fecha');
+});
 
 var view_reporte_ingresos_dataTable = function (tbody, table) {
   $(tbody).off("click", "button.print_gastos");
@@ -426,21 +485,33 @@ function modal_ingresos_contabilidad() {
     'action': '<?php echo SERVERURL;?>ajax/addIngresoContabilidadAjax.php'
   });
 
+  // Salir de modo edición (esto hace que el hint se vea otra vez por CSS)
+  var $form = $('#formIngresosContables');
+  $form.removeClass('modo-editar');
+
   // Reset total del form
-  $('#formIngresosContables')[0].reset();
-  $('#formIngresosContables select.selectpicker').val('').selectpicker('refresh');
-  $('#formIngresosContables input[type="text"], #formIngresosContables input[type="number"], #formIngresosContables textarea').val('');
+  $form[0].reset();
+  $form.find('select.selectpicker').val('').selectpicker('refresh');
+  $form.find('input[type="text"], input[type="number"], textarea').val('');
+
+  // Habilitar fecha y re-vincular el remember para "Nuevo"
+  var $f = $form.find('#fecha_ingresos');
+  $f.prop('disabled', false)
+    .off('change.__remember') // limpia posibles handlers previos
+    .on('change.__remember', function () {
+      try { localStorage.setItem('ingresos:lastFecha', this.value || ''); } catch(e){}
+    });
 
   // >>> RE-APLICAR FECHA MEMORIZADA TRAS EL RESET <<<
   setTimeout(function () {
-    var remembered = localStorage.getItem('ingresos:lastFecha');
+    var remembered = '';
+    try { remembered = localStorage.getItem('ingresos:lastFecha') || ''; } catch(e){}
     if (!remembered) {
       var d = new Date();
       var mm = String(d.getMonth() + 1).padStart(2, '0');
       var dd = String(d.getDate()).padStart(2, '0');
       remembered = d.getFullYear() + '-' + mm + '-' + dd;
     }
-    var $f = $('#formIngresosContables #fecha_ingresos');
     if ($f.length) {
       $f.val(remembered)
         .prop('defaultValue', remembered)

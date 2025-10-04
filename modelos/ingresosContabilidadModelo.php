@@ -13,15 +13,6 @@
 			
 			return $sql;			
 		}
-
-		protected function agregar_clientes_ingresos_contabilidad_modelo($datos){
-			$insert = "INSERT INTO `clientes`(`clientes_id`, `nombre`, `rtn`, `fecha`, `departamentos_id`, `municipios_id`, `localidad`, `telefono`, `correo`, `estado`, `colaboradores_id`, `fecha_registro`, `empresa`, `eslogan`, `otra_informacion`, `whatsapp`) 
-        VALUES ('{$datos['clientes_id']}', '{$datos['nombre']}', '{$datos['rtn']}', '{$datos['fecha']}', '{$datos['departamentos_id']}', '{$datos['municipios_id']}', '{$datos['localidad']}', '{$datos['telefono']}', '{$datos['correo']}', '{$datos['estado']}', '{$datos['colaboradores_id']}', '{$datos['fecha_registro']}', '{$datos['empresa']}', '{$datos['eslogan']}', '{$datos['otra_informacion']}', '{$datos['whatsapp']}')";
-        
-			$sql = mainModel::connection()->query($insert) or die(mainModel::connection()->error);
-			
-			return $sql;
-		}
 		
 		protected function agregar_movimientos_contabilidad_modelo($datos){
 			$movimientos_cuentas_id = mainModel::correlativo("movimientos_cuentas_id", "movimientos_cuentas");

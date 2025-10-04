@@ -24,7 +24,6 @@ function setupFileUpload() {
   fileDropArea.addEventListener('drop', handleDrop, false);
   document.addEventListener('paste', handlePaste);
 
-  // Soporta AMBOS: el texto clickeable viejo y el nuevo botón
   if (selectFileText) {
     selectFileText.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -135,7 +134,7 @@ function moneyRender(data, type){
     var color = n < 0 ? 'red' : 'green';
     return '<span style="color:'+color+';font-size:inherit;font-weight:inherit;line-height:inherit">L ' + formatMoney(n) + '</span>';
   }
-  return n; // ordenar/filtrar como número
+  return n;
 }
 
 // ===============================
@@ -190,7 +189,6 @@ var listar_gastos_contabilidad = function(){
   var fechai = $("#formMainGastosContabilidad #fechai").val();
   var fechaf = $("#formMainGastosContabilidad #fechaf").val();
 
-  // Limpiar posible estado guardado (para que no cambie el orden)
   try{
     var _dtKey = 'DataTables_' + 'dataTableGastosContabilidad' + '_' + window.location.pathname;
     localStorage.removeItem(_dtKey);
@@ -206,7 +204,7 @@ var listar_gastos_contabilidad = function(){
       data: { fechai:fechai, fechaf:fechaf, estado:estado }
     },
     columns: [
-      { data: "fecha_registro" },   // ordenaremos por aquí DESC
+      { data: "fecha_registro" },
       { data: "egresos_id" },
       { data: "categoria" },
       { data: "fecha" },
@@ -254,27 +252,11 @@ var listar_gastos_contabilidad = function(){
       { defaultContent: "<button class='table_reportes print_gastos btn btn-success btn ocultar'><span class='fas fa-file-download fa-lg'></span>Reporte</button>" },
       { defaultContent: "<button class='table_cancelar anular_factura btn btn-danger ocultar'><span class='fas fa-ban fa-lg'></span> Anular</button>" }
     ],
-    // Última fecha primero
     order: [[0, 'desc']],
     lengthMenu: lengthMenu10,
     language: idioma_español,
     dom: dom,
-    columnDefs: [
-      { width: "7.14%", targets: 0 },
-      { width: "7.14%", targets: 1 },
-      { width: "7.14%", targets: 2 },
-      { width: "7.14%", targets: 3 },
-      { width: "7.14%", targets: 4 },
-      { width: "7.14%", targets: 5 },
-      { width: "7.14%", targets: 6 },
-      { width: "7.14%", targets: 7 },
-      { width: "7.14%", targets: 8 },
-      { width: "7.14%", targets: 9 },
-      { width: "7.14%", targets:10 },
-      { width: "7.14%", targets:11 },
-      { width: "7.14%", targets:12 },
-      { width: "7.14%", targets:13 }
-    ],
+    columnDefs: Array.from({length:14}, (_,i)=>({width:"7.14%", targets:i})),
     buttons: [
       {
         text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
@@ -339,7 +321,6 @@ var listar_gastos_contabilidad = function(){
     }
   });
 
-  // Tooltips al redibujar
   $('#dataTableGastosContabilidad').on('draw.dt', function(){
     $('[data-toggle="tooltip"]').tooltip();
   });
@@ -369,180 +350,211 @@ function resetPdfUI(){
 }
 
 // ===============================
+//  Helper selectpicker (por id o por texto)
+// ===============================
+function setSelectpickerByValueOrText($sel, value, text){
+  $sel.selectpicker('refresh');
+  var val = (value !== undefined && value !== null) ? String(value).trim() : '';
+  if (val && $sel.find('option[value="'+val+'"]').length){
+    $sel.selectpicker('val', val);
+    return true;
+  }
+  if (text){
+    var target = String(text).trim().toLowerCase();
+    var $opt = $sel.find('option').filter(function(){
+      return $(this).text().trim().toLowerCase() === target;
+    }).first();
+    if ($opt.length){
+      $sel.selectpicker('val', $opt.val());
+      return true;
+    }
+  }
+  if (val){
+    $sel.append('<option value="'+val+'">'+(text || ('Opción #'+val))+'</option>');
+    $sel.selectpicker('refresh').selectpicker('val', val);
+    return true;
+  }
+  return false;
+}
+
+// ===============================
 //  Acciones de tabla (editar / reporte / anular)
 // ===============================
 var edit_reporte_gastos_dataTable = function (tbody, table) {
   $(tbody).off("click", "button.table_editar");
   $(tbody).on("click", "button.table_editar", function () {
     var data = table.row($(this).parents("tr")).data();
-    var url  = '<?php echo SERVERURL;?>core/editarGastos.php';
+    var urlEditar  = '<?php echo SERVERURL;?>core/editarGastos.php';
 
     // ID al form + reset UI PDF
     $('#formEgresosContables #egresos_id').val(data.egresos_id);
     resetPdfUI();
 
-    // 1) Cargar proveedores y luego el gasto
-    $.ajax({
-      url: "<?php echo SERVERURL; ?>core/getProveedores.php",
-      type: "POST",
-      dataType: "json",
-      beforeSend: function () {
-        $('#formEgresosContables #proveedor_egresos')
-          .html('<option value="">Cargando proveedores...</option>')
-          .selectpicker('refresh');
-      }
-    })
-    .done(function (response) {
-      const select = $('#formEgresosContables #proveedor_egresos');
-      select.empty();
+    const $form   = $('#formEgresosContables');
+    const $prov   = $form.find('#proveedor_egresos');
+    const $cuenta = $form.find('#cuenta_egresos');
+    const $emp    = $form.find('#empresa_egresos');
+    const $cat    = $form.find('#categoria_gastos');
 
-      if (response.success && response.data.length > 0) {
-        select.append('<option value="">Seleccione proveedor</option>');
-        response.data.forEach(proveedor => {
-          select.append(
-            `<option value="${proveedor.proveedores_id}" data-subtext="${proveedor.rtn || 'Sin RTN o Identidad'}">${proveedor.nombre}</option>`
+    // Placeholders mientras cargan catálogos
+    $prov.html('<option value="">Cargando proveedores...</option>').selectpicker('refresh');
+    $cuenta.html('<option value="">Cargando cuentas...</option>').selectpicker('refresh');
+    $emp.html('<option value="">Cargando empresas...</option>').selectpicker('refresh');
+    if ($cat.length) $cat.html('<option value="">Cargando categorías...</option>').selectpicker('refresh');
+
+    // 1) Cargar catálogos en paralelo
+    var reqProv = $.ajax({ url: "<?php echo SERVERURL; ?>core/getProveedores.php", type: "POST", dataType: "json" });
+    var reqCta  = $.ajax({ url: "<?php echo SERVERURL; ?>core/getCuenta.php",      type: "POST" }); // HTML
+    var reqEmp  = $.ajax({ url: "<?php echo SERVERURL; ?>core/getEmpresa.php",     type: "POST" }); // HTML
+    var reqCat  = $.ajax({ url: "<?php echo SERVERURL; ?>core/getCategoriaGastos.php", type: "POST" }); // HTML
+
+    $.when(reqProv, reqCta, reqEmp, reqCat).done(function (provRes, ctaRes, empRes, catRes) {
+      const provJSON = provRes[0];
+
+      // Proveedores
+      $prov.empty();
+      if (provJSON && provJSON.success && Array.isArray(provJSON.data) && provJSON.data.length) {
+        $prov.append('<option value="">Seleccione proveedor</option>');
+        provJSON.data.forEach(function (p) {
+          $prov.append(
+            `<option value="${p.proveedores_id}" data-subtext="${p.rtn || 'Sin RTN o Identidad'}">${p.nombre}</option>`
           );
         });
-        select.selectpicker('refresh');
-
-        // 2) Cargar el registro del egreso
-        $.ajax({
-          type: 'POST',
-          url: url,
-          data: $('#formEgresosContables').serialize(),
-          success: function (registro) {
-            var valores = eval(registro); // [proveedor_id, cuenta_id, empresa_id, fecha, factura, subtotal, isv, descuento, nc, total, obs, pdf]
-
-            // Preparar form para UPDATE
-            $('#formEgresosContables').attr({
-              'data-form': 'update',
-              'action': '<?php echo SERVERURL;?>ajax/modificarGastosAjax.php'
-            })[0].reset();
-
-            // Mostrar/ocultar botones
-            $('#reg_egresosContabilidad').hide();
-            $('#edi_egresosContabilidad').show();
-            $('#delete_egresosContabilidad').hide();
-
-            // Campos
-            $('#formEgresosContables #pro_egresos_contabilidad').val("Editar Egresos");
-
-            // Fecha del registro (NO se modifica ni se recuerda)
-            var fechaReg = valores[3];
-            var $form  = $('#formEgresosContables');
-            var $fecha = $form.find('#fecha_egresos');
-
-            $fecha.val(fechaReg).prop('disabled', true);
-
-            // Modo editar: oculta hint por CSS y desactiva cualquier “remember”
-            $form.addClass('modo-editar');
-            $fecha.off(); // corta handlers directos
-            $fecha.removeAttr('data-remember data-rem-key');
-
-            // Resto de campos
-            $('#formEgresosContables #factura_egresos').val(valores[4]);
-            $('#formEgresosContables #subtotal_egresos').val(valores[5]);
-            $('#formEgresosContables #isv_egresos').val(valores[6]);
-            $('#formEgresosContables #descuento_egresos').val(valores[7]);
-            $('#formEgresosContables #nc_egresos').val(valores[8]);
-            $('#formEgresosContables #total_egresos').val(valores[9]);
-            $('#formEgresosContables #observacion_egresos').val(valores[10]);
-
-            // Selects
-            $('#formEgresosContables #cuenta_egresos').val(valores[1]).selectpicker('refresh');
-            $('#formEgresosContables #empresa_egresos').val(valores[2]).selectpicker('refresh');
-
-            // PDF existente
-            if (valores[11] && valores[11] !== '') {
-              $('#filePreview').html(`
-                <div class="existing-file d-flex align-items-center p-2 border rounded bg-light">
-                  <i class="fas fa-file-pdf fa-2x text-danger mr-3"></i>
-                  <div class="flex-grow-1">
-                    <div class="small text-muted">Archivo actual</div>
-                    <div class="font-weight-bold">${valores[11]}</div>
-                  </div>
-                  <div class="btn-group ml-2">
-                    <a href="<?php echo SERVERURL; ?>vistas/plantilla/gastos/${valores[11]}"
-                       target="_blank"
-                       class="btn btn-danger btn-sm">
-                      <i class="fas fa-file-pdf mr-1"></i> Ver/Descargar PDF
-                    </a>
-                    <button type="button" class="btn btn-secondary btn-sm" id="removeFile">
-                      <i class="fas fa-exchange-alt mr-1"></i> Cambiar archivo
-                    </button>
-                  </div>
-                </div>
-              `).show();
-
-              $('#fileInfo').text('Archivo actual: ' + valores[11]);
-
-              $('#removeFile').on('click', function () {
-                $('#filePreview').hide().html('');
-                $('#fileInfo').text('Ningún archivo seleccionado');
-                $('#factura_pdf').val('');
-                $('<input>').attr({ type:'hidden', name:'remove_existing_file', value:'1' })
-                  .appendTo('#formEgresosContables');
-              });
-            }
-
-            setupFileUpload();
-
-            // Seleccionar proveedor del registro (si existe en el combo)
-            var proveedorId = valores[0];
-            if (proveedorId) {
-              var optionExists = select.find('option[value="' + proveedorId + '"]').length > 0;
-              select.val(optionExists ? proveedorId : '').selectpicker('refresh');
-            }
-
-            // Deshabilitar campos que no deben editarse
-            $('#formEgresosContables #cuenta_egresos').prop('disabled', true);
-            $('#formEgresosContables #empresa_egresos').prop('disabled', true);
-            $('#formEgresosContables #subtotal_egresos').prop('disabled', true);
-            $('#formEgresosContables #isv_egresos').prop('disabled', true);
-            $('#formEgresosContables #descuento_egresos').prop('disabled', true);
-            $('#formEgresosContables #nc_egresos').prop('disabled', true);
-            $('#formEgresosContables #total_egresos').prop('disabled', true);
-            $('#formEgresosContables #buscar_cuenta_egresos').hide();
-            $('#formEgresosContables #buscar_empresa_egresos').hide();
-
-            // Abrir modal
-            $('#modalEgresosContables').modal({ show: true, keyboard: false, backdrop: 'static' });
-
-            // Reforzar valor en el input (sin tocar localStorage)
-            $('#modalEgresosContables').one('shown.bs.modal', function(){
-              var intentos = 0;
-              var fix = function(){
-                var $f = $('#formEgresosContables #fecha_egresos');
-                $f.off();
-                $f.val(fechaReg).attr('value', fechaReg).prop('defaultValue', fechaReg);
-                if (++intentos < 8) setTimeout(fix, 60);
-              };
-              fix();
-            });
-          },
-          error: function (xhr) {
-            console.error('Error al cargar datos del gasto:', xhr.responseText);
-            showNotify("error", "Error", "No se pudieron cargar los datos del gasto");
-          }
-        });
       } else {
-        select.append('<option value="">No hay proveedores disponibles</option>').selectpicker('refresh');
-        showNotify("warning", "Advertencia", "No hay proveedores disponibles para seleccionar");
+        $prov.append('<option value="">No hay proveedores disponibles</option>');
       }
+      $prov.selectpicker('refresh');
+
+      // Cuentas / Empresas / Categorías (HTML)
+      $cuenta.html(ctaRes[0] || '').selectpicker('refresh');
+      $emp.html(empRes[0] || '').selectpicker('refresh');
+      if ($cat.length) $cat.html(catRes[0] || '').selectpicker('refresh');
+
+      // 2) Con catálogos listos, pedir el registro
+      $.ajax({
+        type: 'POST',
+        url: urlEditar,
+        data: $form.serialize(),
+        success: function (registro) {
+          var v = eval(registro);
+          // v[0]=proveedores_id, v[1]=cuentas_id, v[2]=empresa_id, v[3]=fecha, v[4]=factura,
+          // v[5]=subtotal, v[6]=impuesto, v[7]=descuento, v[8]=nc, v[9]=total, v[10]=obs, v[11]=factura_pdf
+
+          // Preparar form para UPDATE
+          $form.attr({
+            'data-form': 'update',
+            'action': '<?php echo SERVERURL;?>ajax/modificarGastosAjax.php'
+          })[0].reset();
+
+          // Botones / título
+          $('#reg_egresosContabilidad').hide();
+          $('#edi_egresosContabilidad').show();
+          $('#delete_egresosContabilidad').hide();
+          $form.find('#pro_egresos_contabilidad').val("Editar Egresos");
+
+          // === FECHA (bloqueada, sin remember) ===
+          var fechaReg = v[3];
+          var $fecha = $form.find('#fecha_egresos');
+          $form.addClass('modo-editar');
+          $fecha.off().removeAttr('data-remember data-rem-key')
+                .val(fechaReg).prop('disabled', true);
+
+          $('#modalEgresosContables').one('shown.bs.modal', function(){
+            var i = 0;
+            (function keep(){
+              var $f = $('#formEgresosContables #fecha_egresos');
+              $f.off().val(fechaReg).attr('value', fechaReg).prop('defaultValue', fechaReg);
+              if (++i < 8) setTimeout(keep, 60);
+            })();
+          });
+
+          // Campos numéricos / texto
+          $form.find('#factura_egresos').val(v[4]);
+          $form.find('#subtotal_egresos').val(v[5]);
+          $form.find('#isv_egresos').val(v[6]);
+          $form.find('#descuento_egresos').val(v[7]);
+          $form.find('#nc_egresos').val(v[8]);
+          $form.find('#total_egresos').val(v[9]);
+          $form.find('#observacion_egresos').val(v[10]);
+
+          // ===== Seleccionar PROVEEDOR, CUENTA, EMPRESA =====
+          setSelectpickerByValueOrText($prov,   (v[0] || data.proveedores_id || data.proveedor_egresos), data.proveedor);
+          setSelectpickerByValueOrText($cuenta, (v[1] || data.cuentas_id     || data.cuenta_egresos),    data.nombre_cuenta);
+          setSelectpickerByValueOrText($emp,    (v[2] || data.empresa_id     || data.empresa_egresos),   data.nombre_empresa);
+
+          // ===== Seleccionar CATEGORÍA =====
+          if ($cat.length){
+            var catIdFromRow = data.categoria_gastos_id || data.categoria_id || '';
+            var catNameFromRow = data.categoria || '';
+            setSelectpickerByValueOrText($cat, catIdFromRow, catNameFromRow);
+          }
+
+          // PDF existente
+          if (v[11] && v[11] !== '') {
+            $('#filePreview').html(`
+              <div class="existing-file d-flex align-items-center p-2 border rounded bg-light">
+                <i class="fas fa-file-pdf fa-2x text-danger mr-3"></i>
+                <div class="flex-grow-1">
+                  <div class="small text-muted">Archivo actual</div>
+                  <div class="font-weight-bold">${v[11]}</div>
+                </div>
+                <div class="btn-group ml-2">
+                  <a href="<?php echo SERVERURL; ?>vistas/plantilla/gastos/${v[11]}"
+                     target="_blank"
+                     class="btn btn-danger btn-sm">
+                    <i class="fas fa-file-pdf mr-1"></i> Ver/Descargar PDF
+                  </a>
+                  <button type="button" class="btn btn-secondary btn-sm" id="removeFile">
+                    <i class="fas fa-exchange-alt mr-1"></i> Cambiar archivo
+                  </button>
+                </div>
+              </div>
+            `).show();
+
+            $('#fileInfo').text('Archivo actual: ' + v[11]);
+
+            $('#removeFile').on('click', function () {
+              $('#filePreview').hide().html('');
+              $('#fileInfo').text('Ningún archivo seleccionado');
+              $('#factura_pdf').val('');
+              $('<input>').attr({ type:'hidden', name:'remove_existing_file', value:'1' })
+                .appendTo('#formEgresosContables');
+            });
+          }
+
+          setupFileUpload();
+
+          // Deshabilitar campos que no deben editarse (incluye proveedor/cuenta/empresa/categoría)
+          $prov.prop('disabled', true).selectpicker('refresh');
+          $cuenta.prop('disabled', true).selectpicker('refresh');
+          $emp.prop('disabled', true).selectpicker('refresh');
+          if ($cat.length) $cat.prop('disabled', true).selectpicker('refresh');
+
+          $form.find('#subtotal_egresos, #isv_egresos, #descuento_egresos, #nc_egresos, #total_egresos').prop('disabled', true);
+          $form.find('#buscar_cuenta_egresos, #buscar_empresa_egresos').hide();
+
+          // Abrir modal
+          $('#modalEgresosContables').modal({ show: true, keyboard: false, backdrop: 'static' });
+        },
+        error: function (xhr) {
+          console.error('Error al cargar datos del gasto:', xhr.responseText);
+          showNotify("error", "Error", "No se pudieron cargar los datos del gasto");
+        }
+      });
     })
     .fail(function (xhr) {
-      console.error('Error al cargar proveedores:', xhr.responseText);
-      $('#formEgresosContables #proveedor_egresos')
-        .html('<option value="">Error al cargar proveedores</option>')
-        .selectpicker('refresh');
-      showNotify("error", "Error", "No se pudieron cargar los proveedores");
+      console.error('Error al cargar catálogos:', xhr.responseText);
+      showNotify("error", "Error", "No se pudieron cargar proveedores/cuentas/empresas/categorías");
+      $prov.html('<option value="">Error al cargar proveedores</option>').selectpicker('refresh');
+      $cuenta.html('<option value="">Error al cargar cuentas</option>').selectpicker('refresh');
+      $emp.html('<option value="">Error al cargar empresas</option>').selectpicker('refresh');
+      if ($cat.length) $cat.html('<option value="">Error al cargar categorías</option>').selectpicker('refresh');
     });
   });
 };
 
 $(document).on('hidden.bs.modal', '#modalEgresosContables', function(){
   $(this).removeData('mode');
-  // salir de modo editar y re-habilitar campo para "Nuevo"
   $('#formEgresosContables').removeClass('modo-editar');
   $('#formEgresosContables #fecha_egresos')
     .prop('disabled', false)
@@ -621,7 +633,7 @@ var anular_gastos_dataTable = function (tbody, table){
 };
 
 // ===============================
-//  Modales y auxiliares (sin cambios sustanciales)
+//  Modales y auxiliares
 // ===============================
 function modal_egresos_contabilidad(){
   getCategoriaGastos();
@@ -645,9 +657,9 @@ function modal_egresos_contabilidad(){
   $('#formEgresosContables input[type="text"], #formEgresosContables input[type="number"], #formEgresosContables textarea').val('');
 
   // >>> RE-APLICAR FECHA MEMORIZADA INMEDIATAMENTE DESPUÉS DEL RESET <<<
-  // Usa la misma key que pusiste en data-rem-key del input de fecha.
   setTimeout(function () {
-    var remembered = localStorage.getItem('egresos:lastFecha');
+    var remembered = '';
+    try { remembered = localStorage.getItem('egresos:lastFecha') || ''; } catch(e){}
     if (!remembered) {
       var d = new Date();
       var mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -668,14 +680,20 @@ function modal_egresos_contabilidad(){
   $('#edi_egresosContabilidad').hide();
   $('#delete_egresosContabilidad').hide();
 
-  // habilitar campos
+  // habilitar campos (incluye PROVEEDOR y CATEGORÍA)
   $('#formEgresosContables #cuenta_codigo').prop("readonly", false);
   $('#formEgresosContables #cuenta_nombre').prop("readonly", false);
   $('#formEgresosContables #cuentas_activo').prop('disabled', false).prop('checked', false);
   $('#formEgresosContables #buscar_cuenta_egresos').show();
   $('#formEgresosContables #buscar_empresa_egresos').show();
-  $('#formEgresosContables #cuenta_egresos').prop('disabled', false).val('');
-  $('#formEgresosContables #empresa_egresos').prop('disabled', false).val('');
+
+  $('#formEgresosContables #cuenta_egresos').prop('disabled', false).selectpicker('refresh').selectpicker('val', '');
+  $('#formEgresosContables #empresa_egresos').prop('disabled', false).selectpicker('refresh').selectpicker('val', '');
+  $('#formEgresosContables #proveedor_egresos').prop('disabled', false).selectpicker('refresh').selectpicker('val', '');
+  if ($('#formEgresosContables #categoria_gastos').length){
+    $('#formEgresosContables #categoria_gastos').prop('disabled', false).selectpicker('refresh').selectpicker('val', '');
+  }
+
   $('#formEgresosContables #subtotal_egresos').prop('disabled', false).val('');
   $('#formEgresosContables #isv_egresos').prop('disabled', false).val('');
   $('#formEgresosContables #descuento_egresos').prop('disabled', false).val('');
@@ -695,6 +713,12 @@ function modal_egresos_contabilidad(){
     show:true, keyboard:false, backdrop:'static'
   });
 }
+
+// Al resetear el form (ya sea manual o tras registrar), limpia el PDF y re-arma el uploader
+$(document).on('reset', '#formEgresosContables', function(){
+  resetPdfUI();
+  setupFileUpload(); // se re-vinculan eventos porque borramos data-initialized
+});
 
 function modal_categorias_contabilidad(){
   $('#formCategoriaEgresos')[0].reset();
@@ -833,7 +857,7 @@ function getEmpresaEgresos(){
   });
 }
 
-// Cálculos en formulario (sin cambios de lógica)
+// Cálculos en formulario
 $(document).ready(function(){
   function recalc(){
     var s  = parseFloat($("#formEgresosContables #subtotal_egresos").val())  || 0;
@@ -849,7 +873,7 @@ $(document).ready(function(){
   $("#formEgresosContables #nc_egresos").on("keyup", recalc);
 });
 
-// Focos modales (igual)
+// Focos modales
 $(document).ready(function(){
   $("#modalCategoriasEgresos").on('shown.bs.modal', function(){ $(this).find('#formCategoriaEgresos #categoria').focus(); });
   $("#modalReporteCategorias").on('shown.bs.modal', function(){ $(this).find('#formularioReporteCategorias #buscar').focus(); });
@@ -858,7 +882,7 @@ $(document).ready(function(){
   $("#modal_registrar_proveedores").on('shown.bs.modal', function(){ $(this).find('#formProveedores #nombre_proveedores').focus(); });
 });
 
-// Lista de categorías (sin cambios de negocio)
+// Lista de categorías
 var listar_categoria_egresos = function(){
   var table_categoria_egresos = $("#DatatableCategoriaEgresos").DataTable({
     destroy:true,

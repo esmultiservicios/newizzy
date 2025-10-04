@@ -41,28 +41,6 @@ class ingresosContabilidadControlador extends ingresosContabilidadModelo{
         $resultCliente = ingresosContabilidadModelo::valid_clientes_cuentas_contabilidad($recibide);
 
         if ($resultCliente->num_rows === 0) {
-            //REGISTRAMOS EL CLIENTE
-            $clientes_id = mainModel::correlativo("clientes_id", "clientes");
-
-            $datos_clientes_ingreso = [
-                "clientes_id" => $clientes_id,
-                "nombre" => $recibide,
-                "rtn" => 0,
-                "fecha" => date('y-m-d'),
-                "departamentos_id" => 0,
-                "municipios_id" => 0,
-                "localidad" => "",
-                "telefono" => "",
-                "correo" => "",
-                "estado" => 1,
-                "colaboradores_id" => $colaboradores_id,
-                "fecha_registro" => date("y-m-d h:i:s"),
-                "empresa" => "",
-                "eslogan" => "",
-                "otra_informacion" => "",
-                "whatsapp" => ""
-            ];
-
             $mainModel = new mainModel();
             $planConfig = $mainModel->getPlanConfiguracionMainModel();
             
@@ -90,14 +68,6 @@ class ingresosContabilidadControlador extends ingresosContabilidadModelo{
                     ]);
                 }
 			}
-
-            if(!ingresosContabilidadModelo::agregar_clientes_ingresos_contabilidad_modelo($datos_clientes_ingreso)){
-                return mainModel::showNotification([
-                    "title" => "Error",
-                    "text" => "No se pudo registrar el cliente temporal",
-                    "type" => "error"
-                ]);
-            }
         }else{
             //CONSULTAMOS EL CLIENTE_ID
             $cliente_consulta = ingresosContabilidadModelo::valid_clientes_cuentas_contabilidad($recibide)->fetch_assoc();

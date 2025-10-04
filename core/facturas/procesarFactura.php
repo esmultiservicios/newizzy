@@ -221,7 +221,7 @@ try {
   // ===========================
   // 3) Insertar ENCABEZADO
   // ===========================
-  $estadoInicial = ($tipoFactura === 1) ? 1 : 3; // 1=Borrador, 3=Crédito
+  $estadoInicial = ($tipoFactura === 1) ? 2 : 3; // 2=Pagada, 3=Crédito
 
   $sqlInsH = "INSERT INTO facturas
     (facturas_id, clientes_id, secuencia_facturacion_id, apertura_id, number, tipo_factura, colaboradores_id,

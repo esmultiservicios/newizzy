@@ -1,4 +1,5 @@
 <?php	
+	//llenarDataTableDetalleVentas.php
 	$peticionAjax = true;
 	require_once "configGenerales.php";
 	require_once "mainModel.php";

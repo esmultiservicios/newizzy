@@ -561,7 +561,7 @@
     $('#ModalDetalleVentas').modal({ show: true, keyboard: false, backdrop: 'static' });
   }
 
-  var ListarDetalleVenas = function () {
+ var ListarDetalleVenas = function () {
     var fechai = $("#FormDetalleVentas #DetallesFechai").val();
     var fechaf = $("#FormDetalleVentas #DetallesFechaf").val();
     var productos_id = $("#FormDetalleVentas #DetallesProductos").val();

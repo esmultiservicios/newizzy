@@ -1,32 +1,43 @@
 <?php
-//loginAjax.php
+// ajax/loginAjax.php
 $peticionAjax = true;
+header('Content-Type: application/json; charset=UTF-8');
+
 require_once '../core/configGenerales.php';
 
-if (isset($_GET['token'])) {
-	require_once '../controladores/loginControlador.php';
+try {
+    $token = $_POST['token'] ?? $_GET['token'] ?? null;
 
-	$logout = new loginControlador();
+    if ($token !== null && $token !== '') {
+        require_once '../controladores/loginControlador.php';
+        $logout = new loginControlador();
+        // Devuelve JSON robusto
+        echo $logout->cerrar_sesion_controlador_json($token);
+        exit;
+    }
 
-	echo $logout->cerrar_sesion_controlador();
-} else {
-	// Identificar campos faltantes
-	$missingFields = [];
-	
-	if (!isset($_POST['email'])) $missingFields[] = "Correo Electrónico";
-	if (!isset($_POST['password'])) $missingFields[] = "Contraseña";
+    // Si llega aquí, no es logout con token → responde JSON (no <script>)
+    $missing = [];
+    if (!isset($_POST['email']))    $missing[] = 'Correo Electrónico';
+    if (!isset($_POST['password'])) $missing[] = 'Contraseña';
 
-	// Preparar el mensaje
-	$missingText = implode(", ", $missingFields);
-	$title = "Error 🚨";
-	$message = "Faltan los siguientes campos: $missingText. Por favor, corrígelos.";
-	
-	// Escapar comillas para JavaScript
-	$title = addslashes($title);
-	$message = addslashes($message);
-	
-	// Llamar a TU función showNotify exactamente como está definida
-	echo "<script>
-		showNotify('error', '$title', '$message');
-	</script>";
+    if ($missing) {
+        echo json_encode([
+            'ok'      => false,
+            'title'   => 'Error 🚨',
+            'message' => 'Faltan los siguientes campos: ' . implode(', ', $missing) . '. Por favor, corrígelos.'
+        ], JSON_UNESCAPED_UNICODE);
+    } else {
+        echo json_encode([
+            'ok'      => false,
+            'title'   => 'Solicitud inválida',
+            'message' => 'Parámetros insuficientes.'
+        ], JSON_UNESCAPED_UNICODE);
+    }
+} catch (Throwable $e) {
+    echo json_encode([
+        'ok'      => false,
+        'title'   => 'Error',
+        'message' => 'Excepción: ' . $e->getMessage()
+    ], JSON_UNESCAPED_UNICODE);
 }

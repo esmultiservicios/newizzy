@@ -170,13 +170,37 @@
 </div>
 <div id="nomina_detalles" style="display: none;">
     <div class="container-fluid">
-        <ol class="breadcrumb mt-2 mb-4">
-            <li class="breadcrumb-item"><a class="breadcrumb-link"
-                    href="<?php echo SERVERURL; ?>dashboard/">Dashboard</a></li>
-            <li class="breadcrumb-item active"><a class="breadcrumb-link" id="volver_nomina"
-                    href="<?php echo SERVERURL; ?>dashboard/">Nomina</a></li>
-            <li class="breadcrumb-item active" id="volver_nomina_empleados">Empleados</li>
-        </ol>
+        <!-- Breadcrumb: Dashboard / Nómina / Empleados -->
+        <div class="breadcrumb-container">
+            <ol class="breadcrumb-harmony">
+                <!-- Dashboard -->
+                <li class="breadcrumb-item">
+                <a class="breadcrumb-link" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>dashboard/">
+                    <i class="fas fa-home breadcrumb-icon"></i>
+                    <span>Dashboard</span>
+                </a>
+                </li>
+
+                <li class="breadcrumb-separator">/</li>
+
+                <!-- Nómina (usa el id para volver a la vista principal) -->
+                <li class="breadcrumb-item">
+                <a class="breadcrumb-link" id="volver_nomina" href="javascript:void(0);">
+                    <i class="fas fa-file-invoice-dollar breadcrumb-icon"></i>
+                    <span>Nómina</span>
+                </a>
+                </li>
+
+                <li class="breadcrumb-separator">/</li>
+
+                <!-- Empleados (activo) -->
+                <li class="breadcrumb-item active" id="volver_nomina_empleados">
+                <i class="fas fa-users breadcrumb-icon"></i>
+                <span>Empleados</span>
+                </li>
+            </ol>
+        </div>
+
         <div class="card mb-4">
             <div class="card-body">
                 <form class="form-inline" id="form_main_nominas_detalles">

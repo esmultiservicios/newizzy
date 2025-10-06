@@ -203,18 +203,19 @@ var editar_secuencia_facturacion_dataTable = function(tbody, table) {
             data: $('#formSecuencia').serialize(),
             success: function(registro) {
                 var valores = eval(registro);
-                $('#formSecuencia').attr({
-                    'data-form': 'update'
-                });
-                $('#formSecuencia').attr({
-                    'action': '<?php echo SERVERURL;?>ajax/modificarSecuenciaFacturacionAjax.php'
-                });
+
+                // MODO UPDATE
+                $('#formSecuencia').attr({'data-form': 'update'});
+                $('#formSecuencia').attr({'action': '<?php echo SERVERURL;?>ajax/modificarSecuenciaFacturacionAjax.php'});
                 $('#formSecuencia')[0].reset();
+
+                // Botones
                 $('#reg_secuencia').hide();
                 $('#edi_secuencia').show();
                 $('#delete_secuencia').hide();
-                $('#formSecuencia #empresa_secuencia').val(valores[0]);
-                $('#formSecuencia #empresa_secuencia').selectpicker('refresh');
+
+                // Set valores
+                $('#formSecuencia #empresa_secuencia').val(valores[0]).prop('disabled', true).selectpicker('refresh');
                 $('#formSecuencia #cai_secuencia').val(valores[1]);
                 $('#formSecuencia #prefijo_secuencia').val(valores[2]);
                 $('#formSecuencia #relleno_secuencia').val(valores[3]);
@@ -224,34 +225,38 @@ var editar_secuencia_facturacion_dataTable = function(tbody, table) {
                 $('#formSecuencia #rango_final_secuencia').val(valores[7]);
                 $('#formSecuencia #fecha_activacion_secuencia').val(valores[8]);
                 $('#formSecuencia #fecha_limite_secuencia').val(valores[9]);
-                $('#formSecuencia #documento_secuencia').val(valores[11]);
-                $('#formSecuencia #documento_secuencia').selectpicker('refresh');
+                $('#formSecuencia #documento_secuencia').val(valores[11]).prop('disabled', true).selectpicker('refresh');
 
                 if (valores[10] == 1) {
-                    $('#formSecuencia #estado_secuencia').attr('checked', true);
+                    $('#formSecuencia #estado_secuencia').prop('checked', true);
                 } else {
-                    $('#formSecuencia #estado_secuencia').attr('checked', false);
+                    $('#formSecuencia #estado_secuencia').prop('checked', false);
                 }
 
-                //DESHABILITAR OBJETOS
-                $('#formSecuencia #empresa_secuencia').attr('disabled', true);
-                $('#formSecuencia #documento_secuencia').attr('disabled', true);
-                $('#formSecuencia #cai_secuencia').attr('readonly', true);
-                $('#formSecuencia #prefijo_secuencia').attr('readonly', true);
-                $('#formSecuencia #relleno_secuencia').attr('readonly', true);
-                $('#formSecuencia #incremento_secuencia').attr('readonly', true);
-                $('#formSecuencia #rango_inicial_secuencia').attr('readonly', true);
-                $('#formSecuencia #rango_final_secuencia').attr('readonly', true);
-                $('#formSecuencia #fecha_activacion_secuencia').attr('readonly', true);
-                $('#formSecuencia #fecha_limite_secuencia').attr('readonly', true);
+                // DESHABILITAR CAMPOS FIJOS
+                $('#formSecuencia #cai_secuencia').prop('readonly', true);
+                $('#formSecuencia #prefijo_secuencia').prop('readonly', true);
+                $('#formSecuencia #relleno_secuencia').prop('readonly', true);
+                $('#formSecuencia #incremento_secuencia').prop('readonly', true);
+                $('#formSecuencia #rango_inicial_secuencia').prop('readonly', true);
+                $('#formSecuencia #rango_final_secuencia').prop('readonly', true);
+                $('#formSecuencia #fecha_activacion_secuencia').prop('readonly', true);
+                $('#formSecuencia #fecha_limite_secuencia').prop('readonly', true);
 
                 $('#formSecuencia #estado_secuencia_container').show();
 
-                //HABILITAR OBJETOS
-                $('#formSecuencia #siguiente_secuencia').attr('readonly', false);
-                $('#formSecuencia #estado_secuencia').attr('disabled', false);
+                // HABILITAR SOLO ESTOS
+                $('#formSecuencia #siguiente_secuencia').prop('readonly', false);
+                $('#formSecuencia #estado_secuencia').prop('disabled', false);
 
-                $('#formSecuencia #proceso_secuencia_facturacion').val("Editar");
+                // ENFOQUE: SIEMPRE EN "SIGUIENTE" AL ABRIR MODAL EN MODO UPDATE
+                $('#modal_registrar_secuencias').off('shown.bs.modal.setFocus').on('shown.bs.modal.setFocus', function () {
+                    var $sig = $('#formSecuencia #siguiente_secuencia');
+                    $sig.trigger('focus');
+                    try { $sig[0].select(); } catch(e){}
+                });
+
+                // MOSTRAR MODAL
                 $('#modal_registrar_secuencias').modal({
                     show: true,
                     keyboard: false,
@@ -340,34 +345,39 @@ var eliminar_secuencia_facturacion_dataTable = function(tbody, table) {
 function modal_secuencia_facturacion() {
     getEmpresaSecuencia();
     getDocumentoSecuencia();
-    $('#formSecuencia').attr({
-        'data-form': 'save'
-    });
-    $('#formSecuencia').attr({
-        'action': '<?php echo SERVERURL;?>ajax/agregarSecuenciaFacturacionAjax.php'
-    });
+
+    // MODO SAVE
+    $('#formSecuencia').attr({'data-form': 'save'});
+    $('#formSecuencia').attr({'action': '<?php echo SERVERURL;?>ajax/agregarSecuenciaFacturacionAjax.php'});
     $('#formSecuencia')[0].reset();
+
+    // Botones
     $('#reg_secuencia').show();
     $('#edi_secuencia').hide();
     $('#delete_secuencia').hide();
 
-    //HABILITAR OBJETOS
-    $('#formSecuencia #documento_secuencia').attr('disabled', false);
-    $('#formSecuencia #empresa_secuencia').attr('disabled', false);
-    $('#formSecuencia #documento_secuencia').attr('disabled', false);
-    $('#formSecuencia #cai_secuencia').attr('readonly', false);
-    $('#formSecuencia #prefijo_secuencia').attr('readonly', false);
-    $('#formSecuencia #relleno_secuencia').attr('readonly', false);
-    $('#formSecuencia #incremento_secuencia').attr('readonly', false);
-    $('#formSecuencia #siguiente_secuencia').attr('readonly', false);
-    $('#formSecuencia #rango_inicial_secuencia').attr('readonly', false);
-    $('#formSecuencia #rango_final_secuencia').attr('readonly', false);
-    $('#formSecuencia #fecha_activacion_secuencia').attr('readonly', false);
-    $('#formSecuencia #fecha_limite_secuencia').attr('readonly', false);
-    $('#formSecuencia #estado_secuencia').attr('disabled', false);
+    // HABILITAR TODOS LOS CAMPOS
+    $('#formSecuencia #empresa_secuencia').prop('disabled', false).selectpicker('refresh');
+    $('#formSecuencia #documento_secuencia').prop('disabled', false).selectpicker('refresh');
+
+    $('#formSecuencia #cai_secuencia').prop('readonly', false);
+    $('#formSecuencia #prefijo_secuencia').prop('readonly', false);
+    $('#formSecuencia #relleno_secuencia').prop('readonly', false);
+    $('#formSecuencia #incremento_secuencia').prop('readonly', false);
+    $('#formSecuencia #siguiente_secuencia').prop('readonly', false);
+    $('#formSecuencia #rango_inicial_secuencia').prop('readonly', false);
+    $('#formSecuencia #rango_final_secuencia').prop('readonly', false);
+    $('#formSecuencia #fecha_activacion_secuencia').prop('readonly', false);
+    $('#formSecuencia #fecha_limite_secuencia').prop('readonly', false);
+    $('#formSecuencia #estado_secuencia').prop('disabled', false);
 
     $('#formSecuencia #proceso_secuencia_facturacion').val("Registro");
-    $('#formSecuencia #empresa_secuencia').attr('disabled', false);
+
+    // ENFOQUE: EN MODO SAVE, AL ABRIR EL MODAL ENFÓCATE EN EMPRESA (o cambia a siguiente si quieres)
+    $('#modal_registrar_secuencias').off('shown.bs.modal.setFocus').on('shown.bs.modal.setFocus', function () {
+        $('#formSecuencia #empresa_secuencia').trigger('focus');
+    });
+
     $('#modal_registrar_secuencias').modal({
         show: true,
         keyboard: false,

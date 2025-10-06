@@ -49,8 +49,6 @@ class pagoFacturaControlador extends pagoFacturaModelo {
         $montoEntregadoCliente = 0.0;   // lo que escribe el cajero (solo efectivo)
         $montoAplicado         = 0.0;   // lo que realmente se aplica al saldo
 
-        //var_dump($_POST);
-
         // === Monto según tipo de pago ===
         switch ($tipoPago) {
             case 'efectivo':
@@ -180,7 +178,6 @@ class pagoFacturaControlador extends pagoFacturaModelo {
                 break;
 
             case 'transferencia':
-                // Usa lo que tengas en el form: número de ref, beneficiario/cuenta
                 $referencia1 = $get('ref_transferencia', 'numero_referencia'); // Nº referencia
                 $referencia2 = $get('ben_nm', 'beneficiario');                 // Beneficiario
                 $referencia3 = $get('cta_transferencia', 'cuenta');            // Cuenta / observación
@@ -195,7 +192,6 @@ class pagoFacturaControlador extends pagoFacturaModelo {
                 break;
 
             case 'puntos':
-                // Guarda cuántos puntos se usaron y su equivalente como referencia
                 $referencia1 = $get('puntos_uso', 'puntos_usar');               // Puntos usados
                 $referencia2 = $get('equivalente_puntos');                      // Equivalente en moneda
                 $referencia3 = 'Programa de puntos';
@@ -219,7 +215,7 @@ class pagoFacturaControlador extends pagoFacturaModelo {
             'print_comprobante'  => isset($_POST['comprobante_print']) ? $_POST['comprobante_print'] : 0,
             'colaboradores_id'   => intval($_SESSION['colaborador_id_sd']),
             'efectivo'           => ($tipoPago === 'efectivo') ? $montoEntregadoCliente : 0.0,  // guarda lo digitado en efectivo
-            'tarjeta'            => ($tipoPago === 'tarjeta') ? 1 : 0,                           // marcador/flag si fue tarjeta
+            'tarjeta'            => ($tipoPago === 'tarjeta') ? $importeReal : 0,               // normalizado
             'banco_id'           => $banco_id,
             'referencia_pago1'   => $referencia1,
             'referencia_pago2'   => $referencia2,
@@ -241,6 +237,7 @@ class pagoFacturaControlador extends pagoFacturaModelo {
 
         $datos['tipo_pago_id'] = 1; // efectivo
         $datos['banco_id']     = 0;
+        $datos['tarjeta']      = 0; // asegurar índice
 
         $result = pagoFacturaModelo::agregar_pago_factura_base($datos);
         if (isset($result['status']) && $result['status'] === false) {
@@ -271,16 +268,12 @@ class pagoFacturaControlador extends pagoFacturaModelo {
         $datos['banco_id']     = isset($_POST['bk_nm']) ? intval($_POST['bk_nm']) : 0;
 
         // Guardar también el monto en la columna "tarjeta" de la tabla pagos
-        // (en prepararDatosPago ya viene 'importe' calculado correctamente)
         $datos['tarjeta'] = $datos['importe'];
 
-        // Descripciones para pagos_detalles:
-        // descripcion1 = numero de tarjeta (cr_bill)
-        // descripcion2 = expiracion (exp, MM/YY)
-        // descripcion3 = numero de aprobacion (cvcpwd)
-        $datos['referencia_pago1'] = isset($_POST['cr_bill']) ? $_POST['cr_bill'] : '';
-        $datos['referencia_pago2'] = isset($_POST['exp']) ? $_POST['exp'] : '';
-        $datos['referencia_pago3'] = isset($_POST['cvcpwd']) ? $_POST['cvcpwd'] : '';
+        // Descripciones para pagos_detalles (se refuerzan desde el modelo igualmente)
+        $datos['referencia_pago1'] = isset($_POST['cr_bill']) ? $_POST['cr_bill'] : ($datos['referencia_pago1'] ?? '');
+        $datos['referencia_pago2'] = isset($_POST['exp']) ? $_POST['exp'] : ($datos['referencia_pago2'] ?? '');
+        $datos['referencia_pago3'] = isset($_POST['cvcpwd']) ? $_POST['cvcpwd'] : ($datos['referencia_pago3'] ?? '');
 
         $result = pagoFacturaModelo::agregar_pago_factura_base($datos);
         if (isset($result['status']) && $result['status'] === false) {
@@ -308,14 +301,12 @@ class pagoFacturaControlador extends pagoFacturaModelo {
 
         $datos['tipo_pago_id'] = 3; // transferencia
         $datos['banco_id']     = isset($_POST['bk_nm']) ? intval($_POST['bk_nm']) : 0;
+        $datos['tarjeta']      = 0;
 
-        // Descripciones para pagos_detalles:
-        // descripcion1 = numero de autorizacion (ben_nm)
-        // descripcion2 = ''
-        // descripcion3 = ''
-        $datos['referencia_pago1'] = isset($_POST['ben_nm']) ? $_POST['ben_nm'] : '';
-        $datos['referencia_pago2'] = '';
-        $datos['referencia_pago3'] = '';
+        // refuerza referencias si vienen con otro nombre
+        $datos['referencia_pago1'] = isset($_POST['ben_nm']) ? $_POST['ben_nm'] : ($datos['referencia_pago1'] ?? '');
+        $datos['referencia_pago2'] = $datos['referencia_pago2'] ?? '';
+        $datos['referencia_pago3'] = $datos['referencia_pago3'] ?? '';
 
         $result = pagoFacturaModelo::agregar_pago_factura_base($datos);
         if (isset($result['status']) && $result['status'] === false) {
@@ -343,8 +334,8 @@ class pagoFacturaControlador extends pagoFacturaModelo {
 
         $datos['tipo_pago_id'] = 4; // cheque
         $datos['banco_id']     = isset($_POST['bk_nm_chk']) ? intval($_POST['bk_nm_chk']) : 0;
+        $datos['tarjeta']      = 0;
 
-        // SOLO descripcion1 = número de cheque
         $numCheque                 = isset($_POST['check_num']) ? $_POST['check_num'] : (isset($_POST['num_chk']) ? $_POST['num_chk'] : '');
         $datos['referencia_pago1'] = $numCheque;
         $datos['referencia_pago2'] = '';

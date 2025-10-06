@@ -5,13 +5,14 @@ $(() => {
     getTipoContrato();
     getPagoPlanificado();
     getTipoEmpleado();
-    getEmpresa();
+    getEmpresa();    
     getEmpleado();    
     getTipoNomina();
     getCuentaNominas();
     getEmpleadoVales();
     listar_vales();
     listar_nominas();
+
     $('#form_main_nominas #estado_nomina').val(0);
     $('#form_main_nominas #estado_nomina').selectpicker('refresh');
 
@@ -22,16 +23,14 @@ $(() => {
 
     // Evento para el botón de Limpiar (reset)
     $('#form_main_nominas').on('reset', function() {
-        // Limpia y refresca los selects
-        $(this).find('.selectpicker')  // Usa `this` para referenciar el formulario actual
-            .val('')
-            .selectpicker('refresh');
-
-			listar_nominas();
+        $(this).find('.selectpicker').val('').selectpicker('refresh');
+        listar_nominas();
     });	   
 });
 
-//INICIO ACCIONES FROMULARIO NOMINAS
+/* ============================
+   LISTADO DE NÓMINAS (principal)
+   ============================ */
 var listar_nominas = function() {
     var estado = $("#form_main_nominas #estado_nomina").val() || 0; 
     var tipo_contrato_id = $("#form_main_nominas #tipo_contrato_nomina").val() || 0;
@@ -46,58 +45,32 @@ var listar_nominas = function() {
                 "tipo_contrato_id": tipo_contrato_id
             }
         },
-        "columns": [{
-                "data": "nomina_id"
-            },
-            {
-                "data": "detalle"
-            },
-            {
-                "data": "empresa"
-            },
-            {
-                "data": "fecha_inicio"
-            },
-            {
-                "data": "fecha_fin"
-            },
+        "columns": [
+            {"data": "nomina_id"},
+            {"data": "detalle"},
+            {"data": "empresa"},
+            {"data": "fecha_inicio"},
+            {"data": "fecha_fin"},
             {
                 "data": "importe",
                 render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
+                    var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
                     if (type === 'display') {
-                        let color = 'green';
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
+                        let color = (data < 0) ? 'red' : 'green';
                         return '<span style="color:' + color + '">' + number + '</span>';
                     }
-
                     return number;
                 },
             },
-            {
-                "data": "notas"
-            },
+            {"data": "notas"},
             {
                 "data": "estado",
-                "render": function(data, type, row) {
+                "render": function(data, type) {
                     if (type === 'display') {
                         var estadoText = data == 1 ? 'Generada' : 'Sin Generar';
-                        var icon = data == 1 ? 
-                            '<i class="fas fa-check-circle mr-1"></i>' : 
-                            '<i class="fas fa-times-circle mr-1"></i>';
-                        var badgeClass = data == 1 ? 
-                            'badge badge-pill badge-success' : 
-                            'badge badge-pill badge-danger';
-                        
-                        return '<span class="' + badgeClass + 
-                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
-                            icon + estadoText + '</span>';
+                        var icon = data == 1 ? '<i class="fas fa-check-circle mr-1"></i>' : '<i class="fas fa-times-circle mr-1"></i>';
+                        var badgeClass = data == 1 ? 'badge badge-pill badge-success' : 'badge badge-pill badge-danger';
+                        return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' + icon + estadoText + '</span>';
                     }
                     return data;
                 }
@@ -105,78 +78,39 @@ var listar_nominas = function() {
             {
                 "defaultContent": "<div class='btn-group'><button type='button' class='btn btn-primary ocultar dropdown-toggle' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'><i class='fas fa-users-cog'></i> Aciones</button><div class='dropdown-menu'><a class='dropdown-item nomina_generar' href='#'>Generar Nomina</a><div class='dropdown-divider'></div><a class='dropdown-item voucher_pago' href='#'>Voucher de Pago</a><a class='dropdown-item consolidado' href='#'>Libro de Salarios</a></div></div>"
             },
-            {
-                "defaultContent": "<button class='btn btn-primary nomina_agregar btn ocultar'><span class='fas fa-folder-plus fa-lg'></span>Crear</button>"
-            },
-            {
-                "defaultContent": "<button class='table_editar nomina_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
-            },
-            {
-                "defaultContent": "<button class='table_eliminar nomina_eliminar btn ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"
-            }
+            {"defaultContent": "<button class='btn btn-primary nomina_agregar btn ocultar'><span class='fas fa-folder-plus fa-lg'></span>Crear</button>"},
+            {"defaultContent": "<button class='table_editar nomina_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"},
+            {"defaultContent": "<button class='table_eliminar nomina_eliminar btn ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"}
         ],
         "lengthMenu": lengthMenu10,
         "stateSave": true,
         "bDestroy": true,
         "language": idioma_español,
         "dom": dom,
-        "columnDefs": [{
-                width: "2.09%",
-                targets: 0
-            },
-            {
-                width: "23.09%",
-                targets: 1
-            },
-            {
-                width: "12.09%",
-                targets: 2
-            },
-            {
-                width: "11.09%",
-                targets: 3
-            },
-            {
-                width: "12.09%",
-                targets: 4
-            },
-            {
-                width: "10.09%",
-                targets: 5
-            },
-            {
-                width: "23.09%",
-                targets: 6
-            },
-            {
-                width: "2.09%",
-                targets: 7
-            },
-            {
-                width: "2.09%",
-                targets: 8
-            },
-            {
-                width: "1.09%",
-                targets: 9
-            },
-            {
-                width: "1.09%",
-                targets: 10
-            },
+        "columnDefs": [
+            { width: "2.09%", targets: 0 },
+            { width: "23.09%", targets: 1 },
+            { width: "12.09%", targets: 2 },
+            { width: "11.09%", targets: 3 },
+            { width: "12.09%", targets: 4 },
+            { width: "10.09%", targets: 5 },
+            { width: "23.09%", targets: 6 },
+            { width: "2.09%", targets: 7 },
+            { width: "2.09%", targets: 8 },
+            { width: "1.09%", targets: 9 },
+            { width: "1.09%", targets: 10 },
         ],
-        "fnRowCallback": function(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-            var number = $.fn.dataTable.render
-                .number(',', '.', 2, 'L ')
-                .display(aData['neto_importe']);
+        "fnRowCallback": function(nRow, aData) {
+            var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(aData['neto_importe']);
             $('#neto_importe').html(number);
         },
-        "buttons": [{
+        "buttons": [
+            {
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                 titleAttr: 'Actualizar listar_nominas',
                 className: 'table_actualizar btn btn-secondary ocultar',
                 action: function() {
-                    listar_contratos();
+                    listar_nominas();
                 }
             },
             {
@@ -203,9 +137,7 @@ var listar_nominas = function() {
                 messageTop: 'Fecha: ' + convertDateFormat(today()),
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-success ocultar',
-                exportOptions: {
-                    columns: [0, 1, 2, 3, 4, 5, 6]
-                }
+                exportOptions: { columns: [0,1,2,3,4,5,6] }
             },
             {
                 extend: 'pdf',
@@ -216,11 +148,9 @@ var listar_nominas = function() {
                 messageTop: 'Fecha: ' + convertDateFormat(today()),
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-danger ocultar',
-                exportOptions: {
-                    columns: [0, 1, 2, 3, 4, 5, 6]
-                },
+                exportOptions: { columns: [0,1,2,3,4,5,6] },
                 customize: function(doc) {
-                    if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
+                    if (imagen) {
                         doc.content.splice(0, 0, {
                             image: imagen,  
                             width: 100,
@@ -231,7 +161,7 @@ var listar_nominas = function() {
                 }
             }
         ],
-        "drawCallback": function(settings) {
+        "drawCallback": function() {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
         }
     });
@@ -244,32 +174,29 @@ var listar_nominas = function() {
     crear_nominas_dataTable("#dataTableNomina tbody", table_nominas);
     editar_nominas_dataTable("#dataTableNomina tbody", table_nominas);
     eliminar_nominas_dataTable("#dataTableNomina tbody", table_nominas);
-}
+};
 
+// Dentro de tu archivo JS, deja este handler tal cual
 var generar_nominas_dataTable = function(tbody, table) {
     $(tbody).off("click", "a.nomina_generar");
     $(tbody).on("click", "a.nomina_generar", function() {
         var data = table.row($(this).parents("tr")).data();
 
         if ($('#form_main_nominas #estado_nomina').val() == 0) {
+            // CONFIRMACIÓN (sí/no) → swal
             swal({
                 title: "¿Estas seguro?",
                 text: "¿Desea generar esta nomina?",
                 icon: "warning",
                 buttons: {
-                    cancel: {
-                        text: "Cancelar",
-                        visible: true
-                    },
-                    confirm: {
-                        text: "¡Sí, generar la nomina!",
-                    }
+                    cancel: { text: "Cancelar", visible: true },
+                    confirm: { text: "¡Sí, generar la nómina!" }
                 },
                 dangerMode: true,
-				closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-				closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-            }).then((willConfirm) => {
-                if (willConfirm === true) {
+                closeOnEsc: false,
+                closeOnClickOutside: false
+            }).then((ok) => {
+                if (ok === true) {
                     genearNomina(data.nomina_id, data.empresa_id);
                 }
             });
@@ -277,30 +204,98 @@ var generar_nominas_dataTable = function(tbody, table) {
             showNotify('error', 'Error', 'Lo sentimos, esta nomina ya ha sido generada');
         }
     });
-}
+};
 
+// Llamada AJAX que espera JSON y, en éxito, muestra swal con 3 botones
+// Voucher/Libro no cierran; solo "Cerrar" cierra. Se permite pulsarlos varias veces.
 function genearNomina(nomina_id, empresa_id) {
     var url = '<?php echo SERVERURL; ?>core/generarNomina.php';
 
     $.ajax({
         type: "POST",
         url: url,
-        async: true,
         data: { nomina_id: nomina_id, empresa_id: empresa_id },
-        dataType: 'json',  // Asegura que la respuesta sea interpretada como JSON
-        success: function(data) {
-            if (data.status === 1) {
-                showNotify('success', 'Success', data.message);
-                listar_nominas();
-                PrintLibroSalarios(data.nomina_id);
-                PrintVoucherPago(data.nomina_id);
-            } else {
-                showNotify('error', 'Error', data.message);
+        dataType: 'json',
+        cache: false
+    })
+    .done(function(res){
+        if (Number(res.status) === 1) {
+            if (typeof listar_nominas === 'function') listar_nominas();
+
+            // Abre el diálogo y engancha handlers sobre los botones del swal.
+            function abrirDialogoImpresion(id, title, message){
+                swal({
+                    title: title || 'Nómina generada',
+                    text:  message || 'La nómina se generó correctamente.',
+                    icon:  'success',
+                    buttons: {
+                        voucher: { 
+                            text: 'Imprimir Vouchers', 
+                            value: 'voucher', 
+                            className: 'btn btn-primary',
+                            closeModal: false // mantener abierto
+                        },
+                        libro:   { 
+                            text: 'Libro de Salarios', 
+                            value: 'libro', 
+                            className: 'btn btn-success',
+                            closeModal: false // mantener abierto
+                        },
+                        cancel:  { 
+                            text: 'Cerrar', 
+                            value: null, 
+                            visible: true, 
+                            className: 'btn btn-light'
+                            // (por defecto cierra)
+                        }
+                    },
+                    closeOnClickOutside: false,
+                    closeOnEsc: false
+                });
+
+                // Espera a que el DOM del swal exista y engancha eventos.
+                setTimeout(function(){
+                    // Evita duplicados con namespace
+                    $(document)
+                        .off('click.swalVoucher', '.swal-button--voucher')
+                        .on('click.swalVoucher',  '.swal-button--voucher', function(e){
+                            e.preventDefault();
+                            if (typeof PrintVoucherPago === 'function') {
+                                PrintVoucherPago(id);
+                            }
+                            // Quita el spinner y re-activa los botones
+                            if (typeof swal.stopLoading === 'function') swal.stopLoading();
+                        });
+
+                    $(document)
+                        .off('click.swalLibro', '.swal-button--libro')
+                        .on('click.swalLibro',  '.swal-button--libro', function(e){
+                            e.preventDefault();
+                            if (typeof PrintLibroSalarios === 'function') {
+                                PrintLibroSalarios(id);
+                            }
+                            if (typeof swal.stopLoading === 'function') swal.stopLoading();
+                        });
+                }, 0);
             }
-        },
-        error: function(xhr, status, error) {
-            console.error('Error en la solicitud AJAX:', error);
+
+            abrirDialogoImpresion(res.nomina_id, res.title, res.message);
+
+        } else if (Number(res.status) === 6) {
+            showNotify('warning', res.title || 'Advertencia', res.message || 'Configura la cuenta de la nómina.');
+        } else if (Number(res.status) === 8) {
+            showNotify('warning', res.title || 'Sin empleados', res.message || 'Agrega empleados al detalle antes de generar.');
+        } else {
+            showNotify('error', res.title || 'Error', res.message || 'No se pudo generar la nómina.');
         }
+    })
+    .fail(function(xhr){
+        let msg = 'Error de conexión al generar la nómina.';
+        try {
+            const j = JSON.parse(xhr.responseText);
+            if (j && j.message) msg = j.message;
+        } catch(e){}
+        showNotify('error', 'Error', msg);
     });
 }
 
@@ -310,56 +305,49 @@ var crear_nominas_dataTable = function(tbody, table) {
         var data = table.row($(this).parents("tr")).data();
         $('#formNominaDetalles #nomina_id').val(data.nomina_id);
         $('#formNominaDetalles #nominad_numero').val(data.nomina_id);
-        $("#form_main_nominas_detalles #nomina_id").val(data.nomina_id)
+        $("#form_main_nominas_detalles #nomina_id").val(data.nomina_id);
         $('#formNominaDetalles #nominad_detalle').val(data.detalle);
         $('#formNominaDetalles #pago_planificado_id').val(data.pago_planificado_id);
-        $('#form_main_nominas_detalles #estado_nomina_detalles').val(data.estado);
-        $('#form_main_nominas_detalles #estado_nomina_detalles').selectpicker('refresh');
-
+        $('#form_main_nominas_detalles #estado_nomina_detalles').val(data.estado).selectpicker('refresh');
         $('#form_main_nominas_detalles #fecha_inicio').val(data.fecha_inicio);
         $('#form_main_nominas_detalles #fecha_fin').val(data.fecha_fin);
-
 
         $("#nomina_principal").hide();
         $("#nomina_detalles").show();
         listar_nominas_detalles();
     });
-}
+};
 
 var voucher_nominas_dataTable = function(tbody, table) {
     $(tbody).off("click", "a.voucher_pago");
     $(tbody).on("click", "a.voucher_pago", function() {
         var data = table.row($(this).parents("tr")).data();
-
         if (data.estado == 0) {
             showNotify('error', 'Error', 'Lo sentimos, la nomina no esta generada no se puede mostrar el reporte');
         } else {
             PrintVoucherPago(data.nomina_id);
         }
     });
-}
+};
 
 var libro_salarios_nominas_dataTable = function(tbody, table) {
     $(tbody).off("click", "a.consolidado");
     $(tbody).on("click", "a.consolidado", function() {
         var data = table.row($(this).parents("tr")).data();
-
         if (data.estado == 0) {
             showNotify('error', 'Error', 'Lo sentimos, la nomina no esta generada no se puede mostrar el reporte');
         } else {
             PrintLibroSalarios(data.nomina_id);
         }
     });
-}
+};
 
 function PrintVoucherPago(nomina_id){
     params = {
         "id": nomina_id,
         "type": "Voucher_izzy",
-        "db": "<?php echo $GLOBALS['db']; ?>"
+        "db": "<?php echo $GLOBALS['db']; ?>",
     }; 
-
-    // Llamar a la función para mostrar el reporte
     viewReport(params);   
 }
 
@@ -367,13 +355,14 @@ function PrintLibroSalarios(nomina_id){
     params = {
         "id": nomina_id,
         "type": "Libro_salario_izzy",
-        "db": "<?php echo $GLOBALS['db']; ?>"
+        "db": "<?php echo $GLOBALS['db']; ?>",
     }; 
-
-    // Llamar a la función para mostrar el reporte
     viewReport(params);
 }
 
+/* ============================
+   EDITAR NÓMINA (usa el FORM)
+   ============================ */
 var editar_nominas_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.nomina_editar");
     $(tbody).on("click", "button.nomina_editar", function() {
@@ -387,53 +376,51 @@ var editar_nominas_dataTable = function(tbody, table) {
             data: $('#formNomina').serialize(),
             success: function(registro) {
                 var valores = eval(registro);
-                $('#formNomina').attr({
-                    'data-form': 'update'
-                });
-                $('#formNomina').attr({
-                    'action': '<?php echo SERVERURL;?>ajax/modificarNominaAjax.php'
-                });
+
+                // Configurar el FORM para UPDATE (se envía por submit ajax abajo)
+                $('#formNomina').attr({'data-form': 'update'});
+                $('#formNomina').attr({'action': '<?php echo SERVERURL;?>ajax/modificarNominaAjax.php'});
+
+                // UI
                 $('#formNomina')[0].reset();
                 $('#reg_nomina').hide();
                 $('#edi_nomina').show();
                 $('#delete_nomina').hide();
+
+                // Cargar valores
                 $('#formNomina #nomina_detale').val(valores[0]);
-                $('#formNomina #nomina_pago_planificado_id').val(valores[1]);
-                $('#formNomina #nomina_pago_planificado_id').selectpicker('refresh');
-                $('#formNomina #nomina_empresa_id').val(valores[2]);
-                $('#formNomina #nomina_empresa_id').selectpicker('refresh');
+                $('#formNomina #nomina_pago_planificado_id').val(valores[1]).selectpicker('refresh');
+                $('#formNomina #nomina_empresa_id').val(valores[2]).selectpicker('refresh');
                 $('#formNomina #nomina_fecha_inicio').val(valores[3]);
                 $('#formNomina #nomina_fecha_fin').val(valores[4]);
                 $('#formNomina #nomina_importe').val(valores[5]);
                 $('#formNomina #nomina_notas').val(valores[6]);
-                $('#formNomina #tipo_nomina').val(valores[8]);
-                $('#formNomina #tipo_nomina').selectpicker('refresh');
-                $('#formNomina #pago_nomina').val(valores[9]);
-                $('#formNomina #pago_nomina').selectpicker('refresh');
+                $('#formNomina #tipo_nomina').val(valores[8]).selectpicker('refresh');
+                $('#formNomina #pago_nomina').val(valores[9]).selectpicker('refresh');
 
                 if (data.estado == 1) {
                     $('#edi_nomina').attr('disabled', true);
-                    $('#formNomina #nomina_activo').attr('checked', true);
+                    $('#formNomina #nomina_activo').prop('checked', true);
                     $('#formNomina #label_nomina_activo').html("Generada");
                 } else {
                     $('#edi_nomina').attr('disabled', false);
-                    $('#formNomina #nomina_activo').attr('checked', false);
+                    $('#formNomina #nomina_activo').prop('checked', false);
                     $('#formNomina #label_nomina_activo').html("Sin Generar");
                 }
 
-                //HABILITAR OBJETOS								
-                $('#formNomina #nomina_detale').attr('disabled', false);
-                $('#formNomina #nomina_pago_planificado_id').attr('disabled', false);
-                $('#formNomina #nomina_empresa_id').attr('disabled', false);
-                $('#formNomina #tipo_nomina').attr('disabled', false);
-                $('#formNomina #nomina_fecha_inicio').attr('readonly', false);
-                $('#formNomina #nomina_fecha_fin').attr('readonly', false);
-                $('#formNomina #nomina_importe').attr('readonly', false);
-                $('#formNomina #nomina_notas').attr('disabled', false);
-                $('#formNomina #search_nomina_notas_start').attr('disabled', false);
-                $('#formNomina #search_nomina_notas_stop').attr('disabled', false);
-                $('#formNomina #nomina_activo').attr('disabled', false);
-                $('#formNomina #estado_nomina').show();;
+                // Habilitar campos
+                $('#formNomina #nomina_detale').prop('disabled', false);
+                $('#formNomina #nomina_pago_planificado_id').prop('disabled', false);
+                $('#formNomina #nomina_empresa_id').prop('disabled', false);
+                $('#formNomina #tipo_nomina').prop('disabled', false);
+                $('#formNomina #nomina_fecha_inicio').prop('readonly', false);
+                $('#formNomina #nomina_fecha_fin').prop('readonly', false);
+                $('#formNomina #nomina_importe').prop('readonly', false);
+                $('#formNomina #nomina_notas').prop('disabled', false);
+                $('#formNomina #search_nomina_notas_start').prop('disabled', false);
+                $('#formNomina #search_nomina_notas_stop').prop('disabled', false);
+                $('#formNomina #nomina_activo').prop('disabled', false);
+                $('#formNomina #estado_nomina').show();
 
                 $('#formNomina #proceso_nomina').val("Editar");
 
@@ -445,7 +432,7 @@ var editar_nominas_dataTable = function(tbody, table) {
             }
         });
     });
-}
+};
 
 var eliminar_nominas_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.nomina_eliminar");
@@ -455,63 +442,43 @@ var eliminar_nominas_dataTable = function(tbody, table) {
         var nomina_id = data.nomina_id;
         var detalleNomina = data.detalle; 
         
-        // Construir el mensaje de confirmación con HTML
         var mensajeHTML = `¿Desea eliminar permanentemente la nomina?<br><br>
                         <strong>Nomina:</strong> ${detalleNomina}<br>
                         <strong>Número Nomina:</strong> ${nomina_id}`;
         
+        // CONFIRMACIÓN → swal
         swal({
             title: "Confirmar eliminación",
-            content: {
-                element: "span",
-                attributes: {
-                    innerHTML: mensajeHTML
-                }
-            },
+            content: { element: "span", attributes: { innerHTML: mensajeHTML } },
             icon: "warning",
             buttons: {
-                cancel: {
-                    text: "Cancelar",
-                    value: null,
-                    visible: true,
-                    className: "btn-light"
-                },
-                confirm: {
-                    text: "Sí, eliminar",
-                    value: true,
-                    className: "btn-danger",
-                    closeModal: false
-                }
+                cancel: { text: "Cancelar", value: null, visible: true, className: "btn-light" },
+                confirm: { text: "Sí, eliminar", value: true, className: "btn-danger", closeModal: false }
             },
             dangerMode: true,
             closeOnEsc: false,
             closeOnClickOutside: false
         }).then((confirmar) => {
             if (confirmar) {
-               
                 $.ajax({
                     type: 'POST',
                     url: '<?php echo SERVERURL;?>ajax/eliminarNominaAjax.php',
-                    data: {
-                        nomina_id: nomina_id
-                    },
-                    dataType: 'json', // Esperamos respuesta JSON
-                    before: function(){
-                        // Mostrar carga mientras se procesa
+                    data: { nomina_id: nomina_id },
+                    dataType: 'json',
+                    beforeSend: function(){
                         showLoading("Eliminando registro...");
                     },
                     success: function(response) {
                         swal.close();
-                        
                         if(response.status === "success") {
-                            showNotify("success", response.title, response.message);
-                            table.ajax.reload(null, false); // Recargar tabla sin resetear paginación
+                            showNotify("success", response.title || "Éxito", response.message || "Eliminado correctamente");
+                            table.ajax.reload(null, false);
                             table.search('').draw();                    
                         } else {
-                            showNotify("error", response.title, response.message);
+                            showNotify("error", response.title || "Error", response.message || "No se pudo eliminar");
                         }
                     },
-                    error: function(xhr, status, error) {
+                    error: function() {
                         swal.close();
                         showNotify("error", "Error", "Ocurrió un error al procesar la solicitud");
                     }
@@ -519,41 +486,36 @@ var eliminar_nominas_dataTable = function(tbody, table) {
             }
         });		
     });
-}
-//FIN ACCIONES FROMULARIO CONTRATOS
+};
 
-/*INICIO FORMULARIO NOMINAS*/
+/* ============================
+   MODAL NÓMINAS (abre y prepara el form)
+   ============================ */
 function modal_nominas() {
-    $('#formNomina').attr({
-        'data-form': 'save'
-    });
-    $('#formNomina').attr({
-        'action': '<?php echo SERVERURL;?>ajax/addNominaAjax.php'
-    });
+    $('#formNomina').attr({ 'data-form': 'save' });
+    $('#formNomina').attr({ 'action': '<?php echo SERVERURL;?>ajax/addNominaAjax.php' });
+
     $('#formNomina')[0].reset();
     $('#reg_nomina').show();
     $('#edi_nomina').hide();
     $('#delete_nomina').hide();
 
-    $('#formNomina #nomina_empresa_id').val(1);
-    $('#formNomina #nomina_empresa_id').selectpicker('refresh');
-
-    $('#formNomina #tipo_nomina').val(1);
-    $('#formNomina #tipo_nomina').selectpicker('refresh');
+    $('#formNomina #nomina_empresa_id').val(1).selectpicker('refresh');
+    $('#formNomina #tipo_nomina').val(1).selectpicker('refresh');
 
     $("#formNomina #grupo_salario").hide();
 
-    $('#formNomina #nomina_detale').attr('disabled', false);
-    $('#formNomina #nomina_pago_planificado_id').attr('disabled', false);
-    $('#formNomina #nomina_empresa_id').attr('disabled', false);
-    $('#formNomina #tipo_nomina').attr('disabled', false);
-    $('#formNomina #nomina_fecha_inicio').attr('readonly', false);
-    $('#formNomina #nomina_fecha_fin').attr('readonly', false);
-    $('#formNomina #nomina_importe').attr('readonly', false);
-    $('#formNomina #nomina_notas').attr('disabled', false);
-    $('#formNomina #search_nomina_notas_start').attr('disabled', false);
-    $('#formNomina #search_nomina_notas_stop').attr('disabled', false);
-    $('#formNomina #nomina_activo').attr('disabled', false);
+    $('#formNomina #nomina_detale').prop('disabled', false);
+    $('#formNomina #nomina_pago_planificado_id').prop('disabled', false);
+    $('#formNomina #nomina_empresa_id').prop('disabled', false);
+    $('#formNomina #tipo_nomina').prop('disabled', false);
+    $('#formNomina #nomina_fecha_inicio').prop('readonly', false);
+    $('#formNomina #nomina_fecha_fin').prop('readonly', false);
+    $('#formNomina #nomina_importe').prop('readonly', false);
+    $('#formNomina #nomina_notas').prop('disabled', false);
+    $('#formNomina #search_nomina_notas_start').prop('disabled', false);
+    $('#formNomina #search_nomina_notas_stop').prop('disabled', false);
+    $('#formNomina #nomina_activo').prop('disabled', false);
     $('#formNomina #estado_nomina').hide();
 
     $('#formNomina #proceso_nomina').val("Registro Nomina Empleados");
@@ -565,21 +527,77 @@ function modal_nominas() {
     });
 }
 
+/* ============================
+   SUBMIT AJAX #formNomina (JSON)
+   ============================ */
+$(document).off('submit', '#formNomina').on('submit', '#formNomina', function (e) {
+    e.preventDefault();
+
+    var $form = $(this);
+    var url = $form.attr('action') || '<?php echo SERVERURL;?>ajax/addNominaAjax.php';
+    var modo = ($form.attr('data-form') || 'save').toLowerCase();
+    var $btn = (modo === 'update') ? $('#edi_nomina') : (modo === 'delete') ? $('#delete_nomina') : $('#reg_nomina');
+
+    if (!$form[0].checkValidity()) {
+        $form[0].reportValidity();
+        return;
+    }
+
+    $btn.prop('disabled', true).append(' <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+
+    $.ajax({
+        url: url,
+        type: 'POST',
+        data: $form.serialize(),
+        dataType: 'json',
+        cache: false
+    })
+    .done(function (res) {
+        if (res.status === 'success') {
+            $('#modal_registrar_nomina').modal('hide');
+            $form[0].reset();
+            $form.find('.selectpicker').selectpicker('refresh');
+
+            if (res.run) { try { eval(res.run); } catch(e){} }
+
+            // NOTIFICACIÓN → showNotify
+            showNotify('success', res.title || '¡Listo!', res.message || 'Operación realizada correctamente.');
+        } else if (res.status === 'unauthorized') {
+            showNotify('error', res.title || 'Sesión expirada', res.message || 'Debes iniciar sesión nuevamente.');
+            if (res.redirect) { setTimeout(function(){ window.location.href = res.redirect; }, 1200); }
+        } else {
+            var extra = (res.missing && res.missing.length) ? " Faltan: " + res.missing.join(', ') : '';
+            showNotify('error', res.title || 'Error', (res.message || 'Operación no realizada.') + extra);
+        }
+    })
+    .fail(function (xhr) {
+        let msg = 'Error de conexión. Intenta de nuevo.';
+        try {
+            const json = JSON.parse(xhr.responseText);
+            if (json && json.message) msg = json.message;
+        } catch(e){}
+        showNotify('error', 'Error', msg);
+    })
+    .always(function () {
+        $btn.prop('disabled', false).find('.spinner-border').remove();
+    });
+});
+
+/* ============================
+   MODAL VALES (abre y prepara)
+   ============================ */
 function modal_vales() {
-    $('#formVales').attr({
-        'data-form': 'save'
-    });
-    $('#formVales').attr({
-        'action': '<?php echo SERVERURL;?>ajax/addValesAjax.php'
-    });
+    $('#formVales').attr({ 'data-form': 'save' });
+    $('#formVales').attr({ 'action': '<?php echo SERVERURL;?>ajax/addValesAjax.php' });
     $('#formVales')[0].reset();
+
     $('#reg_vale').show();
     $('#edi_vale').hide();
     $('#delete_vale').hide();
 
-    $('#formVales #vale_empleado').attr('disabled', false);
-    $('#formVales #vale_monto').attr('disabled', false);
-    $('#formVales #vale_notas').attr('disabled', false);
+    $('#formVales #vale_empleado').prop('disabled', false);
+    $('#formVales #vale_monto').prop('disabled', false);
+    $('#formVales #vale_notas').prop('disabled', false);
 
     $('#formVales #proceso_vale').val("Registro Vale Empleados");
 
@@ -590,14 +608,13 @@ function modal_vales() {
     });
 }
 
+/* ============================
+   MODAL NOMINA DETALLES (ABRIR NUEVO)
+   ============================ */
 function modalNominasDetalles() {
     if ($('#form_main_nominas #estado_nomina').val() == 0) {
-        $('#formNominaDetalles').attr({
-            'data-form': 'save'
-        });
-        $('#formNominaDetalles').attr({
-            'action': '<?php echo SERVERURL;?>ajax/addNominaDetallesAjax.php'
-        });
+        $('#formNominaDetalles').attr({ 'data-form': 'save' });
+        $('#formNominaDetalles').attr({ 'action': '<?php echo SERVERURL;?>ajax/addNominaDetallesAjax.php' });
 
         var nomina_id = $('#formNominaDetalles #nomina_id').val();
         var numero_nomima = $('#formNominaDetalles #nominad_numero').val();
@@ -605,10 +622,8 @@ function modalNominasDetalles() {
 
         $('#formNominaDetalles')[0].reset();
         getEmpleado();
-        $('#formNominaDetalles #nomina_id').val(nomina_id);
-        $('#formNominaDetalles #nominad_numero').val(numero_nomima);
-        $('#formNominaDetalles #nominad_detalle').val(detalle);
 
+        $('#formNominaDetalles #nomina_id').val(nomina_id);
         $('#formNominaDetalles #nominad_numero').val(numero_nomima);
         $('#formNominaDetalles #nominad_detalle').val(detalle);
 
@@ -619,32 +634,30 @@ function modalNominasDetalles() {
         $('#edi_nominaD').hide();
         $('#delete_nominaD').hide();
 
-        //HABILITAR OBJETOS		
+        // Habilitar campos
         $('#formNominaDetalles #nominad_empleados').prop('disabled', false);
-        $('#formNominaDetalles #nominad_retroactivo').attr('readonly', false);
-        $('#formNominaDetalles #nominad_bono').attr('readonly', false);
-        $('#formNominaDetalles #nominad_otros_ingresos').attr('readonly', false);
-        $('#formNominaDetalles #nominad_horas25').attr('readonly', false);
-        $('#formNominaDetalles #nominad_horas50').attr('readonly', false);
-        $('#formNominaDetalles #nominad_horas75').attr('readonly', false);
-        $('#formNominaDetalles #nominad_horas100').attr('readonly', false);
-        $('#formNominaDetalles #nominad_deducciones').attr('readonly', false);
-        $('#formNominaDetalles #nominad_prestamo').attr('readonly', false);
-        $('#formNominaDetalles #nominad_ihss').attr('readonly', false);
-        $('#formNominaDetalles #nominad_rap').attr('readonly', false);
-        $('#formNominaDetalles #nominad_isr').attr('readonly', false);
-        $('#formNominaDetalles #nominad_incapacidad_ihss').attr('readonly', false);
-        $('#formNominaDetalles #nomina_detalles_notas').attr('readonly', false);
-        $('#formNominaDetalles #nominad_neto_ingreso').attr('readonly', true);
-        $('#formNominaDetalles #nominad_neto_egreso').attr('readonly', true);
-        $('#formNominaDetalles #nominad_neto').attr('readonly', true);
-        $('#formNominaDetalles #nomina_detalles_activo').attr('disabled', false);
+        $('#formNominaDetalles #nominad_retroactivo').prop('readonly', false);
+        $('#formNominaDetalles #nominad_bono').prop('readonly', false);
+        $('#formNominaDetalles #nominad_otros_ingresos').prop('readonly', false);
+        $('#formNominaDetalles #nominad_horas25').prop('readonly', false);
+        $('#formNominaDetalles #nominad_horas50').prop('readonly', false);
+        $('#formNominaDetalles #nominad_horas75').prop('readonly', false);
+        $('#formNominaDetalles #nominad_horas100').prop('readonly', false);
+        $('#formNominaDetalles #nominad_deducciones').prop('readonly', false);
+        $('#formNominaDetalles #nominad_prestamo').prop('readonly', false);
+        $('#formNominaDetalles #nominad_ihss').prop('readonly', false);
+        $('#formNominaDetalles #nominad_rap').prop('readonly', false);
+        $('#formNominaDetalles #nominad_isr').prop('readonly', false);
+        $('#formNominaDetalles #nominad_incapacidad_ihss').prop('readonly', false);
+        $('#formNominaDetalles #nomina_detalles_notas').prop('readonly', false);
+        $('#formNominaDetalles #nominad_neto_ingreso').prop('readonly', true);
+        $('#formNominaDetalles #nominad_neto_egreso').prop('readonly', true);
+        $('#formNominaDetalles #nominad_neto').prop('readonly', true);
+        $('#formNominaDetalles #nomina_detalles_activo').prop('disabled', false);
         $('#formNominaDetalles #estado_nomina_detalles').hide();
 
-        //DESHABILITAR OBJETOS
-        //$('#formNominaDetalles #nominad_diast').attr('readonly', true);
-
         $('#formNominaDetalles #proceso_nomina_detalles').val("Registro");
+
         $('#modal_registrar_nomina_detalles').modal({
             show: true,
             keyboard: false,
@@ -654,8 +667,105 @@ function modalNominasDetalles() {
         showNotify('error', 'Error', 'Lo sentimos, esta nomina ya ha sido generada, no puede agregar más empleados');
     }
 }
-/*FIN FORMULARIO NOMINAS*/
 
+/* ============================
+   SUBMIT AJAX #formNominaDetalles (JSON)
+   Sirve para save/update/delete según data-form
+   ============================ */
+$(document).off('submit', '#formNominaDetalles').on('submit', '#formNominaDetalles', function (e) {
+    e.preventDefault();
+
+    var $form = $(this);
+    var url = $form.attr('action') || '<?php echo SERVERURL;?>ajax/addNominaDetallesAjax.php';
+    var modo = ($form.attr('data-form') || 'save').toLowerCase();
+    var $btn = (modo === 'update') ? $('#edi_nominaD') : (modo === 'delete') ? $('#delete_nominaD') : $('#reg_nominaD');
+
+    if (!$form[0].checkValidity()) {
+        $form[0].reportValidity();
+        return;
+    }
+
+    $btn.prop('disabled', true).append(' <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+
+    $.ajax({
+        url: url,
+        type: 'POST',
+        data: $form.serialize(),
+        dataType: 'json',
+        cache: false
+    })
+    .done(function (res) {
+        if (res.status === 'success') {
+            $('#modal_registrar_nomina_detalles').modal('hide');
+            if (res.run) { try { eval(res.run); } catch(e){} }
+            // NOTIFICACIÓN → showNotify
+            showNotify('success', res.title || '¡Listo!', res.message || 'Operación realizada correctamente.');
+        } else if (res.status === 'unauthorized') {
+            showNotify('error', res.title || 'Sesión expirada', res.message || 'Debes iniciar sesión nuevamente.');
+            if (res.redirect) { setTimeout(function(){ window.location.href = res.redirect; }, 1200); }
+        } else {
+            var extra = (res.missing && res.missing.length) ? " Faltan: " + res.missing.join(', ') : '';
+            showNotify('error', res.title || 'Error', (res.message || 'Operación no realizada.') + extra);
+        }
+    })
+    .fail(function () {
+        showNotify('error', 'Error', 'Error de conexión. Intenta de nuevo.');
+    })
+    .always(function () {
+        $btn.prop('disabled', false).find('.spinner-border').remove();
+    });
+});
+
+/* ============================
+   SUBMIT AJAX #formVales (JSON)
+   ============================ */
+$(document).off('submit', '#formVales').on('submit', '#formVales', function (e) {
+    e.preventDefault();
+
+    var $form = $(this);
+    var url = $form.attr('action') || '<?php echo SERVERURL;?>ajax/addValesAjax.php';
+    var modo = ($form.attr('data-form') || 'save').toLowerCase();
+    var $btn = (modo === 'update') ? $('#edi_vale') : (modo === 'delete') ? $('#delete_vale') : $('#reg_vale');
+
+    if (!$form[0].checkValidity()) {
+        $form[0].reportValidity();
+        return;
+    }
+
+    $btn.prop('disabled', true).append(' <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+
+    $.ajax({
+        url: url,
+        type: 'POST',
+        data: $form.serialize(),
+        dataType: 'json',
+        cache: false
+    })
+    .done(function (res) {
+        if (res.status === 'success') {
+            $('#modalRegistrarVales').modal('hide');
+            listar_vales();
+            // NOTIFICACIÓN → showNotify
+            showNotify('success', res.title || '¡Listo!', res.message || 'Operación realizada correctamente.');
+        } else if (res.status === 'unauthorized') {
+            showNotify('error', res.title || 'Sesión expirada', res.message || 'Debes iniciar sesión nuevamente.');
+            if (res.redirect) { setTimeout(function(){ window.location.href = res.redirect; }, 1200); }
+        } else {
+            var extra = (res.missing && res.missing.length) ? " Faltan: " + res.missing.join(', ') : '';
+            showNotify('error', res.title || 'Error', (res.message || 'Operación no realizada.') + extra);
+        }
+    })
+    .fail(function () {
+        showNotify('error', 'Error', 'Error de conexión. Intenta de nuevo.');
+    })
+    .always(function () {
+        $btn.prop('disabled', false).find('.spinner-border').remove();
+    });
+});
+
+/* ============================
+   FOCUS AL ABRIR MODAL NOMINA
+   ============================ */
 $(() => {
     $("#modal_registrar_nomina").on('shown.bs.modal', function() {
         $(this).find('#formNomina #nomina_detale').focus();
@@ -686,68 +796,55 @@ $('#formNominaDetalles .switch').change(function() {
     }
 });
 
+/* ============================
+   CARGAS DE SELECTS
+   ============================ */
 function getTipoNomina() {
     var url = '<?php echo SERVERURL;?>core/getTipoNomina.php';
-
     $.ajax({
         type: "POST",
         url: url,
         async: true,
         success: function(data) {
-            $('#formNomina #tipo_nomina').html("");
-            $('#formNomina #tipo_nomina').html(data);
-            $('#formNomina #tipo_nomina').selectpicker('refresh');
-            $('#formNomina #tipo_nomina').val(1);
-            $('#formNomina #tipo_nomina').selectpicker('refresh');
+            $('#formNomina #tipo_nomina').html("").html(data).selectpicker('refresh');
+            $('#formNomina #tipo_nomina').val(1).selectpicker('refresh');
         }
     });
 }
 
 function getTipoContrato() {
     var url = '<?php echo SERVERURL;?>core/getTipoContrato.php';
-
     $.ajax({
         type: "POST",
         url: url,
         async: true,
         success: function(data) {
-            $('#form_main_nominas #tipo_contrato_nomina').html("");
-            $('#form_main_nominas #tipo_contrato_nomina').html(data);
-            $('#form_main_nominas #tipo_contrato_nomina').selectpicker('refresh');
+            $('#form_main_nominas #tipo_contrato_nomina').html("").html(data).selectpicker('refresh');
         }
     });
 }
 
 function getPagoPlanificado() {
     var url = '<?php echo SERVERURL;?>core/getPagoPlanificado.php';
-
     $.ajax({
         type: "POST",
         url: url,
         async: true,
         success: function(data) {
-            $('#form_main_nominas #pago_planificado_nomina').html("");
-            $('#form_main_nominas #pago_planificado_nomina').html(data);
-            $('#form_main_nominas #pago_planificado_nomina').selectpicker('refresh');
-
-            $('#formNomina #nomina_pago_planificado_id').html("");
-            $('#formNomina #nomina_pago_planificado_id').html(data);
-            $('#formNomina #nomina_pago_planificado_id').selectpicker('refresh');
+            $('#form_main_nominas #pago_planificado_nomina').html("").html(data).selectpicker('refresh');
+            $('#formNomina #nomina_pago_planificado_id').html("").html(data).selectpicker('refresh');
         }
     });
 }
 
 function getTipoEmpleado() {
     var url = '<?php echo SERVERURL;?>core/getTipoEmpleado.php';
-
     $.ajax({
         type: "POST",
         url: url,
         async: true,
         success: function(data) {
-            $('#form_main_contrato #tipo_empleado').html("");
-            $('#form_main_contrato #tipo_empleado').html(data);
-            $('#form_main_contrato #tipo_empleado').selectpicker('refresh');
+            $('#form_main_contrato #tipo_empleado').html("").html(data).selectpicker('refresh');
         }
     });
 }
@@ -763,77 +860,82 @@ function getEmpresa() {
             
             if(response.success) {
                 response.data.forEach(empresa => {
-                    select.append(`
-                        <option value="${empresa.empresa_id}">
-                            ${empresa.nombre}
-                        </option>
-                    `);
+                    select.append(`<option value="${empresa.empresa_id}">${empresa.nombre}</option>`);
                 });
-                
-                // Establecer valor por defecto si existe
                 if(response.data.length > 0) {
-                    select.val(1); // O el valor que necesites por defecto
+                    select.val(1);
                     select.selectpicker('refresh');
                 }
             } else {
                 select.append('<option value="">No hay empresas disponibles</option>');
                 showNotify("warning", "Advertencia", response.message || "No se encontraron empresas");
             }
-            
             select.selectpicker('refresh');
         },
-        error: function(xhr) {
+        error: function() {
             showNotify("error", "Error", "Error de conexión al cargar empresas");
-            $('#formNomina #nomina_empresa_id').html('<option value="">Error al cargar</option>');
-            $('#formNomina #nomina_empresa_id').selectpicker('refresh');
+            $('#formNomina #nomina_empresa_id').html('<option value="">Error al cargar</option>').selectpicker('refresh');
         }
     });
 }
 
-//INICIO FORMULARIO CONRATO
 function getEmpleado() {
-    var url = '<?php echo SERVERURL;?>core/getEmpleado.php';
+  var url = '<?php echo SERVERURL;?>core/getEmpleado.php';
+  $.ajax({
+    type: "POST",
+    url: url,
+    async: true,
+    success: function(data) {
+      // prepend el placeholder en todos los combos de empleados
+      var opciones = '<option value="">Seleccione</option>' + data;
 
-    $.ajax({
-        type: "POST",
-        url: url,
-        async: true,
-        success: function(data) {
-            $('#formNominaDetalles #nominad_empleados').html("");
-            $('#formNominaDetalles #nominad_empleados').html(data);
-            $('#formNominaDetalles #nominad_empleados').selectpicker('refresh');
-        }
-    });
+      // Modal Nomina Detalles (alta/edición)
+      $('#formNominaDetalles #nominad_empleados')
+        .html(opciones).selectpicker('refresh');
+
+      // Filtro en la vista de detalles (ESTE ES EL QUE TE FALTABA)
+      $('#form_main_nominas_detalles #detalle_nomina_empleado')
+        .html(opciones).selectpicker('refresh');
+
+      // Por si quieres también mantener este otro (vales)
+      $('#formVales #vale_empleado')
+        .html(opciones).selectpicker('refresh');
+    },
+    error: function(){
+      showNotify('error', 'Error', 'Error de conexión al cargar empleados');
+    }
+  });
 }
 
 function getEmpleadoVales() {
     var url = '<?php echo SERVERURL;?>core/getEmpleado.php';
-
     $.ajax({
         type: "POST",
         url: url,
         async: true,
         success: function(data) {
-            $('#formVales #vale_empleado').html("");
-            $('#formVales #vale_empleado').html(data);
-            $('#formVales #vale_empleado').selectpicker('refresh');
+            $('#formVales #vale_empleado').html("").html(data).selectpicker('refresh');
         }
     });
 }
-// FIN FORMULARIO CONTRATO
 
-//ACCIONES BOTON VOLVER
+/* ============================
+   VOLVER A LISTA DETALLES
+   ============================ */
 $("#volver_nomina").on("click", function(e) {
     e.preventDefault();
     $("#nomina_detalles").hide();
     $("#nomina_principal").show();
 });
 
-//INICO DETALLE DE NOMINAS
+/* ============================
+   LISTADO DETALLES DE NÓMINA
+   ============================ */
 var listar_nominas_detalles = function() {
     var estado = $("#form_main_nominas_detalles #estado_nomina_detalles").val() || 0;
     var empleado = $("#form_main_nominas_detalles #detalle_nomina_empleado").val() || 0;
     var nomina_id = $("#form_main_nominas_detalles #nomina_id").val() || 0;
+
     $("#nominad_neto_ingreso1").val("");
     $("#nominad_neto_egreso1").val("");
     $("#nominad_neto1").val("");
@@ -843,174 +945,89 @@ var listar_nominas_detalles = function() {
         "ajax": {
             "method": "POST",
             "url": "<?php echo SERVERURL;?>core/llenarDataTableNominaDetalles.php",
-            "data": {
-                "estado": estado,
-                "empleado": empleado,
-                "nomina_id": nomina_id
-            }
+            "data": { "estado": estado, "empleado": empleado, "nomina_id": nomina_id }
         },
-        "columns": [{
-                "data": "nomina_id"
-            },
-            {
-                "data": "contrato"
-            },
-            {
-                "data": "empresa"
-            },
-            {
-                "data": "empleado"
-            },
+        "columns": [
+            {"data": "nomina_id"},
+            {"data": "contrato"},
+            {"data": "empresa"},
+            {"data": "empleado"},
             {
                 "data": "neto_ingresos",
                 render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
+                    var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
                     if (type === 'display') {
-                        let color = 'green';
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
+                        let color = (data < 0) ? 'red' : 'green';
                         return '<span style="color:' + color + '">' + number + '</span>';
                     }
-
                     return number;
                 },
             },
             {
                 "data": "neto_egresos",
                 render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
+                    var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
                     if (type === 'display') {
-                        let color = 'green';
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
+                        let color = (data < 0) ? 'red' : 'green';
                         return '<span style="color:' + color + '">' + number + '</span>';
                     }
-
                     return number;
                 },
             },
             {
                 "data": "neto",
                 render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
+                    var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
                     if (type === 'display') {
-                        let color = 'green';
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
+                        let color = (data < 0) ? 'red' : 'green';
                         return '<span style="color:' + color + '">' + number + '</span>';
                     }
-
                     return number;
                 },
             },
-            {
-                "data": "notas"
-            },
+            {"data": "notas"},
             {
                 "data": "estado",
-                "render": function(data, type, row) {
+                "render": function(data, type) {
                     if (type === 'display') {
                         var estadoText = data == 1 ? 'Generada' : 'Sin Generar';
-                        var icon = data == 1 ? 
-                            '<i class="fas fa-check-circle mr-1"></i>' : 
-                            '<i class="fas fa-times-circle mr-1"></i>';
-                        var badgeClass = data == 1 ? 
-                            'badge badge-pill badge-success' : 
-                            'badge badge-pill badge-danger';
-                        
-                        return '<span class="' + badgeClass + 
-                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
-                            icon + estadoText + '</span>';
+                        var icon = data == 1 ? '<i class="fas fa-check-circle mr-1"></i>' : '<i class="fas fa-times-circle mr-1"></i>';
+                        var badgeClass = data == 1 ? 'badge badge-pill badge-success' : 'badge badge-pill badge-danger';
+                        return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600%;">' + icon + estadoText + '</span>';
                     }
                     return data;
                 }
             },            
-            {
-                "defaultContent": "<button class='table_editar nomina_detalles_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
-            },
-            {
-                "defaultContent": "<button class='table_eliminar nomina_detalles_eliminar btn ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"
-            }
+            {"defaultContent": "<button class='table_editar nomina_detalles_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"},
+            {"defaultContent": "<button class='table_eliminar nomina_detalles_eliminar btn ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"}
         ],
         "lengthMenu": lengthMenu,
         "stateSave": true,
         "bDestroy": true,
         "language": idioma_español,
         "dom": dom,
-        "columnDefs": [{
-                width: "2%",
-                targets: 0
-            },
-            {
-                width: "8%",
-                targets: 1
-            },
-            {
-                width: "12%",
-                targets: 2
-            },
-            {
-                width: "25%",
-                targets: 3
-            },
-            {
-                width: "10%",
-                targets: 4
-            },
-            {
-                width: "10%",
-                targets: 5
-            },
-            {
-                width: "10%",
-                targets: 6
-            },
-            {
-                width: "20%",
-                targets: 7
-            },
-            {
-                width: "1%",
-                targets: 8
-            },
-            {
-                width: "1%",
-                targets: 9
-            }
+        "columnDefs": [
+            { width: "2%", targets: 0 },
+            { width: "8%", targets: 1 },
+            { width: "12%", targets: 2 },
+            { width: "25%", targets: 3 },
+            { width: "10%", targets: 4 },
+            { width: "10%", targets: 5 },
+            { width: "10%", targets: 6 },
+            { width: "20%", targets: 7 },
+            { width: "1%", targets: 8 },
+            { width: "1%", targets: 9 }
         ],
-        "fnRowCallback": function(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-            var neto_ingreso = $.fn.dataTable.render
-                .number(',', '.', 2, 'L ')
-                .display(aData['total_neto_ingreso']);
-
-            var neto_egreso = $.fn.dataTable.render
-                .number(',', '.', 2, 'L ')
-                .display(aData['total_neto_egreso']);
-
-            var neto_neto = $.fn.dataTable.render
-                .number(',', '.', 2, 'L ')
-                .display(aData['total_neto']);
-
+        "fnRowCallback": function(nRow, aData) {
+            var neto_ingreso = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(aData['total_neto_ingreso']);
+            var neto_egreso  = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(aData['total_neto_egreso']);
+            var neto_neto    = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(aData['total_neto']);
             $('#neto_ingreso').html(neto_ingreso);
             $('#neto_egreso').html(neto_egreso);
             $('#neto').html(neto_neto);
         },
-        "buttons": [{
+        "buttons": [
+            {
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                 titleAttr: 'Actualizar listar_nominas',
                 className: 'table_actualizar btn btn-secondary ocultar',
@@ -1034,9 +1051,7 @@ var listar_nominas_detalles = function() {
                 messageTop: 'Fecha: ' + convertDateFormat(today()),
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-success ocultar',
-                exportOptions: {
-                    columns: [0, 1, 2, 3, 4, 5, 6, 7]
-                }
+                exportOptions: { columns: [0,1,2,3,4,5,6,7] }
             },
             {
                 extend: 'pdf',
@@ -1047,21 +1062,21 @@ var listar_nominas_detalles = function() {
                 messageTop: 'Fecha: ' + convertDateFormat(today()),
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-danger ocultar',
-                exportOptions: {
-                    columns: [0, 1, 2, 3, 4, 5, 6, 7]
-                },
+                exportOptions: { columns: [0,1,2,3,4,5,6,7] },
                 customize: function(doc) {
-                    doc.content.splice(1, 0, {
-                        margin: [0, 0, 0, 12],
-                        alignment: 'left',
-                        image: imagen,
-                        width: 100,
-                        height: 45
-                    });
+                    if (imagen) {
+                        doc.content.splice(1, 0, {
+                            margin: [0, 0, 0, 12],
+                            alignment: 'left',
+                            image: imagen,
+                            width: 100,
+                            height: 45
+                        });
+                    }
                 }
             }
         ],
-        "drawCallback": function(settings) {
+        "drawCallback": function() {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
         }
     });
@@ -1070,8 +1085,11 @@ var listar_nominas_detalles = function() {
 
     editar_nominas_detalles_dataTable("#dataTableNominaDetalles tbody", table_nominas_detalles);
     eliminar_nominas_detalles_dataTable("#dataTableNominaDetalles tbody", table_nominas_detalles);
-}
+};
 
+/* ============================
+   EDITAR DETALLES (usa el FORM)
+   ============================ */
 var editar_nominas_detalles_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.nomina_detalles_editar");
     $(tbody).on("click", "button.nomina_detalles_editar", function() {
@@ -1085,38 +1103,35 @@ var editar_nominas_detalles_dataTable = function(tbody, table) {
             data: $('#formNominaDetalles').serialize(),
             success: function(registro) {
                 var valores = eval(registro);
-                $('#formNominaDetalles').attr({
-                    'data-form': 'update'
-                });
-                $('#formNominaDetalles').attr({
-                    'action': '<?php echo SERVERURL;?>ajax/modificarNominaDetallesAjax.php'
-                });
+
+                // Configurar FORM para UPDATE
+                $('#formNominaDetalles').attr({ 'data-form': 'update' });
+                $('#formNominaDetalles').attr({ 'action': '<?php echo SERVERURL;?>ajax/modificarNominaDetallesAjax.php' });
+
                 $('#formNominaDetalles')[0].reset();
                 $('#reg_nominaD').hide();
                 $('#edi_nominaD').show();
                 $('#delete_nominaD').hide();
+
+                // Mapear valores
                 $('#formNominaDetalles #nomina_id').val(valores[0]);
                 $('#formNominaDetalles #nomina_detalles_id').val(valores[1]);
                 $('#formNominaDetalles #pago_planificado_id').val(valores[2]);
                 $('#formNominaDetalles #colaboradores_id').val(valores[31]);
 
                 $('#formNominaDetalles #nominad_numero').val(valores[0]);
-                $('#formNominaDetalles #nominad_empleados').val(valores[31]);
-                $('#formNominaDetalles #nominad_empleados').selectpicker('refresh');
+                $('#formNominaDetalles #nominad_empleados').val(valores[31]).selectpicker('refresh');
                 $('#formNominaDetalles #nominad_puesto').val(valores[5]);
                 $('#formNominaDetalles #nominad_identidad').val(valores[6]);
                 $('#formNominaDetalles #nominad_contrato_id').val(valores[7]);
                 $('#formNominaDetalles #nominad_fecha_ingreso').val(valores[8]);
-                $('#formNominaDetalles #nominad_salario').val(parseFloat(valores[9]).toFixed(
-                    2));
+                $('#formNominaDetalles #nominad_salario').val(parseFloat(valores[9]).toFixed(2));
 
-                let salario = parseFloat(valores[9]).toFixed(2);
                 let salario_diario = (valores[9] / 30).toFixed(2);
                 var salario_hora = (valores[37] == 1) ? salario_diario / 8 : salario_diario / 6;
 
                 $('#formNominaDetalles #nominad_sueldo_diario').val(salario_diario);
-                $('#formNominaDetalles #nominad_sueldo_hora').val(parseFloat(salario_hora)
-                    .toFixed(2));
+                $('#formNominaDetalles #nominad_sueldo_hora').val(parseFloat(salario_hora).toFixed(2));
 
                 $('#formNominaDetalles #nominad_diast').val(valores[10]);
                 $('#formNominaDetalles #nominad_retroactivo').val(valores[11]);
@@ -1139,6 +1154,7 @@ var editar_nominas_detalles_dataTable = function(tbody, table) {
                 $('#formNominaDetalles #nominad_detalle').val(valores[36]);
                 $('#formNominaDetalles #nomina_detalles_notas').val(valores[28]);
                 $('#formNominaDetalles #nominad_vale').val(valores[30]);
+
                 $('#formNominaDetalles #hrse25_valor').val(valores[32]);
                 $('#formNominaDetalles #hrse50_valor').val(valores[33]);
                 $('#formNominaDetalles #hrse75_valor').val(valores[34]);
@@ -1147,37 +1163,35 @@ var editar_nominas_detalles_dataTable = function(tbody, table) {
                 calculoNomina();
 
                 if (valores[29] == 1) {
-                    $('#formNominaDetalles #nomina_detalles_activo').attr('checked', true);
+                    $('#formNominaDetalles #nomina_detalles_activo').prop('checked', true);
                     $('#edi_nominaD').attr('disabled', true);
                 } else {
-                    $('#formNominaDetalles #nomina_detalles_activo').attr('checked', false);
+                    $('#formNominaDetalles #nomina_detalles_activo').prop('checked', false);
                     $('#edi_nominaD').attr('disabled', false);
                 }
 
-                //HABILITAR OBJETOS							
-                $('#formNominaDetalles #nominad_retroactivo').attr('readonly', false);
-                $('#formNominaDetalles #nominad_bono').attr('readonly', false);
-                $('#formNominaDetalles #nominad_otros_ingresos').attr('readonly', false);
-                $('#formNominaDetalles #nominad_horas25').attr('readonly', false);
-                $('#formNominaDetalles #nominad_horas50').attr('readonly', false);
-                $('#formNominaDetalles #nominad_horas75').attr('readonly', false);
-                $('#formNominaDetalles #nominad_horas100').attr('readonly', false);
-                $('#formNominaDetalles #nominad_deducciones').attr('readonly', false);
-                $('#formNominaDetalles #nominad_prestamo').attr('readonly', false);
-                $('#formNominaDetalles #nominad_ihss').attr('readonly', false);
-                $('#formNominaDetalles #nominad_rap').attr('readonly', false);
-                $('#formNominaDetalles #nominad_isr').attr('readonly', false);
-                $('#formNominaDetalles #nominad_incapacidad_ihss').attr('readonly', false);
-                $('#formNominaDetalles #nomina_detalles_notas').attr('readonly', false);
+                // Habilitar/Deshabilitar
+                $('#formNominaDetalles #nominad_retroactivo').prop('readonly', false);
+                $('#formNominaDetalles #nominad_bono').prop('readonly', false);
+                $('#formNominaDetalles #nominad_otros_ingresos').prop('readonly', false);
+                $('#formNominaDetalles #nominad_horas25').prop('readonly', false);
+                $('#formNominaDetalles #nominad_horas50').prop('readonly', false);
+                $('#formNominaDetalles #nominad_horas75').prop('readonly', false);
+                $('#formNominaDetalles #nominad_horas100').prop('readonly', false);
+                $('#formNominaDetalles #nominad_deducciones').prop('readonly', false);
+                $('#formNominaDetalles #nominad_prestamo').prop('readonly', false);
+                $('#formNominaDetalles #nominad_ihss').prop('readonly', false);
+                $('#formNominaDetalles #nominad_rap').prop('readonly', false);
+                $('#formNominaDetalles #nominad_isr').prop('readonly', false);
+                $('#formNominaDetalles #nominad_incapacidad_ihss').prop('readonly', false);
+                $('#formNominaDetalles #nomina_detalles_notas').prop('readonly', false);
                 $('#formNominaDetalles #estado_nomina_detalles').show();
 
-                //DESHABILITAR OBJETOS
-                //$('#formNominaDetalles #nominad_diast').attr('readonly', true);
                 $('#formNominaDetalles #nominad_empleados').prop('disabled', true);
-                $('#formNominaDetalles #nominad_neto_ingreso').attr('readonly', true);
-                $('#formNominaDetalles #nominad_neto_egreso').attr('readonly', true);
-                $('#formNominaDetalles #nominad_neto').attr('readonly', true);
-                $('#formNominaDetalles #nomina_detalles_activo').attr('disabled', true);
+                $('#formNominaDetalles #nominad_neto_ingreso').prop('readonly', true);
+                $('#formNominaDetalles #nominad_neto_egreso').prop('readonly', true);
+                $('#formNominaDetalles #nominad_neto').prop('readonly', true);
+                $('#formNominaDetalles #nomina_detalles_activo').prop('disabled', true);
 
                 $('#formNominaDetalles #proceso_nomina_detalles').val("Editar");
 
@@ -1189,7 +1203,7 @@ var editar_nominas_detalles_dataTable = function(tbody, table) {
             }
         });
     });
-}
+};
 
 var eliminar_nominas_detalles_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.nomina_detalles_eliminar");
@@ -1205,33 +1219,29 @@ var eliminar_nominas_detalles_dataTable = function(tbody, table) {
             success: function(registro) {                
                 var valores = eval(registro);
 
-                $('#formNominaDetalles').attr({
-                    'data-form': 'delete'
-                });
-                $('#formNominaDetalles').attr({
-                    'action': '<?php echo SERVERURL;?>ajax/eliminarNominaDetallesAjax.php'
-                });
+                // Configurar FORM para DELETE
+                $('#formNominaDetalles').attr({ 'data-form': 'delete' });
+                $('#formNominaDetalles').attr({ 'action': '<?php echo SERVERURL;?>ajax/eliminarNominaDetallesAjax.php' });
+
                 $('#formNominaDetalles')[0].reset();
                 $('#reg_nominaD').hide();
                 $('#edi_nominaD').hide();
                 $('#delete_nominaD').show();
+
                 $('#formNominaDetalles #nomina_id').val(valores[0]);
                 $('#formNominaDetalles #nomina_detalles_id').val(valores[1]);
                 $('#formNominaDetalles #pago_planificado_id').val(valores[2]);
-                $('#formNominaDetalles #colaboradores_id').val(valores[3]);
-                $('#formNominaDetalles #colaboradores_id').selectpicker('refresh');
+                $('#formNominaDetalles #colaboradores_id').val(valores[3]).selectpicker('refresh');
                 $('#formNominaDetalles #nominad_numero').val(valores[0]);
                 $('#formNominaDetalles #nominad_empleados').val(valores[4]);
                 $('#formNominaDetalles #nominad_puesto').val(valores[5]);
                 $('#formNominaDetalles #nominad_identidad').val(valores[6]);
                 $('#formNominaDetalles #nominad_contrato_id').val(valores[7]);
                 $('#formNominaDetalles #nominad_fecha_ingreso').val(valores[8]);
-                $('#formNominaDetalles #nominad_salario').val(parseFloat(valores[9]).toFixed(
-                    2));
+                $('#formNominaDetalles #nominad_salario').val(parseFloat(valores[9]).toFixed(2));
 
-                let salario = parseFloat(valores[9]).toFixed(2);
                 let salario_diario = (valores[9] / 30).toFixed(2);
-                let salario_hora = parseFloat(salario_diario).toFixed() / 8;
+                let salario_hora = (parseFloat(salario_diario) / 8).toFixed(2);
 
                 $('#formNominaDetalles #nominad_sueldo_diario').val(salario_diario);
                 $('#formNominaDetalles #nominad_sueldo_hora').val(salario_hora);
@@ -1260,36 +1270,18 @@ var eliminar_nominas_detalles_dataTable = function(tbody, table) {
                 calculoNomina();
 
                 if (valores[29] == 1) {
-                    $('#formNominaDetalles #nomina_detalles_activo').attr('checked', true);
+                    $('#formNominaDetalles #nomina_detalles_activo').prop('checked', true);
                     $('#delete_nominaD').attr('disabled', true);
                 } else {
-                    $('#formNominaDetalles #nomina_detalles_activo').attr('checked', false);
+                    $('#formNominaDetalles #nomina_detalles_activo').prop('checked', false);
                     $('#delete_nominaD').attr('disabled', false);
                 }
 
-                //HABILITAR OBJETOS
                 $('#formNominaDetalles #estado_nomina_detalles').show();
 
-                //DESHABILITAR OBJETOS
-                //$('#formNominaDetalles #nominad_diast').attr('readonly', true);
-                $('#formNominaDetalles #nominad_retroactivo').attr('readonly', true);
-                $('#formNominaDetalles #nominad_bono').attr('readonly', true);
-                $('#formNominaDetalles #nominad_otros_ingresos').attr('readonly', true);
-                $('#formNominaDetalles #nominad_horas25').attr('readonly', true);
-                $('#formNominaDetalles #nominad_horas50').attr('readonly', true);
-                $('#formNominaDetalles #nominad_horas75').attr('readonly', true);
-                $('#formNominaDetalles #nominad_horas100').attr('readonly', true);
-                $('#formNominaDetalles #nominad_deducciones').attr('readonly', true);
-                $('#formNominaDetalles #nominad_prestamo').attr('readonly', true);
-                $('#formNominaDetalles #nominad_ihss').attr('readonly', true);
-                $('#formNominaDetalles #nominad_rap').attr('readonly', true);
-                $('#formNominaDetalles #nominad_isr').attr('readonly', true);
-                $('#formNominaDetalles #nominad_incapacidad_ihss').attr('readonly', true);
-                $('#formNominaDetalles #nomina_detalles_notas').attr('readonly', true);
-                $('#formNominaDetalles #nominad_neto_ingreso').attr('readonly', true);
-                $('#formNominaDetalles #nominad_neto_egreso').attr('readonly', true);
-                $('#formNominaDetalles #nominad_neto').attr('readonly', true);
-                $('#formNominaDetalles #nomina_detalles_activo').attr('disabled', true);
+                // Deshabilitar campos en vista de eliminación
+                $('#formNominaDetalles input, #formNominaDetalles textarea, #formNominaDetalles select').prop('readonly', true).prop('disabled', true);
+                $('#delete_nominaD').prop('disabled', false);
 
                 $('#formNominaDetalles #proceso_nomina_detalles').val("Eliminar");
 
@@ -1301,252 +1293,16 @@ var eliminar_nominas_detalles_dataTable = function(tbody, table) {
             }
         });
     });
-}
-//FIN DETALLE DE NOMINAS
+};
 
-/*$("#formNominaDetalles #nominad_empleados").on("change", function() {
-    var url = '<?php echo SERVERURL;?>core/getDatosEmpleado.php';
-    let colaboradores_id = $("#formNominaDetalles #nominad_empleados").val();
-
-    $.ajax({
-        type: "POST",
-        url: url,
-        async: true,
-        data: 'colaboradores_id=' + colaboradores_id,
-        success: function(data) {
-            var valores = eval(data);
-
-            //VER EL TIPO DE EMPLEADO
-            Pago Planificado
-            1. Semanal 2 Quincenal 3 Mensual
-            var valor_dividir =
-                0; //ESTE ES EL VALOR QUE TRAE SEGUN EL TIPO DE PAGO PARA DIVIDIRSE CON EL SALARIO
-
-            if (valores[6] == 1) {
-                $('#formNominaDetalles #nominad_diast').val(7);
-                valor_dividir = 7;
-            }
-
-            if (valores[6] == 2) {
-                $('#formNominaDetalles #nominad_diast').val(15);
-                valor_dividir = 15;
-            }
-
-            if (valores[6] == 3) {
-                $('#formNominaDetalles #nominad_diast').val(30);
-                valor_dividir = 30;
-            }
-
-            var salario = parseFloat(valores[3]);
-            salario_diario = parseFloat(valores[3]) / parseFloat(valor_dividir);
-            var _salario_diario = (parseFloat(valores[3]) / parseFloat(30)).toFixed(2);
-            var salario_hora = 0;
-
-            //EMPLEADO NORMAL
-            if (valores[5] == 1) {
-                salario_hora = parseFloat(salario_diario / 8).toFixed(2);
-            } else { //EMPLEADO MEDICO
-                salario_hora = parseFloat(salario_diario / 6).toFixed(2);
-            }
-
-            $('#formNominaDetalles #nominad_puesto').val(valores[0]);
-            $('#formNominaDetalles #nominad_identidad').val(valores[1]);
-            $('#formNominaDetalles #nominad_contrato_id').val(valores[2]);
-            $('#formNominaDetalles #nominad_salario').val(parseFloat(salario).toFixed(2));
-            $('#formNominaDetalles #nominad_fecha_ingreso').val(valores[4]);
-            $('#formNominaDetalles #nominad_sueldo_diario').val(_salario_diario);
-            $('#formNominaDetalles #nominad_sueldo_hora').val(salario_hora);
-
-            $('#formNominaDetalles #nominad_diast').val(ObtenerDiasTrabajados(colaboradores_id));
-            calculoNomina();
-        }
-    });
-});*/
-
-/*function calculoHorasExtras(hora_valor, salario_hora, horas) {
-    Tipo 1. Normal 2. Medico
-
-    var valor = 0.00;
-
-    if (horas == "25") {
-        valor = (parseFloat(salario_hora) * 0.25 + salario_hora) * parseFloat(hora_valor);
-    }
-
-    if (horas == "50") {
-        valor = (parseFloat(salario_hora) * 0.50 + salario_hora) * parseFloat(hora_valor);
-    }
-
-    if (horas == "75") {
-        valor = (parseFloat(salario_hora) * 0.75 + salario_hora) * parseFloat(hora_valor);
-    }
-
-    if (horas == "100") {
-        valor = (parseFloat(salario_hora) * 1 + salario_hora) * parseFloat(hora_valor);
-    }
-
-    console.log("El valor por hora es: ", valor);
-
-    return parseFloat(valor);
-}*/
-
-/*function calculoNomina() {
-    var neto_ingresos = 0;
-    var neto_egresos = 0;
-    var neto = 0;
-
-    //INGRESOS
-    var dias_trabajadas = 0;
-    var salario = 0;
-    var salario_dia = 0;
-    var salario_hora = 0;
-    var salario_diario = $('#formNominaDetalles #nominad_sueldo_diario').val();
-
-    if ($('#formNominaDetalles #nominad_diast').val() != "" || $('#formNominaDetalles #nominad_diast').val() != null) {
-        dias_trabajadas = parseFloat($('#formNominaDetalles #nominad_diast').val());
-    }
-
-    if ($('#formNominaDetalles #nominad_sueldo_diario').val() != "" || $('#formNominaDetalles #nominad_sueldo_diario')
-        .val() != null) {
-        salario_dia = salario_diario;
-    }
-
-    if ($('#formNominaDetalles #nominad_sueldo_hora').val() != "" || $('#formNominaDetalles #nominad_sueldo_hora')
-        .val() != null) {
-        salario_hora = parseFloat($('#formNominaDetalles #nominad_sueldo_hora').val());
-    }
-
-    var hora25 = 0;
-    var hora50 = 0;
-    var hora75 = 0;
-    var hora100 = 0;
-
-    if ($('#formNominaDetalles #nominad_horas25').val() != "" || $('#formNominaDetalles #nominad_horas25').val() !=
-        null) {
-        hora25 = parseFloat(calculoHorasExtras($('#formNominaDetalles #nominad_horas25').val(), salario_hora, "25"));
-    }
-
-    if ($('#formNominaDetalles #nominad_horas50').val() != "" || $('#formNominaDetalles #nominad_horas50').val() !=
-        null) {
-        hora50 = parseFloat(calculoHorasExtras($('#formNominaDetalles #nominad_horas50').val(), salario_hora, "25"));
-    }
-
-    if ($('#formNominaDetalles #nominad_horas75').val() != "" || $('#formNominaDetalles #nominad_horas75').val() !=
-        null) {
-        hora75 = parseFloat(calculoHorasExtras($('#formNominaDetalles #nominad_horas75').val(), salario_hora, "25"));
-    }
-
-    if ($('#formNominaDetalles #nominad_horas100').val() != "" || $('#formNominaDetalles #nominad_horas100').val() !=
-        null) {
-        hora100 = parseFloat(calculoHorasExtras($('#formNominaDetalles #nominad_horas100').val(), salario_hora, "25"));
-    }
-
-    console.log("Horas 25: " + hora25);
-    console.log("Horas 50: " + hora50);
-    console.log("Horas 75: " + hora75);
-    console.log("Horas 100: " + hora100);
-
-    var retroactivo = 0;
-    var bono = 0;
-    var otros_ingresos = 0;
-
-    if ($('#formNominaDetalles #nominad_retroactivo').val() != "" || $('#formNominaDetalles #nominad_retroactivo')
-        .val() != null) {
-        retroactivo = parseFloat($('#formNominaDetalles #nominad_retroactivo').val());
-    }
-
-    if ($('#formNominaDetalles #nominad_bono').val() != "" || $('#formNominaDetalles #nominad_bono').val() != null) {
-        bono = parseFloat($('#formNominaDetalles #nominad_bono').val());
-    }
-
-    if ($('#formNominaDetalles #nominad_otros_ingresos').val() != "" || $('#formNominaDetalles #nominad_otros_ingresos')
-        .val() != null) {
-        otros_ingresos = parseFloat($('#formNominaDetalles #nominad_otros_ingresos').val());
-    }
-
-    console.log("retroactivo: " + retroactivo);
-    console.log("bono: " + bono);
-    console.log("otros_ingresos: " + otros_ingresos);
-
-    var sueldo_por_hora_trabajada = salario_dia * parseFloat(dias_trabajadas);
-
-    neto_ingresos = (parseFloat(dias_trabajadas) * parseFloat(salario_dia)) + parseFloat(retroactivo) + parseFloat(
-            bono) + parseFloat(otros_ingresos) + parseFloat(hora25) + parseFloat(hora50) + parseFloat(hora75) +
-        parseFloat(
-            hora100);
-
-    console.log("Salario" + salario);
-    console.log("reroactivo" + retroactivo);
-    console.log("otros ingresos" + otros_ingresos);
-    console.log("neto_ingresos" + neto_ingresos);
-
-    //EGRESOS
-    var deducciones = 0;
-    var prestamo = 0;
-    var ihss = 0;
-    var rap = 0;
-    var isr = 0;
-    var vales = 0;
-    var incapacidad_ihss = 0;
-
-    if ($('#formNominaDetalles #nominad_deducciones').val() != "" || $('#formNominaDetalles #nominad_deducciones')
-        .val() != null) {
-        deducciones = parseFloat($('#formNominaDetalles #nominad_deducciones').val());
-    }
-
-    if ($('#formNominaDetalles #nominad_prestamo').val() != "" || $('#formNominaDetalles #nominad_prestamo').val() !=
-        null) {
-        prestamo = parseFloat($('#formNominaDetalles #nominad_prestamo').val());
-    }
-
-    if ($('#formNominaDetalles #nominad_ihss').val() != "" || $('#formNominaDetalles #nominad_ihss').val() != null) {
-        ihss = parseFloat($('#formNominaDetalles #nominad_ihss').val());
-    }
-
-    if ($('#formNominaDetalles #nominad_rap').val() != "" || $('#formNominaDetalles #nominad_rap').val() != null) {
-        rap = parseFloat($('#formNominaDetalles #nominad_rap').val());
-    }
-
-    if ($('#formNominaDetalles #nominad_isr').val() != "" || $('#formNominaDetalles #nominad_isr').val() != null) {
-        isr = parseFloat($('#formNominaDetalles #nominad_isr').val());
-    }
-
-    if ($('#formNominaDetalles #nominad_vale').val() != "" || $('#formNominaDetalles #nominad_vale').val() != null) {
-        vales = parseFloat($('#formNominaDetalles #nominad_vale').val());
-    }
-
-    if ($('#formNominaDetalles #nominad_incapacidad_ihss').val() != "" || $(
-            '#formNominaDetalles #nominad_incapacidad_ihss').val() != null) {
-        incapacidad_ihss = parseFloat($('#formNominaDetalles #nominad_incapacidad_ihss').val());
-    }
-
-    neto_egresos = parseFloat(deducciones) + parseFloat(prestamo) + parseFloat(ihss) + parseFloat(rap) + parseFloat(
-        isr) + parseFloat(vales) + parseFloat(incapacidad_ihss);
-
-    neto = parseFloat(neto_ingresos) - parseFloat(neto_egresos);
-
-    $('#formNominaDetalles #nominad_neto_ingreso').val(parseFloat(Math.round(neto_ingresos)).toFixed(2));
-    $('#formNominaDetalles #nominad_neto_egreso').val(parseFloat(Math.round(neto_egresos)).toFixed(2));
-    $('#formNominaDetalles #nominad_neto').val(parseFloat(Math.round(neto)).toFixed(2));
-
-    $('#nominad_neto_ingreso1').val(parseFloat(Math.round(neto_ingresos)).toFixed(2));
-    $('#nominad_neto_egreso1').val(parseFloat(Math.round(neto_egresos)).toFixed(2));
-    $('#nominad_neto1').val(parseFloat(Math.round(neto)).toFixed(2));
-}*/
-
+/* ============================
+   UTILIDADES DE CÁLCULO
+   ============================ */
 function pagoPlanificado(pago_planificado) {
-    var valor_dividir = 0;
-
-    // Mapear el tipo de pago a días trabajados
-    var diasTrabajadosMap = {
-        1: 7,
-        2: 15,
-        3: 30
-    };
-
-    return valor_dividir = diasTrabajadosMap[pago_planificado] || 0;
+    var diasTrabajadosMap = { 1: 7, 2: 15, 3: 30 };
+    return diasTrabajadosMap[pago_planificado] || 0;
 }
 
-// Función para obtener datos de empleado
 function obtenerDatosEmpleado(colaboradores_id) {
     var url = '<?php echo SERVERURL;?>core/getDatosEmpleado.php';
 
@@ -1560,16 +1316,8 @@ function obtenerDatosEmpleado(colaboradores_id) {
             var validar_semanal = valores[9];
 
             var valor_dividir = pagoPlanificado(valores[6]);
-
             var salario = parseFloat(valores[3]);
-
-            if (validar_semanal === 1) {
-
-            } else {
-
-            }
-
-            var salario_diario = salario / parseFloat(30);
+            var salario_diario = salario / 30;
             var salario_hora = (valores[5] == 1) ? salario_diario / 8 : salario_diario / 6;
 
             // Asignar valores
@@ -1578,42 +1326,32 @@ function obtenerDatosEmpleado(colaboradores_id) {
             $('#formNominaDetalles #nominad_contrato_id').val(valores[2]);
             $('#formNominaDetalles #nominad_salario').val(parseFloat(salario).toFixed(2));
             $('#formNominaDetalles #nominad_fecha_ingreso').val(valores[4]);
-            $('#formNominaDetalles #nominad_sueldo_diario').val((salario / 30).toFixed(2));
+            $('#formNominaDetalles #nominad_sueldo_diario').val(salario_diario.toFixed(2));
             $('#formNominaDetalles #nominad_sueldo_hora').val(parseFloat(salario_hora).toFixed(2));
             $('#formNominaDetalles #nominad_vale').val(valores[7]);
             $('#formNominaDetalles #salario').val(parseFloat(valores[8]).toFixed(2));
-            $('#formNominaDetalles #validar_semanal').val(valores[9])
-            $('#formNominaDetalles #pago_planificado_id').val(valor_dividir)
+            $('#formNominaDetalles #validar_semanal').val(valores[9]);
+            $('#formNominaDetalles #pago_planificado_id').val(valor_dividir);
+
             var fecha_inicio = $('#formNominaDetalles #fecha_inicio').val();
             var fecha_fin = $('#formNominaDetalles #fecha_fin').val();
 
-            $('#formNominaDetalles #nominad_diast').val(ObtenerDiasTrabajados(colaboradores_id,
-                fecha_inicio, fecha_fin));
+            $('#formNominaDetalles #nominad_diast').val(ObtenerDiasTrabajados(colaboradores_id, fecha_inicio, fecha_fin));
             calculoNomina();
         }
     });
 }
 
-// Evento change para el campo #nominad_empleados
 $("#formNominaDetalles #nominad_empleados").on("change", function() {
     var colaboradores_id = $(this).val();
     obtenerDatosEmpleado(colaboradores_id);
 });
 
-// Llamada a la función con un valor predeterminado (descomentar y ajustar según sea necesario)
-// var colaboradores_id_predeterminado = 123; // Reemplaza con el valor deseado
-// obtenerDatosEmpleado(colaboradores_id_predeterminado);
-
-
-
 function calculoHorasExtras(hora_valor, salario_hora, horas) {
     var porcentaje = parseFloat(horas) / 100;
-
     if (porcentaje >= 0.25 && porcentaje <= 1) {
-        return parseFloat((salario_hora * porcentaje + salario_hora) * hora_valor);
+        return parseFloat((salario_hora * porcentaje + salario_hora) * (parseFloat(hora_valor) || 0));
     }
-
-    console.log("El valor por hora es: ", 0);
     return 0;
 }
 
@@ -1622,19 +1360,16 @@ function calculoNomina() {
     var neto_egresos = 0;
     var neto = 0;
 
-    var validar_semanal = parseFloat($('#formNominaDetalles #validar_semanal').val() === '' ? 0 : $(
-        '#formNominaDetalles #validar_semanal').val());
+    var validar_semanal = parseFloat($('#formNominaDetalles #validar_semanal').val() || 0);
 
     // INGRESOS
     var dias_trabajadas = parseFloat($('#formNominaDetalles #nominad_diast').val()) || 0;
-    var salario_diario = parseFloat($('#formNominaDetalles #nominad_sueldo_diario').val()) || 0;
     var salario_hora = parseFloat($('#formNominaDetalles #nominad_sueldo_hora').val()) || 0;
     var salario_mensual = parseFloat($('#formNominaDetalles #nominad_salario').val()) || 0;
-    var salario = parseFloat($('#formNominaDetalles #salario').val()) || 0;
 
-    var hora25 = calculoHorasExtras($('#formNominaDetalles #nominad_horas25').val(), salario_hora, "25");
-    var hora50 = calculoHorasExtras($('#formNominaDetalles #nominad_horas50').val(), salario_hora, "50");
-    var hora75 = calculoHorasExtras($('#formNominaDetalles #nominad_horas75').val(), salario_hora, "75");
+    var hora25  = calculoHorasExtras($('#formNominaDetalles #nominad_horas25').val(),  salario_hora, "25");
+    var hora50  = calculoHorasExtras($('#formNominaDetalles #nominad_horas50').val(),  salario_hora, "50");
+    var hora75  = calculoHorasExtras($('#formNominaDetalles #nominad_horas75').val(),  salario_hora, "75");
     var hora100 = calculoHorasExtras($('#formNominaDetalles #nominad_horas100').val(), salario_hora, "100");
 
     $('#formNominaDetalles #hrse25_valor').val(hora25.toFixed(2));
@@ -1642,129 +1377,65 @@ function calculoNomina() {
     $('#formNominaDetalles #hrse75_valor').val(hora75.toFixed(2));
     $('#formNominaDetalles #hrse100_valor').val(hora100.toFixed(2));
 
-    var retroactivo = parseFloat($('#formNominaDetalles #nominad_retroactivo').val()) || 0;
-    var bono = parseFloat($('#formNominaDetalles #nominad_bono').val()) || 0;
+    var retroactivo    = parseFloat($('#formNominaDetalles #nominad_retroactivo').val()) || 0;
+    var bono           = parseFloat($('#formNominaDetalles #nominad_bono').val()) || 0;
     var otros_ingresos = parseFloat($('#formNominaDetalles #nominad_otros_ingresos').val()) || 0;
 
     if (validar_semanal === 1) {
-        neto_ingresos = dias_trabajadas * ((salario_mensual / 4) / 7) + retroactivo + bono + otros_ingresos + hora25 +
-            hora50 +
-            hora75 +
-            hora100;
+        neto_ingresos = dias_trabajadas * ((salario_mensual / 4) / 7) + retroactivo + bono + otros_ingresos + hora25 + hora50 + hora75 + hora100;
     } else {
-        neto_ingresos = dias_trabajadas * (salario_mensual / 30) + retroactivo + bono + otros_ingresos + hora25 +
-            hora50 +
-            hora75 +
-            hora100;
+        neto_ingresos = dias_trabajadas * (salario_mensual / 30) + retroactivo + bono + otros_ingresos + hora25 + hora50 + hora75 + hora100;
     }
 
     // EGRESOS
-    var deducciones = parseFloat($('#formNominaDetalles #nominad_deducciones').val()) || 0;
-    var prestamo = parseFloat($('#formNominaDetalles #nominad_prestamo').val()) || 0;
-    var ihss = parseFloat($('#formNominaDetalles #nominad_ihss').val()) || 0;
-    var rap = parseFloat($('#formNominaDetalles #nominad_rap').val()) || 0;
-    var isr = parseFloat($('#formNominaDetalles #nominad_isr').val()) || 0;
-    var vales = parseFloat($('#formNominaDetalles #nominad_vale').val()) || 0;
+    var deducciones      = parseFloat($('#formNominaDetalles #nominad_deducciones').val()) || 0;
+    var prestamo         = parseFloat($('#formNominaDetalles #nominad_prestamo').val()) || 0;
+    var ihss             = parseFloat($('#formNominaDetalles #nominad_ihss').val()) || 0;
+    var rap              = parseFloat($('#formNominaDetalles #nominad_rap').val()) || 0;
+    var isr              = parseFloat($('#formNominaDetalles #nominad_isr').val()) || 0;
+    var vales            = parseFloat($('#formNominaDetalles #nominad_vale').val()) || 0;
     var incapacidad_ihss = parseFloat($('#formNominaDetalles #nominad_incapacidad_ihss').val()) || 0;
 
     neto_egresos = deducciones + prestamo + ihss + rap + isr + incapacidad_ihss + vales;
-
     neto = neto_ingresos - neto_egresos;
 
-    // Actualizar valores en los campos
     $('#formNominaDetalles #nominad_neto_ingreso').val(neto_ingresos.toFixed(2));
     $('#formNominaDetalles #nominad_neto_egreso').val(neto_egresos.toFixed(2));
     $('#formNominaDetalles #nominad_neto').val(neto.toFixed(2));
 
-    // También actualiza los valores en otros campos si es necesario
     $('#nominad_neto_ingreso1').val(neto_ingresos.toFixed(2));
     $('#nominad_neto_egreso1').val(neto_egresos.toFixed(2));
     $('#nominad_neto1').val(neto.toFixed(2));
 }
 
+function actualizarCampo(selector, valor) { $(selector).val(valor); }
 
-function actualizarCampo(selector, valor) {
-    $(selector).val(valor);
-}
-
-
-$("#formNominaDetalles #nominad_diast").on("keyup", function() {
-    calculoNomina();
-});
-
-$("#formNominaDetalles #nominad_retroactivo").on("keyup", function() {
-    calculoNomina();
-});
-
-$("#formNominaDetalles #nominad_retroactivo").on("keyup", function() {
-    calculoNomina();
-});
-
-$("#formNominaDetalles #nominad_bono").on("keyup", function() {
-    calculoNomina();
-});
-
-$("#formNominaDetalles #nominad_otros_ingresos").on("keyup", function() {
-    calculoNomina();
-});
-
-$("#formNominaDetalles #nominad_horas25").on("keyup", function() {
-    calculoNomina();
-});
-
-$("#formNominaDetalles #nominad_horas50").on("keyup", function() {
-    calculoNomina();
-});
-
-$("#formNominaDetalles #nominad_horas75").on("keyup", function() {
-    calculoNomina();
-});
-
-$("#formNominaDetalles #nominad_horas100").on("keyup", function() {
-    calculoNomina();
-});
-
-$("#formNominaDetalles #nominad_deducciones").on("keyup", function() {
-    calculoNomina();
-});
-
-$("#formNominaDetalles #nominad_prestamo").on("keyup", function() {
-    calculoNomina();
-});
-
-$("#formNominaDetalles #nominad_ihss").on("keyup", function() {
-    calculoNomina();
-});
-
-$("#formNominaDetalles #nominad_rap").on("keyup", function() {
-    calculoNomina();
-});
-
-$("#formNominaDetalles #nominad_isr").on("keyup", function() {
-    calculoNomina();
-});
-
-$("#formNominaDetalles #nominad_incapacidad_ihss").on("keyup", function() {
-    calculoNomina();
-});
-
-$("#formNominaDetalles #nominad_vale").on("keyup", function() {
+$("#formNominaDetalles #nominad_diast, \
+#formNominaDetalles #nominad_retroactivo, \
+#formNominaDetalles #nominad_bono, \
+#formNominaDetalles #nominad_otros_ingresos, \
+#formNominaDetalles #nominad_horas25, \
+#formNominaDetalles #nominad_horas50, \
+#formNominaDetalles #nominad_horas75, \
+#formNominaDetalles #nominad_horas100, \
+#formNominaDetalles #nominad_deducciones, \
+#formNominaDetalles #nominad_prestamo, \
+#formNominaDetalles #nominad_ihss, \
+#formNominaDetalles #nominad_rap, \
+#formNominaDetalles #nominad_isr, \
+#formNominaDetalles #nominad_incapacidad_ihss, \
+#formNominaDetalles #nominad_vale").on("keyup change", function() {
     calculoNomina();
 });
 
 function ObtenerDiasTrabajados(colaboradores_id, fechaiNomina, fechafNomina) {
     var url = '<?php echo SERVERURL;?>core/getDiasTrabajados.php';
-
     var dt;
 
     $.ajax({
         type: 'POST',
         url: url,
-        data: {
-            colaboradores_id: colaboradores_id,
-            fechaiNomina: fechaiNomina,
-            fechafNomina: fechafNomina,
-        },
+        data: { colaboradores_id: colaboradores_id, fechaiNomina: fechaiNomina, fechafNomina: fechafNomina },
         success: function(registro) {
             try {
                 var valores = JSON.parse(registro);
@@ -1776,7 +1447,7 @@ function ObtenerDiasTrabajados(colaboradores_id, fechaiNomina, fechafNomina) {
         error: function(jqXHR, textStatus, errorThrown) {
             console.error("Error en la solicitud AJAX:", textStatus, errorThrown);
         },
-        async: false // Considera eliminar esta opción y usar un enfoque asincrónico más moderno
+        async: false // (mantienes sync)
     });
 
     return dt;
@@ -1784,21 +1455,19 @@ function ObtenerDiasTrabajados(colaboradores_id, fechaiNomina, fechafNomina) {
 
 function getCuentaNominas() {
     var url = '<?php echo SERVERURL;?>core/getCuenta.php';
-
     $.ajax({
         type: "POST",
         url: url,
         async: true,
         success: function(data) {
-            $('#formNomina #pago_nomina').html("");
-            $('#formNomina #pago_nomina').html(data);
-            $('#formNomina #pago_nomina').selectpicker('refresh');
+            $('#formNomina #pago_nomina').html("").html(data).selectpicker('refresh');
         }
     });
 }
 
-
-//INICIO VALES
+/* ============================
+   VALES (tabla + anular)
+   ============================ */
 var listar_vales = function() {
     var table_vales = $("#DatatableVale").DataTable({
         "destroy": true,
@@ -1806,70 +1475,43 @@ var listar_vales = function() {
             "method": "POST",
             "url": "<?php echo SERVERURL;?>core/llenarDataTableVales.php"
         },
-        "columns": [{
-                "data": "empleado"
-            },
+        "columns": [
+            {"data": "empleado"},
             {
                 "data": "monto",
                 render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
+                    var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
                     if (type === 'display') {
-                        let color = 'green';
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
+                        let color = (data < 0) ? 'red' : 'green';
                         return '<span style="color:' + color + '">' + number + '</span>';
                     }
-
                     return number;
                 },
             },
-            {
-                "data": "nota"
-            },
-            {
-                "defaultContent": "<button class='btn btn-danger anular_vale ocultar'><span class='fas fa-ban fa-lg'></span>Anular</button>"
-            }
+            {"data": "nota"},
+            {"defaultContent": "<button class='btn btn-danger anular_vale ocultar'><span class='fas fa-ban fa-lg'></span>Anular</button>"}
         ],
         "lengthMenu": lengthMenu10,
         "stateSave": true,
         "bDestroy": true,
         "language": idioma_español,
         "dom": dom,
-        "columnDefs": [{
-                width: "45%",
-                targets: 0
-            },
-            {
-                width: "10%",
-                targets: 1
-            },
-            {
-                width: "35%",
-                targets: 2
-            },
-            {
-                width: "2%",
-                targets: 3
-            }
+        "columnDefs": [
+            { width: "45%", targets: 0 },
+            { width: "10%", targets: 1 },
+            { width: "35%", targets: 2 },
+            { width: "2%",  targets: 3 }
         ],
-        "fnRowCallback": function(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-            var number = $.fn.dataTable.render
-                .number(',', '.', 2, 'L ')
-                .display(aData['neto_importe']);
+        "fnRowCallback": function(nRow, aData) {
+            var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(aData['neto_importe']);
             $('#neto_importe').html(number);
         },
-        "buttons": [{
+        "buttons": [
+            {
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                 titleAttr: 'Actualizar Vales',
                 className: 'table_actualizar btn btn-secondary ocultar',
-                action: function() {
-                    listar_vales();
-                }
+                action: function() { listar_vales(); }
             },
             {
                 extend: 'excelHtml5',
@@ -1879,9 +1521,7 @@ var listar_vales = function() {
                 messageTop: 'Fecha: ' + convertDateFormat(today()),
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-success ocultar',
-                exportOptions: {
-                    columns: [0, 1, 2, 3]
-                }
+                exportOptions: { columns: [0,1,2,3] }
             },
             {
                 extend: 'pdf',
@@ -1892,21 +1532,21 @@ var listar_vales = function() {
                 messageTop: 'Fecha: ' + convertDateFormat(today()),
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-danger ocultar',
-                exportOptions: {
-                    columns: [0, 1, 2, 3]
-                },
+                exportOptions: { columns: [0,1,2,3] },
                 customize: function(doc) {
-                    doc.content.splice(1, 0, {
-                        margin: [0, 0, 0, 12],
-                        alignment: 'left',
-                        image: imagen,
-                        width: 100,
-                        height: 45
-                    });
+                    if (imagen) {
+                        doc.content.splice(1, 0, {
+                            margin: [0, 0, 0, 12],
+                            alignment: 'left',
+                            image: imagen,
+                            width: 100,
+                            height: 45
+                        });
+                    }
                 }
             }
         ],
-        "drawCallback": function(settings) {
+        "drawCallback": function() {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
         }
     });
@@ -1914,7 +1554,7 @@ var listar_vales = function() {
     $('#buscar').focus();
 
     anular_vale_nominas_dataTable("#DatatableVale tbody", table_vales);
-}
+};
 
 var anular_vale_nominas_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.anular_vale");
@@ -1922,76 +1562,66 @@ var anular_vale_nominas_dataTable = function(tbody, table) {
         e.preventDefault();
         var data = table.row($(this).parents("tr")).data();
 
+        // CONFIRMACIÓN → swal
         swal({
             title: "¿Estás seguro?",
-            content: {
-                element: "span",
-                attributes: {
-                    innerHTML: "¿Desea anular este vale de <strong>" + data.empleado + "</strong>?",
-                }
-            },
+            content: { element: "span", attributes: { innerHTML: "¿Desea anular este vale de <strong>" + data.empleado + "</strong>?" } },
             icon: "warning",
             buttons: {
-                cancel: {
-                    text: "Cancelar",
-                    visible: true
-                },
-                confirm: {
-                    text: "¡Sí, anular el vale!",
-                }
+                cancel: { text: "Cancelar", visible: true },
+                confirm: { text: "¡Sí, anular el vale!" }
             },
             dangerMode: true,
-            closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-            closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
+            closeOnEsc: false,
+            closeOnClickOutside: false
         }).then((willConfirm) => {
             if (willConfirm) {
                 anularVale(data.vale_id);
             }
         });
     });
-}
+};
 
 function anularVale(vale_id) {
     var url = '<?php echo SERVERURL;?>core/anularVale.php';
-
     $.ajax({
         type: "POST",
         url: url,
-        async: true,
-        data: 'vale_id=' + vale_id,
-        success: function(data) {
-            if (data == 1) {
-                showNotify('success', 'Success', 'El vale ha sido anulado correctamente');
-                listar_vales();
-            } else {
-                showNotify('error', 'Error', 'Lo sentimos, no se puede anular el vale');
-            }
+        data: { vale_id: vale_id },
+        dataType: "json",
+        cache: false
+    })
+    .done(function(res){
+        if(res.status === "success"){
+            showNotify('success', res.title || 'Éxito', res.message || 'El vale ha sido anulado correctamente');
+            if (typeof listar_vales === 'function') listar_vales();
+            if (res.run) { try { eval(res.run); } catch(e){} }
+        }else if(res.status === "unauthorized"){
+            showNotify('error', res.title || 'Sesión expirada', res.message || 'Debes iniciar sesión nuevamente.');
+            if (res.redirect) { setTimeout(function(){ window.location.href = res.redirect; }, 1200); }
+        }else{
+            showNotify('error', res.title || 'Error', res.message || 'Lo sentimos, no se puede anular el vale');
         }
+    })
+    .fail(function(){
+        showNotify('error','Error','Error de conexión al anular el vale');
     });
 }
-//FIN VALES
 
-/**
- * Función para inicializar contadores de caracteres
- * @param {Object} limites - Objeto con los límites de caracteres {campoId: limite}
- */
+/* ============================
+   Texto + Voz (contadores / speech)
+   ============================ */
 function inicializarContadores(limites) {
     Object.keys(limites).forEach(function(campo) {
-        // Usar event delegation para manejar dinámicamente los campos
         $(document).on('input', '#' + campo, function() {
             actualizarCaracteres(campo, 'charNum_' + campo, limites[campo]);
         });
-
-        // Inicializar el contador para elementos existentes
         if ($('#' + campo).length) {
             actualizarCaracteres(campo, 'charNum_' + campo, limites[campo]);
         }
     });
 }
 
-/**
- * Actualiza el contador de caracteres
- */
 function actualizarCaracteres(campo, contadorId, max_chars) {
     var $campo = $('#' + campo);
     if ($campo.length === 0) return;
@@ -2007,21 +1637,15 @@ function actualizarCaracteres(campo, contadorId, max_chars) {
     $('#' + contadorId).text(longitudTexto + '/' + max_chars);
 }
 
-/**
- * Inicializa el reconocimiento de voz para los campos especificados
- */
 function inicializarSpeechRecognition(limites) {
     Object.keys(limites).forEach(function(campo) {
-        // Ocultar botón de stop inicialmente
         $('#search_' + campo + '_stop').hide();
 
-        // Configurar reconocimiento de voz
         var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
         recognition.continuous = true;
         recognition.lang = "es-ES";
         recognition.interimResults = false;
 
-        // Event delegation para manejar dinámicamente los botones
         $(document).on('click', '#search_' + campo + '_start', function(event) {
             $(this).hide();
             $('#search_' + campo + '_stop').show();
@@ -2064,9 +1688,7 @@ function inicializarSpeechRecognition(limites) {
     });
 }
 
-// Inicialización cuando el DOM esté listo
 $(() => {
-    // Configuración de límites
     var limites = {
         'nomina_notas': 254,
         'nomina_detalles_notas': 254,
@@ -2074,11 +1696,9 @@ $(() => {
         'nominad_neto': 254
     };
 
-    // Inicializar para elementos existentes
     inicializarContadores(limites);
     inicializarSpeechRecognition(limites);
 
-    // Reinicializar cuando se muestren modales
     $('.modal').on('shown.bs.modal', function() {
         inicializarContadores(limites);
         inicializarSpeechRecognition(limites);

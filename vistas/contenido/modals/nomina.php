@@ -9,7 +9,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form class="FormularioAjax" id="formNomina" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+                <form class="" id="formNomina" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
                     <input type="hidden" id="nomina_id" name="nomina_id" class="form-control">
                     <input type="hidden" id="empresa_id" name="empresa_id" class="form-control">
                     
@@ -143,8 +143,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <div class="RespuestaAjax"></div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -174,7 +172,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form class="FormularioAjax" id="formNominaDetalles" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+                <form class="" id="formNominaDetalles" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
                     <input type="hidden" id="nomina_id" name="nomina_id" class="form-control">
                     <input type="hidden" id="hrse25_valor" name="hrse25_valor" class="form-control">
                     <input type="hidden" id="hrse50_valor" name="hrse50_valor" class="form-control">
@@ -535,8 +533,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <div class="RespuestaAjax"></div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -597,7 +593,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form class="FormularioAjax" id="formVales" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+                <form class="" id="formVales" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
                     <input type="hidden" id="vale_id" name="vale_id" class="form-control">
                     
                     <!-- Sección de Datos del Vale -->
@@ -679,8 +675,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <div class="RespuestaAjax"></div>
                 </form>
             </div>
             <div class="modal-footer">

@@ -59,7 +59,6 @@ class productosControlador extends productosModelo
             'producto'      => 'Nombre del producto',
             'tipo_producto' => 'Tipo de producto',
             'medida'        => 'Medida',
-            'precio_venta'  => 'Precio de venta'
         ];
         $missingFields = [];
         foreach ($requiredFields as $field => $name) {
@@ -80,11 +79,21 @@ class productosControlador extends productosModelo
         }
 
         // Precios válidos
-        $precioVenta = (float)mainModel::cleanString($_POST['precio_venta']);
-        if ($precioVenta <= 0) {
+        // Validar que no esté vacío ANTES de convertir
+        $precioVentaString = mainModel::cleanString($_POST['precio_venta']);
+        if ($precioVentaString === '') {
+            return mainModel::showNotification([
+                "title" => "Campos requeridos",
+                "text"  => "Los siguientes campos son obligatorios: Precio de venta",
+                "type"  => "error"
+            ]);
+        }
+
+        $precioVenta = (float)$precioVentaString;
+        if ($precioVenta < 0) {
             return mainModel::showNotification([
                 "title" => "Error en precios",
-                "text"  => "El precio de venta debe ser mayor que cero",
+                "text"  => "El precio de venta no puede ser negativo",
                 "type"  => "error"
             ]);
         }

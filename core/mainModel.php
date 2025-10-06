@@ -1864,70 +1864,72 @@ class mainModel
 	}
 
 	public function showNotification($alert) {
-		$type = $alert['type'] ?? 'error';
-		$title = $alert['title'] ?? 'Notificación';
-		$message = $alert['text'] ?? '';
-		$status = ($type === 'success') ? 'success' : 'error';
-		
-		// Permitir HTML en el mensaje si se especifica
+		// Normaliza el tipo/icono
+		$type  = strtolower($alert['type'] ?? ($alert['icon'] ?? ($alert['status'] ?? 'error')));
+	
+		// Permitimos success|warning|info|error; cualquier otro cae en 'error'
+		$allowed = ['success','warning','info','error'];
+		$status  = in_array($type, $allowed) ? $type : 'error';
+	
+		$title   = $alert['title'] ?? 'Notificación';
+		$message = $alert['text']  ?? '';
 		$allowHtml = $alert['allow_html'] ?? false;
-		
-		// Inicializar array de acciones
+	
+		// Serialización segura para JS (evita romper el script con comillas)
+		$jsTitle = json_encode($title, JSON_UNESCAPED_UNICODE);
+	
+		// Si permites HTML, usa template literal con backticks y escapa backticks del contenido
+		if ($allowHtml) {
+			$msgTpl = '`' . str_replace('`', '\`', $message) . '`';
+		} else {
+			$msgTpl = json_encode($message, JSON_UNESCAPED_UNICODE);
+		}
+	
+		// Construye acciones
 		$actions = [];
-		
-		// Notificación principal (siempre primera)
-		$notificationScript = "if (typeof showNotify === 'function') { 
-			showNotify('{$status}', '" . addslashes($title) . "', " . 
-			($allowHtml ? "`{$message}`" : "'" . addslashes($message) . "'") . ", " .
-			($allowHtml ? 'true' : 'false') . "); 
+	
+		// Notificación principal (usa el 'status' normalizado arriba)
+		$notificationScript = "if (typeof showNotify === 'function') {
+			showNotify('{$status}', {$jsTitle}, {$msgTpl}, " . ($allowHtml ? 'true' : 'false') . ");
 		}";
 		$actions[] = $notificationScript;
-		
+	
 		// Resetear formulario si se especifica
 		if (!empty($alert['form'])) {
-			$actions[] = "$('#{$alert['form']}')[0].reset();";
-			
-			// Resetear también selects con selectpicker si existen
-			$actions[] = "$('#{$alert['form']}').find('.selectpicker').selectpicker('refresh');";
+			$formId = addslashes($alert['form']);
+			$actions[] = "$('#{$formId}')[0].reset();";
+			$actions[] = "$('#{$formId}').find('.selectpicker').selectpicker('refresh');";
 		}
-		
-		// Ejecutar funciones adicionales si se especifican
+	
+		// Ejecutar funciones adicionales si se especifican (separadas por ;)
 		if (!empty($alert['funcion'])) {
 			$functions = array_filter(explode(';', $alert['funcion']));
 			foreach ($functions as $func) {
 				$func = trim($func);
 				if (!empty($func)) {
-					$actions[] = "try { 
-						if (typeof " . explode('(', $func)[0] . " === 'function') { 
-							{$func}; 
-						}
-					} catch (e) {
-						console.error('Error al ejecutar función: {$func}', e); 
-					}";
+					// evita reventar si la función no existe
+					$fnName = explode('(', $func)[0];
+					$actions[] = "try {
+						if (typeof {$fnName} === 'function') { {$func}; }
+					} catch (e) { console.error('Error al ejecutar función: " . addslashes($func) . "', e); }";
 				}
 			}
 		}
-		
+	
 		// Cerrar modales si se solicita
 		if (!empty($alert['closeAllModals'])) {
 			$actions[] = "$('.modal').modal('hide');";
 		}
-		
+	
 		// Redireccionar si se especifica
 		if (!empty($alert['redirect'])) {
 			$redirectUrl = addslashes($alert['redirect']);
-			$actions[] = "setTimeout(function() {
-				window.location.href = '{$redirectUrl}';
-			}, 1500);";
+			$actions[] = "setTimeout(function(){ window.location.href = '{$redirectUrl}'; }, 1500);";
 		}
-		
+	
 		// Generar UN solo script
-		return "<script>
-			(function() {
-				" . implode("\n", $actions) . "
-			})();
-		</script>";
-	}
+		return "<script>(function(){\n" . implode("\n", $actions) . "\n})();</script>";
+	}	
 
 	function cerrar_sesion()
 	{

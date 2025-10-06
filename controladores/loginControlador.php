@@ -1,4 +1,5 @@
 <?php
+	//loginControlador.php
     if($peticionAjax){		
         require_once "../modelos/loginModel.php";	
 		require_once "../core/Database.php";	
@@ -217,32 +218,81 @@
 			return json_encode($datos);
 		}		
 		
-		public function cerrar_sesion_controlador(){
-			if(!isset($_SESSION['user_sd'])){ 
-				session_start(['name'=>'SD']); 
-			}
-		
-			$token = $_SESSION['server_token'];
-			$hora = date("H:m:s");
-		
-			$datos = [
-				"usuario" => $_SESSION['user_sd'],
-				"token_s" => $_SESSION['token_sd'],
-				"token" => $token,
-				"codigo" => $_SESSION['codigo_bitacora_sd'],
-				"hora" => $hora,                
-			];
-		
-			mainModel::guardar_historial_accesos("Cierre de Sesion");
-		
-			$resultado_cierre = loginModel::cerrar_sesion_modelo($datos);
-			
-			if ($resultado_cierre == 1) {
-				return 1; // Sesion cerrada correctamente
-			} else {
-				return 0; // Error al cerrar la sesión
-			}
-		}		
+	/* ============================
+   Cerrar sesión (compat 1/0)
+   ============================ */
+	public function cerrar_sesion_controlador($tokenParam = null){
+		// Asegura sesión iniciada
+		if(session_status() !== PHP_SESSION_ACTIVE){
+			session_start(['name'=>'SD']);
+		}
+
+		// Token de la sesión
+		$tokenSesion = $_SESSION['server_token'] ?? '';
+		// Si enviaron un token por parámetro, úsalo para validar (opcional)
+		$token = $tokenParam ?: $tokenSesion;
+
+		$hora = date("H:i:s");
+
+		$datos = [
+			"usuario" => $_SESSION['user_sd']         ?? '',
+			"token_s" => $_SESSION['token_sd']        ?? '',
+			"token"   => $token,
+			"codigo"  => $_SESSION['codigo_bitacora_sd'] ?? '',
+			"hora"    => $hora,
+		];
+
+		// Guarda historial (no debe romper logout si falla)
+		@mainModel::guardar_historial_accesos("Cierre de Sesion");
+
+		// Intento normal vía modelo
+		$ok = 0;
+		try{
+			$ok = loginModel::cerrar_sesion_modelo($datos);
+		}catch(Throwable $e){
+			$ok = 0;
+		}
+
+		// Siempre limpia la sesión (fallback)
+		$_SESSION = [];
+		if (ini_get("session.use_cookies")) {
+			$params = session_get_cookie_params();
+			setcookie(session_name(), '', time() - 42000,
+				$params["path"], $params["domain"],
+				$params["secure"], $params["httponly"]
+			);
+		}
+		@session_destroy();
+
+		// 1 = ok, 0 = error (compatibilidad con código viejo)
+		return ($ok == 1) ? 1 : 0;
+	}
+
+	/* =========================================
+	Cerrar sesión (JSON robusto para AJAX)
+	========================================= */
+	public function cerrar_sesion_controlador_json($tokenParam = null){
+		// Asegura sesión iniciada
+		if(session_status() !== PHP_SESSION_ACTIVE){
+			session_start(['name'=>'SD']);
+		}
+
+		$result = $this->cerrar_sesion_controlador($tokenParam);
+		if ($result == 1) {
+			return json_encode([
+				'ok'       => true,
+				'message'  => 'Sesión cerrada correctamente.',
+				'redirect' => SERVERURL . 'login/'
+			], JSON_UNESCAPED_UNICODE);
+		} else {
+			// Aunque el modelo haya fallado, la sesión fue destruida arriba (fallback)
+			return json_encode([
+				'ok'       => true,
+				'message'  => 'Sesión cerrada (forzada).',
+				'redirect' => SERVERURL . 'login/'
+			], JSON_UNESCAPED_UNICODE);
+		}
+	}	
 		
 		public function forzar_cierre_sesion_controlador(){
 			// Verificar si la sesión no está activa

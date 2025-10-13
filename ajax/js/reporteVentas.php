@@ -575,6 +575,7 @@
         data: { "fechai": fechai, "fechaf": fechaf, "productos_id": productos_id, "colaboradores_id": colaboradores_id }
       },
       columns: [
+        { data: "Fecha" },
         { data: "Producto" },
         { data: "numero" },
         { data: "Cliente" },

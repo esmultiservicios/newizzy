@@ -72,6 +72,7 @@
                    class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
               <thead>
                 <tr>
+                  <th>Fecha</th>
                   <th>Producto</th>
                   <th>Factura</th>
                   <th>Cliente</th>

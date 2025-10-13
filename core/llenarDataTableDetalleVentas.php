@@ -40,7 +40,8 @@
 			"Descuento"=>$row['Descuento'],
 			"Total"=>$row['Total'],
 			"Vendedor"=>$row['Vendedor'],
-			"Cliente"=>$row['Cliente']		  
+			"Cliente"=>$row['Cliente'],
+			"Fecha"=>$row['Fecha']
 		);		
 	}
 	

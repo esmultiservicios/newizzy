@@ -3298,6 +3298,7 @@ class mainModel
 		// Construir la consulta base
 		$query = "
 				SELECT 
+					f.fecha AS Fecha,
 					CASE 
 						WHEN sf.documento_id = 4 THEN CONCAT('PROFORMA-', sf.prefijo, '', LPAD(f.number, sf.relleno, 0))
 						ELSE CONCAT(sf.prefijo, '', LPAD(f.number, sf.relleno, 0))

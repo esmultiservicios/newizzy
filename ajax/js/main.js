@@ -1011,7 +1011,13 @@ window.addEventListener('beforeunload', function(e) {
     }
 });
 // FIN DETECCIÓN DE CIERRE DE NAVEGADOR
-// FIN DETECCIÓN DE CIERRE DE NAVEGADOR
+
+// === Render de moneda: UI bonito, export/sort/filter como número ===
+function moneyCell(data, type) {
+  const val = Number(data ?? 0);
+  if (type === 'export' || type === 'sort' || type === 'filter') return val; // <- número
+  return 'L ' + val.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
 // Visor de imágenes genérico (BS4/BS5)
 // Requiere en el DOM un modal .image-viewer-modal con .iv-img .iv-title .iv-open .iv-download .iv-close

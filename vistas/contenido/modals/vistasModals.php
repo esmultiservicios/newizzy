@@ -3531,7 +3531,7 @@
                                     </select>
                                     <small class="form-text text-muted">Tipo o clasificación del producto</small>
                                 </div>
-                                <div class="col-md-3 mb-3 confCategoria" style="display:none;">
+                                <div class="col-md-3 mb-3 confCategoria">
                                     <label for="producto_categoria"><i class="fas fa-folder mr-1"></i>Categoria</label>
                                     <select class="selectpicker form-control" id="producto_categoria" name="producto_categoria" required data-live-search="true" title="Seleccione categoría">
                                     </select>

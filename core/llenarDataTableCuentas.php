@@ -29,12 +29,7 @@ while ($row = $result->fetch_assoc()) {
 
 	$result_ingresos = $insMainModel->getCuentasIngresos($datos);
 	$row_ingresos = $result_ingresos->fetch_assoc();
-	$ingreso = $row_ingresos['ingresos'];
-
-	// Obtener el año de la fecha anterior
-	$fecha_anterior = date('Y-m-d', strtotime('-1 month', strtotime($_POST['fechai'])));
-	$año_anterior = date('Y', strtotime($fecha_anterior));
-	$mes_anterior = date('m', strtotime($fecha_anterior));
+	$ingreso = isset($row_ingresos['ingresos']) ? (float)$row_ingresos['ingresos'] : 0.0;
 
 	/* ####################################################################################### */
 	$result_saldo_anterior = $insMainModel->getSaldoMovimientosCuentasSaldoAnterior($datos);
@@ -44,46 +39,50 @@ while ($row = $result->fetch_assoc()) {
 
 	if ($result_saldo_anterior->num_rows > 0) {
 		$row_saldo_anterior = $result_saldo_anterior->fetch_assoc();
-		$saldo_anterior = $result_saldo_anterior->num_rows > 0 ? $row_saldo_anterior['saldo'] : 0.0;
+		$saldo_anterior = isset($row_saldo_anterior['saldo']) ? (float)$row_saldo_anterior['saldo'] : 0.0;
 	} else {
 		// Consultamos el último saldo de la cuenta
 		$result_ultimo_saldo = $insMainModel->getSaldoMovimientosCuentasUltimoSaldo($datos);
 
 		if ($result_ultimo_saldo->num_rows > 0) {
 			$row_ultimo_saldo = $result_ultimo_saldo->fetch_assoc();
-			$saldo_anterior = $row_ultimo_saldo['saldo'];
+			$saldo_anterior = isset($row_ultimo_saldo['saldo']) ? (float)$row_ultimo_saldo['saldo'] : 0.0;
 			$fecha = $row_ultimo_saldo['fecha'];
 
 			// Consultamos los registros anteriores a la fecha del último saldo
 			$result_ultimo_fecha_valores = $insMainModel->getSaldoMovimientosCuentasUltimaFecha($cuentas_id, $fecha);
 
 			if ($result_ultimo_fecha_valores->num_rows > 0) {
-				$saldo_anterior = $row_ultimo_saldo['saldo'];
+				$saldo_anterior = isset($row_ultimo_saldo['saldo']) ? (float)$row_ultimo_saldo['saldo'] : 0.0;
 			} else {
-				$saldo_anterior = 0;
+				$saldo_anterior = 0.0;
 			}
 		}
 	}
 
 	$result_egresos = $insMainModel->getCuentaEgresos($datos);
 	$row_egresos = $result_egresos->fetch_assoc();
-	$egreso = $row_egresos['egresos'];
+	$egreso = isset($row_egresos['egresos']) ? (float)$row_egresos['egresos'] : 0.0;
 
 	$saldo_cierre = $ingreso - $egreso;
-
 	$neto = $saldo_anterior + $saldo_cierre;
 
-	// Asegurarse de que las variables no sean null antes de usar number_format
-	$saldo_anterior = (is_null($saldo_anterior)) ? 0.0 : $saldo_anterior;
-	$ingreso = (is_null($ingreso)) ? 0.0 : $ingreso;
-	$egreso = (is_null($egreso)) ? 0.0 : $egreso;
-	$saldo_cierre = (is_null($saldo_cierre)) ? 0.0 : $saldo_cierre;
-	$neto = (is_null($neto)) ? 0.0 : $neto;
+	// Asegurarse de que nunca sean null
+	$saldo_anterior = is_null($saldo_anterior) ? 0.0 : (float)$saldo_anterior;
+	$ingreso = is_null($ingreso) ? 0.0 : (float)$ingreso;
+	$egreso = is_null($egreso) ? 0.0 : (float)$egreso;
+	$saldo_cierre = is_null($saldo_cierre) ? 0.0 : (float)$saldo_cierre;
+	$neto = is_null($neto) ? 0.0 : (float)$neto;
 
 	$data[] = array(
 		'cuentas_id' => $cuentas_id,
 		'codigo' => $row['codigo'],
 		'nombre' => $row['nombre'],
+		'saldo_anterior_valor' => $saldo_anterior,
+		'ingreso_valor' => $ingreso,
+		'egreso_valor' => $egreso,
+		'saldo_cierre_valor' => $saldo_cierre,
+		'neto_valor' => $neto,
 		'saldo_anterior' => 'L. ' . number_format($saldo_anterior, 2),
 		'ingreso' => 'L. ' . number_format($ingreso, 2),
 		'egreso' => 'L. ' . number_format($egreso, 2),
@@ -92,6 +91,18 @@ while ($row = $result->fetch_assoc()) {
 		'estado' => $estado,
 	);
 }
+
+/*
+|--------------------------------------------------------------------------
+| ORDENAR POR SALDO TOTAL (NETO) DE MAYOR A MENOR
+|--------------------------------------------------------------------------
+*/
+usort($data, function($a, $b) {
+	if ($a['neto_valor'] == $b['neto_valor']) {
+		return 0;
+	}
+	return ($a['neto_valor'] < $b['neto_valor']) ? 1 : -1;
+});
 
 $arreglo = array(
 	'echo' => 1,

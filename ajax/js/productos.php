@@ -73,6 +73,151 @@ $(function initApp() {
     applyIsvMainState(); // aplica estado al cargar
   }
 
+
+  // ===============================
+  // EDITAR CÓDIGO DE BARRA PRODUCTO
+  // ===============================
+  $(document).on('click', '#grupo_editar_bacode .editar_barcode', function (e) {
+      e.preventDefault();
+
+      const productoId = $('#formProductos input[name="productos_id"]').val();
+      const producto = $('#formProductos input[name="producto"]').val();
+      const barcode = $('#formProductos input[name="bar_code_product"]').val();
+
+      if (!productoId || productoId === '0') {
+          if (typeof showNotify === 'function') {
+              showNotify(
+                  "warning",
+                  "Advertencia",
+                  "Primero debe seleccionar o editar un producto existente para cambiar el código de barra."
+              );
+          } else {
+              alert("Primero debe seleccionar o editar un producto existente para cambiar el código de barra.");
+          }
+          return;
+      }
+
+      $('#formEditarBarcode input[name="productos_id"]').val(productoId);
+      $('#formEditarBarcode input[name="pro_barcode"]').val('Editar Código de Barra');
+      $('#formEditarBarcode input[name="producto"]').val(producto);
+      $('#formEditarBarcode input[name="barcode"]').val(barcode);
+
+      $('#modalEditarBarcode').modal({
+          show: true,
+          keyboard: false,
+          backdrop: 'static'
+      });
+
+      setTimeout(function () {
+          $('#formEditarBarcode input[name="barcode"]').focus().select();
+      }, 500);
+  });
+
+
+  // ===============================
+  // GUARDAR CÓDIGO DE BARRA POR AJAX
+  // ===============================
+  $(document).off('submit', '#formEditarBarcode').on('submit', '#formEditarBarcode', function (e) {
+      e.preventDefault();
+
+      const productoId = $('#formEditarBarcode input[name="productos_id"]').val();
+      const barcode = $('#formEditarBarcode input[name="barcode"]').val().trim();
+
+      if (!productoId || productoId === '0') {
+          showNotify("warning", "Advertencia", "No se recibió el ID del producto.");
+          return;
+      }
+
+      if (barcode === '') {
+          showNotify("warning", "Advertencia", "Ingrese el código de barra.");
+          $('#formEditarBarcode input[name="barcode"]').focus();
+          return;
+      }
+
+      if (barcode === '0') {
+          showNotify("warning", "Advertencia", "El código de barra no puede ser cero.");
+          $('#formEditarBarcode input[name="barcode"]').focus().select();
+          return;
+      }
+
+      if (barcode.length > 100) {
+          showNotify("warning", "Advertencia", "El código de barra no puede superar los 100 caracteres.");
+          $('#formEditarBarcode input[name="barcode"]').focus().select();
+          return;
+      }
+
+      const $btn = $('#editar_barcode');
+      const textoOriginal = $btn.html();
+
+      $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Guardando...');
+
+      $.ajax({
+          url: '<?php echo SERVERURL; ?>core/productos/editarBarcodeAjax.php',
+          type: 'POST',
+          dataType: 'json',
+          data: {
+              productos_id: productoId,
+              barcode: barcode
+          },
+          success: function (response) {
+              if (response && (response.success === true || response.status === true)) {
+                  showNotify("success", "Éxito", response.message || "Código de barra actualizado correctamente");
+
+                  // Actualiza el campo principal del formulario de productos
+                  $('#formProductos input[name="bar_code_product"]').val(response.barcode || barcode);
+
+                  // Cierra modal
+                  $('#modalEditarBarcode').modal('hide');
+
+                  // Refresca DataTable de productos si existe
+                  if ($.fn.DataTable && $.fn.DataTable.isDataTable('#dataTableProductos')) {
+                      $('#dataTableProductos').DataTable().ajax.reload(null, false);
+                  }
+
+                  if ($.fn.DataTable && $.fn.DataTable.isDataTable('#DatatableProductos')) {
+                      $('#DatatableProductos').DataTable().ajax.reload(null, false);
+                  }
+
+                  if ($.fn.DataTable && $.fn.DataTable.isDataTable('#tablaProductos')) {
+                      $('#tablaProductos').DataTable().ajax.reload(null, false);
+                  }
+
+              } else {
+                  showNotify("error", "Error", response.message || "No se pudo actualizar el código de barra");
+              }
+          },
+          error: function (xhr) {
+              let mensaje = "Error al actualizar el código de barra";
+
+              if (xhr.responseJSON && xhr.responseJSON.message) {
+                  mensaje = xhr.responseJSON.message;
+              } else if (xhr.responseText) {
+                  try {
+                      const json = JSON.parse(xhr.responseText);
+                      if (json.message) {
+                          mensaje = json.message;
+                      }
+                  } catch (e) {
+                      console.error(xhr.responseText);
+                  }
+              }
+
+              showNotify("error", "Error", mensaje);
+          },
+          complete: function () {
+              $btn.prop('disabled', false).html(textoOriginal);
+          }
+      });
+  });
+
+
+  // ===============================
+  // LIMPIAR MODAL AL CERRAR
+  // ===============================
+  $('#modalEditarBarcode').on('hidden.bs.modal', function () {
+      $('#formEditarBarcode')[0].reset();
+  });
+
   /* Seteo seguro al abrir “Editar”
     - Soporta respuesta como array (datos[?]) o como objeto (datos.isv1/isv2)
   */

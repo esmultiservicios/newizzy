@@ -5961,7 +5961,7 @@ function hardResetModalState(){
 }
 
 /* ABRIR MODAL */
-function pago(facturas_id, tipoPago, origen){
+function pago(facturas_id, tipoPago, origen, totalManual, clienteManual) {
   const $m = $('#modal_pagos_unificado');
   const url = '<?php echo SERVERURL;?>core/editarPagoFacturas.php';
 
@@ -5977,46 +5977,354 @@ function pago(facturas_id, tipoPago, origen){
   $.ajax({
     type    : 'POST',
     url     : url,
-    data    : { facturas_id },
+    data    : { facturas_id: facturas_id },
     dataType: 'json'
-  }).done(function(datos){
-    const info = extractPagoData(datos);
-    $m.find('#customer-name-bill').text(info.cliente || '—');
-    $m.find('#customer_bill_pay').val(fixed2(info.total || 0));
-    $m.find('#bill-pay').text('L. ' + fmtMiles(info.total || 0));
+  }).done(function(datos) {
+    console.log('[DEBUG pago editarPagoFacturas.php]', datos);
 
-    configurarFormularioEfectivo(facturas_id, CURRENT_TIPO_PAGO, info.total, CURRENT_ORIGEN);
-    configurarFormularioTarjeta(facturas_id, CURRENT_TIPO_PAGO, info.total, CURRENT_ORIGEN);
-    configurarFormularioTransferencia(facturas_id, CURRENT_TIPO_PAGO, info.total, CURRENT_ORIGEN);
-    configurarFormularioCheque(facturas_id, CURRENT_TIPO_PAGO, info.total, CURRENT_ORIGEN);
-    configurarFormularioPuntos(facturas_id, CURRENT_TIPO_PAGO, info.total, CURRENT_ORIGEN);
+    const info = extractPagoDataRobusto(datos, totalManual, clienteManual);
+
+    const cliente = info.cliente || '—';
+    const total   = parseMontoSeguro(info.total);
+
+    $m.find('#customer-name-bill').text(cliente);
+    $m.find('#customer_bill_pay').val(fixed2Seguro(total));
+    $m.find('#bill-pay').text('L. ' + fmtMilesSeguro(total));
+
+    $m.data('clientePago', cliente);
+    $m.data('totalPago', total);
+
+    configurarFormularioEfectivo(facturas_id, CURRENT_TIPO_PAGO, total, CURRENT_ORIGEN);
+    configurarFormularioTarjeta(facturas_id, CURRENT_TIPO_PAGO, total, CURRENT_ORIGEN);
+    configurarFormularioTransferencia(facturas_id, CURRENT_TIPO_PAGO, total, CURRENT_ORIGEN);
+    configurarFormularioCheque(facturas_id, CURRENT_TIPO_PAGO, total, CURRENT_ORIGEN);
+    configurarFormularioPuntos(facturas_id, CURRENT_TIPO_PAGO, total, CURRENT_ORIGEN);
+
+    limpiarMontosPagoUnificado();
 
     goToStep(1);
-    $m.modal({ show:true, keyboard:false, backdrop:'static' });
 
-    // Refuerzo: NO cerrar con ESC ni click fuera
-    $m.off('keydown.blockEsc').on('keydown.blockEsc', function(e){
-      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); }
+    $m.modal({
+      show: true,
+      keyboard: false,
+      backdrop: 'static'
     });
-    $m.off('click.stopBackdrop').on('click.stopBackdrop', function(e){
-      if ($(e.target).is('.modal')) { e.preventDefault(); e.stopPropagation(); }
+
+    $m.off('keydown.blockEsc').on('keydown.blockEsc', function(e) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+      }
     });
+
+    $m.off('click.stopBackdrop').on('click.stopBackdrop', function(e) {
+      if ($(e.target).is('.modal')) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
+
     try {
       const modalData = $m.data('bs.modal');
-      if (modalData && modalData._config){
+      if (modalData && modalData._config) {
         modalData._config.backdrop = 'static';
         modalData._config.keyboard = false;
       }
-    } catch(_){}
+    } catch (_) {}
 
-    if ($.fn.selectpicker) { setTimeout(()=>{ $m.find('.selectpicker').selectpicker('refresh'); }, 250); }
-  }).fail(function(){
-    handleServerResponse({status:false,title:'Error',message:'No se pudieron cargar los datos del pago'});
+    if ($.fn.selectpicker) {
+      setTimeout(function() {
+        $m.find('.selectpicker').selectpicker('refresh');
+      }, 250);
+    }
+
+    setTimeout(function() {
+      syncPaymentConfirm();
+    }, 300);
+
+  }).fail(function(xhr) {
+    console.error('[ERROR pago editarPagoFacturas.php]', xhr.responseText);
+
+    handleServerResponse({
+      status: false,
+      title: 'Error',
+      message: 'No se pudieron cargar los datos del pago'
+    });
   });
 }
 
+
+/* ===============================
+   NORMALIZAR DATOS DEL PAGO
+   =============================== */
+function extractPagoDataRobusto(datos, totalManual, clienteManual) {
+  let row = datos;
+
+  if (Array.isArray(datos)) {
+    row = datos.length > 0 ? datos[0] : {};
+  } else if (datos && Array.isArray(datos.data)) {
+    row = datos.data.length > 0 ? datos.data[0] : {};
+  } else if (datos && Array.isArray(datos.datos)) {
+    row = datos.datos.length > 0 ? datos.datos[0] : {};
+  } else if (datos && datos.data && typeof datos.data === 'object') {
+    row = datos.data;
+  } else if (datos && datos.datos && typeof datos.datos === 'object') {
+    row = datos.datos;
+  } else if (datos && datos.factura && typeof datos.factura === 'object') {
+    row = datos.factura;
+  } else if (datos && datos.result && typeof datos.result === 'object') {
+    row = datos.result;
+  }
+
+  row = row || {};
+
+  let cliente =
+    row.cliente ||
+    row.nombre_cliente ||
+    row.clientes_nombre ||
+    row.nombre ||
+    row.customer ||
+    row.customer_name ||
+    row.razon_social ||
+    row.cliente_nombre ||
+    '';
+
+  let total =
+    row.total ||
+    row.importe ||
+    row.total_factura ||
+    row.pagar ||
+    row.saldo ||
+    row.monto ||
+    row.total_pagar ||
+    row.valor ||
+    0;
+
+  if ((!cliente || cliente === '—') && clienteManual) {
+    cliente = clienteManual;
+  }
+
+  if ((!total || parseMontoSeguro(total) <= 0) && typeof totalManual !== 'undefined' && totalManual !== null) {
+    total = totalManual;
+  }
+
+  return {
+    cliente: cliente,
+    total: parseMontoSeguro(total)
+  };
+}
+
+
+/* ===============================
+   HELPERS DE MONTO SEGUROS
+   =============================== */
+function parseMontoSeguro(valor) {
+  if (typeof parseMonto === 'function') {
+    return parseMonto(valor);
+  }
+
+  if (valor === null || typeof valor === 'undefined') return 0;
+
+  let limpio = String(valor)
+    .replace(/L\./gi, '')
+    .replace(/,/g, '')
+    .replace(/[^\d.-]/g, '')
+    .trim();
+
+  let n = parseFloat(limpio);
+  return isNaN(n) ? 0 : n;
+}
+
+function fixed2Seguro(valor) {
+  if (typeof fixed2 === 'function') {
+    return fixed2(valor);
+  }
+
+  return parseMontoSeguro(valor).toFixed(2);
+}
+
+function fmtMilesSeguro(valor) {
+  if (typeof fmtMiles === 'function') {
+    return fmtMiles(valor);
+  }
+
+  return new Intl.NumberFormat('es-HN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(parseMontoSeguro(valor));
+}
+
+
+/* ===============================
+   LIMPIAR MONTOS DEL MODAL
+   =============================== */
+function limpiarMontosPagoUnificado() {
+  const $m = $('#modal_pagos_unificado');
+
+  $m.find('#formEfectivoBill #efectivo_bill').val('');
+  $m.find('#formEfectivoBill #cambio_efectivo').val('');
+
+  $m.find('#formTarjetaBill #importe_tarjeta').val('');
+  $m.find('#formTarjetaBill #monto_efectivo_tarjeta').val('');
+
+  $m.find('#formTransferenciaBill #importe_transferencia').val('');
+  $m.find('#formChequeBill #importe_cheque').val('');
+
+  $m.find('#formPuntosBill #puntos_uso').val('');
+  $m.find('#formPuntosBill #puntos_usar').val('');
+  $m.find('#formPuntosBill #equivalente_puntos').val('');
+  $m.find('#formPuntosBill #importe_puntos').val('0');
+
+  syncPaymentConfirm();
+}
+
+
+/* ===============================
+   CALCULAR RESUMEN / CAMBIO
+   =============================== */
+function calcularResumenPagosUnificado() {
+  const $m = $('#modal_pagos_unificado');
+
+  const totalFactura = parseMontoSeguro($m.find('#customer_bill_pay').val());
+
+  const efectivoRecibido = parseMontoSeguro($m.find('#formEfectivoBill #efectivo_bill').val());
+  const transferencia    = parseMontoSeguro($m.find('#formTransferenciaBill #importe_transferencia').val());
+  const cheque           = parseMontoSeguro($m.find('#formChequeBill #importe_cheque').val());
+  let tarjeta            = parseMontoSeguro($m.find('#formTarjetaBill #importe_tarjeta').val());
+  let puntos             = parseMontoSeguro($m.find('#formPuntosBill #importe_puntos').val());
+
+  if (SELECTED_METHODS && SELECTED_METHODS.has && SELECTED_METHODS.has('card') && tarjeta <= 0) {
+    tarjeta = parseMontoSeguro($m.find('#formTarjetaBill #monto_efectivo_tarjeta').val());
+  }
+
+  const totalNoEfectivo = transferencia + cheque + tarjeta + puntos;
+  const faltanteCubiertoConEfectivo = Math.max(0, totalFactura - totalNoEfectivo);
+  const cambio = Math.max(0, efectivoRecibido - faltanteCubiertoConEfectivo);
+
+  const efectivoAplicado = Math.max(0, efectivoRecibido - cambio);
+  const totalAplicado = efectivoAplicado + totalNoEfectivo;
+  const diferencia = totalFactura - totalAplicado;
+
+  $m.find('#formEfectivoBill #cambio_efectivo').val(cambio > 0 ? fixed2Seguro(cambio) : '');
+
+  return {
+    totalFactura: totalFactura,
+    efectivoRecibido: efectivoRecibido,
+    efectivoAplicado: efectivoAplicado,
+    cambio: cambio,
+    transferencia: transferencia,
+    cheque: cheque,
+    tarjeta: tarjeta,
+    puntos: puntos,
+    totalNoEfectivo: totalNoEfectivo,
+    totalAplicado: totalAplicado,
+    diferencia: diferencia
+  };
+}
+
+
+/* ===============================
+   ACTUALIZAR CONFIRMACIÓN
+   =============================== */
+function syncPaymentConfirm() {
+  const $m = $('#modal_pagos_unificado');
+
+  const cliente = $m.find('#customer-name-bill').text().trim() || '—';
+  const resumen = calcularResumenPagosUnificado();
+
+  $m.find('#confirm-customer-name').text(cliente);
+  $m.find('#confirm-total-amount').text('L. ' + fmtMilesSeguro(resumen.totalFactura));
+  $m.find('#confirm-print-option').text($m.find('#comprobante_print_switch').is(':checked') ? 'Sí' : 'No');
+  $m.find('#confirm-multi-option').text($m.find('#pagos_multiples_switch').is(':checked') ? 'Activado' : 'Desactivado');
+
+  let html = '';
+
+  if (SELECTED_METHODS && SELECTED_METHODS.has && SELECTED_METHODS.has('cash')) {
+    html += `
+      <div class="confirm-method-row">
+        <span><i class="fas fa-circle text-primary mr-1"></i> Efectivo recibido</span>
+        <strong>L. ${fmtMilesSeguro(resumen.efectivoRecibido)}</strong>
+      </div>
+    `;
+
+    if (resumen.cambio > 0) {
+      html += `
+        <div class="confirm-method-row text-success">
+          <span><i class="fas fa-circle text-success mr-1"></i> Cambio</span>
+          <strong>L. ${fmtMilesSeguro(resumen.cambio)}</strong>
+        </div>
+      `;
+    }
+
+    html += `
+      <div class="confirm-method-row">
+        <span><i class="fas fa-circle text-info mr-1"></i> Efectivo aplicado</span>
+        <strong>L. ${fmtMilesSeguro(resumen.efectivoAplicado)}</strong>
+      </div>
+    `;
+  }
+
+  if (SELECTED_METHODS && SELECTED_METHODS.has && SELECTED_METHODS.has('card')) {
+    html += `
+      <div class="confirm-method-row">
+        <span><i class="fas fa-circle text-primary mr-1"></i> Tarjeta</span>
+        <strong>L. ${fmtMilesSeguro(resumen.tarjeta)}</strong>
+      </div>
+    `;
+  }
+
+  if (SELECTED_METHODS && SELECTED_METHODS.has && SELECTED_METHODS.has('transfer')) {
+    html += `
+      <div class="confirm-method-row">
+        <span><i class="fas fa-circle text-primary mr-1"></i> Transferencia</span>
+        <strong>L. ${fmtMilesSeguro(resumen.transferencia)}</strong>
+      </div>
+    `;
+  }
+
+  if (SELECTED_METHODS && SELECTED_METHODS.has && SELECTED_METHODS.has('check')) {
+    html += `
+      <div class="confirm-method-row">
+        <span><i class="fas fa-circle text-primary mr-1"></i> Cheque</span>
+        <strong>L. ${fmtMilesSeguro(resumen.cheque)}</strong>
+      </div>
+    `;
+  }
+
+  if (SELECTED_METHODS && SELECTED_METHODS.has && SELECTED_METHODS.has('points')) {
+    html += `
+      <div class="confirm-method-row">
+        <span><i class="fas fa-circle text-warning mr-1"></i> Puntos</span>
+        <strong>L. ${fmtMilesSeguro(resumen.puntos)}</strong>
+      </div>
+    `;
+  }
+
+  if (html.trim() === '') {
+    html = `
+      <div class="confirm-method-row">
+        <span><i class="fas fa-circle text-muted mr-1"></i> Sin método aplicado</span>
+        <strong>L. 0.00</strong>
+      </div>
+    `;
+  }
+
+  $m.find('#confirm-methods-list').html(html);
+  $m.find('#confirm-total-apply').text('L. ' + fmtMilesSeguro(resumen.totalAplicado));
+
+  const diferenciaAbs = Math.abs(resumen.diferencia);
+  $m.find('#confirm-difference').text('L. ' + fmtMilesSeguro(diferenciaAbs));
+
+  if (diferenciaAbs <= 0.01) {
+    $m.find('#difference-line').removeClass('text-danger').addClass('text-success');
+  } else {
+    $m.find('#difference-line').removeClass('text-success').addClass('text-danger');
+  }
+}
+
+
 /* INIT */
-$(function(){
+$(function() {
   const $m = $('#modal_pagos_unificado');
   $m.find('[data-toggle="tooltip"]').tooltip();
 
@@ -6034,41 +6342,71 @@ $(function(){
         .confirm-submit-btn { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border: none; }
         .focus-field { border-color: #007bff !important; box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25) !important; }
         .error-field { border-color: #dc3545 !important; box-shadow: 0 0 0 0.2rem rgba(220,53,69,.25) !important; }
+        .confirm-method-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px dashed #dbe5ef; gap: 12px; }
+        .confirm-method-row:last-child { border-bottom: 0; }
+        .confirm-method-row strong { white-space: nowrap; }
       </style>
     `;
     $('head').append(buttonStyles);
   }
 
   // Selección de métodos
-  $m.on('click keypress', '#paymentMethodsGrid .method-card', function(e){
+  $m.on('click keypress', '#paymentMethodsGrid .method-card', function(e) {
     if (e.type === 'click' || (e.type === 'keypress' && (e.which === 13 || e.which === 32))) {
       const method = $(this).data('method');
       toggleMethod(method);
-      if (CURRENT_STEP === 2) setTimeout(async ()=> { await focusFirstFieldFor(method); }, 120);
+
+      syncPaymentConfirm();
+
+      if (CURRENT_STEP === 2) {
+        setTimeout(async function() {
+          await focusFirstFieldFor(method);
+        }, 120);
+      }
     }
   });
 
   // Navegación pasos
-  $m.find('#btnPrev').on('click', function(){
-    if (CURRENT_STEP === 2) goToStep(1);
-    else if (CURRENT_STEP === 3) goToStep(2);
-  });
-  $m.find('#btnNext').on('click', function(){
-    if (CURRENT_STEP === 1){
-      if (SELECTED_METHODS.size===0){
-        handleServerResponse({status:false,title:'Atención',message:'Selecciona al menos un método.'});
-        setTimeout(()=> focusFirstFieldFor('cash'), 220);
-        return;
-      }
+  $m.find('#btnPrev').on('click', function() {
+    if (CURRENT_STEP === 2) {
+      goToStep(1);
+    } else if (CURRENT_STEP === 3) {
       goToStep(2);
-    }else if (CURRENT_STEP === 2){
-      if (!validateBeforeConfirm()) return;
-      goToStep(3);
     }
   });
 
-  // Masks (MISMAS que tenías, con opciones para no borrar input)
-  if ($.fn.inputmask){
+  $m.find('#btnNext').on('click', function() {
+    if (CURRENT_STEP === 1) {
+      if (SELECTED_METHODS.size === 0) {
+        handleServerResponse({
+          status: false,
+          title: 'Atención',
+          message: 'Selecciona al menos un método.'
+        });
+
+        setTimeout(function() {
+          focusFirstFieldFor('cash');
+        }, 220);
+
+        return;
+      }
+
+      goToStep(2);
+    } else if (CURRENT_STEP === 2) {
+      syncPaymentConfirm();
+
+      if (!validateBeforeConfirm()) {
+        return;
+      }
+
+      syncPaymentConfirm();
+      goToStep(3);
+      setTimeout(syncPaymentConfirm, 100);
+    }
+  });
+
+  // Masks
+  if ($.fn.inputmask) {
     $m.find('#formTarjetaBill #cr_bill').inputmask('9999', {
       placeholder: '',
       clearIncomplete: false,
@@ -6076,6 +6414,7 @@ $(function(){
       showMaskOnHover: false,
       showMaskOnFocus: false
     });
+
     $m.find('#formTarjetaBill #exp').inputmask('99/99', {
       placeholder: '',
       clearIncomplete: false,
@@ -6083,6 +6422,7 @@ $(function(){
       showMaskOnHover: false,
       showMaskOnFocus: false
     });
+
     $m.find('#formTarjetaBill #cvcpwd').inputmask('999999', {
       placeholder: '',
       clearIncomplete: false,
@@ -6093,91 +6433,147 @@ $(function(){
   }
 
   // Switch imprimir comprobante
-  $m.on('change', '#comprobante_print_switch', function(){
+  $m.on('change', '#comprobante_print_switch', function() {
     const on = $(this).is(':checked');
+
     $(this).val(on ? 1 : 0);
     $m.find('.comprobante_print_value').val(on ? 1 : 0);
     $m.find('#label_print_comprobant').text(on ? 'Sí' : 'No');
+
+    syncPaymentConfirm();
   });
 
-  // Switch pagos múltiples => setear tipo_factura en todos los forms
-  $m.on('change', '#pagos_multiples_switch', function(){
+  // Switch pagos múltiples
+  $m.on('change', '#pagos_multiples_switch', function() {
     const on = $(this).is(':checked');
+
     $(this).val(on ? 1 : 0);
     $m.find('.multiple_pago').val(on ? 1 : 0);
     $m.find('#label_pagos_multiples').text(on ? 'Activado' : 'Desactivado');
 
     const tipo = on ? 2 : 1;
+
     $('#formEfectivoBill #tipo_factura, \
        #formTarjetaBill #tipo_factura, \
        #formTransferenciaBill #tipo_factura_transferencia, \
        #formChequeBill #tipo_factura_cheque, \
        #formPuntosBill #tipo_factura_puntos').val(tipo);
 
-    if (!on && SELECTED_METHODS.size > 1){
-      const keep = LAST_SELECTED && SELECTED_METHODS.has(LAST_SELECTED) ? LAST_SELECTED : Array.from(SELECTED_METHODS)[0];
+    if (!on && SELECTED_METHODS.size > 1) {
+      const keep = LAST_SELECTED && SELECTED_METHODS.has(LAST_SELECTED)
+        ? LAST_SELECTED
+        : Array.from(SELECTED_METHODS)[0];
+
       SELECTED_METHODS = new Set([keep]);
     }
 
     configurarFormularioEfectivo(
       CURRENT_FACTURA_ID,
       $('#formEfectivoBill #tipo_factura').val() || 1,
-      parseMonto($('#customer_bill_pay').val()),
+      parseMontoSeguro($('#customer_bill_pay').val()),
       $('#formEfectivoBill #origen_pago').val() || 0
     );
 
     updateMethodsUI();
-    if (CURRENT_STEP === 2) showDetailsForSelected();
+
+    if (CURRENT_STEP === 2) {
+      showDetailsForSelected();
+    }
+
+    syncPaymentConfirm();
   });
 
-  // Entradas numéricas
-  $m.on('input', '#formEfectivoBill #efectivo_bill', function(e){
-    const cur = e.target.selectionStart, orig = $(this).val(), clean = normalizarMontoEntrada(orig);
+  // Efectivo
+  $m.on('input', '#formEfectivoBill #efectivo_bill', function(e) {
+    const cur = e.target.selectionStart;
+    const orig = $(this).val();
+    const clean = normalizarMontoEntrada(orig);
+
     $(this).val(clean);
-    try{ e.target.setSelectionRange(cur+(clean.length-orig.length), cur+(clean.length-orig.length)); }catch(_){}
+
+    try {
+      e.target.setSelectionRange(cur + (clean.length - orig.length), cur + (clean.length - orig.length));
+    } catch (_) {}
+
     calcularCambioEfectivo();
-  });
-  $m.on('blur', '#efectivo_bill', function(){
-    const v = $(this).val(); if (v) $(this).val(fixed2(v));
-    calcularCambioEfectivo();
+    syncPaymentConfirm();
   });
 
-  $m.on('input', '#formTransferenciaBill #importe_transferencia, #formChequeBill #importe_cheque, #formTarjetaBill #importe_tarjeta', function(e){
-    const cur = e.target.selectionStart, orig = $(this).val(), clean = normalizarMontoEntrada(orig);
-    $(this).val(clean);
-    try{ e.target.setSelectionRange(cur+(clean.length-orig.length), cur+(clean.length-orig.length)); }catch(_){}
+  $m.on('blur', '#formEfectivoBill #efectivo_bill', function() {
+    const v = $(this).val();
+
+    if (v) {
+      $(this).val(fixed2Seguro(v));
+    }
+
+    calcularCambioEfectivo();
+    syncPaymentConfirm();
   });
-  $m.on('blur', '#importe_transferencia, #importe_cheque, #importe_tarjeta', function(){
-    const v = $(this).val(); if (v) $(this).val(fixed2(v));
+
+  // Transferencia / Cheque / Tarjeta
+  $m.on('input', '#formTransferenciaBill #importe_transferencia, #formChequeBill #importe_cheque, #formTarjetaBill #importe_tarjeta, #formTarjetaBill #monto_efectivo_tarjeta', function(e) {
+    const cur = e.target.selectionStart;
+    const orig = $(this).val();
+    const clean = normalizarMontoEntrada(orig);
+
+    $(this).val(clean);
+
+    try {
+      e.target.setSelectionRange(cur + (clean.length - orig.length), cur + (clean.length - orig.length));
+    } catch (_) {}
+
+    syncPaymentConfirm();
+  });
+
+  $m.on('blur', '#formTransferenciaBill #importe_transferencia, #formChequeBill #importe_cheque, #formTarjetaBill #importe_tarjeta, #formTarjetaBill #monto_efectivo_tarjeta', function() {
+    const v = $(this).val();
+
+    if (v) {
+      $(this).val(fixed2Seguro(v));
+    }
+
+    syncPaymentConfirm();
   });
 
   // Puntos
-  $m.on('input', '#formPuntosBill #puntos_uso, #formPuntosBill #puntos_usar', function(){
-    let val = (this.value || '').replace(/[^\d]/g,'');
+  $m.on('input', '#formPuntosBill #puntos_uso, #formPuntosBill #puntos_usar', function() {
+    let val = (this.value || '').replace(/[^\d]/g, '');
     this.value = val;
-    const pts  = parseInt(val || '0', 10);
-    const disp = parseFloat(($m.find('#formPuntosBill #puntos_disponibles').val() || '0').replace(',','.')) || 0;
-    const monto = parseMonto($m.find('#customer_bill_pay').val());
+
+    const pts = parseInt(val || '0', 10);
+    const disp = parseFloat(($m.find('#formPuntosBill #puntos_disponibles').val() || '0').replace(',', '.')) || 0;
+    const monto = parseMontoSeguro($m.find('#customer_bill_pay').val());
+
     const ptsCap = Math.max(0, Math.min(pts, Math.floor(disp)));
-    if (ptsCap !== pts) this.value = String(ptsCap);
+
+    if (ptsCap !== pts) {
+      this.value = String(ptsCap);
+    }
+
     const eq = Math.min(ptsCap * VALOR_POR_PUNTO, monto);
-    $m.find('#formPuntosBill #equivalente_puntos').val(fixed2(eq));
-    $m.find('#formPuntosBill #importe_puntos').val(fixed2(eq));
+
+    $m.find('#formPuntosBill #equivalente_puntos').val(fixed2Seguro(eq));
+    $m.find('#formPuntosBill #importe_puntos').val(fixed2Seguro(eq));
     $m.find('#pago_puntos').prop('disabled', !(eq > 0));
+
+    syncPaymentConfirm();
   });
 
   // Validación HTML5 en formularios
-  $m.on('submit', '.FormularioAjax', function(e){
+  $m.on('submit', '.FormularioAjax', function(e) {
     const $form = $(this);
     let isValid = true;
     let firstInvalid = null;
 
-    $form.find('input[required]').each(function(){
+    $form.find('input[required]').each(function() {
       if (!this.value.trim()) {
         this.setCustomValidity('Este campo es requerido');
         this.reportValidity();
         isValid = false;
-        if (!firstInvalid) { firstInvalid = this; }
+
+        if (!firstInvalid) {
+          firstInvalid = this;
+        }
       } else {
         this.setCustomValidity('');
       }
@@ -6185,41 +6581,59 @@ $(function(){
 
     if (!isValid) {
       e.preventDefault();
+
       if (firstInvalid) {
-        setTimeout(() => { forceFocus('#' + firstInvalid.id); }, 120);
+        setTimeout(function() {
+          forceFocus('#' + firstInvalid.id);
+        }, 120);
       }
+
       return false;
     }
   });
 
   // Al abrir modal
-  $m.on('shown.bs.modal', function(){
-    setTimeout(() => { $('#paymentMethodsGrid .method-card.default-focus').focus(); }, 220);
+  $m.on('shown.bs.modal', function() {
+    setTimeout(function() {
+      $('#paymentMethodsGrid .method-card.default-focus').focus();
+      syncPaymentConfirm();
+    }, 220);
   });
 
-  // Al cerrar modal => reset duro
-  $m.on('hidden.bs.modal', function(){
+  // Al cerrar modal
+  $m.on('hidden.bs.modal', function() {
     hardResetModalState();
   });
 
   // Efectos visuales focus
-  $m.on('changeStep', function(e, step){
+  $m.on('changeStep', function(e, step) {
     if (step === 2) {
-      setTimeout(async () => {
+      setTimeout(async function() {
         const method = (SELECTED_METHODS.size > 1)
           ? (LAST_SELECTED && SELECTED_METHODS.has(LAST_SELECTED) ? LAST_SELECTED : Array.from(SELECTED_METHODS)[0])
           : Array.from(SELECTED_METHODS)[0];
+
         await focusFirstFieldFor(method);
+        syncPaymentConfirm();
       }, 220);
     }
+
+    if (step === 3) {
+      syncPaymentConfirm();
+    }
   });
-  $m.on('focus', 'input[type="text"], input[type="number"], input[type="tel"], input[type="password"]', function(){
-    if (CURRENT_STEP === 2) $(this).addClass('focus-field');
+
+  $m.on('focus', 'input[type="text"], input[type="number"], input[type="tel"], input[type="password"]', function() {
+    if (CURRENT_STEP === 2) {
+      $(this).addClass('focus-field');
+    }
   });
-  $m.on('blur', 'input[type="text"], input[type="number"], input[type="tel"], input[type="password"]', function(){
+
+  $m.on('blur', 'input[type="text"], input[type="number"], input[type="tel"], input[type="password"]', function() {
     $(this).removeClass('focus-field');
   });
 });
+
 /* FIN NUEVO PAGO */
 
 

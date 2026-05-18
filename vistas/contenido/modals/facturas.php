@@ -149,87 +149,73 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
 </div>
 <!-- FIN MODAL AYUDA (PRO) -->
 
-<!--INICIO MODAL PARA MODIFICAR PRECIO FACTURAS-->
-<div class="modal fade" id="modalModificarPrecioFacturacion">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Modificar Precio Producto</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+<!-- Inicio Modal para editar precio -->
+<div class="modal fade" id="editarPrecioModal" tabindex="-1" role="dialog" aria-labelledby="editarPrecioModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h4 class="modal-title" id="editarPrecioModalLabel">
+          <i class="fas fa-dollar-sign"></i> Editar Precio
+        </h4>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <form id="editar-precio-form">
+          <input type="hidden" id="producto-precio-index" value="">
+
+          <div class="form-group mb-3">
+            <label for="nuevo-precio-producto" class="form-label">Nuevo precio de venta</label>
+            <div class="input-group">
+              <span class="input-group-text">L.</span>
+              <input type="number" class="form-control" id="nuevo-precio-producto" min="0.01" step="0.01" placeholder="0.00">
             </div>
-            <div class="container"></div>
-            <div class="modal-body">
-                <form class="form-horizontal" id="formModificarPrecioFacturacion" action="" method="POST" data-form=""
-                    enctype="multipart/form-data">
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <input type="hidden" required="required" readonly id="modificar_precio_productos_id"
-                                name="modificar_precio_productos_id" class="form-control" />
-                            <input type="hidden" required="required" readonly id="modificar_precio_clientes_id"
-                                name="modificar_precio_clientes_id" class="form-control" />
-                            <input type="hidden" required="required" readonly id="modificar_precio_fecha"
-                                name="modificar_precio_fecha" class="form-control" />
-                            <input type="hidden" required="required" readonly id="row_index" name="row_index"
-                                class="form-control" />
-                            <input type="hidden" required="required" readonly id="col_index" name="col_index"
-                                class="form-control" />
-                            <input type="hidden" required="required" readonly id="modificar_precio_isv_aplica"
-                                name="modificar_precio_isv_aplica" class="form-control" />
-                            <input type="hidden" required="required" readonly id="modificar_precio_isv_valor"
-                                name="modificar_precio_isv_valor" class="form-control" />
-                            <div class="input-group mb-3">
-                                <input type="text" required readonly id="pro_modificar_precio"
-                                    name="pro_modificar_precio" class="form-control" />
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fa fa-plus-square fa-lg"></i>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
+            <small class="text-muted">Este cambio aplica solo a la línea actual de la factura/proforma.</small>
+          </div>
+
+          <div class="form-group mb-0">
+            <label class="form-label">Vista previa</label>
+
+                <div id="precio-total-preview" class="precio-preview-box">
+                    <div class="precio-preview-item">
+                    <span>Subtotal</span>
+                    <strong id="preview-subtotal">L. 0.00</strong>
                     </div>
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="producto_modificar_precio_fact">Producto <span
-                                    class="priority">*<span /></label>
-                            <input type="text" readonly required id="producto_modificar_precio_fact"
-                                name="producto_modificar_precio_fact" placeholder="Producto" class="form-control"
-                                maxlength="11"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
-                        </div>
+
+                    <div class="precio-preview-item">
+                    <span>ISV 15%</span>
+                    <strong id="preview-isv15">L. 0.00</strong>
                     </div>
-                    <div class="form-row">
-                        <div class="col-md-6 mb-3">
-                            <label for="referencia_modificar_precio_fact">Referencia <span
-                                    class="priority">*<span /></label>
-                            <input type="text" required id="referencia_modificar_precio_fact"
-                                name="referencia_modificar_precio_fact" placeholder="Referencia y/o Número de Documento"
-                                class="form-control" maxlength="30"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="precio_modificar_precio_fact">Precio <span class="priority">*<span /></label>
-                            <input type="text" required id="precio_modificar_precio_fact"
-                                name="precio_modificar_precio_fact" placeholder="Precio" class="form-control"
-                                maxlength="11"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
-                        </div>
+
+                    <div class="precio-preview-item">
+                    <span>ISV 18%</span>
+                    <strong id="preview-isv18">L. 0.00</strong>
                     </div>
-                    <div class="RespuestaAjax"></div>
-                </form>
+
+                    <div class="precio-preview-item total">
+                    <span>Total</span>
+                    <strong id="preview-total">L. 0.00</strong>
+                    </div>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button class="guardar btn btn-primary ml-2" type="submit" style="display: none;"
-                    id="reg_modificar_precio_fact" form="formModificarPrecioFacturacion">
-                    <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
-                </button>
-            </div>
-        </div>
+
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+          <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+        </button>
+        <button type="button" class="btn btn-primary" id="guardar-precio">
+          <i class="far fa-save fa-lg mr-1"></i> Guardar
+        </button>
+      </div>
     </div>
+  </div>
 </div>
-<!--FIN MODAL PARA MODIFICAR PRECIO FACTURAS-->
+<!-- Fin Modal para editar precio -->
 
 <!--INICIO MODAL PARA FORMULARIO DESCUENTOS EN FACTURACION-->
 <div class="modal fade" id="modalDescuentoFacturacion">

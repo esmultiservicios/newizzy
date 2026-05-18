@@ -29,7 +29,7 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="cliente-select" class="form-label">Cliente</label>
-                                    <select class="form-control selectpicker" id="cliente-select" data-live-search="true" title="Seleccione un cliente" data-size="5" equired>
+                                    <select class="form-control selectpicker" id="cliente-select" data-live-search="true" title="Seleccione un cliente" data-size="5" required>
                                         <!-- Opciones se llenarán con JS -->
                                     </select>
                                 </div>
@@ -47,15 +47,39 @@
                         <!-- Tipo de Factura -->
                         <div class="form-group mb-3">
                             <label class="form-label">Tipo de Factura</label>
-                            <div class="d-flex">
-                                <div class="form-check me-3">
+                            <div class="d-flex flex-wrap">
+                                <div class="form-check me-3 mr-3">
                                     <input class="form-check-input" type="radio" name="tipo-factura" id="contado" value="1" checked>
                                     <label class="form-check-label" for="contado">Contado</label>
                                 </div>
-                                <div class="form-check">
+                                <div class="form-check me-3 mr-3">
                                     <input class="form-check-input" type="radio" name="tipo-factura" id="credito" value="2">
                                     <label class="form-check-label" for="credito">Crédito</label>
                                 </div>
+                            </div>
+
+                            <!-- Checkbox de Proforma: se muestra y se marca por defecto si config.Activar Proforma = 1 -->
+                            <div class="form-check mt-2 d-none" id="tipo-proforma-wrapper">
+                                <input class="form-check-input" type="checkbox" id="proforma" value="1" disabled>
+                                <label class="form-check-label font-weight-bold" for="proforma">
+                                    Proforma
+                                </label>
+                                <small class="text-muted d-block">
+                                    Si está marcado, se registrará como proforma y no abrirá modal de pago.
+                                </small>
+                            </div>
+
+                            <!-- Opciones solo para proforma -->
+                            <div class="alert alert-warning mt-2 mb-0 d-none" id="proforma-opciones">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="proforma-bajar-inventario" value="1">
+                                    <label class="form-check-label" for="proforma-bajar-inventario">
+                                        Rebajar inventario con esta proforma
+                                    </label>
+                                </div>
+                                <small class="d-block mt-1">
+                                    Normalmente una proforma no rebaja inventario. Marque esta opción solo si desea descontar existencia.
+                                </small>
                             </div>
                         </div>
 
@@ -240,17 +264,17 @@
 
           <ul class="nav nav-tabs" id="descuento-tab" role="tablist">
             <li class="nav-item" role="presentation">
-              <button class="nav-link active" id="monto-tab" data-bs-toggle="tab" data-bs-target="#monto-tab-pane" type="button" role="tab" aria-controls="monto-tab-pane" aria-selected="true">
+              <button class="nav-link active" id="monto-tab" data-toggle="tab" data-target="#monto-tab-pane" type="button" role="tab" aria-controls="monto-tab-pane" aria-selected="true">
                 <i class="fas fa-coins"></i> Por monto
               </button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link" id="porcentaje-tab" data-bs-toggle="tab" data-bs-target="#porcentaje-tab-pane" type="button" role="tab" aria-controls="porcentaje-tab-pane" aria-selected="false">
+              <button class="nav-link" id="porcentaje-tab" data-toggle="tab" data-target="#porcentaje-tab-pane" type="button" role="tab" aria-controls="porcentaje-tab-pane" aria-selected="false">
                 <i class="fas fa-percentage"></i> Por porcentaje
               </button>
             </li>
           </ul>
-          
+
           <div class="tab-content mt-3" id="myTabContent">
             <div class="tab-pane fade show active" id="monto-tab-pane" role="tabpanel" aria-labelledby="monto-tab" tabindex="0">
               <div class="mb-3">
@@ -261,7 +285,7 @@
                 </div>
               </div>
             </div>
-            
+
             <div class="tab-pane fade" id="porcentaje-tab-pane" role="tabpanel" aria-labelledby="porcentaje-tab" tabindex="0">
               <div class="mb-3">
                 <label for="nuevo-descuento-porcentaje" class="form-label">Descuento (%)</label>
@@ -282,6 +306,73 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times fa-lg mr-1"></i> Cancelar</button>
         <button type="button" class="btn btn-primary" id="guardar-descuento"><i class="far fa-save fa-lg mr-1"></i> Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para editar precio -->
+<div class="modal fade" id="editarPrecioModal" tabindex="-1" role="dialog" aria-labelledby="editarPrecioModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h4 class="modal-title" id="editarPrecioModalLabel">
+          <i class="fas fa-dollar-sign"></i> Editar Precio
+        </h4>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <form id="editar-precio-form">
+          <input type="hidden" id="producto-precio-index" value="">
+
+          <div class="form-group mb-3">
+            <label for="nuevo-precio-producto" class="form-label">Nuevo precio de venta</label>
+            <div class="input-group">
+              <span class="input-group-text">L.</span>
+              <input type="number" class="form-control" id="nuevo-precio-producto" min="0.01" step="0.01" placeholder="0.00">
+            </div>
+            <small class="text-muted">Este cambio aplica solo a la línea actual de la factura/proforma.</small>
+          </div>
+
+          <div class="form-group mb-0">
+            <label class="form-label">Vista previa</label>
+
+            <div id="precio-total-preview" class="precio-preview-box">
+              <div class="precio-preview-item">
+                <span>Subtotal</span>
+                <strong id="preview-subtotal">L. 0.00</strong>
+              </div>
+
+              <div class="precio-preview-item">
+                <span>ISV 15%</span>
+                <strong id="preview-isv15">L. 0.00</strong>
+              </div>
+
+              <div class="precio-preview-item">
+                <span>ISV 18%</span>
+                <strong id="preview-isv18">L. 0.00</strong>
+              </div>
+
+              <div class="precio-preview-item total">
+                <span>Total</span>
+                <strong id="preview-total">L. 0.00</strong>
+              </div>
+            </div>
+          </div>
+          
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+          <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+        </button>
+        <button type="button" class="btn btn-primary" id="guardar-precio">
+          <i class="far fa-save fa-lg mr-1"></i> Guardar
+        </button>
       </div>
     </div>
   </div>

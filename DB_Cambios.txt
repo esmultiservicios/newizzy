@@ -1,3 +1,10 @@
+####17 de mayo 2026####
+INSERT INTO config (config_id, accion, activar)
+VALUES (3, 'Activar Proforma', 2);
+
+INSERT INTO config (config_id, accion, activar)
+VALUES (4, 'Activar Rebajar Inventario Proforma', 2);
+
 ####20 de septiembre 2025####
 ALTER TABLE facturas_detalles
   ADD COLUMN isv_valor1 FLOAT(12,4) NOT NULL DEFAULT 0.0000

@@ -1,4 +1,5 @@
 <?php	
+   //addFacturaAjax.php
 	$peticionAjax = true;
 	require_once "../core/configGenerales.php";
 	if(isset($_POST['cliente_id']) && isset($_POST['cliente']) && isset($_POST['fecha']) && isset($_POST['colaborador_id']) && isset($_POST['colaborador'])){

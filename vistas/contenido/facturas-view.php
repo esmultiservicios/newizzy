@@ -168,13 +168,35 @@
                                     </div>
 
                                     <?php if ($_SESSION['planes_id_sistema'] != 1): ?>
-                                        <div class="d-flex align-items-center mr-3" id="facturas_proforma_container">
-                                            <label class="col-form-label mr-2 mb-0" for="facturas_proforma">¿Generar factura Proforma?</label>
-                                            <label class="switch mb-0" data-toggle="tooltip" data-placement="top" title="Factura Proforma">
-                                                <input type="checkbox" id="facturas_proforma" name="facturas_proforma" value="1">
-                                                <div class="slider round"></div>
-                                            </label>
-                                            <span class="question mb-0 ml-1" id="label_facturas_proforma"></span>
+                                        <!-- BLOQUE PROFORMA -->
+                                        <div class="proforma-ui-box d-flex flex-wrap align-items-center mr-3" id="facturas_proforma_container">
+
+                                            <div class="d-flex align-items-center mr-3 mb-2 mb-md-0">
+                                                <label class="col-form-label mr-2 mb-0 font-weight-bold" for="facturas_proforma">
+                                                    ¿Generar factura Proforma?
+                                                </label>
+
+                                                <label class="switch mb-0" data-toggle="tooltip" data-placement="top" title="Factura Proforma">
+                                                    <input type="checkbox" id="facturas_proforma" name="facturas_proforma" value="1">
+                                                    <div class="slider round"></div>
+                                                </label>
+
+                                                <span class="badge badge-light ml-2 px-3 py-2" id="label_facturas_proforma">No</span>
+                                            </div>
+
+                                            <div class="d-flex align-items-center proforma-inventario-box" id="proforma_rebajar_inventario_container" style="display:none !important;">
+                                                <label class="col-form-label mr-2 mb-0 font-weight-bold" for="bajar_inventario_proforma">
+                                                    ¿Rebajar inventario?
+                                                </label>
+
+                                                <label class="switch mb-0" data-toggle="tooltip" data-placement="top" title="Si activa esta opción, la proforma rebajará inventario">
+                                                    <input type="checkbox" id="proforma_bajar_inventario" name="proforma_bajar_inventario" value="1">
+                                                    <div class="slider round"></div>
+                                                </label>
+
+                                                <span class="badge badge-light ml-2 px-3 py-2" id="label_bajar_inventario_proforma">No</span>
+                                            </div>
+
                                         </div>
                                     <?php endif; ?>
 

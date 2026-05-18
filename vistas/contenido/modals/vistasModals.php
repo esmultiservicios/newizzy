@@ -2162,15 +2162,34 @@
                                     <small class="form-text text-muted">Ingrese el nombre completo o razón social (como aparece en documentos legales)</small>
                                 </div>
                                 <div class="col-md-4 mb-3">
-                                    <label for="identidad_clientes"><i class="fas fa-id-card mr-1"></i> Identidad/RTN</label>
-                                    <div class="input-group">
-                                        <input type="number" class="form-control" id="identidad_clientes" name="identidad_clientes" placeholder="Número de identidad o RTN" maxlength="14" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
-                                        <div class="input-group-append" id="grupo_editar_rtn">
-                                            <button type="button" class="btn btn-success editar_rtn" data-toggle="tooltip" title="Editar RTN">
-                                                <i class="fas fa-edit"></i>
+                                    <label for="identidad_clientes">
+                                        <i class="fas fa-id-card mr-1"></i> Identidad/RTN
+                                    </label>
+
+                                    <div class="input-group rtn-input-group">
+                                        <input 
+                                            type="number" 
+                                            class="form-control" 
+                                            id="identidad_clientes" 
+                                            name="identidad_clientes" 
+                                            placeholder="Número de identidad o RTN" 
+                                            maxlength="14" 
+                                            oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);"
+                                        >
+
+                                        <div class="input-group-append" id="grupo_editar_rtn_clientes">
+                                            <button 
+                                                type="button" 
+                                                class="btn btn-success editar_rtn btn-editar-rtn" 
+                                                data-toggle="tooltip" 
+                                                title="Editar RTN"
+                                            >
+                                                <i class="fas fa-edit mr-1"></i>
+                                                <span>Editar</span>
                                             </button>
                                         </div>
                                     </div>
+
                                     <small class="form-text text-muted">Número de identidad (13 dígitos) o RTN (14 dígitos)</small>
                                 </div>
                             </div>
@@ -2364,15 +2383,34 @@
                                     <small class="form-text text-muted">Nombre completo o razón social del proveedor</small>
                                 </div>
                                 <div class="col-md-4 mb-3">
-                                    <label for="rtn_proveedores"><i class="fas fa-id-card mr-1"></i>Identidad o RTN</label>
-                                    <div class="input-group">
-                                        <input type="number" class="form-control" id="rtn_proveedores" name="rtn_proveedores" placeholder="RTN" maxlength="14" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
-                                        <div class="input-group-append" id="grupo_editar_rtn">
-                                            <button type="button" class="btn btn-success editar_rtn" data-toggle="tooltip" title="Editar RTN">
-                                                <i class="fas fa-edit"></i>
+                                    <label for="rtn_proveedores">
+                                        <i class="fas fa-id-card mr-1"></i>Identidad o RTN
+                                    </label>
+
+                                    <div class="input-group rtn-input-group">
+                                        <input 
+                                            type="number" 
+                                            class="form-control" 
+                                            id="rtn_proveedores" 
+                                            name="rtn_proveedores" 
+                                            placeholder="RTN" 
+                                            maxlength="14" 
+                                            oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);"
+                                        >
+
+                                        <div class="input-group-append" id="grupo_editar_rtn_proveedores">
+                                            <button 
+                                                type="button" 
+                                                class="btn btn-success editar_rtn btn-editar-rtn" 
+                                                data-toggle="tooltip" 
+                                                title="Editar RTN"
+                                            >
+                                                <i class="fas fa-edit mr-1"></i>
+                                                <span>Editar</span>
                                             </button>
                                         </div>
                                     </div>
+
                                     <small class="form-text text-muted">Número de identidad (13 dígitos) o RTN (14 dígitos)</small>
                                 </div>
                             </div>
@@ -3446,17 +3484,37 @@
                         <div class="card-body">                           
                             <div class="form-row">
                                 <div class="col-md-6 mb-3">
-                                    <label for="bar_code_product"><i class="fas fa-barcode mr-1"></i>Código de Barra</label>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control" id="bar_code_product" name="bar_code_product" placeholder="Código de Barra" data-toggle="tooltip" data-placement="top" title="Si este campo está vacío o tiene el número cero el sistema genera un código de barra automáticamente siendo un valor único">
+                                    <label for="bar_code_product">
+                                        <i class="fas fa-barcode mr-1"></i>Código de Barra
+                                    </label>
+
+                                    <div class="input-group barcode-input-group">
+                                        <input 
+                                            type="text" 
+                                            class="form-control" 
+                                            id="bar_code_product" 
+                                            name="bar_code_product" 
+                                            placeholder="Código de Barra" 
+                                            data-toggle="tooltip" 
+                                            data-placement="top" 
+                                            title="Si este campo está vacío o tiene el número cero el sistema genera un código de barra automáticamente siendo un valor único"
+                                        >
+
                                         <div class="input-group-append" id="grupo_editar_bacode">
-                                            <button type="button" class="btn btn-outline-success editar_barcode" data-toggle="tooltip" title="Editar Código de Barra">
-                                                <i class="fas fa-edit"></i>
+                                            <button 
+                                                type="button" 
+                                                class="btn btn-success editar_barcode btn-editar-barcode" 
+                                                data-toggle="tooltip" 
+                                                title="Editar Código de Barra"
+                                            >
+                                                <i class="fas fa-edit mr-1"></i>
+                                                <span>Editar</span>
                                             </button>
                                         </div>
                                     </div>
+
                                     <small class="form-text text-muted">Dejar en blanco para generación automática</small>
-                                </div>                                
+                                </div>                              
                                 <div class="col-md-6 mb-3">
                                     <label for="producto"><i class="fas fa-tag mr-1"></i>Producto <span class="priority">*</span></label>
                                     <input type="text" class="form-control" id="producto" name="producto" maxlength="50" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" placeholder="Nombre del producto" required>
@@ -4187,7 +4245,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form class="form-horizontal FormularioAjax" id="formEditarBarcode" action="" method="POST" data-form="" enctype="multipart/form-data">
+                <form class="form-horizontal" id="formEditarBarcode" action="" method="POST" data-form="" enctype="multipart/form-data">
                     <!-- Sección de Información del Producto -->
                     <div class="card border-primary mb-4">
                         <div class="card-header bg-primary text-white">
@@ -4233,8 +4291,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <div class="RespuestaAjax"></div>
                 </form>
             </div>
             <div class="modal-footer">

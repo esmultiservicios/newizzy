@@ -1,4 +1,5 @@
 <script>
+    //FAactura.php - js de las facturas escritorio
 $(() => {
     // Evento para el botón de Generar Reporte
     $('#formulario_busqueda_cotizaciones').on('submit', function(e) {
@@ -1420,70 +1421,246 @@ $(() => {
 
     if (e.which === 117) { // F6 -> modificar precio
       var row_index = $(this).closest("tr").index();
-      var col_index = $(this).closest("td").index();
-      $('#formModificarPrecioFacturacion #row_index').val(row_index);
-      $('#formModificarPrecioFacturacion #col_index').val(col_index);
-
-      if ($("#invoice-form #invoiceItem #productos_id_" + row_index).val() != "") {
-        $('#formModificarPrecioFacturacion')[0].reset();
-
-        var clientes_id = $("#invoice-form #cliente_id").val();
-        var fecha       = $("#invoice-form #fecha").val();
-        var productos_id= $("#invoice-form #invoiceItem #productos_id_" + row_index).val();
-        var producto    = $("#invoice-form #invoiceItem #productName_" + row_index).val();
-
-        $('#formModificarPrecioFacturacion #modificar_precio_fecha').val(fecha);
-        $('#formModificarPrecioFacturacion #modificar_precio_clientes_id').val(clientes_id);
-        $('#formModificarPrecioFacturacion #modificar_precio_productos_id').val(productos_id);
-        $('#formModificarPrecioFacturacion #producto_modificar_precio_fact').val(producto);
-
-        $('#formModificarPrecioFacturacion #pro_modificar_precio').val("Aplicar Nuevo Precio");
-
-        getPermisosTipoUsuarioAccesosForms(getPrivilegioTipoUsuario());
-
-        $('#modalModificarPrecioFacturacion').modal({
-          show: true,
-          keyboard: false,
-          backdrop: 'static'
-        });
-      }
+      abrirEditarPrecioFacturaEscritorio(row_index);
       e.preventDefault();
     }
   });
 });
 
-$("#reg_modificar_precio_fact").on("click", function(e) {
-  e.preventDefault();
+// ======================================================
+// EDITAR PRECIO - MODAL NUEVO COMPARTIDO CON FACTURA MÓVIL
+// Modal requerido: #editarPrecioModal
+// Campos requeridos:
+//   #producto-precio-index
+//   #nuevo-precio-producto
+//   #precio-total-preview o los spans:
+//   #preview-subtotal, #preview-isv15, #preview-isv18, #preview-total
+//   #guardar-precio
+// ======================================================
+function asegurarPreviewPrecioFacturaEscritorio() {
+  var $preview = $('#precio-total-preview');
 
-  var row_index  = $('#formModificarPrecioFacturacion #row_index').val();
-  var referencia = $('#formModificarPrecioFacturacion #referencia_modificar_precio_fact').val();
-  var cantidad   = parseFloat($("#invoice-form #invoiceItem #quantity_" + row_index).val()) || 1;
-  var precioNuevo= parseFloat($('#formModificarPrecioFacturacion #precio_modificar_precio_fact').val()) || 0;
-  var descuento  = parseFloat($("#invoice-form #invoiceItem #discount_" + row_index).val()) || 0;
+  if ($preview.length && $preview.is('input')) {
+    $preview.replaceWith(
+      '<div id="precio-total-preview" class="alert alert-light border mb-0" style="line-height:1.6;">' +
+        '<div class="d-flex justify-content-between"><span>Subtotal</span><strong id="preview-subtotal">L. 0.00</strong></div>' +
+        '<div class="d-flex justify-content-between"><span>ISV 15%</span><strong id="preview-isv15">L. 0.00</strong></div>' +
+        '<div class="d-flex justify-content-between"><span>ISV 18%</span><strong id="preview-isv18">L. 0.00</strong></div>' +
+        '<hr class="my-2">' +
+        '<div class="d-flex justify-content-between font-weight-bold"><span>Total</span><strong id="preview-total">L. 0.00</strong></div>' +
+      '</div>'
+    );
+  } else if (!$preview.length) {
+    return;
+  } else if (!$('#preview-subtotal').length) {
+    $preview.html(
+      '<div class="d-flex justify-content-between"><span>Subtotal</span><strong id="preview-subtotal">L. 0.00</strong></div>' +
+      '<div class="d-flex justify-content-between"><span>ISV 15%</span><strong id="preview-isv15">L. 0.00</strong></div>' +
+      '<div class="d-flex justify-content-between"><span>ISV 18%</span><strong id="preview-isv18">L. 0.00</strong></div>' +
+      '<hr class="my-2">' +
+      '<div class="d-flex justify-content-between font-weight-bold"><span>Total</span><strong id="preview-total">L. 0.00</strong></div>'
+    );
+  }
+}
 
-  // Validación: el total de la línea no puede ser negativo
-  var base = (precioNuevo * cantidad) - descuento;
-  if (base < 0) {
-    showNotify('warning', 'Advertencia', 'El descuento supera el total de la línea con el nuevo precio');
+function formatMoneyPreviewFacturaEscritorio(value) {
+  value = parseFloat(value || 0);
+  return value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function setPrecioPreviewFacturaEscritorio(subtotal, isv15, isv18, total) {
+  asegurarPreviewPrecioFacturaEscritorio();
+
+  subtotal = parseFloat(subtotal || 0);
+  isv15 = parseFloat(isv15 || 0);
+  isv18 = parseFloat(isv18 || 0);
+  total = parseFloat(total || 0);
+
+  if ($('#preview-subtotal').length) $('#preview-subtotal').text('L. ' + formatMoneyPreviewFacturaEscritorio(subtotal));
+  if ($('#preview-isv15').length) $('#preview-isv15').text('L. ' + formatMoneyPreviewFacturaEscritorio(isv15));
+  if ($('#preview-isv18').length) $('#preview-isv18').text('L. ' + formatMoneyPreviewFacturaEscritorio(isv18));
+  if ($('#preview-total').length) $('#preview-total').text('L. ' + formatMoneyPreviewFacturaEscritorio(total));
+
+  // Compatibilidad con el modal viejo donde la vista previa era un input.
+  if ($('#precio-total-preview').length && $('#precio-total-preview').is('input')) {
+    $('#precio-total-preview').val(
+      'Subtotal: L. ' + formatMoneyPreviewFacturaEscritorio(subtotal) +
+      ' | ISV 15%: L. ' + formatMoneyPreviewFacturaEscritorio(isv15) +
+      ' | ISV 18%: L. ' + formatMoneyPreviewFacturaEscritorio(isv18) +
+      ' | Total: L. ' + formatMoneyPreviewFacturaEscritorio(total)
+    );
+  }
+}
+
+function limpiarPrecioPreviewFacturaEscritorio() {
+  asegurarPreviewPrecioFacturaEscritorio();
+
+  if ($('#preview-subtotal').length) $('#preview-subtotal').text('L. 0.00');
+  if ($('#preview-isv15').length) $('#preview-isv15').text('L. 0.00');
+  if ($('#preview-isv18').length) $('#preview-isv18').text('L. 0.00');
+  if ($('#preview-total').length) $('#preview-total').text('L. 0.00');
+
+  if ($('#precio-total-preview').length && $('#precio-total-preview').is('input')) {
+    $('#precio-total-preview').val('');
+  }
+}
+
+function obtenerPorcentajeISVFacturaEscritorio(isvId) {
+  var porcentaje = 0;
+
+  if (typeof fetchISVPercentSync === 'function') {
+    porcentaje = parseFloat(fetchISVPercentSync(isvId)) || 0;
+  }
+
+  if (porcentaje <= 0 && typeof getPorcentajeISV === 'function' && isvId === 1) {
+    porcentaje = parseFloat(getPorcentajeISV('Facturas')) || 0;
+  }
+
+  // Fallback seguro para no romper vista previa si la consulta global no existe.
+  if (porcentaje <= 0) {
+    if (parseInt(isvId, 10) === 1) porcentaje = 15;
+    if (parseInt(isvId, 10) === 2) porcentaje = 18;
+  }
+
+  return porcentaje;
+}
+
+function abrirEditarPrecioFacturaEscritorio(row_index) {
+  row_index = parseInt(row_index, 10);
+
+  if (Number.isNaN(row_index) || row_index < 0) {
+    showNotify('error', 'Error', 'No se pudo identificar la línea del producto');
     return;
   }
 
-  // Asignar nuevo precio a la fila
-  $("#invoice-form #invoiceItem #price_" + row_index).val(precioNuevo.toFixed(2));
+  var productos_id = $('#invoice-form #invoiceItem #productos_id_' + row_index).val();
+  var producto = $('#invoice-form #invoiceItem #productName_' + row_index).val();
+  var precioActual = parseFloat($('#invoice-form #invoiceItem #price_' + row_index).val()) || 0;
 
-  // (Opcional pero recomendado) actualiza el precio real base para no “rebotar”
-  // cuando cambie la cantidad y se evalúe mayoreo:
-  $("#invoice-form #invoiceItem #precio_real_" + row_index).val(precioNuevo.toFixed(2));
+  if (!productos_id || productos_id === '0') {
+    showNotify('error', 'Error', 'Debe seleccionar un producto antes de modificar el precio');
+    return;
+  }
 
-  // Guarda referencia
-  $("#invoice-form #invoiceItem #referenciaProducto_" + row_index).val(referencia || '');
+  $('#producto-precio-index').val(row_index);
+  $('#nuevo-precio-producto').val(precioActual > 0 ? precioActual.toFixed(2) : '');
 
-  // Recalcular ISV por línea (usa flags isv1_flag_/isv2_flag_ y los % de la tabla isv)
+  if ($('#editarPrecioModalLabel').length) {
+    $('#editarPrecioModalLabel').html('<i class="fas fa-dollar-sign"></i> Editar Precio');
+  }
+
+  actualizarVistaNuevoPrecioFacturaEscritorio();
+
+  $('#editarPrecioModal').modal({
+    show: true,
+    keyboard: false,
+    backdrop: 'static'
+  });
+}
+
+function actualizarVistaNuevoPrecioFacturaEscritorio() {
+  var row_index = parseInt($('#producto-precio-index').val(), 10);
+  var nuevoPrecio = parseFloat($('#nuevo-precio-producto').val()) || 0;
+
+  if (Number.isNaN(row_index) || row_index < 0 || nuevoPrecio <= 0) {
+    limpiarPrecioPreviewFacturaEscritorio();
+    return;
+  }
+
+  var cantidad = parseFloat($('#invoice-form #invoiceItem #quantity_' + row_index).val()) || 1;
+  var descuento = parseFloat($('#invoice-form #invoiceItem #discount_' + row_index).val()) || 0;
+  var grava = parseInt($('#invoice-form #invoiceItem #isv_' + row_index).val() || '0', 10);
+  var flag1 = parseInt($('#isv1_flag_' + row_index).val() || '0', 10) === 1;
+  var flag2 = parseInt($('#isv2_flag_' + row_index).val() || '0', 10) === 1;
+
+  var subtotal = (nuevoPrecio * cantidad) - descuento;
+  if (subtotal < 0) subtotal = 0;
+
+  var isv15 = 0;
+  var isv18 = 0;
+
+  if (grava === 1 && flag1) {
+    var p1 = obtenerPorcentajeISVFacturaEscritorio(1);
+    isv15 = subtotal * (p1 / 100);
+  }
+
+  if (grava === 1 && flag2) {
+    var p2 = obtenerPorcentajeISVFacturaEscritorio(2);
+    isv18 = subtotal * (p2 / 100);
+  }
+
+  var total = subtotal + isv15 + isv18;
+
+  setPrecioPreviewFacturaEscritorio(subtotal, isv15, isv18, total);
+}
+
+function guardarPrecioFacturaEscritorio() {
+  var row_index = parseInt($('#producto-precio-index').val(), 10);
+  var nuevoPrecio = parseFloat($('#nuevo-precio-producto').val()) || 0;
+
+  if (Number.isNaN(row_index) || row_index < 0) {
+    showNotify('error', 'Error', 'No se pudo identificar la línea del producto');
+    return;
+  }
+
+  if (nuevoPrecio <= 0) {
+    showNotify('warning', 'Advertencia', 'El precio debe ser mayor a cero');
+    $('#nuevo-precio-producto').focus();
+    return;
+  }
+
+  var cantidad = parseFloat($('#invoice-form #invoiceItem #quantity_' + row_index).val()) || 1;
+  var descuentoActual = parseFloat($('#invoice-form #invoiceItem #discount_' + row_index).val()) || 0;
+  var totalLinea = nuevoPrecio * cantidad;
+
+  if (descuentoActual > totalLinea) {
+    showNotify('warning', 'Advertencia', 'El descuento actual es mayor al nuevo precio total. Ajuste primero el descuento.');
+    return;
+  }
+
+  $('#invoice-form #invoiceItem #price_' + row_index).val(nuevoPrecio.toFixed(2));
+  $('#invoice-form #invoiceItem #precio_real_' + row_index).val(nuevoPrecio.toFixed(2));
+
   (async () => {
-    await recalcularISVLinea(row_index); // alias de recalcISVForRow(row_index)
-    calculateTotalFacturas();            // refresca Subtotal, Descuento, ISV15, ISV18 y Total
-    $('#modalModificarPrecioFacturacion').modal('hide');
+    await recalcularISVLinea(row_index);
+    calculateTotalFacturas();
+    $('#editarPrecioModal').modal('hide');
+    showNotify('success', 'Éxito', 'Precio actualizado correctamente');
   })();
+}
+
+$(document).off('input.editarPrecioFacturaEscritorio keyup.editarPrecioFacturaEscritorio change.editarPrecioFacturaEscritorio', '#nuevo-precio-producto');
+$(document).on('input.editarPrecioFacturaEscritorio keyup.editarPrecioFacturaEscritorio change.editarPrecioFacturaEscritorio', '#nuevo-precio-producto', function () {
+  actualizarVistaNuevoPrecioFacturaEscritorio();
+});
+
+$(document).off('click.guardarPrecioFacturaEscritorio', '#guardar-precio');
+$(document).on('click.guardarPrecioFacturaEscritorio', '#guardar-precio', function (e) {
+  e.preventDefault();
+  guardarPrecioFacturaEscritorio();
+});
+
+$(document).off('keydown.guardarPrecioFacturaEscritorio', '#editarPrecioModal #nuevo-precio-producto');
+$(document).on('keydown.guardarPrecioFacturaEscritorio', '#editarPrecioModal #nuevo-precio-producto', function (e) {
+  if (e.which === 13) {
+    e.preventDefault();
+    guardarPrecioFacturaEscritorio();
+  }
+});
+
+$('#editarPrecioModal').off('shown.bs.modal.editarPrecioFacturaEscritorio');
+$('#editarPrecioModal').on('shown.bs.modal.editarPrecioFacturaEscritorio', function () {
+  $('#nuevo-precio-producto').trigger('focus').select();
+});
+
+$('#editarPrecioModal').off('hidden.bs.modal.editarPrecioFacturaEscritorio');
+$('#editarPrecioModal').on('hidden.bs.modal.editarPrecioFacturaEscritorio', function () {
+  if ($('#editar-precio-form').length && $('#editar-precio-form')[0]) {
+    $('#editar-precio-form')[0].reset();
+  }
+
+  limpiarPrecioPreviewFacturaEscritorio();
+  $('#producto-precio-index').val('');
 });
 // ===== FIN CAMBIAR PRECIO A PRODUCTO EN FACTURACION =====
 //FIN FACTURAS
@@ -1512,30 +1689,221 @@ function facturarEnCeroAlmacen(almacen_id) {
     return estado;
 }
 
-//INICIO ESTADOS
-$(() => {
-    $('#invoice-form #label_facturas_proforma').html("No");
+// ======================================================
+// INICIO ESTADOS PROFORMA + REBAJAR INVENTARIO PROFORMA
+// ======================================================
+//
+// IMPORTANTE:
+// En tu HTML el checkbox de inventario es:
+// id="proforma_bajar_inventario"
+// name="proforma_bajar_inventario"
+//
+// Este bloque consulta:
+// core/facturas/facturaMovil.php?getConfigFacturaMovil=1
+//
+// Respuesta esperada:
+// {
+//   success: true,
+//   proforma_activa: 1,
+//   proforma_rebajar_inventario: 1
+// }
+// ======================================================
 
-    $('#invoice-form .switch').change(function() {
-        if ($('input[name=facturas_proforma]').is(':checked')) {
-            $('#invoice-form #label_facturas_proforma').html("Si");
-            return true;
-        } else {
-            $('#invoice-form #label_facturas_proforma').html("No");
-            return false;
+function normalizarActivoFactura(valor) {
+    return valor === true || valor === 1 || valor === '1';
+}
+
+function getCheckBajarInventarioProforma() {
+    // Principal: este es el ID que tienes en tu HTML actual.
+    var $check = $('#invoice-form #proforma_bajar_inventario');
+
+    // Compatibilidad por si en otra pantalla lo tienes con el nombre anterior.
+    if (!$check.length) {
+        $check = $('#invoice-form #bajar_inventario_proforma');
+    }
+
+    return $check;
+}
+
+function actualizarUIProformaFacturaNormal(activo, rebajarInventarioDefault) {
+    activo = normalizarActivoFactura(activo);
+    rebajarInventarioDefault = normalizarActivoFactura(rebajarInventarioDefault);
+
+    var $proforma = $('#invoice-form #facturas_proforma');
+    var $labelProforma = $('#invoice-form #label_facturas_proforma');
+
+    if (!$proforma.length) {
+        console.error('[PROFORMA] No existe el input #facturas_proforma');
+        return;
+    }
+
+    // Forzado real del checkbox Proforma
+    $proforma.prop('checked', activo);
+
+    if ($proforma[0]) {
+        $proforma[0].checked = activo;
+    }
+
+    $proforma.val(activo ? 1 : 0);
+
+    if (activo) {
+        $proforma.attr('checked', 'checked');
+    } else {
+        $proforma.removeAttr('checked');
+    }
+
+    // Label visual Proforma
+    $labelProforma
+        .removeClass('badge-light badge-secondary badge-info text-white')
+        .addClass(activo ? 'badge-info text-white' : 'badge-light')
+        .html(activo ? 'Sí' : 'No');
+
+    // Mostrar/Ocultar y aplicar default de rebajar inventario
+    mostrarOpcionesInventarioProforma(activo, rebajarInventarioDefault);
+
+    console.log('[PROFORMA UI]', {
+        activo: activo,
+        rebajarInventarioDefault: rebajarInventarioDefault,
+        checked_prop: $proforma.prop('checked'),
+        checked_dom: $proforma[0] ? $proforma[0].checked : null,
+        value: $proforma.val()
+    });
+}
+
+function mostrarOpcionesInventarioProforma(mostrar, rebajarInventarioDefault) {
+    mostrar = normalizarActivoFactura(mostrar);
+    rebajarInventarioDefault = normalizarActivoFactura(rebajarInventarioDefault);
+
+    var $container = $('#invoice-form #proforma_rebajar_inventario_container');
+    var $check = getCheckBajarInventarioProforma();
+    var $label = $('#invoice-form #label_bajar_inventario_proforma');
+
+    if (!$container.length) {
+        console.warn('[PROFORMA] No existe #proforma_rebajar_inventario_container');
+        return;
+    }
+
+    if (mostrar) {
+        $container.attr('style', 'display:flex !important;');
+
+        if ($check.length) {
+            $check.prop('checked', rebajarInventarioDefault);
+
+            if ($check[0]) {
+                $check[0].checked = rebajarInventarioDefault;
+            }
+
+            $check.val(rebajarInventarioDefault ? 1 : 0);
+
+            if (rebajarInventarioDefault) {
+                $check.attr('checked', 'checked');
+            } else {
+                $check.removeAttr('checked');
+            }
         }
-    });    
-    //FIN FACTURA
 
+        $label
+            .removeClass('badge-success badge-light text-white')
+            .addClass(rebajarInventarioDefault ? 'badge-success text-white' : 'badge-light')
+            .html(rebajarInventarioDefault ? 'Sí' : 'No');
+
+    } else {
+        $container.attr('style', 'display:none !important;');
+
+        if ($check.length) {
+            $check.prop('checked', false);
+
+            if ($check[0]) {
+                $check[0].checked = false;
+            }
+
+            $check.removeAttr('checked');
+            $check.val(0);
+        }
+
+        $label
+            .removeClass('badge-success text-white')
+            .addClass('badge-light')
+            .html('No');
+    }
+}
+
+function actualizarLabelBajarInventarioProforma() {
+    var $check = getCheckBajarInventarioProforma();
+    var activo = $check.is(':checked');
+
+    $check.val(activo ? 1 : 0);
+
+    $('#invoice-form #label_bajar_inventario_proforma')
+        .removeClass('badge-success badge-light text-white')
+        .addClass(activo ? 'badge-success text-white' : 'badge-light')
+        .html(activo ? 'Sí' : 'No');
+}
+
+function consultarConfigProformaFacturaNormal() {
+    var url = '<?php echo SERVERURL; ?>core/facturas/facturaMovil.php?getConfigFacturaMovil=1';
+
+    $.ajax({
+        type: 'GET',
+        url: url,
+        dataType: 'json',
+        cache: false
+    }).done(function (res) {
+        console.log('[DEBUG CONFIG PROFORMA]', res);
+
+        var proformaActiva = 0;
+        var rebajarInventarioProforma = 0;
+
+        if (res && res.success === true) {
+            proformaActiva = parseInt(res.proforma_activa || 0, 10);
+            rebajarInventarioProforma = parseInt(res.proforma_rebajar_inventario || 0, 10);
+        }
+
+        actualizarUIProformaFacturaNormal(
+            proformaActiva === 1,
+            rebajarInventarioProforma === 1
+        );
+
+    }).fail(function (xhr) {
+        console.error('[ERROR CONFIG PROFORMA]', xhr.status, xhr.responseText);
+
+        // Si falla la consulta, por seguridad queda apagado visualmente.
+        actualizarUIProformaFacturaNormal(false, false);
+    });
+}
+
+$(function () {
+    // Estado inicial visual
+    actualizarUIProformaFacturaNormal(false, false);
+
+    // Consultar configuración real
+    consultarConfigProformaFacturaNormal();
+
+    // Cambio manual de Proforma
+    $(document).off('change.facturaProforma', '#invoice-form #facturas_proforma');
+    $(document).on('change.facturaProforma', '#invoice-form #facturas_proforma', function () {
+        var activo = $(this).is(':checked');
+
+        // Cuando el usuario lo activa manualmente, respetamos cómo esté el check de inventario.
+        var rebajarActual = getCheckBajarInventarioProforma().is(':checked');
+
+        actualizarUIProformaFacturaNormal(activo, rebajarActual);
+    });
+
+    // Cambio manual de rebajar inventario
+    $(document).off('change.bajarInventarioProforma', '#invoice-form #proforma_bajar_inventario, #invoice-form #bajar_inventario_proforma');
+    $(document).on('change.bajarInventarioProforma', '#invoice-form #proforma_bajar_inventario, #invoice-form #bajar_inventario_proforma', function () {
+        actualizarLabelBajarInventarioProforma();
+    });
 });
+
+// ======================================================
+// FIN ESTADOS PROFORMA + REBAJAR INVENTARIO PROFORMA
+// ======================================================
 
 $(() => {
     $("#modalDescuentoFacturacion").on('shown.bs.modal', function() {
         $(this).find('#formDescuentoFacturacion #porcentaje_descuento_fact').focus();
-    });
-
-    $("#modalModificarPrecioFacturacion").on('shown.bs.modal', function() {
-        $(this).find('#formModificarPrecioFacturacion #referencia_modificar_precio_fact').focus();
     });
 
     $("#modal_buscar_productos_facturacion").on('shown.bs.modal', function() {
@@ -2852,40 +3220,11 @@ $("#reg_DescuentoFacturacion").on("click", function(e) {
 
 //INICIO MODIFICAR PRECIO EN PRODUCTO FACTURACION
 $(() => {
-    $("#invoice-form #invoiceItem").on('click', '.aplicar_precio', function(e) {
+    $("#invoice-form #invoiceItem").off('click.editarPrecioFacturaEscritorio', '.aplicar_precio');
+    $("#invoice-form #invoiceItem").on('click.editarPrecioFacturaEscritorio', '.aplicar_precio', function(e) {
         e.preventDefault();
-        $('#formModificarPrecioFacturacion')[0].reset();
-
         var row_index = $(this).closest("tr").index();
-        var col_index = $(this).closest("td").index();
-        $('#formModificarPrecioFacturacion #row_index').val(row_index);
-        $('#formModificarPrecioFacturacion #col_index').val(col_index);
-
-        if ($("#invoice-form #invoiceItem #productos_id_" + row_index).val() != "") {
-            $('#formModificarPrecioFacturacion')[0].reset();
-            var clientes_id = $("#invoice-form #cliente_id").val();
-            var fecha = $("#invoice-form #fecha").val();
-            var productos_id = $("#invoice-form #invoiceItem #productos_id_" + row_index).val();
-            var producto = $("#invoice-form #invoiceItem #productName_" + row_index).val();
-            var precio = $("#invoice-form #invoiceItem #price_" + row_index).val();
-
-            $('#formModificarPrecioFacturacion #modificar_precio_fecha').val(fecha);
-            $('#formModificarPrecioFacturacion #modificar_precio_clientes_id').val(clientes_id);
-            $('#formModificarPrecioFacturacion #modificar_precio_productos_id').val(productos_id);
-            $('#formModificarPrecioFacturacion #producto_modificar_precio_fact').val(producto);
-
-            $('#formModificarPrecioFacturacion #pro_modificar_precio').val("Aplicar Nuevo Precio");
-
-            getPermisosTipoUsuarioAccesosForms(getPrivilegioTipoUsuario());
-
-            $('#modalModificarPrecioFacturacion').modal({
-                show: true,
-                keyboard: false,
-                backdrop: 'static'
-            });
-        } else {
-            showNotify('error', 'Error', 'Debe seleccionar un cliente y un producto antes de continuar');
-        }
+        abrirEditarPrecioFacturaEscritorio(row_index);
     });
 });
 //FIN MODIFICAR PRECIO EN PRODUCTO FACTURACION
@@ -2924,49 +3263,79 @@ $(() => {
 });
 
 // === Control de Tipo de Factura con botones ===
-let tipoActual = 'contado'; // estado UI
+// Proforma NO bloquea contado/crédito.
+// Puede existir:
+// Contado + Proforma
+// Crédito + Proforma
 
-function setTipoFactura(tipo){
-  const isContado = (tipo === 'contado');
-  tipoActual = tipo;
+let tipoActual = 'contado';
 
-  // Visual
-  $('#btn-tipo-contado')
-    .toggleClass('active btn-primary', isContado)
-    .toggleClass('btn-outline-primary', !isContado);
-  $('#btn-tipo-credito')
-    .toggleClass('active btn-primary', !isContado)
-    .toggleClass('btn-outline-primary', isContado);
+function setTipoFactura(tipo) {
+    const isContado = (tipo === 'contado');
 
-  // Backend: 1=Contado, 0=Crédito
-  $('#facturas_activo').val(isContado ? 1 : 0);
-  $('#label_facturas_activo').text(isContado ? 'Contado' : 'Crédito');
+    tipoActual = tipo;
+
+    $('#tipo-factura-control').removeClass('proforma-activa');
+
+    $('#btn-tipo-contado')
+        .prop('disabled', false)
+        .toggleClass('active btn-primary', isContado)
+        .toggleClass('btn-outline-primary', !isContado);
+
+    $('#btn-tipo-credito')
+        .prop('disabled', false)
+        .toggleClass('active btn-primary', !isContado)
+        .toggleClass('btn-outline-primary', isContado);
+
+    // Backend actual:
+    // 1 = Contado
+    // 0 = Crédito
+    $('#facturas_activo').val(isContado ? 1 : 0);
+
+    if ($('#label_facturas_activo').length) {
+        $('#label_facturas_activo').text(isContado ? 'Contado' : 'Crédito');
+    }
+
+    console.log('[TIPO FACTURA]', {
+        tipo: tipo,
+        facturas_activo: $('#facturas_activo').val(),
+        proforma: $('#invoice-form #facturas_proforma').is(':checked')
+    });
 }
 
-// Inicial
-setTipoFactura('contado');
+// Inicial: siempre Contado seleccionado
+$(function () {
+    setTipoFactura('contado');
+});
 
 // Click en Contado
-$(document).on('click', '#btn-tipo-contado', function(){
-  setTipoFactura('contado');
+$(document).off('click.tipoContado', '#btn-tipo-contado');
+$(document).on('click.tipoContado', '#btn-tipo-contado', function () {
+    setTipoFactura('contado');
 });
 
-// Click en Crédito -> Confirmación si venimos de Contado
-$(document).on('click', '#btn-tipo-credito', function(){
-  if (tipoActual === 'contado') {
-    $('#confirmTipoFactura')
-      .data('next','credito')
-      .modal({show:true, keyboard:false, backdrop:'static'});
-  } else {
-    setTipoFactura('credito');
-  }
+// Click en Crédito
+$(document).off('click.tipoCredito', '#btn-tipo-credito');
+$(document).on('click.tipoCredito', '#btn-tipo-credito', function () {
+    if (tipoActual === 'contado') {
+        $('#confirmTipoFactura')
+            .data('next', 'credito')
+            .modal({
+                show: true,
+                keyboard: false,
+                backdrop: 'static'
+            });
+    } else {
+        setTipoFactura('credito');
+    }
 });
 
-// Confirmar en el modal
-$(document).on('click', '#confirmarCambioTipo', function(){
-  const next = $('#confirmTipoFactura').data('next') || 'credito';
-  setTipoFactura(next);
-  $('#confirmTipoFactura').modal('hide');
+// Confirmar Crédito
+$(document).off('click.confirmarTipoFactura', '#confirmarCambioTipo');
+$(document).on('click.confirmarTipoFactura', '#confirmarCambioTipo', function () {
+    const next = $('#confirmTipoFactura').data('next') || 'credito';
+    setTipoFactura(next);
+    $('#confirmTipoFactura').modal('hide');
 });
 
 

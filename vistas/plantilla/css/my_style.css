@@ -2577,7 +2577,9 @@ body#view_bill {
 }
 
 .modo_soporte:hover {
-  animation: gentleVibration 0.3s linear infinite, gradientGlow 6s ease infinite;
+  animation:
+    gentleVibration 0.3s linear infinite,
+    gradientGlow 6s ease infinite;
 }
 
 /*PRUEBA SISTEMA*/
@@ -4563,7 +4565,9 @@ input:checked + .slider:before {
   cursor: pointer;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
   opacity: 0.95;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
 }
 
 .btn-remove-image:hover {
@@ -4678,7 +4682,9 @@ input:checked + .slider:before {
   object-fit: cover;
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 .table-image:hover {
   transform: scale(1.03);
@@ -4908,7 +4914,9 @@ input:checked + .slider:before {
 /* ====== Tarjetas laterales ====== */
 .card.shadow-sm {
   border: 0;
-  box-shadow: 0 6px 18px rgba(9, 30, 66, 0.06), 0 2px 4px rgba(9, 30, 66, 0.04);
+  box-shadow:
+    0 6px 18px rgba(9, 30, 66, 0.06),
+    0 2px 4px rgba(9, 30, 66, 0.04);
   border-radius: 0.6rem;
 }
 
@@ -5212,3 +5220,81 @@ form.modo-editar input[type="date"].remembered-highlight {
 .file-upload-area .btn .far {
   color: #fff !important;
 }
+
+/*INICIO ESTILO FACTURA PROFORMA*/
+.proforma-ui-box {
+  background: #f8fbff;
+  border: 1px solid #d9e8ff;
+  border-left: 4px solid #17a2b8;
+  border-radius: 10px;
+  padding: 8px 12px;
+  min-height: 45px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+}
+
+.proforma-ui-box .badge {
+  font-size: 0.85rem;
+  border: 1px solid #d6e6f7;
+  color: #284563;
+}
+
+.proforma-inventario-box {
+  background: #fff;
+  border-radius: 8px;
+  padding: 5px 10px;
+  border: 1px dashed #b9d8f5;
+}
+
+#tipo-factura-control.proforma-activa button {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+#tipo-factura-control.proforma-activa::after {
+  content: "Proforma activa";
+  display: inline-block;
+  margin-left: 8px;
+  padding: 6px 10px;
+  border-radius: 20px;
+  background: #17a2b8;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+/*FIN ESTILO FACTURA PROFORMA*/
+
+/*INICIO ESTILO PREVIEW CAMBIO DE PRECIO*/
+.precio-preview-box {
+  background: #f1f4f8;
+  border: 1px solid #d9dee7;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 12px;
+}
+
+.precio-preview-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  color: #3d4652;
+}
+
+.precio-preview-item span {
+  font-weight: 600;
+}
+
+.precio-preview-item strong {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.precio-preview-item.total {
+  grid-column: 1 / -1;
+  border-top: 1px solid #d3d9e3;
+  padding-top: 8px;
+  font-size: 1rem;
+}
+/*FIN ESTILO PREVIEW CAMBIO DE PRECIO*/

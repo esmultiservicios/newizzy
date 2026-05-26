@@ -1,3 +1,7 @@
+####25 de mayo 2026####
+ALTER TABLE facturas_detalles
+ADD COLUMN costo_unitario DECIMAL(12,4) NOT NULL DEFAULT 0.0000 AFTER precio;
+
 ####17 de mayo 2026####
 INSERT INTO config (config_id, accion, activar)
 VALUES (3, 'Activar Proforma', 2);

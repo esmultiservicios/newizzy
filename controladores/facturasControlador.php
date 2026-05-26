@@ -305,6 +305,39 @@ class facturasControlador extends facturasModelo {
     }
 
     /* ===========================
+    * OBTENER COSTO DEL PRODUCTO
+    * =========================== */
+    protected function obtenerCostoProducto($productos_id, $empresa_id){
+        $cn = mainModel::connection();
+
+        $productos_id = (int)$productos_id;
+        $empresa_id = (int)$empresa_id;
+
+        $sql = "SELECT precio_compra
+                FROM productos
+                WHERE productos_id = ?
+                AND empresa_id = ?
+                LIMIT 1";
+
+        $stmt = $cn->prepare($sql);
+        $stmt->bind_param("ii", $productos_id, $empresa_id);
+        $stmt->execute();
+
+        $result = $stmt->get_result();
+
+        if($result && $result->num_rows > 0){
+            $row = $result->fetch_assoc();
+            $stmt->close();
+
+            return number_format((float)$row['precio_compra'], 4, '.', '');
+        }
+
+        $stmt->close();
+
+        return number_format(0, 4, '.', '');
+    }
+
+    /* ===========================
      * PRODUCTO
      * =========================== */
     protected function procesarProducto($facturas_id, $clientes_id, $fecha, $fecha_registro, $empresa_id, $index, $bajarInventario = true) {
@@ -335,11 +368,17 @@ class facturasControlador extends facturasModelo {
         $isv_1 = number_format((float)$isvCalculado['isv_valor'], 4, '.', '');
         $isv_2 = number_format((float)$isvCalculado['isv_valor1'], 4, '.', '');
 
+        $costo_unitario = $this->obtenerCostoProducto(
+            $productos_id,
+            $empresa_id
+        );
+        
         $this->guardarDetalleFactura(
             $facturas_id,
             $productos_id,
             $quantity,
             $price,
+            $costo_unitario,
             $isv_1,
             $isv_2,
             $discount,
@@ -382,7 +421,7 @@ class facturasControlador extends facturasModelo {
     /* ===========================
      * GUARDA DETALLE
      * =========================== */
-    protected function guardarDetalleFactura($facturas_id, $productos_id, $quantity, $price, $isv_valor, $isv_valor1, $discount, $medida){
+    protected function guardarDetalleFactura($facturas_id, $productos_id, $quantity, $price, $costo_unitario, $isv_valor, $isv_valor1, $discount, $medida){
         $datos = [
             "facturas_id"  => $facturas_id,
             "productos_id" => $productos_id,
@@ -391,7 +430,8 @@ class facturasControlador extends facturasModelo {
             "isv_valor"    => $isv_valor,
             "isv_valor1"   => $isv_valor1,
             "descuento"    => $discount,
-            "medida"       => $medida
+            "medida"       => $medida,
+            "costo_unitario" => $costo_unitario,
         ];
 
         $result = facturasModelo::validDetalleFactura($facturas_id,$productos_id);

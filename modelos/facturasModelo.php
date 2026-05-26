@@ -113,6 +113,7 @@ class facturasModelo extends mainModel{
                             `productos_id`, 
                             `cantidad`, 
                             `precio`, 
+                            `costo_unitario`,
                             `isv_valor`,
                             `isv_valor1`,
                             `descuento`, 
@@ -124,6 +125,7 @@ class facturasModelo extends mainModel{
                             '".$datos['productos_id']."',
                             '".$datos['cantidad']."',
                             '".$datos['precio']."',
+                            '".$datos['costo_unitario']."',
                             '".$datos['isv_valor']."',
                             '".$datos['isv_valor1']."',
                             '".$datos['descuento']."',
@@ -305,6 +307,7 @@ class facturasModelo extends mainModel{
                     SET 
                         cantidad   = '".$datos['cantidad']."',
                         precio     = '".$datos['precio']."',
+                        costo_unitario = '".$datos['costo_unitario']."',
                         isv_valor  = '".$datos['isv_valor']."',
                         isv_valor1 = '".$datos['isv_valor1']."',
                         descuento  = '".$datos['descuento']."',

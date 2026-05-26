@@ -5298,3 +5298,145 @@ form.modo-editar input[type="date"].remembered-highlight {
   font-size: 1rem;
 }
 /*FIN ESTILO PREVIEW CAMBIO DE PRECIO*/
+
+/*INICIO ESTILO DETALLE DE GANANCIAS EN CAJA*/
+.izzy-kpi-card {
+  border: 1px solid #eef1f5;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  padding: 18px;
+  min-height: 115px;
+}
+
+.izzy-kpi-label {
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.izzy-kpi-value {
+  color: #111827;
+  font-size: 24px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.izzy-kpi-success {
+  color: #16a34a;
+}
+.izzy-kpi-warning {
+  color: #f59e0b;
+}
+.izzy-kpi-danger {
+  color: #dc2626;
+}
+.izzy-kpi-primary {
+  color: #2563eb;
+}
+
+.izzy-section-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.izzy-modal-header {
+  background: #111827;
+  color: #ffffff;
+  border-bottom: 4px solid #10b981;
+}
+
+.izzy-note {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e3a8a;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 14px;
+}
+
+/* TABLA PRINCIPAL DE CAJAS */
+#dataTableCajas tbody td,
+#dataTableCajas tbody td span {
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+}
+
+#dataTableCajas tbody td span {
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+}
+
+#dataTableCajas tfoot th {
+  padding-top: 18px !important;
+  padding-bottom: 18px !important;
+  background: #f8fafc !important;
+  color: #111827 !important;
+  font-size: 16px !important;
+  font-weight: 900 !important;
+  border-top: 2px solid #e5e7eb !important;
+}
+
+#dataTableCajas tfoot th span {
+  font-size: 17px !important;
+  font-weight: 900 !important;
+  white-space: nowrap !important;
+  color: #0f172a !important;
+}
+
+/* TABLA DETALLE GANANCIA */
+#dataTableDetalleGananciaCaja tbody td,
+#dataTableDetalleGananciaCaja tbody td span {
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+}
+
+#dataTableDetalleGananciaCaja tbody td span {
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+}
+
+#dataTableDetalleGananciaCaja tfoot th {
+  padding-top: 18px !important;
+  padding-bottom: 18px !important;
+  background: #f8fafc !important;
+  color: #111827 !important;
+  font-size: 16px !important;
+  font-weight: 900 !important;
+  border-top: 2px solid #e5e7eb !important;
+}
+
+#dataTableDetalleGananciaCaja tfoot th span {
+  font-size: 17px !important;
+  font-weight: 900 !important;
+  white-space: nowrap !important;
+  color: #0f172a !important;
+}
+/*FIN ESTILO DETALLE DE GANANCIAS EN CAJA*/
+
+/*INICIO VER DETALLE DE PRODUCTOS*/
+.btn-detalle-producto {
+  background: #f8fafc !important;
+  color: #2563eb !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  padding: 4px 10px !important;
+  font-weight: 600 !important;
+  text-decoration: none !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+.btn-detalle-producto:hover,
+.btn-detalle-producto:focus {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+  text-decoration: none !important;
+}
+/*FIN VER DETALLE DE PRODUCTOS*/

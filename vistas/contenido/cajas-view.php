@@ -1,5 +1,4 @@
 <div class="container-fluid">
-    <!-- Cajas -->
     <div class="breadcrumb-container">
         <ol class="breadcrumb-harmony">
             <li class="breadcrumb-item">
@@ -23,39 +22,42 @@
                     <div class="col-md-3 col-sm-6 mb-3">
                         <div class="form-group">
                             <label class="small mb-1">Estado</label>
-                            <select id="estado_cajas" name="estado_cajas" 
-                                class="form-control selectpicker" title="Estado" data-live-search="true">
+                            <select id="estado_cajas" name="estado_cajas" class="form-control selectpicker" title="Estado" data-live-search="true">
+                                <option value="0">Todas</option>
                                 <option value="1">Activas</option>
                                 <option value="2">Cerrada</option>
                             </select>
                         </div>
                     </div>
-                    
+
                     <div class="col-md-3 col-sm-6 mb-3">
                         <div class="form-group">
                             <label class="small mb-1">Fecha Inicial</label>
-                            <input type="date" class="form-control" id="fecha_cajas" name="fecha_cajas"
-                                value="<?php echo date('Y-m-d');?>">
+                            <input type="date" class="form-control" id="fecha_cajas" name="fecha_cajas" value="<?php echo date('Y-m-d');?>">
                         </div>
                     </div>
-                    
+
                     <div class="col-md-3 col-sm-6 mb-3">
                         <div class="form-group">
                             <label class="small mb-1">Fecha Final</label>
-                            <input type="date" class="form-control" id="fecha_cajas_f" name="fecha_cajas_f"
-                                value="<?php echo date('Y-m-d');?>">
+                            <input type="date" class="form-control" id="fecha_cajas_f" name="fecha_cajas_f" value="<?php echo date('Y-m-d');?>">
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="row">
                     <div class="col-12 text-right">
+                        <button type="button" class="btn btn-info mr-2" id="btnGananciaPeriodo">
+                            <i class="fas fa-chart-pie fa-lg"></i> Ganancia del Período
+                        </button>
+
                         <button type="submit" class="btn btn-primary mr-2" id="search">
                             <i class="fas fa-filter fa-lg"></i> Filtrar
                         </button>
+
                         <button type="reset" class="btn btn-secondary">
                             <i class="fas fa-broom fa-lg"></i> Limpiar
-                        </button>                        
+                        </button>
                     </div>
                 </div>
             </form>
@@ -67,6 +69,7 @@
             <i class="fas fa-cash-register fa-lg mr-1"></i>
             Cajas
         </div>
+
         <div class="card-body">
             <div class="table-responsive">
                 <table id="dataTableCajas" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
@@ -74,6 +77,7 @@
                         <tr>
                             <th>Acción</th>
                             <th>Comprobante</th>
+                            <th>Ganancia</th>
                             <th>Fecha</th>
                             <th>Usuario</th>
                             <th>Factura Inicial</th>
@@ -84,28 +88,188 @@
                             <th>Estado</th>
                         </tr>
                     </thead>
+                    <tfoot>
+                        <tr>
+                            <th colspan="7" class="text-right">Totales:</th>
+                            <th id="total_monto_apertura">L. 0.00</th>
+                            <th id="total_venta_dia">L. 0.00</th>
+                            <th id="total_neto">L. 0.00</th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </div>
+
         <div class="card-footer small text-muted">
             <?php
-				require_once "./core/mainModel.php";
-				
-				$insMainModel = new mainModel();
-				$entidad = "facturas";
-				
-				if($insMainModel->getlastUpdate($entidad)->num_rows > 0){
-					$consulta_last_update = $insMainModel->getlastUpdate($entidad)->fetch_assoc();
-					$fecha_registro = htmlspecialchars($consulta_last_update['fecha_registro'], ENT_QUOTES, 'UTF-8');
-					$hora = htmlspecialchars(date('g:i:s a', strtotime($fecha_registro)), ENT_QUOTES, 'UTF-8');
-					echo "Última Actualización ".htmlspecialchars($insMainModel->getTheDay($fecha_registro, $hora), ENT_QUOTES, 'UTF-8');
-				} else {
-					echo "No se encontraron registros ";
-				}				
-			?>
+                require_once "./core/mainModel.php";
+
+                $insMainModel = new mainModel();
+                $entidad = "facturas";
+
+                if($insMainModel->getlastUpdate($entidad)->num_rows > 0){
+                    $consulta_last_update = $insMainModel->getlastUpdate($entidad)->fetch_assoc();
+                    $fecha_registro = htmlspecialchars($consulta_last_update['fecha_registro'], ENT_QUOTES, 'UTF-8');
+                    $hora = htmlspecialchars(date('g:i:s a', strtotime($fecha_registro)), ENT_QUOTES, 'UTF-8');
+                    echo "Última Actualización ".htmlspecialchars($insMainModel->getTheDay($fecha_registro, $hora), ENT_QUOTES, 'UTF-8');
+                } else {
+                    echo "No se encontraron registros ";
+                }
+            ?>
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="modalDesgloseGananciaCaja" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+
+            <div class="modal-header izzy-modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-chart-line mr-1"></i>
+                    <span id="titulo_modal_ganancia">Desglose de ganancia</span>
+                    <small id="dg_contexto_consulta" class="d-block mt-1 text-light" style="opacity: .85;"></small>
+                </h5>
+
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="mb-3">
+                    <div class="izzy-section-title">
+                        <i class="fas fa-wallet"></i>
+                        Resumen financiero
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 col-sm-6 mb-3">
+                            <div class="izzy-kpi-card">
+                                <div class="izzy-kpi-label">Total facturado</div>
+                                <p class="izzy-kpi-value" id="dg_total_facturado">L. 0.00</p>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 col-sm-6 mb-3">
+                            <div class="izzy-kpi-card">
+                                <div class="izzy-kpi-label">Total cobrado</div>
+                                <p class="izzy-kpi-value izzy-kpi-success" id="dg_total_cobrado">L. 0.00</p>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 col-sm-6 mb-3">
+                            <div class="izzy-kpi-card">
+                                <div class="izzy-kpi-label">Pendiente de cobro</div>
+                                <p class="izzy-kpi-value izzy-kpi-warning" id="dg_pendiente_cobro">L. 0.00</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="izzy-kpi-card">
+                                <div class="izzy-kpi-label">Efectivo</div>
+                                <p class="izzy-kpi-value" id="dg_efectivo">L. 0.00</p>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="izzy-kpi-card">
+                                <div class="izzy-kpi-label">Transferencia</div>
+                                <p class="izzy-kpi-value" id="dg_transferencia">L. 0.00</p>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="izzy-kpi-card">
+                                <div class="izzy-kpi-label">Tarjeta</div>
+                                <p class="izzy-kpi-value" id="dg_tarjeta">L. 0.00</p>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="izzy-kpi-card">
+                                <div class="izzy-kpi-label">Cheque</div>
+                                <p class="izzy-kpi-value" id="dg_cheque">L. 0.00</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="izzy-section-title">
+                        <i class="fas fa-boxes"></i>
+                        Resumen de ganancia / inventario
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 col-sm-6 mb-3">
+                            <div class="izzy-kpi-card">
+                                <div class="izzy-kpi-label">Costo de productos vendidos</div>
+                                <p class="izzy-kpi-value izzy-kpi-danger" id="dg_costo_productos">L. 0.00</p>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 col-sm-6 mb-3">
+                            <div class="izzy-kpi-card">
+                                <div class="izzy-kpi-label">Ganancia bruta</div>
+                                <p class="izzy-kpi-value izzy-kpi-success" id="dg_ganancia_bruta">L. 0.00</p>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 col-sm-6 mb-3">
+                            <div class="izzy-kpi-card">
+                                <div class="izzy-kpi-label">Dinero recomendado a guardar</div>
+                                <p class="izzy-kpi-value izzy-kpi-primary" id="dg_dinero_guardar">L. 0.00</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="izzy-note mb-3">
+                    <strong>Nota:</strong> El costo de productos vendidos representa el dinero que debería reservarse para reponer inventario.
+                </div>
+
+                <div class="table-responsive">
+                    <table id="dataTableDetalleGananciaCaja" class="table table-striped table-hover table-condensed" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>Factura</th>
+                                <th>Producto</th>
+                                <th>Cantidad</th>
+                                <th>Costo Unit.</th>
+                                <th>Precio Venta</th>
+                                <th>Total Costo</th>
+                                <th>Total Venta</th>
+                                <th>Ganancia</th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th colspan="5" class="text-right">Totales:</th>
+                                <th id="dg_footer_total_costo">L. 0.00</th>
+                                <th id="dg_footer_total_venta">L. 0.00</th>
+                                <th id="dg_footer_total_ganancia">L. 0.00</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
 <?php
-	$insMainModel->guardar_historial_accesos("Ingreso al modulo Cajas");
+    $insMainModel->guardar_historial_accesos("Ingreso al modulo Cajas");
 ?>

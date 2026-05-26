@@ -33,6 +33,7 @@ try {
                 "image"            => $row['image'],
                 "barCode"          => $row['barCode'],
                 "nombre"           => $row['nombre'],
+                "descripcion"      => $row['descripcion'],
                 "medida"           => $row['medida'],
                 "categoria"        => $row['categoria'],
                 "precio_compra"    => (float)$row['precio_compra'],

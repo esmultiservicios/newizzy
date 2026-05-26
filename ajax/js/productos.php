@@ -388,15 +388,31 @@ $(function initApp() {
 /* =========================
    DataTable: Productos
    ========================= */
-var listar_productos = function() {
+   var listar_productos = function() {
   var estado = $('#form_main_productos #estado_producto').val() === "" 
                ? 1 
                : $('#form_main_productos #estado_producto').val();
 
-  // Log crudo para diagnóstico (no afecta producción)
-  $.post('<?php echo SERVERURL;?>core/llenarDataTableProductos.php', { estado: estado })
-   .done(function(raw){ console.log('%c[DEBUG raw llenarDataTableProductos.php]', 'color:#1f8bff;font-weight:700;', raw); })
-   .fail(function(xhr){ console.error('[DEBUG raw ERROR]', xhr.status, xhr.responseText); });
+  var formatoDinero = function(valor) {
+    valor = parseFloat(valor || 0);
+    return 'L ' + valor.toLocaleString('es-HN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  };
+
+  var limpiarTexto = function(texto) {
+    if (texto === null || texto === undefined || texto === '') {
+      return '';
+    }
+
+    return String(texto)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
 
   var table_productos = $("#dataTableProductos").DataTable({
     destroy: true,
@@ -411,22 +427,22 @@ var listar_productos = function() {
       method: "POST",
       url: "<?php echo SERVERURL;?>core/llenarDataTableProductos.php",
       dataType: 'json',
-      data: function (d) { d.estado = estado; },
+      data: function (d) {
+        d.estado = estado;
+      },
       error: function(xhr, textStatus, error) {
         console.error('[DataTables AJAX error]', textStatus, error, xhr.status, xhr.responseText);
-        alert('Error cargando productos: ' + xhr.status);
+
+        if (typeof showNotify === 'function') {
+          showNotify('error', 'Error', 'No se pudieron cargar los productos');
+        } else {
+          alert('Error cargando productos: ' + xhr.status);
+        }
       },
       dataSrc: function (json) {
-        console.log('%c[DEBUG DT response]', 'color:#10b981;font-weight:700;', json);
         if (json && Array.isArray(json.data)) return json.data;
         if (json && Array.isArray(json.aaData)) return json.aaData;
         if (Array.isArray(json)) return json;
-        try {
-          var parsed = JSON.parse(json);
-          if (Array.isArray(parsed.data)) return parsed.data;
-          if (Array.isArray(parsed.aaData)) return parsed.aaData;
-          if (Array.isArray(parsed)) return parsed;
-        } catch(e) {}
         return [];
       }
     },
@@ -438,50 +454,113 @@ var listar_productos = function() {
         render: function (data, type, row) {
           var defaultImageUrl = '<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png';
           var imageUrl = data ? ('<?php echo SERVERURL;?>vistas/plantilla/img/products/' + data) : defaultImageUrl;
-          var safeName = (row && row.nombre) ? String(row.nombre).replace(/"/g,'&quot;') : 'Imagen de producto';
-          return '<a href="#" class="iv-trigger" data-iv-src="'+imageUrl+'" data-iv-fallback="'+defaultImageUrl+'" data-iv-title="'+safeName+'">'+
-                   '<img class="table-image" src="'+imageUrl+'" alt="'+safeName+'" width="64" height="64" style="object-fit:cover;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.12)">'+
+          var safeName = limpiarTexto(row && row.nombre ? row.nombre : 'Imagen de producto');
+
+          return '<a href="#" class="iv-trigger" data-iv-src="' + imageUrl + '" data-iv-fallback="' + defaultImageUrl + '" data-iv-title="' + safeName + '">' +
+                   '<img class="table-image" src="' + imageUrl + '" alt="' + safeName + '" width="64" height="64" style="object-fit:cover;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.12)">' +
                  '</a>';
         }
       },
+
       { data: "barCode" },
-      { data: "nombre" },
+
+      {
+        data: null,
+        render: function(data, type, row) {
+          var nombre = limpiarTexto(row.nombre || '');
+          var descripcion = limpiarTexto(row.descripcion || '');
+          var categoria = limpiarTexto(row.categoria || '');
+          var medida = limpiarTexto(row.medida || '');
+          var isvTexto = limpiarTexto(row.isv_venta || 'No');
+          var isvTipo = 'No aplica';
+
+          if (parseInt(row.isv1 || 0, 10) === 1) {
+            isvTipo = 'ISV 15%';
+          } else if (parseInt(row.isv2 || 0, 10) === 1) {
+            isvTipo = 'ISV 18%';
+          }
+
+          if (type !== 'display') {
+            return nombre;
+          }
+
+          return '' +
+            '<div class="producto-cell">' +
+              '<div class="producto-nombre font-weight-bold">' + nombre + '</div>' +
+              '<div class="producto-descripcion text-muted small">' + (descripcion || 'Sin descripción registrada') + '</div>' +
+              '<div class="mt-1">' +
+                '<span class="badge badge-light border mr-1"><i class="fas fa-layer-group mr-1"></i>' + categoria + '</span>' +
+                '<span class="badge badge-light border mr-1"><i class="fas fa-ruler mr-1"></i>' + medida + '</span>' +
+                '<span class="badge badge-light border"><i class="fas fa-percent mr-1"></i>' + isvTipo + '</span>' +
+              '</div>' +
+              '<button type="button" class="btn btn-sm mt-1 ver_detalle_producto btn-detalle-producto" title="Ver más información del producto">' +
+                '<i class="fas fa-info-circle mr-1"></i> Ver detalles' +
+              '</button>' +
+            '</div>';
+        }
+      },
+
       { data: "medida" },
       { data: "categoria" },
+
       {
         data: "precio_compra",
         render: function(data, type) {
-          var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
           if (type === 'display') {
-            let color = data < 0 ? 'red' : 'green';
-            return '<span style="color:'+color+'">'+number+'</span>';
+            return '<span style="color:green;font-weight:600;">' + formatoDinero(data) + '</span>';
           }
-          return number;
+          return parseFloat(data || 0);
         }
       },
+
       {
         data: "precio_venta",
         render: function(data, type) {
-          var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
           if (type === 'display') {
-            let color = data < 0 ? 'red' : 'green';
-            return '<span style="color:'+color+'">'+number+'</span>';
+            return '<span style="color:green;font-weight:600;">' + formatoDinero(data) + '</span>';
           }
-          return number;
+          return parseFloat(data || 0);
         }
       },
+
       {
         data: "porcentaje_venta",
         render: function(data, type) {
-          var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
           if (type === 'display') {
-            let color = data < 0 ? 'red' : 'green';
-            return '<span style="color:'+color+'">'+number+'</span>';
+            return '<span style="color:green;font-weight:600;">' + formatoDinero(data) + '</span>';
           }
-          return number;
+          return parseFloat(data || 0);
         }
       },
-      { data: "isv_venta" },
+
+      {
+        data: "isv_venta",
+        render: function(data, type, row) {
+          if (type !== 'display') {
+            return data;
+          }
+
+          var aplica = String(data || '').toLowerCase() === 'si' || parseInt(data || 0, 10) === 1;
+          var isvTipo = '';
+
+          if (parseInt(row.isv1 || 0, 10) === 1) {
+            isvTipo = '15%';
+          } else if (parseInt(row.isv2 || 0, 10) === 1) {
+            isvTipo = '18%';
+          }
+
+          if (aplica) {
+            return '<span class="badge badge-pill badge-info" title="Este producto calcula impuesto al vender">' +
+                   '<i class="fas fa-check-circle mr-1"></i>Sí ' + isvTipo +
+                   '</span>';
+          }
+
+          return '<span class="badge badge-pill badge-secondary" title="Este producto no calcula impuesto al vender">' +
+                 '<i class="fas fa-times-circle mr-1"></i>No' +
+                 '</span>';
+        }
+      },
+
       {
         data: "estado",
         render: function(data, type) {
@@ -489,13 +568,21 @@ var listar_productos = function() {
             var estadoText = data == 1 ? 'Activo' : 'Inactivo';
             var icon = data == 1 ? '<i class="fas fa-check-circle mr-1"></i>' : '<i class="fas fa-times-circle mr-1"></i>';
             var badgeClass = data == 1 ? 'badge badge-pill badge-success' : 'badge badge-pill badge-danger';
-            return '<span class="'+badgeClass+'" style="font-size:.95rem;padding:.5em .8em;font-weight:600;">'+icon+estadoText+'</span>';
+
+            return '<span class="' + badgeClass + '" style="font-size:.95rem;padding:.5em .8em;font-weight:600;">' + icon + estadoText + '</span>';
           }
+
           return data;
         }
       },
-      { defaultContent: "<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>" },
-      { defaultContent: "<button class='table_eliminar btn btn-dark ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>" }
+
+      {
+        defaultContent: "<button class='table_editar btn btn-warning ocultar'><span class='fas fa-edit fa-lg mr-1'></span>Editar</button>"
+      },
+
+      {
+        defaultContent: "<button class='table_eliminar btn btn-danger ocultar'><span class='fa fa-trash fa-lg mr-1'></span>Eliminar</button>"
+      }
     ],
 
     buttons: [
@@ -503,13 +590,17 @@ var listar_productos = function() {
         text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
         titleAttr: 'Actualizar Productos',
         className: 'table_actualizar btn btn-secondary ocultar',
-        action: function() { listar_productos(); }
+        action: function() {
+          listar_productos();
+        }
       },
       {
         text: '<i class="fas fas fa-plus fa-lg"></i> Ingresar',
         titleAttr: 'Agregar Productos',
         className: 'table_crear btn btn-primary ocultar',
-        action: function() { modal_productos(); }
+        action: function() {
+          modal_productos();
+        }
       },
       {
         extend: 'excelHtml5',
@@ -518,7 +609,9 @@ var listar_productos = function() {
         title: 'Reporte Productos',
         messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
         className: 'table_reportes btn btn-success ocultar',
-        exportOptions: { columns: [1,2,3,4,5,6,7] }
+        exportOptions: {
+          columns: [1,2,3,4,5,6,7,8,9]
+        }
       },
       {
         extend: 'pdf',
@@ -527,11 +620,18 @@ var listar_productos = function() {
         titleAttr: 'PDF',
         title: 'Reporte Productos',
         messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-        exportOptions: { columns: [1,2,3,4,5,6,7] },
+        exportOptions: {
+          columns: [1,2,3,4,5,6,7,8,9]
+        },
         className: 'table_reportes btn btn-danger ocultar',
         customize: function(doc) {
           if (typeof imagen !== 'undefined' && imagen) {
-            doc.content.splice(0,0,{ image: imagen, width: 100, height: 45, margin: [0,0,0,12] });
+            doc.content.splice(0, 0, {
+              image: imagen,
+              width: 100,
+              height: 45,
+              margin: [0, 0, 0, 12]
+            });
           }
         }
       }
@@ -539,6 +639,11 @@ var listar_productos = function() {
 
     drawCallback: function() {
       getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+      $('[title]').tooltip({
+        container: 'body',
+        placement: 'top'
+      });
     }
   });
 
@@ -547,6 +652,73 @@ var listar_productos = function() {
 
   editar_producto_dataTable("#dataTableProductos tbody", table_productos);
   eliminar_producto_dataTable("#dataTableProductos tbody", table_productos);
+  ver_detalle_producto_dataTable("#dataTableProductos tbody", table_productos);
+};
+
+var ver_detalle_producto_dataTable = function(tbody, table) {
+  $(tbody).off("click", "button.ver_detalle_producto");
+
+  $(tbody).on("click", "button.ver_detalle_producto", function(e) {
+    e.preventDefault();
+
+    var data = table.row($(this).parents("tr")).data();
+
+    if (!data) {
+      return;
+    }
+
+    var formatoDinero = function(valor) {
+      valor = parseFloat(valor || 0);
+      return 'L ' + valor.toLocaleString('es-HN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    };
+
+    var isvTipo = 'No aplica';
+
+    if (parseInt(data.isv1 || 0, 10) === 1) {
+      isvTipo = 'ISV 15%';
+    } else if (parseInt(data.isv2 || 0, 10) === 1) {
+      isvTipo = 'ISV 18%';
+    }
+
+    var descripcion = data.descripcion && String(data.descripcion).trim() !== ''
+      ? data.descripcion
+      : 'Sin descripción registrada';
+
+    var html = '' +
+      '<div class="text-left">' +
+        '<div class="mb-2"><strong>Producto:</strong><br>' + data.nombre + '</div>' +
+        '<div class="mb-2"><strong>Descripción:</strong><br>' + descripcion + '</div>' +
+        '<hr>' +
+        '<div class="row">' +
+          '<div class="col-md-6 mb-2"><strong>Código:</strong><br>' + (data.barCode || 'Sin código') + '</div>' +
+          '<div class="col-md-6 mb-2"><strong>Categoría:</strong><br>' + (data.categoria || 'Sin categoría') + '</div>' +
+          '<div class="col-md-6 mb-2"><strong>Medida:</strong><br>' + (data.medida || 'Sin medida') + '</div>' +
+          '<div class="col-md-6 mb-2"><strong>Impuesto venta:</strong><br>' + (data.isv_venta || 'No') + ' - ' + isvTipo + '</div>' +
+          '<div class="col-md-6 mb-2"><strong>Precio compra:</strong><br>' + formatoDinero(data.precio_compra) + '</div>' +
+          '<div class="col-md-6 mb-2"><strong>Precio venta:</strong><br>' + formatoDinero(data.precio_venta) + '</div>' +
+          '<div class="col-md-6 mb-2"><strong>Ganancia:</strong><br>' + formatoDinero(data.porcentaje_venta) + '</div>' +
+          '<div class="col-md-6 mb-2"><strong>Precio mayoreo:</strong><br>' + formatoDinero(data.precio_mayoreo) + '</div>' +
+          '<div class="col-md-6 mb-2"><strong>Cantidad mayoreo:</strong><br>' + (data.cantidad_mayoreo || 0) + '</div>' +
+          '<div class="col-md-6 mb-2"><strong>Mínimo:</strong><br>' + (data.cantidad_minima || 0) + '</div>' +
+          '<div class="col-md-6 mb-2"><strong>Máximo:</strong><br>' + (data.cantidad_maxima || 0) + '</div>' +
+        '</div>' +
+      '</div>';
+
+    swal({
+      title: 'Detalle del producto',
+      content: {
+        element: 'div',
+        attributes: {
+          innerHTML: html
+        }
+      },
+      icon: 'info',
+      button: 'Cerrar'
+    });
+  });
 };
 
 

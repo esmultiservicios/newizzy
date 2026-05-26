@@ -223,11 +223,43 @@ function formAperturaBill() {
     });
 }
 
-$('#reg_factura').on('click', function(e) {
+$('#reg_factura').off('click').on('click', function(e) {
+    e.preventDefault();
     ProcesarFactura();
 });
 
+function obtenerTotalFacturaSeguro() {
+    calculateTotalFacturas();
+
+    var total = normalizarNumeroFactura($('#invoice-form #totalAftertax').val());
+
+    if (total <= 0) {
+        total = normalizarNumeroFactura($('#invoice-form #totalAftertaxFooter').val());
+    }
+
+    if (total <= 0) {
+        total = normalizarNumeroFactura($('#totalAftertax').val());
+    }
+
+    if (total <= 0) {
+        total = normalizarNumeroFactura($('#totalAftertaxFooter').val());
+    }
+
+    if (total <= 0) {
+        var subtotal = normalizarNumeroFactura($('#invoice-form #subTotal').val());
+        var isv15 = normalizarNumeroFactura($('#invoice-form #taxAmount').val());
+        var isv18 = normalizarNumeroFactura($('#invoice-form #taxAmount18').val());
+        var descuento = normalizarNumeroFactura($('#invoice-form #taxDescuento').val());
+
+        total = (subtotal + isv15 + isv18) - descuento;
+    }
+
+    return total;
+}
+
 function validarFacturaAntesDeEnviar() {
+    calculateTotalFacturas();
+
     if (getConsultarAperturaCaja() == 2) {
         showNotify('error', 'Error', 'Lo sentimos debe aperturar la caja antes de continuar');
         return false;
@@ -248,7 +280,8 @@ function validarFacturaAntesDeEnviar() {
         return false;
     }
 
-    var total = normalizarNumeroFactura($('#totalAftertax').val());
+    var total = obtenerTotalFacturaSeguro();
+
     if (total <= 0) {
         showNotify('error', 'Error', 'El total de la factura debe ser mayor a cero');
         return false;
@@ -271,7 +304,8 @@ function ProcesarFactura(){
     $("#invoice-form").submit();
 }
 
-$("#guardar_factura").on("click", function(e) {
+$("#guardar_factura").off("click").on("click", function(e) {
+    e.preventDefault();
     GuardarFactura();
 });
 
@@ -961,7 +995,26 @@ $(() => {
 var cacheISVFacturaEscritorio = {};
 
 function normalizarNumeroFactura(valor) {
-    valor = String(valor || '0').replace(/,/g, '');
+    valor = String(valor || '0')
+        .replace(/L/g, '')
+        .replace(/\s/g, '')
+        .replace(/[^\d.,-]/g, '');
+
+    if (valor === '') return 0;
+
+    // Caso: 7,355.40 formato USA
+    if (valor.includes(',') && valor.includes('.')) {
+        valor = valor.replace(/,/g, '');
+    }
+    // Caso: 7355,40 formato latino
+    else if (valor.includes(',') && !valor.includes('.')) {
+        valor = valor.replace(/,/g, '.');
+    }
+    // Caso: 15.00 queda igual, NO quitar el punto
+    else {
+        valor = valor;
+    }
+
     var numero = parseFloat(valor);
     return isNaN(numero) ? 0 : numero;
 }

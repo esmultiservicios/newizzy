@@ -5422,8 +5422,30 @@ function computeAppliedAmounts(){
 
 /* Validación antes de confirmar (paso 2 -> 3) */
 function validateBeforeConfirm(){
-  const { totalFactura, amounts, sumSel } = readAmounts();
+  const totalFactura = parseMonto($('#modal_pagos_unificado #customer_bill_pay').val());
   const multi = isMultiOn();
+
+  if (totalFactura <= 0) {
+    warn('El total a pagar debe ser mayor que 0.', '#customer_bill_pay');
+    return false;
+  }
+
+  if (!multi && isFactura()) {
+    if (SELECTED_METHODS.has('card')) {
+      $('#formTarjetaBill #importe_tarjeta').val(fixed2(totalFactura));
+      $('#formTarjetaBill #monto_efectivo_tarjeta').val(fixed2(totalFactura));
+    }
+
+    if (SELECTED_METHODS.has('transfer')) {
+      $('#formTransferenciaBill #importe_transferencia').val(fixed2(totalFactura));
+    }
+
+    if (SELECTED_METHODS.has('check')) {
+      $('#formChequeBill #importe_cheque').val(fixed2(totalFactura));
+    }
+  }
+
+  const { amounts, sumSel } = readAmounts();
 
   for (const m of SELECTED_METHODS){
     const v = amounts[m] || 0;
@@ -5452,47 +5474,36 @@ function validateBeforeConfirm(){
   if (multi){
     if (isFactura()){
       if (!SELECTED_METHODS.has('cash')){ warn('En factura, el pago múltiple debe incluir efectivo.', amountFieldByMethod[Array.from(SELECTED_METHODS)[0]]); return false; }
+
       const noCashSum = (amounts.card + amounts.transfer + amounts.check + amounts.points);
       if (noCashSum > totalFactura + 0.0001){
         const firstNonCash = ['card','transfer','check','points'].find(k => SELECTED_METHODS.has(k));
-        warn('La parte no efectiva no puede exceder el total.', amountFieldByMethod[firstNonCash]); return false;
+        warn('La parte no efectiva no puede exceder el total.', amountFieldByMethod[firstNonCash]);
+        return false;
       }
     }else{
       if (sumSel > totalFactura + 0.0001){
         const focusM = LAST_SELECTED && SELECTED_METHODS.has(LAST_SELECTED) ? LAST_SELECTED : Array.from(SELECTED_METHODS)[0];
-        warn('En CxC, la suma de métodos no puede exceder el total.', amountFieldByMethod[focusM]); return false;
+        warn('En CxC, la suma de métodos no puede exceder el total.', amountFieldByMethod[focusM]);
+        return false;
       }
     }
   }
 
+  syncPaymentConfirm();
   return true;
 
   function warn(msg, selectorToFocus){
     if (typeof showNotify === 'function') {
       showNotify('warning','Atención', msg);
-      setTimeout(async () => {
-        if (selectorToFocus) {
-          await forceFocus(selectorToFocus);
-          const $field = $(selectorToFocus).first();
-          if ($field.length && $field[0]) {
-            $field[0].setCustomValidity(msg);
-            $field[0].reportValidity();
-            setTimeout(() => { try{ $field[0].setCustomValidity(""); }catch(_){ } }, 2000);
-          }
-        }
-      }, 280);
     } else {
       alert(msg);
-      if (selectorToFocus) {
-        setTimeout(async () => {
-          await forceFocus(selectorToFocus);
-          const $field = $(selectorToFocus).first();
-          if ($field.length) {
-            $field.addClass('error-field');
-            setTimeout(() => { $field.removeClass('error-field'); }, 1800);
-          }
-        }, 140);
-      }
+    }
+
+    if (selectorToFocus) {
+      setTimeout(async () => {
+        await forceFocus(selectorToFocus);
+      }, 200);
     }
   }
 }

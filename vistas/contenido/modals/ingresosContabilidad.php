@@ -55,8 +55,18 @@
                             <div class="form-row">
                                 <div class="col-md-6 mb-3">
                                     <label for="factura_ingresos"><i class="fas fa-file-invoice mr-1"></i>Factura</label>
-                                    <input type="text" id="factura_ingresos" name="factura_ingresos" placeholder="Método de pago" class="form-control" maxlength="19" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
-                                    <small class="form-text text-muted">Numero de Factura o de documento</small>
+
+                                    <div class="input-group">
+                                        <input type="text" id="factura_ingresos" name="factura_ingresos" placeholder="Método de pago" class="form-control" maxlength="19" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
+
+                                        <div class="input-group-append">
+                                            <button type="button" class="btn btn-info" id="btnGenerarFacturaIngresos" title="Generar documento automático">
+                                                <i class="fas fa-magic mr-1"></i> Generar
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <small class="form-text text-muted">Número de factura o documento. Formato automático: INYYYYMMDDHHMMSS</small>
                                 </div>
                             </div>
                         </div>

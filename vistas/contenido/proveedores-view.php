@@ -63,8 +63,7 @@
                                 <th>Departamento</th>
                                 <th>Municipio</th>
                                 <th>Estado</th>
-                                <th>Editar</th>
-                                <th>Eliminar</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                     </table>

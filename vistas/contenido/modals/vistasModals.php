@@ -4284,9 +4284,23 @@
                         <div class="card-body">
                             <div class="form-row">
                                 <div class="col-md-12 mb-3">
-                                    <label for="barcode"><i class="fas fa-barcode mr-1"></i>Código de Barra <span class="priority">*</span></label>
-                                    <input type="text" required id="barcode" name="barcode" placeholder="Código de Barra" class="form-control" maxlength="20" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
-                                    <small class="form-text text-muted">Ingrese el nuevo código de barras (máx. 20 caracteres)</small>
+                                    <label for="barcode">
+                                        <i class="fas fa-barcode mr-1"></i>Código de Barra <span class="priority">*</span>
+                                    </label>
+
+                                    <div class="input-group">
+                                        <input type="text" required id="barcode" name="barcode" placeholder="Código de Barra" class="form-control" maxlength="20" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
+
+                                        <div class="input-group-append">
+                                            <button type="button" class="btn btn-info" id="btnGenerarBarcode" title="Generar código automático">
+                                                <i class="fas fa-magic mr-1"></i> Generar
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <small class="form-text text-muted">
+                                        Ingrese el nuevo código de barras o genere uno automáticamente con el formato yyyymmddhhmmss.
+                                    </small>
                                 </div>
                             </div>
                         </div>

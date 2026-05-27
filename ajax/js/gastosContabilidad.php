@@ -1008,4 +1008,41 @@ var total_reporte_categoria_gastos_footer = function(){
 };
 
 $('#btnNuevoProveedor').on('click', function(){ modal_proveedores(); });
+
+// ===============================
+// GENERAR DOCUMENTO AUTOMÁTICO EGRESOS
+// Formato: OUTYYYYMMDDHHMMSS
+// ===============================
+function generarDocumentoEgresoAutomatico() {
+  var fecha = new Date();
+
+  var year = fecha.getFullYear();
+  var month = String(fecha.getMonth() + 1).padStart(2, '0');
+  var day = String(fecha.getDate()).padStart(2, '0');
+  var hour = String(fecha.getHours()).padStart(2, '0');
+  var minute = String(fecha.getMinutes()).padStart(2, '0');
+  var second = String(fecha.getSeconds()).padStart(2, '0');
+
+  return 'OUT' + year + month + day + hour + minute + second;
+}
+
+$(document).off('click', '#btnGenerarFacturaEgresos');
+$(document).on('click', '#btnGenerarFacturaEgresos', function(e) {
+  e.preventDefault();
+
+  var $input = $('#formEgresosContables #factura_egresos');
+  var valorActual = $.trim($input.val());
+
+  if (valorActual !== '') {
+    showNotify('warning', 'Advertencia', 'El campo factura ya tiene un valor. Bórrelo si desea generar uno nuevo.');
+    $input.focus().select();
+    return false;
+  }
+
+  var documento = generarDocumentoEgresoAutomatico();
+
+  $input.val(documento).focus().select();
+
+  showNotify('success', 'Documento generado', 'Se generó el número de documento correctamente.');
+});
 </script>

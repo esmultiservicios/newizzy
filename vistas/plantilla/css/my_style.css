@@ -5440,3 +5440,593 @@ form.modo-editar input[type="date"].remembered-highlight {
   text-decoration: none !important;
 }
 /*FIN VER DETALLE DE PRODUCTOS*/
+
+/*INICIO MOVIMIENTO DE PRODUCTOS*/
+.modal-footer-movimiento {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  background: #ffffff;
+  border-top: 1px solid #dee2e6;
+  box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.movimiento-operacion-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 280px;
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  transition: all 0.25s ease-in-out;
+}
+
+.movimiento-operacion-icon {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.movimiento-operacion-icon i {
+  font-size: 20px;
+}
+
+.movimiento-operacion-texto {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.movimiento-operacion-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  opacity: 0.85;
+}
+
+.movimiento-operacion-texto strong {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.movimiento-operacion-texto small {
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.movimiento-operacion-entrada {
+  background: #eaf8f0;
+  border-color: #bde8cd;
+  color: #155724;
+}
+
+.movimiento-operacion-entrada .movimiento-operacion-icon {
+  background: #28a745;
+  color: #ffffff;
+}
+
+.movimiento-operacion-salida {
+  background: #fff4e5;
+  border-color: #ffd89b;
+  color: #7a4a00;
+}
+
+.movimiento-operacion-salida .movimiento-operacion-icon {
+  background: #f39c12;
+  color: #ffffff;
+}
+
+.movimiento-footer-botones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .modal-footer-movimiento {
+    align-items: stretch;
+  }
+
+  .movimiento-operacion-info {
+    width: 100%;
+    flex: 100%;
+  }
+
+  .movimiento-footer-botones {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+.saldo-producto-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid #d7e3ff;
+  background: #f4f8ff;
+  box-shadow: 0 4px 14px rgba(0, 123, 255, 0.08);
+  transition: all 0.25s ease-in-out;
+  margin-top: 4px;
+}
+
+.saldo-producto-icon {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  border-radius: 50%;
+  background: #007bff;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.saldo-producto-icon i {
+  font-size: 23px;
+}
+
+.saldo-producto-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.saldo-producto-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: #476282;
+  margin-bottom: 3px;
+}
+
+.saldo-producto-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.saldo-producto-main strong {
+  font-size: 21px;
+  font-weight: 800;
+  color: #16365f;
+}
+
+.saldo-producto-content small {
+  display: block;
+  margin-top: 3px;
+  color: #6c757d;
+  font-size: 12px;
+}
+
+.saldo-producto-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.saldo-producto-card-empty {
+  background: #f8f9fa;
+  border-color: #e4e7ea;
+  box-shadow: none;
+}
+
+.saldo-producto-card-empty .saldo-producto-icon {
+  background: #6c757d;
+}
+
+.saldo-producto-card-empty .saldo-producto-badge {
+  background: #e9ecef;
+  color: #495057;
+}
+
+.saldo-producto-card-ok {
+  background: #eaf8f0;
+  border-color: #bde8cd;
+}
+
+.saldo-producto-card-ok .saldo-producto-icon {
+  background: #28a745;
+}
+
+.saldo-producto-card-ok .saldo-producto-badge {
+  background: #28a745;
+  color: #ffffff;
+}
+
+.saldo-producto-card-warning {
+  background: #fff8e5;
+  border-color: #ffe3a3;
+}
+
+.saldo-producto-card-warning .saldo-producto-icon {
+  background: #f39c12;
+}
+
+.saldo-producto-card-warning .saldo-producto-badge {
+  background: #f39c12;
+  color: #ffffff;
+}
+
+.saldo-producto-card-danger {
+  background: #fff1f1;
+  border-color: #ffc7c7;
+}
+
+.saldo-producto-card-danger .saldo-producto-icon {
+  background: #dc3545;
+}
+
+.saldo-producto-card-danger .saldo-producto-badge {
+  background: #dc3545;
+  color: #ffffff;
+}
+
+.saldo-producto-card-loading {
+  background: #eef5ff;
+  border-color: #bdd7ff;
+}
+
+.saldo-producto-card-loading .saldo-producto-icon {
+  background: #007bff;
+}
+
+@media (max-width: 768px) {
+  .saldo-producto-card {
+    align-items: flex-start;
+  }
+
+  .saldo-producto-main strong {
+    font-size: 18px;
+  }
+}
+/*FIN MOVIMIENTO DE PRODUCTOS*/
+
+/* =========================================================
+   ACCIONES GLOBALES PARA TABLAS
+   Reutilizable en productos, clientes, facturas, compras, etc.
+========================================================= */
+
+.acciones-dropdown {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+/* Botón principal */
+.btn-acciones {
+  height: 34px;
+  min-width: 108px;
+  padding: 6px 12px;
+  border-radius: 9px;
+  border: 1px solid #0d6efd;
+  background: #0d6efd;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  box-shadow: 0 4px 10px rgba(13, 110, 253, 0.18);
+  transition:
+    background 0.16s ease-in-out,
+    box-shadow 0.16s ease-in-out;
+}
+
+.btn-acciones:hover,
+.btn-acciones:focus,
+.btn-acciones:active {
+  color: #ffffff;
+  background: #0b5ed7;
+  border-color: #0b5ed7;
+  box-shadow: 0 6px 14px rgba(13, 110, 253, 0.24);
+}
+
+.btn-acciones > i {
+  width: 14px;
+  height: 14px;
+  font-size: 13px;
+  line-height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+}
+
+.btn-acciones.dropdown-toggle::after {
+  margin-left: 2px;
+}
+
+/* Menú */
+.acciones-menu {
+  min-width: 170px;
+  border: 1px solid #edf0f4;
+  border-radius: 12px;
+  padding: 6px;
+  margin-top: 6px;
+  background: #ffffff;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.16);
+  overflow: hidden;
+  z-index: 2050;
+}
+
+/* Item */
+.acciones-menu .dropdown-item {
+  width: 100%;
+  height: 42px;
+  padding: 0 10px !important;
+  margin: 0 0 4px 0 !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  background: transparent !important;
+  color: #1f2937 !important;
+  box-shadow: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  cursor: pointer;
+  line-height: 1 !important;
+}
+
+.acciones-menu .dropdown-item:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Contenedor del icono */
+.accion-icon {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  max-width: 30px;
+  border-radius: 8px;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  overflow: hidden;
+}
+
+/* Icono interno */
+.accion-icon > i {
+  width: 30px !important;
+  height: 30px !important;
+  font-size: 13px !important;
+  line-height: 30px !important;
+  display: block !important;
+  text-align: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Ajustes específicos porque FontAwesome no renderiza todos igual */
+.accion-icon-editar > i {
+  line-height: 30px !important;
+  transform: translateY(0);
+}
+
+.accion-icon-eliminar > i {
+  line-height: 30px !important;
+  transform: translateY(0);
+}
+
+/* Texto */
+.accion-label {
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  text-align: left;
+  color: #1f2937;
+  white-space: nowrap;
+}
+
+/* Editar */
+.accion-editar:hover {
+  background: #fff7e6 !important;
+}
+
+.accion-icon-editar {
+  background: #fff0c2;
+  color: #b7791f;
+}
+
+/* Eliminar */
+.accion-eliminar:hover {
+  background: #fff0f0 !important;
+}
+
+.accion-icon-eliminar {
+  background: #ffdede;
+  color: #dc3545;
+}
+
+/* Ver / Detalle */
+.accion-ver:hover,
+.accion-detalle:hover {
+  background: #eef6ff !important;
+}
+
+.accion-icon-ver,
+.accion-icon-detalle {
+  background: #dbeafe;
+  color: #0d6efd;
+}
+
+/* Imprimir / PDF */
+.accion-imprimir:hover,
+.accion-pdf:hover {
+  background: #fff0f0 !important;
+}
+
+.accion-icon-imprimir,
+.accion-icon-pdf {
+  background: #ffdede;
+  color: #dc3545;
+}
+
+/* Enviar */
+.accion-enviar:hover {
+  background: #f0f2ff !important;
+}
+
+.accion-icon-enviar {
+  background: #e0e7ff;
+  color: #4f46e5;
+}
+
+/* Confirmar / Pagar */
+.accion-confirmar:hover,
+.accion-pagar:hover {
+  background: #ecfdf3 !important;
+}
+
+.accion-icon-confirmar,
+.accion-icon-pagar {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+/* Cancelar / Anular */
+.accion-cancelar:hover,
+.accion-anular:hover {
+  background: #fff0f0 !important;
+}
+
+.accion-icon-cancelar,
+.accion-icon-anular {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* DataTables */
+table.dataTable .acciones-dropdown {
+  white-space: nowrap;
+}
+
+table.dataTable td .acciones-menu {
+  text-align: left;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .btn-acciones {
+    height: 32px;
+    min-width: 100px;
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+
+  .btn-acciones > i {
+    width: 13px;
+    height: 13px;
+    font-size: 12px;
+    line-height: 13px;
+  }
+
+  .acciones-menu {
+    min-width: 160px;
+  }
+
+  .acciones-menu .dropdown-item {
+    height: 40px;
+    gap: 9px !important;
+  }
+
+  .accion-icon {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    max-width: 28px;
+  }
+
+  .accion-icon > i {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 12px !important;
+    line-height: 28px !important;
+  }
+
+  .accion-label {
+    font-size: 12px;
+  }
+}
+
+/* =========================================================
+   MODAL FOOTER GLOBAL - BOTONES UNIFORMES
+   Aplica a todos los footers de modales
+========================================================= */
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 1rem 1.25rem;
+}
+
+.modal-footer .btn {
+  min-width: 118px;
+  height: 38px;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Pantallas pequeñas: botones parejos */
+@media (max-width: 576px) {
+  .modal-footer {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .modal-footer .btn {
+    flex: 1 1 0;
+    width: auto !important;
+    min-width: 0;
+  }
+}
+
+/* Si un modal tiene más de 2 botones en móvil, permite salto ordenado */
+@media (max-width: 576px) {
+  .modal-footer:has(.btn:nth-of-type(3)) {
+    flex-wrap: wrap;
+  }
+
+  .modal-footer:has(.btn:nth-of-type(3)) .btn {
+    flex: 1 1 calc(50% - 8px);
+  }
+}

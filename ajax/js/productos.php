@@ -113,6 +113,35 @@ $(function initApp() {
       }, 500);
   });
 
+  // ===============================
+// GENERAR CÓDIGO DE BARRA AUTOMÁTICO
+// Formato: yyyymmddhhmmss
+// ===============================
+function generarBarcodeFechaHora() {
+    const fecha = new Date();
+
+    const year = fecha.getFullYear();
+    const month = String(fecha.getMonth() + 1).padStart(2, '0');
+    const day = String(fecha.getDate()).padStart(2, '0');
+    const hour = String(fecha.getHours()).padStart(2, '0');
+    const minute = String(fecha.getMinutes()).padStart(2, '0');
+    const second = String(fecha.getSeconds()).padStart(2, '0');
+
+    return `${year}${month}${day}${hour}${minute}${second}`;
+}
+
+$(document).off('click', '#btnGenerarBarcode').on('click', '#btnGenerarBarcode', function(e) {
+    e.preventDefault();
+
+    const barcodeGenerado = generarBarcodeFechaHora();
+
+    $('#formEditarBarcode input[name="barcode"]').val(barcodeGenerado).focus().select();
+
+    if (typeof showNotify === 'function') {
+        showNotify('success', 'Código generado', 'Se generó el código de barra automáticamente.');
+    }
+});
+
 
   // ===============================
   // GUARDAR CÓDIGO DE BARRA POR AJAX
@@ -388,6 +417,9 @@ $(function initApp() {
 /* =========================
    DataTable: Productos
    ========================= */
+/* =========================
+   DataTable: Productos
+   ========================= */
    var listar_productos = function() {
   var estado = $('#form_main_productos #estado_producto').val() === "" 
                ? 1 
@@ -575,14 +607,45 @@ $(function initApp() {
           return data;
         }
       },
-
       {
-        defaultContent: "<button class='table_editar btn btn-warning ocultar'><span class='fas fa-edit fa-lg mr-1'></span>Editar</button>"
-      },
+  data: null,
+  orderable: false,
+  searchable: false,
+  className: "text-center align-middle",
+  render: function(data, type, row) {
+    if (type !== 'display') {
+      return '';
+    }
 
-      {
-        defaultContent: "<button class='table_eliminar btn btn-danger ocultar'><span class='fa fa-trash fa-lg mr-1'></span>Eliminar</button>"
-      }
+    return '' +
+      '<div class="dropdown acciones-dropdown">' +
+
+        '<button type="button" class="btn btn-sm btn-acciones dropdown-toggle" data-toggle="dropdown" data-boundary="window" aria-haspopup="true" aria-expanded="false">' +
+          '<i class="fas fa-cog"></i>' +
+          '<span>Acciones</span>' +
+        '</button>' +
+
+        '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+          '<button type="button" class="dropdown-item accion-item accion-editar table_editar">' +
+            '<span class="accion-icon accion-icon-editar">' +
+              '<i class="fas fa-edit"></i>' +
+            '</span>' +
+            '<span class="accion-label">Editar</span>' +
+          '</button>' +
+
+          '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar">' +
+            '<span class="accion-icon accion-icon-eliminar">' +
+              '<i class="fas fa-trash-alt"></i>' +
+            '</span>' +
+            '<span class="accion-label">Eliminar</span>' +
+          '</button>' +
+
+        '</div>' +
+
+      '</div>';
+  }
+}
     ],
 
     buttons: [

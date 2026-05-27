@@ -95,6 +95,29 @@
                                     <small class="form-text text-muted">Requerido para salidas</small>
                                 </div>
                             </div>
+
+                            <div class="form-row">
+                                <div class="col-md-12">
+                                    <div id="saldoProductoMovimientoCard" class="saldo-producto-card saldo-producto-card-empty">
+                                        <div class="saldo-producto-icon">
+                                            <i id="saldoProductoMovimientoIcon" class="fas fa-box"></i>
+                                        </div>
+
+                                        <div class="saldo-producto-content">
+                                            <span class="saldo-producto-label">Saldo disponible del producto</span>
+
+                                            <div class="saldo-producto-main">
+                                                <strong id="saldoProductoMovimientoValor">Seleccione o escanee un producto</strong>
+                                                <span id="saldoProductoMovimientoEstado" class="saldo-producto-badge">Sin producto</span>
+                                            </div>
+
+                                            <small id="saldoProductoMovimientoDetalle">
+                                                El saldo se mostrará según el producto, bodega y lote seleccionado.
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>                            
                         </div>
                     </div>
 
@@ -161,14 +184,32 @@
                 </form>
             </div>
 
-            <div class="modal-footer">
-                <button class="btn btn-danger" data-dismiss="modal">
-                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
-                </button>
+            <div class="modal-footer modal-footer-movimiento">
 
-                <button class="btn btn-success" type="submit" id="btnRegistrarMovimiento" form="formMovimientos">
-                    <i class="fas fa-save fa-lg mr-1"></i> Registrar Movimiento
-                </button>
+                <div id="movimientoOperacionInfo" class="movimiento-operacion-info movimiento-operacion-entrada">
+                    <div class="movimiento-operacion-icon">
+                        <i id="movimientoOperacionIcon" class="fas fa-sign-in-alt"></i>
+                    </div>
+
+                    <div class="movimiento-operacion-texto">
+                        <span class="movimiento-operacion-label">Operación actual</span>
+                        <strong id="movimientoOperacionTitulo">Entrada de producto</strong>
+                        <small id="movimientoOperacionDescripcion">
+                            Se registrará una entrada al inventario seleccionado.
+                        </small>
+                    </div>
+                </div>
+
+                <div class="movimiento-footer-botones">
+                    <button class="btn btn-danger" data-dismiss="modal">
+                        <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                    </button>
+
+                    <button class="btn btn-success" type="submit" id="btnRegistrarMovimiento" form="formMovimientos">
+                        <i class="fas fa-save fa-lg mr-1"></i> Registrar Movimiento
+                    </button>
+                </div>
+
             </div>
         </div>
     </div>

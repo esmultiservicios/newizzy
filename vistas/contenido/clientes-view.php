@@ -65,9 +65,7 @@
                                 <th>Sistema</th>
                                 <th>Estado</th>
                                 <th>Puntos</th>
-                                <th>Generar</th>
-                                <th>Editar</th>
-                                <th>Eliminar</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                     </table>

@@ -42,7 +42,8 @@ var listar_proveedores = function() {
                 "estado": estado 
             }
         },
-        "columns": [{
+        "columns": [
+            {
                 "data": "proveedor"
             },
             {
@@ -78,12 +79,48 @@ var listar_proveedores = function() {
                     }
                     return data;
                 }
-            },             
-            {
-                "defaultContent": "<button class='table_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
             },
             {
-                "defaultContent": "<button class='table_eliminar btn ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"
+                "data": null,
+                "orderable": false,
+                "searchable": false,
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    if (type !== 'display') {
+                        return '';
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+
+                            '<button type="button" class="btn btn-sm btn-acciones dropdown-toggle" data-toggle="dropdown" data-boundary="window" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+                                '<button type="button" class="dropdown-item accion-editar table_editar ocultar">' +
+                                    '<span class="accion-icon accion-icon-editar">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Editar</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-eliminar table_eliminar ocultar">' +
+                                    '<span class="accion-icon accion-icon-eliminar">' +
+                                        '<i class="fas fa-trash-alt"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Eliminar</span>' +
+                                '</button>' +
+
+                            '</div>' +
+
+                        '</div>';
+                }
+            },
+            {
+                "defaultContent": ""
             }
         ],
         "lengthMenu": lengthMenu10,
@@ -91,7 +128,8 @@ var listar_proveedores = function() {
         "bDestroy": true,
         "language": idioma_español,
         "dom": dom,
-        "columnDefs": [{
+        "columnDefs": [
+            {
                 width: "22.5%",
                 targets: 0
             },
@@ -120,11 +158,17 @@ var listar_proveedores = function() {
                 targets: 6
             },
             {
-                width: "2.5%",
+                width: "5%",
                 targets: 7
+            },
+            {
+                visible: false,
+                searchable: false,
+                targets: 8
             }
         ],
-        "buttons": [{
+        "buttons": [
+            {
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                 titleAttr: 'Actualizar Proveedores',
                 className: 'table_actualizar btn btn-secondary ocultar',
@@ -164,7 +208,7 @@ var listar_proveedores = function() {
                     columns: [0, 1, 2, 3, 4, 5, 6]
                 },
                 customize: function(doc) {
-                    if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
+                    if (imagen) {
                         doc.content.splice(0, 0, {
                             image: imagen,  
                             width: 100,
@@ -179,6 +223,9 @@ var listar_proveedores = function() {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
         }
     });
+
+    $('#dataTableProveedores thead th').eq(7).text('Acciones');
+
     table_proveedores.search('').draw();
     $('#buscar').focus();
 

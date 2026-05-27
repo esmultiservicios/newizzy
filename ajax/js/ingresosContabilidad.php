@@ -599,4 +599,41 @@ $(document).ready(function () {
 });
 
 $('#btnNuevoCliente').on('click', function () { modal_clientes(); });
+
+// ===============================
+// GENERAR DOCUMENTO AUTOMÁTICO INGRESOS
+// Formato: INYYYYMMDDHHMMSS
+// ===============================
+function generarDocumentoIngresoAutomatico() {
+  var fecha = new Date();
+
+  var year = fecha.getFullYear();
+  var month = String(fecha.getMonth() + 1).padStart(2, '0');
+  var day = String(fecha.getDate()).padStart(2, '0');
+  var hour = String(fecha.getHours()).padStart(2, '0');
+  var minute = String(fecha.getMinutes()).padStart(2, '0');
+  var second = String(fecha.getSeconds()).padStart(2, '0');
+
+  return 'IN' + year + month + day + hour + minute + second;
+}
+
+$(document).off('click', '#btnGenerarFacturaIngresos');
+$(document).on('click', '#btnGenerarFacturaIngresos', function(e) {
+  e.preventDefault();
+
+  var $input = $('#formIngresosContables #factura_ingresos');
+  var valorActual = $.trim($input.val());
+
+  if (valorActual !== '') {
+    showNotify('warning', 'Advertencia', 'El campo factura ya tiene un valor. Bórrelo si desea generar uno nuevo.');
+    $input.focus().select();
+    return false;
+  }
+
+  var documento = generarDocumentoIngresoAutomatico();
+
+  $input.val(documento).focus().select();
+
+  showNotify('success', 'Documento generado', 'Se generó el número de documento correctamente.');
+});
 </script>

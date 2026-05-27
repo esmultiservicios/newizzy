@@ -37,6 +37,129 @@ function badgeRender(colorFn){
   };
 }
 
+function limpiarSaldoProductoMovimiento() {
+  var $card = $('#saldoProductoMovimientoCard');
+
+  if (!$card.length) return;
+
+  $card
+    .removeClass('saldo-producto-card-ok saldo-producto-card-warning saldo-producto-card-danger saldo-producto-card-loading')
+    .addClass('saldo-producto-card-empty');
+
+  $('#saldoProductoMovimientoIcon')
+    .removeClass()
+    .addClass('fas fa-box');
+
+  $('#saldoProductoMovimientoValor').text('Seleccione o escanee un producto');
+  $('#saldoProductoMovimientoEstado').text('Sin producto');
+  $('#saldoProductoMovimientoDetalle').text('El saldo se mostrará según el producto, bodega y lote seleccionado.');
+}
+
+function mostrarCargandoSaldoProductoMovimiento() {
+  var $card = $('#saldoProductoMovimientoCard');
+
+  if (!$card.length) return;
+
+  $card
+    .removeClass('saldo-producto-card-empty saldo-producto-card-ok saldo-producto-card-warning saldo-producto-card-danger')
+    .addClass('saldo-producto-card-loading');
+
+  $('#saldoProductoMovimientoIcon')
+    .removeClass()
+    .addClass('fas fa-spinner fa-spin');
+
+  $('#saldoProductoMovimientoValor').text('Consultando saldo...');
+  $('#saldoProductoMovimientoEstado').text('Espere');
+  $('#saldoProductoMovimientoDetalle').text('Validando existencia disponible del producto seleccionado.');
+}
+
+function pintarSaldoProductoMovimiento(saldo, detalle, estadoServidor) {
+  var $card = $('#saldoProductoMovimientoCard');
+  var saldoNumero = toNumber(saldo);
+
+  if (!$card.length) return;
+
+  $card.removeClass('saldo-producto-card-empty saldo-producto-card-ok saldo-producto-card-warning saldo-producto-card-danger saldo-producto-card-loading');
+
+  $('#saldoProductoMovimientoIcon').removeClass();
+
+  if (saldoNumero <= 0) {
+    $card.addClass('saldo-producto-card-danger');
+
+    $('#saldoProductoMovimientoIcon').addClass('fas fa-exclamation-triangle');
+    $('#saldoProductoMovimientoEstado').text(estadoServidor || 'Sin saldo');
+  } else if (saldoNumero <= 5) {
+    $card.addClass('saldo-producto-card-warning');
+
+    $('#saldoProductoMovimientoIcon').addClass('fas fa-exclamation-circle');
+    $('#saldoProductoMovimientoEstado').text(estadoServidor || 'Saldo bajo');
+  } else {
+    $card.addClass('saldo-producto-card-ok');
+
+    $('#saldoProductoMovimientoIcon').addClass('fas fa-check-circle');
+    $('#saldoProductoMovimientoEstado').text(estadoServidor || 'Disponible');
+  }
+
+  $('#saldoProductoMovimientoValor').text(formatNumber(saldoNumero) + ' unidades');
+
+  $('#saldoProductoMovimientoDetalle').text(
+    detalle || 'Saldo actual según producto, bodega y lote seleccionado.'
+  );
+}
+
+function mostrarErrorSaldoProductoMovimiento(mensaje) {
+  var $card = $('#saldoProductoMovimientoCard');
+
+  if (!$card.length) return;
+
+  $card
+    .removeClass('saldo-producto-card-empty saldo-producto-card-ok saldo-producto-card-warning saldo-producto-card-loading')
+    .addClass('saldo-producto-card-danger');
+
+  $('#saldoProductoMovimientoIcon')
+    .removeClass()
+    .addClass('fas fa-times-circle');
+
+  $('#saldoProductoMovimientoValor').text('No disponible');
+  $('#saldoProductoMovimientoEstado').text('Error');
+  $('#saldoProductoMovimientoDetalle').text(mensaje || 'Hubo un problema al consultar el saldo del producto.');
+}
+
+function consultarSaldoProductoMovimiento() {
+  var producto_id = $('#formMovimientos #movimiento_producto').val();
+  var almacen_id = $('#formMovimientos #almacen_modal').val();
+  var lote_id = $('#formMovimientos #movimiento_lote').val();
+
+  if (!producto_id) {
+    limpiarSaldoProductoMovimiento();
+    return;
+  }
+
+  mostrarCargandoSaldoProductoMovimiento();
+
+  $.ajax({
+    type: 'POST',
+    url: '<?php echo SERVERURL;?>core/productos/getSaldoProductoMovimiento.php',
+    dataType: 'json',
+    data: {
+      producto_id: producto_id,
+      almacen_id: almacen_id,
+      lote_id: lote_id
+    },
+    success: function(response) {
+      if (response && response.success) {
+        pintarSaldoProductoMovimiento(response.saldo, response.detalle, response.estado);
+      } else {
+        mostrarErrorSaldoProductoMovimiento(
+          response && response.message ? response.message : 'No se pudo obtener el saldo del producto.'
+        );
+      }
+    },
+    error: function() {
+      mostrarErrorSaldoProductoMovimiento('Hubo un problema en la comunicación con el servidor.');
+    }
+  });
+}
 /* =========================================================
    INICIO
 ========================================================= */
@@ -312,8 +435,25 @@ function getAlmacenModal() {
   });
 }
 
-$('#formMovimientos #movimiento_producto').change(function(){
-  getLotesProductos($(this).val());
+$('#formMovimientos #movimiento_producto').off('changed.bs.select.saldoMovimiento change.saldoMovimiento');
+$('#formMovimientos #movimiento_producto').on('changed.bs.select.saldoMovimiento change.saldoMovimiento', function(){
+  var producto_id = $(this).val();
+
+  getLotesProductos(producto_id);
+
+  setTimeout(function(){
+    consultarSaldoProductoMovimiento();
+  }, 350);
+});
+
+$('#formMovimientos #almacen_modal').off('changed.bs.select.saldoMovimiento change.saldoMovimiento');
+$('#formMovimientos #almacen_modal').on('changed.bs.select.saldoMovimiento change.saldoMovimiento', function(){
+  consultarSaldoProductoMovimiento();
+});
+
+$('#formMovimientos #movimiento_lote').off('changed.bs.select.saldoMovimiento change.saldoMovimiento');
+$('#formMovimientos #movimiento_lote').on('changed.bs.select.saldoMovimiento change.saldoMovimiento', function(){
+  consultarSaldoProductoMovimiento();
 });
 
 function getLotesProductos(producto_id){
@@ -458,6 +598,41 @@ function aplicarOperacionMovimiento(tipoOperacion) {
   $('#formMovimientos #proceso_movimientos').val(
     tipoOperacion === 'entrada' ? 'Operación: Entrada' : 'Operación: Salida'
   );
+
+  actualizarLeyendaOperacionMovimiento(tipoOperacion);
+}
+
+function actualizarLeyendaOperacionMovimiento(tipoOperacion) {
+  var $info = $('#movimientoOperacionInfo');
+  var $icon = $('#movimientoOperacionIcon');
+  var $titulo = $('#movimientoOperacionTitulo');
+  var $descripcion = $('#movimientoOperacionDescripcion');
+
+  if (!$info.length) return;
+
+  $info.removeClass('movimiento-operacion-entrada movimiento-operacion-salida');
+
+  if (tipoOperacion === 'salida') {
+    $info.addClass('movimiento-operacion-salida');
+
+    $icon
+      .removeClass()
+      .addClass('fas fa-sign-out-alt');
+
+    $titulo.text('Salida de producto');
+
+    $descripcion.text('Se descontará inventario de la bodega seleccionada. Cliente requerido para salidas.');
+  } else {
+    $info.addClass('movimiento-operacion-entrada');
+
+    $icon
+      .removeClass()
+      .addClass('fas fa-sign-in-alt');
+
+    $titulo.text('Entrada de producto');
+
+    $descripcion.text('Se registrará una entrada al inventario seleccionado.');
+  }
 }
 
 /* =========================================================
@@ -474,6 +649,8 @@ function limpiarFormularioMovimientoRapido() {
   $('#formMovimientos #movimiento_producto').val('').selectpicker('refresh');
   $('#formMovimientos #movimiento_lote').html('').selectpicker('refresh');
   $('#formMovimientos #cliente_movimientos').val('').selectpicker('refresh');
+
+  limpiarSaldoProductoMovimiento();
 
   seleccionarBodegaPrincipal('#formMovimientos #almacen_modal');
   cargarOperacionRecordada();
@@ -512,6 +689,7 @@ $(document).ready(function(){
   $("#modal_movimientos").on('shown.bs.modal', function(){
     seleccionarBodegaPrincipal('#formMovimientos #almacen_modal');
     cargarOperacionRecordada();
+    limpiarSaldoProductoMovimiento();
 
     setTimeout(function(){
       $('#formMovimientos #produto_barcode').focus();
@@ -574,8 +752,9 @@ const BusquedaProducto = (barcode) => {
         getLotesProductos(registro.productos_id);
 
         setTimeout(function(){
+          consultarSaldoProductoMovimiento();
           $('#formMovimientos #movimiento_cantidad').focus().select();
-        }, 300);
+        }, 450);
       }else{
         showNotify('error','Error',registro.message);
         $('#formMovimientos #produto_barcode').focus().select();

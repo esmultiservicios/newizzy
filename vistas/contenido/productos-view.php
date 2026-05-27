@@ -66,8 +66,7 @@
                                 <th>Ganancia</th>
                                 <th>ISV Venta</th>
                                 <th>Estado</th>
-                                <th>Editar</th>
-                                <th>Eliminar</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                     </table>

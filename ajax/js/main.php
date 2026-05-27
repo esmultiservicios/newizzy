@@ -3801,6 +3801,7 @@ $('#form_main_clientes').on('reset', function() {
 });
 
 //INICIO ACCIONES FORMULARIO CLIENTES
+//INICIO ACCIONES FORMULARIO CLIENTES
 var listar_clientes = function(estado) {
     var estado = $('#form_main_clientes #estado_clientes').val();
 
@@ -3831,7 +3832,7 @@ var listar_clientes = function(estado) {
                         if (!data) {
                             badgeClass += 'badge-secondary';
                             label = 'Sin sistema';
-                            icon = '<i class="fas fa-ban mr-1"></i>'; // ícono de prohibido
+                            icon = '<i class="fas fa-ban mr-1"></i>';
                         } else {
                             switch (data) {
                                 case 'IZZY':
@@ -3856,6 +3857,7 @@ var listar_clientes = function(estado) {
                             '" style="font-size: 0.9rem; padding: 0.45em 0.75em; font-weight: 600;">' +
                             icon + label + '</span>';
                     }
+
                     return data || 'Sin sistema';
                 }
             },
@@ -3875,6 +3877,7 @@ var listar_clientes = function(estado) {
                             '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
                             icon + estadoText + '</span>';
                     }
+
                     return data;
                 }
             },            
@@ -3882,19 +3885,57 @@ var listar_clientes = function(estado) {
                 "data": "puntos",
                 "render": function(data, type, row) {
                     var clienteId = row.id || row.clientes_id || 0;
+
                     return '<span class="badge badge-primary">' + (data || 0) + '</span> ' +
                         '<button class="btn btn-sm btn-info ver-historial" title="Ver historial" data-id="'+clienteId+'">' +
                         '<i class="fas fa-history" style="color: white;"></i></button>';
                 }
             },
             {
-                "defaultContent": "<button class='table_crear btn btn-dark ocultar generar'><span class='fab fa-centos fa-lg'></span>Generar</button>"
-            },
-            {
-                "defaultContent": "<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
-            },
-            {
-                "defaultContent": "<button class='table_eliminar btn btn-dark ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"
+                "data": null,
+                "orderable": false,
+                "searchable": false,
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    if (type !== 'display') {
+                        return '';
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+
+                            '<button type="button" class="btn btn-sm btn-acciones dropdown-toggle" data-toggle="dropdown" data-boundary="window" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+                                '<button type="button" class="dropdown-item accion-confirmar table_crear ocultar generar accion-generar-cliente">' +
+                                    '<span class="accion-icon accion-icon-confirmar">' +
+                                        '<i class="fab fa-centos"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Generar</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-editar table_editar ocultar">' +
+                                    '<span class="accion-icon accion-icon-editar">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Editar</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-eliminar table_eliminar ocultar">' +
+                                    '<span class="accion-icon accion-icon-eliminar">' +
+                                        '<i class="fas fa-trash-alt"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Eliminar</span>' +
+                                '</button>' +
+
+                            '</div>' +
+
+                        '</div>';
+                }
             }
         ],
         "lengthMenu": lengthMenu10,
@@ -3912,7 +3953,7 @@ var listar_clientes = function(estado) {
             {width: "8%", targets: 6},
             {width: "10%", targets: 7},
             {width: "2%", targets: 8},
-            {width: "2%", targets: 9}
+            {width: "5%", targets: 9}
         ],
         "buttons": [
             {
@@ -3971,28 +4012,23 @@ var listar_clientes = function(estado) {
             
             var privilegio = getPrivilegioUsuario();
             var privilegiosPermitidos = [1, 2];
-            var table = this.api(); // Obtener referencia de la tabla
+            var table = this.api();
             
-            // Si el privilegio está en la lista de restringidos
             if (privilegiosPermitidos.includes(privilegio)) {
                 var db_consulta = getSessionUser() === "" ? DB_MAIN : getSessionUser();
                 
                 if (db_consulta == DB_MAIN) {
-                    // Mostrar columnas (índices: 9=generar, 6=sistema)
-                    table.column(9).visible(true); // Boton Generar
-                    table.column(6).visible(true); // Label Sistema
+                    table.column(6).visible(true);
+                    $('.accion-generar-cliente').show();
                 } else {
-                    // Ocultar columnas
-                    table.column(9).visible(false); // Boton Generar
-                    table.column(6).visible(false); // Label Sistema
+                    table.column(6).visible(false);
+                    $('.accion-generar-cliente').hide();
                 }
             } else {
-                // Privilegios 1, 2 o 3: ocultar generar
-                table.column(9).visible(false); // Boton Generar
-                table.column(6).visible(false); // Label Sistema
+                table.column(6).visible(false);
+                $('.accion-generar-cliente').hide();
             }
             
-            // Verificación para puntos (índice 8)
             $.ajax({
                 url: '<?php echo SERVERURL;?>core/programaPuntos/verificarProgramaPuntos.php',
                 type: 'POST',
@@ -4000,25 +4036,21 @@ var listar_clientes = function(estado) {
                 async: false,
                 success: function(response) {
                     if(response.mostrar_puntos) {
-                        table.column(8).visible(true); // Boton Puntos
+                        table.column(8).visible(true);
                     } else {
-                        table.column(8).visible(false); // Boton Puntos
+                        table.column(8).visible(false);
                     }
                 },
                 error: function() {
-                    table.column(8).visible(false); // Boton Puntos
+                    table.column(8).visible(false);
                 }
             });
         }
     });
 
-    // Evento para el botón de historial (DELEGACIÓN DE EVENTOS)
     $('#dataTableClientes').off('click', '.ver-historial').on('click', '.ver-historial', function() {
         var cliente_id = $(this).data('id');       
-        // Mostrar el modal inmediatamente
         $('#modal_historial_puntos').modal('show');
-        
-        // Luego cargar los datos
         cargarHistorialPuntos(cliente_id);
     });
 

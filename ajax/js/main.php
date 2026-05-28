@@ -8425,6 +8425,44 @@ function formatoMonedaRetiro(valor) {
     });
 }
 
+function notificarRetiroCaja(tipo, titulo, mensaje) {
+    if (typeof showNotify === 'function') {
+        showNotify(tipo, titulo, mensaje);
+    } else if (typeof swal === 'function') {
+        swal({
+            title: titulo,
+            text: mensaje,
+            icon: tipo === 'success' ? 'success' : 'error',
+            button: 'Aceptar'
+        });
+    } else {
+        alert(titulo + ': ' + mensaje);
+    }
+}
+
+function cargarCategoriasRetiroCaja() {
+    $.ajax({
+        type: 'POST',
+        url: '<?php echo SERVERURL; ?>core/caja/getCategoriasGastosRetiroCaja.php',
+        dataType: 'json',
+        success: function (response) {
+            var html = '';
+
+            if (response.success && response.data) {
+                response.data.forEach(function (item) {
+                    html += '<option value="' + item.categoria_gastos_id + '">' + item.nombre + '</option>';
+                });
+            }
+
+            $('#retiro_categoria_gastos_id').html(html);
+
+            if ($.fn.selectpicker) {
+                $('#retiro_categoria_gastos_id').selectpicker('refresh');
+            }
+        }
+    });
+}
+
 function calcularRetiroCaja() {
     var saldoActual = parseFloat($('#retiro_saldo_actual').val()) || 0;
     var montoRetiro = parseFloat($('#retiro_monto').val()) || 0;
@@ -8460,9 +8498,7 @@ $(document).on('shown.bs.modal', '#modalRetiroCaja', function () {
     $('#retiro_mensaje_validacion').hide().html('');
     $('#btn_guardar_retiro_caja').prop('disabled', true);
 
-    if ($.fn.selectpicker) {
-        $('#retiro_motivo').selectpicker('refresh');
-    }
+    cargarCategoriasRetiroCaja();
 
     $.ajax({
         type: 'POST',
@@ -8523,11 +8559,11 @@ $(document).on('submit', '#formRetiroCaja', function (e) {
 
             $('#modalRetiroCaja').modal('hide');
 
-            if (typeof showNotify === 'function') {
-                showNotify('success', response.message);
-            } else {
-                alert(response.message);
+            if (typeof listar_registro_cajas === 'function') {
+                listar_registro_cajas();
             }
+
+            notificarRetiroCaja('success', 'Retiro registrado', response.message);
         },
         error: function () {
             $('#btn_guardar_retiro_caja').html('<i class="far fa-save fa-lg mr-1"></i> Registrar retiro');

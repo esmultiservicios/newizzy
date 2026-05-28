@@ -43,7 +43,6 @@ class aperturaCajaModelo extends mainModel{
         $ok = mainModel::connection()->query($insert);
         if(!$ok){ die(mainModel::connection()->error); }
 
-        // devuelve TRUE como antes
         return $ok;
     }
 
@@ -52,7 +51,6 @@ class aperturaCajaModelo extends mainModel{
        ========================== */
     protected function agregar_ingresos_contabilidad_modelo($datos) {
         $ingresos_id = mainModel::correlativo("ingresos_id", "ingresos");
-        // Valor por defecto para evitar warning
         $recibide = isset($datos['recibide']) ? $datos['recibide'] : '';
 
         $insert = "
@@ -269,10 +267,33 @@ class aperturaCajaModelo extends mainModel{
     }            
 
     /* ==========================
+       RETIROS DE CAJA
+       ========================== */
+    protected function obtener_total_retiros_caja_modelo($apertura_id){
+        $empresa_id = isset($_SESSION['empresa_id_sd']) ? (int)$_SESSION['empresa_id_sd'] : 0;
+
+        $query = "
+            SELECT COALESCE(SUM(monto), 0) AS total_retiros
+            FROM caja_retiros
+            WHERE apertura_id = '$apertura_id'
+              AND empresa_id = '$empresa_id'
+              AND estado = 1
+        ";
+
+        $sql = mainModel::connection()->query($query);
+        if(!$sql){ die(mainModel::connection()->error); }
+
+        if($sql->num_rows > 0){
+            $row = $sql->fetch_assoc();
+            return (float)$row['total_retiros'];
+        }
+
+        return 0;
+    }
+
+    /* ==========================
        NUEVOS MÉTODOS (CIERRE)
        ========================== */
-
-    // Montos por cuenta para pagos NO contabilizados (derivando cuenta desde tipo_pago)
     protected function getMontosNoContabilizadosPorCuenta($apertura_id){
         $query = "
             SELECT tp.cuentas_id, SUM(pd.efectivo) AS monto
@@ -294,7 +315,6 @@ class aperturaCajaModelo extends mainModel{
         return $sql;
     }
 
-    // Marca pagos como contabilizados por cuenta (derivada desde tipo_pago) y guarda el ingreso de referencia
     protected function marcar_pagos_contabilizados_por_cuenta($apertura_id, $cuentas_id, $ingresos_id){
         $update = "
             UPDATE pagos p
@@ -313,7 +333,6 @@ class aperturaCajaModelo extends mainModel{
         return $ok;
     }
 
-    /* (Compat) marcar por cuenta directa si la necesitas en otro lado */
     protected function marcar_pagos_contabilizados($apertura_id, $cuentas_id, $ingresos_id){
         $update = "
             UPDATE pagos p

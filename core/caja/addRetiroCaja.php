@@ -15,6 +15,7 @@ if (method_exists($insMainModel, 'validarSesion')) {
     if (!empty($validacion['error'])) {
         echo json_encode([
             'success' => false,
+            'title' => 'Sesión inválida',
             'message' => $validacion['mensaje'] ?? 'Sesión inválida'
         ]);
         exit;
@@ -33,10 +34,9 @@ $colaboradores_id = isset($_SESSION['colaborador_id_sd']) ? (int)$_SESSION['cola
 
 $apertura_id = isset($_POST['retiro_apertura_id']) ? (int)$_POST['retiro_apertura_id'] : 0;
 $monto = isset($_POST['retiro_monto']) ? (float)$_POST['retiro_monto'] : 0;
-$motivo = isset($_POST['retiro_motivo']) ? limpiarTextoRetiroCaja($_POST['retiro_motivo']) : '';
-$observacion = isset($_POST['retiro_observacion']) ? limpiarTextoRetiroCaja($_POST['retiro_observacion']) : '';
 
-$motivo = mb_substr($motivo, 0, 100, 'UTF-8');
+$categoria_gastos_id = isset($_POST['retiro_categoria_gastos_id']) ? (int)$_POST['retiro_categoria_gastos_id'] : 0;
+$observacion = isset($_POST['retiro_observacion']) ? limpiarTextoRetiroCaja($_POST['retiro_observacion']) : '';
 $observacion = mb_substr($observacion, 0, 255, 'UTF-8');
 
 $fecha = date('Y-m-d');
@@ -45,6 +45,7 @@ $fecha_registro = date('Y-m-d H:i:s');
 if ($empresa_id <= 0 || $colaboradores_id <= 0) {
     echo json_encode([
         'success' => false,
+        'title' => 'Error',
         'message' => 'No se pudo identificar la empresa o el usuario de la sesión.'
     ]);
     exit;
@@ -53,6 +54,7 @@ if ($empresa_id <= 0 || $colaboradores_id <= 0) {
 if ($apertura_id <= 0) {
     echo json_encode([
         'success' => false,
+        'title' => 'Caja inválida',
         'message' => 'No se recibió una caja válida.'
     ]);
     exit;
@@ -61,18 +63,43 @@ if ($apertura_id <= 0) {
 if ($monto <= 0) {
     echo json_encode([
         'success' => false,
+        'title' => 'Monto inválido',
         'message' => 'Ingrese un monto válido para retirar.'
     ]);
     exit;
 }
 
-if ($motivo === '') {
+if ($categoria_gastos_id <= 0) {
     echo json_encode([
         'success' => false,
-        'message' => 'Seleccione el motivo del retiro.'
+        'title' => 'Categoría requerida',
+        'message' => 'Seleccione la categoría del retiro.'
     ]);
     exit;
 }
+
+$sqlCategoria = "
+    SELECT categoria_gastos_id, nombre
+    FROM categoria_gastos
+    WHERE categoria_gastos_id = '$categoria_gastos_id'
+      AND estado = 1
+    LIMIT 1
+";
+
+$resCategoria = $insMainModel->ejecutar_consulta_simple($sqlCategoria);
+
+if (!$resCategoria || $resCategoria->num_rows <= 0) {
+    echo json_encode([
+        'success' => false,
+        'title' => 'Categoría inválida',
+        'message' => 'La categoría seleccionada no existe o está inactiva.'
+    ]);
+    exit;
+}
+
+$rowCategoria = $resCategoria->fetch_assoc();
+$motivo = limpiarTextoRetiroCaja($rowCategoria['nombre']);
+$motivo = mb_substr($motivo, 0, 100, 'UTF-8');
 
 $sqlApertura = "
     SELECT apertura_id, apertura
@@ -89,6 +116,7 @@ $resApertura = $insMainModel->ejecutar_consulta_simple($sqlApertura);
 if (!$resApertura || $resApertura->num_rows <= 0) {
     echo json_encode([
         'success' => false,
+        'title' => 'Caja no disponible',
         'message' => 'La caja no está abierta o no pertenece al usuario actual.'
     ]);
     exit;
@@ -139,6 +167,7 @@ $saldo_disponible = ($monto_apertura + $efectivo) - $retiros;
 if ($saldo_disponible <= 0) {
     echo json_encode([
         'success' => false,
+        'title' => 'Sin saldo disponible',
         'message' => 'No hay dinero disponible en caja para retirar.'
     ]);
     exit;
@@ -147,6 +176,7 @@ if ($saldo_disponible <= 0) {
 if ($monto > $saldo_disponible) {
     echo json_encode([
         'success' => false,
+        'title' => 'Monto mayor al disponible',
         'message' => 'El monto a retirar es mayor al dinero disponible en caja.'
     ]);
     exit;
@@ -164,6 +194,7 @@ $resCuenta = $insMainModel->ejecutar_consulta_simple($sqlCuenta);
 if (!$resCuenta || $resCuenta->num_rows <= 0) {
     echo json_encode([
         'success' => false,
+        'title' => 'Cuenta no encontrada',
         'message' => 'No se encontró la cuenta contable del efectivo.'
     ]);
     exit;
@@ -173,7 +204,6 @@ $rowCuenta = $resCuenta->fetch_assoc();
 $cuentas_id = (int)$rowCuenta['cuentas_id'];
 
 $proveedores_id = 1;
-$categoria_gastos_id = 1;
 $tipo_egreso = 2;
 $estado = 1;
 
@@ -235,6 +265,7 @@ $okEgreso = $insMainModel->ejecutar_consulta_simple($insertEgreso);
 if (!$okEgreso) {
     echo json_encode([
         'success' => false,
+        'title' => 'Error al registrar',
         'message' => 'No se pudo registrar el egreso del retiro.'
     ]);
     exit;
@@ -290,6 +321,7 @@ $okMovimiento = $insMainModel->ejecutar_consulta_simple($insertMovimiento);
 if (!$okMovimiento) {
     echo json_encode([
         'success' => false,
+        'title' => 'Movimiento no registrado',
         'message' => 'El egreso fue creado, pero no se pudo registrar el movimiento de cuenta.'
     ]);
     exit;
@@ -328,6 +360,7 @@ $okRetiro = $insMainModel->ejecutar_consulta_simple($insertRetiro);
 if (!$okRetiro) {
     echo json_encode([
         'success' => false,
+        'title' => 'Historial no registrado',
         'message' => 'El egreso y el movimiento fueron creados, pero no se pudo guardar el historial del retiro en caja_retiros.'
     ]);
     exit;
@@ -335,8 +368,12 @@ if (!$okRetiro) {
 
 echo json_encode([
     'success' => true,
+    'title' => 'Retiro registrado',
     'message' => 'Retiro de caja registrado correctamente.',
     'saldo_anterior' => number_format($saldo_disponible, 2, '.', ''),
     'monto_retirado' => number_format($monto, 2, '.', ''),
-    'saldo_final' => number_format(($saldo_disponible - $monto), 2, '.', '')
+    'saldo_final' => number_format(($saldo_disponible - $monto), 2, '.', ''),
+    'categoria_gastos_id' => $categoria_gastos_id,
+    'categoria' => $motivo,
+    'egresos_id' => $egresos_id
 ]);

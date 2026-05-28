@@ -131,18 +131,28 @@ var listar_ingresos_contabilidad = function () {
 
   var table_ingresos_contabilidad = $("#dataTableIngresosContabilidad").DataTable({
     destroy: true,
-    stateSave: false,       // evita que “recuerde” un orden viejo
+    stateSave: false,
     orderMulti: false,
+
     ajax: {
       method: "POST",
       url: "<?php echo SERVERURL;?>core/llenarDataTableIngresosContabilidad.php",
-      data: { "fechai": fechai, "fechaf": fechaf, "estado": estado },
+      data: {
+        "fechai": fechai,
+        "fechaf": fechaf,
+        "estado": estado
+      },
       dataSrc: function (json) {
         $cardBody.find('.overlay').remove();
-        if (!json || !json.data) return [];
+
+        if (!json || !json.data) {
+          return [];
+        }
+
         if (json.data.length === 0) {
           showNotify("warning", "Advertencia", "No se encontraron registros con los filtros aplicados");
         }
+
         return json.data;
       },
       error: function (xhr) {
@@ -151,67 +161,210 @@ var listar_ingresos_contabilidad = function () {
         console.error("Error en AJAX:", xhr.responseText);
       }
     },
+
     columns: [
-      { data: "fecha_registro" },           // YYYY-MM-DD HH:mm:ss (ordena perfecto como string)
+      {
+        data: null,
+        orderable: false,
+        searchable: false,
+        className: "text-center align-middle",
+        render: function (data, type, row) {
+          if (type !== "display") {
+            return "";
+          }
+
+          var estadoIngreso = parseInt(row.estado, 10);
+          var ingresoActivo = estadoIngreso === 1;
+
+          var accionesIngreso = "";
+
+          accionesIngreso +=
+            '<button type="button" class="dropdown-item accion-item accion-editar table_editar">' +
+              '<span class="accion-icon accion-icon-primary">' +
+                '<i class="fas fa-edit"></i>' +
+              '</span>' +
+              '<span class="accion-label">Editar</span>' +
+            '</button>';
+
+          accionesIngreso +=
+            '<button type="button" class="dropdown-item accion-item accion-imprimir table_reportes print_gastos">' +
+              '<span class="accion-icon accion-icon-success">' +
+                '<i class="fas fa-file-download"></i>' +
+              '</span>' +
+              '<span class="accion-label">Reporte</span>' +
+            '</button>';
+
+          if (ingresoActivo) {
+            accionesIngreso +=
+              '<button type="button" class="dropdown-item accion-item accion-anular table_cancelar anular_ingreso">' +
+                '<span class="accion-icon accion-icon-danger">' +
+                  '<i class="fas fa-ban"></i>' +
+                '</span>' +
+                '<span class="accion-label">Anular</span>' +
+              '</button>';
+          } else {
+            accionesIngreso +=
+              '<button type="button" class="dropdown-item accion-item accion-anulado" disabled>' +
+                '<span class="accion-icon accion-icon-eliminar">' +
+                  '<i class="fas fa-ban"></i>' +
+                '</span>' +
+                '<span class="accion-label">Ingreso anulado</span>' +
+              '</button>';
+          }
+
+          return '' +
+            '<div class="dropdown acciones-dropdown">' +
+
+              '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                '<i class="fas fa-cog"></i>' +
+                '<span>Acciones</span>' +
+              '</button>' +
+
+              '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+                accionesIngreso +
+              '</div>' +
+
+            '</div>';
+        }
+      },
+      { data: "fecha_registro" },
       { data: "tipo_ingreso" },
       { data: "ingresos_id" },
       { data: "fecha" },
       { data: "nombre" },
       { data: "cliente" },
       { data: "factura" },
-      { data: "subtotal",  className: "dt-body-right", render: moneyRender },
-      { data: "impuesto",  className: "dt-body-right", render: moneyRender },
-      { data: "descuento", className: "dt-body-right", render: moneyRender },
-      { data: "total",     className: "dt-body-right", render: moneyRender },
+      {
+        data: "subtotal",
+        className: "dt-body-right",
+        render: moneyRender
+      },
+      {
+        data: "impuesto",
+        className: "dt-body-right",
+        render: moneyRender
+      },
+      {
+        data: "descuento",
+        className: "dt-body-right",
+        render: moneyRender
+      },
+      {
+        data: "total",
+        className: "dt-body-right",
+        render: moneyRender
+      },
       { data: "observacion" },
       {
         data: "estado",
         render: function (data, type) {
-          if (type !== 'display') return data;
+          if (type !== "display") {
+            return data;
+          }
+
           var ok = parseInt(data, 10) === 1;
           var icon = ok ? '<i class="fas fa-check-circle mr-1"></i>' : '<i class="fas fa-times-circle mr-1"></i>';
-          var cls  = ok ? 'badge badge-pill badge-success' : 'badge badge-pill badge-danger';
-          return '<span class="'+cls+'" style="font-size:.95rem;padding:.5em .8em;font-weight:600;">'+icon+(ok?'Activo':'Inactivo')+'</span>';
+          var cls = ok ? 'badge badge-pill badge-success' : 'badge badge-pill badge-danger';
+
+          return '<span class="' + cls + '" style="font-size:.95rem;padding:.5em .8em;font-weight:600;">' +
+                    icon +
+                    (ok ? 'Activo' : 'Inactivo') +
+                 '</span>';
         }
-      },
-      { defaultContent: "<button class='table_editar btn ocultar'><span class='fas fa-edit'></span>Editar</button>" },
-      { defaultContent: "<button class='table_reportes print_gastos btn btn-success btn ocultar'><span class='fas fa-file-download fa-lg'></span>Reporte</button>" },
-      { defaultContent: "<button class='table_cancelar anular_ingreso btn btn-danger btn ocultar'><span class='fas fa-ban'></span> Anular</button>" }
+      }
     ],
+
     // Última fecha primero
-    order: [[0, "desc"]],
+    order: [[1, "desc"]],
+
     lengthMenu: lengthMenu10,
     bDestroy: true,
     language: idioma_español,
     dom: dom,
+
     columnDefs: [
-      { width: "7.69%", targets: 0 },
-      { width: "7.69%", targets: 1 },
-      { width: "7.69%", targets: 2 },
-      { width: "7.69%", targets: 3 },
-      { width: "7.69%", targets: 4 },
-      { width: "7.69%", targets: 5 },
-      { width: "7.69%", targets: 6 },
-      { width: "7.69%", targets: 7 },
-      { width: "7.69%", targets: 8 },
-      { width: "7.69%", targets: 9 },
-      { width: "7.69%", targets: 10 },
-      { width: "7.69%", targets: 11 },
-      { width: "7.69%", targets: 12 },
-      { width: "7.69%", targets: 13 }
+      {
+        targets: 0,
+        width: "8%",
+        orderable: false,
+        searchable: false,
+        className: "text-center text-nowrap align-middle"
+      },
+      {
+        targets: 1,
+        width: "7.69%"
+      },
+      {
+        targets: 2,
+        width: "7.69%"
+      },
+      {
+        targets: 3,
+        width: "7.69%"
+      },
+      {
+        targets: 4,
+        width: "7.69%"
+      },
+      {
+        targets: 5,
+        width: "7.69%"
+      },
+      {
+        targets: 6,
+        width: "7.69%"
+      },
+      {
+        targets: 7,
+        width: "7.69%"
+      },
+      {
+        targets: 8,
+        width: "7.69%",
+        className: "text-right text-nowrap"
+      },
+      {
+        targets: 9,
+        width: "7.69%",
+        className: "text-right text-nowrap"
+      },
+      {
+        targets: 10,
+        width: "7.69%",
+        className: "text-right text-nowrap"
+      },
+      {
+        targets: 11,
+        width: "7.69%",
+        className: "text-right text-nowrap"
+      },
+      {
+        targets: 12,
+        width: "7.69%"
+      },
+      {
+        targets: 13,
+        width: "7.69%",
+        className: "text-center text-nowrap"
+      }
     ],
+
     buttons: [
       {
         text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
         titleAttr: 'Actualizar Registro Ingresos',
         className: 'table_actualizar btn btn-secondary ocultar',
-        action: function () { listar_ingresos_contabilidad(); }
+        action: function () {
+          listar_ingresos_contabilidad();
+        }
       },
       {
         text: '<i class="fas fas fa-plus fa-lg crear"></i> Ingresar',
         titleAttr: 'Agregar Ingresos',
         className: 'table_crear btn btn-primary ocultar',
-        action: function () { modal_ingresos_contabilidad(); }
+        action: function () {
+          modal_ingresos_contabilidad();
+        }
       },
       {
         extend: 'excelHtml5',
@@ -221,7 +374,9 @@ var listar_ingresos_contabilidad = function () {
         title: 'Reporte Registro Ingresos',
         messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' + convertDateFormat(fechaf),
         messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-        exportOptions: { columns: [0,1,2,3,4,5,6,7,8,9,10] },
+        exportOptions: {
+          columns: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+        },
         className: 'table_reportes btn btn-success ocultar'
       },
       {
@@ -235,20 +390,37 @@ var listar_ingresos_contabilidad = function () {
         messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' + convertDateFormat(fechaf),
         messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
         className: 'table_reportes btn btn-danger ocultar',
-        exportOptions: { columns: [0,1,2,3,4,5,6,7,8,9,10] },
+        exportOptions: {
+          columns: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+        },
         customize: function (doc) {
           if (typeof imagen !== 'undefined' && imagen) {
-            doc.content.splice(0, 0, { image: imagen, width: 100, height: 45, margin: [0,0,0,12] });
+            doc.content.splice(0, 0, {
+              image: imagen,
+              width: 100,
+              height: 45,
+              margin: [0, 0, 0, 12]
+            });
           }
         }
       }
     ],
+
     initComplete: function () {
-      this.api().order([0,'desc']).draw();   // refuerza
+      this.api().order([1, 'desc']).draw();
       $('#buscar').focus();
     },
+
     drawCallback: function () {
       getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+      cerrarDropdownAcciones();
+
+      $('[title]').tooltip({
+        container: "body",
+        placement: "top"
+      });
+
       edit_reporte_ingresos_dataTable("#dataTableIngresosContabilidad tbody", table_ingresos_contabilidad);
       view_reporte_ingresos_dataTable("#dataTableIngresosContabilidad tbody", table_ingresos_contabilidad);
       anular_ingresos_dataTable("#dataTableIngresosContabilidad tbody", table_ingresos_contabilidad);
@@ -257,6 +429,7 @@ var listar_ingresos_contabilidad = function () {
   });
 
   table_ingresos_contabilidad.search('').draw();
+
   $('#buscar').focus();
 };
 

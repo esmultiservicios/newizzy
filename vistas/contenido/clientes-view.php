@@ -56,6 +56,7 @@
                         style="width:100%">
                         <thead>
                             <tr>
+                                <th>Acciones</th>
                                 <th>Clientes</th>
                                 <th>RTN</th>
                                 <th>Teléfono</th>
@@ -65,7 +66,6 @@
                                 <th>Sistema</th>
                                 <th>Estado</th>
                                 <th>Puntos</th>
-                                <th>Acciones</th>
                             </tr>
                         </thead>
                     </table>

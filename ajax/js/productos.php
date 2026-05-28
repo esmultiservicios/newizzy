@@ -481,8 +481,50 @@ $(document).off('click', '#btnGenerarBarcode').on('click', '#btnGenerarBarcode',
 
     columns: [
       {
+        data: null,
+        orderable: false,
+        searchable: false,
+        className: "text-center align-middle",
+        render: function(data, type, row) {
+          if (type !== 'display') {
+            return '';
+          }
+
+          return '' +
+          '<div class="dropdown acciones-dropdown">' +
+
+              '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                  '<i class="fas fa-cog"></i>' +
+                  '<span>Acciones</span>' +
+              '</button>' +
+
+              '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+                  '<button type="button" class="dropdown-item accion-item accion-editar table_editar">' +
+                      '<span class="accion-icon accion-icon-editar">' +
+                          '<i class="fas fa-edit"></i>' +
+                      '</span>' +
+                      '<span class="accion-label">Editar</span>' +
+                  '</button>' +
+
+                  '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar">' +
+                      '<span class="accion-icon accion-icon-eliminar">' +
+                          '<i class="fas fa-trash-alt"></i>' +
+                      '</span>' +
+                      '<span class="accion-label">Eliminar</span>' +
+                  '</button>' +
+
+              '</div>' +
+
+          '</div>';
+        }
+      },
+
+      {
         data: "image",
         orderable: false,
+        searchable: false,
+        className: "text-center align-middle",
         render: function (data, type, row) {
           var defaultImageUrl = '<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png';
           var imageUrl = data ? ('<?php echo SERVERURL;?>vistas/plantilla/img/products/' + data) : defaultImageUrl;
@@ -606,45 +648,69 @@ $(document).off('click', '#btnGenerarBarcode').on('click', '#btnGenerarBarcode',
 
           return data;
         }
-      },
+      }
+    ],
+
+    order: [[3, 'asc']],
+
+    columnDefs: [
       {
-        data: null,
+        targets: 0,
+        width: "8%",
         orderable: false,
         searchable: false,
-        className: "text-center align-middle",
-        render: function(data, type, row) {
-          if (type !== 'display') {
-            return '';
-          }
-
-          return '' +
-          '<div class="dropdown acciones-dropdown">' +
-
-              '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
-                  '<i class="fas fa-cog"></i>' +
-                  '<span>Acciones</span>' +
-              '</button>' +
-
-              '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
-
-                  '<button type="button" class="dropdown-item accion-item accion-editar table_editar">' +
-                      '<span class="accion-icon accion-icon-editar">' +
-                          '<i class="fas fa-edit"></i>' +
-                      '</span>' +
-                      '<span class="accion-label">Editar</span>' +
-                  '</button>' +
-
-                  '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar">' +
-                      '<span class="accion-icon accion-icon-eliminar">' +
-                          '<i class="fas fa-trash-alt"></i>' +
-                      '</span>' +
-                      '<span class="accion-label">Eliminar</span>' +
-                  '</button>' +
-
-              '</div>' +
-
-          '</div>';
-        }
+        className: "text-center text-nowrap align-middle"
+      },
+      {
+        targets: 1,
+        width: "8%",
+        orderable: false,
+        searchable: false,
+        className: "text-center text-nowrap align-middle"
+      },
+      {
+        targets: 2,
+        width: "10%",
+        className: "text-nowrap"
+      },
+      {
+        targets: 3,
+        width: "22%"
+      },
+      {
+        targets: 4,
+        width: "8%",
+        className: "text-nowrap"
+      },
+      {
+        targets: 5,
+        width: "10%",
+        className: "text-nowrap"
+      },
+      {
+        targets: 6,
+        width: "9%",
+        className: "text-right text-nowrap"
+      },
+      {
+        targets: 7,
+        width: "9%",
+        className: "text-right text-nowrap"
+      },
+      {
+        targets: 8,
+        width: "9%",
+        className: "text-right text-nowrap"
+      },
+      {
+        targets: 9,
+        width: "8%",
+        className: "text-center text-nowrap"
+      },
+      {
+        targets: 10,
+        width: "8%",
+        className: "text-center text-nowrap"
       }
     ],
 
@@ -673,7 +739,7 @@ $(document).off('click', '#btnGenerarBarcode').on('click', '#btnGenerarBarcode',
         messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
         className: 'table_reportes btn btn-success ocultar',
         exportOptions: {
-          columns: [1,2,3,4,5,6,7,8,9]
+          columns: [2,3,4,5,6,7,8,9,10]
         }
       },
       {
@@ -684,7 +750,7 @@ $(document).off('click', '#btnGenerarBarcode').on('click', '#btnGenerarBarcode',
         title: 'Reporte Productos',
         messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
         exportOptions: {
-          columns: [1,2,3,4,5,6,7,8,9]
+          columns: [2,3,4,5,6,7,8,9,10]
         },
         className: 'table_reportes btn btn-danger ocultar',
         customize: function(doc) {
@@ -702,6 +768,10 @@ $(document).off('click', '#btnGenerarBarcode').on('click', '#btnGenerarBarcode',
 
     drawCallback: function() {
       getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+      if (typeof cerrarDropdownAcciones === "function") {
+        cerrarDropdownAcciones();
+      }
 
       $('[title]').tooltip({
         container: 'body',

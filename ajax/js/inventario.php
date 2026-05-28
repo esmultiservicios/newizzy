@@ -888,12 +888,27 @@ $(function(){
 ========================================================= */
 function restaurarOperacionDespuesDeReset() {
   setTimeout(function () {
-    cargarOperacionRecordada();
+
+    limpiarSaldoProductoMovimiento();
+
+    $('#formMovimientos #movimientos_id').val('');
+    $('#formMovimientos #produto_barcode').val('');
+    $('#formMovimientos #movimiento_cantidad').val('');
+    $('#formMovimientos #movimiento_comentario').val('');
+    $('#formMovimientos #movimiento_fecha_vencimiento').val('');
+
+    $('#formMovimientos #movimientos_tipo_producto_id').val('').selectpicker('refresh');
+    $('#formMovimientos #movimiento_producto').val('').selectpicker('refresh');
+    $('#formMovimientos #movimiento_lote').html('').selectpicker('refresh');
+    $('#formMovimientos #cliente_movimientos').val('').selectpicker('refresh');
+
     seleccionarBodegaPrincipal('#formMovimientos #almacen_modal');
+    cargarOperacionRecordada();
 
     setTimeout(function () {
       $('#formMovimientos #produto_barcode').focus();
     }, 150);
+
   }, 300);
 }
 

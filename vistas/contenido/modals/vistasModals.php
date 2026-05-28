@@ -4674,16 +4674,8 @@
                     <div id="retiro_mensaje_validacion" class="alert alert-danger mt-3" style="display:none;"></div>
 
                     <div class="form-group mt-3">
-                        <label>Motivo del retiro <span class="priority">*</span></label>
-                        <select class="form-control selectpicker" id="retiro_motivo" name="retiro_motivo" title="Seleccione" data-live-search="true" required>
-                            <option value="Retiro de efectivo">Retiro de efectivo</option>
-                            <option value="Pago a proveedor">Pago a proveedor</option>
-                            <option value="Compra menor">Compra menor</option>
-                            <option value="Entrega a dueño">Entrega a dueño</option>
-                            <option value="Gasto operativo">Gasto operativo</option>
-                            <option value="Arqueo de caja">Arqueo de caja</option>
-                            <option value="Otro">Otro</option>
-                        </select>
+                        <label>Categoría del retiro <span class="priority">*</span></label>
+                        <select class="form-control selectpicker" id="retiro_categoria_gastos_id" name="retiro_categoria_gastos_id" title="Seleccione" data-live-search="true" required></select>
                     </div>
 
                     <div class="form-group mb-0">

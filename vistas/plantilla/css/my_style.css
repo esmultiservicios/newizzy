@@ -6477,3 +6477,53 @@ table.dataTable td .acciones-menu {
   }
 }
 /*FIN RETIRO DE CAJA*/
+
+/*INICIO ESTILOS CAJA*/
+.acciones-caja-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.badge-estado-caja {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.badge-caja-abierta {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+
+.badge-caja-cerrada {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.fila-caja-abierta td {
+  background: #ecfdf5 !important;
+  border-top: 1px solid #86efac !important;
+  border-bottom: 1px solid #86efac !important;
+}
+
+.fila-caja-abierta td:first-child {
+  border-left: 5px solid #16a34a !important;
+}
+
+.fila-caja-cerrada td {
+  background: #ffffff !important;
+}
+
+.fila-caja-cerrada:hover td {
+  background: #f8fafc !important;
+}
+/*FIN ESTILOS CAJA*/

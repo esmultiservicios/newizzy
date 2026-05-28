@@ -88,97 +88,103 @@
     }
 
     var listar_registro_cajas = function () {
-        var fechai = $("#formMainCajas #fecha_cajas").val();
-        var fechaf = $("#formMainCajas #fecha_cajas_f").val();
-        var estado = $("#formMainCajas #estado_cajas").val();
+    var fechai = $("#formMainCajas #fecha_cajas").val();
+    var fechaf = $("#formMainCajas #fecha_cajas_f").val();
+    var estado = $("#formMainCajas #estado_cajas").val();
 
-        var table_registro_cajas = $("#dataTableCajas").DataTable({
-            destroy: true,
-            autoWidth: false,
-            responsive: false,
-            stateSave: true,
-            bDestroy: true,
-            language: idioma_español,
-            lengthMenu: lengthMenu,
-            dom: dom,
+    var table_registro_cajas = $("#dataTableCajas").DataTable({
+        destroy: true,
+        autoWidth: false,
+        responsive: false,
+        stateSave: true,
+        bDestroy: true,
+        language: idioma_español,
+        lengthMenu: lengthMenu,
+        dom: dom,
 
-            ajax: {
-                method: "POST",
-                url: "<?php echo SERVERURL;?>core/llenarDataTableCajaDisponibles.php",
-                dataType: "json",
-                data: {
-                    fechai: fechai,
-                    fechaf: fechaf,
-                    estado: estado
-                }
-            },
+        ajax: {
+            method: "POST",
+            url: "<?php echo SERVERURL;?>core/llenarDataTableCajaDisponibles.php",
+            dataType: "json",
+            data: {
+                fechai: fechai,
+                fechaf: fechaf,
+                estado: estado
+            }
+        },
 
-            columns: [
-                {
-                    data: null,
-                    orderable: false,
-                    searchable: false,
-                    className: "text-center align-middle",
-                    render: function (data, type, row) {
-                        if (type !== "display") {
-                            return "";
-                        }
+        columns: [
+            {
+                data: null,
+                orderable: false,
+                searchable: false,
+                className: "text-center align-middle",
+                render: function (data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
 
-                        var accionesCaja = "";
+                    var activa = esCajaActiva(row);
 
-                        if (esCajaActiva(row)) {
-                            accionesCaja +=
-                                '<button type="button" class="dropdown-item accion-item accion-cerrar table_crear table_cerrar_caja">' +
-                                    '<span class="accion-icon accion-icon-success">' +
-                                        '<i class="fas fa-lock"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Cerrar caja</span>' +
-                                '</button>';
+                    var badgeEstado = activa
+                        ? '<span class="badge-estado-caja badge-caja-abierta"><i class="fas fa-circle"></i> Abierta</span>'
+                        : '<span class="badge-estado-caja badge-caja-cerrada"><i class="fas fa-lock"></i> Cerrada</span>';
 
-                            accionesCaja +=
-                                '<button type="button" class="dropdown-item accion-item accion-retiro table_retiro_caja">' +
-                                    '<span class="accion-icon accion-icon-warning">' +
-                                        '<i class="fas fa-money-bill-wave"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Retirar dinero</span>' +
-                                '</button>';
-                        } else {
-                            accionesCaja +=
-                                '<button type="button" class="dropdown-item accion-item accion-cerrada" disabled>' +
-                                    '<span class="accion-icon accion-icon-eliminar">' +
-                                        '<i class="fas fa-lock"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Caja cerrada</span>' +
-                                '</button>';
+                    var accionesCaja = "";
 
-                            accionesCaja +=
-                                '<button type="button" class="dropdown-item accion-item accion-no-retiro" disabled>' +
-                                    '<span class="accion-icon accion-icon-eliminar">' +
-                                        '<i class="fas fa-money-bill-wave"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Retiro no disponible</span>' +
-                                '</button>';
-                        }
-
+                    if (activa) {
                         accionesCaja +=
-                            '<button type="button" class="dropdown-item accion-item accion-comprobante table_reportes table_comprobante_caja">' +
-                                '<span class="accion-icon accion-icon-danger">' +
-                                    '<i class="far fa-file-pdf"></i>' +
+                            '<button type="button" class="dropdown-item accion-item accion-cerrar table_crear table_cerrar_caja">' +
+                                '<span class="accion-icon accion-icon-success">' +
+                                    '<i class="fas fa-lock"></i>' +
                                 '</span>' +
-                                '<span class="accion-label">Comprobante</span>' +
+                                '<span class="accion-label">Cerrar caja</span>' +
                             '</button>';
 
                         accionesCaja +=
-                            '<button type="button" class="dropdown-item accion-item accion-ganancia table_ganancia">' +
-                                '<span class="accion-icon accion-icon-primary">' +
-                                    '<i class="fas fa-chart-line"></i>' +
+                            '<button type="button" class="dropdown-item accion-item accion-retiro table_retiro_caja">' +
+                                '<span class="accion-icon accion-icon-warning">' +
+                                    '<i class="fas fa-money-bill-wave"></i>' +
                                 '</span>' +
-                                '<span class="accion-label">Ver ganancia</span>' +
+                                '<span class="accion-label">Retirar dinero</span>' +
+                            '</button>';
+                    } else {
+                        accionesCaja +=
+                            '<button type="button" class="dropdown-item accion-item accion-cerrada" disabled>' +
+                                '<span class="accion-icon accion-icon-eliminar">' +
+                                    '<i class="fas fa-lock"></i>' +
+                                '</span>' +
+                                '<span class="accion-label">Caja cerrada</span>' +
                             '</button>';
 
-                        return '' +
+                        accionesCaja +=
+                            '<button type="button" class="dropdown-item accion-item accion-no-retiro" disabled>' +
+                                '<span class="accion-icon accion-icon-eliminar">' +
+                                    '<i class="fas fa-ban"></i>' +
+                                '</span>' +
+                                '<span class="accion-label">Retiro no disponible</span>' +
+                            '</button>';
+                    }
+
+                    accionesCaja +=
+                        '<button type="button" class="dropdown-item accion-item accion-comprobante table_reportes table_comprobante_caja">' +
+                            '<span class="accion-icon accion-icon-danger">' +
+                                '<i class="far fa-file-pdf"></i>' +
+                            '</span>' +
+                            '<span class="accion-label">Comprobante</span>' +
+                        '</button>';
+
+                    accionesCaja +=
+                        '<button type="button" class="dropdown-item accion-item accion-ganancia table_ganancia">' +
+                            '<span class="accion-icon accion-icon-primary">' +
+                                '<i class="fas fa-chart-line"></i>' +
+                            '</span>' +
+                            '<span class="accion-label">Ver ganancia</span>' +
+                        '</button>';
+
+                    return '' +
+                        '<div class="acciones-caja-wrap">' +
                             '<div class="dropdown acciones-dropdown">' +
-
                                 '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
                                     '<i class="fas fa-cog"></i>' +
                                     '<span>Acciones</span>' +
@@ -187,139 +193,147 @@
                                 '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
                                     accionesCaja +
                                 '</div>' +
-
-                            '</div>';
-                    }
-                },
-                { data: "fecha" },
-                { data: "usuario" },
-                { data: "factura_inicial" },
-                { data: "factura_final" },
-                {
-                    data: "monto_apertura",
-                    render: function (data, type) {
-                        return renderMonedaColor(data, type);
-                    }
-                },
-                {
-                    data: "importe_venta",
-                    render: function (data, type) {
-                        return renderMonedaColor(data, type);
-                    }
-                },
-                {
-                    data: "retiro_caja",
-                    render: function (data, type) {
-                        return renderMonedaColor(data, type);
-                    }
-                },
-                {
-                    data: "neto",
-                    render: function (data, type) {
-                        return renderMonedaColor(data, type);
-                    }
+                            '</div>' +
+                            badgeEstado +
+                        '</div>';
                 }
-            ],
-
-            columnDefs: [
-                {
-                    targets: [5, 6, 7, 8],
-                    className: "text-right text-nowrap"
-                },
-                {
-                    targets: [0, 1, 3, 4],
-                    className: "text-center text-nowrap"
-                }
-            ],
-
-            buttons: [
-                {
-                    text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-                    titleAttr: "Actualizar Registro de Cajas",
-                    className: "table_actualizar btn btn-secondary ocultar",
-                    action: function () {
-                        listar_registro_cajas();
-                    }
-                },
-                {
-                    extend: "excelHtml5",
-                    text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
-                    titleAttr: "Excel",
-                    title: "Reporte Registro de Cajas",
-                    messageBottom: "Fecha de Reporte: " + convertDateFormat(today()),
-                    className: "table_reportes btn btn-success ocultar",
-                    exportOptions: {
-                        columns: [1, 2, 3, 4, 5, 6, 7, 8]
-                    }
-                },
-                {
-                    extend: "pdf",
-                    text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-                    titleAttr: "PDF",
-                    orientation: "landscape",
-                    title: "Reporte Registro de Cajas",
-                    messageBottom: "Fecha de Reporte: " + convertDateFormat(today()),
-                    className: "table_reportes btn btn-danger ocultar",
-                    exportOptions: {
-                        columns: [1, 2, 3, 4, 5, 6, 7, 8]
-                    },
-                    customize: function (doc) {
-                        if (imagen) {
-                            doc.content.splice(0, 0, {
-                                image: imagen,
-                                width: 100,
-                                height: 45,
-                                margin: [0, 0, 0, 12]
-                            });
-                        }
-                    }
-                }
-            ],
-
-            footerCallback: function () {
-                var api = this.api();
-
-                var totalMontoApertura = api.column(5, { page: "current" }).data().reduce(function (a, b) {
-                    return parseMonto(a) + parseMonto(b);
-                }, 0);
-
-                var totalVentaDia = api.column(6, { page: "current" }).data().reduce(function (a, b) {
-                    return parseMonto(a) + parseMonto(b);
-                }, 0);
-
-                var totalRetiroCaja = api.column(7, { page: "current" }).data().reduce(function (a, b) {
-                    return parseMonto(a) + parseMonto(b);
-                }, 0);
-
-                var totalNeto = api.column(8, { page: "current" }).data().reduce(function (a, b) {
-                    return parseMonto(a) + parseMonto(b);
-                }, 0);
-
-                $("#total_monto_apertura").html("<span>" + formatoMoneda(totalMontoApertura) + "</span>");
-                $("#total_venta_dia").html("<span>" + formatoMoneda(totalVentaDia) + "</span>");
-                $("#total_retiro_caja").html("<span>" + formatoMoneda(totalRetiroCaja) + "</span>");
-                $("#total_neto").html("<span>" + formatoMoneda(totalNeto) + "</span>");
             },
-
-            drawCallback: function () {
-                getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-
-                cerrarDropdownAcciones();
-
-                $('[title]').tooltip({
-                    container: "body",
-                    placement: "top"
-                });
+            { data: "fecha" },
+            { data: "usuario" },
+            { data: "factura_inicial" },
+            { data: "factura_final" },
+            {
+                data: "monto_apertura",
+                render: function (data, type) {
+                    return renderMonedaColor(data, type);
+                }
+            },
+            {
+                data: "importe_venta",
+                render: function (data, type) {
+                    return renderMonedaColor(data, type);
+                }
+            },
+            {
+                data: "retiro_caja",
+                render: function (data, type) {
+                    return renderMonedaColor(data, type);
+                }
+            },
+            {
+                data: "neto",
+                render: function (data, type) {
+                    return renderMonedaColor(data, type);
+                }
             }
-        });
+        ],
 
-        table_registro_cajas.search("").draw();
+        columnDefs: [
+            {
+                targets: [5, 6, 7, 8],
+                className: "text-right text-nowrap"
+            },
+            {
+                targets: [0, 1, 3, 4],
+                className: "text-center text-nowrap"
+            }
+        ],
 
-        comprobante_cajas_dataTable("#dataTableCajas tbody", table_registro_cajas);
-        cerrar_registro_cajas_dataTable("#dataTableCajas tbody", table_registro_cajas);
-        desglose_ganancia_caja_dataTable("#dataTableCajas tbody", table_registro_cajas);
-        retiro_caja_dataTable("#dataTableCajas tbody", table_registro_cajas);
-    };
+        createdRow: function (row, data) {
+            if (esCajaActiva(data)) {
+                $(row).addClass("fila-caja-abierta");
+            } else {
+                $(row).addClass("fila-caja-cerrada");
+            }
+        },
+
+        buttons: [
+            {
+                text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
+                titleAttr: "Actualizar Registro de Cajas",
+                className: "table_actualizar btn btn-secondary ocultar",
+                action: function () {
+                    listar_registro_cajas();
+                }
+            },
+            {
+                extend: "excelHtml5",
+                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
+                titleAttr: "Excel",
+                title: "Reporte Registro de Cajas",
+                messageBottom: "Fecha de Reporte: " + convertDateFormat(today()),
+                className: "table_reportes btn btn-success ocultar",
+                exportOptions: {
+                    columns: [1, 2, 3, 4, 5, 6, 7, 8]
+                }
+            },
+            {
+                extend: "pdf",
+                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
+                titleAttr: "PDF",
+                orientation: "landscape",
+                title: "Reporte Registro de Cajas",
+                messageBottom: "Fecha de Reporte: " + convertDateFormat(today()),
+                className: "table_reportes btn btn-danger ocultar",
+                exportOptions: {
+                    columns: [1, 2, 3, 4, 5, 6, 7, 8]
+                },
+                customize: function (doc) {
+                    if (imagen) {
+                        doc.content.splice(0, 0, {
+                            image: imagen,
+                            width: 100,
+                            height: 45,
+                            margin: [0, 0, 0, 12]
+                        });
+                    }
+                }
+            }
+        ],
+
+        footerCallback: function () {
+            var api = this.api();
+
+            var totalMontoApertura = api.column(5, { page: "current" }).data().reduce(function (a, b) {
+                return parseMonto(a) + parseMonto(b);
+            }, 0);
+
+            var totalVentaDia = api.column(6, { page: "current" }).data().reduce(function (a, b) {
+                return parseMonto(a) + parseMonto(b);
+            }, 0);
+
+            var totalRetiroCaja = api.column(7, { page: "current" }).data().reduce(function (a, b) {
+                return parseMonto(a) + parseMonto(b);
+            }, 0);
+
+            var totalNeto = api.column(8, { page: "current" }).data().reduce(function (a, b) {
+                return parseMonto(a) + parseMonto(b);
+            }, 0);
+
+            $("#total_monto_apertura").html("<span>" + formatoMoneda(totalMontoApertura) + "</span>");
+            $("#total_venta_dia").html("<span>" + formatoMoneda(totalVentaDia) + "</span>");
+            $("#total_retiro_caja").html("<span>" + formatoMoneda(totalRetiroCaja) + "</span>");
+            $("#total_neto").html("<span>" + formatoMoneda(totalNeto) + "</span>");
+        },
+
+        drawCallback: function () {
+            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+            cerrarDropdownAcciones();
+
+            $('[title]').tooltip({
+                container: "body",
+                placement: "top"
+            });
+        }
+    });
+
+    table_registro_cajas.search("").draw();
+
+    comprobante_cajas_dataTable("#dataTableCajas tbody", table_registro_cajas);
+    cerrar_registro_cajas_dataTable("#dataTableCajas tbody", table_registro_cajas);
+    desglose_ganancia_caja_dataTable("#dataTableCajas tbody", table_registro_cajas);
+    retiro_caja_dataTable("#dataTableCajas tbody", table_registro_cajas);
+};
 
     var comprobante_cajas_dataTable = function (tbody, table) {
         $(tbody).off("click", "button.table_crear");

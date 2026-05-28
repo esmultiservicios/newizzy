@@ -142,18 +142,22 @@
                                     </button>
 
                                     <!-- Retirar Dinero de Caja -->
-                                    <button
-                                        class="btn btn-warning mr-2"
-                                        type="button"
-                                        id="btn_retiro_caja"
-                                        data-toggle="modal"
-                                        data-target="#modalRetiroCaja"
+                                    <span
+                                        data-toggle="tooltip"
                                         data-placement="top"
                                         data-html="true"
-                                        title="<strong>Retirar dinero de caja</strong><br>Registra una salida de efectivo sin afectar la factura actual.">
-                                        <div class="sb-nav-link-icon"></div>
-                                        <i class="fas fa-money-bill-wave fa-lg"></i> Retirar Caja
-                                    </button>                                    
+                                        title="<strong>Retirar dinero de caja</strong><br>Registra una <u>salida de efectivo</u> de la caja actual.<br>No afecta la factura que estás trabajando.<br>Úsalo para retiros, pagos internos o salidas de dinero controladas."
+                                    >
+                                        <button
+                                            class="btn btn-warning mr-2"
+                                            type="button"
+                                            id="btn_retiro_caja"
+                                            data-toggle="modal"
+                                            data-target="#modalRetiroCaja">
+                                            <div class="sb-nav-link-icon"></div>
+                                            <i class="fas fa-money-bill-wave fa-lg"></i> Retirar Caja
+                                        </button>
+                                    </span>                                 
 
                                 </div>
 

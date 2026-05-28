@@ -3805,99 +3805,25 @@ var listar_clientes = function(estado) {
     var estado = $('#form_main_clientes #estado_clientes').val();
 
     var table_clientes = $("#dataTableClientes").DataTable({
-        "destroy": true,
-        "ajax": {
-            "method": "POST",
-            "url": "<?php echo SERVERURL;?>core/llenarDataTableClientes.php",
-            "data": {
-                "estado": estado
+        destroy: true,
+
+        ajax: {
+            method: "POST",
+            url: "<?php echo SERVERURL;?>core/llenarDataTableClientes.php",
+            data: {
+                estado: estado
             }
         },
-        "columns": [
-            {"data": "cliente"},
-            {"data": "rtn"},
-            {"data": "telefono"},
-            {"data": "correo"},
-            {"data": "departamento"},
-            {"data": "municipio"},
+
+        columns: [
             {
-                "data": "sistema",
-                "render": function (data, type, row) {
-                    if (type === 'display') {
-                        let badgeClass = 'badge badge-pill ';
-                        let label = '';
-                        let icon = '<i class="fas fa-cogs mr-1"></i>';
-
-                        if (!data) {
-                            badgeClass += 'badge-secondary';
-                            label = 'Sin sistema';
-                            icon = '<i class="fas fa-ban mr-1"></i>';
-                        } else {
-                            switch (data) {
-                                case 'IZZY':
-                                    badgeClass += 'badge-primary';
-                                    label = data;
-                                    break;
-                                case 'CAMI':
-                                    badgeClass += 'badge-success';
-                                    label = data;
-                                    break;
-                                case 'MONISYS':
-                                    badgeClass += 'badge-warning';
-                                    label = data;
-                                    break;
-                                default:
-                                    badgeClass += 'badge-info';
-                                    label = data;
-                            }
-                        }
-
-                        return '<span class="' + badgeClass +
-                            '" style="font-size: 0.9rem; padding: 0.45em 0.75em; font-weight: 600;">' +
-                            icon + label + '</span>';
-                    }
-
-                    return data || 'Sin sistema';
-                }
-            },
-            {
-                "data": "estado",
-                "render": function(data, type, row) {
-                    if (type === 'display') {
-                        var estadoText = data == 1 ? 'Activo' : 'Inactivo';
-                        var icon = data == 1 ? 
-                            '<i class="fas fa-check-circle mr-1"></i>' : 
-                            '<i class="fas fa-times-circle mr-1"></i>';
-                        var badgeClass = data == 1 ? 
-                            'badge badge-pill badge-success' : 
-                            'badge badge-pill badge-danger';
-                        
-                        return '<span class="' + badgeClass + 
-                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
-                            icon + estadoText + '</span>';
-                    }
-
-                    return data;
-                }
-            },            
-            {
-                "data": "puntos",
-                "render": function(data, type, row) {
-                    var clienteId = row.id || row.clientes_id || 0;
-
-                    return '<span class="badge badge-primary">' + (data || 0) + '</span> ' +
-                        '<button class="btn btn-sm btn-info ver-historial" title="Ver historial" data-id="'+clienteId+'">' +
-                        '<i class="fas fa-history" style="color: white;"></i></button>';
-                }
-            },
-            {
-                "data": null,
-                "orderable": false,
-                "searchable": false,
-                "className": "text-center align-middle",
-                "render": function(data, type, row) {
-                    if (type !== 'display') {
-                        return '';
+                data: null,
+                orderable: false,
+                searchable: false,
+                className: "text-center align-middle",
+                render: function(data, type, row) {
+                    if (type !== "display") {
+                        return "";
                     }
 
                     return '' +
@@ -3935,69 +3861,216 @@ var listar_clientes = function(estado) {
 
                         '</div>';
                 }
+            },
+
+            {
+                data: "cliente"
+            },
+
+            {
+                data: "rtn"
+            },
+
+            {
+                data: "telefono"
+            },
+
+            {
+                data: "correo"
+            },
+
+            {
+                data: "departamento"
+            },
+
+            {
+                data: "municipio"
+            },
+
+            {
+                data: "sistema",
+                render: function(data, type, row) {
+                    if (type === "display") {
+                        let badgeClass = "badge badge-pill ";
+                        let label = "";
+                        let icon = '<i class="fas fa-cogs mr-1"></i>';
+
+                        if (!data) {
+                            badgeClass += "badge-secondary";
+                            label = "Sin sistema";
+                            icon = '<i class="fas fa-ban mr-1"></i>';
+                        } else {
+                            switch (data) {
+                                case "IZZY":
+                                    badgeClass += "badge-primary";
+                                    label = data;
+                                    break;
+
+                                case "CAMI":
+                                    badgeClass += "badge-success";
+                                    label = data;
+                                    break;
+
+                                case "MONISYS":
+                                    badgeClass += "badge-warning";
+                                    label = data;
+                                    break;
+
+                                default:
+                                    badgeClass += "badge-info";
+                                    label = data;
+                                    break;
+                            }
+                        }
+
+                        return '<span class="' + badgeClass + '" style="font-size: 0.9rem; padding: 0.45em 0.75em; font-weight: 600;">' +
+                                    icon +
+                                    label +
+                               '</span>';
+                    }
+
+                    return data || "Sin sistema";
+                }
+            },
+
+            {
+                data: "estado",
+                render: function(data, type, row) {
+                    if (type === "display") {
+                        var estadoText = data == 1 ? "Activo" : "Inactivo";
+
+                        var icon = data == 1 ?
+                            '<i class="fas fa-check-circle mr-1"></i>' :
+                            '<i class="fas fa-times-circle mr-1"></i>';
+
+                        var badgeClass = data == 1 ?
+                            "badge badge-pill badge-success" :
+                            "badge badge-pill badge-danger";
+
+                        return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                                    icon +
+                                    estadoText +
+                               '</span>';
+                    }
+
+                    return data;
+                }
+            },
+
+            {
+                data: "puntos",
+                render: function(data, type, row) {
+                    var clienteId = row.id || row.clientes_id || 0;
+
+                    return '<span class="badge badge-primary">' + (data || 0) + '</span> ' +
+                        '<button type="button" class="btn btn-sm btn-info ver-historial" title="Ver historial" data-id="' + clienteId + '">' +
+                            '<i class="fas fa-history" style="color: white;"></i>' +
+                        '</button>';
+                }
             }
         ],
-        "lengthMenu": lengthMenu10,
-        "stateSave": true,
-        "bDestroy": true,
-        "language": idioma_español,
-        "dom": dom,
-        "columnDefs": [
-            {width: "30%", targets: 0},
-            {width: "10%", targets: 1},
-            {width: "14%", targets: 2},
-            {width: "10%", targets: 3},
-            {width: "10%", targets: 4},
-            {width: "10%", targets: 5},
-            {width: "8%", targets: 6},
-            {width: "10%", targets: 7},
-            {width: "2%", targets: 8},
-            {width: "5%", targets: 9}
+
+        order: [[1, "asc"]],
+
+        lengthMenu: lengthMenu10,
+        stateSave: true,
+        bDestroy: true,
+        language: idioma_español,
+        dom: dom,
+
+        columnDefs: [
+            {
+                width: "8%",
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
+            },
+            {
+                width: "18%",
+                targets: 1
+            },
+            {
+                width: "12%",
+                targets: 2
+            },
+            {
+                width: "10%",
+                targets: 3
+            },
+            {
+                width: "16%",
+                targets: 4
+            },
+            {
+                width: "11%",
+                targets: 5
+            },
+            {
+                width: "11%",
+                targets: 6
+            },
+            {
+                width: "8%",
+                targets: 7,
+                className: "text-center text-nowrap"
+            },
+            {
+                width: "8%",
+                targets: 8,
+                className: "text-center text-nowrap"
+            },
+            {
+                width: "8%",
+                targets: 9,
+                className: "text-center text-nowrap"
+            }
         ],
-        "buttons": [
+
+        buttons: [
             {
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-                titleAttr: 'Actualizar Clientes',
-                className: 'table_actualizar btn btn-secondary ocultar',
+                titleAttr: "Actualizar Clientes",
+                className: "table_actualizar btn btn-secondary ocultar",
                 action: function() {
                     listar_clientes();
                 }
             },
             {
                 text: '<i class="fas fas fa-plus fa-lg crear"></i> Ingresar',
-                titleAttr: 'Agregar Clientes',
-                className: 'btn btn-primary ocultar',
+                titleAttr: "Agregar Clientes",
+                className: "btn btn-primary ocultar",
                 action: function() {
                     modal_clientes();
                 }
             },
             {
-                extend: 'excelHtml5',
+                extend: "excelHtml5",
                 text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
-                titleAttr: 'Excel',
-                title: 'Reporte de Clientes',
-                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
+                titleAttr: "Excel",
+                title: "Reporte de Clientes",
+                messageBottom: "Fecha de Reporte: " + convertDateFormat(today()),
                 exportOptions: {
-                    columns: [0, 1, 2, 3, 4, 5, 6]
+                    columns: [1, 2, 3, 4, 5, 6, 7, 8]
                 },
-                className: 'table_reportes btn btn-success ocultar'
+                className: "table_reportes btn btn-success ocultar"
             },
             {
-                extend: 'pdf',
-                orientation: 'landscape',
+                extend: "pdf",
+                orientation: "landscape",
                 text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-                titleAttr: 'PDF',
-                pageSize: 'LEGAL',
-                title: 'Reporte de Clientes',
-                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-                className: 'table_reportes btn btn-danger ocultar',
+                titleAttr: "PDF",
+                pageSize: "LEGAL",
+                title: "Reporte de Clientes",
+                messageBottom: "Fecha de Reporte: " + convertDateFormat(today()),
+                className: "table_reportes btn btn-danger ocultar",
                 exportOptions: {
-                    columns: [0, 1, 2, 3, 4, 5, 6]
+                    columns: [1, 2, 3, 4, 5, 6, 7, 8]
                 },
                 customize: function(doc) {
                     if (imagen) {
                         doc.content.splice(0, 0, {
-                            image: imagen,  
+                            image: imagen,
                             width: 100,
                             height: 45,
                             margin: [0, 0, 0, 12]
@@ -4006,64 +4079,69 @@ var listar_clientes = function(estado) {
                 }
             }
         ],
-        "drawCallback": function(settings) {
+
+        drawCallback: function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
 
             if (typeof cerrarDropdownAcciones === "function") {
                 cerrarDropdownAcciones();
             }
-            
+
             var privilegio = getPrivilegioUsuario();
             var privilegiosPermitidos = [1, 2];
             var table = this.api();
-            
+
             if (privilegiosPermitidos.includes(privilegio)) {
                 var db_consulta = getSessionUser() === "" ? DB_MAIN : getSessionUser();
-                
+
                 if (db_consulta == DB_MAIN) {
-                    table.column(6).visible(true);
-                    $('.accion-generar-cliente').show();
+                    table.column(7).visible(true);
+                    $(".accion-generar-cliente").show();
                 } else {
-                    table.column(6).visible(false);
-                    $('.accion-generar-cliente').hide();
+                    table.column(7).visible(false);
+                    $(".accion-generar-cliente").hide();
                 }
             } else {
-                table.column(6).visible(false);
-                $('.accion-generar-cliente').hide();
+                table.column(7).visible(false);
+                $(".accion-generar-cliente").hide();
             }
-            
+
             $.ajax({
-                url: '<?php echo SERVERURL;?>core/programaPuntos/verificarProgramaPuntos.php',
-                type: 'POST',
-                dataType: 'json',
+                url: "<?php echo SERVERURL;?>core/programaPuntos/verificarProgramaPuntos.php",
+                type: "POST",
+                dataType: "json",
                 async: false,
                 success: function(response) {
-                    if(response.mostrar_puntos) {
-                        table.column(8).visible(true);
+                    if (response.mostrar_puntos) {
+                        table.column(9).visible(true);
                     } else {
-                        table.column(8).visible(false);
+                        table.column(9).visible(false);
                     }
                 },
                 error: function() {
-                    table.column(8).visible(false);
+                    table.column(9).visible(false);
                 }
             });
         }
     });
 
-    $('#dataTableClientes').off('click', '.ver-historial').on('click', '.ver-historial', function() {
-        var cliente_id = $(this).data('id');       
-        $('#modal_historial_puntos').modal('show');
+    $("#dataTableClientes").off("click", ".ver-historial");
+    $("#dataTableClientes").on("click", ".ver-historial", function() {
+        var cliente_id = $(this).data("id");
+
+        $("#modal_historial_puntos").modal("show");
         cargarHistorialPuntos(cliente_id);
     });
 
-    table_clientes.search('').draw();
-    $('#buscar').focus();
+    table_clientes.search("").draw();
+
+    $("#buscar").focus();
 
     generar_clientes_dataTable("#dataTableClientes tbody", table_clientes);
     editar_clientes_dataTable("#dataTableClientes tbody", table_clientes);
     eliminar_clientes_dataTable("#dataTableClientes tbody", table_clientes);
-}
+};
+//FIN ACCIONES FORMULARIO CLIENTES
 
 function cargarHistorialPuntos(cliente_id) {
     

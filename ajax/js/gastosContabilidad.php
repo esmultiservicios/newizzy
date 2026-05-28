@@ -198,24 +198,100 @@ var listar_gastos_contabilidad = function(){
     destroy: true,
     stateSave: false,
     orderMulti: false,
+
     ajax: {
       method: "POST",
       url: "<?php echo SERVERURL;?>core/llenarDataTableEgresosContabilidad.php",
-      data: { fechai:fechai, fechaf:fechaf, estado:estado }
+      data: {
+        fechai: fechai,
+        fechaf: fechaf,
+        estado: estado
+      }
     },
+
     columns: [
+      {
+        data: null,
+        orderable: false,
+        searchable: false,
+        className: "text-center align-middle",
+        render: function(data, type, row){
+          if (type !== "display") {
+            return "";
+          }
+
+          var estadoGasto = parseInt(row.estado, 10);
+          var gastoActivo = estadoGasto === 1;
+
+          var accionesGasto = "";
+
+          accionesGasto +=
+            '<button type="button" class="dropdown-item accion-item accion-editar table_editar">' +
+              '<span class="accion-icon accion-icon-primary">' +
+                '<i class="fas fa-edit"></i>' +
+              '</span>' +
+              '<span class="accion-label">Editar</span>' +
+            '</button>';
+
+          accionesGasto +=
+            '<button type="button" class="dropdown-item accion-item accion-imprimir table_reportes print_gastos">' +
+              '<span class="accion-icon accion-icon-success">' +
+                '<i class="fas fa-file-download"></i>' +
+              '</span>' +
+              '<span class="accion-label">Reporte</span>' +
+            '</button>';
+
+          if (gastoActivo) {
+            accionesGasto +=
+              '<button type="button" class="dropdown-item accion-item accion-anular table_cancelar anular_factura">' +
+                '<span class="accion-icon accion-icon-danger">' +
+                  '<i class="fas fa-ban"></i>' +
+                '</span>' +
+                '<span class="accion-label">Anular</span>' +
+              '</button>';
+          } else {
+            accionesGasto +=
+              '<button type="button" class="dropdown-item accion-item accion-anulado" disabled>' +
+                '<span class="accion-icon accion-icon-eliminar">' +
+                  '<i class="fas fa-ban"></i>' +
+                '</span>' +
+                '<span class="accion-label">Gasto anulado</span>' +
+              '</button>';
+          }
+
+          return '' +
+            '<div class="dropdown acciones-dropdown">' +
+
+              '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                '<i class="fas fa-cog"></i>' +
+                '<span>Acciones</span>' +
+              '</button>' +
+
+              '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+                accionesGasto +
+              '</div>' +
+
+            '</div>';
+        }
+      },
+
       { data: "fecha_registro" },
       { data: "egresos_id" },
       { data: "categoria" },
       { data: "fecha" },
       { data: "nombre" },
       { data: "proveedor" },
+
       {
         data: "factura",
         render: function(data, type, row){
-          if (type !== 'display') return data;
+          if (type !== 'display') {
+            return data;
+          }
+
           let numeroFactura = data ? data : '';
           let icono = '';
+
           if (row.factura_pdf && row.factura_pdf !== '') {
             icono = `
               <a href="<?php echo SERVERURL; ?>vistas/plantilla/gastos/${row.factura_pdf}"
@@ -225,6 +301,7 @@ var listar_gastos_contabilidad = function(){
                  <i class="fas fa-file-pdf"></i>
               </a>`;
           }
+
           return `
             <div class="d-flex justify-content-between align-items-center w-100">
               <span>${numeroFactura}</span>
@@ -232,55 +309,163 @@ var listar_gastos_contabilidad = function(){
             </div>`;
         }
       },
-      { data: "subtotal",  className:"dt-body-right", render: moneyRender },
-      { data: "impuesto",  className:"dt-body-right", render: moneyRender },
-      { data: "descuento", className:"dt-body-right", render: moneyRender },
-      { data: "nc",        className:"dt-body-right", render: moneyRender },
-      { data: "total",     className:"dt-body-right", render: moneyRender },
+
+      {
+        data: "subtotal",
+        className: "dt-body-right",
+        render: moneyRender
+      },
+      {
+        data: "impuesto",
+        className: "dt-body-right",
+        render: moneyRender
+      },
+      {
+        data: "descuento",
+        className: "dt-body-right",
+        render: moneyRender
+      },
+      {
+        data: "nc",
+        className: "dt-body-right",
+        render: moneyRender
+      },
+      {
+        data: "total",
+        className: "dt-body-right",
+        render: moneyRender
+      },
       { data: "observacion" },
+
       {
         data: "estado",
         render: function(data, type){
-          if (type !== 'display') return data;
-          var ok = parseInt(data,10) === 1;
+          if (type !== 'display') {
+            return data;
+          }
+
+          var ok = parseInt(data, 10) === 1;
           var icon = ok ? '<i class="fas fa-check-circle mr-1"></i>' : '<i class="fas fa-times-circle mr-1"></i>';
           var cls  = ok ? 'badge badge-pill badge-success' : 'badge badge-pill badge-danger';
-          return '<span class="'+cls+'" style="font-size:.95rem;padding:.5em .8em;font-weight:600;">'+icon+(ok?'Activo':'Inactivo')+'</span>';
+
+          return '<span class="' + cls + '" style="font-size:.95rem;padding:.5em .8em;font-weight:600;">' +
+                    icon +
+                    (ok ? 'Activo' : 'Inactivo') +
+                 '</span>';
         }
-      },
-      { defaultContent: "<button class='table_editar btn ocultar'><span class='fas fa-edit'></span>Editar</button>" },
-      { defaultContent: "<button class='table_reportes print_gastos btn btn-success btn ocultar'><span class='fas fa-file-download fa-lg'></span>Reporte</button>" },
-      { defaultContent: "<button class='table_cancelar anular_factura btn btn-danger ocultar'><span class='fas fa-ban fa-lg'></span> Anular</button>" }
+      }
     ],
-    order: [[0, 'desc']],
+
+    order: [[1, 'desc']],
+
     lengthMenu: lengthMenu10,
     language: idioma_español,
     dom: dom,
-    columnDefs: Array.from({length:14}, (_,i)=>({width:"7.14%", targets:i})),
+
+    columnDefs: [
+      {
+        targets: 0,
+        width: "8%",
+        orderable: false,
+        searchable: false,
+        className: "text-center text-nowrap align-middle"
+      },
+      {
+        targets: 1,
+        width: "7.14%"
+      },
+      {
+        targets: 2,
+        width: "7.14%"
+      },
+      {
+        targets: 3,
+        width: "7.14%"
+      },
+      {
+        targets: 4,
+        width: "7.14%"
+      },
+      {
+        targets: 5,
+        width: "7.14%"
+      },
+      {
+        targets: 6,
+        width: "7.14%"
+      },
+      {
+        targets: 7,
+        width: "7.14%"
+      },
+      {
+        targets: 8,
+        width: "7.14%",
+        className: "text-right text-nowrap"
+      },
+      {
+        targets: 9,
+        width: "7.14%",
+        className: "text-right text-nowrap"
+      },
+      {
+        targets: 10,
+        width: "7.14%",
+        className: "text-right text-nowrap"
+      },
+      {
+        targets: 11,
+        width: "7.14%",
+        className: "text-right text-nowrap"
+      },
+      {
+        targets: 12,
+        width: "7.14%",
+        className: "text-right text-nowrap"
+      },
+      {
+        targets: 13,
+        width: "7.14%"
+      },
+      {
+        targets: 14,
+        width: "7.14%",
+        className: "text-center text-nowrap"
+      }
+    ],
+
     buttons: [
       {
         text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
         titleAttr: 'Actualizar Registro Gastos',
         className: 'table_actualizar btn btn-secondary ocultar',
-        action: function(){ listar_gastos_contabilidad(); }
+        action: function(){
+          listar_gastos_contabilidad();
+        }
       },
       {
         text: '<i class="fas fas fa-plus fa-lg crear"></i> Ingresar',
         titleAttr: 'Agregar Egresos',
         className: 'table_crear btn btn-primary ocultar',
-        action: function(){ modal_egresos_contabilidad(); }
+        action: function(){
+          modal_egresos_contabilidad();
+        }
       },
       {
         text: '<i class="fas fa-layer-group fa-lg crear"></i> Categorías',
         titleAttr: 'Categorías',
         className: 'table_crear btn btn-primary ocultar',
-        action: function(){ modal_categorias_contabilidad(); }
+        action: function(){
+          modal_categorias_contabilidad();
+        }
       },
       {
         text: '<i class="fas fa-layer-group fa-lg crear"></i> Reporte',
         titleAttr: 'Reporte Categorías',
         className: 'table_crear btn btn-primary ocultar',
-        action: function(){ modal_reporte_categorias_contabilidad(); }
+        action: function(){
+          modal_reporte_categorias_contabilidad();
+        }
       },
       {
         extend: 'excelHtml5',
@@ -290,7 +475,9 @@ var listar_gastos_contabilidad = function(){
         title: 'Reporte Registro Gastos',
         messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' + convertDateFormat(fechaf),
         messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-        exportOptions: { columns: [0,1,2,3,4,5,6,7,8,9,10,11] },
+        exportOptions: {
+          columns: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        },
         className: 'table_reportes btn btn-success ocultar'
       },
       {
@@ -304,28 +491,48 @@ var listar_gastos_contabilidad = function(){
         messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' + convertDateFormat(fechaf),
         messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
         className: 'table_reportes btn btn-danger ocultar',
-        exportOptions: { columns: [0,1,2,3,4,5,6,7,8,9,10,11] },
+        exportOptions: {
+          columns: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        },
         customize: function(doc){
           if (typeof imagen !== 'undefined' && imagen){
-            doc.content.splice(0,0,{ image:imagen, width:100, height:45, margin:[0,0,0,12] });
+            doc.content.splice(0, 0, {
+              image: imagen,
+              width: 100,
+              height: 45,
+              margin: [0, 0, 0, 12]
+            });
           }
         }
       }
     ],
+
     initComplete: function(){
-      this.api().order([0,'desc']).draw();
+      this.api().order([1, 'desc']).draw();
       $('#buscar').focus();
     },
+
     drawCallback: function(){
       getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+      cerrarDropdownAcciones();
+
+      $('[data-toggle="tooltip"]').tooltip({
+        container: "body",
+        placement: "top"
+      });
     }
   });
 
   $('#dataTableGastosContabilidad').on('draw.dt', function(){
-    $('[data-toggle="tooltip"]').tooltip();
+    $('[data-toggle="tooltip"]').tooltip({
+      container: "body",
+      placement: "top"
+    });
   });
 
   table_gastos_contabilidad.search('').draw();
+
   $('#buscar').focus();
 
   edit_reporte_gastos_dataTable("#dataTableGastosContabilidad tbody", table_gastos_contabilidad);

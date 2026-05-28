@@ -89,42 +89,40 @@
 	        </div>
 	        <div class="card-body">
 	            <div class="table-responsive">
-	                <table id="dataTableGastosContabilidad" class="table table-header-gradient table-striped table-condensed table-hover"
-	                    style="width:100%">
-	                    <thead>
-	                        <tr>
-	                            <th>Fecha Registro</th>
-	                            <th>Número</th>
-	                            <th>Categoria</th>
-	                            <th>Fecha Factura</th>
-	                            <th>Forma de Pago</th>
-	                            <th>Proveedor</th>
-	                            <th>Numero Factura</th>
-	                            <th>Subtotal</th>
-	                            <th>Impuesto</th>
-	                            <th>Descuento</th>
-	                            <th>Nota de Crédito</th>
-	                            <th>Total</th>
-	                            <th>Observación</th>
+	                <table id="dataTableGastosContabilidad" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
+						<thead>
+							<tr>
+								<th>Acciones</th>
+								<th>Fecha Registro</th>
+								<th>Número</th>
+								<th>Categoria</th>
+								<th>Fecha Factura</th>
+								<th>Forma de Pago</th>
+								<th>Proveedor</th>
+								<th>Numero Factura</th>
+								<th>Subtotal</th>
+								<th>Impuesto</th>
+								<th>Descuento</th>
+								<th>Nota de Crédito</th>
+								<th>Total</th>
+								<th>Observación</th>
 								<th>Estado</th>
-	                            <th>Editar</th>
-	                            <th>Imprimir</th>
-								<th>Anular</th>
-	                        </tr>
-	                    </thead>
-	                    <tfoot class="bg-secondary text-white font-weight-bold">
-	                        <tr>
-	                            <td colspan='2'>Total</td>
-	                            <td colspan="5"></td>
-	                            <td id="subtotal-g"></td>
-	                            <td id="impuesto-g"></td>
-	                            <td id="descuento-g"></td>
-	                            <td id="nc-g"></td>
-	                            <td id='total-footer-gastos'></td>
-	                            <td colspan="5"></td>
-	                        </tr>
-	                    </tfoot>
-	                </table>
+							</tr>
+						</thead>
+
+						<tfoot class="bg-secondary text-white font-weight-bold">
+							<tr>
+								<td colspan="1">Total</td>
+								<td colspan="7"></td>
+								<td id="subtotal-g"></td>
+								<td id="impuesto-g"></td>
+								<td id="descuento-g"></td>
+								<td id="nc-g"></td>
+								<td id="total-footer-gastos"></td>
+								<td colspan="2"></td>
+							</tr>
+						</tfoot>
+					</table>
 	            </div>
 	        </div>
 	        <div class="card-footer small text-muted">

@@ -1,3 +1,23 @@
+####27 de mayo 2026####
+CREATE TABLE `caja_retiros` (
+  `caja_retiros_id` int NOT NULL,
+  `apertura_id` int NOT NULL,
+  `egresos_id` int NOT NULL,
+  `cuentas_id` int NOT NULL,
+  `empresa_id` int NOT NULL,
+  `monto` float(12,2) NOT NULL,
+  `motivo` varchar(100) COLLATE utf8mb4_spanish_ci NOT NULL,
+  `observacion` varchar(255) COLLATE utf8mb4_spanish_ci NOT NULL,
+  `estado` int NOT NULL COMMENT '1. Activo 0. Anulado',
+  `colaboradores_id` int NOT NULL,
+  `fecha` date NOT NULL,
+  `fecha_registro` datetime NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
+
+ALTER TABLE `caja_retiros`
+  MODIFY `caja_retiros_id` int NOT NULL AUTO_INCREMENT,
+  ADD PRIMARY KEY (`caja_retiros_id`);
+
 ####26 de mayo 2026####
 #Esto por si se require ejecutar 
 UPDATE facturas_detalles fd

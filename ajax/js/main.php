@@ -3801,7 +3801,6 @@ $('#form_main_clientes').on('reset', function() {
 });
 
 //INICIO ACCIONES FORMULARIO CLIENTES
-//INICIO ACCIONES FORMULARIO CLIENTES
 var listar_clientes = function(estado) {
     var estado = $('#form_main_clientes #estado_clientes').val();
 
@@ -3904,28 +3903,28 @@ var listar_clientes = function(estado) {
                     return '' +
                         '<div class="dropdown acciones-dropdown">' +
 
-                            '<button type="button" class="btn btn-sm btn-acciones dropdown-toggle" data-toggle="dropdown" data-boundary="window" aria-haspopup="true" aria-expanded="false">' +
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
                                 '<i class="fas fa-cog"></i>' +
                                 '<span>Acciones</span>' +
                             '</button>' +
 
                             '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
 
-                                '<button type="button" class="dropdown-item accion-confirmar table_crear ocultar generar accion-generar-cliente">' +
-                                    '<span class="accion-icon accion-icon-confirmar">' +
+                                '<button type="button" class="dropdown-item accion-item accion-confirmar table_crear ocultar generar accion-generar-cliente">' +
+                                    '<span class="accion-icon accion-icon-primary">' +
                                         '<i class="fab fa-centos"></i>' +
                                     '</span>' +
                                     '<span class="accion-label">Generar</span>' +
                                 '</button>' +
 
-                                '<button type="button" class="dropdown-item accion-editar table_editar ocultar">' +
+                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar">' +
                                     '<span class="accion-icon accion-icon-editar">' +
                                         '<i class="fas fa-edit"></i>' +
                                     '</span>' +
                                     '<span class="accion-label">Editar</span>' +
                                 '</button>' +
 
-                                '<button type="button" class="dropdown-item accion-eliminar table_eliminar ocultar">' +
+                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar ocultar">' +
                                     '<span class="accion-icon accion-icon-eliminar">' +
                                         '<i class="fas fa-trash-alt"></i>' +
                                     '</span>' +
@@ -4009,6 +4008,10 @@ var listar_clientes = function(estado) {
         ],
         "drawCallback": function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
             
             var privilegio = getPrivilegioUsuario();
             var privilegiosPermitidos = [1, 2];
@@ -8334,4 +8337,235 @@ function validarAperturaCajaUsuario() {
     getTotalFacturasDisponibles();
 }
 /*FIN CONTEO FACTURAS*/
+
+/*INICIO RETIRO DE CAJA*/
+function formatoMonedaRetiro(valor) {
+    valor = parseFloat(valor || 0);
+    return 'L. ' + valor.toLocaleString('es-HN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+function calcularRetiroCaja() {
+    var saldoActual = parseFloat($('#retiro_saldo_actual').val()) || 0;
+    var montoRetiro = parseFloat($('#retiro_monto').val()) || 0;
+    var saldoFinal = saldoActual - montoRetiro;
+
+    $('#retiro_saldo_final').val(saldoFinal.toFixed(2));
+    $('#retiro_saldo_final_text').text(formatoMonedaRetiro(saldoFinal));
+
+    if (saldoActual <= 0) {
+        $('#retiro_mensaje_validacion').show().html('No hay dinero disponible en caja para retirar.');
+        $('#btn_guardar_retiro_caja').prop('disabled', true);
+        return;
+    }
+
+    if (montoRetiro <= 0) {
+        $('#retiro_mensaje_validacion').hide().html('');
+        $('#btn_guardar_retiro_caja').prop('disabled', true);
+        return;
+    }
+
+    if (montoRetiro > saldoActual) {
+        $('#retiro_mensaje_validacion').show().html('No puede retirar más dinero del disponible en caja.');
+        $('#btn_guardar_retiro_caja').prop('disabled', true);
+        return;
+    }
+
+    $('#retiro_mensaje_validacion').hide().html('');
+    $('#btn_guardar_retiro_caja').prop('disabled', false);
+}
+
+$(document).on('shown.bs.modal', '#modalRetiroCaja', function () {
+    $('#formRetiroCaja')[0].reset();
+    $('#retiro_mensaje_validacion').hide().html('');
+    $('#btn_guardar_retiro_caja').prop('disabled', true);
+
+    if ($.fn.selectpicker) {
+        $('#retiro_motivo').selectpicker('refresh');
+    }
+
+    $.ajax({
+        type: 'POST',
+        url: '<?php echo SERVERURL; ?>core/caja/getSaldoRetiroCaja.php',
+        dataType: 'json',
+        success: function (response) {
+            if (!response.success) {
+                $('#retiro_saldo_actual').val('0.00');
+                $('#retiro_saldo_actual_text').text('L. 0.00');
+                $('#retiro_saldo_final').val('0.00');
+                $('#retiro_saldo_final_text').text('L. 0.00');
+                $('#retiro_mensaje_validacion').show().html(response.message);
+                return;
+            }
+
+            $('#retiro_apertura_id').val(response.apertura_id);
+            $('#retiro_saldo_actual').val(response.saldo_disponible);
+            $('#retiro_saldo_actual_text').text(formatoMonedaRetiro(response.saldo_disponible));
+            $('#retiro_saldo_final').val(response.saldo_disponible);
+            $('#retiro_saldo_final_text').text(formatoMonedaRetiro(response.saldo_disponible));
+
+            setTimeout(function () {
+                $('#retiro_monto').focus();
+            }, 400);
+        }
+    });
+});
+
+$(document).on('input', '#retiro_monto', function () {
+    calcularRetiroCaja();
+});
+
+$(document).on('submit', '#formRetiroCaja', function (e) {
+    e.preventDefault();
+
+    calcularRetiroCaja();
+
+    if ($('#btn_guardar_retiro_caja').prop('disabled')) {
+        return;
+    }
+
+    $.ajax({
+        type: 'POST',
+        url: '<?php echo SERVERURL; ?>core/caja/addRetiroCaja.php',
+        data: $('#formRetiroCaja').serialize(),
+        dataType: 'json',
+        beforeSend: function () {
+            $('#btn_guardar_retiro_caja').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Guardando...');
+        },
+        success: function (response) {
+            $('#btn_guardar_retiro_caja').html('<i class="far fa-save fa-lg mr-1"></i> Registrar retiro');
+
+            if (!response.success) {
+                $('#retiro_mensaje_validacion').show().html(response.message);
+                calcularRetiroCaja();
+                return;
+            }
+
+            $('#modalRetiroCaja').modal('hide');
+
+            if (typeof showNotify === 'function') {
+                showNotify('success', response.message);
+            } else {
+                alert(response.message);
+            }
+        },
+        error: function () {
+            $('#btn_guardar_retiro_caja').html('<i class="far fa-save fa-lg mr-1"></i> Registrar retiro');
+            $('#btn_guardar_retiro_caja').prop('disabled', false);
+            $('#retiro_mensaje_validacion').show().html('Error al procesar el retiro de caja.');
+        }
+    });
+});
+/*FIN RETIRO DE CAJA*/
+
+/* =========================================================
+   DROPDOWN GLOBAL DE ACCIONES PARA DATATABLES
+   ========================================================= */
+
+/* Limpia eventos anteriores para evitar duplicados */
+$(document).off("click", ".js-acciones-toggle");
+$(document).off("click", ".acciones-menu");
+$(document).off("click", ".acciones-menu .accion-item");
+$(document).off("click.accionesGlobal");
+$(document).off("show.bs.modal.accionesGlobal");
+$(document).off("hidden.bs.modal.accionesGlobal");
+$(window).off("scroll.accionesGlobal resize.accionesGlobal");
+
+/* Función global para cerrar cualquier menú abierto */
+function cerrarDropdownAcciones() {
+    $(".acciones-menu.show").each(function () {
+        $(this)
+            .removeClass("show")
+            .removeAttr("style");
+    });
+
+    $(".js-acciones-toggle").attr("aria-expanded", "false");
+}
+
+/* Abrir/cerrar menú al presionar el botón Acciones */
+$(document).on("click", ".js-acciones-toggle", function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    var $button = $(this);
+    var $dropdown = $button.closest(".acciones-dropdown");
+    var $menu = $dropdown.find(".acciones-menu").first();
+
+    if ($menu.hasClass("show")) {
+        cerrarDropdownAcciones();
+        return;
+    }
+
+    cerrarDropdownAcciones();
+
+    $menu.addClass("show");
+
+    var rect = this.getBoundingClientRect();
+    var menuWidth = $menu.outerWidth();
+    var menuHeight = $menu.outerHeight();
+
+    var top = rect.bottom + 8;
+    var left = rect.right - menuWidth;
+
+    if (left < 10) {
+        left = rect.left;
+    }
+
+    if (left + menuWidth > window.innerWidth) {
+        left = window.innerWidth - menuWidth - 10;
+    }
+
+    if (top + menuHeight > window.innerHeight) {
+        top = rect.top - menuHeight - 8;
+    }
+
+    if (top < 10) {
+        top = 10;
+    }
+
+    $menu.css({
+        display: "block",
+        position: "fixed",
+        top: top + "px",
+        left: left + "px",
+        right: "auto",
+        bottom: "auto",
+        transform: "none",
+        zIndex: 999999
+    });
+
+    $button.attr("aria-expanded", "true");
+});
+
+/* No cerrar si solo se hace clic dentro del menú vacío */
+$(document).on("click", ".acciones-menu", function (e) {
+    e.stopPropagation();
+});
+
+/* Cerrar al presionar una opción del menú */
+$(document).on("click", ".acciones-menu .accion-item", function () {
+    cerrarDropdownAcciones();
+});
+
+/* Cerrar al hacer clic fuera */
+$(document).on("click.accionesGlobal", function () {
+    cerrarDropdownAcciones();
+});
+
+/* Cerrar al hacer scroll o cambiar tamaño */
+$(window).on("scroll.accionesGlobal resize.accionesGlobal", function () {
+    cerrarDropdownAcciones();
+});
+
+/* Cerrar siempre que se abra un modal */
+$(document).on("show.bs.modal.accionesGlobal", ".modal", function () {
+    cerrarDropdownAcciones();
+});
+
+/* Cerrar también cuando se cierre un modal */
+$(document).on("hidden.bs.modal.accionesGlobal", ".modal", function () {
+    cerrarDropdownAcciones();
+});
 </script>

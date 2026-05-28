@@ -141,6 +141,20 @@
                                         <i class="fas fa-cash-register fa-lg"></i> [F11] Cerrar
                                     </button>
 
+                                    <!-- Retirar Dinero de Caja -->
+                                    <button
+                                        class="btn btn-warning mr-2"
+                                        type="button"
+                                        id="btn_retiro_caja"
+                                        data-toggle="modal"
+                                        data-target="#modalRetiroCaja"
+                                        data-placement="top"
+                                        data-html="true"
+                                        title="<strong>Retirar dinero de caja</strong><br>Registra una salida de efectivo sin afectar la factura actual.">
+                                        <div class="sb-nav-link-icon"></div>
+                                        <i class="fas fa-money-bill-wave fa-lg"></i> Retirar Caja
+                                    </button>                                    
+
                                 </div>
 
                                 <!-- Segunda fila de botones y controles -->

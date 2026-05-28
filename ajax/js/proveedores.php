@@ -93,21 +93,21 @@ var listar_proveedores = function() {
                     return '' +
                         '<div class="dropdown acciones-dropdown">' +
 
-                            '<button type="button" class="btn btn-sm btn-acciones dropdown-toggle" data-toggle="dropdown" data-boundary="window" aria-haspopup="true" aria-expanded="false">' +
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
                                 '<i class="fas fa-cog"></i>' +
                                 '<span>Acciones</span>' +
                             '</button>' +
 
                             '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
 
-                                '<button type="button" class="dropdown-item accion-editar table_editar ocultar">' +
+                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar">' +
                                     '<span class="accion-icon accion-icon-editar">' +
                                         '<i class="fas fa-edit"></i>' +
                                     '</span>' +
                                     '<span class="accion-label">Editar</span>' +
                                 '</button>' +
 
-                                '<button type="button" class="dropdown-item accion-eliminar table_eliminar ocultar">' +
+                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar ocultar">' +
                                     '<span class="accion-icon accion-icon-eliminar">' +
                                         '<i class="fas fa-trash-alt"></i>' +
                                     '</span>' +
@@ -221,6 +221,10 @@ var listar_proveedores = function() {
         ],
         "drawCallback": function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
         }
     });
 

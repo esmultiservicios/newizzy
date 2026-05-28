@@ -1,5 +1,4 @@
 <?php
-// core/llenarDataTableCajaDisponibles.php
 $peticionAjax = true;
 
 require_once "configGenerales.php";
@@ -30,19 +29,6 @@ if ($fechai == "") {
 if ($fechaf == "") {
     $fechaf = $fechai;
 }
-
-/*
-    LÓGICA:
-    estado = 0 / Todas:
-        - Cajas cerradas dentro del rango de fechas
-        - Cajas activas de cualquier fecha
-
-    estado = 1 / Activas:
-        - Cajas activas dentro del rango de fechas
-
-    estado = 2 / Cerrada:
-        - Cajas cerradas dentro del rango de fechas
-*/
 
 $where = "a.empresa_id = '$empresa_id'";
 
@@ -78,8 +64,8 @@ $sql = "
     WHERE $where
     ORDER BY 
         CASE 
-            WHEN a.estado = 2 THEN 1
-            WHEN a.estado = 1 THEN 2
+            WHEN a.estado = 1 THEN 1
+            WHEN a.estado = 2 THEN 2
             ELSE 3
         END,
         a.fecha DESC,
@@ -103,6 +89,23 @@ if ($result) {
             $importe_venta = (float)$row1['importe'];
         }
 
+        $sqlRetiros = "
+            SELECT COALESCE(SUM(monto), 0) AS total_retiros
+            FROM caja_retiros
+            WHERE apertura_id = '$apertura_id'
+              AND empresa_id = '$empresa_id'
+              AND estado = 1
+        ";
+
+        $result_retiros = $insMainModel->ejecutar_consulta_simple($sqlRetiros);
+        $row_retiros = $result_retiros ? $result_retiros->fetch_assoc() : null;
+
+        $retiro_caja = 0;
+
+        if ($row_retiros && isset($row_retiros['total_retiros'])) {
+            $retiro_caja = (float)$row_retiros['total_retiros'];
+        }
+
         $factura_inicial = "";
 
         if ($row['factura_inicial'] == "") {
@@ -117,7 +120,7 @@ if ($result) {
         }
 
         $monto_apertura = isset($row['monto_apertura']) ? (float)$row['monto_apertura'] : 0;
-        $neto = $importe_venta + $monto_apertura;
+        $neto = ($monto_apertura + $importe_venta) - $retiro_caja;
 
         $data[] = [
             "apertura_id" => $apertura_id,
@@ -125,9 +128,11 @@ if ($result) {
             "factura_inicial" => $factura_inicial,
             "factura_final" => $row['factura_final'],
             "caja" => $row['caja'],
+            "estado" => (int)$row['estado'],
             "usuario" => $row['usuario'],
             "monto_apertura" => $monto_apertura,
             "importe_venta" => $importe_venta,
+            "retiro_caja" => $retiro_caja,
             "neto" => $neto
         ];
     }

@@ -75,26 +75,24 @@
                 <table id="dataTableCajas" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
                     <thead>
                         <tr>
-                            <th>Acción</th>
-                            <th>Comprobante</th>
-                            <th>Ganancia</th>
+                            <th>Acciones</th>
                             <th>Fecha</th>
                             <th>Usuario</th>
                             <th>Factura Inicial</th>
                             <th>Factura Final</th>
                             <th>Monto Apertura</th>
                             <th>Venta del Día</th>
-                            <th>Neto</th>
-                            <th>Estado</th>
+                            <th>Retiro Caja</th>
+                            <th>Neto Caja</th>
                         </tr>
                     </thead>
                     <tfoot>
                         <tr>
-                            <th colspan="7" class="text-right">Totales:</th>
+                            <th colspan="5" class="text-right">Totales:</th>
                             <th id="total_monto_apertura">L. 0.00</th>
                             <th id="total_venta_dia">L. 0.00</th>
+                            <th id="total_retiro_caja">L. 0.00</th>
                             <th id="total_neto">L. 0.00</th>
-                            <th></th>
                         </tr>
                     </tfoot>
                 </table>
@@ -128,8 +126,8 @@
             <div class="modal-header izzy-modal-header">
                 <h5 class="modal-title">
                     <i class="fas fa-chart-line mr-1"></i>
-                    <span id="titulo_modal_ganancia">Desglose de ganancia</span>
-                    <small id="dg_contexto_consulta" class="d-block mt-1 text-light" style="opacity: .85;"></small>
+                    <span id="titulo_modal_ganancia">Resumen de caja y ganancia</span>
+                    <small id="dg_contexto_consulta" class="d-block mt-1 text-light" style="opacity:.85;"></small>
                 </h5>
 
                 <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
@@ -139,33 +137,48 @@
 
             <div class="modal-body">
 
-                <div class="mb-3">
+                <div class="izzy-note mb-3">
+                    <strong>Resumen claro:</strong>
+                    este reporte separa el dinero cobrado, el dinero físico en caja y el dinero que se debe guardar para reponer inventario.
+                </div>
+
+                <div class="mb-4">
                     <div class="izzy-section-title">
-                        <i class="fas fa-wallet"></i>
-                        Resumen financiero
+                        <i class="fas fa-check-circle"></i>
+                        1. Resultado principal del día
                     </div>
 
                     <div class="row">
                         <div class="col-md-4 col-sm-6 mb-3">
-                            <div class="izzy-kpi-card">
-                                <div class="izzy-kpi-label">Total facturado</div>
-                                <p class="izzy-kpi-value" id="dg_total_facturado">L. 0.00</p>
-                            </div>
-                        </div>
-
-                        <div class="col-md-4 col-sm-6 mb-3">
-                            <div class="izzy-kpi-card">
+                            <div class="izzy-kpi-card izzy-kpi-card-highlight">
                                 <div class="izzy-kpi-label">Total cobrado</div>
                                 <p class="izzy-kpi-value izzy-kpi-success" id="dg_total_cobrado">L. 0.00</p>
+                                <small>Todo el dinero cobrado: efectivo, transferencia, tarjeta y cheque.</small>
                             </div>
                         </div>
 
                         <div class="col-md-4 col-sm-6 mb-3">
                             <div class="izzy-kpi-card">
-                                <div class="izzy-kpi-label">Pendiente de cobro</div>
-                                <p class="izzy-kpi-value izzy-kpi-warning" id="dg_pendiente_cobro">L. 0.00</p>
+                                <div class="izzy-kpi-label">Debe guardar para reponer inventario</div>
+                                <p class="izzy-kpi-value izzy-kpi-danger" id="dg_costo_productos">L. 0.00</p>
+                                <small>Este es el costo de los productos vendidos.</small>
                             </div>
                         </div>
+
+                        <div class="col-md-4 col-sm-6 mb-3">
+                            <div class="izzy-kpi-card izzy-kpi-card-highlight">
+                                <div class="izzy-kpi-label">Dinero después de reponer</div>
+                                <p class="izzy-kpi-value izzy-kpi-primary" id="dg_dinero_despues_reponer">L. 0.00</p>
+                                <small>Total cobrado menos costo de productos vendidos.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="izzy-section-title">
+                        <i class="fas fa-wallet"></i>
+                        2. Cómo se cobró el dinero
                     </div>
 
                     <div class="row">
@@ -199,38 +212,84 @@
                     </div>
                 </div>
 
-                <div class="mb-3">
+                <div class="mb-4">
                     <div class="izzy-section-title">
-                        <i class="fas fa-boxes"></i>
-                        Resumen de ganancia / inventario
+                        <i class="fas fa-cash-register"></i>
+                        3. Dinero físico esperado en caja
                     </div>
 
                     <div class="row">
-                        <div class="col-md-4 col-sm-6 mb-3">
+                        <div class="col-md-3 col-sm-6 mb-3">
                             <div class="izzy-kpi-card">
-                                <div class="izzy-kpi-label">Costo de productos vendidos</div>
-                                <p class="izzy-kpi-value izzy-kpi-danger" id="dg_costo_productos">L. 0.00</p>
+                                <div class="izzy-kpi-label">Monto apertura</div>
+                                <p class="izzy-kpi-value" id="dg_monto_apertura">L. 0.00</p>
+                                <small>Dinero con el que inició la caja.</small>
                             </div>
                         </div>
 
-                        <div class="col-md-4 col-sm-6 mb-3">
+                        <div class="col-md-3 col-sm-6 mb-3">
                             <div class="izzy-kpi-card">
-                                <div class="izzy-kpi-label">Ganancia bruta</div>
-                                <p class="izzy-kpi-value izzy-kpi-success" id="dg_ganancia_bruta">L. 0.00</p>
+                                <div class="izzy-kpi-label">Efectivo cobrado</div>
+                                <p class="izzy-kpi-value" id="dg_efectivo_caja">L. 0.00</p>
+                                <small>Solo lo cobrado en efectivo.</small>
                             </div>
                         </div>
 
-                        <div class="col-md-4 col-sm-6 mb-3">
+                        <div class="col-md-3 col-sm-6 mb-3">
                             <div class="izzy-kpi-card">
-                                <div class="izzy-kpi-label">Dinero recomendado a guardar</div>
-                                <p class="izzy-kpi-value izzy-kpi-primary" id="dg_dinero_guardar">L. 0.00</p>
+                                <div class="izzy-kpi-label">Retiros de caja</div>
+                                <p class="izzy-kpi-value izzy-kpi-danger" id="dg_retiro_caja">L. 0.00</p>
+                                <small>Dinero retirado antes del cierre.</small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="izzy-kpi-card izzy-kpi-card-highlight">
+                                <div class="izzy-kpi-label">Efectivo esperado en caja</div>
+                                <p class="izzy-kpi-value izzy-kpi-primary" id="dg_efectivo_esperado_caja">L. 0.00</p>
+                                <small>Apertura + efectivo cobrado - retiros.</small>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="izzy-note mb-3">
-                    <strong>Nota:</strong> El costo de productos vendidos representa el dinero que debería reservarse para reponer inventario.
+                <div class="mb-4">
+                    <div class="izzy-section-title">
+                        <i class="fas fa-boxes"></i>
+                        4. Ganancia de productos
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 col-sm-6 mb-3">
+                            <div class="izzy-kpi-card">
+                                <div class="izzy-kpi-label">Venta base de productos</div>
+                                <p class="izzy-kpi-value" id="dg_total_vendido_detalle">L. 0.00</p>
+                                <small>Suma de cantidad por precio guardado en el detalle.</small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 col-sm-6 mb-3">
+                            <div class="izzy-kpi-card">
+                                <div class="izzy-kpi-label">Costo productos vendidos</div>
+                                <p class="izzy-kpi-value izzy-kpi-danger" id="dg_costo_productos_2">L. 0.00</p>
+                                <small>Costo real de lo vendido.</small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 col-sm-6 mb-3">
+                            <div class="izzy-kpi-card">
+                                <div class="izzy-kpi-label">Ganancia base de productos</div>
+                                <p class="izzy-kpi-value izzy-kpi-success" id="dg_ganancia_bruta">L. 0.00</p>
+                                <small>Venta base de productos menos costo.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="izzy-note izzy-note-warning mb-3">
+                        <strong>Impuestos / ajustes incluidos en factura:</strong>
+                        <span id="dg_diferencia_conciliacion">L. 0.00</span>.
+                        Este valor explica la diferencia entre el total facturado y la venta base de productos.
+                    </div>
                 </div>
 
                 <div class="table-responsive">

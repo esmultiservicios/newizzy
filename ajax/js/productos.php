@@ -608,44 +608,44 @@ $(document).off('click', '#btnGenerarBarcode').on('click', '#btnGenerarBarcode',
         }
       },
       {
-  data: null,
-  orderable: false,
-  searchable: false,
-  className: "text-center align-middle",
-  render: function(data, type, row) {
-    if (type !== 'display') {
-      return '';
-    }
+        data: null,
+        orderable: false,
+        searchable: false,
+        className: "text-center align-middle",
+        render: function(data, type, row) {
+          if (type !== 'display') {
+            return '';
+          }
 
-    return '' +
-      '<div class="dropdown acciones-dropdown">' +
+          return '' +
+          '<div class="dropdown acciones-dropdown">' +
 
-        '<button type="button" class="btn btn-sm btn-acciones dropdown-toggle" data-toggle="dropdown" data-boundary="window" aria-haspopup="true" aria-expanded="false">' +
-          '<i class="fas fa-cog"></i>' +
-          '<span>Acciones</span>' +
-        '</button>' +
+              '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                  '<i class="fas fa-cog"></i>' +
+                  '<span>Acciones</span>' +
+              '</button>' +
 
-        '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+              '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
 
-          '<button type="button" class="dropdown-item accion-item accion-editar table_editar">' +
-            '<span class="accion-icon accion-icon-editar">' +
-              '<i class="fas fa-edit"></i>' +
-            '</span>' +
-            '<span class="accion-label">Editar</span>' +
-          '</button>' +
+                  '<button type="button" class="dropdown-item accion-item accion-editar table_editar">' +
+                      '<span class="accion-icon accion-icon-editar">' +
+                          '<i class="fas fa-edit"></i>' +
+                      '</span>' +
+                      '<span class="accion-label">Editar</span>' +
+                  '</button>' +
 
-          '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar">' +
-            '<span class="accion-icon accion-icon-eliminar">' +
-              '<i class="fas fa-trash-alt"></i>' +
-            '</span>' +
-            '<span class="accion-label">Eliminar</span>' +
-          '</button>' +
+                  '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar">' +
+                      '<span class="accion-icon accion-icon-eliminar">' +
+                          '<i class="fas fa-trash-alt"></i>' +
+                      '</span>' +
+                      '<span class="accion-label">Eliminar</span>' +
+                  '</button>' +
 
-        '</div>' +
+              '</div>' +
 
-      '</div>';
-  }
-}
+          '</div>';
+        }
+      }
     ],
 
     buttons: [

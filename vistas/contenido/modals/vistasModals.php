@@ -4604,3 +4604,108 @@
         </div>
     </div>
 </div>
+
+<!-- INICIO MODAL RETIRO DE CAJA -->
+<div class="modal fade" id="modalRetiroCaja" tabindex="-1" role="dialog" aria-labelledby="modalRetiroCajaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h4 class="modal-title" id="modalRetiroCajaLabel">
+                    <i class="fas fa-money-bill-wave"></i> Retiro de dinero de caja
+                </h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <form id="formRetiroCaja" method="POST" action="<?php echo SERVERURL; ?>ajax/addRetiroCajaAjax.php" data-form="save" autocomplete="off">
+                <div class="modal-body">
+
+                    <input type="hidden" id="retiro_apertura_id" name="retiro_apertura_id">
+                    <input type="hidden" id="retiro_saldo_actual" name="retiro_saldo_actual" value="0.00">
+                    <input type="hidden" id="retiro_saldo_final" name="retiro_saldo_final" value="0.00">
+
+                    <div class="retiro-alerta-pro">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Este retiro se registrará como egreso y movimiento de caja. No afecta la factura actual.</span>
+                    </div>
+
+                    <div class="retiro-panel-caja">
+
+                        <div class="retiro-panel-item">
+                            <div class="retiro-icon retiro-icon-disponible">
+                                <i class="fas fa-cash-register"></i>
+                            </div>
+                            <div>
+                                <span>Disponible en caja</span>
+                                <strong id="retiro_saldo_actual_text">L. 0.00</strong>
+                            </div>
+                        </div>
+
+                        <div class="retiro-panel-item retiro-panel-input">
+                            <div class="retiro-icon retiro-icon-retiro">
+                                <i class="fas fa-hand-holding-usd"></i>
+                            </div>
+                            <div class="retiro-input-content">
+                                <label for="retiro_monto">Monto que desea retirar <b>*</b></label>
+
+                                <div class="retiro-input-claro">
+                                    <span>L.</span>
+                                    <input type="number" id="retiro_monto" name="retiro_monto" placeholder="Ingrese el monto" min="0.01" step="0.01" required>
+                                </div>
+
+                                <small>Escriba aquí el dinero que saldrá de caja.</small>
+                            </div>
+                        </div>
+
+                        <div class="retiro-panel-item">
+                            <div class="retiro-icon retiro-icon-final">
+                                <i class="fas fa-wallet"></i>
+                            </div>
+                            <div>
+                                <span>Disponible después</span>
+                                <strong id="retiro_saldo_final_text">L. 0.00</strong>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div id="retiro_mensaje_validacion" class="alert alert-danger mt-3" style="display:none;"></div>
+
+                    <div class="form-group mt-3">
+                        <label>Motivo del retiro <span class="priority">*</span></label>
+                        <select class="form-control selectpicker" id="retiro_motivo" name="retiro_motivo" title="Seleccione" data-live-search="true" required>
+                            <option value="Retiro de efectivo">Retiro de efectivo</option>
+                            <option value="Pago a proveedor">Pago a proveedor</option>
+                            <option value="Compra menor">Compra menor</option>
+                            <option value="Entrega a dueño">Entrega a dueño</option>
+                            <option value="Gasto operativo">Gasto operativo</option>
+                            <option value="Arqueo de caja">Arqueo de caja</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label>Observación</label>
+                        <textarea class="form-control" id="retiro_observacion" name="retiro_observacion" rows="3" placeholder="Detalle del retiro..."></textarea>
+                    </div>
+
+                    <div class="RespuestaAjax mt-3"></div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" data-dismiss="modal">
+                        <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                    </button>
+
+                    <button type="submit" class="btn btn-primary" id="btn_guardar_retiro_caja" disabled>
+                        <i class="far fa-save fa-lg mr-1"></i> Registrar retiro
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+<!-- FIN MODAL RETIRO DE CAJA -->

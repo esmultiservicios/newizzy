@@ -289,40 +289,6 @@ class aperturaCajaControlador extends aperturaCajaModelo{
         return 0;
     }
 
-    private function obtenerCategoriaGastoCierreCaja(){
-        $query = "
-            SELECT categoria_gastos_id
-            FROM categoria_gastos
-            WHERE estado = 1
-              AND (
-                    nombre LIKE '%Otros%'
-                 OR nombre LIKE '%Caja%'
-                 OR nombre LIKE '%Cierre%'
-              )
-            ORDER BY 
-                CASE 
-                    WHEN nombre LIKE '%Caja%' THEN 1
-                    WHEN nombre LIKE '%Cierre%' THEN 2
-                    WHEN nombre LIKE '%Otros%' THEN 3
-                    ELSE 4
-                END
-            LIMIT 1
-        ";
-
-        $sql = mainModel::connection()->query($query);
-
-        if(!$sql){
-            die(mainModel::connection()->error);
-        }
-
-        if($sql->num_rows > 0){
-            $row = $sql->fetch_assoc();
-            return (int)$row['categoria_gastos_id'];
-        }
-
-        return 14;
-    }
-
     private function validarCierreContabilizado($apertura_id){
         $factura = "AP-".$apertura_id;
 
@@ -342,69 +308,6 @@ class aperturaCajaControlador extends aperturaCajaModelo{
         }
 
         return $sql->num_rows > 0;
-    }
-
-    private function registrarEgresoCierreCaja($apertura_id, $cuentas_id, $monto, $fecha, $fecha_registro, $empresa_id, $colaboradores_id){
-        if($monto <= 0){
-            return 0;
-        }
-
-        $egresos_id = mainModel::correlativo("egresos_id", "egresos");
-        $proveedores_id = 1;
-        $tipo_egreso = 2;
-        $categoria_gastos_id = $this->obtenerCategoriaGastoCierreCaja();
-        $factura = "CC-".$apertura_id."-".$egresos_id;
-        $observacion = "Cierre de caja - neto entregado de caja";
-
-        $insert = "
-            INSERT INTO egresos (
-                egresos_id,
-                cuentas_id,
-                proveedores_id,
-                empresa_id,
-                tipo_egreso,
-                fecha,
-                factura,
-                factura_pdf,
-                subtotal,
-                descuento,
-                nc,
-                impuesto,
-                total,
-                observacion,
-                estado,
-                colaboradores_id,
-                fecha_registro,
-                categoria_gastos_id
-            ) VALUES (
-                '$egresos_id',
-                '$cuentas_id',
-                '$proveedores_id',
-                '$empresa_id',
-                '$tipo_egreso',
-                '$fecha',
-                '$factura',
-                NULL,
-                '$monto',
-                '0',
-                '0',
-                '0',
-                '$monto',
-                '$observacion',
-                '1',
-                '$colaboradores_id',
-                '$fecha_registro',
-                '$categoria_gastos_id'
-            )
-        ";
-
-        $ok = mainModel::connection()->query($insert);
-
-        if(!$ok){
-            die(mainModel::connection()->error);
-        }
-
-        return $egresos_id;
     }
 
     private function registrarMovimientosContables($apertura_id) {
@@ -504,18 +407,6 @@ class aperturaCajaControlador extends aperturaCajaModelo{
                     ];
 
                     $this->agregar_movimientos_contabilidad_modelo($datos_movimiento);
-
-                    if($cuentas_id == $cuenta_efectivo){
-                        $this->registrarEgresoCierreCaja(
-                            $apertura_id,
-                            $cuentas_id,
-                            $total,
-                            $fecha,
-                            $fecha_registro,
-                            $empresa_id,
-                            $colaboradores_id
-                        );
-                    }
                 }
             }
 

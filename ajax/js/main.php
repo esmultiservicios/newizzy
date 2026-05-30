@@ -2290,22 +2290,28 @@ function getNumeroCotizacion(cotizacion_id) {
 //INICIO ENVIAR FACTURA POR CORREO ELECTRONICO
 function mailBill(facturas_id) {
     swal({
-        title: "¿Estas seguro?",
-        text: "¿Desea enviar este numero de factura: # " + getNumeroFactura(facturas_id) + "?",
-        icon: "warning",
+        title: "Confirmar envío",
+        text: "¿Desea enviar por correo la factura N.º " + getNumeroFactura(facturas_id) + "?",
+        icon: "info",
         buttons: {
             cancel: {
                 text: "Cancelar",
-                visible: true
+                value: null,
+                visible: true,
+                className: "btn-light",
+                closeModal: true
             },
             confirm: {
-                text: "¡Sí, enviar la factura!",
+                text: "Sí, enviar factura",
+                value: true,
+                visible: true,
+                className: "btn-primary",
+                closeModal: true
             }
         },
-        timer: 3000,
-        dangerMode: true,
-        closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-        closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
+        dangerMode: false,
+        closeOnEsc: false,
+        closeOnClickOutside: false
     }).then((willConfirm) => {
         if (willConfirm === true) {
             sendMail(facturas_id);

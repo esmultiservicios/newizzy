@@ -86,22 +86,6 @@
                 <div class="table-responsive">
                     <table id="dataTableContrato" class="table table-header-gradient table-striped table-condensed table-hover"
                         style="width:100%">
-                        <thead>
-                            <tr>
-                                <th>Código</th>
-                                <th>Tipo Empleado</th>
-                                <th>Empleado</th>
-                                <th>Tipo Contrato</th>
-                                <th>Pago Planificado</th>
-                                <th>Salario</th>
-                                <th>Fecha Inicio</th>
-                                <th>Fecha Fin</th>                                
-                                <th>Notas</th>
-                                <th>Estado</th>
-                                <th>Editar</th>
-                                <th>Eliminar</th>
-                            </tr>
-                        </thead>
                     </table>
                 </div>
             </div>

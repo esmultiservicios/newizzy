@@ -20,89 +20,144 @@ $(document).ready(function() {
 	});    
 });
 
+/* =========================================================
+   HEADER DINÁMICO - ALMACÉN
+   ========================================================= */
+   function construirHeaderDataTableConfAlmacen() {
+    var $tabla = $("#dataTableConfAlmacen");
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Empresa</th>' +
+                '<th>Almacén</th>' +
+                '<th>Facturar en Cero</th>' +
+                '<th>Ubicación</th>' +
+                '<th>Estado</th>' +
+            '</tr>' +
+        '</thead>'
+    );
+}
+
 //INICIO ALMACEN
 var listar_almacen = function() {
     var estado = $('#form_main_almacen #estado_almacen').val();
+
+    if ($.fn.DataTable.isDataTable("#dataTableConfAlmacen")) {
+        $("#dataTableConfAlmacen").DataTable().clear().destroy();
+    }
+
+    construirHeaderDataTableConfAlmacen();
 
     var table_almacen = $("#dataTableConfAlmacen").DataTable({
         "destroy": true,
         "ajax": {
             "method": "POST",
             "url": "<?php echo SERVERURL; ?>core/llenarDataTableAlmacen.php",
-			"data": {
+            "data": {
                 "estado": estado
-            }            
+            }
         },
-        "columns": [{
-                "data": "empresa"
-            },
+        "columns": [
             {
-                "data": "almacen"
+                "data": null,
+                "orderable": false,
+                "searchable": false,
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar">' +
+                                    '<span class="accion-icon accion-icon-editar">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Editar</span>' +
+                                '</button>' +
+                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar ocultar">' +
+                                    '<span class="accion-icon accion-icon-eliminar">' +
+                                        '<i class="fas fa-trash-alt"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Eliminar</span>' +
+                                '</button>' +
+                            '</div>' +
+                        '</div>';
+                }
             },
-            {
-                "data": "facturarCero"
-            },
-            {
-                "data": "ubicacion"
-            },
+            {"data": "empresa"},
+            {"data": "almacen"},
+            {"data": "facturarCero"},
+            {"data": "ubicacion"},
             {
                 "data": "estado",
                 "render": function(data, type, row) {
                     if (type === 'display') {
                         var estadoText = data == 1 ? 'Activo' : 'Inactivo';
-                        var icon = data == 1 ? 
-                            '<i class="fas fa-check-circle mr-1"></i>' : 
+                        var icon = data == 1 ?
+                            '<i class="fas fa-check-circle mr-1"></i>' :
                             '<i class="fas fa-times-circle mr-1"></i>';
-                        var badgeClass = data == 1 ? 
-                            'badge badge-pill badge-success' : 
+                        var badgeClass = data == 1 ?
+                            'badge badge-pill badge-success' :
                             'badge badge-pill badge-danger';
-                        
-                        return '<span class="' + badgeClass + 
+
+                        return '<span class="' + badgeClass +
                             '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
                             icon + estadoText + '</span>';
                     }
+
                     return data;
                 }
-            },            
-            {
-                "defaultContent": "<button class='table_editar btn ocultar'><span class='fas fa-edit'></span>Editar</button>"
-            },
-            {
-                "defaultContent": "<button class='table_eliminar btn ocultar'><span class='fa fa-trash'></span>Eliminar</button>"
             }
         ],
         "lengthMenu": lengthMenu,
         "stateSave": true,
         "bDestroy": true,
-        "language": idioma_español, //esta se encuenta en el archivo main.js
+        "language": idioma_español,
         "dom": dom,
-        "columnDefs": [{
-                width: "30%",
-                targets: 0
+        "columnDefs": [
+            {
+                width: "10%",
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
             },
             {
-                width: "30%",
+                width: "25%",
                 targets: 1
             },
             {
-                width: "20%",
+                width: "25%",
                 targets: 2
             },
             {
-                width: "30%",
-                targets: 3
+                width: "15%",
+                targets: 3,
+                className: "text-center text-nowrap"
             },
             {
-                width: "5%",
+                width: "20%",
                 targets: 4
             },
             {
-                width: "5%",
-                targets: 5
+                width: "10%",
+                targets: 5,
+                className: "text-center text-nowrap align-middle"
             }
-
         ],
-        "buttons": [{
+        "buttons": [
+            {
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                 titleAttr: 'Actualizar Almacén',
                 className: 'table_actualizar btn btn-secondary ocultar',
@@ -126,8 +181,8 @@ var listar_almacen = function() {
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-success ocultar',
                 exportOptions: {
-                    columns: [0, 1, 2, 3]
-                },
+                    columns: [1, 2, 3, 4]
+                }
             },
             {
                 extend: 'pdf',
@@ -137,24 +192,29 @@ var listar_almacen = function() {
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-danger ocultar',
                 exportOptions: {
-                    columns: [0, 1, 2, 3]
+                    columns: [1, 2, 3, 4]
                 },
-				customize: function(doc) {
-					if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
-						doc.content.splice(0, 0, {
-							image: imagen,  
-							width: 100,
-							height: 45,
-							margin: [0, 0, 0, 12]
-						});
-					}
-				}
+                customize: function(doc) {
+                    if (imagen) {
+                        doc.content.splice(0, 0, {
+                            image: imagen,
+                            width: 100,
+                            height: 45,
+                            margin: [0, 0, 0, 12]
+                        });
+                    }
+                }
             }
         ],
         "drawCallback": function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
         }
     });
+
     table_almacen.search('').draw();
     $('#buscar').focus();
 

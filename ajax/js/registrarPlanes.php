@@ -85,8 +85,43 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
+    /* =========================================================
+    HEADER DINÁMICO - PLANES
+   ========================================================= */
+    function construirHeaderDataTablePlanes() {
+        var $tabla = $("#dataTablePlanes");
+
+        $tabla.empty();
+
+        $tabla.append(
+            '<thead>' +
+                '<tr>' +
+                    '<th>Acciones</th>' +
+                    '<th>Código</th>' +
+                    '<th>Plan</th>' +
+                    '<th>Configuraciones</th>' +
+                    '<th>Estado</th>' +
+                    '<th>Menús</th>' +
+                    '<th>Submenús</th>' +
+                    '<th>Submenús 2</th>' +
+                '</tr>' +
+            '</thead>'
+        );
+    }
+
+    /* =========================================================
+    DATATABLE - PLANES
+    ========================================================= */
+
+    if ($.fn.DataTable.isDataTable("#dataTablePlanes")) {
+        $("#dataTablePlanes").DataTable().clear().destroy();
+    }
+
+    construirHeaderDataTablePlanes();
+
     // 3. DataTable y funciones AJAX
     const dataTablePlanes = $('#dataTablePlanes').DataTable({
+        destroy: true,
         ajax: {
             url: "<?php echo SERVERURL;?>core/llenarDataTablePlanes.php",
             type: "POST",
@@ -97,43 +132,109 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         },
         columns: [
-            { 
-                data: "planes_id" 
-            },            
-            { 
-                data: "nombre" 
+            {
+                data: null,
+                orderable: false,
+                searchable: false,
+                className: "text-center align-middle",
+                render: function(data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+                                '<button type="button" class="dropdown-item accion-item btn-asignar-menu" data-plan-id="' + row.planes_id + '" data-plan-nombre="' + row.nombre + '">' +
+                                    '<span class="accion-icon accion-icon-primary">' +
+                                        '<i class="fas fa-link"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Asignar Menú</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item btn-asignar-submenu" data-plan-id="' + row.planes_id + '" data-plan-nombre="' + row.nombre + '">' +
+                                    '<span class="accion-icon accion-icon-primary">' +
+                                        '<i class="fas fa-link"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Asignar Submenú</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item btn-asignar-submenu2" data-plan-id="' + row.planes_id + '" data-plan-nombre="' + row.nombre + '">' +
+                                    '<span class="accion-icon accion-icon-primary">' +
+                                        '<i class="fas fa-link"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Asignar Submenú 2</span>' +
+                                '</button>' +
+
+                                '<div class="dropdown-divider"></div>' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar btn-editar" data-id="' + row.planes_id + '">' +
+                                    '<span class="accion-icon accion-icon-editar">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Editar</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar ocultar btn-eliminar" data-id="' + row.planes_id + '" data-nombre="' + row.nombre + '">' +
+                                    '<span class="accion-icon accion-icon-eliminar">' +
+                                        '<i class="fas fa-trash-alt"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Eliminar</span>' +
+                                '</button>' +
+
+                            '</div>' +
+
+                        '</div>';
+                }
             },
-            { 
+            {
+                data: "planes_id"
+            },
+            {
+                data: "nombre"
+            },
+            {
                 data: "configuraciones",
                 render: function(data, type, row) {
                     if (!data || data === "Sin configuraciones") {
                         return data;
                     }
-                    
+
                     if (data.includes("<ul")) {
                         const configs = $(data).find("li");
+
                         if (configs.length > 0) {
                             const first = configs.first().text();
                             const extras = configs.length - 1;
-                            
+
                             return `
                                 <div>${first}</div>
                                 ${extras > 0 ? `<small class="text-muted">+${extras} más</small>` : ''}
-                                <button class="btn btn-sm btn-info btn-ver-configs mt-1" 
+                                <button class="btn btn-sm btn-info btn-ver-configs mt-1"
                                     data-configs='${JSON.stringify(row.configuraciones_json)}'>
                                     <i class="fas fa-eye"></i> Ver todas
                                 </button>
                             `;
                         }
                     }
+
                     return data;
                 }
             },
             {
                 data: "estado",
+                className: "text-center",
                 render: function(data) {
                     const iconSize = "1.25em";
-                    return data == 1 
+
+                    return data == 1
                         ? `<span class="status-badge status-active">
                             <i class="fas fa-check-circle" style="font-size: ${iconSize}"></i>ACTIVO</span>`
                         : `<span class="status-badge status-inactive">
@@ -142,75 +243,98 @@ document.addEventListener("DOMContentLoaded", function() {
             },
             {
                 data: null,
-                render: (data, type, row) => {
+                className: "text-center",
+                render: function(data, type, row) {
                     const count = row.menus_asignados || 0;
+
                     return `
-                        <button class="btn btn-sm btn-primary btn-asignar-menu" 
-                                data-plan-id="${row.planes_id}" 
-                                data-plan-nombre="${row.nombre}">
-                            <i class="fas fa-link"></i> Asignar
-                        </button>
-                        <div class="mt-1 small" id="contador-menus-${row.planes_id}">${count} asignados</div>
+                        <span class="badge badge-pill badge-primary" id="contador-menus-${row.planes_id}">
+                            ${count} asignados
+                        </span>
                     `;
                 }
             },
             {
                 data: null,
-                render: (data, type, row) => {
+                className: "text-center",
+                render: function(data, type, row) {
                     const count = row.submenus_asignados || 0;
+
                     return `
-                        <button class="btn btn-sm btn-primary btn-asignar-submenu" 
-                                data-plan-id="${row.planes_id}" 
-                                data-plan-nombre="${row.nombre}">
-                            <i class="fas fa-link"></i> Asignar
-                        </button>
-                        <div class="mt-1 small" id="contador-submenus-${row.planes_id}">${count} asignados</div>
+                        <span class="badge badge-pill badge-info" id="contador-submenus-${row.planes_id}">
+                            ${count} asignados
+                        </span>
                     `;
                 }
             },
             {
                 data: null,
-                render: (data, type, row) => {
+                className: "text-center",
+                render: function(data, type, row) {
                     const count = row.submenus2_asignados || 0;
+
                     return `
-                        <button class="btn btn-sm btn-primary btn-asignar-submenu2" 
-                                data-plan-id="${row.planes_id}" 
-                                data-plan-nombre="${row.nombre}">
-                            <i class="fas fa-link"></i> Asignar
-                        </button>
-                        <div class="mt-1 small" id="contador-submenus2-${row.planes_id}">${count} asignados</div>
-                    `;
-                }
-            },
-            {
-                data: null,
-                render: function(data) {
-                    return `
-                        <div class="btn-group" role="group">
-                            <button class="table_editar btn btn-dark ocultar btn-editar" data-id="${data.planes_id}">
-                                <i class="fas fa-edit"></i>Editar
-                            </button>
-                            <button class="table_eliminar btn btn-dark ocultar btn-eliminar" data-id="${data.planes_id}" data-nombre="${data.nombre}">
-                                <i class="fas fa-trash"></i>Eliminar
-                            </button>
-                        </div>
+                        <span class="badge badge-pill badge-secondary" id="contador-submenus2-${row.planes_id}">
+                            ${count} asignados
+                        </span>
                     `;
                 }
             }
         ],
-        "language": idioma_español,
+        language: idioma_español,
         responsive: true,
+        autoWidth: false,
         columnDefs: [
-            { 
-                responsivePriority: 1, targets: 0 
+            {
+                width: "10%",
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle",
+                responsivePriority: 1
             },
-            { 
-                responsivePriority: 2, targets: -1 
+            {
+                width: "8%",
+                targets: 1,
+                className: "text-center text-nowrap"
             },
-            { 
-                responsivePriority: 3, targets: 2 
+            {
+                width: "18%",
+                targets: 2
+            },
+            {
+                width: "28%",
+                targets: 3,
+                responsivePriority: 3
+            },
+            {
+                width: "10%",
+                targets: 4,
+                className: "text-center text-nowrap"
+            },
+            {
+                width: "9%",
+                targets: 5,
+                className: "text-center text-nowrap"
+            },
+            {
+                width: "9%",
+                targets: 6,
+                className: "text-center text-nowrap"
+            },
+            {
+                width: "9%",
+                targets: 7,
+                className: "text-center text-nowrap"
             }
-        ]
+        ],
+        drawCallback: function(settings) {
+            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
+        }
     });
 
     // Función mejorada para listar configuraciones con botón de eliminar

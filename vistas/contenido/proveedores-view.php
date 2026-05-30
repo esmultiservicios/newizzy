@@ -53,18 +53,6 @@
             <div class="card-body">
                 <div class="table-responsive">
                     <table id="dataTableProveedores" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-                        <thead>
-                            <tr>
-                                <th>Acciones</th>
-                                <th>Proveedores</th>
-                                <th>RTN</th>
-                                <th>Teléfono</th>
-                                <th>Correo</th>
-                                <th>Departamento</th>
-                                <th>Municipio</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
                     </table>
                 </div>
             </div>

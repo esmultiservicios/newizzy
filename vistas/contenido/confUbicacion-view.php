@@ -55,15 +55,6 @@
 			<div class="card-body"> 
 				<div class="table-responsive">
 					<table id="dataTableConfUbicacion" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-						<thead>
-							<tr>
-								<th>Ubicación</th>
-								<th>Empresa</th>
-								<th>Estado</th>	
-								<th>Editar</th>
-								<th>Eliminar</th>	
-							</tr>
-						</thead>
 					</table>  
 				</div>                   
 				</div>

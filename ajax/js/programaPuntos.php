@@ -20,35 +20,112 @@ $('#form_main_programa_puntos #estado_programa_puntos').on('change', function() 
     listar_programa_puntos();
 });
 
-var listar_programa_puntos = function(){
+/* =========================================================
+   HEADER DINÁMICO - PROGRAMA DE PUNTOS
+   ========================================================= */
+   function construirHeaderDataTableProgramaPuntos() {
+    var $tabla = $("#dataTableProgramaPuntos");
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Nombre</th>' +
+                '<th>Tipo Cálculo</th>' +
+                '<th>Monto</th>' +
+                '<th>Porcentaje</th>' +
+                '<th>Estado</th>' +
+                '<th>Fecha Creación</th>' +
+            '</tr>' +
+        '</thead>'
+    );
+}
+
+var listar_programa_puntos = function() {
     let estado = $('#form_main_programa_puntos #estado_programa_puntos').val();
+
+    if ($.fn.DataTable.isDataTable("#dataTableProgramaPuntos")) {
+        $("#dataTableProgramaPuntos").DataTable().clear().destroy();
+    }
+
+    construirHeaderDataTableProgramaPuntos();
 
     table_programa_puntos = $("#dataTableProgramaPuntos").DataTable({
         "destroy": true,
         "ajax": {
             "method": "POST",
             "url": "<?php echo SERVERURL;?>core/programaPuntos/llenarDataTableProgramaPuntos.php",
-            "data": { estado: estado },
+            "data": {
+                estado: estado
+            },
             "dataSrc": "data"
         },
         "columns": [
+            {
+                "data": null,
+                "orderable": false,
+                "searchable": false,
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar">' +
+                                    '<span class="accion-icon accion-icon-editar">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Editar</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar ocultar">' +
+                                    '<span class="accion-icon accion-icon-eliminar">' +
+                                        '<i class="fas fa-trash-alt"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Eliminar</span>' +
+                                '</button>' +
+
+                            '</div>' +
+                        '</div>';
+                }
+            },
             {
                 "data": "nombre",
                 "render": function(data, type, row) {
                     return `<a href="#" class="ver-historico" data-id="${row.id}" data-toggle="tooltip" data-placement="top" title="Ver histórico de puntos" style="color: #3498db !important; background-color: transparent !important; text-decoration: none !important;">${data}</a>`;
                 }
             },
-            {"data": "tipo_calculo"},
-            {"data": "monto", "className": "text-right"},
-            {"data": "porcentaje", "className": "text-right"},    
+            {
+                "data": "tipo_calculo"
+            },
+            {
+                "data": "monto",
+                "className": "text-right"
+            },
+            {
+                "data": "porcentaje",
+                "className": "text-right"
+            },
             {
                 "data": "activo",
                 "render": function(data, type, row) {
                     const iconSize = "1.25em";
+
                     if (data == 1) {
-                        return '<span class="status-badge status-active"><i class="fas fa-check-circle" style="font-size: '+iconSize+'"></i> ACTIVO</span>';
+                        return '<span class="status-badge status-active"><i class="fas fa-check-circle" style="font-size: ' + iconSize + '"></i> ACTIVO</span>';
                     } else {
-                        return '<span class="status-badge status-inactive"><i class="fas fa-times-circle" style="font-size: '+iconSize+'"></i> INACTIVO</span>';
+                        return '<span class="status-badge status-inactive"><i class="fas fa-times-circle" style="font-size: ' + iconSize + '"></i> INACTIVO</span>';
                     }
                 }
             },
@@ -58,14 +135,6 @@ var listar_programa_puntos = function(){
                     moment.locale('es');
                     return moment(data).format('dddd D [de] MMMM [de] YYYY');
                 }
-            },        
-            {
-                "defaultContent": "<button class='table_editar btn ocultar'><span class='fas fa-edit fa-lg'></span></button>",
-                "className": "text-center"
-            },
-            {
-                "defaultContent": "<button class='table_eliminar btn ocultar'><span class='fa fa-trash fa-lg'></span></button>",
-                "className": "text-center"
             }
         ],
         "lengthMenu": lengthMenu,
@@ -74,14 +143,40 @@ var listar_programa_puntos = function(){
         "language": idioma_español,
         "dom": dom,
         "columnDefs": [
-            { width: "30%", targets: 0 },
-            { width: "12%", targets: 1 },
-            { width: "10%", targets: 2 },
-            { width: "10%", targets: 3 },
-            { width: "12%", targets: 4 },
-            { width: "16%", targets: 5 },
-            { width: "5%", targets: 6 },
-            { width: "5%", targets: 7 }
+            {
+                width: "10%",
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
+            },
+            {
+                width: "28%",
+                targets: 1
+            },
+            {
+                width: "12%",
+                targets: 2
+            },
+            {
+                width: "10%",
+                targets: 3,
+                className: "text-right text-nowrap"
+            },
+            {
+                width: "10%",
+                targets: 4,
+                className: "text-right text-nowrap"
+            },
+            {
+                width: "12%",
+                targets: 5,
+                className: "text-center text-nowrap"
+            },
+            {
+                width: "18%",
+                targets: 6
+            }
         ],
         "buttons": [
             {
@@ -107,7 +202,9 @@ var listar_programa_puntos = function(){
                 title: 'Reporte de Programa de Puntos',
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-success ocultar',
-                exportOptions: { columns: [0,1,2,3,4,5] }                  
+                exportOptions: {
+                    columns: [1, 2, 3, 4, 5, 6]
+                }
             },
             {
                 extend: 'pdf',
@@ -116,11 +213,13 @@ var listar_programa_puntos = function(){
                 title: 'Reporte de Programa de Puntos',
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-danger ocultar',
-                exportOptions: { columns: [0,1,2,3,4,5] },
+                exportOptions: {
+                    columns: [1, 2, 3, 4, 5, 6]
+                },
                 customize: function(doc) {
                     if (imagen) {
                         doc.content.splice(0, 0, {
-                            image: imagen,  
+                            image: imagen,
                             width: 100,
                             height: 45,
                             margin: [0, 0, 0, 12]
@@ -131,10 +230,16 @@ var listar_programa_puntos = function(){
         ],
         "drawCallback": function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
+
+            $('[data-toggle="tooltip"]').tooltip();
         }
     });
 
-    $('#dataTableProgramaPuntos').on('draw.dt', function() {
+    $('#dataTableProgramaPuntos').off('draw.dt').on('draw.dt', function() {
         $('[data-toggle="tooltip"]').tooltip();
     });
 

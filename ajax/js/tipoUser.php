@@ -18,115 +18,201 @@ $(document).ready(function() {
 	});
 });
 
+/* =========================================================
+   HEADER DINÁMICO - TIPO USUARIO
+   ========================================================= */
+   function construirHeaderDataTableTipoUser() {
+    var $tabla = $("#dataTableTipoUser");
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Tipo Usuario</th>' +
+                '<th>Estado</th>' +
+            '</tr>' +
+        '</thead>'
+    );
+}
+
 //INICIO ACCIONES FROMULARIO TIPO USUARIO
-var listar_tipo_usuario = function(){
-	var estado = $('#form_main_permisos #estado_medidas').val();
+var listar_tipo_usuario = function() {
+    var estado = $('#form_main_permisos #estado_medidas').val();
 
-	var table_tipo_usuario  = $("#dataTableTipoUser").DataTable({
-		"destroy":true,
-		"ajax":{
-			"method":"POST",
-			"url":"<?php echo SERVERURL;?>core/llenarDataTableTipoUsuario.php",
-			"data": {
+    if ($.fn.DataTable.isDataTable("#dataTableTipoUser")) {
+        $("#dataTableTipoUser").DataTable().clear().destroy();
+    }
+
+    construirHeaderDataTableTipoUser();
+
+    var table_tipo_usuario = $("#dataTableTipoUser").DataTable({
+        "destroy": true,
+        "ajax": {
+            "method": "POST",
+            "url": "<?php echo SERVERURL;?>core/llenarDataTableTipoUsuario.php",
+            "data": {
                 "estado": estado
-            }			
-		},
-		"columns":[
-			{"data":"nombre"},
-			{
-				"data": "estado",
-				"render": function(data, type, row) {
-					if (type === 'display') {
-						var estadoText = data == 1 ? 'Activo' : 'Inactivo';
-						var icon = data == 1 ? 
-							'<i class="fas fa-check-circle mr-1"></i>' : 
-							'<i class="fas fa-times-circle mr-1"></i>';
-						var badgeClass = data == 1 ? 
-							'badge badge-pill badge-success' : 
-							'badge badge-pill badge-danger';
-						
-						return '<span class="' + badgeClass + 
-							   '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
-							   icon + estadoText + '</span>';
-					}
-					return data;
-				}
-			},			
-			{"defaultContent":"<button class='table_permisos btn btn-dark'><span class='fas fa-users-cog fa-lg'></span>Asignar</button>"},
-			{"defaultContent":"<button class='table_editar1 table_editar btn btn-dark'><span class='fas fa-edit fa-lg'></span>Editar</button>"},
-			{"defaultContent":"<button class='table_eliminar1 table_eliminar btn btn-dark'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"}
-		],
-        "lengthMenu": lengthMenu,
-		"stateSave": true,
-		"bDestroy": true,
-		"language": idioma_español,
-		"dom": dom,
-		"columnDefs": [
-		  { width: "85%", targets: 0 },
-		  { width: "5%", targets: 1 },
-		  { width: "5%", targets: 2 },
-		  { width: "5%", targets: 3 }
-		],
-		"buttons":[
-			{
-				text:      '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-				titleAttr: 'Actualizar Tipos de Usuario',
-				className: 'btn btn-secondary',
-				action: 	function(){
-					listar_tipo_usuario();
-				}
-			},
-			{
-				text:      '<i class="fas fas fa-plus fa-lg"></i> Ingresar',
-				titleAttr: 'Agregar Tipos de Usuario',
-				className: 'btn btn-primary',
-				action: 	function(){
-					modal_tipo_usuarios();
-				}
-			},
-			{
-				extend:    'excelHtml5',
-				text:      '<i class="fas fa-file-excel fa-lg"></i> Excel',
-				titleAttr: 'Excel',
-				title: 'Reporte Tipos de Usuario',
-				messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-				className: 'btn btn-success',
-				exportOptions: {
-						columns: [0]
-				},				
-			},
-			{
-				extend:    'pdf',
-				text:      '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-				titleAttr: 'PDF',
-				title: 'Reporte Tipos de Usuario',
-				messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-				className: 'btn btn-danger',
-				exportOptions: {
-						columns: [0]
-				},				
-				customize: function(doc) {
-					if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
-						doc.content.splice(0, 0, {
-							image: imagen,  
-							width: 100,
-							height: 45,
-							margin: [0, 0, 0, 12]
-						});
-					}
-				}
-			}
-		],
-		"drawCallback": function( settings ) {
-        	getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-    	}
-	});
-	table_tipo_usuario.search('').draw();
-	$('#buscar').focus();
+            }
+        },
+        "columns": [
+            {
+                "data": null,
+                "orderable": false,
+                "searchable": false,
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
 
-	permisos_tipo_usuario_dataTable("#dataTableTipoUser tbody", table_tipo_usuario);
-	editar_tipo_usuario_dataTable("#dataTableTipoUser tbody", table_tipo_usuario);
-	eliminar_tipo_usuario_dataTable("#dataTableTipoUser tbody", table_tipo_usuario);
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+                                '<button type="button" class="dropdown-item accion-item table_permisos">' +
+                                    '<span class="accion-icon accion-icon-primary">' +
+                                        '<i class="fas fa-users-cog"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Asignar</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar1 table_editar">' +
+                                    '<span class="accion-icon accion-icon-editar">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Editar</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar1 table_eliminar">' +
+                                    '<span class="accion-icon accion-icon-eliminar">' +
+                                        '<i class="fas fa-trash-alt"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Eliminar</span>' +
+                                '</button>' +
+
+                            '</div>' +
+                        '</div>';
+                }
+            },
+            {
+                "data": "nombre"
+            },
+            {
+                "data": "estado",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        var estadoText = data == 1 ? 'Activo' : 'Inactivo';
+                        var icon = data == 1 ?
+                            '<i class="fas fa-check-circle mr-1"></i>' :
+                            '<i class="fas fa-times-circle mr-1"></i>';
+                        var badgeClass = data == 1 ?
+                            'badge badge-pill badge-success' :
+                            'badge badge-pill badge-danger';
+
+                        return '<span class="' + badgeClass +
+                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                            icon + estadoText + '</span>';
+                    }
+
+                    return data;
+                }
+            }
+        ],
+        "lengthMenu": lengthMenu,
+        "stateSave": true,
+        "bDestroy": true,
+        "language": idioma_español,
+        "dom": dom,
+        "columnDefs": [
+            {
+                width: "12%",
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
+            },
+            {
+                width: "73%",
+                targets: 1
+            },
+            {
+                width: "15%",
+                targets: 2,
+                className: "text-center text-nowrap align-middle"
+            }
+        ],
+        "buttons": [
+            {
+                text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
+                titleAttr: 'Actualizar Tipos de Usuario',
+                className: 'btn btn-secondary',
+                action: function() {
+                    listar_tipo_usuario();
+                }
+            },
+            {
+                text: '<i class="fas fas fa-plus fa-lg"></i> Ingresar',
+                titleAttr: 'Agregar Tipos de Usuario',
+                className: 'btn btn-primary',
+                action: function() {
+                    modal_tipo_usuarios();
+                }
+            },
+            {
+                extend: 'excelHtml5',
+                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
+                titleAttr: 'Excel',
+                title: 'Reporte Tipos de Usuario',
+                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
+                className: 'btn btn-success',
+                exportOptions: {
+                    columns: [1]
+                }
+            },
+            {
+                extend: 'pdf',
+                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
+                titleAttr: 'PDF',
+                title: 'Reporte Tipos de Usuario',
+                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
+                className: 'btn btn-danger',
+                exportOptions: {
+                    columns: [1]
+                },
+                customize: function(doc) {
+                    if (imagen) {
+                        doc.content.splice(0, 0, {
+                            image: imagen,
+                            width: 100,
+                            height: 45,
+                            margin: [0, 0, 0, 12]
+                        });
+                    }
+                }
+            }
+        ],
+        "drawCallback": function(settings) {
+            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
+        }
+    });
+
+    table_tipo_usuario.search('').draw();
+    $('#buscar').focus();
+
+    permisos_tipo_usuario_dataTable("#dataTableTipoUser tbody", table_tipo_usuario);
+    editar_tipo_usuario_dataTable("#dataTableTipoUser tbody", table_tipo_usuario);
+    eliminar_tipo_usuario_dataTable("#dataTableTipoUser tbody", table_tipo_usuario);
 }
 
 var permisos_tipo_usuario_dataTable = function(tbody, table){

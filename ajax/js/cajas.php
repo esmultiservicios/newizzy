@@ -87,10 +87,54 @@
         return row && row.caja && String(row.caja).toLowerCase() === 'activa';
     }
 
-    var listar_registro_cajas = function () {
+/* =========================================================
+   HEADER Y FOOTER DINÁMICO - REGISTRO DE CAJAS
+   ========================================================= */
+   function construirHeaderFooterDataTableCajas() {
+    var $tabla = $("#dataTableCajas");
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Fecha</th>' +
+                '<th>Usuario</th>' +
+                '<th>Factura Inicial</th>' +
+                '<th>Factura Final</th>' +
+                '<th>Monto Apertura</th>' +
+                '<th>Venta del Día</th>' +
+                '<th>Retiro Caja</th>' +
+                '<th>Neto Caja</th>' +
+            '</tr>' +
+        '</thead>' +
+        '<tfoot>' +
+            '<tr>' +
+                '<th colspan="5" class="text-right">Totales:</th>' +
+                '<th id="total_monto_apertura">L. 0.00</th>' +
+                '<th id="total_venta_dia">L. 0.00</th>' +
+                '<th id="total_retiro_caja">L. 0.00</th>' +
+                '<th id="total_neto">L. 0.00</th>' +
+            '</tr>' +
+        '</tfoot>'
+    );
+}
+
+/* =========================================================
+   LISTADO REGISTRO DE CAJAS
+   ========================================================= */
+
+var listar_registro_cajas = function () {
     var fechai = $("#formMainCajas #fecha_cajas").val();
     var fechaf = $("#formMainCajas #fecha_cajas_f").val();
     var estado = $("#formMainCajas #estado_cajas").val();
+
+    if ($.fn.DataTable.isDataTable("#dataTableCajas")) {
+        $("#dataTableCajas").DataTable().clear().destroy();
+    }
+
+    construirHeaderFooterDataTableCajas();
 
     var table_registro_cajas = $("#dataTableCajas").DataTable({
         destroy: true,
@@ -198,10 +242,18 @@
                         '</div>';
                 }
             },
-            { data: "fecha" },
-            { data: "usuario" },
-            { data: "factura_inicial" },
-            { data: "factura_final" },
+            {
+                data: "fecha"
+            },
+            {
+                data: "usuario"
+            },
+            {
+                data: "factura_inicial"
+            },
+            {
+                data: "factura_final"
+            },
             {
                 data: "monto_apertura",
                 render: function (data, type) {
@@ -318,7 +370,10 @@
 
         drawCallback: function () {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-            cerrarDropdownAcciones();
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
 
             $('[title]').tooltip({
                 container: "body",

@@ -53,17 +53,6 @@
 		<div class="card-body"> 
 			<div class="table-responsive">
 				<table id="dataTablePrivilegio" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-					<thead>
-						<tr>
-							<th>Privilegio</th>
-							<th>Estado</th>
-							<th>Menu</th>
-							<th>Submenu N1</th>
-							<th>Submenu N2</th>
-							<th>Editar</th>	
-							<th>Eliminar</th>
-						</tr>
-					</thead>
 				</table>  
 			</div>                   
 		</div>

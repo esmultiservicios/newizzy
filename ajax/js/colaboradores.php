@@ -18,9 +18,39 @@ $(document).ready(function() {
 			listar_colaboradores();
 	});    
 });
+
+/* =========================================================
+   HEADER DINÁMICO - COLABORADORES
+   ========================================================= */
+   function construirHeaderDataTableColaboradores() {
+    var $tabla = $("#dataTableColaboradores");
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Empresa</th>' +
+                '<th>Colaborador</th>' +
+                '<th>Identidad</th>' +
+                '<th>Teléfono</th>' +
+                '<th>Puesto</th>' +
+                '<th>Estado</th>' +
+            '</tr>' +
+        '</thead>'
+    );
+}
+
 //INICIO ACCIONES FROMULARIO COLABORADORES
 var listar_colaboradores = function() {
     var estado = $('#form_main_colaboradores #estado_colaboradores').val();
+
+    if ($.fn.DataTable.isDataTable("#dataTableColaboradores")) {
+        $("#dataTableColaboradores").DataTable().clear().destroy();
+    }
+
+    construirHeaderDataTableColaboradores();
 
     var table_colaboradores = $("#dataTableColaboradores").DataTable({
         "destroy": true,
@@ -29,9 +59,49 @@ var listar_colaboradores = function() {
             "url": "<?php echo SERVERURL;?>core/llenarDataTableColaboradores.php",
             "data": {
                 "estado": estado
-            }	
+            }
         },
-        "columns": [{
+        "columns": [
+            {
+                "data": null,
+                "orderable": false,
+                "searchable": false,
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar">' +
+                                    '<span class="accion-icon accion-icon-editar">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Editar</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar ocultar">' +
+                                    '<span class="accion-icon accion-icon-eliminar">' +
+                                        '<i class="fas fa-trash-alt"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Eliminar</span>' +
+                                '</button>' +
+
+                            '</div>' +
+
+                        '</div>';
+                }
+            },
+            {
                 "data": "empresa"
             },
             {
@@ -51,25 +121,20 @@ var listar_colaboradores = function() {
                 "render": function(data, type, row) {
                     if (type === 'display') {
                         var estadoText = data == 1 ? 'Activo' : 'Inactivo';
-                        var icon = data == 1 ? 
-                            '<i class="fas fa-check-circle mr-1"></i>' : 
+                        var icon = data == 1 ?
+                            '<i class="fas fa-check-circle mr-1"></i>' :
                             '<i class="fas fa-times-circle mr-1"></i>';
-                        var badgeClass = data == 1 ? 
-                            'badge badge-pill badge-success' : 
+                        var badgeClass = data == 1 ?
+                            'badge badge-pill badge-success' :
                             'badge badge-pill badge-danger';
-                        
-                        return '<span class="' + badgeClass + 
+
+                        return '<span class="' + badgeClass +
                             '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
                             icon + estadoText + '</span>';
                     }
+
                     return data;
                 }
-            },            
-            {
-                "defaultContent": "<button class='table_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
-            },
-            {
-                "defaultContent": "<button class='table_eliminar btn ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"
             }
         ],
         "lengthMenu": lengthMenu,
@@ -77,40 +142,42 @@ var listar_colaboradores = function() {
         "bDestroy": true,
         "language": idioma_español,
         "dom": dom,
-        "columnDefs": [{
-                width: "22.5%",
-                targets: 0
+        "columnDefs": [
+            {
+                width: "12%",
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
             },
             {
-                width: "22.5%",
+                width: "20%",
                 targets: 1
             },
             {
-                width: "12.5%",
+                width: "20%",
                 targets: 2
             },
             {
-                width: "12.5%",
+                width: "12%",
                 targets: 3
             },
             {
-                width: "12.5%",
+                width: "12%",
                 targets: 4
             },
             {
-                width: "12.5%",
+                width: "12%",
                 targets: 5
             },
             {
-                width: "2.5%",
-                targets: 6
-            },
-            {
-                width: "2.5%",
-                targets: 7
+                width: "12%",
+                targets: 6,
+                className: "text-center text-nowrap align-middle"
             }
         ],
-        "buttons": [{
+        "buttons": [
+            {
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                 titleAttr: 'Actualizar Colaboradores',
                 className: 'table_actualizar btn btn-secondary ocultar',
@@ -134,7 +201,7 @@ var listar_colaboradores = function() {
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-success ocultar',
                 exportOptions: {
-                    columns: [0, 1, 2, 3, 4]
+                    columns: [1, 2, 3, 4, 5]
                 }
             },
             {
@@ -145,24 +212,29 @@ var listar_colaboradores = function() {
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-danger ocultar',
                 exportOptions: {
-                    columns: [0, 1, 2, 3, 4]
+                    columns: [1, 2, 3, 4, 5]
                 },
-				customize: function(doc) {
-					if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
-						doc.content.splice(0, 0, {
-							image: imagen,  
-							width: 100,
-							height: 45,
-							margin: [0, 0, 0, 12]
-						});
-					}
-				}
+                customize: function(doc) {
+                    if (imagen) {
+                        doc.content.splice(0, 0, {
+                            image: imagen,
+                            width: 100,
+                            height: 45,
+                            margin: [0, 0, 0, 12]
+                        });
+                    }
+                }
             }
         ],
         "drawCallback": function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
         }
     });
+
     table_colaboradores.search('').draw();
     $('#buscar').focus();
 

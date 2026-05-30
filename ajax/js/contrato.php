@@ -24,12 +24,45 @@ $(() => {
     });	    
 });
 
+/* =========================================================
+   HEADER DINÁMICO - CONTRATOS
+   ========================================================= */
+   function construirHeaderDataTableContrato() {
+    var $tabla = $("#dataTableContrato");
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Código</th>' +
+                '<th>Tipo Empleado</th>' +
+                '<th>Empleado</th>' +
+                '<th>Tipo Contrato</th>' +
+                '<th>Pago Planificado</th>' +
+                '<th>Salario</th>' +
+                '<th>Fecha Inicio</th>' +
+                '<th>Fecha Fin</th>' +
+                '<th>Notas</th>' +
+                '<th>Estado</th>' +
+            '</tr>' +
+        '</thead>'
+    );
+}
+
 //INICIO ACCIONES FROMULARIO CONTRATOS
 var listar_contratos = function() {
     var estado = $("#form_main_contrato #estado").val() === "" ? 1 : $("#form_main_contrato #estado").val();
     var tipo_contrato = $("#form_main_contrato #tipo_contrato").val();
     var pago_planificado = $("#form_main_contrato #pago_planificado").val();
     var tipo_empleado = $("#form_main_contrato #tipo_empleado").val();
+
+    if ($.fn.DataTable.isDataTable("#dataTableContrato")) {
+        $("#dataTableContrato").DataTable().clear().destroy();
+    }
+
+    construirHeaderDataTableContrato();
 
     var table_contratos = $("#dataTableContrato").DataTable({
         "destroy": true,
@@ -43,7 +76,47 @@ var listar_contratos = function() {
                 "tipo_empleado": tipo_empleado
             }
         },
-        "columns": [{
+        "columns": [
+            {
+                "data": null,
+                "orderable": false,
+                "searchable": false,
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar">' +
+                                    '<span class="accion-icon accion-icon-editar">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Editar</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar ocultar">' +
+                                    '<span class="accion-icon accion-icon-eliminar">' +
+                                        '<i class="fas fa-trash-alt"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Eliminar</span>' +
+                                '</button>' +
+
+                            '</div>' +
+
+                        '</div>';
+                }
+            },
+            {
                 "data": "contrato_id"
             },
             {
@@ -67,6 +140,7 @@ var listar_contratos = function() {
 
                     if (type === 'display') {
                         let color = 'green';
+
                         if (data < 0) {
                             color = 'red';
                         }
@@ -75,7 +149,7 @@ var listar_contratos = function() {
                     }
 
                     return number;
-                },
+                }
             },
             {
                 "data": "fecha_inicio"
@@ -91,25 +165,20 @@ var listar_contratos = function() {
                 "render": function(data, type, row) {
                     if (type === 'display') {
                         var estadoText = data == 1 ? 'Activo' : 'Inactivo';
-                        var icon = data == 1 ? 
-                            '<i class="fas fa-check-circle mr-1"></i>' : 
+                        var icon = data == 1 ?
+                            '<i class="fas fa-check-circle mr-1"></i>' :
                             '<i class="fas fa-times-circle mr-1"></i>';
-                        var badgeClass = data == 1 ? 
-                            'badge badge-pill badge-success' : 
+                        var badgeClass = data == 1 ?
+                            'badge badge-pill badge-success' :
                             'badge badge-pill badge-danger';
-                        
-                        return '<span class="' + badgeClass + 
+
+                        return '<span class="' + badgeClass +
                             '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
                             icon + estadoText + '</span>';
                     }
+
                     return data;
                 }
-            },            
-            {
-                "defaultContent": "<button class='table_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
-            },
-            {
-                "defaultContent": "<button class='table_eliminar btn ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"
             }
         ],
         "lengthMenu": lengthMenu,
@@ -117,52 +186,58 @@ var listar_contratos = function() {
         "bDestroy": true,
         "language": idioma_español,
         "dom": dom,
-        "columnDefs": [{
-                width: "2.09%",
-                targets: 0
+        "columnDefs": [
+            {
+                width: "10%",
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
             },
             {
-                width: "9.09%",
+                width: "6%",
                 targets: 1
             },
             {
-                width: "19.09%",
+                width: "9%",
                 targets: 2
             },
             {
-                width: "9.09%",
+                width: "15%",
                 targets: 3
             },
             {
-                width: "9.09%",
+                width: "9%",
                 targets: 4
             },
             {
-                width: "9.09%",
+                width: "9%",
                 targets: 5
             },
             {
-                width: "9.09%",
+                width: "9%",
                 targets: 6
             },
             {
-                width: "9.09%",
+                width: "9%",
                 targets: 7
             },
             {
-                width: "20.09%",
+                width: "9%",
                 targets: 8
             },
             {
-                width: "9.09%",
+                width: "10%",
                 targets: 9
             },
             {
-                width: "9.09%",
-                targets: 10
+                width: "5%",
+                targets: 10,
+                className: "text-center text-nowrap align-middle"
             }
         ],
-        "buttons": [{
+        "buttons": [
+            {
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                 titleAttr: 'Actualizar Contrato',
                 className: 'table_actualizar btn btn-secondary ocultar',
@@ -187,7 +262,7 @@ var listar_contratos = function() {
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-success ocultar',
                 exportOptions: {
-                    columns: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+                    columns: [1, 2, 3, 4, 5, 6, 7, 8, 9]
                 }
             },
             {
@@ -200,12 +275,12 @@ var listar_contratos = function() {
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-danger ocultar',
                 exportOptions: {
-                    columns: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+                    columns: [1, 2, 3, 4, 5, 6, 7, 8, 9]
                 },
                 customize: function(doc) {
-                    if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
+                    if (imagen) {
                         doc.content.splice(0, 0, {
-                            image: imagen,  
+                            image: imagen,
                             width: 100,
                             height: 45,
                             margin: [0, 0, 0, 12]
@@ -216,8 +291,13 @@ var listar_contratos = function() {
         ],
         "drawCallback": function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
         }
     });
+
     table_contratos.search('').draw();
     $('#buscar').focus();
 

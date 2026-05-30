@@ -25,16 +25,6 @@
 			<div class="card-body"> 
 				<div class="table-responsive">
 					<table id="dataTableConfCorreos" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-						<thead>
-							<tr>
-							    <th>Tipo Correo</th>
-							    <th>Servidor</th>
-								<th>Correo</th>	
-								<th>Puerto</th>
-								<th>SMTPSecure</th>														
-								<th>Editar</th>
-							</tr>
-						</thead>
 					</table>  
 				</div>                   
 				</div>

@@ -5,15 +5,75 @@ $(document).ready(function() {
     getTipoCorreo();   
 });
 
+/* =========================================================
+   HEADER DINÁMICO - CORREOS
+   ========================================================= */
+   function construirHeaderDataTableConfCorreos() {
+    var $tabla = $("#dataTableConfCorreos");
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Tipo Correo</th>' +
+                '<th>Servidor</th>' +
+                '<th>Correo</th>' +
+                '<th>Puerto</th>' +
+                '<th>SMTP Secure</th>' +
+            '</tr>' +
+        '</thead>'
+    );
+}
+
 //INICIO CORREO
 var listar_correos_configuracion = function() {
+
+    if ($.fn.DataTable.isDataTable("#dataTableConfCorreos")) {
+        $("#dataTableConfCorreos").DataTable().clear().destroy();
+    }
+
+    construirHeaderDataTableConfCorreos();
+
     var table_correos_configuracion = $("#dataTableConfCorreos").DataTable({
         "destroy": true,
         "ajax": {
             "method": "POST",
-            "url": "<?php echo SERVERURL; ?>core/llenarDataTableConfCorreos.php",
+            "url": "<?php echo SERVERURL; ?>core/llenarDataTableConfCorreos.php"
         },
-        "columns": [{
+        "columns": [
+            {
+                "data": null,
+                "orderable": false,
+                "searchable": false,
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar">' +
+                                    '<span class="accion-icon accion-icon-editar">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Editar</span>' +
+                                '</button>' +
+
+                            '</div>' +
+                        '</div>';
+                }
+            },
+            {
                 "data": "tipo_correo"
             },
             {
@@ -27,42 +87,46 @@ var listar_correos_configuracion = function() {
             },
             {
                 "data": "smtp_secure"
-            },
-            {
-                "defaultContent": "<button class='table_editar btn ocultar'><span class='fas fa-edit'></span>Editar</button>"
             }
         ],
         "lengthMenu": lengthMenu,
         "stateSave": true,
         "bDestroy": true,
-        "language": idioma_español, //esta se encuenta en el archivo main.js
+        "language": idioma_español,
         "dom": dom,
-        "columnDefs": [{
-                width: "22.66%",
-                targets: 0
+        "columnDefs": [
+            {
+                width: "10%",
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
             },
             {
-                width: "23.66%",
+                width: "20%",
                 targets: 1
             },
             {
-                width: "23.66%",
+                width: "25%",
                 targets: 2
             },
             {
-                width: "6.66%",
+                width: "25%",
                 targets: 3
             },
             {
-                width: "6.66%",
-                targets: 4
+                width: "10%",
+                targets: 4,
+                className: "text-center text-nowrap"
             },
             {
-                width: "6.66%",
-                targets: 5
+                width: "10%",
+                targets: 5,
+                className: "text-center text-nowrap"
             }
         ],
-        "buttons": [{
+        "buttons": [
+            {
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                 titleAttr: 'Actualizar Correos',
                 className: 'table_actualizar btn btn-secondary ocultar',
@@ -86,8 +150,8 @@ var listar_correos_configuracion = function() {
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-success ocultar',
                 exportOptions: {
-                    columns: [0, 1, 2, 3, 4]
-                },
+                    columns: [1, 2, 3, 4, 5]
+                }
             },
             {
                 extend: 'pdf',
@@ -97,24 +161,29 @@ var listar_correos_configuracion = function() {
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-danger ocultar',
                 exportOptions: {
-                    columns: [0, 1, 2, 3, 4]
+                    columns: [1, 2, 3, 4, 5]
                 },
-				customize: function(doc) {
-					if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
-						doc.content.splice(0, 0, {
-							image: imagen,  
-							width: 100,
-							height: 45,
-							margin: [0, 0, 0, 12]
-						});
-					}
-				}
+                customize: function(doc) {
+                    if (imagen) {
+                        doc.content.splice(0, 0, {
+                            image: imagen,
+                            width: 100,
+                            height: 45,
+                            margin: [0, 0, 0, 12]
+                        });
+                    }
+                }
             }
         ],
         "drawCallback": function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
         }
     });
+
     table_correos_configuracion.search('').draw();
     $('#buscar').focus();
 

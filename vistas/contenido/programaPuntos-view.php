@@ -59,18 +59,6 @@
 			<div class="card-body"> 
 				<div class="table-responsive">
 					<table id="dataTableProgramaPuntos" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-						<thead>
-							<tr>
-								<th>Nombre</th>
-								<th>Tipo Calculo</th>
-								<th>Monto</th>
-								<th>Procentaje</th>
-								<th>Estado</th>
-								<th>Fecha Creación</th>
-								<th>Editar</th>	
-								<th>Eliminar</th>
-							</tr>
-						</thead>
 					</table>  
 				</div>                   
 				</div>

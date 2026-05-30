@@ -85,19 +85,6 @@
         <div class="card-body">
             <div class="table-responsive">
                 <table id="dataTablePlanes" class="table table-striped table-header-gradient table-condensed table-hover" style="width:100%">
-                    <thead>
-                        <tr>
-                            <th>planes_id</th>
-                            <th>Nombre</th>
-                            <th>Configuraciones</th>
-                            <th>Estado</th>
-                            <th>Menús</th>
-                            <th>Submenús N1</th>
-                            <th>Submenús N2</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
                 </table>
             </div>
         </div>

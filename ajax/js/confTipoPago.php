@@ -20,116 +20,205 @@ $(document).ready(function() {
 	}); 
 });
 
-//INICIO TIPO DE PAGO
-var listar_tipo_pago_contabilidad = function(){
-	var estado = $('#form_main_conf_tipoPagos #estado_conf_tipoPagos').val();
+/* =========================================================
+   HEADER DINÁMICO - TIPO DE PAGO
+   ========================================================= */
+   function construirHeaderDataTableConfTipoPago() {
+    var $tabla = $("#dataTableConfTipoPago");
 
-	var table_tipo_pago_contabilidad = $("#dataTableConfTipoPago").DataTable({
-		"destroy":true,
-		"ajax":{
-			"method":"POST",
-			"url":"<?php echo SERVERURL; ?>core/llenarDataTableConfTipoPago.php",
-			"data": {
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Nombre</th>' +
+                '<th>Código</th>' +
+                '<th>Cuenta</th>' +
+                '<th>Estado</th>' +
+            '</tr>' +
+        '</thead>'
+    );
+}
+
+//INICIO TIPO DE PAGO
+var listar_tipo_pago_contabilidad = function () {
+    var estado = $('#form_main_conf_tipoPagos #estado_conf_tipoPagos').val();
+
+    if ($.fn.DataTable.isDataTable("#dataTableConfTipoPago")) {
+        $("#dataTableConfTipoPago").DataTable().clear().destroy();
+    }
+
+    construirHeaderDataTableConfTipoPago();
+
+    var table_tipo_pago_contabilidad = $("#dataTableConfTipoPago").DataTable({
+        "destroy": true,
+        "ajax": {
+            "method": "POST",
+            "url": "<?php echo SERVERURL; ?>core/llenarDataTableConfTipoPago.php",
+            "data": {
                 "estado": estado
             }
-		},
-		"columns":[
-			{"data":"nombre"},
-			{"data":"codigo"},
-			{"data":"cuenta"},	
+        },
+        "columns": [
+            {
+                "data": null,
+                "orderable": false,
+                "searchable": false,
+                "className": "text-center align-middle",
+                "render": function (data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar">' +
+                                    '<span class="accion-icon accion-icon-editar">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Editar</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar ocultar">' +
+                                    '<span class="accion-icon accion-icon-eliminar">' +
+                                        '<i class="fas fa-trash-alt"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Eliminar</span>' +
+                                '</button>' +
+
+                            '</div>' +
+
+                        '</div>';
+                }
+            },
+            { "data": "nombre" },
+            { "data": "codigo" },
+            { "data": "cuenta" },
             {
                 "data": "estado",
-                "render": function(data, type, row) {
+                "render": function (data, type, row) {
                     if (type === 'display') {
                         var estadoText = data == 1 ? 'Activo' : 'Inactivo';
-                        var icon = data == 1 ? 
-                            '<i class="fas fa-check-circle mr-1"></i>' : 
+                        var icon = data == 1 ?
+                            '<i class="fas fa-check-circle mr-1"></i>' :
                             '<i class="fas fa-times-circle mr-1"></i>';
-                        var badgeClass = data == 1 ? 
-                            'badge badge-pill badge-success' : 
+                        var badgeClass = data == 1 ?
+                            'badge badge-pill badge-success' :
                             'badge badge-pill badge-danger';
-                        
-                        return '<span class="' + badgeClass + 
+
+                        return '<span class="' + badgeClass +
                             '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
                             icon + estadoText + '</span>';
                     }
+
                     return data;
                 }
-            },								
-			{"defaultContent":"<button class='table_editar btn ocultar'><span class='fas fa-edit'></span>Editar</button>"},
-			{"defaultContent":"<button class='table_eliminar btn ocultar'><span class='fa fa-trash'></span>Eliminar</button>"}
-		],
+            }
+        ],
         "lengthMenu": lengthMenu,
-		"stateSave": true,
-		"bDestroy": true,
-		"language": idioma_español,//esta se encuenta en el archivo main.js
-		"dom": dom,
-		"columnDefs": [
-		  { width: "30%", targets: 0 },
-		  { width: "30%", targets: 1 },
-		  { width: "30%", targets: 2 },
-		  { width: "5%", targets: 3 },
-		  { width: "5%", targets: 4 }			  
-		],		
-		"buttons":[
-			{
-				text:      '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-				titleAttr: 'Actualizar Tipo de Pago',
-				className: 'table_actualizar btn btn-secondary ocultar',
-				action: 	function(){
-					listar_tipo_pago_contabilidad();
-				}
-			},
-			{
-				text:      '<i class="fab fa-bitcoin fa-lg"></i> Ingresar',
-				titleAttr: 'Agregar Tipo de Pago',
-				className: 'table_crear btn btn-primary ocultar',
-				action: 	function(){
-					modalTipoPago();
-				}
-			},
-			{
-				extend:    'excelHtml5',
-				text:      '<i class="fas fa-file-excel fa-lg"></i> Excel',
-				titleAttr: 'Excel',
-				title: 'Reporte Tipo de Pago',
-				messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-				className: 'table_reportes btn btn-success ocultar',
-				exportOptions: {
-						columns: [0,1,2]
-				}				
-			},
-			{
-				extend:    'pdf',
-				text:      '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-				titleAttr: 'PDF',
-				title: 'Reporte Tipo de Pago',
-				messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-				className: 'table_reportes btn btn-danger ocultar',
-				exportOptions: {
-						columns: [0,1,2]
-				},					
-                customize: function(doc) {
-                    if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
+        "stateSave": true,
+        "bDestroy": true,
+        "language": idioma_español,
+        "dom": dom,
+        "columnDefs": [
+            {
+                width: "12%",
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
+            },
+            {
+                width: "25%",
+                targets: 1
+            },
+            {
+                width: "20%",
+                targets: 2
+            },
+            {
+                width: "28%",
+                targets: 3
+            },
+            {
+                width: "15%",
+                targets: 4,
+                className: "text-center text-nowrap align-middle"
+            }
+        ],
+        "buttons": [
+            {
+                text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
+                titleAttr: 'Actualizar Tipo de Pago',
+                className: 'table_actualizar btn btn-secondary ocultar',
+                action: function () {
+                    listar_tipo_pago_contabilidad();
+                }
+            },
+            {
+                text: '<i class="fab fa-bitcoin fa-lg"></i> Ingresar',
+                titleAttr: 'Agregar Tipo de Pago',
+                className: 'table_crear btn btn-primary ocultar',
+                action: function () {
+                    modalTipoPago();
+                }
+            },
+            {
+                extend: 'excelHtml5',
+                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
+                titleAttr: 'Excel',
+                title: 'Reporte Tipo de Pago',
+                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
+                className: 'table_reportes btn btn-success ocultar',
+                exportOptions: {
+                    columns: [1, 2, 3]
+                }
+            },
+            {
+                extend: 'pdf',
+                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
+                titleAttr: 'PDF',
+                title: 'Reporte Tipo de Pago',
+                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
+                className: 'table_reportes btn btn-danger ocultar',
+                exportOptions: {
+                    columns: [1, 2, 3]
+                },
+                customize: function (doc) {
+                    if (imagen) {
                         doc.content.splice(0, 0, {
-                            image: imagen,  
+                            image: imagen,
                             width: 100,
                             height: 45,
                             margin: [0, 0, 0, 12]
                         });
                     }
                 }
-			}
-		],
-		"drawCallback": function( settings ) {
-        	getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-    	}
-	});
-	table_tipo_pago_contabilidad.search('').draw();
-	$('#buscar').focus();
+            }
+        ],
+        "drawCallback": function (settings) {
+            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
 
-	edit_tipo_pago_contabilidad_dataTable("#dataTableConfTipoPago tbody", table_tipo_pago_contabilidad);
-	delete_tipo_pago_contabilidad_dataTable("#dataTableConfTipoPago tbody", table_tipo_pago_contabilidad);
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
+        }
+    });
+
+    table_tipo_pago_contabilidad.search('').draw();
+    $('#buscar').focus();
+
+    edit_tipo_pago_contabilidad_dataTable("#dataTableConfTipoPago tbody", table_tipo_pago_contabilidad);
+    delete_tipo_pago_contabilidad_dataTable("#dataTableConfTipoPago tbody", table_tipo_pago_contabilidad);
 }
 
 var edit_tipo_pago_contabilidad_dataTable = function(tbody, table){

@@ -1,7 +1,43 @@
 <script>
 //asignacionPlanes.php
 document.addEventListener("DOMContentLoaded", function() {
+    /* =========================================================
+    HEADER DINÁMICO - ASIGNACIÓN DE PLANES
+    ========================================================= */
+    function construirHeaderTablaAsignaciones() {
+        var $tabla = $("#tablaAsignaciones");
+
+        $tabla.empty();
+
+        $tabla.append(
+            '<thead>' +
+                '<tr>' +
+                    '<th>Acciones</th>' +
+                    '<th>#</th>' +
+                    '<th>Cliente</th>' +
+                    '<th>Plan</th>' +
+                    '<th>Sistema</th>' +
+                    '<th>Usuarios Extra</th>' +
+                    '<th>Validar</th>' +
+                    '<th>Estado</th>' +
+                    '<th>Fecha Registro</th>' +
+                '</tr>' +
+            '</thead>'
+        );
+    }
+
+    /* =========================================================
+    DATATABLE - ASIGNACIÓN DE PLANES
+    ========================================================= */
+
+    if ($.fn.DataTable.isDataTable("#tablaAsignaciones")) {
+        $("#tablaAsignaciones").DataTable().clear().destroy();
+    }
+
+    construirHeaderTablaAsignaciones();
+
     const tablaAsignaciones = $('#tablaAsignaciones').DataTable({
+        destroy: true,
         ajax: {
             url: "<?php echo SERVERURL; ?>core/obtenerAsignacionesRecientes.php",
             type: "POST",
@@ -12,20 +48,59 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         },
         columns: [
-            { 
-                data: null,  // Datos no provienen del servidor, por eso usamos null
+            {
+                data: null,
+                orderable: false,
+                searchable: false,
+                className: "text-center align-middle",
+                render: function(data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar btn-editar-asignacion" ' +
+                                    'data-id="' + data.server_customers_id + '" ' +
+                                    'data-cliente-id="' + data.cliente_id + '" ' +
+                                    'data-plan-id="' + data.planes_id + '" ' +
+                                    'data-sistema-id="' + data.sistema_id + '" ' +
+                                    'data-user-extra="' + data.user_extra + '" ' +
+                                    'data-validar="' + data.validar + '" ' +
+                                    'data-estado="' + data.estado + '">' +
+                                    '<span class="accion-icon accion-icon-editar">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Editar</span>' +
+                                '</button>' +
+
+                            '</div>' +
+
+                        '</div>';
+                }
+            },
+            {
+                data: null,
                 render: function(data, type, row, meta) {
-                    return meta.row + 1;  // Este es el número de la fila (1-indexed)
+                    return meta.row + 1;
                 },
                 className: "text-center"
-            },            
-            { 
+            },
+            {
                 data: "cliente",
                 render: function(data) {
                     return `
-                    <strong>${data.nombre}</strong><br>
-                    <small class="text-muted">RTN: ${data.identificacion || 'Sin identificación'}</small><br>
-                    <small class="text-muted">Codigo Cliente: ${data.codigo_cliente || 'Sin código'}</small><br>
+                        <strong>${data.nombre}</strong><br>
+                        <small class="text-muted">RTN: ${data.identificacion || 'Sin identificación'}</small><br>
+                        <small class="text-muted">Codigo Cliente: ${data.codigo_cliente || 'Sin código'}</small><br>
                     `;
                 }
             },
@@ -33,15 +108,18 @@ document.addEventListener("DOMContentLoaded", function() {
                 data: "plan",
                 render: function(data, type, row) {
                     const planInfo = {
-                        1: { class: 'badge-primary', icon: 'fas fa-rocket' },        // Emprendedor
-                        2: { class: 'badge-info', icon: 'fas fa-leaf' },             // Básico
-                        3: { class: 'badge-success', icon: 'fas fa-check-circle' },  // Regular
-                        4: { class: 'badge-warning', icon: 'fas fa-star-half-alt' }, // Estándar
-                        5: { class: 'badge-danger', icon: 'fas fa-gem' },            // Premium
-                        6: { class: 'badge-secondary', icon: 'fas fa-gift' }         // Gratis
+                        1: { class: 'badge-primary', icon: 'fas fa-rocket' },
+                        2: { class: 'badge-info', icon: 'fas fa-leaf' },
+                        3: { class: 'badge-success', icon: 'fas fa-check-circle' },
+                        4: { class: 'badge-warning', icon: 'fas fa-star-half-alt' },
+                        5: { class: 'badge-danger', icon: 'fas fa-gem' },
+                        6: { class: 'badge-secondary', icon: 'fas fa-gift' }
                     };
 
-                    const info = planInfo[row.planes_id] || { class: 'badge-light', icon: 'fas fa-question-circle' };
+                    const info = planInfo[row.planes_id] || {
+                        class: 'badge-light',
+                        icon: 'fas fa-question-circle'
+                    };
 
                     return `<span class="badge ${info.class} badge-pill" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">
                                 <i class="${info.icon}" style="margin-right: 5px;"></i>${data.nombre}
@@ -51,24 +129,28 @@ document.addEventListener("DOMContentLoaded", function() {
             {
                 data: "sistema",
                 render: function(data) {
-                    let badgeClass, iconClass;
+                    let badgeClass;
+                    let iconClass;
 
                     switch (data.nombre) {
                         case 'CAMI':
                             badgeClass = 'badge-info';
-                            iconClass = 'fas fa-stethoscope'; // ícono para sistema médico
+                            iconClass = 'fas fa-stethoscope';
                             break;
+
                         case 'IZZY':
                             badgeClass = 'badge-success';
-                            iconClass = 'fas fa-store'; // ícono para sistema comercial
+                            iconClass = 'fas fa-store';
                             break;
+
                         case 'MONISYS':
                             badgeClass = 'badge-warning';
-                            iconClass = 'fas fa-chart-line'; // ícono para monitoreo o gestión
+                            iconClass = 'fas fa-chart-line';
                             break;
+
                         default:
                             badgeClass = 'badge-secondary';
-                            iconClass = 'fas fa-question-circle'; // ícono por defecto
+                            iconClass = 'fas fa-question-circle';
                             break;
                     }
 
@@ -77,12 +159,13 @@ document.addEventListener("DOMContentLoaded", function() {
                             </span>`;
                 }
             },
-            { 
+            {
                 data: "user_extra",
                 className: "text-center",
                 render: function(data) {
-                    return data > 0 ? `<span class="badge badge-secondary badge-pill" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">+${data}</span>` : 
-                                     '<span class="text-muted">Ninguno</span>';
+                    return data > 0
+                        ? `<span class="badge badge-secondary badge-pill" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">+${data}</span>`
+                        : '<span class="text-muted">Ninguno</span>';
                 }
             },
             {
@@ -100,51 +183,93 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
             },
             {
-                "data": "estado",
-                "render": function(data, type, row) {
+                data: "estado",
+                className: "text-center",
+                render: function(data, type, row) {
                     if (type === 'display') {
                         var estadoText = data == 1 ? 'Activo' : 'Inactivo';
-                        var icon = data == 1 ? 
-                            '<i class="fas fa-check-circle mr-1"></i>' : 
-                            '<i class="fas fa-times-circle mr-1"></i>';
-                        var badgeClass = data == 1 ? 
-                            'badge badge-pill badge-success' : 
-                            'badge badge-pill badge-danger';
-                        
-                        return '<span class="' + badgeClass + 
+
+                        var icon = data == 1
+                            ? '<i class="fas fa-check-circle mr-1"></i>'
+                            : '<i class="fas fa-times-circle mr-1"></i>';
+
+                        var badgeClass = data == 1
+                            ? 'badge badge-pill badge-success'
+                            : 'badge badge-pill badge-danger';
+
+                        return '<span class="' + badgeClass +
                             '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
                             icon + estadoText + '</span>';
                     }
+
                     return data;
                 }
             },
-            { 
+            {
                 data: "fecha_registro",
                 render: function(data) {
                     return formatFechaHora(data);
                 }
-            },
-            {
-                data: null,
-                className: "text-center",
-                render: function(data) {
-                    return `
-                        <button class="table_editar btn ocultar btn-editar-asignacion" 
-                                data-id="${data.server_customers_id}"
-                                data-cliente-id="${data.cliente_id}" 
-                                data-plan-id="${data.planes_id}"
-                                data-sistema-id="${data.sistema_id}"
-                                data-user-extra="${data.user_extra}"
-                                data-validar="${data.validar}"
-                                data-estado="${data.estado}">
-                            <i class="fas fa-edit fa-lg"></i> Editar
-                        </button>
-                    `;
-                }
             }
         ],
         language: idioma_español,
-        responsive: true
+        responsive: true,
+        autoWidth: false,
+        columnDefs: [
+            {
+                width: "10%",
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
+            },
+            {
+                width: "5%",
+                targets: 1,
+                className: "text-center text-nowrap"
+            },
+            {
+                width: "24%",
+                targets: 2
+            },
+            {
+                width: "12%",
+                targets: 3,
+                className: "text-center text-nowrap"
+            },
+            {
+                width: "12%",
+                targets: 4,
+                className: "text-center text-nowrap"
+            },
+            {
+                width: "10%",
+                targets: 5,
+                className: "text-center text-nowrap"
+            },
+            {
+                width: "8%",
+                targets: 6,
+                className: "text-center text-nowrap"
+            },
+            {
+                width: "9%",
+                targets: 7,
+                className: "text-center text-nowrap"
+            },
+            {
+                width: "10%",
+                targets: 8,
+                className: "text-center text-nowrap"
+            }
+        ],
+        drawCallback: function(settings) {
+            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
+        }
     });
 
     $(document).on('click', '.btn-editar-asignacion', function() {

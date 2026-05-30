@@ -54,19 +54,6 @@
             <div class="card-body">
                 <div class="table-responsive">
                     <table id="dataTableUsers" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-                        <thead>
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Correo</th>
-                                <th>Permisos</th>
-                                <th>Privilegio</th>
-                                <th>Empresa</th>
-                                <th>Estado</th>
-                                <th>Restablecer</th>
-                                <th>Editar</th>
-                                <th>Eliminar</th>
-                            </tr>
-                        </thead>
                     </table>
                 </div>
             </div>

@@ -3080,11 +3080,50 @@ function getConsultarAperturaCaja() {
     return estado_apertura;
 }
 
-var listar_cuentas_por_cobrar_clientes = function() {
-    var estado = "";
+/* =========================================================
+   HEADER Y FOOTER DINÁMICO - CUENTAS POR COBRAR CLIENTES
+   ========================================================= */
 
-    if ($("#form_main_cobrar_clientes #main_cobrar_clientes_estado").val() == "" || $(
-            "#form_main_cobrar_clientes #cobrar_clientes_estado").val() == null) {
+   function construirHeaderFooterDataTableCuentasPorCobrarClientes() {
+    var $tabla = $("#dataTableCuentasPorCobrarClientes");
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Fecha</th>' +
+                '<th>Cliente</th>' +
+                '<th>Tipo</th>' +
+                '<th>Número</th>' +
+                '<th>Crédito</th>' +
+                '<th>Abono</th>' +
+                '<th>Saldo</th>' +
+                '<th>Vendedor</th>' +
+            '</tr>' +
+        '</thead>' +
+        '<tfoot class="bg-secondary">' +
+            '<tr>' +
+                '<td colspan="5" class="text-right">Totales:</td>' +
+                '<td id="credito-cxc"></td>' +
+                '<td id="abono-cxc"></td>' +
+                '<td id="total-footer-cxc"></td>' +
+                '<td></td>' +
+            '</tr>' +
+        '</tfoot>'
+    );
+}
+
+/* =========================================================
+   LISTADO - CUENTAS POR COBRAR CLIENTES
+   ========================================================= */
+var listar_cuentas_por_cobrar_clientes = function() {
+    var cobrar_estado = "";
+
+    if (
+        $("#form_main_cobrar_clientes #main_cobrar_clientes_estado").val() == "" ||
+        $("#form_main_cobrar_clientes #cobrar_clientes_estado").val() == null
+    ) {
         cobrar_estado = 1;
     } else {
         cobrar_estado = $("#form_main_cobrar_clientes #cobrar_clientes_estado").val();
@@ -3093,6 +3132,12 @@ var listar_cuentas_por_cobrar_clientes = function() {
     var cobrar_clientes_id = $("#form_main_cobrar_clientes #main_cobrar_clientes").val();
     var cobrar_fechai = $("#form_main_cobrar_clientes #main_cobrarclientes_fechai").val();
     var cobrar_fechaf = $("#form_main_cobrar_clientes #main_cobrarclientes_fechaf").val();
+
+    if ($.fn.DataTable.isDataTable("#dataTableCuentasPorCobrarClientes")) {
+        $("#dataTableCuentasPorCobrarClientes").DataTable().clear().destroy();
+    }
+
+    construirHeaderFooterDataTableCuentasPorCobrarClientes();
 
     var table_cuentas_por_cobrar_clientes = $("#dataTableCuentasPorCobrarClientes").DataTable({
         "destroy": true,
@@ -3106,7 +3151,54 @@ var listar_cuentas_por_cobrar_clientes = function() {
                 "fechaf": cobrar_fechaf
             }
         },
-        "columns": [{
+        "columns": [
+            {
+                "data": null,
+                "orderable": false,
+                "searchable": false,
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+                                '<button type="button" class="dropdown-item accion-item table_abono">' +
+                                    '<span class="accion-icon accion-icon-primary">' +
+                                        '<i class="fas fa-cash-register"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Abonar</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item table_reportes abono_factura ocultar">' +
+                                    '<span class="accion-icon accion-icon-secondary">' +
+                                        '<i class="fas fa-money-bill-wave"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Abonos</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item table_reportes print_factura ocultar">' +
+                                    '<span class="accion-icon accion-icon-success">' +
+                                        '<i class="fas fa-file-download"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Factura</span>' +
+                                '</button>' +
+
+                            '</div>' +
+
+                        '</div>';
+                }
+            },
+            {
                 "data": "fecha"
             },
             {
@@ -3117,38 +3209,44 @@ var listar_cuentas_por_cobrar_clientes = function() {
                 "render": function(data, type, row) {
                     if (type === 'display') {
                         var text = data == 1 ? 'Contado' : 'Crédito';
-                        var icon = data == 1 
-                            ? '<i class="fas fa-clock mr-1"></i>' 
+
+                        var icon = data == 1
+                            ? '<i class="fas fa-clock mr-1"></i>'
                             : '<i class="fas fa-check-circle mr-1"></i>';
-                        var badgeClass = data == 1 
-                            ? 'badge badge-pill badge-success' 
+
+                        var badgeClass = data == 1
+                            ? 'badge badge-pill badge-success'
                             : 'badge badge-pill badge-warning';
-                        return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' + 
-                            icon + text + '</span>';
+
+                        return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                            icon +
+                            text +
+                        '</span>';
                     }
+
                     return data;
                 }
-            },        
+            },
             {
                 "data": "numero",
                 "render": function(data, type, row) {
                     if (type === 'sort') {
-                        // Para ordenamiento, usamos el número base (row.numero_ordenamiento)
                         return parseInt(row.numero_ordenamiento);
                     }
-                    // Para visualización, usamos el formato completo
+
                     return data;
                 }
             },
             {
-                data: 'credito',
-                render: function(data, type) {
+                "data": "credito",
+                "render": function(data, type) {
                     var number = $.fn.dataTable.render
                         .number(',', '.', 2, 'L ')
                         .display(data);
 
                     if (type === 'display') {
                         let color = 'green';
+
                         if (data < 0) {
                             color = 'red';
                         }
@@ -3157,17 +3255,18 @@ var listar_cuentas_por_cobrar_clientes = function() {
                     }
 
                     return number;
-                },
+                }
             },
             {
-                data: "abono",
-                render: function(data, type) {
+                "data": "abono",
+                "render": function(data, type) {
                     var number = $.fn.dataTable.render
                         .number(',', '.', 2, 'L ')
                         .display(data);
 
                     if (type === 'display') {
                         let color = 'green';
+
                         if (data < 0) {
                             color = 'red';
                         }
@@ -3176,17 +3275,18 @@ var listar_cuentas_por_cobrar_clientes = function() {
                     }
 
                     return number;
-                },
+                }
             },
             {
-                data: "saldo",
-                render: function(data, type) {
+                "data": "saldo",
+                "render": function(data, type) {
                     var number = $.fn.dataTable.render
                         .number(',', '.', 2, 'L ')
                         .display(data);
 
                     if (type === 'display') {
                         let color = 'green';
+
                         if (data < 0) {
                             color = 'red';
                         }
@@ -3195,19 +3295,10 @@ var listar_cuentas_por_cobrar_clientes = function() {
                     }
 
                     return number;
-                },
+                }
             },
             {
                 "data": "vendedor"
-            },
-            {
-                "defaultContent": "<button class='table_abono btn btn-primary'><span class='fas fa-cash-register fa-lg'></span>Abonar</button>"
-            },
-            {
-                "defaultContent": "<button class='table_reportes abono_factura btn btn-secondary ocultar'><span class='fa fa-money-bill-wave fa-solid'></span>Abonos</button>"
-            },
-            {
-                "defaultContent": "<button class='table_reportes print_factura btn btn-success ocultar'><span class='fas fa-file-download fa-lg'></span>Factura</button>"
             }
         ],
         "pageLength": 10,
@@ -3216,59 +3307,54 @@ var listar_cuentas_por_cobrar_clientes = function() {
         "bDestroy": true,
         "language": idioma_español,
         "dom": dom,
-        "order": [[3, "desc"]], // Ordenar por la columna 3 (número) de forma descendente
+        "order": [[4, "desc"]],
         "orderFixed": {
-            "pre": [[3, "desc"]] // Mantener este orden incluso después de búsquedas/filtros
+            "pre": [[4, "desc"]]
         },
         "columnDefs": [
             {
                 width: "10%",
-                targets: 0 // Fecha
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
             },
             {
-                width: "14%",
-                targets: 1 // Cliente
+                width: "10%",
+                targets: 1
             },
             {
-                width: "8%",
-                targets: 2, // Estado (Crédito/Contado)
-                className: "text-center"
+                width: "18%",
+                targets: 2
             },
             {
-                width: "12%",
-                targets: 3, // Número
-                className: "text-center"
-            },
-            {
-                width: "12%",
-                targets: 4, // Crédito
-                className: "text-center"
+                width: "9%",
+                targets: 3,
+                className: "text-center text-nowrap align-middle"
             },
             {
                 width: "12%",
-                targets: 5, // Abono
-                className: "text-center"
+                targets: 4,
+                className: "text-center text-nowrap align-middle"
             },
             {
                 width: "12%",
-                targets: 6, // Saldo
-                className: "text-center"
+                targets: 5,
+                className: "text-right text-nowrap align-middle"
             },
             {
-                width: "14%",
-                targets: 7 // Vendedor
+                width: "12%",
+                targets: 6,
+                className: "text-right text-nowrap align-middle"
             },
             {
-                width: "2%",
-                targets: 8 // Botón abono
+                width: "12%",
+                targets: 7,
+                className: "text-right text-nowrap align-middle"
             },
             {
-                width: "2%",
-                targets: 9 // Botón abono factura
-            },
-            {
-                width: "2%",
-                targets: 10 // Botón imprimir factura
+                width: "15%",
+                targets: 8
             }
         ],
         "footerCallback": function(row, data, start, end, display) {
@@ -3287,14 +3373,15 @@ var listar_cuentas_por_cobrar_clientes = function() {
             var formatter = new Intl.NumberFormat('es-HN', {
                 style: 'currency',
                 currency: 'HNL',
-                minimumFractionDigits: 2,
+                minimumFractionDigits: 2
             });
 
             $('#credito-cxc').html(formatter.format(totalCredito));
             $('#abono-cxc').html(formatter.format(totalAbono));
             $('#total-footer-cxc').html(formatter.format(totalPendiente));
         },
-        "buttons": [{
+        "buttons": [
+            {
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                 titleAttr: 'Actualizar Cuentas por Cobrar Clientes',
                 className: 'table_actualizar btn btn-secondary ocultar',
@@ -3308,7 +3395,7 @@ var listar_cuentas_por_cobrar_clientes = function() {
                 titleAttr: 'Excel',
                 title: 'Reporte Cuents por Cobrar Clientes',
                 exportOptions: {
-                    columns: [2, 3, 4, 5, 6]
+                    columns: [3, 4, 5, 6, 7]
                 },
                 className: 'table_reportes btn btn-success ocultar'
             },
@@ -3322,12 +3409,12 @@ var listar_cuentas_por_cobrar_clientes = function() {
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-danger ocultar',
                 exportOptions: {
-                    columns: [2, 3, 4, 5, 6]
+                    columns: [3, 4, 5, 6, 7]
                 },
                 customize: function(doc) {
                     if (imagen) {
                         doc.content.splice(0, 0, {
-                            image: imagen,  
+                            image: imagen,
                             width: 100,
                             height: 45,
                             margin: [0, 0, 0, 12]
@@ -3338,15 +3425,30 @@ var listar_cuentas_por_cobrar_clientes = function() {
         ],
         "drawCallback": function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
         }
     });
+
     table_cuentas_por_cobrar_clientes.search('').draw();
     $('#buscar').focus();
 
-    registrar_abono_cxc_clientes_dataTable("#dataTableCuentasPorCobrarClientes tbody",
-        table_cuentas_por_cobrar_clientes);
-    ver_abono_cxc_clientes_dataTable("#dataTableCuentasPorCobrarClientes tbody", table_cuentas_por_cobrar_clientes);
-    view_reporte_facturas_dataTable("#dataTableCuentasPorCobrarClientes tbody", table_cuentas_por_cobrar_clientes);
+    registrar_abono_cxc_clientes_dataTable(
+        "#dataTableCuentasPorCobrarClientes tbody",
+        table_cuentas_por_cobrar_clientes
+    );
+
+    ver_abono_cxc_clientes_dataTable(
+        "#dataTableCuentasPorCobrarClientes tbody",
+        table_cuentas_por_cobrar_clientes
+    );
+
+    view_reporte_facturas_dataTable(
+        "#dataTableCuentasPorCobrarClientes tbody",
+        table_cuentas_por_cobrar_clientes
+    );
 }
 
 var view_reporte_facturas_dataTable = function(tbody, table) {
@@ -3477,12 +3579,53 @@ $(() => {
     });	       
 });
 
+/* =========================================================
+   HEADER Y FOOTER DINÁMICO - CUENTAS POR PAGAR PROVEEDORES
+   ========================================================= */
+   function construirHeaderFooterDataTableCuentasPorPagarProveedores() {
+    var $tabla = $("#dataTableCuentasPorPagarProveedores");
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Fecha</th>' +
+                '<th>Proveedor</th>' +
+                '<th>Tipo</th>' +
+                '<th>Factura</th>' +
+                '<th>Crédito</th>' +
+                '<th>Abono</th>' +
+                '<th>Saldo</th>' +
+            '</tr>' +
+        '</thead>' +
+        '<tfoot class="bg-secondary">' +
+            '<tr>' +
+                '<td colspan="5" class="text-right">Totales:</td>' +
+                '<td id="credito-cxp"></td>' +
+                '<td id="abono-cxp"></td>' +
+                '<td id="total-footer-cxp"></td>' +
+            '</tr>' +
+        '</tfoot>'
+    );
+}
+
+/* =========================================================
+   LISTADO - CUENTAS POR PAGAR PROVEEDORES
+   ========================================================= */
 var listar_cuentas_por_pagar_proveedores = function() {
     var estado = $('#form_main_pagar_proveedores #pagar_proveedores_estado').val();
 
     var proveedores_id = $("#form_main_pagar_proveedores #pagar_proveedores").val();
     var fechai = $("#form_main_pagar_proveedores #fechai").val();
     var fechaf = $("#form_main_pagar_proveedores #fechaf").val();
+
+    if ($.fn.DataTable.isDataTable("#dataTableCuentasPorPagarProveedores")) {
+        $("#dataTableCuentasPorPagarProveedores").DataTable().clear().destroy();
+    }
+
+    construirHeaderFooterDataTableCuentasPorPagarProveedores();
 
     var table_cuentas_por_pagar_proveedores = $("#dataTableCuentasPorPagarProveedores").DataTable({
         "destroy": true,
@@ -3496,7 +3639,54 @@ var listar_cuentas_por_pagar_proveedores = function() {
                 "fechaf": fechaf
             }
         },
-        "columns": [{
+        "columns": [
+            {
+                "data": null,
+                "orderable": false,
+                "searchable": false,
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+                                '<button type="button" class="dropdown-item accion-item table_pay ocultar">' +
+                                    '<span class="accion-icon accion-icon-primary">' +
+                                        '<i class="fas fa-hand-holding-usd"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Abonar</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item abono_proveedor">' +
+                                    '<span class="accion-icon accion-icon-secondary">' +
+                                        '<i class="fas fa-money-bill-wave"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Abonos</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item table_reportes print_factura ocultar">' +
+                                    '<span class="accion-icon accion-icon-success">' +
+                                        '<i class="fas fa-file-download"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Factura</span>' +
+                                '</button>' +
+
+                            '</div>' +
+
+                        '</div>';
+                }
+            },
+            {
                 "data": "fecha"
             },
             {
@@ -3507,24 +3697,31 @@ var listar_cuentas_por_pagar_proveedores = function() {
                 "render": function(data, type, row) {
                     if (type === 'display') {
                         var text = data == 1 ? 'Crédito' : 'Contado';
-                        var icon = data == 1 
-                            ? '<i class="fas fa-clock mr-1"></i>' 
+
+                        var icon = data == 1
+                            ? '<i class="fas fa-clock mr-1"></i>'
                             : '<i class="fas fa-check-circle mr-1"></i>';
-                        var badgeClass = data == 1 
-                            ? 'badge badge-pill badge-warning' 
+
+                        var badgeClass = data == 1
+                            ? 'badge badge-pill badge-warning'
                             : 'badge badge-pill badge-success';
-                        return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' + 
-                            icon + text + '</span>';
+
+                        return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                            icon +
+                            text +
+                        '</span>';
                     }
+
                     return data;
                 }
-            },             
+            },
             {
                 "data": "factura",
                 "render": function(data, type, row) {
                     if (type === 'sort') {
                         return parseInt(row.numero_ordenamiento);
                     }
+
                     return data;
                 }
             },
@@ -3537,6 +3734,7 @@ var listar_cuentas_por_pagar_proveedores = function() {
 
                     if (type === 'display') {
                         let color = 'green';
+
                         if (data < 0) {
                             color = 'red';
                         }
@@ -3545,7 +3743,7 @@ var listar_cuentas_por_pagar_proveedores = function() {
                     }
 
                     return number;
-                },
+                }
             },
             {
                 "data": "abono",
@@ -3556,6 +3754,7 @@ var listar_cuentas_por_pagar_proveedores = function() {
 
                     if (type === 'display') {
                         let color = 'green';
+
                         if (data < 0) {
                             color = 'red';
                         }
@@ -3564,10 +3763,10 @@ var listar_cuentas_por_pagar_proveedores = function() {
                     }
 
                     return number;
-                },
+                }
             },
             {
-                data: "saldo",
+                "data": "saldo",
                 render: function(data, type) {
                     var number = $.fn.dataTable.render
                         .number(',', '.', 2, 'L ')
@@ -3575,6 +3774,7 @@ var listar_cuentas_por_pagar_proveedores = function() {
 
                     if (type === 'display') {
                         let color = 'green';
+
                         if (data < 0) {
                             color = 'red';
                         }
@@ -3583,21 +3783,12 @@ var listar_cuentas_por_pagar_proveedores = function() {
                     }
 
                     return number;
-                },
-            },
-            {
-                "defaultContent": "<button class='table_pay btn btn-primary ocultar'><span class='fas fa-hand-holding-usd fa-lg'></span>Abonar</button>"
-            },
-            {
-                "defaultContent": "<button class='abono_proveedor btn btn-secondary'><span class='fa fa-money-bill-wave fa-solid'></span>Abonos</button>"
-            },
-            {
-                "defaultContent": "<button class='table_reportes print_factura btn btn-success ocultar'><span class='fas fa-file-download fa-lg'></span>Factura</button>"
+                }
             }
         ],
-        "order": [[3, "desc"]], // Ordenar por número de factura descendente
+        "order": [[4, "desc"]],
         "orderFixed": {
-            "pre": [[3, "desc"]]
+            "pre": [[4, "desc"]]
         },
         "pageLength": 10,
         "lengthMenu": lengthMenu10,
@@ -3605,40 +3796,46 @@ var listar_cuentas_por_pagar_proveedores = function() {
         "bDestroy": true,
         "language": idioma_español,
         "dom": dom,
-        "columnDefs": [{
-                width: "12.5%",
-                targets: 0
+        "columnDefs": [
+            {
+                width: "10%",
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
             },
             {
-                width: "10.5%",
+                width: "12%",
                 targets: 1
             },
             {
-                width: "12.5%",
+                width: "18%",
                 targets: 2
             },
             {
-                width: "20.5%",
+                width: "12%",
                 targets: 3,
-                className: "text-center"
+                className: "text-center text-nowrap align-middle"
             },
             {
-                width: "24.5%",
+                width: "18%",
                 targets: 4,
-                className: "text-center"
+                className: "text-center text-nowrap align-middle"
             },
             {
-                width: "12.5%",
+                width: "13%",
                 targets: 5,
-                className: "text-center"
+                className: "text-right text-nowrap align-middle"
             },
             {
-                width: "2.5%",
-                targets: 6
+                width: "13%",
+                targets: 6,
+                className: "text-right text-nowrap align-middle"
             },
             {
-                width: "2.5%",
-                targets: 7
+                width: "14%",
+                targets: 7,
+                className: "text-right text-nowrap align-middle"
             }
         ],
         "footerCallback": function(row, data, start, end, display) {
@@ -3657,14 +3854,15 @@ var listar_cuentas_por_pagar_proveedores = function() {
             var formatter = new Intl.NumberFormat('es-HN', {
                 style: 'currency',
                 currency: 'HNL',
-                minimumFractionDigits: 2,
+                minimumFractionDigits: 2
             });
 
             $('#credito-cxp').html(formatter.format(totalCredito));
             $('#abono-cxp').html(formatter.format(totalAbono));
             $('#total-footer-cxp').html(formatter.format(totalPendiente));
         },
-        "buttons": [{
+        "buttons": [
+            {
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                 titleAttr: 'Actualizar Cuentas Pagar Proveedores',
                 className: 'table_actualizar btn btn-secondary ocultar',
@@ -3680,7 +3878,7 @@ var listar_cuentas_por_pagar_proveedores = function() {
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-success ocultar',
                 exportOptions: {
-                    columns: [1, 2, 3, 4, 5, 6]
+                    columns: [2, 3, 4, 5, 6, 7]
                 }
             },
             {
@@ -3692,12 +3890,12 @@ var listar_cuentas_por_pagar_proveedores = function() {
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-danger ocultar',
                 exportOptions: {
-                    columns: [1, 2, 3, 4, 5, 6]
+                    columns: [2, 3, 4, 5, 6, 7]
                 },
                 customize: function(doc) {
                     if (imagen) {
                         doc.content.splice(0, 0, {
-                            image: imagen,  
+                            image: imagen,
                             width: 100,
                             height: 45,
                             margin: [0, 0, 0, 12]
@@ -3708,14 +3906,30 @@ var listar_cuentas_por_pagar_proveedores = function() {
         ],
         "drawCallback": function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
         }
     });
+
     table_cuentas_por_pagar_proveedores.search('').draw();
     $('#buscar').focus();
 
-    registrar_pago_proveedores_dataTable("#dataTableCuentasPorPagarProveedores tbody", table_cuentas_por_pagar_proveedores);
-    ver_abono_cxp_proveedor_dataTable("#dataTableCuentasPorPagarProveedores tbody", table_cuentas_por_pagar_proveedores);
-    ver_reporte_facturas_cxp_proveedor_dataTable("#dataTableCuentasPorPagarProveedores tbody", table_cuentas_por_pagar_proveedores);
+    registrar_pago_proveedores_dataTable(
+        "#dataTableCuentasPorPagarProveedores tbody",
+        table_cuentas_por_pagar_proveedores
+    );
+
+    ver_abono_cxp_proveedor_dataTable(
+        "#dataTableCuentasPorPagarProveedores tbody",
+        table_cuentas_por_pagar_proveedores
+    );
+
+    ver_reporte_facturas_cxp_proveedor_dataTable(
+        "#dataTableCuentasPorPagarProveedores tbody",
+        table_cuentas_por_pagar_proveedores
+    );
 }
 
 var ver_reporte_facturas_cxp_proveedor_dataTable = function(tbody, table) {
@@ -3802,9 +4016,41 @@ $('#form_main_clientes').on('reset', function() {
     listar_clientes();
 });
 
+/* =========================================================
+   HEADER DINÁMICO - CLIENTES
+   ========================================================= */
+   function construirHeaderDataTableClientes() {
+    var $tabla = $("#dataTableClientes");
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Cliente</th>' +
+                '<th>RTN</th>' +
+                '<th>Teléfono</th>' +
+                '<th>Correo</th>' +
+                '<th>Departamento</th>' +
+                '<th>Municipio</th>' +
+                '<th class="sistema">Sistema</th>' +
+                '<th>Estado</th>' +
+                '<th>Puntos</th>' +
+            '</tr>' +
+        '</thead>'
+    );
+}
+
 //INICIO ACCIONES FORMULARIO CLIENTES
 var listar_clientes = function(estado) {
     var estado = $('#form_main_clientes #estado_clientes').val();
+
+    if ($.fn.DataTable.isDataTable("#dataTableClientes")) {
+        $("#dataTableClientes").DataTable().clear().destroy();
+    }
+
+    construirHeaderDataTableClientes();
 
     var table_clientes = $("#dataTableClientes").DataTable({
         destroy: true,
@@ -3828,6 +4074,31 @@ var listar_clientes = function(estado) {
                         return "";
                     }
 
+                    var privilegio = getPrivilegioUsuario();
+                    var db_consulta = getSessionUser() === "" ? DB_MAIN : getSessionUser();
+
+                    /*
+                       Generar solo debe mostrarse si:
+                       - Está en la base principal DB_MAIN
+                       - El usuario tiene privilegio permitido
+                       Antes se manejaba con columna .generar.
+                       Ahora se maneja dentro del dropdown.
+                    */
+                    var privilegiosPermitidosGenerar = [1, 2, 3];
+                    var puedeGenerar = privilegiosPermitidosGenerar.includes(privilegio) && db_consulta === DB_MAIN;
+
+                    var botonGenerar = '';
+
+                    if (puedeGenerar) {
+                        botonGenerar =
+                            '<button type="button" class="dropdown-item accion-item accion-confirmar table_crear generar accion-generar-cliente">' +
+                                '<span class="accion-icon accion-icon-primary">' +
+                                    '<i class="fab fa-centos"></i>' +
+                                '</span>' +
+                                '<span class="accion-label">Generar</span>' +
+                            '</button>';
+                    }
+
                     return '' +
                         '<div class="dropdown acciones-dropdown">' +
 
@@ -3838,12 +4109,7 @@ var listar_clientes = function(estado) {
 
                             '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
 
-                                '<button type="button" class="dropdown-item accion-item accion-confirmar table_crear ocultar generar accion-generar-cliente">' +
-                                    '<span class="accion-icon accion-icon-primary">' +
-                                        '<i class="fab fa-centos"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Generar</span>' +
-                                '</button>' +
+                                botonGenerar +
 
                                 '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar">' +
                                     '<span class="accion-icon accion-icon-editar">' +
@@ -3864,31 +4130,24 @@ var listar_clientes = function(estado) {
                         '</div>';
                 }
             },
-
             {
                 data: "cliente"
             },
-
             {
                 data: "rtn"
             },
-
             {
                 data: "telefono"
             },
-
             {
                 data: "correo"
             },
-
             {
                 data: "departamento"
             },
-
             {
                 data: "municipio"
             },
-
             {
                 data: "sistema",
                 render: function(data, type, row) {
@@ -3926,15 +4185,14 @@ var listar_clientes = function(estado) {
                         }
 
                         return '<span class="' + badgeClass + '" style="font-size: 0.9rem; padding: 0.45em 0.75em; font-weight: 600;">' +
-                                    icon +
-                                    label +
-                               '</span>';
+                            icon +
+                            label +
+                        '</span>';
                     }
 
                     return data || "Sin sistema";
                 }
             },
-
             {
                 data: "estado",
                 render: function(data, type, row) {
@@ -3950,15 +4208,14 @@ var listar_clientes = function(estado) {
                             "badge badge-pill badge-danger";
 
                         return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
-                                    icon +
-                                    estadoText +
-                               '</span>';
+                            icon +
+                            estadoText +
+                        '</span>';
                     }
 
                     return data;
                 }
             },
-
             {
                 data: "puntos",
                 render: function(data, type, row) {
@@ -4090,24 +4347,24 @@ var listar_clientes = function(estado) {
             }
 
             var privilegio = getPrivilegioUsuario();
-            var privilegiosPermitidos = [1, 2];
+            var db_consulta = getSessionUser() === "" ? DB_MAIN : getSessionUser();
             var table = this.api();
 
-            if (privilegiosPermitidos.includes(privilegio)) {
-                var db_consulta = getSessionUser() === "" ? DB_MAIN : getSessionUser();
-
-                if (db_consulta == DB_MAIN) {
-                    table.column(7).visible(true);
-                    $(".accion-generar-cliente").show();
-                } else {
-                    table.column(7).visible(false);
-                    $(".accion-generar-cliente").hide();
-                }
+            /*
+               Sistema antes era columna 6.
+               Ahora con Acciones al inicio, Sistema es columna 7.
+               Se oculta si no está en DB_MAIN.
+            */
+            if (db_consulta === DB_MAIN) {
+                table.column(7).visible(true);
             } else {
                 table.column(7).visible(false);
-                $(".accion-generar-cliente").hide();
             }
 
+            /*
+               Programa de puntos.
+               Puntos es columna 9.
+            */
             $.ajax({
                 url: "<?php echo SERVERURL;?>core/programaPuntos/verificarProgramaPuntos.php",
                 type: "POST",
@@ -7500,12 +7757,43 @@ $(document).ready(function() {
     $('#form_main_asistencia #estado').selectpicker('refresh');
 });
 
-//INICIO ACCIONES FROMULARIO PRIVILEGIOS
+/* =========================================================
+   HEADER DINÁMICO - ASISTENCIA
+   ========================================================= */
+
+   function construirHeaderDataTableAsistencia() {
+    var $tabla = $("#dataTableAsistencia");
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Colaborador</th>' +
+                '<th>Fecha</th>' +
+                '<th>Hora Inicio</th>' +
+                '<th>Hora Fin</th>' +
+                '<th>Horas Trabajadas</th>' +
+                '<th>Comentario</th>' +
+            '</tr>' +
+        '</thead>'
+    );
+}
+
+
+//INICIO ACCIONES FROMULARIO ASISTENCIA
 var listar_asistencia = function() {
     var estado = $('#form_main_asistencia #estado').val();
     var colaboradores_id = $('#form_main_asistencia #colaborador').val();
     var fechai = $('#form_main_asistencia #fechai').val();
     var fechaf = $('#form_main_asistencia #fechaf').val();
+
+    if ($.fn.DataTable.isDataTable("#dataTableAsistencia")) {
+        $("#dataTableAsistencia").DataTable().clear().destroy();
+    }
+
+    construirHeaderDataTableAsistencia();
 
     var table_asistencia = $("#dataTableAsistencia").DataTable({
         "destroy": true,
@@ -7519,7 +7807,54 @@ var listar_asistencia = function() {
                 "estado": estado
             }
         },
-        "columns": [{
+        "columns": [
+            {
+                "data": null,
+                "orderable": false,
+                "searchable": false,
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar editar_asistencia ocultar">' +
+                                    '<span class="accion-icon accion-icon-editar">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Editar</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar eliminar_salida ocultar">' +
+                                    '<span class="accion-icon accion-icon-eliminar">' +
+                                        '<i class="fas fa-trash-alt"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Eliminar Marcaje</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar eliminar_marcaje ocultar">' +
+                                    '<span class="accion-icon accion-icon-eliminar">' +
+                                        '<i class="fas fa-trash-alt"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Eliminar Asistencia</span>' +
+                                '</button>' +
+
+                            '</div>' +
+
+                        '</div>';
+                }
+            },
+            {
                 "data": "colaborador"
             },
             {
@@ -7536,15 +7871,6 @@ var listar_asistencia = function() {
             },
             {
                 "data": "comentario"
-            },
-            {
-                "defaultContent": "<button class='table_editar editar_asistencia btn btn-dark ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
-            },
-            {
-                "defaultContent": "<button class='table_eliminar eliminar_salida btn btn-dark ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar Marcaje</button>"
-            },
-            {
-                "defaultContent": "<button class='table_eliminar eliminar_marcaje btn btn-dark ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar Asistencia</button>"
             }
         ],
         "lengthMenu": lengthMenu10,
@@ -7552,44 +7878,41 @@ var listar_asistencia = function() {
         "bDestroy": true,
         "language": idioma_español,
         "dom": dom,
-        "columnDefs": [{
-                width: "15.11%",
-                targets: 0
+        "columnDefs": [
+            {
+                width: "12%",
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
             },
             {
-                width: "8.11%",
+                width: "20%",
                 targets: 1
             },
             {
-                width: "9.11%",
+                width: "10%",
                 targets: 2
             },
             {
-                width: "9.11%",
+                width: "10%",
                 targets: 3
             },
             {
-                width: "11.11%",
+                width: "10%",
                 targets: 4
             },
             {
-                width: "19.11%",
+                width: "13%",
                 targets: 5
             },
             {
-                width: "6.11%",
+                width: "25%",
                 targets: 6
-            },
-            {
-                width: "10.11%",
-                targets: 7
-            },
-            {
-                width: "11.11%",
-                targets: 8
             }
         ],
-        "buttons": [{
+        "buttons": [
+            {
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                 titleAttr: 'Actualizar Asistencia',
                 className: 'btn btn-secondary',
@@ -7615,8 +7938,8 @@ var listar_asistencia = function() {
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'btn btn-success',
                 exportOptions: {
-                    columns: [0, 1, 2, 3, 4, 5, 6, 7, 8]
-                },
+                    columns: [1, 2, 3, 4, 5, 6]
+                }
             },
             {
                 extend: 'pdf',
@@ -7630,12 +7953,12 @@ var listar_asistencia = function() {
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'btn btn-danger',
                 exportOptions: {
-                    columns: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+                    columns: [1, 2, 3, 4, 5, 6]
                 },
                 customize: function(doc) {
                     if (imagen) {
                         doc.content.splice(0, 0, {
-                            image: imagen,  
+                            image: imagen,
                             width: 100,
                             height: 45,
                             margin: [0, 0, 0, 12]
@@ -7646,8 +7969,13 @@ var listar_asistencia = function() {
         ],
         "drawCallback": function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
         }
     });
+
     table_asistencia.search('').draw();
     $('#buscar').focus();
 

@@ -55,20 +55,6 @@
 			<div class="card-body"> 
 				<div class="table-responsive">
 					<table id="dataTableEmpresa" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-						<thead>
-							<tr>
-								<th>Imagen</th>
-								<th>Razón Social</th>
-								<th>Empresa</th>
-								<th>Teléfono</th>
-								<th>Correo</th>
-								<th>RTN</th>
-								<th>Ubicación</th>
-								<th>Estado</th>
-								<th>Editar</th>	
-								<th>Eliminar</th>
-							</tr>
-						</thead>
 					</table>  
 				</div>                   
 				</div>

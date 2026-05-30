@@ -28,9 +28,39 @@ $('#form_main_proveedores #buscar_proveedores').on('click', function(e) {
     listar_proveedores();
 });
 
+/* =========================================================
+   HEADER DINÁMICO - PROVEEDORES
+   ========================================================= */
+   function construirHeaderDataTableProveedores() {
+    var $tabla = $("#dataTableProveedores");
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Proveedor</th>' +
+                '<th>RTN</th>' +
+                '<th>Teléfono</th>' +
+                '<th>Correo</th>' +
+                '<th>Departamento</th>' +
+                '<th>Municipio</th>' +
+                '<th>Estado</th>' +
+            '</tr>' +
+        '</thead>'
+    );
+}
+
 //INICIO ACCIONES FROMULARIO PROVEEDORES
 var listar_proveedores = function() {
     var estado = $('#form_main_proveedores #estado_proveedores').val() === "" ? 1 : $('#form_main_proveedores #estado_proveedores').val();
+
+    if ($.fn.DataTable.isDataTable("#dataTableProveedores")) {
+        $("#dataTableProveedores").DataTable().clear().destroy();
+    }
+
+    construirHeaderDataTableProveedores();
 
     var table_proveedores = $("#dataTableProveedores").DataTable({
         destroy: true,
@@ -83,31 +113,24 @@ var listar_proveedores = function() {
                         '</div>';
                 }
             },
-
             {
                 data: "proveedor"
             },
-
             {
                 data: "rtn"
             },
-
             {
                 data: "telefono"
             },
-
             {
                 data: "correo"
             },
-
             {
                 data: "departamento"
             },
-
             {
                 data: "municipio"
             },
-
             {
                 data: "estado",
                 render: function(data, type, row) {
@@ -123,9 +146,9 @@ var listar_proveedores = function() {
                             "badge badge-pill badge-danger";
 
                         return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
-                                    icon +
-                                    estadoText +
-                               '</span>';
+                            icon +
+                            estadoText +
+                        '</span>';
                     }
 
                     return data;

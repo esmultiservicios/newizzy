@@ -28,13 +28,55 @@ $(() => {
     });	   
 });
 
+/* =========================================================
+   HEADER Y FOOTER DINÁMICO - NÓMINAS
+   ========================================================= */
+
+   function construirHeaderFooterDataTableNomina() {
+    var $tabla = $("#dataTableNomina");
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Código</th>' +
+                '<th>Detalle</th>' +
+                '<th>Empresa</th>' +
+                '<th>Fecha Inicio</th>' +
+                '<th>Fecha Fin</th>' +
+                '<th>Importe</th>' +
+                '<th>Notas</th>' +
+                '<th>Estado</th>' +
+            '</tr>' +
+        '</thead>' +
+        '<tfoot class="bg-secondary">' +
+            '<tr>' +
+                '<td colspan="1">Total</td>' +
+                '<td colspan="5"></td>' +
+                '<td id="neto_importe"></td>' +
+                '<td colspan="2"></td>' +
+            '</tr>' +
+        '</tfoot>'
+    );
+}
+
+
 /* ============================
-   LISTADO DE NÓMINAS (principal)
+   LISTADO DE NÓMINAS
    ============================ */
+
 var listar_nominas = function() {
-    var estado = $("#form_main_nominas #estado_nomina").val() || 0; 
+    var estado = $("#form_main_nominas #estado_nomina").val() || 0;
     var tipo_contrato_id = $("#form_main_nominas #tipo_contrato_nomina").val() || 0;
-    
+
+    if ($.fn.DataTable.isDataTable("#dataTableNomina")) {
+        $("#dataTableNomina").DataTable().clear().destroy();
+    }
+
+    construirHeaderFooterDataTableNomina();
+
     var table_nominas = $("#dataTableNomina").DataTable({
         "destroy": true,
         "ajax": {
@@ -46,41 +88,129 @@ var listar_nominas = function() {
             }
         },
         "columns": [
-            {"data": "nomina_id"},
-            {"data": "detalle"},
-            {"data": "empresa"},
-            {"data": "fecha_inicio"},
-            {"data": "fecha_fin"},
+            {
+                "data": null,
+                "orderable": false,
+                "searchable": false,
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+                                '<button type="button" class="dropdown-item accion-item nomina_generar ocultar">' +
+                                    '<span class="accion-icon">' +
+                                        '<i class="fas fa-users-cog"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Generar Nómina</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item voucher_pago ocultar">' +
+                                    '<span class="accion-icon">' +
+                                        '<i class="fas fa-file-invoice-dollar"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Voucher de Pago</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item consolidado ocultar">' +
+                                    '<span class="accion-icon">' +
+                                        '<i class="fas fa-book"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Libro de Salarios</span>' +
+                                '</button>' +
+
+                                '<div class="dropdown-divider"></div>' +
+
+                                '<button type="button" class="dropdown-item accion-item nomina_agregar ocultar">' +
+                                    '<span class="accion-icon">' +
+                                        '<i class="fas fa-folder-plus"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Crear</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar nomina_editar ocultar">' +
+                                    '<span class="accion-icon accion-icon-editar">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Editar</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar nomina_eliminar ocultar">' +
+                                    '<span class="accion-icon accion-icon-eliminar">' +
+                                        '<i class="fas fa-trash-alt"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Eliminar</span>' +
+                                '</button>' +
+
+                            '</div>' +
+
+                        '</div>';
+                }
+            },
+            {
+                "data": "nomina_id"
+            },
+            {
+                "data": "detalle"
+            },
+            {
+                "data": "empresa"
+            },
+            {
+                "data": "fecha_inicio"
+            },
+            {
+                "data": "fecha_fin"
+            },
             {
                 "data": "importe",
                 render: function(data, type) {
-                    var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
+                    var number = $.fn.dataTable.render
+                        .number(',', '.', 2, 'L ')
+                        .display(data);
+
                     if (type === 'display') {
                         let color = (data < 0) ? 'red' : 'green';
+
                         return '<span style="color:' + color + '">' + number + '</span>';
                     }
+
                     return number;
-                },
+                }
             },
-            {"data": "notas"},
+            {
+                "data": "notas"
+            },
             {
                 "data": "estado",
                 "render": function(data, type) {
                     if (type === 'display') {
                         var estadoText = data == 1 ? 'Generada' : 'Sin Generar';
-                        var icon = data == 1 ? '<i class="fas fa-check-circle mr-1"></i>' : '<i class="fas fa-times-circle mr-1"></i>';
-                        var badgeClass = data == 1 ? 'badge badge-pill badge-success' : 'badge badge-pill badge-danger';
-                        return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' + icon + estadoText + '</span>';
+                        var icon = data == 1 ?
+                            '<i class="fas fa-check-circle mr-1"></i>' :
+                            '<i class="fas fa-times-circle mr-1"></i>';
+                        var badgeClass = data == 1 ?
+                            'badge badge-pill badge-success' :
+                            'badge badge-pill badge-danger';
+
+                        return '<span class="' + badgeClass +
+                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                            icon + estadoText + '</span>';
                     }
+
                     return data;
                 }
-            },            
-            {
-                "defaultContent": "<div class='btn-group'><button type='button' class='btn btn-primary ocultar dropdown-toggle' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'><i class='fas fa-users-cog'></i> Aciones</button><div class='dropdown-menu'><a class='dropdown-item nomina_generar' href='#'>Generar Nomina</a><div class='dropdown-divider'></div><a class='dropdown-item voucher_pago' href='#'>Voucher de Pago</a><a class='dropdown-item consolidado' href='#'>Libro de Salarios</a></div></div>"
-            },
-            {"defaultContent": "<button class='btn btn-primary nomina_agregar btn ocultar'><span class='fas fa-folder-plus fa-lg'></span>Crear</button>"},
-            {"defaultContent": "<button class='table_editar nomina_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"},
-            {"defaultContent": "<button class='table_eliminar nomina_eliminar btn ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"}
+            }
         ],
         "lengthMenu": lengthMenu10,
         "stateSave": true,
@@ -88,20 +218,53 @@ var listar_nominas = function() {
         "language": idioma_español,
         "dom": dom,
         "columnDefs": [
-            { width: "2.09%", targets: 0 },
-            { width: "23.09%", targets: 1 },
-            { width: "12.09%", targets: 2 },
-            { width: "11.09%", targets: 3 },
-            { width: "12.09%", targets: 4 },
-            { width: "10.09%", targets: 5 },
-            { width: "23.09%", targets: 6 },
-            { width: "2.09%", targets: 7 },
-            { width: "2.09%", targets: 8 },
-            { width: "1.09%", targets: 9 },
-            { width: "1.09%", targets: 10 },
+            {
+                width: "11%",
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
+            },
+            {
+                width: "6%",
+                targets: 1
+            },
+            {
+                width: "20%",
+                targets: 2
+            },
+            {
+                width: "12%",
+                targets: 3
+            },
+            {
+                width: "10%",
+                targets: 4
+            },
+            {
+                width: "10%",
+                targets: 5
+            },
+            {
+                width: "10%",
+                targets: 6,
+                className: "text-right text-nowrap align-middle"
+            },
+            {
+                width: "15%",
+                targets: 7
+            },
+            {
+                width: "6%",
+                targets: 8,
+                className: "text-center text-nowrap align-middle"
+            }
         ],
         "fnRowCallback": function(nRow, aData) {
-            var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(aData['neto_importe']);
+            var number = $.fn.dataTable.render
+                .number(',', '.', 2, 'L ')
+                .display(aData['neto_importe']);
+
             $('#neto_importe').html(number);
         },
         "buttons": [
@@ -137,7 +300,9 @@ var listar_nominas = function() {
                 messageTop: 'Fecha: ' + convertDateFormat(today()),
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-success ocultar',
-                exportOptions: { columns: [0,1,2,3,4,5,6] }
+                exportOptions: {
+                    columns: [1, 2, 3, 4, 5, 6, 7]
+                }
             },
             {
                 extend: 'pdf',
@@ -148,11 +313,13 @@ var listar_nominas = function() {
                 messageTop: 'Fecha: ' + convertDateFormat(today()),
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-danger ocultar',
-                exportOptions: { columns: [0,1,2,3,4,5,6] },
+                exportOptions: {
+                    columns: [1, 2, 3, 4, 5, 6, 7]
+                },
                 customize: function(doc) {
                     if (imagen) {
                         doc.content.splice(0, 0, {
-                            image: imagen,  
+                            image: imagen,
                             width: 100,
                             height: 45,
                             margin: [0, 0, 0, 12]
@@ -163,8 +330,13 @@ var listar_nominas = function() {
         ],
         "drawCallback": function() {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
         }
     });
+
     table_nominas.search('').draw();
     $('#buscar').focus();
 
@@ -928,9 +1100,48 @@ $("#volver_nomina").on("click", function(e) {
     $("#nomina_principal").show();
 });
 
+/* =========================================================
+   HEADER Y FOOTER DINÁMICO - DETALLES DE NÓMINA
+   ========================================================= */
+
+   function construirHeaderFooterDataTableNominaDetalles() {
+    var $tabla = $("#dataTableNominaDetalles");
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Nomina</th>' +
+                '<th>Contrato</th>' +
+                '<th>Empresa</th>' +
+                '<th>Empleado</th>' +
+                '<th>Neto Ingresos</th>' +
+                '<th>Neto Egresos</th>' +
+                '<th>Neto</th>' +
+                '<th>Notas</th>' +
+                '<th>Estado</th>' +
+            '</tr>' +
+        '</thead>' +
+        '<tfoot class="bg-secondary">' +
+            '<tr>' +
+                '<td colspan="1">Total</td>' +
+                '<td colspan="4"></td>' +
+                '<td id="neto_ingreso"></td>' +
+                '<td id="neto_egreso"></td>' +
+                '<td id="neto"></td>' +
+                '<td colspan="2"></td>' +
+            '</tr>' +
+        '</tfoot>'
+    );
+}
+
+
 /* ============================
    LISTADO DETALLES DE NÓMINA
    ============================ */
+
 var listar_nominas_detalles = function() {
     var estado = $("#form_main_nominas_detalles #estado_nomina_detalles").val() || 0;
     var empleado = $("#form_main_nominas_detalles #detalle_nomina_empleado").val() || 0;
@@ -940,66 +1151,146 @@ var listar_nominas_detalles = function() {
     $("#nominad_neto_egreso1").val("");
     $("#nominad_neto1").val("");
 
+    if ($.fn.DataTable.isDataTable("#dataTableNominaDetalles")) {
+        $("#dataTableNominaDetalles").DataTable().clear().destroy();
+    }
+
+    construirHeaderFooterDataTableNominaDetalles();
+
     var table_nominas_detalles = $("#dataTableNominaDetalles").DataTable({
         "destroy": true,
         "ajax": {
             "method": "POST",
             "url": "<?php echo SERVERURL;?>core/llenarDataTableNominaDetalles.php",
-            "data": { "estado": estado, "empleado": empleado, "nomina_id": nomina_id }
+            "data": {
+                "estado": estado,
+                "empleado": empleado,
+                "nomina_id": nomina_id
+            }
         },
         "columns": [
-            {"data": "nomina_id"},
-            {"data": "contrato"},
-            {"data": "empresa"},
-            {"data": "empleado"},
+            {
+                "data": null,
+                "orderable": false,
+                "searchable": false,
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar nomina_detalles_editar ocultar">' +
+                                    '<span class="accion-icon accion-icon-editar">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Editar</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar nomina_detalles_eliminar ocultar">' +
+                                    '<span class="accion-icon accion-icon-eliminar">' +
+                                        '<i class="fas fa-trash-alt"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Eliminar</span>' +
+                                '</button>' +
+
+                            '</div>' +
+
+                        '</div>';
+                }
+            },
+            {
+                "data": "nomina_id"
+            },
+            {
+                "data": "contrato"
+            },
+            {
+                "data": "empresa"
+            },
+            {
+                "data": "empleado"
+            },
             {
                 "data": "neto_ingresos",
                 render: function(data, type) {
-                    var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
+                    var number = $.fn.dataTable.render
+                        .number(',', '.', 2, 'L ')
+                        .display(data);
+
                     if (type === 'display') {
                         let color = (data < 0) ? 'red' : 'green';
+
                         return '<span style="color:' + color + '">' + number + '</span>';
                     }
+
                     return number;
-                },
+                }
             },
             {
                 "data": "neto_egresos",
                 render: function(data, type) {
-                    var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
+                    var number = $.fn.dataTable.render
+                        .number(',', '.', 2, 'L ')
+                        .display(data);
+
                     if (type === 'display') {
                         let color = (data < 0) ? 'red' : 'green';
+
                         return '<span style="color:' + color + '">' + number + '</span>';
                     }
+
                     return number;
-                },
+                }
             },
             {
                 "data": "neto",
                 render: function(data, type) {
-                    var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
+                    var number = $.fn.dataTable.render
+                        .number(',', '.', 2, 'L ')
+                        .display(data);
+
                     if (type === 'display') {
                         let color = (data < 0) ? 'red' : 'green';
+
                         return '<span style="color:' + color + '">' + number + '</span>';
                     }
+
                     return number;
-                },
+                }
             },
-            {"data": "notas"},
+            {
+                "data": "notas"
+            },
             {
                 "data": "estado",
                 "render": function(data, type) {
                     if (type === 'display') {
                         var estadoText = data == 1 ? 'Generada' : 'Sin Generar';
-                        var icon = data == 1 ? '<i class="fas fa-check-circle mr-1"></i>' : '<i class="fas fa-times-circle mr-1"></i>';
-                        var badgeClass = data == 1 ? 'badge badge-pill badge-success' : 'badge badge-pill badge-danger';
-                        return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600%;">' + icon + estadoText + '</span>';
+                        var icon = data == 1 ?
+                            '<i class="fas fa-check-circle mr-1"></i>' :
+                            '<i class="fas fa-times-circle mr-1"></i>';
+                        var badgeClass = data == 1 ?
+                            'badge badge-pill badge-success' :
+                            'badge badge-pill badge-danger';
+
+                        return '<span class="' + badgeClass +
+                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                            icon + estadoText + '</span>';
                     }
+
                     return data;
                 }
-            },            
-            {"defaultContent": "<button class='table_editar nomina_detalles_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"},
-            {"defaultContent": "<button class='table_eliminar nomina_detalles_eliminar btn ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"}
+            }
         ],
         "lengthMenu": lengthMenu,
         "stateSave": true,
@@ -1007,21 +1298,67 @@ var listar_nominas_detalles = function() {
         "language": idioma_español,
         "dom": dom,
         "columnDefs": [
-            { width: "2%", targets: 0 },
-            { width: "8%", targets: 1 },
-            { width: "12%", targets: 2 },
-            { width: "25%", targets: 3 },
-            { width: "10%", targets: 4 },
-            { width: "10%", targets: 5 },
-            { width: "10%", targets: 6 },
-            { width: "20%", targets: 7 },
-            { width: "1%", targets: 8 },
-            { width: "1%", targets: 9 }
+            {
+                width: "10%",
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
+            },
+            {
+                width: "5%",
+                targets: 1
+            },
+            {
+                width: "8%",
+                targets: 2
+            },
+            {
+                width: "12%",
+                targets: 3
+            },
+            {
+                width: "22%",
+                targets: 4
+            },
+            {
+                width: "10%",
+                targets: 5,
+                className: "text-right text-nowrap align-middle"
+            },
+            {
+                width: "10%",
+                targets: 6,
+                className: "text-right text-nowrap align-middle"
+            },
+            {
+                width: "10%",
+                targets: 7,
+                className: "text-right text-nowrap align-middle"
+            },
+            {
+                width: "10%",
+                targets: 8
+            },
+            {
+                width: "3%",
+                targets: 9,
+                className: "text-center text-nowrap align-middle"
+            }
         ],
         "fnRowCallback": function(nRow, aData) {
-            var neto_ingreso = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(aData['total_neto_ingreso']);
-            var neto_egreso  = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(aData['total_neto_egreso']);
-            var neto_neto    = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(aData['total_neto']);
+            var neto_ingreso = $.fn.dataTable.render
+                .number(',', '.', 2, 'L ')
+                .display(aData['total_neto_ingreso']);
+
+            var neto_egreso = $.fn.dataTable.render
+                .number(',', '.', 2, 'L ')
+                .display(aData['total_neto_egreso']);
+
+            var neto_neto = $.fn.dataTable.render
+                .number(',', '.', 2, 'L ')
+                .display(aData['total_neto']);
+
             $('#neto_ingreso').html(neto_ingreso);
             $('#neto_egreso').html(neto_egreso);
             $('#neto').html(neto_neto);
@@ -1051,7 +1388,9 @@ var listar_nominas_detalles = function() {
                 messageTop: 'Fecha: ' + convertDateFormat(today()),
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-success ocultar',
-                exportOptions: { columns: [0,1,2,3,4,5,6,7] }
+                exportOptions: {
+                    columns: [1, 2, 3, 4, 5, 6, 7, 8]
+                }
             },
             {
                 extend: 'pdf',
@@ -1062,7 +1401,9 @@ var listar_nominas_detalles = function() {
                 messageTop: 'Fecha: ' + convertDateFormat(today()),
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-danger ocultar',
-                exportOptions: { columns: [0,1,2,3,4,5,6,7] },
+                exportOptions: {
+                    columns: [1, 2, 3, 4, 5, 6, 7, 8]
+                },
                 customize: function(doc) {
                     if (imagen) {
                         doc.content.splice(1, 0, {
@@ -1078,8 +1419,13 @@ var listar_nominas_detalles = function() {
         ],
         "drawCallback": function() {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
         }
     });
+
     table_nominas_detalles.search('').draw();
     $('#buscar').focus();
 

@@ -55,14 +55,6 @@
 			<div class="card-body"> 
 				<div class="table-responsive">
 					<table id="dataTableConfCategorias" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-						<thead>
-							<tr>
-								<th>Categoría</th>						
-								<th>Estado</th>	
-								<th>Editar</th>
-								<th>Eliminar</th>	
-							</tr>
-						</thead>
 					</table>  
 				</div>                   
 				</div>

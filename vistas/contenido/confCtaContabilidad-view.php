@@ -25,13 +25,6 @@
 			<div class="card-body"> 
 				<div class="table-responsive">
 					<table id="dataTableConfDiarios" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-						<thead>
-							<tr>
-								<th>Entidad</th>
-								<th>Cuenta</th>							
-								<th>Editar</th>
-							</tr>
-						</thead>
 					</table>  
 				</div>                   
 				</div>

@@ -17,9 +17,35 @@ $(document).ready(function() {
 			listar_categoria_productos();
 	});    
 });
+
+/* =========================================================
+   HEADER DINÁMICO - CATEGORÍA PRODUCTOS
+   ========================================================= */
+   function construirHeaderDataTableConfCategorias() {
+    var $tabla = $("#dataTableConfCategorias");
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Categoría</th>' +
+                '<th>Estado</th>' +
+            '</tr>' +
+        '</thead>'
+    );
+}
+
 //INICIO CONF CATEGORIAS
 var listar_categoria_productos = function() {
     var estado = $('#form_main_categorias #estado_categorias').val();
+
+    if ($.fn.DataTable.isDataTable("#dataTableConfCategorias")) {
+        $("#dataTableConfCategorias").DataTable().clear().destroy();
+    }
+
+    construirHeaderDataTableConfCategorias();
 
     var table_categoria_productos = $("#dataTableConfCategorias").DataTable({
         "destroy": true,
@@ -30,54 +56,93 @@ var listar_categoria_productos = function() {
                 "estado": estado
             }
         },
-        "columns": [{
+        "columns": [
+            {
+                "data": null,
+                "orderable": false,
+                "searchable": false,
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar">' +
+                                    '<span class="accion-icon accion-icon-editar">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Editar</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar ocultar">' +
+                                    '<span class="accion-icon accion-icon-eliminar">' +
+                                        '<i class="fas fa-trash-alt"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Eliminar</span>' +
+                                '</button>' +
+
+                            '</div>' +
+                        '</div>';
+                }
+            },
+            {
                 "data": "nombre"
             },
-			{
-				"data": "estado",
-				"render": function(data, type, row) {
-					if (type === 'display') {
-						var estadoText = data == 1 ? 'Activo' : 'Inactivo';
-						var icon = data == 1 ? 
-							'<i class="fas fa-check-circle mr-1"></i>' : 
-							'<i class="fas fa-times-circle mr-1"></i>';
-						var badgeClass = data == 1 ? 
-							'badge badge-pill badge-success' : 
-							'badge badge-pill badge-danger';
-						
-						return '<span class="' + badgeClass + 
-							   '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
-							   icon + estadoText + '</span>';
-					}
-					return data;
-				}
-			},			
             {
-                "defaultContent": "<button class='table_editar btn ocultar'><span class='fas fa-edit'></span>Editar</button>"
-            },
-            {
-                "defaultContent": "<button class='table_eliminar btn ocultar'><span class='fa fa-trash'></span>Eliminar</button>"
+                "data": "estado",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        var estadoText = data == 1 ? 'Activo' : 'Inactivo';
+                        var icon = data == 1 ?
+                            '<i class="fas fa-check-circle mr-1"></i>' :
+                            '<i class="fas fa-times-circle mr-1"></i>';
+                        var badgeClass = data == 1 ?
+                            'badge badge-pill badge-success' :
+                            'badge badge-pill badge-danger';
+
+                        return '<span class="' + badgeClass +
+                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                            icon + estadoText + '</span>';
+                    }
+
+                    return data;
+                }
             }
         ],
         "lengthMenu": lengthMenu,
         "stateSave": true,
         "bDestroy": true,
-        "language": idioma_español, //esta se encuenta en el archivo main.js
+        "language": idioma_español,
         "dom": dom,
-        "columnDefs": [{
-                width: "89.33%",
-                targets: 0
+        "columnDefs": [
+            {
+                width: "12%",
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
             },
             {
-                width: "5.33%",
+                width: "73%",
                 targets: 1
             },
             {
-                width: "5.33%",
-                targets: 2
+                width: "15%",
+                targets: 2,
+                className: "text-center text-nowrap align-middle"
             }
         ],
-        "buttons": [{
+        "buttons": [
+            {
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                 titleAttr: 'Actualizar Categoria Productos',
                 className: 'table_actualizar btn btn-secondary ocultar',
@@ -101,8 +166,8 @@ var listar_categoria_productos = function() {
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-success ocultar',
                 exportOptions: {
-                    columns: [0]
-                },
+                    columns: [1]
+                }
             },
             {
                 extend: 'pdf',
@@ -112,24 +177,29 @@ var listar_categoria_productos = function() {
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-danger ocultar',
                 exportOptions: {
-                    columns: [0]
+                    columns: [1]
                 },
-				customize: function(doc) {
-					if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
-						doc.content.splice(0, 0, {
-							image: imagen,  
-							width: 100,
-							height: 45,
-							margin: [0, 0, 0, 12]
-						});
-					}
-				}
+                customize: function(doc) {
+                    if (imagen) {
+                        doc.content.splice(0, 0, {
+                            image: imagen,
+                            width: 100,
+                            height: 45,
+                            margin: [0, 0, 0, 12]
+                        });
+                    }
+                }
             }
         ],
         "drawCallback": function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
         }
     });
+
     table_categoria_productos.search('').draw();
     $('#buscar').focus();
 

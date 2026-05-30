@@ -22,10 +22,51 @@ $(() => {
     });	
 });
 
+/* =========================================================
+   HEADER Y FOOTER DINÁMICO - REPORTE DE COTIZACIONES
+   ========================================================= */
+   function construirHeaderFooterDataTablaReporteCotizaciones() {
+    var $tabla = $("#dataTablaReporteCotizaciones");
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Fecha</th>' +
+                '<th>Tipo</th>' +
+                '<th>Cliente</th>' +
+                '<th>Cotización</th>' +
+                '<th>SubTotal</th>' +
+                '<th>ISV</th>' +
+                '<th>Descuento</th>' +
+                '<th>Total</th>' +
+            '</tr>' +
+        '</thead>' +
+        '<tfoot class="bg-secondary">' +
+            '<tr>' +
+                '<td colspan="5">Total</td>' +
+                '<td id="subtotal-i"></td>' +
+                '<td id="impuesto-i"></td>' +
+                '<td id="descuento-i"></td>' +
+                '<td id="total-footer-ingreso"></td>' +
+            '</tr>' +
+        '</tfoot>'
+    );
+}
+
+
+/* =========================================================
+   LISTADO - REPORTE DE COTIZACIONES
+   ========================================================= */
 var listar_reporte_cotizaciones = function() {
     var tipo_cotizacion_reporte = 1;
-    if ($("#form_main_cotizaciones #tipo_cotizacion_reporte").val() == null || $(
-            "#form_main_cotizaciones #tipo_cotizacion_reporte").val() == "") {
+
+    if (
+        $("#form_main_cotizaciones #tipo_cotizacion_reporte").val() == null ||
+        $("#form_main_cotizaciones #tipo_cotizacion_reporte").val() == ""
+    ) {
         tipo_cotizacion_reporte = 1;
     } else {
         tipo_cotizacion_reporte = $("#form_main_cotizaciones #tipo_cotizacion_reporte").val();
@@ -33,6 +74,12 @@ var listar_reporte_cotizaciones = function() {
 
     var fechai = $("#form_main_cotizaciones #fechai").val();
     var fechaf = $("#form_main_cotizaciones #fechaf").val();
+
+    if ($.fn.DataTable.isDataTable("#dataTablaReporteCotizaciones")) {
+        $("#dataTablaReporteCotizaciones").DataTable().clear().destroy();
+    }
+
+    construirHeaderFooterDataTablaReporteCotizaciones();
 
     var table_reporteCotizaciones = $("#dataTablaReporteCotizaciones").DataTable({
         "destroy": true,
@@ -45,7 +92,54 @@ var listar_reporte_cotizaciones = function() {
                 "fechaf": fechaf
             }
         },
-        "columns": [{
+        "columns": [
+            {
+                "data": null,
+                "orderable": false,
+                "searchable": false,
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+                                '<button type="button" class="dropdown-item accion-item table_reportes print_cotizaciones ocultar">' +
+                                    '<span class="accion-icon accion-icon-success">' +
+                                        '<i class="fas fa-file-download"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Cotización</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item table_reportes email_cotizacion ocultar">' +
+                                    '<span class="accion-icon accion-icon-secondary">' +
+                                        '<i class="fas fa-paper-plane"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Enviar</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_cancelar cancelar_cotizaciones ocultar">' +
+                                    '<span class="accion-icon accion-icon-eliminar">' +
+                                        '<i class="fas fa-ban"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Anular</span>' +
+                                '</button>' +
+
+                            '</div>' +
+
+                        '</div>';
+                }
+            },
+            {
                 "data": "fecha"
             },
             {
@@ -58,10 +152,9 @@ var listar_reporte_cotizaciones = function() {
                 "data": "numero",
                 "render": function(data, type, row) {
                     if (type === 'sort') {
-                        // Para ordenamiento, usamos el número base (row.numero_ordenamiento)
                         return parseInt(row.numero_ordenamiento);
                     }
-                    // Para visualización, usamos el formato completo
+
                     return data;
                 }
             },
@@ -74,6 +167,7 @@ var listar_reporte_cotizaciones = function() {
 
                     if (type === 'display') {
                         let color = 'black';
+
                         if (data < 0) {
                             color = 'red';
                         }
@@ -82,7 +176,7 @@ var listar_reporte_cotizaciones = function() {
                     }
 
                     return number;
-                },
+                }
             },
             {
                 "data": "isv",
@@ -93,6 +187,7 @@ var listar_reporte_cotizaciones = function() {
 
                     if (type === 'display') {
                         let color = 'black';
+
                         if (data < 0) {
                             color = 'red';
                         }
@@ -101,7 +196,7 @@ var listar_reporte_cotizaciones = function() {
                     }
 
                     return number;
-                },
+                }
             },
             {
                 "data": "descuento",
@@ -112,6 +207,7 @@ var listar_reporte_cotizaciones = function() {
 
                     if (type === 'display') {
                         let color = 'black';
+
                         if (data < 0) {
                             color = 'red';
                         }
@@ -120,7 +216,7 @@ var listar_reporte_cotizaciones = function() {
                     }
 
                     return number;
-                },
+                }
             },
             {
                 "data": "total",
@@ -131,6 +227,7 @@ var listar_reporte_cotizaciones = function() {
 
                     if (type === 'display') {
                         let color = 'black';
+
                         if (data < 0) {
                             color = 'red';
                         }
@@ -139,71 +236,63 @@ var listar_reporte_cotizaciones = function() {
                     }
 
                     return number;
-                },
-            },
-            {
-                "defaultContent": "<button class='table_reportes print_cotizaciones btn btn-success ocultar'><span class='fas fa-file-download fa-lg'></span>Cotización</button>"
-            },
-            {
-                "defaultContent": "<button class='table_reportes email_cotizacion btn btn-secondary ocultar'><span class='fas fa-paper-plane fa-lg'></span>Enviar</button>"
-            },
-            {
-                "defaultContent": "<button class='table_cancelar cancelar_cotizaciones btn btn-danger ocultar'><span class='fas fa-ban fa-lg'></span>Anular</button>"
+                }
             }
         ],
-        "order": [[3, "desc"]], // Ordenar por la columna 3 (número) de forma descendente
+        "order": [[4, "desc"]],
         "orderFixed": {
-            "pre": [[3, "desc"]] // Mantener este orden incluso después de búsquedas/filtros
+            "pre": [[4, "desc"]]
         },
         "lengthMenu": lengthMenu10,
         "stateSave": true,
         "bDestroy": true,
         "language": idioma_español,
         "dom": dom,
-        "columnDefs": [{
-                width: "9.09%",
-                targets: 0
+        "columnDefs": [
+            {
+                width: "10%",
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
             },
             {
-                width: "9.09%",
+                width: "10%",
                 targets: 1
             },
             {
-                width: "19.09%",
+                width: "10%",
                 targets: 2
             },
             {
-                width: "17.09%",
+                width: "20%",
                 targets: 3
             },
             {
-                width: "9.09%",
-                targets: 4
+                width: "14%",
+                targets: 4,
+                className: "text-center text-nowrap"
             },
             {
-                width: "9.09%",
-                targets: 5
+                width: "11%",
+                targets: 5,
+                className: "text-right text-nowrap"
             },
             {
-                width: "9.09%",
-                targets: 6
+                width: "11%",
+                targets: 6,
+                className: "text-right text-nowrap"
             },
             {
-                width: "9.09%",
-                targets: 7
+                width: "11%",
+                targets: 7,
+                className: "text-right text-nowrap"
             },
             {
-                width: "3.09%",
-                targets: 8
-            },
-            {
-                width: "3.09%",
-                targets: 9
-            },
-            {
-                width: "3.09%",
-                targets: 10
-            },
+                width: "13%",
+                targets: 8,
+                className: "text-right text-nowrap"
+            }
         ],
         "footerCallback": function(row, data, start, end, display) {
             var totalSubtotal = data.reduce(function(acc, row) {
@@ -225,7 +314,7 @@ var listar_reporte_cotizaciones = function() {
             var formatter = new Intl.NumberFormat('es-HN', {
                 style: 'currency',
                 currency: 'HNL',
-                minimumFractionDigits: 2,
+                minimumFractionDigits: 2
             });
 
             $('#subtotal-i').html(formatter.format(totalSubtotal));
@@ -233,7 +322,8 @@ var listar_reporte_cotizaciones = function() {
             $('#descuento-i').html(formatter.format(totalDescuento));
             $('#total-footer-ingreso').html(formatter.format(totalVentas));
         },
-        "buttons": [{
+        "buttons": [
+            {
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                 titleAttr: 'Actualizar Reporte de Cotizaciones',
                 className: 'table_actualizar btn btn-secondary ocultar',
@@ -251,7 +341,7 @@ var listar_reporte_cotizaciones = function() {
                     convertDateFormat(fechaf),
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 exportOptions: {
-                    columns: [0, 1, 2, 3, 4, 5, 6, 7]
+                    columns: [1, 2, 3, 4, 5, 6, 7, 8]
                 },
                 className: 'table_reportes btn btn-success ocultar'
             },
@@ -268,12 +358,12 @@ var listar_reporte_cotizaciones = function() {
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-danger ocultar',
                 exportOptions: {
-                    columns: [0, 1, 2, 3, 4, 5, 6, 7]
+                    columns: [1, 2, 3, 4, 5, 6, 7, 8]
                 },
                 customize: function(doc) {
                     if (imagen) {
                         doc.content.splice(0, 0, {
-                            image: imagen,  
+                            image: imagen,
                             width: 100,
                             height: 45,
                             margin: [0, 0, 0, 12]
@@ -284,8 +374,13 @@ var listar_reporte_cotizaciones = function() {
         ],
         "drawCallback": function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
         }
     });
+
     table_reporteCotizaciones.search('').draw();
     $('#buscar').focus();
 

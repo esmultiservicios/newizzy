@@ -19,113 +19,193 @@ $(document).ready(function() {
 	}); 	
 });
 
-//INICIO ACCIONES FROMULARIO PUESTOS
-var listar_puestos = function(){
-	var estado = $('#form_main_puestos #estado_puestos').val();
+/* =========================================================
+   HEADER DINÁMICO - PUESTOS
+   ========================================================= */
+   function construirHeaderDataTablePuestos() {
+    var $tabla = $("#dataTablePuestos");
 
-	var table_puestos  = $("#dataTablePuestos").DataTable({
-		"destroy":true,
-		"ajax":{
-			"method":"POST",
-			"url":"<?php echo SERVERURL;?>core/llenarDataTablePuestos.php",
-			"data": {
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Código</th>' +
+                '<th>Puesto</th>' +
+                '<th>Estado</th>' +
+            '</tr>' +
+        '</thead>'
+    );
+}
+
+//INICIO ACCIONES FROMULARIO PUESTOS
+var listar_puestos = function() {
+    var estado = $('#form_main_puestos #estado_puestos').val();
+
+    if ($.fn.DataTable.isDataTable("#dataTablePuestos")) {
+        $("#dataTablePuestos").DataTable().clear().destroy();
+    }
+
+    construirHeaderDataTablePuestos();
+
+    var table_puestos = $("#dataTablePuestos").DataTable({
+        "destroy": true,
+        "ajax": {
+            "method": "POST",
+            "url": "<?php echo SERVERURL;?>core/llenarDataTablePuestos.php",
+            "data": {
                 "estado": estado
             }
-		},
-		"columns":[
-			{"data":"puestos_id"},
-			{"data":"nombre"},
+        },
+        "columns": [
+            {
+                "data": null,
+                "orderable": false,
+                "searchable": false,
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar">' +
+                                    '<span class="accion-icon accion-icon-editar">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Editar</span>' +
+                                '</button>' +
+                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar ocultar">' +
+                                    '<span class="accion-icon accion-icon-eliminar">' +
+                                        '<i class="fas fa-trash-alt"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Eliminar</span>' +
+                                '</button>' +
+                            '</div>' +
+                        '</div>';
+                }
+            },
+            {"data": "puestos_id"},
+            {"data": "nombre"},
             {
                 "data": "estado",
                 "render": function(data, type, row) {
                     if (type === 'display') {
                         var estadoText = data == 1 ? 'Activo' : 'Inactivo';
-                        var icon = data == 1 ? 
-                            '<i class="fas fa-check-circle mr-1"></i>' : 
+                        var icon = data == 1 ?
+                            '<i class="fas fa-check-circle mr-1"></i>' :
                             '<i class="fas fa-times-circle mr-1"></i>';
-                        var badgeClass = data == 1 ? 
-                            'badge badge-pill badge-success' : 
+                        var badgeClass = data == 1 ?
+                            'badge badge-pill badge-success' :
                             'badge badge-pill badge-danger';
-                        
-                        return '<span class="' + badgeClass + 
+
+                        return '<span class="' + badgeClass +
                             '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
                             icon + estadoText + '</span>';
                     }
+
                     return data;
                 }
-            },			
-			{"defaultContent":"<button class='table_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"},
-			{"defaultContent":"<button class='table_eliminar btn ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"}
-		],
+            }
+        ],
         "lengthMenu": lengthMenu,
-		"stateSave": true,
-		"language": idioma_español,
-		"dom": dom,
-		"columnDefs": [
-		  { width: "5%", targets: 0 },
-		  { width: "85%", targets: 1 },
-		  { width: "5%", targets: 2 },
-		  { width: "5%", targets: 3 }
-		],
-		"buttons":[
-			{
-				text:      '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-				titleAttr: 'Actualizar Puestos',
-				className: 'table_actualizar btn btn-secondary ocultar',
-				action: 	function(){
-					listar_puestos();
-				}
-			},
-			{
-				text:      '<i class="fas fas fa-plus fa-lg"></i> Ingresar',
-				titleAttr: 'Agregar Puestos',
-				className: 'table_crear btn btn-primary ocultar',
-				action: 	function(){
-					modal_puestos();
-				}
-			},
-			{
-				extend:    'excelHtml5',
-				text:      '<i class="fas fa-file-excel fa-lg"></i> Excel',
-				titleAttr: 'Excel',
-				title: 'Reporte de Puestos',
-				messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-				className: 'table_reportes btn btn-success ocultar',
-				exportOptions: {
-						columns: [0,1]
-				}					
-			},
-			{
-				extend:    'pdf',
-				text:      '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-				titleAttr: 'PDF',
-				title: 'Reporte de Puestos',
-				messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-				className: 'table_reportes btn btn-danger ocultar',
-				exportOptions: {
-						columns: [0,1]
-				},				
+        "stateSave": true,
+        "language": idioma_español,
+        "dom": dom,
+        "columnDefs": [
+            {
+                width: "10%",
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
+            },
+            {
+                width: "10%",
+                targets: 1,
+                className: "text-center text-nowrap"
+            },
+            {
+                width: "65%",
+                targets: 2
+            },
+            {
+                width: "15%",
+                targets: 3,
+                className: "text-center text-nowrap align-middle"
+            }
+        ],
+        "buttons": [
+            {
+                text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
+                titleAttr: 'Actualizar Puestos',
+                className: 'table_actualizar btn btn-secondary ocultar',
+                action: function() {
+                    listar_puestos();
+                }
+            },
+            {
+                text: '<i class="fas fas fa-plus fa-lg"></i> Ingresar',
+                titleAttr: 'Agregar Puestos',
+                className: 'table_crear btn btn-primary ocultar',
+                action: function() {
+                    modal_puestos();
+                }
+            },
+            {
+                extend: 'excelHtml5',
+                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
+                titleAttr: 'Excel',
+                title: 'Reporte de Puestos',
+                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
+                className: 'table_reportes btn btn-success ocultar',
+                exportOptions: {
+                    columns: [1, 2]
+                }
+            },
+            {
+                extend: 'pdf',
+                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
+                titleAttr: 'PDF',
+                title: 'Reporte de Puestos',
+                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
+                className: 'table_reportes btn btn-danger ocultar',
+                exportOptions: {
+                    columns: [1, 2]
+                },
                 customize: function(doc) {
-                    if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
+                    if (imagen) {
                         doc.content.splice(0, 0, {
-                            image: imagen,  
+                            image: imagen,
                             width: 100,
                             height: 45,
                             margin: [0, 0, 0, 12]
                         });
                     }
                 }
-			}
-		],
-		"drawCallback": function( settings ) {
-        	getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-    	}
-	});
-	table_puestos.search('').draw();
-	$('#buscar').focus();
+            }
+        ],
+        "drawCallback": function(settings) {
+            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
 
-	editar_puestos_dataTable("#dataTablePuestos tbody", table_puestos);
-	eliminar_puestos_dataTable("#dataTablePuestos tbody", table_puestos);
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
+        }
+    });
+
+    table_puestos.search('').draw();
+    $('#buscar').focus();
+
+    editar_puestos_dataTable("#dataTablePuestos tbody", table_puestos);
+    eliminar_puestos_dataTable("#dataTablePuestos tbody", table_puestos);
 }
 
 var editar_puestos_dataTable = function(tbody, table){

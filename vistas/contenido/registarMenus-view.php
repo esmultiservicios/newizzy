@@ -113,19 +113,6 @@
         <div class="card-body">
             <div class="table-responsive">
                 <table id="dataTableMenus" class="table table-striped table-header-gradient table-condensed table-hover" style="width:100%">
-                    <thead>
-                        <tr>
-                            <th>Tipo</th>
-                            <th>Nombre</th>
-                            <th>Descripción</th>
-                            <th>Ícono</th>
-                            <th>Orden</th>                            
-                            <th>Dependencia</th>
-                            <th>Visible</th>
-                            <th>Editar</th>
-                            <th>Eliminar</th>
-                        </tr>
-                    </thead>
                     <tbody>
                         <!-- Los datos se cargarán via AJAX -->
                     </tbody>

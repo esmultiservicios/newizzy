@@ -73,28 +73,6 @@
         <div class="card-body">
             <div class="table-responsive">
                 <table id="dataTableCajas" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-                    <thead>
-                        <tr>
-                            <th>Acciones</th>
-                            <th>Fecha</th>
-                            <th>Usuario</th>
-                            <th>Factura Inicial</th>
-                            <th>Factura Final</th>
-                            <th>Monto Apertura</th>
-                            <th>Venta del Día</th>
-                            <th>Retiro Caja</th>
-                            <th>Neto Caja</th>
-                        </tr>
-                    </thead>
-                    <tfoot>
-                        <tr>
-                            <th colspan="5" class="text-right">Totales:</th>
-                            <th id="total_monto_apertura">L. 0.00</th>
-                            <th id="total_venta_dia">L. 0.00</th>
-                            <th id="total_retiro_caja">L. 0.00</th>
-                            <th id="total_neto">L. 0.00</th>
-                        </tr>
-                    </tfoot>
                 </table>
             </div>
         </div>

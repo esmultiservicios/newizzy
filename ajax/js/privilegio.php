@@ -26,153 +26,283 @@ function asigToBool(val) {
   return false;
 }
 
+  /* =========================================================
+   HEADER DINÁMICO - PRIVILEGIOS
+   ========================================================= */
+   function construirHeaderDataTablePrivilegio() {
+    var $tabla = $("#dataTablePrivilegio");
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Privilegio</th>' +
+                '<th>Estado</th>' +
+                '<th>Menús</th>' +
+                '<th>Submenús</th>' +
+                '<th>Submenús 1</th>' +
+            '</tr>' +
+        '</thead>'
+    );
+}
+
 /* ------------ DataTable Privilegios ------------ */
 var listar_privilegio = function () {
-  var estado = $('#form_main_privilegios #estado_privilegios').val();
+    var estado = $('#form_main_privilegios #estado_privilegios').val();
 
-  var table_privilegio = $('#dataTablePrivilegio').DataTable({
-    destroy: true,
-    ajax: {
-      method: 'POST',
-      url: '<?php echo SERVERURL;?>core/llenarDataTablePrivilegio.php',
-      data: { estado: estado },
-    },
-    columns: [
-      { data: 'nombre' },
-      {
-        data: 'estado',
-        render: function (data, type) {
-          if (type === 'display') {
-            var estadoText = data == 1 ? 'Activo' : 'Inactivo';
-            var icon =
-              data == 1
-                ? '<i class="fas fa-check-circle mr-1"></i>'
-                : '<i class="fas fa-times-circle mr-1"></i>';
-            var badgeClass =
-              data == 1
-                ? 'badge badge-pill badge-success'
-                : 'badge badge-pill badge-danger';
-            return (
-              '<span class="' +
-              badgeClass +
-              '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
-              icon +
-              estadoText +
-              '</span>'
-            );
-          }
-          return data;
-        },
-      },
-      {
-        data: null,
-        render: (data, type, row) => {
-          const count = row.menus_asignados || 0;
-          return `
-            <button class="btn btn-sm btn-dark table_accesos menu" 
-                    data-plan-id="${row.planes_id}" 
-                    data-plan-nombre="${row.nombre}">
-              <i class="fas fa-link"></i> Asignar
-            </button>
-            <div class="mt-1 small" id="contador-menus-${row.planes_id}">${count} asignados</div>
-          `;
-        },
-      },
-      {
-        data: null,
-        render: (data, type, row) => {
-          const count = row.submenus_asignados || 0;
-          return `
-            <button class="btn btn-sm btn-dark table_accesos submenu" 
-                    data-plan-id="${row.planes_id}" 
-                    data-plan-nombre="${row.nombre}">
-              <i class="fas fa-link"></i> Asignar
-            </button>
-            <div class="mt-1 small" id="contador-submenus-${row.planes_id}">${count} asignados</div>
-          `;
-        },
-      },
-      {
-        data: null,
-        render: (data, type, row) => {
-          const count = row.submenus1_asignados || 0;
-          return `
-            <button class="btn btn-sm btn-dark table_accesos submenu1" 
-                    data-plan-id="${row.planes_id}" 
-                    data-plan-nombre="${row.nombre}">
-              <i class="fas fa-link"></i> Asignar
-            </button>
-            <div class="mt-1 small" id="contador-submenus1-${row.planes_id}">${count} asignados</div>
-          `;
-        },
-      },
-      { defaultContent: "<button class='table_editar btn btn-dark'><span class='fas fa-edit fa-lg'></span>Editar</button>" },
-      { defaultContent: "<button class='table_eliminar1 table_eliminar btn btn-dark'><span class='fa fa-trash fa-lg'></span>Eliminar</button>" },
-    ],
-    lengthMenu: lengthMenu,
-    stateSave: true,
-    bDestroy: true,
-    language: idioma_español,
-    dom: dom,
-    columnDefs: [
-      { width: '89.33%', targets: 0 },
-      { width: '5.33%', targets: 1 },
-      { width: '5.33%', targets: 2 },
-    ],
-    buttons: [
-      {
-        text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-        titleAttr: 'Actualizar Privilegios',
-        className: 'btn btn-secondary',
-        action: function () {
-          listar_privilegio();
-        },
-      },
-      {
-        text: '<i class="fas fas fa-plus fa-lg"></i> Ingresar',
-        titleAttr: 'Agregar Privilegios',
-        className: 'btn btn-primary',
-        action: function () {
-          modal_privilegios();
-        },
-      },
-      {
-        extend: 'excelHtml5',
-        text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
-        titleAttr: 'Excel',
-        title: 'Reporte Privilegios',
-        messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-        className: 'btn btn-success',
-        exportOptions: { columns: [0] },
-      },
-      {
-        extend: 'pdf',
-        text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-        titleAttr: 'PDF',
-        title: 'Reporte Privilegios',
-        messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-        className: 'btn btn-danger',
-        exportOptions: { columns: [0] },
-        customize: function (doc) {
-          if (imagen) {
-            doc.content.splice(0, 0, { image: imagen, width: 100, height: 45, margin: [0, 0, 0, 12] });
-          }
-        },
-      },
-    ],
-    drawCallback: function () {
-      getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-    },
-  });
+    if ($.fn.DataTable.isDataTable("#dataTablePrivilegio")) {
+        $("#dataTablePrivilegio").DataTable().clear().destroy();
+    }
 
-  table_privilegio.search('').draw();
-  $('#buscar').focus();
+    construirHeaderDataTablePrivilegio();
 
-  accesos_privilegio_menu_dataTable('#dataTablePrivilegio tbody', table_privilegio);
-  accesos_privilegio_submenu_dataTable('#dataTablePrivilegio tbody', table_privilegio);
-  accesos_privilegio_submenu1_dataTable('#dataTablePrivilegio tbody', table_privilegio);
-  editar_privilegio_dataTable('#dataTablePrivilegio tbody', table_privilegio);
-  eliminar_privilegio_dataTable('#dataTablePrivilegio tbody', table_privilegio);
+    var table_privilegio = $('#dataTablePrivilegio').DataTable({
+        destroy: true,
+        ajax: {
+            method: 'POST',
+            url: '<?php echo SERVERURL;?>core/llenarDataTablePrivilegio.php',
+            data: {
+                estado: estado
+            }
+        },
+        columns: [
+            {
+                data: null,
+                orderable: false,
+                searchable: false,
+                className: "text-center align-middle",
+                render: function(data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+                                '<button type="button" class="dropdown-item accion-item table_accesos menu" ' +
+                                    'data-plan-id="' + row.planes_id + '" ' +
+                                    'data-plan-nombre="' + row.nombre + '">' +
+                                    '<span class="accion-icon accion-icon-primary">' +
+                                        '<i class="fas fa-link"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Asignar Menú</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item table_accesos submenu" ' +
+                                    'data-plan-id="' + row.planes_id + '" ' +
+                                    'data-plan-nombre="' + row.nombre + '">' +
+                                    '<span class="accion-icon accion-icon-primary">' +
+                                        '<i class="fas fa-link"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Asignar Submenú</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item table_accesos submenu1" ' +
+                                    'data-plan-id="' + row.planes_id + '" ' +
+                                    'data-plan-nombre="' + row.nombre + '">' +
+                                    '<span class="accion-icon accion-icon-primary">' +
+                                        '<i class="fas fa-link"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Asignar Submenú 1</span>' +
+                                '</button>' +
+
+                                '<div class="dropdown-divider"></div>' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar">' +
+                                    '<span class="accion-icon accion-icon-editar">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Editar</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar1 table_eliminar">' +
+                                    '<span class="accion-icon accion-icon-eliminar">' +
+                                        '<i class="fas fa-trash-alt"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Eliminar</span>' +
+                                '</button>' +
+
+                            '</div>' +
+
+                        '</div>';
+                }
+            },
+            {
+                data: 'nombre'
+            },
+            {
+                data: 'estado',
+                render: function(data, type) {
+                    if (type === 'display') {
+                        var estadoText = data == 1 ? 'Activo' : 'Inactivo';
+
+                        var icon = data == 1
+                            ? '<i class="fas fa-check-circle mr-1"></i>'
+                            : '<i class="fas fa-times-circle mr-1"></i>';
+
+                        var badgeClass = data == 1
+                            ? 'badge badge-pill badge-success'
+                            : 'badge badge-pill badge-danger';
+
+                        return '<span class="' +
+                            badgeClass +
+                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                            icon +
+                            estadoText +
+                            '</span>';
+                    }
+
+                    return data;
+                }
+            },
+            {
+                data: null,
+                className: "text-center",
+                render: function(data, type, row) {
+                    const count = row.menus_asignados || 0;
+
+                    return '<span class="badge badge-pill badge-primary" id="contador-menus-' + row.planes_id + '">' +
+                        count + ' asignados' +
+                    '</span>';
+                }
+            },
+            {
+                data: null,
+                className: "text-center",
+                render: function(data, type, row) {
+                    const count = row.submenus_asignados || 0;
+
+                    return '<span class="badge badge-pill badge-info" id="contador-submenus-' + row.planes_id + '">' +
+                        count + ' asignados' +
+                    '</span>';
+                }
+            },
+            {
+                data: null,
+                className: "text-center",
+                render: function(data, type, row) {
+                    const count = row.submenus1_asignados || 0;
+
+                    return '<span class="badge badge-pill badge-secondary" id="contador-submenus1-' + row.planes_id + '">' +
+                        count + ' asignados' +
+                    '</span>';
+                }
+            }
+        ],
+        lengthMenu: lengthMenu,
+        stateSave: true,
+        bDestroy: true,
+        language: idioma_español,
+        dom: dom,
+        columnDefs: [
+            {
+                width: '12%',
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
+            },
+            {
+                width: '38%',
+                targets: 1
+            },
+            {
+                width: '12%',
+                targets: 2,
+                className: "text-center text-nowrap align-middle"
+            },
+            {
+                width: '12%',
+                targets: 3,
+                className: "text-center text-nowrap"
+            },
+            {
+                width: '13%',
+                targets: 4,
+                className: "text-center text-nowrap"
+            },
+            {
+                width: '13%',
+                targets: 5,
+                className: "text-center text-nowrap"
+            }
+        ],
+        buttons: [
+            {
+                text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
+                titleAttr: 'Actualizar Privilegios',
+                className: 'btn btn-secondary',
+                action: function () {
+                    listar_privilegio();
+                }
+            },
+            {
+                text: '<i class="fas fas fa-plus fa-lg"></i> Ingresar',
+                titleAttr: 'Agregar Privilegios',
+                className: 'btn btn-primary',
+                action: function () {
+                    modal_privilegios();
+                }
+            },
+            {
+                extend: 'excelHtml5',
+                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
+                titleAttr: 'Excel',
+                title: 'Reporte Privilegios',
+                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
+                className: 'btn btn-success',
+                exportOptions: {
+                    columns: [1, 2, 3, 4, 5]
+                }
+            },
+            {
+                extend: 'pdf',
+                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
+                titleAttr: 'PDF',
+                title: 'Reporte Privilegios',
+                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
+                className: 'btn btn-danger',
+                exportOptions: {
+                    columns: [1, 2, 3, 4, 5]
+                },
+                customize: function (doc) {
+                    if (imagen) {
+                        doc.content.splice(0, 0, {
+                            image: imagen,
+                            width: 100,
+                            height: 45,
+                            margin: [0, 0, 0, 12]
+                        });
+                    }
+                }
+            }
+        ],
+        drawCallback: function () {
+            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
+        }
+    });
+
+    table_privilegio.search('').draw();
+    $('#buscar').focus();
+
+    accesos_privilegio_menu_dataTable('#dataTablePrivilegio tbody', table_privilegio);
+    accesos_privilegio_submenu_dataTable('#dataTablePrivilegio tbody', table_privilegio);
+    accesos_privilegio_submenu1_dataTable('#dataTablePrivilegio tbody', table_privilegio);
+    editar_privilegio_dataTable('#dataTablePrivilegio tbody', table_privilegio);
+    eliminar_privilegio_dataTable('#dataTablePrivilegio tbody', table_privilegio);
 };
 
 /* ------------ Botones abrir modales ------------ */

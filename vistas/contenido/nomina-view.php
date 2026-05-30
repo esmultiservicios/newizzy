@@ -115,30 +115,6 @@
                     <div class="table-responsive">
                         <table id="dataTableNomina" class="table table-header-gradient table-striped table-condensed table-hover"
                             style="width:100%">
-                            <thead>
-                                <tr>
-                                    <th>Código</th>
-                                    <th>Detalle</th>
-                                    <th>Empresa</th>
-                                    <th>Fecha Inicio</th>
-                                    <th>Fecha Fin</th>
-                                    <th>Importe</th>
-                                    <th>Notas</th>
-                                    <th>Estado</th>
-                                    <th>Acciones</th>
-                                    <th>Crear</th>
-                                    <th>Editar</th>
-                                    <th>Eliminar</th>
-                                </tr>
-                            </thead>
-                            <tfoot class="bg-secondary">
-                                <tr>
-                                    <td colspan='1'>Total</td>
-                                    <td colspan="4"></td>
-                                    <td id="neto_importe"></td>
-                                    <td colspan="6"></td>
-                                </tr>
-                            </tfoot>
                         </table>
                     </div>
                 </div>
@@ -246,31 +222,6 @@
                     <div class="table-responsive">
                         <table id="dataTableNominaDetalles" class="table table-header-gradient table-striped table-condensed table-hover"
                             style="width:100%">
-                            <thead>
-                                <tr>
-                                    <th>Nomina</th>
-                                    <th>Contrato</th>
-                                    <th>Empresa</th>
-                                    <th>Empleado</th>
-                                    <th>Neto Ingresos</th>
-                                    <th>Neto Egresos</th>
-                                    <th>Neto</th>
-                                    <th>Notas</th>
-                                    <th>Estado</th>
-                                    <th>Editar</th>
-                                    <th>Eliminar</th>
-                                </tr>
-                            </thead>
-                            <tfoot class="bg-secondary">
-                                <tr>
-                                    <td colspan='1'>Total</td>
-                                    <td colspan="3"></td>
-                                    <td id="neto_ingreso"></td>
-                                    <td id="neto_egreso"></td>
-                                    <td id="neto"></td>
-                                    <td colspan="4"></td>
-                                </tr>
-                            </tfoot>
                         </table>
                     </div>
                 </div>

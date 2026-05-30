@@ -94,20 +94,6 @@
         <div class="card-body">
             <div class="table-responsive">
                 <table id="tablaAsignaciones" class="table table-striped table-header-gradient table-condensed table-hover" style="width:100%">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Cliente</th>
-                            <th>Plan Actual</th>
-                            <th>Sistema</th>
-                            <th>Usuarios Extras</th>
-                            <th>Validar</th>
-                            <th>Estado</th>
-                            <th>Fecha Asignación</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
                 </table>
             </div>
         </div>

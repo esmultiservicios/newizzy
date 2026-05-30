@@ -200,131 +200,250 @@ $(() => {
   }
 });
 
-//INICIO ACCIONES FROMULARIO EMPRESA
+/* =========================================================
+   HEADER DINÁMICO - EMPRESA
+   ========================================================= */
+   function construirHeaderDataTableEmpresa() {
+    var $tabla = $("#dataTableEmpresa");
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Logo</th>' +
+                '<th>Razón Social</th>' +
+                '<th>Nombre</th>' +
+                '<th>Teléfono</th>' +
+                '<th>Correo</th>' +
+                '<th>RTN</th>' +
+                '<th>Ubicación</th>' +
+                '<th>Estado</th>' +
+            '</tr>' +
+        '</thead>'
+    );
+}
+
 // INICIO ACCIONES FORMULARIO EMPRESA
 var listar_empresa = function() {
-  var estado = $('#form_main_empresa #estado_empresa').val();
+    var estado = $('#form_main_empresa #estado_empresa').val();
 
-  // ====== NUEVO: base URL a la carpeta enterprise (coincide con ENTERPRISE_PATH del backend)
-  var ENTERPRISE_URL = '<?php echo rtrim(SERVERURL, "/") . ENTERPRISE_PATH; ?>'; // termina con /
+    var ENTERPRISE_URL = '<?php echo rtrim(SERVERURL, "/") . ENTERPRISE_PATH; ?>';
 
-  var table_empresa = $("#dataTableEmpresa").DataTable({
-    "destroy": true,
-    "ajax": {
-      "method": "POST",
-      "url": "<?php echo SERVERURL;?>core/llenarDataTableEmpresa.php",
-      "data": { "estado": estado }
-    },
-    "columns": [
-      // Columna de logo (miniatura + iv-trigger)
-      {
-        "data": "image",
-        "orderable": false,
-        "render": function(data, type, row, meta) {
-          // default dentro de enterprise (ya no products)
-          var defaultLogoUrl = ENTERPRISE_URL + 'image_preview.png';
-          // si el backend devuelve solo el nombre de archivo (p.ej. logo_ab12cd.png)
-          var imageUrl = data ? (ENTERPRISE_URL + data) : defaultLogoUrl;
-
-          var safeTitle = (row && (row.nombre || row.razon_social))
-            ? String(row.nombre || row.razon_social).replace(/"/g,'&quot;')
-            : 'Logo';
-
-          return '' +
-            '<a href="#" class="iv-trigger" ' +
-              'data-iv-src="' + imageUrl + '" ' +
-              'data-iv-fallback="' + defaultLogoUrl + '" ' +
-              'data-iv-title="' + safeTitle + '">' +
-              '<img class="table-image" src="' + imageUrl + '" alt="' + safeTitle + '">' +
-            '</a>';
-        }
-      },
-      { "data": "razon_social" },
-      { "data": "nombre" },
-      { "data": "telefono" },
-      { "data": "correo" },
-      { "data": "rtn" },
-      { "data": "ubicacion" },
-      {
-        "data": "estado",
-        "render": function(data, type, row) {
-          if (type === 'display') {
-            var estadoText = data == 1 ? 'Activo' : 'Inactivo';
-            var icon = data == 1
-              ? '<i class="fas fa-check-circle mr-1"></i>'
-              : '<i class="fas fa-times-circle mr-1"></i>';
-            var badgeClass = data == 1
-              ? 'badge badge-pill badge-success'
-              : 'badge badge-pill badge-danger';
-
-            return '<span class="' + badgeClass + '" style="font-size:0.95rem;padding:.5em .8em;font-weight:600;">' +
-              icon + estadoText + '</span>';
-          }
-          return data;
-        }
-      },
-      { "defaultContent": "<button class='table_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>" },
-      { "defaultContent": "<button class='table_eliminar btn ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>" }
-    ],
-    "lengthMenu": lengthMenu,
-    "stateSave": true,
-    "bDestroy": true,
-    "language": idioma_español,
-    "dom": dom,
-    "buttons": [
-      {
-        text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-        titleAttr: 'Actualizar Empresa',
-        className: 'table_actualizar btn btn-secondary ocultar',
-        action: function() { listar_empresa(); }
-      },
-      {
-        text: '<i class="fas fas fa-plus fa-lg"></i> Ingresar',
-        titleAttr: 'Agregar Empresa',
-        className: 'table_crear btn btn-primary ocultar',
-        action: function() { modal_empresa(); }
-      },
-      {
-        extend: 'excelHtml5',
-        text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
-        titleAttr: 'Excel',
-        title: 'Reporte de Empresa',
-        messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-        className: 'table_reportes btn btn-success ocultar',
-        exportOptions: { columns: [0, 1, 2, 3, 4, 5] }
-      },
-      {
-        extend: 'pdf',
-        orientation: 'landscape',
-        pageSize: 'LEGAL',
-        text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-        titleAttr: 'PDF',
-        title: 'Reporte de Empresa',
-        messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today() ),
-        className: 'table_reportes btn btn-danger ocultar',
-        exportOptions: { columns: [0, 1, 2, 3, 4, 5] },
-        customize: function(doc) {
-          if (typeof imagen !== 'undefined' && imagen) {
-            doc.content.splice(0, 0, {
-              image: imagen,
-              width: 100,
-              height: 45,
-              margin: [0, 0, 0, 12]
-            });
-          }
-        }
-      }
-    ],
-    "drawCallback": function(settings) {
-      getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+    if ($.fn.DataTable.isDataTable("#dataTableEmpresa")) {
+        $("#dataTableEmpresa").DataTable().clear().destroy();
     }
-  });
 
-  table_empresa.search('').draw();
-  $('#buscar').focus();
+    construirHeaderDataTableEmpresa();
 
-  editar_empresa_dataTable("#dataTableEmpresa tbody", table_empresa);
-  eliminar_empresa_dataTable("#dataTableEmpresa tbody", table_empresa);
+    var table_empresa = $("#dataTableEmpresa").DataTable({
+        "destroy": true,
+        "ajax": {
+            "method": "POST",
+            "url": "<?php echo SERVERURL;?>core/llenarDataTableEmpresa.php",
+            "data": {
+                "estado": estado
+            }
+        },
+        "columns": [
+            {
+                "data": null,
+                "orderable": false,
+                "searchable": false,
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar">' +
+                                    '<span class="accion-icon accion-icon-editar">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Editar</span>' +
+                                '</button>' +
+                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar ocultar">' +
+                                    '<span class="accion-icon accion-icon-eliminar">' +
+                                        '<i class="fas fa-trash-alt"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Eliminar</span>' +
+                                '</button>' +
+                            '</div>' +
+                        '</div>';
+                }
+            },
+            {
+                "data": "image",
+                "orderable": false,
+                "searchable": false,
+                "className": "text-center align-middle",
+                "render": function(data, type, row, meta) {
+                    var defaultLogoUrl = ENTERPRISE_URL + 'image_preview.png';
+                    var imageUrl = data ? (ENTERPRISE_URL + data) : defaultLogoUrl;
+
+                    var safeTitle = (row && (row.nombre || row.razon_social))
+                        ? String(row.nombre || row.razon_social).replace(/"/g, '&quot;')
+                        : 'Logo';
+
+                    return '' +
+                        '<a href="#" class="iv-trigger" ' +
+                            'data-iv-src="' + imageUrl + '" ' +
+                            'data-iv-fallback="' + defaultLogoUrl + '" ' +
+                            'data-iv-title="' + safeTitle + '">' +
+                            '<img class="table-image" src="' + imageUrl + '" alt="' + safeTitle + '">' +
+                        '</a>';
+                }
+            },
+            {"data": "razon_social"},
+            {"data": "nombre"},
+            {"data": "telefono"},
+            {"data": "correo"},
+            {"data": "rtn"},
+            {"data": "ubicacion"},
+            {
+                "data": "estado",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        var estadoText = data == 1 ? 'Activo' : 'Inactivo';
+                        var icon = data == 1
+                            ? '<i class="fas fa-check-circle mr-1"></i>'
+                            : '<i class="fas fa-times-circle mr-1"></i>';
+                        var badgeClass = data == 1
+                            ? 'badge badge-pill badge-success'
+                            : 'badge badge-pill badge-danger';
+
+                        return '<span class="' + badgeClass + '" style="font-size:0.95rem;padding:.5em .8em;font-weight:600;">' +
+                            icon + estadoText + '</span>';
+                    }
+
+                    return data;
+                }
+            }
+        ],
+        "lengthMenu": lengthMenu,
+        "stateSave": true,
+        "bDestroy": true,
+        "language": idioma_español,
+        "dom": dom,
+        "columnDefs": [
+            {
+                width: "10%",
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
+            },
+            {
+                width: "8%",
+                targets: 1,
+                orderable: false,
+                searchable: false,
+                className: "text-center align-middle"
+            },
+            {
+                width: "18%",
+                targets: 2
+            },
+            {
+                width: "14%",
+                targets: 3
+            },
+            {
+                width: "10%",
+                targets: 4
+            },
+            {
+                width: "16%",
+                targets: 5
+            },
+            {
+                width: "10%",
+                targets: 6
+            },
+            {
+                width: "16%",
+                targets: 7
+            },
+            {
+                width: "10%",
+                targets: 8,
+                className: "text-center text-nowrap align-middle"
+            }
+        ],
+        "buttons": [
+            {
+                text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
+                titleAttr: 'Actualizar Empresa',
+                className: 'table_actualizar btn btn-secondary ocultar',
+                action: function() {
+                    listar_empresa();
+                }
+            },
+            {
+                text: '<i class="fas fas fa-plus fa-lg"></i> Ingresar',
+                titleAttr: 'Agregar Empresa',
+                className: 'table_crear btn btn-primary ocultar',
+                action: function() {
+                    modal_empresa();
+                }
+            },
+            {
+                extend: 'excelHtml5',
+                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
+                titleAttr: 'Excel',
+                title: 'Reporte de Empresa',
+                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
+                className: 'table_reportes btn btn-success ocultar',
+                exportOptions: {
+                    columns: [2, 3, 4, 5, 6, 7]
+                }
+            },
+            {
+                extend: 'pdf',
+                orientation: 'landscape',
+                pageSize: 'LEGAL',
+                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
+                titleAttr: 'PDF',
+                title: 'Reporte de Empresa',
+                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
+                className: 'table_reportes btn btn-danger ocultar',
+                exportOptions: {
+                    columns: [2, 3, 4, 5, 6, 7]
+                },
+                customize: function(doc) {
+                    if (typeof imagen !== 'undefined' && imagen) {
+                        doc.content.splice(0, 0, {
+                            image: imagen,
+                            width: 100,
+                            height: 45,
+                            margin: [0, 0, 0, 12]
+                        });
+                    }
+                }
+            }
+        ],
+        "drawCallback": function(settings) {
+            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
+        }
+    });
+
+    table_empresa.search('').draw();
+    $('#buscar').focus();
+
+    editar_empresa_dataTable("#dataTableEmpresa tbody", table_empresa);
+    eliminar_empresa_dataTable("#dataTableEmpresa tbody", table_empresa);
 };
 
 var editar_empresa_dataTable = function(tbody, table) {

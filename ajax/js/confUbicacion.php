@@ -18,114 +18,194 @@ $(document).ready(function() {
 			listar_ubicacion();
 	});	
 });
-//INICIO UBUCACION
-var listar_ubicacion = function(){
-	var estado = $('#form_main_ubicacion #estado_ubicacion').val();
 
-	var table_ubicacion  = $("#dataTableConfUbicacion").DataTable({
-		"destroy":true,
-		"ajax":{
-			"method":"POST",
-			"url":"<?php echo SERVERURL; ?>core/llenarDataTableUbicacion.php",
-			"data": {
+/* =========================================================
+   HEADER DINÁMICO - UBICACIÓN
+   ========================================================= */
+   function construirHeaderDataTableConfUbicacion() {
+    var $tabla = $("#dataTableConfUbicacion");
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Ubicación</th>' +
+                '<th>Empresa</th>' +
+                '<th>Estado</th>' +
+            '</tr>' +
+        '</thead>'
+    );
+}
+
+//INICIO UBUCACION
+var listar_ubicacion = function() {
+    var estado = $('#form_main_ubicacion #estado_ubicacion').val();
+
+    if ($.fn.DataTable.isDataTable("#dataTableConfUbicacion")) {
+        $("#dataTableConfUbicacion").DataTable().clear().destroy();
+    }
+
+    construirHeaderDataTableConfUbicacion();
+
+    var table_ubicacion = $("#dataTableConfUbicacion").DataTable({
+        "destroy": true,
+        "ajax": {
+            "method": "POST",
+            "url": "<?php echo SERVERURL; ?>core/llenarDataTableUbicacion.php",
+            "data": {
                 "estado": estado
-            }			
-		},
-		"columns":[
-			{"data":"ubicacion"},
-			{"data":"empresa"},
-			{
-				"data": "estado",
-				"render": function(data, type, row) {
-					if (type === 'display') {
-						var estadoText = data == 1 ? 'Activo' : 'Inactivo';
-						var icon = data == 1 ? 
-							'<i class="fas fa-check-circle mr-1"></i>' : 
-							'<i class="fas fa-times-circle mr-1"></i>';
-						var badgeClass = data == 1 ? 
-							'badge badge-pill badge-success' : 
-							'badge badge-pill badge-danger';
-						
-						return '<span class="' + badgeClass + 
-							   '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
-							   icon + estadoText + '</span>';
-					}
-					return data;
-				}
-			},		
-			{"defaultContent":"<button class='table_editar btn ocultar'><span class='fas fa-edit'></span>Editar</button>"},
-			{"defaultContent":"<button class='table_eliminar btn ocultar'><span class='fa fa-trash'></span>Eliminar</button>"}
-		],
+            }
+        },
+        "columns": [
+            {
+                "data": null,
+                "orderable": false,
+                "searchable": false,
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar">' +
+                                    '<span class="accion-icon accion-icon-editar">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Editar</span>' +
+                                '</button>' +
+                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar ocultar">' +
+                                    '<span class="accion-icon accion-icon-eliminar">' +
+                                        '<i class="fas fa-trash-alt"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Eliminar</span>' +
+                                '</button>' +
+                            '</div>' +
+                        '</div>';
+                }
+            },
+            {"data": "ubicacion"},
+            {"data": "empresa"},
+            {
+                "data": "estado",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        var estadoText = data == 1 ? 'Activo' : 'Inactivo';
+                        var icon = data == 1 ?
+                            '<i class="fas fa-check-circle mr-1"></i>' :
+                            '<i class="fas fa-times-circle mr-1"></i>';
+                        var badgeClass = data == 1 ?
+                            'badge badge-pill badge-success' :
+                            'badge badge-pill badge-danger';
+
+                        return '<span class="' + badgeClass +
+                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                            icon + estadoText + '</span>';
+                    }
+
+                    return data;
+                }
+            }
+        ],
         "lengthMenu": lengthMenu,
-		"stateSave": true,
-		"bDestroy": true,
-		"language": idioma_español,//esta se encuenta en el archivo main.js
-		"dom": dom,
-		"columnDefs": [
-		  { width: "45%", targets: 0 },
-		  { width: "45%", targets: 1 },
-		  { width: "5%", targets: 2 },
-		  { width: "5%", targets: 3 }
-		],		
-		"buttons":[
-			{
-				text:      '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-				titleAttr: 'Actualizar Ubicación',
-				className: 'table_actualizar btn btn-secondary ocultar',
-				action: 	function(){
-					listar_ubicacion();
-				}
-			},
-			{
-				text:      '<i class="fas fas fa-plus fa-lg"></i> Ingresar',
-				titleAttr: 'Agregar Ubicación',
-				className: 'table_crear btn btn-primary ocultar',
-				action: 	function(){
-					modalUbicacion();
-				}
-			},
-			{
-				extend:    'excelHtml5',
-				text:      '<i class="fas fa-file-excel fa-lg"></i> Excel',
-				titleAttr: 'Excel',
-				title: 'Reporte Ubicación',
-				messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-				className: 'table_reportes btn btn-success ocultar',
-				exportOptions: {
-						columns: [0,1]
-				},				
-			},
-			{
-				extend:    'pdf',
-				text:      '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-				titleAttr: 'PDF',
-				title: 'Reporte Ubicación',
-				messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-				className: 'table_reportes btn btn-danger ocultar',
-				exportOptions: {
-						columns: [0,1]
-				},				
+        "stateSave": true,
+        "bDestroy": true,
+        "language": idioma_español,
+        "dom": dom,
+        "columnDefs": [
+            {
+                width: "10%",
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
+            },
+            {
+                width: "40%",
+                targets: 1
+            },
+            {
+                width: "40%",
+                targets: 2
+            },
+            {
+                width: "10%",
+                targets: 3,
+                className: "text-center text-nowrap align-middle"
+            }
+        ],
+        "buttons": [
+            {
+                text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
+                titleAttr: 'Actualizar Ubicación',
+                className: 'table_actualizar btn btn-secondary ocultar',
+                action: function() {
+                    listar_ubicacion();
+                }
+            },
+            {
+                text: '<i class="fas fas fa-plus fa-lg"></i> Ingresar',
+                titleAttr: 'Agregar Ubicación',
+                className: 'table_crear btn btn-primary ocultar',
+                action: function() {
+                    modalUbicacion();
+                }
+            },
+            {
+                extend: 'excelHtml5',
+                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
+                titleAttr: 'Excel',
+                title: 'Reporte Ubicación',
+                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
+                className: 'table_reportes btn btn-success ocultar',
+                exportOptions: {
+                    columns: [1, 2]
+                }
+            },
+            {
+                extend: 'pdf',
+                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
+                titleAttr: 'PDF',
+                title: 'Reporte Ubicación',
+                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
+                className: 'table_reportes btn btn-danger ocultar',
+                exportOptions: {
+                    columns: [1, 2]
+                },
                 customize: function(doc) {
-                    if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
+                    if (imagen) {
                         doc.content.splice(0, 0, {
-                            image: imagen,  
+                            image: imagen,
                             width: 100,
                             height: 45,
                             margin: [0, 0, 0, 12]
                         });
                     }
                 }
-			}
-		],
-		"drawCallback": function( settings ) {
-        	getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-    	}
-	});
-	table_ubicacion.search('').draw();
-	$('#buscar').focus();
+            }
+        ],
+        "drawCallback": function(settings) {
+            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
 
-	edit_ubicacion_dataTable("#dataTableConfUbicacion tbody", table_ubicacion);
-	delete_ubicacion_dataTable("#dataTableConfUbicacion tbody", table_ubicacion);
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
+        }
+    });
+
+    table_ubicacion.search('').draw();
+    $('#buscar').focus();
+
+    edit_ubicacion_dataTable("#dataTableConfUbicacion tbody", table_ubicacion);
+    delete_ubicacion_dataTable("#dataTableConfUbicacion tbody", table_ubicacion);
 }
 
 var edit_ubicacion_dataTable = function(tbody, table){

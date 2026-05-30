@@ -54,21 +54,6 @@
             <div class="card-body">
                 <div class="table-responsive">
                     <table id="dataTableProductos" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-                        <thead>
-                            <tr>
-                                <th>Acciones</th>
-                                <th>Imagen</th>
-                                <th>Bar Code</th>
-                                <th>Producto</th>
-                                <th>Medida</th>
-                                <th>Categoria</th>
-                                <th>Precio Compra</th>
-                                <th>Precio Venta</th>
-                                <th>Ganancia</th>
-                                <th>ISV Venta</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
                     </table>
                 </div>
             </div>

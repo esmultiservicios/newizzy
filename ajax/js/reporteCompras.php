@@ -22,11 +22,52 @@ $(() => {
     });		   
 });
 
+/* =========================================================
+   HEADER Y FOOTER DINÁMICO - REPORTE DE COMPRAS
+   ========================================================= */
+   function construirHeaderFooterDataTablaReporteCompras() {
+    var $tabla = $("#dataTablaReporteCompras");
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Fecha</th>' +
+                '<th>Tipo</th>' +
+                '<th>Cuenta</th>' +
+                '<th>Proveedor</th>' +
+                '<th>Número</th>' +
+                '<th>SubTotal</th>' +
+                '<th>ISV</th>' +
+                '<th>Descuento</th>' +
+                '<th>Total</th>' +
+            '</tr>' +
+        '</thead>' +
+        '<tfoot class="bg-secondary">' +
+            '<tr>' +
+                '<td colspan="6">Total</td>' +
+                '<td id="subtotal-i"></td>' +
+                '<td id="impuesto-i"></td>' +
+                '<td id="descuento-i"></td>' +
+                '<td id="total-footer-ingreso"></td>' +
+            '</tr>' +
+        '</tfoot>'
+    );
+}
+
+/* =========================================================
+   LISTADO - REPORTE DE COMPRAS
+   ========================================================= */
 //INICIO REPORTE DE COMPRAS
 var listar_reporte_compras = function() {
     var tipo_compra_reporte = 1;
-    if ($("#form_main_compras #tipo_compras_reporte").val() == null || $("#form_main_compras #tipo_compras_reporte")
-        .val() == "") {
+
+    if (
+        $("#form_main_compras #tipo_compras_reporte").val() == null ||
+        $("#form_main_compras #tipo_compras_reporte").val() == ""
+    ) {
         tipo_compra_reporte = 1;
     } else {
         tipo_compra_reporte = $("#form_main_compras #tipo_compras_reporte").val();
@@ -34,6 +75,12 @@ var listar_reporte_compras = function() {
 
     var fechai = $("#form_main_compras #fechai").val();
     var fechaf = $("#form_main_compras #fechaf").val();
+
+    if ($.fn.DataTable.isDataTable("#dataTablaReporteCompras")) {
+        $("#dataTablaReporteCompras").DataTable().clear().destroy();
+    }
+
+    construirHeaderFooterDataTablaReporteCompras();
 
     var table_reporteCompras = $("#dataTablaReporteCompras").DataTable({
         "destroy": true,
@@ -46,22 +93,67 @@ var listar_reporte_compras = function() {
                 "fechaf": fechaf
             }
         },
-        "columns": [{
+        "columns": [
+            {
+                "data": null,
+                "orderable": false,
+                "searchable": false,
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+                                '<button type="button" class="dropdown-item accion-item table_reportes print_compras ocultar">' +
+                                    '<span class="accion-icon accion-icon-success">' +
+                                        '<i class="fas fa-file-download"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Factura</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_cancelar cancelar_compras ocultar">' +
+                                    '<span class="accion-icon accion-icon-eliminar">' +
+                                        '<i class="fas fa-ban"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Anular</span>' +
+                                '</button>' +
+
+                            '</div>' +
+
+                        '</div>';
+                }
+            },
+            {
                 "data": "fecha"
             },
             {
                 "data": "tipo_documento",
                 "render": function(data, type, row) {
                     if (type === 'display') {
-                        var icon = data === 'Crédito' 
-                            ? '<i class="fas fa-clock mr-1"></i>' 
+                        var icon = data === 'Crédito'
+                            ? '<i class="fas fa-clock mr-1"></i>'
                             : '<i class="fas fa-check-circle mr-1"></i>';
-                        var badgeClass = data === 'Crédito' 
-                            ? 'badge badge-pill badge-warning' 
+
+                        var badgeClass = data === 'Crédito'
+                            ? 'badge badge-pill badge-warning'
                             : 'badge badge-pill badge-success';
-                        return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' + 
-                            icon + data + '</span>';
+
+                        return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                            icon +
+                            data +
+                        '</span>';
                     }
+
                     return data;
                 }
             },
@@ -77,6 +169,7 @@ var listar_reporte_compras = function() {
                     if (type === 'sort') {
                         return parseInt(row.numero_ordenamiento);
                     }
+
                     return data;
                 }
             },
@@ -89,6 +182,7 @@ var listar_reporte_compras = function() {
 
                     if (type === 'display') {
                         let color = 'green';
+
                         if (data < 0) {
                             color = 'red';
                         }
@@ -97,7 +191,7 @@ var listar_reporte_compras = function() {
                     }
 
                     return number;
-                },
+                }
             },
             {
                 "data": "isv",
@@ -108,6 +202,7 @@ var listar_reporte_compras = function() {
 
                     if (type === 'display') {
                         let color = 'green';
+
                         if (data < 0) {
                             color = 'red';
                         }
@@ -116,7 +211,7 @@ var listar_reporte_compras = function() {
                     }
 
                     return number;
-                },
+                }
             },
             {
                 "data": "descuento",
@@ -127,6 +222,7 @@ var listar_reporte_compras = function() {
 
                     if (type === 'display') {
                         let color = 'green';
+
                         if (data < 0) {
                             color = 'red';
                         }
@@ -135,7 +231,7 @@ var listar_reporte_compras = function() {
                     }
 
                     return number;
-                },
+                }
             },
             {
                 "data": "total",
@@ -146,6 +242,7 @@ var listar_reporte_compras = function() {
 
                     if (type === 'display') {
                         let color = 'green';
+
                         if (data < 0) {
                             color = 'red';
                         }
@@ -154,67 +251,67 @@ var listar_reporte_compras = function() {
                     }
 
                     return number;
-                },
-            },
-            {
-                "defaultContent": "<button class='table_reportes print_compras btn btn-success ocultar'><span class='fas fa-file-download fa-lg'></span>Factura</button>"
-            },
-            {
-                "defaultContent": "<button class='table_cancelar cancelar_compras btn btn-danger ocultar'><span class='fas fa-ban fa-lg'></span>Anular</button>"
+                }
             }
         ],
-        "order": [[4, "desc"]], // Ordenar por número descendente
+        "order": [[5, "desc"]],
         "orderFixed": {
-            "pre": [[4, "desc"]]
+            "pre": [[5, "desc"]]
         },
         "lengthMenu": lengthMenu10,
         "stateSave": true,
         "bDestroy": true,
         "language": idioma_español,
         "dom": dom,
-        "columnDefs": [{
-                width: "9.09%",
-                targets: 0
+        "columnDefs": [
+            {
+                width: "10%",
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
             },
             {
-                width: "9.09%",
+                width: "9%",
                 targets: 1
             },
             {
-                width: "9.09%",
-                targets: 2
+                width: "9%",
+                targets: 2,
+                className: "text-center text-nowrap"
             },
             {
-                width: "9.09%",
+                width: "12%",
                 targets: 3
             },
             {
-                width: "9.09%",
+                width: "15%",
                 targets: 4
             },
             {
-                width: "9.09%",
-                targets: 5
+                width: "12%",
+                targets: 5,
+                className: "text-center text-nowrap"
             },
             {
-                width: "9.09%",
-                targets: 6
+                width: "11%",
+                targets: 6,
+                className: "text-right text-nowrap"
             },
             {
-                width: "9.09%",
-                targets: 7
+                width: "10%",
+                targets: 7,
+                className: "text-right text-nowrap"
             },
             {
-                width: "9.09%",
-                targets: 8
+                width: "10%",
+                targets: 8,
+                className: "text-right text-nowrap"
             },
             {
-                width: "9.09%",
-                targets: 9
-            },
-            {
-                width: "9.09%",
-                targets: 10
+                width: "12%",
+                targets: 9,
+                className: "text-right text-nowrap"
             }
         ],
         "footerCallback": function(row, data, start, end, display) {
@@ -222,24 +319,25 @@ var listar_reporte_compras = function() {
 
             function formatNumber(number) {
                 return 'L ' + number.toLocaleString('es-HN', {
-                    minimumFractionDigits: 2
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
                 });
             }
 
-            var subtotal = api.column(5, {page: 'current'}).data().reduce(function(a, b) {
-                return a + parseFloat(b);
+            var subtotal = api.column(6, { page: 'current' }).data().reduce(function(a, b) {
+                return a + (parseFloat(b) || 0);
             }, 0);
 
-            var isv = api.column(6, {page: 'current'}).data().reduce(function(a, b) {
-                return a + parseFloat(b);
+            var isv = api.column(7, { page: 'current' }).data().reduce(function(a, b) {
+                return a + (parseFloat(b) || 0);
             }, 0);
 
-            var descuento = api.column(7, {page: 'current'}).data().reduce(function(a, b) {
-                return a + parseFloat(b);
+            var descuento = api.column(8, { page: 'current' }).data().reduce(function(a, b) {
+                return a + (parseFloat(b) || 0);
             }, 0);
 
-            var total = api.column(8, {page: 'current'}).data().reduce(function(a, b) {
-                return a + parseFloat(b);
+            var total = api.column(9, { page: 'current' }).data().reduce(function(a, b) {
+                return a + (parseFloat(b) || 0);
             }, 0);
 
             $('#subtotal-i').html(formatNumber(subtotal));
@@ -247,7 +345,8 @@ var listar_reporte_compras = function() {
             $('#descuento-i').html(formatNumber(descuento));
             $('#total-footer-ingreso').html(formatNumber(total));
         },
-        "buttons": [{
+        "buttons": [
+            {
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                 titleAttr: 'Actualizar Reporte de Compras',
                 className: 'table_actualizar btn btn-secondary ocultar',
@@ -265,8 +364,8 @@ var listar_reporte_compras = function() {
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-success ocultar',
                 exportOptions: {
-                    columns: [0, 1, 2, 3, 4, 5, 6, 7]
-                },
+                    columns: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+                }
             },
             {
                 extend: 'pdf',
@@ -274,19 +373,18 @@ var listar_reporte_compras = function() {
                 orientation: 'landscape',
                 text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
                 titleAttr: 'PDF',
-                orientation: 'landscape',
                 pageSize: 'LETTER',
                 title: 'Reporte de Compras',
                 messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' + convertDateFormat(fechaf),
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-danger ocultar',
                 exportOptions: {
-                    columns: [0, 1, 2, 3, 4, 5, 6, 7]
+                    columns: [1, 2, 3, 4, 5, 6, 7, 8, 9]
                 },
                 customize: function(doc) {
                     if (imagen) {
                         doc.content.splice(0, 0, {
-                            image: imagen,  
+                            image: imagen,
                             width: 100,
                             height: 45,
                             margin: [0, 0, 0, 12]
@@ -297,8 +395,13 @@ var listar_reporte_compras = function() {
         ],
         "drawCallback": function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
         }
     });
+
     table_reporteCompras.search('').draw();
     $('#buscar').focus();
 

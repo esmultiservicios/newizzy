@@ -88,32 +88,6 @@
         <div class="card-body">
             <div class="table-responsive">
                 <table id="dataTablaReporteCotizaciones" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-                    <thead>
-                        <tr>
-                            <th>Fecha</th>
-                            <th>Tipo</th>
-                            <th>Proveedor</th>
-                            <th>Factura</th>
-                            <th>SubTotal</th>
-                            <th>ISV</th>
-                            <th>Descuento</th>
-                            <th>Total</th>
-                            <th>Imprimir</th>
-                            <th>Enviar</th>
-                            <th>Anular</th>
-                        </tr>
-                    </thead>
-                    <tfoot class="bg-secondary">
-                        <tr>
-                            <td colspan='1'>Total</td>
-                            <td colspan="3"></td>
-                            <td id="subtotal-i"></td>
-                            <td id="impuesto-i"></td>
-                            <td id="descuento-i"></td>
-                            <td colspan='1' id='total-footer-ingreso'></td>
-                            <td colspan="3"></td>
-                        </tr>
-                    </tfoot>
                 </table>
             </div>
         </div>

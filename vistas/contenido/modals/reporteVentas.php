@@ -95,6 +95,7 @@
                   <th id="total-descuento"></th>
                   <th id="total-total"></th>
                   <th></th> <!-- Vendedor -->
+                  <th></th> <!-- Vendedor -->
                 </tr>
               </tfoot>
             </table>

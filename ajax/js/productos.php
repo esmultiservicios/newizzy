@@ -414,378 +414,425 @@ $(document).off('click', '#btnGenerarBarcode').on('click', '#btnGenerarBarcode',
   window.resetProductoImagen = resetImage;
 }
 
+/* =========================================================
+   HEADER DINÁMICO - PRODUCTOS
+   ========================================================= */
+
+   function construirHeaderDataTableProductos() {
+    var $tabla = $("#dataTableProductos");
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Imagen</th>' +
+                '<th>Código</th>' +
+                '<th>Producto</th>' +
+                '<th>Medida</th>' +
+                '<th>Categoría</th>' +
+                '<th>Precio Compra</th>' +
+                '<th>Precio Venta</th>' +
+                '<th>% Venta</th>' +
+                '<th>ISV Venta</th>' +
+                '<th>Estado</th>' +
+            '</tr>' +
+        '</thead>'
+    );
+}
+
+
 /* =========================
    DataTable: Productos
    ========================= */
-/* =========================
-   DataTable: Productos
-   ========================= */
-   var listar_productos = function() {
-  var estado = $('#form_main_productos #estado_producto').val() === "" 
-               ? 1 
-               : $('#form_main_productos #estado_producto').val();
 
-  var formatoDinero = function(valor) {
-    valor = parseFloat(valor || 0);
-    return 'L ' + valor.toLocaleString('es-HN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-  };
+var listar_productos = function() {
+    var estado = $('#form_main_productos #estado_producto').val() === ""
+        ? 1
+        : $('#form_main_productos #estado_producto').val();
 
-  var limpiarTexto = function(texto) {
-    if (texto === null || texto === undefined || texto === '') {
-      return '';
-    }
+    var formatoDinero = function(valor) {
+        valor = parseFloat(valor || 0);
 
-    return String(texto)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  };
+        return 'L ' + valor.toLocaleString('es-HN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    };
 
-  var table_productos = $("#dataTableProductos").DataTable({
-    destroy: true,
-    processing: true,
-    responsive: true,
-    stateSave: true,
-    language: idioma_español,
-    lengthMenu: lengthMenu10,
-    dom: dom,
-
-    ajax: {
-      method: "POST",
-      url: "<?php echo SERVERURL;?>core/llenarDataTableProductos.php",
-      dataType: 'json',
-      data: function (d) {
-        d.estado = estado;
-      },
-      error: function(xhr, textStatus, error) {
-        console.error('[DataTables AJAX error]', textStatus, error, xhr.status, xhr.responseText);
-
-        if (typeof showNotify === 'function') {
-          showNotify('error', 'Error', 'No se pudieron cargar los productos');
-        } else {
-          alert('Error cargando productos: ' + xhr.status);
-        }
-      },
-      dataSrc: function (json) {
-        if (json && Array.isArray(json.data)) return json.data;
-        if (json && Array.isArray(json.aaData)) return json.aaData;
-        if (Array.isArray(json)) return json;
-        return [];
-      }
-    },
-
-    columns: [
-      {
-        data: null,
-        orderable: false,
-        searchable: false,
-        className: "text-center align-middle",
-        render: function(data, type, row) {
-          if (type !== 'display') {
+    var limpiarTexto = function(texto) {
+        if (texto === null || texto === undefined || texto === '') {
             return '';
-          }
-
-          return '' +
-          '<div class="dropdown acciones-dropdown">' +
-
-              '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
-                  '<i class="fas fa-cog"></i>' +
-                  '<span>Acciones</span>' +
-              '</button>' +
-
-              '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
-
-                  '<button type="button" class="dropdown-item accion-item accion-editar table_editar">' +
-                      '<span class="accion-icon accion-icon-editar">' +
-                          '<i class="fas fa-edit"></i>' +
-                      '</span>' +
-                      '<span class="accion-label">Editar</span>' +
-                  '</button>' +
-
-                  '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar">' +
-                      '<span class="accion-icon accion-icon-eliminar">' +
-                          '<i class="fas fa-trash-alt"></i>' +
-                      '</span>' +
-                      '<span class="accion-label">Eliminar</span>' +
-                  '</button>' +
-
-              '</div>' +
-
-          '</div>';
         }
-      },
 
-      {
-        data: "image",
-        orderable: false,
-        searchable: false,
-        className: "text-center align-middle",
-        render: function (data, type, row) {
-          var defaultImageUrl = '<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png';
-          var imageUrl = data ? ('<?php echo SERVERURL;?>vistas/plantilla/img/products/' + data) : defaultImageUrl;
-          var safeName = limpiarTexto(row && row.nombre ? row.nombre : 'Imagen de producto');
+        return String(texto)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    };
 
-          return '<a href="#" class="iv-trigger" data-iv-src="' + imageUrl + '" data-iv-fallback="' + defaultImageUrl + '" data-iv-title="' + safeName + '">' +
-                   '<img class="table-image" src="' + imageUrl + '" alt="' + safeName + '" width="64" height="64" style="object-fit:cover;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.12)">' +
-                 '</a>';
-        }
-      },
-
-      { data: "barCode" },
-
-      {
-        data: null,
-        render: function(data, type, row) {
-          var nombre = limpiarTexto(row.nombre || '');
-          var descripcion = limpiarTexto(row.descripcion || '');
-          var categoria = limpiarTexto(row.categoria || '');
-          var medida = limpiarTexto(row.medida || '');
-          var isvTexto = limpiarTexto(row.isv_venta || 'No');
-          var isvTipo = 'No aplica';
-
-          if (parseInt(row.isv1 || 0, 10) === 1) {
-            isvTipo = 'ISV 15%';
-          } else if (parseInt(row.isv2 || 0, 10) === 1) {
-            isvTipo = 'ISV 18%';
-          }
-
-          if (type !== 'display') {
-            return nombre;
-          }
-
-          return '' +
-            '<div class="producto-cell">' +
-              '<div class="producto-nombre font-weight-bold">' + nombre + '</div>' +
-              '<div class="producto-descripcion text-muted small">' + (descripcion || 'Sin descripción registrada') + '</div>' +
-              '<div class="mt-1">' +
-                '<span class="badge badge-light border mr-1"><i class="fas fa-layer-group mr-1"></i>' + categoria + '</span>' +
-                '<span class="badge badge-light border mr-1"><i class="fas fa-ruler mr-1"></i>' + medida + '</span>' +
-                '<span class="badge badge-light border"><i class="fas fa-percent mr-1"></i>' + isvTipo + '</span>' +
-              '</div>' +
-              '<button type="button" class="btn btn-sm mt-1 ver_detalle_producto btn-detalle-producto" title="Ver más información del producto">' +
-                '<i class="fas fa-info-circle mr-1"></i> Ver detalles' +
-              '</button>' +
-            '</div>';
-        }
-      },
-
-      { data: "medida" },
-      { data: "categoria" },
-
-      {
-        data: "precio_compra",
-        render: function(data, type) {
-          if (type === 'display') {
-            return '<span style="color:green;font-weight:600;">' + formatoDinero(data) + '</span>';
-          }
-          return parseFloat(data || 0);
-        }
-      },
-
-      {
-        data: "precio_venta",
-        render: function(data, type) {
-          if (type === 'display') {
-            return '<span style="color:green;font-weight:600;">' + formatoDinero(data) + '</span>';
-          }
-          return parseFloat(data || 0);
-        }
-      },
-
-      {
-        data: "porcentaje_venta",
-        render: function(data, type) {
-          if (type === 'display') {
-            return '<span style="color:green;font-weight:600;">' + formatoDinero(data) + '</span>';
-          }
-          return parseFloat(data || 0);
-        }
-      },
-
-      {
-        data: "isv_venta",
-        render: function(data, type, row) {
-          if (type !== 'display') {
-            return data;
-          }
-
-          var aplica = String(data || '').toLowerCase() === 'si' || parseInt(data || 0, 10) === 1;
-          var isvTipo = '';
-
-          if (parseInt(row.isv1 || 0, 10) === 1) {
-            isvTipo = '15%';
-          } else if (parseInt(row.isv2 || 0, 10) === 1) {
-            isvTipo = '18%';
-          }
-
-          if (aplica) {
-            return '<span class="badge badge-pill badge-info" title="Este producto calcula impuesto al vender">' +
-                   '<i class="fas fa-check-circle mr-1"></i>Sí ' + isvTipo +
-                   '</span>';
-          }
-
-          return '<span class="badge badge-pill badge-secondary" title="Este producto no calcula impuesto al vender">' +
-                 '<i class="fas fa-times-circle mr-1"></i>No' +
-                 '</span>';
-        }
-      },
-
-      {
-        data: "estado",
-        render: function(data, type) {
-          if (type === 'display') {
-            var estadoText = data == 1 ? 'Activo' : 'Inactivo';
-            var icon = data == 1 ? '<i class="fas fa-check-circle mr-1"></i>' : '<i class="fas fa-times-circle mr-1"></i>';
-            var badgeClass = data == 1 ? 'badge badge-pill badge-success' : 'badge badge-pill badge-danger';
-
-            return '<span class="' + badgeClass + '" style="font-size:.95rem;padding:.5em .8em;font-weight:600;">' + icon + estadoText + '</span>';
-          }
-
-          return data;
-        }
-      }
-    ],
-
-    order: [[3, 'asc']],
-
-    columnDefs: [
-      {
-        targets: 0,
-        width: "8%",
-        orderable: false,
-        searchable: false,
-        className: "text-center text-nowrap align-middle"
-      },
-      {
-        targets: 1,
-        width: "8%",
-        orderable: false,
-        searchable: false,
-        className: "text-center text-nowrap align-middle"
-      },
-      {
-        targets: 2,
-        width: "10%",
-        className: "text-nowrap"
-      },
-      {
-        targets: 3,
-        width: "22%"
-      },
-      {
-        targets: 4,
-        width: "8%",
-        className: "text-nowrap"
-      },
-      {
-        targets: 5,
-        width: "10%",
-        className: "text-nowrap"
-      },
-      {
-        targets: 6,
-        width: "9%",
-        className: "text-right text-nowrap"
-      },
-      {
-        targets: 7,
-        width: "9%",
-        className: "text-right text-nowrap"
-      },
-      {
-        targets: 8,
-        width: "9%",
-        className: "text-right text-nowrap"
-      },
-      {
-        targets: 9,
-        width: "8%",
-        className: "text-center text-nowrap"
-      },
-      {
-        targets: 10,
-        width: "8%",
-        className: "text-center text-nowrap"
-      }
-    ],
-
-    buttons: [
-      {
-        text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-        titleAttr: 'Actualizar Productos',
-        className: 'table_actualizar btn btn-secondary ocultar',
-        action: function() {
-          listar_productos();
-        }
-      },
-      {
-        text: '<i class="fas fas fa-plus fa-lg"></i> Ingresar',
-        titleAttr: 'Agregar Productos',
-        className: 'table_crear btn btn-primary ocultar',
-        action: function() {
-          modal_productos();
-        }
-      },
-      {
-        extend: 'excelHtml5',
-        text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
-        titleAttr: 'Excel',
-        title: 'Reporte Productos',
-        messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-        className: 'table_reportes btn btn-success ocultar',
-        exportOptions: {
-          columns: [2,3,4,5,6,7,8,9,10]
-        }
-      },
-      {
-        extend: 'pdf',
-        orientation: 'landscape',
-        text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-        titleAttr: 'PDF',
-        title: 'Reporte Productos',
-        messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-        exportOptions: {
-          columns: [2,3,4,5,6,7,8,9,10]
-        },
-        className: 'table_reportes btn btn-danger ocultar',
-        customize: function(doc) {
-          if (typeof imagen !== 'undefined' && imagen) {
-            doc.content.splice(0, 0, {
-              image: imagen,
-              width: 100,
-              height: 45,
-              margin: [0, 0, 0, 12]
-            });
-          }
-        }
-      }
-    ],
-
-    drawCallback: function() {
-      getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-
-      if (typeof cerrarDropdownAcciones === "function") {
-        cerrarDropdownAcciones();
-      }
-
-      $('[title]').tooltip({
-        container: 'body',
-        placement: 'top'
-      });
+    if ($.fn.DataTable.isDataTable("#dataTableProductos")) {
+        $("#dataTableProductos").DataTable().clear().destroy();
     }
-  });
 
-  table_productos.search('').draw();
-  $('#buscar').focus();
+    construirHeaderDataTableProductos();
 
-  editar_producto_dataTable("#dataTableProductos tbody", table_productos);
-  eliminar_producto_dataTable("#dataTableProductos tbody", table_productos);
-  ver_detalle_producto_dataTable("#dataTableProductos tbody", table_productos);
+    var table_productos = $("#dataTableProductos").DataTable({
+        destroy: true,
+        processing: true,
+        responsive: true,
+        stateSave: true,
+        language: idioma_español,
+        lengthMenu: lengthMenu10,
+        dom: dom,
+
+        ajax: {
+            method: "POST",
+            url: "<?php echo SERVERURL;?>core/llenarDataTableProductos.php",
+            dataType: 'json',
+            data: function(d) {
+                d.estado = estado;
+            },
+            error: function(xhr, textStatus, error) {
+                console.error('[DataTables AJAX error]', textStatus, error, xhr.status, xhr.responseText);
+
+                if (typeof showNotify === 'function') {
+                    showNotify('error', 'Error', 'No se pudieron cargar los productos');
+                } else {
+                    alert('Error cargando productos: ' + xhr.status);
+                }
+            },
+            dataSrc: function(json) {
+                if (json && Array.isArray(json.data)) return json.data;
+                if (json && Array.isArray(json.aaData)) return json.aaData;
+                if (Array.isArray(json)) return json;
+                return [];
+            }
+        },
+
+        columns: [
+            {
+                data: null,
+                orderable: false,
+                searchable: false,
+                className: "text-center align-middle",
+                render: function(data, type, row) {
+                    if (type !== 'display') {
+                        return '';
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar">' +
+                                    '<span class="accion-icon accion-icon-editar">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Editar</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar">' +
+                                    '<span class="accion-icon accion-icon-eliminar">' +
+                                        '<i class="fas fa-trash-alt"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Eliminar</span>' +
+                                '</button>' +
+
+                            '</div>' +
+
+                        '</div>';
+                }
+            },
+
+            {
+                data: "image",
+                orderable: false,
+                searchable: false,
+                className: "text-center align-middle",
+                render: function(data, type, row) {
+                    var defaultImageUrl = '<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png';
+                    var imageUrl = data ? ('<?php echo SERVERURL;?>vistas/plantilla/img/products/' + data) : defaultImageUrl;
+                    var safeName = limpiarTexto(row && row.nombre ? row.nombre : 'Imagen de producto');
+
+                    return '<a href="#" class="iv-trigger" data-iv-src="' + imageUrl + '" data-iv-fallback="' + defaultImageUrl + '" data-iv-title="' + safeName + '">' +
+                        '<img class="table-image" src="' + imageUrl + '" alt="' + safeName + '" width="64" height="64" style="object-fit:cover;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.12)">' +
+                    '</a>';
+                }
+            },
+
+            {
+                data: "barCode"
+            },
+
+            {
+                data: null,
+                render: function(data, type, row) {
+                    var nombre = limpiarTexto(row.nombre || '');
+                    var descripcion = limpiarTexto(row.descripcion || '');
+                    var categoria = limpiarTexto(row.categoria || '');
+                    var medida = limpiarTexto(row.medida || '');
+                    var isvTexto = limpiarTexto(row.isv_venta || 'No');
+                    var isvTipo = 'No aplica';
+
+                    if (parseInt(row.isv1 || 0, 10) === 1) {
+                        isvTipo = 'ISV 15%';
+                    } else if (parseInt(row.isv2 || 0, 10) === 1) {
+                        isvTipo = 'ISV 18%';
+                    }
+
+                    if (type !== 'display') {
+                        return nombre;
+                    }
+
+                    return '' +
+                        '<div class="producto-cell">' +
+                            '<div class="producto-nombre font-weight-bold">' + nombre + '</div>' +
+                            '<div class="producto-descripcion text-muted small">' + (descripcion || 'Sin descripción registrada') + '</div>' +
+                            '<div class="mt-1">' +
+                                '<span class="badge badge-light border mr-1"><i class="fas fa-layer-group mr-1"></i>' + categoria + '</span>' +
+                                '<span class="badge badge-light border mr-1"><i class="fas fa-ruler mr-1"></i>' + medida + '</span>' +
+                                '<span class="badge badge-light border"><i class="fas fa-percent mr-1"></i>' + isvTipo + '</span>' +
+                            '</div>' +
+                            '<button type="button" class="btn btn-sm mt-1 ver_detalle_producto btn-detalle-producto" title="Ver más información del producto">' +
+                                '<i class="fas fa-info-circle mr-1"></i> Ver detalles' +
+                            '</button>' +
+                        '</div>';
+                }
+            },
+
+            {
+                data: "medida"
+            },
+
+            {
+                data: "categoria"
+            },
+
+            {
+                data: "precio_compra",
+                render: function(data, type) {
+                    if (type === 'display') {
+                        return '<span style="color:green;font-weight:600;">' + formatoDinero(data) + '</span>';
+                    }
+
+                    return parseFloat(data || 0);
+                }
+            },
+
+            {
+                data: "precio_venta",
+                render: function(data, type) {
+                    if (type === 'display') {
+                        return '<span style="color:green;font-weight:600;">' + formatoDinero(data) + '</span>';
+                    }
+
+                    return parseFloat(data || 0);
+                }
+            },
+
+            {
+                data: "porcentaje_venta",
+                render: function(data, type) {
+                    if (type === 'display') {
+                        return '<span style="color:green;font-weight:600;">' + formatoDinero(data) + '</span>';
+                    }
+
+                    return parseFloat(data || 0);
+                }
+            },
+
+            {
+                data: "isv_venta",
+                render: function(data, type, row) {
+                    if (type !== 'display') {
+                        return data;
+                    }
+
+                    var aplica = String(data || '').toLowerCase() === 'si' || parseInt(data || 0, 10) === 1;
+                    var isvTipo = '';
+
+                    if (parseInt(row.isv1 || 0, 10) === 1) {
+                        isvTipo = '15%';
+                    } else if (parseInt(row.isv2 || 0, 10) === 1) {
+                        isvTipo = '18%';
+                    }
+
+                    if (aplica) {
+                        return '<span class="badge badge-pill badge-info" title="Este producto calcula impuesto al vender">' +
+                            '<i class="fas fa-check-circle mr-1"></i>Sí ' + isvTipo +
+                        '</span>';
+                    }
+
+                    return '<span class="badge badge-pill badge-secondary" title="Este producto no calcula impuesto al vender">' +
+                        '<i class="fas fa-times-circle mr-1"></i>No' +
+                    '</span>';
+                }
+            },
+
+            {
+                data: "estado",
+                render: function(data, type) {
+                    if (type === 'display') {
+                        var estadoText = data == 1 ? 'Activo' : 'Inactivo';
+                        var icon = data == 1 ? '<i class="fas fa-check-circle mr-1"></i>' : '<i class="fas fa-times-circle mr-1"></i>';
+                        var badgeClass = data == 1 ? 'badge badge-pill badge-success' : 'badge badge-pill badge-danger';
+
+                        return '<span class="' + badgeClass + '" style="font-size:.95rem;padding:.5em .8em;font-weight:600;">' +
+                            icon +
+                            estadoText +
+                        '</span>';
+                    }
+
+                    return data;
+                }
+            }
+        ],
+
+        order: [[3, 'asc']],
+
+        columnDefs: [
+            {
+                targets: 0,
+                width: "8%",
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
+            },
+            {
+                targets: 1,
+                width: "8%",
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
+            },
+            {
+                targets: 2,
+                width: "10%",
+                className: "text-nowrap"
+            },
+            {
+                targets: 3,
+                width: "22%"
+            },
+            {
+                targets: 4,
+                width: "8%",
+                className: "text-nowrap"
+            },
+            {
+                targets: 5,
+                width: "10%",
+                className: "text-nowrap"
+            },
+            {
+                targets: 6,
+                width: "9%",
+                className: "text-right text-nowrap"
+            },
+            {
+                targets: 7,
+                width: "9%",
+                className: "text-right text-nowrap"
+            },
+            {
+                targets: 8,
+                width: "9%",
+                className: "text-right text-nowrap"
+            },
+            {
+                targets: 9,
+                width: "8%",
+                className: "text-center text-nowrap"
+            },
+            {
+                targets: 10,
+                width: "8%",
+                className: "text-center text-nowrap"
+            }
+        ],
+
+        buttons: [
+            {
+                text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
+                titleAttr: 'Actualizar Productos',
+                className: 'table_actualizar btn btn-secondary ocultar',
+                action: function() {
+                    listar_productos();
+                }
+            },
+            {
+                text: '<i class="fas fas fa-plus fa-lg"></i> Ingresar',
+                titleAttr: 'Agregar Productos',
+                className: 'table_crear btn btn-primary ocultar',
+                action: function() {
+                    modal_productos();
+                }
+            },
+            {
+                extend: 'excelHtml5',
+                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
+                titleAttr: 'Excel',
+                title: 'Reporte Productos',
+                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
+                className: 'table_reportes btn btn-success ocultar',
+                exportOptions: {
+                    columns: [2, 3, 4, 5, 6, 7, 8, 9, 10]
+                }
+            },
+            {
+                extend: 'pdf',
+                orientation: 'landscape',
+                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
+                titleAttr: 'PDF',
+                title: 'Reporte Productos',
+                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
+                exportOptions: {
+                    columns: [2, 3, 4, 5, 6, 7, 8, 9, 10]
+                },
+                className: 'table_reportes btn btn-danger ocultar',
+                customize: function(doc) {
+                    if (typeof imagen !== 'undefined' && imagen) {
+                        doc.content.splice(0, 0, {
+                            image: imagen,
+                            width: 100,
+                            height: 45,
+                            margin: [0, 0, 0, 12]
+                        });
+                    }
+                }
+            }
+        ],
+
+        drawCallback: function() {
+            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
+
+            $('[title]').tooltip({
+                container: 'body',
+                placement: 'top'
+            });
+        }
+    });
+
+    table_productos.search('').draw();
+    $('#buscar').focus();
+
+    editar_producto_dataTable("#dataTableProductos tbody", table_productos);
+    eliminar_producto_dataTable("#dataTableProductos tbody", table_productos);
+    ver_detalle_producto_dataTable("#dataTableProductos tbody", table_productos);
 };
 
 var ver_detalle_producto_dataTable = function(tbody, table) {

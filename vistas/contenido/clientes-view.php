@@ -54,20 +54,6 @@
                     <table id="dataTableClientes"
                         class="table table-header-gradient table-striped table-condensed table-hover"
                         style="width:100%">
-                        <thead>
-                            <tr>
-                                <th>Acciones</th>
-                                <th>Clientes</th>
-                                <th>RTN</th>
-                                <th>Teléfono</th>
-                                <th>Correo</th>
-                                <th>Departamento</th>
-                                <th>Municipio</th>
-                                <th>Sistema</th>
-                                <th>Estado</th>
-                                <th>Puntos</th>
-                            </tr>
-                        </thead>
                     </table>
                 </div>
             </div>

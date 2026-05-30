@@ -188,38 +188,6 @@
       <div class="table-responsive">
         <table id="dataTablaReporteVentas"
                class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Tipo</th>
-              <th>Cliente</th>
-              <th>Factura</th>
-              <th>SubTotal</th>
-              <th>ISV</th>
-              <th>Descuento</th>
-              <th>Total Ventas</th>
-              <th>Ganancia</th>
-              <th>Vendedor</th>
-              <th>Facturador</th>
-              <th>Ver Detalle</th>
-              <th>Factura</th>
-              <th>Comprobante</th>
-              <th>Enviar</th>
-              <th>Anular</th>
-            </tr>
-          </thead>
-          <tfoot class="bg-secondary">
-            <tr>
-              <td colspan='1'>Total</td>
-              <td colspan="3"></td>
-              <td id="subtotal-i"></td>
-              <td id="impuesto-i"></td>
-              <td id="descuento-i"></td>
-              <td id='total-footer-ingreso'></td>
-              <td id='ganancia'></td>
-              <td colspan="7"></td>
-            </tr>
-          </tfoot>
         </table>
       </div>
     </div>

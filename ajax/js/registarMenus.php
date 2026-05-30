@@ -74,57 +74,183 @@ $(function() {
         }
     });
 
+    /* =========================================================
+        HEADER DINÁMICO - MENÚS
+    ========================================================= */
+    function construirHeaderDataTableMenus() {
+        var $tabla = $("#dataTableMenus");
+
+        $tabla.empty();
+
+        $tabla.append(
+            '<thead>' +
+                '<tr>' +
+                    '<th>Acciones</th>' +
+                    '<th>Tipo</th>' +
+                    '<th>Nombre</th>' +
+                    '<th>Descripción</th>' +
+                    '<th>Ícono</th>' +
+                    '<th>Orden</th>' +
+                    '<th>Dependencia</th>' +
+                    '<th>Visible</th>' +
+                '</tr>' +
+            '</thead>'
+        );
+    }
+
+    /* =========================================================
+    DATATABLE - REGISTRAR MENÚS
+    ========================================================= */
+
+    if ($.fn.DataTable.isDataTable("#dataTableMenus")) {
+        $("#dataTableMenus").DataTable().clear().destroy();
+    }
+
+    construirHeaderDataTableMenus();
+
     // Inicializar DataTable
     const dataTableMenus = $('#dataTableMenus').DataTable({
+        destroy: true,
         ajax: {
             url: "<?php echo SERVERURL;?>core/llenarDataTableMenus.php",
             type: "POST",
             dataSrc: "data"
         },
         columns: [
-            { data: "type" },
-            { data: "name" },
-            { data: "descripcion" },
-            { 
+            {
+                data: null,
+                orderable: false,
+                searchable: false,
+                className: "text-center align-middle",
+                render: function(data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar">' +
+                                    '<span class="accion-icon accion-icon-editar">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Editar</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar ocultar">' +
+                                    '<span class="accion-icon accion-icon-eliminar">' +
+                                        '<i class="fas fa-trash-alt"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Eliminar</span>' +
+                                '</button>' +
+
+                            '</div>' +
+
+                        '</div>';
+                }
+            },
+            {
+                data: "type"
+            },
+            {
+                data: "name"
+            },
+            {
+                data: "descripcion"
+            },
+            {
                 data: "icon",
+                className: "text-center",
                 render: function(data, type, row) {
                     return data ? `<i class="${data}"></i>` : '';
                 }
             },
-            { data: "orden" },
-            { data: "dependency" },
+            {
+                data: "orden",
+                className: "text-center"
+            },
+            {
+                data: "dependency"
+            },
             {
                 data: "visible",
+                className: "text-center",
                 render: function(data, type, row) {
                     if (type === 'display') {
                         var icon = data == 1
                             ? '<i class="fas fa-circle-check mr-1"></i>'
                             : '<i class="fas fa-circle-xmark mr-1"></i>';
+
                         var badgeClass = data == 1
                             ? 'badge badge-pill badge-success'
                             : 'badge badge-pill badge-danger';
 
-                        return '<span class="' + badgeClass + 
+                        return '<span class="' + badgeClass +
                             '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
                             icon + (data == 1 ? 'Visible' : 'Oculto') + '</span>';
                     }
+
                     return data;
                 }
-            },
-            {
-                defaultContent: "<button class='table_editar btn btn-dark ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>",
-                orderable: false,
-                className: "text-center"
-            },
-            {
-                defaultContent: "<button class='table_eliminar btn btn-dark ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>",
-                orderable: false,
-                className: "text-center"
             }
         ],
         language: idioma_español,
         responsive: true,
-        autoWidth: false
+        autoWidth: false,
+        columnDefs: [
+            {
+                width: "10%",
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
+            },
+            {
+                width: "10%",
+                targets: 1
+            },
+            {
+                width: "18%",
+                targets: 2
+            },
+            {
+                width: "24%",
+                targets: 3
+            },
+            {
+                width: "8%",
+                targets: 4,
+                className: "text-center"
+            },
+            {
+                width: "8%",
+                targets: 5,
+                className: "text-center"
+            },
+            {
+                width: "14%",
+                targets: 6
+            },
+            {
+                width: "8%",
+                targets: 7,
+                className: "text-center text-nowrap"
+            }
+        ],
+        drawCallback: function(settings) {
+            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
+        }
     });
 
     // Función para resetear el formulario

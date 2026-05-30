@@ -2,91 +2,167 @@
 $(document).ready(function() {
 	getImpresora();
 });
+
+/* =========================================================
+   HEADER DINÁMICO - IMPRESORA
+   ========================================================= */
+   function construirHeaderDataTableConfImpresora() {
+    var $tabla = $("#dataTableConfImpresora");
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Descripción</th>' +
+                '<th>Activo</th>' +
+            '</tr>' +
+        '</thead>'
+    );
+}
+
 //CONFIGURACION DE IMPRESORA    
-var getImpresora = function(){
-	var impresora_id;
-	var activo;
-	var descripcion;
+var getImpresora = function() {
+    var impresora_id;
+    var activo;
+    var descripcion;
 
-	var table_impresora  = $("#dataTableConfImpresora").DataTable({
-		"destroy":true,
-		"ajax":{
-			"method":"POST",
-			"url":"<?php echo SERVERURL;?>core/llenarDataTableImpresora.php",
-			"data":{
-				"impresora_id":impresora_id,
-				"descripcion":descripcion,
-				"activo":activo
-			}
-		},
-		"columns":[
-			{"data":"descripcion"},
-			{"data":"activo"},
-			{ "defaultContent":"<button class='table_impresora table_editar btn'><span class='fas fa-edit'></span>Editar</button>"}
+    if ($.fn.DataTable.isDataTable("#dataTableConfImpresora")) {
+        $("#dataTableConfImpresora").DataTable().clear().destroy();
+    }
 
-		],
-		"lengthMenu": lengthMenu,
-		"stateSave": true,
-		"bDestroy": true,
-		"language": idioma_español,//esta se encuenta en el archivo main.js
-		"dom": dom,
-		"columnDefs": [
-			{ width: "13.5%", targets: 0 ,className: "text-center"},
-			{ width: "10.5%", targets: 1 ,className: "text-center"},
-			{ width: "10.5%", targets: 2 ,className: "text-center" }
+    construirHeaderDataTableConfImpresora();
 
-		],
-		"buttons":[
-			{
-				text:      '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-				titleAttr: 'Actualizar',
-				className: 'table_actualizar btn btn-secondary ocultar',
-				action: 	function(){
-					getImpresora();
-				}
-			},
-			{
-				extend:    'excelHtml5',
-				text:      '<i class="fas fa-file-excel fa-lg"></i> Excel',
-				titleAttr: 'Excel',
-				title: 'Reporte',
-				messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-				className: 'table_reportes btn btn-success ocultar',
-				exportOptions: {
-						columns: [0,1]
-				},
-			},
-			{
-				extend:    'pdf',
-				text:      '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-				titleAttr: 'PDF',
-				orientation: 'landscape',
-				title: 'Reporte',
-				messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-				className: 'table_reportes btn btn-danger ocultar',
-				exportOptions: {
-						columns: [0,1]
-				},
-				customize: function(doc) {
-					if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
-						doc.content.splice(0, 0, {
-							image: imagen,  
-							width: 100,
-							height: 45,
-							margin: [0, 0, 0, 12]
-						});
-					}
-				}
-			}
-		],
-		"drawCallback": function( settings ) {
-			getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-		}
-	});
-	table_impresora.search('').draw();
-	$('#buscar').focus();
+    var table_impresora = $("#dataTableConfImpresora").DataTable({
+        "destroy": true,
+        "ajax": {
+            "method": "POST",
+            "url": "<?php echo SERVERURL;?>core/llenarDataTableImpresora.php",
+            "data": {
+                "impresora_id": impresora_id,
+                "descripcion": descripcion,
+                "activo": activo
+            }
+        },
+        "columns": [
+            {
+                "data": null,
+                "orderable": false,
+                "searchable": false,
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
 
-	updateStatus("#dataTableConfImpresora tbody",table_impresora);
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-editar table_impresora table_editar">' +
+                                    '<span class="accion-icon accion-icon-editar">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Editar</span>' +
+                                '</button>' +
+
+                            '</div>' +
+                        '</div>';
+                }
+            },
+            {
+                "data": "descripcion"
+            },
+            {
+                "data": "activo"
+            }
+        ],
+        "lengthMenu": lengthMenu,
+        "stateSave": true,
+        "bDestroy": true,
+        "language": idioma_español,
+        "dom": dom,
+        "columnDefs": [
+            {
+                width: "12%",
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
+            },
+            {
+                width: "68%",
+                targets: 1,
+                className: "text-center"
+            },
+            {
+                width: "20%",
+                targets: 2,
+                className: "text-center"
+            }
+        ],
+        "buttons": [
+            {
+                text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
+                titleAttr: 'Actualizar',
+                className: 'table_actualizar btn btn-secondary ocultar',
+                action: function() {
+                    getImpresora();
+                }
+            },
+            {
+                extend: 'excelHtml5',
+                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
+                titleAttr: 'Excel',
+                title: 'Reporte',
+                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
+                className: 'table_reportes btn btn-success ocultar',
+                exportOptions: {
+                    columns: [1, 2]
+                }
+            },
+            {
+                extend: 'pdf',
+                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
+                titleAttr: 'PDF',
+                orientation: 'landscape',
+                title: 'Reporte',
+                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
+                className: 'table_reportes btn btn-danger ocultar',
+                exportOptions: {
+                    columns: [1, 2]
+                },
+                customize: function(doc) {
+                    if (imagen) {
+                        doc.content.splice(0, 0, {
+                            image: imagen,
+                            width: 100,
+                            height: 45,
+                            margin: [0, 0, 0, 12]
+                        });
+                    }
+                }
+            }
+        ],
+        "drawCallback": function(settings) {
+            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
+        }
+    });
+
+    table_impresora.search('').draw();
+    $('#buscar').focus();
+
+    updateStatus("#dataTableConfImpresora tbody", table_impresora);
 }
 //FIN 
 

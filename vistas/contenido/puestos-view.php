@@ -54,15 +54,6 @@
 			<div class="card-body"> 
 				<div class="table-responsive">
 					<table id="dataTablePuestos" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-						<thead>
-							<tr>
-								<th>Código</th>
-								<th>Nombre</th>
-								<th>Estado</th>
-								<th>Editar</th>	
-								<th>Eliminar</th>
-							</tr>
-						</thead>
 					</table>  
 				</div>                   
 				</div>

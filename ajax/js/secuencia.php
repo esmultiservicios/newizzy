@@ -20,20 +20,92 @@ $(document).ready(function() {
 	});    
 });
 
+    /* =========================================================
+    HEADER DINÁMICO - SECUENCIA FACTURACIÓN
+   ========================================================= */
+   function construirHeaderDataTableSecuencia() {
+    var $tabla = $("#dataTableSecuencia");
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Empresa</th>' +
+                '<th>Documento</th>' +
+                '<th>CAI</th>' +
+                '<th>Prefijo</th>' +
+                '<th>Siguiente</th>' +
+                '<th>Rango Inicial</th>' +
+                '<th>Rango Final</th>' +
+                '<th>Fecha Límite</th>' +
+                '<th>Estado</th>' +
+            '</tr>' +
+        '</thead>'
+    );
+}
+
 //INICIO ACCIONES FROMULARIO SECUENCIA FACTURACION
 var listar_secuencia_facturacion = function() {
     var estado = $('#form_main_secuencia #estado_secuencia_main').val();
+
+    if ($.fn.DataTable.isDataTable("#dataTableSecuencia")) {
+        $("#dataTableSecuencia").DataTable().clear().destroy();
+    }
+
+    construirHeaderDataTableSecuencia();
 
     var table_secuencia_facturacion = $("#dataTableSecuencia").DataTable({
         "destroy": true,
         "ajax": {
             "method": "POST",
             "url": "<?php echo SERVERURL;?>core/llenarDataTableSecuenciaFacturacion.php",
-			"data": {
+            "data": {
                 "estado": estado
-            }	
+            }
         },
-        "columns": [{
+        "columns": [
+            {
+                "data": null,
+                "orderable": false,
+                "searchable": false,
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    if (type !== "display") {
+                        return "";
+                    }
+
+                    return '' +
+                        '<div class="dropdown acciones-dropdown">' +
+
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i>' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+
+                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar">' +
+                                    '<span class="accion-icon accion-icon-editar">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Editar</span>' +
+                                '</button>' +
+
+                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar ocultar">' +
+                                    '<span class="accion-icon accion-icon-eliminar">' +
+                                        '<i class="fas fa-trash-alt"></i>' +
+                                    '</span>' +
+                                    '<span class="accion-label">Eliminar</span>' +
+                                '</button>' +
+
+                            '</div>' +
+
+                        '</div>';
+                }
+            },
+            {
                 "data": "empresa"
             },
             {
@@ -62,25 +134,22 @@ var listar_secuencia_facturacion = function() {
                 "render": function(data, type, row) {
                     if (type === 'display') {
                         var estadoText = data == 1 ? 'Activo' : 'Inactivo';
-                        var icon = data == 1 ? 
-                            '<i class="fas fa-check-circle mr-1"></i>' : 
+
+                        var icon = data == 1 ?
+                            '<i class="fas fa-check-circle mr-1"></i>' :
                             '<i class="fas fa-times-circle mr-1"></i>';
-                        var badgeClass = data == 1 ? 
-                            'badge badge-pill badge-success' : 
+
+                        var badgeClass = data == 1 ?
+                            'badge badge-pill badge-success' :
                             'badge badge-pill badge-danger';
-                        
-                        return '<span class="' + badgeClass + 
+
+                        return '<span class="' + badgeClass +
                             '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
                             icon + estadoText + '</span>';
                     }
+
                     return data;
                 }
-            },            
-            {
-                "defaultContent": "<button class='table_editar btn ocultar'><span class='fas fa-edit fa-lg'></span>Editar</button>"
-            },
-            {
-                "defaultContent": "<button class='table_eliminar btn ocultar'><span class='fa fa-trash fa-lg'></span>Eliminar</button>"
             }
         ],
         "lengthMenu": lengthMenu,
@@ -88,48 +157,58 @@ var listar_secuencia_facturacion = function() {
         "bDestroy": true,
         "language": idioma_español,
         "dom": dom,
-        "columnDefs": [{
-                width: "16%",
-                targets: 0
-            },
+        "columnDefs": [
             {
                 width: "10%",
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                className: "text-center text-nowrap align-middle"
+            },
+            {
+                width: "15%",
                 targets: 1
             },
             {
-                width: "21%",
+                width: "10%",
                 targets: 2
             },
             {
-                width: "10%",
+                width: "20%",
                 targets: 3
             },
             {
-                width: "5%",
+                width: "9%",
                 targets: 4
             },
             {
-                width: "10%",
-                targets: 5
+                width: "8%",
+                targets: 5,
+                className: "text-center text-nowrap"
             },
             {
                 width: "10%",
-                targets: 6
+                targets: 6,
+                className: "text-center text-nowrap"
             },
             {
                 width: "10%",
-                targets: 7
+                targets: 7,
+                className: "text-center text-nowrap"
             },
             {
-                width: "2%",
-                targets: 8
+                width: "10%",
+                targets: 8,
+                className: "text-center text-nowrap"
             },
             {
-                width: "2%",
-                targets: 9
+                width: "8%",
+                targets: 9,
+                className: "text-center text-nowrap align-middle"
             }
         ],
-        "buttons": [{
+        "buttons": [
+            {
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                 titleAttr: 'Actualizar Secuencia de Facturación',
                 className: 'table_actualizar btn btn-secondary ocultar',
@@ -152,7 +231,7 @@ var listar_secuencia_facturacion = function() {
                 title: 'Reporte de Secuencia de Facturación',
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 exportOptions: {
-                    columns: [0, 1, 2, 3, 4, 5, 6]
+                    columns: [1, 2, 3, 4, 5, 6, 7, 8]
                 },
                 className: 'table_reportes btn btn-success ocultar'
             },
@@ -165,12 +244,12 @@ var listar_secuencia_facturacion = function() {
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-danger ocultar',
                 exportOptions: {
-                    columns: [0, 1, 2, 3, 4, 5, 6]
+                    columns: [1, 2, 3, 4, 5, 6, 7, 8]
                 },
                 customize: function(doc) {
-                    if (imagen) { // Solo agrega la imagen si 'imagen' tiene contenido válido
+                    if (imagen) {
                         doc.content.splice(0, 0, {
-                            image: imagen,  
+                            image: imagen,
                             width: 100,
                             height: 45,
                             margin: [0, 0, 0, 12]
@@ -181,8 +260,13 @@ var listar_secuencia_facturacion = function() {
         ],
         "drawCallback": function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
         }
     });
+
     table_secuencia_facturacion.search('').draw();
     $('#buscar').focus();
 

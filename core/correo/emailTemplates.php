@@ -1,27 +1,21 @@
 <?php
-// emailTemplates.php - Versión optimizada para estructura de proyecto
+// core/correo/emailTemplates.php
 
-// Determinar rutas base
-$basePath = (isset($peticionAjax) && $peticionAjax) ? dirname(__DIR__) . '/core/' : __DIR__ . '/';
-
-// Incluir configuraciones
-require_once $basePath . 'configGenerales.php';
-require_once $basePath . 'configAPP.php';
+require_once __DIR__ . '/../configGenerales.php';
+require_once __DIR__ . '/../configAPP.php';
 
 class emailTemplates {
     public function __construct() {}
 
     private function plantillaBase($titulo, $contenido, $datosEmpresa) {
-        $loginUrl = SERVERURL . "login";
         $year = date('Y');
         
-        // Manejo del logo - Si no está definido o está vacío, no mostrarlo
         $logoHtml = '';
+
         if (!empty($datosEmpresa['url_logo'])) {
             $logoHtml = '<img src="'.$datosEmpresa['url_logo'].'" alt="'.$datosEmpresa['nombre'].'" class="email-logo">';
         }
         
-        // Validar campos opcionales y establecer valores por defecto
         $nombreEmpresa = $datosEmpresa['nombre'] ?? '';
         $eslogan = $datosEmpresa['eslogan'] ?? '';
         $ubicacion = $datosEmpresa['ubicacion'] ?? '';
@@ -39,7 +33,6 @@ class emailTemplates {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{$titulo} | {$nombreEmpresa}</title>
     <style>
-        /* RESET BÁSICO */
         body, html {
             margin: 0;
             padding: 0;
@@ -49,7 +42,6 @@ class emailTemplates {
             background-color: #f5f7fa;
         }
         
-        /* CONTENEDOR PRINCIPAL */
         .email-container {
             max-width: 600px;
             margin: 0 auto;
@@ -60,7 +52,6 @@ class emailTemplates {
             border: 1px solid #e2e8f0;
         }
         
-        /* CABECERA */
         .email-header {
             background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
             padding: 30px 20px;
@@ -102,7 +93,6 @@ class emailTemplates {
             margin-top: 8px;
         }
         
-        /* CONTENIDO */
         .email-content {
             padding: 30px;
             line-height: 1.6;
@@ -121,7 +111,6 @@ class emailTemplates {
             font-size: 15px;
         }
         
-        /* SECCIÓN DESTACADA */
         .email-highlight {
             background-color: #f8f9fa;
             border-left: 4px solid #3498db;
@@ -139,7 +128,6 @@ class emailTemplates {
             color: #2c3e50;
         }
         
-        /* BOTÓN */
         .email-button {
             display: inline-block;
             padding: 12px 25px;
@@ -150,17 +138,9 @@ class emailTemplates {
             font-weight: 600;
             text-align: center;
             margin: 15px 0;
-            transition: all 0.3s ease;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         
-        .email-button:hover {
-            background: linear-gradient(135deg, #2980b9 0%, #3498db 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-        }
-        
-        /* PIE DE PÁGINA */
         .email-footer {
             background-color: #f8f9fa;
             padding: 20px;
@@ -200,12 +180,6 @@ class emailTemplates {
         .social-links a {
             color: #3498db;
             text-decoration: none;
-            transition: all 0.3s ease;
-        }
-        
-        .social-links a:hover {
-            color: #2980b9;
-            transform: translateY(-2px);
         }
         
         .copyright {
@@ -230,26 +204,22 @@ class emailTemplates {
         <div class="email-footer">
             <div class="contact-info">
                 <div class="contact-item">
-                    <i class="fas fa-map-marker-alt"></i>
-                    <span>{$ubicacion}</span>
+                    <span>📍 {$ubicacion}</span>
                 </div>
                 <div class="contact-item">
-                    <i class="fas fa-phone"></i>
-                    <span>{$telefono}</span>
+                    <span>☎ {$telefono}</span>
                 </div>
                 <div class="contact-item">
-                    <i class="fas fa-mobile-alt"></i>
-                    <span>{$celular}</span>
+                    <span>📱 {$celular}</span>
                 </div>
                 <div class="contact-item">
-                    <i class="fas fa-envelope"></i>
-                    <span>{$correo}</span>
+                    <span>✉ {$correo}</span>
                 </div>
             </div>
             
             <div class="social-links">
-                <a href="{$sitioweb}"><i class="fas fa-globe"></i> Sitio Web</a>
-                <a href="{$facebook}"><i class="fab fa-facebook-f"></i> Facebook</a>
+                <a href="{$sitioweb}">🌐 Sitio Web</a>
+                <a href="{$facebook}">Facebook</a>
             </div>
             
             <p class="copyright">
@@ -263,6 +233,8 @@ HTML;
     }
 
     public function plantillaBienvenida($datosUsuario, $datosEmpresa) {
+        $loginUrl = SERVERURL . "login";
+
         $contenido = <<<HTML
             <h2>¡Bienvenido/a, {$datosUsuario['nombre']}!</h2>
             
@@ -278,7 +250,7 @@ HTML;
             </div>
             
             <p style="text-align: center;">
-                <a href="{SERVERURL}/login" class="email-button">Acceder al Sistema</a>
+                <a href="{$loginUrl}" class="email-button">Acceder al Sistema</a>
             </p>
             
             <p>Por seguridad, te recomendamos cambiar tu contraseña después de iniciar sesión por primera vez.</p>
@@ -297,7 +269,7 @@ HTML;
             
             <p>{$mensaje}</p>
             
-            {$this->generarBotonAccion($accion, $datosEmpresa)}
+            {$this->generarBotonAccion($accion)}
             
             <p>Si tienes alguna pregunta o no reconoces esta acción, por favor contacta con nuestro equipo de soporte.</p>
 HTML;
@@ -305,8 +277,10 @@ HTML;
         return $this->plantillaBase($titulo, $contenido, $datosEmpresa);
     }
 
-    private function generarBotonAccion($accion, $datosEmpresa) {
-        if (!$accion) return '';
+    private function generarBotonAccion($accion) {
+        if (!$accion) {
+            return '';
+        }
         
         return <<<HTML
             <p style="text-align: center;">

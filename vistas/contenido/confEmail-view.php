@@ -17,19 +17,20 @@
 	</div>
 
     <div class="card mb-4">
-		<div class="card mb-4">
-			<div class="card-header">
-				<i class="fas fa-envelope fa-lg mr-1"></i>
-				Configurar Correos
-			</div>
-			<div class="card-body"> 
-				<div class="table-responsive">
-					<table id="dataTableConfCorreos" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-					</table>  
-				</div>                   
-				</div>
-			<div class="card-footer small text-muted">
- 			<?php
+		<div class="card-header">
+			<i class="fas fa-envelope fa-lg mr-1"></i>
+			Configurar Correos
+		</div>
+
+		<div class="card-body"> 
+			<div class="table-responsive">
+				<table id="dataTableConfCorreos" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
+				</table>  
+			</div>                   
+		</div>
+
+		<div class="card-footer small text-muted">
+			<?php
 				require_once "./core/mainModel.php";
 				
 				$insMainModel = new mainModel();
@@ -44,9 +45,10 @@
 					echo "No se encontraron registros ";
 				}				
 			?>
-			</div>
 		</div>
 	</div>	
-<?php
-	$insMainModel->guardar_historial_accesos("Ingreso al modulo Configuración Medidas");
-?>
+
+	<?php
+		$insMainModel->guardar_historial_accesos("Ingreso al módulo Configurar Correos");
+	?>
+</div>

@@ -2320,7 +2320,7 @@ function mailBill(facturas_id) {
 }
 
 function sendMail(facturas_id) {
-    var url = '<?php echo SERVERURL; ?>core/sendFactura.php';
+    var url = '<?php echo SERVERURL; ?>core/correo/sendFactura.php';
     var bill = '';
 
     $.ajax({

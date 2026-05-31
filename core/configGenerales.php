@@ -1,4 +1,5 @@
 <?php
+//configGenerales.php
 // Redirigir a HTTPS si no está en HTTPS
 if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
     $redirectURL = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];

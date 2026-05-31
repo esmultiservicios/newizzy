@@ -32,14 +32,6 @@ define('MYSQL_USER', 'root');
 define('MYSQL_PASS', 'a$Exv*Smj?w7|DP');
 
 // ConfiguraciÃ³n para Microsoft 365 OAuth
-define('OAUTH_CLIENT_ID', 'tu-client-id-de-azure-ad');
-define('OAUTH_CLIENT_SECRET', 'tu-client-secret');
-define('OAUTH_TENANT_ID', 'tu-tenant-id');
-define('OAUTH_REDIRECT_URI', 'https://tudominio.com/oauth_callback.php');
-define('OAUTH_AUTHORITY', 'https://login.microsoftonline.com/' . OAUTH_TENANT_ID);
-define('OAUTH_AUTHORIZE_ENDPOINT', OAUTH_AUTHORITY . '/oauth2/v2.0/authorize');
-define('OAUTH_TOKEN_ENDPOINT', OAUTH_AUTHORITY . '/oauth2/v2.0/token');
-define('OAUTH_RESOURCE', 'https://outlook.office365.com');
 
 // cPanel
 define('CPANEL_TOKEN', 'YDBIN7O9JZMUWZU8JRWZZORJZL6GHZS7');

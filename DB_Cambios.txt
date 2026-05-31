@@ -1,3 +1,12 @@
+####30 de mayo 2026####
+ALTER TABLE `correo`
+ADD COLUMN `metodo_envio` ENUM('SMTP','GRAPH') NOT NULL DEFAULT 'SMTP' AFTER `correo_tipo_id`,
+ADD COLUMN `tenant_id` VARCHAR(100) NULL AFTER `smtp_secure`,
+ADD COLUMN `client_id` VARCHAR(100) NULL AFTER `tenant_id`,
+ADD COLUMN `client_secret` TEXT NULL AFTER `client_id`,
+ADD COLUMN `graph_user` VARCHAR(150) NULL AFTER `client_secret`,
+ADD COLUMN `save_to_sent_items` TINYINT(1) NOT NULL DEFAULT 1 AFTER `graph_user`;
+
 ####27 de mayo 2026####
 CREATE TABLE `caja_retiros` (
   `caja_retiros_id` int NOT NULL,

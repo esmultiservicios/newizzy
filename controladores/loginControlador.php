@@ -245,6 +245,33 @@ class loginControlador extends loginModel{
         return json_encode($datos);
     }
 
+    private function obtenerNombreSistemaCorreo() {
+        $nombreSistema = "IZZY";
+
+        if (defined('COMPANY') && trim(COMPANY) != "") {
+            $company = trim(COMPANY);
+
+            /*
+                Ejemplo:
+                COMPANY = 'IZZY :: ES MULTISERVICIOS'
+                Resultado:
+                IZZY
+            */
+            if (strpos($company, "::") !== false) {
+                $partes = explode("::", $company);
+                $nombreSistema = trim($partes[0]);
+            } else {
+                $nombreSistema = trim($company);
+            }
+        }
+
+        if ($nombreSistema == "") {
+            $nombreSistema = "IZZY";
+        }
+
+        return strtoupper($nombreSistema);
+    }
+
     private function enviarCorreoInicioSesion($rowUsuario, $codigoCliente = "") {
         try {
             $correoUsuario = "";
@@ -282,7 +309,12 @@ class loginControlador extends loginModel{
             $sendEmail = new sendEmail();
 
             $empresaData = $sendEmail->obtenerDatosEmpresa($empresa_id);
-            $empresaNombre = isset($empresaData['nombre']) && trim($empresaData['nombre']) != "" ? strtoupper(trim($empresaData['nombre'])) : "EL SISTEMA";
+
+            $empresaNombre = isset($empresaData['nombre']) && trim($empresaData['nombre']) != "" 
+                ? strtoupper(trim($empresaData['nombre'])) 
+                : "LA EMPRESA";
+
+            $sistemaNombre = $this->obtenerNombreSistemaCorreo();
 
             $fechaHora = date("d/m/Y h:i:s a");
             $ip = $this->obtenerIpCliente();
@@ -298,7 +330,7 @@ class loginControlador extends loginModel{
                 ';
             }
 
-            $asunto = "Nuevo inicio de sesión en " . $empresaNombre;
+            $asunto = "Nuevo inicio de sesión en " . $sistemaNombre;
 
             $mensaje = '
                 <div style="padding: 20px; font-family: Arial, Helvetica, sans-serif; color: #2d3748;">
@@ -307,7 +339,7 @@ class loginControlador extends loginModel{
                     </p>
 
                     <p style="margin-bottom: 12px;">
-                        Se detectó un nuevo inicio de sesión en su cuenta de <b>'.$empresaNombre.'</b>.
+                        Se detectó un nuevo inicio de sesión en su cuenta de <b>'.$sistemaNombre.'</b>.
                     </p>
 
                     <div style="
@@ -322,6 +354,12 @@ class loginControlador extends loginModel{
                         </p>
 
                         <ul style="margin: 0; padding-left: 18px;">
+                            <li style="margin-bottom: 6px;">
+                                <strong>Sistema:</strong> '.$sistemaNombre.'
+                            </li>
+                            <li style="margin-bottom: 6px;">
+                                <strong>Empresa:</strong> '.$empresaNombre.'
+                            </li>
                             <li style="margin-bottom: 6px;">
                                 <strong>Usuario:</strong> '.$correoUsuario.'
                             </li>

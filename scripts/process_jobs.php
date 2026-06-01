@@ -10,14 +10,14 @@ if (php_sapi_name() === 'cli') {
     $appUrl = getenv('APP_URL');
 
     if (!$appUrl) {
-        $appUrl = 'https://newizzy.test/';
+        $appUrl = 'https://izzycloud.app/';
     }
 
     $partesUrl = parse_url($appUrl);
 
     $_SERVER['HTTPS'] = 'on';
-    $_SERVER['HTTP_HOST'] = $partesUrl['host'] ?? 'newizzy.test';
-    $_SERVER['SERVER_NAME'] = $partesUrl['host'] ?? 'newizzy.test';
+    $_SERVER['HTTP_HOST'] = $partesUrl['host'] ?? 'izzycloud.app';
+    $_SERVER['SERVER_NAME'] = $partesUrl['host'] ?? 'izzycloud.app';
     $_SERVER['SERVER_PORT'] = isset($partesUrl['port']) ? (string)$partesUrl['port'] : '443';
     $_SERVER['REQUEST_URI'] = $partesUrl['path'] ?? '/';
 }
@@ -95,7 +95,16 @@ class JobProcessor {
 
     private function getPendingJobs() {
         $query = "
-            SELECT *
+            SELECT
+                id,
+                job_type,
+                data,
+                status,
+                attempts,
+                max_attempts,
+                created_at,
+                processed_at,
+                error_message
             FROM jobs_queue
             WHERE status = 'pending'
               AND attempts < max_attempts
@@ -112,28 +121,42 @@ class JobProcessor {
         $jobs = [];
 
         while ($row = $result->fetch_assoc()) {
-            $row['data'] = json_decode($row['data'], true);
-            $row['colaborador_data'] = json_decode($row['colaborador_data'], true);
-            $row['usuario_data'] = json_decode($row['usuario_data'], true);
+            $data = json_decode($row['data'], true);
 
-            if (!is_array($row['data'])) {
+            if (!is_array($data)) {
                 $this->handleJobFailure($row['id'], 'El campo data no contiene JSON válido.');
                 continue;
             }
 
-            if (!is_array($row['colaborador_data'])) {
-                $row['colaborador_data'] = [];
+            $row['data'] = $data;
+
+            /*
+                La tabla jobs_queue NO tiene columnas separadas para:
+                db_user, db_password, colaborador_data, usuario_data, notify_email.
+
+                Todo viene dentro del JSON data, creado desde clientesControlador.php.
+            */
+            $row['db_user'] = isset($data['db_user']) ? trim((string)$data['db_user']) : '';
+            $row['db_password'] = isset($data['db_password']) ? trim((string)$data['db_password']) : '';
+            $row['notify_email'] = isset($data['notify_email']) ? trim((string)$data['notify_email']) : '';
+
+            $row['colaborador_data'] = [];
+            if (isset($data['colaborador_data']) && is_array($data['colaborador_data'])) {
+                $row['colaborador_data'] = $data['colaborador_data'];
             }
 
-            if (!is_array($row['usuario_data'])) {
-                $row['usuario_data'] = [];
+            $row['usuario_data'] = [];
+            if (isset($data['usuario_data']) && is_array($data['usuario_data'])) {
+                $row['usuario_data'] = $data['usuario_data'];
             }
 
             if ($row['job_type'] === 'db_import') {
                 if (
                     empty($row['data']['server_customers_id']) ||
                     empty($row['data']['db_name']) ||
-                    empty($row['data']['sql_file'])
+                    empty($row['data']['sql_file']) ||
+                    empty($row['db_user']) ||
+                    empty($row['db_password'])
                 ) {
                     $this->handleJobFailure($row['id'], 'Datos incompletos para job de importación.');
                     continue;

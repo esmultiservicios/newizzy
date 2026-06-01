@@ -9,6 +9,10 @@ if($peticionAjax){
 
 class correoModelo extends mainModel{
 
+    private function contieneValorEnmascaradoModelo($valor){
+        return strpos((string)$valor, '****') !== false;
+    }
+
     protected function edit_correo_modelo($datos) {
         $conexion = mainModel::connection();
 
@@ -18,11 +22,19 @@ class correoModelo extends mainModel{
             $correo_id = (int)$datos['correo_id'];
 
             $stmtActual = $conexion->prepare("
-                SELECT password, client_secret
+                SELECT 
+                    password, 
+                    tenant_id,
+                    client_id,
+                    client_secret
                 FROM correo
                 WHERE correo_id = ?
                 LIMIT 1
             ");
+
+            if (!$stmtActual) {
+                throw new Exception($conexion->error);
+            }
 
             $stmtActual->bind_param("i", $correo_id);
             $stmtActual->execute();
@@ -35,12 +47,50 @@ class correoModelo extends mainModel{
             $rowActual = $resultadoActual->fetch_assoc();
 
             $passwordFinal = $rowActual['password'];
+            $tenantIdFinal = $rowActual['tenant_id'];
+            $clientIdFinal = $rowActual['client_id'];
             $clientSecretFinal = $rowActual['client_secret'];
 
+            /*
+                Password SMTP:
+                Si viene vacío, conserva el actual.
+            */
             if (isset($datos['password']) && trim($datos['password']) !== "") {
                 $passwordFinal = $datos['password'];
             }
 
+            /*
+                Tenant ID:
+                Si viene vacío o enmascarado con ****, conserva el valor real actual.
+                Si viene completo, actualiza.
+            */
+            if (
+                isset($datos['tenant_id']) &&
+                trim($datos['tenant_id']) !== "" &&
+                !$this->contieneValorEnmascaradoModelo($datos['tenant_id'])
+            ) {
+                $tenantIdFinal = trim($datos['tenant_id']);
+            }
+
+            /*
+                Client ID:
+                Si viene vacío o enmascarado con ****, conserva el valor real actual.
+                Si viene completo, actualiza.
+            */
+            if (
+                isset($datos['client_id']) &&
+                trim($datos['client_id']) !== "" &&
+                !$this->contieneValorEnmascaradoModelo($datos['client_id'])
+            ) {
+                $clientIdFinal = trim($datos['client_id']);
+            }
+
+            /*
+                Client Secret:
+                Nunca se muestra.
+                Si viene vacío, conserva el actual.
+                Si viene nuevo, actualiza.
+            */
             if (isset($datos['client_secret']) && trim($datos['client_secret']) !== "") {
                 $clientSecretFinal = $datos['client_secret'];
             }
@@ -61,6 +111,10 @@ class correoModelo extends mainModel{
                 WHERE correo_id = ?
             ");
 
+            if (!$stmt) {
+                throw new Exception($conexion->error);
+            }
+
             $stmt->bind_param("ssssisssssii",
                 $datos['metodo_envio'],
                 $datos['server'],
@@ -68,8 +122,8 @@ class correoModelo extends mainModel{
                 $passwordFinal,
                 $datos['port'],
                 $datos['smtp_secure'],
-                $datos['tenant_id'],
-                $datos['client_id'],
+                $tenantIdFinal,
+                $clientIdFinal,
                 $clientSecretFinal,
                 $datos['graph_user'],
                 $datos['save_to_sent_items'],
@@ -110,6 +164,10 @@ class correoModelo extends mainModel{
                 ) VALUES (?, ?, ?, ?)
             ");
 
+            if (!$stmt) {
+                throw new Exception($conexion->error);
+            }
+
             $activo = 1;
 
             $stmt->bind_param("issi",
@@ -147,6 +205,10 @@ class correoModelo extends mainModel{
                 WHERE correo = ?
                 LIMIT 1
             ");
+
+            if (!$stmt) {
+                throw new Exception($conexion->error);
+            }
 
             $stmt->bind_param("s", $correo);
             $stmt->execute();

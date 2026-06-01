@@ -9,7 +9,33 @@ if($peticionAjax){
 
 class correoControlador extends correoModelo{
 
+    private function usuarioPuedeEditarCorreo(){
+        $privilegio = isset($_SESSION['privilegio_sd']) ? (int)$_SESSION['privilegio_sd'] : 0;
+
+        /*
+            1 = Super Administrador
+            2 = Administrador
+            3 = Reseller
+            4 = Clientes
+            5 = Contabilidad
+        */
+        return in_array($privilegio, [1, 2], true);
+    }
+
+    private function contieneValorEnmascarado($valor){
+        return strpos((string)$valor, '****') !== false;
+    }
+
     public function edit_correo_controlador(){
+
+        if (!$this->usuarioPuedeEditarCorreo()) {
+            return mainModel::showNotification([
+                "title" => "Acceso restringido",
+                "text" => "No tiene permisos para modificar la configuración de correo. Esta configuración controla el envío de facturas, notificaciones, recuperación de contraseña e inicios de sesión.",
+                "type" => "error"
+            ]);
+        }
+
         $correo_id = isset($_POST['correo_id']) ? (int)$_POST['correo_id'] : 0;
 
         $metodo_envio = isset($_POST['metodoEnvioConfEmail']) ? strtoupper(mainModel::cleanString($_POST['metodoEnvioConfEmail'])) : "SMTP";
@@ -19,8 +45,8 @@ class correoControlador extends correoModelo{
         $puertoConfEmail = isset($_POST['puertoConfEmail']) ? (int)$_POST['puertoConfEmail'] : 0;
         $smtpSecureConfEmail = isset($_POST['smtpSecureConfEmail']) ? mainModel::cleanString($_POST['smtpSecureConfEmail']) : "";
 
-        $tenantIdConfEmail = isset($_POST['tenantIdConfEmail']) ? mainModel::cleanString($_POST['tenantIdConfEmail']) : "";
-        $clientIdConfEmail = isset($_POST['clientIdConfEmail']) ? mainModel::cleanString($_POST['clientIdConfEmail']) : "";
+        $tenantIdConfEmail = isset($_POST['tenantIdConfEmail']) ? trim($_POST['tenantIdConfEmail']) : "";
+        $clientIdConfEmail = isset($_POST['clientIdConfEmail']) ? trim($_POST['clientIdConfEmail']) : "";
         $clientSecretConfEmail = isset($_POST['clientSecretConfEmail']) ? trim($_POST['clientSecretConfEmail']) : "";
         $graphUserConfEmail = isset($_POST['graphUserConfEmail']) ? mainModel::cleanStringStrtolower($_POST['graphUserConfEmail']) : "";
         $saveToSentItemsConfEmail = isset($_POST['saveToSentItemsConfEmail']) ? (int)$_POST['saveToSentItemsConfEmail'] : 1;
@@ -86,10 +112,14 @@ class correoControlador extends correoModelo{
             $puertoConfEmail = 0;
             $smtpSecureConfEmail = "";
 
+            /*
+                Tenant ID y Client ID pueden venir enmascarados.
+                Si vienen con ****, el modelo conservará el valor real guardado.
+            */
             if ($tenantIdConfEmail == "") {
                 return mainModel::showNotification([
                     "title" => "Error",
-                    "text" => "Debe ingresar el Tenant ID",
+                    "text" => "Debe ingresar el Tenant ID o conservar el valor actual enmascarado.",
                     "type" => "error"
                 ]);
             }
@@ -97,7 +127,7 @@ class correoControlador extends correoModelo{
             if ($clientIdConfEmail == "") {
                 return mainModel::showNotification([
                     "title" => "Error",
-                    "text" => "Debe ingresar el Client ID",
+                    "text" => "Debe ingresar el Client ID o conservar el valor actual enmascarado.",
                     "type" => "error"
                 ]);
             }

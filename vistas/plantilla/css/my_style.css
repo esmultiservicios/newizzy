@@ -6813,3 +6813,70 @@ table.dataTable tbody tr.shown td {
   }
 }
 /*FIN CORREO GRAPHS*/
+
+/* INICIO MODO SEGURO CONFIGURACIÓN CORREO */
+.alerta-correo-seguridad {
+  border-radius: 12px;
+  border: 1px solid #e5edf5;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  background: #f8fafc;
+  color: #334155;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.05);
+}
+
+.alerta-correo-seguridad .alerta-icono {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #e0f2fe;
+  color: #0369a1;
+  flex: 0 0 36px;
+}
+
+.alerta-correo-seguridad .alerta-contenido h6 {
+  margin: 0 0 4px 0;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.alerta-correo-seguridad .alerta-contenido p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.alerta-correo-seguridad.modo-lectura {
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+
+.alerta-correo-seguridad.modo-lectura .alerta-icono {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+#modalConfEmails .campo-solo-lectura,
+#modalConfEmails .campo-solo-lectura[readonly] {
+  background-color: #f8fafc !important;
+  cursor: not-allowed;
+}
+
+#modalConfEmails .bootstrap-select.disabled > .dropdown-toggle,
+#modalConfEmails select:disabled + button.dropdown-toggle {
+  background-color: #f8fafc !important;
+  cursor: not-allowed;
+}
+
+.texto-secreto-guardado {
+  font-size: 12.5px;
+  color: #64748b;
+  font-weight: 600;
+}
+/* FIN MODO SEGURO CONFIGURACIÓN CORREO */

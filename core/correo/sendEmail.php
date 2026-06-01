@@ -1022,46 +1022,161 @@ class sendEmail {
     }
 
     public function getCorreoPlantilla($asunto, $mensaje, $datos_empresa) {
-        $nombreEmpresa = $datos_empresa["empresa"];
-        $direccionEmpresa = $datos_empresa["ubicacion"];
-        $telefonoEmpresa = $datos_empresa["telefono"];
-        $rtnEmpresa = $datos_empresa["rtn"];
-        $sitioWebEmpresa = $datos_empresa["sitioweb"];
-        $logotipoEmpresa = $datos_empresa["logotipo"];
-
-        $urlLogoEmpresa = SERVERURL . "vistas/plantilla/img/logos/" . $logotipoEmpresa;
-
+        $nombreEmpresa = isset($datos_empresa["empresa"]) && trim($datos_empresa["empresa"]) != ""
+            ? trim($datos_empresa["empresa"])
+            : "ES MULTISERVICIOS";
+    
+        $direccionEmpresa = isset($datos_empresa["ubicacion"]) && trim($datos_empresa["ubicacion"]) != ""
+            ? trim($datos_empresa["ubicacion"])
+            : "";
+    
+        $telefonoEmpresa = isset($datos_empresa["telefono"]) && trim($datos_empresa["telefono"]) != ""
+            ? trim($datos_empresa["telefono"])
+            : "";
+    
+        $rtnEmpresa = isset($datos_empresa["rtn"]) && trim($datos_empresa["rtn"]) != ""
+            ? trim($datos_empresa["rtn"])
+            : "";
+    
+        $sitioWebEmpresa = isset($datos_empresa["sitioweb"]) && trim($datos_empresa["sitioweb"]) != ""
+            ? trim($datos_empresa["sitioweb"])
+            : "";
+    
+        $logotipoEmpresa = isset($datos_empresa["logotipo"]) && trim($datos_empresa["logotipo"]) != ""
+            ? trim($datos_empresa["logotipo"])
+            : "esmultiservicios_logo.png";
+    
+        /*
+            IMPORTANTE:
+            El logo real está en:
+            vistas/plantilla/img/enterprise/
+    
+            Antes se usaba:
+            vistas/plantilla/img/logos/
+    
+            Por eso el logo salía roto en el correo.
+        */
+        $urlLogoEmpresa = SERVERURL . "vistas/plantilla/img/enterprise/" . $logotipoEmpresa;
+    
+        $htmlTelefono = "";
+        if ($telefonoEmpresa != "") {
+            $htmlTelefono = '<p style="margin: 8px 0 0 0;">Teléfono: '.$telefonoEmpresa.'</p>';
+        }
+    
+        $htmlRtn = "";
+        if ($rtnEmpresa != "") {
+            $htmlRtn = '<p style="margin: 8px 0 0 0;">RTN: '.$rtnEmpresa.'</p>';
+        }
+    
+        $htmlSitioWeb = "";
+        if ($sitioWebEmpresa != "") {
+            $htmlSitioWeb = '
+                <p style="margin: 8px 0 0 0;">
+                    Sitio Web: 
+                    <a href="'.$sitioWebEmpresa.'" target="_blank" style="color: #0d6efd; text-decoration: none;">
+                        '.$sitioWebEmpresa.'
+                    </a>
+                </p>
+            ';
+        }
+    
+        $htmlDireccion = "";
+        if ($direccionEmpresa != "") {
+            $htmlDireccion = '<p style="margin: 10px 0 0 0;">'.$direccionEmpresa.'</p>';
+        }
+    
         $encabezado = '
-            <div style="background-color: #f2f2f2; padding: 20px; text-align: center;">
-                <img src="'.$urlLogoEmpresa.'" alt="Logo de '.$nombreEmpresa.'" style="max-width: 70%;">
-                <h1>'.$nombreEmpresa.'</h1>
-                <p>'.$direccionEmpresa.'</p>
-                <p>Teléfono: '.$telefonoEmpresa.'</p>
-                <p>RTN: '.$rtnEmpresa.'</p>
-                <p>Sitio Web: '.$sitioWebEmpresa.'</p>
-            </div>';
-
+            <div style="
+                background-color: #f2f2f2;
+                padding: 24px 20px;
+                text-align: center;
+                font-family: Arial, Helvetica, sans-serif;
+                color: #2d2d2d;
+            ">
+                <img 
+                    src="'.$urlLogoEmpresa.'" 
+                    alt="Logo de '.$nombreEmpresa.'" 
+                    style="
+                        display: block;
+                        margin: 0 auto 14px auto;
+                        max-width: 230px;
+                        width: auto;
+                        height: auto;
+                        border: 0;
+                        outline: none;
+                        text-decoration: none;
+                    "
+                >
+    
+                <h1 style="
+                    margin: 0;
+                    font-size: 26px;
+                    letter-spacing: 1px;
+                    color: #2d2d2d;
+                    font-weight: 700;
+                ">
+                    '.$nombreEmpresa.'
+                </h1>
+    
+                '.$htmlDireccion.'
+                '.$htmlTelefono.'
+                '.$htmlRtn.'
+                '.$htmlSitioWeb.'
+            </div>
+        ';
+    
         $pieDePagina = '
-            <div style="background-color: #f2f2f2; padding: 20px; text-align: center;">
-                <p><b>Este correo fue enviado por '.$nombreEmpresa.', por favor no respondas a este correo</b>.</p>
-            </div>';
-
+            <div style="
+                background-color: #f2f2f2;
+                padding: 18px 20px;
+                text-align: center;
+                font-family: Arial, Helvetica, sans-serif;
+                color: #2d2d2d;
+                font-size: 13px;
+            ">
+                <p style="margin: 0;">
+                    <b>Este correo fue enviado por '.$nombreEmpresa.', por favor no responda a este correo.</b>
+                </p>
+            </div>
+        ';
+    
         $htmlMensaje = '
             <html>
                 <head>
                     <title>'.$asunto.'</title>
                     <meta charset="UTF-8">
                 </head>
-                <body>
+    
+                <body style="
+                    margin: 0;
+                    padding: 0;
+                    background-color: #ffffff;
+                    font-family: Arial, Helvetica, sans-serif;
+                    color: #2d3748;
+                ">
                     '.$encabezado.'
-                    <div style="padding: 20px;">
-                        <h1>'.$asunto.'</h1>
+    
+                    <div style="
+                        padding: 24px 20px;
+                        font-family: Arial, Helvetica, sans-serif;
+                        color: #2d3748;
+                    ">
+                        <h1 style="
+                            margin: 0 0 20px 0;
+                            font-size: 26px;
+                            color: #2d2d2d;
+                        ">
+                            '.$asunto.'
+                        </h1>
+    
                         '.$mensaje.'
                     </div>
+    
                     '.$pieDePagina.'
                 </body>
-            </html>';
-
+            </html>
+        ';
+    
         return $htmlMensaje;
     }
 }

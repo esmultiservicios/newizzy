@@ -161,80 +161,91 @@ class clientesControlador extends clientesModelo {
     public function registrar_cliente_autonomo_controlador() {
         header('Content-Type: application/json; charset=utf-8');
 
-        // Validar campos requeridos
         $required = ['user_empresa', 'user_name', 'user_telefono', 'email'];
 
         foreach ($required as $field) {
             if (!isset($_POST[$field])) {
                 $this->responderError('Campos faltantes', 'Faltan campos obligatorios', 400);
             }
-        }        
+        }
 
-        // Limpiar y validar datos
         $datos = [
             'empresa' => mainModel::cleanString($_POST['user_empresa'] ?? ''),
             'nombre' => mainModel::cleanString($_POST['user_name'] ?? ''),
             'telefono' => mainModel::cleanString($_POST['user_telefono'] ?? ''),
             'correo' => mainModel::cleanStringStrtolower($_POST['email'] ?? ''),
             'password' => mainModel::cleanString(empty($_POST['user_pass']) ? mainModel::generar_password_complejo() : $_POST['user_pass']),
-            'sistema_id' => mainModel::cleanString($_POST['sistema_id'] ?? 1),
-            'planes_id' => mainModel::cleanString($_POST['planes_id'] ?? ''),
+            'sistema_id' => (int)mainModel::cleanString($_POST['sistema_id'] ?? 1),
+            'planes_id' => (int)mainModel::cleanString($_POST['planes_id'] ?? 1),
             'eslogan' => mainModel::cleanString($_POST['eslogan'] ?? ''),
             'otra_informacion' => mainModel::cleanString($_POST['otra_informacion'] ?? ''),
             'ubicacion' => mainModel::cleanString($_POST['ubicacion'] ?? ''),
-            'celular' => mainModel::cleanString($_POST['celular'] ?? ''),  
-            'validar' => mainModel::cleanString($_POST['validar'] ?? 0), 
-            'rtn' => mainModel::cleanString($_POST['rtn'] ?? ''), 
-            'clientes_id' => mainModel::cleanString($_POST['clientes_id'] ?? 0)
+            'celular' => mainModel::cleanString($_POST['celular'] ?? ''),
+            'validar' => (int)mainModel::cleanString($_POST['validar'] ?? 1),
+            'rtn' => mainModel::cleanString($_POST['rtn'] ?? ''),
+            'clientes_id' => (int)mainModel::cleanString($_POST['clientes_id'] ?? 0)
         ];
-                
-        $empresa_id = 1; 
-        $clientes_id = $datos['clientes_id'];  
 
-        // Validaciones básicas
+        $empresa_id_principal = 1;
+        $clientes_id = (int)$datos['clientes_id'];
+
         if (
-            empty($datos['nombre']) || 
-            empty($datos['empresa']) || 
-            empty($datos['telefono']) || 
-            empty($datos['correo']) || 
+            empty($datos['nombre']) ||
+            empty($datos['empresa']) ||
+            empty($datos['telefono']) ||
+            empty($datos['correo']) ||
             empty($datos['password'])
         ) {
             $this->responderError('Campos vacíos', 'Todos los campos son obligatorios', 400);
         }
-        
+
         if (!filter_var($datos['correo'], FILTER_VALIDATE_EMAIL)) {
             $this->responderError('Correo inválido', 'El formato del correo no es válido', 400);
         }
 
-        // Registrar cliente principal
-        if($clientes_id === "0" || $clientes_id === 0) {
-            if ($this->correoYaRegistrado($datos['correo'])) {
-                $this->responderError('Correo existente', 'Este correo ya está registrado', 400);
-            }
-
-            $clientes_id = $this->registrarCliente(
-                $datos['nombre'], 
-                $datos['telefono'], 
-                $datos['correo'], 
-                $datos['empresa'], 
-                $datos['rtn']
-            );
-
-            if (!$clientes_id) {
-                $this->responderError('Error', 'No se pudo registrar el cliente principal', 500);
-            }
+        if (!preg_match('/^\d{1,8}$/', $datos['telefono'])) {
+            $this->responderError('Teléfono inválido', 'El teléfono debe contener máximo 8 dígitos numéricos', 400);
         }
 
-        // Consultar nombre del sistema
-        $sistema_nombre = $this->getNombreSistema($datos['sistema_id']);
+        if ($datos['rtn'] !== '' && !preg_match('/^\d{13,14}$/', $datos['rtn'])) {
+            $this->responderError('RTN/Identidad inválido', 'El RTN/Identidad debe contener 13 o 14 dígitos numéricos', 400);
+        }
 
-        // Generar nombres para la base de datos
-        $dbNames = mainModel::generateDatabaseName($datos['empresa'], $sistema_nombre);
+        if ($datos['planes_id'] <= 0) {
+            $datos['planes_id'] = 1;
+        }
 
-        $codigo_cliente = $this->generarCodigoCliente($clientes_id);
-        $dataBaseCliente = $dbNames['prefixed'];
-        
+        if ($datos['sistema_id'] <= 0) {
+            $datos['sistema_id'] = 1;
+        }
+
+        if ($datos['validar'] !== 1 && $datos['validar'] !== 2) {
+            $datos['validar'] = 1;
+        }
+
         try {
+            if ($clientes_id <= 0) {
+                if ($this->correoYaRegistrado($datos['correo'])) {
+                    $this->responderError('Correo existente', 'Este correo ya está registrado', 400);
+                }
+
+                $clientes_id = $this->registrarCliente(
+                    $datos['nombre'],
+                    $datos['telefono'],
+                    $datos['correo'],
+                    $datos['empresa'],
+                    $datos['rtn']
+                );
+
+                if (!$clientes_id) {
+                    $this->responderError('Error', 'No se pudo registrar el cliente principal', 500);
+                }
+            }
+
+            $sistema_nombre = $this->getNombreSistema($datos['sistema_id']);
+            $dbNames = mainModel::generateDatabaseName($datos['empresa'], $sistema_nombre);
+            $dataBaseCliente = $this->normalizarNombreBaseDatos($dbNames['prefixed']);
+
             $cpanel = new cPanelAPI();
 
             $dbSetup = $cpanel->setupCompleteDatabase([
@@ -242,69 +253,46 @@ class clientesControlador extends clientesModelo {
                 'db_user' => CPANEL_DB_USERNAME,
                 'db_password' => CPANEL_DB_PASSWORD
             ]);
-            
+
             if (!$dbSetup['success']) {
                 $this->responderError(
                     'Error en configuración',
-                    $dbSetup['message'] ?? "Error al configurar la base de datos",
+                    $dbSetup['message'] ?? 'Error al configurar la base de datos',
                     500
                 );
             }
-            
-            // Registrar colaborador
+
+            $nombre_db_creada = isset($dbSetup['database']['db_name']) && trim($dbSetup['database']['db_name']) !== ''
+                ? trim($dbSetup['database']['db_name'])
+                : $dataBaseCliente;
+
             $id_colaborador = $this->registrarColaborador(
-                $datos['nombre'], 
-                $datos['telefono'], 
-                $datos['rtn'], 
-                1
+                $datos['nombre'],
+                $datos['telefono'],
+                $datos['rtn'],
+                $empresa_id_principal
             );
 
             if (!$id_colaborador) {
-                $this->responderError('Error en registro', "Error al registrar el colaborador", 500);
+                $this->responderError('Error en registro', 'Error al registrar el colaborador', 500);
             }
 
-            // Preparar datos para server customer
-            $datosColaborador = [
-                'colaboradores_id' => $id_colaborador,
-                'puestos_id' => 5,
-                'nombre' => $datos['nombre'],
-                'identidad' => $datos['rtn'],
-                'estado' => 1,
-                'telefono' => $datos['telefono'],
-                'empresa_id' => 1,
-                'fecha_registro' => date("Y-m-d H:i:s"),
-                'fecha_ingreso' => date("Y-m-d"),
-                'fecha_egreso' => '0000-00-00'
-            ];
-
-            $datosUsuarioParcial = [
-                'colaboradores_id' => $id_colaborador,
-                'privilegio_id' => 2,
-                'password' => mainModel::encryption($datos['password']),
-                'email' => $datos['correo'],
-                'tipo_user_id' => 1,
-                'estado' => 1,
-                'empresa_id' => $clientes_id
-            ];
-
-            // Registrar server customer
-            $server_customers_id = $this->registrarServerCustomer(
+            $serverCustomer = $this->registrarServerCustomer(
                 $clientes_id,
-                $empresa_id,
-                $codigo_cliente,
-                $dbSetup['database']['db_name'],
+                $this->generarCodigoCliente(),
+                $nombre_db_creada,
                 $datos['validar'],
                 $datos['planes_id'],
-                $datos['sistema_id'],
-                $datosColaborador,
-                $datosUsuarioParcial
-            );            
-            
-            if (!$server_customers_id) {
+                $datos['sistema_id']
+            );
+
+            if (!$serverCustomer || empty($serverCustomer['server_customers_id'])) {
                 $this->responderError('Error en el registro', 'No se pudo registrar en server_customers', 500);
             }
 
-            // Registrar usuario
+            $server_customers_id = (int)$serverCustomer['server_customers_id'];
+            $codigo_cliente = (int)$serverCustomer['codigo_cliente'];
+
             $usuario = $this->registrarUsuario(
                 $clientes_id,
                 $server_customers_id,
@@ -313,27 +301,32 @@ class clientesControlador extends clientesModelo {
                 $datos['password'],
                 $id_colaborador
             );
-            
+
             if (!$usuario || empty($usuario['success'])) {
-                $mensajeErrorUsuario = isset($usuario['error']) ? $usuario['error'] : "Error al registrar el usuario";
+                $mensajeErrorUsuario = isset($usuario['error']) ? $usuario['error'] : 'Error al registrar el usuario';
                 $this->responderError('Error en registro', $mensajeErrorUsuario, 500);
             }
 
-            // Actualizar el job en la cola con el users_id generado
-            $this->actualizarJobConUserId($server_customers_id, $usuario['users_id']);
-            
-            // Enviar correo de bienvenida
-            $this->enviarCorreoBienvenida([
-                'nombre' => $datos['nombre'],
-                'email' => $datos['correo'],
-                'empresa' => $datos['empresa'],
-                'nombre_db' => $dataBaseCliente,
-                'password' => $datos['password']
-            ], 1);                                        
+            $jobCreado = $this->registrarJobImportacion(
+                $server_customers_id,
+                $clientes_id,
+                $id_colaborador,
+                $usuario['users_id'],
+                $nombre_db_creada,
+                $datos['password'],
+                $datos['empresa'],
+                $datos['correo'],
+                $datos['telefono'],
+                $datos['rtn']
+            );
 
-            // Respuesta exitosa consolidada
+            if (!$jobCreado) {
+                $this->responderError('Error en cola de procesos', 'La base fue creada, pero no se pudo registrar el proceso de importación.', 500);
+            }
+
             $this->responderExito([
                 'estado' => true,
+                'mensaje_estado' => 'Cuenta registrada. Estamos preparando su base de datos; recibirá un correo cuando el acceso esté listo.',
                 'cliente' => [
                     'id' => $clientes_id,
                     'nombre' => $datos['nombre'],
@@ -342,26 +335,21 @@ class clientesControlador extends clientesModelo {
                 'servidor' => [
                     'server_customers_id' => $server_customers_id,
                     'codigo_cliente' => $codigo_cliente,
-                    'nombre_db' => $dataBaseCliente
+                    'nombre_db' => $nombre_db_creada,
+                    'db_imported' => 0
                 ],
                 'usuario' => [
                     'id' => $usuario['users_id'],
                     'email' => $usuario['email']
                 ]
-            ], $dbNames['prefixed']);
-            
+            ], $nombre_db_creada);
+
         } catch (Exception $e) {
-            error_log("Error en registro autónomo: " . $e->getMessage());
-            
-            // Limpieza en caso de error
-            if (isset($server_customers_id)) {
-                mainModel::ejecutar_consulta_simple("DELETE FROM server_customers WHERE server_customers_id = '$server_customers_id'");
-            }
-            
+            error_log('Error en registro autónomo: ' . $e->getMessage());
             $this->responderError('Error en el registro', $e->getMessage(), 500);
         }
     }
-    
+
     /* Métodos para editar clientes */
     public function edit_clientes_controlador(){
         // Validar sesión primero
@@ -571,10 +559,10 @@ class clientesControlador extends clientesModelo {
         echo json_encode([
             'estado' => true,
             'type' => 'success',
-            'title' => 'Registro exitoso',
-            'mensaje' => "Registro completado. Base de datos {$nombre_db} configurada correctamente.",
+            'title' => 'Registro recibido',
+            'mensaje' => "Registro completado. Base de datos {$nombre_db} creada. La configuración se procesará en segundo plano y recibirá un correo cuando el acceso esté listo.",
             'datos' => $datos
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
         exit;
     }
     
@@ -676,31 +664,94 @@ class clientesControlador extends clientesModelo {
         return $this->agregar_colaboradores_modelo($datos);
     }
     
-    private function generarCodigoCliente($clientes_id) {
-        $codigo = mainModel::generarCodigoUnico($clientes_id);
+    private function generarServerCustomersIdUnico($conexion) {
+        $resultado = $conexion->query("SELECT COALESCE(MAX(server_customers_id), 0) + 1 AS siguiente FROM server_customers");
 
-        $existe = mainModel::ejecutar_consulta_simple("
-            SELECT COUNT(*) as total 
-            FROM server_customers 
-            WHERE codigo_cliente = '$codigo'
-        ");
+        if (!$resultado) {
+            throw new Exception("Error al generar server_customers_id: " . $conexion->error);
+        }
 
-        return ($existe->fetch_assoc()['total'] > 0) ? (int)(date('Ymd') . substr($clientes_id, -4)) : $codigo;
+        $row = $resultado->fetch_assoc();
+        return (int)$row['siguiente'];
     }
-    
-    private function registrarServerCustomer($clientes_id, $empresa_id, $codigo_cliente, $nombre_db, $validar, $planes_id, $sistema_id, $datosColaborador, $datosUsuarioParcial) {
+
+    private function generarCodigoCliente($clientes_id = 0) {
+        $conexion = mainModel::connection();
+
+        for ($i = 0; $i < 50; $i++) {
+            $codigo = (int)mainModel::generarCodigoUnico((int)$clientes_id);
+
+            if ($codigo <= 0 || strlen((string)$codigo) > 8) {
+                $codigo = random_int(10000000, 99999999);
+            }
+
+            $stmt = $conexion->prepare("SELECT server_customers_id FROM server_customers WHERE codigo_cliente = ? LIMIT 1");
+
+            if (!$stmt) {
+                throw new Exception("Error al validar código de cliente: " . $conexion->error);
+            }
+
+            $stmt->bind_param("i", $codigo);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $existe = ($result && $result->num_rows > 0);
+            $stmt->close();
+
+            if (!$existe) {
+                return $codigo;
+            }
+        }
+
+        throw new Exception("No se pudo generar un código de cliente único.");
+    }
+
+    private function normalizarNombreBaseDatos($nombre_db) {
+        $nombre_db = trim((string)$nombre_db);
+
+        if ($nombre_db === '') {
+            throw new Exception("No se pudo generar el nombre de la base de datos.");
+        }
+
+        if (strlen($nombre_db) > 40) {
+            $nombre_db = substr($nombre_db, 0, 40);
+        }
+
+        return $nombre_db;
+    }
+
+    private function registrarServerCustomer($clientes_id, $codigo_cliente, $nombre_db, $validar, $planes_id, $sistema_id) {
         $conexion = mainModel::connection();
         $stmt = null;
-        $stmtJob = null;
-    
+
         try {
             $conexion->autocommit(false);
-    
-            $server_customers_id = mainModel::correlativo("server_customers_id", "server_customers");
-            
-            // Insertar en server_customers
+            $conexion->query("LOCK TABLES server_customers WRITE");
+
+            $server_customers_id = $this->generarServerCustomersIdUnico($conexion);
+            $codigo_cliente_final = (int)$codigo_cliente;
+
+            for ($i = 0; $i < 50; $i++) {
+                $stmtValidar = $conexion->prepare("SELECT server_customers_id FROM server_customers WHERE codigo_cliente = ? LIMIT 1");
+
+                if (!$stmtValidar) {
+                    throw new Exception("Error al validar código de cliente: " . $conexion->error);
+                }
+
+                $stmtValidar->bind_param("i", $codigo_cliente_final);
+                $stmtValidar->execute();
+                $resultValidar = $stmtValidar->get_result();
+                $existeCodigo = ($resultValidar && $resultValidar->num_rows > 0);
+                $stmtValidar->close();
+
+                if (!$existeCodigo) {
+                    break;
+                }
+
+                $codigo_cliente_final = random_int(10000000, 99999999);
+            }
+
             $stmt = $conexion->prepare("
-                INSERT INTO server_customers 
+                INSERT INTO server_customers
                 (
                     server_customers_id,
                     clientes_id,
@@ -711,47 +762,101 @@ class clientesControlador extends clientesModelo {
                     validar,
                     estado,
                     db_imported
-                ) 
+                )
                 VALUES (?, ?, ?, ?, ?, ?, ?, 1, 0)
             ");
-            
+
             if (!$stmt) {
                 throw new Exception("Error al preparar server_customers: " . $conexion->error);
             }
 
-            $stmt->bind_param("iissiii", 
-                $server_customers_id, 
-                $clientes_id, 
-                $codigo_cliente, 
-                $nombre_db, 
-                $planes_id, 
-                $sistema_id, 
+            $clientes_id = (int)$clientes_id;
+            $planes_id = (int)$planes_id;
+            $sistema_id = (int)$sistema_id;
+            $validar = (int)$validar;
+
+            $stmt->bind_param(
+                "iiisiii",
+                $server_customers_id,
+                $clientes_id,
+                $codigo_cliente_final,
+                $nombre_db,
+                $planes_id,
+                $sistema_id,
                 $validar
             );
-    
+
             if (!$stmt->execute()) {
                 throw new Exception("Error al registrar server customer: " . $stmt->error);
             }
 
-            // Preparar datos para el job
-            $jobData = [
-                'db_name' => $nombre_db,
-                'client_id' => $clientes_id,
+            $conexion->commit();
+
+            return [
                 'server_customers_id' => $server_customers_id,
-                'sql_file' => dirname(dirname(__DIR__)) . '/plantilla/plantilla_izzy.sql'
+                'codigo_cliente' => $codigo_cliente_final
             ];
 
-            $jsonData = json_encode($jobData);
-            $jsonColaborador = json_encode($datosColaborador);
-            $jsonUsuario = json_encode($datosUsuarioParcial);
-            
+        } catch (Exception $e) {
+            $conexion->rollback();
+            error_log("Error en registrarServerCustomer: " . $e->getMessage());
+            return false;
+
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+
+            $conexion->query("UNLOCK TABLES");
+            $conexion->autocommit(true);
+        }
+    }
+
+    private function registrarJobImportacion($server_customers_id, $clientes_id, $colaboradores_id, $users_id, $nombre_db, $password_temporal, $empresa_nombre, $correo, $telefono, $rtn) {
+        $conexion = mainModel::connection();
+        $stmt = null;
+
+        try {
+            $plantillaSql = dirname(__DIR__) . '/plantilla/plantilla_izzy.sql';
+
+            if (!file_exists($plantillaSql)) {
+                throw new Exception("No se encontró la plantilla SQL: " . $plantillaSql);
+            }
+
+            $colaboradorData = $this->obtenerColaboradorPrincipal($colaboradores_id);
+            $usuarioData = $this->obtenerUsuarioPrincipal($users_id);
+
+            if (empty($colaboradorData)) {
+                throw new Exception("No se encontró el colaborador principal para crear el job.");
+            }
+
+            if (empty($usuarioData)) {
+                throw new Exception("No se encontró el usuario principal para crear el job.");
+            }
+
+            $data = [
+                'db_name' => $nombre_db,
+                'client_id' => (int)$clientes_id,
+                'server_customers_id' => (int)$server_customers_id,
+                'sql_file' => $plantillaSql,
+                'password_temporal' => $password_temporal,
+                'empresa_nombre' => $empresa_nombre,
+                'correo' => $correo,
+                'telefono' => $telefono,
+                'rtn' => $rtn,
+                'login_url' => SERVERURL . 'login/'
+            ];
+
+            $jsonData = json_encode($data, JSON_UNESCAPED_UNICODE);
+            $jsonColaborador = json_encode($colaboradorData, JSON_UNESCAPED_UNICODE);
+            $jsonUsuario = json_encode($usuarioData, JSON_UNESCAPED_UNICODE);
+
             $dbUser = CPANEL_DB_USERNAME;
             $dbPass = CPANEL_DB_PASSWORD;
-            $notifyEmail = $datosUsuarioParcial['email'];
+            $notifyEmail = $correo;
 
-            // Insertar el job
-            $stmtJob = $conexion->prepare("
-                INSERT INTO jobs_queue 
+            $stmt = $conexion->prepare("
+                INSERT INTO jobs_queue
                 (
                     job_type,
                     data,
@@ -763,15 +868,16 @@ class clientesControlador extends clientesModelo {
                     status,
                     attempts,
                     max_attempts
-                ) 
+                )
                 VALUES ('db_import', ?, ?, ?, ?, ?, ?, 'pending', 0, 3)
             ");
 
-            if (!$stmtJob) {
+            if (!$stmt) {
                 throw new Exception("Error al preparar jobs_queue: " . $conexion->error);
             }
-            
-            $stmtJob->bind_param("ssssss", 
+
+            $stmt->bind_param(
+                "ssssss",
                 $jsonData,
                 $dbUser,
                 $dbPass,
@@ -779,118 +885,138 @@ class clientesControlador extends clientesModelo {
                 $jsonUsuario,
                 $notifyEmail
             );
-    
-            if (!$stmtJob->execute()) {
-                throw new Exception("Error al registrar job: " . $stmtJob->error);
+
+            if (!$stmt->execute()) {
+                throw new Exception("Error al registrar job: " . $stmt->error);
             }
-    
-            $conexion->commit();
-    
-            return $server_customers_id;
-    
+
+            return true;
+
         } catch (Exception $e) {
-            if ($conexion) {
-                $conexion->rollback();
-            }
-
-            error_log("Error en registrarServerCustomer: " . $e->getMessage());
-
+            error_log("Error en registrarJobImportacion: " . $e->getMessage());
             return false;
 
         } finally {
-            if ($conexion) {
-                $conexion->autocommit(true);
-            }
-
             if ($stmt) {
                 $stmt->close();
             }
-
-            if ($stmtJob) {
-                $stmtJob->close();
-            }
         }
     }
-    
-    private function actualizarJobConUserId($server_customers_id, $users_id) {
+
+    private function obtenerColaboradorPrincipal($colaboradores_id) {
         $conexion = mainModel::connection();
-        $stmt = null;
-        $updateStmt = null;
-        
-        try {
-            // Obtener el job más reciente para este server_customers_id
-            $stmt = $conexion->prepare("
-                SELECT id 
-                FROM jobs_queue 
-                WHERE data LIKE ? 
-                ORDER BY created_at DESC 
-                LIMIT 1
-            ");
-            
-            if (!$stmt) {
-                throw new Exception("Error al preparar consulta de jobs_queue: " . $conexion->error);
-            }
 
-            $search = '%"server_customers_id":'.$server_customers_id.'%';
+        $stmt = $conexion->prepare("
+            SELECT
+                colaboradores_id,
+                puestos_id,
+                nombre,
+                identidad,
+                estado,
+                telefono,
+                empresa_id,
+                fecha_registro,
+                fecha_ingreso,
+                fecha_egreso
+            FROM colaboradores
+            WHERE colaboradores_id = ?
+            LIMIT 1
+        ");
 
-            $stmt->bind_param("s", $search);
-            $stmt->execute();
-
-            $result = $stmt->get_result();
-            
-            if ($result->num_rows > 0) {
-                $job = $result->fetch_assoc();
-                $jobId = $job['id'];
-                
-                $updateStmt = $conexion->prepare("
-                    UPDATE jobs_queue 
-                    SET usuario_data = JSON_SET(usuario_data, '$.users_id', ?) 
-                    WHERE id = ?
-                ");
-
-                if (!$updateStmt) {
-                    throw new Exception("Error al preparar actualización de jobs_queue: " . $conexion->error);
-                }
-                
-                $updateStmt->bind_param("ii", $users_id, $jobId);
-                $updateStmt->execute();
-            }
-
-        } catch (Exception $e) {
-            error_log("Error al actualizar job con user_id: " . $e->getMessage());
-
-        } finally {
-            if ($stmt) {
-                $stmt->close();
-            }
-
-            if ($updateStmt) {
-                $updateStmt->close();
-            }
+        if (!$stmt) {
+            throw new Exception("Error al consultar colaborador principal: " . $conexion->error);
         }
+
+        $colaboradores_id = (int)$colaboradores_id;
+        $stmt->bind_param("i", $colaboradores_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result && $result->num_rows > 0 ? $result->fetch_assoc() : [];
+        $stmt->close();
+
+        return $row;
     }
-    
+
+    private function obtenerUsuarioPrincipal($users_id) {
+        $conexion = mainModel::connection();
+
+        $stmt = $conexion->prepare("
+            SELECT
+                users_id,
+                colaboradores_id,
+                privilegio_id,
+                username,
+                password,
+                email,
+                tipo_user_id,
+                estado,
+                fecha_registro,
+                empresa_id,
+                server_customers_id
+            FROM users
+            WHERE users_id = ?
+            LIMIT 1
+        ");
+
+        if (!$stmt) {
+            throw new Exception("Error al consultar usuario principal: " . $conexion->error);
+        }
+
+        $users_id = (int)$users_id;
+        $stmt->bind_param("i", $users_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result && $result->num_rows > 0 ? $result->fetch_assoc() : [];
+        $stmt->close();
+
+        return $row;
+    }
+
+    private function generarUsername($correo, $nombre = '') {
+        $correo = trim((string)$correo);
+
+        if ($correo !== '' && strpos($correo, '@') !== false) {
+            $username = substr($correo, 0, strpos($correo, '@'));
+        } else {
+            $username = $nombre;
+        }
+
+        $username = strtolower(preg_replace('/[^a-zA-Z0-9_]/', '', $username));
+
+        if ($username === '') {
+            $username = 'usuario';
+        }
+
+        return substr($username, 0, 20);
+    }
+
     private function registrarUsuario($clientes_id, $server_customers_id, $nombre, $correo, $password, $colaboradores_id) {
         $conexion = mainModel::connection();
         $stmt = null;
-    
+
         try {
             $conexion->autocommit(false);
-    
+
             $users_id = mainModel::correlativo("users_id", "users");
-            
+
             if (!filter_var($correo, FILTER_VALIDATE_EMAIL)) {
                 throw new Exception("Formato de correo electrónico inválido");
             }
-    
+
+            $username = $this->generarUsername($correo, $nombre);
             $password_hash = mainModel::encryption($password);
-    
+            $fecha_registro = date("Y-m-d H:i:s");
+            $privilegio_id = 2;
+            $tipo_user_id = 1;
+            $estado = 1;
+
             $stmt = $conexion->prepare("
-                INSERT INTO users 
+                INSERT INTO users
                 (
                     users_id,
                     colaboradores_id,
                     privilegio_id,
+                    username,
                     password,
                     email,
                     tipo_user_id,
@@ -898,44 +1024,54 @@ class clientesControlador extends clientesModelo {
                     fecha_registro,
                     empresa_id,
                     server_customers_id
-                ) 
-                VALUES (?, ?, 2, ?, ?, 1, 1, NOW(), ?, ?)
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
-            
+
             if (!$stmt) {
                 throw new Exception("Error al preparar la consulta: " . $conexion->error);
             }
-    
-            $stmt->bind_param("iissii", 
-                $users_id, 
-                $colaboradores_id, 
-                $password_hash, 
-                $correo, 
-                $clientes_id, 
+
+            $clientes_id = (int)$clientes_id;
+            $server_customers_id = (int)$server_customers_id;
+            $colaboradores_id = (int)$colaboradores_id;
+
+            $stmt->bind_param(
+                "iiisssiiiii",
+                $users_id,
+                $colaboradores_id,
+                $privilegio_id,
+                $username,
+                $password_hash,
+                $correo,
+                $tipo_user_id,
+                $estado,
+                $fecha_registro,
+                $clientes_id,
                 $server_customers_id
             );
-    
+
             if (!$stmt->execute()) {
                 throw new Exception("Error al ejecutar la consulta: " . $stmt->error);
             }
-    
+
             if ($stmt->affected_rows === 0) {
                 throw new Exception("No se insertó ningún registro");
             }
-    
+
             $conexion->commit();
-    
+
             return [
                 'success' => true,
                 'users_id' => $users_id,
+                'username' => $username,
                 'email' => $correo
             ];
-    
+
         } catch (Exception $e) {
             $conexion->rollback();
-
             error_log("Error en registrarUsuario: " . $e->getMessage());
-            
+
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -950,80 +1086,13 @@ class clientesControlador extends clientesModelo {
             }
         }
     }
-    
+
     private function enviarCorreoBienvenida($datosUsuario, $empresa_id) {
-        $sendEmail = new sendEmail();
-        
-        $datosEmpresa = $sendEmail->obtenerDatosEmpresa($empresa_id);
-        $empresa_nombre = isset($datosEmpresa['nombre']) && trim($datosEmpresa['nombre']) != "" ? strtoupper(trim($datosEmpresa['nombre'])) : "LA EMPRESA";
-
-        $asunto = "Bienvenido a " . $empresa_nombre;
-
         /*
-            No usamos emailTemplates aquí para evitar envolver una plantilla HTML completa
-            dentro de otra plantilla de sendEmail.
-            sendEmail::enviarCorreo() ya aplica la plantilla principal.
+            Este método se conserva por compatibilidad, pero el correo de acceso listo
+            se envía desde scripts/process_jobs.php, después de importar la plantilla.
         */
-        $mensaje = '
-            <div style="padding: 20px;">
-                <p style="margin-bottom: 10px;">
-                    ¡Hola '.$datosUsuario['nombre'].'!
-                </p>
-
-                <p>
-                    Gracias por registrarte en nuestra plataforma. Tu cuenta fue creada correctamente.
-                </p>
-
-                <p>
-                    <strong>Detalles de acceso:</strong>
-                </p>
-
-                <ul>
-                    <li><strong>Empresa:</strong> '.$datosUsuario['empresa'].'</li>
-                    <li><strong>Correo de acceso:</strong> '.$datosUsuario['email'].'</li>
-                    <li><strong>Base de datos asignada:</strong> '.$datosUsuario['nombre_db'].'</li>
-                    <li><strong>Contraseña temporal:</strong> '.$datosUsuario['password'].'</li>
-                </ul>
-
-                <p style="text-align: center; margin: 25px 0;">
-                    <a href="'.SERVERURL.'login" target="_blank"
-                        style="
-                            display: inline-block;
-                            background: #0d6efd;
-                            color: #ffffff;
-                            padding: 12px 22px;
-                            border-radius: 7px;
-                            text-decoration: none;
-                            font-weight: bold;
-                        ">
-                        Acceder al Sistema
-                    </a>
-                </p>
-
-                <p>
-                    Por seguridad, recomendamos cambiar la contraseña después del primer acceso.
-                </p>
-
-                <p>
-                    Atentamente,<br>
-                    El equipo de '.$empresa_nombre.'
-                </p>
-            </div>
-        ';
-
-        try {
-            $sendEmail->enviarCorreo(
-                [$datosUsuario['email'] => $datosUsuario['nombre']],
-                [],
-                $asunto,
-                $mensaje,
-                1,
-                $empresa_id,
-                []
-            );
-        } catch (Exception $e) {
-            error_log("Error al enviar correo de bienvenida: " . $e->getMessage());
-        }
+        return true;
     }
 
     private function getNombreSistema($sistema_id) {

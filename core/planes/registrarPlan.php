@@ -1,0 +1,127 @@
+<?php
+// core/planes/registrarPlan.php
+
+$peticionAjax = true;
+
+require_once __DIR__ . '/../configGenerales.php';
+require_once __DIR__ . '/../mainModel.php';
+require_once __DIR__ . '/PlanesSyncHelper.php';
+
+header('Content-Type: application/json; charset=utf-8');
+
+$insMainModel = new mainModel();
+
+if (method_exists($insMainModel, 'validarSesion')) {
+    $validacion = $insMainModel->validarSesion();
+    if (!empty($validacion['error'])) {
+        PlanesSyncHelper::respuesta('error', 'Sesión inválida', $validacion['mensaje'] ?? 'Sesión inválida');
+    }
+}
+
+if (!isset($_POST['nombre_plan']) || !isset($_POST['estado_plan'])) {
+    PlanesSyncHelper::respuesta('error', 'Error', 'Datos incompletos.');
+}
+
+$nombre = trim((string)$_POST['nombre_plan']);
+$estado = PlanesSyncHelper::normalizarEstado($_POST['estado_plan']);
+$configuracionesEntrada = isset($_POST['configuraciones_json']) ? $_POST['configuraciones_json'] : null;
+$fechaRegistro = date('Y-m-d H:i:s');
+
+if ($nombre === '') {
+    PlanesSyncHelper::respuesta('error', 'Error', 'El nombre del plan es requerido.');
+}
+
+$conexionPrincipal = null;
+$erroresClientes = [];
+$nuevoPlanId = 0;
+
+try {
+    $configuraciones = PlanesSyncHelper::normalizarConfiguraciones($configuracionesEntrada);
+
+    $conexionPrincipal = $insMainModel->connection();
+    if (!$conexionPrincipal) {
+        throw new Exception('No se pudo conectar a la base principal.');
+    }
+
+    $conexionPrincipal->autocommit(false);
+
+    if (!PlanesSyncHelper::tablaExiste($conexionPrincipal, 'planes')) {
+        throw new Exception('La tabla planes no existe en la base principal.');
+    }
+
+    if (PlanesSyncHelper::existePlanDuplicado($conexionPrincipal, $nombre, 0)) {
+        $conexionPrincipal->rollback();
+        PlanesSyncHelper::respuesta('warning', 'Advertencia', 'Ya existe un plan con ese nombre.');
+    }
+
+    $nuevoPlanId = PlanesSyncHelper::obtenerSiguienteId($conexionPrincipal, 'planes', 'planes_id');
+
+    PlanesSyncHelper::insertarPlan(
+        $conexionPrincipal,
+        $nuevoPlanId,
+        $nombre,
+        $estado,
+        $fechaRegistro,
+        $configuraciones
+    );
+
+    $basesClientes = PlanesSyncHelper::obtenerBasesClientesActivas($conexionPrincipal);
+
+    foreach ($basesClientes as $dbName) {
+        try {
+            $connCliente = PlanesSyncHelper::conectarCliente($insMainModel, $dbName);
+
+            if (!$connCliente) {
+                $erroresClientes[] = "No se pudo conectar o validar la base {$dbName}.";
+                continue;
+            }
+
+            try {
+                $connCliente->autocommit(false);
+
+                PlanesSyncHelper::upsertPlanCliente(
+                    $connCliente,
+                    $nuevoPlanId,
+                    $nombre,
+                    $estado,
+                    $fechaRegistro,
+                    $configuraciones
+                );
+
+                $connCliente->commit();
+            } catch (Exception $eCliente) {
+                $connCliente->rollback();
+                $erroresClientes[] = "Error en {$dbName}: " . $eCliente->getMessage();
+            } finally {
+                $connCliente->autocommit(true);
+                $connCliente->close();
+            }
+        } catch (Exception $eClienteGeneral) {
+            $erroresClientes[] = "Error en {$dbName}: " . $eClienteGeneral->getMessage();
+        }
+    }
+
+    $conexionPrincipal->commit();
+
+    $mensaje = empty($erroresClientes)
+        ? 'Plan registrado correctamente.'
+        : 'Plan registrado en la base principal. Algunas bases de clientes no pudieron sincronizarse.';
+
+    PlanesSyncHelper::respuesta('success', 'Éxito', $mensaje, [
+        'id' => $nuevoPlanId,
+        'warnings' => $erroresClientes
+    ]);
+
+} catch (Exception $e) {
+    if ($conexionPrincipal) {
+        $conexionPrincipal->rollback();
+    }
+
+    PlanesSyncHelper::respuesta('error', 'Error', 'Error en el servidor: ' . $e->getMessage());
+
+} finally {
+    if ($conexionPrincipal) {
+        $conexionPrincipal->autocommit(true);
+        $conexionPrincipal->close();
+    }
+}

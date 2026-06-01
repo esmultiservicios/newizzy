@@ -2,10 +2,12 @@
 <div class="modal fade" id="modalConfEmails">
     <div class="modal-dialog modal-correo-premium modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
+
             <div class="modal-header bg-primary text-white">
                 <h4 class="modal-title">
                     <i class="fas fa-envelope mr-2"></i>Configuración de Correos
                 </h4>
+
                 <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -24,45 +26,66 @@
                         </div>
 
                         <div class="card-body">
+
+                            <!-- FILA 1: TIPO CORREO Y MÉTODO DE ENVÍO -->
                             <div class="form-row">
-                                <div class="col-lg-4 col-md-6 mb-3">
+                                <div class="col-lg-6 col-md-12 mb-3">
                                     <label for="tipo_correo_confEmail">
                                         <i class="fas fa-inbox mr-1"></i>Tipo correo <span class="priority">*</span>
                                     </label>
+
                                     <select id="tipo_correo_confEmail" name="tipo_correo_confEmail"
                                         class="selectpicker form-control" data-live-search="true" title="Seleccione tipo" required>
                                     </select>
-                                    <small class="form-text text-muted">Tipo de cuenta de correo</small>
+
+                                    <small class="form-text text-muted">
+                                        Tipo de cuenta de correo
+                                    </small>
                                 </div>
 
-                                <div class="col-lg-4 col-md-6 mb-3">
+                                <div class="col-lg-6 col-md-12 mb-3">
                                     <label for="metodoEnvioConfEmail">
                                         <i class="fas fa-route mr-1"></i>Método de envío <span class="priority">*</span>
                                     </label>
+
                                     <select id="metodoEnvioConfEmail" name="metodoEnvioConfEmail"
                                         class="selectpicker form-control" title="Seleccione método" required>
                                         <option value="SMTP">SMTP / PHPMailer</option>
                                         <option value="GRAPH">Microsoft Graph API</option>
                                     </select>
-                                    <small class="form-text text-muted">Define si el correo sale por SMTP o Graph</small>
-                                </div>
 
-                                <div class="col-lg-4 col-md-12 mb-3">
+                                    <small class="form-text text-muted">
+                                        Define si el correo sale por SMTP o Graph
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- FILA 2: CORREO EMISOR COMPLETO -->
+                            <div class="form-row">
+                                <div class="col-12 mb-3">
                                     <label for="correoConfEmail">
                                         <i class="fas fa-at mr-1"></i>Correo emisor <span class="priority">*</span>
                                     </label>
-                                    <div class="input-group">
+
+                                    <div class="input-group correo-emisor-group">
                                         <input type="email" required id="correoConfEmail" name="correoConfEmail"
-                                            class="form-control" placeholder="Ej: administracion@empresa.com" maxlength="100">
+                                            class="form-control correo-emisor-input"
+                                            placeholder="Ej: administracion@empresa.com"
+                                            maxlength="100">
+
                                         <div class="input-group-append">
                                             <span class="input-group-text">
                                                 <i class="fas fa-envelope"></i>
                                             </span>
                                         </div>
                                     </div>
-                                    <small class="form-text text-muted">Correo que se mostrará como remitente</small>
+
+                                    <small class="form-text text-muted">
+                                        Correo que se mostrará como remitente
+                                    </small>
                                 </div>
                             </div>
+
                         </div>
                     </div>
 
@@ -72,6 +95,7 @@
                             <i class="fab fa-microsoft fa-lg"></i>
                             <h5>Guía rápida para configurar Microsoft Graph API</h5>
                         </div>
+
                         <div class="ayuda-body">
                             <p>
                                 Use esta opción cuando el correo pertenece a <strong>Microsoft 365 / Exchange Online</strong>.
@@ -109,6 +133,7 @@
                             <i class="fas fa-network-wired fa-lg"></i>
                             <h5>Guía rápida para configurar SMTP / PHPMailer</h5>
                         </div>
+
                         <div class="ayuda-body">
                             <p>
                                 Use esta opción cuando el correo se envía mediante servidor SMTP tradicional,
@@ -141,42 +166,68 @@
 
                         <div class="card-body">
                             <div class="form-row">
+
                                 <div class="col-lg-3 col-md-6 mb-3">
                                     <label for="serverConfEmail">
                                         <i class="fas fa-server mr-1"></i>Servidor SMTP
                                     </label>
+
                                     <input type="text" id="serverConfEmail" name="serverConfEmail"
-                                        class="form-control campo-smtp" placeholder="Ej: smtp.office365.com" maxlength="100">
-                                    <small class="form-text text-muted">Servidor SMTP del correo</small>
+                                        class="form-control campo-smtp"
+                                        placeholder="Ej: smtp.office365.com"
+                                        maxlength="100">
+
+                                    <small class="form-text text-muted">
+                                        Servidor SMTP del correo
+                                    </small>
                                 </div>
 
                                 <div class="col-lg-3 col-md-6 mb-3">
                                     <label for="passConfEmail">
                                         <i class="fas fa-key mr-1"></i>Contraseña SMTP
                                     </label>
+
                                     <input type="password" id="passConfEmail" name="passConfEmail"
-                                        class="form-control campo-smtp" placeholder="Dejar vacío para conservar" maxlength="255">
-                                    <small class="form-text text-muted">Solo se actualiza si escribe una nueva</small>
+                                        class="form-control campo-smtp"
+                                        placeholder="Dejar vacío para conservar"
+                                        maxlength="255">
+
+                                    <small class="form-text text-muted">
+                                        Solo se actualiza si escribe una nueva
+                                    </small>
                                 </div>
 
                                 <div class="col-lg-3 col-md-6 mb-3">
                                     <label for="puertoConfEmail">
                                         <i class="fas fa-plug mr-1"></i>Puerto SMTP
                                     </label>
+
                                     <input type="number" id="puertoConfEmail" name="puertoConfEmail"
-                                        class="form-control campo-smtp" placeholder="Ej: 587" maxlength="10">
-                                    <small class="form-text text-muted">Normalmente 587 TLS o 465 SSL</small>
+                                        class="form-control campo-smtp"
+                                        placeholder="Ej: 587"
+                                        maxlength="10">
+
+                                    <small class="form-text text-muted">
+                                        Normalmente 587 TLS o 465 SSL
+                                    </small>
                                 </div>
 
                                 <div class="col-lg-3 col-md-6 mb-3">
                                     <label for="smtpSecureConfEmail">
                                         <i class="fas fa-shield-alt mr-1"></i>SMTP Secure
                                     </label>
+
                                     <select id="smtpSecureConfEmail" name="smtpSecureConfEmail"
-                                        class="selectpicker form-control campo-smtp" data-live-search="true" title="Seleccione seguridad">
+                                        class="selectpicker form-control campo-smtp"
+                                        data-live-search="true"
+                                        title="Seleccione seguridad">
                                     </select>
-                                    <small class="form-text text-muted">TLS o SSL</small>
+
+                                    <small class="form-text text-muted">
+                                        TLS o SSL
+                                    </small>
                                 </div>
+
                             </div>
                         </div>
                     </div>
@@ -190,57 +241,92 @@
                         </div>
 
                         <div class="card-body">
+
                             <div class="form-row">
+
                                 <div class="col-lg-4 col-md-12 mb-3">
                                     <label for="tenantIdConfEmail">
                                         <i class="fas fa-building mr-1"></i>Tenant ID
                                     </label>
+
                                     <input type="text" id="tenantIdConfEmail" name="tenantIdConfEmail"
-                                        class="form-control campo-graph" placeholder="Directory (tenant) ID" maxlength="100">
-                                    <small class="form-text text-muted">Directory (tenant) ID de Microsoft Entra</small>
+                                        class="form-control campo-graph"
+                                        placeholder="Directory (tenant) ID"
+                                        maxlength="100">
+
+                                    <small class="form-text text-muted">
+                                        Directory (tenant) ID de Microsoft Entra
+                                    </small>
                                 </div>
 
                                 <div class="col-lg-4 col-md-12 mb-3">
                                     <label for="clientIdConfEmail">
                                         <i class="fas fa-id-card mr-1"></i>Client ID
                                     </label>
+
                                     <input type="text" id="clientIdConfEmail" name="clientIdConfEmail"
-                                        class="form-control campo-graph" placeholder="Application (client) ID" maxlength="100">
-                                    <small class="form-text text-muted">Application (client) ID de la app registrada</small>
+                                        class="form-control campo-graph"
+                                        placeholder="Application (client) ID"
+                                        maxlength="100">
+
+                                    <small class="form-text text-muted">
+                                        Application (client) ID de la app registrada
+                                    </small>
                                 </div>
 
                                 <div class="col-lg-4 col-md-12 mb-3">
                                     <label for="clientSecretConfEmail">
                                         <i class="fas fa-user-secret mr-1"></i>Client Secret VALUE
                                     </label>
+
                                     <input type="password" id="clientSecretConfEmail" name="clientSecretConfEmail"
-                                        class="form-control campo-graph" placeholder="Dejar vacío para conservar" maxlength="500">
-                                    <small class="form-text text-muted">Por seguridad no se muestra. Solo se actualiza si escribe un nuevo VALUE</small>
+                                        class="form-control campo-graph"
+                                        placeholder="Dejar vacío para conservar"
+                                        maxlength="500">
+
+                                    <small class="form-text text-muted">
+                                        Por seguridad no se muestra. Solo se actualiza si escribe un nuevo VALUE
+                                    </small>
                                 </div>
+
                             </div>
 
                             <div class="form-row">
+
                                 <div class="col-lg-8 col-md-12 mb-3">
                                     <label for="graphUserConfEmail">
                                         <i class="fas fa-mail-bulk mr-1"></i>Graph User / Buzón real
                                     </label>
+
                                     <input type="email" id="graphUserConfEmail" name="graphUserConfEmail"
-                                        class="form-control campo-graph" placeholder="Ej: administracion@empresa.com" maxlength="150">
-                                    <small class="form-text text-muted">Buzón real de Microsoft 365 que enviará el correo</small>
+                                        class="form-control campo-graph"
+                                        placeholder="Ej: administracion@empresa.com"
+                                        maxlength="150">
+
+                                    <small class="form-text text-muted">
+                                        Buzón real de Microsoft 365 que enviará el correo
+                                    </small>
                                 </div>
 
                                 <div class="col-lg-4 col-md-12 mb-3">
                                     <label for="saveToSentItemsConfEmail">
                                         <i class="fas fa-paper-plane mr-1"></i>Guardar en enviados
                                     </label>
+
                                     <select id="saveToSentItemsConfEmail" name="saveToSentItemsConfEmail"
-                                        class="selectpicker form-control campo-graph" title="Seleccione">
+                                        class="selectpicker form-control campo-graph"
+                                        title="Seleccione">
                                         <option value="1">Sí, guardar copia</option>
                                         <option value="0">No guardar copia</option>
                                     </select>
-                                    <small class="form-text text-muted">Si está en “Sí”, Graph deja copia en Elementos enviados</small>
+
+                                    <small class="form-text text-muted">
+                                        Si está en “Sí”, Graph deja copia en Elementos enviados
+                                    </small>
                                 </div>
+
                             </div>
+
                         </div>
                     </div>
 
@@ -261,6 +347,7 @@
                     <i class="fas fa-edit fa-lg mr-1"></i> Actualizar
                 </button>
             </div>
+
         </div>
     </div>
 </div>

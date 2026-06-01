@@ -99,26 +99,3 @@
         </div>
     </div>
 </div>
-
-<!-- El modal permanece igual -->
-<div class="modal fade" id="modalConfirmarCambio">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-warning">
-                <h5 class="modal-title">Confirmar Cambio de Plan</h5>
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p id="mensajeConfirmacion"></p>
-                <div class="alert alert-warning mt-3">
-                    <i class="fas fa-exclamation-triangle mr-2"></i>
-                    <strong>Advertencia:</strong> Se actualizará el plan y los usuarios permitidos para este cliente.
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btn-confirmar-cambio">Confirmar</button>
-            </div>
-        </div>
-    </div>
-</div>

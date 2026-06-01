@@ -1,8 +1,112 @@
 <script>
-//asignacionPlanes.php
-document.addEventListener("DOMContentLoaded", function() {
+// asignacionPlanes.php
+$(window).on("load", function() {
+    "use strict";
+
     /* =========================================================
-    HEADER DINÁMICO - ASIGNACIÓN DE PLANES
+        RUTAS - ASIGNACIÓN DE PLANES
+    ========================================================= */
+    const ASIGNAR_PLANES_URLS = {
+        obtenerAsignaciones: "<?php echo SERVERURL; ?>core/AsignarPlanes/obtenerAsignacionesRecientes.php",
+        obtenerClientes: "<?php echo SERVERURL; ?>core/AsignarPlanes/obtenerClientesParaAsignacion.php",
+        obtenerPlanes: "<?php echo SERVERURL; ?>core/AsignarPlanes/obtenerPlanesActivos.php",
+        obtenerSistemas: "<?php echo SERVERURL; ?>core/AsignarPlanes/obtenerSistemas.php",
+        verificarPlanCliente: "<?php echo SERVERURL; ?>core/AsignarPlanes/verificarPlanCliente.php",
+        actualizarPlanCliente: "<?php echo SERVERURL; ?>core/AsignarPlanes/actualizarPlanCliente.php"
+    };
+
+    let tablaAsignaciones = null;
+
+    /* =========================================================
+        FORMATO FECHA
+    ========================================================= */
+    function formatFechaHora(fecha) {
+        if (!fecha) {
+            return "";
+        }
+
+        const date = new Date(fecha);
+
+        if (isNaN(date.getTime())) {
+            return fecha;
+        }
+
+        return date.toLocaleDateString("es-ES", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
+        });
+    }
+
+    /* =========================================================
+        LIMPIAR HTML
+    ========================================================= */
+    function limpiarHtml(texto) {
+        if (texto === null || typeof texto === "undefined") {
+            return "";
+        }
+
+        return String(texto)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    /* =========================================================
+        BOTÓN ACTUALIZAR PLAN
+    ========================================================= */
+    function obtenerBotonActualizarPlan() {
+        let boton = $("#btnActualizarPlan");
+
+        if (boton.length <= 0) {
+            boton = $("#formAsignacionPlan").find("button[type='submit']").first();
+        }
+
+        return boton;
+    }
+
+    function bloquearBotonActualizarPlan() {
+        const boton = obtenerBotonActualizarPlan();
+
+        if (boton.length > 0) {
+            boton
+                .prop("disabled", true)
+                .html('<i class="fas fa-spinner fa-spin mr-1"></i> Actualizando...');
+        }
+    }
+
+    function restaurarBotonActualizarPlan() {
+        const boton = obtenerBotonActualizarPlan();
+
+        if (boton.length > 0) {
+            boton
+                .prop("disabled", false)
+                .html('<i class="fas fa-save mr-1"></i> Actualizar Plan');
+        }
+    }
+
+    /* =========================================================
+        RESET FORMULARIO
+    ========================================================= */
+    function resetFormularioAsignacion() {
+        if ($("#formAsignacionPlan").length > 0) {
+            $("#formAsignacionPlan")[0].reset();
+        }
+
+        $("#server_customers_id").val("");
+        $("#user_extra").val(0);
+
+        if (typeof $.fn.selectpicker === "function") {
+            $(".selectpicker").selectpicker("refresh");
+        }
+    }
+
+    /* =========================================================
+        HEADER DINÁMICO - ASIGNACIÓN DE PLANES
     ========================================================= */
     function construirHeaderTablaAsignaciones() {
         var $tabla = $("#tablaAsignaciones");
@@ -22,290 +126,295 @@ document.addEventListener("DOMContentLoaded", function() {
                     '<th>Estado</th>' +
                     '<th>Fecha Registro</th>' +
                 '</tr>' +
-            '</thead>'
+            '</thead>' +
+            '<tbody></tbody>'
         );
     }
 
     /* =========================================================
-    DATATABLE - ASIGNACIÓN DE PLANES
+        DATATABLE - ASIGNACIÓN DE PLANES
     ========================================================= */
+    function inicializarDataTableAsignaciones() {
+        construirHeaderTablaAsignaciones();
 
-    if ($.fn.DataTable.isDataTable("#tablaAsignaciones")) {
-        $("#tablaAsignaciones").DataTable().clear().destroy();
-    }
-
-    construirHeaderTablaAsignaciones();
-
-    const tablaAsignaciones = $('#tablaAsignaciones').DataTable({
-        destroy: true,
-        ajax: {
-            url: "<?php echo SERVERURL; ?>core/obtenerAsignacionesRecientes.php",
-            type: "POST",
-            dataSrc: "data",
-            error: function(xhr) {
-                console.error("Error al cargar asignaciones:", xhr.responseText);
-                showNotify("error", "Error", "Error al cargar las asignaciones");
-            }
-        },
-        columns: [
-            {
-                data: null,
-                orderable: false,
-                searchable: false,
-                className: "text-center align-middle",
-                render: function(data, type, row) {
-                    if (type !== "display") {
-                        return "";
+        tablaAsignaciones = $("#tablaAsignaciones").DataTable({
+            destroy: true,
+            ajax: {
+                url: ASIGNAR_PLANES_URLS.obtenerAsignaciones,
+                type: "POST",
+                dataSrc: function(json) {
+                    if (json && json.success === false) {
+                        showNotify("error", "Error", json.message || "Error al cargar las asignaciones");
+                        return [];
                     }
 
-                    return '' +
-                        '<div class="dropdown acciones-dropdown">' +
+                    return json.data || [];
+                },
+                error: function(xhr) {
+                    console.error("Error al cargar asignaciones:", xhr.responseText);
+                    showNotify("error", "Error", "Error al cargar las asignaciones");
+                }
+            },
+            columns: [
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: "text-center align-middle",
+                    render: function(data, type, row) {
+                        if (type !== "display") {
+                            return "";
+                        }
 
-                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
-                                '<i class="fas fa-cog"></i>' +
-                                '<span>Acciones</span>' +
-                            '</button>' +
+                        return '' +
+                            '<div class="dropdown acciones-dropdown">' +
 
-                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
-
-                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar btn-editar-asignacion" ' +
-                                    'data-id="' + data.server_customers_id + '" ' +
-                                    'data-cliente-id="' + data.cliente_id + '" ' +
-                                    'data-plan-id="' + data.planes_id + '" ' +
-                                    'data-sistema-id="' + data.sistema_id + '" ' +
-                                    'data-user-extra="' + data.user_extra + '" ' +
-                                    'data-validar="' + data.validar + '" ' +
-                                    'data-estado="' + data.estado + '">' +
-                                    '<span class="accion-icon accion-icon-editar">' +
-                                        '<i class="fas fa-edit"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Editar</span>' +
+                                '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                    '<i class="fas fa-cog"></i>' +
+                                    '<span>Acciones</span>' +
                                 '</button>' +
 
-                            '</div>' +
+                                '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
 
-                        '</div>';
-                }
-            },
-            {
-                data: null,
-                render: function(data, type, row, meta) {
-                    return meta.row + 1;
-                },
-                className: "text-center"
-            },
-            {
-                data: "cliente",
-                render: function(data) {
-                    return `
-                        <strong>${data.nombre}</strong><br>
-                        <small class="text-muted">RTN: ${data.identificacion || 'Sin identificación'}</small><br>
-                        <small class="text-muted">Codigo Cliente: ${data.codigo_cliente || 'Sin código'}</small><br>
-                    `;
-                }
-            },
-            {
-                data: "plan",
-                render: function(data, type, row) {
-                    const planInfo = {
-                        1: { class: 'badge-primary', icon: 'fas fa-rocket' },
-                        2: { class: 'badge-info', icon: 'fas fa-leaf' },
-                        3: { class: 'badge-success', icon: 'fas fa-check-circle' },
-                        4: { class: 'badge-warning', icon: 'fas fa-star-half-alt' },
-                        5: { class: 'badge-danger', icon: 'fas fa-gem' },
-                        6: { class: 'badge-secondary', icon: 'fas fa-gift' }
-                    };
+                                    '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar btn-editar-asignacion" ' +
+                                        'data-id="' + row.server_customers_id + '" ' +
+                                        'data-cliente-id="' + row.cliente_id + '" ' +
+                                        'data-plan-id="' + row.planes_id + '" ' +
+                                        'data-sistema-id="' + row.sistema_id + '" ' +
+                                        'data-user-extra="' + row.user_extra + '" ' +
+                                        'data-validar="' + row.validar + '" ' +
+                                        'data-estado="' + row.estado + '">' +
+                                        '<span class="accion-icon accion-icon-editar">' +
+                                            '<i class="fas fa-edit"></i>' +
+                                        '</span>' +
+                                        '<span class="accion-label">Editar</span>' +
+                                    '</button>' +
 
-                    const info = planInfo[row.planes_id] || {
-                        class: 'badge-light',
-                        icon: 'fas fa-question-circle'
-                    };
+                                '</div>' +
 
-                    return `<span class="badge ${info.class} badge-pill" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">
-                                <i class="${info.icon}" style="margin-right: 5px;"></i>${data.nombre}
-                            </span>`;
-                }
-            },
-            {
-                data: "sistema",
-                render: function(data) {
-                    let badgeClass;
-                    let iconClass;
-
-                    switch (data.nombre) {
-                        case 'CAMI':
-                            badgeClass = 'badge-info';
-                            iconClass = 'fas fa-stethoscope';
-                            break;
-
-                        case 'IZZY':
-                            badgeClass = 'badge-success';
-                            iconClass = 'fas fa-store';
-                            break;
-
-                        case 'MONISYS':
-                            badgeClass = 'badge-warning';
-                            iconClass = 'fas fa-chart-line';
-                            break;
-
-                        default:
-                            badgeClass = 'badge-secondary';
-                            iconClass = 'fas fa-question-circle';
-                            break;
+                            '</div>';
                     }
+                },
+                {
+                    data: null,
+                    render: function(data, type, row, meta) {
+                        return meta.row + 1;
+                    },
+                    className: "text-center"
+                },
+                {
+                    data: "cliente",
+                    render: function(data) {
+                        const nombre = data && data.nombre ? limpiarHtml(data.nombre) : "";
+                        const identificacion = data && data.identificacion ? limpiarHtml(data.identificacion) : "Sin identificación";
+                        const codigoCliente = data && data.codigo_cliente ? limpiarHtml(data.codigo_cliente) : "Sin código";
 
-                    return `<span class="badge ${badgeClass} badge-pill" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">
-                                <i class="${iconClass}" style="margin-right: 5px;"></i>${data.nombre}
-                            </span>`;
-                }
-            },
-            {
-                data: "user_extra",
-                className: "text-center",
-                render: function(data) {
-                    return data > 0
-                        ? `<span class="badge badge-secondary badge-pill" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">+${data}</span>`
-                        : '<span class="text-muted">Ninguno</span>';
-                }
-            },
-            {
-                data: "validar",
-                className: "text-center",
-                render: function(data) {
-                    const isValid = data == 1;
-                    const badgeClass = isValid ? 'badge-success' : 'badge-secondary';
-                    const iconClass = isValid ? 'fas fa-check-circle' : 'fas fa-times-circle';
-                    const text = isValid ? 'Sí' : 'No';
+                        return '' +
+                            '<strong>' + nombre + '</strong><br>' +
+                            '<small class="text-muted">RTN: ' + identificacion + '</small><br>' +
+                            '<small class="text-muted">Código Cliente: ' + codigoCliente + '</small><br>';
+                    }
+                },
+                {
+                    data: "plan",
+                    render: function(data, type, row) {
+                        const planInfo = {
+                            1: { class: "badge-primary", icon: "fas fa-rocket" },
+                            2: { class: "badge-info", icon: "fas fa-leaf" },
+                            3: { class: "badge-success", icon: "fas fa-check-circle" },
+                            4: { class: "badge-warning", icon: "fas fa-star-half-alt" },
+                            5: { class: "badge-danger", icon: "fas fa-gem" },
+                            6: { class: "badge-secondary", icon: "fas fa-gift" }
+                        };
 
-                    return `<span class="badge ${badgeClass} badge-pill" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">
-                                <i class="${iconClass}" style="margin-right: 5px;"></i>${text}
-                            </span>`;
-                }
-            },
-            {
-                data: "estado",
-                className: "text-center",
-                render: function(data, type, row) {
-                    if (type === 'display') {
-                        var estadoText = data == 1 ? 'Activo' : 'Inactivo';
+                        const info = planInfo[row.planes_id] || {
+                            class: "badge-light",
+                            icon: "fas fa-question-circle"
+                        };
 
-                        var icon = data == 1
+                        const nombrePlan = data && data.nombre ? limpiarHtml(data.nombre) : "Sin plan";
+
+                        return '<span class="badge ' + info.class + ' badge-pill" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                                    '<i class="' + info.icon + '" style="margin-right: 5px;"></i>' + nombrePlan +
+                                '</span>';
+                    }
+                },
+                {
+                    data: "sistema",
+                    render: function(data) {
+                        const nombreSistema = data && data.nombre ? data.nombre : "";
+
+                        let badgeClass;
+                        let iconClass;
+
+                        switch (nombreSistema) {
+                            case "CAMI":
+                                badgeClass = "badge-info";
+                                iconClass = "fas fa-stethoscope";
+                                break;
+
+                            case "IZZY":
+                                badgeClass = "badge-success";
+                                iconClass = "fas fa-store";
+                                break;
+
+                            case "MONISYS":
+                                badgeClass = "badge-warning";
+                                iconClass = "fas fa-chart-line";
+                                break;
+
+                            default:
+                                badgeClass = "badge-secondary";
+                                iconClass = "fas fa-question-circle";
+                                break;
+                        }
+
+                        return '<span class="badge ' + badgeClass + ' badge-pill" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                                    '<i class="' + iconClass + '" style="margin-right: 5px;"></i>' + limpiarHtml(nombreSistema) +
+                                '</span>';
+                    }
+                },
+                {
+                    data: "user_extra",
+                    className: "text-center",
+                    render: function(data) {
+                        const userExtra = parseInt(data, 10) || 0;
+
+                        return userExtra > 0
+                            ? '<span class="badge badge-secondary badge-pill" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">+' + userExtra + '</span>'
+                            : '<span class="text-muted">Ninguno</span>';
+                    }
+                },
+                {
+                    data: "validar",
+                    className: "text-center",
+                    render: function(data) {
+                        const isValid = data == 1;
+                        const badgeClass = isValid ? "badge-success" : "badge-secondary";
+                        const iconClass = isValid ? "fas fa-check-circle" : "fas fa-times-circle";
+                        const text = isValid ? "Sí" : "No";
+
+                        return '<span class="badge ' + badgeClass + ' badge-pill" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                                    '<i class="' + iconClass + '" style="margin-right: 5px;"></i>' + text +
+                                '</span>';
+                    }
+                },
+                {
+                    data: "estado",
+                    className: "text-center",
+                    render: function(data, type) {
+                        if (type !== "display") {
+                            return data;
+                        }
+
+                        const estadoText = data == 1 ? "Activo" : "Inactivo";
+
+                        const icon = data == 1
                             ? '<i class="fas fa-check-circle mr-1"></i>'
                             : '<i class="fas fa-times-circle mr-1"></i>';
 
-                        var badgeClass = data == 1
-                            ? 'badge badge-pill badge-success'
-                            : 'badge badge-pill badge-danger';
+                        const badgeClass = data == 1
+                            ? "badge badge-pill badge-success"
+                            : "badge badge-pill badge-danger";
 
                         return '<span class="' + badgeClass +
                             '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
                             icon + estadoText + '</span>';
                     }
-
-                    return data;
+                },
+                {
+                    data: "fecha_registro",
+                    render: function(data) {
+                        return formatFechaHora(data);
+                    }
                 }
-            },
-            {
-                data: "fecha_registro",
-                render: function(data) {
-                    return formatFechaHora(data);
+            ],
+            language: idioma_español,
+            responsive: true,
+            autoWidth: false,
+            columnDefs: [
+                {
+                    width: "10%",
+                    targets: 0,
+                    orderable: false,
+                    searchable: false,
+                    className: "text-center text-nowrap align-middle"
+                },
+                {
+                    width: "5%",
+                    targets: 1,
+                    className: "text-center text-nowrap"
+                },
+                {
+                    width: "24%",
+                    targets: 2
+                },
+                {
+                    width: "12%",
+                    targets: 3,
+                    className: "text-center text-nowrap"
+                },
+                {
+                    width: "12%",
+                    targets: 4,
+                    className: "text-center text-nowrap"
+                },
+                {
+                    width: "10%",
+                    targets: 5,
+                    className: "text-center text-nowrap"
+                },
+                {
+                    width: "8%",
+                    targets: 6,
+                    className: "text-center text-nowrap"
+                },
+                {
+                    width: "9%",
+                    targets: 7,
+                    className: "text-center text-nowrap"
+                },
+                {
+                    width: "10%",
+                    targets: 8,
+                    className: "text-center text-nowrap"
+                }
+            ],
+            drawCallback: function(settings) {
+                getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+                if (typeof cerrarDropdownAcciones === "function") {
+                    cerrarDropdownAcciones();
                 }
             }
-        ],
-        language: idioma_español,
-        responsive: true,
-        autoWidth: false,
-        columnDefs: [
-            {
-                width: "10%",
-                targets: 0,
-                orderable: false,
-                searchable: false,
-                className: "text-center text-nowrap align-middle"
-            },
-            {
-                width: "5%",
-                targets: 1,
-                className: "text-center text-nowrap"
-            },
-            {
-                width: "24%",
-                targets: 2
-            },
-            {
-                width: "12%",
-                targets: 3,
-                className: "text-center text-nowrap"
-            },
-            {
-                width: "12%",
-                targets: 4,
-                className: "text-center text-nowrap"
-            },
-            {
-                width: "10%",
-                targets: 5,
-                className: "text-center text-nowrap"
-            },
-            {
-                width: "8%",
-                targets: 6,
-                className: "text-center text-nowrap"
-            },
-            {
-                width: "9%",
-                targets: 7,
-                className: "text-center text-nowrap"
-            },
-            {
-                width: "10%",
-                targets: 8,
-                className: "text-center text-nowrap"
-            }
-        ],
-        drawCallback: function(settings) {
-            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+        });
+    }
 
-            if (typeof cerrarDropdownAcciones === "function") {
-                cerrarDropdownAcciones();
-            }
-        }
-    });
-
-    $(document).on('click', '.btn-editar-asignacion', function() {
-        $('#server_customers_id').val($(this).data('id'));
-        $('#cliente_id').val($(this).data('cliente-id')).selectpicker('refresh');
-        $('#planes_id').val($(this).data('plan-id')).selectpicker('refresh');
-        $('#sistema_id').val($(this).data('sistema-id')).selectpicker('refresh');
-        $('#user_extra').val($(this).data('user-extra'));
-        $('#validar').val($(this).data('validar')).selectpicker('refresh');
-        $('#estado').val($(this).data('estado')).selectpicker('refresh');
-        
-        $('html, body').animate({
-            scrollTop: $('#div_top').offset().top - 20
-        }, 500);
-    });    
-
+    /* =========================================================
+        CARGAR CLIENTES
+    ========================================================= */
     function cargarClientes() {
         $.ajax({
-            url: "<?php echo SERVERURL; ?>core/obtenerClientesParaAsignacion.php",
+            url: ASIGNAR_PLANES_URLS.obtenerClientes,
             type: "POST",
             dataType: "json",
             success: function(response) {
                 if (response.success) {
-                    const select = $('#cliente_id');
+                    const select = $("#cliente_id");
                     select.empty();
-                    
-                    response.data.forEach(cliente => {
-                        select.append(`
-                            <option value="${cliente.clientes_id}" 
-                                    data-subtext="${cliente.identificacion || 'Sin identificación'}">
-                                ${cliente.nombre}
-                            </option>
-                        `);
+
+                    select.append('<option value="">Seleccione un cliente...</option>');
+
+                    response.data.forEach(function(cliente) {
+                        select.append(
+                            '<option value="' + cliente.clientes_id + '" ' +
+                                'data-subtext="' + limpiarHtml(cliente.identificacion || "Sin identificación") + '">' +
+                                limpiarHtml(cliente.nombre) +
+                            '</option>'
+                        );
                     });
-                    
-                    select.selectpicker('refresh');
+
+                    select.selectpicker("refresh");
                 } else {
                     showNotify("error", "Error", response.message || "Error al cargar clientes");
                 }
@@ -316,21 +425,30 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
+    /* =========================================================
+        CARGAR PLANES
+    ========================================================= */
     function cargarPlanes() {
         $.ajax({
-            url: "<?php echo SERVERURL; ?>core/obtenerPlanesActivos.php",
+            url: ASIGNAR_PLANES_URLS.obtenerPlanes,
             type: "POST",
             dataType: "json",
             success: function(response) {
                 if (response.success) {
-                    const select = $('#planes_id');
+                    const select = $("#planes_id");
                     select.empty();
-                    
-                    response.data.forEach(plan => {
-                        select.append(`<option value="${plan.planes_id}">${plan.nombre}</option>`);
+
+                    select.append('<option value="">Seleccione un plan...</option>');
+
+                    response.data.forEach(function(plan) {
+                        select.append(
+                            '<option value="' + plan.planes_id + '">' +
+                                limpiarHtml(plan.nombre) +
+                            '</option>'
+                        );
                     });
-                    
-                    select.selectpicker('refresh');
+
+                    select.selectpicker("refresh");
                 } else {
                     showNotify("error", "Error", response.message || "Error al cargar planes");
                 }
@@ -341,21 +459,29 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
+    /* =========================================================
+        CARGAR SISTEMAS
+    ========================================================= */
     function cargarSistemas() {
         $.ajax({
-            url: "<?php echo SERVERURL; ?>core/obtenerSistemas.php",
+            url: ASIGNAR_PLANES_URLS.obtenerSistemas,
             type: "POST",
             dataType: "json",
             success: function(response) {
                 if (response.success) {
-                    const select = $('#sistema_id');
+                    const select = $("#sistema_id");
                     select.empty();
-                    
-                    response.data.forEach(sistema => {
-                        select.append(`<option value="${sistema.sistema_id}">${sistema.nombre}</option>`);
+
+                    response.data.forEach(function(sistema) {
+                        select.append(
+                            '<option value="' + sistema.sistema_id + '">' +
+                                limpiarHtml(sistema.nombre) +
+                            '</option>'
+                        );
                     });
-                    
-                    select.selectpicker('refresh').prop('disabled', true);
+
+                    select.selectpicker("refresh");
+                    select.prop("disabled", true);
                 }
             },
             error: function(xhr) {
@@ -364,14 +490,19 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
+    /* =========================================================
+        VERIFICAR PLAN CLIENTE
+    ========================================================= */
     function verificarPlanCliente(clienteId, callback) {
         $.ajax({
-            url: "<?php echo SERVERURL; ?>core/verificarPlanCliente.php",
+            url: ASIGNAR_PLANES_URLS.verificarPlanCliente,
             type: "POST",
-            data: { cliente_id: clienteId },
+            data: {
+                cliente_id: clienteId
+            },
             dataType: "json",
             success: function(response) {
-                if (typeof callback === 'function') {
+                if (typeof callback === "function") {
                     callback(response);
                 }
             },
@@ -381,102 +512,165 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    function actualizarPlanCliente(formData, callback) {
+    /* =========================================================
+        ACTUALIZAR PLAN CLIENTE
+    ========================================================= */
+    function actualizarPlanCliente(formData) {
         $.ajax({
-            url: "<?php echo SERVERURL; ?>core/actualizarPlanCliente.php",
+            url: ASIGNAR_PLANES_URLS.actualizarPlanCliente,
             type: "POST",
             data: formData,
             dataType: "json",
+            beforeSend: function() {
+                bloquearBotonActualizarPlan();
+            },
             success: function(response) {
-                // Actualizar el DataTable principal
-                tablaAsignaciones.ajax.reload(null, false);
-                $('#modalConfirmarCambio').modal('hide');
-                showNotify(response.type, response.title, response.message);
+                restaurarBotonActualizarPlan();
+
+                showNotify(
+                    response.type || "info",
+                    response.title || "Resultado",
+                    response.message || "Proceso finalizado"
+                );
+
+                if (response.success) {
+                    if (tablaAsignaciones) {
+                        tablaAsignaciones.ajax.reload(null, false);
+                    }
+
+                    resetFormularioAsignacion();
+                }
             },
             error: function(xhr) {
+                restaurarBotonActualizarPlan();
+
+                console.error("Error al actualizar plan:", xhr.responseText);
                 showNotify("error", "Error", "Error al actualizar plan");
             }
         });
     }
 
-    $('#cliente_id').on('change', function() {
-        const clienteId = $(this).val();
-        if (clienteId) {
-            verificarPlanCliente(clienteId, function(response) {
-                if (response.exists) {
-                    $('#server_customers_id').val(response.data.server_customers_id);
-                    $('#planes_id').val(response.data.planes_id).selectpicker('refresh');
-                    $('#sistema_id').val(response.data.sistema_id).selectpicker('refresh');
-                    $('#user_extra').val(response.data.user_extra);
-                    
-                    $('#mensajeConfirmacion').html(`
-                        Actualizar plan para <strong>${response.data.cliente_nombre}</strong> a 
-                        <strong>${$('#planes_id option:selected').text()}</strong> con 
-                        <strong>${$('#user_extra').val()} usuarios extras</strong>.
-                    `);
-                }
-            });
+    /* =========================================================
+        EDITAR ASIGNACIÓN
+    ========================================================= */
+    $(document).off("click", ".btn-editar-asignacion").on("click", ".btn-editar-asignacion", function() {
+        $("#server_customers_id").val($(this).data("id"));
+        $("#cliente_id").val($(this).data("cliente-id")).selectpicker("refresh");
+        $("#planes_id").val($(this).data("plan-id")).selectpicker("refresh");
+        $("#sistema_id").val($(this).data("sistema-id")).selectpicker("refresh");
+        $("#user_extra").val($(this).data("user-extra"));
+        $("#validar").val($(this).data("validar")).selectpicker("refresh");
+        $("#estado").val($(this).data("estado")).selectpicker("refresh");
+
+        if ($("#div_top").length > 0) {
+            $("html, body").animate({
+                scrollTop: $("#div_top").offset().top - 20
+            }, 500);
         }
     });
 
-    $(document).on('click', '.btn-editar-asignacion', function() {
-        $('#server_customers_id').val($(this).data('id'));
-        $('#cliente_id').val($(this).data('cliente-id')).selectpicker('refresh');
-        $('#planes_id').val($(this).data('plan-id')).selectpicker('refresh');
-        $('#sistema_id').val($(this).data('sistema-id')).selectpicker('refresh');
-        $('#user_extra').val($(this).data('user-extra'));
-        
-        $('html, body').animate({
-            scrollTop: $('#div_top').offset().top - 20
-        }, 500);
+    /* =========================================================
+        CAMBIO DE CLIENTE
+    ========================================================= */
+    $("#cliente_id").off("change").on("change", function() {
+        const clienteId = $(this).val();
+
+        if (clienteId) {
+            verificarPlanCliente(clienteId, function(response) {
+                if (response.exists) {
+                    $("#server_customers_id").val(response.data.server_customers_id);
+                    $("#planes_id").val(response.data.planes_id).selectpicker("refresh");
+                    $("#sistema_id").val(response.data.sistema_id).selectpicker("refresh");
+                    $("#user_extra").val(response.data.user_extra);
+                    $("#validar").val(response.data.validar).selectpicker("refresh");
+                    $("#estado").val(response.data.estado).selectpicker("refresh");
+                }
+            });
+        } else {
+            $("#server_customers_id").val("");
+            $("#user_extra").val(0);
+        }
     });
 
-    $('#formAsignacionPlan').on('submit', function(e) {
+    /* =========================================================
+        SUBMIT FORMULARIO CON SWAL NORMAL
+    ========================================================= */
+    $("#formAsignacionPlan").off("submit").on("submit", function(e) {
         e.preventDefault();
-        
-        const clienteId = $('#cliente_id').val();
+
+        const clienteId = $("#cliente_id").val();
+        const serverCustomersId = $("#server_customers_id").val();
+        const planesId = $("#planes_id").val();
+        const userExtra = parseInt($("#user_extra").val(), 10);
+
         if (!clienteId) {
             showNotify("warning", "Advertencia", "Debe seleccionar un cliente");
             return;
         }
-        
-        $('#modalConfirmarCambio').modal('show');
-    });
 
-    $('#btn-confirmar-cambio').on('click', function() {
-        const formData = $('#formAsignacionPlan').serialize();
-        
-        actualizarPlanCliente(formData, function(response) {
-            if (response.success) {
-                showNotify("success", "Éxito", response.message);
-                $('#modalConfirmarCambio').modal('hide');
-                // Actualizar el DataTable principal
-                tablaAsignaciones.ajax.reload(null, false);
-                $('#modalConfirmarCambio').modal('hide');
-                $('#formAsignacionPlan')[0].reset();
-                $('#server_customers_id').val('');
-                $('.selectpicker').selectpicker('refresh');
-            } else {
-                showNotify("error", "Error", response.message);
+        if (!serverCustomersId) {
+            showNotify("warning", "Advertencia", "El cliente seleccionado no tiene registro server_customers");
+            return;
+        }
+
+        if (!planesId) {
+            showNotify("warning", "Advertencia", "Debe seleccionar un plan");
+            return;
+        }
+
+        if (isNaN(userExtra) || userExtra < 0) {
+            showNotify("warning", "Advertencia", "Los usuarios extra no pueden ser negativos");
+            return;
+        }
+
+        const clienteTexto = $("#cliente_id option:selected").text().trim();
+        const planTexto = $("#planes_id option:selected").text().trim();
+        const sistemaTexto = $("#sistema_id option:selected").text().trim();
+        const validarTexto = $("#validar option:selected").text().trim();
+        const estadoTexto = $("#estado option:selected").text().trim();
+
+        swal({
+            title: "¿Confirmar cambio de plan?",
+            text:
+                "Cliente: " + clienteTexto + "\n" +
+                "Plan: " + planTexto + "\n" +
+                "Sistema: " + sistemaTexto + "\n" +
+                "Usuarios extra: " + userExtra + "\n" +
+                "Validar: " + validarTexto + "\n" +
+                "Estado: " + estadoTexto + "\n\n" +
+                "Se actualizará el plan y los usuarios permitidos para este cliente.",
+            icon: "warning",
+            buttons: {
+                cancel: {
+                    text: "Cancelar",
+                    value: null,
+                    visible: true,
+                    className: "btn btn-secondary",
+                    closeModal: true
+                },
+                confirm: {
+                    text: "Sí, actualizar",
+                    value: true,
+                    visible: true,
+                    className: "btn btn-primary",
+                    closeModal: true
+                }
+            },
+            dangerMode: false
+        }).then(function(confirmado) {
+            if (confirmado) {
+                const formData = $("#formAsignacionPlan").serialize();
+                actualizarPlanCliente(formData);
             }
         });
     });
 
+    /* =========================================================
+        INICIALIZAR
+    ========================================================= */
+    inicializarDataTableAsignaciones();
     cargarClientes();
     cargarPlanes();
     cargarSistemas();
 });
-
-function formatFechaHora(fecha) {
-    if (!fecha) return '';
-    
-    const date = new Date(fecha);
-    return date.toLocaleDateString('es-ES', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
 </script>

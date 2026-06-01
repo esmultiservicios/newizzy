@@ -1,261 +1,296 @@
 <?php
+// core/generarPinCliente.php
+
 $peticionAjax = true;
+
 require_once "configGenerales.php";
 require_once "mainModel.php";
 
-// Instanciar mainModel
+header('Content-Type: application/json');
+
 $insMainModel = new mainModel();
 
-// Validar sesión primero
 $validacion = $insMainModel->validarSesion();
-if($validacion['error']) {
-    return $insMainModel->showNotification([
-        "title" => "Error de sesión",
-        "text" => $validacion['mensaje'],
-        "type" => "error",
-        "funcion" => "window.location.href = '".$validacion['redireccion']."'"
+
+if ($validacion['error']) {
+    echo json_encode([
+        'success' => false,
+        'error' => $validacion['mensaje'],
+        'redirect' => $validacion['redireccion']
     ]);
+    exit;
 }
 
 $codigoCliente = isset($_POST['codigoCliente']) ? $insMainModel->cleanString($_POST['codigoCliente']) : '';
 $generateNew = isset($_POST['generateNew']) ? $insMainModel->cleanString($_POST['generateNew']) : '0';
 
-// Validación mejorada del código de cliente
-if (empty($codigoCliente) || !is_numeric($codigoCliente)) {
-    http_response_code(400);
+$dbActual = $GLOBALS['db'];
+
+if ($dbActual === DB_MAIN) {
     echo json_encode([
         'success' => false,
-        'error' => 'Código de cliente inválido',
-        'message' => 'El código de cliente debe ser un valor numérico válido'
+        'error' => 'La base principal no genera PIN de cliente'
     ]);
     exit;
 }
 
-// Validar longitud mínima (ejemplo: mínimo 4 dígitos)
-if (strlen($codigoCliente) < 4) {
-    http_response_code(400);
+if (empty($codigoCliente) || !is_numeric($codigoCliente)) {
     echo json_encode([
         'success' => false,
-        'error' => 'Código de cliente demasiado corto',
-        'message' => 'El código debe tener al menos 4 dígitos'
+        'error' => 'Código de cliente inválido'
     ]);
     exit;
 }
 
 try {
-    // Establecer conexión a la base de datos
-    $mysqli = $insMainModel->connection();
-    
-    // Iniciar transacción
-    $mysqli->autocommit(false);
+    $mysqliMain = $insMainModel->connectionDBLocal(DB_MAIN);
+    $mysqliCliente = $insMainModel->connectionDBLocal($dbActual);
 
-    // Verificar si el cliente ya tiene un PIN válido
-    $pinExistente = obtenerPinValido($mysqli, $codigoCliente);
-    
-    // Variable para almacenar el PIN que se devolverá
-    $pin = null;
+    $clienteData = obtenerClienteDesdeMain($mysqliMain, $codigoCliente, $dbActual);
 
-    // Lógica para determinar si se necesita generar un nuevo PIN
-    if ($generateNew === "1" || $pinExistente === null) {
-        // Generar un nuevo PIN único
-        $pin = generarPinUnico($mysqli);
-        
-        // Invalidar cualquier PIN anterior que esté activo
-        invalidarPinAnterior($mysqli, $codigoCliente);
-        
-        // Insertar el nuevo PIN en la base de datos local
-        insertarNuevoPin($mysqli, $codigoCliente, $pin, $_SESSION['server_customers_id']);
-        
-        // Insertar el PIN en el servidor principal
-        insertarPinEnServidorPrincipal($insMainModel, $codigoCliente, $pin, $_SESSION['server_customers_id']);
+    if (!$clienteData) {
+        throw new Exception("El código de cliente no pertenece a esta base de datos");
+    }
+
+    $serverCustomersId = (int)$clienteData['server_customers_id'];
+    $codigoCliente = (int)$clienteData['codigo_cliente'];
+
+    $pinData = obtenerPinValido($mysqliMain, $serverCustomersId, $codigoCliente);
+
+    if ($generateNew === "1" || !$pinData) {
+        $pin = generarPinUnico($mysqliMain, $mysqliCliente);
+
+        $fechaHoraInicio = date("Y-m-d H:i:s");
+        $fechaHoraFin = date("Y-m-d H:i:s", strtotime($fechaHoraInicio . " +5 minutes"));
+
+        invalidarPinAnterior($mysqliMain, $serverCustomersId, $codigoCliente);
+        invalidarPinAnterior($mysqliCliente, $serverCustomersId, $codigoCliente);
+
+        insertarNuevoPin($mysqliMain, $serverCustomersId, $codigoCliente, $pin, $fechaHoraInicio, $fechaHoraFin);
+        insertarNuevoPin($mysqliCliente, $serverCustomersId, $codigoCliente, $pin, $fechaHoraInicio, $fechaHoraFin);
+
     } else {
-        // Usar el PIN existente
-        $pin = $pinExistente;
+        $pin = (int)$pinData['pin'];
+        $fechaHoraInicio = $pinData['fecha_hora_inicio'];
+        $fechaHoraFin = $pinData['fecha_hora_fin'];
+
+        sincronizarPinEnCliente(
+            $mysqliCliente,
+            $serverCustomersId,
+            $codigoCliente,
+            $pin,
+            $fechaHoraInicio,
+            $fechaHoraFin
+        );
     }
 
-    // Confirmar la transacción
-    $mysqli->commit();
-    
-    // Devolver respuesta exitosa con el PIN
-    header('Content-Type: application/json');
+    $mysqliMain->close();
+    $mysqliCliente->close();
+
     echo json_encode([
-        'pin' => $pin,
         'success' => true,
-        'message' => 'PIN generado/recuperado exitosamente'
+        'pin' => $pin,
+        'message' => 'PIN generado correctamente',
+        'fecha_hora_fin' => $fechaHoraFin
     ]);
-    
+    exit;
+
 } catch (Exception $e) {
-    // En caso de error, revertir la transacción
-    if (isset($mysqli)) {
-        $mysqli->rollback();
-    }
-    
-    // Devolver respuesta de error
-    header('Content-Type: application/json');
+    error_log("Error en generarPinCliente.php: " . $e->getMessage());
+
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage(),
-        'message' => 'Error al procesar la solicitud de PIN',
-        'trace' => $e->getTraceAsString()
+        'error' => $e->getMessage()
     ]);
-} finally {
-    // Restaurar autocommit y cerrar conexión
-    if (isset($mysqli)) {
-        $mysqli->autocommit(true);
-        $mysqli->close();
-    }
+    exit;
 }
 
-/**
- * Verifica si el cliente tiene un PIN válido y lo devuelve si existe
- * @param mysqli $mysqli Conexión a la base de datos
- * @param string $codigoCliente Código del cliente
- * @return string|null El PIN válido o null si no existe
- */
-function obtenerPinValido($mysqli, $codigoCliente) {
-    $query = "SELECT pin FROM pin WHERE codigo_cliente = ? AND fecha_hora_fin > NOW() LIMIT 1";
+function obtenerClienteDesdeMain($mysqli, $codigoCliente, $dbActual)
+{
+    $query = "SELECT 
+                    server_customers_id,
+                    clientes_id,
+                    codigo_cliente,
+                    db,
+                    planes_id,
+                    sistema_id
+              FROM server_customers
+              WHERE codigo_cliente = ?
+              AND db = ?
+              AND estado = 1
+              LIMIT 1";
+
     $stmt = $mysqli->prepare($query);
-    
-    if (!$stmt) {
-        throw new Exception("Error al preparar la consulta: " . $mysqli->error);
-    }
-    
-    $stmt->bind_param("i", $codigoCliente);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($result->num_rows > 0) {
-        $pinData = $result->fetch_assoc();
-        $stmt->close();
-        return $pinData['pin'];
-    }
-    
-    $stmt->close();
-    return null;
-}
 
-/**
- * Genera un PIN numérico único de 6 dígitos
- * @param mysqli $mysqli Conexión a la base de datos
- * @return int PIN único generado
- * @throws Exception Si no se puede generar un PIN único después de varios intentos
- */
-function generarPinUnico($mysqli) {
-    $pin = null;
-    $maxIntentos = 10;
-    $intentos = 0;
-    
-    do {
-        $pin = mt_rand(100000, 999999);
-        $query = "SELECT pin FROM pin WHERE pin = ? LIMIT 1";
-        $stmt = $mysqli->prepare($query);
-        
-        if (!$stmt) {
-            throw new Exception("Error al preparar la consulta: " . $mysqli->error);
-        }
-        
-        $stmt->bind_param("i", $pin);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $existe = $result->num_rows > 0;
-        $stmt->close();
-        
-        $intentos++;
-        if ($intentos >= $maxIntentos) {
-            throw new Exception("No se pudo generar un PIN único después de $maxIntentos intentos");
-        }
-    } while ($existe);
-    
-    return $pin;
-}
-
-/**
- * Invalida cualquier PIN activo que tenga el cliente
- * @param mysqli $mysqli Conexión a la base de datos
- * @param string $codigoCliente Código del cliente
- */
-function invalidarPinAnterior($mysqli, $codigoCliente) {
-    $fechaHoraActual = date("Y-m-d H:i:s");
-    
-    $query = "UPDATE pin SET fecha_hora_fin = ? 
-              WHERE codigo_cliente = ? AND fecha_hora_fin > NOW()";
-    $stmt = $mysqli->prepare($query);
-    
     if (!$stmt) {
-        throw new Exception("Error al preparar la consulta: " . $mysqli->error);
+        throw new Exception("Error al preparar cliente: " . $mysqli->error);
     }
-    
-    $stmt->bind_param("si", $fechaHoraActual, $codigoCliente);
-    $stmt->execute();
-    $stmt->close();
-}
 
-/**
- * Inserta un nuevo PIN en la base de datos
- * @param mysqli $mysqli Conexión a la base de datos
- * @param string $codigoCliente Código del cliente
- * @param int $pin PIN generado
- * @param int $serverCustomersId ID del cliente en el servidor principal
- */
-function insertarNuevoPin($mysqli, $codigoCliente, $pin, $serverCustomersId) {
-    // Obtener el próximo ID disponible
-    $query = "SELECT IFNULL(MAX(pin_id), 0) + 1 AS next_id FROM pin";
-    $stmt = $mysqli->prepare($query);
-    
-    if (!$stmt) {
-        throw new Exception("Error al preparar la consulta: " . $mysqli->error);
-    }
-    
+    $stmt->bind_param("is", $codigoCliente, $dbActual);
     $stmt->execute();
+
     $result = $stmt->get_result();
     $row = $result->fetch_assoc();
-    $pin_id = $row['next_id'];
+
     $stmt->close();
-    
-    // Calcular fechas de validez (5 minutos de vigencia)
-    $fechaHoraInicio = date("Y-m-d H:i:s");
-    $fechaHoraFin = date("Y-m-d H:i:s", strtotime($fechaHoraInicio) + (5 * 60));
-    
-    // Insertar el nuevo registro
-    $query = "INSERT INTO pin (pin_id, server_customers_id, codigo_cliente, pin, fecha_hora_inicio, fecha_hora_fin) 
-              VALUES (?, ?, ?, ?, ?, ?)";
+
+    return $row ?: null;
+}
+
+function obtenerPinValido($mysqli, $serverCustomersId, $codigoCliente)
+{
+    $query = "SELECT 
+                    pin,
+                    fecha_hora_inicio,
+                    fecha_hora_fin
+              FROM pin
+              WHERE server_customers_id = ?
+              AND codigo_cliente = ?
+              AND fecha_hora_fin > NOW()
+              ORDER BY pin_id DESC
+              LIMIT 1";
+
     $stmt = $mysqli->prepare($query);
-    
+
     if (!$stmt) {
-        throw new Exception("Error al preparar la consulta: " . $mysqli->error);
+        throw new Exception("Error al preparar PIN válido: " . $mysqli->error);
     }
-    
-    $stmt->bind_param("iiisss", $pin_id, $serverCustomersId, $codigoCliente, $pin, $fechaHoraInicio, $fechaHoraFin);
-    
+
+    $stmt->bind_param("ii", $serverCustomersId, $codigoCliente);
+    $stmt->execute();
+
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+
+    $stmt->close();
+
+    return $row ?: null;
+}
+
+function generarPinUnico($mysqliMain, $mysqliCliente)
+{
+    $maxIntentos = 50;
+
+    for ($i = 1; $i <= $maxIntentos; $i++) {
+        $pin = random_int(100000, 999999);
+
+        if (!pinExisteActivo($mysqliMain, $pin) && !pinExisteActivo($mysqliCliente, $pin)) {
+            return $pin;
+        }
+    }
+
+    throw new Exception("No se pudo generar un PIN único");
+}
+
+function pinExisteActivo($mysqli, $pin)
+{
+    $query = "SELECT pin_id
+              FROM pin
+              WHERE pin = ?
+              AND fecha_hora_fin > NOW()
+              LIMIT 1";
+
+    $stmt = $mysqli->prepare($query);
+
+    if (!$stmt) {
+        throw new Exception("Error al validar PIN único: " . $mysqli->error);
+    }
+
+    $stmt->bind_param("i", $pin);
+    $stmt->execute();
+
+    $result = $stmt->get_result();
+    $existe = $result->num_rows > 0;
+
+    $stmt->close();
+
+    return $existe;
+}
+
+function invalidarPinAnterior($mysqli, $serverCustomersId, $codigoCliente)
+{
+    $fechaActual = date("Y-m-d H:i:s");
+
+    $query = "UPDATE pin
+              SET fecha_hora_fin = ?
+              WHERE server_customers_id = ?
+              AND codigo_cliente = ?
+              AND fecha_hora_fin > NOW()";
+
+    $stmt = $mysqli->prepare($query);
+
+    if (!$stmt) {
+        throw new Exception("Error al invalidar PIN anterior: " . $mysqli->error);
+    }
+
+    $stmt->bind_param("sii", $fechaActual, $serverCustomersId, $codigoCliente);
+
     if (!$stmt->execute()) {
-        throw new Exception("Error al insertar el PIN: " . $stmt->error);
+        throw new Exception("Error al actualizar PIN anterior: " . $stmt->error);
     }
-    
+
     $stmt->close();
 }
 
-/**
- * Inserta el PIN en el servidor principal
- * @param mainModel $mainModel Instancia del modelo principal
- * @param string $codigoCliente Código del cliente
- * @param int $pin PIN generado
- * @param int $serverCustomersId ID del cliente en el servidor principal
- */
-function insertarPinEnServidorPrincipal($mainModel, $codigoCliente, $pin, $serverCustomersId) {
-    $fechaHoraInicio = date("Y-m-d H:i:s");
-    $fechaHoraFin = date("Y-m-d H:i:s", strtotime($fechaHoraInicio) + (5 * 60));
-    
-    $datos = [
-        "server_customers_id" => $serverCustomersId,
-        "codigo_cliente" => $codigoCliente,
-        "pin" => $pin,
-        "fecha_hora_inicio" => $fechaHoraInicio,
-        "fecha_hora_fin" => $fechaHoraFin
-    ];
-    
-    $resultado = $mainModel->insertarPinServerP($datos);
-    
-    if (!$resultado) {
-        throw new Exception("Error al insertar el PIN en el servidor principal");
+function insertarNuevoPin($mysqli, $serverCustomersId, $codigoCliente, $pin, $fechaHoraInicio, $fechaHoraFin)
+{
+    $query = "INSERT INTO pin (
+                    server_customers_id,
+                    codigo_cliente,
+                    pin,
+                    fecha_hora_inicio,
+                    fecha_hora_fin
+              )
+              VALUES (?, ?, ?, ?, ?)";
+
+    $stmt = $mysqli->prepare($query);
+
+    if (!$stmt) {
+        throw new Exception("Error al preparar inserción de PIN: " . $mysqli->error);
+    }
+
+    $stmt->bind_param(
+        "iiiss",
+        $serverCustomersId,
+        $codigoCliente,
+        $pin,
+        $fechaHoraInicio,
+        $fechaHoraFin
+    );
+
+    if (!$stmt->execute()) {
+        throw new Exception("Error al insertar PIN: " . $stmt->error);
+    }
+
+    $stmt->close();
+}
+
+function sincronizarPinEnCliente($mysqliCliente, $serverCustomersId, $codigoCliente, $pin, $fechaHoraInicio, $fechaHoraFin)
+{
+    $query = "SELECT pin_id
+              FROM pin
+              WHERE server_customers_id = ?
+              AND codigo_cliente = ?
+              AND pin = ?
+              AND fecha_hora_fin > NOW()
+              LIMIT 1";
+
+    $stmt = $mysqliCliente->prepare($query);
+
+    if (!$stmt) {
+        throw new Exception("Error al preparar sincronización: " . $mysqliCliente->error);
+    }
+
+    $stmt->bind_param("iii", $serverCustomersId, $codigoCliente, $pin);
+    $stmt->execute();
+
+    $result = $stmt->get_result();
+    $existe = $result->num_rows > 0;
+
+    $stmt->close();
+
+    if (!$existe) {
+        invalidarPinAnterior($mysqliCliente, $serverCustomersId, $codigoCliente);
+        insertarNuevoPin($mysqliCliente, $serverCustomersId, $codigoCliente, $pin, $fechaHoraInicio, $fechaHoraFin);
     }
 }

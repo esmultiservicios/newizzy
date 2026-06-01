@@ -1,3 +1,11 @@
+####01 de mayo 2026####
+ALTER TABLE `pin`
+MODIFY `pin_id` INT NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE `pin`
+ADD INDEX `idx_pin_login` (`codigo_cliente`, `pin`, `fecha_hora_fin`),
+ADD INDEX `idx_pin_cliente` (`server_customers_id`, `codigo_cliente`, `fecha_hora_fin`);
+
 ####31 de mayo 2026####
 ALTER TABLE jobs_queue
 ADD COLUMN error_message TEXT NULL AFTER max_attempts;

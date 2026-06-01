@@ -6,8 +6,43 @@
     }
 	
 	class ingresosContabilidadModelo extends mainModel{
+
 		protected function agregar_ingresos_contabilidad_modelo($datos){			
-			$insert = "INSERT INTO ingresos VALUES('".$datos['ingresos_id']."','".$datos['cuentas_id']."','".$datos['clientes_id']."','".$datos['empresa_id']."','".$datos['tipo_ingreso']."','".$datos['fecha']."','".$datos['factura']."','".$datos['subtotal']."','".$datos['descuento']."','".$datos['nc']."','".$datos['isv']."','".$datos['total']."','".$datos['observacion']."','".$datos['estado']."','".$datos['colaboradores_id']."','".$datos['fecha_registro']."','".$datos['recibide']."')";
+			$insert = "INSERT INTO ingresos (
+                    ingresos_id,
+                    cuentas_id,
+                    clientes_id,
+                    empresa_id,
+                    tipo_ingreso,
+                    fecha,
+                    factura,
+                    subtotal,
+                    descuento,
+                    nc,
+                    impuesto,
+                    total,
+                    observacion,
+                    estado,
+                    colaboradores_id,
+                    fecha_registro
+                ) VALUES (
+                    '".$datos['ingresos_id']."',
+                    '".$datos['cuentas_id']."',
+                    '".$datos['clientes_id']."',
+                    '".$datos['empresa_id']."',
+                    '".$datos['tipo_ingreso']."',
+                    '".$datos['fecha']."',
+                    '".$datos['factura']."',
+                    '".$datos['subtotal']."',
+                    '".$datos['descuento']."',
+                    '".$datos['nc']."',
+                    '".$datos['isv']."',
+                    '".$datos['total']."',
+                    '".$datos['observacion']."',
+                    '".$datos['estado']."',
+                    '".$datos['colaboradores_id']."',
+                    '".$datos['fecha_registro']."'
+                )";
 			
 			$sql = mainModel::connection()->query($insert) or die(mainModel::connection()->error);
 			
@@ -36,7 +71,6 @@
 			return $sql;
 		}
 
-		// 1) Anular ingreso: estado y observación (igual que egresos)
 		protected function cancel_ingresos_contabilidad_modelo($datos){
 			$update = "
 				UPDATE ingresos
@@ -52,6 +86,17 @@
 			$query = "SELECT clientes_id
 				FROM clientes
 				WHERE nombre = '$nombre'";
+
+			$sql = mainModel::connection()->query($query) or die(mainModel::connection()->error);
+			
+			return $sql;				
+		}
+
+        protected function valid_cliente_id_cuentas_contabilidad($clientes_id){
+			$query = "SELECT clientes_id
+				FROM clientes
+				WHERE clientes_id = '$clientes_id'
+                LIMIT 1";
 
 			$sql = mainModel::connection()->query($query) or die(mainModel::connection()->error);
 			
@@ -87,36 +132,30 @@
 
 		protected function getTotalIngresosRegistrados() {
 			try {
-				// Obtener conexión a la base de datos
 				$conexion = $this->connection();
 				
-				// Obtener el primer y último día del mes actual
-				$primerDiaMes = date('Y-m-01');  // Ej: 2024-06-01
-				$ultimoDiaMes = date('Y-m-t');   // Ej: 2024-06-30
+				$primerDiaMes = date('Y-m-01');
+				$ultimoDiaMes = date('Y-m-t');
 
-				// Consulta SQL para contar clientes activos (ajusta según tu esquema de BD)
 				$query = "SELECT COUNT(ingresos_id) AS total 
 						  FROM ingresos WHERE estado = 1
 						  AND CAST(fecha_registro AS DATE) BETWEEN '$primerDiaMes' AND '$ultimoDiaMes'";
 				
-				// Ejecutar consulta
 				$resultado = $conexion->query($query);
 				
 				if (!$resultado) {
 					throw new Exception("Error al contar ingresos: " . $conexion->error);
 				}
 				
-				// Obtener el total
 				$fila = $resultado->fetch_assoc();
 				return (int)$fila['total'];
 				
 			} catch (Exception $e) {
 				error_log("Error en getTotalIngresosRegistrados: " . $e->getMessage());
-				return 0; // Retorna 0 si hay error para no bloquear el sistema
+				return 0;
 			}
 		}
 
-		// Inserta un egreso espejo (idéntico a agregar_egresos_contabilidad_modelo del modelo de egresos)
 		protected function agregar_egreso_por_anulacion_modelo($datos){
 			$insert = "INSERT INTO egresos VALUES(
 				'".$datos['egresos_id']."',

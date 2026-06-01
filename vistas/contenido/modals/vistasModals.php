@@ -568,28 +568,36 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
+
             <div class="modal-body">
                 <form class="FormularioAjax" id="form-cambiarcontra" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+                    
                     <!-- Sección de Credenciales Actuales -->
                     <div class="card border-primary mb-4">
                         <div class="card-header bg-primary text-white">
                             <h5 class="mb-0"><i class="fas fa-lock mr-2"></i>Seguridad</h5>
                         </div>
+
                         <div class="card-body">
                             <input type="hidden" name="id" id="id" value="<?php echo $_SESSION['colaborador_id_sd']; ?>">
                             <input type="hidden" required="required" readonly id="id-registro" name="id-registro" style="display: none;">
                             
                             <div class="form-row">
                                 <div class="col-md-12 mb-3">
-                                    <label for="contranaterior"><i class="fas fa-lock mr-1"></i>Contraseña Actual <span class="priority">*</span></label>
+                                    <label for="contranaterior">
+                                        <i class="fas fa-lock mr-1"></i>Contraseña Actual <span class="priority">*</span>
+                                    </label>
+
                                     <div class="input-group">
                                         <input type="password" name="contranaterior" class="form-control" id="contranaterior" placeholder="Ingrese su contraseña actual" required>
+
                                         <div class="input-group-append">
-                                            <button class="btn btn-outline-secondary" type="button" id="show_password1">
+                                            <button class="btn btn-secondary btn-toggle-password" type="button" id="show_password1" tabindex="-1" aria-label="Mostrar u ocultar contraseña actual" data-input="contranaterior" data-icon="icon1">
                                                 <i class="fas fa-eye" id="icon1"></i>
                                             </button>
                                         </div>
                                     </div>
+
                                     <small class="form-text text-muted">Ingrese su contraseña actual para verificar su identidad</small>
                                 </div>
                             </div>
@@ -601,32 +609,44 @@
                         <div class="card-header bg-primary text-white">
                             <h5 class="mb-0"><i class="fas fa-key mr-2"></i>Nueva Contraseña</h5>
                         </div>
+
                         <div class="card-body">
                             <div class="form-row">
                                 <div class="col-md-12 mb-3">
-                                    <label for="nuevacontra"><i class="fas fa-key mr-1"></i>Nueva Contraseña <span class="priority">*</span></label>
+                                    <label for="nuevacontra">
+                                        <i class="fas fa-key mr-1"></i>Nueva Contraseña <span class="priority">*</span>
+                                    </label>
+
                                     <div class="input-group">
                                         <input type="password" name="nuevacontra" class="form-control" id="nuevacontra" placeholder="Ingrese su nueva contraseña" required>
+
                                         <div class="input-group-append">
-                                            <button class="btn btn-outline-secondary" type="button" id="show_password2">
+                                            <button class="btn btn-secondary btn-toggle-password" type="button" id="show_password2" tabindex="-1" aria-label="Mostrar u ocultar nueva contraseña" data-input="nuevacontra" data-icon="icon2">
                                                 <i class="fas fa-eye" id="icon2"></i>
                                             </button>
                                         </div>
                                     </div>
+
                                     <small class="form-text text-muted">Cree una nueva contraseña segura</small>
                                 </div>
                             </div>
+
                             <div class="form-row">
                                 <div class="col-md-12 mb-3">
-                                    <label for="repcontra"><i class="fas fa-redo mr-1"></i>Confirmar Contraseña <span class="priority">*</span></label>
+                                    <label for="repcontra">
+                                        <i class="fas fa-redo mr-1"></i>Confirmar Contraseña <span class="priority">*</span>
+                                    </label>
+
                                     <div class="input-group">
                                         <input type="password" name="repcontra" class="form-control" id="repcontra" placeholder="Confirme su nueva contraseña" required>
+
                                         <div class="input-group-append">
-                                            <button class="btn btn-outline-secondary" type="button" id="show_password3">
+                                            <button class="btn btn-secondary btn-toggle-password" type="button" id="show_password3" tabindex="-1" aria-label="Mostrar u ocultar confirmación de contraseña" data-input="repcontra" data-icon="icon3">
                                                 <i class="fas fa-eye" id="icon3"></i>
                                             </button>
                                         </div>
                                     </div>
+
                                     <small class="form-text text-muted">Vuelva a ingresar la nueva contraseña para confirmar</small>
                                 </div>
                             </div>
@@ -638,10 +658,12 @@
                         <div class="card-header bg-primary text-white">
                             <h5 class="mb-0"><i class="fas fa-clipboard-check mr-2"></i>Requisitos de Seguridad</h5>
                         </div>
+
                         <div class="card-body">
                             <div class="form-row">
                                 <div class="col-md-12 mb-3">
                                     <div id="mensaje_cambiar_contra"></div>
+
                                     <ul title="La contraseña debe cumplir con todas estas características" id="list">
                                         <li id="mayus"><i class="fas fa-check-circle mr-1"></i> 1 Mayúscula</li>
                                         <li id="special"><i class="fas fa-check-circle mr-1"></i> 1 Caracter Especial (Símbolo)</li>
@@ -649,6 +671,7 @@
                                         <li id="lower"><i class="fas fa-check-circle mr-1"></i> Minúsculas</li>
                                         <li id="len"><i class="fas fa-check-circle mr-1"></i> Mínimo 8 Caracteres</li>
                                     </ul>
+
                                     <small class="form-text text-muted">Su contraseña debe cumplir con todos estos requisitos de seguridad</small>
                                 </div>
                             </div>
@@ -658,10 +681,12 @@
                     <div class="RespuestaAjax"></div>
                 </form>
             </div>
+
             <div class="modal-footer">
                 <button class="btn btn-danger" data-dismiss="modal">
                     <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
+
                 <button class="btn btn-success" type="submit" id="Modalcambiarcontra_Edit" form="form-cambiarcontra">
                     <i class="fas fa-save fa-lg mr-1"></i> Registrar
                 </button>

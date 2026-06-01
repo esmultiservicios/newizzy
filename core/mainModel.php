@@ -5171,48 +5171,52 @@ class mainModel
 	// En mainModel.php
 	public function getIngresosContables($datos)
 	{
-	$fechai = $this->cleanString($datos['fechai']);
-	$fechaf = $this->cleanString($datos['fechaf']);
-	$estado = (int)$datos['estado'];
-
-	$query = "
-		SELECT
-		i.ingresos_id,
-		i.fecha,
-		i.cuentas_id,
-		i.clientes_id,
-		i.empresa_id,
-		c.codigo,
-		c.nombre,
-		COALESCE(cli.nombre, i.recibide) AS cliente,
-		i.factura,
-		i.subtotal,
-		i.impuesto AS impuesto,
-		i.descuento,
-		i.nc,
-		i.total,
-		i.fecha_registro,
-		i.observacion,
-		CASE i.tipo_ingreso
-			WHEN 1 THEN 'Ingresos por Ventas'
-			WHEN 2 THEN 'Ingresos Manuales'
-			ELSE 'Otro'
-		END AS tipo_ingreso,
-		i.estado
-		FROM ingresos AS i
-		INNER JOIN cuentas  AS c   ON i.cuentas_id  = c.cuentas_id
-		LEFT  JOIN clientes AS cli ON i.clientes_id = cli.clientes_id
-		WHERE DATE(i.fecha_registro) BETWEEN '$fechai' AND '$fechaf'
-		AND i.estado = $estado
-		ORDER BY i.fecha_registro DESC
-	";
-
-	$result = self::connection()->query($query);
-	if (!$result) {
-		error_log('Error en getIngresosContables: ' . self::connection()->error);
-		return false;
-	}
-	return $result;
+		$fechai = $this->cleanString($datos['fechai']);
+		$fechaf = $this->cleanString($datos['fechaf']);
+		$estado = (int)$datos['estado'];
+	
+		$query = "
+			SELECT
+				i.ingresos_id,
+				i.fecha,
+				i.cuentas_id,
+				i.clientes_id,
+				i.empresa_id,
+				c.codigo,
+				c.nombre,
+				COALESCE(cli.nombre, 'Sin cliente') AS cliente,
+				i.factura,
+				i.subtotal,
+				i.impuesto AS impuesto,
+				i.descuento,
+				i.nc,
+				i.total,
+				i.fecha_registro,
+				i.observacion,
+				CASE i.tipo_ingreso
+					WHEN 1 THEN 'Ingresos por Ventas'
+					WHEN 2 THEN 'Ingresos Manuales'
+					ELSE 'Otro'
+				END AS tipo_ingreso,
+				i.estado
+			FROM ingresos AS i
+			INNER JOIN cuentas AS c 
+				ON i.cuentas_id = c.cuentas_id
+			LEFT JOIN clientes AS cli 
+				ON i.clientes_id = cli.clientes_id
+			WHERE DATE(i.fecha_registro) BETWEEN '$fechai' AND '$fechaf'
+			AND i.estado = $estado
+			ORDER BY i.fecha_registro DESC
+		";
+	
+		$result = self::connection()->query($query);
+	
+		if (!$result) {
+			error_log('Error en getIngresosContables: ' . self::connection()->error);
+			return false;
+		}
+	
+		return $result;
 	}
 
 	public function ejecutar_consulta_simple($query)
@@ -5307,21 +5311,52 @@ class mainModel
 
 	public function getIngresosContablesReporte($ingresos_id)
 	{
-		$query = "SELECT i.ingresos_id AS 'ingresos_id', i.fecha AS 'fecha', c.codigo as 'codigo', c.nombre AS 'nombre', cl.nombre AS 'cliente', cl.rtn AS 'rtn_cliente', cl.localidad AS 'localidad', cl.telefono AS 'telefono', i.factura AS 'factura', i.fecha_registro As 'fecha_registro', emp.nombre AS 'empresa', emp.ubicacion AS 'direccion_empresa', emp.telefono AS 'empresa_telefono', emp.celular AS 'empresa_celular', emp.correo AS 'empresa_correo', emp.otra_informacion As 'otra_informacion', emp.eslogan AS 'eslogan', DATE_FORMAT(i.fecha, '%d/%m/%Y') AS 'fecha', time(i.fecha_registro) AS 'hora', i.observacion AS 'observacion', co.nombre AS 'colaborador_nombre', i.estado AS 'estado', emp.rtn AS 'rtn_empresa', i.subtotal AS 'subtotal', i.descuento AS 'descuento', i.nc AS 'nc', i.impuesto AS 'impuesto', i.total AS 'total', DATE_FORMAT(i.fecha_registro, '%d/%m/%Y') AS 'fecha_registro_consulta', emp.logotipo AS 'logotipo', emp.firma_documento AS 'firma_documento'
-				FROM ingresos AS i
-				INNER JOIN cuentas AS c
+		$query = "SELECT 
+				i.ingresos_id AS ingresos_id,
+				i.fecha AS fecha,
+				c.codigo AS codigo,
+				c.nombre AS nombre,
+				COALESCE(cl.nombre, 'Sin cliente') AS cliente,
+				COALESCE(cl.rtn, '') AS rtn_cliente,
+				COALESCE(cl.localidad, '') AS localidad,
+				COALESCE(cl.telefono, '') AS telefono,
+				i.factura AS factura,
+				i.fecha_registro AS fecha_registro,
+				emp.nombre AS empresa,
+				emp.ubicacion AS direccion_empresa,
+				emp.telefono AS empresa_telefono,
+				emp.celular AS empresa_celular,
+				emp.correo AS empresa_correo,
+				emp.otra_informacion AS otra_informacion,
+				emp.eslogan AS eslogan,
+				DATE_FORMAT(i.fecha, '%d/%m/%Y') AS fecha,
+				TIME(i.fecha_registro) AS hora,
+				i.observacion AS observacion,
+				co.nombre AS colaborador_nombre,
+				i.estado AS estado,
+				emp.rtn AS rtn_empresa,
+				i.subtotal AS subtotal,
+				i.descuento AS descuento,
+				i.nc AS nc,
+				i.impuesto AS impuesto,
+				i.total AS total,
+				DATE_FORMAT(i.fecha_registro, '%d/%m/%Y') AS fecha_registro_consulta,
+				emp.logotipo AS logotipo,
+				emp.firma_documento AS firma_documento
+			FROM ingresos AS i
+			INNER JOIN cuentas AS c
 				ON i.cuentas_id = c.cuentas_id
-				INNER JOIN clientes AS cl
+			LEFT JOIN clientes AS cl
 				ON i.clientes_id = cl.clientes_id
-				INNER JOIN empresa AS emp
+			INNER JOIN empresa AS emp
 				ON i.empresa_id = emp.empresa_id
-				INNER JOIN colaboradores AS co
+			INNER JOIN colaboradores AS co
 				ON i.colaboradores_id = co.colaboradores_id
-				WHERE i.ingresos_id = '$ingresos_id'
-				ORDER BY i.fecha_registro DESC";
-
+			WHERE i.ingresos_id = '$ingresos_id'
+			ORDER BY i.fecha_registro DESC";
+	
 		$result = self::connection()->query($query);
-
+	
 		return $result;
 	}
 

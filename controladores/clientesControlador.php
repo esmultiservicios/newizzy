@@ -834,12 +834,34 @@ class clientesControlador extends clientesModelo {
                 throw new Exception("No se encontró el usuario principal para crear el job.");
             }
 
+            /*
+                IMPORTANTE:
+                La tabla jobs_queue solo tiene estos campos:
+                id, job_type, data, status, attempts, max_attempts, created_at, processed_at, error_message.
+
+                Por eso guardamos TODO dentro del JSON data:
+                - db_user
+                - db_password
+                - notify_email
+                - colaborador_data
+                - usuario_data
+                - datos de importación
+            */
             $data = [
                 'db_name' => $nombre_db,
+                'db_user' => CPANEL_DB_USERNAME,
+                'db_password' => CPANEL_DB_PASSWORD,
+
                 'client_id' => (int)$clientes_id,
                 'server_customers_id' => (int)$server_customers_id,
                 'sql_file' => $plantillaSql,
+
+                'colaborador_data' => $colaboradorData,
+                'usuario_data' => $usuarioData,
+
+                'notify_email' => $correo,
                 'password_temporal' => $password_temporal,
+
                 'empresa_nombre' => $empresa_nombre,
                 'correo' => $correo,
                 'telefono' => $telefono,
@@ -848,43 +870,29 @@ class clientesControlador extends clientesModelo {
             ];
 
             $jsonData = json_encode($data, JSON_UNESCAPED_UNICODE);
-            $jsonColaborador = json_encode($colaboradorData, JSON_UNESCAPED_UNICODE);
-            $jsonUsuario = json_encode($usuarioData, JSON_UNESCAPED_UNICODE);
 
-            $dbUser = CPANEL_DB_USERNAME;
-            $dbPass = CPANEL_DB_PASSWORD;
-            $notifyEmail = $correo;
+            if ($jsonData === false) {
+                throw new Exception("No se pudo convertir el job a JSON.");
+            }
 
             $stmt = $conexion->prepare("
                 INSERT INTO jobs_queue
                 (
                     job_type,
                     data,
-                    db_user,
-                    db_password,
-                    colaborador_data,
-                    usuario_data,
-                    notify_email,
                     status,
                     attempts,
-                    max_attempts
+                    max_attempts,
+                    error_message
                 )
-                VALUES ('db_import', ?, ?, ?, ?, ?, ?, 'pending', 0, 3)
+                VALUES ('db_import', ?, 'pending', 0, 3, NULL)
             ");
 
             if (!$stmt) {
                 throw new Exception("Error al preparar jobs_queue: " . $conexion->error);
             }
 
-            $stmt->bind_param(
-                "ssssss",
-                $jsonData,
-                $dbUser,
-                $dbPass,
-                $jsonColaborador,
-                $jsonUsuario,
-                $notifyEmail
-            );
+            $stmt->bind_param("s", $jsonData);
 
             if (!$stmt->execute()) {
                 throw new Exception("Error al registrar job: " . $stmt->error);

@@ -51,7 +51,7 @@ function construirHeaderDataTableConfCorreos() {
 /* =========================================================
    MOSTRAR / OCULTAR CAMPOS SEGÚN MÉTODO
    ========================================================= */
-   function aplicarVistaMetodoCorreo() {
+function aplicarVistaMetodoCorreo() {
     var metodo = ($('#formConfEmails #metodoEnvioConfEmail').val() || 'SMTP').toUpperCase();
 
     if (metodo === 'GRAPH') {
@@ -89,6 +89,70 @@ function construirHeaderDataTableConfCorreos() {
     $('#formConfEmails #metodoEnvioConfEmail').selectpicker('refresh');
     $('#formConfEmails #smtpSecureConfEmail').selectpicker('refresh');
     $('#formConfEmails #saveToSentItemsConfEmail').selectpicker('refresh');
+}
+
+/* =========================================================
+   ALERTA Y PERMISOS DEL MODAL
+   ========================================================= */
+function insertarAlertaSeguridadCorreo(puedeEditar) {
+    $('#alertaCorreoSeguridad').remove();
+
+    var claseModo = puedeEditar ? '' : ' modo-lectura';
+    var titulo = puedeEditar ? 'Configuración sensible de correo' : 'Modo solo lectura';
+    var texto = puedeEditar
+        ? 'Tenant ID y Client ID se muestran parcialmente por seguridad. El Client Secret VALUE y la contraseña SMTP nunca se muestran. Si desea reemplazarlos, escriba un valor nuevo completo.'
+        : 'Esta configuración controla el envío de facturas, notificaciones, recuperación de contraseña e inicios de sesión. Su usuario puede ver esta pantalla, pero no tiene permisos para modificarla.';
+
+    var alerta = '' +
+        '<div id="alertaCorreoSeguridad" class="alerta-correo-seguridad' + claseModo + '">' +
+            '<div class="alerta-icono">' +
+                '<i class="fas fa-shield-alt"></i>' +
+            '</div>' +
+            '<div class="alerta-contenido">' +
+                '<h6>' + titulo + '</h6>' +
+                '<p>' + texto + '</p>' +
+            '</div>' +
+        '</div>';
+
+    $('#formConfEmails').prepend(alerta);
+}
+
+function aplicarPermisosFormularioCorreo(puedeEditar) {
+    puedeEditar = puedeEditar === true || puedeEditar === 1 || puedeEditar === '1';
+
+    insertarAlertaSeguridadCorreo(puedeEditar);
+
+    var $form = $('#formConfEmails');
+
+    $form.find('input, textarea').removeClass('campo-solo-lectura');
+    $form.find('select').prop('disabled', false).selectpicker('refresh');
+
+    if (puedeEditar) {
+        $form.find('input, textarea').prop('readonly', false);
+        $('#formConfEmails #tipo_correo_confEmail').prop('disabled', true).selectpicker('refresh');
+
+        $('#test_confEmails').show();
+        $('#edi_confEmails').show();
+    } else {
+        $form.find('input, textarea').prop('readonly', true).addClass('campo-solo-lectura');
+        $form.find('select').prop('disabled', true).selectpicker('refresh');
+
+        $('#test_confEmails').hide();
+        $('#edi_confEmails').hide();
+    }
+
+    /*
+        Estos secretos nunca se muestran.
+        Para administradores quedan editables para reemplazo.
+        Para usuarios normales quedan solo lectura.
+    */
+    $('#formConfEmails #passConfEmail').val('');
+    $('#formConfEmails #clientSecretConfEmail').val('');
+
+    if (puedeEditar) {
+        $('#formConfEmails #passConfEmail').prop('readonly', false).removeClass('campo-solo-lectura');
+        $('#formConfEmails #clientSecretConfEmail').prop('readonly', false).removeClass('campo-solo-lectura');
+    }
 }
 
 /* =========================================================
@@ -157,6 +221,11 @@ function formatoDetalleCorreo(row) {
                 '<div class="correo-detalle-item">' +
                     '<div class="correo-detalle-label">Client ID</div>' +
                     '<div class="correo-detalle-value">' + textoSeguroCorreo(row.client_id) + '</div>' +
+                '</div>' +
+
+                '<div class="correo-detalle-item">' +
+                    '<div class="correo-detalle-label">Client Secret</div>' +
+                    '<div class="correo-detalle-value">Guardado de forma segura</div>' +
                 '</div>' +
 
                 '<div class="correo-detalle-item">' +
@@ -403,9 +472,6 @@ var edit_correos_configuracion_dataTable = function(tbody, table) {
 
                 $('#formConfEmails')[0].reset();
 
-                $('#test_confEmails').show();
-                $('#edi_confEmails').show();
-
                 $('#formConfEmails #correo_id').val(valores.correo_id);
 
                 $('#formConfEmails #tipo_correo_confEmail').val(valores.correo_tipo_id);
@@ -430,9 +496,8 @@ var edit_correos_configuracion_dataTable = function(tbody, table) {
                 $('#formConfEmails #saveToSentItemsConfEmail').val(valores.save_to_sent_items || '1');
                 $('#formConfEmails #saveToSentItemsConfEmail').selectpicker('refresh');
 
-                $('#formConfEmails #tipo_correo_confEmail').attr('disabled', true);
-
                 aplicarVistaMetodoCorreo();
+                aplicarPermisosFormularioCorreo(valores.puede_editar);
 
                 $('#modalConfEmails').modal({
                     show: true,
@@ -459,11 +524,33 @@ $("#test_confEmails").on("click", function(e) {
 function testEmail() {
     var url = '<?php echo SERVERURL;?>core/correo/testEmail.php';
 
+    /*
+        No usamos serialize() porque los campos disabled no se envían.
+        Aquí mandamos los valores manualmente para asegurar que el método GRAPH/SMTP llegue siempre.
+    */
+    var datosTest = {
+        correo_id: $('#formConfEmails #correo_id').val(),
+
+        metodoEnvioConfEmail: $('#formConfEmails #metodoEnvioConfEmail').val() || 'SMTP',
+
+        serverConfEmail: $('#formConfEmails #serverConfEmail').val() || '',
+        correoConfEmail: $('#formConfEmails #correoConfEmail').val() || '',
+        passConfEmail: $('#formConfEmails #passConfEmail').val() || '',
+        puertoConfEmail: $('#formConfEmails #puertoConfEmail').val() || '',
+        smtpSecureConfEmail: $('#formConfEmails #smtpSecureConfEmail').val() || '',
+
+        tenantIdConfEmail: $('#formConfEmails #tenantIdConfEmail').val() || '',
+        clientIdConfEmail: $('#formConfEmails #clientIdConfEmail').val() || '',
+        clientSecretConfEmail: $('#formConfEmails #clientSecretConfEmail').val() || '',
+        graphUserConfEmail: $('#formConfEmails #graphUserConfEmail').val() || '',
+        saveToSentItemsConfEmail: $('#formConfEmails #saveToSentItemsConfEmail').val() || '1'
+    };
+
     $.ajax({
         type: "POST",
         url: url,
         async: true,
-        data: $('#formConfEmails').serialize(),
+        data: datosTest,
         success: function(data) {
             data = $.trim(data);
 

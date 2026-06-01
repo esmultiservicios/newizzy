@@ -815,23 +815,27 @@ class sendEmail {
         $graph_user = isset($datos["graph_user"]) ? trim($datos["graph_user"]) : "";
         $save_to_sent_items = isset($datos["save_to_sent_items"]) ? (int)$datos["save_to_sent_items"] : 1;
     
-        if (empty($correo) && $configActual) {
+        /*
+            Si Tenant ID / Client ID vienen enmascarados desde el modal,
+            se usa el valor real guardado en BD.
+        */
+        if ((empty($correo)) && $configActual) {
             $correo = $configActual["correo"];
         }
     
-        if (empty($tenant_id) && $configActual) {
+        if ((empty($tenant_id) || strpos($tenant_id, '****') !== false) && $configActual) {
             $tenant_id = $configActual["tenant_id"];
         }
     
-        if (empty($client_id) && $configActual) {
+        if ((empty($client_id) || strpos($client_id, '****') !== false) && $configActual) {
             $client_id = $configActual["client_id"];
         }
     
-        if (empty($client_secret) && $configActual) {
+        if ((empty($client_secret) || strpos($client_secret, '****') !== false) && $configActual) {
             $client_secret = $configActual["client_secret"];
         }
     
-        if (empty($graph_user) && $configActual) {
+        if ((empty($graph_user)) && $configActual) {
             $graph_user = $configActual["graph_user"];
         }
     

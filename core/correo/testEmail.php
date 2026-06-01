@@ -20,22 +20,42 @@ if (method_exists($insMainModel, 'validarSesion')) {
     }
 }
 
+function postCorreoValor($principal, $alternativo = '', $default = '') {
+    if ($principal !== '' && isset($_POST[$principal])) {
+        return trim((string)$_POST[$principal]);
+    }
+
+    if ($alternativo !== '' && isset($_POST[$alternativo])) {
+        return trim((string)$_POST[$alternativo]);
+    }
+
+    return $default;
+}
+
+$metodoEnvio = postCorreoValor('metodoEnvioConfEmail', 'metodo_envio', 'SMTP');
+$metodoEnvio = strtoupper(trim($metodoEnvio));
+
+if ($metodoEnvio !== 'SMTP' && $metodoEnvio !== 'GRAPH') {
+    echo "Método de envío no válido.";
+    exit;
+}
+
 $datos = [
     "correo_id" => isset($_POST['correo_id']) ? (int)$_POST['correo_id'] : 0,
 
-    "metodo_envio" => isset($_POST['metodoEnvioConfEmail']) ? trim($_POST['metodoEnvioConfEmail']) : "SMTP",
+    "metodo_envio" => $metodoEnvio,
 
-    "server" => isset($_POST['serverConfEmail']) ? trim($_POST['serverConfEmail']) : "",
-    "correo" => isset($_POST['correoConfEmail']) ? trim($_POST['correoConfEmail']) : "",
-    "password" => isset($_POST['passConfEmail']) ? trim($_POST['passConfEmail']) : "",
-    "port" => isset($_POST['puertoConfEmail']) ? (int)$_POST['puertoConfEmail'] : 587,
-    "smtp_secure" => isset($_POST['smtpSecureConfEmail']) ? trim($_POST['smtpSecureConfEmail']) : "tls",
+    "server" => postCorreoValor('serverConfEmail', 'server', ''),
+    "correo" => postCorreoValor('correoConfEmail', 'correo', ''),
+    "password" => postCorreoValor('passConfEmail', 'password', ''),
+    "port" => (int)postCorreoValor('puertoConfEmail', 'port', '587'),
+    "smtp_secure" => postCorreoValor('smtpSecureConfEmail', 'smtp_secure', 'tls'),
 
-    "tenant_id" => isset($_POST['tenantIdConfEmail']) ? trim($_POST['tenantIdConfEmail']) : "",
-    "client_id" => isset($_POST['clientIdConfEmail']) ? trim($_POST['clientIdConfEmail']) : "",
-    "client_secret" => isset($_POST['clientSecretConfEmail']) ? trim($_POST['clientSecretConfEmail']) : "",
-    "graph_user" => isset($_POST['graphUserConfEmail']) ? trim($_POST['graphUserConfEmail']) : "",
-    "save_to_sent_items" => isset($_POST['saveToSentItemsConfEmail']) ? (int)$_POST['saveToSentItemsConfEmail'] : 1,
+    "tenant_id" => postCorreoValor('tenantIdConfEmail', 'tenant_id', ''),
+    "client_id" => postCorreoValor('clientIdConfEmail', 'client_id', ''),
+    "client_secret" => postCorreoValor('clientSecretConfEmail', 'client_secret', ''),
+    "graph_user" => postCorreoValor('graphUserConfEmail', 'graph_user', ''),
+    "save_to_sent_items" => (int)postCorreoValor('saveToSentItemsConfEmail', 'save_to_sent_items', '1'),
 
     "empresa_id" => isset($_SESSION['empresa_id_sd']) ? (int)$_SESSION['empresa_id_sd'] : 1
 ];

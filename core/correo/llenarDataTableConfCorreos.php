@@ -21,6 +21,30 @@ if (method_exists($insMainModel, 'validarSesion')) {
     }
 }
 
+function enmascararValorCorreoTabla($valor) {
+    $valor = trim((string)$valor);
+
+    if ($valor === '') {
+        return '';
+    }
+
+    $longitud = strlen($valor);
+
+    if ($longitud <= 8) {
+        return substr($valor, 0, 2) . '****' . substr($valor, -2);
+    }
+
+    if (strpos($valor, '-') !== false) {
+        $partes = explode('-', $valor);
+
+        if (count($partes) >= 5) {
+            return substr($partes[0], 0, 4) . '****-****-****-****-****' . substr($partes[count($partes) - 1], -4);
+        }
+    }
+
+    return substr($valor, 0, 4) . '****' . substr($valor, -4);
+}
+
 $sql = "
     SELECT
         c.correo_id,
@@ -56,8 +80,13 @@ if ($resultado && $resultado->num_rows > 0) {
             "correo" => $row["correo"],
             "port" => $row["port"],
             "smtp_secure" => $row["smtp_secure"],
-            "tenant_id" => $row["tenant_id"],
-            "client_id" => $row["client_id"],
+
+            /*
+                Se muestran parciales para todos.
+            */
+            "tenant_id" => enmascararValorCorreoTabla($row["tenant_id"]),
+            "client_id" => enmascararValorCorreoTabla($row["client_id"]),
+
             "graph_user" => $row["graph_user"],
             "save_to_sent_items" => $row["save_to_sent_items"],
             "estado" => $row["estado"]
@@ -67,4 +96,4 @@ if ($resultado && $resultado->num_rows > 0) {
 
 echo json_encode([
     "data" => $data
-]);
+], JSON_UNESCAPED_UNICODE);

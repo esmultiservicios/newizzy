@@ -1,15 +1,18 @@
 <?php
 // core/llenarDataTableIngresosContabilidad.php
+
 $peticionAjax = true;
+
 require_once "configGenerales.php";
 require_once "mainModel.php";
 
+header('Content-Type: application/json; charset=utf-8');
+
 $insMainModel = new mainModel();
 
-// Filtros
 $estado = isset($_POST['estado']) ? intval($_POST['estado']) : 1;
-$fechai = $insMainModel->cleanString($_POST['fechai']);
-$fechaf = $insMainModel->cleanString($_POST['fechaf']);
+$fechai = isset($_POST['fechai']) ? $insMainModel->cleanString($_POST['fechai']) : "";
+$fechaf = isset($_POST['fechaf']) ? $insMainModel->cleanString($_POST['fechaf']) : "";
 
 $datos = [
   "estado" => $estado,
@@ -20,6 +23,7 @@ $datos = [
 $result = $insMainModel->getIngresosContables($datos);
 
 $data = [];
+
 if ($result && $result->num_rows > 0) {
   while ($row = $result->fetch_assoc()) {
     $data[] = [
@@ -28,28 +32,26 @@ if ($result && $result->num_rows > 0) {
       "empresa_id"     => isset($row['empresa_id'])  ? (int)$row['empresa_id']  : 0,
       "clientes_id"    => isset($row['clientes_id']) ? (int)$row['clientes_id'] : 0,
 
-      "fecha_registro" => $row['fecha_registro'],
-      "fecha"          => $row['fecha'],
-      "nombre"         => $row['nombre'],
-      "cliente"        => $row['cliente'],
-      "factura"        => $row['factura'],
-      "observacion"    => $row['observacion'],
-      "tipo_ingreso"   => $row['tipo_ingreso'],
-      "estado"         => (int)$row['estado'],
+      "fecha_registro" => isset($row['fecha_registro']) ? $row['fecha_registro'] : "",
+      "fecha"          => isset($row['fecha']) ? $row['fecha'] : "",
+      "nombre"         => isset($row['nombre']) ? $row['nombre'] : "",
+      "cliente"        => isset($row['cliente']) ? $row['cliente'] : "",
+      "factura"        => isset($row['factura']) ? $row['factura'] : "",
+      "observacion"    => isset($row['observacion']) ? $row['observacion'] : "",
+      "tipo_ingreso"   => isset($row['tipo_ingreso']) ? $row['tipo_ingreso'] : "",
+      "estado"         => isset($row['estado']) ? (int)$row['estado'] : 0,
 
-      // Montos crudos
       "subtotal_raw"   => isset($row['subtotal'])  ? (float)$row['subtotal']  : 0,
       "impuesto_raw"   => isset($row['impuesto'])  ? (float)$row['impuesto']  : 0,
       "descuento_raw"  => isset($row['descuento']) ? (float)$row['descuento'] : 0,
       "nc_raw"         => isset($row['nc'])        ? (float)$row['nc']        : 0,
       "total_raw"      => isset($row['total'])     ? (float)$row['total']     : 0,
 
-      // También como números (sin prefijo) para el render del cliente
-      "subtotal" => (float)$row['subtotal'],
-      "impuesto" => (float)$row['impuesto'],
-      "descuento"=> (float)$row['descuento'],
-      "nc"       => (float)$row['nc'],
-      "total"    => (float)$row['total'],
+      "subtotal"       => isset($row['subtotal'])  ? (float)$row['subtotal']  : 0,
+      "impuesto"       => isset($row['impuesto'])  ? (float)$row['impuesto']  : 0,
+      "descuento"      => isset($row['descuento']) ? (float)$row['descuento'] : 0,
+      "nc"             => isset($row['nc'])        ? (float)$row['nc']        : 0,
+      "total"          => isset($row['total'])     ? (float)$row['total']     : 0,
     ];
   }
 }
@@ -59,4 +61,4 @@ echo json_encode([
   "totalrecords" => count($data),
   "totaldisplayrecords" => count($data),
   "data" => $data
-]);
+], JSON_UNESCAPED_UNICODE);

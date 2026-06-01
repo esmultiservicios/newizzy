@@ -1276,6 +1276,38 @@ function moneyCell(data, type) {
     );
   }
 
+  $(document).off("mousedown", ".btn-toggle-password");
+  $(document).on("mousedown", ".btn-toggle-password", function (e) {
+    e.preventDefault();
+  });
+
+  $(document).off("click", ".btn-toggle-password");
+  $(document).on("click", ".btn-toggle-password", function (e) {
+    e.preventDefault();
+
+    var inputId = $(this).data("input");
+    var iconId = $(this).data("icon");
+
+    var $input = $("#" + inputId);
+    var $icon = $("#" + iconId);
+
+    if ($input.length === 0 || $icon.length === 0) {
+      return false;
+    }
+
+    if ($input.attr("type") === "password") {
+      $input.attr("type", "text");
+      $icon.removeClass("fa-eye").addClass("fa-eye-slash");
+    } else {
+      $input.attr("type", "password");
+      $icon.removeClass("fa-eye-slash").addClass("fa-eye");
+    }
+
+    $input.focus();
+
+    return false;
+  });
+
   // API opcional
   window.ImageViewer = {
     open: async function ({

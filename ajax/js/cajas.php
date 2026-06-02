@@ -1,4 +1,5 @@
 <script>
+//caja.php
 $(() => {
     $("#formMainCajas #estado_cajas").val(0);
     $('#formMainCajas #estado_cajas').selectpicker('refresh');

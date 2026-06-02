@@ -3050,6 +3050,8 @@ function validarAperturaCajaUsuario() {
         $("#invoice-form #add_cliente").attr("disabled", true);
         $("#invoice-form #add_vendedor").attr("disabled", true);
         $("#invoice-form #btn_retiro_caja").attr("disabled", true);
+        $("#invoice-form #btn_exoneracion").attr("disabled", true);
+        $("#invoice-form #btn_ver_caja_factura").attr("disabled", true);
         $("#invoice-form #addRows").attr("disabled", true);
         $("#invoice-form #removeRows").attr("disabled", true);
         $("#invoice-form #notasFactura").attr("disabled", true);
@@ -3061,6 +3063,8 @@ function validarAperturaCajaUsuario() {
         $("#invoice-form #add_cliente").attr("disabled", false);
         $("#invoice-form #add_vendedor").attr("disabled", false);
         $("#invoice-form #btn_retiro_caja").attr("disabled", false);
+        $("#invoice-form #btn_exoneracion").attr("disabled", false);
+        $("#invoice-form #btn_ver_caja_factura").attr("disabled", false);
         $("#invoice-form #addRows").attr("disabled", false);
         $("#invoice-form #removeRows").attr("disabled", false);
         $("#invoice-form #notasFactura").attr("disabled", false);
@@ -8730,7 +8734,7 @@ function validarAperturaCajaUsuario() {
         "#reg_factura", "#guardar_factura", "#add_cliente", 
         "#add_vendedor", "#addCambio", "#addQuotetoBill",
         "#addPayCustomers", "#addRows", "#removeRows",
-        "#notasFactura", "#addDraft", "#btn_retiro_caja"
+        "#notasFactura", "#addDraft", "#btn_retiro_caja", "#btn_ver_caja_factura", "#btn_exoneracion"
     ];
 
     // Aplicar estado a todos los elementos (excepto botones de caja)

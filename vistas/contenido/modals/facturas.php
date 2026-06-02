@@ -788,3 +788,81 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
     </div>
   </div>
 </div>
+
+<!-- =========================================================
+     INICIO MODAL - CAJA DESDE FACTURACIÓN
+     ========================================================= -->
+     <div class="modal fade" id="modalCajaFactura" tabindex="-1" role="dialog" aria-labelledby="modalCajaFacturaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+        <div class="modal-content">
+
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="modalCajaFacturaLabel">
+                    <i class="fas fa-cash-register mr-1"></i>
+                    Caja desde Facturación
+                    <small class="d-block mt-1 text-light" style="opacity:.85;">
+                        Consulta de caja, ventas, retiros y neto.
+                    </small>
+                </h5>
+
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body">
+
+                <form id="formCajaFactura" autocomplete="off">
+                    <div class="row mb-3">
+
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <label class="small mb-1">Estado</label>
+                            <select id="estado_caja_factura" name="estado_caja_factura" class="form-control">
+                                <option value="0">Todas</option>
+                                <option value="1">Activas</option>
+                                <option value="2">Cerradas</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <label class="small mb-1">Fecha Inicial</label>
+                            <input type="date" class="form-control" id="fecha_caja_factura_i" name="fecha_caja_factura_i" value="<?php echo date('Y-m-d'); ?>">
+                        </div>
+
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <label class="small mb-1">Fecha Final</label>
+                            <input type="date" class="form-control" id="fecha_caja_factura_f" name="fecha_caja_factura_f" value="<?php echo date('Y-m-d'); ?>">
+                        </div>
+
+                        <div class="col-md-3 col-sm-6 mb-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary mr-2">
+                                <i class="fas fa-filter"></i> Filtrar
+                            </button>
+
+                            <button type="button" class="btn btn-secondary" id="btnActualizarCajaFactura">
+                                <i class="fas fa-sync-alt"></i> Actualizar
+                            </button>
+                        </div>
+
+                    </div>
+                </form>
+
+                <div class="table-responsive">
+                    <table id="dataTableCajaFactura" class="table table-striped table-hover table-condensed" style="width:100%">
+                    </table>
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+<!-- =========================================================
+     FIN MODAL - CAJA DESDE FACTURACIÓN
+     ========================================================= -->

@@ -516,6 +516,14 @@ function cargarCajaFactura() {
 
                     if (activa) {
                         accionesCaja +=
+                            '<button type="button" class="dropdown-item accion-item accion-cerrar btn-cf-cerrar">' +
+                                '<span class="accion-icon accion-icon-success">' +
+                                    '<i class="fas fa-lock"></i>' +
+                                '</span>' +
+                                '<span class="accion-label">Cerrar caja</span>' +
+                            '</button>';
+                        
+                        accionesCaja +=
                             '<button type="button" class="dropdown-item accion-item accion-retiro btn-cf-retirar">' +
                                 '<span class="accion-icon accion-icon-warning">' +
                                     '<i class="fas fa-money-bill-wave"></i>' +
@@ -523,13 +531,6 @@ function cargarCajaFactura() {
                                 '<span class="accion-label">Retirar dinero</span>' +
                             '</button>';
 
-                        accionesCaja +=
-                            '<button type="button" class="dropdown-item accion-item accion-cerrar btn-cf-cerrar">' +
-                                '<span class="accion-icon accion-icon-success">' +
-                                    '<i class="fas fa-lock"></i>' +
-                                '</span>' +
-                                '<span class="accion-label">Cerrar caja</span>' +
-                            '</button>';
                     } else {
                         accionesCaja +=
                             '<button type="button" class="dropdown-item accion-item accion-cerrada" disabled>' +

@@ -222,6 +222,17 @@
                                     <button type="button" id="btn_exoneracion" class="btn btn-info" data-toggle="modal" data-target="#exoneracionModal">
                                         <i class="fas fa-file-invoice"></i> Datos de Exoneración
                                     </button>
+
+                                    <button
+                                        type="button"
+                                        id="btn_ver_caja_factura"
+                                        class="btn btn-dark"
+                                        data-toggle="tooltip"
+                                        data-placement="top"
+                                        data-html="true"
+                                        title="<strong>Ver Caja</strong><br>Consulta la caja actual o el historial de cajas desde facturación.<br>Permite ver ventas, retiros, neto y acciones disponibles.">
+                                        <i class="fas fa-cash-register fa-lg"></i> Ver Caja
+                                    </button>                                    
                                 </div>
 
                             </div>

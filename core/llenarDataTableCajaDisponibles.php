@@ -1,4 +1,5 @@
 <?php
+//llenarDataTableCajaDisponibles.php
 $peticionAjax = true;
 
 require_once "configGenerales.php";

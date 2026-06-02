@@ -73,6 +73,1509 @@ $(() => {
     getClientesFacturasCXC();
 });
 
+/* =========================================================
+   INICIO - CAJA DESDE FACTURACIÓN
+   Este bloque pertenece a FACTURAS.
+   Permite ver y operar la caja desde la vista de facturación.
+
+   Incluye:
+   - Modal principal de caja desde facturación
+   - DataTable de cajas
+   - Retiro de caja
+   - Detalle de retiros
+   - Reintegro total/parcial
+   - Desglose de ganancia
+   - Cierre de caja usando el mismo formulario/modal de Caja
+   - Comprobante de caja
+
+   IMPORTANTE:
+   - Mensajes con showNotify.
+   - El cierre de caja no usa swal; abre el modal #modal_apertura_caja.
+   - Los eventos del dropdown usan captura nativa para evitar
+     que otro JS bloquee el click antes de llegar al tbody.
+   ========================================================= */
+
+
+/* =========================================================
+   INICIO - EVENTOS PRINCIPALES DEL MODAL CAJA FACTURA
+   ========================================================= */
+
+   $('#btn_ver_caja_factura').off('click.cajaFacturaAbrir').on('click.cajaFacturaAbrir', function () {
+    $('#modalCajaFactura').modal({
+        show: true,
+        keyboard: false,
+        backdrop: 'static'
+    });
+
+    cargarCajaFactura();
+});
+
+$('#formCajaFactura').off('submit.cajaFacturaFiltro').on('submit.cajaFacturaFiltro', function (e) {
+    e.preventDefault();
+    cargarCajaFactura();
+});
+
+$('#btnActualizarCajaFactura').off('click.cajaFacturaActualizar').on('click.cajaFacturaActualizar', function () {
+    cargarCajaFactura();
+});
+
+$('#estado_caja_factura').off('change.cajaFacturaEstado').on('change.cajaFacturaEstado', function () {
+    cargarCajaFactura();
+});
+
+$('#fecha_caja_factura_i').off('change.cajaFacturaFechaI').on('change.cajaFacturaFechaI', function () {
+    cargarCajaFactura();
+});
+
+$('#fecha_caja_factura_f').off('change.cajaFacturaFechaF').on('change.cajaFacturaFechaF', function () {
+    cargarCajaFactura();
+});
+
+/* =========================================================
+   FIN - EVENTOS PRINCIPALES DEL MODAL CAJA FACTURA
+   ========================================================= */
+
+
+/* =========================================================
+   INICIO - HELPERS GENERALES DE CAJA FACTURACIÓN
+   ========================================================= */
+
+function notificarCaja(tipo, titulo, mensaje) {
+    if (typeof mensaje === 'undefined') {
+        mensaje = titulo;
+        titulo = tipo === 'error' ? 'Error' : 'Información';
+    }
+
+    if (typeof showNotify === 'function') {
+        showNotify(tipo, titulo, mensaje);
+        return;
+    }
+
+    if (typeof swal === 'function') {
+        swal({
+            title: titulo,
+            text: mensaje,
+            icon: tipo === 'error' ? 'error' : 'success',
+            button: 'Aceptar'
+        });
+        return;
+    }
+
+    console.log(tipo + ' - ' + titulo + ': ' + mensaje);
+}
+
+function notificarCajaFactura(tipo, titulo, mensaje) {
+    if (typeof showNotify === 'function') {
+        showNotify(tipo, titulo, mensaje);
+        return;
+    }
+
+    if (typeof swal === 'function') {
+        swal({
+            title: titulo,
+            text: mensaje,
+            icon: tipo === 'error' ? 'error' : 'success',
+            button: 'Aceptar'
+        });
+        return;
+    }
+
+    console.log(tipo + ' - ' + titulo + ': ' + mensaje);
+}
+
+function parseMonto(valor) {
+    if (typeof valor === 'string') {
+        valor = valor.replace(/L\./g, '').replace(/,/g, '').trim();
+    }
+
+    valor = parseFloat(valor || 0);
+    return isNaN(valor) ? 0 : valor;
+}
+
+function formatoMoneda(valor) {
+    valor = parseMonto(valor);
+
+    return 'L. ' + valor.toLocaleString('es-HN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+function renderMonedaColor(data, type) {
+    var valor = parseMonto(data);
+    var number = formatoMoneda(valor);
+
+    if (type === 'display') {
+        var color = valor < 0 ? '#dc2626' : '#008000';
+        return '<span style="color:' + color + '; font-weight:700; white-space:nowrap;">' + number + '</span>';
+    }
+
+    return valor;
+}
+
+function parseMontoCajaFactura(valor) {
+    return parseMonto(valor);
+}
+
+function formatoMonedaCajaFactura(valor) {
+    return formatoMoneda(valor);
+}
+
+function renderMonedaColorCajaFactura(data, type) {
+    return renderMonedaColor(data, type);
+}
+
+function esCajaActivaFactura(row) {
+    return row && parseInt(row.estado || 0) === 1;
+}
+
+function obtenerFilaCajaFacturaPorBoton(boton) {
+    var $tr = $(boton).closest('tr');
+
+    if ($tr.hasClass('child')) {
+        $tr = $tr.prev();
+    }
+
+    if (!$.fn.DataTable.isDataTable('#dataTableCajaFactura')) {
+        return null;
+    }
+
+    return $('#dataTableCajaFactura').DataTable().row($tr).data();
+}
+
+function obtenerFechasCajaFacturacion() {
+    var fechai = $('#fecha_caja_factura_i').val();
+    var fechaf = $('#fecha_caja_factura_f').val();
+
+    if (!fechai) {
+        fechai = new Date().toISOString().split('T')[0];
+    }
+
+    if (!fechaf) {
+        fechaf = fechai;
+    }
+
+    return {
+        fechai: fechai,
+        fechaf: fechaf
+    };
+}
+
+function ocultarMenuAccionesCajaFactura(boton) {
+    var $dropdown = $(boton).closest('.dropdown');
+    $dropdown.find('.dropdown-menu').removeClass('show');
+    $dropdown.find('.js-acciones-toggle').attr('aria-expanded', 'false');
+}
+
+/* =========================================================
+   FIN - HELPERS GENERALES DE CAJA FACTURACIÓN
+   ========================================================= */
+
+
+/* =========================================================
+   INICIO - EVENTOS NATIVOS DE ACCIONES CAJA FACTURA
+   Estos eventos usan captura para que no los bloquee otro JS.
+   ========================================================= */
+
+if (!window.__eventosCajaFacturaRegistrados) {
+    window.__eventosCajaFacturaRegistrados = true;
+
+    document.addEventListener('click', function (e) {
+        var boton = e.target.closest('#dataTableCajaFactura .btn-cf-retirar');
+
+        if (!boton) {
+            return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        ocultarMenuAccionesCajaFactura(boton);
+
+        var data = obtenerFilaCajaFacturaPorBoton(boton);
+
+        if (!data || !esCajaActivaFactura(data)) {
+            notificarCajaFactura('error', 'Caja no disponible', 'Solo puede retirar dinero de una caja activa.');
+            return;
+        }
+
+        abrirRetiroCajaDesdeFactura(data);
+    }, true);
+
+    document.addEventListener('click', function (e) {
+        var boton = e.target.closest('#dataTableCajaFactura .btn-cf-cerrar');
+
+        if (!boton) {
+            return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        ocultarMenuAccionesCajaFactura(boton);
+
+        var data = obtenerFilaCajaFacturaPorBoton(boton);
+
+        if (!data || !esCajaActivaFactura(data)) {
+            notificarCajaFactura('error', 'Caja cerrada', 'La caja seleccionada ya está cerrada.');
+            return;
+        }
+
+        cerrarCajaDesdeFactura(data);
+    }, true);
+
+    document.addEventListener('click', function (e) {
+        var boton = e.target.closest('#dataTableCajaFactura .btn-cf-comprobante');
+
+        if (!boton) {
+            return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        ocultarMenuAccionesCajaFactura(boton);
+
+        var data = obtenerFilaCajaFacturaPorBoton(boton);
+
+        if (!data || !data.apertura_id) {
+            notificarCajaFactura('error', 'Apertura no encontrada', 'No se encontró la apertura de caja.');
+            return;
+        }
+
+        if (typeof printComprobanteCajas === 'function') {
+            printComprobanteCajas(data.apertura_id);
+        } else {
+            notificarCajaFactura('error', 'Función no disponible', 'No está disponible la función para imprimir comprobante.');
+        }
+    }, true);
+
+    document.addEventListener('click', function (e) {
+        var boton = e.target.closest('#dataTableCajaFactura .btn-cf-retiros-detalle');
+
+        if (!boton) {
+            return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        ocultarMenuAccionesCajaFactura(boton);
+
+        var data = obtenerFilaCajaFacturaPorBoton(boton);
+
+        if (!data || !data.apertura_id) {
+            notificarCajaFactura('error', 'Apertura no encontrada', 'No se encontró la apertura de caja.');
+            return;
+        }
+
+        cargarDetalleRetirosCaja(data.apertura_id, 'caja');
+    }, true);
+
+    document.addEventListener('click', function (e) {
+        var boton = e.target.closest('#dataTableCajaFactura .btn-cf-ganancia');
+
+        if (!boton) {
+            return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        ocultarMenuAccionesCajaFactura(boton);
+
+        var data = obtenerFilaCajaFacturaPorBoton(boton);
+
+        if (!data || !data.apertura_id) {
+            notificarCajaFactura('error', 'Apertura no encontrada', 'No se encontró la apertura de caja.');
+            return;
+        }
+
+        cargarDesgloseGananciaCaja(data.apertura_id, 'caja');
+    }, true);
+}
+
+/* =========================================================
+   FIN - EVENTOS NATIVOS DE ACCIONES CAJA FACTURA
+   ========================================================= */
+
+
+/* =========================================================
+   INICIO - HEADER Y FOOTER DATATABLE CAJA FACTURA
+   ========================================================= */
+
+function construirHeaderFooterCajaFactura() {
+    var $tabla = $('#dataTableCajaFactura');
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Fecha</th>' +
+                '<th>Usuario</th>' +
+                '<th>Factura Inicial</th>' +
+                '<th>Factura Final</th>' +
+                '<th>Monto Apertura</th>' +
+                '<th>Venta del Día</th>' +
+                '<th>Retiro Caja</th>' +
+                '<th>Neto Caja</th>' +
+            '</tr>' +
+        '</thead>' +
+        '<tfoot>' +
+            '<tr>' +
+                '<th colspan="5" class="text-right">Totales:</th>' +
+                '<th id="cf_total_apertura">L. 0.00</th>' +
+                '<th id="cf_total_venta">L. 0.00</th>' +
+                '<th id="cf_total_retiro">L. 0.00</th>' +
+                '<th id="cf_total_neto">L. 0.00</th>' +
+            '</tr>' +
+        '</tfoot>'
+    );
+}
+
+/* =========================================================
+   FIN - HEADER Y FOOTER DATATABLE CAJA FACTURA
+   ========================================================= */
+
+
+/* =========================================================
+   INICIO - CARGAR DATATABLE CAJA DESDE FACTURACIÓN
+   ========================================================= */
+
+function cargarCajaFactura() {
+    var fechai = $('#fecha_caja_factura_i').val();
+    var fechaf = $('#fecha_caja_factura_f').val();
+    var estado = $('#estado_caja_factura').val();
+
+    if (!fechai) {
+        fechai = new Date().toISOString().split('T')[0];
+        $('#fecha_caja_factura_i').val(fechai);
+    }
+
+    if (!fechaf) {
+        fechaf = fechai;
+        $('#fecha_caja_factura_f').val(fechaf);
+    }
+
+    if (!estado) {
+        estado = 0;
+        $('#estado_caja_factura').val(estado);
+    }
+
+    if ($.fn.DataTable.isDataTable('#dataTableCajaFactura')) {
+        $('#dataTableCajaFactura').DataTable().clear().destroy();
+    }
+
+    construirHeaderFooterCajaFactura();
+
+    $('#dataTableCajaFactura').DataTable({
+        destroy: true,
+        autoWidth: false,
+        responsive: false,
+        stateSave: false,
+        bDestroy: true,
+        language: idioma_español,
+        lengthMenu: lengthMenu,
+        dom: dom,
+
+        ajax: {
+            method: 'POST',
+            url: '<?php echo SERVERURL;?>core/llenarDataTableCajaDisponibles.php',
+            dataType: 'json',
+            data: {
+                fechai: fechai,
+                fechaf: fechaf,
+                estado: estado
+            },
+            error: function (xhr) {
+                console.log(xhr.responseText);
+                notificarCajaFactura('error', 'Error de comunicación', 'No se pudo cargar la información de caja.');
+            }
+        },
+
+        columns: [
+            {
+                data: null,
+                orderable: false,
+                searchable: false,
+                className: 'text-center align-middle',
+                render: function (data, type, row) {
+                    if (type !== 'display') {
+                        return '';
+                    }
+
+                    var activa = esCajaActivaFactura(row);
+
+                    var badgeEstado = activa
+                        ? '<span class="badge-estado-caja badge-caja-abierta"><i class="fas fa-circle"></i> Abierta</span>'
+                        : '<span class="badge-estado-caja badge-caja-cerrada"><i class="fas fa-lock"></i> Cerrada</span>';
+
+                    var accionesCaja = '';
+
+                    if (activa) {
+                        accionesCaja +=
+                            '<button type="button" class="dropdown-item accion-item accion-retiro btn-cf-retirar">' +
+                                '<span class="accion-icon accion-icon-warning">' +
+                                    '<i class="fas fa-money-bill-wave"></i>' +
+                                '</span>' +
+                                '<span class="accion-label">Retirar dinero</span>' +
+                            '</button>';
+
+                        accionesCaja +=
+                            '<button type="button" class="dropdown-item accion-item accion-cerrar btn-cf-cerrar">' +
+                                '<span class="accion-icon accion-icon-success">' +
+                                    '<i class="fas fa-lock"></i>' +
+                                '</span>' +
+                                '<span class="accion-label">Cerrar caja</span>' +
+                            '</button>';
+                    } else {
+                        accionesCaja +=
+                            '<button type="button" class="dropdown-item accion-item accion-cerrada" disabled>' +
+                                '<span class="accion-icon accion-icon-eliminar">' +
+                                    '<i class="fas fa-lock"></i>' +
+                                '</span>' +
+                                '<span class="accion-label">Caja cerrada</span>' +
+                            '</button>';
+
+                        accionesCaja +=
+                            '<button type="button" class="dropdown-item accion-item accion-no-retiro" disabled>' +
+                                '<span class="accion-icon accion-icon-eliminar">' +
+                                    '<i class="fas fa-ban"></i>' +
+                                '</span>' +
+                                '<span class="accion-label">Retiro no disponible</span>' +
+                            '</button>';
+                    }
+
+                    accionesCaja +=
+                        '<button type="button" class="dropdown-item accion-item accion-comprobante btn-cf-comprobante">' +
+                            '<span class="accion-icon accion-icon-danger">' +
+                                '<i class="far fa-file-pdf"></i>' +
+                            '</span>' +
+                            '<span class="accion-label">Comprobante</span>' +
+                        '</button>';
+
+                    accionesCaja +=
+                        '<button type="button" class="dropdown-item accion-item accion-retiros-detalle btn-cf-retiros-detalle">' +
+                            '<span class="accion-icon accion-icon-warning">' +
+                                '<i class="fas fa-list-ul"></i>' +
+                            '</span>' +
+                            '<span class="accion-label">Ver retiros</span>' +
+                        '</button>';
+
+                    accionesCaja +=
+                        '<button type="button" class="dropdown-item accion-item accion-ganancia btn-cf-ganancia">' +
+                            '<span class="accion-icon accion-icon-primary">' +
+                                '<i class="fas fa-chart-line"></i>' +
+                            '</span>' +
+                            '<span class="accion-label">Ver ganancia</span>' +
+                        '</button>';
+
+                    return '' +
+                        '<div class="acciones-caja-wrap">' +
+                            '<div class="dropdown acciones-dropdown">' +
+                                '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                                    '<i class="fas fa-cog"></i>' +
+                                    '<span>Acciones</span>' +
+                                '</button>' +
+                                '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+                                    accionesCaja +
+                                '</div>' +
+                            '</div>' +
+                            badgeEstado +
+                        '</div>';
+                }
+            },
+            { data: 'fecha' },
+            { data: 'usuario' },
+            { data: 'factura_inicial' },
+            { data: 'factura_final' },
+            {
+                data: 'monto_apertura',
+                render: function (data, type) {
+                    return renderMonedaColorCajaFactura(data, type);
+                }
+            },
+            {
+                data: 'importe_venta',
+                render: function (data, type) {
+                    return renderMonedaColorCajaFactura(data, type);
+                }
+            },
+            {
+                data: 'retiro_caja',
+                render: function (data, type) {
+                    return renderMonedaColorCajaFactura(data, type);
+                }
+            },
+            {
+                data: 'neto',
+                render: function (data, type) {
+                    return renderMonedaColorCajaFactura(data, type);
+                }
+            }
+        ],
+
+        columnDefs: [
+            {
+                targets: [5, 6, 7, 8],
+                className: 'text-right text-nowrap'
+            },
+            {
+                targets: [0, 1, 3, 4],
+                className: 'text-center text-nowrap'
+            }
+        ],
+
+        createdRow: function (row, data) {
+            if (esCajaActivaFactura(data)) {
+                $(row).addClass('fila-caja-abierta');
+            } else {
+                $(row).addClass('fila-caja-cerrada');
+            }
+        },
+
+        buttons: [
+            {
+                text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
+                titleAttr: 'Actualizar Caja desde Facturación',
+                className: 'table_actualizar btn btn-secondary ocultar',
+                action: function () {
+                    cargarCajaFactura();
+                }
+            },
+            {
+                extend: 'excelHtml5',
+                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
+                titleAttr: 'Excel',
+                title: 'Caja desde Facturación',
+                className: 'table_reportes btn btn-success ocultar',
+                exportOptions: {
+                    columns: [1, 2, 3, 4, 5, 6, 7, 8]
+                }
+            },
+            {
+                extend: 'pdf',
+                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
+                titleAttr: 'PDF',
+                orientation: 'landscape',
+                title: 'Caja desde Facturación',
+                className: 'table_reportes btn btn-danger ocultar',
+                exportOptions: {
+                    columns: [1, 2, 3, 4, 5, 6, 7, 8]
+                },
+                customize: function (doc) {
+                    if (typeof imagen !== 'undefined' && imagen) {
+                        doc.content.splice(0, 0, {
+                            image: imagen,
+                            width: 100,
+                            height: 45,
+                            margin: [0, 0, 0, 12]
+                        });
+                    }
+                }
+            }
+        ],
+
+        footerCallback: function () {
+            var api = this.api();
+
+            var totalApertura = api.column(5, { page: 'current' }).data().reduce(function (a, b) {
+                return parseMontoCajaFactura(a) + parseMontoCajaFactura(b);
+            }, 0);
+
+            var totalVenta = api.column(6, { page: 'current' }).data().reduce(function (a, b) {
+                return parseMontoCajaFactura(a) + parseMontoCajaFactura(b);
+            }, 0);
+
+            var totalRetiro = api.column(7, { page: 'current' }).data().reduce(function (a, b) {
+                return parseMontoCajaFactura(a) + parseMontoCajaFactura(b);
+            }, 0);
+
+            var totalNeto = api.column(8, { page: 'current' }).data().reduce(function (a, b) {
+                return parseMontoCajaFactura(a) + parseMontoCajaFactura(b);
+            }, 0);
+
+            $('#cf_total_apertura').html('<span>' + formatoMonedaCajaFactura(totalApertura) + '</span>');
+            $('#cf_total_venta').html('<span>' + formatoMonedaCajaFactura(totalVenta) + '</span>');
+            $('#cf_total_retiro').html('<span>' + formatoMonedaCajaFactura(totalRetiro) + '</span>');
+            $('#cf_total_neto').html('<span>' + formatoMonedaCajaFactura(totalNeto) + '</span>');
+        },
+
+        drawCallback: function () {
+            if (typeof getPermisosTipoUsuarioAccesosTable === 'function' && typeof getPrivilegioTipoUsuario === 'function') {
+                getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+            }
+
+            if (typeof cerrarDropdownAcciones === 'function') {
+                cerrarDropdownAcciones();
+            }
+
+            $('[title]').tooltip({
+                container: 'body',
+                placement: 'top'
+            });
+        }
+    });
+
+    $('#dataTableCajaFactura').DataTable().search('').draw();
+}
+
+/* =========================================================
+   FIN - CARGAR DATATABLE CAJA DESDE FACTURACIÓN
+   ========================================================= */
+
+
+/* =========================================================
+   INICIO - ABRIR RETIRO DE CAJA DESDE FACTURACIÓN
+   ========================================================= */
+
+function abrirRetiroCajaDesdeFactura(data) {
+    if ($('#modalRetiroCaja').length === 0 || $('#formRetiroCaja').length === 0) {
+        notificarCajaFactura('error', 'Modal no encontrado', 'No se encontró el modal de retiro de caja en esta vista.');
+        return;
+    }
+
+    var saldoDisponible = parseMontoCajaFactura(data.neto);
+
+    $('#formRetiroCaja')[0].reset();
+
+    $('#retiro_apertura_id').val(data.apertura_id);
+    $('#retiro_saldo_actual').val(saldoDisponible.toFixed(2));
+    $('#retiro_saldo_final').val(saldoDisponible.toFixed(2));
+
+    $('#retiro_saldo_actual_text').html(formatoMonedaCajaFactura(saldoDisponible));
+    $('#retiro_saldo_final_text').html(formatoMonedaCajaFactura(saldoDisponible));
+
+    $('#retiro_mensaje_validacion').hide().html('');
+    $('#btn_guardar_retiro_caja').prop('disabled', true);
+
+    if ($.fn.selectpicker) {
+        $('#retiro_categoria_gastos_id').selectpicker('val', '');
+        $('#retiro_categoria_gastos_id').selectpicker('refresh');
+    }
+
+    $('#modalRetiroCaja')
+        .off('shown.bs.modal.cajaFactura')
+        .on('shown.bs.modal.cajaFactura', function () {
+            setTimeout(function () {
+                $('#retiro_monto').trigger('focus').select();
+            }, 150);
+        });
+
+    $('#modalRetiroCaja').modal({
+        show: true,
+        keyboard: false,
+        backdrop: 'static'
+    });
+}
+
+/* =========================================================
+   FIN - ABRIR RETIRO DE CAJA DESDE FACTURACIÓN
+   ========================================================= */
+
+
+/* =========================================================
+   INICIO - CERRAR CAJA DESDE FACTURACIÓN
+   Este bloque pertenece a FACTURAS.
+
+   Funciona igual que el módulo Caja:
+   1. Llama core/editarCajas.php.
+   2. Llena #formAperturaCaja.
+   3. Cambia el formulario a modo Cerrar Caja.
+   4. Abre #modal_apertura_caja.
+   5. El cierre real lo hace el submit normal del formulario.
+   ========================================================= */
+
+function cerrarCajaDesdeFactura(data) {
+    if (!data || !data.apertura_id) {
+        notificarCajaFactura('error', 'Apertura no encontrada', 'No se encontró la apertura de caja.');
+        return;
+    }
+
+    if (!esCajaActivaFactura(data)) {
+        notificarCajaFactura('error', 'Caja cerrada', 'La caja seleccionada ya está cerrada.');
+        return;
+    }
+
+    if ($('#formAperturaCaja').length === 0) {
+        notificarCajaFactura('error', 'Formulario no encontrado', 'No se encontró el formulario de apertura/cierre de caja en esta vista.');
+        return;
+    }
+
+    if ($('#modal_apertura_caja').length === 0) {
+        notificarCajaFactura('error', 'Modal no encontrado', 'No se encontró el modal de apertura/cierre de caja en esta vista.');
+        return;
+    }
+
+    prepararFormularioCierreCajaDesdeFactura(data);
+}
+
+function prepararFormularioCierreCajaDesdeFactura(data) {
+    var url = '<?php echo SERVERURL;?>core/editarCajas.php';
+
+    $('#formAperturaCaja #apertura_id').val(data.apertura_id);
+
+    $.ajax({
+        type: 'POST',
+        url: url,
+        data: $('#formAperturaCaja').serialize(),
+        dataType: 'text',
+        success: function (registro) {
+            var valores = null;
+
+            try {
+                valores = eval(registro);
+            } catch (e) {
+                console.log(registro);
+                notificarCajaFactura('error', 'Respuesta inválida', 'No se pudo leer la información de la caja.');
+                return;
+            }
+
+            if (!valores || valores.length < 4) {
+                console.log(registro);
+                notificarCajaFactura('error', 'Datos incompletos', 'No se recibieron los datos necesarios para cerrar la caja.');
+                return;
+            }
+
+            $('#formAperturaCaja').attr({
+                'data-form': 'update',
+                'action': '<?php echo SERVERURL;?>ajax/addCierreCajaAjax.php'
+            });
+
+            $('#formAperturaCaja')[0].reset();
+
+            if ($('#open_caja').length > 0) {
+                $('#open_caja').hide();
+            }
+
+            if ($('#close_caja').length > 0) {
+                $('#close_caja').show();
+            }
+
+            $('#formAperturaCaja #apertura_id').val(data.apertura_id);
+            $('#formAperturaCaja #usuario_apertura').val(valores[0]);
+            $('#formAperturaCaja #monto_apertura').val(valores[1]);
+            $('#formAperturaCaja #fecha_apertura').val(valores[2]);
+            $('#formAperturaCaja #colaboradores_id_apertura').val(valores[3]);
+
+            $('#formAperturaCaja #usuario_apertura').attr('readonly', true);
+            $('#formAperturaCaja #monto_apertura').attr('readonly', true);
+            $('#formAperturaCaja #fecha_apertura').attr('readonly', true);
+
+            $('#formAperturaCaja #proceso_aperturaCaja').val('Cerrar Caja');
+
+            $('#modal_apertura_caja')
+                .off('hidden.bs.modal.cajaFacturaCierre')
+                .on('hidden.bs.modal.cajaFacturaCierre', function () {
+                    if (typeof cargarCajaFactura === 'function') {
+                        cargarCajaFactura();
+                    }
+
+                    if (typeof validarAperturaCajaUsuario === 'function') {
+                        validarAperturaCajaUsuario();
+                    }
+
+                    if (typeof getCajero === 'function') {
+                        getCajero();
+                    }
+
+                    if (typeof listar_registro_cajas === 'function') {
+                        listar_registro_cajas();
+                    }
+                });
+
+            $('#modal_apertura_caja').modal({
+                show: true,
+                keyboard: false,
+                backdrop: 'static'
+            });
+        },
+        error: function (xhr) {
+            console.log(xhr.responseText);
+            notificarCajaFactura('error', 'Error de comunicación', 'No se pudo obtener la información de la caja para cerrar.');
+        }
+    });
+}
+
+/* =========================================================
+   FIN - CERRAR CAJA DESDE FACTURACIÓN
+   ========================================================= */
+
+
+/* =========================================================
+   INICIO - CARGAR DETALLE RETIROS CAJA
+   ========================================================= */
+
+function cargarDetalleRetirosCaja(apertura_id, modo) {
+    apertura_id = parseInt(apertura_id || 0);
+
+    var fechas = obtenerFechasCajaFacturacion();
+    var fechai = fechas.fechai;
+    var fechaf = fechas.fechaf;
+
+    if (!modo) {
+        modo = $('#modalDetalleRetirosCaja').data('modo') || 'caja';
+    }
+
+    if (modo === 'caja' && apertura_id <= 0) {
+        notificarCaja('error', 'Apertura inválida', 'No se recibió una apertura válida.');
+        return;
+    }
+
+    if (modo === 'periodo') {
+        if (fechai === '' || fechaf === '') {
+            notificarCaja('error', 'Fechas requeridas', 'Debe seleccionar fecha inicial y fecha final.');
+            return;
+        }
+    }
+
+    if ($('#modalDetalleRetirosCaja').length === 0) {
+        notificarCaja('error', 'Modal no encontrado', 'No existe el modal modalDetalleRetirosCaja en esta vista.');
+        return;
+    }
+
+    $('#dr_apertura_id').val(apertura_id);
+    $('#modalDetalleRetirosCaja').data('modo', modo);
+    $('#modalDetalleRetirosCaja').data('apertura_id', apertura_id);
+
+    if (modo === 'periodo') {
+        $('#dr_contexto_caja').html('Desde ' + fechai + ' hasta ' + fechaf);
+    } else {
+        $('#dr_contexto_caja').html('Apertura de caja #' + apertura_id);
+    }
+
+    $('#dr_total_retiros').html('Cargando...');
+    $('#dr_estado_caja').html('Cargando...');
+    $('#dr_accion_permitida').html('Cargando...');
+
+    if ($.fn.DataTable.isDataTable('#dataTableDetalleRetirosCaja')) {
+        $('#dataTableDetalleRetirosCaja').DataTable().clear().destroy();
+    }
+
+    construirHeaderFooterDetalleRetirosCaja();
+
+    $('#modalDetalleRetirosCaja').modal({
+        show: true,
+        keyboard: false,
+        backdrop: 'static'
+    });
+
+    setTimeout(function () {
+        $.ajax({
+            type: 'POST',
+            url: '<?php echo SERVERURL;?>core/caja/getRetirosCaja.php',
+            dataType: 'json',
+            data: {
+                apertura_id: apertura_id,
+                modo: modo,
+                fechai: fechai,
+                fechaf: fechaf
+            },
+            success: function (response) {
+                if (!response || !response.success) {
+                    console.log(response);
+                    notificarCaja('error', 'No se pudo cargar', response && response.message ? response.message : 'No se pudo cargar el detalle de retiros.');
+                    return;
+                }
+
+                var resumen = response.resumen || {};
+                var detalles = response.data || [];
+
+                $('#dr_total_retiros').html(formatoMoneda(resumen.total_retiros || 0));
+
+                if (modo === 'periodo') {
+                    $('#dr_estado_caja').html('<span class="badge badge-info">Período</span>');
+                    $('#dr_accion_permitida').html('<span class="badge badge-warning">Depende de cada caja</span>');
+                } else {
+                    if (parseInt(resumen.estado_caja || 0) === 1) {
+                        $('#dr_estado_caja').html('<span class="badge badge-success">Abierta</span>');
+                        $('#dr_accion_permitida').html('<span class="badge badge-success">Puede reintegrar</span>');
+                    } else {
+                        $('#dr_estado_caja').html('<span class="badge badge-secondary">Cerrada</span>');
+                        $('#dr_accion_permitida').html('<span class="badge badge-danger">No puede reintegrar</span>');
+                    }
+                }
+
+                cargarTablaDetalleRetirosCaja(detalles);
+                $('#modalDetalleRetirosCaja').modal('handleUpdate');
+            },
+            error: function (xhr) {
+                console.log(xhr.responseText);
+                notificarCaja('error', 'Error de comunicación', 'Error de comunicación al cargar los retiros de caja.');
+            }
+        });
+    }, 150);
+}
+
+function refrescarDetalleRetirosCaja() {
+    var apertura_id = parseInt($('#modalDetalleRetirosCaja').data('apertura_id') || $('#dr_apertura_id').val() || 0);
+    var modo = $('#modalDetalleRetirosCaja').data('modo') || 'caja';
+
+    cargarDetalleRetirosCaja(apertura_id, modo);
+}
+
+/* =========================================================
+   FIN - CARGAR DETALLE RETIROS CAJA
+   ========================================================= */
+
+
+/* =========================================================
+   INICIO - DATATABLE DETALLE RETIROS CAJA
+   ========================================================= */
+
+function construirHeaderFooterDetalleRetirosCaja() {
+    var $tabla = $('#dataTableDetalleRetirosCaja');
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Acciones</th>' +
+                '<th>Caja</th>' +
+                '<th>Fecha</th>' +
+                '<th>Motivo</th>' +
+                '<th>Observación</th>' +
+                '<th>Cuenta</th>' +
+                '<th>Egreso</th>' +
+                '<th>Monto</th>' +
+                '<th>Estado</th>' +
+                '<th>Registrado</th>' +
+            '</tr>' +
+        '</thead>' +
+        '<tfoot>' +
+            '<tr>' +
+                '<th colspan="7" class="text-right">Total activo:</th>' +
+                '<th id="dr_footer_total">L. 0.00</th>' +
+                '<th colspan="2"></th>' +
+            '</tr>' +
+        '</tfoot>'
+    );
+}
+
+function cargarTablaDetalleRetirosCaja(detalles) {
+    if ($.fn.DataTable.isDataTable('#dataTableDetalleRetirosCaja')) {
+        $('#dataTableDetalleRetirosCaja').DataTable().clear().destroy();
+    }
+
+    construirHeaderFooterDetalleRetirosCaja();
+
+    $('#dataTableDetalleRetirosCaja').DataTable({
+        destroy: true,
+        autoWidth: false,
+        data: detalles,
+        columns: [
+            {
+                data: null,
+                orderable: false,
+                searchable: false,
+                className: 'text-center text-nowrap',
+                render: function (data, type, row) {
+                    if (type !== 'display') {
+                        return '';
+                    }
+
+                    if (parseInt(row.puede_reintegrar || 0) === 1) {
+                        return '' +
+                            '<button type="button" class="btn btn-sm btn-success btn-reintegrar-retiro" ' +
+                                'data-caja-retiros-id="' + row.caja_retiros_id + '" ' +
+                                'data-apertura-id="' + row.apertura_id + '" ' +
+                                'data-monto="' + row.monto + '">' +
+                                '<i class="fas fa-undo-alt"></i> Reintegrar' +
+                            '</button>';
+                    }
+
+                    return '<span class="badge badge-secondary">No disponible</span>';
+                }
+            },
+            {
+                data: 'apertura_id',
+                className: 'text-center text-nowrap',
+                render: function (data, type, row) {
+                    if (type !== 'display') {
+                        return data;
+                    }
+
+                    var estadoCaja = parseInt(row.estado_caja || 0) === 1
+                        ? '<span class="badge badge-success ml-1">Abierta</span>'
+                        : '<span class="badge badge-secondary ml-1">Cerrada</span>';
+
+                    return '#' + data + ' ' + estadoCaja;
+                }
+            },
+            { data: 'fecha' },
+            { data: 'motivo' },
+            { data: 'observacion' },
+            { data: 'cuenta' },
+            { data: 'factura_egreso' },
+            {
+                data: 'monto',
+                render: function (data, type) {
+                    return type === 'display' ? formatoMoneda(data) : parseMonto(data);
+                }
+            },
+            {
+                data: 'estado_label',
+                className: 'text-center',
+                render: function (data, type, row) {
+                    if (type !== 'display') {
+                        return data;
+                    }
+
+                    if (parseInt(row.estado || 0) === 1) {
+                        return '<span class="badge badge-success">Activo</span>';
+                    }
+
+                    return '<span class="badge badge-danger">Anulado</span>';
+                }
+            },
+            { data: 'fecha_registro' }
+        ],
+        columnDefs: [
+            {
+                targets: [7],
+                className: 'text-right text-nowrap'
+            },
+            {
+                targets: [0, 1, 2, 6, 8, 9],
+                className: 'text-center text-nowrap'
+            }
+        ],
+        lengthMenu: lengthMenu,
+        language: idioma_español,
+        dom: dom,
+        buttons: [
+            {
+                extend: 'excelHtml5',
+                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
+                titleAttr: 'Excel',
+                title: 'Detalle de Retiros de Caja',
+                className: 'btn btn-success'
+            },
+            {
+                extend: 'pdf',
+                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
+                titleAttr: 'PDF',
+                orientation: 'landscape',
+                title: 'Detalle de Retiros de Caja',
+                className: 'btn btn-danger'
+            }
+        ],
+        footerCallback: function () {
+            var api = this.api();
+
+            var total = api.rows({ page: 'current' }).data().reduce(function (acum, row) {
+                if (parseInt(row.estado || 0) === 1) {
+                    return acum + parseMonto(row.monto);
+                }
+
+                return acum;
+            }, 0);
+
+            $('#dr_footer_total').html('<span>' + formatoMoneda(total) + '</span>');
+        },
+        drawCallback: function () {
+            $('.btn-reintegrar-retiro').off('click.cajaFacturaReintegro').on('click.cajaFacturaReintegro', function () {
+                abrirModalReintegroRetiroCaja(
+                    $(this).data('caja-retiros-id'),
+                    $(this).data('apertura-id'),
+                    $(this).data('monto')
+                );
+            });
+        }
+    });
+}
+
+/* =========================================================
+   FIN - DATATABLE DETALLE RETIROS CAJA
+   ========================================================= */
+
+
+/* =========================================================
+   INICIO - REINTEGRO DE RETIROS
+   ========================================================= */
+
+function abrirModalReintegroRetiroCaja(caja_retiros_id, apertura_id, monto) {
+    caja_retiros_id = parseInt(caja_retiros_id || 0);
+    apertura_id = parseInt(apertura_id || 0);
+    monto = parseMonto(monto);
+
+    if (caja_retiros_id <= 0 || apertura_id <= 0 || monto <= 0) {
+        notificarCaja('error', 'Datos inválidos', 'No se pudo cargar la información del retiro.');
+        return;
+    }
+
+    if ($('#modalReintegroRetiroCaja').length === 0 || $('#formReintegroRetiroCaja').length === 0) {
+        notificarCaja('error', 'Modal no encontrado', 'No existe el modal de reintegro de retiro en esta vista.');
+        return;
+    }
+
+    $('#formReintegroRetiroCaja')[0].reset();
+
+    $('#reintegro_caja_retiros_id').val(caja_retiros_id);
+    $('#reintegro_apertura_id').val(apertura_id);
+    $('#reintegro_monto_actual').val(monto.toFixed(2));
+    $('#reintegro_monto_actual_text').html(formatoMoneda(monto));
+
+    $('#reintegro_monto')
+        .attr('max', monto.toFixed(2))
+        .val('')
+        .prop('readonly', false)
+        .prop('disabled', false);
+
+    $('#modalReintegroRetiroCaja')
+        .off('shown.bs.modal.cajaFactura')
+        .on('shown.bs.modal.cajaFactura', function () {
+            setTimeout(function () {
+                $('#reintegro_monto').trigger('focus').select();
+            }, 150);
+        });
+
+    $('#modalReintegroRetiroCaja').modal({
+        show: true,
+        keyboard: false,
+        backdrop: 'static'
+    });
+}
+
+$('#formReintegroRetiroCaja').off('submit.cajaFacturaReintegro').on('submit.cajaFacturaReintegro', function (e) {
+    e.preventDefault();
+
+    var montoActual = parseMonto($('#reintegro_monto_actual').val());
+    var montoReintegro = parseMonto($('#reintegro_monto').val());
+
+    if (montoReintegro <= 0) {
+        notificarCaja('error', 'Monto inválido', 'Ingrese un monto válido para reintegrar.');
+        return;
+    }
+
+    if (montoReintegro > montoActual) {
+        notificarCaja('error', 'Monto inválido', 'El monto a reintegrar no puede ser mayor al retiro actual.');
+        return;
+    }
+
+    $('#btnGuardarReintegroRetiroCaja').prop('disabled', true);
+
+    $.ajax({
+        type: 'POST',
+        url: '<?php echo SERVERURL;?>core/caja/reintegrarRetiroCaja.php',
+        dataType: 'json',
+        data: $('#formReintegroRetiroCaja').serialize(),
+        success: function (response) {
+            $('#btnGuardarReintegroRetiroCaja').prop('disabled', false);
+
+            if (!response.success) {
+                notificarCaja('error', 'No se pudo reintegrar', response.message || 'No se pudo realizar el reintegro.');
+                return;
+            }
+
+            $('#modalReintegroRetiroCaja').modal('hide');
+
+            notificarCaja('success', 'Reintegro registrado', response.message || 'Reintegro registrado correctamente.');
+
+            refrescarDetalleRetirosCaja();
+
+            if (typeof cargarCajaFactura === 'function') {
+                cargarCajaFactura();
+            }
+
+            if (typeof validarAperturaCajaUsuario === 'function') {
+                validarAperturaCajaUsuario();
+            }
+
+            if ($('#modalDesgloseGananciaCaja').hasClass('show')) {
+                refrescarDesgloseGananciaCaja();
+            }
+        },
+        error: function (xhr) {
+            $('#btnGuardarReintegroRetiroCaja').prop('disabled', false);
+            console.log(xhr.responseText);
+            notificarCaja('error', 'Error de comunicación', 'Error de comunicación al registrar el reintegro.');
+        }
+    });
+});
+
+/* =========================================================
+   FIN - REINTEGRO DE RETIROS
+   ========================================================= */
+
+
+/* =========================================================
+   INICIO - DESGLOSE GANANCIA CAJA
+   ========================================================= */
+
+function cargarDesgloseGananciaCaja(apertura_id, modo) {
+    apertura_id = parseInt(apertura_id || 0);
+
+    var fechas = obtenerFechasCajaFacturacion();
+    var fechai = fechas.fechai;
+    var fechaf = fechas.fechaf;
+
+    if (!modo) {
+        modo = 'caja';
+    }
+
+    if ($('#modalDesgloseGananciaCaja').length === 0) {
+        notificarCaja('error', 'Modal no encontrado', 'No existe el modal de desglose de ganancia en esta vista.');
+        return;
+    }
+
+    $('#dg_apertura_id').val(apertura_id);
+    $('#dg_modo').val(modo);
+    $('#modalDesgloseGananciaCaja').data('modo', modo);
+    $('#modalDesgloseGananciaCaja').data('apertura_id', apertura_id);
+
+    if (modo === 'periodo') {
+        if (fechai === '' || fechaf === '') {
+            notificarCaja('error', 'Fechas requeridas', 'Debe seleccionar fecha inicial y fecha final.');
+            return;
+        }
+    }
+
+    $.ajax({
+        type: 'POST',
+        url: '<?php echo SERVERURL;?>core/caja/getDesgloseGananciaCaja.php',
+        dataType: 'json',
+        data: {
+            apertura_id: apertura_id,
+            modo: modo,
+            fechai: fechai,
+            fechaf: fechaf
+        },
+        beforeSend: function () {
+            if (modo === 'periodo') {
+                $('#titulo_modal_ganancia').html('Resumen de caja y ganancia del período');
+                $('#dg_contexto_consulta').html('Desde ' + fechai + ' hasta ' + fechaf);
+            } else {
+                $('#titulo_modal_ganancia').html('Resumen de caja y ganancia');
+                $('#dg_contexto_consulta').html('Apertura de caja #' + apertura_id);
+            }
+
+            $('#dg_total_cobrado').html('Cargando...');
+            $('#dg_costo_productos').html('Cargando...');
+            $('#dg_costo_productos_2').html('Cargando...');
+            $('#dg_dinero_despues_reponer').html('Cargando...');
+            $('#dg_efectivo').html('Cargando...');
+            $('#dg_transferencia').html('Cargando...');
+            $('#dg_tarjeta').html('Cargando...');
+            $('#dg_cheque').html('Cargando...');
+            $('#dg_monto_apertura').html('Cargando...');
+            $('#dg_efectivo_caja').html('Cargando...');
+            $('#dg_retiro_caja').html('Cargando...');
+            $('#dg_efectivo_esperado_caja').html('Cargando...');
+            $('#dg_total_vendido_detalle').html('Cargando...');
+            $('#dg_ganancia_bruta').html('Cargando...');
+            $('#dg_diferencia_conciliacion').html('Cargando...');
+        },
+        success: function (response) {
+            if (!response.success) {
+                notificarCaja('error', 'No se pudo cargar', response.message || 'No se pudo cargar el desglose de ganancia.');
+                return;
+            }
+
+            var resumen = response.resumen || {};
+            var detalles = response.detalles || [];
+
+            var totalCobrado = parseMonto(resumen.total_cobrado);
+            var costoProductos = parseMonto(resumen.costo_productos_vendidos);
+            var dineroDespuesReponer = parseMonto(resumen.dinero_despues_reponer);
+            var efectivo = parseMonto(resumen.efectivo);
+            var transferencia = parseMonto(resumen.transferencia);
+            var tarjeta = parseMonto(resumen.tarjeta);
+            var cheque = parseMonto(resumen.cheque);
+            var montoApertura = parseMonto(resumen.monto_apertura);
+            var retiroCaja = parseMonto(resumen.retiro_caja);
+            var efectivoEsperadoCaja = parseMonto(resumen.efectivo_esperado_caja);
+            var totalVendidoDetalle = parseMonto(resumen.total_vendido_detalle);
+            var gananciaBruta = parseMonto(resumen.ganancia_bruta);
+            var diferenciaConciliacion = parseMonto(resumen.diferencia_conciliacion);
+
+            $('#dg_total_cobrado').html(formatoMoneda(totalCobrado));
+            $('#dg_costo_productos').html(formatoMoneda(costoProductos));
+            $('#dg_costo_productos_2').html(formatoMoneda(costoProductos));
+            $('#dg_dinero_despues_reponer').html(formatoMoneda(dineroDespuesReponer));
+            $('#dg_efectivo').html(formatoMoneda(efectivo));
+            $('#dg_transferencia').html(formatoMoneda(transferencia));
+            $('#dg_tarjeta').html(formatoMoneda(tarjeta));
+            $('#dg_cheque').html(formatoMoneda(cheque));
+            $('#dg_monto_apertura').html(formatoMoneda(montoApertura));
+            $('#dg_efectivo_caja').html(formatoMoneda(efectivo));
+            $('#dg_retiro_caja').html(formatoMoneda(retiroCaja));
+            $('#dg_efectivo_esperado_caja').html(formatoMoneda(efectivoEsperadoCaja));
+            $('#dg_total_vendido_detalle').html(formatoMoneda(totalVendidoDetalle));
+            $('#dg_ganancia_bruta').html(formatoMoneda(gananciaBruta));
+            $('#dg_diferencia_conciliacion').html(formatoMoneda(diferenciaConciliacion));
+
+            cargarTablaDetalleGananciaCaja(detalles);
+
+            $('#modalDesgloseGananciaCaja').modal({
+                show: true,
+                keyboard: false,
+                backdrop: 'static'
+            });
+        },
+        error: function (xhr) {
+            console.log(xhr.responseText);
+            notificarCaja('error', 'Error de comunicación', 'Error de comunicación al cargar el desglose de ganancia.');
+        }
+    });
+}
+
+function refrescarDesgloseGananciaCaja() {
+    var apertura_id = parseInt($('#dg_apertura_id').val() || $('#modalDesgloseGananciaCaja').data('apertura_id') || 0);
+    var modo = $('#dg_modo').val() || $('#modalDesgloseGananciaCaja').data('modo') || 'caja';
+
+    cargarDesgloseGananciaCaja(apertura_id, modo);
+}
+
+/* =========================================================
+   FIN - DESGLOSE GANANCIA CAJA
+   ========================================================= */
+
+
+/* =========================================================
+   INICIO - DATATABLE DETALLE GANANCIA CAJA
+   ========================================================= */
+
+function construirHeaderFooterDetalleGananciaCaja() {
+    var $tabla = $('#dataTableDetalleGananciaCaja');
+
+    $tabla.empty();
+
+    $tabla.append(
+        '<thead>' +
+            '<tr>' +
+                '<th>Factura</th>' +
+                '<th>Producto</th>' +
+                '<th>Cantidad</th>' +
+                '<th>Costo Unit.</th>' +
+                '<th>Precio Venta</th>' +
+                '<th>Total Costo</th>' +
+                '<th>Total Venta</th>' +
+                '<th>Ganancia</th>' +
+            '</tr>' +
+        '</thead>' +
+        '<tfoot>' +
+            '<tr>' +
+                '<th colspan="5" class="text-right">Totales:</th>' +
+                '<th id="dg_footer_total_costo">L. 0.00</th>' +
+                '<th id="dg_footer_total_venta">L. 0.00</th>' +
+                '<th id="dg_footer_total_ganancia">L. 0.00</th>' +
+            '</tr>' +
+        '</tfoot>'
+    );
+}
+
+function cargarTablaDetalleGananciaCaja(detalles) {
+    if ($.fn.DataTable.isDataTable('#dataTableDetalleGananciaCaja')) {
+        $('#dataTableDetalleGananciaCaja').DataTable().clear().destroy();
+    }
+
+    construirHeaderFooterDetalleGananciaCaja();
+
+    $('#dataTableDetalleGananciaCaja').DataTable({
+        destroy: true,
+        autoWidth: false,
+        data: detalles,
+        columns: [
+            { data: 'factura' },
+            { data: 'producto' },
+            { data: 'cantidad' },
+            {
+                data: 'costo_unitario',
+                render: function (data, type) {
+                    return type === 'display' ? formatoMoneda(data) : parseMonto(data);
+                }
+            },
+            {
+                data: 'precio_venta',
+                render: function (data, type) {
+                    return type === 'display' ? formatoMoneda(data) : parseMonto(data);
+                }
+            },
+            {
+                data: 'total_costo',
+                render: function (data, type) {
+                    return type === 'display' ? formatoMoneda(data) : parseMonto(data);
+                }
+            },
+            {
+                data: 'total_venta',
+                render: function (data, type) {
+                    return type === 'display' ? formatoMoneda(data) : parseMonto(data);
+                }
+            },
+            {
+                data: 'ganancia',
+                render: function (data, type) {
+                    return renderMonedaColor(data, type);
+                }
+            }
+        ],
+        columnDefs: [
+            {
+                targets: [3, 4, 5, 6, 7],
+                className: 'text-right text-nowrap'
+            },
+            {
+                targets: [0, 2],
+                className: 'text-center text-nowrap'
+            }
+        ],
+        lengthMenu: lengthMenu,
+        language: idioma_español,
+        dom: dom,
+        buttons: [
+            {
+                extend: 'excelHtml5',
+                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
+                titleAttr: 'Excel',
+                title: 'Detalle de Ganancia',
+                className: 'btn btn-success'
+            },
+            {
+                extend: 'pdf',
+                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
+                titleAttr: 'PDF',
+                orientation: 'landscape',
+                title: 'Detalle de Ganancia',
+                className: 'btn btn-danger'
+            }
+        ],
+        footerCallback: function () {
+            var api = this.api();
+
+            var totalCosto = api.column(5, { page: 'current' }).data().reduce(function (a, b) {
+                return parseMonto(a) + parseMonto(b);
+            }, 0);
+
+            var totalVenta = api.column(6, { page: 'current' }).data().reduce(function (a, b) {
+                return parseMonto(a) + parseMonto(b);
+            }, 0);
+
+            var totalGanancia = api.column(7, { page: 'current' }).data().reduce(function (a, b) {
+                return parseMonto(a) + parseMonto(b);
+            }, 0);
+
+            $('#dg_footer_total_costo').html('<span>' + formatoMoneda(totalCosto) + '</span>');
+            $('#dg_footer_total_venta').html('<span>' + formatoMoneda(totalVenta) + '</span>');
+            $('#dg_footer_total_ganancia').html('<span>' + formatoMoneda(totalGanancia) + '</span>');
+        }
+    });
+}
+
+/* =========================================================
+   FIN - DATATABLE DETALLE GANANCIA CAJA
+   ========================================================= */
+
+
+/* =========================================================
+   FIN - CAJA DESDE FACTURACIÓN
+   ========================================================= */
+
+
 function getClientesFacturasCXC() {
     var url = '<?php echo SERVERURL; ?>core/getClientesCXC.php';
 
@@ -3381,6 +4884,7 @@ $(() => {
         $('#modal_exoneracion_orden').focus();
     });
 });
+
 
 // === Control de Tipo de Factura con botones ===
 // Proforma NO bloquea contado/crédito.

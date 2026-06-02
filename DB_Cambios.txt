@@ -1,4 +1,7 @@
 ####01 de mayo 2026####
+ALTER TABLE ingresos
+DROP COLUMN recibide;
+
 ALTER TABLE `pin`
 MODIFY `pin_id` INT NOT NULL AUTO_INCREMENT;
 

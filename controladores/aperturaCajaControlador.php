@@ -35,8 +35,14 @@ class aperturaCajaControlador extends aperturaCajaModelo{
     }
 
     private function validarConfigApertura() {
-        $config = $this->valid_config_apertura_modelo("Validar Apertura Caja")->fetch_assoc();
-        return $config['validar'] == 0;
+        $config = $this->valid_config_apertura_modelo("Validar Apertura Caja");
+
+        if($config && $config->num_rows > 0){
+            $row = $config->fetch_assoc();
+            return $row['validar'] == 0;
+        }
+
+        return false;
     }
 
     private function cajaAbierta($datos) {
@@ -54,32 +60,41 @@ class aperturaCajaControlador extends aperturaCajaModelo{
         if(empty($_POST['colaboradores_id_apertura'])){
             return mainModel::showNotification([
                 "title" => "Error",
-                "text" => "Todos los campos son obligatorios",
+                "text" => "Todos los campos son obligatorios.",
                 "type" => "error"
             ]);
         }
 
+        $colaboradores_id = (int)$_POST['colaboradores_id_apertura'];
+        $fecha_apertura = isset($_POST['fecha_apertura']) ? $_POST['fecha_apertura'] : date('Y-m-d');
+        $monto_apertura = !empty($_POST['monto_apertura']) ? (float)$_POST['monto_apertura'] : 0;
+
+        if($monto_apertura < 0){
+            $monto_apertura = 0;
+        }
+
         $datos = [
-            "colaboradores_id" => $_POST['colaboradores_id_apertura'],
-            "fecha" => $_POST['fecha_apertura'],
+            "colaboradores_id" => $colaboradores_id,
+            "fecha" => $fecha_apertura,
             "factura_inicial" => "",
             "factura_final" => "",
-            "monto" => !empty($_POST['monto_apertura']) ? $_POST['monto_apertura'] : 0,
+            "monto" => $monto_apertura,
             "neto" => 0,
             "estado" => 1,
             "fecha_registro" => date("Y-m-d H:i:s"),
             "empresa_id_sd" => $_SESSION['empresa_id_sd'],
+            "empresa_id" => $_SESSION['empresa_id_sd']
         ];
 
         if($this->validarConfigApertura() || !$this->cajaAbierta($datos)){
             $apertura_ok = $this->agregar_apertura_caja_modelo($datos);
 
             if($apertura_ok){
-                $this->registrarHistorial("Apertura", "Se aperturó la caja");
+                $this->registrarHistorial("Apertura", "Se aperturó la caja.");
 
                 return mainModel::showNotification([
                     "title" => "Caja aperturada",
-                    "text" => "La caja se ha aperturado correctamente",
+                    "text" => "La caja se ha aperturado correctamente.",
                     "type" => "success",
                     "form" => "formAperturaCaja",
                     "funcion" => "validarAperturaCajaUsuario();getCajero();listar_registro_cajas();",
@@ -89,7 +104,7 @@ class aperturaCajaControlador extends aperturaCajaModelo{
 
             return mainModel::showNotification([
                 "title" => "Error",
-                "text" => "No se pudo aperturar la caja",
+                "text" => "No se pudo aperturar la caja.",
                 "type" => "error"
             ]);
         }
@@ -109,12 +124,21 @@ class aperturaCajaControlador extends aperturaCajaModelo{
             return $sesion;
         }
 
-        $colaboradores_id_apertura = isset($_POST['colaboradores_id_apertura']) ? $_POST['colaboradores_id_apertura'] : 0;
+        $colaboradores_id_apertura = isset($_POST['colaboradores_id_apertura']) ? (int)$_POST['colaboradores_id_apertura'] : 0;
         $fecha_apertura = isset($_POST['fecha_apertura']) ? $_POST['fecha_apertura'] : date('Y-m-d');
+
+        if($colaboradores_id_apertura <= 0){
+            return mainModel::showNotification([
+                "title" => "Error",
+                "text" => "No se recibió el colaborador de la caja.",
+                "type" => "error"
+            ]);
+        }
 
         $datos_apertura = [
             "colaboradores_id" => $colaboradores_id_apertura,
-            "fecha" => $fecha_apertura
+            "fecha" => $fecha_apertura,
+            "empresa_id" => isset($_SESSION['empresa_id_sd']) ? $_SESSION['empresa_id_sd'] : 0
         ];
 
         $result = $this->valid_apertura_caja_modelo($datos_apertura);
@@ -122,7 +146,7 @@ class aperturaCajaControlador extends aperturaCajaModelo{
         if(!$result || $result->num_rows == 0){
             return mainModel::showNotification([
                 "title" => "Error",
-                "text" => "La caja no se encuentra abierta",
+                "text" => "La caja no se encuentra abierta.",
                 "type" => "error"
             ]);
         }
@@ -130,7 +154,7 @@ class aperturaCajaControlador extends aperturaCajaModelo{
         $consultaApertura = $result->fetch_assoc();
         $apertura_id = (int)$consultaApertura['apertura_id'];
 
-        if($this->validarCierreContabilizado($apertura_id)){
+        if($this->validar_cierre_contabilizado_modelo($apertura_id)){
             return mainModel::showNotification([
                 "title" => "Caja ya contabilizada",
                 "text" => "Esta caja ya tiene ingresos registrados por cierre. No se puede cerrar nuevamente.",
@@ -141,16 +165,22 @@ class aperturaCajaControlador extends aperturaCajaModelo{
         $factura_inicial = $this->obtenerFactura($apertura_id, 'inicial');
         $factura_final = $this->obtenerFactura($apertura_id, 'final');
 
-        $totales = $this->calcularTotalesCaja($apertura_id);
-        $total_retiros = $this->obtenerTotalRetirosCaja($apertura_id);
+        $total_vendido = $this->obtener_total_ventas_caja_modelo($apertura_id);
+        $total_retiros = $this->obtener_total_retiros_caja_modelo($apertura_id);
 
-        $neto_caja = (float)$totales['total_despues_isv'] - (float)$total_retiros;
+        /*
+            LÓGICA FINAL:
+            - El retiro solo queda en caja_retiros mientras la caja está abierta.
+            - En el cierre se registra ingreso completo y egreso por retiros pendientes.
+        */
+        $neto_caja = $total_vendido - $total_retiros;
 
         if($neto_caja < 0){
             $neto_caja = 0;
         }
 
         $datos_cierre = [
+            "apertura_id" => $apertura_id,
             "colaboradores_id" => $colaboradores_id_apertura,
             "fecha" => $fecha_apertura,
             "factura_inicial" => $factura_inicial,
@@ -158,29 +188,37 @@ class aperturaCajaControlador extends aperturaCajaModelo{
             "monto" => 0,
             "neto" => $neto_caja,
             "estado" => 2,
-            "fecha_registro" => date("Y-m-d H:i:s"),
+            "fecha_registro" => date("Y-m-d H:i:s")
         ];
+
+        try{
+            $this->registrar_movimientos_contables_cierre_modelo($apertura_id);
+        }catch(Throwable $e){
+            return mainModel::showNotification([
+                "title" => "Error contable",
+                "text" => "No se pudo registrar la contabilidad del cierre: ".$e->getMessage(),
+                "type" => "error"
+            ]);
+        }
 
         $query = $this->cerrar_caja_modelo($datos_cierre);
 
         if(!$query){
             return mainModel::showNotification([
                 "title" => "Error",
-                "text" => "No se pudo cerrar la caja",
+                "text" => "La contabilidad fue registrada, pero no se pudo cerrar la caja.",
                 "type" => "error"
             ]);
         }
 
-        $this->registrarMovimientosContables($apertura_id);
-
         $this->registrarHistorial(
             "Cierre",
-            "Se cerró la caja. Venta: ".$totales['total_despues_isv']." | Retiros: ".$total_retiros." | Neto caja: ".$neto_caja
+            "Se cerró la caja. Venta: ".$total_vendido." | Retiros: ".$total_retiros." | Neto físico: ".$neto_caja
         );
 
         return mainModel::showNotification([
             "title" => "Cierre exitoso",
-            "text" => "La caja se ha cerrado correctamente",
+            "text" => "La caja se ha cerrado correctamente. Venta: L. ".number_format($total_vendido, 2)." | Retiros: L. ".number_format($total_retiros, 2)." | Neto físico: L. ".number_format($neto_caja, 2),
             "type" => "success",
             "funcion" => "validarAperturaCajaUsuario();getCajero();printComprobanteCajas($apertura_id);listar_registro_cajas();",
             "form" => "formAperturaCaja",
@@ -201,219 +239,5 @@ class aperturaCajaControlador extends aperturaCajaModelo{
         }
 
         return "";
-    }
-
-    private function calcularTotalesCaja($apertura_id) {
-        $result = $this->consulta_facturas_electronicas_con_pagos($apertura_id);
-
-        $totales = [
-            'total' => 0,
-            'descuentos' => 0,
-            'isv_neto' => 0,
-            'importe_gravado' => 0,
-            'importe_excento' => 0,
-            'subtotal' => 0,
-            'total_despues_isv' => 0
-        ];
-
-        if($result){
-            while($data = $result->fetch_assoc()){
-                $detalles = $this->consulta_detalles_facturas($data['facturas_id']);
-
-                if($detalles){
-                    while($detalle = $detalles->fetch_assoc()){
-                        $totales['total'] += ($detalle["precio"] * $detalle["cantidad"]);
-                        $totales['descuentos'] += $detalle["descuento"];
-                        $totales['isv_neto'] += $detalle["isv_valor"];
-
-                        if($detalle["isv_valor"] > 0){
-                            $totales['importe_gravado'] += ($detalle["precio"] * $detalle["cantidad"]);
-                        }else{
-                            $totales['importe_excento'] += ($detalle["precio"] * $detalle["cantidad"]);
-                        }
-                    }
-                }
-            }
-        }
-
-        $totales['subtotal'] = $totales['importe_gravado'] + $totales['importe_excento'];
-        $totales['total_despues_isv'] = ($totales['total'] + $totales['isv_neto']) - $totales['descuentos'];
-
-        return $totales;
-    }
-
-    private function obtenerTotalRetirosCaja($apertura_id){
-        $empresa_id = isset($_SESSION['empresa_id_sd']) ? (int)$_SESSION['empresa_id_sd'] : 0;
-
-        $query = "
-            SELECT COALESCE(SUM(monto), 0) AS total_retiros
-            FROM caja_retiros
-            WHERE apertura_id = '$apertura_id'
-              AND empresa_id = '$empresa_id'
-              AND estado = 1
-        ";
-
-        $sql = mainModel::connection()->query($query);
-
-        if(!$sql){
-            die(mainModel::connection()->error);
-        }
-
-        if($sql->num_rows > 0){
-            $row = $sql->fetch_assoc();
-            return (float)$row['total_retiros'];
-        }
-
-        return 0;
-    }
-
-    private function obtenerCuentaEfectivoCaja(){
-        $query = "
-            SELECT cuentas_id
-            FROM tipo_pago
-            WHERE tipo_pago_id = 1
-            LIMIT 1
-        ";
-
-        $sql = mainModel::connection()->query($query);
-
-        if(!$sql){
-            die(mainModel::connection()->error);
-        }
-
-        if($sql->num_rows > 0){
-            $row = $sql->fetch_assoc();
-            return (int)$row['cuentas_id'];
-        }
-
-        return 0;
-    }
-
-    private function validarCierreContabilizado($apertura_id){
-        $factura = "AP-".$apertura_id;
-
-        $query = "
-            SELECT ingresos_id
-            FROM ingresos
-            WHERE factura = '$factura'
-              AND tipo_ingreso = 1
-              AND estado = 1
-            LIMIT 1
-        ";
-
-        $sql = mainModel::connection()->query($query);
-
-        if(!$sql){
-            die(mainModel::connection()->error);
-        }
-
-        return $sql->num_rows > 0;
-    }
-
-    private function registrarMovimientosContables($apertura_id) {
-        $cn = mainModel::connection();
-        $cn->begin_transaction();
-
-        try{
-            $fecha = date('Y-m-d');
-            $fecha_registro = date('Y-m-d H:i:s');
-            $empresa_id = $_SESSION['empresa_id_sd'];
-            $colaboradores_id = $_SESSION['colaborador_id_sd'];
-            $tipo_ingreso = 1;
-
-            $montos = $this->getMontosNoContabilizadosPorCuenta($apertura_id);
-            $total_retiros = $this->obtenerTotalRetirosCaja($apertura_id);
-            $cuenta_efectivo = $this->obtenerCuentaEfectivoCaja();
-
-            $porcentaje_isv = 0.0;
-            $rowISV = mainModel::getISV("Facturas");
-
-            if($rowISV && $rowISV->num_rows > 0){
-                $porcentaje_isv = (float)$rowISV->fetch_assoc()['valor'];
-            }
-
-            $recibide = '';
-            $rowCli = $this->getNombreClienteModelo(1);
-
-            if($rowCli && $rowCli->num_rows > 0){
-                $rec = $rowCli->fetch_assoc();
-                $recibide = isset($rec['nombre']) ? $rec['nombre'] : '';
-            }
-
-            if($montos){
-                while($monto = $montos->fetch_assoc()){
-                    $cuentas_id = (int)$monto['cuentas_id'];
-                    $total_original = (float)$monto['monto'];
-                    $total = $total_original;
-
-                    if($cuentas_id == $cuenta_efectivo){
-                        $total = $total_original - $total_retiros;
-
-                        if($total < 0){
-                            $total = 0;
-                        }
-                    }
-
-                    if($total <= 0){
-                        $this->marcar_pagos_contabilizados_por_cuenta($apertura_id, $cuentas_id, 0);
-                        continue;
-                    }
-
-                    $subtotal = ($porcentaje_isv > 0) ? ($total / (1 + ($porcentaje_isv/100))) : $total;
-                    $isv_neto = $total - $subtotal;
-
-                    $datos_ingreso = [
-                        "clientes_id" => 2,
-                        "cuentas_id" => $cuentas_id,
-                        "empresa_id" => $empresa_id,
-                        "fecha" => $fecha,
-                        "factura" => "AP-".$apertura_id,
-                        "subtotal" => $subtotal,
-                        "isv" => $isv_neto,
-                        "descuento" => 0,
-                        "nc" => 0,
-                        "total" => $total,
-                        "observacion" => "Ingresos por venta Cierre de Caja",
-                        "estado" => 1,
-                        "fecha_registro" => $fecha_registro,
-                        "colaboradores_id" => $colaboradores_id,
-                        "tipo_ingreso" => $tipo_ingreso,
-                        "recibide" => $recibide
-                    ];
-
-                    $ingreso_id = $this->agregar_ingresos_contabilidad_modelo($datos_ingreso);
-
-                    $this->marcar_pagos_contabilizados_por_cuenta($apertura_id, $cuentas_id, $ingreso_id);
-
-                    $saldo_actual = 0;
-                    $rsSaldo = $this->consultar_saldo_movimientos_cuentas_contabilidad($cuentas_id);
-
-                    if($rsSaldo && $rsSaldo->num_rows > 0){
-                        $filaS = $rsSaldo->fetch_assoc();
-                        $saldo_actual = isset($filaS['saldo']) ? (float)$filaS['saldo'] : 0;
-                    }
-
-                    $nuevo_saldo = $saldo_actual + $total;
-
-                    $datos_movimiento = [
-                        "cuentas_id" => $cuentas_id,
-                        "empresa_id" => $empresa_id,
-                        "fecha" => $fecha,
-                        "ingreso" => $total,
-                        "egreso" => 0,
-                        "saldo" => $nuevo_saldo,
-                        "colaboradores_id" => $colaboradores_id,
-                        "fecha_registro" => $fecha_registro,
-                    ];
-
-                    $this->agregar_movimientos_contabilidad_modelo($datos_movimiento);
-                }
-            }
-
-            $cn->commit();
-        }catch(Throwable $e){
-            $cn->rollback();
-            throw $e;
-        }
     }
 }

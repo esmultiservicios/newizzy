@@ -63,9 +63,12 @@ function calcularTotalIngreso() {
 
 function debounce(func, wait) {
   let timeout;
+
   return function () {
     const context = this, args = arguments;
+
     clearTimeout(timeout);
+
     timeout = setTimeout(() => func.apply(context, args), wait);
   };
 }
@@ -83,14 +86,19 @@ function buscarClientes(searchText) {
 function toNumber(val) {
   if (val == null) return 0;
   if (typeof val === "number") return val;
+
   return parseFloat(String(val).replace(/[^\d.-]/g, "")) || 0;
 }
 
 function formatMoney(n) {
   try {
-    return Number(n).toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return Number(n).toLocaleString('es-HN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
   } catch (e) {
     var s = (Number(n) || 0).toFixed(2);
+
     return s.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   }
 }
@@ -115,7 +123,10 @@ var total_ingreso_footer = function () {
   $.ajax({
     url: '<?php echo SERVERURL;?>core/totalIngresoFooter.php',
     type: "POST",
-    data: { "fechai": fechai, "fechaf": fechaf }
+    data: {
+      "fechai": fechai,
+      "fechaf": fechaf
+    }
   })
   .done(function (data) {
     data = JSON.parse(data || "{}");
@@ -180,6 +191,7 @@ var listar_ingresos_contabilidad = function () {
       },
       error: function (xhr) {
         $cardBody.find('.overlay').remove();
+
         showNotify("error", "Error", "No se pudieron cargar los datos");
         console.error("Error en AJAX:", xhr.responseText);
       }
@@ -294,7 +306,6 @@ var listar_ingresos_contabilidad = function () {
       }
     ],
 
-    // Última fecha primero
     order: [[1, "desc"]],
 
     lengthMenu: lengthMenu10,
@@ -310,63 +321,19 @@ var listar_ingresos_contabilidad = function () {
         searchable: false,
         className: "text-center text-nowrap align-middle"
       },
-      {
-        targets: 1,
-        width: "7.69%"
-      },
-      {
-        targets: 2,
-        width: "7.69%"
-      },
-      {
-        targets: 3,
-        width: "7.69%"
-      },
-      {
-        targets: 4,
-        width: "7.69%"
-      },
-      {
-        targets: 5,
-        width: "7.69%"
-      },
-      {
-        targets: 6,
-        width: "7.69%"
-      },
-      {
-        targets: 7,
-        width: "7.69%"
-      },
-      {
-        targets: 8,
-        width: "7.69%",
-        className: "text-right text-nowrap"
-      },
-      {
-        targets: 9,
-        width: "7.69%",
-        className: "text-right text-nowrap"
-      },
-      {
-        targets: 10,
-        width: "7.69%",
-        className: "text-right text-nowrap"
-      },
-      {
-        targets: 11,
-        width: "7.69%",
-        className: "text-right text-nowrap"
-      },
-      {
-        targets: 12,
-        width: "7.69%"
-      },
-      {
-        targets: 13,
-        width: "7.69%",
-        className: "text-center text-nowrap"
-      }
+      { targets: 1, width: "7.69%" },
+      { targets: 2, width: "7.69%" },
+      { targets: 3, width: "7.69%" },
+      { targets: 4, width: "7.69%" },
+      { targets: 5, width: "7.69%" },
+      { targets: 6, width: "7.69%" },
+      { targets: 7, width: "7.69%" },
+      { targets: 8, width: "7.69%", className: "text-right text-nowrap" },
+      { targets: 9, width: "7.69%", className: "text-right text-nowrap" },
+      { targets: 10, width: "7.69%", className: "text-right text-nowrap" },
+      { targets: 11, width: "7.69%", className: "text-right text-nowrap" },
+      { targets: 12, width: "7.69%" },
+      { targets: 13, width: "7.69%", className: "text-center text-nowrap" }
     ],
 
     buttons: [
@@ -453,7 +420,7 @@ var listar_ingresos_contabilidad = function () {
   $('#buscar').focus();
 };
 
-// ===== Acciones de la tabla =====
+// ===== Acciones de la tabla: ANULAR =====
 var anular_ingresos_dataTable = function (tbody, table) {
   $(tbody).off("click", "button.anular_ingreso");
 
@@ -470,10 +437,23 @@ var anular_ingresos_dataTable = function (tbody, table) {
 
     const ingresos_id = rowData.ingresos_id;
 
+    if (!ingresos_id) {
+      showNotify("error", "Error", "No se pudo obtener el ID del ingreso.");
+      return;
+    }
+
     const content = document.createElement("div");
     content.innerHTML = `
-      <p style="margin:0 0 6px 0;">Se marcará como <b>ANULADO</b> y se registrará un <b>EGRESO espejo</b>.</p>
-      <p style="margin:0;"><b>Esto NO es una compra</b>; es un <u>egreso por anulación del ingreso</u>.</p>`;
+      <p style="margin:0 0 6px 0;">
+        Se cambiará el ingreso de <b>Activo</b> a <b>Inactivo</b>.
+      </p>
+      <p style="margin:0 0 6px 0;">
+        También se registrará un <b>egreso de reintegro</b> por el mismo valor.
+      </p>
+      <p style="margin:0;">
+        Además se registrará el <b>movimiento de cuenta</b> correspondiente.
+      </p>
+    `;
 
     swal({
       title: "¿Anular ingreso?",
@@ -494,43 +474,47 @@ var anular_ingresos_dataTable = function (tbody, table) {
     }).then(function (ok) {
       if (!ok) return;
 
-      const cuentaId = parseInt(rowData.cuentas_id ?? rowData.cuenta_ingresos ?? 0, 10) || 0;
-
-      const payload = {
-        ingresos_id: ingresos_id,
-        cuenta_ingresos: cuentaId,
-        fecha_ingresos: rowData.fecha,
-        factura_ingresos: rowData.factura,
-        subtotal_ingresos: toNumber(rowData.subtotal_raw ?? rowData.subtotal),
-        isv_ingresos: toNumber(rowData.impuesto_raw ?? rowData.impuesto),
-        descuento_ingresos: toNumber(rowData.descuento_raw ?? rowData.descuento),
-        nc_ingresos: toNumber(rowData.nc_raw ?? rowData.nc),
-        total_ingresos: toNumber(rowData.total_raw ?? rowData.total),
-        observacion_ingresos: `[ANULACIÓN] Egreso espejo por anulación del ingreso ID ${ingresos_id}` +
-                               (rowData.observacion ? ` | Obs: ${rowData.observacion}` : ""),
-        clientes_id: rowData.clientes_id ?? 0,
-        proveedor_anulacion_id: 1
-      };
-
-      if (!payload.cuenta_ingresos) {
-        showNotify("error", "Error", "No se pudo determinar la cuenta contable.");
-        return;
-      }
-
       $.ajax({
         url: "<?php echo SERVERURL;?>ajax/cancelIngresoContabilidadAjax.php",
         type: "POST",
-        data: payload,
+        dataType: "html",
+        data: {
+          ingresos_id: ingresos_id,
+          proveedor_anulacion_id: 1
+        },
         beforeSend: function () {
           $btn.prop("disabled", true);
         },
-        success: function () {
+        success: function (response) {
+          console.log("Respuesta anulación ingreso:", response);
+
+          if (
+            typeof response === "string" &&
+            (
+              response.toLowerCase().indexOf("fatal error") !== -1 ||
+              response.toLowerCase().indexOf("warning") !== -1 ||
+              response.toLowerCase().indexOf("no se pudo") !== -1 ||
+              response.toLowerCase().indexOf('"type":"error"') !== -1 ||
+              response.toLowerCase().indexOf("'type' => 'error'") !== -1
+            )
+          ) {
+            showNotify("error", "Error", "No se pudo anular el ingreso. Revise la consola o el log del servidor.");
+            console.error("Error devuelto por PHP:", response);
+            return;
+          }
+
           listar_ingresos_contabilidad();
           total_ingreso_footer();
-          showNotify("success", "Ingreso anulado", "Se anuló el ingreso y se registró el egreso espejo.");
+
+          showNotify(
+            "success",
+            "Ingreso anulado",
+            "Se anuló el ingreso, se registró el egreso de reintegro y el movimiento de cuenta."
+          );
         },
         error: function (xhr) {
           showNotify("error", "Error", "No se pudo anular el ingreso: " + xhr.statusText);
+          console.error("Error al anular ingreso:", xhr.responseText);
         },
         complete: function () {
           $btn.prop("disabled", false);
@@ -594,7 +578,6 @@ var edit_reporte_ingresos_dataTable = function (tbody, table) {
 
             $form.find('#pro_ingresos_contabilidad').val("Editar");
 
-            // Fecha bloqueada y sin remember
             var fechaReg = v[3];
             var $fecha = $form.find('#fecha_ingresos');
 
@@ -625,7 +608,6 @@ var edit_reporte_ingresos_dataTable = function (tbody, table) {
               })();
             });
 
-            // Campos
             $form.find('#factura_ingresos').val(v[4]);
             $form.find('#subtotal_ingresos').val(v[5]);
             $form.find('#isv_ingresos').val(v[6]);
@@ -634,11 +616,9 @@ var edit_reporte_ingresos_dataTable = function (tbody, table) {
             $form.find('#total_ingresos').val(v[9]);
             $form.find('#observacion_ingresos').val(v[10]);
 
-            // Selects
             $form.find('#cuenta_ingresos').val(v[1]).selectpicker('refresh');
             $form.find('#empresa_ingresos').val(v[2]).selectpicker('refresh');
 
-            // Cliente
             var clienteId    = (v[0] != null && v[0] !== '') ? String(v[0]) : String(data.clientes_id || data.cliente_id || '');
             var clienteTexto = v[11] || data.cliente || (clienteId ? ('Cliente #' + clienteId) : 'Cliente');
 
@@ -689,7 +669,6 @@ var edit_reporte_ingresos_dataTable = function (tbody, table) {
   });
 };
 
-// Al cerrar el modal, salir de modo-editar y re-habilitar fecha para "Nuevo"
 $(document).on('hidden.bs.modal', '#modalIngresosContables', function () {
   $('#formIngresosContables').removeClass('modo-editar');
 
@@ -698,6 +677,7 @@ $(document).on('hidden.bs.modal', '#modalIngresosContables', function () {
     .removeAttr('data-original-fecha');
 });
 
+// ===== Acciones de la tabla: REPORTE =====
 var view_reporte_ingresos_dataTable = function (tbody, table) {
   $(tbody).off("click", "button.print_gastos");
 
@@ -706,13 +686,23 @@ var view_reporte_ingresos_dataTable = function (tbody, table) {
 
     var data = table.row($(this).parents("tr")).data();
 
+    if (!data || !data.ingresos_id) {
+      showNotify("error", "Error", "No se pudo obtener el ID del ingreso.");
+      return;
+    }
+
     printIngresos(data.ingresos_id);
   });
 };
 
 function printIngresos(ingresos_id) {
-  var url = '<?php echo SERVERURL; ?>core/generaIngresos.php?ingresos_id=' + ingresos_id;
-  window.open(url);
+  if (!ingresos_id) {
+    showNotify("error", "Error", "ID de ingreso inválido.");
+    return;
+  }
+
+  var url = '<?php echo SERVERURL; ?>core/generaIngresos.php?ingresos_id=' + encodeURIComponent(ingresos_id);
+  window.open(url, '_blank');
 }
 
 function modal_ingresos_contabilidad() {
@@ -725,13 +715,11 @@ function modal_ingresos_contabilidad() {
 
   $form.removeClass('modo-editar');
 
-  // Reset total del form
   $form[0].reset();
 
   $form.find('select.selectpicker').val('').selectpicker('refresh');
   $form.find('input[type="text"], input[type="number"], textarea').val('');
 
-  // Habilitar fecha y re-vincular remember para nuevo
   var $f = $form.find('#fecha_ingresos');
 
   $f.prop('disabled', false)
@@ -742,7 +730,6 @@ function modal_ingresos_contabilidad() {
       } catch (e) { }
     });
 
-  // Re-aplicar fecha memorizada tras el reset
   setTimeout(function () {
     var remembered = '';
 
@@ -766,17 +753,14 @@ function modal_ingresos_contabilidad() {
     }
   }, 0);
 
-  // Botones
   $('#reg_ingresosContabilidad').show();
   $('#edi_ingresosContabilidad').hide();
   $('#delete_ingresosContabilidad').hide();
 
-  // Habilitar campos
   $('#formIngresosContables #cuenta_codigo').prop("readonly", false);
   $('#formIngresosContables #cuenta_nombre').prop("readonly", false);
   $('#formIngresosContables #cuentas_activo').prop('disabled', false).prop('checked', false);
 
-  // Helper para re-habilitar y refrescar selectpicker
   function enablePicker(sel) {
     var $el = $form.find(sel);
 
@@ -789,14 +773,12 @@ function modal_ingresos_contabilidad() {
   enablePicker('#empresa_ingresos');
   enablePicker('#recibide_ingresos');
 
-  // Inputs numéricos
   $('#formIngresosContables #subtotal_ingresos').prop('disabled', false).val('');
   $('#formIngresosContables #isv_ingresos').prop('disabled', false).val('');
   $('#formIngresosContables #descuento_ingresos').prop('disabled', false).val('');
   $('#formIngresosContables #nc_ingresos').prop('disabled', false).val('');
   $('#formIngresosContables #total_ingresos').prop('disabled', false).val('0.00');
 
-  // Buscar botones
   $('#formIngresosContables #buscar_cuenta_ingresos').show();
   $('#formIngresosContables #buscar_empresa_ingresos').show();
 
@@ -839,7 +821,6 @@ function getCuentaIngresos() {
   });
 }
 
-// Foco en modales
 $(document).ready(function () {
   $("#modal_buscar_clientes_facturacion").on('shown.bs.modal', function () {
     $(this).find('#formulario_busqueda_clientes_facturacion #buscar').focus();
@@ -854,10 +835,6 @@ $('#btnNuevoCliente').on('click', function () {
   modal_clientes();
 });
 
-// ===============================
-// GENERAR DOCUMENTO AUTOMÁTICO INGRESOS
-// Formato: INYYYYMMDDHHMMSS
-// ===============================
 function generarDocumentoIngresoAutomatico() {
   var fecha = new Date();
 
@@ -892,10 +869,6 @@ $(document).on('click', '#btnGenerarFacturaIngresos', function (e) {
   showNotify('success', 'Documento generado', 'Se generó el número de documento correctamente.');
 });
 
-// =========================================================
-// EVITAR QUE SCROLL Y FLECHAS CAMBIEN INPUTS NUMBER
-// EN FORMULARIOS DE CONTABILIDAD
-// =========================================================
 $(document).on(
   'wheel',
   '#formIngresosContables input[type="number"], #formEgresosContables input[type="number"]',

@@ -7,6 +7,10 @@ require_once __DIR__ . '/../mainModel.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
+if (!isset($_SESSION)) {
+    session_start(['name' => 'SD']);
+}
+
 $insMainModel = new mainModel();
 
 if (method_exists($insMainModel, 'validarSesion')) {
@@ -98,6 +102,7 @@ if (!$resCategoria || $resCategoria->num_rows <= 0) {
 }
 
 $rowCategoria = $resCategoria->fetch_assoc();
+
 $motivo = limpiarTextoRetiroCaja($rowCategoria['nombre']);
 $motivo = mb_substr($motivo, 0, 100, 'UTF-8');
 
@@ -203,132 +208,36 @@ if (!$resCuenta || $resCuenta->num_rows <= 0) {
 $rowCuenta = $resCuenta->fetch_assoc();
 $cuentas_id = (int)$rowCuenta['cuentas_id'];
 
-$proveedores_id = 1;
-$tipo_egreso = 2;
+if ($cuentas_id <= 0) {
+    echo json_encode([
+        'success' => false,
+        'title' => 'Cuenta inválida',
+        'message' => 'La cuenta contable del efectivo no es válida.'
+    ]);
+    exit;
+}
+
+/*
+    REGLA CORRECTA:
+    El retiro de caja NO registra egresos.
+    El retiro de caja NO registra movimientos_cuentas.
+
+    Aquí SOLO se registra caja_retiros.
+
+    Luego, cuando se cierre la caja:
+    - Se registrará el ingreso por el total vendido.
+    - Se registrará el egreso por los retiros activos.
+    - Se registrarán ambos movimientos contables.
+*/
+
+$egresos_id = 0;
 $estado = 1;
 
-$egresos_id = $insMainModel->correlativo('egresos_id', 'egresos');
-$factura_ref = 'RC-' . $apertura_id . '-' . $egresos_id;
-
-$observacion_egreso = 'Retiro de caja - ' . $motivo;
-
-if ($observacion !== '') {
-    $observacion_egreso .= ' - ' . $observacion;
-}
-
-$observacion_egreso = mb_substr($observacion_egreso, 0, 150, 'UTF-8');
-
-$insertEgreso = "
-    INSERT INTO egresos (
-        egresos_id,
-        cuentas_id,
-        proveedores_id,
-        empresa_id,
-        tipo_egreso,
-        fecha,
-        factura,
-        factura_pdf,
-        subtotal,
-        descuento,
-        nc,
-        impuesto,
-        total,
-        observacion,
-        estado,
-        colaboradores_id,
-        fecha_registro,
-        categoria_gastos_id
-    ) VALUES (
-        '$egresos_id',
-        '$cuentas_id',
-        '$proveedores_id',
-        '$empresa_id',
-        '$tipo_egreso',
-        '$fecha',
-        '$factura_ref',
-        NULL,
-        '$monto',
-        '0',
-        '0',
-        '0',
-        '$monto',
-        '$observacion_egreso',
-        '$estado',
-        '$colaboradores_id',
-        '$fecha_registro',
-        '$categoria_gastos_id'
-    )
-";
-
-$okEgreso = $insMainModel->ejecutar_consulta_simple($insertEgreso);
-
-if (!$okEgreso) {
-    echo json_encode([
-        'success' => false,
-        'title' => 'Error al registrar',
-        'message' => 'No se pudo registrar el egreso del retiro.'
-    ]);
-    exit;
-}
-
-$saldo_actual = 0;
-
-$sqlSaldo = "
-    SELECT saldo
-    FROM movimientos_cuentas
-    WHERE cuentas_id = '$cuentas_id'
-    ORDER BY movimientos_cuentas_id DESC
-    LIMIT 1
-";
-
-$resSaldo = $insMainModel->ejecutar_consulta_simple($sqlSaldo);
-
-if ($resSaldo && $resSaldo->num_rows > 0) {
-    $rowSaldo = $resSaldo->fetch_assoc();
-    $saldo_actual = (float)$rowSaldo['saldo'];
-}
-
-$nuevo_saldo = $saldo_actual - $monto;
-
-$movimientos_cuentas_id = $insMainModel->correlativo('movimientos_cuentas_id', 'movimientos_cuentas');
-
-$insertMovimiento = "
-    INSERT INTO movimientos_cuentas (
-        movimientos_cuentas_id,
-        cuentas_id,
-        empresa_id,
-        fecha,
-        ingreso,
-        egreso,
-        saldo,
-        colaboradores_id,
-        fecha_registro
-    ) VALUES (
-        '$movimientos_cuentas_id',
-        '$cuentas_id',
-        '$empresa_id',
-        '$fecha',
-        '0',
-        '$monto',
-        '$nuevo_saldo',
-        '$colaboradores_id',
-        '$fecha_registro'
-    )
-";
-
-$okMovimiento = $insMainModel->ejecutar_consulta_simple($insertMovimiento);
-
-if (!$okMovimiento) {
-    echo json_encode([
-        'success' => false,
-        'title' => 'Movimiento no registrado',
-        'message' => 'El egreso fue creado, pero no se pudo registrar el movimiento de cuenta.'
-    ]);
-    exit;
-}
+$caja_retiros_id = $insMainModel->correlativo('caja_retiros_id', 'caja_retiros');
 
 $insertRetiro = "
     INSERT INTO caja_retiros (
+        caja_retiros_id,
         apertura_id,
         egresos_id,
         cuentas_id,
@@ -341,6 +250,7 @@ $insertRetiro = "
         fecha,
         fecha_registro
     ) VALUES (
+        '$caja_retiros_id',
         '$apertura_id',
         '$egresos_id',
         '$cuentas_id',
@@ -348,7 +258,7 @@ $insertRetiro = "
         '$monto',
         '$motivo',
         '$observacion',
-        '1',
+        '$estado',
         '$colaboradores_id',
         '$fecha',
         '$fecha_registro'
@@ -360,19 +270,27 @@ $okRetiro = $insMainModel->ejecutar_consulta_simple($insertRetiro);
 if (!$okRetiro) {
     echo json_encode([
         'success' => false,
-        'title' => 'Historial no registrado',
-        'message' => 'El egreso y el movimiento fueron creados, pero no se pudo guardar el historial del retiro en caja_retiros.'
+        'title' => 'Error al registrar',
+        'message' => 'No se pudo registrar el retiro de caja.'
     ]);
     exit;
+}
+
+$saldo_final_caja = $saldo_disponible - $monto;
+
+if ($saldo_final_caja < 0) {
+    $saldo_final_caja = 0;
 }
 
 echo json_encode([
     'success' => true,
     'title' => 'Retiro registrado',
     'message' => 'Retiro de caja registrado correctamente.',
-    'saldo_anterior' => number_format($saldo_disponible, 2, '.', ''),
+    'caja_retiros_id' => $caja_retiros_id,
+    'apertura_id' => $apertura_id,
+    'saldo_anterior_caja' => number_format($saldo_disponible, 2, '.', ''),
     'monto_retirado' => number_format($monto, 2, '.', ''),
-    'saldo_final' => number_format(($saldo_disponible - $monto), 2, '.', ''),
+    'saldo_final_caja' => number_format($saldo_final_caja, 2, '.', ''),
     'categoria_gastos_id' => $categoria_gastos_id,
     'categoria' => $motivo,
     'egresos_id' => $egresos_id

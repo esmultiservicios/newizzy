@@ -51,12 +51,12 @@
                             <i class="fas fa-chart-pie fa-lg"></i> Ganancia del Período
                         </button>
 
-                        <button type="submit" class="btn btn-primary mr-2" id="search">
-                            <i class="fas fa-filter fa-lg"></i> Filtrar
+                        <button type="button" class="btn btn-warning mr-2" id="btnRetirosPeriodo">
+                            <i class="fas fa-money-bill-wave fa-lg"></i> Retiros del Período
                         </button>
 
-                        <button type="reset" class="btn btn-secondary">
-                            <i class="fas fa-broom fa-lg"></i> Limpiar
+                        <button type="submit" class="btn btn-primary mr-2" id="search">
+                            <i class="fas fa-filter fa-lg"></i> Filtrar
                         </button>
                     </div>
                 </div>
@@ -114,6 +114,9 @@
             </div>
 
             <div class="modal-body">
+
+                <input type="hidden" id="dg_apertura_id" value="0">
+                <input type="hidden" id="dg_modo" value="caja">
 
                 <div class="izzy-note mb-3">
                     <strong>Resumen claro:</strong>
@@ -272,36 +275,153 @@
 
                 <div class="table-responsive">
                     <table id="dataTableDetalleGananciaCaja" class="table table-striped table-hover table-condensed" style="width:100%">
-                        <thead>
-                            <tr>
-                                <th>Factura</th>
-                                <th>Producto</th>
-                                <th>Cantidad</th>
-                                <th>Costo Unit.</th>
-                                <th>Precio Venta</th>
-                                <th>Total Costo</th>
-                                <th>Total Venta</th>
-                                <th>Ganancia</th>
-                            </tr>
-                        </thead>
-                        <tfoot>
-                            <tr>
-                                <th colspan="5" class="text-right">Totales:</th>
-                                <th id="dg_footer_total_costo">L. 0.00</th>
-                                <th id="dg_footer_total_venta">L. 0.00</th>
-                                <th id="dg_footer_total_ganancia">L. 0.00</th>
-                            </tr>
-                        </tfoot>
                     </table>
                 </div>
 
             </div>
 
             <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="refrescarDesgloseGananciaCaja();">
+                    <i class="fas fa-sync-alt"></i> Actualizar
+                </button>
+
                 <button type="button" class="btn btn-primary" data-dismiss="modal">
                     <i class="fas fa-times"></i> Cerrar
                 </button>
             </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalDetalleRetirosCaja" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+
+            <div class="modal-header izzy-modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-money-bill-wave mr-1"></i>
+                    Detalle de retiros de caja
+                    <small id="dr_contexto_caja" class="d-block mt-1 text-light" style="opacity:.85;"></small>
+                </h5>
+
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body">
+
+                <input type="hidden" id="dr_apertura_id" value="0">
+
+                <div class="row mb-3">
+                    <div class="col-md-4 col-sm-6 mb-3">
+                        <div class="izzy-kpi-card">
+                            <div class="izzy-kpi-label">Total de retiros activos</div>
+                            <p class="izzy-kpi-value izzy-kpi-danger" id="dr_total_retiros">L. 0.00</p>
+                            <small>Solo suma retiros activos.</small>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 col-sm-6 mb-3">
+                        <div class="izzy-kpi-card">
+                            <div class="izzy-kpi-label">Estado de caja</div>
+                            <p class="izzy-kpi-value" id="dr_estado_caja">-</p>
+                            <small>Solo cajas abiertas permiten reintegro.</small>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 col-sm-6 mb-3">
+                        <div class="izzy-kpi-card">
+                            <div class="izzy-kpi-label">Acción permitida</div>
+                            <p class="izzy-kpi-value" id="dr_accion_permitida">-</p>
+                            <small>Depende del estado de la caja.</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="izzy-note izzy-note-warning mb-3">
+                    <strong>Importante:</strong>
+                    el reintegro solo se puede realizar mientras la caja esté abierta. Puede reintegrar todo el retiro para anularlo, o reintegrar una parte para ajustar el monto retirado.
+                </div>
+
+                <div class="table-responsive">
+                    <table id="dataTableDetalleRetirosCaja" class="table table-striped table-hover table-condensed" style="width:100%">
+                    </table>
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="cargarDetalleRetirosCaja($('#dr_apertura_id').val());">
+                    <i class="fas fa-sync-alt"></i> Actualizar
+                </button>
+
+                <button type="button" class="btn btn-primary" data-dismiss="modal">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalReintegroRetiroCaja" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+
+            <div class="modal-header izzy-modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-undo-alt mr-1"></i>
+                    Reintegrar retiro de caja
+                </h5>
+
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <form id="formReintegroRetiroCaja" autocomplete="off">
+                <div class="modal-body">
+
+                    <input type="hidden" id="reintegro_caja_retiros_id" name="caja_retiros_id" value="0">
+                    <input type="hidden" id="reintegro_apertura_id" name="apertura_id" value="0">
+                    <input type="hidden" id="reintegro_monto_actual" name="monto_actual" value="0">
+
+                    <div class="alert alert-info">
+                        <strong>Retiro actual:</strong>
+                        <span id="reintegro_monto_actual_text">L. 0.00</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>¿Cuánto dinero desea devolver?</label>
+                        <input type="number" step="0.01" min="0.01" class="form-control" id="reintegro_monto" name="monto_reintegro" placeholder="0.00">
+                        <small class="form-text text-muted">
+                            Si devuelve el monto completo, el retiro se anula. Si devuelve una parte, el retiro queda ajustado con el saldo restante.
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Observación</label>
+                        <textarea class="form-control" id="reintegro_observacion" name="observacion" rows="3" maxlength="255" placeholder="Ejemplo: Se devuelve dinero por retiro incorrecto"></textarea>
+                    </div>
+
+                    <div class="alert alert-warning mb-0">
+                        Este reintegro reversa contablemente el dinero devuelto, registrando un movimiento como ingreso en la misma cuenta del retiro.
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success" id="btnGuardarReintegroRetiroCaja">
+                        <i class="fas fa-save"></i> Guardar reintegro
+                    </button>
+
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                </div>
+            </form>
 
         </div>
     </div>

@@ -548,8 +548,8 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
     }
 
     public function cancel_egresos_contabilidad_controlador(){
-        // 1) Validar sesión
         $validacion = mainModel::validarSesion();
+
         if($validacion['error']) {
             return mainModel::showNotification([
                 "title"   => "Error de sesión",
@@ -558,137 +558,166 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
                 "funcion" => "window.location.href = '".$validacion['redireccion']."'"
             ]);
         }
-    
-        // 2) Entradas
-        $egresos_id      = $_POST['egresos_id'];
-        $proveedores_id  = $_POST['proveedor_egresos'];
-        $cuentas_id      = mainModel::cleanString($_POST['cuenta_egresos']);
-        $empresa_id      = $_SESSION['empresa_id_sd'];
-        $fecha           = mainModel::cleanString($_POST['fecha_egresos']);
-        $factura         = mainModel::cleanString($_POST['factura_egresos']);
-        $subtotal        = (float) mainModel::cleanString($_POST['subtotal_egresos']);
-        $isv             = (float) mainModel::cleanString($_POST['isv_egresos']);
-        $descuento       = (float) mainModel::cleanString($_POST['descuento_egresos']);
-        $nc              = (float) mainModel::cleanString($_POST['nc_egresos']);
-        $total           = (float) mainModel::cleanString($_POST['total_egresos']);
-        $observacionIn   = mainModel::cleanString($_POST['observacion_egresos']);
-    
+
+        $egresos_id = isset($_POST['egresos_id']) ? mainModel::cleanString($_POST['egresos_id']) : "";
+        $empresa_id = $_SESSION['empresa_id_sd'];
         $colaboradores_id = $_SESSION['colaborador_id_sd'];
-        $fecha_registro   = date("Y-m-d H:i:s");
-    
-        // 3) Verificar existencia del egreso
-        $result_valid = egresosContabilidadModelo::valid_egresos_cuentas_modelo($egresos_id);
-        if($result_valid->num_rows === 0){
+        $fecha_registro = date("Y-m-d H:i:s");
+
+        if($egresos_id === "" || !is_numeric($egresos_id)){
             return mainModel::showNotification([
                 "title" => "Error",
-                "text"  => "No se encontró el egreso a anular.",
+                "text"  => "No se recibió el egreso a reversar.",
                 "type"  => "error"
             ]);
         }
-    
-        // 4) Armar observaciones
-        $obsEgreso  = "[ANULACIÓN EGRESO #{$egresos_id}] Reintegro por cancelación."
-                    . ($observacionIn ? " {$observacionIn}" : "");
-    
-        // Nombre proveedor (para “recibide” del ingreso)
+
+        $resultEgreso = egresosContabilidadModelo::obtener_egreso_reversion_modelo($egresos_id, $empresa_id);
+
+        if(!$resultEgreso || $resultEgreso->num_rows === 0){
+            return mainModel::showNotification([
+                "title" => "Error",
+                "text"  => "No se encontró el egreso a reversar.",
+                "type"  => "error"
+            ]);
+        }
+
+        $egresoData = $resultEgreso->fetch_assoc();
+
+        if((int)$egresoData['estado'] !== 1){
+            return mainModel::showNotification([
+                "title" => "Egreso inactivo",
+                "text"  => "Este egreso no está activo y no se puede reversar.",
+                "type"  => "warning",
+                "funcion" => "listar_gastos_contabilidad();total_gastos_footer();"
+            ]);
+        }
+
+        $cuentas_id = (int)$egresoData['cuentas_id'];
+        $proveedores_id = (int)$egresoData['proveedores_id'];
+        $fecha = $egresoData['fecha'];
+        $facturaOriginal = $egresoData['factura'];
+        $subtotal = (float)$egresoData['subtotal'];
+        $descuento = (float)$egresoData['descuento'];
+        $nc = (float)$egresoData['nc'];
+        $isv = (float)$egresoData['impuesto'];
+        $total = (float)$egresoData['total'];
+        $observacionOriginal = $egresoData['observacion'];
+
+        if($total <= 0){
+            return mainModel::showNotification([
+                "title" => "Total inválido",
+                "text"  => "No se puede reversar un egreso con total cero.",
+                "type"  => "error"
+            ]);
+        }
+
+        $resultReversion = egresosContabilidadModelo::validar_reversion_egreso_existente_modelo($egresos_id, $empresa_id);
+
+        if($resultReversion && $resultReversion->num_rows > 0){
+            return mainModel::showNotification([
+                "title" => "Reversión ya registrada",
+                "text"  => "Este egreso ya tiene un ingreso de reversión registrado.",
+                "type"  => "warning",
+                "funcion" => "listar_gastos_contabilidad();total_gastos_footer();"
+            ]);
+        }
+
+        $consultaSaldo = egresosContabilidadModelo::consultar_saldo_movimientos_cuentas_contabilidad($cuentas_id, $empresa_id);
+        $saldoAnterior = 0;
+
+        if($consultaSaldo && $consultaSaldo->num_rows > 0){
+            $lastSaldo = $consultaSaldo->fetch_assoc();
+            $saldoAnterior = isset($lastSaldo['saldo']) ? (float)$lastSaldo['saldo'] : 0;
+        }
+
+        $ingresoMov = $total;
+        $egresoMov = 0;
+        $nuevoSaldo = $saldoAnterior + $ingresoMov;
+
+        $ingresos_id_reversion = mainModel::correlativo("ingresos_id", "ingresos");
+
+        $facturaIngreso = "REV-EGR-".$egresos_id;
+        $facturaIngreso = substr($facturaIngreso, 0, 20);
+
         $nombreProveedor = egresosContabilidadModelo::getProveedorNombreById($proveedores_id);
-        $recibide        = "Reintegro egreso #{$egresos_id}".($nombreProveedor ? " - {$nombreProveedor}" : "");
-    
-        $obsIngreso = "[REINTEGRO] Anulación de egreso ID: {$egresos_id}"
-                    . ($factura ? ", Factura: {$factura}" : "")
-                    . ($nombreProveedor ? ", Proveedor: {$nombreProveedor}" : "")
-                    . ($observacionIn ? ". {$observacionIn}" : "");
-    
-        // 5) Transacción
-        $cn = mainModel::connection();
-        $cn->begin_transaction();
-    
-        try {
-            // 5.1) Marcar EGRESO como ANULADO (estado=0) + observación
-            $datosCancel = [
-                "egresos_id"  => $egresos_id,
-                "estado"      => 0,           // 0 = anulado
-                "observacion" => $obsEgreso
-            ];
-            if(!egresosContabilidadModelo::cancel_egresos_contabilidad_modelo($datosCancel)){
-                throw new Exception("No se pudo marcar el egreso como anulado.");
-            }
-    
-            // 5.2) Crear un INGRESO de reintegro (tabla ingresos)
-            $ingresos_id = mainModel::correlativo("ingresos_id", "ingresos");
-            $datosIngreso = [
-                "ingresos_id"      => $ingresos_id,
-                "cuentas_id"       => $cuentas_id,
-                "clientes_id"      => 0,              // no es cliente de venta
-                "empresa_id"       => $empresa_id,
-                "tipo_ingreso"     => 2,              // OTROS INGRESOS (tu esquema)
-                "fecha"            => $fecha,
-                "factura"          => "",             // sin número (no es venta)
-                "subtotal"         => $subtotal,      // puedes setear 0 y mandar todo en total si prefieres
-                "descuento"        => $descuento,
-                "nc"               => $nc,
-                "isv"              => $isv,
-                "total"            => $total,
-                "observacion"      => $obsIngreso,
-                "estado"           => 1,              // activo
-                "colaboradores_id" => $colaboradores_id,
-                "fecha_registro"   => $fecha_registro,
-                "recibide"         => $recibide
-            ];
-            if(!egresosContabilidadModelo::agregar_ingreso_por_anulacion_modelo($datosIngreso)){
-                throw new Exception("No se pudo registrar el ingreso por reintegro.");
-            }
-    
-            // 5.3) Registrar MOVIMIENTO en movimientos_cuentas (INGRESO por reintegro)
-            $lastSaldo = egresosContabilidadModelo::consultar_saldo_movimientos_cuentas_contabilidad($cuentas_id)->fetch_assoc();
-            $saldoActual = isset($lastSaldo['saldo']) ? (float)$lastSaldo['saldo'] : 0.00;
-    
-            $ingresoMov = $total;
-            $egresoMov  = 0.00;
-            $nuevoSaldo = $saldoActual + $ingresoMov;
-    
-            $datosMov = [
-                "cuentas_id"       => $cuentas_id,
-                "empresa_id"       => $empresa_id,
-                "fecha"            => $fecha,
-                "ingreso"          => $ingresoMov,
-                "egreso"           => $egresoMov,
-                "saldo"            => $nuevoSaldo,
-                "colaboradores_id" => $colaboradores_id,
-                "fecha_registro"   => $fecha_registro
-            ];
-            if(!egresosContabilidadModelo::agregar_movimientos_contabilidad_modelo($datosMov)){
-                throw new Exception("No se pudo insertar el movimiento del reintegro.");
-            }
-    
-            // 5.4) Historial
-            mainModel::guardarHistorial([
-                "modulo"           => 'Egresos Contabilidad',
-                "colaboradores_id" => $colaboradores_id,
-                "status"           => "Cancelación",
-                "observacion"      => "Anulado egreso ID {$egresos_id}; reintegro en ingresos ID {$ingresos_id} por {$total}.",
-                "fecha_registro"   => date("Y-m-d H:i:s")
-            ]);
-    
-            // 5.5) OK
-            $cn->commit();
-    
-            return mainModel::showNotification([
-                "type"    => "success",
-                "title"   => "Egreso anulado",
-                "text"    => "Se registró el reintegro y el movimiento de cuenta.",
-                "form"    => "formEgresosContables",
-                "funcion" => "listar_gastos_contabilidad();getEmpresaEgresos();getCuentaEgresos();getProveedorEgresos();total_gastos_footer();",
-                "modal"   => "modalEgresosContables"
-            ]);
-    
-        } catch (Exception $e) {
-            $cn->rollback();
+
+        $obsIngreso = "Reversión egreso #{$egresos_id}";
+
+        if($facturaOriginal != ""){
+            $obsIngreso .= " Factura original: {$facturaOriginal}.";
+        }
+
+        if($nombreProveedor != ""){
+            $obsIngreso .= " Proveedor: {$nombreProveedor}.";
+        }
+
+        if($observacionOriginal != ""){
+            $obsIngreso .= " ".$observacionOriginal;
+        }
+
+        $obsIngreso = substr($obsIngreso, 0, 150);
+
+        $datosIngreso = [
+            "ingresos_id" => $ingresos_id_reversion,
+            "cuentas_id" => $cuentas_id,
+            "clientes_id" => 0,
+            "empresa_id" => $empresa_id,
+            "tipo_ingreso" => 2,
+            "fecha" => $fecha,
+            "factura" => $facturaIngreso,
+            "subtotal" => $subtotal,
+            "descuento" => $descuento,
+            "nc" => $nc,
+            "isv" => $isv,
+            "total" => $total,
+            "observacion" => $obsIngreso,
+            "estado" => 1,
+            "colaboradores_id" => $colaboradores_id,
+            "fecha_registro" => $fecha_registro
+        ];
+
+        $datosMov = [
+            "cuentas_id" => $cuentas_id,
+            "empresa_id" => $empresa_id,
+            "fecha" => $fecha,
+            "ingreso" => $ingresoMov,
+            "egreso" => $egresoMov,
+            "saldo" => $nuevoSaldo,
+            "colaboradores_id" => $colaboradores_id,
+            "fecha_registro" => $fecha_registro
+        ];
+
+        $procesar = egresosContabilidadModelo::reversar_egreso_con_ingreso_modelo(
+            $datosIngreso,
+            $datosMov
+        );
+
+        if(!is_array($procesar) || empty($procesar['success'])){
+            $mensajeError = isset($procesar['message']) ? $procesar['message'] : "No se pudo registrar la reversión del egreso.";
+
             return mainModel::showNotification([
                 "title" => "Error",
-                "text"  => "No se pudo anular el egreso: ".$e->getMessage(),
+                "text"  => $mensajeError,
                 "type"  => "error"
             ]);
         }
-    }      
+
+        mainModel::guardarHistorial([
+            "modulo"           => 'Egresos Contabilidad',
+            "colaboradores_id" => $colaboradores_id,
+            "status"           => "Reversión",
+            "observacion"      => "Egreso ID {$egresos_id} reversado con ingreso ID {$ingresos_id_reversion} por L {$total}.",
+            "fecha_registro"   => date("Y-m-d H:i:s")
+        ]);
+
+        return mainModel::showNotification([
+            "type"    => "success",
+            "title"   => "Egreso reversado",
+            "text"    => "El egreso quedó activo y se registró el ingreso de reversión con su movimiento de cuenta.",
+            "form"    => "formEgresosContables",
+            "funcion" => "listar_gastos_contabilidad();total_gastos_footer();",
+            "modal"   => "modalEgresosContables"
+        ]);
+    }
 }

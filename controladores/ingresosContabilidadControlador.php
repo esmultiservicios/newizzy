@@ -269,65 +269,66 @@ class ingresosContabilidadControlador extends ingresosContabilidadModelo{
         if($ingresos_id === "" || !is_numeric($ingresos_id)){
             return mainModel::showNotification([
                 "title" => "Error",
-                "text"  => "No se recibió el ingreso a anular.",
+                "text"  => "No se recibió el ingreso a reversar.",
                 "type"  => "error"
             ]);
         }
 
-        // Consultamos el ingreso original directamente desde BD
         $resultIngreso = ingresosContabilidadModelo::obtener_ingreso_anulacion_modelo($ingresos_id);
 
         if(!$resultIngreso || $resultIngreso->num_rows === 0){
             return mainModel::showNotification([
                 "title" => "Error",
-                "text"  => "No se encontró el ingreso a anular.",
+                "text"  => "No se encontró el ingreso a reversar.",
                 "type"  => "error"
             ]);
         }
 
         $ingresoData = $resultIngreso->fetch_assoc();
 
-        if((int)$ingresoData['estado'] === 0){
+        if((int)$ingresoData['estado'] !== 1){
             return mainModel::showNotification([
-                "title" => "Ingreso ya anulado",
-                "text"  => "Este ingreso ya se encuentra anulado.",
-                "type"  => "warning"
+                "title" => "Ingreso inactivo",
+                "text"  => "Este ingreso no está activo y no se puede reversar.",
+                "type"  => "warning",
+                "funcion" => "listar_ingresos_contabilidad();total_ingreso_footer();"
             ]);
         }
 
         $cuentas_id = (int)$ingresoData['cuentas_id'];
         $empresa_id = (int)$ingresoData['empresa_id'];
         $fecha = $ingresoData['fecha'];
-        $factura = $ingresoData['factura'];
         $subtotal = (float)$ingresoData['subtotal'];
         $descuento = (float)$ingresoData['descuento'];
         $nc = (float)$ingresoData['nc'];
         $isv = (float)$ingresoData['impuesto'];
         $total = (float)$ingresoData['total'];
+        $facturaOriginal = $ingresoData['factura'];
         $observacionOriginal = $ingresoData['observacion'];
 
         $colaboradores_id = $_SESSION['colaborador_id_sd'];
         $fecha_registro = date("Y-m-d H:i:s");
 
-        $obsIngreso = "[ANULACIÓN] Ingreso #{$ingresos_id} anulado.";
-        if($factura != ""){
-            $obsIngreso .= " Factura: {$factura}.";
+        if($total <= 0){
+            return mainModel::showNotification([
+                "title" => "Total inválido",
+                "text"  => "No se puede reversar un ingreso con total cero.",
+                "type"  => "error"
+            ]);
         }
 
-        $obsEgresoAjuste = "[REINTEGRO INGRESO] Reversión del ingreso #{$ingresos_id} por L {$total}.";
-        if($factura != ""){
-            $obsEgresoAjuste .= " Factura original: {$factura}.";
+        $resultReversion = ingresosContabilidadModelo::validar_reversion_ingreso_existente_modelo($ingresos_id, $empresa_id);
+
+        if($resultReversion && $resultReversion->num_rows > 0){
+            return mainModel::showNotification([
+                "title" => "Reversión ya registrada",
+                "text"  => "Este ingreso ya tiene un egreso de reversión registrado.",
+                "type"  => "warning",
+                "funcion" => "listar_ingresos_contabilidad();total_ingreso_footer();"
+            ]);
         }
 
-        if($observacionOriginal != ""){
-            $obsEgresoAjuste .= " Obs: {$observacionOriginal}";
-        }
-
-        $obsIngreso = substr($obsIngreso, 0, 150);
-        $obsEgresoAjuste = substr($obsEgresoAjuste, 0, 150);
-
-        // Consultar saldo actual
-        $consultaSaldo = ingresosContabilidadModelo::consultar_saldo_movimientos_cuentas_contabilidad($cuentas_id);
+        $consultaSaldo = ingresosContabilidadModelo::consultar_saldo_movimientos_cuentas_contabilidad($cuentas_id, $empresa_id);
         $saldoAnterior = 0;
 
         if($consultaSaldo && $consultaSaldo->num_rows > 0){
@@ -339,13 +340,22 @@ class ingresosContabilidadControlador extends ingresosContabilidadModelo{
         $egresoMov = $total;
         $nuevoSaldo = $saldoAnterior - $egresoMov;
 
-        $egresos_id_ajuste = mainModel::correlativo("egresos_id","egresos");
+        $egresos_id_ajuste = mainModel::correlativo("egresos_id", "egresos");
 
-        $datosCancel = [
-            "ingresos_id" => (int)$ingresos_id,
-            "estado" => 0,
-            "observacion" => $obsIngreso
-        ];
+        $facturaEgreso = "REV-ING-".$ingresos_id;
+        $facturaEgreso = substr($facturaEgreso, 0, 20);
+
+        $obsEgresoAjuste = "Reversión ingreso #{$ingresos_id}";
+
+        if($facturaOriginal != ""){
+            $obsEgresoAjuste .= " Factura original: {$facturaOriginal}.";
+        }
+
+        if($observacionOriginal != ""){
+            $obsEgresoAjuste .= " ".$observacionOriginal;
+        }
+
+        $obsEgresoAjuste = substr($obsEgresoAjuste, 0, 150);
 
         $datosEgreso = [
             "egresos_id" => $egresos_id_ajuste,
@@ -354,8 +364,8 @@ class ingresosContabilidadControlador extends ingresosContabilidadModelo{
             "empresa_id" => $empresa_id,
             "tipo_egreso" => 2,
             "fecha" => $fecha,
-            "factura" => $factura ?: "",
-            "factura_pdf" => "",
+            "factura" => $facturaEgreso,
+            "factura_pdf" => null,
             "subtotal" => $subtotal,
             "descuento" => $descuento,
             "nc" => $nc,
@@ -365,8 +375,7 @@ class ingresosContabilidadControlador extends ingresosContabilidadModelo{
             "estado" => 1,
             "colaboradores_id" => $colaboradores_id,
             "fecha_registro" => $fecha_registro,
-            "categoria_gastos" => 0,
-            "categoria_gastos_id" => 0
+            "categoria_gastos_id" => 1
         ];
 
         $datosMov = [
@@ -380,16 +389,17 @@ class ingresosContabilidadControlador extends ingresosContabilidadModelo{
             "fecha_registro" => $fecha_registro
         ];
 
-        $procesar = ingresosContabilidadModelo::anular_ingreso_con_reintegro_modelo(
-            $datosCancel,
+        $procesar = ingresosContabilidadModelo::reversar_ingreso_con_egreso_modelo(
             $datosEgreso,
             $datosMov
         );
 
-        if(!$procesar){
+        if(!is_array($procesar) || empty($procesar['success'])){
+            $mensajeError = isset($procesar['message']) ? $procesar['message'] : "No se pudo registrar la reversión del ingreso.";
+
             return mainModel::showNotification([
                 "title" => "Error",
-                "text"  => "No se pudo anular el ingreso ni registrar el reintegro. Revise el log del servidor.",
+                "text"  => $mensajeError,
                 "type"  => "error"
             ]);
         }
@@ -397,15 +407,15 @@ class ingresosContabilidadControlador extends ingresosContabilidadModelo{
         mainModel::guardarHistorial([
             "modulo"           => 'Ingresos Contabilidad',
             "colaboradores_id" => $colaboradores_id,
-            "status"           => "Cancelación",
-            "observacion"      => "Ingreso ID {$ingresos_id} anulado; egreso de reintegro ID {$egresos_id_ajuste} por L {$total}.",
+            "status"           => "Reversión",
+            "observacion"      => "Ingreso ID {$ingresos_id} reversado con egreso ID {$egresos_id_ajuste} por L {$total}.",
             "fecha_registro"   => date("Y-m-d H:i:s")
         ]);
 
         return mainModel::showNotification([
             "type"    => "success",
-            "title"   => "Ingreso anulado",
-            "text"    => "Se anuló el ingreso, se registró el egreso de reintegro y el movimiento de cuenta.",
+            "title"   => "Ingreso reversado",
+            "text"    => "El ingreso quedó activo y se registró el egreso de reversión con su movimiento de cuenta.",
             "form"    => "formIngresosContables",
             "funcion" => "listar_ingresos_contabilidad();total_ingreso_footer();",
             "modal"   => "modalIngresosContables"

@@ -40,6 +40,9 @@ $apertura_id = isset($_POST['apertura_id']) ? (int)$_POST['apertura_id'] : 0;
 $monto_reintegro = isset($_POST['monto_reintegro']) ? (float)$_POST['monto_reintegro'] : 0;
 $observacion = isset($_POST['observacion']) ? limpiarTextoReintegroRetiroCaja($_POST['observacion']) : '';
 
+$solo_mi_caja = isset($_POST['solo_mi_caja']) ? (int)$_POST['solo_mi_caja'] : 0;
+$origen = isset($_POST['origen']) ? trim($_POST['origen']) : '';
+
 $observacion = mb_substr($observacion, 0, 255, 'UTF-8');
 
 $fecha = date('Y-m-d');
@@ -74,15 +77,20 @@ $sqlApertura = "
     FROM apertura
     WHERE apertura_id = '$apertura_id'
       AND empresa_id = '$empresa_id'
-    LIMIT 1
 ";
+
+if ($solo_mi_caja === 1 && $origen === 'facturacion') {
+    $sqlApertura .= " AND colaboradores_id = '$colaboradores_id' ";
+}
+
+$sqlApertura .= " LIMIT 1 ";
 
 $resApertura = $insMainModel->ejecutar_consulta_simple($sqlApertura);
 
 if (!$resApertura || $resApertura->num_rows <= 0) {
     echo json_encode([
         'success' => false,
-        'message' => 'La apertura de caja no existe o no pertenece a la empresa actual.'
+        'message' => 'La apertura de caja no existe, no pertenece a la empresa actual o no pertenece al usuario de la sesión.'
     ]);
     exit;
 }
@@ -99,22 +107,30 @@ if ((int)$rowApertura['estado'] !== 1) {
 
 $sqlRetiro = "
     SELECT
-        caja_retiros_id,
-        apertura_id,
-        egresos_id,
-        cuentas_id,
-        empresa_id,
-        monto,
-        motivo,
-        observacion,
-        estado
-    FROM caja_retiros
-    WHERE caja_retiros_id = '$caja_retiros_id'
-      AND apertura_id = '$apertura_id'
-      AND empresa_id = '$empresa_id'
-      AND estado = 1
-    LIMIT 1
+        cr.caja_retiros_id,
+        cr.apertura_id,
+        cr.egresos_id,
+        cr.cuentas_id,
+        cr.empresa_id,
+        cr.monto,
+        cr.motivo,
+        cr.observacion,
+        cr.estado
+    FROM caja_retiros cr
+    INNER JOIN apertura a
+        ON a.apertura_id = cr.apertura_id
+       AND a.empresa_id = cr.empresa_id
+    WHERE cr.caja_retiros_id = '$caja_retiros_id'
+      AND cr.apertura_id = '$apertura_id'
+      AND cr.empresa_id = '$empresa_id'
+      AND cr.estado = 1
 ";
+
+if ($solo_mi_caja === 1 && $origen === 'facturacion') {
+    $sqlRetiro .= " AND a.colaboradores_id = '$colaboradores_id' ";
+}
+
+$sqlRetiro .= " LIMIT 1 ";
 
 $resRetiro = $insMainModel->ejecutar_consulta_simple($sqlRetiro);
 

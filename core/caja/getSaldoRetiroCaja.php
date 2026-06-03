@@ -1,4 +1,5 @@
 <?php
+// core/caja/getSaldoRetiroCaja.php
 $peticionAjax = true;
 
 require_once __DIR__ . '/../configGenerales.php';
@@ -12,8 +13,28 @@ if (!isset($_SESSION)) {
 
 $insMainModel = new mainModel();
 
+if (method_exists($insMainModel, 'validarSesion')) {
+    $validacion = $insMainModel->validarSesion();
+
+    if (!empty($validacion['error'])) {
+        echo json_encode([
+            'success' => false,
+            'message' => $validacion['mensaje'] ?? 'Sesión inválida'
+        ]);
+        exit;
+    }
+}
+
 $empresa_id = isset($_SESSION['empresa_id_sd']) ? (int)$_SESSION['empresa_id_sd'] : 0;
 $colaboradores_id = isset($_SESSION['colaborador_id_sd']) ? (int)$_SESSION['colaborador_id_sd'] : 0;
+
+if ($empresa_id <= 0 || $colaboradores_id <= 0) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'No se pudo identificar la empresa o el usuario de la sesión.'
+    ]);
+    exit;
+}
 
 $sqlApertura = "
     SELECT apertura_id, apertura
@@ -43,8 +64,10 @@ $monto_apertura = (float)$rowApertura['apertura'];
 $sqlEfectivo = "
     SELECT COALESCE(SUM(pd.efectivo), 0) AS efectivo
     FROM pagos pg
-    INNER JOIN facturas f ON f.facturas_id = pg.facturas_id
-    INNER JOIN pagos_detalles pd ON pd.pagos_id = pg.pagos_id
+    INNER JOIN facturas f 
+        ON f.facturas_id = pg.facturas_id
+    INNER JOIN pagos_detalles pd 
+        ON pd.pagos_id = pg.pagos_id
     WHERE f.apertura_id = '$apertura_id'
       AND f.estado = 2
       AND pg.estado = 1

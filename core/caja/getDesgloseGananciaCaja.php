@@ -6,6 +6,10 @@ require_once __DIR__ . '/../mainModel.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
+if (!isset($_SESSION)) {
+    session_start(['name' => 'SD']);
+}
+
 $insMainModel = new mainModel();
 
 if (method_exists($insMainModel, 'validarSesion')) {
@@ -23,14 +27,38 @@ if (method_exists($insMainModel, 'validarSesion')) {
 }
 
 $empresa_id = isset($_SESSION['empresa_id_sd']) ? (int)$_SESSION['empresa_id_sd'] : 0;
+$colaboradores_id = isset($_SESSION['colaborador_id_sd']) ? (int)$_SESSION['colaborador_id_sd'] : 0;
 
 $modo = isset($_POST['modo']) ? trim($_POST['modo']) : 'caja';
 $apertura_id = isset($_POST['apertura_id']) ? (int)$_POST['apertura_id'] : 0;
 $fechai = isset($_POST['fechai']) ? trim($_POST['fechai']) : date('Y-m-d');
 $fechaf = isset($_POST['fechaf']) ? trim($_POST['fechaf']) : date('Y-m-d');
 
+$solo_mi_caja = isset($_POST['solo_mi_caja']) ? (int)$_POST['solo_mi_caja'] : 0;
+$origen = isset($_POST['origen']) ? trim($_POST['origen']) : '';
+
 if ($modo !== 'caja' && $modo !== 'periodo') {
     $modo = 'caja';
+}
+
+if ($empresa_id <= 0) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'No se pudo identificar la empresa de la sesión.',
+        'resumen' => [],
+        'detalles' => []
+    ]);
+    exit;
+}
+
+if ($solo_mi_caja === 1 && $origen === 'facturacion' && $colaboradores_id <= 0) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'No se pudo identificar el usuario de la sesión.',
+        'resumen' => [],
+        'detalles' => []
+    ]);
+    exit;
 }
 
 if ($modo === 'caja' && $apertura_id <= 0) {
@@ -51,6 +79,29 @@ if ($fechaf === '') {
     $fechaf = $fechai;
 }
 
+if ($modo === 'caja' && $solo_mi_caja === 1 && $origen === 'facturacion') {
+    $sqlValidarAperturaUsuario = "
+        SELECT apertura_id
+        FROM apertura
+        WHERE apertura_id = '$apertura_id'
+          AND empresa_id = '$empresa_id'
+          AND colaboradores_id = '$colaboradores_id'
+        LIMIT 1
+    ";
+
+    $resValidarAperturaUsuario = $insMainModel->ejecutar_consulta_simple($sqlValidarAperturaUsuario);
+
+    if (!$resValidarAperturaUsuario || $resValidarAperturaUsuario->num_rows <= 0) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'No tiene permiso para consultar esta caja.',
+            'resumen' => [],
+            'detalles' => []
+        ]);
+        exit;
+    }
+}
+
 $whereFacturas = " f.estado IN (2,3) ";
 
 if ($modo === 'caja') {
@@ -59,12 +110,36 @@ if ($modo === 'caja') {
     $whereFacturas .= " AND f.fecha BETWEEN '$fechai' AND '$fechaf' ";
 }
 
+if ($solo_mi_caja === 1 && $origen === 'facturacion') {
+    $whereFacturas .= "
+        AND EXISTS (
+            SELECT 1
+            FROM apertura ax
+            WHERE ax.apertura_id = f.apertura_id
+              AND ax.empresa_id = '$empresa_id'
+              AND ax.colaboradores_id = '$colaboradores_id'
+        )
+    ";
+}
+
 $whereRetiros = " cr.empresa_id = '$empresa_id' AND cr.estado = 1 ";
 
 if ($modo === 'caja') {
     $whereRetiros .= " AND cr.apertura_id = '$apertura_id' ";
 } else {
     $whereRetiros .= " AND cr.fecha BETWEEN '$fechai' AND '$fechaf' ";
+}
+
+if ($solo_mi_caja === 1 && $origen === 'facturacion') {
+    $whereRetiros .= "
+        AND EXISTS (
+            SELECT 1
+            FROM apertura ar
+            WHERE ar.apertura_id = cr.apertura_id
+              AND ar.empresa_id = cr.empresa_id
+              AND ar.colaboradores_id = '$colaboradores_id'
+        )
+    ";
 }
 
 $sqlApertura = "
@@ -77,6 +152,10 @@ if ($modo === 'caja') {
     $sqlApertura .= " AND a.apertura_id = '$apertura_id' ";
 } else {
     $sqlApertura .= " AND a.fecha BETWEEN '$fechai' AND '$fechaf' ";
+}
+
+if ($solo_mi_caja === 1 && $origen === 'facturacion') {
+    $sqlApertura .= " AND a.colaboradores_id = '$colaboradores_id' ";
 }
 
 $resApertura = $insMainModel->ejecutar_consulta_simple($sqlApertura);

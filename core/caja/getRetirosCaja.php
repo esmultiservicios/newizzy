@@ -28,11 +28,15 @@ if (method_exists($insMainModel, 'validarSesion')) {
 }
 
 $empresa_id = isset($_SESSION['empresa_id_sd']) ? (int)$_SESSION['empresa_id_sd'] : 0;
+$colaboradores_id = isset($_SESSION['colaborador_id_sd']) ? (int)$_SESSION['colaborador_id_sd'] : 0;
 
 $modo = isset($_POST['modo']) ? trim($_POST['modo']) : 'caja';
 $apertura_id = isset($_POST['apertura_id']) ? (int)$_POST['apertura_id'] : 0;
 $fechai = isset($_POST['fechai']) ? trim($_POST['fechai']) : date('Y-m-d');
 $fechaf = isset($_POST['fechaf']) ? trim($_POST['fechaf']) : date('Y-m-d');
+
+$solo_mi_caja = isset($_POST['solo_mi_caja']) ? (int)$_POST['solo_mi_caja'] : 0;
+$origen = isset($_POST['origen']) ? trim($_POST['origen']) : '';
 
 if ($modo !== 'caja' && $modo !== 'periodo') {
     $modo = 'caja';
@@ -42,6 +46,16 @@ if ($empresa_id <= 0) {
     echo json_encode([
         'success' => false,
         'message' => 'No se pudo identificar la empresa de la sesión.',
+        'data' => [],
+        'resumen' => []
+    ]);
+    exit;
+}
+
+if ($solo_mi_caja === 1 && $origen === 'facturacion' && $colaboradores_id <= 0) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'No se pudo identificar el usuario de la sesión.',
         'data' => [],
         'resumen' => []
     ]);
@@ -74,15 +88,20 @@ if ($modo === 'caja') {
         FROM apertura
         WHERE apertura_id = '$apertura_id'
           AND empresa_id = '$empresa_id'
-        LIMIT 1
     ";
+
+    if ($solo_mi_caja === 1 && $origen === 'facturacion') {
+        $sqlApertura .= " AND colaboradores_id = '$colaboradores_id' ";
+    }
+
+    $sqlApertura .= " LIMIT 1 ";
 
     $resApertura = $insMainModel->ejecutar_consulta_simple($sqlApertura);
 
     if (!$resApertura || $resApertura->num_rows <= 0) {
         echo json_encode([
             'success' => false,
-            'message' => 'La apertura de caja no existe o no pertenece a la empresa actual.',
+            'message' => 'La apertura de caja no existe, no pertenece a la empresa actual o no pertenece al usuario de la sesión.',
             'data' => [],
             'resumen' => []
         ]);
@@ -99,6 +118,10 @@ if ($modo === 'caja') {
     $where .= " AND cr.apertura_id = '$apertura_id' ";
 } else {
     $where .= " AND cr.fecha BETWEEN '$fechai' AND '$fechaf' ";
+}
+
+if ($solo_mi_caja === 1 && $origen === 'facturacion') {
+    $where .= " AND a.colaboradores_id = '$colaboradores_id' ";
 }
 
 $sql = "

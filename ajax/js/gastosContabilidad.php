@@ -336,7 +336,7 @@ var listar_gastos_contabilidad = function() {
                 '<span class="accion-icon accion-icon-danger">' +
                   '<i class="fas fa-ban"></i>' +
                 '</span>' +
-                '<span class="accion-label">Anular</span>' +
+                '<span class="accion-label">Reversar</span>' +
               '</button>';
           } else {
             accionesGasto +=
@@ -928,7 +928,7 @@ function printGastos(egresos_id) {
 }
 
 // ===============================
-//  Acciones de tabla: anular
+//  Acciones de tabla: reversar
 // ===============================
 var anular_gastos_dataTable = function(tbody, table) {
   $(tbody).off("click", "button.anular_factura");
@@ -936,7 +936,8 @@ var anular_gastos_dataTable = function(tbody, table) {
   $(tbody).on("click", "button.anular_factura", function(e) {
     e.preventDefault();
 
-    const rowData = table.row($(this).parents("tr")).data();
+    const $btn = $(this);
+    const rowData = table.row($btn.parents("tr")).data();
 
     if (!rowData) {
       showNotify("error", "Error", "No se pudo obtener la fila seleccionada.");
@@ -945,14 +946,26 @@ var anular_gastos_dataTable = function(tbody, table) {
 
     const egresos_id = rowData.egresos_id;
 
+    if (!egresos_id) {
+      showNotify("error", "Error", "No se pudo obtener el ID del egreso.");
+      return;
+    }
+
     const content = document.createElement("div");
 
     content.innerHTML = `
-      <p style="margin:0 0 6px 0;">Se marcará como <b>ANULADO</b> y se registrará el <b>reintegro</b> en la cuenta.</p>
-      <p style="margin:0;"><b>Esto NO es un ingreso por venta</b>; es un <u>reintegro por cancelación</u>.</p>`;
+      <p style="margin:0 0 6px 0;">
+        El egreso <b>quedará activo</b>.
+      </p>
+      <p style="margin:0 0 6px 0;">
+        Se registrará un <b>ingreso de reversión</b> por el mismo valor del egreso.
+      </p>
+      <p style="margin:0;">
+        También se registrará el <b>movimiento de cuenta</b> correspondiente.
+      </p>`;
 
     swal({
-      title: "¿Anular egreso?",
+      title: "¿Reversar egreso?",
       content: content,
       icon: "warning",
       buttons: {
@@ -961,7 +974,7 @@ var anular_gastos_dataTable = function(tbody, table) {
           visible: true
         },
         confirm: {
-          text: "Sí, anular"
+          text: "Sí, reversar"
         }
       },
       dangerMode: true,
@@ -970,44 +983,55 @@ var anular_gastos_dataTable = function(tbody, table) {
     }).then(function(ok) {
       if (!ok) return;
 
-      const payload = {
-        egresos_id: egresos_id,
-        proveedor_egresos: (rowData.proveedores_id != null ? rowData.proveedores_id : rowData.proveedor_egresos),
-        cuenta_egresos:    (rowData.cuentas_id     != null ? rowData.cuentas_id     : rowData.cuenta_egresos),
-        fecha_egresos: rowData.fecha,
-        factura_egresos: rowData.factura,
-        subtotal_egresos:  toNumber(rowData.subtotal_raw  ?? rowData.subtotal),
-        isv_egresos:       toNumber(rowData.isv_raw       ?? rowData.impuesto_raw ?? rowData.impuesto),
-        descuento_egresos: toNumber(rowData.descuento_raw ?? rowData.descuento),
-        nc_egresos:        toNumber(rowData.nc_raw        ?? rowData.nc),
-        total_egresos:     toNumber(rowData.total_raw     ?? rowData.total)
-      };
-
-      const obsOriginal = rowData.observacion ? ` | Obs: ${rowData.observacion}` : "";
-
-      payload.observacion_egresos = `[ANULACIÓN] Reintegro por cancelación del egreso ID ${egresos_id}` + obsOriginal;
-
-      if (!payload.cuenta_egresos) {
-        showNotify("error", "Error", "No se pudo determinar la cuenta del egreso.");
-        return;
-      }
-
-      if (!payload.proveedor_egresos) {
-        showNotify("error", "Error", "No se pudo determinar el proveedor del egreso.");
-        return;
-      }
-
       $.ajax({
         url: "<?php echo SERVERURL;?>ajax/cancelEgresoContabilidadAjax.php",
         type: "POST",
-        data: payload,
-        success: function() {
+        dataType: "html",
+        data: {
+          egresos_id: egresos_id
+        },
+        beforeSend: function() {
+          $btn.prop("disabled", true);
+        },
+        success: function(response) {
+          console.log("Respuesta reversión egreso:", response);
+
+          var respuestaTexto = typeof response === "string" ? response.toLowerCase() : "";
+
+          if (
+            respuestaTexto.indexOf("fatal error") !== -1 ||
+            respuestaTexto.indexOf("parse error") !== -1 ||
+            respuestaTexto.indexOf("warning:") !== -1 ||
+            respuestaTexto.indexOf("notice:") !== -1 ||
+            respuestaTexto.indexOf("undefined index") !== -1 ||
+            respuestaTexto.indexOf("uncaught") !== -1 ||
+            respuestaTexto.indexOf("no se pudo registrar la reversión") !== -1 ||
+            respuestaTexto.indexOf("no se pudo reversar") !== -1 ||
+            respuestaTexto.indexOf("no se recibió el egreso") !== -1 ||
+            respuestaTexto.indexOf("no se encontró el egreso") !== -1
+          ) {
+            showNotify("error", "Error", "No se pudo reversar el egreso. Revise la consola o el log del servidor.");
+            console.error("Error devuelto por PHP:", response);
+            return;
+          }
+
+          try {
+            if (typeof response === "string" && response.trim() !== "") {
+              $("body").append(response);
+            }
+          } catch (e) {
+            console.warn("No se pudo ejecutar la respuesta del servidor:", e);
+          }
+
           listar_gastos_contabilidad();
           total_gastos_footer();
-          showNotify("success", "Egreso anulado", "Se marcó como anulado y se registró el reintegro correctamente.");
         },
         error: function(xhr) {
-          showNotify("error", "Error", "No se pudo anular el egreso: " + xhr.statusText);
+          showNotify("error", "Error", "No se pudo reversar el egreso: " + xhr.statusText);
+          console.error("Error al reversar egreso:", xhr.responseText);
+        },
+        complete: function() {
+          $btn.prop("disabled", false);
         }
       });
     });

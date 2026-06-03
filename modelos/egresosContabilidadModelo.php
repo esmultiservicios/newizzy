@@ -217,4 +217,183 @@ class egresosContabilidadModelo extends mainModel{
         }
         return '';
     }
+
+    protected function obtener_egreso_reversion_modelo($egresos_id, $empresa_id){
+        $conexion = mainModel::connection();
+
+        $egresos_id = (int)$egresos_id;
+        $empresa_id = (int)$empresa_id;
+
+        $query = "
+            SELECT
+                egresos_id,
+                cuentas_id,
+                proveedores_id,
+                empresa_id,
+                tipo_egreso,
+                fecha,
+                factura,
+                factura_pdf,
+                subtotal,
+                descuento,
+                nc,
+                impuesto,
+                total,
+                observacion,
+                estado,
+                colaboradores_id,
+                fecha_registro,
+                categoria_gastos_id
+            FROM egresos
+            WHERE egresos_id = '$egresos_id'
+              AND empresa_id = '$empresa_id'
+            LIMIT 1
+        ";
+
+        $sql = $conexion->query($query) or die($conexion->error);
+
+        return $sql;
+    }
+
+    protected function validar_reversion_egreso_existente_modelo($egresos_id, $empresa_id){
+        $conexion = mainModel::connection();
+
+        $egresos_id = (int)$egresos_id;
+        $empresa_id = (int)$empresa_id;
+
+        $facturaReversion = "REV-EGR-".$egresos_id;
+        $facturaReversion = $conexion->real_escape_string($facturaReversion);
+
+        $query = "
+            SELECT ingresos_id
+            FROM ingresos
+            WHERE empresa_id = '$empresa_id'
+              AND factura = '$facturaReversion'
+              AND estado = 1
+            LIMIT 1
+        ";
+
+        $sql = $conexion->query($query) or die($conexion->error);
+
+        return $sql;
+    }
+
+    protected function reversar_egreso_con_ingreso_modelo($datosIngreso, $datosMov){
+        $conexion = mainModel::connection();
+
+        $ingresos_id = (int)$datosIngreso['ingresos_id'];
+        $cuentas_id = (int)$datosIngreso['cuentas_id'];
+        $clientes_id = (int)$datosIngreso['clientes_id'];
+        $empresa_id = (int)$datosIngreso['empresa_id'];
+        $tipo_ingreso = (int)$datosIngreso['tipo_ingreso'];
+        $fecha = $conexion->real_escape_string($datosIngreso['fecha']);
+        $factura = $conexion->real_escape_string($datosIngreso['factura']);
+        $subtotal = (float)$datosIngreso['subtotal'];
+        $descuento = (float)$datosIngreso['descuento'];
+        $nc = (float)$datosIngreso['nc'];
+        $isv = (float)$datosIngreso['isv'];
+        $total = (float)$datosIngreso['total'];
+        $observacion = $conexion->real_escape_string($datosIngreso['observacion']);
+        $estado = (int)$datosIngreso['estado'];
+        $colaboradores_id = (int)$datosIngreso['colaboradores_id'];
+        $fecha_registro = $conexion->real_escape_string($datosIngreso['fecha_registro']);
+
+        $queryInsertIngreso = "
+            INSERT INTO ingresos (
+                ingresos_id,
+                cuentas_id,
+                clientes_id,
+                empresa_id,
+                tipo_ingreso,
+                fecha,
+                factura,
+                subtotal,
+                descuento,
+                nc,
+                impuesto,
+                total,
+                observacion,
+                estado,
+                colaboradores_id,
+                fecha_registro
+            ) VALUES (
+                '$ingresos_id',
+                '$cuentas_id',
+                '$clientes_id',
+                '$empresa_id',
+                '$tipo_ingreso',
+                '$fecha',
+                '$factura',
+                '$subtotal',
+                '$descuento',
+                '$nc',
+                '$isv',
+                '$total',
+                '$observacion',
+                '$estado',
+                '$colaboradores_id',
+                '$fecha_registro'
+            )
+        ";
+
+        $resultInsertIngreso = $conexion->query($queryInsertIngreso);
+
+        if(!$resultInsertIngreso){
+            return [
+                "success" => false,
+                "message" => "No se pudo registrar el ingreso de reversión: ".$conexion->error
+            ];
+        }
+
+        $movimientos_cuentas_id = mainModel::correlativo("movimientos_cuentas_id", "movimientos_cuentas");
+
+        $mov_cuentas_id = (int)$datosMov['cuentas_id'];
+        $mov_empresa_id = (int)$datosMov['empresa_id'];
+        $mov_fecha = $conexion->real_escape_string($datosMov['fecha']);
+        $mov_ingreso = (float)$datosMov['ingreso'];
+        $mov_egreso = (float)$datosMov['egreso'];
+        $mov_saldo = (float)$datosMov['saldo'];
+        $mov_colaboradores_id = (int)$datosMov['colaboradores_id'];
+        $mov_fecha_registro = $conexion->real_escape_string($datosMov['fecha_registro']);
+
+        $queryInsertMovimiento = "
+            INSERT INTO movimientos_cuentas (
+                movimientos_cuentas_id,
+                cuentas_id,
+                empresa_id,
+                fecha,
+                ingreso,
+                egreso,
+                saldo,
+                colaboradores_id,
+                fecha_registro
+            ) VALUES (
+                '$movimientos_cuentas_id',
+                '$mov_cuentas_id',
+                '$mov_empresa_id',
+                '$mov_fecha',
+                '$mov_ingreso',
+                '$mov_egreso',
+                '$mov_saldo',
+                '$mov_colaboradores_id',
+                '$mov_fecha_registro'
+            )
+        ";
+
+        $resultInsertMovimiento = $conexion->query($queryInsertMovimiento);
+
+        if(!$resultInsertMovimiento){
+            return [
+                "success" => false,
+                "message" => "El ingreso fue registrado, pero no se pudo registrar el movimiento de cuenta: ".$conexion->error
+            ];
+        }
+
+        return [
+            "success" => true,
+            "ingresos_id" => $ingresos_id,
+            "movimientos_cuentas_id" => $movimientos_cuentas_id
+        ];
+    }
+
 }

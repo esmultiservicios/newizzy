@@ -1,10 +1,15 @@
 <?php
+// core/caja/getCategoriasGastosRetiroCaja.php
 $peticionAjax = true;
 
 require_once __DIR__ . '/../configGenerales.php';
 require_once __DIR__ . '/../mainModel.php';
 
 header('Content-Type: application/json; charset=utf-8');
+
+if (!isset($_SESSION)) {
+    session_start(['name' => 'SD']);
+}
 
 $insMainModel = new mainModel();
 

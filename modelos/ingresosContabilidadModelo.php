@@ -153,17 +153,24 @@
 			return $sql;				
 		}
 
-		protected function consultar_saldo_movimientos_cuentas_contabilidad($cuentas_id){
+		protected function consultar_saldo_movimientos_cuentas_contabilidad($cuentas_id, $empresa_id = 0){
+			$whereEmpresa = "";
+
+			if((int)$empresa_id > 0){
+				$whereEmpresa = " AND empresa_id = '$empresa_id' ";
+			}
+
 			$query = "SELECT ingreso, egreso, saldo
 				FROM movimientos_cuentas
 				WHERE cuentas_id = '$cuentas_id'
+				$whereEmpresa
 				ORDER BY movimientos_cuentas_id DESC LIMIT 1";
-			
+
 			$sql = mainModel::connection()->query($query) or die(mainModel::connection()->error);
-			
+
 			return $sql;				
 		}
-		
+
 		protected function delete_ingresos_contabilidad_modelo($cuentas_id){
 			$delete = "DELETE FROM ingresos WHERE cuentas_id = '$cuentas_id'";
 			
@@ -388,6 +395,153 @@
 
 				return false;
 			}
+		}
+
+		protected function validar_reversion_ingreso_existente_modelo($ingresos_id, $empresa_id){
+			$conexion = mainModel::connection();
+
+			$ingresos_id = (int)$ingresos_id;
+			$empresa_id = (int)$empresa_id;
+
+			$facturaReversion = "REV-ING-".$ingresos_id;
+			$facturaReversion = $conexion->real_escape_string($facturaReversion);
+
+			$query = "
+				SELECT egresos_id
+				FROM egresos
+				WHERE empresa_id = '$empresa_id'
+				  AND factura = '$facturaReversion'
+				  AND estado = 1
+				LIMIT 1
+			";
+
+			$sql = $conexion->query($query) or die($conexion->error);
+
+			return $sql;
+		}
+
+		protected function reversar_ingreso_con_egreso_modelo($datosEgreso, $datosMov){
+			$conexion = mainModel::connection();
+
+			$egresos_id = (int)$datosEgreso['egresos_id'];
+			$cuentas_id = (int)$datosEgreso['cuentas_id'];
+			$proveedores_id = (int)$datosEgreso['proveedores_id'];
+			$empresa_id = (int)$datosEgreso['empresa_id'];
+			$tipo_egreso = (int)$datosEgreso['tipo_egreso'];
+			$fecha = $conexion->real_escape_string($datosEgreso['fecha']);
+			$factura = $conexion->real_escape_string($datosEgreso['factura']);
+			$factura_pdf = $datosEgreso['factura_pdf'] !== null ? "'".$conexion->real_escape_string($datosEgreso['factura_pdf'])."'" : "NULL";
+			$subtotal = (float)$datosEgreso['subtotal'];
+			$descuento = (float)$datosEgreso['descuento'];
+			$nc = (float)$datosEgreso['nc'];
+			$isv = (float)$datosEgreso['isv'];
+			$total = (float)$datosEgreso['total'];
+			$observacionEgreso = $conexion->real_escape_string($datosEgreso['observacion']);
+			$estadoEgreso = (int)$datosEgreso['estado'];
+			$colaboradores_id = (int)$datosEgreso['colaboradores_id'];
+			$fecha_registro = $conexion->real_escape_string($datosEgreso['fecha_registro']);
+			$categoria_gastos_id = isset($datosEgreso['categoria_gastos_id']) ? (int)$datosEgreso['categoria_gastos_id'] : 1;
+
+			$queryInsertEgreso = "
+				INSERT INTO egresos (
+					egresos_id,
+					cuentas_id,
+					proveedores_id,
+					empresa_id,
+					tipo_egreso,
+					fecha,
+					factura,
+					factura_pdf,
+					subtotal,
+					descuento,
+					nc,
+					impuesto,
+					total,
+					observacion,
+					estado,
+					colaboradores_id,
+					fecha_registro,
+					categoria_gastos_id
+				) VALUES (
+					'$egresos_id',
+					'$cuentas_id',
+					'$proveedores_id',
+					'$empresa_id',
+					'$tipo_egreso',
+					'$fecha',
+					'$factura',
+					$factura_pdf,
+					'$subtotal',
+					'$descuento',
+					'$nc',
+					'$isv',
+					'$total',
+					'$observacionEgreso',
+					'$estadoEgreso',
+					'$colaboradores_id',
+					'$fecha_registro',
+					'$categoria_gastos_id'
+				)
+			";
+
+			$resultInsertEgreso = $conexion->query($queryInsertEgreso);
+
+			if(!$resultInsertEgreso){
+				return [
+					"success" => false,
+					"message" => "No se pudo registrar el egreso de reversión: ".$conexion->error
+				];
+			}
+
+			$movimientos_cuentas_id = mainModel::correlativo("movimientos_cuentas_id", "movimientos_cuentas");
+
+			$mov_cuentas_id = (int)$datosMov['cuentas_id'];
+			$mov_empresa_id = (int)$datosMov['empresa_id'];
+			$mov_fecha = $conexion->real_escape_string($datosMov['fecha']);
+			$mov_ingreso = (float)$datosMov['ingreso'];
+			$mov_egreso = (float)$datosMov['egreso'];
+			$mov_saldo = (float)$datosMov['saldo'];
+			$mov_colaboradores_id = (int)$datosMov['colaboradores_id'];
+			$mov_fecha_registro = $conexion->real_escape_string($datosMov['fecha_registro']);
+
+			$queryInsertMovimiento = "
+				INSERT INTO movimientos_cuentas (
+					movimientos_cuentas_id,
+					cuentas_id,
+					empresa_id,
+					fecha,
+					ingreso,
+					egreso,
+					saldo,
+					colaboradores_id,
+					fecha_registro
+				) VALUES (
+					'$movimientos_cuentas_id',
+					'$mov_cuentas_id',
+					'$mov_empresa_id',
+					'$mov_fecha',
+					'$mov_ingreso',
+					'$mov_egreso',
+					'$mov_saldo',
+					'$mov_colaboradores_id',
+					'$mov_fecha_registro'
+				)
+			";
+
+			$resultInsertMovimiento = $conexion->query($queryInsertMovimiento);
+
+			if(!$resultInsertMovimiento){
+				return [
+					"success" => false,
+					"message" => "El egreso fue registrado, pero no se pudo registrar el movimiento de cuenta: ".$conexion->error
+				];
+			}
+
+			return [
+				"success" => true,
+				"egresos_id" => $egresos_id,
+				"movimientos_cuentas_id" => $movimientos_cuentas_id
+			];
 		}
 
 		protected function agregar_egreso_por_anulacion_modelo($datos){

@@ -21,7 +21,12 @@ if ($validacion['error']) {
 $fechai = isset($_POST['fechai']) ? $_POST['fechai'] : date('Y-m-d');
 $fechaf = isset($_POST['fechaf']) ? $_POST['fechaf'] : date('Y-m-d');
 $estado = isset($_POST['estado']) ? (int)$_POST['estado'] : 0;
-$empresa_id = (int)$_SESSION['empresa_id_sd'];
+
+$empresa_id = isset($_SESSION['empresa_id_sd']) ? (int)$_SESSION['empresa_id_sd'] : 0;
+$colaboradores_id = isset($_SESSION['colaborador_id_sd']) ? (int)$_SESSION['colaborador_id_sd'] : 0;
+
+$solo_mi_caja = isset($_POST['solo_mi_caja']) ? (int)$_POST['solo_mi_caja'] : 0;
+$origen = isset($_POST['origen']) ? trim($_POST['origen']) : '';
 
 if ($fechai == "") {
     $fechai = date('Y-m-d');
@@ -32,6 +37,10 @@ if ($fechaf == "") {
 }
 
 $where = "a.empresa_id = '$empresa_id'";
+
+if ($solo_mi_caja === 1 && $origen === 'facturacion') {
+    $where .= " AND a.colaboradores_id = '$colaboradores_id'";
+}
 
 if ($estado === 0) {
     $where .= " AND (

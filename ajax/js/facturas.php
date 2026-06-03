@@ -101,6 +101,8 @@ $(() => {
    ========================================================= */
 
    $('#btn_ver_caja_factura').off('click.cajaFacturaAbrir').on('click.cajaFacturaAbrir', function () {
+    asegurarModalesCajaFacturaEstaticos();
+
     $('#modalCajaFactura').modal({
         show: true,
         keyboard: false,
@@ -265,6 +267,113 @@ function ocultarMenuAccionesCajaFactura(boton) {
     var $dropdown = $(boton).closest('.dropdown');
     $dropdown.find('.dropdown-menu').removeClass('show');
     $dropdown.find('.js-acciones-toggle').attr('aria-expanded', 'false');
+}
+
+function aplicarModalEstaticoCajaFactura(selector) {
+    var $modal = $(selector);
+
+    if ($modal.length === 0) {
+        return;
+    }
+
+    $modal.attr('data-backdrop', 'static');
+    $modal.attr('data-keyboard', 'false');
+
+    var instancia = $modal.data('bs.modal');
+
+    if (instancia && instancia._config) {
+        instancia._config.backdrop = 'static';
+        instancia._config.keyboard = false;
+    }
+}
+
+function asegurarModalesCajaFacturaEstaticos() {
+    aplicarModalEstaticoCajaFactura('#modalCajaFactura');
+    aplicarModalEstaticoCajaFactura('#modalRetiroCaja');
+    aplicarModalEstaticoCajaFactura('#modal_apertura_caja');
+    aplicarModalEstaticoCajaFactura('#modalDetalleRetirosCaja');
+    aplicarModalEstaticoCajaFactura('#modalReintegroRetiroCaja');
+    aplicarModalEstaticoCajaFactura('#modalDesgloseGananciaCaja');
+}
+
+function refrescarCajaFacturaDespuesDeRetiro(origen) {
+    var ahora = new Date().getTime();
+
+    if (window.__refrescandoCajaFacturaRetiro) {
+        return;
+    }
+
+    if (window.__ultimoRefreshCajaFacturaRetiro && (ahora - window.__ultimoRefreshCajaFacturaRetiro) < 1200) {
+        return;
+    }
+
+    window.__refrescandoCajaFacturaRetiro = true;
+    window.__ultimoRefreshCajaFacturaRetiro = ahora;
+
+    setTimeout(function () {
+        if (typeof cargarCajaFactura === 'function') {
+            cargarCajaFactura();
+        }
+
+        if (typeof validarAperturaCajaUsuario === 'function') {
+            validarAperturaCajaUsuario();
+        }
+
+        if (typeof getCajero === 'function') {
+            getCajero();
+        }
+
+        if (typeof listar_registro_cajas === 'function') {
+            listar_registro_cajas();
+        }
+
+        if ($('#modalDetalleRetirosCaja').hasClass('show')) {
+            refrescarDetalleRetirosCaja();
+        }
+
+        if ($('#modalDesgloseGananciaCaja').hasClass('show')) {
+            refrescarDesgloseGananciaCaja();
+        }
+
+        setTimeout(function () {
+            window.__refrescandoCajaFacturaRetiro = false;
+        }, 1200);
+    }, 250);
+}
+
+if (!window.__controlModalesCajaFacturaRegistrado) {
+    window.__controlModalesCajaFacturaRegistrado = true;
+
+    $(document).ready(function () {
+        asegurarModalesCajaFacturaEstaticos();
+    });
+
+    $(document).on('show.bs.modal.cajaFacturaEstatico', '#modalCajaFactura, #modalRetiroCaja, #modal_apertura_caja, #modalDetalleRetirosCaja, #modalReintegroRetiroCaja, #modalDesgloseGananciaCaja', function () {
+        aplicarModalEstaticoCajaFactura(this);
+    });
+
+    // IMPORTANTE:
+    // No refrescamos al cerrar #modalRetiroCaja, porque el retiro ya dispara
+    // el refresco desde ajaxComplete. Si se refresca también en hidden.bs.modal,
+    // la tabla dataTableCajaFactura se recarga dos veces.
+    $(document).off('hidden.bs.modal.cajaFacturaRetiroRefresh', '#modalRetiroCaja');
+
+    $(document).ajaxComplete(function (event, xhr, settings) {
+        var url = '';
+
+        if (settings && settings.url) {
+            url = String(settings.url).toLowerCase();
+        }
+
+        if (
+            url.indexOf('addretirocaja') !== -1 ||
+            url.indexOf('registrarretirocaja') !== -1 ||
+            url.indexOf('guardarretir') !== -1 ||
+            url.indexOf('guardar_retiro') !== -1
+        ) {
+            refrescarCajaFacturaDespuesDeRetiro('ajaxRetiroCaja');
+        }
+    });
 }
 
 /* =========================================================
@@ -487,7 +596,9 @@ function cargarCajaFactura() {
             data: {
                 fechai: fechai,
                 fechaf: fechaf,
-                estado: estado
+                estado: estado,
+                solo_mi_caja: 1,
+                origen: 'facturacion'
             },
             error: function (xhr) {
                 console.log(xhr.responseText);
@@ -765,6 +876,8 @@ function abrirRetiroCajaDesdeFactura(data) {
             }, 150);
         });
 
+    aplicarModalEstaticoCajaFactura('#modalRetiroCaja');
+
     $('#modalRetiroCaja').modal({
         show: true,
         keyboard: false,
@@ -887,6 +1000,8 @@ function prepararFormularioCierreCajaDesdeFactura(data) {
                     }
                 });
 
+            aplicarModalEstaticoCajaFactura('#modal_apertura_caja');
+
             $('#modal_apertura_caja').modal({
                 show: true,
                 keyboard: false,
@@ -957,6 +1072,8 @@ function cargarDetalleRetirosCaja(apertura_id, modo) {
 
     construirHeaderFooterDetalleRetirosCaja();
 
+    aplicarModalEstaticoCajaFactura('#modalDetalleRetirosCaja');
+
     $('#modalDetalleRetirosCaja').modal({
         show: true,
         keyboard: false,
@@ -972,7 +1089,9 @@ function cargarDetalleRetirosCaja(apertura_id, modo) {
                 apertura_id: apertura_id,
                 modo: modo,
                 fechai: fechai,
-                fechaf: fechaf
+                fechaf: fechaf,
+                solo_mi_caja: 1,
+                origen: 'facturacion'
             },
             success: function (response) {
                 if (!response || !response.success) {
@@ -1234,6 +1353,8 @@ function abrirModalReintegroRetiroCaja(caja_retiros_id, apertura_id, monto) {
             }, 150);
         });
 
+    aplicarModalEstaticoCajaFactura('#modalReintegroRetiroCaja');
+
     $('#modalReintegroRetiroCaja').modal({
         show: true,
         keyboard: false,
@@ -1263,7 +1384,7 @@ $('#formReintegroRetiroCaja').off('submit.cajaFacturaReintegro').on('submit.caja
         type: 'POST',
         url: '<?php echo SERVERURL;?>core/caja/reintegrarRetiroCaja.php',
         dataType: 'json',
-        data: $('#formReintegroRetiroCaja').serialize(),
+        data: $('#formReintegroRetiroCaja').serialize() + '&solo_mi_caja=1&origen=facturacion',
         success: function (response) {
             $('#btnGuardarReintegroRetiroCaja').prop('disabled', false);
 
@@ -1343,7 +1464,9 @@ function cargarDesgloseGananciaCaja(apertura_id, modo) {
             apertura_id: apertura_id,
             modo: modo,
             fechai: fechai,
-            fechaf: fechaf
+            fechaf: fechaf,
+            solo_mi_caja: 1,
+            origen: 'facturacion'
         },
         beforeSend: function () {
             if (modo === 'periodo') {
@@ -1410,6 +1533,8 @@ function cargarDesgloseGananciaCaja(apertura_id, modo) {
             $('#dg_diferencia_conciliacion').html(formatoMoneda(diferenciaConciliacion));
 
             cargarTablaDetalleGananciaCaja(detalles);
+
+            aplicarModalEstaticoCajaFactura('#modalDesgloseGananciaCaja');
 
             $('#modalDesgloseGananciaCaja').modal({
                 show: true,

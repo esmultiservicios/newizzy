@@ -2225,29 +2225,37 @@ function printPurchase(compras_id) {
 }
 
 //INICIO ENVIAR COTIZACION POR CORREO ELECTRONICO
+//INICIO ENVIAR COTIZACIÓN POR CORREO ELECTRÓNICO
 function mailQuote(cotizacion_id) {
-    swal({
-        title: "¿Estas seguro?",
-        text: "¿Desea enviar la cotización: # " + getNumeroCotizacion(cotizacion_id) + "?",
-        icon: "warning",
-        buttons: {
-            cancel: {
-                text: "Cancelar",
-                visible: true
-            },
-            confirm: {
-                text: "¡Sí, enviar la cotización!",
-            }
-        },
-        timer: 3000,
-        dangerMode: true,
-        closeOnEsc: false,
-        closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-    }).then((willConfirm) => {
-        if (willConfirm === true) {
+    cotizacion_id = parseInt(cotizacion_id || 0);
+
+    if (cotizacion_id <= 0) {
+        console.warn('No se recibió una cotización válida para enviar por correo.');
+        return;
+    }
+
+    // Evita doble envío accidental si la función se dispara dos veces seguidas
+    if (!window.__mailQuoteEnProceso) {
+        window.__mailQuoteEnProceso = {};
+    }
+
+    if (window.__mailQuoteEnProceso[cotizacion_id]) {
+        return;
+    }
+
+    window.__mailQuoteEnProceso[cotizacion_id] = true;
+
+    setTimeout(function () {
+        if (typeof sendQuote === 'function') {
             sendQuote(cotizacion_id);
+        } else {
+            console.error('La función sendQuote no está disponible.');
         }
-    });
+
+        setTimeout(function () {
+            delete window.__mailQuoteEnProceso[cotizacion_id];
+        }, 3000);
+    }, 300);
 }
 
 function sendQuote(cotizacion_id) {
@@ -2289,34 +2297,35 @@ function getNumeroCotizacion(cotizacion_id) {
 
 //INICIO ENVIAR FACTURA POR CORREO ELECTRONICO
 function mailBill(facturas_id) {
-    swal({
-        title: "Confirmar envío",
-        text: "¿Desea enviar por correo la factura N.º " + getNumeroFactura(facturas_id) + "?",
-        icon: "info",
-        buttons: {
-            cancel: {
-                text: "Cancelar",
-                value: null,
-                visible: true,
-                className: "btn-light",
-                closeModal: true
-            },
-            confirm: {
-                text: "Sí, enviar factura",
-                value: true,
-                visible: true,
-                className: "btn-primary",
-                closeModal: true
-            }
-        },
-        dangerMode: false,
-        closeOnEsc: false,
-        closeOnClickOutside: false
-    }).then((willConfirm) => {
-        if (willConfirm === true) {
+    facturas_id = parseInt(facturas_id || 0);
+
+    if (facturas_id <= 0) {
+        console.warn('No se recibió una factura válida para enviar por correo.');
+        return;
+    }
+
+    // Evita doble envío accidental si la función se dispara dos veces seguidas
+    if (!window.__mailBillEnProceso) {
+        window.__mailBillEnProceso = {};
+    }
+
+    if (window.__mailBillEnProceso[facturas_id]) {
+        return;
+    }
+
+    window.__mailBillEnProceso[facturas_id] = true;
+
+    setTimeout(function () {
+        if (typeof sendMail === 'function') {
             sendMail(facturas_id);
+        } else {
+            console.error('La función sendMail no está disponible.');
         }
-    });
+
+        setTimeout(function () {
+            delete window.__mailBillEnProceso[facturas_id];
+        }, 3000);
+    }, 300);
 }
 
 function sendMail(facturas_id) {

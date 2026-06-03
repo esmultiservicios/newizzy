@@ -1,4 +1,5 @@
 <script>
+  //ingresosContabilidad.php - este es el js
 $(() => {
   // Inicializar
   listar_ingresos_contabilidad();
@@ -235,7 +236,7 @@ var listar_ingresos_contabilidad = function () {
                 '<span class="accion-icon accion-icon-danger">' +
                   '<i class="fas fa-ban"></i>' +
                 '</span>' +
-                '<span class="accion-label">Anular</span>' +
+                '<span class="accion-label">Reversar</span>' +
               '</button>';
           } else {
             accionesIngreso +=
@@ -243,7 +244,7 @@ var listar_ingresos_contabilidad = function () {
                 '<span class="accion-icon accion-icon-eliminar">' +
                   '<i class="fas fa-ban"></i>' +
                 '</span>' +
-                '<span class="accion-label">Ingreso anulado</span>' +
+                '<span class="accion-label">Ingreso inactivo</span>' +
               '</button>';
           }
 
@@ -420,7 +421,8 @@ var listar_ingresos_contabilidad = function () {
   $('#buscar').focus();
 };
 
-// ===== Acciones de la tabla: ANULAR =====
+// ===== Acciones de la tabla: REVERSAR =====
+// ===== Acciones de la tabla: REVERSAR =====
 var anular_ingresos_dataTable = function (tbody, table) {
   $(tbody).off("click", "button.anular_ingreso");
 
@@ -445,18 +447,18 @@ var anular_ingresos_dataTable = function (tbody, table) {
     const content = document.createElement("div");
     content.innerHTML = `
       <p style="margin:0 0 6px 0;">
-        Se cambiará el ingreso de <b>Activo</b> a <b>Inactivo</b>.
+        El ingreso <b>quedará activo</b>.
       </p>
       <p style="margin:0 0 6px 0;">
-        También se registrará un <b>egreso de reintegro</b> por el mismo valor.
+        Se registrará un <b>egreso de reversión</b> por el mismo valor del ingreso.
       </p>
       <p style="margin:0;">
-        Además se registrará el <b>movimiento de cuenta</b> correspondiente.
+        También se registrará el <b>movimiento de cuenta</b> correspondiente.
       </p>
     `;
 
     swal({
-      title: "¿Anular ingreso?",
+      title: "¿Reversar ingreso?",
       content: content,
       icon: "warning",
       buttons: {
@@ -465,7 +467,7 @@ var anular_ingresos_dataTable = function (tbody, table) {
           visible: true
         },
         confirm: {
-          text: "Sí, anular"
+          text: "Sí, reversar"
         }
       },
       dangerMode: true,
@@ -486,35 +488,41 @@ var anular_ingresos_dataTable = function (tbody, table) {
           $btn.prop("disabled", true);
         },
         success: function (response) {
-          console.log("Respuesta anulación ingreso:", response);
+          console.log("Respuesta reversión ingreso:", response);
+
+          var respuestaTexto = typeof response === "string" ? response.toLowerCase() : "";
 
           if (
-            typeof response === "string" &&
-            (
-              response.toLowerCase().indexOf("fatal error") !== -1 ||
-              response.toLowerCase().indexOf("warning") !== -1 ||
-              response.toLowerCase().indexOf("no se pudo") !== -1 ||
-              response.toLowerCase().indexOf('"type":"error"') !== -1 ||
-              response.toLowerCase().indexOf("'type' => 'error'") !== -1
-            )
+            respuestaTexto.indexOf("fatal error") !== -1 ||
+            respuestaTexto.indexOf("parse error") !== -1 ||
+            respuestaTexto.indexOf("warning:") !== -1 ||
+            respuestaTexto.indexOf("notice:") !== -1 ||
+            respuestaTexto.indexOf("undefined index") !== -1 ||
+            respuestaTexto.indexOf("uncaught") !== -1 ||
+            respuestaTexto.indexOf("no se pudo registrar la reversión") !== -1 ||
+            respuestaTexto.indexOf("no se pudo reversar") !== -1 ||
+            respuestaTexto.indexOf("no se recibió el ingreso") !== -1 ||
+            respuestaTexto.indexOf("no se encontró el ingreso") !== -1
           ) {
-            showNotify("error", "Error", "No se pudo anular el ingreso. Revise la consola o el log del servidor.");
+            showNotify("error", "Error", "No se pudo reversar el ingreso. Revise la consola o el log del servidor.");
             console.error("Error devuelto por PHP:", response);
             return;
           }
 
+          try {
+            if (typeof response === "string" && response.trim() !== "") {
+              $("body").append(response);
+            }
+          } catch (e) {
+            console.warn("No se pudo ejecutar la respuesta del servidor:", e);
+          }
+
           listar_ingresos_contabilidad();
           total_ingreso_footer();
-
-          showNotify(
-            "success",
-            "Ingreso anulado",
-            "Se anuló el ingreso, se registró el egreso de reintegro y el movimiento de cuenta."
-          );
         },
         error: function (xhr) {
-          showNotify("error", "Error", "No se pudo anular el ingreso: " + xhr.statusText);
-          console.error("Error al anular ingreso:", xhr.responseText);
+          showNotify("error", "Error", "No se pudo reversar el ingreso: " + xhr.statusText);
+          console.error("Error al reversar ingreso:", xhr.responseText);
         },
         complete: function () {
           $btn.prop("disabled", false);

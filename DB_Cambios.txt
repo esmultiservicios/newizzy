@@ -1,4 +1,44 @@
 ####03 de junio 2026####
+/* ============================================================
+   MIGRACIÓN SEGURA - INVERSIÓN / REPOSICIÓN
+   ------------------------------------------------------------
+   Objetivo:
+   1. Agregar columna es_inversion en categoria_gastos si no existe.
+   2. Marcar categorías que tengan INVERSION / INVERSIÓN / REPOSICION / REPOSICIÓN.
+   3. Actualizar egresos de inversión solo si existe una categoría marcada como inversión.
+   4. Agregar columna es_inversion en cuentas si no existe.
+   5. Marcar cuentas como inversión SOLO si el nombre contiene inversión/reposición.
+      Si no existe una cuenta de inversión, no marca ninguna.
+   ============================================================ */
+
+
+/* ============================================================
+   1. AGREGAR COLUMNA es_inversion EN categoria_gastos SI NO EXISTE
+   ============================================================ */
+
+SET @existe_columna_categoria := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'categoria_gastos'
+      AND COLUMN_NAME = 'es_inversion'
+);
+
+SET @sql_categoria := IF(
+    @existe_columna_categoria = 0,
+    'ALTER TABLE categoria_gastos ADD COLUMN es_inversion TINYINT(1) NOT NULL DEFAULT 0 COMMENT ''1 = No se cuenta como gasto; se clasifica como inversión/reposición''',
+    'SELECT ''La columna categoria_gastos.es_inversion ya existe'' AS mensaje'
+);
+
+PREPARE stmt_categoria FROM @sql_categoria;
+EXECUTE stmt_categoria;
+DEALLOCATE PREPARE stmt_categoria;
+
+
+/* ============================================================
+   2. MARCAR CATEGORÍAS DE INVERSIÓN / REPOSICIÓN
+   ============================================================ */
+
 UPDATE categoria_gastos
 SET es_inversion = 1
 WHERE UPPER(nombre) LIKE '%INVERSION%'
@@ -6,26 +46,86 @@ WHERE UPPER(nombre) LIKE '%INVERSION%'
    OR UPPER(nombre) LIKE '%REPOSICION%'
    OR UPPER(nombre) LIKE '%REPOSICIÓN%';
 
+
+/* ============================================================
+   3. ACTUALIZAR EGRESOS DE INVERSIÓN SOLO SI EXISTE CATEGORÍA
+      MARCADA COMO INVERSIÓN
+   ============================================================ */
+
 UPDATE egresos
 SET categoria_gastos_id = (
-    SELECT categoria_gastos_id
-    FROM categoria_gastos
-    WHERE es_inversion = 1
+    SELECT cg.categoria_gastos_id
+    FROM categoria_gastos cg
+    WHERE cg.es_inversion = 1
+    ORDER BY cg.categoria_gastos_id ASC
     LIMIT 1
 )
 WHERE estado = 1
   AND tipo_egreso = 2
-  AND cuentas_id = 2
-  AND UPPER(observacion) LIKE '%INVERSION%';
+  AND UPPER(observacion) LIKE '%INVERSION%'
+  AND EXISTS (
+      SELECT 1
+      FROM categoria_gastos cg2
+      WHERE cg2.es_inversion = 1
+  );
 
-ALTER TABLE cuentas
-ADD COLUMN es_inversion TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = Cuenta usada para inversión/reposición';
+
+/* ============================================================
+   4. AGREGAR COLUMNA es_inversion EN cuentas SI NO EXISTE
+   ============================================================ */
+
+SET @existe_columna_cuenta := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'cuentas'
+      AND COLUMN_NAME = 'es_inversion'
+);
+
+SET @sql_cuenta := IF(
+    @existe_columna_cuenta = 0,
+    'ALTER TABLE cuentas ADD COLUMN es_inversion TINYINT(1) NOT NULL DEFAULT 0 COMMENT ''1 = Cuenta usada para inversión/reposición''',
+    'SELECT ''La columna cuentas.es_inversion ya existe'' AS mensaje'
+);
+
+PREPARE stmt_cuenta FROM @sql_cuenta;
+EXECUTE stmt_cuenta;
+DEALLOCATE PREPARE stmt_cuenta;
+
+
+/* ============================================================
+   5. MARCAR CUENTAS DE INVERSIÓN / REPOSICIÓN SOLO SI EXISTEN
+      NO SE USA cuentas_id FIJO.
+   ============================================================ */
 
 UPDATE cuentas
 SET es_inversion = 1
-WHERE cuentas_id = 4;
+WHERE UPPER(nombre) LIKE '%INVERSION%'
+   OR UPPER(nombre) LIKE '%INVERSIÓN%'
+   OR UPPER(nombre) LIKE '%REPOSICION%'
+   OR UPPER(nombre) LIKE '%REPOSICIÓN%';
 
-####01 de mayo 2026####
+
+/* ============================================================
+   6. VERIFICACIÓN FINAL
+   ============================================================ */
+
+SELECT 
+    cuentas_id,
+    codigo,
+    nombre,
+    es_inversion
+FROM cuentas
+WHERE es_inversion = 1;
+
+SELECT 
+    categoria_gastos_id,
+    nombre,
+    es_inversion
+FROM categoria_gastos
+WHERE es_inversion = 1;
+
+####01 de junio 2026####
 ALTER TABLE ingresos
 DROP COLUMN recibide;
 

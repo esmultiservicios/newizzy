@@ -1979,7 +1979,7 @@ $('#formReintegroRetiroCaja').off('submit.cajaFacturaReintegro').on('submit.caja
    INICIO - DESGLOSE GANANCIA CAJA
    ========================================================= */
 
-function cargarDesgloseGananciaCaja(apertura_id, modo) {
+   function cargarDesgloseGananciaCaja(apertura_id, modo) {
     apertura_id = parseInt(apertura_id || 0);
 
     var fechas = obtenerFechasCajaFacturacion();
@@ -2028,20 +2028,33 @@ function cargarDesgloseGananciaCaja(apertura_id, modo) {
                 $('#dg_contexto_consulta').html('Apertura de caja #' + apertura_id);
             }
 
-            $('#dg_total_cobrado').html('Cargando...');
-            $('#dg_costo_productos').html('Cargando...');
-            $('#dg_costo_productos_2').html('Cargando...');
-            $('#dg_dinero_despues_reponer').html('Cargando...');
+            $('#dg_total_vendido').html('Cargando...');
+            $('#dg_otros_ingresos').html('Cargando...');
+            $('#dg_total_gastos').html('Cargando...');
+            $('#dg_total_egresos_registrados').html('Cargando...');
+            $('#dg_total_inversion_apartada').html('Cargando...');
+            $('#dg_retiro_caja_pendiente').html('Cargando...');
+            $('#dg_neto_disponible').html('Cargando...');
+
             $('#dg_efectivo').html('Cargando...');
             $('#dg_transferencia').html('Cargando...');
             $('#dg_tarjeta').html('Cargando...');
             $('#dg_cheque').html('Cargando...');
+
             $('#dg_monto_apertura').html('Cargando...');
             $('#dg_efectivo_caja').html('Cargando...');
-            $('#dg_retiro_caja').html('Cargando...');
+            $('#dg_retiro_caja_total').html('Cargando...');
+            $('#dg_retiro_caja_convertido').html('Cargando...');
             $('#dg_efectivo_esperado_caja').html('Cargando...');
+
             $('#dg_total_vendido_detalle').html('Cargando...');
+            $('#dg_costo_productos').html('Cargando...');
+            $('#dg_costo_productos_2').html('Cargando...');
             $('#dg_ganancia_bruta').html('Cargando...');
+            $('#dg_dinero_recomendado_guardar').html('Cargando...');
+            $('#dg_dinero_despues_reponer').html('Cargando...');
+            $('#dg_porcentaje_costo').html('0.00%');
+            $('#dg_porcentaje_ganancia').html('0.00%');
             $('#dg_diferencia_conciliacion').html('Cargando...');
         },
         success: function (response) {
@@ -2053,35 +2066,73 @@ function cargarDesgloseGananciaCaja(apertura_id, modo) {
             var resumen = response.resumen || {};
             var detalles = response.detalles || [];
 
-            var totalCobrado = parseMonto(resumen.total_cobrado);
-            var costoProductos = parseMonto(resumen.costo_productos_vendidos);
-            var dineroDespuesReponer = parseMonto(resumen.dinero_despues_reponer);
+            var totalVendido = parseMonto(resumen.total_vendido || resumen.total_cobrado);
+            var otrosIngresos = parseMonto(resumen.otros_ingresos);
+            var totalGastos = parseMonto(resumen.total_gastos_reales || resumen.total_gastos);
+            var totalEgresosRegistrados = parseMonto(resumen.total_egresos_registrados);
+            var totalInversionApartada = parseMonto(resumen.total_inversion_apartada);
+            var retiroCajaPendiente = parseMonto(resumen.retiro_caja_pendiente);
+            var netoDisponible = parseMonto(resumen.neto_disponible);
+
             var efectivo = parseMonto(resumen.efectivo);
             var transferencia = parseMonto(resumen.transferencia);
             var tarjeta = parseMonto(resumen.tarjeta);
             var cheque = parseMonto(resumen.cheque);
+
             var montoApertura = parseMonto(resumen.monto_apertura);
-            var retiroCaja = parseMonto(resumen.retiro_caja);
+            var retiroCajaTotal = parseMonto(resumen.retiro_caja_total || resumen.retiro_caja);
+            var retiroCajaConvertido = parseMonto(resumen.retiro_caja_convertido_gasto);
             var efectivoEsperadoCaja = parseMonto(resumen.efectivo_esperado_caja);
+
             var totalVendidoDetalle = parseMonto(resumen.total_vendido_detalle);
+            var costoProductos = parseMonto(resumen.costo_productos_vendidos);
             var gananciaBruta = parseMonto(resumen.ganancia_bruta);
+            var dineroRecomendadoGuardar = parseMonto(resumen.dinero_recomendado_guardar);
+            var dineroDespuesReponer = parseMonto(resumen.dinero_despues_reponer);
+            var porcentajeCosto = parseMonto(resumen.porcentaje_costo);
+            var porcentajeGanancia = parseMonto(resumen.porcentaje_ganancia);
             var diferenciaConciliacion = parseMonto(resumen.diferencia_conciliacion);
 
-            $('#dg_total_cobrado').html(formatoMoneda(totalCobrado));
-            $('#dg_costo_productos').html(formatoMoneda(costoProductos));
-            $('#dg_costo_productos_2').html(formatoMoneda(costoProductos));
-            $('#dg_dinero_despues_reponer').html(formatoMoneda(dineroDespuesReponer));
+            $('#dg_total_vendido').html(formatoMoneda(totalVendido));
+            $('#dg_otros_ingresos').html(formatoMoneda(otrosIngresos));
+            $('#dg_total_gastos').html(formatoMoneda(totalGastos));
+            $('#dg_total_egresos_registrados').html(formatoMoneda(totalEgresosRegistrados));
+            $('#dg_total_inversion_apartada').html(formatoMoneda(totalInversionApartada));
+            $('#dg_retiro_caja_pendiente').html(formatoMoneda(retiroCajaPendiente));
+            $('#dg_neto_disponible').html(formatoMoneda(netoDisponible));
+
             $('#dg_efectivo').html(formatoMoneda(efectivo));
             $('#dg_transferencia').html(formatoMoneda(transferencia));
             $('#dg_tarjeta').html(formatoMoneda(tarjeta));
             $('#dg_cheque').html(formatoMoneda(cheque));
+
             $('#dg_monto_apertura').html(formatoMoneda(montoApertura));
             $('#dg_efectivo_caja').html(formatoMoneda(efectivo));
-            $('#dg_retiro_caja').html(formatoMoneda(retiroCaja));
+            $('#dg_retiro_caja_total').html(formatoMoneda(retiroCajaTotal));
+            $('#dg_retiro_caja_convertido').html(formatoMoneda(retiroCajaConvertido));
             $('#dg_efectivo_esperado_caja').html(formatoMoneda(efectivoEsperadoCaja));
+
             $('#dg_total_vendido_detalle').html(formatoMoneda(totalVendidoDetalle));
+            $('#dg_costo_productos').html(formatoMoneda(costoProductos));
+            $('#dg_costo_productos_2').html(formatoMoneda(costoProductos));
             $('#dg_ganancia_bruta').html(formatoMoneda(gananciaBruta));
+            $('#dg_dinero_recomendado_guardar').html(formatoMoneda(dineroRecomendadoGuardar));
+            $('#dg_dinero_despues_reponer').html(formatoMoneda(dineroDespuesReponer));
+            $('#dg_porcentaje_costo').html(porcentajeCosto.toFixed(2) + '%');
+            $('#dg_porcentaje_ganancia').html(porcentajeGanancia.toFixed(2) + '%');
             $('#dg_diferencia_conciliacion').html(formatoMoneda(diferenciaConciliacion));
+
+            var textoRegla = '';
+
+            if (totalInversionApartada > 0) {
+                textoRegla = 'Hay egresos marcados como inversión/reposición. Salen de caja, pero no se cuentan como gasto real.';
+            } else if (retiroCajaConvertido > 0) {
+                textoRegla = 'Esta caja ya tiene retiros convertidos en gasto. Por eso no se restan doble en el neto.';
+            } else {
+                textoRegla = 'Los retiros pendientes todavía no son egreso. Por eso sí se restan del neto disponible.';
+            }
+
+            $('#dg_regla_retiros').html(textoRegla);
 
             cargarTablaDetalleGananciaCaja(detalles);
 

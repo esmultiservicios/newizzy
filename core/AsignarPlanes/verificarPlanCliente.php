@@ -27,42 +27,88 @@ function responderVerificarPlanCliente($data) {
     exit;
 }
 
-function tablaExisteVerificarPlanCliente($conexion, $tabla) {
-    $stmt = $conexion->prepare("SHOW TABLES LIKE ?");
+function nombreBaseDatosValidoVerificarPlanCliente($dbName) {
+    $dbName = trim((string)$dbName);
 
-    if (!$stmt) {
+    if ($dbName === '') {
         return false;
     }
 
-    $stmt->bind_param("s", $tabla);
-    $stmt->execute();
-
-    $resultado = $stmt->get_result();
-    $existe = $resultado && $resultado->num_rows > 0;
-
-    $stmt->close();
-
-    return $existe;
+    return preg_match('/^[a-zA-Z0-9_]+$/', $dbName) === 1;
 }
 
-function obtenerPlanInternoCliente($mainModel, $dbName) {
-    $datosPlan = [
-        "user_extra" => 0,
-        "fecha_registro" => ""
-    ];
-
+function baseDatosExisteVerificarPlanCliente($mainModel, $dbName) {
     $dbName = trim((string)$dbName);
 
-    if ($dbName === "" || !preg_match('/^[a-zA-Z0-9_]+$/', $dbName)) {
-        return $datosPlan;
+    if (!nombreBaseDatosValidoVerificarPlanCliente($dbName)) {
+        return false;
     }
 
-    if (method_exists($mainModel, "databaseExists") && !$mainModel->databaseExists($dbName)) {
-        return $datosPlan;
+    if (method_exists($mainModel, "databaseExists")) {
+        try {
+            return $mainModel->databaseExists($dbName) ? true : false;
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    $conexionServidor = null;
+    $stmt = null;
+
+    try {
+        $conexionServidor = @new mysqli(SERVER, USER, PASS);
+
+        if ($conexionServidor->connect_errno) {
+            return false;
+        }
+
+        $sql = "
+            SELECT SCHEMA_NAME
+            FROM INFORMATION_SCHEMA.SCHEMATA
+            WHERE SCHEMA_NAME = ?
+            LIMIT 1
+        ";
+
+        $stmt = $conexionServidor->prepare($sql);
+
+        if (!$stmt) {
+            return false;
+        }
+
+        $stmt->bind_param("s", $dbName);
+        $stmt->execute();
+
+        $resultado = $stmt->get_result();
+
+        return $resultado && $resultado->num_rows > 0;
+
+    } catch (Throwable $e) {
+        return false;
+
+    } finally {
+        if ($stmt) {
+            $stmt->close();
+        }
+
+        if ($conexionServidor) {
+            $conexionServidor->close();
+        }
+    }
+}
+
+function conectarBaseClienteSeguraVerificarPlanCliente($mainModel, $dbName) {
+    $dbName = trim((string)$dbName);
+
+    if (!nombreBaseDatosValidoVerificarPlanCliente($dbName)) {
+        return null;
+    }
+
+    if (!baseDatosExisteVerificarPlanCliente($mainModel, $dbName)) {
+        return null;
     }
 
     if (!method_exists($mainModel, "connectToDatabase")) {
-        return $datosPlan;
+        return null;
     }
 
     $configCliente = [
@@ -72,14 +118,76 @@ function obtenerPlanInternoCliente($mainModel, $dbName) {
         "name" => $dbName
     ];
 
-    $conexionCliente = $mainModel->connectToDatabase($configCliente);
+    try {
+        $conexionCliente = $mainModel->connectToDatabase($configCliente);
 
-    if (!$conexionCliente) {
+        if (!$conexionCliente) {
+            return null;
+        }
+
+        return $conexionCliente;
+
+    } catch (Throwable $e) {
+        return null;
+    }
+}
+
+function tablaExisteVerificarPlanCliente($conexion, $tabla) {
+    $stmt = null;
+
+    try {
+        $stmt = $conexion->prepare("SHOW TABLES LIKE ?");
+
+        if (!$stmt) {
+            return false;
+        }
+
+        $stmt->bind_param("s", $tabla);
+        $stmt->execute();
+
+        $resultado = $stmt->get_result();
+
+        return $resultado && $resultado->num_rows > 0;
+
+    } catch (Throwable $e) {
+        return false;
+
+    } finally {
+        if ($stmt) {
+            $stmt->close();
+        }
+    }
+}
+
+function obtenerPlanInternoCliente($mainModel, $dbName) {
+    $datosPlan = [
+        "user_extra" => 0,
+        "fecha_registro" => "",
+        "db_disponible" => 0,
+        "db_mensaje" => ""
+    ];
+
+    $dbName = trim((string)$dbName);
+
+    if (!nombreBaseDatosValidoVerificarPlanCliente($dbName)) {
+        $datosPlan["db_mensaje"] = "Base de datos no registrada o nombre inválido";
         return $datosPlan;
     }
 
+    $conexionCliente = conectarBaseClienteSeguraVerificarPlanCliente($mainModel, $dbName);
+
+    if (!$conexionCliente) {
+        $datosPlan["db_mensaje"] = "No se pudo conectar a la base del cliente o no existe";
+        return $datosPlan;
+    }
+
+    $stmt = null;
+
     try {
+        $datosPlan["db_disponible"] = 1;
+
         if (!tablaExisteVerificarPlanCliente($conexionCliente, "plan")) {
+            $datosPlan["db_mensaje"] = "La tabla plan no existe en la base del cliente";
             return $datosPlan;
         }
 
@@ -95,6 +203,7 @@ function obtenerPlanInternoCliente($mainModel, $dbName) {
         $stmt = $conexionCliente->prepare($sql);
 
         if (!$stmt) {
+            $datosPlan["db_mensaje"] = "No se pudo preparar la consulta del plan del cliente";
             return $datosPlan;
         }
 
@@ -107,11 +216,22 @@ function obtenerPlanInternoCliente($mainModel, $dbName) {
 
             $datosPlan["user_extra"] = isset($row["user_extra"]) ? (int)$row["user_extra"] : 0;
             $datosPlan["fecha_registro"] = $row["fecha_registro"] ?? "";
+            $datosPlan["db_mensaje"] = "OK";
+        } else {
+            $datosPlan["db_mensaje"] = "No hay registro en la tabla plan";
         }
 
-        $stmt->close();
+    } catch (Throwable $e) {
+        $datosPlan["user_extra"] = 0;
+        $datosPlan["fecha_registro"] = "";
+        $datosPlan["db_disponible"] = 0;
+        $datosPlan["db_mensaje"] = "Error al consultar la base del cliente";
 
     } finally {
+        if ($stmt) {
+            $stmt->close();
+        }
+
         $conexionCliente->close();
     }
 
@@ -183,6 +303,8 @@ try {
     $data['estado'] = (int)$data['estado'];
     $data['user_extra'] = (int)$planCliente['user_extra'];
     $data['fecha_registro_plan_cliente'] = $planCliente['fecha_registro'];
+    $data['db_disponible'] = (int)$planCliente['db_disponible'];
+    $data['db_mensaje'] = $planCliente['db_mensaje'];
 
     responderVerificarPlanCliente([
         'success' => true,
@@ -190,7 +312,7 @@ try {
         'data' => $data
     ]);
 
-} catch (Exception $e) {
+} catch (Throwable $e) {
     responderVerificarPlanCliente([
         'success' => false,
         'message' => 'Error en el servidor: ' . $e->getMessage()

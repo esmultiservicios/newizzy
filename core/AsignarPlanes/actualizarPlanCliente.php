@@ -34,6 +34,111 @@ function responderActualizarPlanCliente($success, $type, $title, $message, $extr
     exit;
 }
 
+function nombreBaseDatosValidoActualizarPlanCliente($dbName) {
+    $dbName = trim((string)$dbName);
+
+    if ($dbName === '') {
+        return false;
+    }
+
+    return preg_match('/^[a-zA-Z0-9_]+$/', $dbName) === 1;
+}
+
+function baseDatosExisteActualizarPlanCliente($mainModel, $dbName) {
+    $dbName = trim((string)$dbName);
+
+    if (!nombreBaseDatosValidoActualizarPlanCliente($dbName)) {
+        return false;
+    }
+
+    if (method_exists($mainModel, "databaseExists")) {
+        try {
+            return $mainModel->databaseExists($dbName) ? true : false;
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    $conexionServidor = null;
+    $stmt = null;
+
+    try {
+        $conexionServidor = @new mysqli(SERVER, USER, PASS);
+
+        if ($conexionServidor->connect_errno) {
+            return false;
+        }
+
+        $sql = "
+            SELECT SCHEMA_NAME
+            FROM INFORMATION_SCHEMA.SCHEMATA
+            WHERE SCHEMA_NAME = ?
+            LIMIT 1
+        ";
+
+        $stmt = $conexionServidor->prepare($sql);
+
+        if (!$stmt) {
+            return false;
+        }
+
+        $stmt->bind_param("s", $dbName);
+        $stmt->execute();
+
+        $resultado = $stmt->get_result();
+
+        return $resultado && $resultado->num_rows > 0;
+
+    } catch (Throwable $e) {
+        return false;
+
+    } finally {
+        if ($stmt) {
+            $stmt->close();
+        }
+
+        if ($conexionServidor) {
+            $conexionServidor->close();
+        }
+    }
+}
+
+function conectarBaseClienteSeguraActualizarPlanCliente($mainModel, $dbName) {
+    $dbName = trim((string)$dbName);
+
+    if (!nombreBaseDatosValidoActualizarPlanCliente($dbName)) {
+        return null;
+    }
+
+    if (!baseDatosExisteActualizarPlanCliente($mainModel, $dbName)) {
+        return null;
+    }
+
+    if (!method_exists($mainModel, "connectToDatabase")) {
+        return null;
+    }
+
+    $configCliente = [
+        "host" => SERVER,
+        "user" => USER,
+        "pass" => PASS,
+        "name" => $dbName
+    ];
+
+    try {
+        $conexionCliente = $mainModel->connectToDatabase($configCliente);
+
+        if (!$conexionCliente) {
+            return null;
+        }
+
+        return $conexionCliente;
+
+    } catch (Throwable $e) {
+        return null;
+    }
+}
+
 function tablaExisteActualizarPlanCliente($conexion, $tabla) {
     $sql = "
         SELECT COUNT(*) AS total
@@ -43,26 +148,36 @@ function tablaExisteActualizarPlanCliente($conexion, $tabla) {
         LIMIT 1
     ";
 
-    $stmt = $conexion->prepare($sql);
+    $stmt = null;
 
-    if (!$stmt) {
+    try {
+        $stmt = $conexion->prepare($sql);
+
+        if (!$stmt) {
+            return false;
+        }
+
+        $stmt->bind_param("s", $tabla);
+        $stmt->execute();
+
+        $resultado = $stmt->get_result();
+
+        if (!$resultado) {
+            return false;
+        }
+
+        $row = $resultado->fetch_assoc();
+
+        return isset($row['total']) && (int)$row['total'] > 0;
+
+    } catch (Throwable $e) {
         return false;
+
+    } finally {
+        if ($stmt) {
+            $stmt->close();
+        }
     }
-
-    $stmt->bind_param("s", $tabla);
-    $stmt->execute();
-
-    $resultado = $stmt->get_result();
-
-    if (!$resultado) {
-        $stmt->close();
-        return false;
-    }
-
-    $row = $resultado->fetch_assoc();
-    $stmt->close();
-
-    return isset($row['total']) && (int)$row['total'] > 0;
 }
 
 function columnaExisteActualizarPlanCliente($conexion, $tabla, $columna) {
@@ -75,26 +190,36 @@ function columnaExisteActualizarPlanCliente($conexion, $tabla, $columna) {
         LIMIT 1
     ";
 
-    $stmt = $conexion->prepare($sql);
+    $stmt = null;
 
-    if (!$stmt) {
+    try {
+        $stmt = $conexion->prepare($sql);
+
+        if (!$stmt) {
+            return false;
+        }
+
+        $stmt->bind_param("ss", $tabla, $columna);
+        $stmt->execute();
+
+        $resultado = $stmt->get_result();
+
+        if (!$resultado) {
+            return false;
+        }
+
+        $row = $resultado->fetch_assoc();
+
+        return isset($row['total']) && (int)$row['total'] > 0;
+
+    } catch (Throwable $e) {
         return false;
+
+    } finally {
+        if ($stmt) {
+            $stmt->close();
+        }
     }
-
-    $stmt->bind_param("ss", $tabla, $columna);
-    $stmt->execute();
-
-    $resultado = $stmt->get_result();
-
-    if (!$resultado) {
-        $stmt->close();
-        return false;
-    }
-
-    $row = $resultado->fetch_assoc();
-    $stmt->close();
-
-    return isset($row['total']) && (int)$row['total'] > 0;
 }
 
 function asegurarEstructuraPlanCliente($conexionCliente) {
@@ -387,7 +512,7 @@ try {
         throw new Exception("El cliente no tiene una base de datos registrada.");
     }
 
-    if (!preg_match('/^[a-zA-Z0-9_]+$/', $dbName)) {
+    if (!nombreBaseDatosValidoActualizarPlanCliente($dbName)) {
         throw new Exception("El nombre de la base de datos del cliente no es válido.");
     }
 
@@ -395,18 +520,11 @@ try {
         throw new Exception("La base de datos del cliente aún no está marcada como importada.");
     }
 
-    if (!method_exists($mainModel, "connectToDatabase")) {
-        throw new Exception("No existe el método connectToDatabase en mainModel.");
+    if (!baseDatosExisteActualizarPlanCliente($mainModel, $dbName)) {
+        throw new Exception("La base de datos del cliente no existe o el usuario no tiene acceso.");
     }
 
-    $configCliente = [
-        "host" => SERVER,
-        "user" => USER,
-        "pass" => PASS,
-        "name" => $dbName
-    ];
-
-    $conexionCliente = $mainModel->connectToDatabase($configCliente);
+    $conexionCliente = conectarBaseClienteSeguraActualizarPlanCliente($mainModel, $dbName);
 
     if (!$conexionCliente) {
         throw new Exception("No se pudo conectar a la base de datos del cliente.");
@@ -447,7 +565,7 @@ try {
         ]
     );
 
-} catch (Exception $e) {
+} catch (Throwable $e) {
     if ($conexionCliente) {
         $conexionCliente->rollback();
     }

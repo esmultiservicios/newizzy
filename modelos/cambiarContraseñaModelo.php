@@ -1,11 +1,16 @@
 <?php
+	// cambiarContraseñaModelo.php
+
     if($peticionAjax){
         require_once "../core/mainModel.php";
+		require_once "../core/correo/sendEmail.php";
     }else{
-        require_once "./core/mainModel.php";	
+        require_once "./core/mainModel.php";
+		require_once "./core/correo/sendEmail.php";
     }
 	
-	class cambiarContraseñaModelo extends mainModel{		
+	class cambiarContraseñaModelo extends mainModel{
+
 		protected function edit_contraseña_modelo($datos){
 			$update = "UPDATE users
 			SET 
@@ -29,10 +34,12 @@
 		}			
 
 		protected function getCorreoUsuario($users_id){
-			$query = "SELECT u.email AS 'email', CONCAT(c.nombre, ' ', c.apellido) AS 'usuario'
+			$query = "SELECT 
+					u.email AS email,
+					c.nombre AS usuario
 				FROM users AS u
 				INNER JOIN colaboradores AS c
-				ON u.colaboradores_id = c.colaboradores_id
+					ON u.colaboradores_id = c.colaboradores_id
 				WHERE u.users_id = '$users_id'";
 			
 			$sql = mainModel::connection()->query($query) or die(mainModel::connection()->error);
@@ -41,10 +48,13 @@
 		}	
 		
 		protected function valid_user($usu_forgot){
-			$query = "SELECT u.users_id AS 'users_id', u.email AS 'email', CONCAT(c.nombre, ' ', c.apellido) AS 'usuario'
+			$query = "SELECT 
+					u.users_id AS users_id,
+					u.email AS email,
+					c.nombre AS usuario
 				FROM users AS u
 				INNER JOIN colaboradores AS c
-				ON u.colaboradores_id = c.colaboradores_id
+					ON u.colaboradores_id = c.colaboradores_id
 				WHERE u.email = '$usu_forgot'";
 			
 			$sql = mainModel::connection()->query($query) or die(mainModel::connection()->error);
@@ -77,9 +87,64 @@
 		}
 		
 		protected function send_email_usuarios_modelo($datos){
-			$result = mainModel::sendMailAjax($datos['servidor'], $datos['puerto'], $datos['contraseña'], $datos['CharSet'], $datos['SMTPSecure'], $datos['de'], $datos['para'], $datos['from'], $datos['asunto'], $datos['mensaje'], $datos['URL']);
+			/*
+				IMPORTANTE:
+				Este método antes llamaba mainModel::sendMailAjax(),
+				pero ese método ya no existe en tu flujo actual.
+
+				Ahora el envío de correos se hace con:
+				core/correo/sendEmail.php
+				Clase: sendEmail
+				Método: enviarCorreo()
+			*/
+
+			$correo_tipo_id = isset($datos['correo_tipo_id']) ? (int)$datos['correo_tipo_id'] : 1;
+			$empresa_id = isset($datos['empresa_id']) ? (int)$datos['empresa_id'] : 0;
+
+			$para = isset($datos['para']) ? trim($datos['para']) : "";
+			$nombre_para = isset($datos['nombre_para']) ? trim($datos['nombre_para']) : "";
+			$asunto = isset($datos['asunto']) ? trim($datos['asunto']) : "";
+			$mensaje = isset($datos['mensaje']) ? $datos['mensaje'] : "";
+
+			if ($empresa_id <= 0 && isset($_SESSION['empresa_id_sd'])) {
+				$empresa_id = (int)$_SESSION['empresa_id_sd'];
+			}
+
+			if ($para == "" || !filter_var($para, FILTER_VALIDATE_EMAIL)) {
+				return 0;
+			}
+
+			if ($asunto == "") {
+				$asunto = "Notificación del sistema";
+			}
+
+			if ($mensaje == "") {
+				$mensaje = "<p>Notificación generada por el sistema.</p>";
+			}
+
+			if ($nombre_para == "") {
+				$nombre_para = "Usuario";
+			}
+
+			$destinatarios = [
+				$para => $nombre_para
+			];
+
+			$bccDestinatarios = [];
+			$archivos_adjuntos = [];
+
+			$sendEmail = new sendEmail();
+
+			$result = $sendEmail->enviarCorreo(
+				$destinatarios,
+				$bccDestinatarios,
+				$asunto,
+				$mensaje,
+				$correo_tipo_id,
+				$empresa_id,
+				$archivos_adjuntos
+			);
 			
 			return $result;			
 		}	
 	}
-?>

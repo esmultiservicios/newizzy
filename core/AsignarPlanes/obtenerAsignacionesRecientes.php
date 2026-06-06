@@ -32,55 +32,88 @@ function responderAsignaciones($success, $data = [], $message = '') {
     exit;
 }
 
-function tablaExisteAsignaciones($conexion, $tabla) {
-    $sql = "
-        SELECT COUNT(*) AS total
-        FROM INFORMATION_SCHEMA.TABLES
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-        LIMIT 1
-    ";
-
-    $stmt = $conexion->prepare($sql);
-
-    if (!$stmt) {
-        return false;
-    }
-
-    $stmt->bind_param("s", $tabla);
-    $stmt->execute();
-
-    $resultado = $stmt->get_result();
-
-    if (!$resultado) {
-        $stmt->close();
-        return false;
-    }
-
-    $row = $resultado->fetch_assoc();
-    $stmt->close();
-
-    return isset($row['total']) && (int)$row['total'] > 0;
-}
-
-function obtenerDatosPlanClienteAsignaciones($mainModel, $dbName) {
-    $datos = [
-        "user_extra" => 0,
-        "fecha_registro" => ""
-    ];
-
+function nombreBaseDatosValidoAsignaciones($dbName) {
     $dbName = trim((string)$dbName);
 
-    if ($dbName === "") {
-        return $datos;
+    if ($dbName === '') {
+        return false;
     }
 
-    if (!preg_match('/^[a-zA-Z0-9_]+$/', $dbName)) {
-        return $datos;
+    return preg_match('/^[a-zA-Z0-9_]+$/', $dbName) === 1;
+}
+
+function baseDatosExisteAsignaciones($mainModel, $dbName) {
+    $dbName = trim((string)$dbName);
+
+    if (!nombreBaseDatosValidoAsignaciones($dbName)) {
+        return false;
+    }
+
+    if (method_exists($mainModel, "databaseExists")) {
+        try {
+            return $mainModel->databaseExists($dbName) ? true : false;
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    $conexionServidor = null;
+    $stmt = null;
+
+    try {
+        $conexionServidor = @new mysqli(SERVER, USER, PASS);
+
+        if ($conexionServidor->connect_errno) {
+            return false;
+        }
+
+        $sql = "
+            SELECT SCHEMA_NAME
+            FROM INFORMATION_SCHEMA.SCHEMATA
+            WHERE SCHEMA_NAME = ?
+            LIMIT 1
+        ";
+
+        $stmt = $conexionServidor->prepare($sql);
+
+        if (!$stmt) {
+            return false;
+        }
+
+        $stmt->bind_param("s", $dbName);
+        $stmt->execute();
+
+        $resultado = $stmt->get_result();
+
+        return $resultado && $resultado->num_rows > 0;
+
+    } catch (Throwable $e) {
+        return false;
+
+    } finally {
+        if ($stmt) {
+            $stmt->close();
+        }
+
+        if ($conexionServidor) {
+            $conexionServidor->close();
+        }
+    }
+}
+
+function conectarBaseClienteSeguraAsignaciones($mainModel, $dbName) {
+    $dbName = trim((string)$dbName);
+
+    if (!nombreBaseDatosValidoAsignaciones($dbName)) {
+        return null;
+    }
+
+    if (!baseDatosExisteAsignaciones($mainModel, $dbName)) {
+        return null;
     }
 
     if (!method_exists($mainModel, "connectToDatabase")) {
-        return $datos;
+        return null;
     }
 
     $configCliente = [
@@ -90,16 +123,90 @@ function obtenerDatosPlanClienteAsignaciones($mainModel, $dbName) {
         "name" => $dbName
     ];
 
-    $conexionCliente = $mainModel->connectToDatabase($configCliente);
+    try {
+        $conexionCliente = $mainModel->connectToDatabase($configCliente);
+
+        if (!$conexionCliente) {
+            return null;
+        }
+
+        return $conexionCliente;
+
+    } catch (Throwable $e) {
+        return null;
+    }
+}
+
+function tablaExisteAsignaciones($conexion, $tabla) {
+    $sql = "
+        SELECT COUNT(*) AS total
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+        LIMIT 1
+    ";
+
+    $stmt = null;
+
+    try {
+        $stmt = $conexion->prepare($sql);
+
+        if (!$stmt) {
+            return false;
+        }
+
+        $stmt->bind_param("s", $tabla);
+        $stmt->execute();
+
+        $resultado = $stmt->get_result();
+
+        if (!$resultado) {
+            return false;
+        }
+
+        $row = $resultado->fetch_assoc();
+
+        return isset($row['total']) && (int)$row['total'] > 0;
+
+    } catch (Throwable $e) {
+        return false;
+
+    } finally {
+        if ($stmt) {
+            $stmt->close();
+        }
+    }
+}
+
+function obtenerDatosPlanClienteAsignaciones($mainModel, $dbName) {
+    $datos = [
+        "user_extra" => 0,
+        "fecha_registro" => "",
+        "db_disponible" => 0,
+        "db_mensaje" => ""
+    ];
+
+    $dbName = trim((string)$dbName);
+
+    if (!nombreBaseDatosValidoAsignaciones($dbName)) {
+        $datos["db_mensaje"] = "Base de datos no registrada o nombre inválido";
+        return $datos;
+    }
+
+    $conexionCliente = conectarBaseClienteSeguraAsignaciones($mainModel, $dbName);
 
     if (!$conexionCliente) {
+        $datos["db_mensaje"] = "No se pudo conectar a la base del cliente o no existe";
         return $datos;
     }
 
     $stmt = null;
 
     try {
+        $datos["db_disponible"] = 1;
+
         if (!tablaExisteAsignaciones($conexionCliente, "plan")) {
+            $datos["db_mensaje"] = "La tabla plan no existe en la base del cliente";
             return $datos;
         }
 
@@ -115,6 +222,7 @@ function obtenerDatosPlanClienteAsignaciones($mainModel, $dbName) {
         $stmt = $conexionCliente->prepare($sql);
 
         if (!$stmt) {
+            $datos["db_mensaje"] = "No se pudo preparar la consulta del plan del cliente";
             return $datos;
         }
 
@@ -127,10 +235,16 @@ function obtenerDatosPlanClienteAsignaciones($mainModel, $dbName) {
 
             $datos["user_extra"] = isset($row["user_extra"]) ? (int)$row["user_extra"] : 0;
             $datos["fecha_registro"] = $row["fecha_registro"] ?? "";
+            $datos["db_mensaje"] = "OK";
+        } else {
+            $datos["db_mensaje"] = "No hay registro en la tabla plan";
         }
 
-    } catch (Exception $e) {
-        return $datos;
+    } catch (Throwable $e) {
+        $datos["user_extra"] = 0;
+        $datos["fecha_registro"] = "";
+        $datos["db_disponible"] = 0;
+        $datos["db_mensaje"] = "Error al consultar la base del cliente";
 
     } finally {
         if ($stmt) {
@@ -196,12 +310,6 @@ try {
     while ($row = $resultado->fetch_assoc()) {
         $datosPlanCliente = obtenerDatosPlanClienteAsignaciones($mainModel, $row["db"]);
 
-        $fechaRegistro = $datosPlanCliente["fecha_registro"];
-
-        if ($fechaRegistro === "") {
-            $fechaRegistro = date("Y-m-d H:i:s");
-        }
-
         $asignaciones[] = [
             "server_customers_id" => (int)$row["server_customers_id"],
             "cliente_id" => (int)$row["clientes_id"],
@@ -222,13 +330,16 @@ try {
                 "nombre" => $row["sistema_nombre"]
             ],
             "user_extra" => (int)$datosPlanCliente["user_extra"],
-            "fecha_registro" => $fechaRegistro
+            "fecha_registro" => $datosPlanCliente["fecha_registro"],
+            "db_cliente" => $row["db"],
+            "db_disponible" => (int)$datosPlanCliente["db_disponible"],
+            "db_mensaje" => $datosPlanCliente["db_mensaje"]
         ];
     }
 
     responderAsignaciones(true, $asignaciones, "");
 
-} catch (Exception $e) {
+} catch (Throwable $e) {
     responderAsignaciones(false, [], "Error en el servidor: " . $e->getMessage());
 
 } finally {

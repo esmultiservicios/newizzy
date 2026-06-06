@@ -7949,21 +7949,18 @@ function validateBeforeConfirm() {
   }
 
   if (SELECTED_METHODS.has('transfer')) {
-    var bancoT = ($m.find('#formTransferenciaBill #bk_nm').val() || '').toString().trim();
     var importeT = parseMontoSeguro($m.find('#formTransferenciaBill #importe_transferencia').val());
 
-    if (bancoT === '' || bancoT === '0' || bancoT.toLowerCase() === 'undefined') {
-      warnPagoFinal('Debe seleccionar un banco para la transferencia.', '#bk_nm');
-      return false;
-    }
     if (importeT <= 0) {
       warnPagoFinal('El importe de transferencia debe ser mayor que 0.', '#importe_transferencia');
       return false;
     }
+
     if (isFactura() && !multi && Math.abs(importeT - totalFactura) > 0.005) {
       warnPagoFinal('En facturación, la transferencia debe ser igual al total.', '#importe_transferencia');
       return false;
     }
+
     if (isCxC() && importeT > totalFactura + 0.0001) {
       warnPagoFinal('En CxC, la transferencia no puede exceder el saldo.', '#importe_transferencia');
       return false;
@@ -7971,21 +7968,18 @@ function validateBeforeConfirm() {
   }
 
   if (SELECTED_METHODS.has('check')) {
-    var bancoC = ($m.find('#formChequeBill #bk_nm_chk').val() || '').toString().trim();
     var importeC = parseMontoSeguro($m.find('#formChequeBill #importe_cheque').val());
 
-    if (bancoC === '' || bancoC === '0' || bancoC.toLowerCase() === 'undefined') {
-      warnPagoFinal('Debe seleccionar un banco para el cheque.', '#bk_nm_chk');
-      return false;
-    }
     if (importeC <= 0) {
       warnPagoFinal('El importe de cheque debe ser mayor que 0.', '#importe_cheque');
       return false;
     }
+
     if (isFactura() && !multi && Math.abs(importeC - totalFactura) > 0.005) {
       warnPagoFinal('En facturación, el cheque debe ser igual al total.', '#importe_cheque');
       return false;
     }
+
     if (isCxC() && importeC > totalFactura + 0.0001) {
       warnPagoFinal('En CxC, el cheque no puede exceder el saldo.', '#importe_cheque');
       return false;
@@ -8530,7 +8524,6 @@ $(function(){
     if (SELECTED_METHODS.has('transfer')) {
       var bt = ($m.find('#formTransferenciaBill #bk_nm').val() || '').toString().trim();
       var tr = parseMontoSeguro($m.find('#formTransferenciaBill #importe_transferencia').val());
-      if (bt === '' || bt === '0' || bt.toLowerCase() === 'undefined') { warnPagoFinal('Debe seleccionar un banco para la transferencia.', '#bk_nm'); return false; }
       if (tr <= 0) { warnPagoFinal('El importe de transferencia debe ser mayor que 0.', '#importe_transferencia'); return false; }
       if (isCxC() && tr > total + 0.0001) { warnPagoFinal('En CxC, la transferencia no puede exceder el saldo.', '#importe_transferencia'); return false; }
       if (isFactura() && !multi && Math.abs(tr - total) > 0.005) { warnPagoFinal('En facturación, la transferencia debe ser igual al total.', '#importe_transferencia'); return false; }
@@ -8539,7 +8532,6 @@ $(function(){
     if (SELECTED_METHODS.has('check')) {
       var bc = ($m.find('#formChequeBill #bk_nm_chk').val() || '').toString().trim();
       var ch = parseMontoSeguro($m.find('#formChequeBill #importe_cheque').val());
-      if (bc === '' || bc === '0' || bc.toLowerCase() === 'undefined') { warnPagoFinal('Debe seleccionar un banco para el cheque.', '#bk_nm_chk'); return false; }
       if (ch <= 0) { warnPagoFinal('El importe de cheque debe ser mayor que 0.', '#importe_cheque'); return false; }
       if (isCxC() && ch > total + 0.0001) { warnPagoFinal('En CxC, el cheque no puede exceder el saldo.', '#importe_cheque'); return false; }
       if (isFactura() && !multi && Math.abs(ch - total) > 0.005) { warnPagoFinal('En facturación, el cheque debe ser igual al total.', '#importe_cheque'); return false; }

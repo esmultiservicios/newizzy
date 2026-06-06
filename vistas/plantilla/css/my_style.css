@@ -5301,65 +5301,203 @@ form.modo-editar input[type="date"].remembered-highlight {
 /*FIN ESTILO PREVIEW CAMBIO DE PRECIO*/
 
 /*INICIO ESTILO DETALLE DE GANANCIAS EN CAJA*/
-.izzy-kpi-card {
-  border: 1px solid #eef1f5;
-  border-radius: 16px;
+
+/* MODAL DESGLOSE GANANCIA */
+.izzy-modal-desglose-ganancia {
+  width: 96vw;
+  max-width: 1280px;
+  margin: 12px auto;
+}
+
+.izzy-modal-desglose-ganancia .modal-content {
+  max-height: 96vh;
+  border: 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.izzy-modal-desglose-ganancia .modal-body {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.izzy-modal-body-compact {
+  padding: 14px 16px 16px 16px;
+}
+
+.izzy-modal-footer-compact {
+  padding: 10px 16px;
+  border-top: 1px solid #e5e7eb;
   background: #ffffff;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
-  padding: 18px;
-  min-height: 115px;
-}
-
-.izzy-kpi-label {
-  color: #6b7280;
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-.izzy-kpi-value {
-  color: #111827;
-  font-size: 24px;
-  font-weight: 800;
-  margin: 0;
-}
-
-.izzy-kpi-success {
-  color: #16a34a;
-}
-.izzy-kpi-warning {
-  color: #f59e0b;
-}
-.izzy-kpi-danger {
-  color: #dc2626;
-}
-.izzy-kpi-primary {
-  color: #2563eb;
-}
-
-.izzy-section-title {
-  font-size: 18px;
-  font-weight: 800;
-  color: #111827;
-  margin-bottom: 15px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .izzy-modal-header {
   background: #111827;
   color: #ffffff;
   border-bottom: 4px solid #10b981;
+  padding: 10px 14px;
 }
 
+.izzy-modal-header .modal-title {
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.izzy-modal-subtitle {
+  opacity: 0.88;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* SECCIONES */
+.izzy-section-block {
+  margin-bottom: 14px;
+}
+
+.izzy-section-title {
+  font-size: 15.5px;
+  font-weight: 900;
+  color: #111827;
+  margin-bottom: 9px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  line-height: 1.3;
+}
+
+.izzy-section-title i {
+  font-size: 14px;
+}
+
+/* FILAS KPI */
+.izzy-kpi-row-compact {
+  margin-left: -6px;
+  margin-right: -6px;
+}
+
+.izzy-kpi-row-compact > [class*="col-"] {
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+/* TARJETAS KPI */
+.izzy-kpi-card {
+  border: 1px solid #eef1f5;
+  border-radius: 13px;
+  background: #ffffff;
+  box-shadow: 0 5px 15px rgba(15, 23, 42, 0.05);
+  padding: 12px 13px;
+  min-height: 116px;
+  height: auto;
+  overflow: visible;
+}
+
+.izzy-kpi-card-mini {
+  min-height: 100px;
+  height: auto;
+  padding: 11px 12px;
+}
+
+.izzy-kpi-card-highlight {
+  border-color: #bbf7d0;
+  background: #f8fffb;
+}
+
+.izzy-kpi-card-neto {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.izzy-kpi-card-reinversion {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.izzy-kpi-card-diff {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+/* LABEL KPI */
+.izzy-kpi-label {
+  color: #6b7280;
+  font-size: 11.5px;
+  font-weight: 900;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+  min-height: 29px;
+  height: auto;
+  overflow: visible;
+}
+
+/* VALOR KPI */
+.izzy-kpi-value {
+  color: #111827;
+  font-size: 20px;
+  font-weight: 900;
+  margin: 0 0 5px 0;
+  line-height: 1.15;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  word-break: normal;
+}
+
+/* HELPERS / DESCRIPCIONES */
+.izzy-kpi-card small {
+  color: #475569;
+  font-size: 11.5px;
+  line-height: 1.35;
+  display: block;
+  overflow: visible;
+  white-space: normal;
+  word-break: normal;
+}
+
+/* COLORES KPI */
+.izzy-kpi-success {
+  color: #16a34a;
+}
+
+.izzy-kpi-warning {
+  color: #f59e0b;
+}
+
+.izzy-kpi-danger {
+  color: #dc2626;
+}
+
+.izzy-kpi-primary {
+  color: #2563eb;
+}
+
+/* NOTAS */
 .izzy-note {
   background: #eff6ff;
   border: 1px solid #bfdbfe;
   color: #1e3a8a;
-  border-radius: 12px;
-  padding: 14px 16px;
-  font-size: 14px;
+  border-radius: 11px;
+  padding: 9px 12px;
+  font-size: 12.5px;
+  line-height: 1.42;
+}
+
+.izzy-note strong {
+  font-weight: 900;
+}
+
+.izzy-note small {
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+.izzy-note-warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
 }
 
 /* TABLA PRINCIPAL DE CAJAS */
@@ -5392,10 +5530,37 @@ form.modo-editar input[type="date"].remembered-highlight {
 }
 
 /* TABLA DETALLE GANANCIA */
+.izzy-table-responsive-ganancia {
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+#dataTableDetalleGananciaCaja {
+  margin-bottom: 0 !important;
+}
+
+#dataTableDetalleGananciaCaja thead th {
+  background: #ffffff !important;
+  color: #111827 !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  white-space: nowrap !important;
+  vertical-align: middle !important;
+  border-bottom: 2px solid #e5e7eb !important;
+  padding: 10px 12px !important;
+}
+
 #dataTableDetalleGananciaCaja tbody td,
 #dataTableDetalleGananciaCaja tbody td span {
-  font-size: 14px !important;
-  line-height: 1.4 !important;
+  font-size: 13px !important;
+  line-height: 1.35 !important;
+}
+
+#dataTableDetalleGananciaCaja tbody td {
+  vertical-align: middle !important;
+  padding: 10px 12px !important;
 }
 
 #dataTableDetalleGananciaCaja tbody td span {
@@ -5404,21 +5569,184 @@ form.modo-editar input[type="date"].remembered-highlight {
 }
 
 #dataTableDetalleGananciaCaja tfoot th {
-  padding-top: 18px !important;
-  padding-bottom: 18px !important;
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
   background: #f8fafc !important;
   color: #111827 !important;
-  font-size: 16px !important;
+  font-size: 14px !important;
   font-weight: 900 !important;
   border-top: 2px solid #e5e7eb !important;
 }
 
 #dataTableDetalleGananciaCaja tfoot th span {
-  font-size: 17px !important;
+  font-size: 15px !important;
   font-weight: 900 !important;
   white-space: nowrap !important;
   color: #0f172a !important;
 }
+
+/* DATATABLE CONTROLES */
+#dataTableDetalleGananciaCaja_wrapper .dataTables_length,
+#dataTableDetalleGananciaCaja_wrapper .dataTables_filter {
+  margin-bottom: 10px;
+}
+
+#dataTableDetalleGananciaCaja_wrapper .dataTables_length label,
+#dataTableDetalleGananciaCaja_wrapper .dataTables_filter label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+#dataTableDetalleGananciaCaja_wrapper .dataTables_filter input {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 6px 10px;
+  height: 38px;
+}
+
+#dataTableDetalleGananciaCaja_wrapper .dataTables_length select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 5px 8px;
+  height: 38px;
+}
+
+#dataTableDetalleGananciaCaja_wrapper .dt-buttons {
+  margin-bottom: 10px;
+}
+
+#dataTableDetalleGananciaCaja_wrapper .dt-buttons .btn {
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 7px 14px;
+}
+
+/* RESPONSIVE */
+@media (max-width: 1400px) {
+  .izzy-modal-desglose-ganancia {
+    width: 98vw;
+    max-width: 1180px;
+  }
+
+  .izzy-kpi-value {
+    font-size: 18px;
+  }
+
+  .izzy-kpi-card {
+    padding: 11px 12px;
+    min-height: 112px;
+  }
+
+  .izzy-kpi-card-mini {
+    min-height: 98px;
+  }
+
+  .izzy-kpi-label {
+    font-size: 11px;
+    min-height: 28px;
+  }
+
+  .izzy-kpi-card small {
+    font-size: 11px;
+    line-height: 1.34;
+  }
+}
+
+@media (max-width: 992px) {
+  .izzy-modal-desglose-ganancia {
+    width: 98vw;
+    margin: 8px auto;
+  }
+
+  .izzy-modal-desglose-ganancia .modal-content {
+    max-height: 97vh;
+  }
+
+  .izzy-modal-body-compact {
+    padding: 12px;
+  }
+
+  .izzy-modal-header .modal-title {
+    font-size: 16px;
+  }
+
+  .izzy-kpi-card,
+  .izzy-kpi-card-mini {
+    min-height: auto;
+    height: auto;
+  }
+
+  .izzy-kpi-label {
+    min-height: auto;
+    height: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .izzy-modal-desglose-ganancia {
+    width: 100vw;
+    max-width: 100vw;
+    margin: 0;
+  }
+
+  .izzy-modal-desglose-ganancia .modal-content {
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .izzy-modal-header {
+    padding: 10px 12px;
+  }
+
+  .izzy-modal-body-compact {
+    padding: 10px;
+  }
+
+  .izzy-modal-footer-compact {
+    padding: 9px 10px;
+  }
+
+  .izzy-kpi-card,
+  .izzy-kpi-card-mini {
+    height: auto;
+    min-height: auto;
+    padding: 11px 12px;
+  }
+
+  .izzy-kpi-label {
+    height: auto;
+    min-height: auto;
+    font-size: 11px;
+  }
+
+  .izzy-kpi-value {
+    font-size: 18px;
+  }
+
+  .izzy-kpi-card small {
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .izzy-section-title {
+    font-size: 14px;
+  }
+
+  .izzy-note {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  #dataTableDetalleGananciaCaja thead th,
+  #dataTableDetalleGananciaCaja tbody td {
+    font-size: 12px !important;
+    padding: 9px 10px !important;
+  }
+}
+
 /*FIN ESTILO DETALLE DE GANANCIAS EN CAJA*/
 
 /*INICIO VER DETALLE DE PRODUCTOS*/
@@ -6320,9 +6648,40 @@ table.dataTable td .acciones-menu {
 /* FIN DROPDOWN GLOBAL DE ACCIONES */
 
 /* =========================================================
-   RETIRO DE CAJA -
-   Diseno y mejoras
+   RETIRO DE CAJA
+   Diseño premium efectivo + transferencia
 ========================================================= */
+
+.retiro-modal-content {
+  border: 0;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.35);
+}
+
+.retiro-modal-header {
+  background: #111827;
+  color: #ffffff;
+  border-bottom: 4px solid #10b981;
+  padding: 18px 22px;
+}
+
+.retiro-modal-header .modal-title {
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.retiro-modal-body {
+  padding: 20px 22px 18px 22px;
+  background: #ffffff;
+}
+
+.retiro-modal-footer {
+  padding: 14px 22px;
+  background: #f8fafc;
+  border-top: 1px solid #e5e7eb;
+}
+
 .retiro-alerta-pro {
   display: flex;
   align-items: center;
@@ -6331,53 +6690,100 @@ table.dataTable td .acciones-menu {
   color: #1e3a8a;
   border-radius: 12px;
   padding: 13px 15px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
   font-size: 0.95rem;
+  line-height: 1.35;
 }
 
 .retiro-alerta-pro i {
-  margin-right: 8px;
+  margin-right: 10px;
+  font-size: 16px;
 }
 
-.retiro-panel-caja {
+.retiro-resumen-grid {
   display: grid;
-  grid-template-columns: 1fr 1.45fr 1fr;
-  gap: 18px;
-  align-items: stretch;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 14px;
 }
 
-.retiro-panel-item {
+.retiro-resumen-card {
   display: flex;
   align-items: center;
   background: #f8fafc;
   border: 1px solid #dbe3ea;
   border-radius: 18px;
-  padding: 20px;
-  min-height: 135px;
+  padding: 18px;
+  min-height: 118px;
 }
 
-.retiro-panel-item span {
+.retiro-resumen-total {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.retiro-medios-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.retiro-medio-card {
+  background: #fff7ed;
+  border: 1px solid #fb923c;
+  border-radius: 18px;
+  padding: 18px;
+  min-height: 190px;
+}
+
+.retiro-medio-transferencia {
+  background: #f8fafc;
+  border-color: #93c5fd;
+}
+
+.retiro-medio-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.retiro-medio-header span,
+.retiro-resumen-card span,
+.retiro-final-card span {
   display: block;
   color: #64748b;
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 12px;
+  font-weight: 900;
   text-transform: uppercase;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
+  letter-spacing: 0.02em;
 }
 
-.retiro-panel-item strong {
+.retiro-medio-header small,
+.retiro-resumen-card small,
+.retiro-final-card small {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.retiro-resumen-card strong,
+.retiro-final-card strong {
   display: block;
   color: #0f172a;
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 900;
-  line-height: 1;
+  line-height: 1.1;
+  white-space: nowrap;
 }
 
 .retiro-icon {
-  width: 48px;
-  height: 48px;
-  min-width: 48px;
-  border-radius: 14px;
+  width: 50px;
+  height: 50px;
+  min-width: 50px;
+  border-radius: 15px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -6390,6 +6796,11 @@ table.dataTable td .acciones-menu {
   color: #0369a1;
 }
 
+.retiro-icon-transferencia {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
 .retiro-icon-retiro {
   background: #ffedd5;
   color: #ea580c;
@@ -6400,24 +6811,9 @@ table.dataTable td .acciones-menu {
   color: #15803d;
 }
 
-.retiro-panel-input {
-  align-items: flex-start;
-  background: #fff7ed;
-  border-color: #fb923c;
-}
-
-.retiro-input-content {
-  width: 100%;
-}
-
-.retiro-input-content label {
-  color: #0f172a;
-  font-weight: 800;
-  margin-bottom: 10px;
-}
-
-.retiro-input-content label b {
-  color: #dc2626;
+.retiro-icon-total {
+  background: #dcfce7;
+  color: #15803d;
 }
 
 .retiro-input-claro {
@@ -6427,11 +6823,21 @@ table.dataTable td .acciones-menu {
   border: 2px solid #fb923c;
   border-radius: 14px;
   overflow: hidden;
+  height: 58px;
+}
+
+.retiro-medio-transferencia .retiro-input-claro {
+  border-color: #60a5fa;
 }
 
 .retiro-input-claro span {
   margin: 0;
-  padding: 14px 16px;
+  padding: 0 17px;
+  height: 100%;
+  min-width: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: #fff7ed;
   color: #0f172a;
   font-size: 18px;
@@ -6439,13 +6845,19 @@ table.dataTable td .acciones-menu {
   border-right: 1px solid #fed7aa;
 }
 
+.retiro-medio-transferencia .retiro-input-claro span {
+  background: #eff6ff;
+  border-right-color: #bfdbfe;
+}
+
 .retiro-input-claro input {
   width: 100%;
+  height: 100%;
   border: 0;
   outline: 0;
-  padding: 14px 16px;
-  font-size: 18px;
-  font-weight: 700;
+  padding: 0 16px;
+  font-size: 20px;
+  font-weight: 800;
   color: #0f172a;
   background: #ffffff;
 }
@@ -6455,28 +6867,129 @@ table.dataTable td .acciones-menu {
   box-shadow: none;
 }
 
-.retiro-input-content small {
+.retiro-input-error {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.13);
+}
+
+.retiro-help {
   display: block;
-  margin-top: 8px;
+  margin-top: 9px;
   color: #64748b;
+  font-size: 12px;
   font-weight: 600;
+  line-height: 1.3;
+}
+
+.retiro-final-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.retiro-final-card {
+  background: #f8fafc;
+  border: 1px solid #dbe3ea;
+  border-radius: 16px;
+  padding: 15px;
+  min-height: 92px;
+}
+
+.retiro-final-total {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+#modalRetiroCaja label {
+  color: #111827;
+  font-weight: 800;
+}
+
+#modalRetiroCaja .priority {
+  color: #dc2626;
 }
 
 #modalRetiroCaja textarea {
   resize: vertical;
-  min-height: 95px;
+  min-height: 90px;
+  border-radius: 12px;
+}
+
+#modalRetiroCaja .form-control {
+  border-radius: 12px;
+}
+
+#modalRetiroCaja .bootstrap-select {
+  width: 100% !important;
+}
+
+#modalRetiroCaja .bootstrap-select > .dropdown-toggle {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+#modalRetiroCaja .bootstrap-select > .dropdown-toggle:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+}
+
+@media (max-width: 1200px) {
+  .retiro-resumen-card strong,
+  .retiro-final-card strong {
+    font-size: 23px;
+  }
+
+  .retiro-input-claro input {
+    font-size: 18px;
+  }
 }
 
 @media (max-width: 992px) {
-  .retiro-panel-caja {
+  .retiro-resumen-grid,
+  .retiro-medios-grid,
+  .retiro-final-grid {
     grid-template-columns: 1fr;
   }
 
-  .retiro-panel-input {
-    align-items: center;
+  .retiro-resumen-card,
+  .retiro-medio-card,
+  .retiro-final-card {
+    min-height: auto;
   }
 }
-/*FIN RETIRO DE CAJA*/
+
+@media (max-width: 576px) {
+  .retiro-modal-body {
+    padding: 16px;
+  }
+
+  .retiro-modal-header {
+    padding: 15px 16px;
+  }
+
+  .retiro-modal-header .modal-title {
+    font-size: 17px;
+  }
+
+  .retiro-resumen-card {
+    padding: 15px;
+  }
+
+  .retiro-medio-card {
+    padding: 15px;
+  }
+
+  .retiro-resumen-card strong,
+  .retiro-final-card strong {
+    font-size: 21px;
+  }
+}
+
+/* FIN RETIRO DE CAJA */
 
 /*INICIO ESTILOS CAJA*/
 .acciones-caja-wrap {
@@ -6880,3 +7393,17 @@ table.dataTable tbody tr.shown td {
   font-weight: 600;
 }
 /* FIN MODO SEGURO CONFIGURACIÓN CORREO */
+
+.payment-required {
+  color: #dc3545;
+  font-weight: 700;
+}
+.payment-help-text {
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 6px;
+  display: block;
+}
+.payment-help-text i {
+  margin-right: 4px;
+}

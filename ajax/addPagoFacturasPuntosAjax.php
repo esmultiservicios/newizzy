@@ -1,5 +1,5 @@
 <?php
-// ajax/addPagoFacturasTransferenciaAjax.php
+// ajax/addPagoFacturasPuntosAjax.php
 $peticionAjax = true;
 require_once "../core/configGenerales.php";
 require_once "../controladores/pagoFacturaControlador.php";
@@ -41,15 +41,15 @@ function responderErrorPago($message) {
 
 
 $required = [
-    'bk_nm',
-    'importe_transferencia',
-    'factura_id_transferencia'
+    'puntos_disponibles',
+    'puntos_usar',
+    'factura_id_puntos'
 ];
 
 $labels = [
-    'bk_nm'                    => 'Banco',
-    'importe_transferencia'    => 'Importe de transferencia',
-    'factura_id_transferencia' => 'Factura'
+    'puntos_disponibles' => 'Puntos disponibles',
+    'puntos_usar'        => 'Puntos a usar',
+    'factura_id_puntos'  => 'Factura'
 ];
 
 $missing = validarCamposRequeridosPago($required, $labels);
@@ -58,13 +58,13 @@ if (!empty($missing)) {
     responderErrorPago("Faltan los siguientes campos obligatorios: " . implode(", ", $missing) . ".");
 }
 
-if ((string)$_POST['bk_nm'] === 'undefined' || (string)$_POST['bk_nm'] === 'null') {
-    responderErrorPago("Debe seleccionar un banco válido.");
+if (valorNumericoPago('puntos_disponibles') <= 0) {
+    responderErrorPago("Los puntos disponibles deben ser mayores a cero.");
 }
 
-if (valorNumericoPago('importe_transferencia') <= 0) {
-    responderErrorPago("El importe de transferencia debe ser mayor a cero.");
+if (valorNumericoPago('puntos_usar') <= 0) {
+    responderErrorPago("Los puntos a usar deben ser mayores a cero.");
 }
 
 $ctrl = new pagoFacturaControlador();
-$ctrl->agregar_pago_factura_controlador_transferencia();
+$ctrl->agregar_pago_factura_controlador_puntos();

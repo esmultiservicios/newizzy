@@ -55,6 +55,10 @@
                             <i class="fas fa-money-bill-wave fa-lg"></i> Retiros del Período
                         </button>
 
+                        <button type="button" class="btn btn-success mr-2" id="btnCuadreDia">
+                            <i class="fas fa-balance-scale fa-lg"></i> Cuadre del Día
+                        </button>
+
                         <button type="submit" class="btn btn-primary mr-2" id="search">
                             <i class="fas fa-filter fa-lg"></i> Filtrar
                         </button>

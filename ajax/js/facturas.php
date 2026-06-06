@@ -889,6 +889,557 @@ function abrirRetiroCajaDesdeFactura(data) {
    FIN - ABRIR RETIRO DE CAJA DESDE FACTURACIÓN
    ========================================================= */
 
+/* =========================================================
+   INICIO - CUADRE DEL DÍA DESDE FACTURACIÓN
+   ---------------------------------------------------------
+   ESTE BLOQUE VA EN EL JS DE FACTURACIÓN.
+
+   ¿Qué hace?
+   1. Agrega el botón "Cuadre del día" al dropdown de acciones
+      de la tabla #dataTableCajaFactura.
+   2. Abre el modal público #modalCuadreDiaCaja.
+   3. Consulta core/caja/getCuadreDiaCaja.php.
+   4. Envía solo_mi_caja=1 y origen=facturacion para que respete
+      la caja del usuario desde facturación.
+   5. Usa directamente showNotify(), no crea otro método de notificación.
+   6. No modifica HTML ni CSS.
+
+   REQUISITOS:
+   - El modal #modalCuadreDiaCaja ya debe estar cargado en la vista.
+   - Deben existir los IDs del modal:
+     cd_total_cobrado, cd_inversion_reposicion, cd_gastos_total,
+     cd_total_final_esperado, cd_tabla_gastos, cd_tabla_inversiones, etc.
+   ========================================================= */
+
+
+/* =========================================================
+   HELPERS DEL CUADRE DESDE FACTURACIÓN
+   ========================================================= */
+
+   function parseMontoCuadreCajaFactura(valor) {
+    if (typeof parseMontoCajaFactura === 'function') {
+        return parseMontoCajaFactura(valor);
+    }
+
+    if (typeof parseMonto === 'function') {
+        return parseMonto(valor);
+    }
+
+    if (typeof valor === 'string') {
+        valor = valor.replace(/L\./g, '').replace(/,/g, '').trim();
+    }
+
+    valor = parseFloat(valor || 0);
+    return isNaN(valor) ? 0 : valor;
+}
+
+function formatoMonedaCuadreCajaFactura(valor) {
+    if (typeof formatoMonedaCajaFactura === 'function') {
+        return formatoMonedaCajaFactura(valor);
+    }
+
+    if (typeof formatoMoneda === 'function') {
+        return formatoMoneda(valor);
+    }
+
+    valor = parseMontoCuadreCajaFactura(valor);
+
+    return 'L. ' + valor.toLocaleString('es-HN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+function setTextoCuadreDiaFactura(selector, valor) {
+    if ($(selector).length === 0) {
+        return;
+    }
+
+    $(selector).html(formatoMonedaCuadreCajaFactura(valor));
+}
+
+function escaparTextoCuadreDiaFactura(texto) {
+    return $('<div>').text(texto || '').html();
+}
+
+function obtenerFechasCuadreCajaFactura() {
+    var fechai = $('#fecha_caja_factura_i').val();
+    var fechaf = $('#fecha_caja_factura_f').val();
+
+    if (!fechai) {
+        fechai = new Date().toISOString().split('T')[0];
+        $('#fecha_caja_factura_i').val(fechai);
+    }
+
+    if (!fechaf) {
+        fechaf = fechai;
+        $('#fecha_caja_factura_f').val(fechaf);
+    }
+
+    return {
+        fechai: fechai,
+        fechaf: fechaf
+    };
+}
+
+/* =========================================================
+   AGREGA EL BOTÓN "CUADRE DEL DÍA" EN EL DROPDOWN
+   ---------------------------------------------------------
+   No se toca la función cargarCajaFactura().
+   Como no querés modificar el render original, este método
+   inserta el botón después de "Ver ganancia".
+   ========================================================= */
+
+function agregarBotonCuadreDiaCajaFactura() {
+    $('#dataTableCajaFactura .acciones-menu').each(function () {
+        var $menu = $(this);
+
+        if ($menu.find('.btn-cf-cuadre-dia').length > 0) {
+            return;
+        }
+
+        var botonCuadre = ''
+            + '<button type="button" class="dropdown-item accion-item accion-cuadre-dia btn-cf-cuadre-dia">'
+            + '    <span class="accion-icon accion-icon-success">'
+            + '        <i class="fas fa-balance-scale"></i>'
+            + '    </span>'
+            + '    <span class="accion-label">Cuadre del día</span>'
+            + '</button>';
+
+        var $botonGanancia = $menu.find('.btn-cf-ganancia').last();
+
+        if ($botonGanancia.length > 0) {
+            $botonGanancia.after(botonCuadre);
+        } else {
+            $menu.append(botonCuadre);
+        }
+    });
+}
+
+/* =========================================================
+   CARGAR CUADRE DEL DÍA DESDE FACTURACIÓN
+   ---------------------------------------------------------
+   modo = 'caja'     => consulta una apertura específica.
+   modo = 'periodo'  => consulta por rango de fechas.
+   ========================================================= */
+
+function cargarCuadreDiaCajaFactura(apertura_id, modo) {
+    apertura_id = parseInt(apertura_id || 0);
+
+    var fechas = obtenerFechasCuadreCajaFactura();
+    var fechai = fechas.fechai;
+    var fechaf = fechas.fechaf;
+
+    if (!modo) {
+        modo = $('#modalCuadreDiaCaja').data('modo') || 'periodo';
+    }
+
+    if (modo === 'caja' && apertura_id <= 0) {
+        showNotify('error', 'Error', 'No se recibió una apertura válida.');
+        return;
+    }
+
+    if (modo === 'periodo') {
+        if (fechai === '' || fechaf === '') {
+            showNotify('error', 'Error', 'Debe seleccionar fecha inicial y fecha final.');
+            return;
+        }
+    }
+
+    if ($('#modalCuadreDiaCaja').length === 0) {
+        showNotify('error', 'Error', 'No existe el modal #modalCuadreDiaCaja en esta vista.');
+        return;
+    }
+
+    $('#modalCuadreDiaCaja').data('modo', modo);
+    $('#modalCuadreDiaCaja').data('apertura_id', apertura_id);
+
+    if (modo === 'periodo') {
+        $('#cd_contexto_caja').html('Desde ' + fechai + ' hasta ' + fechaf);
+    } else {
+        $('#cd_contexto_caja').html('Apertura de caja #' + apertura_id);
+    }
+
+    setTextoCuadreDiaFactura('#cd_total_cobrado', 0);
+    setTextoCuadreDiaFactura('#cd_inversion_reposicion', 0);
+    setTextoCuadreDiaFactura('#cd_gastos_total', 0);
+    setTextoCuadreDiaFactura('#cd_total_final_esperado', 0);
+    setTextoCuadreDiaFactura('#cd_total_final_esperado_tabla', 0);
+
+    $('#cd_tabla_gastos tbody').html(
+        '<tr><td colspan="3" class="text-center text-muted">Cargando.</td></tr>'
+    );
+
+    $('#cd_tabla_inversiones tbody').html(
+        '<tr><td colspan="3" class="text-center text-muted">Cargando.</td></tr>'
+    );
+
+    if (typeof aplicarModalEstaticoCajaFactura === 'function') {
+        aplicarModalEstaticoCajaFactura('#modalCuadreDiaCaja');
+    }
+
+    $('#modalCuadreDiaCaja').modal({
+        show: true,
+        keyboard: false,
+        backdrop: 'static'
+    });
+
+    $.ajax({
+        type: 'POST',
+        url: '<?php echo SERVERURL;?>core/caja/getCuadreDiaCaja.php',
+        dataType: 'json',
+        data: {
+            apertura_id: apertura_id,
+            modo: modo,
+            fechai: fechai,
+            fechaf: fechaf,
+            solo_mi_caja: 1,
+            origen: 'facturacion'
+        },
+        success: function (response) {
+            if (!response || !response.success) {
+                console.log(response);
+                showNotify(
+                    'error',
+                    'Error',
+                    response && response.message ? response.message : 'No se pudo cargar el cuadre del día.'
+                );
+                return;
+            }
+
+            var resumen = response.resumen || {};
+            var gastos = response.gastos || [];
+            var inversiones = response.inversiones || [];
+
+            renderCuadreDiaCajaFactura(resumen, gastos, inversiones);
+
+            $('#modalCuadreDiaCaja').modal('handleUpdate');
+        },
+        error: function (xhr) {
+            console.log(xhr.responseText);
+            showNotify('error', 'Error', 'Error de comunicación al cargar el cuadre del día.');
+        }
+    });
+}
+
+function refrescarCuadreDiaCajaFactura() {
+    var apertura_id = parseInt($('#modalCuadreDiaCaja').data('apertura_id') || 0);
+    var modo = $('#modalCuadreDiaCaja').data('modo') || 'periodo';
+
+    cargarCuadreDiaCajaFactura(apertura_id, modo);
+}
+
+/* =========================================================
+   RENDER DEL RESUMEN DEL CUADRE
+   ---------------------------------------------------------
+   OJO:
+   - La tarjeta principal "Inversión / reposición" muestra el costo
+     de productos vendidos o inversión sugerida.
+   - En la fórmula del efectivo solo se resta inversión manual en efectivo
+     si realmente se retiró de caja.
+   ========================================================= */
+
+function renderCuadreDiaCajaFactura(resumen, gastos, inversiones) {
+    resumen = resumen || {};
+    gastos = gastos || [];
+    inversiones = inversiones || [];
+
+    var efectivo = parseMontoCuadreCajaFactura(resumen.efectivo || 0);
+    var transferencia = parseMontoCuadreCajaFactura(resumen.transferencia || 0);
+    var tarjeta = parseMontoCuadreCajaFactura(resumen.tarjeta || 0);
+    var cheque = parseMontoCuadreCajaFactura(resumen.cheque || 0);
+    var montoApertura = parseMontoCuadreCajaFactura(resumen.monto_apertura || 0);
+
+    var inversionReposicion = parseMontoCuadreCajaFactura(resumen.inversion_reposicion || 0);
+    var inversionManualRegistrada = parseMontoCuadreCajaFactura(resumen.inversion_manual_registrada || 0);
+    var inversionMostrar = inversionReposicion > 0 ? inversionReposicion : inversionManualRegistrada;
+
+    var gastosTotal = parseMontoCuadreCajaFactura(resumen.gastos_total || 0);
+
+    var efectivoEsperado = parseMontoCuadreCajaFactura(resumen.efectivo_esperado || 0);
+    var transferenciaEsperada = parseMontoCuadreCajaFactura(resumen.transferencia_esperada || 0);
+    var tarjetaEsperada = parseMontoCuadreCajaFactura(resumen.tarjeta_esperada || 0);
+    var chequeEsperado = parseMontoCuadreCajaFactura(resumen.cheque_esperado || 0);
+    var totalFinalEsperado = parseMontoCuadreCajaFactura(resumen.total_final_esperado || 0);
+
+    var inversionManualEfectivo = parseMontoCuadreCajaFactura(resumen.inversion_manual_efectivo || 0);
+    var gastosEfectivo = parseMontoCuadreCajaFactura(resumen.gastos_efectivo || 0);
+
+    setTextoCuadreDiaFactura('#cd_total_cobrado', resumen.total_cobrado || 0);
+    setTextoCuadreDiaFactura('#cd_inversion_reposicion', inversionMostrar);
+    setTextoCuadreDiaFactura('#cd_gastos_total', gastosTotal);
+    setTextoCuadreDiaFactura('#cd_total_final_esperado', totalFinalEsperado);
+    setTextoCuadreDiaFactura('#cd_total_final_esperado_tabla', totalFinalEsperado);
+
+    setTextoCuadreDiaFactura('#cd_efectivo', efectivo);
+    setTextoCuadreDiaFactura('#cd_transferencia', transferencia);
+    setTextoCuadreDiaFactura('#cd_tarjeta', tarjeta);
+    setTextoCuadreDiaFactura('#cd_cheque', cheque);
+    setTextoCuadreDiaFactura('#cd_monto_apertura', montoApertura);
+
+    setTextoCuadreDiaFactura('#cd_efectivo_esperado', efectivoEsperado);
+    setTextoCuadreDiaFactura('#cd_transferencia_esperada', transferenciaEsperada);
+    setTextoCuadreDiaFactura('#cd_tarjeta_esperada', tarjetaEsperada);
+    setTextoCuadreDiaFactura('#cd_cheque_esperado', chequeEsperado);
+
+    setTextoCuadreDiaFactura('#cd_formula_efectivo', efectivo);
+    setTextoCuadreDiaFactura('#cd_formula_apertura', montoApertura);
+    setTextoCuadreDiaFactura('#cd_formula_inversion', inversionManualEfectivo);
+    setTextoCuadreDiaFactura('#cd_formula_gastos_efectivo', gastosEfectivo);
+    setTextoCuadreDiaFactura('#cd_formula_resultado', efectivoEsperado);
+
+    renderTablaGastosCuadreDiaCajaFactura(gastos);
+    renderTablaInversionesCuadreDiaCajaFactura(inversiones, inversionReposicion);
+}
+
+/* =========================================================
+   TABLA DE GASTOS / RETIROS
+   ========================================================= */
+
+function renderTablaGastosCuadreDiaCajaFactura(gastos) {
+    var html = '';
+
+    if (!gastos || gastos.length === 0) {
+        html = '<tr><td colspan="3" class="text-center text-muted">No hay gastos/retiros registrados.</td></tr>';
+        $('#cd_tabla_gastos tbody').html(html);
+        return;
+    }
+
+    gastos.forEach(function (item) {
+        html += ''
+            + '<tr>'
+            + '    <td>' + escaparTextoCuadreDiaFactura(item.tipo || '') + '</td>'
+            + '    <td>' + escaparTextoCuadreDiaFactura(item.cuenta || '') + '</td>'
+            + '    <td class="text-right font-weight-bold">' + formatoMonedaCuadreCajaFactura(item.monto || 0) + '</td>'
+            + '</tr>';
+    });
+
+    $('#cd_tabla_gastos tbody').html(html);
+}
+
+/* =========================================================
+   TABLA DE INVERSIÓN / REPOSICIÓN
+   ========================================================= */
+
+function renderTablaInversionesCuadreDiaCajaFactura(inversiones, inversionReposicion) {
+    var html = '';
+
+    if (!inversiones || inversiones.length === 0) {
+        if (parseMontoCuadreCajaFactura(inversionReposicion) > 0) {
+            html = ''
+                + '<tr>'
+                + '    <td colspan="3" class="text-center text-muted">'
+                + '        No hay inversión manual registrada. Se muestra el costo de productos vendidos como inversión/reposición sugerida.'
+                + '    </td>'
+                + '</tr>';
+        } else {
+            html = '<tr><td colspan="3" class="text-center text-muted">No hay inversión/reposición registrada.</td></tr>';
+        }
+
+        $('#cd_tabla_inversiones tbody').html(html);
+        return;
+    }
+
+    inversiones.forEach(function (item) {
+        html += ''
+            + '<tr>'
+            + '    <td>' + escaparTextoCuadreDiaFactura(item.tipo || '') + '</td>'
+            + '    <td>' + escaparTextoCuadreDiaFactura(item.cuenta || '') + '</td>'
+            + '    <td class="text-right font-weight-bold">' + formatoMonedaCuadreCajaFactura(item.monto || 0) + '</td>'
+            + '</tr>';
+    });
+
+    $('#cd_tabla_inversiones tbody').html(html);
+}
+
+/* =========================================================
+   IMPRIMIR / TICKET DEL CUADRE
+   ========================================================= */
+
+function imprimirCuadreDiaCajaFactura() {
+    var contenido = document.getElementById('cd_ticket_area');
+
+    if (!contenido) {
+        showNotify('error', 'Error', 'No se encontró el área del ticket del cuadre.');
+        return;
+    }
+
+    var ventana = window.open('', '_blank', 'width=900,height=700');
+
+    if (!ventana) {
+        showNotify('error', 'Error', 'El navegador bloqueó la ventana de impresión.');
+        return;
+    }
+
+    ventana.document.open();
+    ventana.document.write(
+        '<html>' +
+            '<head>' +
+                '<title>Cuadre del día</title>' +
+                '<style>' +
+                    'body{font-family:Arial,sans-serif;font-size:13px;color:#111827;padding:20px;}' +
+                    '.card{border:1px solid #ddd;margin-bottom:12px;}' +
+                    '.card-body{padding:12px;}' +
+                    '.card-header{padding:10px 12px;border-bottom:1px solid #ddd;font-weight:bold;}' +
+                    '.row{display:flex;flex-wrap:wrap;margin:0 -6px;}' +
+                    '[class*="col-"]{box-sizing:border-box;padding:0 6px;}' +
+                    '.col-lg-3,.col-md-6{width:25%;}' +
+                    '.col-lg-6{width:50%;}' +
+                    '.col-lg-12{width:100%;}' +
+                    '.mb-3{margin-bottom:12px;}' +
+                    '.table{width:100%;border-collapse:collapse;}' +
+                    '.table th,.table td{border-bottom:1px solid #ddd;padding:6px;}' +
+                    '.text-right{text-align:right;}' +
+                    '.text-center{text-align:center;}' +
+                    '.font-weight-bold{font-weight:bold;}' +
+                    '.text-success{color:#16a34a;}' +
+                    '.text-danger{color:#dc2626;}' +
+                    '.text-warning{color:#d97706;}' +
+                    '.text-primary{color:#2563eb;}' +
+                    '.text-muted{color:#6b7280;}' +
+                    '.alert{border:1px solid #bfdbfe;background:#eff6ff;padding:10px;margin-bottom:12px;}' +
+                    'button,.modal-footer{display:none!important;}' +
+                    '@media print{body{padding:0;} .card{break-inside:avoid;}}' +
+                '</style>' +
+            '</head>' +
+            '<body>' +
+                contenido.innerHTML +
+            '</body>' +
+        '</html>'
+    );
+    ventana.document.close();
+
+    setTimeout(function () {
+        ventana.focus();
+        ventana.print();
+    }, 400);
+}
+
+/* =========================================================
+   EVENTOS DEL CUADRE DESDE FACTURACIÓN
+   ========================================================= */
+
+if (!window.__eventosCuadreCajaFacturaRegistrados) {
+    window.__eventosCuadreCajaFacturaRegistrados = true;
+
+    document.addEventListener('click', function (e) {
+        var boton = e.target.closest('#dataTableCajaFactura .btn-cf-cuadre-dia');
+
+        if (!boton) {
+            return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (typeof ocultarMenuAccionesCajaFactura === 'function') {
+            ocultarMenuAccionesCajaFactura(boton);
+        }
+
+        var data = null;
+
+        if (typeof obtenerFilaCajaFacturaPorBoton === 'function') {
+            data = obtenerFilaCajaFacturaPorBoton(boton);
+        } else if ($.fn.DataTable.isDataTable('#dataTableCajaFactura')) {
+            var $tr = $(boton).closest('tr');
+
+            if ($tr.hasClass('child')) {
+                $tr = $tr.prev();
+            }
+
+            data = $('#dataTableCajaFactura').DataTable().row($tr).data();
+        }
+
+        if (!data || !data.apertura_id) {
+            showNotify('error', 'Error', 'No se encontró la apertura de caja.');
+            return;
+        }
+
+        cargarCuadreDiaCajaFactura(data.apertura_id, 'caja');
+    }, true);
+
+    $(document)
+        .off('click.cuadreCajaFacturaActualizar', '#btnActualizarCuadreDia')
+        .on('click.cuadreCajaFacturaActualizar', '#btnActualizarCuadreDia', function () {
+            refrescarCuadreDiaCajaFactura();
+        });
+
+    $(document)
+        .off('click.cuadreCajaFacturaImprimir', '#btnImprimirCuadreDia')
+        .on('click.cuadreCajaFacturaImprimir', '#btnImprimirCuadreDia', function () {
+            imprimirCuadreDiaCajaFactura();
+        });
+
+    $(document)
+        .off('click.cuadreCajaFacturaPeriodo', '#btnCuadreDia')
+        .on('click.cuadreCajaFacturaPeriodo', '#btnCuadreDia', function () {
+            cargarCuadreDiaCajaFactura(0, 'periodo');
+        });
+
+    $(document)
+        .off('draw.dt.cuadreCajaFactura', '#dataTableCajaFactura')
+        .on('draw.dt.cuadreCajaFactura', '#dataTableCajaFactura', function () {
+            agregarBotonCuadreDiaCajaFactura();
+        });
+
+    $(document)
+        .off('shown.bs.modal.cuadreCajaFactura', '#modalCajaFactura')
+        .on('shown.bs.modal.cuadreCajaFactura', '#modalCajaFactura', function () {
+            setTimeout(function () {
+                agregarBotonCuadreDiaCajaFactura();
+            }, 250);
+        });
+
+    $(document)
+        .off('show.bs.modal.cuadreCajaFacturaEstatico', '#modalCuadreDiaCaja')
+        .on('show.bs.modal.cuadreCajaFacturaEstatico', '#modalCuadreDiaCaja', function () {
+            if (typeof aplicarModalEstaticoCajaFactura === 'function') {
+                aplicarModalEstaticoCajaFactura('#modalCuadreDiaCaja');
+            }
+        });
+
+    $(document).ajaxComplete(function (event, xhr, settings) {
+        var url = '';
+
+        if (settings && settings.url) {
+            url = String(settings.url).toLowerCase();
+        }
+
+        if (
+            $('#modalCuadreDiaCaja').hasClass('show') &&
+            (
+                url.indexOf('addretirocaja') !== -1 ||
+                url.indexOf('registrarretirocaja') !== -1 ||
+                url.indexOf('guardarretir') !== -1 ||
+                url.indexOf('guardar_retiro') !== -1 ||
+                url.indexOf('reintegrarretirocaja') !== -1
+            )
+        ) {
+            setTimeout(function () {
+                refrescarCuadreDiaCajaFactura();
+            }, 400);
+        }
+    });
+}
+
+/* =========================================================
+   INTENTO INICIAL
+   ---------------------------------------------------------
+   Por si la tabla ya está dibujada cuando este bloque carga.
+   ========================================================= */
+
+setTimeout(function () {
+    agregarBotonCuadreDiaCajaFactura();
+}, 600);
+
+/* =========================================================
+   FIN - CUADRE DEL DÍA DESDE FACTURACIÓN
+   ========================================================= */
+
+
+
+
+
 
 /* =========================================================
    INICIO - CERRAR CAJA DESDE FACTURACIÓN

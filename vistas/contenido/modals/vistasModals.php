@@ -984,8 +984,8 @@
                                                                     </select>
                                                                     <input type="hidden" class="multiple_pago"
                                                                         name="multiple_pago" value="0">
-                                                                    <input type="hidden" name="importe_transferencia"
-                                                                        id="importe_transferencia"
+                                                                    <input type="hidden" name="compras_importe_transferencia"
+                                                                        id="comporas_importe_transferencia"
                                                                         class="inputfield mt-5" step="0.01"
                                                                         placeholder="0.00" data-toggle="tooltip"
                                                                         data-placement="top" title="Ingrese el monto">
@@ -1841,8 +1841,8 @@
 
                 <div class="payment-form-group">
                   <input type="text" inputmode="decimal" name="efectivo_bill" id="efectivo_bill"
-                         class="payment-form-control" placeholder=" ">
-                  <label for="efectivo_bill">Efectivo</label>
+                         class="payment-form-control" placeholder=" " required>
+                  <label for="efectivo_bill">Efectivo <span class="payment-required">*</span></label>
                   <span class="currency-symbol">L.</span>
                 </div>
 
@@ -1856,6 +1856,7 @@
                 <div class="payment-form-group">
                   <select id="usuario_efectivo" name="usuario_efectivo" class="selectpicker form-control"
                           data-size="5" data-live-search="true" title="Usuario que Recibe" data-width="100%"></select>
+                  <small class="payment-help-text"><i class="fas fa-info-circle"></i>Opcional, pero recomendado para control y auditoría.</small>
                 </div>
 
                 <button type="submit" id="pago_efectivo" class="btn btn-info btn-block mt-2">
@@ -1885,13 +1886,18 @@
                 <input type="hidden" name="origen_pago" id="origen_pago" value="0">
                 <input type="hidden" class="comprobante_print_value" name="comprobante_print" value="0">
                 <input type="hidden" class="multiple_pago" name="multiple_pago" value="0">
-                <input type="number" style="display:none;" name="monto_efectivo" id="monto_efectivo_tarjeta" step="0.01">
-                <input type="hidden" name="importe_tarjeta" id="importe_tarjeta" step="0.01">
+                <input type="number" style="display:none;" name="monto_efectivo" id="monto_efectivo_tarjeta" step="0.01">                
                 <input type="hidden" name="tipo_factura" id="tipo_factura" value="1">
+
+                <div class="payment-form-group">
+                <input type="text" inputmode="decimal" name="importe_tarjeta" id="importe_tarjeta" class="payment-form-control" placeholder=" " step="0.01">
+                  <label for="cr_bill">Importe</label>
+                </div>
 
                 <div class="payment-form-group">
                   <input type="text" id="cr_bill" name="cr_bill" class="payment-form-control" placeholder=" ">
                   <label for="cr_bill">Número de Tarjeta</label>
+                  <small class="payment-help-text"><i class="fas fa-info-circle"></i>Opcional, pero recomendado para control y auditoría.</small>
                 </div>
 
                 <div class="form-row">
@@ -1899,12 +1905,14 @@
                     <div class="payment-form-group">
                       <input type="text" name="exp" id="exp" class="payment-form-control" placeholder=" ">
                       <label for="exp">Expiración (MM/YY)</label>
+                      <small class="payment-help-text"><i class="fas fa-info-circle"></i>Opcional, pero recomendado para control y auditoría.</small>
                     </div>
                   </div>
                   <div class="col-md-6">
                     <div class="payment-form-group">
                       <input type="text" name="cvcpwd" id="cvcpwd" class="payment-form-control" placeholder=" ">
                       <label for="cvcpwd">Número Aprobación</label>
+                      <small class="form-text text-muted mt-1"><i class="fas fa-info-circle mr-1"></i>Opcional, pero recomendado para control y auditoría.</small>
                     </div>
                   </div>
                 </div>
@@ -1912,6 +1920,7 @@
                 <div class="payment-form-group">
                   <select id="usuario_tarjeta" name="usuario_tarjeta" class="selectpicker form-control"
                           data-size="5" data-live-search="true" title="Usuario que Recibe" data-width="100%"></select>
+                    <small class="payment-help-text"><i class="fas fa-info-circle"></i>Opcional, pero recomendado para control y auditoría.</small>
                 </div>
 
                 <button type="submit" id="pago_tarjeta" class="btn btn-info btn-block mt-2">
@@ -1945,25 +1954,28 @@
                 <input type="hidden" name="tipo_factura" id="tipo_factura_transferencia" value="1" step="0.01">
 
                 <div class="payment-form-group">
+                  <label class="d-block mb-1">Banco</label>
                   <select id="bk_nm" name="bk_nm" required class="selectpicker form-control"
                           data-size="5" data-live-search="true" title="Banco" data-width="100%"></select>
                 </div>
 
                 <div class="payment-form-group">
                   <input type="text" name="importe_transferencia" id="importe_transferencia"
-                         class="payment-form-control" placeholder=" ">
-                  <label for="importe_transferencia">Importe</label>
+                         class="payment-form-control" placeholder=" " required>
+                  <label for="importe_transferencia">Importe <span class="payment-required">*</span></label>
                   <span class="currency-symbol">L.</span>
                 </div>
 
                 <div class="payment-form-group">
                   <input type="text" name="ben_nm" id="ben_nm" class="payment-form-control" placeholder=" ">
                   <label for="ben_nm">Número de Autorización</label>
+                  <small class="payment-help-text"><i class="fas fa-info-circle"></i>Opcional, pero recomendado para control y auditoría.</small>
                 </div>
 
                 <div class="payment-form-group">
                   <select id="usuario_transferencia" name="usuario_transferencia" class="selectpicker form-control"
                           data-size="5" data-live-search="true" title="Usuario que Recibe" data-width="100%"></select>
+                  <small class="payment-help-text"><i class="fas fa-info-circle"></i>Opcional, pero recomendado para control y auditoría.</small>
                 </div>
 
                 <button type="submit" id="pago_transferencia" class="btn btn-info btn-block mt-2">
@@ -1997,24 +2009,27 @@
                 <input type="hidden" name="tipo_factura" id="tipo_factura_cheque" value="1" step="0.01">
 
                 <div class="payment-form-group">
+                  <label class="d-block mb-1">Banco</label>
                   <select id="bk_nm_chk" name="bk_nm_chk" required class="selectpicker form-control"
                           data-size="5" data-live-search="true" title="Banco" data-width="100%"></select>
                 </div>
 
                 <div class="payment-form-group">
-                  <input type="text" name="importe_cheque" id="importe_cheque" class="payment-form-control" placeholder=" ">
-                  <label for="importe_cheque">Importe</label>
+                  <input type="text" name="importe_cheque" id="importe_cheque" class="payment-form-control" placeholder=" " required>
+                  <label for="importe_cheque">Importe <span class="payment-required">*</span></label>
                   <span class="currency-symbol">L.</span>
                 </div>
 
                 <div class="payment-form-group">
                   <input type="text" name="check_num" id="check_num" class="payment-form-control" placeholder=" ">
                   <label for="check_num">Número de Cheque</label>
+                  <small class="payment-help-text"><i class="fas fa-info-circle"></i>Opcional, pero recomendado para control y auditoría.</small>
                 </div>
 
                 <div class="payment-form-group">
                   <select id="usuario_cheque" name="usuario_cheque" class="selectpicker form-control"
                           data-size="5" data-live-search="true" title="Usuario que Recibe" data-width="100%"></select>
+                    <small class="payment-help-text"><i class="fas fa-info-circle"></i>Opcional, pero recomendado para control y auditoría.</small>
                 </div>
 
                 <button type="submit" id="pago_cheque" class="btn btn-info btn-block mt-2">
@@ -2048,14 +2063,16 @@
 
                 <div class="payment-form-group">
                   <input type="text" name="puntos_disponibles" id="puntos_disponibles"
-                         class="payment-form-control" placeholder=" " readonly>
-                  <label for="puntos_disponibles">Puntos disponibles</label>
+                         class="payment-form-control" placeholder=" " readonly required data-min-points="1" data-min-points="1">
+                  <label for="puntos_disponibles">Puntos disponibles <span class="payment-required">*</span></label>
+                  <small class="payment-help-text"><i class="fas fa-info-circle"></i>Debe ser mayor a cero para poder pagar con puntos.</small>
                 </div>
 
                 <div class="payment-form-group">
                   <input type="text" inputmode="decimal" name="puntos_usar" id="puntos_uso"
-                         class="payment-form-control" placeholder=" ">
-                  <label for="puntos_uso">Puntos a usar</label>
+                         class="payment-form-control" placeholder=" " required required>
+                  <label for="puntos_uso">Puntos a usar <span class="payment-required">*</span></label>
+                  <small class="payment-help-text"><i class="fas fa-info-circle"></i>Obligatorio y mayor a cero cuando seleccione pago con puntos.</small>
                 </div>
 
                 <div class="payment-form-group">
@@ -2070,6 +2087,7 @@
                 <div class="payment-form-group">
                   <select id="usuario_puntos" name="usuario_puntos" class="selectpicker form-control"
                           data-size="5" data-live-search="true" title="Usuario que Recibe" data-width="100%"></select>
+                <small class="payment-help-text"><i class="fas fa-info-circle"></i>Opcional, pero recomendado para control y auditoría.</small>
                 </div>
 
                 <button type="submit" id="pago_puntos" class="btn btn-info btn-block mt-2" disabled>
@@ -4847,17 +4865,16 @@
 </div>
 <!-- FIN MODAL REINTEGRO RETIRO DE CAJA -->
 
-
 <!-- INICIO MODAL DESGLOSE GANANCIA CAJA -->
 <div class="modal fade" id="modalDesgloseGananciaCaja" tabindex="-1" role="dialog" aria-labelledby="modalDesgloseGananciaCajaLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable izzy-modal-desglose-ganancia" role="document">
         <div class="modal-content">
 
             <div class="modal-header izzy-modal-header">
                 <h5 class="modal-title" id="modalDesgloseGananciaCajaLabel">
                     <i class="fas fa-chart-line mr-1"></i>
                     <span id="titulo_modal_ganancia">Resumen de caja y ganancia</span>
-                    <small id="dg_contexto_consulta" class="d-block mt-1 text-light" style="opacity:.85;"></small>
+                    <small id="dg_contexto_consulta" class="d-block mt-1 text-light izzy-modal-subtitle"></small>
                 </h5>
 
                 <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
@@ -4865,174 +4882,266 @@
                 </button>
             </div>
 
-            <div class="modal-body">
+            <div class="modal-body izzy-modal-body-compact">
 
                 <input type="hidden" id="dg_apertura_id" value="0">
                 <input type="hidden" id="dg_modo" value="caja">
 
                 <div class="izzy-note mb-3">
-                    <strong>Resumen claro:</strong>
-                    este reporte separa el dinero cobrado, el dinero físico en caja y el dinero que se debe guardar para reponer inventario.
+                    <strong>Resumen:</strong>
+                    el neto disponible se calcula con <strong>total vendido + otros ingresos - gastos reales - retiros pendientes</strong>.
+                    La inversión/reposición se muestra aparte porque sale de caja, pero no es gasto real.
                 </div>
 
-                <div class="mb-4">
+                <div class="izzy-section-block">
                     <div class="izzy-section-title">
                         <i class="fas fa-check-circle"></i>
-                        1. Resultado principal del día
+                        1. Resultado principal
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-4 col-sm-6 mb-3">
+                    <div class="row izzy-kpi-row-compact">
+                        <div class="col-xl col-lg-4 col-md-6 col-sm-6 mb-2">
                             <div class="izzy-kpi-card izzy-kpi-card-highlight">
-                                <div class="izzy-kpi-label">Total cobrado</div>
-                                <p class="izzy-kpi-value izzy-kpi-success" id="dg_total_cobrado">L. 0.00</p>
-                                <small>Todo el dinero cobrado: efectivo, transferencia, tarjeta y cheque.</small>
+                                <div class="izzy-kpi-label">Total vendido</div>
+                                <p class="izzy-kpi-value izzy-kpi-success" id="dg_total_vendido">L. 0.00</p>
+                                <small>Dinero cobrado por ventas: efectivo + tarjeta + transferencia + cheque.</small>
                             </div>
                         </div>
 
-                        <div class="col-md-4 col-sm-6 mb-3">
+                        <div class="col-xl col-lg-4 col-md-6 col-sm-6 mb-2">
                             <div class="izzy-kpi-card">
-                                <div class="izzy-kpi-label">Debe guardar para reponer inventario</div>
-                                <p class="izzy-kpi-value izzy-kpi-danger" id="dg_costo_productos">L. 0.00</p>
-                                <small>Este es el costo de los productos vendidos.</small>
+                                <div class="izzy-kpi-label">Otros ingresos</div>
+                                <p class="izzy-kpi-value izzy-kpi-primary" id="dg_otros_ingresos">L. 0.00</p>
+                                <small>Solo ingresos manuales reales. No incluye cierre de caja ni inversión.</small>
                             </div>
                         </div>
 
-                        <div class="col-md-4 col-sm-6 mb-3">
-                            <div class="izzy-kpi-card izzy-kpi-card-highlight">
-                                <div class="izzy-kpi-label">Dinero después de reponer</div>
-                                <p class="izzy-kpi-value izzy-kpi-primary" id="dg_dinero_despues_reponer">L. 0.00</p>
-                                <small>Total cobrado menos costo de productos vendidos.</small>
+                        <div class="col-xl col-lg-4 col-md-6 col-sm-6 mb-2">
+                            <div class="izzy-kpi-card">
+                                <div class="izzy-kpi-label">Gastos reales</div>
+                                <p class="izzy-kpi-value izzy-kpi-danger" id="dg_total_gastos">L. 0.00</p>
+                                <small>Egresos normales. No incluye inversión/reposición.</small>
+                            </div>
+                        </div>
+
+                        <div class="col-xl col-lg-4 col-md-6 col-sm-6 mb-2">
+                            <div class="izzy-kpi-card">
+                                <div class="izzy-kpi-label">Retirado pendiente</div>
+                                <p class="izzy-kpi-value izzy-kpi-warning" id="dg_retiro_caja_pendiente">L. 0.00</p>
+                                <small>Retiros de caja aún no convertidos en egreso/gasto.</small>
+                            </div>
+                        </div>
+
+                        <div class="col-xl col-lg-4 col-md-6 col-sm-6 mb-2">
+                            <div class="izzy-kpi-card izzy-kpi-card-neto">
+                                <div class="izzy-kpi-label">Neto disponible</div>
+                                <p class="izzy-kpi-value izzy-kpi-primary" id="dg_neto_disponible">L. 0.00</p>
+                                <small>Vendido + otros ingresos - gastos reales - retiros pendientes.</small>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="mb-4">
+                <div class="izzy-section-block">
                     <div class="izzy-section-title">
                         <i class="fas fa-wallet"></i>
                         2. Cómo se cobró el dinero
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-3 col-sm-6 mb-3">
-                            <div class="izzy-kpi-card">
+                    <div class="row izzy-kpi-row-compact">
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <div class="izzy-kpi-card izzy-kpi-card-mini">
                                 <div class="izzy-kpi-label">Efectivo</div>
                                 <p class="izzy-kpi-value" id="dg_efectivo">L. 0.00</p>
+                                <small>Ventas cobradas en efectivo.</small>
                             </div>
                         </div>
 
-                        <div class="col-md-3 col-sm-6 mb-3">
-                            <div class="izzy-kpi-card">
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <div class="izzy-kpi-card izzy-kpi-card-mini">
                                 <div class="izzy-kpi-label">Transferencia</div>
                                 <p class="izzy-kpi-value" id="dg_transferencia">L. 0.00</p>
+                                <small>Ventas cobradas por banco/transferencia.</small>
                             </div>
                         </div>
 
-                        <div class="col-md-3 col-sm-6 mb-3">
-                            <div class="izzy-kpi-card">
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <div class="izzy-kpi-card izzy-kpi-card-mini">
                                 <div class="izzy-kpi-label">Tarjeta</div>
                                 <p class="izzy-kpi-value" id="dg_tarjeta">L. 0.00</p>
+                                <small>Ventas cobradas con tarjeta.</small>
                             </div>
                         </div>
 
-                        <div class="col-md-3 col-sm-6 mb-3">
-                            <div class="izzy-kpi-card">
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <div class="izzy-kpi-card izzy-kpi-card-mini">
                                 <div class="izzy-kpi-label">Cheque</div>
                                 <p class="izzy-kpi-value" id="dg_cheque">L. 0.00</p>
+                                <small>Ventas cobradas con cheque.</small>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="mb-4">
+                <div class="izzy-section-block">
                     <div class="izzy-section-title">
                         <i class="fas fa-cash-register"></i>
-                        3. Dinero físico esperado en caja
+                        3. Control de caja
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-3 col-sm-6 mb-3">
-                            <div class="izzy-kpi-card">
+                    <div class="row izzy-kpi-row-compact">
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <div class="izzy-kpi-card izzy-kpi-card-mini">
                                 <div class="izzy-kpi-label">Monto apertura</div>
                                 <p class="izzy-kpi-value" id="dg_monto_apertura">L. 0.00</p>
-                                <small>Dinero con el que inició la caja.</small>
+                                <small>Dinero inicial de caja.</small>
                             </div>
                         </div>
 
-                        <div class="col-md-3 col-sm-6 mb-3">
-                            <div class="izzy-kpi-card">
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <div class="izzy-kpi-card izzy-kpi-card-mini">
                                 <div class="izzy-kpi-label">Efectivo cobrado</div>
                                 <p class="izzy-kpi-value" id="dg_efectivo_caja">L. 0.00</p>
-                                <small>Solo lo cobrado en efectivo.</small>
+                                <small>Solo ventas cobradas en efectivo.</small>
                             </div>
                         </div>
 
-                        <div class="col-md-3 col-sm-6 mb-3">
-                            <div class="izzy-kpi-card">
-                                <div class="izzy-kpi-label">Retiros de caja</div>
-                                <p class="izzy-kpi-value izzy-kpi-danger" id="dg_retiro_caja">L. 0.00</p>
-                                <small>Dinero retirado antes del cierre.</small>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <div class="izzy-kpi-card izzy-kpi-card-mini">
+                                <div class="izzy-kpi-label">Total retirado</div>
+                                <p class="izzy-kpi-value izzy-kpi-warning" id="dg_retiro_caja_total">L. 0.00</p>
+                                <small>Histórico de retiros hechos a esta caja.</small>
                             </div>
                         </div>
 
-                        <div class="col-md-3 col-sm-6 mb-3">
-                            <div class="izzy-kpi-card izzy-kpi-card-highlight">
-                                <div class="izzy-kpi-label">Efectivo esperado en caja</div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <div class="izzy-kpi-card izzy-kpi-card-mini">
+                                <div class="izzy-kpi-label">Efectivo esperado</div>
                                 <p class="izzy-kpi-value izzy-kpi-primary" id="dg_efectivo_esperado_caja">L. 0.00</p>
-                                <small>Apertura + efectivo cobrado - retiros.</small>
+                                <small>Apertura + efectivo - retiro pendiente.</small>
                             </div>
                         </div>
                     </div>
+
+                    <div class="row izzy-kpi-row-compact">
+                        <div class="col-md-6 col-sm-6 mb-2">
+                            <div class="izzy-kpi-card izzy-kpi-card-mini">
+                                <div class="izzy-kpi-label">Total egresos registrados</div>
+                                <p class="izzy-kpi-value izzy-kpi-danger" id="dg_total_egresos_registrados">L. 0.00</p>
+                                <small>Todo lo registrado como egreso tipo gasto, incluyendo inversión si se registró ahí.</small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 col-sm-6 mb-2">
+                            <div class="izzy-kpi-card izzy-kpi-card-mini izzy-kpi-card-reinversion">
+                                <div class="izzy-kpi-label">Inversión / reposición apartada</div>
+                                <p class="izzy-kpi-value izzy-kpi-warning" id="dg_total_inversion_apartada">L. 0.00</p>
+                                <small>Dinero movido a inversión. Sale de caja, pero no cuenta como gasto real.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="izzy-note izzy-note-warning">
+                        <strong>Regla:</strong>
+                        <span id="dg_regla_retiros">Los retiros solo se restan mientras no estén convertidos en gasto.</span>
+                        <small class="d-block mt-1">Retiros ya convertidos en gasto: <strong id="dg_retiro_caja_convertido">L. 0.00</strong></small>
+                    </div>
                 </div>
 
-                <div class="mb-4">
+                <div class="izzy-section-block">
                     <div class="izzy-section-title">
                         <i class="fas fa-boxes"></i>
-                        4. Ganancia de productos
+                        4. Venta, costo y ganancia de productos
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-4 col-sm-6 mb-3">
+                    <div class="izzy-note mb-2">
+                        <strong>Esta sección usa el detalle de productos.</strong>
+                        Venta neta de productos = <strong>cantidad x precio + impuesto - descuento</strong>.
+                        Costo productos = <strong>cantidad x costo unitario</strong>.
+                    </div>
+
+                    <div class="row izzy-kpi-row-compact">
+                        <div class="col-md-4 col-sm-6 mb-2">
                             <div class="izzy-kpi-card">
-                                <div class="izzy-kpi-label">Venta base de productos</div>
-                                <p class="izzy-kpi-value" id="dg_total_vendido_detalle">L. 0.00</p>
-                                <small>Suma de cantidad por precio guardado en el detalle.</small>
+                                <div class="izzy-kpi-label">Venta neta productos</div>
+                                <p class="izzy-kpi-value izzy-kpi-success" id="dg_total_vendido_detalle">L. 0.00</p>
+                                <small>Solo lo encontrado en facturas_detalles.</small>
                             </div>
                         </div>
 
-                        <div class="col-md-4 col-sm-6 mb-3">
-                            <div class="izzy-kpi-card">
-                                <div class="izzy-kpi-label">Costo productos vendidos</div>
-                                <p class="izzy-kpi-value izzy-kpi-danger" id="dg_costo_productos_2">L. 0.00</p>
-                                <small>Costo real de lo vendido.</small>
+                        <div class="col-md-4 col-sm-6 mb-2">
+                            <div class="izzy-kpi-card izzy-kpi-card-reinversion">
+                                <div class="izzy-kpi-label">Costo / reinversión sugerida</div>
+                                <p class="izzy-kpi-value izzy-kpi-danger" id="dg_dinero_recomendado_guardar">L. 0.00</p>
+                                <small>Dinero recomendado para volver a comprar inventario vendido.</small>
                             </div>
                         </div>
 
-                        <div class="col-md-4 col-sm-6 mb-3">
+                        <div class="col-md-4 col-sm-6 mb-2">
                             <div class="izzy-kpi-card">
-                                <div class="izzy-kpi-label">Ganancia base de productos</div>
-                                <p class="izzy-kpi-value izzy-kpi-success" id="dg_ganancia_bruta">L. 0.00</p>
-                                <small>Venta base de productos menos costo.</small>
+                                <div class="izzy-kpi-label">Ganancia bruta productos</div>
+                                <p class="izzy-kpi-value izzy-kpi-primary" id="dg_ganancia_bruta">L. 0.00</p>
+                                <small>Venta neta productos - costo productos.</small>
                             </div>
                         </div>
                     </div>
 
-                    <div class="izzy-note izzy-note-warning mb-3">
-                        <strong>Impuestos / ajustes incluidos en factura:</strong>
-                        <span id="dg_diferencia_conciliacion">L. 0.00</span>.
-                        Este valor explica la diferencia entre el total facturado y la venta base de productos.
+                    <div class="row izzy-kpi-row-compact">
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <div class="izzy-kpi-card izzy-kpi-card-mini">
+                                <div class="izzy-kpi-label">Costo productos</div>
+                                <p class="izzy-kpi-value izzy-kpi-danger" id="dg_costo_productos">L. 0.00</p>
+                                <small>Mismo valor de reinversión sugerida.</small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <div class="izzy-kpi-card izzy-kpi-card-mini izzy-kpi-card-diff">
+                                <div class="izzy-kpi-label">Diferencia factura / detalle</div>
+                                <p class="izzy-kpi-value izzy-kpi-warning" id="dg_diferencia_conciliacion">L. 0.00</p>
+                                <small>Total vendido/cobrado - venta neta productos.</small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <div class="izzy-kpi-card izzy-kpi-card-mini">
+                                <div class="izzy-kpi-label">% costo</div>
+                                <p class="izzy-kpi-value" id="dg_porcentaje_costo">0.00%</p>
+                                <small>Costo / venta neta productos.</small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <div class="izzy-kpi-card izzy-kpi-card-mini">
+                                <div class="izzy-kpi-label">% ganancia</div>
+                                <p class="izzy-kpi-value" id="dg_porcentaje_ganancia">0.00%</p>
+                                <small>Ganancia bruta / venta neta productos.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="izzy-note mb-0">
+                        <strong>Para explicar al cliente:</strong>
+                        si el total vendido/cobrado es mayor que la venta neta de productos, la diferencia puede ser un cobro extra, servicio, mano de obra o valor facturado que no está registrado como producto en el detalle.
+                        Por eso la ganancia bruta de productos se calcula solo sobre productos.
                     </div>
                 </div>
 
-                <div class="table-responsive">
-                    <table id="dataTableDetalleGananciaCaja" class="table table-striped table-hover table-condensed" style="width:100%">
-                    </table>
+                <div class="izzy-section-block mb-0">
+                    <div class="izzy-section-title">
+                        <i class="fas fa-list"></i>
+                        5. Detalle por producto vendido
+                    </div>
+
+                    <div class="table-responsive izzy-table-responsive-ganancia">
+                        <table id="dataTableDetalleGananciaCaja" class="table table-striped table-hover table-condensed" style="width:100%">
+                        </table>
+                    </div>
                 </div>
 
             </div>
 
-            <div class="modal-footer">
+            <div class="modal-footer izzy-modal-footer-compact">
                 <button type="button" class="btn btn-secondary" onclick="refrescarDesgloseGananciaCaja();">
                     <i class="fas fa-sync-alt"></i> Actualizar
                 </button>
@@ -5047,74 +5156,133 @@
 </div>
 <!-- FIN MODAL DESGLOSE GANANCIA CAJA -->
 
-
 <!-- INICIO MODAL RETIRO DE CAJA -->
 <div class="modal fade" id="modalRetiroCaja" tabindex="-1" role="dialog" aria-labelledby="modalRetiroCajaLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
-        <div class="modal-content">
+        <div class="modal-content retiro-modal-content">
 
-            <div class="modal-header">
+            <div class="modal-header retiro-modal-header">
                 <h4 class="modal-title" id="modalRetiroCajaLabel">
                     <i class="fas fa-money-bill-wave"></i> Retiro de dinero de caja
                 </h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
 
             <form id="formRetiroCaja" method="POST" action="<?php echo SERVERURL; ?>ajax/addRetiroCajaAjax.php" data-form="save" autocomplete="off">
-                <div class="modal-body">
+                <div class="modal-body retiro-modal-body">
 
                     <input type="hidden" id="retiro_apertura_id" name="retiro_apertura_id">
                     <input type="hidden" id="retiro_saldo_actual" name="retiro_saldo_actual" value="0.00">
                     <input type="hidden" id="retiro_saldo_final" name="retiro_saldo_final" value="0.00">
+                    <input type="hidden" id="retiro_saldo_efectivo" name="retiro_saldo_efectivo" value="0.00">
+                    <input type="hidden" id="retiro_saldo_transferencia" name="retiro_saldo_transferencia" value="0.00">
+                    <input type="hidden" id="retiro_saldo_final_efectivo" name="retiro_saldo_final_efectivo" value="0.00">
+                    <input type="hidden" id="retiro_saldo_final_transferencia" name="retiro_saldo_final_transferencia" value="0.00">
+                    <input type="hidden" id="retiro_monto" name="retiro_monto" value="0.00">
 
                     <div class="retiro-alerta-pro">
                         <i class="fas fa-info-circle"></i>
-                        <span>Este retiro solo se registrará en caja_retiros mientras la caja esté abierta. El egreso se generará al cerrar la caja.</span>
+                        <span>Puede retirar de efectivo, transferencia o de ambos. Mientras la caja esté abierta solo se guarda en caja_retiros; el egreso se genera al cerrar caja.</span>
                     </div>
 
-                    <div class="retiro-panel-caja">
-
-                        <div class="retiro-panel-item">
+                    <div class="retiro-resumen-grid">
+                        <div class="retiro-resumen-card">
                             <div class="retiro-icon retiro-icon-disponible">
                                 <i class="fas fa-cash-register"></i>
                             </div>
                             <div>
-                                <span>Disponible en caja</span>
-                                <strong id="retiro_saldo_actual_text">L. 0.00</strong>
+                                <span>Disponible efectivo</span>
+                                <strong id="retiro_saldo_efectivo_text">L. 0.00</strong>
+                                <small>Apertura + cobros en efectivo - retiros de efectivo.</small>
                             </div>
                         </div>
 
-                        <div class="retiro-panel-item retiro-panel-input">
-                            <div class="retiro-icon retiro-icon-retiro">
-                                <i class="fas fa-hand-holding-usd"></i>
+                        <div class="retiro-resumen-card">
+                            <div class="retiro-icon retiro-icon-transferencia">
+                                <i class="fas fa-university"></i>
                             </div>
-                            <div class="retiro-input-content">
-                                <label for="retiro_monto">Monto que desea retirar <b>*</b></label>
-
-                                <div class="retiro-input-claro">
-                                    <span>L.</span>
-                                    <input type="number" id="retiro_monto" name="retiro_monto" placeholder="Ingrese el monto" min="0.01" step="0.01" required>
-                                </div>
-
-                                <small>Escriba aquí el dinero que saldrá de caja.</small>
+                            <div>
+                                <span>Disponible transferencia</span>
+                                <strong id="retiro_saldo_transferencia_text">L. 0.00</strong>
+                                <small>Cobros por transferencia - retiros de transferencia.</small>
                             </div>
                         </div>
 
-                        <div class="retiro-panel-item">
-                            <div class="retiro-icon retiro-icon-final">
+                        <div class="retiro-resumen-card retiro-resumen-total">
+                            <div class="retiro-icon retiro-icon-total">
                                 <i class="fas fa-wallet"></i>
                             </div>
                             <div>
-                                <span>Disponible después</span>
-                                <strong id="retiro_saldo_final_text">L. 0.00</strong>
+                                <span>Total disponible</span>
+                                <strong id="retiro_saldo_actual_text">L. 0.00</strong>
+                                <small>Efectivo disponible + transferencia disponible.</small>
                             </div>
                         </div>
-
                     </div>
 
-                    <div id="retiro_mensaje_validacion" class="alert alert-danger mt-3" style="display:none;"></div>
+                    <div class="retiro-medios-grid">
+                        <div class="retiro-medio-card retiro-medio-efectivo">
+                            <div class="retiro-medio-header">
+                                <div class="retiro-icon retiro-icon-disponible">
+                                    <i class="fas fa-cash-register"></i>
+                                </div>
+                                <div>
+                                    <span>Retirar de efectivo</span>
+                                    <small>Máximo disponible: <b id="retiro_max_efectivo_text">L. 0.00</b></small>
+                                </div>
+                            </div>
+
+                            <div class="retiro-input-claro" id="retiro_box_efectivo">
+                                <span>L.</span>
+                                <input type="number" id="retiro_monto_efectivo" name="retiro_monto_efectivo" placeholder="0.00" min="0" step="0.01">
+                            </div>
+
+                            <small class="retiro-help">Use este campo si el dinero saldrá físicamente de caja.</small>
+                        </div>
+
+                        <div class="retiro-medio-card retiro-medio-transferencia">
+                            <div class="retiro-medio-header">
+                                <div class="retiro-icon retiro-icon-transferencia">
+                                    <i class="fas fa-university"></i>
+                                </div>
+                                <div>
+                                    <span>Retirar de transferencia</span>
+                                    <small>Máximo disponible: <b id="retiro_max_transferencia_text">L. 0.00</b></small>
+                                </div>
+                            </div>
+
+                            <div class="retiro-input-claro" id="retiro_box_transferencia">
+                                <span>L.</span>
+                                <input type="number" id="retiro_monto_transferencia" name="retiro_monto_transferencia" placeholder="0.00" min="0" step="0.01">
+                            </div>
+
+                            <small class="retiro-help">Use este campo si el retiro corresponde a dinero cobrado por transferencia.</small>
+                        </div>
+                    </div>
+
+                    <div class="retiro-final-grid">
+                        <div class="retiro-final-card retiro-final-total">
+                            <span>Total a retirar</span>
+                            <strong id="retiro_total_retirar_text">L. 0.00</strong>
+                        </div>
+
+                        <div class="retiro-final-card">
+                            <span>Efectivo después</span>
+                            <strong id="retiro_saldo_final_efectivo_text">L. 0.00</strong>
+                        </div>
+
+                        <div class="retiro-final-card">
+                            <span>Transferencia después</span>
+                            <strong id="retiro_saldo_final_transferencia_text">L. 0.00</strong>
+                        </div>
+
+                        <div class="retiro-final-card retiro-final-total">
+                            <span>Total disponible después</span>
+                            <strong id="retiro_saldo_final_text">L. 0.00</strong>
+                        </div>
+                    </div>
 
                     <div class="form-group mt-3">
                         <label>Categoría del retiro <span class="priority">*</span></label>
@@ -5129,7 +5297,7 @@
                     <div class="RespuestaAjax mt-3"></div>
                 </div>
 
-                <div class="modal-footer">
+                <div class="modal-footer retiro-modal-footer">
                     <button type="button" class="btn btn-danger" data-dismiss="modal">
                         <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                     </button>
@@ -5145,6 +5313,249 @@
 </div>
 <!-- FIN MODAL RETIRO DE CAJA -->
 
+<!-- =========================================================
+     MODAL CUADRE DEL DÍA
+     ========================================================= -->
+     <div class="modal fade" id="modalCuadreDiaCaja" tabindex="-1" role="dialog" aria-labelledby="modalCuadreDiaCajaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <div>
+                    <h5 class="modal-title mb-1" id="modalCuadreDiaCajaLabel">
+                        <i class="fas fa-balance-scale mr-1"></i> Cuadre del Día
+                    </h5>
+                    <small id="cd_contexto_caja" class="text-white-50">Cargando...</small>
+                </div>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div id="cd_ticket_area">
+                    <div class="alert alert-info mb-3">
+                        <strong>Resumen claro:</strong> este cuadre separa ventas, inversión/reposición, gastos y el dinero que debe quedar por forma de pago.
+                    </div>
+
+                    <div class="row">
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card border-success h-100">
+                                <div class="card-body">
+                                    <div class="small text-muted">Total cobrado</div>
+                                    <h4 class="font-weight-bold text-success mb-1" id="cd_total_cobrado">L. 0.00</h4>
+                                    <small>Efectivo + transferencia + tarjeta + cheque.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card border-danger h-100">
+                                <div class="card-body">
+                                    <div class="small text-muted">Inversión / reposición</div>
+                                    <h4 class="font-weight-bold text-danger mb-1" id="cd_inversion_reposicion">L. 0.00</h4>
+                                    <small>Costo de productos vendidos o inversión registrada.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card border-warning h-100">
+                                <div class="card-body">
+                                    <div class="small text-muted">Gastos / retiros</div>
+                                    <h4 class="font-weight-bold text-warning mb-1" id="cd_gastos_total">L. 0.00</h4>
+                                    <small>Retiros de caja + egresos del día.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card border-primary h-100">
+                                <div class="card-body">
+                                    <div class="small text-muted">Total final esperado</div>
+                                    <h4 class="font-weight-bold text-primary mb-1" id="cd_total_final_esperado">L. 0.00</h4>
+                                    <small>Lo que debe quedar después de inversión y gastos.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-lg-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-header font-weight-bold">
+                                    <i class="fas fa-wallet mr-1"></i> Dinero cobrado por forma de pago
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-striped mb-0">
+                                            <tbody>
+                                                <tr>
+                                                    <th>Efectivo cobrado</th>
+                                                    <td class="text-right font-weight-bold" id="cd_efectivo">L. 0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Transferencia cobrada</th>
+                                                    <td class="text-right font-weight-bold" id="cd_transferencia">L. 0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Tarjeta cobrada</th>
+                                                    <td class="text-right font-weight-bold" id="cd_tarjeta">L. 0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Cheque cobrado</th>
+                                                    <td class="text-right font-weight-bold" id="cd_cheque">L. 0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Monto apertura</th>
+                                                    <td class="text-right font-weight-bold" id="cd_monto_apertura">L. 0.00</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-header font-weight-bold">
+                                    <i class="fas fa-calculator mr-1"></i> Resultado que debe existir
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-striped mb-0">
+                                            <tbody>
+                                                <tr>
+                                                    <th>Debe quedar en efectivo</th>
+                                                    <td class="text-right font-weight-bold text-success" id="cd_efectivo_esperado">L. 0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Debe quedar en transferencia</th>
+                                                    <td class="text-right font-weight-bold text-success" id="cd_transferencia_esperada">L. 0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Debe quedar en tarjeta</th>
+                                                    <td class="text-right font-weight-bold text-success" id="cd_tarjeta_esperada">L. 0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Debe quedar en cheque</th>
+                                                    <td class="text-right font-weight-bold text-success" id="cd_cheque_esperado">L. 0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Total final esperado</th>
+                                                    <td class="text-right font-weight-bold text-primary" id="cd_total_final_esperado_tabla">L. 0.00</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-lg-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-header font-weight-bold">
+                                    <i class="fas fa-minus-circle mr-1"></i> Desglose de gastos
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-striped mb-0" id="cd_tabla_gastos">
+                                            <thead>
+                                                <tr>
+                                                    <th>Tipo</th>
+                                                    <th>Cuenta</th>
+                                                    <th class="text-right">Monto</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td colspan="3" class="text-center text-muted">Sin datos</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-header font-weight-bold">
+                                    <i class="fas fa-seedling mr-1"></i> Desglose de inversión / reposición
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-striped mb-0" id="cd_tabla_inversiones">
+                                            <thead>
+                                                <tr>
+                                                    <th>Tipo</th>
+                                                    <th>Cuenta</th>
+                                                    <th class="text-right">Monto</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td colspan="3" class="text-center text-muted">Sin datos</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-lg-12 mb-3">
+                            <div class="card h-100">
+                                <div class="card-header font-weight-bold">
+                                    <i class="fas fa-list-alt mr-1"></i> Fórmula del efectivo
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between border-bottom py-1">
+                                        <span>Efectivo cobrado</span>
+                                        <strong id="cd_formula_efectivo">L. 0.00</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between border-bottom py-1">
+                                        <span>+ Monto apertura</span>
+                                        <strong id="cd_formula_apertura">L. 0.00</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between border-bottom py-1">
+                                        <span>- Inversión / reposición</span>
+                                        <strong id="cd_formula_inversion">L. 0.00</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between border-bottom py-1">
+                                        <span>- Gastos/retiros en efectivo</span>
+                                        <strong id="cd_formula_gastos_efectivo">L. 0.00</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between pt-2">
+                                        <span class="font-weight-bold">= Efectivo esperado</span>
+                                        <strong class="text-success" id="cd_formula_resultado">L. 0.00</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="btnImprimirCuadreDia">
+                    <i class="fas fa-print"></i> Imprimir / Ticket
+                </button>
+                <button type="button" class="btn btn-info" id="btnActualizarCuadreDia">
+                    <i class="fas fa-sync-alt"></i> Actualizar
+                </button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 <!-- =========================================================
      FIN MODALES COMPARTIDOS DE CAJA - FACTURAS
 ========================================================= -->

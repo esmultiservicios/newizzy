@@ -567,24 +567,40 @@ class pagoFacturaModelo extends mainModel {
         $ingresos_id = mainModel::correlativo("ingresos_id", "ingresos");
         $obs = ($datos['tipo_factura']==1 ? "Pago de factura al contado" : "Abono a factura al crédito");
 
-        $insert = "INSERT INTO ingresos VALUES(
-            '".$ingresos_id."',                  -- ingresos_id
-            '".$cuenta['cuentas_id']."',         -- cuentas_id
-            '".$factura['clientes_id']."',       -- clientes_id
-            '".$datos['empresa']."',             -- empresa_id
-            '1',                                 -- tipo_ingreso (1=Ventas)
-            '".date("Y-m-d")."',                 -- fecha
-            '".$referenciaFactura."',            -- factura (char20)
-            '".$ing_subtotal."',                 -- subtotal
-            '".$ing_descuento."',                -- descuento
-            '0',                                 -- nc
-            '".$ing_impuesto."',                 -- impuesto
-            '".$ing_total."',                    -- total
-            '".$obs."',                          -- observacion
-            '1',                                 -- estado
-            '".$datos['colaboradores_id']."',    -- colaboradores_id
-            '".date("Y-m-d H:i:s")."',           -- fecha_registro
-            ''                                   -- recibide
+        $insert = "INSERT INTO ingresos (
+            ingresos_id,
+            cuentas_id,
+            clientes_id,
+            empresa_id,
+            tipo_ingreso,
+            fecha,
+            factura,
+            subtotal,
+            descuento,
+            nc,
+            impuesto,
+            total,
+            observacion,
+            estado,
+            colaboradores_id,
+            fecha_registro
+        ) VALUES (
+            '".$ingresos_id."',
+            '".$cuenta['cuentas_id']."',
+            '".$factura['clientes_id']."',
+            '".$datos['empresa']."',
+            '1',
+            '".date("Y-m-d")."',
+            '".$referenciaFactura."',
+            '".$ing_subtotal."',
+            '".$ing_descuento."',
+            '0',
+            '".$ing_impuesto."',
+            '".$ing_total."',
+            '".$obs."',
+            '1',
+            '".$datos['colaboradores_id']."',
+            '".date("Y-m-d H:i:s")."'
         )";
         $ok = mainModel::connection()->query($insert);
         if (!$ok) throw new Exception("Error al registrar ingreso contable: ".mainModel::connection()->error);
@@ -604,14 +620,24 @@ class pagoFacturaModelo extends mainModel {
         $nuevoSaldo = $saldoActual + floatval($ing_total);
 
         $mov_id = mainModel::correlativo("movimientos_cuentas_id", "movimientos_cuentas");
-        $insMov = "INSERT INTO movimientos_cuentas VALUES(
+        $insMov = "INSERT INTO movimientos_cuentas (
+            movimientos_cuentas_id,
+            cuentas_id,
+            empresa_id,
+            fecha,
+            ingreso,
+            egreso,
+            saldo,
+            colaboradores_id,
+            fecha_registro
+        ) VALUES (
             '$mov_id',
             '".$cuenta['cuentas_id']."',
             '".$datos['empresa']."',
             '".date("Y-m-d")."',
-            '".$ing_total."',  -- ingreso
-            '0',               -- egreso
-            '".$nuevoSaldo."', -- saldo
+            '".$ing_total."',
+            '0',
+            '".$nuevoSaldo."',
             '".$datos['colaboradores_id']."',
             '".date("Y-m-d H:i:s")."'
         )";

@@ -19,6 +19,18 @@ $(() => {
         cargarDetalleRetirosCaja(0, 'periodo');
     });
 
+    $('#btnCuadreDia').on("click", function () {
+        cargarCuadreDiaCaja(0, 'periodo');
+    });
+
+    $('#btnActualizarCuadreDia').on("click", function () {
+        refrescarCuadreDiaCaja();
+    });
+
+    $('#btnImprimirCuadreDia').on("click", function () {
+        imprimirCuadreDiaCaja();
+    });
+
     $('#formMainCajas').on('reset', function () {
         $('#formMainCajas .selectpicker').val('').selectpicker('refresh');
 
@@ -46,21 +58,6 @@ $('#formMainCajas #fecha_cajas').on("change", function () {
 $('#formMainCajas #fecha_cajas_f').on("change", function () {
     listar_registro_cajas();
 });
-
-function notificarCaja(tipo, mensaje) {
-    if (typeof showNotify === 'function') {
-        showNotify(tipo, mensaje);
-    } else if (typeof swal === 'function') {
-        swal({
-            title: tipo === 'error' ? 'Error' : 'Información',
-            text: mensaje,
-            icon: tipo === 'error' ? 'error' : 'info',
-            button: 'Aceptar'
-        });
-    } else {
-        alert(mensaje);
-    }
-}
 
 function parseMonto(valor) {
     if (typeof valor === 'string') {
@@ -242,6 +239,14 @@ var listar_registro_cajas = function () {
                             '<span class="accion-label">Ver ganancia</span>' +
                         '</button>';
 
+                    accionesCaja +=
+                        '<button type="button" class="dropdown-item accion-item accion-cuadre-dia table_cuadre_dia">' +
+                            '<span class="accion-icon accion-icon-success">' +
+                                '<i class="fas fa-balance-scale"></i>' +
+                            '</span>' +
+                            '<span class="accion-label">Cuadre del día</span>' +
+                        '</button>';
+
                     return '' +
                         '<div class="acciones-caja-wrap">' +
                             '<div class="dropdown acciones-dropdown">' +
@@ -258,18 +263,10 @@ var listar_registro_cajas = function () {
                         '</div>';
                 }
             },
-            {
-                data: "fecha"
-            },
-            {
-                data: "usuario"
-            },
-            {
-                data: "factura_inicial"
-            },
-            {
-                data: "factura_final"
-            },
+            { data: "fecha" },
+            { data: "usuario" },
+            { data: "factura_inicial" },
+            { data: "factura_final" },
             {
                 data: "monto_apertura",
                 render: function (data, type) {
@@ -405,6 +402,7 @@ var listar_registro_cajas = function () {
     desglose_ganancia_caja_dataTable("#dataTableCajas tbody", table_registro_cajas);
     retiro_caja_dataTable("#dataTableCajas tbody", table_registro_cajas);
     detalle_retiros_caja_dataTable("#dataTableCajas tbody", table_registro_cajas);
+    cuadre_dia_caja_dataTable("#dataTableCajas tbody", table_registro_cajas);
 };
 
 var comprobante_cajas_dataTable = function (tbody, table) {
@@ -414,7 +412,7 @@ var comprobante_cajas_dataTable = function (tbody, table) {
         var data = table.row($(this).parents("tr")).data();
 
         if (!esCajaActiva(data)) {
-            notificarCaja('error', 'Esta caja ya está cerrada. No se puede cerrar nuevamente.');
+            showNotify('error', 'Error', 'Esta caja ya está cerrada. No se puede cerrar nuevamente.');
             return;
         }
 
@@ -473,7 +471,7 @@ var desglose_ganancia_caja_dataTable = function (tbody, table) {
         var data = table.row($(this).parents("tr")).data();
 
         if (!data || !data.apertura_id) {
-            notificarCaja('error', 'No se encontró el código de apertura de caja.');
+            showNotify('error', 'Error', 'No se encontró el código de apertura de caja.');
             return;
         }
 
@@ -488,49 +486,230 @@ var retiro_caja_dataTable = function (tbody, table) {
         var data = table.row($(this).parents("tr")).data();
 
         if (!data || !data.apertura_id) {
-            notificarCaja('error', 'No se encontró la apertura de caja.');
+            showNotify('error', 'Error', 'No se encontró la apertura de caja.');
             return;
         }
 
         if (!esCajaActiva(data)) {
-            notificarCaja('error', 'Solo puede retirar dinero de una caja activa.');
+            showNotify('error', 'Error', 'Solo puede retirar dinero de una caja activa.');
             return;
         }
 
-        var saldoDisponible = parseMonto(data.neto);
-
-        $('#formRetiroCaja')[0].reset();
-
-        $('#retiro_apertura_id').val(data.apertura_id);
-        $('#retiro_saldo_actual').val(saldoDisponible.toFixed(2));
-        $('#retiro_saldo_final').val(saldoDisponible.toFixed(2));
-
-        $('#retiro_saldo_actual_text').html(formatoMoneda(saldoDisponible));
-        $('#retiro_saldo_final_text').html(formatoMoneda(saldoDisponible));
-
-        $('#retiro_mensaje_validacion').hide().html('');
-        $('#btn_guardar_retiro_caja').prop('disabled', true);
-
-        if ($.fn.selectpicker) {
-            $('#retiro_motivo').selectpicker('val', '');
-            $('#retiro_motivo').selectpicker('refresh');
-        }
-
-        $('#modalRetiroCaja')
-            .off('shown.bs.modal')
-            .on('shown.bs.modal', function () {
-                setTimeout(function () {
-                    $('#retiro_monto').trigger('focus').select();
-                }, 150);
-            });
-
-        $('#modalRetiroCaja').modal({
-            show: true,
-            keyboard: false,
-            backdrop: 'static'
-        });
+        abrirModalRetiroCaja(data.apertura_id);
     });
 };
+
+function abrirModalRetiroCaja(apertura_id) {
+    apertura_id = parseInt(apertura_id || 0);
+
+    if (apertura_id <= 0) {
+        showNotify('error', 'Error', 'No se encontró la apertura de caja.');
+        return;
+    }
+
+    $('#formRetiroCaja')[0].reset();
+
+    $('#retiro_apertura_id').val(apertura_id);
+    $('#retiro_saldo_actual').val('0.00');
+    $('#retiro_saldo_final').val('0.00');
+    $('#retiro_saldo_efectivo').val('0.00');
+    $('#retiro_saldo_transferencia').val('0.00');
+    $('#retiro_saldo_final_efectivo').val('0.00');
+    $('#retiro_saldo_final_transferencia').val('0.00');
+    $('#retiro_monto').val('0.00');
+
+    $('#retiro_saldo_efectivo_text').html('Cargando...');
+    $('#retiro_saldo_transferencia_text').html('Cargando...');
+    $('#retiro_saldo_actual_text').html('Cargando...');
+    $('#retiro_max_efectivo_text').html('Cargando...');
+    $('#retiro_max_transferencia_text').html('Cargando...');
+    $('#retiro_total_retirar_text').html(formatoMoneda(0));
+    $('#retiro_saldo_final_efectivo_text').html(formatoMoneda(0));
+    $('#retiro_saldo_final_transferencia_text').html(formatoMoneda(0));
+    $('#retiro_saldo_final_text').html(formatoMoneda(0));
+
+    $('#retiro_box_efectivo').removeClass('retiro-input-error');
+    $('#retiro_box_transferencia').removeClass('retiro-input-error');
+
+    $('#retiro_monto_efectivo').val('').prop('disabled', true);
+    $('#retiro_monto_transferencia').val('').prop('disabled', true);
+    $('#btn_guardar_retiro_caja').prop('disabled', true);
+
+    if ($.fn.selectpicker) {
+        $('#retiro_categoria_gastos_id').selectpicker('val', '');
+        $('#retiro_categoria_gastos_id').selectpicker('refresh');
+    }
+
+    cargarSaldoRetiroCaja(function () {
+        $('#retiro_monto_efectivo').prop('disabled', false);
+        $('#retiro_monto_transferencia').prop('disabled', false);
+        validarRetiroCaja(false);
+    });
+
+    $('#modalRetiroCaja')
+        .off('shown.bs.modal')
+        .on('shown.bs.modal', function () {
+            setTimeout(function () {
+                $('#retiro_monto_efectivo').trigger('focus').select();
+            }, 150);
+        });
+
+    $('#modalRetiroCaja').modal({
+        show: true,
+        keyboard: false,
+        backdrop: 'static'
+    });
+}
+
+function cargarSaldoRetiroCaja(callback) {
+    $.ajax({
+        type: 'POST',
+        url: '<?php echo SERVERURL;?>core/caja/getSaldoRetiroCaja.php',
+        dataType: 'json',
+        success: function (response) {
+            if (!response.success) {
+                showNotify('error', 'Error', response.message || 'No se pudo obtener el saldo disponible para retiro.');
+                $('#modalRetiroCaja').modal('hide');
+                return;
+            }
+
+            var saldoEfectivo = parseMonto(response.saldo_efectivo);
+            var saldoTransferencia = parseMonto(response.saldo_transferencia);
+            var saldoTotal = parseMonto(response.saldo_disponible);
+
+            $('#retiro_apertura_id').val(response.apertura_id || $('#retiro_apertura_id').val());
+            $('#retiro_saldo_efectivo').val(saldoEfectivo.toFixed(2));
+            $('#retiro_saldo_transferencia').val(saldoTransferencia.toFixed(2));
+            $('#retiro_saldo_actual').val(saldoTotal.toFixed(2));
+
+            $('#retiro_saldo_efectivo_text').html(formatoMoneda(saldoEfectivo));
+            $('#retiro_saldo_transferencia_text').html(formatoMoneda(saldoTransferencia));
+            $('#retiro_saldo_actual_text').html(formatoMoneda(saldoTotal));
+            $('#retiro_max_efectivo_text').html(formatoMoneda(saldoEfectivo));
+            $('#retiro_max_transferencia_text').html(formatoMoneda(saldoTransferencia));
+
+            $('#retiro_monto_efectivo').attr('max', saldoEfectivo.toFixed(2));
+            $('#retiro_monto_transferencia').attr('max', saldoTransferencia.toFixed(2));
+
+            actualizarResumenRetiroCaja();
+
+            if (typeof callback === 'function') {
+                callback(response);
+            }
+        },
+        error: function (xhr) {
+            console.log(xhr.responseText);
+            showNotify('error', 'Error', 'Error de comunicación al obtener el saldo disponible.');
+            $('#modalRetiroCaja').modal('hide');
+        }
+    });
+}
+
+function actualizarResumenRetiroCaja() {
+    var saldoEfectivo = parseMonto($('#retiro_saldo_efectivo').val());
+    var saldoTransferencia = parseMonto($('#retiro_saldo_transferencia').val());
+    var montoEfectivo = parseMonto($('#retiro_monto_efectivo').val());
+    var montoTransferencia = parseMonto($('#retiro_monto_transferencia').val());
+
+    var totalRetirar = montoEfectivo + montoTransferencia;
+    var saldoFinalEfectivo = saldoEfectivo - montoEfectivo;
+    var saldoFinalTransferencia = saldoTransferencia - montoTransferencia;
+
+    if (saldoFinalEfectivo < 0) {
+        saldoFinalEfectivo = 0;
+    }
+
+    if (saldoFinalTransferencia < 0) {
+        saldoFinalTransferencia = 0;
+    }
+
+    var saldoFinalTotal = saldoFinalEfectivo + saldoFinalTransferencia;
+
+    $('#retiro_monto').val(totalRetirar.toFixed(2));
+    $('#retiro_saldo_final_efectivo').val(saldoFinalEfectivo.toFixed(2));
+    $('#retiro_saldo_final_transferencia').val(saldoFinalTransferencia.toFixed(2));
+    $('#retiro_saldo_final').val(saldoFinalTotal.toFixed(2));
+
+    $('#retiro_total_retirar_text').html(formatoMoneda(totalRetirar));
+    $('#retiro_saldo_final_efectivo_text').html(formatoMoneda(saldoFinalEfectivo));
+    $('#retiro_saldo_final_transferencia_text').html(formatoMoneda(saldoFinalTransferencia));
+    $('#retiro_saldo_final_text').html(formatoMoneda(saldoFinalTotal));
+}
+
+function validarRetiroCaja(mostrarMensaje) {
+    var saldoEfectivo = parseMonto($('#retiro_saldo_efectivo').val());
+    var saldoTransferencia = parseMonto($('#retiro_saldo_transferencia').val());
+    var montoEfectivo = parseMonto($('#retiro_monto_efectivo').val());
+    var montoTransferencia = parseMonto($('#retiro_monto_transferencia').val());
+    var categoria = parseInt($('#retiro_categoria_gastos_id').val() || 0);
+    var errores = [];
+
+    $('#retiro_box_efectivo').removeClass('retiro-input-error');
+    $('#retiro_box_transferencia').removeClass('retiro-input-error');
+
+    if (montoEfectivo < 0 || montoTransferencia < 0) {
+        errores.push('Los montos no pueden ser negativos.');
+    }
+
+    if (montoEfectivo <= 0 && montoTransferencia <= 0) {
+        errores.push('Ingrese un monto en efectivo, transferencia o ambos.');
+    }
+
+    if (montoEfectivo > saldoEfectivo) {
+        errores.push('El retiro de efectivo no puede ser mayor al efectivo disponible.');
+        $('#retiro_box_efectivo').addClass('retiro-input-error');
+    }
+
+    if (montoTransferencia > saldoTransferencia) {
+        errores.push('El retiro de transferencia no puede ser mayor al saldo disponible por transferencia.');
+        $('#retiro_box_transferencia').addClass('retiro-input-error');
+    }
+
+    if (categoria <= 0) {
+        errores.push('Seleccione la categoría del retiro.');
+    }
+
+    actualizarResumenRetiroCaja();
+
+    if (errores.length > 0) {
+        $('#btn_guardar_retiro_caja').prop('disabled', false);
+
+        if (mostrarMensaje === true) {
+            showNotify('error', 'Error', errores[0]);
+        }
+
+        return false;
+    }
+
+    $('#btn_guardar_retiro_caja').prop('disabled', false);
+    return true;
+}
+
+$('#retiro_monto_efectivo, #retiro_monto_transferencia').off('input change keyup').on('input change keyup', function () {
+    validarRetiroCaja(false);
+});
+
+$('#retiro_categoria_gastos_id').off('change').on('change', function () {
+    validarRetiroCaja(false);
+});
+
+$('#btn_guardar_retiro_caja').off('click.validacionRetiroCaja').on('click.validacionRetiroCaja', function (e) {
+    if (!validarRetiroCaja(true)) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        return false;
+    }
+});
+
+$('#formRetiroCaja').off('submit.validacionRetiroCaja').on('submit.validacionRetiroCaja', function (e) {
+    if (!validarRetiroCaja(true)) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        return false;
+    }
+
+    return true;
+});
 
 var detalle_retiros_caja_dataTable = function (tbody, table) {
     $(tbody).off("click", "button.table_detalle_retiros_caja");
@@ -539,13 +718,211 @@ var detalle_retiros_caja_dataTable = function (tbody, table) {
         var data = table.row($(this).parents("tr")).data();
 
         if (!data || !data.apertura_id) {
-            notificarCaja('error', 'No se encontró la apertura de caja.');
+            showNotify('error', 'Error', 'No se encontró la apertura de caja.');
             return;
         }
 
         cargarDetalleRetirosCaja(data.apertura_id, 'caja');
     });
 };
+
+var cuadre_dia_caja_dataTable = function (tbody, table) {
+    $(tbody).off("click", "button.table_cuadre_dia");
+
+    $(tbody).on("click", "button.table_cuadre_dia", function () {
+        var data = table.row($(this).parents("tr")).data();
+
+        if (!data || !data.apertura_id) {
+            showNotify('error', 'Error', 'No se encontró la apertura de caja.');
+            return;
+        }
+
+        cargarCuadreDiaCaja(data.apertura_id, 'caja');
+    });
+};
+
+/* =========================================================
+   CUADRE DEL DÍA / PERÍODO
+   ========================================================= */
+function setTextoCuadreDia(selector, valor) {
+    $(selector).html(formatoMoneda(valor));
+}
+
+function cargarCuadreDiaCaja(apertura_id, modo) {
+    apertura_id = parseInt(apertura_id || 0);
+
+    var fechai = $("#formMainCajas #fecha_cajas").val();
+    var fechaf = $("#formMainCajas #fecha_cajas_f").val();
+
+    if (!modo) {
+        modo = $('#modalCuadreDiaCaja').data('modo') || 'periodo';
+    }
+
+    if (modo === 'caja' && apertura_id <= 0) {
+        showNotify('error', 'Error', 'No se recibió una apertura válida.');
+        return;
+    }
+
+    if (modo === 'periodo') {
+        if (fechai === '' || fechaf === '') {
+            showNotify('error', 'Error', 'Debe seleccionar fecha inicial y fecha final.');
+            return;
+        }
+    }
+
+    $('#modalCuadreDiaCaja').data('modo', modo);
+    $('#modalCuadreDiaCaja').data('apertura_id', apertura_id);
+
+    if (modo === 'periodo') {
+        $('#cd_contexto_caja').html('Desde ' + fechai + ' hasta ' + fechaf);
+    } else {
+        $('#cd_contexto_caja').html('Apertura de caja #' + apertura_id);
+    }
+
+    $('#cd_tabla_gastos tbody').html('<tr><td colspan="3" class="text-center text-muted">Cargando...</td></tr>');
+    $('#cd_tabla_inversiones tbody').html('<tr><td colspan="3" class="text-center text-muted">Cargando...</td></tr>');
+
+    $.ajax({
+        type: 'POST',
+        url: '<?php echo SERVERURL;?>core/caja/getCuadreDiaCaja.php',
+        dataType: 'json',
+        data: {
+            apertura_id: apertura_id,
+            modo: modo,
+            fechai: fechai,
+            fechaf: fechaf
+        },
+        success: function (response) {
+            if (!response.success) {
+                showNotify('error', 'Error', response.message || 'No se pudo cargar el cuadre del día.');
+                return;
+            }
+
+            var resumen = response.resumen || {};
+            var gastos = response.gastos || [];
+            var inversiones = response.inversiones || [];
+
+            renderCuadreDiaCaja(resumen, gastos, inversiones);
+
+            $('#modalCuadreDiaCaja').modal({
+                show: true,
+                keyboard: false,
+                backdrop: 'static'
+            });
+        },
+        error: function (xhr) {
+            console.log(xhr.responseText);
+            showNotify('error', 'Error', 'Error de comunicación al cargar el cuadre del día.');
+        }
+    });
+}
+
+function refrescarCuadreDiaCaja() {
+    var apertura_id = parseInt($('#modalCuadreDiaCaja').data('apertura_id') || 0);
+    var modo = $('#modalCuadreDiaCaja').data('modo') || 'periodo';
+
+    cargarCuadreDiaCaja(apertura_id, modo);
+}
+
+function renderCuadreDiaCaja(resumen, gastos, inversiones) {
+    setTextoCuadreDia('#cd_total_cobrado', resumen.total_cobrado || 0);
+    setTextoCuadreDia('#cd_inversion_reposicion', resumen.inversion_total_considerada || resumen.inversion_reposicion || 0);
+    setTextoCuadreDia('#cd_gastos_total', resumen.gastos_total || 0);
+    setTextoCuadreDia('#cd_total_final_esperado', resumen.total_final_esperado || 0);
+    setTextoCuadreDia('#cd_total_final_esperado_tabla', resumen.total_final_esperado || 0);
+
+    setTextoCuadreDia('#cd_efectivo', resumen.efectivo || 0);
+    setTextoCuadreDia('#cd_transferencia', resumen.transferencia || 0);
+    setTextoCuadreDia('#cd_tarjeta', resumen.tarjeta || 0);
+    setTextoCuadreDia('#cd_cheque', resumen.cheque || 0);
+    setTextoCuadreDia('#cd_monto_apertura', resumen.monto_apertura || 0);
+
+    setTextoCuadreDia('#cd_efectivo_esperado', resumen.efectivo_esperado || 0);
+    setTextoCuadreDia('#cd_transferencia_esperada', resumen.transferencia_esperada || 0);
+    setTextoCuadreDia('#cd_tarjeta_esperada', resumen.tarjeta_esperada || 0);
+    setTextoCuadreDia('#cd_cheque_esperado', resumen.cheque_esperado || 0);
+
+    setTextoCuadreDia('#cd_formula_efectivo', resumen.efectivo || 0);
+    setTextoCuadreDia('#cd_formula_apertura', resumen.monto_apertura || 0);
+    setTextoCuadreDia('#cd_formula_inversion', resumen.inversion_total_considerada || resumen.inversion_reposicion || 0);
+    setTextoCuadreDia('#cd_formula_gastos_efectivo', resumen.gastos_efectivo || 0);
+    setTextoCuadreDia('#cd_formula_resultado', resumen.efectivo_esperado || 0);
+
+    var htmlGastos = '';
+
+    if (!gastos || gastos.length <= 0) {
+        htmlGastos = '<tr><td colspan="3" class="text-center text-muted">No hay gastos o retiros registrados.</td></tr>';
+    } else {
+        gastos.forEach(function (item) {
+            htmlGastos += '' +
+                '<tr>' +
+                    '<td>' + (item.tipo || '') + '</td>' +
+                    '<td>' + (item.cuenta || '') + '</td>' +
+                    '<td class="text-right font-weight-bold">' + formatoMoneda(item.monto || 0) + '</td>' +
+                '</tr>';
+        });
+    }
+
+    $('#cd_tabla_gastos tbody').html(htmlGastos);
+
+    var htmlInversiones = '';
+
+    if (!inversiones || inversiones.length <= 0) {
+        htmlInversiones = '<tr><td colspan="3" class="text-center text-muted">No hay inversión manual registrada. Se toma el costo de productos vendidos como inversión/reposición.</td></tr>';
+    } else {
+        inversiones.forEach(function (item) {
+            htmlInversiones += '' +
+                '<tr>' +
+                    '<td>' + (item.tipo || '') + '</td>' +
+                    '<td>' + (item.cuenta || '') + '</td>' +
+                    '<td class="text-right font-weight-bold">' + formatoMoneda(item.monto || 0) + '</td>' +
+                '</tr>';
+        });
+    }
+
+    $('#cd_tabla_inversiones tbody').html(htmlInversiones);
+}
+
+function imprimirCuadreDiaCaja() {
+    var contenido = document.getElementById('cd_ticket_area');
+
+    if (!contenido) {
+        showNotify('error', 'Error', 'No se encontró el contenido del cuadre para imprimir.');
+        return;
+    }
+
+    var ventana = window.open('', '_blank', 'width=900,height=700');
+
+    if (!ventana) {
+        showNotify('error', 'Error', 'El navegador bloqueó la ventana de impresión.');
+        return;
+    }
+
+    ventana.document.write('<html><head><title>Cuadre del Día</title>');
+    ventana.document.write('<style>');
+    ventana.document.write('body{font-family:Arial,sans-serif;font-size:12px;color:#111;}');
+    ventana.document.write('.alert{border:1px solid #9ec5fe;padding:8px;margin-bottom:10px;}');
+    ventana.document.write('.row{display:block;}');
+    ventana.document.write('.card{border:1px solid #ddd;margin-bottom:10px;}');
+    ventana.document.write('.card-header{font-weight:bold;background:#f3f4f6;padding:6px;}');
+    ventana.document.write('.card-body{padding:8px;}');
+    ventana.document.write('table{width:100%;border-collapse:collapse;margin-bottom:8px;}');
+    ventana.document.write('th,td{border:1px solid #ddd;padding:5px;}');
+    ventana.document.write('.text-right{text-align:right;} .font-weight-bold{font-weight:bold;} .text-success{color:#198754;} .text-primary{color:#0d6efd;} .text-danger{color:#dc3545;} .text-warning{color:#b7791f;}');
+    ventana.document.write('@media print{button{display:none;}}');
+    ventana.document.write('</style>');
+    ventana.document.write('</head><body>');
+    ventana.document.write('<h3>Cuadre del Día</h3>');
+    ventana.document.write('<p>' + ($('#cd_contexto_caja').text() || '') + '</p>');
+    ventana.document.write(contenido.innerHTML);
+    ventana.document.write('</body></html>');
+    ventana.document.close();
+    ventana.focus();
+
+    setTimeout(function () {
+        ventana.print();
+    }, 300);
+}
 
 /* =========================================================
    DETALLE RETIROS CAJA
@@ -561,13 +938,13 @@ function cargarDetalleRetirosCaja(apertura_id, modo) {
     }
 
     if (modo === 'caja' && apertura_id <= 0) {
-        notificarCaja('error', 'No se recibió una apertura válida.');
+        showNotify('error', 'Error', 'No se recibió una apertura válida.');
         return;
     }
 
     if (modo === 'periodo') {
         if (fechai === '' || fechaf === '') {
-            notificarCaja('error', 'Debe seleccionar fecha inicial y fecha final.');
+            showNotify('error', 'Error', 'Debe seleccionar fecha inicial y fecha final.');
             return;
         }
     }
@@ -598,7 +975,7 @@ function cargarDetalleRetirosCaja(apertura_id, modo) {
         },
         success: function (response) {
             if (!response.success) {
-                notificarCaja('error', response.message || 'No se pudo cargar el detalle de retiros.');
+                showNotify('error', 'Error', response.message || 'No se pudo cargar el detalle de retiros.');
                 return;
             }
 
@@ -630,7 +1007,7 @@ function cargarDetalleRetirosCaja(apertura_id, modo) {
         },
         error: function (xhr) {
             console.log(xhr.responseText);
-            notificarCaja('error', 'Error de comunicación al cargar los retiros de caja.');
+            showNotify('error', 'Error', 'Error de comunicación al cargar los retiros de caja.');
         }
     });
 }
@@ -820,7 +1197,7 @@ function abrirModalReintegroRetiroCaja(caja_retiros_id, apertura_id, monto) {
     monto = parseMonto(monto);
 
     if (caja_retiros_id <= 0 || apertura_id <= 0 || monto <= 0) {
-        notificarCaja('error', 'No se pudo cargar la información del retiro.');
+        showNotify('error', 'Error', 'No se pudo cargar la información del retiro.');
         return;
     }
 
@@ -860,12 +1237,12 @@ $('#formReintegroRetiroCaja').off('submit').on('submit', function (e) {
     var montoReintegro = parseMonto($('#reintegro_monto').val());
 
     if (montoReintegro <= 0) {
-        notificarCaja('error', 'Ingrese un monto válido para reintegrar.');
+        showNotify('error', 'Error', 'Ingrese un monto válido para reintegrar.');
         return;
     }
 
     if (montoReintegro > montoActual) {
-        notificarCaja('error', 'El monto a reintegrar no puede ser mayor al retiro actual.');
+        showNotify('error', 'Error', 'El monto a reintegrar no puede ser mayor al retiro actual.');
         return;
     }
 
@@ -880,13 +1257,13 @@ $('#formReintegroRetiroCaja').off('submit').on('submit', function (e) {
             $('#btnGuardarReintegroRetiroCaja').prop('disabled', false);
 
             if (!response.success) {
-                notificarCaja('error', response.message || 'No se pudo realizar el reintegro.');
+                showNotify('error', 'Error', response.message || 'No se pudo realizar el reintegro.');
                 return;
             }
 
             $('#modalReintegroRetiroCaja').modal('hide');
 
-            notificarCaja('success', response.message || 'Reintegro registrado correctamente.');
+            showNotify('success', 'Éxito', response.message || 'Reintegro registrado correctamente.');
 
             refrescarDetalleRetirosCaja();
             listar_registro_cajas();
@@ -894,11 +1271,15 @@ $('#formReintegroRetiroCaja').off('submit').on('submit', function (e) {
             if ($('#modalDesgloseGananciaCaja').hasClass('show')) {
                 refrescarDesgloseGananciaCaja();
             }
+
+            if ($('#modalCuadreDiaCaja').hasClass('show')) {
+                refrescarCuadreDiaCaja();
+            }
         },
         error: function (xhr) {
             $('#btnGuardarReintegroRetiroCaja').prop('disabled', false);
             console.log(xhr.responseText);
-            notificarCaja('error', 'Error de comunicación al registrar el reintegro.');
+            showNotify('error', 'Error', 'Error de comunicación al registrar el reintegro.');
         }
     });
 });
@@ -906,7 +1287,7 @@ $('#formReintegroRetiroCaja').off('submit').on('submit', function (e) {
 /* =========================================================
    DESGLOSE GANANCIA CAJA
    ========================================================= */
-function cargarDesgloseGananciaCaja(apertura_id, modo) {
+   function cargarDesgloseGananciaCaja(apertura_id, modo) {
     apertura_id = parseInt(apertura_id || 0);
 
     var fechai = $("#formMainCajas #fecha_cajas").val();
@@ -923,7 +1304,7 @@ function cargarDesgloseGananciaCaja(apertura_id, modo) {
 
     if (modo === 'periodo') {
         if (fechai === '' || fechaf === '') {
-            notificarCaja('error', 'Debe seleccionar fecha inicial y fecha final.');
+            showNotify('error', 'Error', 'Debe seleccionar fecha inicial y fecha final.');
             return;
         }
     }
@@ -947,10 +1328,13 @@ function cargarDesgloseGananciaCaja(apertura_id, modo) {
                 $('#dg_contexto_consulta').html('Apertura de caja #' + apertura_id);
             }
 
-            $('#dg_total_cobrado').html('Cargando...');
-            $('#dg_costo_productos').html('Cargando...');
-            $('#dg_costo_productos_2').html('Cargando...');
-            $('#dg_dinero_despues_reponer').html('Cargando...');
+            $('#dg_total_vendido').html('Cargando...');
+            $('#dg_otros_ingresos').html('Cargando...');
+            $('#dg_total_gastos').html('Cargando...');
+            $('#dg_total_egresos_registrados').html('Cargando...');
+            $('#dg_total_inversion_apartada').html('Cargando...');
+            $('#dg_retiro_caja_pendiente').html('Cargando...');
+            $('#dg_neto_disponible').html('Cargando...');
 
             $('#dg_efectivo').html('Cargando...');
             $('#dg_transferencia').html('Cargando...');
@@ -959,40 +1343,62 @@ function cargarDesgloseGananciaCaja(apertura_id, modo) {
 
             $('#dg_monto_apertura').html('Cargando...');
             $('#dg_efectivo_caja').html('Cargando...');
-            $('#dg_retiro_caja').html('Cargando...');
+            $('#dg_retiro_caja_total').html('Cargando...');
+            $('#dg_retiro_caja_convertido').html('Cargando...');
             $('#dg_efectivo_esperado_caja').html('Cargando...');
 
             $('#dg_total_vendido_detalle').html('Cargando...');
+            $('#dg_costo_productos').html('Cargando...');
             $('#dg_ganancia_bruta').html('Cargando...');
+            $('#dg_dinero_recomendado_guardar').html('Cargando...');
+            $('#dg_dinero_despues_reponer').html('Cargando...');
+            $('#dg_porcentaje_costo').html('0.00%');
+            $('#dg_porcentaje_ganancia').html('0.00%');
             $('#dg_diferencia_conciliacion').html('Cargando...');
         },
         success: function (response) {
             if (!response.success) {
-                notificarCaja('error', response.message || 'No se pudo cargar el desglose de ganancia.');
+                showNotify('error', 'Error', response.message || 'No se pudo cargar el desglose de ganancia.');
                 return;
             }
 
             var resumen = response.resumen || {};
             var detalles = response.detalles || [];
 
-            var totalCobrado = parseMonto(resumen.total_cobrado);
-            var costoProductos = parseMonto(resumen.costo_productos_vendidos);
-            var dineroDespuesReponer = parseMonto(resumen.dinero_despues_reponer);
+            var totalVendido = parseMonto(resumen.total_vendido || resumen.total_cobrado);
+            var otrosIngresos = parseMonto(resumen.otros_ingresos);
+            var totalGastos = parseMonto(resumen.total_gastos_reales || resumen.total_gastos);
+            var totalEgresosRegistrados = parseMonto(resumen.total_egresos_registrados);
+            var totalInversionApartada = parseMonto(resumen.total_inversion_apartada);
+            var retiroCajaPendiente = parseMonto(resumen.retiro_caja_pendiente);
+            var netoDisponible = parseMonto(resumen.neto_disponible);
+
             var efectivo = parseMonto(resumen.efectivo);
             var transferencia = parseMonto(resumen.transferencia);
             var tarjeta = parseMonto(resumen.tarjeta);
             var cheque = parseMonto(resumen.cheque);
+
             var montoApertura = parseMonto(resumen.monto_apertura);
-            var retiroCaja = parseMonto(resumen.retiro_caja);
+            var retiroCajaTotal = parseMonto(resumen.retiro_caja_total || resumen.retiro_caja);
+            var retiroCajaConvertido = parseMonto(resumen.retiro_caja_convertido_gasto);
             var efectivoEsperadoCaja = parseMonto(resumen.efectivo_esperado_caja);
+
             var totalVendidoDetalle = parseMonto(resumen.total_vendido_detalle);
+            var costoProductos = parseMonto(resumen.costo_productos_vendidos);
             var gananciaBruta = parseMonto(resumen.ganancia_bruta);
+            var dineroRecomendadoGuardar = parseMonto(resumen.dinero_recomendado_guardar);
+            var dineroDespuesReponer = parseMonto(resumen.dinero_despues_reponer);
+            var porcentajeCosto = parseMonto(resumen.porcentaje_costo);
+            var porcentajeGanancia = parseMonto(resumen.porcentaje_ganancia);
             var diferenciaConciliacion = parseMonto(resumen.diferencia_conciliacion);
 
-            $('#dg_total_cobrado').html(formatoMoneda(totalCobrado));
-            $('#dg_costo_productos').html(formatoMoneda(costoProductos));
-            $('#dg_costo_productos_2').html(formatoMoneda(costoProductos));
-            $('#dg_dinero_despues_reponer').html(formatoMoneda(dineroDespuesReponer));
+            $('#dg_total_vendido').html(formatoMoneda(totalVendido));
+            $('#dg_otros_ingresos').html(formatoMoneda(otrosIngresos));
+            $('#dg_total_gastos').html(formatoMoneda(totalGastos));
+            $('#dg_total_egresos_registrados').html(formatoMoneda(totalEgresosRegistrados));
+            $('#dg_total_inversion_apartada').html(formatoMoneda(totalInversionApartada));
+            $('#dg_retiro_caja_pendiente').html(formatoMoneda(retiroCajaPendiente));
+            $('#dg_neto_disponible').html(formatoMoneda(netoDisponible));
 
             $('#dg_efectivo').html(formatoMoneda(efectivo));
             $('#dg_transferencia').html(formatoMoneda(transferencia));
@@ -1001,12 +1407,29 @@ function cargarDesgloseGananciaCaja(apertura_id, modo) {
 
             $('#dg_monto_apertura').html(formatoMoneda(montoApertura));
             $('#dg_efectivo_caja').html(formatoMoneda(efectivo));
-            $('#dg_retiro_caja').html(formatoMoneda(retiroCaja));
+            $('#dg_retiro_caja_total').html(formatoMoneda(retiroCajaTotal));
+            $('#dg_retiro_caja_convertido').html(formatoMoneda(retiroCajaConvertido));
             $('#dg_efectivo_esperado_caja').html(formatoMoneda(efectivoEsperadoCaja));
 
             $('#dg_total_vendido_detalle').html(formatoMoneda(totalVendidoDetalle));
+            $('#dg_costo_productos').html(formatoMoneda(costoProductos));
             $('#dg_ganancia_bruta').html(formatoMoneda(gananciaBruta));
+            $('#dg_dinero_recomendado_guardar').html(formatoMoneda(dineroRecomendadoGuardar));
+            $('#dg_dinero_despues_reponer').html(formatoMoneda(dineroDespuesReponer));
+            $('#dg_porcentaje_costo').html(porcentajeCosto.toFixed(2) + '%');
+            $('#dg_porcentaje_ganancia').html(porcentajeGanancia.toFixed(2) + '%');
             $('#dg_diferencia_conciliacion').html(formatoMoneda(diferenciaConciliacion));
+
+            var textoRegla = '';
+            if (totalInversionApartada > 0) {
+                textoRegla = 'Hay egresos marcados como inversión/reposición. Salen de caja, pero no se cuentan como gasto real.';
+            } else if (retiroCajaConvertido > 0) {
+                textoRegla = 'Esta caja ya tiene retiros convertidos en gasto. Por eso no se restan doble en el neto.';
+            } else {
+                textoRegla = 'Los retiros pendientes todavía no son egreso. Por eso sí se restan del neto disponible.';
+            }
+
+            $('#dg_regla_retiros').html(textoRegla);
 
             cargarTablaDetalleGananciaCaja(detalles);
 
@@ -1018,7 +1441,7 @@ function cargarDesgloseGananciaCaja(apertura_id, modo) {
         },
         error: function (xhr) {
             console.log(xhr.responseText);
-            notificarCaja('error', 'Error de comunicación al cargar el desglose de ganancia.');
+            showNotify('error', 'Error', 'Error de comunicación al cargar el desglose de ganancia.');
         }
     });
 }

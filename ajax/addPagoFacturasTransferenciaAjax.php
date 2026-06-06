@@ -41,7 +41,6 @@ function responderErrorPago($message) {
 
 
 $required = [
-    'bk_nm',
     'importe_transferencia',
     'factura_id_transferencia'
 ];

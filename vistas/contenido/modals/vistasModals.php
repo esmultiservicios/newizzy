@@ -1955,7 +1955,7 @@
 
                 <div class="payment-form-group">
                   <label class="d-block mb-1">Banco</label>
-                  <select id="bk_nm" name="bk_nm" required class="selectpicker form-control"
+                  <select id="bk_nm" name="bk_nm" class="selectpicker form-control"
                           data-size="5" data-live-search="true" title="Banco" data-width="100%"></select>
                 </div>
 
@@ -2010,7 +2010,7 @@
 
                 <div class="payment-form-group">
                   <label class="d-block mb-1">Banco</label>
-                  <select id="bk_nm_chk" name="bk_nm_chk" required class="selectpicker form-control"
+                  <select id="bk_nm_chk" name="bk_nm_chk" class="selectpicker form-control"
                           data-size="5" data-live-search="true" title="Banco" data-width="100%"></select>
                 </div>
 

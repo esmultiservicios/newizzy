@@ -13,27 +13,33 @@
     const dd = String(d.getDate()).padStart(2, "0");
     return `${d.getFullYear()}-${mm}-${dd}`;
   }
+
   function getSaved(key) {
     return localStorage.getItem(key) || todayISO();
   }
+
   function save(key, val) {
     if (key && val) localStorage.setItem(key, val);
   }
+
   function apply($input, val) {
     $input.val(val);
     $input.prop("defaultValue", val);
     $input.attr("value", val);
   }
+
   function removeHint($input) {
     $input.nextAll(".remember-hint").remove();
   }
 
   function buildHint($input, key, currentVal) {
     const tiso = todayISO();
+
     if (!currentVal || currentVal === tiso) {
       removeHint($input);
       return;
     }
+
     removeHint($input);
 
     const $hint = $(`
@@ -49,6 +55,7 @@
           <button type="button" class="btn btn-hide-hint" aria-label="Cerrar" title="Ocultar">×</button>
         </div>
       `);
+
     try {
       $hint
         .find(".remember-date")
@@ -59,9 +66,11 @@
 
     $hint.insertAfter($input);
 
-    // pulso suave en el input
     $input.addClass("remembered-highlight");
-    setTimeout(() => $input.removeClass("remembered-highlight"), 1200);
+
+    setTimeout(() => {
+      $input.removeClass("remembered-highlight");
+    }, 1200);
 
     $hint.on("click", ".btn-use-today", function () {
       const t = todayISO();
@@ -69,6 +78,7 @@
       apply($input, t);
       removeHint($input);
     });
+
     $hint.on("click", ".btn-hide-hint", function () {
       removeHint($input);
     });
@@ -91,9 +101,11 @@
     });
 
     const $form = $input.closest("form");
+
     if ($form.length) {
       $form.on("reset", function () {
         const last = getSaved(key);
+
         setTimeout(() => {
           apply($input, last);
           buildHint($input, key, last);
@@ -115,143 +127,228 @@
   $(function () {
     initRememberDates(document);
   });
+
   $(document).on("shown.bs.modal", function (e) {
     initRememberDates(e.target);
   });
 })();
 
-$(".FormularioAjax").submit(function (e) {
-  e.preventDefault();
+// ===========================================
+// GLOBAL ENVÍO AJAX PARA FORMULARIOS
+// Soporta archivos con FormData
+// Funciona también con formularios cargados dinámicamente
+// ===========================================
+$(document)
+  .off("submit.FormularioAjax", ".FormularioAjax")
+  .on("submit.FormularioAjax", ".FormularioAjax", function (e) {
+    e.preventDefault();
 
-  var form = $(this);
-  var tipo = form.attr("data-form");
-  var action = form.attr("action");
-  var method = form.attr("method");
-  var respuesta = form.children(".RespuestaAjax");
+    var form = $(this);
+    var formElement = this;
 
-  // Deshabilitar el botón antes de hacer la solicitud AJAX
-  form.find('button[type="submit"]').prop("disabled", true);
+    var tipo = form.attr("data-form");
+    var action = form.attr("action");
+    var method = form.attr("method") || "POST";
 
-  var msjError =
-    "<script>swal({title: 'Ocurrió un error inesperado', text: 'Por favor, intenta de nuevo', icon: 'error', dangerMode: true, closeOnEsc: false, closeOnClickOutside: false});</script>";
-  var formdata = new FormData(this);
+    var formId = form.attr("id") || "";
 
-  var textoAlerta;
-  var type;
-  var classButtom;
+    var respuesta = form.children(".RespuestaAjax");
 
-  if (tipo == "save") {
-    textoAlerta = "Los datos que enviarás quedarán almacenados en el sistema";
-    type = "info";
-    classButtom = "btn-primary";
-  } else if (tipo == "delete") {
-    textoAlerta = "Los datos serán eliminados completamente del sistema";
-    type = "warning";
-    classButtom = "btn-warning";
-  } else if (tipo == "update") {
-    textoAlerta = "Los datos del sistema serán actualizados";
-    type = "info";
-    classButtom = "btn-info";
-  } else {
-    textoAlerta = "¿Quieres realizar la operación solicitada?";
-    type = "warning";
-    classButtom = "btn-warning";
-  }
-
-  let danger = type === "warning" || type === "error";
-
-  swal({
-    title: "¿Estás seguro?",
-    text: textoAlerta,
-    icon: type,
-    buttons: {
-      cancel: {
-        text: "Cancelar",
-        visible: true,
-        closeModal: true,
-      },
-      confirm: {
-        text: "Aceptar",
-        closeModal: false,
-      },
-    },
-    dangerMode: danger,
-    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-    closeOnClickOutside: false, // Desactiva el cierre al hacer clic fuera
-  }).then((isConfirm) => {
-    if (isConfirm) {
-      swal.stopLoading();
-      swal.close();
-
-      $.ajax({
-        type: method,
-        url: action,
-        data: formdata ? formdata : form.serialize(),
-        cache: false,
-        contentType: false,
-        processData: false,
-        xhr: () => {
-          const xhr = new window.XMLHttpRequest();
-          xhr.upload.addEventListener(
-            "progress",
-            (evt) => {
-              if (evt.lengthComputable) {
-                let percentComplete = parseInt((evt.loaded / evt.total) * 100);
-                if (percentComplete < 100) {
-                  respuesta.html(`
-									<p class="text-center">Procesando... (${percentComplete}%)</p>
-									<div class="progress progress-striped active">
-										<div class="progress-bar progress-bar-info" style="width: ${percentComplete}%;"></div>
-									</div>
-								`);
-                } else {
-                  respuesta.html('<p class="text-center"></p>');
-                }
-              }
-            },
-            false,
-          );
-          return xhr;
-        },
-        success: (data) => {
-          respuesta.html(data);
-
-          form.find('button[type="submit"]').prop("disabled", false);
-
-          /*
-            Refuerzo para productos:
-            Si el controlador ya ejecutó listar_productos(), perfecto.
-            Pero si por algún motivo el script de respuesta no refresca bien,
-            esto fuerza la recarga real de la tabla.
-          */
-          if (form.attr("id") === "formProductos") {
-            setTimeout(function () {
-              if (
-                $.fn.DataTable &&
-                $.fn.DataTable.isDataTable("#dataTableProductos")
-              ) {
-                $("#dataTableProductos").DataTable().ajax.reload(null, false);
-              } else if (typeof listar_productos === "function") {
-                listar_productos();
-              }
-
-              if (typeof window.resetProductoImagen === "function") {
-                window.resetProductoImagen();
-              }
-
-              $("#modal_registrar_productos").modal("hide");
-            }, 500);
-          }
-        },
-        error: () => {
-          respuesta.html(msjError);
-        },
-      });
-    } else {
-      form.find('button[type="submit"]').prop("disabled", false);
+    if (!respuesta.length) {
+      respuesta = form.find(".RespuestaAjax").first();
     }
+
+    var submitButtons = form.find(
+      'button[type="submit"], input[type="submit"]',
+    );
+
+    if (formId !== "") {
+      submitButtons = submitButtons.add(
+        $(
+          'button[type="submit"][form="' +
+            formId +
+            '"], input[type="submit"][form="' +
+            formId +
+            '"]',
+        ),
+      );
+    }
+
+    submitButtons.prop("disabled", true);
+
+    var msjError =
+      "<script>swal({title: 'Ocurrió un error inesperado', text: 'Por favor, intenta de nuevo', icon: 'error', dangerMode: true, closeOnEsc: false, closeOnClickOutside: false});</script>";
+
+    var formdata = new FormData(formElement);
+
+    // ===========================================
+    // REFUERZO ESPECIAL PARA PRODUCTOS
+    // Si hay archivo en #imagen_producto, nos aseguramos
+    // de que viaje dentro del FormData.
+    // ===========================================
+    if (formId === "formProductos") {
+      var inputImagenProducto = formElement.querySelector(
+        'input[type="file"][name="imagen_producto"]',
+      );
+
+      var archivoProducto = null;
+
+      if (
+        inputImagenProducto &&
+        inputImagenProducto.files &&
+        inputImagenProducto.files.length > 0
+      ) {
+        archivoProducto = inputImagenProducto.files[0];
+      } else if (window.__productoImagenFile) {
+        archivoProducto = window.__productoImagenFile;
+      }
+
+      if (archivoProducto) {
+        formdata.set("imagen_producto", archivoProducto);
+
+        console.log(
+          "Imagen de producto agregada al FormData:",
+          archivoProducto.name,
+          archivoProducto.size,
+          archivoProducto.type,
+        );
+      } else {
+        console.warn("Formulario productos enviado sin imagen nueva.");
+      }
+    }
+
+    var textoAlerta;
+    var type;
+    var classButtom;
+
+    if (tipo == "save") {
+      textoAlerta = "Los datos que enviarás quedarán almacenados en el sistema";
+      type = "info";
+      classButtom = "btn-primary";
+    } else if (tipo == "delete") {
+      textoAlerta = "Los datos serán eliminados completamente del sistema";
+      type = "warning";
+      classButtom = "btn-warning";
+    } else if (tipo == "update") {
+      textoAlerta = "Los datos del sistema serán actualizados";
+      type = "info";
+      classButtom = "btn-info";
+    } else {
+      textoAlerta = "¿Quieres realizar la operación solicitada?";
+      type = "warning";
+      classButtom = "btn-warning";
+    }
+
+    let danger = type === "warning" || type === "error";
+
+    swal({
+      title: "¿Estás seguro?",
+      text: textoAlerta,
+      icon: type,
+      buttons: {
+        cancel: {
+          text: "Cancelar",
+          visible: true,
+          closeModal: true,
+        },
+        confirm: {
+          text: "Aceptar",
+          closeModal: false,
+        },
+      },
+      dangerMode: danger,
+      closeOnEsc: false,
+      closeOnClickOutside: false,
+    }).then((isConfirm) => {
+      if (isConfirm) {
+        swal.stopLoading();
+        swal.close();
+
+        $.ajax({
+          type: method,
+          url: action,
+          data: formdata,
+          cache: false,
+          contentType: false,
+          processData: false,
+
+          xhr: () => {
+            const xhr = new window.XMLHttpRequest();
+
+            xhr.upload.addEventListener(
+              "progress",
+              (evt) => {
+                if (evt.lengthComputable) {
+                  let percentComplete = parseInt(
+                    (evt.loaded / evt.total) * 100,
+                  );
+
+                  if (percentComplete < 100) {
+                    respuesta.html(`
+                      <p class="text-center">Procesando... (${percentComplete}%)</p>
+                      <div class="progress progress-striped active">
+                        <div class="progress-bar progress-bar-info" style="width: ${percentComplete}%;"></div>
+                      </div>
+                    `);
+                  } else {
+                    respuesta.html('<p class="text-center"></p>');
+                  }
+                }
+              },
+              false,
+            );
+
+            return xhr;
+          },
+
+          success: (data) => {
+            respuesta.html(data);
+
+            submitButtons.prop("disabled", false);
+
+            /*
+              Refuerzo para productos:
+              Si el controlador ya ejecutó listar_productos(), perfecto.
+              Pero si por algún motivo el script de respuesta no refresca bien,
+              esto fuerza la recarga real de la tabla.
+            */
+            if (formId === "formProductos") {
+              setTimeout(function () {
+                if (
+                  $.fn.DataTable &&
+                  $.fn.DataTable.isDataTable("#dataTableProductos")
+                ) {
+                  $("#dataTableProductos").DataTable().ajax.reload(null, false);
+                } else if (typeof listar_productos === "function") {
+                  listar_productos();
+                }
+
+                if (typeof window.resetProductoImagen === "function") {
+                  window.resetProductoImagen();
+                }
+
+                $("#modal_registrar_productos").modal("hide");
+              }, 500);
+            }
+          },
+
+          error: (xhr) => {
+            console.error("Error AJAX FormularioAjax:", xhr.responseText);
+
+            respuesta.html(msjError);
+
+            submitButtons.prop("disabled", false);
+          },
+
+          complete: () => {
+            submitButtons.prop("disabled", false);
+          },
+        });
+      } else {
+        submitButtons.prop("disabled", false);
+      }
+    });
   });
-});
 
 const notyf = new Notyf({
   position: {

@@ -20,6 +20,7 @@ $(() => {
   let configProformaActiva = false;   // Config: permite mostrar proforma
   let configProformaRebajarInventario = false; // Config: marcar por defecto rebajar inventario en proforma
   let currentProductPriceIndex = null; // Índice actual para editar precio
+  let cacheISVFacturaMovil = {};
 
   // Formateador de números para montos en lempiras
   const formatter = new Intl.NumberFormat('es-HN', {
@@ -28,6 +29,115 @@ $(() => {
     maximumFractionDigits: 2
   });
 
+  // ===============================
+  // ISV DINÁMICO - FACTURA MÓVIL
+  // ===============================
+
+  function normalizarNumeroISVFacturaMovil(valor) {
+    valor = String(valor || '0')
+      .replace(/L/g, '')
+      .replace(/\s/g, '')
+      .replace(/[^\d.,-]/g, '');
+
+    if (valor === '') {
+      return 0;
+    }
+
+    if (valor.includes(',') && valor.includes('.')) {
+      valor = valor.replace(/,/g, '');
+    } else if (valor.includes(',') && !valor.includes('.')) {
+      valor = valor.replace(/,/g, '.');
+    }
+
+    const numero = parseFloat(valor);
+
+    return isNaN(numero) ? 0 : numero;
+  }
+
+  function formatearPorcentajeISVFacturaMovil(valor) {
+    valor = normalizarNumeroISVFacturaMovil(valor);
+
+    if (valor <= 0) {
+      return '';
+    }
+
+    if (Number.isInteger(valor)) {
+      return valor.toString();
+    }
+
+    return valor.toFixed(2).replace(/\.?0+$/, '');
+  }
+
+  function fetchISVFacturaMovilSync(isv_id) {
+    isv_id = parseInt(isv_id, 10);
+
+    if (!isv_id || isv_id <= 0) {
+      return 0;
+    }
+
+    if (cacheISVFacturaMovil[isv_id] !== undefined) {
+      return cacheISVFacturaMovil[isv_id];
+    }
+
+    let porcentaje = 0;
+
+    $.ajax({
+      type: 'POST',
+      url: '<?php echo SERVERURL;?>core/getISV.php',
+      data: {
+        isv_id: isv_id
+      },
+      dataType: 'json',
+      async: false,
+      success: function(response) {
+        if (response && response.success === true && response.valor !== undefined) {
+          porcentaje = normalizarNumeroISVFacturaMovil(response.valor);
+        } else if (response && response.valor !== undefined) {
+          porcentaje = normalizarNumeroISVFacturaMovil(response.valor);
+        } else if (response && response.porcentaje !== undefined) {
+          porcentaje = normalizarNumeroISVFacturaMovil(response.porcentaje);
+        } else if (response && response.isv !== undefined) {
+          porcentaje = normalizarNumeroISVFacturaMovil(response.isv);
+        } else if ($.isArray(response) && response.length > 0) {
+          porcentaje = normalizarNumeroISVFacturaMovil(response[0]);
+        } else if (typeof response === 'number' || typeof response === 'string') {
+          porcentaje = normalizarNumeroISVFacturaMovil(response);
+        }
+      },
+      error: function(xhr) {
+        console.log(xhr.responseText);
+        porcentaje = 0;
+      }
+    });
+
+    cacheISVFacturaMovil[isv_id] = porcentaje;
+
+    return porcentaje;
+  }
+
+  function getTextoISVFacturaMovil(isv_id) {
+    const porcentaje = fetchISVFacturaMovilSync(isv_id);
+    const texto = formatearPorcentajeISVFacturaMovil(porcentaje);
+
+    return texto !== '' ? 'ISV ' + texto + '%' : 'ISV';
+  }
+
+  function actualizarLabelsISVFacturaMovil() {
+    const textoISV1 = getTextoISVFacturaMovil(1);
+    const textoISV2 = getTextoISVFacturaMovil(2);
+
+    $('#label-isv-15').text(textoISV1 + ':');
+    $('#label-isv-18').text(textoISV2 + ':');
+
+    $('#label-preview-isv15').text(textoISV1);
+    $('#label-preview-isv18').text(textoISV2);
+  }
+
+  function recargarLabelsISVFacturaMovil() {
+    cacheISVFacturaMovil = {};
+    actualizarLabelsISVFacturaMovil();
+  }
+
   function asegurarPreviewPrecioMovil() {
     var $preview = $('#precio-total-preview');
 
@@ -35,8 +145,8 @@ $(() => {
       $preview.replaceWith(
         '<div id="precio-total-preview" class="alert alert-light border mb-0" style="line-height:1.6;">' +
           '<div class="d-flex justify-content-between"><span>Subtotal</span><strong id="preview-subtotal">L. 0.00</strong></div>' +
-          '<div class="d-flex justify-content-between"><span>ISV 15%</span><strong id="preview-isv15">L. 0.00</strong></div>' +
-          '<div class="d-flex justify-content-between"><span>ISV 18%</span><strong id="preview-isv18">L. 0.00</strong></div>' +
+          '<div class="d-flex justify-content-between"><span id="label-preview-isv15">ISV</span><strong id="preview-isv15">L. 0.00</strong></div>' +
+          '<div class="d-flex justify-content-between"><span id="label-preview-isv18">ISV</span><strong id="preview-isv18">L. 0.00</strong></div>' +
           '<hr class="my-2">' +
           '<div class="d-flex justify-content-between font-weight-bold"><span>Total</span><strong id="preview-total">L. 0.00</strong></div>' +
         '</div>'
@@ -47,12 +157,14 @@ $(() => {
     } else if (!$('#preview-subtotal').length) {
       $preview.html(
         '<div class="d-flex justify-content-between"><span>Subtotal</span><strong id="preview-subtotal">L. 0.00</strong></div>' +
-        '<div class="d-flex justify-content-between"><span>ISV 15%</span><strong id="preview-isv15">L. 0.00</strong></div>' +
-        '<div class="d-flex justify-content-between"><span>ISV 18%</span><strong id="preview-isv18">L. 0.00</strong></div>' +
+        '<div class="d-flex justify-content-between"><span id="label-preview-isv15">ISV</span><strong id="preview-isv15">L. 0.00</strong></div>' +
+        '<div class="d-flex justify-content-between"><span id="label-preview-isv18">ISV</span><strong id="preview-isv18">L. 0.00</strong></div>' +
         '<hr class="my-2">' +
         '<div class="d-flex justify-content-between font-weight-bold"><span>Total</span><strong id="preview-total">L. 0.00</strong></div>'
       );
     }
+
+    actualizarLabelsISVFacturaMovil();
   }
 
   // ===============================
@@ -61,6 +173,7 @@ $(() => {
   cargarClientes();                   // Cargar lista de clientes
   cargarVendedores();                 // Cargar lista de vendedores
   cargarProductos();                  // Cargar lista de productos (con ISV desde PHP)
+  actualizarLabelsISVFacturaMovil();
   obtenerSecuenciaFactura();          // Obtener secuencia de facturación
   getTotalFacturasDisponibles();      // Obtener facturas disponibles del SAR
   verificarAperturaCaja();            // Verificar estado de la caja
@@ -1387,8 +1500,8 @@ $(() => {
     if ($('#precio-total-preview').length && $('#precio-total-preview').is('input')) {
       $('#precio-total-preview').val(
         'Subtotal: L. ' + formatter.format(subtotal) +
-        ' | ISV 15%: L. ' + formatter.format(isv15) +
-        ' | ISV 18%: L. ' + formatter.format(isv18) +
+        ' | ' + getTextoISVFacturaMovil(1) + ': L. ' + formatter.format(isv15) +
+        ' | ' + getTextoISVFacturaMovil(2) + ': L. ' + formatter.format(isv18) +
         ' | Total: L. ' + formatter.format(total)
       );
     }
@@ -1396,6 +1509,7 @@ $(() => {
 
   function limpiarPrecioPreviewMovil() {
     asegurarPreviewPrecioMovil();
+    actualizarLabelsISVFacturaMovil();
 
     if ($('#preview-subtotal').length) $('#preview-subtotal').text('L. 0.00');
     if ($('#preview-isv15').length) $('#preview-isv15').text('L. 0.00');

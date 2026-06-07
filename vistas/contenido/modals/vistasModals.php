@@ -3184,9 +3184,9 @@
                         <div class="card-body">
                             <div class="form-row">
                                 <div class="col-md-6 mb-3">
-                                    <label for="telefono_empresa"><i class="fas fa-phone-alt mr-1"></i>Teléfono <span class="priority">*</span></label>
+                                    <label for="telefono_empresa"><i class="fas fa-phone-alt mr-1"></i>Teléfono</label>
                                     <div class="input-group">
-                                        <input type="text" name="telefono_empresa" id="telefono_empresa" class="form-control" placeholder="Teléfono" maxlength="8" required>
+                                        <input type="text" name="telefono_empresa" id="telefono_empresa" class="form-control" placeholder="Teléfono" maxlength="8">
                                         <div class="input-group-append">
                                             <span class="input-group-text"><i class="fas fa-phone"></i></span>
                                         </div>
@@ -3839,25 +3839,35 @@
                             </div>
                         </div>
 
-                        <!-- ISV tipo 1 (valor tomado de tabla isv_id=1) -->
+                       <!-- ISV tipo 1 (valor tomado de tabla isv_id=1) -->
                         <div class="col-md-6 mb-3">
                             <div class="custom-control custom-switch">
-                            <input type="checkbox" class="custom-control-input" id="producto_isv1" name="producto_isv1" value="1" checked>
-                            <label class="custom-control-label" for="producto_isv1">
-                                <i class="fas fa-percentage mr-1"></i>Aplica ISV 15%
-                            </label>
-                            <small class="form-text text-muted">Se calculará el impuesto ISV tipo 1</small>
+                                <input type="checkbox" class="custom-control-input" id="producto_isv1" name="producto_isv1" value="1" checked>
+
+                                <label class="custom-control-label" for="producto_isv1">
+                                    <i class="fas fa-percentage mr-1"></i>
+                                    <span id="label_producto_isv1">Aplica ISV</span>
+                                </label>
+
+                                <small class="form-text text-muted">
+                                    Se calculará el impuesto <span id="small_producto_isv1">ISV tipo 1</span>
+                                </small>
                             </div>
                         </div>
 
                         <!-- ISV tipo 2 (valor tomado de tabla isv_id=2) -->
                         <div class="col-md-6 mb-3">
                             <div class="custom-control custom-switch">
-                            <input type="checkbox" class="custom-control-input" id="producto_isv2" name="producto_isv2" value="1">
-                            <label class="custom-control-label" for="producto_isv2">
-                                <i class="fas fa-percentage mr-1"></i>Aplica ISV 18%
-                            </label>
-                            <small class="form-text text-muted">Se calculará el impuesto ISV tipo 2</small>
+                                <input type="checkbox" class="custom-control-input" id="producto_isv2" name="producto_isv2" value="1">
+
+                                <label class="custom-control-label" for="producto_isv2">
+                                    <i class="fas fa-percentage mr-1"></i>
+                                    <span id="label_producto_isv2">Aplica ISV</span>
+                                </label>
+
+                                <small class="form-text text-muted">
+                                    Se calculará el impuesto <span id="small_producto_isv2">ISV tipo 2</span>
+                                </small>
                             </div>
                         </div>
 

@@ -319,7 +319,7 @@ class productosControlador extends productosModelo
                 "type"    => "error",
                 "funcion" => "window.location.href = '".$validacion['redireccion']."'"
             ]);
-        }
+        }        
 
         // Requeridos
         $required = [

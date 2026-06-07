@@ -1395,6 +1395,44 @@ function aplicarSeleccionExclusivaISV() {
     });
 }
 
+function getPorcentajeTextoISVProducto(isv_id) {
+  var porcentaje = fetchISVProductoSync(isv_id);
+  var texto = formatearPorcentajeLabelISVProductos(porcentaje);
+
+  if (texto !== '') {
+    return texto + '%';
+  }
+
+  return '';
+}
+
+function getTextoISVProducto(isv_id) {
+  var porcentaje = fetchISVProductoSync(isv_id);
+  var texto = 'ISV';
+
+  if (porcentaje > 0) {
+    texto = 'ISV ' + formatearPorcentajeLabelISVProductos(porcentaje) + '%';
+  }
+
+  return texto;
+}
+
+function actualizarLabelsISVProductos() {
+  var textoISV1 = getTextoISVProducto(1);
+  var textoISV2 = getTextoISVProducto(2);
+
+  $('#label_producto_isv1').html('Aplica ' + textoISV1);
+  $('#label_producto_isv2').html('Aplica ' + textoISV2);
+
+  $('#small_producto_isv1').html(textoISV1);
+  $('#small_producto_isv2').html(textoISV2);
+}
+
+function recargarLabelsISVProductos() {
+  cacheISVProductos = {};
+  actualizarLabelsISVProductos();
+}
+
 /*INICIO FORMULARIO PRODUCTOS*/
 function modal_productos() {
     $('#formProductos').attr({
@@ -1473,6 +1511,9 @@ function modal_productos() {
     }
 
     ClenProductImage();
+
+    // ---- Actualiza labels ISV dinámicos antes de abrir ----
+    recargarLabelsISVProductos();
 
     $('#formProductos #proceso_productos').val("Registro de Productos");
     $('#modal_registrar_productos').modal({

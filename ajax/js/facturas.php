@@ -843,24 +843,51 @@ function cargarCajaFactura() {
    INICIO - ABRIR RETIRO DE CAJA DESDE FACTURACIÓN
    ========================================================= */
 
-function abrirRetiroCajaDesdeFactura(data) {
+   function abrirRetiroCajaDesdeFactura(data) {
     if ($('#modalRetiroCaja').length === 0 || $('#formRetiroCaja').length === 0) {
         notificarCajaFactura('error', 'Modal no encontrado', 'No se encontró el modal de retiro de caja en esta vista.');
         return;
     }
 
-    var saldoDisponible = parseMontoCajaFactura(data.neto);
+    if (!data || !data.apertura_id) {
+        notificarCajaFactura('error', 'Apertura no encontrada', 'No se encontró la apertura de caja.');
+        return;
+    }
 
     $('#formRetiroCaja')[0].reset();
 
     $('#retiro_apertura_id').val(data.apertura_id);
-    $('#retiro_saldo_actual').val(saldoDisponible.toFixed(2));
-    $('#retiro_saldo_final').val(saldoDisponible.toFixed(2));
 
-    $('#retiro_saldo_actual_text').html(formatoMonedaCajaFactura(saldoDisponible));
-    $('#retiro_saldo_final_text').html(formatoMonedaCajaFactura(saldoDisponible));
+    $('#retiro_saldo_actual').val('0.00');
+    $('#retiro_saldo_final').val('0.00');
+
+    $('#retiro_saldo_efectivo').val('0.00');
+    $('#retiro_saldo_transferencia').val('0.00');
+    $('#retiro_saldo_final_efectivo').val('0.00');
+    $('#retiro_saldo_final_transferencia').val('0.00');
+
+    $('#retiro_monto').val('0.00');
+
+    $('#retiro_saldo_efectivo_text').html('Cargando...');
+    $('#retiro_saldo_transferencia_text').html('Cargando...');
+    $('#retiro_saldo_actual_text').html('Cargando...');
+
+    $('#retiro_max_efectivo_text').html('Cargando...');
+    $('#retiro_max_transferencia_text').html('Cargando...');
+
+    $('#retiro_total_retirar_text').html(formatoMonedaCajaFactura(0));
+    $('#retiro_saldo_final_efectivo_text').html(formatoMonedaCajaFactura(0));
+    $('#retiro_saldo_final_transferencia_text').html(formatoMonedaCajaFactura(0));
+    $('#retiro_saldo_final_text').html(formatoMonedaCajaFactura(0));
 
     $('#retiro_mensaje_validacion').hide().html('');
+
+    $('#retiro_box_efectivo').removeClass('retiro-input-error');
+    $('#retiro_box_transferencia').removeClass('retiro-input-error');
+
+    $('#retiro_monto_efectivo').val('').prop('disabled', true);
+    $('#retiro_monto_transferencia').val('').prop('disabled', true);
+
     $('#btn_guardar_retiro_caja').prop('disabled', true);
 
     if ($.fn.selectpicker) {
@@ -868,11 +895,18 @@ function abrirRetiroCajaDesdeFactura(data) {
         $('#retiro_categoria_gastos_id').selectpicker('refresh');
     }
 
+    cargarSaldoRetiroCajaFactura(data.apertura_id, function () {
+        $('#retiro_monto_efectivo').prop('disabled', false);
+        $('#retiro_monto_transferencia').prop('disabled', false);
+
+        validarRetiroCajaFactura(false);
+    });
+
     $('#modalRetiroCaja')
         .off('shown.bs.modal.cajaFactura')
         .on('shown.bs.modal.cajaFactura', function () {
             setTimeout(function () {
-                $('#retiro_monto').trigger('focus').select();
+                $('#retiro_monto_efectivo').trigger('focus').select();
             }, 150);
         });
 
@@ -884,6 +918,192 @@ function abrirRetiroCajaDesdeFactura(data) {
         backdrop: 'static'
     });
 }
+
+function cargarSaldoRetiroCajaFactura(apertura_id, callback) {
+    apertura_id = parseInt(apertura_id || $('#retiro_apertura_id').val() || 0);
+
+    if (apertura_id <= 0) {
+        notificarCajaFactura('error', 'Apertura no encontrada', 'No se encontró la apertura de caja para consultar el saldo.');
+        $('#modalRetiroCaja').modal('hide');
+        return;
+    }
+
+    $.ajax({
+        type: 'POST',
+        url: '<?php echo SERVERURL;?>core/caja/getSaldoRetiroCaja.php',
+        dataType: 'json',
+        data: {
+            apertura_id: apertura_id,
+            solo_mi_caja: 1,
+            origen: 'facturacion'
+        },
+        success: function (response) {
+            if (!response || !response.success) {
+                console.log(response);
+                notificarCajaFactura(
+                    'error',
+                    'Error',
+                    response && response.message ? response.message : 'No se pudo obtener el saldo disponible para retiro.'
+                );
+
+                $('#modalRetiroCaja').modal('hide');
+                return;
+            }
+
+            var saldoEfectivo = parseMontoCajaFactura(response.saldo_efectivo);
+            var saldoTransferencia = parseMontoCajaFactura(response.saldo_transferencia);
+            var saldoTotal = parseMontoCajaFactura(response.saldo_disponible);
+
+            $('#retiro_apertura_id').val(response.apertura_id || apertura_id);
+
+            $('#retiro_saldo_efectivo').val(saldoEfectivo.toFixed(2));
+            $('#retiro_saldo_transferencia').val(saldoTransferencia.toFixed(2));
+            $('#retiro_saldo_actual').val(saldoTotal.toFixed(2));
+
+            $('#retiro_saldo_efectivo_text').html(formatoMonedaCajaFactura(saldoEfectivo));
+            $('#retiro_saldo_transferencia_text').html(formatoMonedaCajaFactura(saldoTransferencia));
+            $('#retiro_saldo_actual_text').html(formatoMonedaCajaFactura(saldoTotal));
+
+            $('#retiro_max_efectivo_text').html(formatoMonedaCajaFactura(saldoEfectivo));
+            $('#retiro_max_transferencia_text').html(formatoMonedaCajaFactura(saldoTransferencia));
+
+            $('#retiro_monto_efectivo').attr('max', saldoEfectivo.toFixed(2));
+            $('#retiro_monto_transferencia').attr('max', saldoTransferencia.toFixed(2));
+
+            actualizarResumenRetiroCajaFactura();
+
+            if (typeof callback === 'function') {
+                callback(response);
+            }
+        },
+        error: function (xhr) {
+            console.log(xhr.responseText);
+            notificarCajaFactura('error', 'Error', 'Error de comunicación al obtener el saldo disponible.');
+            $('#modalRetiroCaja').modal('hide');
+        }
+    });
+}
+
+function actualizarResumenRetiroCajaFactura() {
+    var saldoEfectivo = parseMontoCajaFactura($('#retiro_saldo_efectivo').val());
+    var saldoTransferencia = parseMontoCajaFactura($('#retiro_saldo_transferencia').val());
+
+    var montoEfectivo = parseMontoCajaFactura($('#retiro_monto_efectivo').val());
+    var montoTransferencia = parseMontoCajaFactura($('#retiro_monto_transferencia').val());
+
+    var totalRetirar = montoEfectivo + montoTransferencia;
+
+    var saldoFinalEfectivo = saldoEfectivo - montoEfectivo;
+    var saldoFinalTransferencia = saldoTransferencia - montoTransferencia;
+
+    if (saldoFinalEfectivo < 0) {
+        saldoFinalEfectivo = 0;
+    }
+
+    if (saldoFinalTransferencia < 0) {
+        saldoFinalTransferencia = 0;
+    }
+
+    var saldoFinalTotal = saldoFinalEfectivo + saldoFinalTransferencia;
+
+    $('#retiro_monto').val(totalRetirar.toFixed(2));
+
+    $('#retiro_saldo_final_efectivo').val(saldoFinalEfectivo.toFixed(2));
+    $('#retiro_saldo_final_transferencia').val(saldoFinalTransferencia.toFixed(2));
+    $('#retiro_saldo_final').val(saldoFinalTotal.toFixed(2));
+
+    $('#retiro_total_retirar_text').html(formatoMonedaCajaFactura(totalRetirar));
+    $('#retiro_saldo_final_efectivo_text').html(formatoMonedaCajaFactura(saldoFinalEfectivo));
+    $('#retiro_saldo_final_transferencia_text').html(formatoMonedaCajaFactura(saldoFinalTransferencia));
+    $('#retiro_saldo_final_text').html(formatoMonedaCajaFactura(saldoFinalTotal));
+}
+
+function validarRetiroCajaFactura(mostrarMensaje) {
+    var saldoEfectivo = parseMontoCajaFactura($('#retiro_saldo_efectivo').val());
+    var saldoTransferencia = parseMontoCajaFactura($('#retiro_saldo_transferencia').val());
+
+    var montoEfectivo = parseMontoCajaFactura($('#retiro_monto_efectivo').val());
+    var montoTransferencia = parseMontoCajaFactura($('#retiro_monto_transferencia').val());
+
+    var categoria = parseInt($('#retiro_categoria_gastos_id').val() || 0);
+    var errores = [];
+
+    $('#retiro_box_efectivo').removeClass('retiro-input-error');
+    $('#retiro_box_transferencia').removeClass('retiro-input-error');
+
+    if (montoEfectivo < 0 || montoTransferencia < 0) {
+        errores.push('Los montos no pueden ser negativos.');
+    }
+
+    if (montoEfectivo <= 0 && montoTransferencia <= 0) {
+        errores.push('Ingrese un monto en efectivo, transferencia o ambos.');
+    }
+
+    if (montoEfectivo > saldoEfectivo) {
+        errores.push('El retiro de efectivo no puede ser mayor al efectivo disponible.');
+        $('#retiro_box_efectivo').addClass('retiro-input-error');
+    }
+
+    if (montoTransferencia > saldoTransferencia) {
+        errores.push('El retiro de transferencia no puede ser mayor al saldo disponible por transferencia.');
+        $('#retiro_box_transferencia').addClass('retiro-input-error');
+    }
+
+    if (categoria <= 0) {
+        errores.push('Seleccione la categoría del retiro.');
+    }
+
+    actualizarResumenRetiroCajaFactura();
+
+    if (errores.length > 0) {
+        $('#btn_guardar_retiro_caja').prop('disabled', false);
+
+        if (mostrarMensaje === true) {
+            notificarCajaFactura('error', 'Error', errores[0]);
+        }
+
+        return false;
+    }
+
+    $('#btn_guardar_retiro_caja').prop('disabled', false);
+    return true;
+}
+
+$(document)
+    .off('input.cajaFacturaRetiro change.cajaFacturaRetiro keyup.cajaFacturaRetiro', '#retiro_monto_efectivo, #retiro_monto_transferencia')
+    .on('input.cajaFacturaRetiro change.cajaFacturaRetiro keyup.cajaFacturaRetiro', '#retiro_monto_efectivo, #retiro_monto_transferencia', function () {
+        validarRetiroCajaFactura(false);
+    });
+
+$(document)
+    .off('change.cajaFacturaRetiroCategoria', '#retiro_categoria_gastos_id')
+    .on('change.cajaFacturaRetiroCategoria', '#retiro_categoria_gastos_id', function () {
+        validarRetiroCajaFactura(false);
+    });
+
+$(document)
+    .off('click.validacionRetiroCajaFactura', '#btn_guardar_retiro_caja')
+    .on('click.validacionRetiroCajaFactura', '#btn_guardar_retiro_caja', function (e) {
+        if (!validarRetiroCajaFactura(true)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            return false;
+        }
+
+        return true;
+    });
+
+$(document)
+    .off('submit.validacionRetiroCajaFactura', '#formRetiroCaja')
+    .on('submit.validacionRetiroCajaFactura', '#formRetiroCaja', function (e) {
+        if (!validarRetiroCajaFactura(true)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            return false;
+        }
+
+        return true;
+    });
 
 /* =========================================================
    FIN - ABRIR RETIRO DE CAJA DESDE FACTURACIÓN
@@ -1435,11 +1655,6 @@ setTimeout(function () {
 /* =========================================================
    FIN - CUADRE DEL DÍA DESDE FACTURACIÓN
    ========================================================= */
-
-
-
-
-
 
 /* =========================================================
    INICIO - CERRAR CAJA DESDE FACTURACIÓN

@@ -102,24 +102,12 @@ class MenuSyncHelper {
             return false;
         }
 
-        $dbResult = $conexion->query("SELECT DATABASE() AS db_actual");
-
-        if (!$dbResult) {
-            return false;
-        }
-
-        $dbRow = $dbResult->fetch_assoc();
-        $dbActual = isset($dbRow["db_actual"]) ? $conexion->real_escape_string($dbRow["db_actual"]) : "";
         $tablaSafe = $conexion->real_escape_string($tabla);
-
-        if ($dbActual === "") {
-            return false;
-        }
 
         $sql = "
             SELECT COUNT(*) AS total
             FROM INFORMATION_SCHEMA.TABLES
-            WHERE TABLE_SCHEMA = '{$dbActual}'
+            WHERE TABLE_SCHEMA = DATABASE()
               AND TABLE_NAME = '{$tablaSafe}'
             LIMIT 1
         ";
@@ -143,25 +131,13 @@ class MenuSyncHelper {
             return false;
         }
 
-        $dbResult = $conexion->query("SELECT DATABASE() AS db_actual");
-
-        if (!$dbResult) {
-            return false;
-        }
-
-        $dbRow = $dbResult->fetch_assoc();
-        $dbActual = isset($dbRow["db_actual"]) ? $conexion->real_escape_string($dbRow["db_actual"]) : "";
         $tablaSafe = $conexion->real_escape_string($tabla);
         $columnaSafe = $conexion->real_escape_string($columna);
-
-        if ($dbActual === "") {
-            return false;
-        }
 
         $sql = "
             SELECT COUNT(*) AS total
             FROM INFORMATION_SCHEMA.COLUMNS
-            WHERE TABLE_SCHEMA = '{$dbActual}'
+            WHERE TABLE_SCHEMA = DATABASE()
               AND TABLE_NAME = '{$tablaSafe}'
               AND COLUMN_NAME = '{$columnaSafe}'
             LIMIT 1
@@ -178,63 +154,26 @@ class MenuSyncHelper {
         return isset($row["total"]) && (int)$row["total"] > 0;
     }
 
-    public static function asegurarEstructuraMenus($conexion) {
-        if (!self::tablaExiste($conexion, "menu")) {
-            $sql = "
-                CREATE TABLE menu (
-                    menu_id int NOT NULL AUTO_INCREMENT,
-                    name char(30) COLLATE utf8mb4_spanish_ci NOT NULL,
-                    descripcion varchar(50) COLLATE utf8mb4_spanish_ci NOT NULL,
-                    icon varchar(50) COLLATE utf8mb4_spanish_ci DEFAULT NULL,
-                    orden int NOT NULL DEFAULT '0',
-                    fecha_registro timestamp NOT NULL,
-                    visible tinyint(1) DEFAULT '1' COMMENT '1. Si 0. No',
-                    PRIMARY KEY (menu_id)
-                ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci COMMENT='Lista de todos los menús disponibles en el sistema'
-            ";
+    public static function validarEstructuraMenus($conexion) {
+        $tablas = ["menu", "submenu", "submenu1"];
 
-            if (!$conexion->query($sql)) {
-                throw new Exception("No se pudo crear la tabla menu: " . $conexion->error);
+        foreach ($tablas as $tabla) {
+            if (!self::tablaExiste($conexion, $tabla)) {
+                throw new Exception("La tabla {$tabla} no existe en la base actual.");
             }
         }
 
-        if (!self::tablaExiste($conexion, "submenu")) {
-            $sql = "
-                CREATE TABLE submenu (
-                    submenu_id int NOT NULL AUTO_INCREMENT,
-                    menu_id int NOT NULL,
-                    name char(25) COLLATE utf8mb4_spanish_ci NOT NULL,
-                    descripcion varchar(50) COLLATE utf8mb4_spanish_ci NOT NULL,
-                    icon varchar(50) COLLATE utf8mb4_spanish_ci DEFAULT NULL,
-                    orden int NOT NULL DEFAULT '0',
-                    fecha_registro timestamp NOT NULL,
-                    visible tinyint(1) DEFAULT '1' COMMENT '1. Si 0. No',
-                    PRIMARY KEY (submenu_id)
-                ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci COMMENT='Lista de todos los submenús de nivel 1 disponibles en el sistema'
-            ";
+        $columnas = [
+            "menu" => ["menu_id", "name", "descripcion", "icon", "orden", "fecha_registro", "visible"],
+            "submenu" => ["submenu_id", "menu_id", "name", "descripcion", "icon", "orden", "fecha_registro", "visible"],
+            "submenu1" => ["submenu1_id", "submenu_id", "name", "descripcion", "icon", "orden", "fecha_registro", "visible"]
+        ];
 
-            if (!$conexion->query($sql)) {
-                throw new Exception("No se pudo crear la tabla submenu: " . $conexion->error);
-            }
-        }
-
-        if (!self::tablaExiste($conexion, "submenu1")) {
-            $sql = "
-                CREATE TABLE submenu1 (
-                    submenu1_id int NOT NULL AUTO_INCREMENT,
-                    submenu_id int NOT NULL,
-                    name char(20) COLLATE utf8mb4_spanish_ci NOT NULL,
-                    descripcion varchar(50) COLLATE utf8mb4_spanish_ci NOT NULL,
-                    icon varchar(50) COLLATE utf8mb4_spanish_ci DEFAULT NULL,
-                    orden int NOT NULL DEFAULT '0',
-                    fecha_registro timestamp NOT NULL,
-                    visible tinyint(1) DEFAULT '1' COMMENT '1. Si 0. No',
-                    PRIMARY KEY (submenu1_id)
-                ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci COMMENT='Lista de todos los submenús de nivel 2 disponibles en el sistema'
-            ";
-
-            if (!$conexion->query($sql)) {
-                throw new Exception("No se pudo crear la tabla submenu1: " . $conexion->error);
+        foreach ($columnas as $tabla => $cols) {
+            foreach ($cols as $columna) {
+                if (!self::columnaExiste($conexion, $tabla, $columna)) {
+                    throw new Exception("La columna {$columna} no existe en la tabla {$tabla}.");
+                }
             }
         }
 
@@ -248,6 +187,7 @@ class MenuSyncHelper {
             SELECT db
             FROM server_customers
             WHERE estado = 1
+              AND sistema_id = 1
               AND db IS NOT NULL
               AND TRIM(db) != ''
             ORDER BY server_customers_id ASC
@@ -423,7 +363,7 @@ class MenuSyncHelper {
     }
 
     public static function insertarRegistro($conexion, $tipo, $id, $dependencia, $nombre, $descripcion, $icono, $orden, $fechaRegistro, $visible) {
-        self::asegurarEstructuraMenus($conexion);
+        self::validarEstructuraMenus($conexion);
 
         if ($tipo === "menu") {
             $sql = "
@@ -503,7 +443,7 @@ class MenuSyncHelper {
     }
 
     public static function actualizarRegistro($conexion, $tipo, $id, $dependencia, $nombre, $descripcion, $icono, $orden, $visible) {
-        self::asegurarEstructuraMenus($conexion);
+        self::validarEstructuraMenus($conexion);
 
         if ($tipo === "menu") {
             $sql = "
@@ -577,7 +517,7 @@ class MenuSyncHelper {
     }
 
     public static function upsertRegistro($conexion, $tipo, $id, $dependencia, $nombre, $descripcion, $icono, $orden, $fechaRegistro, $visible) {
-        self::asegurarEstructuraMenus($conexion);
+        self::validarEstructuraMenus($conexion);
 
         $config = self::obtenerConfig($tipo);
         $tabla = $config["tabla"];

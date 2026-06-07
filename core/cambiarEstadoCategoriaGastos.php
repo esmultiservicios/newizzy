@@ -1,5 +1,5 @@
 <?php
-// core/deleteCategoriaGastos.php
+// core/cambiarEstadoCategoriaGastos.php
 
 $peticionAjax = true;
 
@@ -24,12 +24,15 @@ if($validacion['error']){
 }
 
 $categoria_gastos_id = isset($_POST['categoria_gastos_id']) ? (int)$_POST['categoria_gastos_id'] : 0;
+$estado = isset($_POST['estado']) ? (int)$_POST['estado'] : 0;
+
+$estado = $estado === 1 ? 1 : 0;
 
 if($categoria_gastos_id <= 0){
 	echo json_encode([
 		"success" => false,
 		"title" => "Error",
-		"text" => "No se recibió la categoría a eliminar.",
+		"text" => "No se recibió la categoría.",
 		"type" => "error"
 	], JSON_UNESCAPED_UNICODE);
 	exit();
@@ -37,52 +40,28 @@ if($categoria_gastos_id <= 0){
 
 $conexion = $mainModel->connection();
 
-$validarUso = $conexion->query("
-	SELECT egresos_id
-	FROM egresos
-	WHERE categoria_gastos_id = '$categoria_gastos_id'
-	LIMIT 1
-");
-
-if($validarUso && $validarUso->num_rows > 0){
-	$update = "
+if($estado === 0){
+	$query = "
 		UPDATE categoria_gastos
 		SET estado = 0,
 			es_inversion = 0
 		WHERE categoria_gastos_id = '$categoria_gastos_id'
 		LIMIT 1
 	";
-
-	if($conexion->query($update)){
-		echo json_encode([
-			"success" => true,
-			"title" => "Categoría inactivada",
-			"text" => "La categoría tiene movimientos relacionados, por eso fue inactivada en lugar de eliminarse.",
-			"type" => "success"
-		], JSON_UNESCAPED_UNICODE);
-		exit();
-	}
-
-	echo json_encode([
-		"success" => false,
-		"title" => "Error",
-		"text" => "No se pudo inactivar la categoría.",
-		"type" => "error"
-	], JSON_UNESCAPED_UNICODE);
-	exit();
+} else {
+	$query = "
+		UPDATE categoria_gastos
+		SET estado = 1
+		WHERE categoria_gastos_id = '$categoria_gastos_id'
+		LIMIT 1
+	";
 }
 
-$delete = "
-	DELETE FROM categoria_gastos
-	WHERE categoria_gastos_id = '$categoria_gastos_id'
-	LIMIT 1
-";
-
-if($conexion->query($delete)){
+if($conexion->query($query)){
 	echo json_encode([
 		"success" => true,
-		"title" => "Categoría eliminada",
-		"text" => "La categoría fue eliminada correctamente.",
+		"title" => "Estado actualizado",
+		"text" => $estado === 1 ? "La categoría fue activada correctamente." : "La categoría fue inactivada correctamente.",
 		"type" => "success"
 	], JSON_UNESCAPED_UNICODE);
 	exit();
@@ -91,6 +70,6 @@ if($conexion->query($delete)){
 echo json_encode([
 	"success" => false,
 	"title" => "Error",
-	"text" => "No se pudo eliminar la categoría.",
+	"text" => "No se pudo cambiar el estado de la categoría.",
 	"type" => "error"
 ], JSON_UNESCAPED_UNICODE);

@@ -24,6 +24,38 @@ class PlanesSyncHelper {
         return preg_match('/^[a-zA-Z0-9_]+$/', $dbName) === 1;
     }
 
+    public static function conectarPrincipal($mainModel) {
+        if (defined('DB_MAIN') && method_exists($mainModel, 'connectToDatabase')) {
+            return $mainModel->connectToDatabase([
+                "host" => SERVER,
+                "user" => USER,
+                "pass" => PASS,
+                "name" => DB_MAIN
+            ]);
+        }
+
+        return $mainModel->connection();
+    }
+
+    public static function conectarCliente($mainModel, $dbName) {
+        $dbName = trim((string)$dbName);
+
+        if ($dbName === "" || !self::validarDbName($dbName)) {
+            return false;
+        }
+
+        if (!method_exists($mainModel, "connectToDatabase")) {
+            return false;
+        }
+
+        return $mainModel->connectToDatabase([
+            "host" => SERVER,
+            "user" => USER,
+            "pass" => PASS,
+            "name" => $dbName
+        ]);
+    }
+
     public static function tablaExiste($conexion, $tabla) {
         $sql = "
             SELECT COUNT(*) AS total
@@ -122,6 +154,42 @@ class PlanesSyncHelper {
         return (int)$row["siguiente"];
     }
 
+    public static function obtenerBasesClientesActivas($conexionPrincipal) {
+        $bases = [];
+
+        $sql = "
+            SELECT db
+            FROM server_customers
+            WHERE estado = 1
+              AND db IS NOT NULL
+              AND TRIM(db) != ''
+            ORDER BY server_customers_id ASC
+        ";
+
+        $stmt = $conexionPrincipal->prepare($sql);
+
+        if (!$stmt) {
+            throw new Exception("No se pudo preparar consulta de bases activas: " . $conexionPrincipal->error);
+        }
+
+        $stmt->execute();
+        $resultado = $stmt->get_result();
+
+        if ($resultado) {
+            while ($row = $resultado->fetch_assoc()) {
+                $db = trim((string)$row["db"]);
+
+                if ($db !== "" && self::validarDbName($db)) {
+                    $bases[] = $db;
+                }
+            }
+        }
+
+        $stmt->close();
+
+        return array_values(array_unique($bases));
+    }
+
     public static function normalizarConfiguraciones($configuracionesJson) {
         if ($configuracionesJson === null || trim((string)$configuracionesJson) === "") {
             return null;
@@ -152,99 +220,14 @@ class PlanesSyncHelper {
         return json_encode($configLimpia, JSON_UNESCAPED_UNICODE);
     }
 
-    public static function obtenerBasesClientesActivas($conexionPrincipal, $planesId = 0, $soloClientesDelPlan = false) {
-        $bases = [];
-
-        if ($soloClientesDelPlan && (int)$planesId > 0) {
-            $sql = "
-                SELECT db
-                FROM server_customers
-                WHERE estado = 1
-                  AND db_imported = 1
-                  AND planes_id = ?
-                  AND db IS NOT NULL
-                  AND TRIM(db) != ''
-                ORDER BY server_customers_id ASC
-            ";
-
-            $stmt = $conexionPrincipal->prepare($sql);
-
-            if (!$stmt) {
-                throw new Exception("No se pudo preparar consulta de bases por plan: " . $conexionPrincipal->error);
-            }
-
-            $planesId = (int)$planesId;
-            $stmt->bind_param("i", $planesId);
-            $stmt->execute();
-            $resultado = $stmt->get_result();
-
-        } else {
-            $sql = "
-                SELECT db
-                FROM server_customers
-                WHERE estado = 1
-                  AND db_imported = 1
-                  AND db IS NOT NULL
-                  AND TRIM(db) != ''
-                ORDER BY server_customers_id ASC
-            ";
-
-            $stmt = $conexionPrincipal->prepare($sql);
-
-            if (!$stmt) {
-                throw new Exception("No se pudo preparar consulta de bases activas: " . $conexionPrincipal->error);
-            }
-
-            $stmt->execute();
-            $resultado = $stmt->get_result();
-        }
-
-        if ($resultado) {
-            while ($row = $resultado->fetch_assoc()) {
-                $db = trim((string)$row["db"]);
-
-                if ($db !== "" && self::validarDbName($db)) {
-                    $bases[] = $db;
-                }
-            }
-        }
-
-        $stmt->close();
-
-        return $bases;
-    }
-
-    public static function conectarCliente($mainModel, $dbName) {
-        $dbName = trim((string)$dbName);
-
-        if ($dbName === "") {
-            return false;
-        }
-
-        if (!self::validarDbName($dbName)) {
-            return false;
-        }
-
-        if (!method_exists($mainModel, "connectToDatabase")) {
-            return false;
-        }
-
-        return $mainModel->connectToDatabase([
-            "host" => SERVER,
-            "user" => USER,
-            "pass" => PASS,
-            "name" => $dbName
-        ]);
-    }
-
     public static function asegurarEstructuraPlanes($conexion) {
         if (!self::tablaExiste($conexion, "planes")) {
             $sqlCreate = "
                 CREATE TABLE planes (
                     planes_id int NOT NULL,
                     nombre char(40) COLLATE utf8mb4_spanish_ci NOT NULL,
-                    configuraciones longtext COLLATE utf8mb4_spanish_ci,
-                    estado int NOT NULL COMMENT '1. Mostrar 0. Ocultar',
+                    configuraciones longtext COLLATE utf8mb4_spanish_ci NULL,
+                    estado int NOT NULL DEFAULT 1 COMMENT '1. Mostrar 0. Ocultar',
                     fecha_registro timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
                 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci COMMENT='Tabla de planes del sistema'
             ";
@@ -252,47 +235,100 @@ class PlanesSyncHelper {
             if (!$conexion->query($sqlCreate)) {
                 throw new Exception("No se pudo crear la tabla planes: " . $conexion->error);
             }
-
-            return true;
         }
 
         if (!self::columnaExiste($conexion, "planes", "planes_id")) {
-            $sqlAlter = "ALTER TABLE planes ADD planes_id int NOT NULL FIRST";
-
-            if (!$conexion->query($sqlAlter)) {
+            if (!$conexion->query("ALTER TABLE planes ADD planes_id int NOT NULL FIRST")) {
                 throw new Exception("No se pudo agregar planes_id en planes: " . $conexion->error);
             }
         }
 
         if (!self::columnaExiste($conexion, "planes", "nombre")) {
-            $sqlAlter = "ALTER TABLE planes ADD nombre char(40) COLLATE utf8mb4_spanish_ci NOT NULL AFTER planes_id";
-
-            if (!$conexion->query($sqlAlter)) {
+            if (!$conexion->query("ALTER TABLE planes ADD nombre char(40) COLLATE utf8mb4_spanish_ci NOT NULL AFTER planes_id")) {
                 throw new Exception("No se pudo agregar nombre en planes: " . $conexion->error);
             }
         }
 
         if (!self::columnaExiste($conexion, "planes", "configuraciones")) {
-            $sqlAlter = "ALTER TABLE planes ADD configuraciones longtext COLLATE utf8mb4_spanish_ci NULL AFTER nombre";
-
-            if (!$conexion->query($sqlAlter)) {
+            if (!$conexion->query("ALTER TABLE planes ADD configuraciones longtext COLLATE utf8mb4_spanish_ci NULL AFTER nombre")) {
                 throw new Exception("No se pudo agregar configuraciones en planes: " . $conexion->error);
             }
         }
 
         if (!self::columnaExiste($conexion, "planes", "estado")) {
-            $sqlAlter = "ALTER TABLE planes ADD estado int NOT NULL DEFAULT 1 COMMENT '1. Mostrar 0. Ocultar' AFTER configuraciones";
-
-            if (!$conexion->query($sqlAlter)) {
+            if (!$conexion->query("ALTER TABLE planes ADD estado int NOT NULL DEFAULT 1 COMMENT '1. Mostrar 0. Ocultar' AFTER configuraciones")) {
                 throw new Exception("No se pudo agregar estado en planes: " . $conexion->error);
             }
         }
 
         if (!self::columnaExiste($conexion, "planes", "fecha_registro")) {
-            $sqlAlter = "ALTER TABLE planes ADD fecha_registro timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER estado";
-
-            if (!$conexion->query($sqlAlter)) {
+            if (!$conexion->query("ALTER TABLE planes ADD fecha_registro timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER estado")) {
                 throw new Exception("No se pudo agregar fecha_registro en planes: " . $conexion->error);
+            }
+        }
+
+        return true;
+    }
+
+    public static function asegurarEstructuraAsignacion($conexion, $tabla) {
+        $map = [
+            "menu_plan" => [
+                "id" => "menu_plan_id",
+                "item" => "menu_id"
+            ],
+            "submenu_plan" => [
+                "id" => "submenu_plan_id",
+                "item" => "submenu_id"
+            ],
+            "submenu1_plan" => [
+                "id" => "submenu1_plan_id",
+                "item" => "submenu1_id"
+            ]
+        ];
+
+        if (!isset($map[$tabla])) {
+            throw new Exception("Tabla de asignación no permitida.");
+        }
+
+        $idField = $map[$tabla]["id"];
+        $itemField = $map[$tabla]["item"];
+
+        if (!self::tablaExiste($conexion, $tabla)) {
+            $sqlCreate = "
+                CREATE TABLE {$tabla} (
+                    {$idField} int NOT NULL,
+                    {$itemField} int NOT NULL,
+                    planes_id int NOT NULL,
+                    estado int NOT NULL DEFAULT 1
+                ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci
+            ";
+
+            if (!$conexion->query($sqlCreate)) {
+                throw new Exception("No se pudo crear la tabla {$tabla}: " . $conexion->error);
+            }
+        }
+
+        if (!self::columnaExiste($conexion, $tabla, $idField)) {
+            if (!$conexion->query("ALTER TABLE {$tabla} ADD {$idField} int NOT NULL FIRST")) {
+                throw new Exception("No se pudo agregar {$idField} en {$tabla}: " . $conexion->error);
+            }
+        }
+
+        if (!self::columnaExiste($conexion, $tabla, $itemField)) {
+            if (!$conexion->query("ALTER TABLE {$tabla} ADD {$itemField} int NOT NULL AFTER {$idField}")) {
+                throw new Exception("No se pudo agregar {$itemField} en {$tabla}: " . $conexion->error);
+            }
+        }
+
+        if (!self::columnaExiste($conexion, $tabla, "planes_id")) {
+            if (!$conexion->query("ALTER TABLE {$tabla} ADD planes_id int NOT NULL AFTER {$itemField}")) {
+                throw new Exception("No se pudo agregar planes_id en {$tabla}: " . $conexion->error);
+            }
+        }
+
+        if (!self::columnaExiste($conexion, $tabla, "estado")) {
+            if (!$conexion->query("ALTER TABLE {$tabla} ADD estado int NOT NULL DEFAULT 1 AFTER planes_id")) {
+                throw new Exception("No se pudo agregar estado en {$tabla}: " . $conexion->error);
             }
         }
 
@@ -582,9 +618,7 @@ class PlanesSyncHelper {
             throw new Exception("Campo de item no permitido para {$tabla}.");
         }
 
-        if (!self::tablaExiste($conexion, $tabla)) {
-            return false;
-        }
+        self::asegurarEstructuraAsignacion($conexion, $tabla);
 
         $sql = "
             SELECT {$idField}

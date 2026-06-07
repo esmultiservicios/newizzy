@@ -1,4 +1,5 @@
 <?php	
+	//addCuentasContablesAjax.php
 	$peticionAjax = true;
 	require_once "../core/configGenerales.php";
 	

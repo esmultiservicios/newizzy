@@ -38,16 +38,15 @@ $nuevoPlanId = 0;
 try {
     $configuraciones = PlanesSyncHelper::normalizarConfiguraciones($configuracionesEntrada);
 
-    $conexionPrincipal = $insMainModel->connection();
+    $conexionPrincipal = PlanesSyncHelper::conectarPrincipal($insMainModel);
+
     if (!$conexionPrincipal) {
         throw new Exception('No se pudo conectar a la base principal.');
     }
 
     $conexionPrincipal->autocommit(false);
 
-    if (!PlanesSyncHelper::tablaExiste($conexionPrincipal, 'planes')) {
-        throw new Exception('La tabla planes no existe en la base principal.');
-    }
+    PlanesSyncHelper::asegurarEstructuraPlanes($conexionPrincipal);
 
     if (PlanesSyncHelper::existePlanDuplicado($conexionPrincipal, $nombre, 0)) {
         $conexionPrincipal->rollback();
@@ -68,44 +67,49 @@ try {
     $basesClientes = PlanesSyncHelper::obtenerBasesClientesActivas($conexionPrincipal);
 
     foreach ($basesClientes as $dbName) {
+        $connCliente = null;
+
         try {
             $connCliente = PlanesSyncHelper::conectarCliente($insMainModel, $dbName);
 
             if (!$connCliente) {
-                $erroresClientes[] = "No se pudo conectar o validar la base {$dbName}.";
+                $erroresClientes[] = "No se pudo conectar a la base {$dbName}.";
                 continue;
             }
 
-            try {
-                $connCliente->autocommit(false);
+            $connCliente->autocommit(false);
 
-                PlanesSyncHelper::upsertPlanCliente(
-                    $connCliente,
-                    $nuevoPlanId,
-                    $nombre,
-                    $estado,
-                    $fechaRegistro,
-                    $configuraciones
-                );
+            PlanesSyncHelper::upsertPlanCliente(
+                $connCliente,
+                $nuevoPlanId,
+                $nombre,
+                $estado,
+                $fechaRegistro,
+                $configuraciones
+            );
 
-                $connCliente->commit();
-            } catch (Exception $eCliente) {
+            $connCliente->commit();
+
+        } catch (Exception $eCliente) {
+            if ($connCliente) {
                 $connCliente->rollback();
-                $erroresClientes[] = "Error en {$dbName}: " . $eCliente->getMessage();
-            } finally {
+            }
+
+            $erroresClientes[] = "Error en {$dbName}: " . $eCliente->getMessage();
+
+        } finally {
+            if ($connCliente) {
                 $connCliente->autocommit(true);
                 $connCliente->close();
             }
-        } catch (Exception $eClienteGeneral) {
-            $erroresClientes[] = "Error en {$dbName}: " . $eClienteGeneral->getMessage();
         }
     }
 
     $conexionPrincipal->commit();
 
     $mensaje = empty($erroresClientes)
-        ? 'Plan registrado correctamente.'
-        : 'Plan registrado en la base principal. Algunas bases de clientes no pudieron sincronizarse.';
+        ? 'Plan registrado correctamente y sincronizado en las bases de clientes activas.'
+        : 'Plan registrado en la base principal, pero algunas bases de clientes no pudieron sincronizarse.';
 
     PlanesSyncHelper::respuesta('success', 'Éxito', $mensaje, [
         'id' => $nuevoPlanId,

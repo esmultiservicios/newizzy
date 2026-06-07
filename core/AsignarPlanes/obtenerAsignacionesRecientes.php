@@ -32,6 +32,19 @@ function responderAsignaciones($success, $data = [], $message = '') {
     exit;
 }
 
+function conectarPrincipalAsignaciones($mainModel) {
+    if (defined('DB_MAIN') && method_exists($mainModel, 'connectToDatabase')) {
+        return $mainModel->connectToDatabase([
+            "host" => SERVER,
+            "user" => USER,
+            "pass" => PASS,
+            "name" => DB_MAIN
+        ]);
+    }
+
+    return $mainModel->connection();
+}
+
 function nombreBaseDatosValidoAsignaciones($dbName) {
     $dbName = trim((string)$dbName);
 
@@ -261,7 +274,7 @@ $conexion = null;
 $stmt = null;
 
 try {
-    $conexion = $mainModel->connection();
+    $conexion = conectarPrincipalAsignaciones($mainModel);
 
     if (!$conexion) {
         throw new Exception("No se pudo conectar a la base principal.");
@@ -285,9 +298,9 @@ try {
         INNER JOIN clientes c ON sc.clientes_id = c.clientes_id
         INNER JOIN planes p ON sc.planes_id = p.planes_id
         INNER JOIN sistema s ON sc.sistema_id = s.sistema_id
-        WHERE sc.db IS NOT NULL
+        WHERE sc.estado = 1
+          AND sc.db IS NOT NULL
           AND TRIM(sc.db) != ''
-          AND sc.db_imported = 1
         ORDER BY c.nombre ASC
     ";
 

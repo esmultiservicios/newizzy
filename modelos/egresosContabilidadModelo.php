@@ -33,13 +33,43 @@ class egresosContabilidadModelo extends mainModel{
         return $sql;			
     }
 
-    protected function agregar_categoria_egresos_modelo($datos){
-        $insert = "INSERT INTO `categoria_gastos`(`categoria_gastos_id`, `nombre`, `estado`, `usuario`, `date_write`) VALUES ('" . $datos['categoria_gastos_id'] . "','" . $datos['nombre'] . "','" . $datos['estado'] . "','" . $datos['usuario'] . "','" . $datos['date_write'] . "')";
-        
-        $sql = mainModel::connection()->query($insert) or die(mainModel::connection()->error);
-        
-        return $sql;			
-    }		
+	protected function agregar_categoria_egresos_modelo($datos){
+		$mainModel = new mainModel();
+		$conexion = $mainModel->connection();
+
+		$categoria_gastos_id = (int)$datos['categoria_gastos_id'];
+		$nombre = $conexion->real_escape_string($datos['nombre']);
+		$estado = (int)$datos['estado'];
+		$usuario = (int)$datos['usuario'];
+		$date_write = $conexion->real_escape_string($datos['date_write']);
+		$es_inversion = isset($datos['es_inversion']) && (int)$datos['es_inversion'] === 1 ? 1 : 0;
+
+		if($es_inversion === 1){
+			$conexion->query("UPDATE categoria_gastos SET es_inversion = 0 WHERE es_inversion = 1");
+		}
+
+		$insert = "
+			INSERT INTO categoria_gastos(
+				categoria_gastos_id,
+				nombre,
+				estado,
+				usuario,
+				date_write,
+				es_inversion
+			) VALUES (
+				'$categoria_gastos_id',
+				'$nombre',
+				'$estado',
+				'$usuario',
+				'$date_write',
+				'$es_inversion'
+			)
+		";
+
+		$sql = $conexion->query($insert) or die($conexion->error);
+
+		return $sql;
+	}		
     
     // 3) Ya tienes este: crea el movimiento y calcula el correlativo internamente
     protected function agregar_movimientos_contabilidad_modelo($datos){
@@ -72,16 +102,32 @@ class egresosContabilidadModelo extends mainModel{
         return $sql;
     }
 
-    protected function edit_categoria_egresos_contabilidad_modelo($datos){
-        $update = "UPDATE categoria_gastos
-        SET
-            nombre = '".$datos['nombre']."'                
-        WHERE categoria_gastos_id = '".$datos['categoria_gastos_id']."'";
+	protected function edit_categoria_egresos_contabilidad_modelo($datos){
+		$mainModel = new mainModel();
+		$conexion = $mainModel->connection();
 
-        $sql = mainModel::connection()->query($update) or die(mainModel::connection()->error);
-        
-        return $sql;
-    }
+		$categoria_gastos_id = (int)$datos['categoria_gastos_id'];
+		$nombre = $conexion->real_escape_string($datos['nombre']);
+		$es_inversion = isset($datos['es_inversion']) && (int)$datos['es_inversion'] === 1 ? 1 : 0;
+
+		if($es_inversion === 1){
+			$conexion->query("UPDATE categoria_gastos SET es_inversion = 0 WHERE es_inversion = 1");
+		}
+
+		$update = "
+			UPDATE categoria_gastos
+			SET
+				nombre = '$nombre',
+				es_inversion = '$es_inversion',
+				estado = 1
+			WHERE categoria_gastos_id = '$categoria_gastos_id'
+			LIMIT 1
+		";
+
+		$sql = $conexion->query($update) or die($conexion->error);
+
+		return $sql;
+	}
 
     // 1) Anular egreso: estado y observación
     protected function cancel_egresos_contabilidad_modelo($datos){
@@ -153,13 +199,43 @@ class egresosContabilidadModelo extends mainModel{
         return $sql;			
     }
 
-    protected function valid_categoria_egresos_modelo($datos){
-        $query = "SELECT categoria_gastos_id FROM categoria_gastos WHERE nombre = '".$datos['nombre']."'";
-        
-        $sql = mainModel::connection()->query($query) or die(mainModel::connection()->error);
-        
-        return $sql;			
-    }		
+	protected function valid_categoria_egresos_edicion_modelo($datos){
+		$mainModel = new mainModel();
+		$conexion = $mainModel->connection();
+
+		$categoria_gastos_id = (int)$datos['categoria_gastos_id'];
+		$nombre = $conexion->real_escape_string($datos['nombre']);
+
+		$query = "
+			SELECT categoria_gastos_id
+			FROM categoria_gastos
+			WHERE nombre = '$nombre'
+			  AND categoria_gastos_id <> '$categoria_gastos_id'
+			LIMIT 1
+		";
+
+		$sql = $conexion->query($query) or die($conexion->error);
+
+		return $sql;
+	}
+
+	protected function valid_categoria_egresos_modelo($datos){
+		$mainModel = new mainModel();
+		$conexion = $mainModel->connection();
+
+		$nombre = $conexion->real_escape_string($datos['nombre']);
+
+		$query = "
+			SELECT categoria_gastos_id
+			FROM categoria_gastos
+			WHERE nombre = '$nombre'
+			LIMIT 1
+		";
+
+		$sql = $conexion->query($query) or die($conexion->error);
+
+		return $sql;
+	}		
 
     protected function getTotalEgresosRegistrados() {
         try {

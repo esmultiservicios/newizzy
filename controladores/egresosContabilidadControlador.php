@@ -255,72 +255,96 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
         }
     }
 
-    public function agregar_categoria_egresos_controlador(){
-        // Validar sesión
-        $validacion = mainModel::validarSesion();
-        if($validacion['error']) {
-            echo json_encode([
-                'success' => false,
-                'title' => 'Error de sesión',
-                'text' => $validacion['mensaje'],
-                'type' => 'error'
-            ]);
-            exit();
-        }
-        
-        $categoria = $_POST['categoria'];    
-        $estado = 1;
-        $colaboradores_id = $_SESSION['colaborador_id_sd'];
-        $fecha_registro = date("Y-m-d H:i:s");    
-        $categoria_gastos_id = mainModel::correlativo("categoria_gastos_id", "categoria_gastos");
-    
-        $datos = [
-            "categoria_gastos_id" => $categoria_gastos_id,
-            "nombre" => $categoria,
-            "estado" => $estado,
-            "usuario" => $colaboradores_id,
-            "date_write" => $fecha_registro                            
-        ];
-        
-        $resultCategoriaEgresos = egresosContabilidadModelo::valid_categoria_egresos_modelo($datos);
-        
-        if($resultCategoriaEgresos->num_rows == 0){
-            $query = egresosContabilidadModelo::agregar_categoria_egresos_modelo($datos);
-            
-            if($query){
-                // Historial
-                mainModel::guardarHistorial([
-                    "modulo" => 'Categoría Egresos',
-                    "colaboradores_id" => $_SESSION['colaborador_id_sd'],
-                    "status" => "Registro",
-                    "observacion" => "Se registró categoría de egresos: {$categoria}",
-                    "fecha_registro" => date("Y-m-d H:i:s")
-                ]);
-    
-                echo json_encode([
-                    'success' => true,
-                    'title' => 'Registro almacenado',
-                    'text' => 'El registro se ha almacenado correctamente',
-                    'type' => 'success'
-                ]);
-            }else{
-                echo json_encode([
-                    'success' => false,
-                    'title' => 'Error',
-                    'text' => 'No se pudo registrar la categoría',
-                    'type' => 'error'
-                ]);                
-            }                
-        }else{
-            echo json_encode([
-                'success' => false,
-                'title' => 'Registro ya existe',
-                'text' => 'Ya existe una categoría con este nombre',
-                'type' => 'error'
-            ]);                
-        }
-        exit();
-    }
+	public function agregar_categoria_egresos_controlador(){
+		$validacion = mainModel::validarSesion();
+
+		if($validacion['error']) {
+			echo json_encode([
+				'success' => false,
+				'title' => 'Error de sesión',
+				'text' => $validacion['mensaje'],
+				'type' => 'error',
+				'redirect' => $validacion['redireccion']
+			], JSON_UNESCAPED_UNICODE);
+			exit();
+		}
+
+		$categoria = isset($_POST['categoria']) ? mainModel::cleanString($_POST['categoria']) : "";
+		$es_inversion = isset($_POST['es_inversion']) ? 1 : 0;
+
+		if($categoria === ""){
+			echo json_encode([
+				'success' => false,
+				'title' => 'Campo requerido',
+				'text' => 'Debe ingresar el nombre de la categoría.',
+				'type' => 'warning'
+			], JSON_UNESCAPED_UNICODE);
+			exit();
+		}
+
+		if(strlen($categoria) > 30){
+			echo json_encode([
+				'success' => false,
+				'title' => 'Nombre muy largo',
+				'text' => 'La categoría no puede tener más de 30 caracteres.',
+				'type' => 'warning'
+			], JSON_UNESCAPED_UNICODE);
+			exit();
+		}
+
+		$estado = 1;
+		$colaboradores_id = $_SESSION['colaborador_id_sd'];
+		$fecha_registro = date("Y-m-d H:i:s");
+		$categoria_gastos_id = mainModel::correlativo("categoria_gastos_id", "categoria_gastos");
+
+		$datos = [
+			"categoria_gastos_id" => $categoria_gastos_id,
+			"nombre" => $categoria,
+			"estado" => $estado,
+			"usuario" => $colaboradores_id,
+			"date_write" => $fecha_registro,
+			"es_inversion" => $es_inversion
+		];
+
+		$resultCategoriaEgresos = egresosContabilidadModelo::valid_categoria_egresos_modelo($datos);
+
+		if($resultCategoriaEgresos->num_rows == 0){
+			$query = egresosContabilidadModelo::agregar_categoria_egresos_modelo($datos);
+
+			if($query){
+				mainModel::guardarHistorial([
+					"modulo" => 'Categoría Egresos',
+					"colaboradores_id" => $_SESSION['colaborador_id_sd'],
+					"status" => "Registro",
+					"observacion" => "Se registró categoría de egresos: {$categoria}",
+					"fecha_registro" => date("Y-m-d H:i:s")
+				]);
+
+				echo json_encode([
+					'success' => true,
+					'title' => 'Registro almacenado',
+					'text' => 'La categoría se ha registrado correctamente.',
+					'type' => 'success'
+				], JSON_UNESCAPED_UNICODE);
+			}else{
+				echo json_encode([
+					'success' => false,
+					'title' => 'Error',
+					'text' => 'No se pudo registrar la categoría.',
+					'type' => 'error'
+				], JSON_UNESCAPED_UNICODE);
+			}
+		}else{
+			echo json_encode([
+				'success' => false,
+				'title' => 'Registro ya existe',
+				'text' => 'Ya existe una categoría con este nombre.',
+				'type' => 'error'
+			], JSON_UNESCAPED_UNICODE);
+		}
+
+		exit();
+	}
 
     public function edit_egresos_contabilidad_controlador(){
         // 1) Validar sesión
@@ -474,78 +498,99 @@ class egresosContabilidadControlador extends egresosContabilidadModelo{
         ]);
     }    
 
-    public function edit_categoria_egresos_contabilidad_controlador() {
-        // Validar sesión
-        $validacion = mainModel::validarSesion();
-        if($validacion['error']) {
-            echo json_encode([
-                'success' => false,
-                'title' => 'Error de sesión',
-                'text' => $validacion['mensaje'],
-                'type' => 'error',
-                'redirect' => $validacion['redireccion']
-            ]);
-            exit();
-        }
+	public function edit_categoria_egresos_contabilidad_controlador() {
+		$validacion = mainModel::validarSesion();
 
-        $categoria_gastos_id = $_POST['categoria_gastos_id'] ?? 0;
+		if($validacion['error']) {
+			echo json_encode([
+				'success' => false,
+				'title' => 'Error de sesión',
+				'text' => $validacion['mensaje'],
+				'type' => 'error',
+				'redirect' => $validacion['redireccion']
+			], JSON_UNESCAPED_UNICODE);
+			exit();
+		}
 
-        if($categoria_gastos_id === 0) {
-            return mainModel::showNotification([
-                "title" => "Error",
-                "text" => "No se pudo editar la categoria no viene definida",
-                "type" => "error"
-            ]);
-        }
+		$categoria_gastos_id = isset($_POST['categoria_gastos_id']) ? (int)$_POST['categoria_gastos_id'] : 0;
+		$categoria = isset($_POST['categoria']) ? mainModel::cleanString($_POST['categoria']) : "";
+		$es_inversion = isset($_POST['es_inversion']) ? 1 : 0;
 
-        $categoria = $_POST['categoria'];
-    
-        $datos = [
-            "categoria_gastos_id" => $categoria_gastos_id,
-            "nombre" => $categoria                            
-        ];        
-        
-        $resultCategoriaEgresos = egresosContabilidadModelo::valid_categoria_egresos_modelo($datos);
-        
-        if($resultCategoriaEgresos->num_rows == 0) {
-            $query = egresosContabilidadModelo::edit_categoria_egresos_contabilidad_modelo($datos);
-    
-            if($query) {
-                // Historial
-                mainModel::guardarHistorial([
-                    "modulo" => 'Categoría Egresos',
-                    "colaboradores_id" => $_SESSION['colaborador_id_sd'],
-                    "status" => "Edición",
-                    "observacion" => "Se editó categoría de egresos ID: {$categoria_gastos_id}",
-                    "fecha_registro" => date("Y-m-d H:i:s")
-                ]);
-    
-                echo json_encode([
-                    'success' => true,
-                    'title' => 'Registro editado',
-                    'text' => 'Registro editado correctamente',
-                    'type' => 'success',
-                    'form' => 'formUpdateCategoriaEgresos',
-                    'function' => 'listar_categoria_egresos();'
-                ]);
-            } else {
-                echo json_encode([
-                    'success' => false,
-                    'title' => 'Error',
-                    'text' => 'No se pudo editar la categoría',
-                    'type' => 'error'
-                ]);    
-            }
-        } else {
-            echo json_encode([
-                'success' => false,
-                'title' => 'Registro ya existe',
-                'text' => 'Ya existe una categoría con este nombre',
-                'type' => 'error'
-            ]);    
-        }
-        exit();
-    }
+		if($categoria_gastos_id <= 0) {
+			echo json_encode([
+				'success' => false,
+				'title' => 'Error',
+				'text' => 'No se recibió la categoría a editar.',
+				'type' => 'error'
+			], JSON_UNESCAPED_UNICODE);
+			exit();
+		}
+
+		if($categoria === ""){
+			echo json_encode([
+				'success' => false,
+				'title' => 'Campo requerido',
+				'text' => 'Debe ingresar el nombre de la categoría.',
+				'type' => 'warning'
+			], JSON_UNESCAPED_UNICODE);
+			exit();
+		}
+
+		if(strlen($categoria) > 30){
+			echo json_encode([
+				'success' => false,
+				'title' => 'Nombre muy largo',
+				'text' => 'La categoría no puede tener más de 30 caracteres.',
+				'type' => 'warning'
+			], JSON_UNESCAPED_UNICODE);
+			exit();
+		}
+
+		$datos = [
+			"categoria_gastos_id" => $categoria_gastos_id,
+			"nombre" => $categoria,
+			"es_inversion" => $es_inversion
+		];
+
+		$resultCategoriaEgresos = egresosContabilidadModelo::valid_categoria_egresos_edicion_modelo($datos);
+
+		if($resultCategoriaEgresos->num_rows == 0) {
+			$query = egresosContabilidadModelo::edit_categoria_egresos_contabilidad_modelo($datos);
+
+			if($query) {
+				mainModel::guardarHistorial([
+					"modulo" => 'Categoría Egresos',
+					"colaboradores_id" => $_SESSION['colaborador_id_sd'],
+					"status" => "Edición",
+					"observacion" => "Se editó categoría de egresos ID: {$categoria_gastos_id}",
+					"fecha_registro" => date("Y-m-d H:i:s")
+				]);
+
+				echo json_encode([
+					'success' => true,
+					'title' => 'Registro editado',
+					'text' => 'La categoría fue editada correctamente.',
+					'type' => 'success'
+				], JSON_UNESCAPED_UNICODE);
+			} else {
+				echo json_encode([
+					'success' => false,
+					'title' => 'Error',
+					'text' => 'No se pudo editar la categoría.',
+					'type' => 'error'
+				], JSON_UNESCAPED_UNICODE);
+			}
+		} else {
+			echo json_encode([
+				'success' => false,
+				'title' => 'Registro ya existe',
+				'text' => 'Ya existe otra categoría con este nombre.',
+				'type' => 'error'
+			], JSON_UNESCAPED_UNICODE);
+		}
+
+		exit();
+	}
 
     public function cancel_egresos_contabilidad_controlador(){
         $validacion = mainModel::validarSesion();

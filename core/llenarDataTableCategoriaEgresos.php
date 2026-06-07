@@ -1,61 +1,48 @@
 <?php
+// core/llenarDataTableCategoriaEgresos.php
+
 $peticionAjax = true;
+
 require_once "configGenerales.php";
 require_once "mainModel.php";
-require_once "Database.php";
 
-// Instanciar mainModel
-$insMainModel = new mainModel();
+header('Content-Type: application/json; charset=utf-8');
 
-// Validar sesión primero
-$validacion = $insMainModel->validarSesion();
-if($validacion['error']) {
-    return $insMainModel->showNotification([
-        "title" => "Error de sesión",
-        "text" => $validacion['mensaje'],
-        "type" => "error",
-        "funcion" => "window.location.href = '".$validacion['redireccion']."'"
-    ]);
+$mainModel = new mainModel();
+$conexion = $mainModel->connection();
+
+$query = "
+	SELECT
+		categoria_gastos_id,
+		nombre,
+		estado,
+		usuario,
+		date_write,
+		es_inversion
+	FROM categoria_gastos
+	ORDER BY nombre ASC
+";
+
+$resultado = $conexion->query($query);
+
+$data = [];
+
+if($resultado){
+	while($row = $resultado->fetch_assoc()){
+		$data[] = [
+			"categoria_gastos_id" => (int)$row['categoria_gastos_id'],
+			"nombre" => $row['nombre'],
+			"estado" => (int)$row['estado'],
+			"usuario" => (int)$row['usuario'],
+			"date_write" => $row['date_write'],
+			"es_inversion" => (int)$row['es_inversion']
+		];
+	}
 }
 
-$database = new Database();
-
-$tablaCategoriaGastos = "categoria_gastos";
-$camposCategoriaGastos = ["categoria_gastos_id", "nombre", "estado"];  // Agregado campo "estado"
-$condicionesCategoriaGastos = ["estado" => 1];  // Condición para el estado
-$orderByCategoriaGastos = "";
-$tablaJoinCategoriaGastos = "";
-$condicionesJoinCategoriaGastos = [];
-$resultadoCategoriaGastos = $database->consultarTabla(
-    $tablaCategoriaGastos,
-    $camposCategoriaGastos,
-    $condicionesCategoriaGastos,
-    $orderByCategoriaGastos,
-    $tablaJoinCategoriaGastos,
-    $condicionesJoinCategoriaGastos
-);
-
-$nombre = "";
-
-$arreglo = array();
-$data = array();
-
-if (!empty($resultadoCategoriaGastos)) {
-    foreach ($resultadoCategoriaGastos as $fila) {
-        $data[] = array(
-            "categoria_gastos_id" => $fila['categoria_gastos_id'],
-            "nombre" => $fila['nombre'],
-            "estado" => $fila['estado'],
-        );
-    }
-}
-
-$arreglo = array(
-    "echo" => 1,
-    "totalrecords" => count($data),
-    "totaldisplayrecords" => count($data),
-    "data" => $data
-);
-
-echo json_encode($arreglo);
-?>
+echo json_encode([
+	"echo" => 1,
+	"totalrecords" => count($data),
+	"totaldisplayrecords" => count($data),
+	"data" => $data
+], JSON_UNESCAPED_UNICODE);

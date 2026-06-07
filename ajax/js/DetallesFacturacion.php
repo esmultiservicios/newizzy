@@ -1,215 +1,103 @@
 <script>
-// Código JavaScript actualizado y mejorado
 $(() => {
-    // Función para formatear dinero
-    function formatMoney(amount) {
-        return 'L. ' + parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
-    }
+    construirEstructuraTablaFacturas();
+    inicializarFechasFacturas();
 
-    // Función para mostrar notificaciones
-    function showNotify(type, title, message) {
-        Swal.fire({
-            title: title,
-            text: message,
-            icon: type,
-            confirmButtonText: 'Aceptar'
-        });
-    }
+    const dataTableFacturas = inicializarDataTableFacturas();
 
-    // Función para imprimir factura
-    function imprimirFactura(facturaId) {
-        const params = {
-            "id": facturaId,
-            "type": "Factura_carta_izzy",
-            "db": "<?php echo DB_MAIN; ?>"
-        };
-        viewReport(params); 
-    }
-
-    // Inicializar DataTable
-    const dataTableFacturas = $('#dataTableFacturas').DataTable({
-        responsive: true,
-        processing: true,
-        serverSide: false,
-        ajax: {
-            url: '<?php echo SERVERURL; ?>core/DetallesFacturacion.php',
-            type: 'POST'
-        },
-        columns: [
-            { data: 'facturas_id', visible: false },
-            { data: 'fecha' },
-            { data: 'numero' },
-            { data: 'cliente' },
-            { data: 'tipo_documento' },
-            {
-                data: 'estado',
-                render: function(data, type, row) {
-                    if (type === 'display') {
-                        let badgeClass, icon, text;
-                        const esProforma = row.documento_id == 4;
-                        
-                        if (esProforma) {
-                            if (row.tiene_pendiente == 1) {
-                                badgeClass = 'badge badge-pill badge-warning text-dark';
-                                icon = '<i class="fas fa-clock mr-1"></i>';
-                                text = 'Pendiente de pago';
-                            } else {
-                                badgeClass = 'badge badge-pill badge-info';
-                                icon = '<i class="fas fa-file-invoice mr-1"></i>';
-                                text = 'Proforma cerrada';
-                            }
-                        } else {
-                            const estadoNum = parseInt(data, 10);
-                            
-                            switch (estadoNum) {
-                                case 2:
-                                    badgeClass = 'badge badge-pill badge-success';
-                                    icon = '<i class="fas fa-check-circle mr-1"></i>';
-                                    text = row.estado_texto;
-                                    break;
-                                case 3:
-                                    badgeClass = 'badge badge-pill badge-warning text-dark';
-                                    icon = '<i class="fas fa-clock mr-1"></i>';
-                                    text = row.estado_texto;
-                                    break;
-                                case 4:
-                                    badgeClass = 'badge badge-pill badge-danger';
-                                    icon = '<i class="fas fa-times-circle mr-1"></i>';
-                                    text = row.estado_texto;
-                                    break;
-                                default:
-                                    badgeClass = 'badge badge-pill badge-secondary';
-                                    icon = '<i class="fas fa-file-alt mr-1"></i>';
-                                    text = row.estado_texto;
-                            }
-                        }
-                        
-                        return `<span class="${badgeClass}" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">
-                                    ${icon}${text}
-                                </span>`;
-                    }
-                    return row.estado_texto;
-                }
-            },
-            { 
-                data: 'subtotal',
-                render: function(data) {
-                    return `<span class="text-nowrap">${formatMoney(data)}</span>`;
-                }
-            },
-            { 
-                data: 'isv',
-                render: function(data) {
-                    return `<span class="text-nowrap">${formatMoney(data)}</span>`;
-                }
-            },
-            { 
-                data: 'descuento',
-                render: function(data) {
-                    return `<span class="text-nowrap">${formatMoney(data)}</span>`;
-                }
-            },
-            { 
-                data: 'total',
-                render: function(data) {
-                    return `<strong class="text-nowrap">${formatMoney(data)}</strong>`;
-                }
-            },
-            {
-                data: null,
-                render: function(data, type, row) {
-                    let buttons = `
-                        <button class="btn btn-info btn-sm btn-detalle mr-1" title="Ver Detalle" data-id="${row.facturas_id}">
-                            <i class="fas fa-eye mr-1"></i> Ver
-                        </button>
-                        <button class="btn btn-primary btn-sm btn-imprimir mr-1" title="Imprimir Factura" 
-                                data-id="${row.facturas_id}" data-db="${row.db_name}">
-                            <i class="fas fa-print mr-1"></i> Imprimir
-                        </button>`;
-                    
-                    // Mostrar botón de pago para:
-                    // 1. Facturas al crédito (estado = 3) O
-                    // 2. Proformas (documento_id = 4) que tengan pendiente en cobrar_clientes (tiene_pendiente > 0)
-                    if (row.estado == '3' || (row.documento_id == 4 && row.tiene_pendiente > 0)) {
-                        buttons += `
-                            <button class="btn btn-success btn-sm btn-pagar" title="Pagar Factura" data-id="${row.facturas_id}">
-                                <i class="fas fa-money-bill-wave mr-1"></i> Pagar
-                            </button>`;
-                    }
-                    
-                    return `<div class="btn-group btn-group-sm">${buttons}</div>`;
-                },
-                orderable: false
-            }
-        ],
-        order: [[1, 'desc']],
-        language: {
-            "decimal": "",
-            "emptyTable": "No hay datos disponibles",
-            "info": "Mostrando _START_ a _END_ de _TOTAL_ registros",
-            "infoEmpty": "Mostrando 0 a 0 de 0 registros",
-            "infoFiltered": "(filtrado de _MAX_ registros totales)",
-            "infoPostFix": "",
-            "thousands": ",",
-            "lengthMenu": "Mostrar _MENU_ registros",
-            "loadingRecords": "Cargando...",
-            "processing": "Procesando...",
-            "search": "Buscar:",
-            "zeroRecords": "No se encontraron registros coincidentes",
-            "paginate": {
-                "first": "Primero",
-                "last": "Último",
-                "next": "Siguiente",
-                "previous": "Anterior"
-            },
-            "aria": {
-                "sortAscending": ": activar para ordenar ascendente",
-                "sortDescending": ": activar para ordenar descendente"
-            }
-        },
-        dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
-             "<'row'<'col-sm-12'tr>>" +
-             "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
-        initComplete: function() {
-            $('.dataTables_filter input').addClass('form-control form-control-sm');
-            $('.dataTables_length select').addClass('form-control form-control-sm');
-        }
-    });
-
-    // Buscar facturas al enviar el formulario
+    $('#form-filtros-facturas').off('submit');
     $('#form-filtros-facturas').on('submit', function(e) {
         e.preventDefault();
-        dataTableFacturas.ajax.url('<?php echo SERVERURL; ?>core/DetallesFacturacion.php?' + $(this).serialize()).load();
+        dataTableFacturas.ajax.reload(null, true);
     });
 
-    // Limpiar filtros
-    $('#btn-limpiar-filtros').click(function() {
-        $('#form-filtros-facturas')[0].reset();
-        if ($.fn.selectpicker) {
-            $('select').selectpicker('refresh');
+    $('#numero_factura').off('keyup');
+    $('#numero_factura').on('keyup', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            dataTableFacturas.ajax.reload(null, true);
         }
-        dataTableFacturas.ajax.url('<?php echo SERVERURL; ?>core/DetallesFacturacion.php').load();
     });
 
-    // Ver detalle de factura
-    $(document).on('click', '.btn-detalle', function() {
+    $('#tipo_factura, #estado_factura').off('changed.bs.select change');
+    $('#tipo_factura, #estado_factura').on('changed.bs.select change', function() {
+        dataTableFacturas.ajax.reload(null, true);
+    });
+
+    $('#btn-limpiar-filtros').off('click');
+    $('#btn-limpiar-filtros').on('click', function() {
+        limpiarFiltrosFacturas();
+        dataTableFacturas.ajax.reload(null, true);
+    });
+
+    $('#btn-actualizar-facturas').off('click');
+    $('#btn-actualizar-facturas').on('click', function() {
+        dataTableFacturas.ajax.reload(null, false);
+    });
+
+    $('#dataTableFacturas').off('click', '.js-acciones-toggle');
+    $('#dataTableFacturas').on('click', '.js-acciones-toggle', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const $btn = $(this);
+        const $dropdown = $btn.closest('.acciones-dropdown');
+        const $menu = $dropdown.find('.acciones-menu').first();
+        const estaAbierto = $menu.hasClass('show');
+
+        cerrarMenusAccionesFacturas();
+
+        if (!estaAbierto) {
+            $dropdown.addClass('show');
+            $menu.addClass('show');
+            $btn.attr('aria-expanded', 'true');
+        }
+    });
+
+    $(document).off('click.facturasAcciones');
+    $(document).on('click.facturasAcciones', function() {
+        cerrarMenusAccionesFacturas();
+    });
+
+    $('#dataTableFacturas').off('click', '.acciones-menu');
+    $('#dataTableFacturas').on('click', '.acciones-menu', function(e) {
+        e.stopPropagation();
+    });
+
+    $('#dataTableFacturas').off('click', '.btn-detalle');
+    $('#dataTableFacturas').on('click', '.btn-detalle', function(e) {
+        e.preventDefault();
+
+        cerrarMenusAccionesFacturas();
+
         const facturaId = $(this).data('id');
         cargarDetalleFactura(facturaId);
+
         $('#modalDetalleFactura').modal({
+            show: true,
             backdrop: 'static',
             keyboard: false
         });
     });
 
-    // Imprimir factura
-    $(document).on('click', '.btn-imprimir', function() {
+    $('#dataTableFacturas').off('click', '.btn-imprimir');
+    $('#dataTableFacturas').on('click', '.btn-imprimir', function(e) {
+        e.preventDefault();
+
+        cerrarMenusAccionesFacturas();
+
         const facturaId = $(this).data('id');
         imprimirFactura(facturaId);
     });
 
-    // Pagar factura (crédito o proforma)
-    $(document).on('click', '.btn-pagar', function() {
+    $('#dataTableFacturas').off('click', '.btn-pagar');
+    $('#dataTableFacturas').on('click', '.btn-pagar', function(e) {
+        e.preventDefault();
+
+        cerrarMenusAccionesFacturas();
+
         const facturaId = $(this).data('id');
+
         swal({
             title: "¿Pagar Factura?",
             text: "¿Desea proceder con el pago de esta factura?",
@@ -228,203 +116,610 @@ $(() => {
             closeOnClickOutside: false
         }).then((willPay) => {
             if (willPay) {
-                pagarFactura(facturaId);
+                pagarFactura(facturaId, dataTableFacturas);
             }
         });
     });
 
-    // Función para pagar factura
-    function pagarFactura(facturaId) {
-        $.ajax({
-            url: '<?php echo SERVERURL; ?>core/pagarFactura.php',
-            type: 'POST',
-            dataType: 'json',
-            data: { 
-                facturas_id: facturaId,
-                db_name: '<?php echo DB_MAIN; ?>'
-            },
-            success: function(response) {
-                if (response.type === 'success') {
-                    showNotify('success', 'Éxito', response.message);
-                    dataTableFacturas.ajax.reload(null, false);
-                } else {
-                    showNotify('error', 'Error', response.message);
-                }
-            },
-            error: function(xhr, status, error) {
-                showNotify('error', 'Error', 'Ocurrió un error al procesar el pago');
-                console.error('Error al pagar factura:', error);
-            }
-        });
-    }
-
-    // Cargar detalle de factura
-    function cargarDetalleFactura(facturaId) {
-        $.ajax({
-            url: '<?php echo SERVERURL; ?>core/DetallesFacturacion.php',
-            type: 'POST',
-            dataType: 'json',
-            data: { facturas_id: facturaId },
-            success: function(response) {
-                if (response.type === 'success' && response.data && response.data.length > 0) {
-                    const factura = response.data[0];   
-                    const facturaEncontrada = response.data.find(factura => factura.facturas_id === facturaId);
-                    var estadoNum;
-
-                    if (facturaEncontrada) {
-                        // Llenar datos generales
-                        $('#numero-factura-modal').text(facturaEncontrada.numero);
-                        $('#fecha-factura').text(facturaEncontrada.fecha);
-                        $('#cliente-factura').text(facturaEncontrada.cliente);
-                        $('#tipo-factura').text(facturaEncontrada.tipo_documento);
-                        estadoNum = parseInt(facturaEncontrada.estado, 10);
-                        
-                        // Estado con badge
-                        let estadoBadge = '';
-                        const esProforma = facturaEncontrada.documento_id == 4;
-
-                        if (esProforma) {
-                            estadoBadge = '<span class="badge badge-pill badge-warning text-dark">Pendiente de pago</span>';
-                        } else {
-                            switch(estadoNum) {
-                                case 2:
-                                    estadoBadge = '<span class="badge badge-pill badge-success">Pagada</span>';
-                                    break;
-                                case 3:
-                                    estadoBadge = '<span class="badge badge-pill badge-warning text-dark">Crédito</span>';
-                                    break;
-                                case 4:
-                                    estadoBadge = '<span class="badge badge-pill badge-danger">Cancelada</span>';
-                                    break;
-                                default:
-                                    estadoBadge = '<span class="badge badge-pill badge-secondary">Borrador</span>';
-                            }
-                        }
-                        $('#estado-factura').html(estadoBadge);
-                        
-                        $('#subtotal-factura').text(formatMoney(factura.subtotal));
-                        $('#total-factura').text(formatMoney(factura.total));
-                        $('#notas-factura').text(factura.notas || 'No hay notas');
-                        
-                        // Mostrar indicador de carga
-                        $('#detalle-factura-body').html(`
-                            <tr>
-                                <td colspan="6" class="text-center">
-                                    <div class="spinner-border text-primary" role="status">
-                                        <span class="sr-only">Cargando...</span>
-                                    </div>
-                                    <p class="mt-2">Cargando detalles...</p>
-                                </td>
-                            </tr>
-                        `);
-                        
-                        // Obtener detalles de la factura
-                        $.ajax({
-                            url: '<?php echo SERVERURL; ?>core/getDetalleFactura.php',
-                            type: 'POST',
-                            dataType: 'json',
-                            data: { 
-                                facturas_id: facturaId,
-                                db_name: factura.db_name || '<?php echo DB_MAIN; ?>'
-                            },
-                            success: function(detalleResponse) {
-                                if (detalleResponse.type === 'success' && detalleResponse.data && detalleResponse.data.length > 0) {
-                                    let detalleHtml = '';
-                                    detalleResponse.data.forEach(item => {
-                                        const subtotal = item.cantidad * item.precio;
-                                        detalleHtml += `
-                                            <tr>
-                                                <td>${item.producto || 'Servicio'}</td>
-                                                <td class="text-center">${item.cantidad} ${item.medida || ''}</td>
-                                                <td class="text-right">${formatMoney(item.precio)}</td>
-                                                <td class="text-right">${formatMoney(item.isv_valor || 0)}</td>
-                                                <td class="text-right">${formatMoney(item.descuento || 0)}</td>
-                                                <td class="text-right">${formatMoney(subtotal)}</td>
-                                            </tr>`;
-                                    });
-                                    
-                                    // Agregar totales
-                                    detalleHtml += `
-                                        <tr class="bg-light">
-                                            <td colspan="3" class="text-right"><strong>Subtotal:</strong></td>
-                                            <td colspan="3" class="text-right">${formatMoney(factura.subtotal)}</td>
-                                        </tr>
-                                        <tr class="bg-light">
-                                            <td colspan="3" class="text-right"><strong>ISV:</strong></td>
-                                            <td colspan="3" class="text-right">${formatMoney(factura.isv)}</td>
-                                        </tr>
-                                        <tr class="bg-light">
-                                            <td colspan="3" class="text-right"><strong>Descuento:</strong></td>
-                                            <td colspan="3" class="text-right">${formatMoney(factura.descuento)}</td>
-                                        </tr>
-                                        <tr class="bg-primary text-white">
-                                            <td colspan="3" class="text-right"><strong>TOTAL:</strong></td>
-                                            <td colspan="3" class="text-right"><strong>${formatMoney(factura.total)}</strong></td>
-                                        </tr>`;
-                                    
-                                    $('#detalle-factura-body').html(detalleHtml);
-                                } else {
-                                    $('#detalle-factura-body').html(`
-                                        <tr>
-                                            <td colspan="6" class="text-center text-muted py-4">
-                                                <i class="fas fa-info-circle fa-2x mb-2"></i><br>
-                                                No se encontraron detalles para esta factura
-                                            </td>
-                                        </tr>`);
-                                }
-                            },
-                            error: function(xhr, status, error) {
-                                console.error('Error al cargar detalles:', error);
-                                $('#detalle-factura-body').html(`
-                                    <tr>
-                                        <td colspan="6" class="text-center text-danger py-4">
-                                            <i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>
-                                            Error al cargar los detalles de la factura<br>
-                                            <small class="text-muted mt-2">Error: ${error}</small><br>
-                                            <button class="btn btn-outline-primary btn-sm mt-3 btn-retry-detalle" data-id="${facturaId}">
-                                                <i class="fas fa-sync-alt mr-1"></i> Reintentar
-                                            </button>
-                                        </td>
-                                    </tr>`);
-                            }
-                        });
-                        
-                        // Configurar botón de impresión
-                        $('#btn-imprimir-factura').off('click').on('click', function() {
-                            imprimirFactura(facturaId);
-                        });
-                    } else {
-                        showNotify('error', 'Error', 'No se encontraron datos de la factura');
-                        $('#modalDetalleFactura').modal('hide');
-                    }
-                } else {
-                    showNotify('error', 'Error', 'No se encontraron datos de la factura');
-                    $('#modalDetalleFactura').modal('hide');
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('Error en la carga:', error);
-                showNotify('error', 'Error', 'Ocurrió un error al cargar el detalle de la factura');
-                $('#modalDetalleFactura').modal('hide');
-            }
-        });
-    }
-    
-    // Reintentar cargar detalles
+    $(document).off('click', '.btn-retry-detalle');
     $(document).on('click', '.btn-retry-detalle', function() {
         const facturaId = $(this).data('id');
         cargarDetalleFactura(facturaId);
     });
+});
 
-    // Establecer fechas por defecto (últimos 30 días)
+function construirEstructuraTablaFacturas() {
+    const $tabla = $('#dataTableFacturas');
+
+    if ($tabla.length === 0) {
+        return;
+    }
+
+    if ($.fn.DataTable.isDataTable('#dataTableFacturas')) {
+        $tabla.DataTable().clear().destroy();
+    }
+
+    $tabla.empty();
+
+    $tabla.html(
+        '<thead>' +
+            '<tr>' +
+                '<th>ID</th>' +
+                '<th>Fecha</th>' +
+                '<th>Número</th>' +
+                '<th>Cliente</th>' +
+                '<th>Tipo</th>' +
+                '<th>Estado</th>' +
+                '<th>Subtotal</th>' +
+                '<th>ISV</th>' +
+                '<th>Descuento</th>' +
+                '<th>Total</th>' +
+                '<th>Acciones</th>' +
+            '</tr>' +
+        '</thead>' +
+        '<tbody></tbody>' +
+        '<tfoot>' +
+            '<tr>' +
+                '<th colspan="11">' +
+                    '<div class="facturas-footer-resumen">' +
+                        '<span class="facturas-footer-item">' +
+                            '<i class="fas fa-file-invoice-dollar"></i> Facturas: <strong id="factFooterTotal">0</strong>' +
+                        '</span>' +
+
+                        '<span class="facturas-footer-item text-success">' +
+                            '<i class="fas fa-money-bill-wave"></i> Total: <strong id="factFooterMonto">L. 0.00</strong>' +
+                        '</span>' +
+
+                        '<span class="facturas-footer-item text-primary">' +
+                            '<i class="fas fa-receipt"></i> ISV: <strong id="factFooterISV">L. 0.00</strong>' +
+                        '</span>' +
+
+                        '<span class="facturas-footer-item text-danger">' +
+                            '<i class="fas fa-tags"></i> Descuento: <strong id="factFooterDescuento">L. 0.00</strong>' +
+                        '</span>' +
+                    '</div>' +
+                '</th>' +
+            '</tr>' +
+        '</tfoot>'
+    );
+}
+
+function inicializarDataTableFacturas() {
+    return $('#dataTableFacturas').DataTable({
+        responsive: true,
+        processing: true,
+        serverSide: false,
+        autoWidth: false,
+        destroy: true,
+        ajax: {
+            url: '<?php echo SERVERURL; ?>core/DetallesFacturacion/DetallesFacturacion.php',
+            type: 'POST',
+            dataType: 'json',
+            data: function(d) {
+                d.fecha_inicio = $('#fecha_inicio').val();
+                d.fecha_fin = $('#fecha_fin').val();
+                d.tipo_factura = $('#tipo_factura').val();
+                d.estado_factura = $('#estado_factura').val();
+                d.numero_factura = $('#numero_factura').val();
+            },
+            dataSrc: function(json) {
+                if (json && json.type && json.type === 'error') {
+                    mostrarNotificacionFactura('error', json.title || 'Error', json.message || 'No se pudieron cargar las facturas.');
+                    return [];
+                }
+
+                return json && json.data ? json.data : [];
+            },
+            error: function(xhr) {
+                console.error('Error al cargar facturas:', xhr.responseText);
+                mostrarNotificacionFactura('error', 'Error', 'No se pudieron cargar las facturas.');
+            }
+        },
+        columns: [
+            {
+                data: 'facturas_id',
+                visible: false,
+                searchable: false
+            },
+            {
+                data: 'fecha',
+                className: 'text-nowrap'
+            },
+            {
+                data: 'numero',
+                render: function(data, type) {
+                    if (type !== 'display') {
+                        return data || '';
+                    }
+
+                    return '<span class="factura-numero">' + escapeHtmlFactura(data || '') + '</span>';
+                }
+            },
+            {
+                data: 'cliente',
+                render: function(data, type) {
+                    if (type !== 'display') {
+                        return data || '';
+                    }
+
+                    return '<span class="factura-cliente">' + escapeHtmlFactura(data || '') + '</span>';
+                }
+            },
+            {
+                data: 'tipo_documento',
+                render: function(data, type) {
+                    if (type !== 'display') {
+                        return data || '';
+                    }
+
+                    const tipo = String(data || '').toLowerCase();
+                    const icon = tipo === 'crédito' || tipo === 'credito' ? 'fas fa-hand-holding-usd' : 'fas fa-money-bill-wave';
+
+                    return '<span class="badge-factura badge-factura-tipo">' +
+                                '<i class="' + icon + '"></i>' +
+                                escapeHtmlFactura(data || '') +
+                           '</span>';
+                }
+            },
+            {
+                data: 'estado',
+                render: function(data, type, row) {
+                    if (type !== 'display') {
+                        return row.estado_texto || '';
+                    }
+
+                    return renderEstadoFactura(row);
+                }
+            },
+            {
+                data: 'subtotal',
+                className: 'text-right text-nowrap',
+                render: function(data) {
+                    return formatMoneyFactura(data);
+                }
+            },
+            {
+                data: 'isv',
+                className: 'text-right text-nowrap',
+                render: function(data) {
+                    return formatMoneyFactura(data);
+                }
+            },
+            {
+                data: 'descuento',
+                className: 'text-right text-nowrap',
+                render: function(data) {
+                    return formatMoneyFactura(data);
+                }
+            },
+            {
+                data: 'total',
+                className: 'text-right text-nowrap',
+                render: function(data, type) {
+                    if (type !== 'display') {
+                        return parseFloat(data || 0);
+                    }
+
+                    return '<strong class="factura-total">' + formatMoneyFactura(data) + '</strong>';
+                }
+            },
+            {
+                data: null,
+                className: 'text-center',
+                orderable: false,
+                searchable: false,
+                width: '120px',
+                render: function(data, type, row) {
+                    if (type !== 'display') {
+                        return '';
+                    }
+
+                    return renderAccionesFactura(row);
+                }
+            }
+        ],
+        order: [[1, 'desc']],
+        language: {
+            decimal: '',
+            emptyTable: 'No hay datos disponibles',
+            info: 'Mostrando _START_ a _END_ de _TOTAL_ registros',
+            infoEmpty: 'Mostrando 0 a 0 de 0 registros',
+            infoFiltered: '(filtrado de _MAX_ registros totales)',
+            infoPostFix: '',
+            thousands: ',',
+            lengthMenu: 'Mostrar _MENU_ registros',
+            loadingRecords: 'Cargando...',
+            processing: 'Procesando...',
+            search: 'Buscar:',
+            zeroRecords: 'No se encontraron registros coincidentes',
+            paginate: {
+                first: 'Primero',
+                last: 'Último',
+                next: 'Siguiente',
+                previous: 'Anterior'
+            },
+            aria: {
+                sortAscending: ': activar para ordenar ascendente',
+                sortDescending: ': activar para ordenar descendente'
+            }
+        },
+        dom:
+            "<'row factura-dt-toolbar'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+            "<'row'<'col-sm-12'tr>>" +
+            "<'row factura-dt-footer'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+        initComplete: function() {
+            $('.dataTables_filter input').addClass('form-control form-control-sm');
+            $('.dataTables_length select').addClass('form-control form-control-sm');
+            actualizarFooterFacturas(this.api());
+        },
+        drawCallback: function() {
+            cerrarMenusAccionesFacturas();
+            actualizarFooterFacturas(this.api());
+        }
+    });
+}
+
+function inicializarFechasFacturas() {
     const today = new Date();
     const thirtyDaysAgo = new Date();
+
     thirtyDaysAgo.setDate(today.getDate() - 30);
-    
+
     $('#fecha_inicio').val(thirtyDaysAgo.toISOString().split('T')[0]);
     $('#fecha_fin').val(today.toISOString().split('T')[0]);
-    
-    // Cargar datos iniciales
-    dataTableFacturas.ajax.reload(null, false);
-});
+
+    if ($.fn.selectpicker) {
+        $('#tipo_factura').selectpicker('val', '');
+        $('#estado_factura').selectpicker('val', '');
+        $('.selectpicker').selectpicker('refresh');
+    }
+}
+
+function limpiarFiltrosFacturas() {
+    $('#form-filtros-facturas')[0].reset();
+
+    inicializarFechasFacturas();
+
+    $('#numero_factura').val('');
+
+    if ($.fn.selectpicker) {
+        $('#tipo_factura').selectpicker('val', '');
+        $('#estado_factura').selectpicker('val', '');
+        $('.selectpicker').selectpicker('refresh');
+    }
+}
+
+function actualizarFooterFacturas(api) {
+    const rows = api.rows({ search: 'applied' }).data().toArray();
+
+    let total = 0;
+    let isv = 0;
+    let descuento = 0;
+
+    rows.forEach(function(row) {
+        total += parseFloat(row.total || 0);
+        isv += parseFloat(row.isv || 0);
+        descuento += parseFloat(row.descuento || 0);
+    });
+
+    $('#factFooterTotal').text(rows.length);
+    $('#factFooterMonto').text(formatMoneyFactura(total));
+    $('#factFooterISV').text(formatMoneyFactura(isv));
+    $('#factFooterDescuento').text(formatMoneyFactura(descuento));
+}
+
+function renderEstadoFactura(row) {
+    const esProforma = parseInt(row.documento_id || 0, 10) === 4;
+    const tienePendiente = parseInt(row.tiene_pendiente || 0, 10) > 0;
+    const estadoNum = parseInt(row.estado || 0, 10);
+    let clase = 'badge-factura-secondary';
+    let icono = 'fas fa-file-alt';
+    let texto = row.estado_texto || 'Borrador';
+
+    if (esProforma) {
+        if (tienePendiente) {
+            clase = 'badge-factura-warning';
+            icono = 'fas fa-clock';
+            texto = 'Pendiente de pago';
+        } else {
+            clase = 'badge-factura-info';
+            icono = 'fas fa-file-invoice';
+            texto = 'Proforma cerrada';
+        }
+    } else {
+        switch (estadoNum) {
+            case 2:
+                clase = 'badge-factura-success';
+                icono = 'fas fa-check-circle';
+                texto = row.estado_texto || 'Pagada';
+                break;
+
+            case 3:
+                clase = 'badge-factura-warning';
+                icono = 'fas fa-clock';
+                texto = row.estado_texto || 'Crédito';
+                break;
+
+            case 4:
+                clase = 'badge-factura-danger';
+                icono = 'fas fa-times-circle';
+                texto = row.estado_texto || 'Cancelada';
+                break;
+
+            default:
+                clase = 'badge-factura-secondary';
+                icono = 'fas fa-file-alt';
+                texto = row.estado_texto || 'Borrador';
+                break;
+        }
+    }
+
+    return '<span class="badge-factura ' + clase + '">' +
+                '<i class="' + icono + '"></i>' +
+                escapeHtmlFactura(texto) +
+           '</span>';
+}
+
+function renderAccionesFactura(row) {
+    const facturaId = escapeHtmlFactura(row.facturas_id);
+    const puedePagar = row.estado == '3' || (parseInt(row.documento_id || 0, 10) === 4 && parseInt(row.tiene_pendiente || 0, 10) > 0);
+
+    let html = '' +
+        '<div class="dropdown acciones-dropdown factura-acciones-dropdown">' +
+            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                '<i class="fas fa-cog"></i>' +
+                '<span>Acciones</span>' +
+            '</button>' +
+
+            '<div class="dropdown-menu dropdown-menu-right acciones-menu factura-acciones-menu">' +
+                '<button type="button" class="dropdown-item accion-item btn-detalle" data-id="' + facturaId + '">' +
+                    '<span class="accion-icon accion-icon-info">' +
+                        '<i class="fas fa-eye"></i>' +
+                    '</span>' +
+                    '<span class="accion-label">Ver detalle</span>' +
+                '</button>' +
+
+                '<button type="button" class="dropdown-item accion-item btn-imprimir" data-id="' + facturaId + '">' +
+                    '<span class="accion-icon accion-icon-primary">' +
+                        '<i class="fas fa-print"></i>' +
+                    '</span>' +
+                    '<span class="accion-label">Imprimir</span>' +
+                '</button>';
+
+    if (puedePagar) {
+        html += '' +
+                '<button type="button" class="dropdown-item accion-item btn-pagar" data-id="' + facturaId + '">' +
+                    '<span class="accion-icon accion-icon-success">' +
+                        '<i class="fas fa-money-bill-wave"></i>' +
+                    '</span>' +
+                    '<span class="accion-label">Pagar</span>' +
+                '</button>';
+    }
+
+    html += '' +
+            '</div>' +
+        '</div>';
+
+    return html;
+}
+
+function cerrarMenusAccionesFacturas() {
+    $('.factura-acciones-menu').removeClass('show');
+    $('.factura-acciones-dropdown').removeClass('show');
+    $('.js-acciones-toggle').attr('aria-expanded', 'false');
+}
+
+function cargarDetalleFactura(facturaId) {
+    $.ajax({
+        url: '<?php echo SERVERURL; ?>core/DetallesFacturacion/DetallesFacturacion.php',
+        type: 'POST',
+        dataType: 'json',
+        data: {
+            facturas_id: facturaId
+        },
+        beforeSend: function() {
+            $('#numero-factura-modal').text('');
+            $('#fecha-factura').text('');
+            $('#cliente-factura').text('');
+            $('#tipo-factura').text('');
+            $('#estado-factura').html('');
+            $('#subtotal-factura').text('');
+            $('#total-factura').text('');
+            $('#notas-factura').text('');
+
+            $('#detalle-factura-body').html(
+                '<tr>' +
+                    '<td colspan="6" class="text-center py-4">' +
+                        '<div class="spinner-border text-primary" role="status">' +
+                            '<span class="sr-only">Cargando...</span>' +
+                        '</div>' +
+                        '<p class="mt-2 mb-0">Cargando detalles...</p>' +
+                    '</td>' +
+                '</tr>'
+            );
+        },
+        success: function(response) {
+            if (!response || response.type !== 'success' || !response.data || response.data.length === 0) {
+                mostrarNotificacionFactura('error', 'Error', 'No se encontraron datos de la factura.');
+                $('#modalDetalleFactura').modal('hide');
+                return;
+            }
+
+            const factura = response.data[0];
+
+            $('#numero-factura-modal').text(factura.numero || '');
+            $('#fecha-factura').text(factura.fecha || '');
+            $('#cliente-factura').text(factura.cliente || '');
+            $('#tipo-factura').text(factura.tipo_documento || '');
+            $('#estado-factura').html(renderEstadoFactura(factura));
+            $('#subtotal-factura').text(formatMoneyFactura(factura.subtotal || 0));
+            $('#total-factura').text(formatMoneyFactura(factura.total || 0));
+            $('#notas-factura').text(factura.notas || 'No hay notas');
+
+            cargarLineasDetalleFactura(facturaId, factura);
+
+            $('#btn-imprimir-factura').off('click');
+            $('#btn-imprimir-factura').on('click', function() {
+                imprimirFactura(facturaId);
+            });
+        },
+        error: function(xhr) {
+            console.error('Error al cargar factura:', xhr.responseText);
+            mostrarNotificacionFactura('error', 'Error', 'Ocurrió un error al cargar el detalle de la factura.');
+            $('#modalDetalleFactura').modal('hide');
+        }
+    });
+}
+
+function cargarLineasDetalleFactura(facturaId, factura) {
+    $.ajax({
+        url: '<?php echo SERVERURL; ?>core/getDetalleFactura.php',
+        type: 'POST',
+        dataType: 'json',
+        data: {
+            facturas_id: facturaId,
+            db_name: factura.db_name || '<?php echo DB_MAIN; ?>'
+        },
+        success: function(detalleResponse) {
+            if (detalleResponse.type === 'success' && detalleResponse.data && detalleResponse.data.length > 0) {
+                let detalleHtml = '';
+
+                detalleResponse.data.forEach(function(item) {
+                    const cantidad = parseFloat(item.cantidad || 0);
+                    const precio = parseFloat(item.precio || 0);
+                    const subtotal = cantidad * precio;
+
+                    detalleHtml += '' +
+                        '<tr>' +
+                            '<td>' + escapeHtmlFactura(item.producto || 'Servicio') + '</td>' +
+                            '<td class="text-center">' + escapeHtmlFactura(item.cantidad || '0') + ' ' + escapeHtmlFactura(item.medida || '') + '</td>' +
+                            '<td class="text-right">' + formatMoneyFactura(item.precio || 0) + '</td>' +
+                            '<td class="text-right">' + formatMoneyFactura(item.isv_valor || 0) + '</td>' +
+                            '<td class="text-right">' + formatMoneyFactura(item.descuento || 0) + '</td>' +
+                            '<td class="text-right">' + formatMoneyFactura(subtotal) + '</td>' +
+                        '</tr>';
+                });
+
+                detalleHtml += '' +
+                    '<tr class="factura-total-row-light">' +
+                        '<td colspan="3" class="text-right"><strong>Subtotal:</strong></td>' +
+                        '<td colspan="3" class="text-right">' + formatMoneyFactura(factura.subtotal || 0) + '</td>' +
+                    '</tr>' +
+
+                    '<tr class="factura-total-row-light">' +
+                        '<td colspan="3" class="text-right"><strong>ISV:</strong></td>' +
+                        '<td colspan="3" class="text-right">' + formatMoneyFactura(factura.isv || 0) + '</td>' +
+                    '</tr>' +
+
+                    '<tr class="factura-total-row-light">' +
+                        '<td colspan="3" class="text-right"><strong>Descuento:</strong></td>' +
+                        '<td colspan="3" class="text-right">' + formatMoneyFactura(factura.descuento || 0) + '</td>' +
+                    '</tr>' +
+
+                    '<tr class="factura-total-row-final">' +
+                        '<td colspan="3" class="text-right"><strong>TOTAL:</strong></td>' +
+                        '<td colspan="3" class="text-right"><strong>' + formatMoneyFactura(factura.total || 0) + '</strong></td>' +
+                    '</tr>';
+
+                $('#detalle-factura-body').html(detalleHtml);
+            } else {
+                $('#detalle-factura-body').html(
+                    '<tr>' +
+                        '<td colspan="6" class="text-center text-muted py-4">' +
+                            '<i class="fas fa-info-circle fa-2x mb-2"></i><br>' +
+                            'No se encontraron detalles para esta factura' +
+                        '</td>' +
+                    '</tr>'
+                );
+            }
+        },
+        error: function(xhr) {
+            console.error('Error al cargar detalles:', xhr.responseText);
+
+            $('#detalle-factura-body').html(
+                '<tr>' +
+                    '<td colspan="6" class="text-center text-danger py-4">' +
+                        '<i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>' +
+                        'Error al cargar los detalles de la factura<br>' +
+                        '<button class="btn btn-outline-primary btn-sm mt-3 btn-retry-detalle" data-id="' + facturaId + '">' +
+                            '<i class="fas fa-sync-alt mr-1"></i> Reintentar' +
+                        '</button>' +
+                    '</td>' +
+                '</tr>'
+            );
+        }
+    });
+}
+
+function pagarFactura(facturaId, dataTableFacturas) {
+    $.ajax({
+        url: '<?php echo SERVERURL; ?>core/pagarFactura.php',
+        type: 'POST',
+        dataType: 'json',
+        data: {
+            facturas_id: facturaId,
+            db_name: '<?php echo DB_MAIN; ?>'
+        },
+        success: function(response) {
+            if (response.type === 'success') {
+                mostrarNotificacionFactura('success', 'Éxito', response.message || 'Factura pagada correctamente.');
+                dataTableFacturas.ajax.reload(null, false);
+            } else {
+                mostrarNotificacionFactura('error', 'Error', response.message || 'No se pudo procesar el pago.');
+            }
+        },
+        error: function(xhr) {
+            console.error('Error al pagar factura:', xhr.responseText);
+            mostrarNotificacionFactura('error', 'Error', 'Ocurrió un error al procesar el pago.');
+        }
+    });
+}
+
+function imprimirFactura(facturaId) {
+    const params = {
+        id: facturaId,
+        type: 'Factura_carta_izzy',
+        db: '<?php echo DB_MAIN; ?>'
+    };
+
+    viewReport(params);
+}
+
+function formatMoneyFactura(amount) {
+    const n = parseFloat(amount || 0);
+
+    return 'L. ' + n.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+}
+
+function escapeHtmlFactura(text) {
+    if (text === null || text === undefined) {
+        return '';
+    }
+
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function mostrarNotificacionFactura(type, title, message) {
+    if (typeof showNotify === 'function') {
+        showNotify(type, title, message);
+        return;
+    }
+
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: title,
+            text: message,
+            icon: type,
+            confirmButtonText: 'Aceptar'
+        });
+        return;
+    }
+
+    alert(title + ': ' + message);
+}
 </script>

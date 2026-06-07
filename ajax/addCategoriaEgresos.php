@@ -1,30 +1,23 @@
-<?php	
-	$peticionAjax = true;
-	require_once "../core/configGenerales.php";
-	
-	if(isset($_POST['categoria'])){
-		require_once "../controladores/egresosContabilidadControlador.php";
-		$insVarios = new egresosContabilidadControlador();
-		
-		echo $insVarios->agregar_categoria_egresos_controlador();
-	} else {
-		// Identificar campos faltantes
-		$missingFields = [];
-		
-		if (!isset($_POST['categoria'])) $missingFields[] = "Categoria";
-	
+<?php
+// ajax/addCategoriaEgresos.php
 
-		// Preparar el mensaje
-		$missingText = implode(", ", $missingFields);
-		$title = "Error 🚨";
-		$message = "Faltan los siguientes campos: $missingText. Por favor, corrígelos.";
-		
-		// Escapar comillas para JavaScript
-		$title = addslashes($title);
-		$message = addslashes($message);
-		
-		// Llamar a TU función showNotify exactamente como está definida
-		echo "<script>
-			showNotify('error', '$title', '$message');
-		</script>";
-	}
+$peticionAjax = true;
+
+require_once "../core/configGenerales.php";
+
+header('Content-Type: application/json; charset=utf-8');
+
+if(isset($_POST['categoria'])){
+	require_once "../controladores/egresosContabilidadControlador.php";
+
+	$insVarios = new egresosContabilidadControlador();
+
+	echo $insVarios->agregar_categoria_egresos_controlador();
+} else {
+	echo json_encode([
+		"success" => false,
+		"title" => "Error",
+		"text" => "Falta el campo categoría. Por favor, corríjalo.",
+		"type" => "error"
+	], JSON_UNESCAPED_UNICODE);
+}

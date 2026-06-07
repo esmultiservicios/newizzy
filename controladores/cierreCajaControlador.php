@@ -1,4 +1,5 @@
 <?php
+//cierreCajaControlador.php
 if($peticionAjax){
     require_once "../modelos/aperturaCajaModelo.php";
 }else{
@@ -69,6 +70,7 @@ class cierreCajaControlador extends aperturaCajaModelo{
 
         $total_vendido = $this->obtener_total_ventas_caja_modelo($apertura_id);
         $total_retiros = $this->obtener_total_retiros_caja_modelo($apertura_id);
+        $total_inversion_automatica = $this->obtener_monto_inversion_automatico_cierre_modelo($apertura_id);
 
         /*
             LÓGICA FINAL:
@@ -77,9 +79,10 @@ class cierreCajaControlador extends aperturaCajaModelo{
             - En el cierre se registra:
                 1. ingreso por ventas completas
                 2. egreso por retiros activos pendientes
-                3. movimientos de ambas cosas
+                3. inversión automática si está configurada
+                4. movimientos de todas las cuentas
         */
-        $neto_caja = $total_vendido - $total_retiros;
+        $neto_caja = $total_vendido - $total_retiros - $total_inversion_automatica;
 
         if($neto_caja < 0){
             $neto_caja = 0;
@@ -120,7 +123,7 @@ class cierreCajaControlador extends aperturaCajaModelo{
         return mainModel::showNotification([
             "type"          => "success",
             "title"         => "Cierre de caja",
-            "text"          => "La caja se ha cerrado correctamente. Venta: L. ".number_format($total_vendido, 2)." | Retiros: L. ".number_format($total_retiros, 2)." | Neto físico: L. ".number_format($neto_caja, 2),
+            "text"          => "La caja se ha cerrado correctamente. Venta: L. ".number_format($total_vendido, 2)." | Retiros: L. ".number_format($total_retiros, 2)." | Inversión: L. ".number_format($total_inversion_automatica, 2)." | Neto físico: L. ".number_format($neto_caja, 2),
             "form"          => "formColaboradores",
             "funcion"       => "validarAperturaCajaUsuario();getCajero();printComprobanteCajas($apertura_id);listar_registro_cajas();",
             "closeAllModals"=> true

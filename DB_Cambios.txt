@@ -2,6 +2,17 @@
 ALTER TABLE cotizacion_detalles
 ADD COLUMN isv_valor1 FLOAT(12,2) NOT NULL DEFAULT 0.00 AFTER isv_valor;
 
+INSERT INTO isv (isv_id, isv_tipo_id, valor, activar, fecha_registro)
+VALUES
+(1, 1, 15.00, 1, NOW()),
+(2, 1, 18.00, 1, NOW()),
+(3, 2, 15.00, 1, NOW()),
+(4, 2, 18.00, 1, NOW())
+ON DUPLICATE KEY UPDATE
+isv_tipo_id = VALUES(isv_tipo_id),
+valor = VALUES(valor),
+activar = VALUES(activar);
+
 ####03 de junio 2026####
 /* ============================================================
    MIGRACIÓN SEGURA - INVERSIÓN / REPOSICIÓN

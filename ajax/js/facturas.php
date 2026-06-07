@@ -1,7 +1,7 @@
 <script>
     //FAactura.php - js de las facturas escritorio
 $(() => {
-    // Evento para el botón de Generar Reporte
+     // Evento para el botón de Generar Reporte
     $('#formulario_busqueda_cotizaciones').on('submit', function(e) {
         e.preventDefault();
         listar_busqueda_cotizaciones();
@@ -3629,6 +3629,11 @@ function normalizarNumeroFactura(valor) {
 
 function fetchISVPercentSync(isv_id) {
     isv_id = parseInt(isv_id, 10);
+
+    if (!isv_id || isv_id <= 0) {
+        return 0;
+    }
+
     if (cacheISVFacturaEscritorio[isv_id] !== undefined) {
         return cacheISVFacturaEscritorio[isv_id];
     }
@@ -3638,37 +3643,30 @@ function fetchISVPercentSync(isv_id) {
     $.ajax({
         type: 'POST',
         url: '<?php echo SERVERURL; ?>core/getISV.php',
-        data: { isv_id: isv_id },
+        data: {
+            isv_id: isv_id
+        },
         dataType: 'json',
         async: false,
-        success: function (response) {
-            if (response && response.success === true) {
+        success: function(response) {
+            if (response && response.success === true && response.valor !== undefined) {
                 porcentaje = normalizarNumeroFactura(response.valor);
             } else if (response && response.valor !== undefined) {
                 porcentaje = normalizarNumeroFactura(response.valor);
+            } else if ($.isArray(response) && response.length > 0) {
+                porcentaje = normalizarNumeroFactura(response[0]);
             } else if (typeof response === 'number' || typeof response === 'string') {
                 porcentaje = normalizarNumeroFactura(response);
             }
         },
-        error: function () {
+        error: function(xhr) {
+            console.log(xhr.responseText);
             porcentaje = 0;
         }
     });
 
-    if (porcentaje <= 0) {
-        if (isv_id === 1) {
-            if (typeof getPorcentajeISV === 'function') {
-                porcentaje = normalizarNumeroFactura(getPorcentajeISV('Facturas'));
-            }
-            if (porcentaje <= 0) porcentaje = 15;
-        }
-
-        if (isv_id === 2) {
-            porcentaje = 18;
-        }
-    }
-
     cacheISVFacturaEscritorio[isv_id] = porcentaje;
+
     return porcentaje;
 }
 
@@ -3678,6 +3676,88 @@ function fetchISVPercent(isv_id) {
         resolve(porcentaje);
     });
 }
+
+/* =========================================================
+   INICIO - LABELS DINÁMICOS ISV FACTURACIÓN
+   ---------------------------------------------------------
+   Actualiza los textos del footer:
+   - ISV id=1 según tabla isv.valor
+   - ISV id=2 según tabla isv.valor
+
+   Ejemplo:
+   isv_id 1 = 15.00 => ISV 15%:
+   isv_id 2 = 20.00 => ISV 20%:
+   ========================================================= */
+
+   function formatearPorcentajeLabelISVFactura(valor) {
+    valor = normalizarNumeroFactura(valor);
+
+    if (valor <= 0) {
+        return '';
+    }
+
+    if (Number.isInteger(valor)) {
+        return valor.toString();
+    }
+
+    return valor.toFixed(2).replace(/\.?0+$/, '');
+}
+
+function actualizarLabelsISVFactura() {
+    var porcentajeISV1 = 0;
+    var porcentajeISV2 = 0;
+
+    if (typeof fetchISVPercentSync === 'function') {
+        porcentajeISV1 = fetchISVPercentSync(1);
+        porcentajeISV2 = fetchISVPercentSync(2);
+    }
+
+    var textoISV1 = 'ISV';
+    var textoISV2 = 'ISV';
+
+    if (porcentajeISV1 > 0) {
+        textoISV1 = 'ISV ' + formatearPorcentajeLabelISVFactura(porcentajeISV1) + '%';
+    }
+
+    if (porcentajeISV2 > 0) {
+        textoISV2 = 'ISV ' + formatearPorcentajeLabelISVFactura(porcentajeISV2) + '%';
+    }
+
+    /*
+      No necesitamos cambiar el HTML.
+      Buscamos el label según el textarea del footer.
+    */
+    if ($('#taxAmountFooter').length) {
+        $('#taxAmountFooter').closest('.metric').find('label').text(textoISV1 + ':');
+    }
+
+    if ($('#taxAmountFooter18').length) {
+        $('#taxAmountFooter18').closest('.metric').find('label').text(textoISV2 + ':');
+    }
+
+    /*
+      Por si existen labels o contenedores similares fuera del footer.
+      No afecta si no existen.
+    */
+    if ($('#taxAmount').length) {
+        $('#taxAmount').closest('.metric').find('label').text(textoISV1 + ':');
+    }
+
+    if ($('#taxAmount18').length) {
+        $('#taxAmount18').closest('.metric').find('label').text(textoISV2 + ':');
+    }
+}
+
+/* Ejecutar al cargar la vista */
+$(() => {
+    setTimeout(function () {
+        actualizarLabelsISVFactura();
+    }, 300);
+});
+
+/* =========================================================
+   FIN - LABELS DINÁMICOS ISV FACTURACIÓN
+   ========================================================= */
 
 /* ===================================================
    Recalcular ISV por línea
@@ -3718,60 +3798,74 @@ function fetchISVPercent(isv_id) {
 // =====================
 // Recalculador general
 // =====================
-function calculateTotalFacturas(){
-  var totalAmount   = 0; // suma de (precio * cantidad) SIN ISV y SIN descuento
-  var totalGeneral  = 0; // alias del anterior en tu código
-  var totalDiscount = 0;
-  var totalISV1     = 0; // suma de valor_isv_*
-  var totalISV2     = 0; // suma de valor_isv1_*
+function calculateTotalFacturas() {
+    if (typeof actualizarLabelsISVFactura === 'function') {
+        actualizarLabelsISVFactura();
+    }
 
-  $("[id^='price_']").each(function() {
-      var id = $(this).attr('id').replace("price_", '');
-      var price       = parseFloat($('#price_' + id).val()) || 0;
-      var discount    = parseFloat($('#discount_' + id).val()) || 0;
-      var quantity    = parseFloat($('#quantity_' + id).val()) || 1;
-      var isv1_line   = parseFloat($('#valor_isv_'  + id).val()) || 0;
-      var isv2_line   = parseFloat($('#valor_isv1_' + id).val()) || 0;
+    var totalAmount   = 0; // suma de (precio * cantidad) SIN ISV y SIN descuento
+    var totalGeneral  = 0; // alias del anterior en tu código
+    var totalDiscount = 0;
+    var totalISV1     = 0; // suma de valor_isv_*  => ISV id=1
+    var totalISV2     = 0; // suma de valor_isv1_* => ISV id=2
 
-      var lineBase = price * quantity; // sin ISV, sin descuento
-      $('#total_' + id).val(customRound(lineBase - discount).toFixed(4));
+    $("[id^='price_']").each(function() {
+        var id = $(this).attr('id').replace("price_", '');
 
-      totalAmount   += lineBase;
-      totalGeneral  += lineBase;
-      totalDiscount += discount;
-      totalISV1     += isv1_line;
-      totalISV2     += isv2_line;
-  });
+        var price     = parseFloat($('#price_' + id).val()) || 0;
+        var discount  = parseFloat($('#discount_' + id).val()) || 0;
+        var quantity  = parseFloat($('#quantity_' + id).val()) || 1;
 
-  // Subtotales (sin formato)
-  $('#subTotal').val(parseFloat(totalAmount).toFixed(2));
-  $('#taxDescuento').val(parseFloat(totalDiscount).toFixed(2));
-  $('#taxAmount').val(parseFloat(totalISV1).toFixed(2));      // ISV id=1 (15%)
-  if ($('#taxAmount18').length) {
-      $('#taxAmount18').val(parseFloat(totalISV2).toFixed(2)); // ISV id=2 (18%)
-  }
+        var isv1_line = parseFloat($('#valor_isv_' + id).val()) || 0;
+        var isv2_line = parseFloat($('#valor_isv1_' + id).val()) || 0;
 
-  // Footer con formato (coma miles, punto decimal)
-  var fmt = function(n){ return parseFloat(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","); };
+        var lineBase = price * quantity; // sin ISV, sin descuento
 
-  $('#subTotalFooter').val(fmt(totalAmount));
-  $('#taxDescuentoFooter').val(fmt(totalDiscount));
-  $('#taxAmountFooter').val(fmt(totalISV1));         // ISV15
-  if ($('#taxAmountFooter18').length) {
-      $('#taxAmountFooter18').val(fmt(totalISV2));   // ISV18
-  }
+        $('#total_' + id).val(customRound(lineBase - discount).toFixed(4));
 
-  // Total general = Subtotal + ISV1 + ISV2 - descuentos
-  var total = (totalAmount + totalISV1 + totalISV2) - totalDiscount;
+        totalAmount   += lineBase;
+        totalGeneral  += lineBase;
+        totalDiscount += discount;
+        totalISV1     += isv1_line;
+        totalISV2     += isv2_line;
+    });
 
-  $('#subTotalImporte').val(fmt(totalGeneral));
-  $('#totalAftertax').val(fmt(total));
-  $('#totalAftertaxFooter').val(fmt(total));
+    // Subtotales internos sin formato
+    $('#subTotal').val(parseFloat(totalAmount).toFixed(2));
+    $('#taxDescuento').val(parseFloat(totalDiscount).toFixed(2));
+    $('#taxAmount').val(parseFloat(totalISV1).toFixed(2));
 
-  // Conversión si aplica
-  var totalAftertax = parseFloat(total) || 0;
-  var cambioDolar   = parseFloat($('#cambioBill').val()) || 1;
-  $('#totalHNLBill').val(customRound(parseFloat(totalAftertax * cambioDolar).toFixed(2)));
+    if ($('#taxAmount18').length) {
+        $('#taxAmount18').val(parseFloat(totalISV2).toFixed(2));
+    }
+
+    // Formato visual para footer
+    var fmt = function(n) {
+        return parseFloat(n || 0)
+            .toFixed(2)
+            .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    };
+
+    $('#subTotalFooter').val(fmt(totalAmount));
+    $('#taxDescuentoFooter').val(fmt(totalDiscount));
+    $('#taxAmountFooter').val(fmt(totalISV1));
+
+    if ($('#taxAmountFooter18').length) {
+        $('#taxAmountFooter18').val(fmt(totalISV2));
+    }
+
+    // Total general = Subtotal + ISV id=1 + ISV id=2 - descuentos
+    var total = (totalAmount + totalISV1 + totalISV2) - totalDiscount;
+
+    $('#subTotalImporte').val(fmt(totalGeneral));
+    $('#totalAftertax').val(fmt(total));
+    $('#totalAftertaxFooter').val(fmt(total));
+
+    // Conversión si aplica
+    var totalAftertax = parseFloat(total) || 0;
+    var cambioDolar = parseFloat($('#cambioBill').val()) || 1;
+
+    $('#totalHNLBill').val(customRound(parseFloat(totalAftertax * cambioDolar).toFixed(2)));
 }
 
 function customRound(number) {

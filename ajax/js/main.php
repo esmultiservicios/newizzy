@@ -2225,13 +2225,13 @@ function printPurchase(compras_id) {
 }
 
 //INICIO ENVIAR COTIZACION POR CORREO ELECTRONICO
-//INICIO ENVIAR COTIZACIÓN POR CORREO ELECTRÓNICO
+//INICIO ENVIAR COTIZACION POR CORREO ELECTRONICO
 function mailQuote(cotizacion_id) {
-    cotizacion_id = parseInt(cotizacion_id || 0);
+    cotizacion_id = parseInt(cotizacion_id || 0, 10);
 
     if (cotizacion_id <= 0) {
-        console.warn('No se recibió una cotización válida para enviar por correo.');
-        return;
+        showNotify('error', 'Error', 'No se recibió una cotización válida para enviar por correo.');
+        return false;
     }
 
     // Evita doble envío accidental si la función se dispara dos veces seguidas
@@ -2240,42 +2240,89 @@ function mailQuote(cotizacion_id) {
     }
 
     if (window.__mailQuoteEnProceso[cotizacion_id]) {
-        return;
+        showNotify('warning', 'En proceso', 'Esta cotización ya se está enviando. Espere un momento.');
+        return false;
     }
 
     window.__mailQuoteEnProceso[cotizacion_id] = true;
 
-    setTimeout(function () {
-        if (typeof sendQuote === 'function') {
-            sendQuote(cotizacion_id);
-        } else {
-            console.error('La función sendQuote no está disponible.');
-        }
+    showNotify('info', 'Enviando', 'Enviando cotización por correo, por favor espere...');
 
-        setTimeout(function () {
-            delete window.__mailQuoteEnProceso[cotizacion_id];
-        }, 3000);
-    }, 300);
+    sendQuote(cotizacion_id);
 }
 
 function sendQuote(cotizacion_id) {
-    var url = '<?php echo SERVERURL; ?>core/sendCotizacion.php';
-    var bill = '';
+    cotizacion_id = parseInt(cotizacion_id || 0, 10);
+
+    if (cotizacion_id <= 0) {
+        showNotify('error', 'Error', 'No se pudo identificar la cotización a enviar.');
+        return false;
+    }
+
+    var url = '<?php echo SERVERURL; ?>core/correo/sendCotizacion.php';
 
     $.ajax({
         type: 'POST',
         url: url,
-        async: false,
-        data: 'cotizacion_id=' + cotizacion_id,
+        async: true,
+        cache: false,
+        data: {
+            cotizacion_id: cotizacion_id
+        },
         success: function(data) {
-            bill = data;
-            if (bill == 1) {
-                showNotify('success', 'Success', 'La cotización ha sido enviada por correo satisfactoriamente');
+            var respuesta = $.trim(data || '');
+
+            var $respuestaAjax = $('<div class="RespuestaAjax d-none"></div>');
+            $('body').append($respuestaAjax);
+            $respuestaAjax.html(respuesta);
+
+            $respuestaAjax.find('script').each(function() {
+                var codigo = this.text || this.textContent || this.innerHTML || '';
+
+                if ($.trim(codigo) !== '') {
+                    try {
+                        $.globalEval(codigo);
+                    } catch (e) {
+                        console.error('Error ejecutando respuesta de sendCotizacion.php:', e);
+                    }
+                }
+            });
+
+            if (
+                respuesta.indexOf("showNotify('success'") === -1 &&
+                respuesta.indexOf('showNotify("success"') === -1 &&
+                respuesta.indexOf("showNotify('error'") === -1 &&
+                respuesta.indexOf('showNotify("error"') === -1 &&
+                respuesta.indexOf("showNotify('warning'") === -1 &&
+                respuesta.indexOf('showNotify("warning"') === -1
+            ) {
+                showNotify('success', 'Cotización enviada', 'La cotización fue enviada correctamente por correo.');
+            }
+
+            setTimeout(function() {
+                $respuestaAjax.remove();
+
+                if (window.__mailQuoteEnProceso && window.__mailQuoteEnProceso[cotizacion_id]) {
+                    delete window.__mailQuoteEnProceso[cotizacion_id];
+                }
+            }, 2000);
+        },
+        error: function(xhr) {
+            showNotify(
+                'error',
+                'Error',
+                xhr.responseText || 'No se pudo enviar la cotización por correo.'
+            );
+
+            if (window.__mailQuoteEnProceso && window.__mailQuoteEnProceso[cotizacion_id]) {
+                delete window.__mailQuoteEnProceso[cotizacion_id];
             }
         }
     });
-    return bill;
+
+    return true;
 }
+//FIN ENVIAR COTIZACION POR CORREO ELECTRONICO
 
 function getNumeroCotizacion(cotizacion_id) {
     var url = '<?php echo SERVERURL; ?>core/getNoCotizacion.php';

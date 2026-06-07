@@ -614,12 +614,44 @@ var listar_reporte_ventas = function () {
   }
 
   var view_correo_facturas_dataTable = function (tbody, table) {
-    $(tbody).off("click", "button.email_factura");
-    $(tbody).on("click", "button.email_factura", function (e) {
+  $(tbody).off("click", "button.email_factura");
+
+  $(tbody).on("click", "button.email_factura", function (e) {
+
       e.preventDefault();
+
       var data = table.row($(this).parents("tr")).data();
-      mailBill(data.facturas_id);
-    });
+
+      swal({
+          title: "Enviar factura",
+          text: "¿Desea enviar la factura No. " + data.numero + " por correo electrónico?",
+          icon: "warning",
+          buttons: {
+              cancel: {
+                  text: "Cancelar",
+                  visible: true
+              },
+              confirm: {
+                  text: "Sí, enviar",
+                  closeModal: false
+              }
+          },
+          closeOnEsc: false,
+          closeOnClickOutside: false
+      }).then((confirmado) => {
+
+          if (!confirmado) {
+              return false;
+          }
+
+          swal.close();
+
+          mailBill(data.facturas_id);
+
+      });
+
+  });
+
   };
 
   var view_reporte_facturas_dataTable = function (tbody, table) {

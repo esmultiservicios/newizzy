@@ -1,4 +1,5 @@
 <?php
+//aperturaCajaModelo.php
 if($peticionAjax){
     require_once "../core/mainModel.php";
 }else{
@@ -809,6 +810,227 @@ class aperturaCajaModelo extends mainModel{
         return true;
     }
 
+    protected function obtener_categoria_inversion_cierre_modelo(){
+        $query = "
+            SELECT categoria_gastos_id
+            FROM categoria_gastos
+            WHERE estado = 1
+              AND IFNULL(es_inversion, 0) = 1
+            ORDER BY categoria_gastos_id ASC
+            LIMIT 1
+        ";
+    
+        $sql = mainModel::connection()->query($query);
+    
+        if(!$sql){
+            die(mainModel::connection()->error);
+        }
+    
+        if($sql->num_rows > 0){
+            $row = $sql->fetch_assoc();
+            return (int)$row['categoria_gastos_id'];
+        }
+    
+        return 0;
+    }
+    
+    protected function obtener_cuenta_inversion_cierre_modelo(){
+        $query = "
+            SELECT cuentas_id
+            FROM cuentas
+            WHERE estado = 1
+              AND IFNULL(es_inversion, 0) = 1
+            ORDER BY cuentas_id ASC
+            LIMIT 1
+        ";
+    
+        $sql = mainModel::connection()->query($query);
+    
+        if(!$sql){
+            die(mainModel::connection()->error);
+        }
+    
+        if($sql->num_rows > 0){
+            $row = $sql->fetch_assoc();
+            return (int)$row['cuentas_id'];
+        }
+    
+        return 0;
+    }
+    
+    protected function obtener_costo_productos_vendidos_caja_modelo($apertura_id){
+        $query = "
+            SELECT COALESCE(SUM(fd.cantidad * fd.costo_unitario), 0) AS costo_productos_vendidos
+            FROM facturas f
+            INNER JOIN facturas_detalles fd
+                ON fd.facturas_id = f.facturas_id
+            INNER JOIN secuencia_facturacion sf
+                ON f.secuencia_facturacion_id = sf.secuencia_facturacion_id
+            INNER JOIN documento d
+                ON sf.documento_id = d.documento_id
+            WHERE f.apertura_id = '$apertura_id'
+              AND f.estado = 2
+              AND d.nombre = 'Factura Electronica'
+        ";
+    
+        $sql = mainModel::connection()->query($query);
+    
+        if(!$sql){
+            die(mainModel::connection()->error);
+        }
+    
+        if($sql->num_rows > 0){
+            $row = $sql->fetch_assoc();
+            return (float)$row['costo_productos_vendidos'];
+        }
+    
+        return 0;
+    }
+    
+    protected function validar_inversion_cierre_registrada_modelo($apertura_id){
+        $empresa_id = isset($_SESSION['empresa_id_sd']) ? (int)$_SESSION['empresa_id_sd'] : 0;
+    
+        $query = "
+            SELECT egresos_id
+            FROM egresos
+            WHERE factura = 'INV-AP-$apertura_id'
+              AND empresa_id = '$empresa_id'
+              AND estado = 1
+            LIMIT 1
+        ";
+    
+        $sql = mainModel::connection()->query($query);
+    
+        if(!$sql){
+            die(mainModel::connection()->error);
+        }
+    
+        return $sql->num_rows > 0;
+    }
+    
+    protected function obtener_monto_inversion_automatico_cierre_modelo($apertura_id){
+        $categoria_inversion_id = $this->obtener_categoria_inversion_cierre_modelo();
+        $cuenta_inversion_id = $this->obtener_cuenta_inversion_cierre_modelo();
+        $cuenta_caja_id = $this->obtener_cuenta_efectivo_caja_modelo();
+    
+        if($categoria_inversion_id <= 0 || $cuenta_inversion_id <= 0 || $cuenta_caja_id <= 0){
+            return 0;
+        }
+    
+        if($cuenta_inversion_id == $cuenta_caja_id){
+            return 0;
+        }
+    
+        $monto = $this->obtener_costo_productos_vendidos_caja_modelo($apertura_id);
+    
+        if($monto <= 0){
+            return 0;
+        }
+    
+        return $monto;
+    }
+    
+    protected function obtener_saldo_actual_cuenta_cierre_modelo($cuentas_id){
+        $saldo_actual = 0;
+    
+        $rsSaldo = $this->consultar_saldo_movimientos_cuentas_contabilidad($cuentas_id);
+    
+        if($rsSaldo && $rsSaldo->num_rows > 0){
+            $filaS = $rsSaldo->fetch_assoc();
+            $saldo_actual = isset($filaS['saldo']) ? (float)$filaS['saldo'] : 0;
+        }
+    
+        return $saldo_actual;
+    }
+    
+    protected function registrar_inversion_automatica_cierre_caja_modelo($apertura_id, $fecha, $fecha_registro, $empresa_id, $colaboradores_id){
+        if($this->validar_inversion_cierre_registrada_modelo($apertura_id)){
+            return true;
+        }
+    
+        $categoria_inversion_id = $this->obtener_categoria_inversion_cierre_modelo();
+        $cuenta_inversion_id = $this->obtener_cuenta_inversion_cierre_modelo();
+        $cuenta_caja_id = $this->obtener_cuenta_efectivo_caja_modelo();
+        $monto_inversion = $this->obtener_monto_inversion_automatico_cierre_modelo($apertura_id);
+    
+        if($categoria_inversion_id <= 0 || $cuenta_inversion_id <= 0 || $cuenta_caja_id <= 0 || $monto_inversion <= 0){
+            return true;
+        }
+    
+        $observacion = "Inversión / reposición automática por cierre de caja AP-$apertura_id";
+    
+        $datos_egreso = [
+            "cuentas_id" => $cuenta_caja_id,
+            "proveedores_id" => 1,
+            "empresa_id" => $empresa_id,
+            "tipo_egreso" => 2,
+            "fecha" => $fecha,
+            "factura" => "INV-AP-$apertura_id",
+            "subtotal" => $monto_inversion,
+            "descuento" => 0,
+            "nc" => 0,
+            "impuesto" => 0,
+            "total" => $monto_inversion,
+            "observacion" => $observacion,
+            "estado" => 1,
+            "colaboradores_id" => $colaboradores_id,
+            "fecha_registro" => $fecha_registro,
+            "categoria_gastos_id" => $categoria_inversion_id
+        ];
+    
+        $this->agregar_egresos_contabilidad_modelo($datos_egreso);
+    
+        $saldo_caja = $this->obtener_saldo_actual_cuenta_cierre_modelo($cuenta_caja_id);
+        $nuevo_saldo_caja = $saldo_caja - $monto_inversion;
+    
+        $this->agregar_movimientos_contabilidad_modelo([
+            "cuentas_id" => $cuenta_caja_id,
+            "empresa_id" => $empresa_id,
+            "fecha" => $fecha,
+            "ingreso" => 0,
+            "egreso" => $monto_inversion,
+            "saldo" => $nuevo_saldo_caja,
+            "colaboradores_id" => $colaboradores_id,
+            "fecha_registro" => $fecha_registro
+        ]);
+    
+        $datos_ingreso = [
+            "clientes_id" => 2,
+            "cuentas_id" => $cuenta_inversion_id,
+            "empresa_id" => $empresa_id,
+            "fecha" => $fecha,
+            "factura" => "INV-AP-$apertura_id",
+            "subtotal" => $monto_inversion,
+            "isv" => 0,
+            "descuento" => 0,
+            "nc" => 0,
+            "total" => $monto_inversion,
+            "observacion" => "Entrada automática a cuenta de inversión / reposición por cierre de caja AP-$apertura_id",
+            "estado" => 1,
+            "fecha_registro" => $fecha_registro,
+            "colaboradores_id" => $colaboradores_id,
+            "tipo_ingreso" => 2
+        ];
+    
+        $this->agregar_ingresos_contabilidad_modelo($datos_ingreso);
+    
+        $saldo_inversion = $this->obtener_saldo_actual_cuenta_cierre_modelo($cuenta_inversion_id);
+        $nuevo_saldo_inversion = $saldo_inversion + $monto_inversion;
+    
+        $this->agregar_movimientos_contabilidad_modelo([
+            "cuentas_id" => $cuenta_inversion_id,
+            "empresa_id" => $empresa_id,
+            "fecha" => $fecha,
+            "ingreso" => $monto_inversion,
+            "egreso" => 0,
+            "saldo" => $nuevo_saldo_inversion,
+            "colaboradores_id" => $colaboradores_id,
+            "fecha_registro" => $fecha_registro
+        ]);
+    
+        return true;
+    }
+
     protected function registrar_movimientos_contables_cierre_modelo($apertura_id){
         $cn = mainModel::connection();
         $cn->begin_transaction();
@@ -827,10 +1049,14 @@ class aperturaCajaModelo extends mainModel{
                 ORDEN CORRECTO DEL CIERRE:
                 1. Registrar ingresos completos de ventas.
                 2. Registrar egresos de retiros pendientes de caja.
-                3. Registrar movimientos de ambas partes.
-                4. Marcar pagos contabilizados.
-                5. Actualizar caja_retiros.egresos_id para no duplicar.
+                3. Registrar inversión automática si existe:
+                - categoria_gastos.es_inversion = 1
+                - cuentas.es_inversion = 1
+                - costo de productos vendidos > 0
+                4. Registrar salida de caja.
+                5. Registrar entrada a cuenta de inversión.
             */
+
             $this->registrar_ingresos_cierre_caja_modelo(
                 $apertura_id,
                 $fecha,
@@ -840,6 +1066,14 @@ class aperturaCajaModelo extends mainModel{
             );
 
             $this->registrar_egresos_retiros_cierre_caja_modelo(
+                $apertura_id,
+                $fecha,
+                $fecha_registro,
+                $empresa_id,
+                $colaboradores_id
+            );
+
+            $this->registrar_inversion_automatica_cierre_caja_modelo(
                 $apertura_id,
                 $fecha,
                 $fecha_registro,

@@ -23,11 +23,24 @@ if (method_exists($mainModel, 'validarSesion')) {
     }
 }
 
+function conectarPrincipalClientesAsignacion($mainModel) {
+    if (defined('DB_MAIN') && method_exists($mainModel, 'connectToDatabase')) {
+        return $mainModel->connectToDatabase([
+            "host" => SERVER,
+            "user" => USER,
+            "pass" => PASS,
+            "name" => DB_MAIN
+        ]);
+    }
+
+    return $mainModel->connection();
+}
+
 $conexion = null;
 $stmt = null;
 
 try {
-    $conexion = $mainModel->connection();
+    $conexion = conectarPrincipalClientesAsignacion($mainModel);
 
     if (!$conexion) {
         throw new Exception("No se pudo conectar a la base principal.");
@@ -41,14 +54,18 @@ try {
             sc.planes_id,
             sc.validar,
             sc.estado,
+            sc.codigo_cliente,
+            sc.db,
             c.nombre,
-            c.rtn AS identificacion
+            c.rtn AS identificacion,
+            s.nombre AS sistema_nombre
         FROM server_customers sc
         INNER JOIN clientes c ON sc.clientes_id = c.clientes_id
-        WHERE sc.db IS NOT NULL
-          AND sc.db <> ''
-          AND sc.db_imported = 1
-        ORDER BY c.nombre ASC
+        INNER JOIN sistema s ON sc.sistema_id = s.sistema_id
+        WHERE sc.estado = 1
+          AND sc.db IS NOT NULL
+          AND TRIM(sc.db) != ''
+        ORDER BY c.nombre ASC, s.nombre ASC
     ";
 
     $stmt = $conexion->prepare($sql);
@@ -70,8 +87,13 @@ try {
             "planes_id" => (int)$row["planes_id"],
             "validar" => (int)$row["validar"],
             "estado" => (int)$row["estado"],
+            "codigo_cliente" => $row["codigo_cliente"],
+            "db" => $row["db"],
             "nombre" => $row["nombre"],
-            "identificacion" => $row["identificacion"]
+            "identificacion" => $row["identificacion"],
+            "sistema" => [
+                "nombre" => $row["sistema_nombre"]
+            ]
         ];
     }
 
@@ -80,7 +102,7 @@ try {
         'data' => $clientes
     ], JSON_UNESCAPED_UNICODE);
 
-} catch (Exception $e) {
+} catch (Throwable $e) {
     echo json_encode([
         'success' => false,
         'data' => [],
@@ -88,6 +110,11 @@ try {
     ], JSON_UNESCAPED_UNICODE);
 
 } finally {
-    if ($stmt) { $stmt->close(); }
-    if ($conexion) { $conexion->close(); }
+    if ($stmt) {
+        $stmt->close();
+    }
+
+    if ($conexion) {
+        $conexion->close();
+    }
 }

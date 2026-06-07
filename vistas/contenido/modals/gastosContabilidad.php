@@ -181,181 +181,195 @@
 <!--FIN MODAL PARA EL FORMULARIO DE EGRESOS CONTABLES-->
 
 <!--INICIO MODAL REGISTRO CATEGORIAS-->
-<div class="modal fade" id="modalCategoriasEgresos">
+<div class="modal fade modal-categorias-premium" id="modalCategoriasEgresos">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title">Categorías</h4>
+                <h4 class="modal-title">
+                    <i class="fas fa-layer-group mr-2"></i>
+                    Categorías de Gastos
+                </h4>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="container"></div>
-            <div class="modal-body">
-                <form class="form-horizontal" id="formCategoriaEgresos" action="" method="POST" data-form="" enctype="multipart/form-data">
-					<input type="hidden" required="required" readonly id="categoria_gastos_id" name="categoria_gastos_id" />					
 
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="factura_egresos">Categoría <span class="priority">*<span /></label>
-                            <input type="text" required id="categoria" name="categoria" placeholder="Categoria"
-                                class="form-control" maxlength="19" />
+            <div class="modal-body">
+                <div class="categoria-hero">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="categoria-hero-title">
+                                <i class="fas fa-tags mr-1"></i>
+                                Administración de categorías
+                            </h5>
+                            <p class="categoria-hero-text">
+                                Registre, edite, active, inactive o elimine categorías. Solo una categoría puede quedar marcada como inversión/reposición.
+                            </p>
+                        </div>
+
+                        <div class="col-md-4 text-md-right mt-3 mt-md-0">
+                            <span class="badge-cat-inversion">
+                                <i class="fas fa-seedling"></i>
+                                Inversión única
+                            </span>
                         </div>
                     </div>
+                </div>
 
-                    <div class="form-row">
-                        <div class="modal-body">
-                            <form class="FormularioAjax" id="formularioCategoriaEgresos">
-                                <div class="form-group">
-                                    <div class="col-md-12">
-                                        <div class="overflow-auto">
-                                            <table id="DatatableCategoriaEgresos"
-                                                class="table table-header-gradient table-header-gradient table-striped table-condensed table-hover"
-                                                style="width:100%">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Categoría</th>
-                                                        <th>Editar</th>
-                                                        <th>Eliminar</th>
-                                                    </tr>
-                                                </thead>
-                                            </table>
+                <div class="card categoria-premium-card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-plus-circle mr-1"></i>
+                        Nueva Categoría
+                    </div>
+
+                    <div class="card-body">
+                        <form class="form-horizontal" id="formCategoriaEgresos" action="<?php echo SERVERURL;?>ajax/addCategoriaEgresos.php" method="POST" data-form="" enctype="multipart/form-data">
+                            <input type="hidden" readonly id="categoria_gastos_id" name="categoria_gastos_id">
+
+                            <div class="row">
+                                <div class="col-lg-6 col-md-12 mb-3">
+                                    <label for="categoria">
+                                        <i class="fas fa-tag mr-1"></i>
+                                        Categoría <span class="priority">*</span>
+                                    </label>
+                                    <input type="text" required id="categoria" name="categoria" placeholder="Ej: Combustible" class="form-control" maxlength="30">
+                                    <small class="form-text text-muted">
+                                        Máximo 30 caracteres.
+                                    </small>
+                                </div>
+
+                                <div class="col-lg-6 col-md-12 mb-3">
+                                    <label for="es_inversion">
+                                        <i class="fas fa-seedling mr-1"></i>
+                                        Clasificación especial
+                                    </label>
+
+                                    <div class="categoria-invest-box d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <div class="categoria-invest-title">Marcar como inversión/reposición</div>
+                                            <p class="categoria-invest-help">
+                                                Si activa esta opción, cualquier otra categoría marcada como inversión se desactivará automáticamente.
+                                            </p>
                                         </div>
+
+                                        <label class="categoria-switch ml-3 mb-0">
+                                            <input type="checkbox" id="es_inversion" name="es_inversion" value="1">
+                                            <span class="categoria-slider"></span>
+                                        </label>
                                     </div>
                                 </div>
-                            </form>
-                        </div>
-                        <div class="modal-footer">
+                            </div>
 
+                            <div class="RespuestaAjax"></div>
+                        </form>
+                    </div>
+
+                    <div class="card-footer bg-white text-right">
+                        <button class="btn btn-secondary" type="button" id="btnLimpiarCategoriaEgresos">
+                            <i class="fas fa-broom mr-1"></i> Limpiar
+                        </button>
+
+                        <button class="guardar btn btn-success ml-2" type="submit" id="regCategoriaEgresos" form="formCategoriaEgresos">
+                            <i class="far fa-save fa-lg mr-1"></i> Registrar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card categoria-premium-card">
+                    <div class="card-header d-flex align-items-center justify-content-between">
+                        <span>
+                            <i class="fas fa-list mr-1"></i>
+                            Categorías registradas
+                        </span>
+
+                        <span class="text-muted small">
+                            Use acciones para editar, eliminar, activar/inactivar o cambiar inversión.
+                        </span>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="categoria-table-wrap">
+                            <div class="table-responsive">
+                                <table id="DatatableCategoriaEgresos" class="table table-header-gradient table-striped table-condensed table-hover mb-0" style="width:100%"></table>
+                            </div>
                         </div>
                     </div>
-                    <div class="RespuestaAjax"></div>
-                </form>
+                </div>
             </div>
-            <div class="modal-footer">
+
+            <div class="modal-footer bg-light">
                 <button class="btn btn-danger" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
-                </button>                
-                <button class="guardar btn btn-success ml-2" type="submit" style="display: none;" id="regCategoriaEgresos" form="formCategoriaEgresos">
-                    <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
+                    <i class="fas fa-times mr-1"></i> Cerrar
                 </button>
             </div>
         </div>
     </div>
 </div>
 
-<div class="modal fade" id="modalUpdateCategoriasEgresos">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+<div class="modal fade modal-categorias-premium" id="modalUpdateCategoriasEgresos">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title">Categorías</h4>
+                <h4 class="modal-title">
+                    <i class="fas fa-edit mr-2"></i>
+                    Editar Categoría
+                </h4>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="container"></div>
-            <div class="modal-body">
-                <form class="form-horizontal" id="formUpdateCategoriaEgresos" action="" method="POST" data-form="" enctype="multipart/form-data">
-                    <input type="hidden" required="required" readonly id="categoria_gastos_id" name="categoria_gastos_id" />
-                    
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="factura_egresos">Categoría <span class="priority">*<span /></label>
-                            <input type="text" required id="categoria" name="categoria" placeholder="Categoria"
-                                class="form-control" maxlength="19" />
-                        </div>
-                    </div>
-                    <div class="RespuestaAjax"></div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-danger" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Cancelar
-                </button>
-                <button class="editar btn btn-success ml-2" type="submit" style="display: none;" id="ediCategoriaEgresos" form="formUpdateCategoriaEgresos">
-                    <div class="sb-nav-link-icon"></div><i class="fas fa-edit fa-lg"></i> Confirmar
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-<!--FIN MODAL PARA EL FORMULARIO DE EGRESOS CONTABLES-->
 
-<!--INICIO MODAL REGISTRO CATEGORIAS-->
-<div class="modal fade" id="modalCategoriasEgresos">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Categorías</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="container"></div>
-            <div class="modal-body">
-                <form class="form-horizontal" id="formCategoriaEgresos" action="" method="POST"
-                    data-form="" enctype="multipart/form-data">
-                    <div class="form-row">
+            <form class="form-horizontal" id="formUpdateCategoriaEgresos" action="<?php echo SERVERURL;?>ajax/modificarCategoriaEgresos.php" method="POST" data-form="" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <input type="hidden" required readonly id="categoria_gastos_id" name="categoria_gastos_id">
+
+                    <div class="row">
                         <div class="col-md-12 mb-3">
-                            <input type="hidden" required="required" readonly id="categoria_gastos_id "
-                                name="categoria_gastos_id " />
-                            <div class="input-group mb-3">
-                                <input type="text" required readonly id="pro_categoriaEgresos"
-                                    name="pro_egresos_contabilidad" class="form-control" />
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div><i class="fa fa-plus-square fa-lg"></i>
-                                    </span>
+                            <label for="categoria">
+                                <i class="fas fa-tag mr-1"></i>
+                                Categoría <span class="priority">*</span>
+                            </label>
+                            <input type="text" required id="categoria" name="categoria" placeholder="Categoría" class="form-control" maxlength="30">
+                            <small class="form-text text-muted">
+                                Máximo 30 caracteres.
+                            </small>
+                        </div>
+
+                        <div class="col-md-12 mb-3">
+                            <label for="es_inversion">
+                                <i class="fas fa-seedling mr-1"></i>
+                                Clasificación especial
+                            </label>
+
+                            <div class="categoria-invest-box d-flex align-items-center justify-content-between">
+                                <div>
+                                    <div class="categoria-invest-title">Marcar como inversión/reposición</div>
+                                    <p class="categoria-invest-help">
+                                        Si activa esta opción, esta será la única categoría marcada como inversión.
+                                    </p>
                                 </div>
+
+                                <label class="categoria-switch ml-3 mb-0">
+                                    <input type="checkbox" id="es_inversion" name="es_inversion" value="1">
+                                    <span class="categoria-slider"></span>
+                                </label>
                             </div>
                         </div>
                     </div>
 
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <label for="factura_egresos">Categoría <span class="priority">*<span /></label>
-                            <input type="text" required id="categoria" name="categoria" placeholder="Categoria"
-                                class="form-control" maxlength="19" />
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="modal-body">
-                            <form class="FormularioAjax" id="formularioCategoriaEgresos">
-                                <div class="form-group">
-                                    <div class="col-md-12">
-                                        <div class="overflow-auto">
-                                            <table id="DatatableCategoriaEgresos"
-                                                class="table table-header-gradient table-striped table-condensed table-hover"
-                                                style="width:100%">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Categoría</th>
-                                                        <th>Editar</th>
-                                                        <th>Eliminar</th>
-                                                    </tr>
-                                                </thead>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                        <div class="modal-footer">
-
-                        </div>
-                    </div>
                     <div class="RespuestaAjax"></div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="guardar btn btn-success ml-2" type="submit" style="display: none;" id="regCategoriaEgresos" form="formCategoriaEgresos">
-                    <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
-                </button>
-                <button class="editar btn btn-success ml-2" type="submit" style="display: none;" id="ediCategoriaEgresos" form="formCategoriaEgresos">
-                    <div class="sb-nav-link-icon"></div><i class="fas fa-edit fa-lg"></i> Confirmar
-                </button>
-            </div>
+                </div>
+
+                <div class="modal-footer bg-light">
+                    <button class="btn btn-danger" data-dismiss="modal" type="button">
+                        <i class="fas fa-times mr-1"></i> Cancelar
+                    </button>
+
+                    <button class="editar btn btn-success ml-2" type="submit" id="ediCategoriaEgresos">
+                        <i class="fas fa-edit fa-lg mr-1"></i> Confirmar
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

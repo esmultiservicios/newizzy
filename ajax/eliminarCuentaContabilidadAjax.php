@@ -1,4 +1,5 @@
-<?php	
+<?php
+	//eliminarCuentaContabilidadAjax.php
 	$peticionAjax = true;
 	require_once "../core/configGenerales.php";
 	

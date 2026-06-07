@@ -68,46 +68,105 @@
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
-                <h4 class="modal-title"><i class="fas fa-book mr-2"></i>Registro de Cuentas Contables</h4>
+                <h4 class="modal-title">
+                    <i class="fas fa-book mr-2"></i>
+                    Registro de Cuentas Contables
+                </h4>
+
                 <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
+
             <div class="modal-body">
                 <form class="FormularioAjax" id="formCuentasContables" action="" method="POST" data-form="" enctype="multipart/form-data">
-                    <input type="hidden" required="required" readonly id="cuentas_id" name="cuentas_id" />
+                    <input type="hidden" required readonly id="cuentas_id" name="cuentas_id" />
 
-                    <!-- Sección de Información Básica -->
-                    <div class="card border-primary mb-4">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Información Básica</h5>
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-info-circle mr-2"></i>
+                                Información Básica
+                            </h5>
                         </div>
+
                         <div class="card-body">    
                             <div class="form-row">
                                 <div class="col-md-4 mb-3" style="display: none">
-                                    <label for="cuenta_codigo"><i class="fas fa-barcode mr-1"></i>Código</label>
+                                    <label for="cuenta_codigo">
+                                        <i class="fas fa-barcode mr-1"></i>
+                                        Código
+                                    </label>
+
                                     <input type="text" id="cuenta_codigo" name="cuenta_codigo" placeholder="Código" class="form-control" maxlength="11" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
-                                    <small class="form-text text-muted">Código único de la cuenta contable</small>
+
+                                    <small class="form-text text-muted">
+                                        Código único de la cuenta contable
+                                    </small>
                                 </div>
+
                                 <div class="col-md-12 mb-3">
-                                    <label for="cuenta_nombre"><i class="fas fa-file-signature mr-1"></i>Nombre de Cuenta <span class="priority">*</span></label>
-                                    <input type="text" required id="cuenta_nombre" name="cuenta_nombre" placeholder="Nombre de la cuenta contable" class="form-control" maxlength="30" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
-                                    <small class="form-text text-muted">Nombre descriptivo de la cuenta contable (máx. 30 caracteres)</small>
+                                    <label for="cuenta_nombre">
+                                        <i class="fas fa-file-signature mr-1"></i>
+                                        Nombre de Cuenta <span class="priority">*</span>
+                                    </label>
+
+                                    <input type="text" required id="cuenta_nombre" name="cuenta_nombre" placeholder="Nombre de la cuenta contable" class="form-control" maxlength="50" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
+
+                                    <small class="form-text text-muted">
+                                        Nombre descriptivo de la cuenta contable.
+                                    </small>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Sección de Estado -->
-                    <div class="card border-primary">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="fas fa-power-off mr-2"></i>Estado de la Cuenta</h5>
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-seedling mr-2"></i>
+                                Clasificación Especial
+                            </h5>
                         </div>
+
+                        <div class="card-body">
+                            <label for="es_inversion">
+                                <i class="fas fa-seedling mr-1"></i>
+                                Cuenta de inversión/reposición
+                            </label>
+
+                            <div class="cuenta-invest-box d-flex align-items-center justify-content-between">
+                                <div>
+                                    <div class="cuenta-invest-title">Marcar como cuenta de inversión/reposición</div>
+                                    <p class="cuenta-invest-help">
+                                        Si activa esta opción, cualquier otra cuenta marcada como inversión se desmarcará automáticamente. Solo puede existir una.
+                                    </p>
+                                </div>
+
+                                <label class="categoria-switch ml-3 mb-0">
+                                    <input type="checkbox" id="es_inversion" name="es_inversion" value="1">
+                                    <span class="categoria-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" id="estado_cuentas_contables">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-power-off mr-2"></i>
+                                Estado de la Cuenta
+                            </h5>
+                        </div>
+
                         <div class="card-body">
                             <div class="custom-control custom-switch">
                                 <input type="checkbox" class="custom-control-input" id="cuentas_activo" name="cuentas_activo" value="1" checked>
-                                <label class="custom-control-label" for="cuentas_activo">Cuenta Activa</label>
-                                <small class="form-text text-muted">Active o desactive el estado de la cuenta contable en el sistema</small>
+                                <label class="custom-control-label" for="cuentas_activo" id="label_cuentas_activo">Activo</label>
+
+                                <small class="form-text text-muted">
+                                    Active o desactive el estado de la cuenta contable en el sistema.
+                                </small>
                             </div>
                         </div>
                     </div>
@@ -115,13 +174,16 @@
                     <div class="RespuestaAjax"></div>
                 </form>
             </div>
+
             <div class="modal-footer">
-                <button class="btn btn-danger" data-dismiss="modal">
+                <button class="btn btn-danger" data-dismiss="modal" type="button">
                     <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
+
                 <button class="btn btn-success" type="submit" style="display: none;" id="reg_cuentas" form="formCuentasContables">
                     <i class="far fa-save fa-lg mr-1"></i> Registrar
                 </button>
+
                 <button class="btn btn-success" type="submit" style="display: none;" id="edi_cuentas" form="formCuentasContables">
                     <i class="fas fa-edit fa-lg mr-1"></i> Confirmar
                 </button>

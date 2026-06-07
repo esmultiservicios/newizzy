@@ -5146,27 +5146,125 @@ class mainModel
 
 	public function getMovimientosCuentasContables($datos)
 	{
-	  $fechai = $datos['fechai'];
-	  $fechaf = $datos['fechaf'];
-	
-	  $query = "
-		SELECT
-		  mc.movimientos_cuentas_id AS movimientos_cuentas_id,
-		  mc.fecha_registro         AS fecha,
-		  c.codigo                  AS codigo,
-		  c.nombre                  AS nombre,
-		  mc.ingreso                AS ingreso,
-		  mc.egreso                 AS egreso,
-		  mc.saldo                  AS saldo
-		FROM movimientos_cuentas mc
-		INNER JOIN cuentas c
-		  ON mc.cuentas_id = c.cuentas_id
-		WHERE DATE(mc.fecha_registro) BETWEEN '{$fechai}' AND '{$fechaf}'
-		ORDER BY mc.fecha_registro DESC
-	  ";
-	
-	  return self::connection()->query($query);
-	}	
+		$conexion = self::connection();
+
+		$fechai = isset($datos['fechai']) && $datos['fechai'] !== "" ? $conexion->real_escape_string($datos['fechai']) : date('Y-m-01');
+		$fechaf = isset($datos['fechaf']) && $datos['fechaf'] !== "" ? $conexion->real_escape_string($datos['fechaf']) : date('Y-m-d');
+
+		$cuenta_busqueda = isset($datos['cuenta_busqueda']) ? trim($datos['cuenta_busqueda']) : "";
+		$tipo_movimiento = isset($datos['tipo_movimiento']) ? trim($datos['tipo_movimiento']) : "";
+		$monto_desde = isset($datos['monto_desde']) ? trim($datos['monto_desde']) : "";
+		$monto_hasta = isset($datos['monto_hasta']) ? trim($datos['monto_hasta']) : "";
+
+		$where = [];
+		$where[] = "DATE(mc.fecha_registro) BETWEEN '{$fechai}' AND '{$fechaf}'";
+
+		if ($cuenta_busqueda !== "") {
+			$cuenta_busqueda = $conexion->real_escape_string($cuenta_busqueda);
+
+			$where[] = "(
+				c.codigo LIKE '%{$cuenta_busqueda}%'
+				OR c.nombre LIKE '%{$cuenta_busqueda}%'
+				OR CAST(c.cuentas_id AS CHAR) LIKE '%{$cuenta_busqueda}%'
+			)";
+		}
+
+		if ($tipo_movimiento !== "") {
+			$tipo_movimiento = $conexion->real_escape_string($tipo_movimiento);
+
+			switch ($tipo_movimiento) {
+				case "ingreso":
+					$where[] = "mc.ingreso > 0";
+					break;
+
+				case "egreso":
+					$where[] = "mc.egreso > 0";
+					break;
+
+				case "saldo_positivo":
+					$where[] = "mc.saldo > 0";
+					break;
+
+				case "saldo_negativo":
+					$where[] = "mc.saldo < 0";
+					break;
+
+				case "saldo_cero":
+					$where[] = "mc.saldo = 0";
+					break;
+
+				case "inversion":
+					$where[] = "c.es_inversion = 1";
+					break;
+			}
+		}
+
+		$monto_desde_num = null;
+		$monto_hasta_num = null;
+
+		if ($monto_desde !== "") {
+			$monto_desde = str_replace(",", "", $monto_desde);
+			if (is_numeric($monto_desde)) {
+				$monto_desde_num = (float)$monto_desde;
+			}
+		}
+
+		if ($monto_hasta !== "") {
+			$monto_hasta = str_replace(",", "", $monto_hasta);
+			if (is_numeric($monto_hasta)) {
+				$monto_hasta_num = (float)$monto_hasta;
+			}
+		}
+
+		if ($monto_desde_num !== null || $monto_hasta_num !== null) {
+			$campo_monto = "GREATEST(ABS(mc.ingreso), ABS(mc.egreso), ABS(mc.saldo))";
+
+			if ($tipo_movimiento === "ingreso") {
+				$campo_monto = "ABS(mc.ingreso)";
+			}
+
+			if ($tipo_movimiento === "egreso") {
+				$campo_monto = "ABS(mc.egreso)";
+			}
+
+			if (
+				$tipo_movimiento === "saldo_positivo" ||
+				$tipo_movimiento === "saldo_negativo" ||
+				$tipo_movimiento === "saldo_cero"
+			) {
+				$campo_monto = "ABS(mc.saldo)";
+			}
+
+			if ($monto_desde_num !== null) {
+				$where[] = "{$campo_monto} >= {$monto_desde_num}";
+			}
+
+			if ($monto_hasta_num !== null) {
+				$where[] = "{$campo_monto} <= {$monto_hasta_num}";
+			}
+		}
+
+		$where_sql = implode(" AND ", $where);
+
+		$query = "
+			SELECT
+				mc.movimientos_cuentas_id AS movimientos_cuentas_id,
+				mc.fecha_registro         AS fecha,
+				c.codigo                  AS codigo,
+				c.nombre                  AS nombre,
+				mc.ingreso                AS ingreso,
+				mc.egreso                 AS egreso,
+				mc.saldo                  AS saldo,
+				c.es_inversion            AS es_inversion
+			FROM movimientos_cuentas mc
+			INNER JOIN cuentas c
+				ON mc.cuentas_id = c.cuentas_id
+			WHERE {$where_sql}
+			ORDER BY mc.fecha_registro DESC, mc.movimientos_cuentas_id DESC
+		";
+
+		return $conexion->query($query);
+	}
 
 	// En mainModel.php
 	public function getIngresosContables($datos)

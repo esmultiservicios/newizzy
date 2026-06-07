@@ -56,6 +56,47 @@ $(window).on("load", function() {
             .replace(/'/g, "&#039;");
     }
 
+    function obtenerBadgePlan(nombrePlan, planesId) {
+        const nombre = String(nombrePlan || "").toLowerCase().trim();
+
+        if (nombre.includes("emprendedor")) {
+            return { clase: "badge-primary", icono: "fas fa-rocket" };
+        }
+
+        if (nombre.includes("básico+") || nombre.includes("basico+")) {
+            return { clase: "badge-info", icono: "fas fa-layer-group" };
+        }
+
+        if (nombre.includes("básico") || nombre.includes("basico")) {
+            return { clase: "badge-info", icono: "fas fa-leaf" };
+        }
+
+        if (nombre.includes("regular")) {
+            return { clase: "badge-success", icono: "fas fa-check-circle" };
+        }
+
+        if (nombre.includes("estandar") || nombre.includes("estándar")) {
+            return { clase: "badge-warning", icono: "fas fa-star" };
+        }
+
+        if (nombre.includes("premium")) {
+            return { clase: "badge-danger", icono: "fas fa-gem" };
+        }
+
+        const estilos = [
+            { clase: "badge-primary", icono: "fas fa-rocket" },
+            { clase: "badge-info", icono: "fas fa-layer-group" },
+            { clase: "badge-success", icono: "fas fa-check-circle" },
+            { clase: "badge-warning", icono: "fas fa-star" },
+            { clase: "badge-danger", icono: "fas fa-gem" },
+            { clase: "badge-secondary", icono: "fas fa-crown" }
+        ];
+
+        const index = Math.abs(parseInt(planesId, 10) || 0) % estilos.length;
+
+        return estilos[index];
+    }    
+
     /* =========================================================
         BOTÓN ACTUALIZAR PLAN
     ========================================================= */
@@ -218,24 +259,11 @@ $(window).on("load", function() {
                 {
                     data: "plan",
                     render: function(data, type, row) {
-                        const planInfo = {
-                            1: { class: "badge-primary", icon: "fas fa-rocket" },
-                            2: { class: "badge-info", icon: "fas fa-leaf" },
-                            3: { class: "badge-success", icon: "fas fa-check-circle" },
-                            4: { class: "badge-warning", icon: "fas fa-star-half-alt" },
-                            5: { class: "badge-danger", icon: "fas fa-gem" },
-                            6: { class: "badge-secondary", icon: "fas fa-gift" }
-                        };
-
-                        const info = planInfo[row.planes_id] || {
-                            class: "badge-light",
-                            icon: "fas fa-question-circle"
-                        };
-
                         const nombrePlan = data && data.nombre ? limpiarHtml(data.nombre) : "Sin plan";
+                        const info = obtenerBadgePlan(nombrePlan, row.planes_id);
 
-                        return '<span class="badge ' + info.class + ' badge-pill" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
-                                    '<i class="' + info.icon + '" style="margin-right: 5px;"></i>' + nombrePlan +
+                        return '<span class="badge ' + info.clase + ' badge-pill" style="font-size: 0.95rem; padding: 0.5em 0.85em; font-weight: 600; letter-spacing: 0.2px;">' +
+                                    '<i class="' + info.icono + '" style="margin-right: 6px;"></i>' + nombrePlan +
                                 '</span>';
                     }
                 },

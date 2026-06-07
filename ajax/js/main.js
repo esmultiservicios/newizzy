@@ -215,7 +215,33 @@ $(".FormularioAjax").submit(function (e) {
         },
         success: (data) => {
           respuesta.html(data);
+
           form.find('button[type="submit"]').prop("disabled", false);
+
+          /*
+            Refuerzo para productos:
+            Si el controlador ya ejecutó listar_productos(), perfecto.
+            Pero si por algún motivo el script de respuesta no refresca bien,
+            esto fuerza la recarga real de la tabla.
+          */
+          if (form.attr("id") === "formProductos") {
+            setTimeout(function () {
+              if (
+                $.fn.DataTable &&
+                $.fn.DataTable.isDataTable("#dataTableProductos")
+              ) {
+                $("#dataTableProductos").DataTable().ajax.reload(null, false);
+              } else if (typeof listar_productos === "function") {
+                listar_productos();
+              }
+
+              if (typeof window.resetProductoImagen === "function") {
+                window.resetProductoImagen();
+              }
+
+              $("#modal_registrar_productos").modal("hide");
+            }, 500);
+          }
         },
         error: () => {
           respuesta.html(msjError);

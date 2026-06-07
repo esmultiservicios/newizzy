@@ -434,7 +434,7 @@ $(document).off('click', '#btnGenerarBarcode').on('click', '#btnGenerarBarcode',
                 '<th>Categoría</th>' +
                 '<th>Precio Compra</th>' +
                 '<th>Precio Venta</th>' +
-                '<th>% Venta</th>' +
+                '<th>Ganancia</th>' +
                 '<th>ISV Venta</th>' +
                 '<th>Estado</th>' +
             '</tr>' +

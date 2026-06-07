@@ -614,45 +614,51 @@ var listar_reporte_ventas = function () {
   }
 
   var view_correo_facturas_dataTable = function (tbody, table) {
-  $(tbody).off("click", "button.email_factura");
+    $(tbody).off("click", "button.email_factura");
 
-  $(tbody).on("click", "button.email_factura", function (e) {
+    $(tbody).on("click", "button.email_factura", function (e) {
+        e.preventDefault();
 
-      e.preventDefault();
+        var data = table.row($(this).parents("tr")).data();
 
-      var data = table.row($(this).parents("tr")).data();
+        if (!data || !data.facturas_id) {
+            showNotify('error', 'Error', 'No se pudo obtener la factura seleccionada.');
+            return false;
+        }
 
-      swal({
-          title: "Enviar factura",
-          text: "¿Desea enviar la factura No. " + data.numero + " por correo electrónico?",
-          icon: "warning",
-          buttons: {
-              cancel: {
-                  text: "Cancelar",
-                  visible: true
-              },
-              confirm: {
-                  text: "Sí, enviar",
-                  closeModal: false
-              }
-          },
-          closeOnEsc: false,
-          closeOnClickOutside: false
-      }).then((confirmado) => {
+        swal({
+            title: "Enviar factura",
+            text: "¿Desea enviar la factura No. " + data.numero + " por correo electrónico?",
+            icon: "warning",
+            buttons: {
+                cancel: {
+                    text: "Cancelar",
+                    visible: true,
+                    closeModal: true
+                },
+                confirm: {
+                    text: "Sí, enviar",
+                    closeModal: true
+                }
+            },
+            dangerMode: false,
+            closeOnEsc: false,
+            closeOnClickOutside: false
+        }).then((confirmado) => {
+            if (!confirmado) {
+                return false;
+            }
 
-          if (!confirmado) {
-              return false;
-          }
+            showNotify(
+                'info',
+                'Enviando',
+                'Enviando factura por correo, por favor espere...'
+            );
 
-          swal.close();
-
-          mailBill(data.facturas_id);
-
-      });
-
-  });
-
-  };
+            mailBill(data.facturas_id);
+        });
+    });
+};
 
   var view_reporte_facturas_dataTable = function (tbody, table) {
     $(tbody).off("click", "button.print_factura");

@@ -1,31 +1,102 @@
 <script>
-//reporteCotizacio.php    
+//reporteCotizacio.php
+
 $(() => {
     getReporteCotizacion();
     listar_reporte_cotizaciones();
+
     $('#form_main_cotizaciones #tipo_cotizacion_reporte').val(1);
     $('#form_main_cotizaciones #tipo_cotizacion_reporte').selectpicker('refresh');
 
-    $('#form_main_cotizaciones #search').on("click", function(e) {
+    $('#form_main_cotizaciones #search').off('click.reporteCotizaciones');
+    $('#form_main_cotizaciones #search').on('click.reporteCotizaciones', function(e) {
         e.preventDefault();
         listar_reporte_cotizaciones();
     });
 
-    // Evento para el botón de Limpiar (reset)
-    $('#form_main_cotizaciones').on('reset', function() {
-        // Limpia y refresca los selects
-        $(this).find('.selectpicker')  // Usa `this` para referenciar el formulario actual
-            .val('')
-            .selectpicker('refresh');
+    $('#form_main_cotizaciones').off('reset.reporteCotizaciones');
+    $('#form_main_cotizaciones').on('reset.reporteCotizaciones', function() {
+        $(this).find('.selectpicker').val('').selectpicker('refresh');
 
-			listar_reporte_cotizaciones();
-    });	
+        setTimeout(function() {
+            listar_reporte_cotizaciones();
+        }, 100);
+    });
 });
+
+/* =========================================================
+   HELPERS - REPORTE DE COTIZACIONES
+   ========================================================= */
+
+function normalizarNumeroReporteCotizaciones(valor) {
+    if (valor === null || valor === undefined || valor === '') {
+        return 0;
+    }
+
+    valor = String(valor)
+        .replace(/L\./g, '')
+        .replace(/L/g, '')
+        .replace(/,/g, '')
+        .trim();
+
+    var numero = parseFloat(valor);
+
+    return isNaN(numero) ? 0 : numero;
+}
+
+function moneyCellCotizaciones(data, type) {
+    var valor = normalizarNumeroReporteCotizaciones(data);
+
+    if (type !== 'display') {
+        return valor;
+    }
+
+    var number = 'L ' + valor.toLocaleString('es-HN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+
+    var color = valor < 0 ? 'red' : 'green';
+
+    return '<span style="color:' + color + '; font-size: 1rem; font-weight: 600;">' + number + '</span>';
+}
+
+function moneyCellTotalCotizaciones(data, type) {
+    var valor = normalizarNumeroReporteCotizaciones(data);
+
+    if (type !== 'display') {
+        return valor;
+    }
+
+    var numberFormatted = 'L ' + valor.toLocaleString('es-HN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+
+    return `
+        <div class="total-container" style="display:flex;flex-direction:column;align-items:flex-end;min-width:120px;">
+            <div style="background:#fff;border-left:6px solid #28a745;padding:8px 12px;border-radius:.5rem;box-shadow:0 1px 5px rgba(0,0,0,.08);font-size:1.05rem;font-weight:bold;color:#212529;min-width:110px;text-align:right;">
+                ${numberFormatted}
+            </div>
+        </div>`;
+}
+
+function formatMoneyReporteCotizaciones(valor) {
+    valor = normalizarNumeroReporteCotizaciones(valor);
+
+    return new Intl.NumberFormat('es-HN', {
+        style: 'currency',
+        currency: 'HNL',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(valor);
+}
 
 /* =========================================================
    HEADER Y FOOTER DINÁMICO - REPORTE DE COTIZACIONES
    ========================================================= */
-   function construirHeaderFooterDataTablaReporteCotizaciones() {
+
+function construirHeaderFooterDataTablaReporteCotizaciones() {
     var $tabla = $("#dataTablaReporteCotizaciones");
 
     $tabla.empty();
@@ -56,20 +127,20 @@ $(() => {
     );
 }
 
-
 /* =========================================================
    LISTADO - REPORTE DE COTIZACIONES
    ========================================================= */
-var listar_reporte_cotizaciones = function() {
-    var tipo_cotizacion_reporte = 1;
 
-    if (
-        $("#form_main_cotizaciones #tipo_cotizacion_reporte").val() == null ||
-        $("#form_main_cotizaciones #tipo_cotizacion_reporte").val() == ""
-    ) {
+var listar_reporte_cotizaciones = function() {
+    try {
+        var _dtKey = 'DataTables_' + 'dataTablaReporteCotizaciones' + '_' + window.location.pathname;
+        localStorage.removeItem(_dtKey);
+    } catch (e) {}
+
+    var tipo_cotizacion_reporte = $("#form_main_cotizaciones #tipo_cotizacion_reporte").val();
+
+    if (tipo_cotizacion_reporte == null || tipo_cotizacion_reporte === "") {
         tipo_cotizacion_reporte = 1;
-    } else {
-        tipo_cotizacion_reporte = $("#form_main_cotizaciones #tipo_cotizacion_reporte").val();
     }
 
     var fechai = $("#form_main_cotizaciones #fechai").val();
@@ -82,23 +153,28 @@ var listar_reporte_cotizaciones = function() {
     construirHeaderFooterDataTablaReporteCotizaciones();
 
     var table_reporteCotizaciones = $("#dataTablaReporteCotizaciones").DataTable({
-        "destroy": true,
-        "ajax": {
-            "method": "POST",
-            "url": "<?php echo SERVERURL;?>core/llenarDataTableReporteCotizaciones.php",
-            "data": {
+        destroy: true,
+        footer: true,
+        stateSave: false,
+        orderMulti: false,
+
+        ajax: {
+            method: "POST",
+            url: "<?php echo SERVERURL;?>core/llenarDataTableReporteCotizaciones.php",
+            data: {
                 "tipo_cotizacion_reporte": tipo_cotizacion_reporte,
                 "fechai": fechai,
                 "fechaf": fechaf
             }
         },
-        "columns": [
+
+        columns: [
             {
-                "data": null,
-                "orderable": false,
-                "searchable": false,
-                "className": "text-center align-middle",
-                "render": function(data, type, row) {
+                data: null,
+                orderable: false,
+                searchable: false,
+                className: "text-center align-middle",
+                render: function(data, type, row) {
                     if (type !== "display") {
                         return "";
                     }
@@ -140,189 +216,148 @@ var listar_reporte_cotizaciones = function() {
                 }
             },
             {
-                "data": "fecha"
+                data: "fecha"
             },
             {
-                "data": "tipo_documento"
+                data: "tipo_documento",
+                render: function(data, type) {
+                    if (type !== 'display') {
+                        return data;
+                    }
+
+                    var texto = data || '';
+
+                    var icon = texto === 'Crédito'
+                        ? '<i class="fas fa-clock mr-1"></i>'
+                        : '<i class="fas fa-check-circle mr-1"></i>';
+
+                    var badgeClass = texto === 'Crédito'
+                        ? 'badge badge-pill badge-warning'
+                        : 'badge badge-pill badge-success';
+
+                    return '<span class="' + badgeClass + '" style="font-size:.95rem;padding:.5em .8em;font-weight:600;">' +
+                        icon +
+                        texto +
+                    '</span>';
+                }
             },
             {
-                "data": "cliente"
+                data: "cliente"
             },
             {
-                "data": "numero",
-                "render": function(data, type, row) {
+                data: "numero",
+                render: function(data, type, row) {
                     if (type === 'sort') {
-                        return parseInt(row.numero_ordenamiento);
+                        return parseInt(row.numero_ordenamiento, 10) || 0;
                     }
 
-                    return data;
+                    if (type !== 'display') {
+                        return data;
+                    }
+
+                    return '<span style="font-size:1rem;font-weight:600;white-space:nowrap;">' + data + '</span>';
                 }
             },
             {
-                "data": "subtotal",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
-                    if (type === 'display') {
-                        let color = 'black';
-
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                }
+                data: "subtotal",
+                render: moneyCellCotizaciones
             },
             {
-                "data": "isv",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
-                    if (type === 'display') {
-                        let color = 'black';
-
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                }
+                data: "isv",
+                render: moneyCellCotizaciones
             },
             {
-                "data": "descuento",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
-                    if (type === 'display') {
-                        let color = 'black';
-
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                }
+                data: "descuento",
+                render: moneyCellCotizaciones
             },
             {
-                "data": "total",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
-                    if (type === 'display') {
-                        let color = 'black';
-
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                }
+                data: "total",
+                render: moneyCellTotalCotizaciones
             }
         ],
-        "order": [[4, "desc"]],
-        "orderFixed": {
-            "pre": [[4, "desc"]]
-        },
-        "lengthMenu": lengthMenu10,
-        "stateSave": true,
-        "bDestroy": true,
-        "language": idioma_español,
-        "dom": dom,
-        "columnDefs": [
+
+        order: [[4, "desc"]],
+
+        columnDefs: [
             {
-                width: "10%",
                 targets: 0,
+                width: "8%",
                 orderable: false,
                 searchable: false,
                 className: "text-center text-nowrap align-middle"
             },
             {
+                targets: 1,
+                width: "11%",
+                className: "text-center text-nowrap align-middle"
+            },
+            {
+                targets: 2,
                 width: "10%",
-                targets: 1
+                className: "text-center text-nowrap align-middle"
             },
             {
-                width: "10%",
-                targets: 2
+                targets: 3,
+                width: "23%",
+                className: "align-middle"
             },
             {
-                width: "20%",
-                targets: 3
-            },
-            {
-                width: "14%",
                 targets: 4,
-                className: "text-center text-nowrap"
+                width: "14%",
+                className: "text-center text-nowrap align-middle",
+                type: "num"
             },
             {
-                width: "11%",
                 targets: 5,
-                className: "text-right text-nowrap"
+                width: "11%",
+                className: "text-right text-nowrap align-middle"
             },
             {
-                width: "11%",
                 targets: 6,
-                className: "text-right text-nowrap"
+                width: "10%",
+                className: "text-right text-nowrap align-middle"
             },
             {
-                width: "11%",
                 targets: 7,
-                className: "text-right text-nowrap"
+                width: "10%",
+                className: "text-right text-nowrap align-middle"
             },
             {
-                width: "13%",
                 targets: 8,
-                className: "text-right text-nowrap"
+                width: "13%",
+                className: "text-right text-nowrap align-middle"
             }
         ],
-        "footerCallback": function(row, data, start, end, display) {
+
+        lengthMenu: lengthMenu10,
+        bDestroy: true,
+        language: idioma_español,
+        dom: dom,
+
+        footerCallback: function(row, data) {
             var totalSubtotal = data.reduce(function(acc, row) {
-                return acc + (parseFloat(row.subtotal) || 0);
+                return acc + normalizarNumeroReporteCotizaciones(row.subtotal);
             }, 0);
 
             var totalIsv = data.reduce(function(acc, row) {
-                return acc + (parseFloat(row.isv) || 0);
+                return acc + normalizarNumeroReporteCotizaciones(row.isv);
             }, 0);
 
             var totalDescuento = data.reduce(function(acc, row) {
-                return acc + (parseFloat(row.descuento) || 0);
+                return acc + normalizarNumeroReporteCotizaciones(row.descuento);
             }, 0);
 
             var totalVentas = data.reduce(function(acc, row) {
-                return acc + (parseFloat(row.total) || 0);
+                return acc + normalizarNumeroReporteCotizaciones(row.total);
             }, 0);
 
-            var formatter = new Intl.NumberFormat('es-HN', {
-                style: 'currency',
-                currency: 'HNL',
-                minimumFractionDigits: 2
-            });
-
-            $('#subtotal-i').html(formatter.format(totalSubtotal));
-            $('#impuesto-i').html(formatter.format(totalIsv));
-            $('#descuento-i').html(formatter.format(totalDescuento));
-            $('#total-footer-ingreso').html(formatter.format(totalVentas));
+            $('#subtotal-i').html(formatMoneyReporteCotizaciones(totalSubtotal));
+            $('#impuesto-i').html(formatMoneyReporteCotizaciones(totalIsv));
+            $('#descuento-i').html(formatMoneyReporteCotizaciones(totalDescuento));
+            $('#total-footer-ingreso').html(formatMoneyReporteCotizaciones(totalVentas));
         },
-        "buttons": [
+
+        buttons: [
             {
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                 titleAttr: 'Actualizar Reporte de Cotizaciones',
@@ -337,8 +372,7 @@ var listar_reporte_cotizaciones = function() {
                 text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
                 titleAttr: 'Excel',
                 title: 'Reporte de Cotizaciones',
-                messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' +
-                    convertDateFormat(fechaf),
+                messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' + convertDateFormat(fechaf),
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 exportOptions: {
                     columns: [1, 2, 3, 4, 5, 6, 7, 8]
@@ -353,8 +387,7 @@ var listar_reporte_cotizaciones = function() {
                 orientation: 'landscape',
                 pageSize: 'LETTER',
                 title: 'Reporte de Cotizaciones',
-                messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' +
-                    convertDateFormat(fechaf),
+                messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' + convertDateFormat(fechaf),
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-danger ocultar',
                 exportOptions: {
@@ -372,12 +405,15 @@ var listar_reporte_cotizaciones = function() {
                 }
             }
         ],
-        "drawCallback": function(settings) {
+
+        drawCallback: function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
 
             if (typeof cerrarDropdownAcciones === "function") {
                 cerrarDropdownAcciones();
             }
+
+            $('[data-toggle="tooltip"]').tooltip();
         }
     });
 
@@ -387,38 +423,92 @@ var listar_reporte_cotizaciones = function() {
     view_reporteCotizaciones_dataTable("#dataTablaReporteCotizaciones tbody", table_reporteCotizaciones);
     view_enviarCotizaciones_dataTable("#dataTablaReporteCotizaciones tbody", table_reporteCotizaciones);
     view_anularCotizaciones_dataTable("#dataTablaReporteCotizaciones tbody", table_reporteCotizaciones);
-}
+};
+
+/* =========================================================
+   ACCIONES DATATABLE - REPORTE DE COTIZACIONES
+   ========================================================= */
 
 var view_anularCotizaciones_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.cancelar_cotizaciones");
     $(tbody).on("click", "button.cancelar_cotizaciones", function(e) {
         e.preventDefault();
+
         var data = table.row($(this).parents("tr")).data();
+
+        if (!data || !data.cotizacion_id) {
+            showNotify('error', 'Error', 'No se pudo obtener la cotización seleccionada');
+            return false;
+        }
+
         anularCotizacion(data.cotizacion_id);
     });
-}
+};
 
 var view_enviarCotizaciones_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.email_cotizacion");
+
     $(tbody).on("click", "button.email_cotizacion", function(e) {
         e.preventDefault();
+
         var data = table.row($(this).parents("tr")).data();
-        mailQuote(data.cotizacion_id);
+
+        if (!data || !data.cotizacion_id) {
+            showNotify('error', 'Error', 'No se pudo obtener la cotización seleccionada');
+            return false;
+        }
+
+        swal({
+            title: "Enviar cotización",
+            text: "¿Desea enviar esta cotización por correo electrónico?",
+            icon: "warning",
+            buttons: {
+                cancel: {
+                    text: "Cancelar",
+                    visible: true,
+                    closeModal: true
+                },
+                confirm: {
+                    text: "Sí, enviar",
+                    closeModal: true
+                }
+            },
+            dangerMode: false,
+            closeOnEsc: false,
+            closeOnClickOutside: false
+        }).then((confirmado) => {
+            if (!confirmado) {
+                return false;
+            }
+
+            mailQuote(data.cotizacion_id);
+        });
     });
-}
+};
 
 var view_reporteCotizaciones_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.print_cotizaciones");
     $(tbody).on("click", "button.print_cotizaciones", function(e) {
         e.preventDefault();
+
         var data = table.row($(this).parents("tr")).data();
+
+        if (!data || !data.cotizacion_id) {
+            showNotify('error', 'Error', 'No se pudo obtener la cotización seleccionada');
+            return false;
+        }
+
         printQuote(data.cotizacion_id);
     });
-}
+};
+
+/* =========================================================
+   ANULAR COTIZACIÓN
+   ========================================================= */
 
 function anularCotizacion(cotizacion_id) {
     swal({
-        title: "¿Estas seguro?",
+        title: "¿Está seguro?",
         text: "¿Desea anular la cotización: # " + getNumeroCotizacion(cotizacion_id) + "?",
         icon: "warning",
         buttons: {
@@ -428,11 +518,12 @@ function anularCotizacion(cotizacion_id) {
             },
             confirm: {
                 text: "¡Sí, anular la cotización!",
+                closeModal: false
             }
         },
         dangerMode: true,
-        closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-        closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
+        closeOnEsc: false,
+        closeOnClickOutside: false
     }).then((willConfirm) => {
         if (willConfirm === true) {
             anular(cotizacion_id);
@@ -446,20 +537,30 @@ function anular(cotizacion_id) {
     $.ajax({
         type: 'POST',
         url: url,
-        async: false,
-        data: 'cotizacion_id=' + cotizacion_id,
+        async: true,
+        data: {
+            cotizacion_id: cotizacion_id
+        },
         success: function(data) {
+            swal.close();
+
             if (data == 1) {
-                swal.close(); // Cierra el modal de SweetAlert  
                 showNotify('success', 'Success', 'La cotización ha sido anulada con éxito');
                 listar_reporte_cotizaciones();
             } else {
-                swal.close(); // Cierra el modal de SweetAlert
                 showNotify('error', 'Error', 'La cotización no se pudo anular');
             }
+        },
+        error: function(xhr) {
+            swal.close();
+            showNotify('error', 'Error', xhr.responseText || 'Hubo un problema al anular la cotización');
         }
     });
 }
+
+/* =========================================================
+   COMBOS - REPORTE DE COTIZACIONES
+   ========================================================= */
 
 function getReporteCotizacion() {
     var url = '<?php echo SERVERURL;?>core/getTipoFacturaReporte.php';
@@ -472,6 +573,9 @@ function getReporteCotizacion() {
             $('#form_main_cotizaciones #tipo_cotizacion_reporte').html("");
             $('#form_main_cotizaciones #tipo_cotizacion_reporte').html(data);
             $('#form_main_cotizaciones #tipo_cotizacion_reporte').selectpicker('refresh');
+        },
+        error: function() {
+            showNotify('error', 'Error', 'No se pudo cargar el tipo de cotización');
         }
     });
 }

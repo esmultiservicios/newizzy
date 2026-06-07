@@ -5621,3 +5621,167 @@
 <!-- =========================================================
      FIN MODALES COMPARTIDOS DE CAJA - FACTURAS
 ========================================================= -->
+
+ <!--INICIO MODAL PARA FORMULARIO PRECIOS EN FACTURACION / COTIZACION-->
+<div class="modal fade" id="editarPrecioModal" tabindex="-1" role="dialog" aria-labelledby="editarPrecioModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h4 class="modal-title" id="editarPrecioModalLabel">
+          <i class="fas fa-dollar-sign"></i> Editar Precio
+        </h4>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <form id="editar-precio-form">
+          <input type="hidden" id="producto-precio-index" value="">
+
+          <div class="form-group mb-3">
+            <label for="nuevo-precio-producto" class="form-label">Nuevo precio de venta</label>
+            <div class="input-group">
+              <span class="input-group-text">L.</span>
+              <input type="number" class="form-control" id="nuevo-precio-producto" min="0.01" step="0.01" placeholder="0.00">
+            </div>
+            <small class="text-muted">Este cambio aplica solo a la línea actual de la factura/proforma.</small>
+          </div>
+
+          <div class="form-group mb-0">
+            <label class="form-label">Vista previa</label>
+
+                <div id="precio-total-preview" class="precio-preview-box">
+                    <div class="precio-preview-item">
+                    <span>Subtotal</span>
+                    <strong id="preview-subtotal">L. 0.00</strong>
+                    </div>
+
+                    <div class="precio-preview-item">
+                    <span>ISV 15%</span>
+                    <strong id="preview-isv15">L. 0.00</strong>
+                    </div>
+
+                    <div class="precio-preview-item">
+                    <span>ISV 18%</span>
+                    <strong id="preview-isv18">L. 0.00</strong>
+                    </div>
+
+                    <div class="precio-preview-item total">
+                    <span>Total</span>
+                    <strong id="preview-total">L. 0.00</strong>
+                    </div>
+                </div>
+            </div>
+
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+          <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+        </button>
+        <button type="button" class="btn btn-primary" id="guardar-precio">
+          <i class="far fa-save fa-lg mr-1"></i> Guardar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+ <!--FIN MODAL PARA FORMULARIO PRECIOS EN FACTURACION / COTIZACION-->
+
+<!--INICIO MODAL PARA FORMULARIO DESCUENTOS EN FACTURACION / COTIZACION-->
+<div class="modal fade" id="modalDescuentoFacturacion">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Descuento</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="container"></div>
+
+            <div class="modal-body">
+                <form class="form-horizontal" id="formDescuentoFacturacion" action="" method="POST" data-form=""
+                    enctype="multipart/form-data">
+
+                    <div class="form-row">
+                        <div class="col-md-12 mb-3">
+                            <input type="hidden" required="required" readonly id="descuento_productos_id"
+                                name="descuento_productos_id" />
+
+                            <input type="hidden" required="required" readonly id="row_index" name="row_index" />
+
+                            <input type="hidden" required="required" readonly id="col_index" name="col_index" />
+
+                            <div class="input-group mb-3">
+                                <input type="text" required readonly id="pro_descuento_fact" name="pro_descuento_fact"
+                                    class="form-control" />
+
+                                <div class="input-group-append">
+                                    <span class="input-group-text">
+                                        <div class="sb-nav-link-icon"></div>
+                                        <i class="fa fa-plus-square fa-lg"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="col-md-8 mb-3">
+                            <label for="producto_descuento_fact">Producto <span class="priority">*</span></label>
+                            <input type="text" readonly required id="producto_descuento_fact"
+                                name="producto_descuento_fact" placeholder="Producto" class="form-control"
+                                maxlength="150"
+                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="precio_descuento_fact">Precio <span class="priority">*</span></label>
+                            <input type="text" readonly required id="precio_descuento_fact" name="precio_descuento_fact"
+                                placeholder="Precio" class="form-control" maxlength="30"
+                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);"
+                                step="0.01" />
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="col-md-4 mb-3">
+                            <label for="porcentaje_descuento_fact">% Descuento <span class="priority">*</span></label>
+                            <input type="text" required id="porcentaje_descuento_fact" name="porcentaje_descuento_fact"
+                                placeholder="Porcentaje de Descuento" class="form-control" maxlength="11"
+                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="descuento_fact">Valor Descuento <span class="priority">*</span></label>
+                            <input type="text" required id="descuento_fact" name="descuento_fact"
+                                placeholder="Descuento" class="form-control" maxlength="30"
+                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);"
+                                step="0.01" />
+                        </div>
+                    </div>
+
+                    <div class="RespuestaAjax"></div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <div class="sb-nav-link-icon"></div>
+                    <i class="fas fa-times fa-lg"></i> Cancelar
+                </button>
+
+                <button class="guardar btn btn-primary ml-2" type="submit"
+                    id="reg_DescuentoFacturacion" form="formDescuentoFacturacion">
+                    <div class="sb-nav-link-icon"></div>
+                    <i class="far fa-save fa-lg"></i> Registrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!--FIN MODAL PARA FORMULARIO DESCUENTOS EN FACTURACION / COTIZACION-->

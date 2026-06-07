@@ -510,6 +510,162 @@ if (!window.__eventosCajaFacturaRegistrados) {
 
 
 /* =========================================================
+   INICIO - ESTILOS DATATABLE CAJA FACTURA
+   ========================================================= */
+
+   function aplicarEstilosCajaFactura() {
+    if ($('#styleCajaFacturaDataTable').length > 0) {
+        return;
+    }
+
+    $('head').append(
+        '<style id="styleCajaFacturaDataTable">' +
+            '#dataTableCajaFactura {' +
+                'width: 100% !important;' +
+            '}' +
+
+            '#dataTableCajaFactura thead th {' +
+                'font-size: 13px !important;' +
+                'font-weight: 700 !important;' +
+                'vertical-align: middle !important;' +
+                'white-space: nowrap !important;' +
+            '}' +
+
+            '#dataTableCajaFactura tbody td {' +
+                'font-size: 13px !important;' +
+                'vertical-align: middle !important;' +
+            '}' +
+
+            '#dataTableCajaFactura tbody td.cf-col-monto {' +
+                'font-size: 13px !important;' +
+                'font-weight: 600 !important;' +
+                'text-align: right !important;' +
+                'white-space: nowrap !important;' +
+            '}' +
+
+            '#dataTableCajaFactura .cf-monto-tabla {' +
+                'display: inline-block !important;' +
+                'font-size: 13px !important;' +
+                'font-weight: 600 !important;' +
+                'line-height: 1.2 !important;' +
+                'min-width: 85px !important;' +
+                'text-align: right !important;' +
+            '}' +
+
+            '#dataTableCajaFactura .cf-monto-positivo {' +
+                'color: #008000 !important;' +
+            '}' +
+
+            '#dataTableCajaFactura .cf-monto-negativo {' +
+                'color: #dc3545 !important;' +
+            '}' +
+
+            '#dataTableCajaFactura .cf-monto-cero {' +
+                'color: #2d2d2d !important;' +
+            '}' +
+
+            '#dataTableCajaFactura tfoot th {' +
+                'font-size: 13px !important;' +
+                'font-weight: 700 !important;' +
+                'vertical-align: middle !important;' +
+                'white-space: nowrap !important;' +
+                'background: #ffffff !important;' +
+            '}' +
+
+            '#dataTableCajaFactura tfoot th.cf-total-monto {' +
+                'font-size: 13px !important;' +
+                'font-weight: 700 !important;' +
+                'text-align: right !important;' +
+            '}' +
+
+            '#dataTableCajaFactura .cf-total-tabla {' +
+                'display: inline-block !important;' +
+                'font-size: 13px !important;' +
+                'font-weight: 700 !important;' +
+                'line-height: 1.2 !important;' +
+                'min-width: 85px !important;' +
+                'text-align: right !important;' +
+                'color: #2d2d2d !important;' +
+            '}' +
+
+            '#dataTableCajaFactura .acciones-caja-wrap {' +
+                'display: flex !important;' +
+                'align-items: center !important;' +
+                'justify-content: center !important;' +
+                'gap: 6px !important;' +
+            '}' +
+        '</style>'
+    );
+}
+
+/* =========================================================
+   FIN - ESTILOS DATATABLE CAJA FACTURA
+   ========================================================= */
+
+
+/* =========================================================
+   INICIO - FUNCIONES DE MONEDA CAJA FACTURA
+   ========================================================= */
+
+function parseMontoCajaFactura(valor) {
+    if (valor === null || valor === undefined || valor === '') {
+        return 0;
+    }
+
+    if (typeof valor === 'number') {
+        return valor;
+    }
+
+    valor = valor.toString();
+
+    valor = valor
+        .replace(/L\./g, '')
+        .replace(/,/g, '')
+        .replace(/<[^>]*>/g, '')
+        .trim();
+
+    var numero = parseFloat(valor);
+
+    if (isNaN(numero)) {
+        return 0;
+    }
+
+    return numero;
+}
+
+function formatoMonedaCajaFactura(valor) {
+    var numero = parseMontoCajaFactura(valor);
+
+    return 'L. ' + numero.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+function renderMonedaColorCajaFactura(data, type) {
+    var valor = parseMontoCajaFactura(data);
+
+    if (type !== 'display') {
+        return valor;
+    }
+
+    var claseColor = 'cf-monto-cero';
+
+    if (valor > 0) {
+        claseColor = 'cf-monto-positivo';
+    } else if (valor < 0) {
+        claseColor = 'cf-monto-negativo';
+    }
+
+    return '<span class="cf-monto-tabla ' + claseColor + '">' + formatoMonedaCajaFactura(valor) + '</span>';
+}
+
+/* =========================================================
+   FIN - FUNCIONES DE MONEDA CAJA FACTURA
+   ========================================================= */
+
+
+/* =========================================================
    INICIO - HEADER Y FOOTER DATATABLE CAJA FACTURA
    ========================================================= */
 
@@ -535,10 +691,10 @@ function construirHeaderFooterCajaFactura() {
         '<tfoot>' +
             '<tr>' +
                 '<th colspan="5" class="text-right">Totales:</th>' +
-                '<th id="cf_total_apertura">L. 0.00</th>' +
-                '<th id="cf_total_venta">L. 0.00</th>' +
-                '<th id="cf_total_retiro">L. 0.00</th>' +
-                '<th id="cf_total_neto">L. 0.00</th>' +
+                '<th id="cf_total_apertura" class="cf-total-monto"><span class="cf-total-tabla">L. 0.00</span></th>' +
+                '<th id="cf_total_venta" class="cf-total-monto"><span class="cf-total-tabla">L. 0.00</span></th>' +
+                '<th id="cf_total_retiro" class="cf-total-monto"><span class="cf-total-tabla">L. 0.00</span></th>' +
+                '<th id="cf_total_neto" class="cf-total-monto"><span class="cf-total-tabla">L. 0.00</span></th>' +
             '</tr>' +
         '</tfoot>'
     );
@@ -554,6 +710,8 @@ function construirHeaderFooterCajaFactura() {
    ========================================================= */
 
 function cargarCajaFactura() {
+    aplicarEstilosCajaFactura();
+
     var fechai = $('#fecha_caja_factura_i').val();
     var fechaf = $('#fecha_caja_factura_f').val();
     var estado = $('#estado_caja_factura').val();
@@ -633,7 +791,7 @@ function cargarCajaFactura() {
                                 '</span>' +
                                 '<span class="accion-label">Cerrar caja</span>' +
                             '</button>';
-                        
+
                         accionesCaja +=
                             '<button type="button" class="dropdown-item accion-item accion-retiro btn-cf-retirar">' +
                                 '<span class="accion-icon accion-icon-warning">' +
@@ -732,11 +890,15 @@ function cargarCajaFactura() {
         columnDefs: [
             {
                 targets: [5, 6, 7, 8],
-                className: 'text-right text-nowrap'
+                className: 'text-right text-nowrap cf-col-monto'
             },
             {
                 targets: [0, 1, 3, 4],
                 className: 'text-center text-nowrap'
+            },
+            {
+                targets: [2],
+                className: 'text-nowrap'
             }
         ],
 
@@ -809,10 +971,10 @@ function cargarCajaFactura() {
                 return parseMontoCajaFactura(a) + parseMontoCajaFactura(b);
             }, 0);
 
-            $('#cf_total_apertura').html('<span>' + formatoMonedaCajaFactura(totalApertura) + '</span>');
-            $('#cf_total_venta').html('<span>' + formatoMonedaCajaFactura(totalVenta) + '</span>');
-            $('#cf_total_retiro').html('<span>' + formatoMonedaCajaFactura(totalRetiro) + '</span>');
-            $('#cf_total_neto').html('<span>' + formatoMonedaCajaFactura(totalNeto) + '</span>');
+            $('#cf_total_apertura').html('<span class="cf-total-tabla">' + formatoMonedaCajaFactura(totalApertura) + '</span>');
+            $('#cf_total_venta').html('<span class="cf-total-tabla">' + formatoMonedaCajaFactura(totalVenta) + '</span>');
+            $('#cf_total_retiro').html('<span class="cf-total-tabla">' + formatoMonedaCajaFactura(totalRetiro) + '</span>');
+            $('#cf_total_neto').html('<span class="cf-total-tabla">' + formatoMonedaCajaFactura(totalNeto) + '</span>');
         },
 
         drawCallback: function () {

@@ -141,11 +141,11 @@
                                 <span id="subtotal">L. 0.00</span>
                             </div>
                             <div class="total-row">
-                                <span>ISV 15%:</span>
+                                <span id="label-isv-15">ISV:</span>
                                 <span id="isv-15">L. 0.00</span>
                             </div>
                             <div class="total-row">
-                                <span>ISV 18%:</span>
+                                <span id="label-isv-18">ISV:</span>
                                 <span id="isv-18">L. 0.00</span>
                             </div>
                             <div class="total-row">

@@ -6500,64 +6500,65 @@ class mainModel
 		$tipo     = '';
 		$fecha    = '';
 		$bodega   = '';
-
+	
 		$fecha_actual = date('Y-m-d');
-
-		if ($datos['fechai'] != $fecha_actual) {
+	
+		if ($datos['fechai'] != '' && $datos['fechaf'] != '') {
 			$fecha = "AND CAST(m.fecha_registro AS DATE) BETWEEN '" . self::cleanString($datos['fechai']) . "' AND '" . self::cleanString($datos['fechaf']) . "'";
 		}
-
-		if ($datos['bodega'] != '') {
-			$bodega = "AND a.almacen_id = '" . self::cleanString($datos['bodega']) . "'";
+	
+		if ($datos['bodega'] != '' && $datos['bodega'] != '0') {
+			$bodega = "AND m.almacen_id = '" . self::cleanString($datos['bodega']) . "'";
 		}
-		if ($datos['bodega'] == '0') { $bodega = ''; }
-
-		if ($datos['producto'] != '') {
+	
+		if ($datos['producto'] != '' && $datos['producto'] != '0') {
 			$producto = "AND p.productos_id = '" . self::cleanString($datos['producto']) . "'";
 		}
-		if ($datos['cliente'] != '') {
-			$cliente  = "AND m.clientes_id = '" . self::cleanString($datos['cliente']) . "'";
+	
+		if ($datos['cliente'] != '' && $datos['cliente'] != '0') {
+			$cliente = "AND m.clientes_id = '" . self::cleanString($datos['cliente']) . "'";
 		}
-		if ($datos['tipo_producto_id'] != '') {
-			$tipo     = "AND p.tipo_producto_id = '" . self::cleanString($datos['tipo_producto_id']) . "'";
+	
+		if ($datos['tipo_producto_id'] != '' && $datos['tipo_producto_id'] != '0') {
+			$tipo = "AND p.tipo_producto_id = '" . self::cleanString($datos['tipo_producto_id']) . "'";
 		}
-
+	
 		$empresa = self::cleanString($datos['empresa_id_sd']);
-
+	
 		$query = "
 			SELECT 
-			m.movimientos_id,
-			m.documento,
-			m.cantidad_entrada,
-			m.cantidad_salida,
-			m.saldo,
-			m.fecha_registro,
-			p.nombre AS producto_nombre,
-			c.nombre AS cliente,
-			a.nombre AS almacen_nombre,
-			p.barCode AS 'barCode',
-			m.comentario,
-			p.nombre AS 'producto',
-			md.nombre AS 'medida',
-			m.cantidad_entrada AS 'entrada',
-			m.cantidad_salida  AS 'salida',
-			COALESCE(
-				(SELECT 
-					SUM(CASE WHEN mm.cantidad_entrada > 0 THEN mm.cantidad_entrada ELSE 0 END) -
-					SUM(CASE WHEN mm.cantidad_salida  > 0 THEN mm.cantidad_salida  ELSE 0 END)
-				FROM movimientos mm
-				WHERE mm.productos_id = m.productos_id
-				AND mm.almacen_id   = m.almacen_id
-				AND mm.fecha_registro < m.fecha_registro
-				AND mm.empresa_id = '$empresa'
-				$fecha
-				),
-			0) AS saldo_anterior,
-			a.nombre    AS 'bodega',
-			a.almacen_id,
-			p.productos_id,
-			p.file_name AS 'image',
-			COALESCE(l.numero_lote, '') AS 'numero_lote'
+				m.movimientos_id,
+				m.documento,
+				m.cantidad_entrada,
+				m.cantidad_salida,
+				m.saldo,
+				m.fecha_registro,
+				p.nombre AS producto_nombre,
+				COALESCE(c.nombre, 'Sin cliente') AS cliente,
+				a.nombre AS almacen_nombre,
+				p.barCode AS 'barCode',
+				m.comentario,
+				p.nombre AS 'producto',
+				md.nombre AS 'medida',
+				m.cantidad_entrada AS 'entrada',
+				m.cantidad_salida  AS 'salida',
+				COALESCE(
+					(
+						SELECT 
+							SUM(CASE WHEN mm.cantidad_entrada > 0 THEN mm.cantidad_entrada ELSE 0 END) -
+							SUM(CASE WHEN mm.cantidad_salida  > 0 THEN mm.cantidad_salida  ELSE 0 END)
+						FROM movimientos mm
+						WHERE mm.productos_id = m.productos_id
+						AND mm.almacen_id = m.almacen_id
+						AND mm.fecha_registro < m.fecha_registro
+						AND mm.empresa_id = '$empresa'
+					),
+				0) AS saldo_anterior,
+				COALESCE(a.nombre, 'Sin bodega') AS 'bodega',
+				m.almacen_id,
+				p.productos_id,
+				p.file_name AS 'image',
+				COALESCE(l.numero_lote, '') AS 'numero_lote'
 			FROM movimientos m
 			LEFT JOIN productos p ON m.productos_id = p.productos_id
 			LEFT JOIN clientes  c ON m.clientes_id  = c.clientes_id
@@ -6573,8 +6574,13 @@ class mainModel
 			$tipo
 			ORDER BY m.fecha_registro DESC
 		";
-
+	
 		$result = self::connection()->query($query);
+	
+		if (!$result) {
+			die("Error SQL getMovimientosProductos: " . self::connection()->error . "<br><br>" . $query);
+		}
+	
 		return $result;
 	}
 

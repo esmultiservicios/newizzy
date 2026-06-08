@@ -5065,13 +5065,30 @@ $('#formClientes .switch').change(function() {
 
 //INICIO EDITAR RTN CLIENTE
 //SE LLAMA AL MODAL CUANDO PRESIONAMOS EN EDITAR RTN EN CLIENTES
-$('#formClientes #grupo_editar_rtn').on('click', function(e) {
+$(document).on('click', '#formClientes #grupo_editar_rtn_clientes .editar_rtn', function(e) {
     e.preventDefault();
 
+    var clientes_id = $('#formClientes #clientes_id').val();
+    var cliente = $('#formClientes #nombre_clientes').val();
+    var rtn = $('#formClientes #identidad_clientes').val();
+
+    if ($('#formEditarRTNClientes').length === 0) {
+        showNotify('error', 'Error', 'No se encontró el formulario para editar RTN.');
+        return;
+    }
+
+    if ($('#modalEditarRTNClientes').length === 0) {
+        showNotify('error', 'Error', 'No se encontró el modal para editar RTN.');
+        return;
+    }
+
     $('#formEditarRTNClientes')[0].reset();
-    $('#formEditarRTNClientes #pro_clientes').val("Editar");
-    $('#formEditarRTNClientes #clientes_id').val($('#formClientes #clientes_id').val());
-    $('#formEditarRTNClientes #cliente').val($('#formClientes #nombre_clientes').val());
+
+    $('#formEditarRTNClientes #pro_clientes').val('Editar');
+    $('#formEditarRTNClientes #clientes_id').val(clientes_id);
+    $('#formEditarRTNClientes #cliente').val(cliente);
+    $('#formEditarRTNClientes #rtn_cliente').val(rtn);
+
     $('#modalEditarRTNClientes').modal({
         show: true,
         keyboard: false,

@@ -98,7 +98,6 @@ $whereApertura = " a.empresa_id = '$empresa_id' ";
 $whereFacturas = " f.empresa_id = '$empresa_id' AND f.estado IN (2,3) ";
 $whereRetiros = " cr.empresa_id = '$empresa_id' AND cr.estado = 1 ";
 $whereRetirosPendientes = " cr.empresa_id = '$empresa_id' AND cr.estado = 1 AND IFNULL(cr.egresos_id, 0) = 0 ";
-$whereEgresosGastos = " e.empresa_id = '$empresa_id' AND e.estado = 1 AND e.tipo_egreso = 2 ";
 $whereOtrosIngresos = " i.empresa_id = '$empresa_id' AND i.estado = 1 AND i.tipo_ingreso = 2 ";
 
 if ($modo === 'caja') {
@@ -136,14 +135,12 @@ if ($modo === 'caja') {
     $whereFacturas .= " AND f.apertura_id = '$apertura_id' ";
     $whereRetiros .= " AND cr.apertura_id = '$apertura_id' ";
     $whereRetirosPendientes .= " AND cr.apertura_id = '$apertura_id' ";
-    $whereEgresosGastos .= " AND e.fecha = '$fecha_caja' ";
     $whereOtrosIngresos .= " AND i.fecha = '$fecha_caja' ";
 } else {
     $whereApertura .= " AND a.fecha BETWEEN '$fechai' AND '$fechaf' ";
     $whereFacturas .= " AND f.fecha BETWEEN '$fechai' AND '$fechaf' ";
     $whereRetiros .= " AND cr.fecha BETWEEN '$fechai' AND '$fechaf' ";
     $whereRetirosPendientes .= " AND cr.fecha BETWEEN '$fechai' AND '$fechaf' ";
-    $whereEgresosGastos .= " AND e.fecha BETWEEN '$fechai' AND '$fechaf' ";
     $whereOtrosIngresos .= " AND i.fecha BETWEEN '$fechai' AND '$fechaf' ";
 }
 
@@ -180,7 +177,6 @@ if ($solo_mi_caja === 1 && $origen === 'facturacion') {
         )
     ";
 
-    $whereEgresosGastos .= " AND e.colaboradores_id = '$colaboradores_id' ";
     $whereOtrosIngresos .= " AND i.colaboradores_id = '$colaboradores_id' ";
 }
 
@@ -325,9 +321,24 @@ if ($resOtrosIngresos && $resOtrosIngresos->num_rows > 0) {
     $ingreso_inversion = (float)$rowOtrosIngresos['ingreso_inversion'];
 }
 
+/*
+    GASTOS REALES DE CAJA
+
+    IMPORTANTE:
+    Aquí NO se toman todos los egresos del módulo Egresos.
+
+    Solo se toman los egresos que nacieron desde caja_retiros:
+    - caja_retiros.estado = 1
+    - caja_retiros.egresos_id > 0
+    - egresos.estado = 1
+    - egresos.tipo_egreso = 2
+
+    Así evitamos que egresos manuales hechos desde el módulo Egresos
+    afecten la ganancia de esta caja.
+*/
 $sqlGastos = "
     SELECT
-        COALESCE(SUM(e.total), 0) AS total_egresos_registrados,
+        COALESCE(SUM(cr.monto), 0) AS total_egresos_registrados,
 
         COALESCE(SUM(
             CASE
@@ -340,7 +351,11 @@ $sqlGastos = "
                   OR UPPER(IFNULL(e.observacion, '')) LIKE '%INVERSIÓN%'
                   OR UPPER(IFNULL(e.observacion, '')) LIKE '%REPOSICION%'
                   OR UPPER(IFNULL(e.observacion, '')) LIKE '%REPOSICIÓN%'
-                THEN e.total
+                  OR UPPER(IFNULL(cr.observacion, '')) LIKE '%INVERSION%'
+                  OR UPPER(IFNULL(cr.observacion, '')) LIKE '%INVERSIÓN%'
+                  OR UPPER(IFNULL(cr.observacion, '')) LIKE '%REPOSICION%'
+                  OR UPPER(IFNULL(cr.observacion, '')) LIKE '%REPOSICIÓN%'
+                THEN cr.monto
                 ELSE 0
             END
         ), 0) AS egreso_inversion_apartada,
@@ -356,15 +371,25 @@ $sqlGastos = "
                   OR UPPER(IFNULL(e.observacion, '')) LIKE '%INVERSIÓN%'
                   OR UPPER(IFNULL(e.observacion, '')) LIKE '%REPOSICION%'
                   OR UPPER(IFNULL(e.observacion, '')) LIKE '%REPOSICIÓN%'
+                  OR UPPER(IFNULL(cr.observacion, '')) LIKE '%INVERSION%'
+                  OR UPPER(IFNULL(cr.observacion, '')) LIKE '%INVERSIÓN%'
+                  OR UPPER(IFNULL(cr.observacion, '')) LIKE '%REPOSICION%'
+                  OR UPPER(IFNULL(cr.observacion, '')) LIKE '%REPOSICIÓN%'
                 THEN 0
-                ELSE e.total
+                ELSE cr.monto
             END
         ), 0) AS total_gastos_reales
 
-    FROM egresos e
+    FROM caja_retiros cr
+    INNER JOIN egresos e
+        ON e.egresos_id = cr.egresos_id
+       AND e.empresa_id = cr.empresa_id
+       AND e.estado = 1
+       AND e.tipo_egreso = 2
     LEFT JOIN categoria_gastos cg
         ON cg.categoria_gastos_id = e.categoria_gastos_id
-    WHERE $whereEgresosGastos
+    WHERE $whereRetiros
+      AND IFNULL(cr.egresos_id, 0) > 0
 ";
 
 $resGastos = $insMainModel->ejecutar_consulta_simple($sqlGastos);
@@ -435,6 +460,11 @@ if ($pendiente_cobro < 0) {
     $pendiente_cobro = 0;
 }
 
+/*
+    Neto disponible:
+    - total_gastos: solo retiros de caja que ya fueron convertidos a egreso.
+    - retiro_caja_pendiente: retiros de caja todavía flotantes, sin egresos_id.
+*/
 $neto_disponible = ($total_cobrado + $otros_ingresos) - $total_gastos - $retiro_caja_pendiente;
 
 $efectivo_esperado_caja = ($monto_apertura + $efectivo) - $retiro_caja_pendiente;
@@ -514,9 +544,16 @@ echo json_encode([
         'total_ingresos_registrados' => $total_ingresos_registrados,
         'otros_ingresos' => $otros_ingresos,
         'ingreso_inversion' => $ingreso_inversion,
+
+        /*
+            Estos gastos ya vienen filtrados:
+            solo retiros de caja que existen en caja_retiros
+            y que ya fueron convertidos a egreso.
+        */
         'total_gastos' => $total_gastos,
         'total_gastos_reales' => $total_gastos,
         'total_egresos_registrados' => $total_egresos_registrados,
+
         'total_inversion_apartada' => $total_inversion_apartada,
         'egreso_inversion_apartada' => $egreso_inversion_apartada,
         'retiro_caja' => $retiro_caja_total,

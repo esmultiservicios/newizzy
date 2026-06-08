@@ -25,6 +25,87 @@ function formatNumber(n){
   }
 }
 
+function movimientosValor(valor, textoDefault) {
+  if (valor === null || valor === undefined || String(valor).trim() === '') {
+    return textoDefault !== undefined ? textoDefault : 'No registrado';
+  }
+
+  return String(valor).trim();
+}
+
+function movimientosEscape(valor) {
+  return movimientosValor(valor, '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function movimientosBadgeNumero(valor, tipo) {
+  var numero = toNumber(valor);
+  var clase = 'movimientos-number-badge';
+
+  if (tipo === 'anterior') {
+    clase += numero > 0 ? ' movimientos-badge-anterior-ok' : ' movimientos-badge-anterior-empty';
+  }
+
+  if (tipo === 'entrada') {
+    clase += numero > 0 ? ' movimientos-badge-entrada-ok' : ' movimientos-badge-neutral';
+  }
+
+  if (tipo === 'salida') {
+    clase += numero > 0 ? ' movimientos-badge-salida-ok' : ' movimientos-badge-neutral';
+  }
+
+  if (tipo === 'saldo') {
+    clase += numero >= 0 ? ' movimientos-badge-saldo-ok' : ' movimientos-badge-saldo-danger';
+  }
+
+  return '<span class="' + clase + '">' + formatNumber(numero) + '</span>';
+}
+
+function movimientosActualizarResumen(rows) {
+  rows = rows || [];
+
+  var totalEntrada = 0;
+  var totalSalida = 0;
+  var totalBalance = 0;
+
+  rows.forEach(function(item) {
+    totalEntrada += toNumber(item.entrada);
+    totalSalida += toNumber(item.salida);
+  });
+
+  totalBalance = totalEntrada - totalSalida;
+
+  $('#movimientos_total_registros').text(rows.length);
+  $('#movimientos_total_entrada').text(formatNumber(totalEntrada));
+  $('#movimientos_total_salida').text(formatNumber(totalSalida));
+  $('#movimientos_total_balance').text(formatNumber(totalBalance));
+}
+
+function construirHeaderDataTableMovimientos() {
+  var $tabla = $("#dataTablaMovimientos");
+
+  $tabla.find('thead').remove();
+
+  $tabla.prepend(
+    '<thead>' +
+      '<tr>' +
+        '<th>Movimiento</th>' +
+        '<th>Producto</th>' +
+        '<th>Documento / Lote</th>' +
+        '<th>Cliente / Bodega</th>' +
+        '<th>Anterior</th>' +
+        '<th>Entrada</th>' +
+        '<th>Salida</th>' +
+        '<th>Saldo</th>' +
+      '</tr>' +
+    '</thead>'
+  );
+}
+
 function badgeRender(colorFn){
   return function(data, type){
     var n = toNumber(data);
@@ -85,17 +166,14 @@ function pintarSaldoProductoMovimiento(saldo, detalle, estadoServidor) {
 
   if (saldoNumero <= 0) {
     $card.addClass('saldo-producto-card-danger');
-
     $('#saldoProductoMovimientoIcon').addClass('fas fa-exclamation-triangle');
     $('#saldoProductoMovimientoEstado').text(estadoServidor || 'Sin saldo');
   } else if (saldoNumero <= 5) {
     $card.addClass('saldo-producto-card-warning');
-
     $('#saldoProductoMovimientoIcon').addClass('fas fa-exclamation-circle');
     $('#saldoProductoMovimientoEstado').text(estadoServidor || 'Saldo bajo');
   } else {
     $card.addClass('saldo-producto-card-ok');
-
     $('#saldoProductoMovimientoIcon').addClass('fas fa-check-circle');
     $('#saldoProductoMovimientoEstado').text(estadoServidor || 'Disponible');
   }
@@ -160,25 +238,79 @@ function consultarSaldoProductoMovimiento() {
     }
   });
 }
+
 /* =========================================================
-   INICIO
+   INICIO SIN DOCUMENT.READY
 ========================================================= */
-$(() => {
-  funciones();
-  listar_movimientos();
-
-  $('#movimientos, #registroMovimientos').css('cursor','pointer');
-
-  $('#form_main_movimientos #search').on('click', function(e){
-    e.preventDefault();
+(function () {
+  function inicializarMovimientosProductos() {
+    funciones();
     listar_movimientos();
-  });
 
-  $('#form_main_movimientos').on('reset', function(){
-    $('#form_main_movimientos .selectpicker').val('').selectpicker('refresh');
-    listar_movimientos();
-  });
-});
+    $('#movimientos, #registroMovimientos').css('cursor','pointer');
+
+    $('#form_main_movimientos #search').off('click.movimientos');
+    $('#form_main_movimientos #search').on('click.movimientos', function(e){
+      e.preventDefault();
+      listar_movimientos();
+    });
+
+    $('#form_main_movimientos').off('reset.movimientos');
+    $('#form_main_movimientos').on('reset.movimientos', function(){
+      var form = this;
+
+      setTimeout(function(){
+        $(form).find('.selectpicker').val('').selectpicker('refresh');
+        listar_movimientos();
+      }, 100);
+    });
+
+    $('#form_main_movimientos #categoria_id, #form_main_movimientos #fechai, #form_main_movimientos #fechaf, #form_main_movimientos #almacen, #producto_movimiento_filtro, #cliente_movimiento_filtro, #inventario_tipo_productos_id')
+      .off('change.movimientosFiltro')
+      .on('change.movimientosFiltro', listar_movimientos);
+
+    $('#form_main_movimientos #inventario_tipo_productos_id').off('change.tipoProductoMovimiento');
+    $('#form_main_movimientos #inventario_tipo_productos_id').on('change.tipoProductoMovimiento', function(){
+      var tipo = $('#form_main_movimientos #inventario_tipo_productos_id').val() || 1;
+      getProductosMovimientos(tipo);
+    });
+
+    $('#formMovimientos #movimientos_tipo_producto_id').off('change.tipoProductoMovimientoModal');
+    $('#formMovimientos #movimientos_tipo_producto_id').on('change.tipoProductoMovimientoModal', function(){
+      var tipo = $('#formMovimientos #movimientos_tipo_producto_id').val() || 1;
+      getProductosMovimientos(tipo);
+    });
+
+    $("#modal_buscar_productos_movimientos").off('shown.bs.modal.movimientos');
+    $("#modal_buscar_productos_movimientos").on('shown.bs.modal.movimientos', function(){
+      $(this).find('#formulario_busqueda_productos_movimientos #buscar').focus();
+    });
+
+    $("#modal_movimientos").off('shown.bs.modal.movimientos');
+    $("#modal_movimientos").on('shown.bs.modal.movimientos', function(){
+      seleccionarBodegaPrincipal('#formMovimientos #almacen_modal');
+      cargarOperacionRecordada();
+      limpiarSaldoProductoMovimiento();
+
+      setTimeout(function(){
+        $('#formMovimientos #produto_barcode').focus();
+      }, 400);
+    });
+
+    $("#modal_transferencia_producto").off('shown.bs.modal.movimientos');
+    $("#modal_transferencia_producto").on('shown.bs.modal.movimientos', function(){
+      $(this).find('#formTransferencia #cantidad_movimiento').focus();
+    });
+
+    inicializarEventosMovimientoRapido();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', inicializarMovimientosProductos);
+  } else {
+    inicializarMovimientosProductos();
+  }
+})();
 
 function funciones() {
   getTipoProductos();
@@ -190,9 +322,6 @@ function funciones() {
   getAlmacen();
   getAlmacenModal();
 }
-
-$('#form_main_movimientos #categoria_id, #form_main_movimientos #fechai, #form_main_movimientos #fechaf, #form_main_movimientos #almacen, #producto_movimiento_filtro, #cliente_movimiento_filtro, #inventario_tipo_productos_id')
-  .on('change', listar_movimientos);
 
 /* =========================================================
    DATATABLE MOVIMIENTOS
@@ -210,84 +339,236 @@ var listar_movimientos = function () {
     localStorage.removeItem(_dtKey);
   }catch(e){}
 
+  if ($.fn.DataTable.isDataTable("#dataTablaMovimientos")) {
+    $("#dataTablaMovimientos").DataTable().clear().destroy();
+  }
+
+  construirHeaderDataTableMovimientos();
+
   var table_movimientos = $("#dataTablaMovimientos").DataTable({
     destroy: true,
     stateSave: false,
     orderMulti: false,
+    autoWidth: false,
+    scrollX: false,
     ajax: {
       method: "POST",
       url: "<?php echo SERVERURL;?>core/llenarDataTableMovimientos.php",
-      data: { tipo_producto_id, fechai, fechaf, bodega, producto, cliente }
+      data: { tipo_producto_id, fechai, fechaf, bodega, producto, cliente },
+      dataSrc: function(json) {
+        var rows = [];
+
+        if (json && json.data) {
+          rows = json.data;
+        }
+
+        movimientosActualizarResumen(rows);
+
+        return rows;
+      }
     },
     columns: [
-      { data: "fecha_registro" },
       {
-        data: "image",
-        orderable: false,
-        render: function (data, type, row) {
-          if (type !== "display") return data || "";
+        data: null,
+        className: "align-middle movimientos-info-cell",
+        render: function(data, type, row) {
+          var fecha = movimientosEscape(row.fecha_registro);
+          var documento = movimientosEscape(row.documento);
+          var comentario = movimientosEscape(movimientosValor(row.comentario, 'Sin comentario'));
+
+          if (type !== 'display') {
+            return fecha + ' ' + documento + ' ' + comentario;
+          }
+
+          return '' +
+            '<div class="movimientos-main-box">' +
+              '<div class="movimientos-main-icon">' +
+                '<i class="fas fa-exchange-alt"></i>' +
+              '</div>' +
+              '<div class="movimientos-main-info">' +
+                '<h6 class="movimientos-fecha">' + fecha + '</h6>' +
+                '<div class="movimientos-documento">' +
+                  '<i class="fas fa-file-alt mr-1"></i>' + documento +
+                '</div>' +
+                '<div class="movimientos-comentario">' + comentario + '</div>' +
+              '</div>' +
+            '</div>';
+        }
+      },
+      {
+        data: null,
+        className: "align-middle movimientos-producto-cell",
+        render: function(data, type, row) {
           var defaultImageUrl = '<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png';
-          var imageUrl = data ? ('<?php echo SERVERURL;?>vistas/plantilla/img/products/' + data) : defaultImageUrl;
-          var safeName = (row && row.nombre) ? String(row.nombre).replace(/"/g, '&quot;') : 'Imagen de producto';
-          return ''
-          + '<a href="#" class="iv-trigger"'
-          + '   data-iv-src="' + imageUrl + '"'
-          + '   data-iv-fallback="' + defaultImageUrl + '"'
-          + '   data-iv-title="' + safeName + '">'
-          + '  <img class="table-image" src="' + imageUrl + '" alt="' + safeName + '"'
-          + '       width="100" height="100" loading="lazy"'
-          + '       style="object-fit:cover;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.12)"'
-          + '       onerror="this.onerror=null;this.src=\'' + defaultImageUrl + '\';" />'
-          + '</a>';
+          var imageUrl = row.image ? ('<?php echo SERVERURL;?>vistas/plantilla/img/products/' + row.image) : defaultImageUrl;
+          var producto = movimientosEscape(row.producto);
+          var medida = movimientosEscape(row.medida);
+          var barcode = movimientosEscape(movimientosValor(row.barCode, 'Sin código'));
+
+          if (type !== 'display') {
+            return producto + ' ' + medida + ' ' + barcode;
+          }
+
+          return '' +
+            '<div class="movimientos-product-box">' +
+              '<div class="movimientos-product-img-box">' +
+                '<a href="#" class="iv-trigger movimientos-zoom-trigger" ' +
+                    'data-iv-src="' + imageUrl + '" ' +
+                    'data-iv-fallback="' + defaultImageUrl + '" ' +
+                    'data-iv-title="' + producto + '">' +
+                    '<img class="movimientos-product-img table-image" src="' + imageUrl + '" alt="' + producto + '" loading="lazy" onerror="this.onerror=null;this.src=\'' + defaultImageUrl + '\';">' +
+                '</a>' +
+              '</div>' +
+              '<div class="movimientos-product-info">' +
+                '<h6 class="movimientos-product-name">' + producto + '</h6>' +
+                '<div class="movimientos-product-meta">' +
+                  '<span><i class="fas fa-ruler-combined mr-1"></i>' + medida + '</span>' +
+                  '<span><i class="fas fa-barcode mr-1"></i>' + barcode + '</span>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
         }
       },
       {
-        data: "numero_lote",
-        render: function(data, type){
-          if (type !== 'display') return data;
-          var txt = data ? data : 'No especificado';
-          var color = data ? '#28a745' : '#dc3545';
-          return '<span class="numero-lote" style="border:2px solid '+color+';border-radius:12px;padding:5px 10px;color:'+color+';display:inline-block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+txt+'</span>';
+        data: null,
+        className: "align-middle movimientos-lote-cell",
+        render: function(data, type, row) {
+          var lote = movimientosEscape(movimientosValor(row.numero_lote, 'No especificado'));
+          var documento = movimientosEscape(row.documento);
+          var loteClass = row.numero_lote ? 'movimientos-lote-ok' : 'movimientos-lote-empty';
+
+          if (type !== 'display') {
+            return lote + ' ' + documento;
+          }
+
+          return '' +
+            '<div class="movimientos-detail-list">' +
+              '<div class="movimientos-detail-item">' +
+                '<span class="movimientos-detail-icon movimientos-icon-lote"><i class="fas fa-box"></i></span>' +
+                '<span><strong>Lote:</strong> <span class="movimientos-lote-badge ' + loteClass + '">' + lote + '</span></span>' +
+              '</div>' +
+              '<div class="movimientos-detail-item">' +
+                '<span class="movimientos-detail-icon movimientos-icon-doc"><i class="fas fa-file-alt"></i></span>' +
+                '<span><strong>Documento:</strong> ' + documento + '</span>' +
+              '</div>' +
+            '</div>';
         }
       },
-      { data:"barCode" },
-      { data:"cliente" },
-      { data:"producto" },
-      { data:"medida" },
-      { data:"documento" },
-      { data:"saldo_anterior", className:"text-right", render: badgeRender(n => n>0 ? '#28a745' : '#ff6f61') },
-      { data:"entrada",        className:"text-right", render: badgeRender(n => n>0 ? '#17a2b8' : '#f39c12') },
-      { data:"salida",         className:"text-right", render: badgeRender(n => n>0 ? '#ffc107' : '#dc3545') },
-      { data:"saldo",          className:"text-right", render: badgeRender(n => n>=0 ? '#007bff' : '#ff6347') },
-      { data:"comentario" },
-      { data:"bodega" }
+      {
+        data: null,
+        className: "align-middle movimientos-cliente-cell",
+        render: function(data, type, row) {
+          var cliente = movimientosEscape(movimientosValor(row.cliente, 'Sin cliente'));
+          var bodega = movimientosEscape(movimientosValor(row.bodega, 'Sin bodega'));
+
+          if (type !== 'display') {
+            return cliente + ' ' + bodega;
+          }
+
+          return '' +
+            '<div class="movimientos-detail-list">' +
+              '<div class="movimientos-detail-item">' +
+                '<span class="movimientos-detail-icon movimientos-icon-cliente"><i class="fas fa-user"></i></span>' +
+                '<span><strong>Cliente:</strong> ' + cliente + '</span>' +
+              '</div>' +
+              '<div class="movimientos-detail-item">' +
+                '<span class="movimientos-detail-icon movimientos-icon-bodega"><i class="fas fa-warehouse"></i></span>' +
+                '<span><strong>Bodega:</strong> ' + bodega + '</span>' +
+              '</div>' +
+            '</div>';
+        }
+      },
+      {
+        data: "saldo_anterior",
+        className: "text-right align-middle movimientos-numero-cell",
+        render: function(data, type) {
+          if (type !== 'display') return toNumber(data);
+          return movimientosBadgeNumero(data, 'anterior');
+        }
+      },
+      {
+        data: "entrada",
+        className: "text-right align-middle movimientos-numero-cell",
+        render: function(data, type) {
+          if (type !== 'display') return toNumber(data);
+          return movimientosBadgeNumero(data, 'entrada');
+        }
+      },
+      {
+        data: "salida",
+        className: "text-right align-middle movimientos-numero-cell",
+        render: function(data, type) {
+          if (type !== 'display') return toNumber(data);
+          return movimientosBadgeNumero(data, 'salida');
+        }
+      },
+      {
+        data: "saldo",
+        className: "text-right align-middle movimientos-numero-cell",
+        render: function(data, type) {
+          if (type !== 'display') return toNumber(data);
+          return movimientosBadgeNumero(data, 'saldo');
+        }
+      }
     ],
     order: [[0, 'desc']],
     lengthMenu: lengthMenu10,
     language: idioma_español,
     dom: dom,
     columnDefs: [
-      { width: "13.5%", targets: 0, orderable: true },
-      { width: "10.5%", targets: 1 },
-      { width: "20.5%", targets: 2 },
-      { width: "5.5%",  targets: 3 },
-      { width: "18.5%", targets: 4 },
-      { width: "10.5%", targets: 5 },
-      { width: "10.5%", targets: 6 },
-      { width: "10.5%", targets: 7 },
-      { width: "10.5%", targets: 8 },
-      { width: "10.5%", targets: 9 },
-      { width: "10.5%", targets: 10 },
-      { width: "10.5%", targets: 11 }
+      {
+        width: "16%",
+        targets: 0,
+        className: "align-middle movimientos-info-cell"
+      },
+      {
+        width: "26%",
+        targets: 1,
+        className: "align-middle movimientos-producto-cell"
+      },
+      {
+        width: "17%",
+        targets: 2,
+        className: "align-middle movimientos-lote-cell"
+      },
+      {
+        width: "17%",
+        targets: 3,
+        className: "align-middle movimientos-cliente-cell"
+      },
+      {
+        width: "6%",
+        targets: 4,
+        className: "text-right align-middle movimientos-numero-cell"
+      },
+      {
+        width: "6%",
+        targets: 5,
+        className: "text-right align-middle movimientos-numero-cell"
+      },
+      {
+        width: "6%",
+        targets: 6,
+        className: "text-right align-middle movimientos-numero-cell"
+      },
+      {
+        width: "6%",
+        targets: 7,
+        className: "text-right align-middle movimientos-numero-cell"
+      }
     ],
     footerCallback: function(){
       var api = this.api();
-      var sum = (idx) => api.column(idx, {page:'current'}).data().reduce((a,b)=> toNumber(a)+toNumber(b), 0);
+      var sum = function(idx) {
+        return api.column(idx, {page:'current'}).data().reduce(function(a,b){
+          return toNumber(a) + toNumber(b);
+        }, 0);
+      };
 
-      var totalSaldoAnterior = sum(8);
-      var totalEntrada       = sum(9);
-      var totalSalida        = sum(10);
-      var total              = (totalSaldoAnterior + totalEntrada) - totalSalida;
+      var totalSaldoAnterior = sum(4);
+      var totalEntrada = sum(5);
+      var totalSalida = sum(6);
+      var total = sum(7);
 
       $('#anterior-footer-movimiento').html(formatNumber(totalSaldoAnterior));
       $('#entrada-footer-movimiento').html(formatNumber(totalEntrada));
@@ -316,7 +597,7 @@ var listar_movimientos = function () {
         messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' + convertDateFormat(fechaf),
         messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
         className: 'table_reportes btn btn-success ocultar',
-        exportOptions: { columns: [0,2,3,4,5,6,7,8,9,10,11,12,13] }
+        exportOptions: { columns: [0,1,2,3,4,5,6,7] }
       },
       {
         extend: 'pdf',
@@ -329,7 +610,7 @@ var listar_movimientos = function () {
         messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' + convertDateFormat(fechaf),
         messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
         className: 'table_reportes btn btn-danger ocultar',
-        exportOptions: { columns: [0,2,3,4,5,6,7,8,9,10,11,12,13] },
+        exportOptions: { columns: [0,1,2,3,4,5,6,7] },
         customize: function(doc){
           if (typeof imagen !== 'undefined' && imagen){
             doc.content.splice(0,0,{ image:imagen, width:100, height:45, margin:[0,0,0,12] });
@@ -346,7 +627,8 @@ var listar_movimientos = function () {
     }
   });
 
-  $('#dataTablaMovimientos').on('draw.dt', function(){
+  $('#dataTablaMovimientos').off('draw.dt.movimientosTooltip');
+  $('#dataTablaMovimientos').on('draw.dt.movimientosTooltip', function(){
     $('[data-toggle="tooltip"]').tooltip();
   });
 
@@ -367,14 +649,15 @@ var transferencia_producto_dataTable = function(tbody, table) {
   });
 };
 
-$("#putEditarBodega").click(function() {
+$("#putEditarBodega").off('click.movimientosTransferencia');
+$("#putEditarBodega").on('click.movimientosTransferencia', function() {
   var form = $("#formTransferencia");
   var respuesta = form.children('.RespuestaAjax');
   var url = '<?php echo SERVERURL;?>ajax/modificarBodegaProductosAjax.php';
 
   $.ajax({
     type: 'POST',
-    url,
+    url: url,
     data: $('#formTransferencia').serialize(),
     beforeSend: function(){
       $('#modal_transferencia_producto').modal({show:false, keyboard:false, backdrop:'static'});
@@ -409,7 +692,7 @@ function getAlmacen() {
 
   $.ajax({
     type:"POST",
-    url,
+    url: url,
     async:true,
     success:function(data){
       $('#form_main_movimientos #almacen').html(data).selectpicker('refresh');
@@ -426,7 +709,7 @@ function getAlmacenModal() {
 
   $.ajax({
     type:"POST",
-    url,
+    url: url,
     async:true,
     success:function(data){
       $('#formMovimientos #almacen_modal').html(data).selectpicker('refresh');
@@ -461,8 +744,8 @@ function getLotesProductos(producto_id){
 
   $.ajax({
     type:"POST",
-    url,
-    data:{producto_id},
+    url: url,
+    data:{producto_id: producto_id},
     async:true,
     success:function(data){
       $('#formMovimientos #movimiento_lote').html(data).selectpicker('refresh');
@@ -475,7 +758,7 @@ function getTipoProductos(){
 
   $.ajax({
     type:"POST",
-    url,
+    url: url,
     async:true,
     success:function(data){
       $('#form_main_movimientos #inventario_tipo_productos_id').html(data).selectpicker('refresh');
@@ -488,7 +771,7 @@ function getTipoProductosModal(){
 
   $.ajax({
     type:"POST",
-    url,
+    url: url,
     async:true,
     success:function(data){
       $('#formMovimientos #movimientos_tipo_producto_id').html(data).selectpicker('refresh');
@@ -501,31 +784,19 @@ function getProductoOperacion(){
 
   $.ajax({
     type:"POST",
-    url,
+    url: url,
     success:function(data){
       $('#formMovimientoInventario #movimiento_producto').html(data).selectpicker('refresh');
     }
   });
 }
 
-$(document).ready(function(){
-  $('#form_main_movimientos #inventario_tipo_productos_id').on('change', function(){
-    var tipo = $('#form_main_movimientos #inventario_tipo_productos_id').val() || 1;
-    getProductosMovimientos(tipo);
-  });
-
-  $('#formMovimientos #movimientos_tipo_producto_id').on('change', function(){
-    var tipo = $('#formMovimientos #movimientos_tipo_producto_id').val() || 1;
-    getProductosMovimientos(tipo);
-  });
-});
-
 function getProductosMovimientos(tipo_producto_id){
   var url = '<?php echo SERVERURL; ?>core/getProductosMovimientosTipoProducto.php';
 
   $.ajax({
     type:"POST",
-    url,
+    url: url,
     data:'tipo_producto_id='+tipo_producto_id,
     success:function(data){
       $('#form_main_movimientos #producto_movimiento_filtro').html(data).selectpicker('refresh');
@@ -539,7 +810,7 @@ function getClientes(){
 
   $.ajax({
     type:"POST",
-    url,
+    url: url,
     async:true,
     success:function(data){
       $('#form_main_movimientos #cliente_movimiento_filtro').html(data).selectpicker('refresh');
@@ -553,7 +824,7 @@ function getClientesModal(){
 
   $.ajax({
     type:"POST",
-    url,
+    url: url,
     async:true,
     success:function(data){
       $('#formMovimientos #cliente_movimientos').html(data).selectpicker('refresh');
@@ -681,30 +952,11 @@ function modal_movimientos(){
   });
 }
 
-$(document).ready(function(){
-  $("#modal_buscar_productos_movimientos").on('shown.bs.modal', function(){
-    $(this).find('#formulario_busqueda_productos_movimientos #buscar').focus();
-  });
-
-  $("#modal_movimientos").on('shown.bs.modal', function(){
-    seleccionarBodegaPrincipal('#formMovimientos #almacen_modal');
-    cargarOperacionRecordada();
-    limpiarSaldoProductoMovimiento();
-
-    setTimeout(function(){
-      $('#formMovimientos #produto_barcode').focus();
-    }, 400);
-  });
-
-  $("#modal_transferencia_producto").on('shown.bs.modal', function(){
-    $(this).find('#formTransferencia #cantidad_movimiento').focus();
-  });
-});
-
 /* =========================================================
    NAVEGACIÓN VISTA
 ========================================================= */
-$('#movimientos').on('click', function(){
+$('#movimientos').off('click.movimientosNav');
+$('#movimientos').on('click.movimientosNav', function(){
   if (registro === true){
     registro = false;
     $('#movimientos').removeClass('active');
@@ -714,7 +966,8 @@ $('#movimientos').on('click', function(){
   }
 });
 
-$('#registroMovimientos').on('click', function(){
+$('#registroMovimientos').off('click.movimientosNav');
+$('#registroMovimientos').on('click.movimientosNav', function(){
   if (registro === true){
     $('#registroMovimientos').removeClass('active');
     $('#main_inventario').hide();
@@ -739,7 +992,7 @@ const BusquedaProducto = (barcode) => {
 
   $.ajax({
     type:'POST',
-    url,
+    url: url,
     data:{ barcode: barcode },
     dataType:'json',
     success:function(registro){
@@ -819,8 +1072,7 @@ function validarMovimientoInventarioRapido() {
 /* =========================================================
    EVENTOS MODAL RÁPIDO
 ========================================================= */
-$(function(){
-
+function inicializarEventosMovimientoRapido() {
   $(document).off('change.movimientoOperacion', "input[name='movimiento_operacion']");
   $(document).on('change.movimientoOperacion', "input[name='movimiento_operacion']", function(){
     var tipoOperacion = $("input[name='movimiento_operacion']:checked").val();
@@ -879,9 +1131,14 @@ $(function(){
     }
 
     guardarOperacionRecordada();
+    restaurarOperacionDespuesDeReset();
   });
 
-});
+  $('#formMovimientos').off('reset.restaurarOperacion');
+  $('#formMovimientos').on('reset.restaurarOperacion', function () {
+    restaurarOperacionDespuesDeReset();
+  });
+}
 
 /* =========================================================
    MANTENER OPERACIÓN SELECCIONADA DESPUÉS DE REGISTRAR
@@ -911,21 +1168,4 @@ function restaurarOperacionDespuesDeReset() {
 
   }, 300);
 }
-
-$('#formMovimientos').off('reset.restaurarOperacion');
-$('#formMovimientos').on('reset.restaurarOperacion', function () {
-  restaurarOperacionDespuesDeReset();
-});
-
-$('#formMovimientos').off('submit.validarMovimientoRapido');
-$('#formMovimientos').on('submit.validarMovimientoRapido', function(e){
-  if (!validarMovimientoInventarioRapido()) {
-    e.preventDefault();
-    return false;
-  }
-
-  guardarOperacionRecordada();
-
-  restaurarOperacionDespuesDeReset();
-});
 </script>

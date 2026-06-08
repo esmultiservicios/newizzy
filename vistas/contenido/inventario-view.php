@@ -22,162 +22,224 @@
     </div>
 
     <div id="main_inventario">
-    <div class="card mb-4">
+
+        <!-- Filtros -->
+        <div class="card mb-4 movimientos-filtro-card">
             <div class="card-body">
-                <form class="" id="form_main_movimientos">
-                    <div class="row">
-                        <!-- Primera fila con 4 campos -->
-                        <div class="col-md-3 col-sm-6">
-                            <div class="form-group mb-3">
-                                <label class="small mb-1">Categoría</label>
+                <form id="form_main_movimientos">
+                    <div class="row align-items-end">
+                        <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+                            <div class="form-group mb-0">
+                                <label class="small mb-1 movimientos-label-filter">
+                                    <i class="fas fa-tags mr-1"></i> Categoría
+                                </label>
                                 <select id="inventario_tipo_productos_id" name="inventario_tipo_productos_id"
-                                    class="form-control selectpicker" data-live-search="true" data-toggle='tooltip' 
-                                    data-placement='top' title="Categoría de Productos">
+                                    class="form-control selectpicker" data-live-search="true" data-toggle="tooltip"
+                                    data-placement="top" title="Categoría de Productos">
                                 </select>
                             </div>
                         </div>
-                        
-                        <div class="col-md-3 col-sm-6">
-                            <div class="form-group mb-3">
-                                <label class="small mb-1">Bodega</label>
-                                <select id="almacen" name="almacen" class="form-control selectpicker" 
+
+                        <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+                            <div class="form-group mb-0">
+                                <label class="small mb-1 movimientos-label-filter">
+                                    <i class="fas fa-warehouse mr-1"></i> Bodega
+                                </label>
+                                <select id="almacen" name="almacen" class="form-control selectpicker"
                                     data-live-search="true" title="Bodega">
                                 </select>
                             </div>
                         </div>
-                        
-                        <div class="col-md-3 col-sm-6">
-                            <div class="form-group mb-3">
-                                <label class="small mb-1">Producto</label>
+
+                        <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+                            <div class="form-group mb-0">
+                                <label class="small mb-1 movimientos-label-filter">
+                                    <i class="fas fa-box-open mr-1"></i> Producto
+                                </label>
                                 <select id="producto_movimiento_filtro" name="producto_movimiento_filtro"
                                     class="form-control selectpicker" data-live-search="true" title="Producto">
                                 </select>
                             </div>
                         </div>
-                        
-                        <div class="col-md-3 col-sm-6">
-                            <div class="form-group mb-3">
-                                <label class="small mb-1">Cliente</label>
+
+                        <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+                            <div class="form-group mb-0">
+                                <label class="small mb-1 movimientos-label-filter">
+                                    <i class="fas fa-user mr-1"></i> Cliente
+                                </label>
                                 <select id="cliente_movimiento_filtro" name="cliente_movimiento_filtro"
                                     class="form-control selectpicker" data-live-search="true" title="Cliente">
                                 </select>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div class="row">
-                        <!-- Segunda fila con 2 campos de fecha -->
-                        <div class="col-md-3 col-sm-6">
-                            <div class="form-group mb-3">
-                                <label class="small mb-1">Fecha Inicio</label>
-                                <div class="input-group">
+
+                        <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+                            <div class="form-group mb-0">
+                                <label class="small mb-1 movimientos-label-filter">
+                                    <i class="fas fa-calendar-alt mr-1"></i> Fecha Inicio
+                                </label>
+                                <div class="input-group movimientos-date-group">
                                     <div class="input-group-prepend">
-                                        <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                        <span class="input-group-text">
+                                            <i class="fas fa-calendar-alt"></i>
+                                        </span>
                                     </div>
                                     <input type="date" class="form-control" id="fechai" name="fechai" value="<?php 
-                                        $fecha = date ("Y-m-d");
-                                        
+                                        $fecha = date("Y-m-d");
+
                                         $año = date("Y", strtotime($fecha));
                                         $mes = date("m", strtotime($fecha));
-                                        $dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
+                                        $dia = date("d", mktime(0, 0, 0, $mes + 1, 0, $año));
 
-                                        $dia1 = date('d', mktime(0,0,0, $mes, 1, $año));
-                                        $dia2 = date('d', mktime(0,0,0, $mes, $dia, $año));
+                                        $dia1 = date('d', mktime(0, 0, 0, $mes, 1, $año));
+                                        $dia2 = date('d', mktime(0, 0, 0, $mes, $dia, $año));
 
-                                        $fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
+                                        $fecha_inicial = date("Y-m-d", strtotime($año . "-" . $mes . "-" . $dia1));
                                         echo $fecha_inicial;
                                     ?>">
                                 </div>
                             </div>
                         </div>
-                        
-                        <div class="col-md-3 col-sm-6">
-                            <div class="form-group mb-3">
-                                <label class="small mb-1">Fecha Fin</label>
-                                <div class="input-group">
+
+                        <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+                            <div class="form-group mb-0">
+                                <label class="small mb-1 movimientos-label-filter">
+                                    <i class="fas fa-calendar-check mr-1"></i> Fecha Fin
+                                </label>
+                                <div class="input-group movimientos-date-group">
                                     <div class="input-group-prepend">
-                                        <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                        <span class="input-group-text">
+                                            <i class="fas fa-calendar-check"></i>
+                                        </span>
                                     </div>
-                                    <input type="date" class="form-control" id="fechaf" name="fechaf" value="<?php echo date('Y-m-d');?>">
+                                    <input type="date" class="form-control" id="fechaf" name="fechaf" value="<?php echo date('Y-m-d'); ?>">
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Puedes agregar más campos aquí si es necesario -->
-                        <div class="col-md-6 col-sm-12 d-flex align-items-end justify-content-end">
+
+                        <div class="col-lg-6 col-md-4 col-sm-12 mb-3 text-right">
                             <button type="submit" class="btn btn-primary mr-2" id="search">
                                 <i class="fas fa-filter fa-lg"></i> Filtrar
                             </button>
                             <button type="reset" class="btn btn-secondary">
                                 <i class="fas fa-broom fa-lg"></i> Limpiar
-                            </button>   
+                            </button>
                         </div>
                     </div>
                 </form>
             </div>
         </div>
 
-        <div class="card mb-4">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <i class="fas fa-exchange-alt fa-lg mr-1"></i>
-                    Movimiento de Productos
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table id="dataTablaMovimientos" class="table table-header-gradient table-striped table-condensed table-hover"
-                            style="width:100%">
-                            <thead>
-                                <tr>                                    
-                                    <th>Fecha</th>
-                                    <th>Imagen</th>
-                                    <th>Número de Lote</th>
-                                    <th>Bar Code</th>
-                                    <th>Cliente</th>
-                                    <th>Producto</th>
-                                    <th>Medida</th>
-                                    <th>Documento</th>
-                                    <th>Anterior</th>
-                                    <th>Entrada</th>
-                                    <th>Salida</th>
-                                    <th>Saldo</th>
-                                    <th>Comentario</th>
-                                    <th>Bodega</th>
-                                </tr>
-                            </thead>
-                            <tfoot class="bg-secondary">
-                                <tr>
-                                    <td colspan="7"></td>
-                                    <td colspan='1' class="text-center">Total</td> 
-                                    <td id="anterior-footer-movimiento"></td>                                   
-                                    <td id="entrada-footer-movimiento"></td>
-                                    <td id='salida-footer-movimiento'></td>
-                                    <td id="total-footer-movimiento"></td>
-                                    <td colspan="2"></td>
-                                </tr>
-                            </tfoot>
-                        </table>
+        <!-- Cards resumen -->
+        <div class="row movimientos-resumen-row">
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="movimientos-resumen-card movimientos-resumen-registros">
+                    <div>
+                        <span class="movimientos-resumen-label">
+                            <i class="fas fa-list mr-1"></i> Movimientos
+                        </span>
+                        <h3 id="movimientos_total_registros">0</h3>
+                        <p>Registros filtrados</p>
+                    </div>
+                    <div class="movimientos-resumen-icon">
+                        <i class="fas fa-exchange-alt"></i>
                     </div>
                 </div>
-                <div class="card-footer small text-muted">
-                    <?php
-                        require_once "./core/mainModel.php";
-                        
-                        $insMainModel = new mainModel();
-                        $entidad = "movimientos";
-                        
-                        if($insMainModel->getlastUpdate($entidad)->num_rows > 0){
-                            $consulta_last_update = $insMainModel->getlastUpdate($entidad)->fetch_assoc();
-                            
-                            $fecha_registro = $consulta_last_update['fecha_registro'];
-                            $hora = date('g:i:s a',strtotime($fecha_registro));
-                                            
-                            echo "Última Actualización ".$insMainModel->getTheDay($fecha_registro, $hora);						
-                        }else{
-                            echo "No se encontraron registros ";
-                        }				
-                    ?>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="movimientos-resumen-card movimientos-resumen-entrada">
+                    <div>
+                        <span class="movimientos-resumen-label">
+                            <i class="fas fa-arrow-down mr-1"></i> Entradas
+                        </span>
+                        <h3 id="movimientos_total_entrada">0.00</h3>
+                        <p>Total de entradas</p>
+                    </div>
+                    <div class="movimientos-resumen-icon">
+                        <i class="fas fa-sign-in-alt"></i>
+                    </div>
                 </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="movimientos-resumen-card movimientos-resumen-salida">
+                    <div>
+                        <span class="movimientos-resumen-label">
+                            <i class="fas fa-arrow-up mr-1"></i> Salidas
+                        </span>
+                        <h3 id="movimientos_total_salida">0.00</h3>
+                        <p>Total de salidas</p>
+                    </div>
+                    <div class="movimientos-resumen-icon">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="movimientos-resumen-card movimientos-resumen-saldo">
+                    <div>
+                        <span class="movimientos-resumen-label">
+                            <i class="fas fa-balance-scale mr-1"></i> Balance
+                        </span>
+                        <h3 id="movimientos_total_balance">0.00</h3>
+                        <p>Entrada menos salida</p>
+                    </div>
+                    <div class="movimientos-resumen-icon">
+                        <i class="fas fa-boxes"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla -->
+        <div class="card mb-4 movimientos-table-card">
+            <div class="card-header movimientos-card-header">
+                <div>
+                    <i class="fas fa-exchange-alt fa-lg mr-1"></i>
+                    <strong>Movimiento de Productos</strong>
+                    <small class="d-block text-muted mt-1">
+                        Consulta de entradas, salidas, saldo anterior, saldo final, producto, lote, cliente y bodega.
+                    </small>
+                </div>
+            </div>
+
+            <div class="card-body">
+                <div class="table-responsive movimientos-table-responsive">
+                    <table id="dataTablaMovimientos" class="table table-header-gradient table-striped table-condensed table-hover movimientos-table" style="width:100%">
+                        <tfoot class="movimientos-table-footer">
+                            <tr>
+                                <td colspan="3"></td>
+                                <td class="text-right movimientos-footer-label">Totales</td>
+                                <td id="anterior-footer-movimiento" class="text-right"></td>
+                                <td id="entrada-footer-movimiento" class="text-right"></td>
+                                <td id="salida-footer-movimiento" class="text-right"></td>
+                                <td id="total-footer-movimiento" class="text-right"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card-footer small text-muted">
+                <?php
+                    require_once "./core/mainModel.php";
+
+                    $insMainModel = new mainModel();
+                    $entidad = "movimientos";
+
+                    if ($insMainModel->getlastUpdate($entidad)->num_rows > 0) {
+                        $consulta_last_update = $insMainModel->getlastUpdate($entidad)->fetch_assoc();
+
+                        $fecha_registro = $consulta_last_update['fecha_registro'];
+                        $hora = date('g:i:s a', strtotime($fecha_registro));
+
+                        echo "Última Actualización " . $insMainModel->getTheDay($fecha_registro, $hora);
+                    } else {
+                        echo "No se encontraron registros ";
+                    }
+                ?>
             </div>
         </div>
     </div>
@@ -191,27 +253,33 @@
             <div class="card-body">
                 <div class="table-responsive">
                     <form class="FormularioAjax" id="formMovimientoInventario"
-                        action="<?php echo SERVERURL;?>ajax/addComprasAjax.php" method="POST" data-form="save"
+                        action="<?php echo SERVERURL; ?>ajax/addComprasAjax.php" method="POST" data-form="save"
                         autocomplete="off" enctype="multipart/form-data">
+
                         <div class="form-group row">
                             <div class="col-sm-6">
                                 <button class="btn btn-primary" type="submit" id="reg_factura"
                                     form="formMovimientoInventario" data-toggle="tooltip" data-placement="top"
                                     title="Registrar Factura de Compra">
-                                    <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
+                                    <div class="sb-nav-link-icon"></div>
+                                    <i class="far fa-save fa-lg"></i> Registrar
                                 </button>
                             </div>
-                            <label for="inputFecha" class="col-sm-1 col-form-label-md">Fecha <span
-                                    class="priority">*<span /></label>
+
+                            <label for="fechaMovimientoInventario" class="col-sm-1 col-form-label-md">
+                                Fecha <span class="priority">*</span>
+                            </label>
                             <div class="col-sm-4">
-                                <input type="date" class="form-control" value="<?php echo date('Y-m-d');?>" required
+                                <input type="date" class="form-control" value="<?php echo date('Y-m-d'); ?>" required
                                     id="fechaMovimientoInventario" name="fechaMovimientoInventario"
                                     data-toggle="tooltip" data-placement="top" title="Fecha de Facturación">
                             </div>
                         </div>
+
                         <div class="form-group row">
-                            <label for="inputCliente" class="col-sm-1 col-form-label-md">Operación <span
-                                    class="priority">*<span /></label>
+                            <label for="movimiento_producto" class="col-sm-1 col-form-label-md">
+                                Operación <span class="priority">*</span>
+                            </label>
                             <div class="col-sm-5">
                                 <div class="input-group mb-3">
                                     <select id="movimiento_producto" name="movimiento_producto" required
@@ -220,16 +288,21 @@
                                     </select>
                                 </div>
                             </div>
-                            <label for="inputCliente" class="col-sm-1 col-form-label-md">Factura </label>
+
+                            <label for="facturaMovimientoInventario" class="col-sm-1 col-form-label-md">
+                                Factura
+                            </label>
                             <div class="col-sm-4">
                                 <input type="text" class="form-control" placeholder="Número de Factura de Registro"
-                                    id="facturaMovimientoInventario"
-                                    name="facturaMovimientoInventario required data-toggle=" tooltip"
-                                    data-placement="top" title="Factura Compra" maxlength="19" required>
+                                    id="facturaMovimientoInventario" name="facturaMovimientoInventario"
+                                    data-toggle="tooltip" data-placement="top" title="Factura Compra" maxlength="19" required>
                             </div>
                         </div>
+
                         <div class="form-group row">
-                            <label for="inputCliente" class="col-sm-1 col-form-label-md">Cliente </label>
+                            <label for="cliente_movimientos" class="col-sm-1 col-form-label-md">
+                                Cliente
+                            </label>
                             <div class="col-sm-5">
                                 <div class="input-group mb-3">
                                     <select id="cliente_movimientos" name="cliente_movimientos"
@@ -238,8 +311,10 @@
                                     </select>
                                 </div>
                             </div>
-                            <label for="inputCliente" class="col-sm-1 col-form-label-md">Almacén <span
-                                    class="priority">*<span /></label>
+
+                            <label for="almacen_modal" class="col-sm-1 col-form-label-md">
+                                Almacén <span class="priority">*</span>
+                            </label>
                             <div class="col-sm-4">
                                 <div class="input-group mb-3">
                                     <select id="almacen_modal" name="almacen_modal" required class="selectpicker col-12"
@@ -254,8 +329,9 @@
                                 <table class="table table-bordered table-hover" id="MovimientoInventarioItem">
                                     <thead align="center" class="table-success">
                                         <tr>
-                                            <th width="2%" scope="col"><input id="checkAllMovimientoInventario"
-                                                    class="formcontrol" type="checkbox"></th>
+                                            <th width="2%" scope="col">
+                                                <input id="checkAllMovimientoInventario" class="formcontrol" type="checkbox">
+                                            </th>
                                             <th width="23.5%">Nombre Producto</th>
                                             <th width="9.5%">Cantidad</th>
                                             <th width="11.5%">Medida</th>
@@ -263,7 +339,9 @@
                                     </thead>
                                     <tbody>
                                         <tr>
-                                            <td><input class="itemRowInventario" type="checkbox"></td>
+                                            <td>
+                                                <input class="itemRowInventario" type="checkbox">
+                                            </td>
                                             <td>
                                                 <div class="input-group mb-3">
                                                     <input type="hidden" name="productos_idInventario[]"
@@ -274,19 +352,22 @@
                                                         autocomplete="off" required>
                                                     <div class="input-group-append">
                                                         <span data-toggle="tooltip" data-placement="top"
-                                                            title="Búsqueda de Productos"><a data-toggle="modal"
-                                                                href="#"
+                                                            title="Búsqueda de Productos">
+                                                            <a data-toggle="modal" href="#"
                                                                 class="btn btn-outline-success form-control buscar_productos_Inventario">
-                                                                <div class="sb-nav-link-icon"></div><i
-                                                                    class="fas fa-search-plus fa-lg"></i>
-                                                            </a></span>
+                                                                <div class="sb-nav-link-icon"></div>
+                                                                <i class="fas fa-search-plus fa-lg"></i>
+                                                            </a>
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td><input type="number" name="quantityInventario[]"
+                                            <td>
+                                                <input type="number" name="quantityInventario[]"
                                                     id="quantityInventario_0"
                                                     class="buscar_cantidad_Inventario form-control" autocomplete="off"
-                                                    step="0.01"></td>
+                                                    step="0.01">
+                                            </td>
                                             <td>
                                                 <input type="text" name="medidaInventario[]" id="medidaInventario_0"
                                                     readonly class="form-control" autocomplete="off">
@@ -296,21 +377,27 @@
                                 </table>
                             </div>
                         </div>
+
                         <hr class="line_table" />
+
                         <div class="form-group row">
                             <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
                                 <button class="btn btn-success ml-3 bill-bottom-add" id="addRowsInventario"
                                     type="button" data-toggle="tooltip" data-placement="top"
                                     title="Agregar filas en la factura">
-                                    <div class="sb-nav-link-icon"></div><i class="fas fa-plus fa-lg"></i> Agregar
+                                    <div class="sb-nav-link-icon"></div>
+                                    <i class="fas fa-plus fa-lg"></i> Agregar
                                 </button>
+
                                 <button class="btn btn-success delete bill-bottom-remove" id="removeRowsInventario"
                                     type="button" data-toggle="tooltip" data-placement="top"
                                     title="Remover filas en la factura">
-                                    <div class="sb-nav-link-icon"></div><i class="fas fa-minus fa-lg"></i> Quitar
+                                    <div class="sb-nav-link-icon"></div>
+                                    <i class="fas fa-minus fa-lg"></i> Quitar
                                 </button>
                             </div>
                         </div>
+
                         <div class="form-group row">
                             <div class="form-row col-xs-12 col-sm-12 col-md-12 col-lg-12">
                                 <div class="col-sm-12 col-md-12">
@@ -323,30 +410,34 @@
                                 </div>
                             </div>
                         </div>
+
                         <div class="RespuestaAjax"></div>
                     </form>
                 </div>
             </div>
+
             <div class="card-footer small text-muted">
                 <?php
-				require_once "./core/mainModel.php";
-				
-				$insMainModel = new mainModel();
-				$entidad = "movimientos";
-				
-				if($insMainModel->getlastUpdate($entidad)->num_rows > 0){
-					$consulta_last_update = $insMainModel->getlastUpdate($entidad)->fetch_assoc();
-					$fecha_registro = htmlspecialchars($consulta_last_update['fecha_registro'], ENT_QUOTES, 'UTF-8');
-					$hora = htmlspecialchars(date('g:i:s a', strtotime($fecha_registro)), ENT_QUOTES, 'UTF-8');
-					echo "Última Actualización ".htmlspecialchars($insMainModel->getTheDay($fecha_registro, $hora), ENT_QUOTES, 'UTF-8');
-				} else {
-					echo "No se encontraron registros ";
-				}			
-			?>
+                    require_once "./core/mainModel.php";
+
+                    $insMainModel = new mainModel();
+                    $entidad = "movimientos";
+
+                    if ($insMainModel->getlastUpdate($entidad)->num_rows > 0) {
+                        $consulta_last_update = $insMainModel->getlastUpdate($entidad)->fetch_assoc();
+                        $fecha_registro = htmlspecialchars($consulta_last_update['fecha_registro'], ENT_QUOTES, 'UTF-8');
+                        $hora = htmlspecialchars(date('g:i:s a', strtotime($fecha_registro)), ENT_QUOTES, 'UTF-8');
+
+                        echo "Última Actualización " . htmlspecialchars($insMainModel->getTheDay($fecha_registro, $hora), ENT_QUOTES, 'UTF-8');
+                    } else {
+                        echo "No se encontraron registros ";
+                    }
+                ?>
             </div>
         </div>
     </div>
 
     <?php
-	$insMainModel->guardar_historial_accesos("Ingreso al modulo Inventario");
-?>
+        $insMainModel->guardar_historial_accesos("Ingreso al modulo Inventario");
+    ?>
+</div>

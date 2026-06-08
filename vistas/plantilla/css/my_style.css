@@ -11485,3 +11485,1207 @@ table.dataTable tbody tr.shown td {
    FIN PRODUCTOS - DISEÑO PROFESIONAL
    SOLO DISEÑO VISUAL - NO TOCA BOTÓN DE ACCIONES
    ========================================================= */
+
+/* =========================================================
+   INICIO INGRESOS CONTABILIDAD - DISEÑO PROFESIONAL
+   SOLO DISEÑO VISUAL - NO TOCA BOTÓN DE ACCIONES
+   NO USA: .acciones-dropdown, .btn-acciones, .acciones-menu
+   ========================================================= */
+
+/* =========================================================
+   CONTENEDOR GENERAL
+   ========================================================= */
+
+.ingresos-page {
+  color: #334155;
+}
+
+/* =========================================================
+     FILTROS
+     ========================================================= */
+
+.ingresos-page .ingresos-filtro-card {
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.ingresos-page .ingresos-filtro-card .card-body {
+  padding: 1.25rem 1.35rem;
+}
+
+.ingresos-page .ingresos-label-filter {
+  font-weight: 700;
+  color: #334155;
+  letter-spacing: 0.02em;
+  font-size: 0.84rem;
+}
+
+.ingresos-page .ingresos-input-group .input-group-text {
+  background: #f8fafc;
+  color: #64748b;
+  border-color: #dbe3ef;
+  min-height: 44px;
+}
+
+.ingresos-page .ingresos-input-group .form-control {
+  border-color: #dbe3ef;
+  min-height: 44px;
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
+.ingresos-page .ingresos-input-group .form-control:focus {
+  box-shadow: 0 0 0 0.15rem rgba(52, 152, 219, 0.14);
+  border-color: #3498db;
+}
+
+.ingresos-page .ingresos-filtro-card .bootstrap-select.form-control {
+  width: 100% !important;
+}
+
+.ingresos-page .ingresos-filtro-card .bootstrap-select > .dropdown-toggle {
+  min-height: 44px;
+  border-color: #dbe3ef !important;
+  background: #ffffff !important;
+  color: #334155 !important;
+  font-size: 0.92rem;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+}
+
+.ingresos-page .ingresos-filtro-card .bootstrap-select > .dropdown-toggle:focus,
+.ingresos-page .ingresos-filtro-card .bootstrap-select.show > .dropdown-toggle {
+  border-color: #3498db !important;
+  box-shadow: 0 0 0 0.15rem rgba(52, 152, 219, 0.14) !important;
+}
+
+.ingresos-page .ingresos-filtro-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.ingresos-page .ingresos-btn-filtrar,
+.ingresos-page .ingresos-btn-limpiar {
+  min-height: 42px;
+  border-radius: 9px;
+  font-weight: 700;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* =========================================================
+     CARDS RESUMEN
+     ========================================================= */
+
+.ingresos-page .ingresos-resumen-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+  padding: 1.15rem 1.25rem;
+  min-height: 105px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.ingresos-page .ingresos-resumen-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 4px;
+  border-radius: 0 8px 8px 0;
+}
+
+.ingresos-page .ingresos-resumen-registros::before {
+  background: #3498db;
+}
+
+.ingresos-page .ingresos-resumen-subtotal::before {
+  background: #22c55e;
+}
+
+.ingresos-page .ingresos-resumen-impuesto::before {
+  background: #f59e0b;
+}
+
+.ingresos-page .ingresos-resumen-total::before {
+  background: #8b5cf6;
+}
+
+.ingresos-page .ingresos-resumen-label {
+  color: #64748b;
+  text-transform: uppercase;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.ingresos-page .ingresos-resumen-card h3 {
+  font-size: 1.55rem;
+  font-weight: 800;
+  margin: 0.35rem 0 0.2rem;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.ingresos-page .ingresos-resumen-card p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.ingresos-page .ingresos-resumen-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #334155;
+  font-size: 1.25rem;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+/* =========================================================
+     CARD TABLA
+     ========================================================= */
+
+.ingresos-page .ingresos-table-card {
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.ingresos-page .ingresos-card-header {
+  background: #ffffff;
+  color: #0f172a;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+  padding: 1rem 1.25rem;
+}
+
+.ingresos-page .ingresos-card-header strong {
+  font-size: 1.02rem;
+  font-weight: 700;
+}
+
+.ingresos-page .ingresos-card-header small {
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.ingresos-page .ingresos-table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.25rem;
+}
+
+/* =========================================================
+     TABLA INGRESOS
+     ========================================================= */
+
+.ingresos-page #dataTableIngresosContabilidad {
+  width: 100% !important;
+  min-width: 1720px !important;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.ingresos-page #dataTableIngresosContabilidad thead th {
+  vertical-align: middle;
+  white-space: nowrap !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.ingresos-page #dataTableIngresosContabilidad tbody td {
+  white-space: normal !important;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  vertical-align: middle;
+  padding-top: 0.9rem;
+  padding-bottom: 0.9rem;
+  color: #334155;
+  font-size: 0.84rem;
+  font-weight: 400;
+}
+
+.ingresos-page #dataTableIngresosContabilidad tbody tr {
+  transition: background-color 0.18s ease;
+}
+
+.ingresos-page #dataTableIngresosContabilidad tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.ingresos-page #dataTableIngresosContabilidad tfoot td {
+  vertical-align: middle;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Anchos reales por columna - INGRESOS */
+.ingresos-page #dataTableIngresosContabilidad th:nth-child(1),
+.ingresos-page #dataTableIngresosContabilidad td:nth-child(1) {
+  width: 125px !important;
+  min-width: 125px !important;
+}
+
+.ingresos-page #dataTableIngresosContabilidad th:nth-child(2),
+.ingresos-page #dataTableIngresosContabilidad td:nth-child(2) {
+  width: 150px !important;
+  min-width: 150px !important;
+}
+
+.ingresos-page #dataTableIngresosContabilidad th:nth-child(3),
+.ingresos-page #dataTableIngresosContabilidad td:nth-child(3) {
+  width: 150px !important;
+  min-width: 150px !important;
+}
+
+.ingresos-page #dataTableIngresosContabilidad th:nth-child(4),
+.ingresos-page #dataTableIngresosContabilidad td:nth-child(4) {
+  width: 100px !important;
+  min-width: 100px !important;
+  text-align: center;
+}
+
+.ingresos-page #dataTableIngresosContabilidad th:nth-child(5),
+.ingresos-page #dataTableIngresosContabilidad td:nth-child(5) {
+  width: 145px !important;
+  min-width: 145px !important;
+}
+
+.ingresos-page #dataTableIngresosContabilidad th:nth-child(6),
+.ingresos-page #dataTableIngresosContabilidad td:nth-child(6) {
+  width: 160px !important;
+  min-width: 160px !important;
+}
+
+.ingresos-page #dataTableIngresosContabilidad th:nth-child(7),
+.ingresos-page #dataTableIngresosContabilidad td:nth-child(7) {
+  width: 170px !important;
+  min-width: 170px !important;
+}
+
+.ingresos-page #dataTableIngresosContabilidad th:nth-child(8),
+.ingresos-page #dataTableIngresosContabilidad td:nth-child(8) {
+  width: 140px !important;
+  min-width: 140px !important;
+}
+
+.ingresos-page #dataTableIngresosContabilidad th:nth-child(9),
+.ingresos-page #dataTableIngresosContabilidad td:nth-child(9),
+.ingresos-page #dataTableIngresosContabilidad th:nth-child(10),
+.ingresos-page #dataTableIngresosContabilidad td:nth-child(10),
+.ingresos-page #dataTableIngresosContabilidad th:nth-child(11),
+.ingresos-page #dataTableIngresosContabilidad td:nth-child(11),
+.ingresos-page #dataTableIngresosContabilidad th:nth-child(12),
+.ingresos-page #dataTableIngresosContabilidad td:nth-child(12) {
+  width: 115px !important;
+  min-width: 115px !important;
+  text-align: right;
+  padding-left: 0.7rem !important;
+  padding-right: 0.7rem !important;
+}
+
+.ingresos-page #dataTableIngresosContabilidad th:nth-child(13),
+.ingresos-page #dataTableIngresosContabilidad td:nth-child(13) {
+  width: 230px !important;
+  min-width: 230px !important;
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+
+.ingresos-page #dataTableIngresosContabilidad th:nth-child(14),
+.ingresos-page #dataTableIngresosContabilidad td:nth-child(14) {
+  width: 120px !important;
+  min-width: 120px !important;
+  text-align: center;
+  padding-left: 0.7rem !important;
+  padding-right: 0.7rem !important;
+}
+
+/* =========================================================
+     CELDAS DE INFORMACIÓN
+     ========================================================= */
+
+.ingresos-page .ingresos-info-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.ingresos-page .ingresos-info-main {
+  color: #0f172a;
+  font-weight: 600;
+  font-size: 0.9rem;
+  line-height: 1.25;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.ingresos-page .ingresos-info-muted {
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 400;
+  line-height: 1.25;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.ingresos-page .ingresos-info-chip {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  max-width: 100%;
+  border-radius: 99px;
+  padding: 0.24rem 0.55rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 0.76rem;
+  font-weight: 500;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ingresos-page .ingresos-info-chip i {
+  flex: 0 0 auto;
+}
+
+.ingresos-page .ingresos-observacion {
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 400;
+  line-height: 1.35;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+/* =========================================================
+     BADGES TIPO / ESTADO
+     ========================================================= */
+
+.ingresos-page .ingresos-type-badge,
+.ingresos-page .ingresos-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  border-radius: 99px;
+  padding: 0.28rem 0.58rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  max-width: 100%;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ingresos-page .ingresos-type-badge i,
+.ingresos-page .ingresos-status-badge i {
+  flex: 0 0 auto;
+}
+
+.ingresos-page .ingresos-type-ventas {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.ingresos-page .ingresos-type-manual {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.ingresos-page .ingresos-type-otro {
+  background: #f8fafc;
+  color: #64748b;
+  border-color: #e2e8f0;
+}
+
+.ingresos-page .ingresos-status-active {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.ingresos-page .ingresos-status-inactive {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+/* =========================================================
+     BADGES DINERO
+     ========================================================= */
+
+.ingresos-page .ingresos-money-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  padding: 0.34rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  min-width: 88px;
+  max-width: 100%;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ingresos-page .ingresos-money-subtotal {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.ingresos-page .ingresos-money-impuesto {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+.ingresos-page .ingresos-money-descuento {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.ingresos-page .ingresos-money-total {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.ingresos-page .ingresos-money-neutral {
+  background: #f8fafc;
+  color: #64748b;
+  border-color: #e2e8f0;
+}
+
+/* =========================================================
+     FOOTER
+     ========================================================= */
+
+.ingresos-page .ingresos-card-footer {
+  background: #ffffff;
+  border-top: 1px solid rgba(15, 23, 42, 0.07);
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+/* =========================================================
+     RESPONSIVE
+     ========================================================= */
+
+@media (max-width: 1400px) {
+  .ingresos-page #dataTableIngresosContabilidad {
+    min-width: 1720px !important;
+  }
+
+  .ingresos-page #dataTableIngresosContabilidad thead th {
+    font-size: 0.78rem;
+    padding-left: 0.35rem;
+    padding-right: 0.35rem;
+  }
+
+  .ingresos-page #dataTableIngresosContabilidad tbody td {
+    font-size: 0.8rem;
+  }
+
+  .ingresos-page .ingresos-info-main {
+    font-size: 0.86rem;
+  }
+
+  .ingresos-page .ingresos-info-muted,
+  .ingresos-page .ingresos-info-chip,
+  .ingresos-page .ingresos-observacion {
+    font-size: 0.74rem;
+  }
+
+  .ingresos-page .ingresos-money-badge {
+    min-width: 82px;
+    font-size: 0.74rem;
+    padding: 0.32rem 0.48rem;
+  }
+
+  .ingresos-page .ingresos-type-badge,
+  .ingresos-page .ingresos-status-badge {
+    font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 1200px) {
+  .ingresos-page #dataTableIngresosContabilidad {
+    min-width: 1720px !important;
+  }
+
+  .ingresos-page #dataTableIngresosContabilidad thead th {
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
+  }
+
+  .ingresos-page .ingresos-money-badge {
+    min-width: 80px;
+    font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .ingresos-page .ingresos-resumen-card {
+    min-height: 95px;
+  }
+
+  .ingresos-page .ingresos-filtro-actions {
+    justify-content: stretch;
+  }
+
+  .ingresos-page .ingresos-btn-filtrar,
+  .ingresos-page .ingresos-btn-limpiar {
+    width: 100%;
+  }
+
+  .ingresos-page #dataTableIngresosContabilidad {
+    min-width: 1720px !important;
+  }
+}
+
+/* =========================================================
+     FIN INGRESOS CONTABILIDAD - DISEÑO PROFESIONAL
+     SOLO DISEÑO VISUAL - NO TOCA BOTÓN DE ACCIONES
+     ========================================================= */
+
+/* =========================================================
+     INICIO EGRESOS CONTABILIDAD - DISEÑO PROFESIONAL
+     SOLO DISEÑO VISUAL - NO TOCA BOTÓN DE ACCIONES
+     NO USA: .acciones-dropdown, .btn-acciones, .acciones-menu
+     ========================================================= */
+
+.egresos-page {
+  color: #334155;
+}
+
+/* =========================================================
+     FILTROS
+     ========================================================= */
+
+.egresos-page .egresos-filtro-card {
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.egresos-page .egresos-filtro-card .card-body {
+  padding: 1.25rem 1.35rem;
+}
+
+.egresos-page .egresos-label-filter {
+  font-weight: 700;
+  color: #334155;
+  letter-spacing: 0.02em;
+  font-size: 0.84rem;
+}
+
+.egresos-page .egresos-input-group .input-group-text {
+  background: #f8fafc;
+  color: #64748b;
+  border-color: #dbe3ef;
+  min-height: 44px;
+}
+
+.egresos-page .egresos-input-group .form-control {
+  border-color: #dbe3ef;
+  min-height: 44px;
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
+.egresos-page .egresos-input-group .form-control:focus {
+  box-shadow: 0 0 0 0.15rem rgba(52, 152, 219, 0.14);
+  border-color: #3498db;
+}
+
+.egresos-page .egresos-filtro-card .bootstrap-select.form-control {
+  width: 100% !important;
+}
+
+.egresos-page .egresos-filtro-card .bootstrap-select > .dropdown-toggle {
+  min-height: 44px;
+  border-color: #dbe3ef !important;
+  background: #ffffff !important;
+  color: #334155 !important;
+  font-size: 0.92rem;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+}
+
+.egresos-page .egresos-filtro-card .bootstrap-select > .dropdown-toggle:focus,
+.egresos-page .egresos-filtro-card .bootstrap-select.show > .dropdown-toggle {
+  border-color: #3498db !important;
+  box-shadow: 0 0 0 0.15rem rgba(52, 152, 219, 0.14) !important;
+}
+
+.egresos-page .egresos-filtro-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.egresos-page .egresos-btn-filtrar,
+.egresos-page .egresos-btn-limpiar {
+  min-height: 42px;
+  border-radius: 9px;
+  font-weight: 700;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* =========================================================
+     CARDS RESUMEN
+     ========================================================= */
+
+.egresos-page .egresos-resumen-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+  padding: 1.15rem 1.25rem;
+  min-height: 105px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.egresos-page .egresos-resumen-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 4px;
+  border-radius: 0 8px 8px 0;
+}
+
+.egresos-page .egresos-resumen-registros::before {
+  background: #3498db;
+}
+
+.egresos-page .egresos-resumen-subtotal::before {
+  background: #22c55e;
+}
+
+.egresos-page .egresos-resumen-impuesto::before {
+  background: #f59e0b;
+}
+
+.egresos-page .egresos-resumen-total::before {
+  background: #ef4444;
+}
+
+.egresos-page .egresos-resumen-label {
+  color: #64748b;
+  text-transform: uppercase;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.egresos-page .egresos-resumen-card h3 {
+  font-size: 1.55rem;
+  font-weight: 800;
+  margin: 0.35rem 0 0.2rem;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.egresos-page .egresos-resumen-card p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.egresos-page .egresos-resumen-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #334155;
+  font-size: 1.25rem;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+/* =========================================================
+     CARD TABLA
+     ========================================================= */
+
+.egresos-page .egresos-table-card {
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.egresos-page .egresos-card-header {
+  background: #ffffff;
+  color: #0f172a;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+  padding: 1rem 1.25rem;
+}
+
+.egresos-page .egresos-card-header strong {
+  font-size: 1.02rem;
+  font-weight: 700;
+}
+
+.egresos-page .egresos-card-header small {
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.egresos-page .egresos-table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.25rem;
+}
+
+/* =========================================================
+     TABLA EGRESOS
+     ========================================================= */
+
+.egresos-page #dataTableGastosContabilidad {
+  width: 100% !important;
+  min-width: 1900px !important;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.egresos-page #dataTableGastosContabilidad thead th {
+  vertical-align: middle;
+  white-space: nowrap !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.egresos-page #dataTableGastosContabilidad tbody td {
+  white-space: normal !important;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  vertical-align: middle;
+  padding-top: 0.9rem;
+  padding-bottom: 0.9rem;
+  color: #334155;
+  font-size: 0.84rem;
+  font-weight: 400;
+}
+
+.egresos-page #dataTableGastosContabilidad tbody tr {
+  transition: background-color 0.18s ease;
+}
+
+.egresos-page #dataTableGastosContabilidad tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.egresos-page #dataTableGastosContabilidad tfoot td {
+  vertical-align: middle;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Anchos reales por columna - EGRESOS */
+.egresos-page #dataTableGastosContabilidad th:nth-child(1),
+.egresos-page #dataTableGastosContabilidad td:nth-child(1) {
+  width: 125px !important;
+  min-width: 125px !important;
+}
+
+.egresos-page #dataTableGastosContabilidad th:nth-child(2),
+.egresos-page #dataTableGastosContabilidad td:nth-child(2) {
+  width: 155px !important;
+  min-width: 155px !important;
+}
+
+.egresos-page #dataTableGastosContabilidad th:nth-child(3),
+.egresos-page #dataTableGastosContabilidad td:nth-child(3) {
+  width: 105px !important;
+  min-width: 105px !important;
+  text-align: center;
+}
+
+.egresos-page #dataTableGastosContabilidad th:nth-child(4),
+.egresos-page #dataTableGastosContabilidad td:nth-child(4) {
+  width: 160px !important;
+  min-width: 160px !important;
+}
+
+.egresos-page #dataTableGastosContabilidad th:nth-child(5),
+.egresos-page #dataTableGastosContabilidad td:nth-child(5) {
+  width: 145px !important;
+  min-width: 145px !important;
+}
+
+.egresos-page #dataTableGastosContabilidad th:nth-child(6),
+.egresos-page #dataTableGastosContabilidad td:nth-child(6) {
+  width: 165px !important;
+  min-width: 165px !important;
+}
+
+.egresos-page #dataTableGastosContabilidad th:nth-child(7),
+.egresos-page #dataTableGastosContabilidad td:nth-child(7) {
+  width: 170px !important;
+  min-width: 170px !important;
+}
+
+.egresos-page #dataTableGastosContabilidad th:nth-child(8),
+.egresos-page #dataTableGastosContabilidad td:nth-child(8) {
+  width: 145px !important;
+  min-width: 145px !important;
+}
+
+.egresos-page #dataTableGastosContabilidad th:nth-child(9),
+.egresos-page #dataTableGastosContabilidad td:nth-child(9),
+.egresos-page #dataTableGastosContabilidad th:nth-child(10),
+.egresos-page #dataTableGastosContabilidad td:nth-child(10),
+.egresos-page #dataTableGastosContabilidad th:nth-child(11),
+.egresos-page #dataTableGastosContabilidad td:nth-child(11),
+.egresos-page #dataTableGastosContabilidad th:nth-child(12),
+.egresos-page #dataTableGastosContabilidad td:nth-child(12),
+.egresos-page #dataTableGastosContabilidad th:nth-child(13),
+.egresos-page #dataTableGastosContabilidad td:nth-child(13) {
+  width: 115px !important;
+  min-width: 115px !important;
+  text-align: right;
+  padding-left: 0.7rem !important;
+  padding-right: 0.7rem !important;
+}
+
+.egresos-page #dataTableGastosContabilidad th:nth-child(14),
+.egresos-page #dataTableGastosContabilidad td:nth-child(14) {
+  width: 250px !important;
+  min-width: 250px !important;
+  padding-left: 1.15rem !important;
+  padding-right: 1.15rem !important;
+}
+
+.egresos-page #dataTableGastosContabilidad th:nth-child(15),
+.egresos-page #dataTableGastosContabilidad td:nth-child(15) {
+  width: 125px !important;
+  min-width: 125px !important;
+  text-align: center;
+  padding-left: 0.7rem !important;
+  padding-right: 0.7rem !important;
+}
+
+/* =========================================================
+     CELDAS DE INFORMACIÓN
+     ========================================================= */
+
+.egresos-page .egresos-info-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.egresos-page .egresos-info-main {
+  color: #0f172a;
+  font-weight: 600;
+  font-size: 0.9rem;
+  line-height: 1.25;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.egresos-page .egresos-info-muted {
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 400;
+  line-height: 1.25;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.egresos-page .egresos-info-chip {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  max-width: 100%;
+  border-radius: 99px;
+  padding: 0.24rem 0.55rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 0.76rem;
+  font-weight: 500;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.egresos-page .egresos-info-chip i {
+  flex: 0 0 auto;
+}
+
+.egresos-page .egresos-factura-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.egresos-page .egresos-factura-box span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.egresos-page .egresos-observacion {
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 400;
+  line-height: 1.35;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+/* =========================================================
+     BADGES ESTADO
+     ========================================================= */
+
+.egresos-page .egresos-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  border-radius: 99px;
+  padding: 0.28rem 0.58rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  max-width: 100%;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.egresos-page .egresos-status-badge i {
+  flex: 0 0 auto;
+}
+
+.egresos-page .egresos-status-active {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.egresos-page .egresos-status-inactive {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+/* =========================================================
+     BADGES DINERO
+     ========================================================= */
+
+.egresos-page .egresos-money-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  padding: 0.34rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  min-width: 88px;
+  max-width: 100%;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.egresos-page .egresos-money-subtotal {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.egresos-page .egresos-money-impuesto {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+.egresos-page .egresos-money-descuento,
+.egresos-page .egresos-money-nc {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.egresos-page .egresos-money-total {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.egresos-page .egresos-money-neutral {
+  background: #f8fafc;
+  color: #64748b;
+  border-color: #e2e8f0;
+}
+
+/* =========================================================
+     FOOTER
+     ========================================================= */
+
+.egresos-page .egresos-card-footer {
+  background: #ffffff;
+  border-top: 1px solid rgba(15, 23, 42, 0.07);
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+/* =========================================================
+     RESPONSIVE
+     ========================================================= */
+
+@media (max-width: 1400px) {
+  .egresos-page #dataTableGastosContabilidad {
+    min-width: 1900px !important;
+  }
+
+  .egresos-page #dataTableGastosContabilidad thead th {
+    font-size: 0.78rem;
+    padding-left: 0.35rem;
+    padding-right: 0.35rem;
+  }
+
+  .egresos-page #dataTableGastosContabilidad tbody td {
+    font-size: 0.8rem;
+  }
+
+  .egresos-page .egresos-info-main {
+    font-size: 0.86rem;
+  }
+
+  .egresos-page .egresos-info-muted,
+  .egresos-page .egresos-info-chip,
+  .egresos-page .egresos-observacion {
+    font-size: 0.74rem;
+  }
+
+  .egresos-page .egresos-money-badge {
+    min-width: 82px;
+    font-size: 0.74rem;
+    padding: 0.32rem 0.48rem;
+  }
+
+  .egresos-page .egresos-status-badge {
+    font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 1200px) {
+  .egresos-page #dataTableGastosContabilidad {
+    min-width: 1900px !important;
+  }
+
+  .egresos-page #dataTableGastosContabilidad thead th {
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
+  }
+
+  .egresos-page .egresos-money-badge {
+    min-width: 80px;
+    font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .egresos-page .egresos-resumen-card {
+    min-height: 95px;
+  }
+
+  .egresos-page .egresos-filtro-actions {
+    justify-content: stretch;
+  }
+
+  .egresos-page .egresos-btn-filtrar,
+  .egresos-page .egresos-btn-limpiar {
+    width: 100%;
+  }
+
+  .egresos-page #dataTableGastosContabilidad {
+    min-width: 1900px !important;
+  }
+}
+
+/* =========================================================
+     FIN EGRESOS CONTABILIDAD - DISEÑO PROFESIONAL
+     SOLO DISEÑO VISUAL - NO TOCA BOTÓN DE ACCIONES
+     ========================================================= */

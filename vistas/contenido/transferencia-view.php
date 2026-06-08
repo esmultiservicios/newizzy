@@ -1,4 +1,4 @@
-<div class="container-fluid">
+<div class="container-fluid inventario-transferencia-page">
     <!-- Inventario -->
     <div class="breadcrumb-container">
         <ol class="breadcrumb-harmony">
@@ -16,90 +16,148 @@
         </ol>
     </div>
 
-    <div class="card mb-4">
+    <!-- Filtros -->
+    <div class="card mb-4 inventario-filtro-card">
         <div class="card-body">
             <form id="form_main_movimientos_transferencia">
-                <div class="row">
-                    <div class="col-md-4 col-sm-6 mb-3">
-                        <div class="form-group">
-                            <label class="small mb-1">Categoría</label>
+                <div class="row align-items-end">
+                    <div class="col-lg-4 col-md-4 col-sm-6 mb-3">
+                        <div class="form-group mb-0">
+                            <label class="small mb-1 inventario-label-filter">
+                                <i class="fas fa-tags mr-1"></i> Categoría
+                            </label>
                             <select id="inventario_tipo_productos_id" name="inventario_tipo_productos_id"
                                 class="form-control selectpicker" data-live-search="true" title="Categoría de Productos">
                             </select>
                         </div>
                     </div>
-                    
-                    <div class="col-md-4 col-sm-6 mb-3">
-                        <div class="form-group">
-                            <label class="small mb-1">Producto</label>
-                            <select id="inventario_productos_id" name="inventario_productos_id" 
+
+                    <div class="col-lg-4 col-md-4 col-sm-6 mb-3">
+                        <div class="form-group mb-0">
+                            <label class="small mb-1 inventario-label-filter">
+                                <i class="fas fa-box-open mr-1"></i> Producto
+                            </label>
+                            <select id="inventario_productos_id" name="inventario_productos_id"
                                 class="form-control selectpicker" data-live-search="true" title="Productos">
                             </select>
                         </div>
                     </div>
-                    
-                    <div class="col-md-4 col-sm-6 mb-3">
-                        <div class="form-group">
-                            <label class="small mb-1">Almacén</label>
-                            <select id="almacen" name="almacen" class="form-control selectpicker" 
-                                data-live-search="true" title="Almacen">
+
+                    <div class="col-lg-4 col-md-4 col-sm-6 mb-3">
+                        <div class="form-group mb-0">
+                            <label class="small mb-1 inventario-label-filter">
+                                <i class="fas fa-warehouse mr-1"></i> Almacén
+                            </label>
+                            <select id="almacen" name="almacen" class="form-control selectpicker"
+                                data-live-search="true" title="Almacén">
                             </select>
                         </div>
                     </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-12 d-flex justify-content-end">
+
+                    <div class="col-12 mb-3 text-right">
                         <button type="submit" class="btn btn-primary mr-2" id="search">
                             <i class="fas fa-filter fa-lg"></i> Filtrar
                         </button>
                         <button type="reset" class="btn btn-secondary">
                             <i class="fas fa-broom fa-lg"></i> Limpiar
-                        </button>  
+                        </button>
                     </div>
                 </div>
             </form>
         </div>
     </div>
 
-    <div class="card mb-4">
-        <div class="card-header">
-            <i class="fas fa-boxes fa-lg mr-1"></i> Inventario
+    <!-- Cards resumen -->
+    <div class="row inventario-resumen-row">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="inventario-resumen-card inventario-resumen-registros">
+                <div>
+                    <span class="inventario-resumen-label">
+                        <i class="fas fa-list mr-1"></i> Registros
+                    </span>
+                    <h3 id="inventario_total_registros">0</h3>
+                    <p>Productos filtrados</p>
+                </div>
+                <div class="inventario-resumen-icon">
+                    <i class="fas fa-boxes"></i>
+                </div>
+            </div>
         </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="inventario-resumen-card inventario-resumen-entrada">
+                <div>
+                    <span class="inventario-resumen-label">
+                        <i class="fas fa-arrow-down mr-1"></i> Entradas
+                    </span>
+                    <h3 id="inventario_total_entrada">0.00</h3>
+                    <p>Total acumulado</p>
+                </div>
+                <div class="inventario-resumen-icon">
+                    <i class="fas fa-sign-in-alt"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="inventario-resumen-card inventario-resumen-salida">
+                <div>
+                    <span class="inventario-resumen-label">
+                        <i class="fas fa-arrow-up mr-1"></i> Salidas
+                    </span>
+                    <h3 id="inventario_total_salida">0.00</h3>
+                    <p>Total acumulado</p>
+                </div>
+                <div class="inventario-resumen-icon">
+                    <i class="fas fa-sign-out-alt"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="inventario-resumen-card inventario-resumen-saldo">
+                <div>
+                    <span class="inventario-resumen-label">
+                        <i class="fas fa-balance-scale mr-1"></i> Saldo
+                    </span>
+                    <h3 id="inventario_total_saldo">0.00</h3>
+                    <p>Saldo disponible</p>
+                </div>
+                <div class="inventario-resumen-icon">
+                    <i class="fas fa-cubes"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla -->
+    <div class="card mb-4 inventario-table-card">
+        <div class="card-header inventario-card-header">
+            <div>
+                <i class="fas fa-boxes fa-lg mr-1"></i>
+                <strong>Inventario</strong>
+                <small class="d-block text-muted mt-1">
+                    Consulta de existencias por producto, lote, bodega, entradas, salidas y saldo disponible.
+                </small>
+            </div>
+        </div>
+
         <div class="card-body">
-            <div class="table-responsive">
-                <table id="dataTablaMovimientos" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-                    <thead>
+            <div class="table-responsive inventario-table-responsive">
+                <table id="dataTablaMovimientos" class="table table-header-gradient table-striped table-condensed table-hover inventario-table" style="width:100%">
+                    <tfoot class="inventario-table-footer">
                         <tr>
-                            <th>Cambiar Vencimiento</th>
-                            <th>Fecha</th>
-                            <th>Imagen</th>
-                            <th>Número de Lote</th>
-                            <th>Bar Code</th>
-                            <th>Producto</th>
-                            <th>Medida</th>
-                            <th>Anterior</th>
-                            <th>Entrada</th>
-                            <th>Salida</th>
-                            <th>Saldo</th>
-                            <th>Bodega</th>
-                            <th>Transferencia</th>
-                        </tr>
-                    </thead>
-                    <tfoot class="bg-secondary">
-                        <tr>
-                            <td colspan="6"></td>
-                            <td colspan='1' class="text-center">Total</td> 
-                            <td id="anterior-footer-movimiento"></td> 
-                            <td id="entrada-footer-movimiento"></td>
-                            <td id="salida-footer-movimiento"></td>
-                            <td id="total-footer-movimiento"></td>
-                            <td colspan="2"></td>
+                            <td colspan="4" class="text-right inventario-footer-label">Totales</td>
+                            <td id="anterior-footer-movimiento" class="text-center"></td>
+                            <td id="entrada-footer-movimiento" class="text-center"></td>
+                            <td id="salida-footer-movimiento" class="text-center"></td>
+                            <td id="total-footer-movimiento" class="text-center"></td>
                         </tr>
                     </tfoot>
                 </table>
             </div>
         </div>
+
         <div class="card-footer small text-muted">
             <?php
                 require_once "./core/mainModel.php";
@@ -120,5 +178,6 @@
     </div>
 
     <?php
-	$insMainModel->guardar_historial_accesos("Ingreso al modulo Inventario");
-?>
+        $insMainModel->guardar_historial_accesos("Ingreso al modulo Inventario");
+    ?>
+</div>

@@ -9702,3 +9702,1786 @@ table.dataTable tbody tr.shown td {
      FIN SECUENCIA FACTURACIÓN - DISEÑO PROFESIONAL
      SOLO DISEÑO VISUAL - NO TOCA BOTÓN DE ACCIONES
      ========================================================= */
+
+/* =========================================================
+   INICIO MOVIMIENTOS PRODUCTOS - DISEÑO PROFESIONAL
+   SOLO DISEÑO VISUAL - NO TOCA BOTONES GLOBALES
+   ========================================================= */
+
+/* =========================================================
+   FILTROS
+   ========================================================= */
+
+.movimientos-filtro-card {
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.movimientos-filtro-card .card-body {
+  padding: 1.25rem 1.35rem;
+}
+
+.movimientos-label-filter {
+  font-weight: 800;
+  color: #334155;
+  letter-spacing: 0.02em;
+  font-size: 0.84rem;
+}
+
+.movimientos-date-group .input-group-text {
+  background: #f8fafc;
+  color: #64748b;
+  border-color: #dbe3ef;
+  min-height: 44px;
+}
+
+.movimientos-date-group .form-control {
+  border-color: #dbe3ef;
+  min-height: 44px;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.movimientos-date-group .form-control:focus {
+  box-shadow: 0 0 0 0.15rem rgba(52, 152, 219, 0.14);
+  border-color: #3498db;
+}
+
+/* Selectpicker filtros */
+.movimientos-filtro-card .bootstrap-select.form-control {
+  width: 100% !important;
+}
+
+.movimientos-filtro-card .bootstrap-select > .dropdown-toggle {
+  min-height: 44px;
+  border-color: #dbe3ef !important;
+  background: #ffffff !important;
+  color: #334155 !important;
+  font-size: 0.92rem;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+}
+
+.movimientos-filtro-card .bootstrap-select > .dropdown-toggle:focus,
+.movimientos-filtro-card .bootstrap-select.show > .dropdown-toggle {
+  border-color: #3498db !important;
+  box-shadow: 0 0 0 0.15rem rgba(52, 152, 219, 0.14) !important;
+}
+
+/* =========================================================
+     CARDS RESUMEN
+     ========================================================= */
+
+.movimientos-resumen-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+  padding: 1.15rem 1.25rem;
+  min-height: 105px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.movimientos-resumen-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 4px;
+  border-radius: 0 8px 8px 0;
+}
+
+.movimientos-resumen-registros::before {
+  background: #3498db;
+}
+
+.movimientos-resumen-entrada::before {
+  background: #22c55e;
+}
+
+.movimientos-resumen-salida::before {
+  background: #ef4444;
+}
+
+.movimientos-resumen-saldo::before {
+  background: #8b5cf6;
+}
+
+.movimientos-resumen-label {
+  color: #64748b;
+  text-transform: uppercase;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.movimientos-resumen-card h3 {
+  font-size: 1.65rem;
+  font-weight: 900;
+  margin: 0.35rem 0 0.2rem;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.movimientos-resumen-card p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.movimientos-resumen-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #334155;
+  font-size: 1.25rem;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+/* =========================================================
+     CARD TABLA
+     ========================================================= */
+
+.movimientos-table-card {
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.movimientos-card-header {
+  background: #ffffff;
+  color: #0f172a;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+  padding: 1rem 1.25rem;
+}
+
+.movimientos-card-header strong {
+  font-size: 1.02rem;
+  font-weight: 900;
+}
+
+.movimientos-card-header small {
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.movimientos-table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.25rem;
+}
+
+/* =========================================================
+     TABLA MOVIMIENTOS
+     ========================================================= */
+
+#dataTablaMovimientos {
+  width: 100% !important;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+#dataTablaMovimientos thead th {
+  vertical-align: middle;
+  white-space: nowrap !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+#dataTablaMovimientos tbody td {
+  white-space: normal !important;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  vertical-align: middle;
+  padding-top: 0.9rem;
+  padding-bottom: 0.9rem;
+  color: #334155;
+  font-size: 0.84rem;
+}
+
+#dataTablaMovimientos tbody tr {
+  transition: background-color 0.18s ease;
+}
+
+#dataTablaMovimientos tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+/* Columnas numéricas compactas */
+#dataTablaMovimientos th:nth-child(5),
+#dataTablaMovimientos th:nth-child(6),
+#dataTablaMovimientos th:nth-child(7),
+#dataTablaMovimientos th:nth-child(8),
+#dataTablaMovimientos td:nth-child(5),
+#dataTablaMovimientos td:nth-child(6),
+#dataTablaMovimientos td:nth-child(7),
+#dataTablaMovimientos td:nth-child(8) {
+  white-space: nowrap !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  text-align: center !important;
+}
+
+/* =========================================================
+     MOVIMIENTO
+     ========================================================= */
+
+.movimientos-main-box,
+.movimientos-product-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.movimientos-main-icon {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  border: 1px solid #dbeafe;
+}
+
+.movimientos-main-info,
+.movimientos-product-info {
+  min-width: 0;
+  width: 100%;
+}
+
+.movimientos-fecha,
+.movimientos-product-name {
+  margin: 0;
+  color: #0f172a;
+  font-weight: 900;
+  font-size: 0.94rem;
+  line-height: 1.28;
+}
+
+.movimientos-documento {
+  color: #334155;
+  font-size: 0.8rem;
+  font-weight: 800;
+  margin-top: 0.28rem;
+  line-height: 1.25;
+}
+
+.movimientos-comentario {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-top: 0.28rem;
+  line-height: 1.35;
+}
+
+.movimientos-product-img-box {
+  flex: 0 0 auto;
+}
+
+.movimientos-product-img {
+  width: 50px !important;
+  height: 50px !important;
+  object-fit: cover;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 0.15rem;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+}
+
+.movimientos-product-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-top: 0.28rem;
+  line-height: 1.25;
+}
+
+/* =========================================================
+     DETALLES
+     ========================================================= */
+
+.movimientos-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.movimientos-detail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.42rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: #334155;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+.movimientos-detail-item strong {
+  color: #0f172a;
+  font-weight: 900;
+}
+
+.movimientos-detail-icon {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: 7px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  margin-top: 0.02rem;
+}
+
+.movimientos-icon-lote {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.movimientos-icon-doc {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.movimientos-icon-cliente {
+  background: #faf5ff;
+  color: #7c3aed;
+}
+
+.movimientos-icon-bodega {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+/* =========================================================
+     LOTE
+     ========================================================= */
+
+.movimientos-lote-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 99px;
+  padding: 0.28rem 0.58rem;
+  font-size: 0.76rem;
+  font-weight: 900;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  max-width: 100%;
+  line-height: 1;
+}
+
+.movimientos-lote-ok {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.movimientos-lote-empty {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+/* =========================================================
+     NÚMEROS
+     ========================================================= */
+
+.movimientos-number-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  padding: 0.42rem 0.58rem;
+  font-size: 0.82rem;
+  font-weight: 900;
+  min-width: 58px;
+  max-width: 100%;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  line-height: 1.1;
+}
+
+.movimientos-badge-anterior-ok {
+  background: #f1f5f9;
+  color: #334155;
+  border-color: #cbd5e1;
+}
+
+.movimientos-badge-anterior-empty {
+  background: #f8fafc;
+  color: #94a3b8;
+  border-color: #e2e8f0;
+}
+
+.movimientos-badge-entrada-ok {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.movimientos-badge-salida-ok {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.movimientos-badge-saldo-ok {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.movimientos-badge-saldo-danger {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.movimientos-badge-neutral {
+  background: #f8fafc;
+  color: #64748b;
+  border-color: #e2e8f0;
+}
+
+/* =========================================================
+     FOOTER TABLA
+     ========================================================= */
+
+.movimientos-table-footer {
+  background: #3498db;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.movimientos-table-footer td {
+  color: #ffffff !important;
+  font-size: 0.92rem;
+  padding: 0.9rem 0.75rem !important;
+  white-space: nowrap !important;
+}
+
+.movimientos-footer-label {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 900;
+}
+
+/* =========================================================
+     ZOOM IMAGEN
+     ========================================================= */
+
+#dataTablaMovimientos .movimientos-zoom-trigger,
+#dataTablaMovimientos .movimientos-zoom-trigger img,
+#dataTablaMovimientos .iv-trigger,
+#dataTablaMovimientos .iv-trigger img {
+  cursor: zoom-in !important;
+}
+
+/* =========================================================
+     RESPONSIVE
+     ========================================================= */
+
+@media (max-width: 1400px) {
+  #dataTablaMovimientos thead th {
+    font-size: 0.78rem;
+    padding-left: 0.35rem;
+    padding-right: 0.35rem;
+  }
+
+  #dataTablaMovimientos tbody td {
+    font-size: 0.8rem;
+  }
+
+  .movimientos-fecha,
+  .movimientos-product-name {
+    font-size: 0.88rem;
+  }
+
+  .movimientos-detail-item,
+  .movimientos-documento,
+  .movimientos-comentario,
+  .movimientos-product-meta {
+    font-size: 0.76rem;
+  }
+
+  .movimientos-number-badge {
+    min-width: 54px;
+    font-size: 0.76rem;
+    padding: 0.36rem 0.48rem;
+  }
+
+  .movimientos-lote-badge {
+    font-size: 0.72rem;
+  }
+
+  .movimientos-product-img {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .movimientos-main-icon {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+  }
+
+  .movimientos-detail-icon {
+    width: 21px;
+    height: 21px;
+    min-width: 21px;
+    font-size: 0.68rem;
+  }
+}
+
+@media (max-width: 1200px) {
+  #dataTablaMovimientos {
+    min-width: 980px;
+  }
+
+  #dataTablaMovimientos thead th {
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
+  }
+
+  .movimientos-number-badge {
+    min-width: 50px;
+    font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .movimientos-resumen-card {
+    min-height: 95px;
+  }
+
+  .movimientos-main-box,
+  .movimientos-product-box {
+    align-items: flex-start;
+  }
+
+  #dataTablaMovimientos {
+    min-width: 980px;
+  }
+}
+
+/* =========================================================
+     FIN MOVIMIENTOS PRODUCTOS - DISEÑO PROFESIONAL
+     SOLO DISEÑO VISUAL - NO TOCA BOTONES GLOBALES
+     ========================================================= */
+
+/* =========================================================
+     INICIO INVENTARIO TRANSFERENCIA - DISEÑO PROFESIONAL
+     SOLO DISEÑO VISUAL - NO TOCA BOTÓN DE ACCIONES
+     ========================================================= */
+
+/* =========================================================
+     FILTROS
+     ========================================================= */
+
+.inventario-transferencia-page .inventario-filtro-card {
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.inventario-transferencia-page .inventario-filtro-card .card-body {
+  padding: 1.25rem 1.35rem;
+}
+
+.inventario-transferencia-page .inventario-label-filter {
+  font-weight: 800;
+  color: #334155;
+  letter-spacing: 0.02em;
+  font-size: 0.84rem;
+}
+
+.inventario-transferencia-page .bootstrap-select.form-control {
+  width: 100% !important;
+}
+
+.inventario-transferencia-page .bootstrap-select > .dropdown-toggle {
+  min-height: 44px;
+  border-color: #dbe3ef !important;
+  background: #ffffff !important;
+  color: #334155 !important;
+  font-size: 0.92rem;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+}
+
+.inventario-transferencia-page .bootstrap-select > .dropdown-toggle:focus,
+.inventario-transferencia-page .bootstrap-select.show > .dropdown-toggle {
+  border-color: #3498db !important;
+  box-shadow: 0 0 0 0.15rem rgba(52, 152, 219, 0.14) !important;
+}
+
+/* =========================================================
+     CARDS RESUMEN
+     ========================================================= */
+
+.inventario-transferencia-page .inventario-resumen-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+  padding: 1.15rem 1.25rem;
+  min-height: 105px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.inventario-transferencia-page .inventario-resumen-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 4px;
+  border-radius: 0 8px 8px 0;
+}
+
+.inventario-transferencia-page .inventario-resumen-registros::before {
+  background: #3498db;
+}
+
+.inventario-transferencia-page .inventario-resumen-entrada::before {
+  background: #22c55e;
+}
+
+.inventario-transferencia-page .inventario-resumen-salida::before {
+  background: #ef4444;
+}
+
+.inventario-transferencia-page .inventario-resumen-saldo::before {
+  background: #8b5cf6;
+}
+
+.inventario-transferencia-page .inventario-resumen-label {
+  color: #64748b;
+  text-transform: uppercase;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.inventario-transferencia-page .inventario-resumen-card h3 {
+  font-size: 1.65rem;
+  font-weight: 900;
+  margin: 0.35rem 0 0.2rem;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.inventario-transferencia-page .inventario-resumen-card p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.inventario-transferencia-page .inventario-resumen-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #334155;
+  font-size: 1.25rem;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+/* =========================================================
+     CARD TABLA
+     ========================================================= */
+
+.inventario-transferencia-page .inventario-table-card {
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.inventario-transferencia-page .inventario-card-header {
+  background: #ffffff;
+  color: #0f172a;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+  padding: 1rem 1.25rem;
+}
+
+.inventario-transferencia-page .inventario-card-header strong {
+  font-size: 1.02rem;
+  font-weight: 900;
+}
+
+.inventario-transferencia-page .inventario-card-header small {
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.inventario-transferencia-page .inventario-table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.25rem;
+}
+
+/* =========================================================
+     TABLA
+     ========================================================= */
+
+.inventario-transferencia-page #dataTablaMovimientos {
+  width: 100% !important;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.inventario-transferencia-page #dataTablaMovimientos thead th {
+  vertical-align: middle;
+  white-space: nowrap !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.inventario-transferencia-page #dataTablaMovimientos tbody td {
+  white-space: normal !important;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  vertical-align: middle;
+  padding-top: 0.9rem;
+  padding-bottom: 0.9rem;
+  color: #334155;
+  font-size: 0.84rem;
+}
+
+.inventario-transferencia-page #dataTablaMovimientos tbody tr {
+  transition: background-color 0.18s ease;
+}
+
+.inventario-transferencia-page #dataTablaMovimientos tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+/* Columnas numéricas */
+.inventario-transferencia-page #dataTablaMovimientos th:nth-child(5),
+.inventario-transferencia-page #dataTablaMovimientos th:nth-child(6),
+.inventario-transferencia-page #dataTablaMovimientos th:nth-child(7),
+.inventario-transferencia-page #dataTablaMovimientos th:nth-child(8),
+.inventario-transferencia-page #dataTablaMovimientos td:nth-child(5),
+.inventario-transferencia-page #dataTablaMovimientos td:nth-child(6),
+.inventario-transferencia-page #dataTablaMovimientos td:nth-child(7),
+.inventario-transferencia-page #dataTablaMovimientos td:nth-child(8) {
+  white-space: nowrap !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  text-align: center !important;
+}
+
+/* =========================================================
+     PRODUCTO
+     ========================================================= */
+
+.inventario-transferencia-page .inventario-product-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.inventario-transferencia-page .inventario-product-img-box {
+  flex: 0 0 auto;
+}
+
+.inventario-transferencia-page .inventario-product-img {
+  width: 50px !important;
+  height: 50px !important;
+  object-fit: cover;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 0.15rem;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+}
+
+.inventario-transferencia-page .inventario-product-info {
+  min-width: 0;
+  width: 100%;
+}
+
+.inventario-transferencia-page .inventario-product-name {
+  margin: 0;
+  color: #0f172a;
+  font-weight: 900;
+  font-size: 0.94rem;
+  line-height: 1.28;
+}
+
+.inventario-transferencia-page .inventario-product-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-top: 0.28rem;
+  line-height: 1.25;
+}
+
+.inventario-transferencia-page .inventario-product-type {
+  margin-top: 0.35rem;
+}
+
+.inventario-transferencia-page .inventario-product-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 99px;
+  padding: 0.28rem 0.58rem;
+  font-size: 0.76rem;
+  font-weight: 900;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  line-height: 1;
+}
+
+.inventario-transferencia-page .inventario-product-normal {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+.inventario-transferencia-page .inventario-product-compuesto {
+  background: #ede9fe;
+  color: #7c3aed;
+  border-color: #ddd6fe;
+}
+
+/* =========================================================
+     DETALLES
+     ========================================================= */
+
+.inventario-transferencia-page .inventario-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.inventario-transferencia-page .inventario-detail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.42rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: #334155;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+.inventario-transferencia-page .inventario-detail-item strong {
+  color: #0f172a;
+  font-weight: 900;
+}
+
+.inventario-transferencia-page .inventario-detail-icon {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: 7px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  margin-top: 0.02rem;
+}
+
+.inventario-transferencia-page .inventario-icon-lote {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.inventario-transferencia-page .inventario-icon-bodega {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.inventario-transferencia-page .inventario-icon-date {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.inventario-transferencia-page .inventario-icon-doc {
+  background: #f8fafc;
+  color: #64748b;
+}
+
+/* =========================================================
+     LOTE
+     ========================================================= */
+
+.inventario-transferencia-page .inventario-lote-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 99px;
+  padding: 0.28rem 0.58rem;
+  font-size: 0.76rem;
+  font-weight: 900;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  max-width: 100%;
+  line-height: 1;
+}
+
+.inventario-transferencia-page .inventario-lote-ok {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.inventario-transferencia-page .inventario-lote-empty {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+/* =========================================================
+     NÚMEROS
+     ========================================================= */
+
+.inventario-transferencia-page .inventario-number-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  padding: 0.42rem 0.58rem;
+  font-size: 0.82rem;
+  font-weight: 900;
+  min-width: 58px;
+  max-width: 100%;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  line-height: 1.1;
+}
+
+.inventario-transferencia-page .inventario-badge-anterior-ok {
+  background: #f1f5f9;
+  color: #334155;
+  border-color: #cbd5e1;
+}
+
+.inventario-transferencia-page .inventario-badge-entrada-ok {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.inventario-transferencia-page .inventario-badge-salida-ok {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.inventario-transferencia-page .inventario-badge-saldo-ok {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.inventario-transferencia-page .inventario-badge-saldo-empty {
+  background: #f8fafc;
+  color: #64748b;
+  border-color: #e2e8f0;
+}
+
+.inventario-transferencia-page .inventario-badge-neutral {
+  background: #f8fafc;
+  color: #64748b;
+  border-color: #e2e8f0;
+}
+
+/* =========================================================
+     FOOTER TABLA
+     ========================================================= */
+
+.inventario-transferencia-page .inventario-table-footer {
+  background: #3498db;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.inventario-transferencia-page .inventario-table-footer td {
+  color: #ffffff !important;
+  font-size: 0.92rem;
+  padding: 0.9rem 0.75rem !important;
+  white-space: nowrap !important;
+}
+
+.inventario-transferencia-page .inventario-footer-label {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 900;
+}
+
+/* =========================================================
+     ZOOM IMAGEN
+     ========================================================= */
+
+.inventario-transferencia-page #dataTablaMovimientos .inventario-zoom-trigger,
+.inventario-transferencia-page
+  #dataTablaMovimientos
+  .inventario-zoom-trigger
+  img,
+.inventario-transferencia-page #dataTablaMovimientos .iv-trigger,
+.inventario-transferencia-page #dataTablaMovimientos .iv-trigger img {
+  cursor: zoom-in !important;
+}
+
+/* =========================================================
+     RESPONSIVE
+     ========================================================= */
+
+@media (max-width: 1400px) {
+  .inventario-transferencia-page #dataTablaMovimientos thead th {
+    font-size: 0.78rem;
+    padding-left: 0.35rem;
+    padding-right: 0.35rem;
+  }
+
+  .inventario-transferencia-page #dataTablaMovimientos tbody td {
+    font-size: 0.8rem;
+  }
+
+  .inventario-transferencia-page .inventario-product-name {
+    font-size: 0.88rem;
+  }
+
+  .inventario-transferencia-page .inventario-detail-item,
+  .inventario-transferencia-page .inventario-product-meta {
+    font-size: 0.76rem;
+  }
+
+  .inventario-transferencia-page .inventario-number-badge {
+    min-width: 54px;
+    font-size: 0.76rem;
+    padding: 0.36rem 0.48rem;
+  }
+
+  .inventario-transferencia-page .inventario-lote-badge,
+  .inventario-transferencia-page .inventario-product-badge {
+    font-size: 0.72rem;
+  }
+
+  .inventario-transferencia-page .inventario-product-img {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .inventario-transferencia-page .inventario-detail-icon {
+    width: 21px;
+    height: 21px;
+    min-width: 21px;
+    font-size: 0.68rem;
+  }
+}
+
+@media (max-width: 1200px) {
+  .inventario-transferencia-page #dataTablaMovimientos {
+    min-width: 980px;
+  }
+
+  .inventario-transferencia-page #dataTablaMovimientos thead th {
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
+  }
+
+  .inventario-transferencia-page .inventario-number-badge {
+    min-width: 50px;
+    font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .inventario-transferencia-page .inventario-resumen-card {
+    min-height: 95px;
+  }
+
+  .inventario-transferencia-page .inventario-product-box {
+    align-items: flex-start;
+  }
+
+  .inventario-transferencia-page #dataTablaMovimientos {
+    min-width: 980px;
+  }
+}
+
+/* =========================================================
+     FIN INVENTARIO TRANSFERENCIA - DISEÑO PROFESIONAL
+     SOLO DISEÑO VISUAL - NO TOCA BOTÓN DE ACCIONES
+     ========================================================= */
+
+/* =========================================================
+   INICIO PRODUCTOS - DISEÑO PROFESIONAL
+   SOLO DISEÑO VISUAL - NO TOCA BOTÓN DE ACCIONES
+   ========================================================= */
+
+/* =========================================================
+   FILTROS
+   ========================================================= */
+
+.productos-page .productos-filtro-card {
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.productos-page .productos-filtro-card .card-body {
+  padding: 1.25rem 1.35rem;
+}
+
+.productos-page .productos-label-filter {
+  font-weight: 800;
+  color: #334155;
+  letter-spacing: 0.02em;
+  font-size: 0.84rem;
+}
+
+.productos-page .productos-search-group .input-group-text {
+  background: #f8fafc;
+  color: #64748b;
+  border-color: #dbe3ef;
+  min-height: 44px;
+}
+
+.productos-page .productos-search-group .form-control {
+  border-color: #dbe3ef;
+  min-height: 44px;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.productos-page .productos-search-group .form-control:focus {
+  box-shadow: 0 0 0 0.15rem rgba(52, 152, 219, 0.14);
+  border-color: #3498db;
+}
+
+.productos-page .productos-filtro-card .bootstrap-select.form-control {
+  width: 100% !important;
+}
+
+.productos-page .productos-filtro-card .bootstrap-select > .dropdown-toggle {
+  min-height: 44px;
+  border-color: #dbe3ef !important;
+  background: #ffffff !important;
+  color: #334155 !important;
+  font-size: 0.92rem;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+}
+
+.productos-page
+  .productos-filtro-card
+  .bootstrap-select
+  > .dropdown-toggle:focus,
+.productos-page
+  .productos-filtro-card
+  .bootstrap-select.show
+  > .dropdown-toggle {
+  border-color: #3498db !important;
+  box-shadow: 0 0 0 0.15rem rgba(52, 152, 219, 0.14) !important;
+}
+
+/* =========================================================
+   CARDS RESUMEN
+   ========================================================= */
+
+.productos-page .productos-resumen-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+  padding: 1.15rem 1.25rem;
+  min-height: 105px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.productos-page .productos-resumen-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 4px;
+  border-radius: 0 8px 8px 0;
+}
+
+.productos-page .productos-resumen-registros::before {
+  background: #3498db;
+}
+
+.productos-page .productos-resumen-activos::before {
+  background: #22c55e;
+}
+
+.productos-page .productos-resumen-isv::before {
+  background: #f59e0b;
+}
+
+.productos-page .productos-resumen-venta::before {
+  background: #8b5cf6;
+}
+
+.productos-page .productos-resumen-label {
+  color: #64748b;
+  text-transform: uppercase;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.productos-page .productos-resumen-card h3 {
+  font-size: 1.65rem;
+  font-weight: 900;
+  margin: 0.35rem 0 0.2rem;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.productos-page .productos-resumen-card p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.productos-page .productos-resumen-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #334155;
+  font-size: 1.25rem;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+/* =========================================================
+   CARD TABLA
+   ========================================================= */
+
+.productos-page .productos-table-card {
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.productos-page .productos-card-header {
+  background: #ffffff;
+  color: #0f172a;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+  padding: 1rem 1.25rem;
+}
+
+.productos-page .productos-card-header strong {
+  font-size: 1.02rem;
+  font-weight: 900;
+}
+
+.productos-page .productos-card-header small {
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.productos-page .productos-table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.25rem;
+}
+
+/* =========================================================
+   TABLA PRODUCTOS
+   ========================================================= */
+
+.productos-page #dataTableProductos {
+  width: 100% !important;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.productos-page #dataTableProductos thead th {
+  vertical-align: middle;
+  white-space: nowrap !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.productos-page #dataTableProductos tbody td {
+  white-space: normal !important;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  vertical-align: middle;
+  padding-top: 0.9rem;
+  padding-bottom: 0.9rem;
+  color: #334155;
+  font-size: 0.84rem;
+}
+
+.productos-page #dataTableProductos tbody tr {
+  transition: background-color 0.18s ease;
+}
+
+.productos-page #dataTableProductos tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+/* =========================================================
+   PRODUCTO
+   ========================================================= */
+
+.productos-page .productos-product-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.productos-page .productos-product-img-box {
+  flex: 0 0 auto;
+}
+
+.productos-page .productos-product-img {
+  width: 54px !important;
+  height: 54px !important;
+  object-fit: cover;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 0.15rem;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+}
+
+.productos-page .productos-product-info {
+  min-width: 0;
+  width: 100%;
+}
+
+.productos-page .productos-product-name {
+  margin: 0;
+  color: #0f172a;
+  font-weight: 900;
+  font-size: 0.94rem;
+  line-height: 1.28;
+}
+
+.productos-page .productos-product-desc {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-top: 0.28rem;
+  line-height: 1.35;
+}
+
+.productos-page .productos-product-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-top: 0.35rem;
+  line-height: 1.25;
+}
+
+.productos-page .productos-product-meta span {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 99px;
+  padding: 0.25rem 0.52rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.productos-page .productos-detail-btn {
+  margin-top: 0.45rem;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  padding: 0.32rem 0.58rem;
+}
+
+.productos-page .productos-detail-btn:hover {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+/* =========================================================
+   DETALLES
+   ========================================================= */
+
+.productos-page .productos-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.productos-page .productos-detail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.42rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: #334155;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+.productos-page .productos-detail-item strong {
+  color: #0f172a;
+  font-weight: 900;
+}
+
+.productos-page .productos-detail-icon {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: 7px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  margin-top: 0.02rem;
+}
+
+.productos-page .productos-icon-compra {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.productos-page .productos-icon-venta {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.productos-page .productos-icon-ganancia {
+  background: #fefce8;
+  color: #ca8a04;
+}
+
+.productos-page .productos-icon-mayoreo {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+.productos-page .productos-icon-isv {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.productos-page .productos-icon-restaurante {
+  background: #fdf2f8;
+  color: #db2777;
+}
+
+.productos-page .productos-icon-stock {
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.productos-page .productos-icon-almacen {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+/* =========================================================
+   BADGES DINERO
+   ========================================================= */
+
+.productos-page .productos-money-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  padding: 0.34rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 900;
+  min-width: 86px;
+  max-width: 100%;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  line-height: 1.1;
+}
+
+.productos-page .productos-money-compra {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.productos-page .productos-money-venta {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.productos-page .productos-money-ganancia {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+.productos-page .productos-money-mayoreo {
+  background: #ede9fe;
+  color: #7c3aed;
+  border-color: #ddd6fe;
+}
+
+.productos-page .productos-money-neutral {
+  background: #f8fafc;
+  color: #64748b;
+  border-color: #e2e8f0;
+}
+
+/* =========================================================
+   BADGES ISV / CONTROL / ESTADO
+   ========================================================= */
+
+.productos-page .productos-isv-badge,
+.productos-page .productos-status-badge,
+.productos-page .productos-control-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  border-radius: 99px;
+  padding: 0.28rem 0.58rem;
+  font-size: 0.76rem;
+  font-weight: 900;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  max-width: 100%;
+  line-height: 1;
+}
+
+.productos-page .productos-isv-si {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.productos-page .productos-isv-no {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+.productos-page .productos-status-active {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.productos-page .productos-status-inactive {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.productos-page .productos-control-badge {
+  background: #f8fafc;
+  color: #334155;
+  border-color: #e2e8f0;
+  min-width: 48px;
+}
+
+/* =========================================================
+   MODAL DETALLE
+   ========================================================= */
+
+.productos-modal-detalle {
+  font-size: 0.92rem;
+  color: #334155;
+}
+
+.productos-modal-detalle strong {
+  color: #0f172a;
+}
+
+/* =========================================================
+   ZOOM IMAGEN
+   ========================================================= */
+
+.productos-page #dataTableProductos .productos-zoom-trigger,
+.productos-page #dataTableProductos .productos-zoom-trigger img,
+.productos-page #dataTableProductos .iv-trigger,
+.productos-page #dataTableProductos .iv-trigger img {
+  cursor: zoom-in !important;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1400px) {
+  .productos-page #dataTableProductos thead th {
+    font-size: 0.78rem;
+    padding-left: 0.35rem;
+    padding-right: 0.35rem;
+  }
+
+  .productos-page #dataTableProductos tbody td {
+    font-size: 0.8rem;
+  }
+
+  .productos-page .productos-product-name {
+    font-size: 0.88rem;
+  }
+
+  .productos-page .productos-detail-item,
+  .productos-page .productos-product-desc,
+  .productos-page .productos-product-meta {
+    font-size: 0.76rem;
+  }
+
+  .productos-page .productos-money-badge {
+    min-width: 78px;
+    font-size: 0.74rem;
+    padding: 0.32rem 0.48rem;
+  }
+
+  .productos-page .productos-isv-badge,
+  .productos-page .productos-status-badge,
+  .productos-page .productos-control-badge {
+    font-size: 0.72rem;
+  }
+
+  .productos-page .productos-product-img {
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  .productos-page .productos-detail-icon {
+    width: 21px;
+    height: 21px;
+    min-width: 21px;
+    font-size: 0.68rem;
+  }
+}
+
+@media (max-width: 1200px) {
+  .productos-page #dataTableProductos {
+    min-width: 980px;
+  }
+
+  .productos-page #dataTableProductos thead th {
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
+  }
+
+  .productos-page .productos-money-badge {
+    min-width: 72px;
+    font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .productos-page .productos-resumen-card {
+    min-height: 95px;
+  }
+
+  .productos-page .productos-product-box {
+    align-items: flex-start;
+  }
+
+  .productos-page #dataTableProductos {
+    min-width: 980px;
+  }
+}
+
+/* =========================================================
+   FIN PRODUCTOS - DISEÑO PROFESIONAL
+   SOLO DISEÑO VISUAL - NO TOCA BOTÓN DE ACCIONES
+   ========================================================= */

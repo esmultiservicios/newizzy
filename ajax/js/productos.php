@@ -1,43 +1,97 @@
 <script>
-// ===================== INICIO APP =====================
-$(function initApp() {
-  // 1) Inicializa uploader
-  initImageUpload();
+// ===================== INICIO APP SIN DOCUMENT.READY =====================
+(function () {
+  function inicializarProductosApp() {
+    initImageUpload();
+    actualizarLabelsISVProductos();
 
-  // 2) Actualiza labels dinámicos de ISV
-  actualizarLabelsISVProductos();
+    Promise.all([
+      getEstadoProducto(),
+      getCategoriasProducto(),
+      getEmpresaProductos()
+    ])
+    .then(function() {
+      listar_productos();
+    })
+    .catch(function(err) {
+      console.error('[INIT] Error inicializando:', err);
 
-  // 3) Carga filtros/empresa -> luego lista
-  Promise.all([
-    getEstadoProducto(),      // devuelve promesa
-    getEmpresaProductos()     // devuelve promesa (si no usas empresa, retorna resolve())
-  ])
-  .then(() => listar_productos())
-  .catch(err => {
-    console.error('[INIT] Error inicializando:', err);
-    if (typeof showNotify === 'function') {
-      showNotify('error', 'Error', 'No se pudo inicializar la página de productos');
-    }
-  });
+      if (typeof showNotify === 'function') {
+        showNotify('error', 'Error', 'No se pudo inicializar la página de productos');
+      }
+    });
 
-  // 4) Eventos UI
-  $('#form_main_productos #search').on("click", function(e) {
-    e.preventDefault();
-    listar_productos();
-  });
+    $('#form_main_productos #search').off('click.productos');
+    $('#form_main_productos #search').on("click.productos", function(e) {
+      e.preventDefault();
+      listar_productos();
+    });
 
-  $('#form_main_productos').on('reset', function() {
-    $('#form_main_productos .selectpicker').val('').selectpicker('refresh');
-    listar_productos();
-  });
+    $('#form_main_productos').off('reset.productos');
+    $('#form_main_productos').on('reset.productos', function() {
+      var form = this;
 
-  $('#form_main_productos #buscar_productos').on('click', function(e) {
-    e.preventDefault();
-    listar_productos();
-  });
+      setTimeout(function() {
+        $(form).find('.selectpicker').val('').selectpicker('refresh');
+        $('#form_main_productos #buscar_productos_general').val('');
+        listar_productos();
+      }, 100);
+    });
 
-  initISVSwitches();
-});
+    $('#form_main_productos #buscar_productos_general').off('keyup.productos');
+    $('#form_main_productos #buscar_productos_general').on('keyup.productos', function() {
+      if ($.fn.DataTable.isDataTable("#dataTableProductos")) {
+        $("#dataTableProductos").DataTable().ajax.reload(null, false);
+      }
+    });
+
+    $('#form_main_productos #categoria_producto_filtro, #form_main_productos #isv_producto_filtro').off('changed.bs.select.productos change.productos');
+    $('#form_main_productos #categoria_producto_filtro, #form_main_productos #isv_producto_filtro').on('changed.bs.select.productos change.productos', function() {
+      if ($.fn.DataTable.isDataTable("#dataTableProductos")) {
+        $("#dataTableProductos").DataTable().ajax.reload(null, false);
+      }
+    });
+
+    $('#form_main_productos #buscar_productos').off('click.productos');
+    $('#form_main_productos #buscar_productos').on('click.productos', function(e) {
+      e.preventDefault();
+      listar_productos();
+    });
+
+    $('#formProductos #tipo_producto').off('change.productosCategoria');
+    $('#formProductos #tipo_producto').on('change.productosCategoria', evaluarCategoria);
+
+    $("#formProductos #precio_venta, #formProductos #precio_compra").off("keyup.productosGanancia");
+    $("#formProductos #precio_venta, #formProductos #precio_compra").on("keyup.productosGanancia", function() {
+      var pc = parseFloat($("#formProductos #precio_compra").val()) || 0;
+      var pv = parseFloat($("#formProductos #precio_venta").val()) || 0;
+
+      $("#formProductos #porcentaje_venta").val((pv > pc) ? (pv - pc).toFixed(2) : "0");
+    });
+
+    $('#modalEditarBarcode').off('hidden.bs.modal.productosBarcode');
+    $('#modalEditarBarcode').on('hidden.bs.modal.productosBarcode', function() {
+      if ($('#formEditarBarcode')[0]) {
+        $('#formEditarBarcode')[0].reset();
+      }
+    });
+
+    $('#formProductos #label_producto_activo').html("Activo");
+
+    $('#formProductos .switch').off('change.productosSwitch');
+    $('#formProductos .switch').on('change.productosSwitch', function() {
+      $('#formProductos #label_' + this.name).html($(this).is(':checked') ? "Sí" : "No");
+    });
+
+    initISVSwitches();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', inicializarProductosApp);
+  } else {
+    inicializarProductosApp();
+  }
+})();
 // ===================== FIN INICIO APP =====================
 
 
@@ -49,12 +103,10 @@ function initISVSwitches() {
   const $isv1 = $('#formProductos #producto_isv1');
   const $isv2 = $('#formProductos #producto_isv2');
 
-  // Limpia handlers previos (por si abres/cerras el modal varias veces)
   $isv1.off('change.isv');
   $isv2.off('change.isv');
   $isvFactura.off('change.isvmain');
 
-  // Exclusión mutua
   $isv1.on('change.isv', function() {
     if (this.checked) {
       $isv2.prop('checked', false);
@@ -67,7 +119,6 @@ function initISVSwitches() {
     }
   });
 
-  // Si NO calcula ISV en factura → desactiva ISV1/ISV2
   function applyIsvMainState() {
     const enabled = $isvFactura.is(':checked');
 
@@ -81,17 +132,193 @@ function initISVSwitches() {
   }
 
   $isvFactura.on('change.isvmain', applyIsvMainState);
-  applyIsvMainState(); // aplica estado al cargar
+  applyIsvMainState();
+}
+
+
+/* =========================================================
+   HELPERS PRODUCTOS
+   ========================================================= */
+
+function productosToNumber(valor) {
+  if (valor === null || valor === undefined) {
+    return 0;
+  }
+
+  if (typeof valor === 'number') {
+    return valor;
+  }
+
+  return parseFloat(String(valor).replace(/[^\d.-]/g, '')) || 0;
+}
+
+function productosFormatoDinero(valor) {
+  valor = productosToNumber(valor);
+
+  return 'L ' + valor.toLocaleString('es-HN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+function productosValor(valor, textoDefault) {
+  if (valor === null || valor === undefined || String(valor).trim() === '') {
+    return textoDefault !== undefined ? textoDefault : 'No registrado';
+  }
+
+  return String(valor).trim();
+}
+
+function productosEscape(valor) {
+  return productosValor(valor, '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function productosBadgeDinero(valor, tipo) {
+  var clase = 'productos-money-badge';
+
+  if (tipo === 'compra') {
+    clase += ' productos-money-compra';
+  }
+
+  if (tipo === 'venta') {
+    clase += ' productos-money-venta';
+  }
+
+  if (tipo === 'ganancia') {
+    clase += productosToNumber(valor) > 0 ? ' productos-money-ganancia' : ' productos-money-neutral';
+  }
+
+  if (tipo === 'mayoreo') {
+    clase += productosToNumber(valor) > 0 ? ' productos-money-mayoreo' : ' productos-money-neutral';
+  }
+
+  return '<span class="' + clase + '">' + productosFormatoDinero(valor) + '</span>';
+}
+
+function productosEstadoBadge(estado) {
+  if (parseInt(estado, 10) === 1) {
+    return '' +
+      '<span class="productos-status-badge productos-status-active">' +
+        '<i class="fas fa-check-circle"></i> Activo' +
+      '</span>';
+  }
+
+  return '' +
+    '<span class="productos-status-badge productos-status-inactive">' +
+      '<i class="fas fa-times-circle"></i> Inactivo' +
+    '</span>';
+}
+
+function productosIsvBadge(row) {
+  var aplica = String(row.isv_venta || '').toLowerCase() === 'si' || parseInt(row.isv_venta || 0, 10) === 1;
+  var isvTipo = '';
+
+  if (parseInt(row.isv1 || 0, 10) === 1) {
+    isvTipo = getPorcentajeTextoISVProducto(1);
+  } else if (parseInt(row.isv2 || 0, 10) === 1) {
+    isvTipo = getPorcentajeTextoISVProducto(2);
+  }
+
+  if (aplica) {
+    return '' +
+      '<span class="productos-isv-badge productos-isv-si" title="Este producto calcula impuesto al vender">' +
+        '<i class="fas fa-check-circle"></i> Sí ' + productosEscape(isvTipo) +
+      '</span>';
+  }
+
+  return '' +
+    '<span class="productos-isv-badge productos-isv-no" title="Este producto no calcula impuesto al vender">' +
+      '<i class="fas fa-times-circle"></i> No' +
+    '</span>';
+}
+
+function productosFiltrarRows(rows) {
+  rows = rows || [];
+
+  var texto = $('#form_main_productos #buscar_productos_general').val();
+  var categoriaFiltro = $('#form_main_productos #categoria_producto_filtro').val();
+  var isvFiltro = $('#form_main_productos #isv_producto_filtro').val();
+
+  texto = texto === null || texto === undefined ? '' : String(texto).trim().toLowerCase();
+  categoriaFiltro = categoriaFiltro === null || categoriaFiltro === undefined ? '' : String(categoriaFiltro).trim().toLowerCase();
+  isvFiltro = isvFiltro === null || isvFiltro === undefined ? '' : String(isvFiltro).trim().toLowerCase();
+
+  return rows.filter(function(item) {
+    var categoria = item.categoria === null || item.categoria === undefined ? '' : String(item.categoria).trim().toLowerCase();
+    var tipoProductoId = item.tipo_producto_id === null || item.tipo_producto_id === undefined ? '' : String(item.tipo_producto_id).trim().toLowerCase();
+
+    var aplicaIsv = String(item.isv_venta || '').toLowerCase() === 'si' || parseInt(item.isv_venta || 0, 10) === 1;
+
+    var textoBase = [
+      item.nombre,
+      item.descripcion,
+      item.barCode,
+      item.medida,
+      item.categoria,
+      item.precio_compra,
+      item.precio_venta,
+      item.porcentaje_venta,
+      item.estado == 1 ? 'activo' : 'inactivo',
+      aplicaIsv ? 'con isv si impuesto' : 'sin isv no impuesto'
+    ].join(' ').toLowerCase();
+
+    if (texto !== '' && textoBase.indexOf(texto) === -1) {
+      return false;
+    }
+
+    if (categoriaFiltro !== '' && categoriaFiltro !== '0') {
+      if (categoria.indexOf(categoriaFiltro) === -1 && tipoProductoId !== categoriaFiltro) {
+        return false;
+      }
+    }
+
+    if (isvFiltro !== '') {
+      if (isvFiltro === 'si' && !aplicaIsv) {
+        return false;
+      }
+
+      if (isvFiltro === 'no' && aplicaIsv) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+}
+
+function productosActualizarResumen(rows) {
+  rows = rows || [];
+
+  var totalActivos = 0;
+  var totalIsv = 0;
+  var totalVenta = 0;
+
+  rows.forEach(function(item) {
+    if (parseInt(item.estado, 10) === 1) {
+      totalActivos++;
+    }
+
+    if (String(item.isv_venta || '').toLowerCase() === 'si' || parseInt(item.isv_venta || 0, 10) === 1) {
+      totalIsv++;
+    }
+
+    totalVenta += productosToNumber(item.precio_venta);
+  });
+
+  $('#productos_total_registros').text(rows.length);
+  $('#productos_total_activos').text(totalActivos);
+  $('#productos_total_isv').text(totalIsv);
+  $('#productos_total_venta').text(productosFormatoDinero(totalVenta));
 }
 
 
 /* =========================================================
    LABELS DINÁMICOS ISV - PRODUCTOS
-   ---------------------------------------------------------
-   Actualiza:
-   - producto_isv1 => isv_id = 1
-   - producto_isv2 => isv_id = 2
-   según el valor registrado en la tabla isv.
    ========================================================= */
 
 var cacheISVProductos = {};
@@ -178,10 +405,44 @@ function fetchISVProductoSync(isv_id) {
   return porcentaje;
 }
 
+function getPorcentajeTextoISVProducto(isv_id) {
+  var porcentaje = fetchISVProductoSync(isv_id);
+  var texto = formatearPorcentajeLabelISVProductos(porcentaje);
+
+  return texto !== '' ? '(' + texto + '%)' : '';
+}
+
+function getTextoISVProducto(isv_id) {
+  var porcentaje = fetchISVProductoSync(isv_id);
+  var texto = formatearPorcentajeLabelISVProductos(porcentaje);
+
+  return texto !== '' ? 'ISV ' + texto + '%' : 'ISV';
+}
+
+function actualizarLabelsISVProductos() {
+  var isv1 = formatearPorcentajeLabelISVProductos(fetchISVProductoSync(1));
+  var isv2 = formatearPorcentajeLabelISVProductos(fetchISVProductoSync(2));
+
+  if (isv1 !== '') {
+    $('#formProductos label[for="producto_isv1"], #formProductos #label_producto_isv1').html('ISV ' + isv1 + '%');
+  }
+
+  if (isv2 !== '') {
+    $('#formProductos label[for="producto_isv2"], #formProductos #label_producto_isv2').html('ISV ' + isv2 + '%');
+  }
+}
+
+function recargarLabelsISVProductos() {
+  cacheISVProductos = {};
+  actualizarLabelsISVProductos();
+}
+
+
 /* ===============================
    EDITAR CÓDIGO DE BARRA PRODUCTO
    =============================== */
-$(document).on('click', '#grupo_editar_bacode .editar_barcode', function(e) {
+$(document).off('click.productosBarcodeEdit', '#grupo_editar_bacode .editar_barcode');
+$(document).on('click.productosBarcodeEdit', '#grupo_editar_bacode .editar_barcode', function(e) {
   e.preventDefault();
 
   const productoId = $('#formProductos input[name="productos_id"]').val();
@@ -218,11 +479,6 @@ $(document).on('click', '#grupo_editar_bacode .editar_barcode', function(e) {
   }, 500);
 });
 
-
-// ===============================
-// GENERAR CÓDIGO DE BARRA AUTOMÁTICO
-// Formato: yyyymmddhhmmss
-// ===============================
 function generarBarcodeFechaHora() {
   const fecha = new Date();
 
@@ -236,7 +492,8 @@ function generarBarcodeFechaHora() {
   return `${year}${month}${day}${hour}${minute}${second}`;
 }
 
-$(document).off('click', '#btnGenerarBarcode').on('click', '#btnGenerarBarcode', function(e) {
+$(document).off('click.productosGenerarBarcode', '#btnGenerarBarcode');
+$(document).on('click.productosGenerarBarcode', '#btnGenerarBarcode', function(e) {
   e.preventDefault();
 
   const barcodeGenerado = generarBarcodeFechaHora();
@@ -248,11 +505,8 @@ $(document).off('click', '#btnGenerarBarcode').on('click', '#btnGenerarBarcode',
   }
 });
 
-
-// ===============================
-// GUARDAR CÓDIGO DE BARRA POR AJAX
-// ===============================
-$(document).off('submit', '#formEditarBarcode').on('submit', '#formEditarBarcode', function(e) {
+$(document).off('submit.productosEditarBarcode', '#formEditarBarcode');
+$(document).on('submit.productosEditarBarcode', '#formEditarBarcode', function(e) {
   e.preventDefault();
 
   const productoId = $('#formEditarBarcode input[name="productos_id"]').val();
@@ -298,13 +552,10 @@ $(document).off('submit', '#formEditarBarcode').on('submit', '#formEditarBarcode
       if (response && (response.success === true || response.status === true)) {
         showNotify("success", "Éxito", response.message || "Código de barra actualizado correctamente");
 
-        // Actualiza el campo principal del formulario de productos
         $('#formProductos input[name="bar_code_product"]').val(response.barcode || barcode);
 
-        // Cierra modal
         $('#modalEditarBarcode').modal('hide');
 
-        // Refresca DataTable de productos si existe
         if ($.fn.DataTable && $.fn.DataTable.isDataTable('#dataTableProductos')) {
           $('#dataTableProductos').DataTable().ajax.reload(null, false);
         }
@@ -328,6 +579,7 @@ $(document).off('submit', '#formEditarBarcode').on('submit', '#formEditarBarcode
       } else if (xhr.responseText) {
         try {
           const json = JSON.parse(xhr.responseText);
+
           if (json.message) {
             mensaje = json.message;
           }
@@ -345,48 +597,32 @@ $(document).off('submit', '#formEditarBarcode').on('submit', '#formEditarBarcode
 });
 
 
-// ===============================
-// LIMPIAR MODAL AL CERRAR
-// ===============================
-$('#modalEditarBarcode').on('hidden.bs.modal', function() {
-  $('#formEditarBarcode')[0].reset();
-});
-
-
-/* Seteo seguro al abrir “Editar”
-  - Soporta respuesta como array (datos[?]) o como objeto (datos.isv1/isv2)
-*/
 function setISVFromData(datos, rowData) {
   const $isvFactura = $('#formProductos #producto_isv_factura');
-  const $isv1 = $('#formProductos #producto_isv1');           // isv_id = 1
-  const $isv2 = $('#formProductos #producto_isv2');           // isv_id = 2
-  const $rest = $('#formProductos #producto_restaurante');    // restaurante
+  const $isv1 = $('#formProductos #producto_isv1');
+  const $isv2 = $('#formProductos #producto_isv2');
+  const $rest = $('#formProductos #producto_restaurante');
 
-  // 1) Tomar de la fila del DataTable (ahora vienen 0/1)
   let vIsv1 = rowData?.isv1;
   let vIsv2 = rowData?.isv2;
   let vRes  = rowData?.restaurante;
 
-  // 2) Fallback: del arreglo 'datos' si tu editarProductos.php también los envía
-  if (vIsv1 == null && Array.isArray(datos)) vIsv1 = datos[25]; // ajusta si difieren
+  if (vIsv1 == null && Array.isArray(datos)) vIsv1 = datos[25];
   if (vIsv2 == null && Array.isArray(datos)) vIsv2 = datos[26];
   if (vRes  == null && Array.isArray(datos)) vRes  = datos[24];
 
-  // 3) Normaliza
   vIsv1 = Number(vIsv1) === 1 ? 1 : 0;
   vIsv2 = Number(vIsv2) === 1 ? 1 : 0;
   vRes  = Number(vRes)  === 1 ? 1 : 0;
 
-  // 4) Aplica
   $rest.prop('checked', vRes === 1);
 
   const on1 = vIsv1 === 1;
-  const on2 = (vIsv2 === 1) && !on1;  // exclusión
+  const on2 = (vIsv2 === 1) && !on1;
 
   $isv1.prop('checked', on1);
   $isv2.prop('checked', on2);
 
-  // 5) Reaplica reglas (exclusión y bloqueo por isv_factura)
   initISVSwitches();
 }
 
@@ -406,12 +642,10 @@ function initImageUpload() {
 
   fileInput.dataset.initialized = 'true';
 
-  // Archivo real seleccionado para enviar por FormData
   window.__productoImagenFile = null;
 
   let isProcessing = false;
 
-  // Drag & Drop
   ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(function(ev) {
     dropArea.addEventListener(ev, preventDefaults, false);
   });
@@ -436,14 +670,11 @@ function initImageUpload() {
     }
   });
 
-  // Botón "Seleccionar imagen"
   const openChooser = function(e) {
     e.preventDefault();
     e.stopPropagation();
 
-    // Permite volver a seleccionar el mismo archivo
     fileInput.value = '';
-
     fileInput.click();
   };
 
@@ -465,7 +696,6 @@ function initImageUpload() {
     });
   }
 
-  // File chooser normal
   fileInput.addEventListener('change', function(e) {
     if (isProcessing) return;
 
@@ -480,7 +710,6 @@ function initImageUpload() {
     isProcessing = false;
   });
 
-  // Pegar desde el portapapeles
   document.addEventListener('paste', function(e) {
     const items = (e.clipboardData || (e.originalEvent && e.originalEvent.clipboardData))
       ? (e.clipboardData || e.originalEvent.clipboardData).items
@@ -545,10 +774,8 @@ function initImageUpload() {
       return;
     }
 
-    // Guardamos el archivo real para el FormData global
     window.__productoImagenFile = file;
 
-    // Si viene por drag/drop o pegar, lo amarramos al input file real
     if (asignarAlInput && fileInput) {
       const dt = new DataTransfer();
       dt.items.add(file);
@@ -638,15 +865,10 @@ function construirHeaderDataTableProductos() {
     '<thead>' +
       '<tr>' +
         '<th>Acciones</th>' +
-        '<th>Imagen</th>' +
-        '<th>Código</th>' +
         '<th>Producto</th>' +
-        '<th>Medida</th>' +
-        '<th>Categoría</th>' +
-        '<th>Precio Compra</th>' +
-        '<th>Precio Venta</th>' +
-        '<th>Ganancias</th>' +
-        '<th>ISV Venta</th>' +
+        '<th>Precios</th>' +
+        '<th>Impuestos</th>' +
+        '<th>Reglas / Control</th>' +
         '<th>Estado</th>' +
       '</tr>' +
     '</thead>'
@@ -662,28 +884,6 @@ var listar_productos = function() {
     ? 1
     : $('#form_main_productos #estado_producto').val();
 
-  var formatoDinero = function(valor) {
-    valor = parseFloat(valor || 0);
-
-    return 'L ' + valor.toLocaleString('es-HN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-  };
-
-  var limpiarTexto = function(texto) {
-    if (texto === null || texto === undefined || texto === '') {
-      return '';
-    }
-
-    return String(texto)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  };
-
   if ($.fn.DataTable.isDataTable("#dataTableProductos")) {
     $("#dataTableProductos").DataTable().clear().destroy();
   }
@@ -693,7 +893,9 @@ var listar_productos = function() {
   var table_productos = $("#dataTableProductos").DataTable({
     destroy: true,
     processing: true,
-    responsive: true,
+    responsive: false,
+    autoWidth: false,
+    scrollX: false,
     stateSave: true,
     language: idioma_español,
     lengthMenu: lengthMenu10,
@@ -716,11 +918,20 @@ var listar_productos = function() {
         }
       },
       dataSrc: function(json) {
-        if (json && Array.isArray(json.data)) return json.data;
-        if (json && Array.isArray(json.aaData)) return json.aaData;
-        if (Array.isArray(json)) return json;
+        var rows = [];
 
-        return [];
+        if (json && Array.isArray(json.data)) {
+          rows = json.data;
+        } else if (json && Array.isArray(json.aaData)) {
+          rows = json.aaData;
+        } else if (Array.isArray(json)) {
+          rows = json;
+        }
+
+        rows = productosFiltrarRows(rows);
+        productosActualizarResumen(rows);
+
+        return rows;
       }
     },
 
@@ -729,7 +940,7 @@ var listar_productos = function() {
         data: null,
         orderable: false,
         searchable: false,
-        className: "text-center align-middle",
+        className: "text-center text-nowrap align-middle productos-acciones-cell",
         render: function(data, type, row) {
           if (type !== 'display') {
             return '';
@@ -766,149 +977,172 @@ var listar_productos = function() {
       },
 
       {
-        data: "image",
-        orderable: false,
-        searchable: false,
-        className: "text-center align-middle",
+        data: null,
+        className: "align-middle productos-producto-cell",
         render: function(data, type, row) {
           var defaultImageUrl = '<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png';
-          var imageUrl = data ? ('<?php echo SERVERURL;?>vistas/plantilla/img/products/' + data) : defaultImageUrl;
-          var safeName = limpiarTexto(row && row.nombre ? row.nombre : 'Imagen de producto');
+          var imageUrl = row.image ? ('<?php echo SERVERURL;?>vistas/plantilla/img/products/' + row.image) : defaultImageUrl;
 
-          return '<a href="#" class="iv-trigger" data-iv-src="' + imageUrl + '" data-iv-fallback="' + defaultImageUrl + '" data-iv-title="' + safeName + '">' +
-            '<img class="table-image" src="' + imageUrl + '" alt="' + safeName + '" width="64" height="64" style="object-fit:cover;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.12)">' +
-          '</a>';
-        }
-      },
-
-      {
-        data: "barCode"
-      },
-
-      {
-        data: null,
-        render: function(data, type, row) {
-          var nombre = limpiarTexto(row.nombre || '');
-          var descripcion = limpiarTexto(row.descripcion || '');
-          var categoria = limpiarTexto(row.categoria || '');
-          var medida = limpiarTexto(row.medida || '');
-          var isvTipo = 'No aplica';
-
-          if (parseInt(row.isv1 || 0, 10) === 1) {
-            isvTipo = getTextoISVProducto(1);
-          } else if (parseInt(row.isv2 || 0, 10) === 1) {
-            isvTipo = getTextoISVProducto(2);
-          }
+          var nombre = productosEscape(row.nombre);
+          var descripcion = productosEscape(productosValor(row.descripcion, 'Sin descripción registrada'));
+          var categoria = productosEscape(row.categoria);
+          var medida = productosEscape(row.medida);
+          var barcode = productosEscape(productosValor(row.barCode, 'Sin código'));
 
           if (type !== 'display') {
-            return nombre;
+            return nombre + ' ' + descripcion + ' ' + categoria + ' ' + medida + ' ' + barcode;
           }
 
           return '' +
-            '<div class="producto-cell">' +
-              '<div class="producto-nombre font-weight-bold">' + nombre + '</div>' +
-              '<div class="producto-descripcion text-muted small">' + (descripcion || 'Sin descripción registrada') + '</div>' +
-              '<div class="mt-1">' +
-                '<span class="badge badge-light border mr-1"><i class="fas fa-layer-group mr-1"></i>' + categoria + '</span>' +
-                '<span class="badge badge-light border mr-1"><i class="fas fa-ruler mr-1"></i>' + medida + '</span>' +
-                '<span class="badge badge-light border"><i class="fas fa-percent mr-1"></i>' + isvTipo + '</span>' +
+            '<div class="productos-product-box">' +
+              '<div class="productos-product-img-box">' +
+                '<a href="#" class="iv-trigger productos-zoom-trigger" data-iv-src="' + imageUrl + '" data-iv-fallback="' + defaultImageUrl + '" data-iv-title="' + nombre + '">' +
+                  '<img class="productos-product-img table-image" src="' + imageUrl + '" alt="' + nombre + '" loading="lazy" onerror="this.onerror=null;this.src=\'' + defaultImageUrl + '\';">' +
+                '</a>' +
               '</div>' +
-              '<button type="button" class="btn btn-sm mt-1 ver_detalle_producto btn-detalle-producto" title="Ver más información del producto">' +
-                '<i class="fas fa-info-circle mr-1"></i> Ver detalles' +
-              '</button>' +
+              '<div class="productos-product-info">' +
+                '<h6 class="productos-product-name">' + nombre + '</h6>' +
+                '<div class="productos-product-desc">' + descripcion + '</div>' +
+                '<div class="productos-product-meta">' +
+                  '<span><i class="fas fa-barcode mr-1"></i>' + barcode + '</span>' +
+                  '<span><i class="fas fa-layer-group mr-1"></i>' + categoria + '</span>' +
+                  '<span><i class="fas fa-ruler-combined mr-1"></i>' + medida + '</span>' +
+                '</div>' +
+                '<button type="button" class="btn btn-sm ver_detalle_producto productos-detail-btn" title="Ver más información del producto">' +
+                  '<i class="fas fa-info-circle mr-1"></i> Ver detalles' +
+                '</button>' +
+              '</div>' +
             '</div>';
         }
       },
 
       {
-        data: "medida"
-      },
-
-      {
-        data: "categoria"
-      },
-
-      {
-        data: "precio_compra",
-        render: function(data, type) {
-          if (type === 'display') {
-            return '<span style="color:green;font-weight:600;">' + formatoDinero(data) + '</span>';
-          }
-
-          return parseFloat(data || 0);
-        }
-      },
-
-      {
-        data: "precio_venta",
-        render: function(data, type) {
-          if (type === 'display') {
-            return '<span style="color:green;font-weight:600;">' + formatoDinero(data) + '</span>';
-          }
-
-          return parseFloat(data || 0);
-        }
-      },
-
-      {
-        data: "porcentaje_venta",
-        render: function(data, type) {
-          if (type === 'display') {
-            return '<span style="color:green;font-weight:600;">' + formatoDinero(data) + '</span>';
-          }
-
-          return parseFloat(data || 0);
-        }
-      },
-
-      {
-        data: "isv_venta",
+        data: null,
+        className: "align-middle productos-precios-cell",
         render: function(data, type, row) {
+          var compra = productosToNumber(row.precio_compra);
+          var venta = productosToNumber(row.precio_venta);
+          var ganancia = productosToNumber(row.porcentaje_venta);
+          var mayoreo = productosToNumber(row.precio_mayoreo);
+
           if (type !== 'display') {
-            return data;
+            return compra + ' ' + venta + ' ' + ganancia + ' ' + mayoreo;
           }
 
-          var aplica = String(data || '').toLowerCase() === 'si' || parseInt(data || 0, 10) === 1;
-          var isvTipo = '';
+          return '' +
+            '<div class="productos-detail-list">' +
+              '<div class="productos-detail-item">' +
+                '<span class="productos-detail-icon productos-icon-compra"><i class="fas fa-shopping-cart"></i></span>' +
+                '<span><strong>Compra:</strong> ' + productosBadgeDinero(compra, 'compra') + '</span>' +
+              '</div>' +
+              '<div class="productos-detail-item">' +
+                '<span class="productos-detail-icon productos-icon-venta"><i class="fas fa-tag"></i></span>' +
+                '<span><strong>Venta:</strong> ' + productosBadgeDinero(venta, 'venta') + '</span>' +
+              '</div>' +
+              '<div class="productos-detail-item">' +
+                '<span class="productos-detail-icon productos-icon-ganancia"><i class="fas fa-coins"></i></span>' +
+                '<span><strong>Ganancia:</strong> ' + productosBadgeDinero(ganancia, 'ganancia') + '</span>' +
+              '</div>' +
+              '<div class="productos-detail-item">' +
+                '<span class="productos-detail-icon productos-icon-mayoreo"><i class="fas fa-boxes"></i></span>' +
+                '<span><strong>Mayoreo:</strong> ' + productosBadgeDinero(mayoreo, 'mayoreo') + '</span>' +
+              '</div>' +
+            '</div>';
+        }
+      },
 
-          if (parseInt(row.isv1 || 0, 10) === 1) {
-            isvTipo = getPorcentajeTextoISVProducto(1);
-          } else if (parseInt(row.isv2 || 0, 10) === 1) {
-            isvTipo = getPorcentajeTextoISVProducto(2);
+      {
+        data: null,
+        className: "align-middle productos-impuestos-cell",
+        render: function(data, type, row) {
+          var isvVenta = productosIsvBadge(row);
+          var isvCompra = String(row.isv_compra || '').toLowerCase() === 'si' || parseInt(row.isv_compra || 0, 10) === 1;
+          var restaurante = parseInt(row.restaurante || 0, 10) === 1;
+
+          if (type !== 'display') {
+            return row.isv_venta + ' ' + row.isv_compra + ' ' + row.isv1 + ' ' + row.isv2 + ' ' + row.restaurante;
           }
 
-          if (aplica) {
-            return '<span class="badge badge-pill badge-info" title="Este producto calcula impuesto al vender">' +
-              '<i class="fas fa-check-circle mr-1"></i>Sí ' + isvTipo +
-            '</span>';
+          return '' +
+            '<div class="productos-detail-list">' +
+              '<div class="productos-detail-item">' +
+                '<span class="productos-detail-icon productos-icon-isv"><i class="fas fa-percent"></i></span>' +
+                '<span><strong>ISV venta:</strong> ' + isvVenta + '</span>' +
+              '</div>' +
+              '<div class="productos-detail-item">' +
+                '<span class="productos-detail-icon productos-icon-isv"><i class="fas fa-file-invoice-dollar"></i></span>' +
+                '<span><strong>ISV compra:</strong> ' +
+                  (
+                    isvCompra
+                      ? '<span class="productos-isv-badge productos-isv-si"><i class="fas fa-check-circle"></i> Sí</span>'
+                      : '<span class="productos-isv-badge productos-isv-no"><i class="fas fa-times-circle"></i> No</span>'
+                  ) +
+                '</span>' +
+              '</div>' +
+              '<div class="productos-detail-item">' +
+                '<span class="productos-detail-icon productos-icon-restaurante"><i class="fas fa-utensils"></i></span>' +
+                '<span><strong>Restaurante:</strong> ' +
+                  (
+                    restaurante
+                      ? '<span class="productos-isv-badge productos-isv-si"><i class="fas fa-check-circle"></i> Sí</span>'
+                      : '<span class="productos-isv-badge productos-isv-no"><i class="fas fa-times-circle"></i> No</span>'
+                  ) +
+                '</span>' +
+              '</div>' +
+            '</div>';
+        }
+      },
+
+      {
+        data: null,
+        className: "align-middle productos-control-cell",
+        render: function(data, type, row) {
+          var minima = productosToNumber(row.cantidad_minima);
+          var maxima = productosToNumber(row.cantidad_maxima);
+          var cantidadMayoreo = productosToNumber(row.cantidad_mayoreo);
+          var superior = productosValor(row.producto_superior, 'No registrado');
+          var almacen = productosValor(row.almacen, 'No registrado');
+
+          if (type !== 'display') {
+            return minima + ' ' + maxima + ' ' + cantidadMayoreo + ' ' + superior + ' ' + almacen;
           }
 
-          return '<span class="badge badge-pill badge-secondary" title="Este producto no calcula impuesto al vender">' +
-            '<i class="fas fa-times-circle mr-1"></i>No' +
-          '</span>';
+          return '' +
+            '<div class="productos-detail-list">' +
+              '<div class="productos-detail-item">' +
+                '<span class="productos-detail-icon productos-icon-stock"><i class="fas fa-arrow-down"></i></span>' +
+                '<span><strong>Mínimo:</strong> <span class="productos-control-badge">' + minima + '</span></span>' +
+              '</div>' +
+              '<div class="productos-detail-item">' +
+                '<span class="productos-detail-icon productos-icon-stock"><i class="fas fa-arrow-up"></i></span>' +
+                '<span><strong>Máximo:</strong> <span class="productos-control-badge">' + maxima + '</span></span>' +
+              '</div>' +
+              '<div class="productos-detail-item">' +
+                '<span class="productos-detail-icon productos-icon-stock"><i class="fas fa-boxes"></i></span>' +
+                '<span><strong>Cant. mayoreo:</strong> <span class="productos-control-badge">' + cantidadMayoreo + '</span></span>' +
+              '</div>' +
+              '<div class="productos-detail-item">' +
+                '<span class="productos-detail-icon productos-icon-almacen"><i class="fas fa-warehouse"></i></span>' +
+                '<span><strong>Almacén:</strong> ' + productosEscape(almacen) + '</span>' +
+              '</div>' +
+            '</div>';
         }
       },
 
       {
         data: "estado",
-        render: function(data, type) {
-          if (type === 'display') {
-            var estadoText = data == 1 ? 'Activo' : 'Inactivo';
-            var icon = data == 1 ? '<i class="fas fa-check-circle mr-1"></i>' : '<i class="fas fa-times-circle mr-1"></i>';
-            var badgeClass = data == 1 ? 'badge badge-pill badge-success' : 'badge badge-pill badge-danger';
-
-            return '<span class="' + badgeClass + '" style="font-size:.95rem;padding:.5em .8em;font-weight:600;">' +
-              icon +
-              estadoText +
-            '</span>';
+        className: "text-center align-middle productos-estado-cell",
+        render: function(data, type, row) {
+          if (type !== 'display') {
+            return data;
           }
 
-          return data;
+          return productosEstadoBadge(data);
         }
       }
     ],
 
-    order: [[3, 'asc']],
+    order: [[1, 'asc']],
 
     columnDefs: [
       {
@@ -916,58 +1150,32 @@ var listar_productos = function() {
         width: "8%",
         orderable: false,
         searchable: false,
-        className: "text-center text-nowrap align-middle"
+        className: "text-center text-nowrap align-middle productos-acciones-cell"
       },
       {
         targets: 1,
-        width: "8%",
-        orderable: false,
-        searchable: false,
-        className: "text-center text-nowrap align-middle"
+        width: "34%",
+        className: "align-middle productos-producto-cell"
       },
       {
         targets: 2,
-        width: "10%",
-        className: "text-nowrap"
+        width: "17%",
+        className: "align-middle productos-precios-cell"
       },
       {
         targets: 3,
-        width: "22%"
+        width: "16%",
+        className: "align-middle productos-impuestos-cell"
       },
       {
         targets: 4,
-        width: "8%",
-        className: "text-nowrap"
+        width: "17%",
+        className: "align-middle productos-control-cell"
       },
       {
         targets: 5,
-        width: "10%",
-        className: "text-nowrap"
-      },
-      {
-        targets: 6,
-        width: "9%",
-        className: "text-right text-nowrap"
-      },
-      {
-        targets: 7,
-        width: "9%",
-        className: "text-right text-nowrap"
-      },
-      {
-        targets: 8,
-        width: "9%",
-        className: "text-right text-nowrap"
-      },
-      {
-        targets: 9,
         width: "8%",
-        className: "text-center text-nowrap"
-      },
-      {
-        targets: 10,
-        width: "8%",
-        className: "text-center text-nowrap"
+        className: "text-center text-nowrap align-middle productos-estado-cell"
       }
     ],
 
@@ -996,18 +1204,19 @@ var listar_productos = function() {
         messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
         className: 'table_reportes btn btn-success ocultar',
         exportOptions: {
-          columns: [2, 3, 4, 5, 6, 7, 8, 9, 10]
+          columns: [1, 2, 3, 4, 5]
         }
       },
       {
         extend: 'pdf',
         orientation: 'landscape',
+        pageSize: 'LEGAL',
         text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
         titleAttr: 'PDF',
         title: 'Reporte Productos',
         messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
         exportOptions: {
-          columns: [2, 3, 4, 5, 6, 7, 8, 9, 10]
+          columns: [1, 2, 3, 4, 5]
         },
         className: 'table_reportes btn btn-danger ocultar',
         customize: function(doc) {
@@ -1058,15 +1267,6 @@ var ver_detalle_producto_dataTable = function(tbody, table) {
       return;
     }
 
-    var formatoDinero = function(valor) {
-      valor = parseFloat(valor || 0);
-
-      return 'L ' + valor.toLocaleString('es-HN', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      });
-    };
-
     var isvTipo = 'No aplica';
 
     if (parseInt(data.isv1 || 0, 10) === 1) {
@@ -1080,22 +1280,24 @@ var ver_detalle_producto_dataTable = function(tbody, table) {
       : 'Sin descripción registrada';
 
     var html = '' +
-      '<div class="text-left">' +
-        '<div class="mb-2"><strong>Producto:</strong><br>' + data.nombre + '</div>' +
-        '<div class="mb-2"><strong>Descripción:</strong><br>' + descripcion + '</div>' +
+      '<div class="text-left productos-modal-detalle">' +
+        '<div class="mb-2"><strong>Producto:</strong><br>' + productosEscape(data.nombre) + '</div>' +
+        '<div class="mb-2"><strong>Descripción:</strong><br>' + productosEscape(descripcion) + '</div>' +
         '<hr>' +
         '<div class="row">' +
-          '<div class="col-md-6 mb-2"><strong>Código:</strong><br>' + (data.barCode || 'Sin código') + '</div>' +
-          '<div class="col-md-6 mb-2"><strong>Categoría:</strong><br>' + (data.categoria || 'Sin categoría') + '</div>' +
-          '<div class="col-md-6 mb-2"><strong>Medida:</strong><br>' + (data.medida || 'Sin medida') + '</div>' +
-          '<div class="col-md-6 mb-2"><strong>Impuesto venta:</strong><br>' + (data.isv_venta || 'No') + ' - ' + isvTipo + '</div>' +
-          '<div class="col-md-6 mb-2"><strong>Precio compra:</strong><br>' + formatoDinero(data.precio_compra) + '</div>' +
-          '<div class="col-md-6 mb-2"><strong>Precio venta:</strong><br>' + formatoDinero(data.precio_venta) + '</div>' +
-          '<div class="col-md-6 mb-2"><strong>Ganancia:</strong><br>' + formatoDinero(data.porcentaje_venta) + '</div>' +
-          '<div class="col-md-6 mb-2"><strong>Precio mayoreo:</strong><br>' + formatoDinero(data.precio_mayoreo) + '</div>' +
-          '<div class="col-md-6 mb-2"><strong>Cantidad mayoreo:</strong><br>' + (data.cantidad_mayoreo || 0) + '</div>' +
-          '<div class="col-md-6 mb-2"><strong>Mínimo:</strong><br>' + (data.cantidad_minima || 0) + '</div>' +
-          '<div class="col-md-6 mb-2"><strong>Máximo:</strong><br>' + (data.cantidad_maxima || 0) + '</div>' +
+          '<div class="col-md-6 mb-2"><strong>Código:</strong><br>' + productosEscape(productosValor(data.barCode, 'Sin código')) + '</div>' +
+          '<div class="col-md-6 mb-2"><strong>Categoría:</strong><br>' + productosEscape(productosValor(data.categoria, 'Sin categoría')) + '</div>' +
+          '<div class="col-md-6 mb-2"><strong>Medida:</strong><br>' + productosEscape(productosValor(data.medida, 'Sin medida')) + '</div>' +
+          '<div class="col-md-6 mb-2"><strong>Impuesto venta:</strong><br>' + productosEscape(productosValor(data.isv_venta, 'No')) + ' - ' + productosEscape(isvTipo) + '</div>' +
+          '<div class="col-md-6 mb-2"><strong>Precio compra:</strong><br>' + productosFormatoDinero(data.precio_compra) + '</div>' +
+          '<div class="col-md-6 mb-2"><strong>Precio venta:</strong><br>' + productosFormatoDinero(data.precio_venta) + '</div>' +
+          '<div class="col-md-6 mb-2"><strong>Ganancia:</strong><br>' + productosFormatoDinero(data.porcentaje_venta) + '</div>' +
+          '<div class="col-md-6 mb-2"><strong>Precio mayoreo:</strong><br>' + productosFormatoDinero(data.precio_mayoreo) + '</div>' +
+          '<div class="col-md-6 mb-2"><strong>Cantidad mayoreo:</strong><br>' + productosToNumber(data.cantidad_mayoreo) + '</div>' +
+          '<div class="col-md-6 mb-2"><strong>Mínimo:</strong><br>' + productosToNumber(data.cantidad_minima) + '</div>' +
+          '<div class="col-md-6 mb-2"><strong>Máximo:</strong><br>' + productosToNumber(data.cantidad_maxima) + '</div>' +
+          '<div class="col-md-6 mb-2"><strong>Almacén:</strong><br>' + productosEscape(productosValor(data.almacen, 'No registrado')) + '</div>' +
+          '<div class="col-md-6 mb-2"><strong>Estado:</strong><br>' + (parseInt(data.estado, 10) === 1 ? 'Activo' : 'Inactivo') + '</div>' +
         '</div>' +
       '</div>';
 
@@ -1114,7 +1316,6 @@ var ver_detalle_producto_dataTable = function(tbody, table) {
 };
 
 
-// ======= EDITAR / ELIMINAR (tu código original) =======
 var editar_producto_dataTable = function(tbody, table) {
   $(tbody).off("click", "button.table_editar");
 
@@ -1122,7 +1323,6 @@ var editar_producto_dataTable = function(tbody, table) {
     var data = table.row($(this).parents("tr")).data();
     var url = '<?php echo SERVERURL;?>core/editarProductos.php';
 
-    // Reset y seteo id
     $('#formProductos')[0].reset();
 
     if (typeof window.resetProductoImagen === 'function') {
@@ -1138,7 +1338,6 @@ var editar_producto_dataTable = function(tbody, table) {
       success: function(registro) {
         var datos = eval(registro);
 
-        // ---- Modo edición / acciones ----
         $('#formProductos').attr({'data-form': 'update'});
         $('#formProductos').attr({'action': '<?php echo SERVERURL;?>ajax/modificarProductosAjax.php'});
         $('#reg_producto').hide();
@@ -1146,7 +1345,6 @@ var editar_producto_dataTable = function(tbody, table) {
         $('#delete_producto').hide();
         $('#formProductos #proceso_productos').val("Editar Productos");
 
-        // ---- Campos base ----
         evaluarCategoriaDetalle(datos[13]);
         $('#formProductos #medida').val(datos[1]).selectpicker('refresh');
         $('#formProductos #almacen').val(datos[0]).selectpicker('refresh');
@@ -1165,12 +1363,10 @@ var editar_producto_dataTable = function(tbody, table) {
         $('#formProductos #bar_code_product').val(datos[19]);
         $('#formProductos #producto_superior').val(datos[20]);
 
-        // ---- Switches principales (ya venían) ----
         $('#formProductos #producto_isv_factura').prop('checked', datos[7] == 1);
         $('#formProductos #producto_isv_compra').prop('checked', datos[8] == 1);
         $('#formProductos #producto_activo').prop('checked', datos[9] == 1);
 
-        // ---- Imagen ----
         var preview = document.getElementById('productoPreview');
         var productoInfo = document.getElementById('productoInfo');
 
@@ -1219,7 +1415,6 @@ var editar_producto_dataTable = function(tbody, table) {
           $("#formProductos #preview").attr("src", "<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png");
         }
 
-        // ---- Habilita / deshabilita ----
         $('#formProductos #producto').prop("readonly", false);
         $('#formProductos #cantidad').prop("readonly", true);
         $('#formProductos #precio_compra').prop("readonly", false);
@@ -1249,19 +1444,11 @@ var editar_producto_dataTable = function(tbody, table) {
         $('#formProductos #cantidad').hide();
         $('#div_cantidad_editar_producto').hide();
 
-        // ---- NUEVO: sincroniza switches especiales desde el listado/PHP ----
-        //  - data.restaurante (0/1)     -> #producto_restaurante
-        //  - data.isv1 (0/1)            -> #producto_isv1
-        //  - data.isv2 (0/1)            -> #producto_isv2
         setISVFromData(datos, data);
 
-        // ---- Actualiza labels ISV dinámicos antes de abrir ----
         actualizarLabelsISVProductos();
-
-        // ---- Actualiza labels ISV dinámicos antes de abrir ----
         recargarLabelsISVProductos();
 
-        // ---- Abre modal ----
         $('#modal_registrar_productos').modal({
           show: true,
           keyboard: false,
@@ -1381,19 +1568,6 @@ var eliminar_producto_dataTable = function(tbody, table) {
 };
 
 
-// ====== Cambios en switches / helpers iguales a los tuyos ======
-$(document).ready(function() {
-  $('#formProductos #tipo_producto').on('change', evaluarCategoria);
-
-  $("#formProductos #precio_venta, #formProductos #precio_compra").on("keyup", function() {
-    var pc = parseFloat($("#formProductos #precio_compra").val()) || 0;
-    var pv = parseFloat($("#formProductos #precio_venta").val()) || 0;
-
-    $("#formProductos #porcentaje_venta").val((pv > pc) ? (pv - pc).toFixed(2) : "0");
-  });
-});
-
-
 function evaluarCategoria() {
   if ($('#formProductos #tipo_producto').find('option:selected').text() == "Servicio") {
     $('#formProductos #cantidad').prop('readonly', true);
@@ -1438,14 +1612,7 @@ function evaluarCategoriaDetalle(TipoProducto) {
 }
 
 
-$('#formProductos #label_producto_activo').html("Activo");
-
-$('#formProductos .switch').change(function() {
-  $('#formProductos #label_' + this.name).html($(this).is(':checked') ? "Sí" : "No");
-});
-
-
-// ====== AJAX para llenar combos (PROMESAS) ======
+// ====== AJAX para llenar combos ======
 function getEstadoProducto() {
   const url = '<?php echo SERVERURL;?>core/getEstado.php';
 
@@ -1459,11 +1626,20 @@ function getEstadoProducto() {
   });
 }
 
+function getCategoriasProducto() {
+  const url = '<?php echo SERVERURL;?>core/getTipoProductoMovimientos.php';
 
-// Si no usas este dato, deja Promise.resolve()
+  return $.ajax({
+    type: "POST",
+    url: url,
+    async: true
+  })
+  .then(function(data) {
+    $('#form_main_productos #categoria_producto_filtro').html(data).selectpicker('refresh');
+  });
+}
+
 function getEmpresaProductos() {
-  // Si no necesitas nada del servidor: return Promise.resolve();
-  // Si sí necesitas, ajusta la URL real y el select a llenar:
   return Promise.resolve();
 }
 </script>

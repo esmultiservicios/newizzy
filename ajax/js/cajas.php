@@ -1329,12 +1329,14 @@ $('#formReintegroRetiroCaja').off('submit').on('submit', function (e) {
             }
 
             $('#dg_total_vendido').html('Cargando...');
+            $('#dg_pendiente_cobro').html('Cargando...');
             $('#dg_otros_ingresos').html('Cargando...');
             $('#dg_total_gastos').html('Cargando...');
             $('#dg_total_egresos_registrados').html('Cargando...');
             $('#dg_total_inversion_apartada').html('Cargando...');
             $('#dg_retiro_caja_pendiente').html('Cargando...');
             $('#dg_neto_disponible').html('Cargando...');
+            $('#dg_neto_total_facturado').html('Cargando...');
 
             $('#dg_efectivo').html('Cargando...');
             $('#dg_transferencia').html('Cargando...');
@@ -1357,8 +1359,12 @@ $('#formReintegroRetiroCaja').off('submit').on('submit', function (e) {
             $('#dg_diferencia_conciliacion').html('Cargando...');
         },
         success: function (response) {
-            if (!response.success) {
-                showNotify('error', 'Error', response.message || 'No se pudo cargar el desglose de ganancia.');
+            if (!response || !response.success) {
+                showNotify(
+                    'error',
+                    'Error',
+                    response && response.message ? response.message : 'No se pudo cargar el desglose de ganancia.'
+                );
                 return;
             }
 
@@ -1366,12 +1372,18 @@ $('#formReintegroRetiroCaja').off('submit').on('submit', function (e) {
             var detalles = response.detalles || [];
 
             var totalVendido = parseMonto(resumen.total_vendido || resumen.total_cobrado);
+            var pendienteCobro = parseMonto(resumen.pendiente_cobro);
             var otrosIngresos = parseMonto(resumen.otros_ingresos);
             var totalGastos = parseMonto(resumen.total_gastos_reales || resumen.total_gastos);
             var totalEgresosRegistrados = parseMonto(resumen.total_egresos_registrados);
             var totalInversionApartada = parseMonto(resumen.total_inversion_apartada);
             var retiroCajaPendiente = parseMonto(resumen.retiro_caja_pendiente);
             var netoDisponible = parseMonto(resumen.neto_disponible);
+            var netoTotalFacturado = parseMonto(resumen.neto_total_facturado);
+
+            if (netoTotalFacturado <= 0) {
+                netoTotalFacturado = netoDisponible + pendienteCobro;
+            }
 
             var efectivo = parseMonto(resumen.efectivo);
             var transferencia = parseMonto(resumen.transferencia);
@@ -1393,12 +1405,14 @@ $('#formReintegroRetiroCaja').off('submit').on('submit', function (e) {
             var diferenciaConciliacion = parseMonto(resumen.diferencia_conciliacion);
 
             $('#dg_total_vendido').html(formatoMoneda(totalVendido));
+            $('#dg_pendiente_cobro').html(formatoMoneda(pendienteCobro));
             $('#dg_otros_ingresos').html(formatoMoneda(otrosIngresos));
             $('#dg_total_gastos').html(formatoMoneda(totalGastos));
             $('#dg_total_egresos_registrados').html(formatoMoneda(totalEgresosRegistrados));
             $('#dg_total_inversion_apartada').html(formatoMoneda(totalInversionApartada));
             $('#dg_retiro_caja_pendiente').html(formatoMoneda(retiroCajaPendiente));
             $('#dg_neto_disponible').html(formatoMoneda(netoDisponible));
+            $('#dg_neto_total_facturado').html(formatoMoneda(netoTotalFacturado));
 
             $('#dg_efectivo').html(formatoMoneda(efectivo));
             $('#dg_transferencia').html(formatoMoneda(transferencia));
@@ -1421,7 +1435,10 @@ $('#formReintegroRetiroCaja').off('submit').on('submit', function (e) {
             $('#dg_diferencia_conciliacion').html(formatoMoneda(diferenciaConciliacion));
 
             var textoRegla = '';
-            if (totalInversionApartada > 0) {
+
+            if (pendienteCobro > 0) {
+                textoRegla = 'Hay facturas pendientes de cobrar. Por eso el neto disponible puede ser menor que el total facturado.';
+            } else if (totalInversionApartada > 0) {
                 textoRegla = 'Hay egresos marcados como inversión/reposición. Salen de caja, pero no se cuentan como gasto real.';
             } else if (retiroCajaConvertido > 0) {
                 textoRegla = 'Esta caja ya tiene retiros convertidos en gasto. Por eso no se restan doble en el neto.';
@@ -1530,18 +1547,18 @@ function cargarTablaDetalleGananciaCaja(detalles) {
             {
                 data: "ganancia",
                 render: function (data, type) {
-                    return renderMonedaColor(data, type);
+                    return type === 'display' ? formatoMoneda(data) : parseMonto(data);
                 }
             }
         ],
         columnDefs: [
             {
-                targets: [3, 4, 5, 6, 7],
-                className: "text-right text-nowrap"
+                targets: [2],
+                className: "text-center text-nowrap"
             },
             {
-                targets: [0, 2],
-                className: "text-center text-nowrap"
+                targets: [3, 4, 5, 6, 7],
+                className: "text-right text-nowrap"
             }
         ],
         lengthMenu: lengthMenu,
@@ -1552,7 +1569,7 @@ function cargarTablaDetalleGananciaCaja(detalles) {
                 extend: 'excelHtml5',
                 text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
                 titleAttr: 'Excel',
-                title: 'Detalle de Ganancia',
+                title: 'Detalle de Ganancia de Caja',
                 className: 'btn btn-success'
             },
             {
@@ -1560,7 +1577,7 @@ function cargarTablaDetalleGananciaCaja(detalles) {
                 text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
                 titleAttr: 'PDF',
                 orientation: 'landscape',
-                title: 'Detalle de Ganancia',
+                title: 'Detalle de Ganancia de Caja',
                 className: 'btn btn-danger'
             }
         ],

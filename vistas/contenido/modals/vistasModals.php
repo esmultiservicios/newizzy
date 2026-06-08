@@ -4962,8 +4962,9 @@
 
                 <div class="izzy-note mb-3">
                     <strong>Resumen:</strong>
-                    el neto disponible se calcula con <strong>total vendido + otros ingresos - gastos reales - retiros pendientes</strong>.
-                    La inversión/reposición se muestra aparte porque sale de caja, pero no es gasto real.
+                    el <strong>neto disponible</strong> muestra solo el dinero realmente cobrado/disponible.
+                    El <strong>pendiente de cobrar</strong> muestra facturas emitidas sin pago completo.
+                    El <strong>neto total facturado</strong> suma lo disponible más lo pendiente.
                 </div>
 
                 <div class="izzy-section-block">
@@ -4975,9 +4976,17 @@
                     <div class="row izzy-kpi-row-compact">
                         <div class="col-xl col-lg-4 col-md-6 col-sm-6 mb-2">
                             <div class="izzy-kpi-card izzy-kpi-card-highlight">
-                                <div class="izzy-kpi-label">Total vendido</div>
+                                <div class="izzy-kpi-label">Total cobrado</div>
                                 <p class="izzy-kpi-value izzy-kpi-success" id="dg_total_vendido">L. 0.00</p>
-                                <small>Dinero cobrado por ventas: efectivo + tarjeta + transferencia + cheque.</small>
+                                <small>Dinero realmente cobrado por ventas: efectivo + tarjeta + transferencia + cheque.</small>
+                            </div>
+                        </div>
+
+                        <div class="col-xl col-lg-4 col-md-6 col-sm-6 mb-2">
+                            <div class="izzy-kpi-card">
+                                <div class="izzy-kpi-label">Pendiente de cobrar</div>
+                                <p class="izzy-kpi-value izzy-kpi-warning" id="dg_pendiente_cobro">L. 0.00</p>
+                                <small>Facturas emitidas que todavía no tienen pago completo.</small>
                             </div>
                         </div>
 
@@ -4993,7 +5002,7 @@
                             <div class="izzy-kpi-card">
                                 <div class="izzy-kpi-label">Gastos reales</div>
                                 <p class="izzy-kpi-value izzy-kpi-danger" id="dg_total_gastos">L. 0.00</p>
-                                <small>Egresos normales. No incluye inversión/reposición.</small>
+                                <small>Solo retiros de caja confirmados como egreso. No incluye inversión/reposición.</small>
                             </div>
                         </div>
 
@@ -5009,7 +5018,15 @@
                             <div class="izzy-kpi-card izzy-kpi-card-neto">
                                 <div class="izzy-kpi-label">Neto disponible</div>
                                 <p class="izzy-kpi-value izzy-kpi-primary" id="dg_neto_disponible">L. 0.00</p>
-                                <small>Vendido + otros ingresos - gastos reales - retiros pendientes.</small>
+                                <small>Cobrado + otros ingresos - gastos reales - retiros pendientes.</small>
+                            </div>
+                        </div>
+
+                        <div class="col-xl col-lg-4 col-md-6 col-sm-6 mb-2">
+                            <div class="izzy-kpi-card izzy-kpi-card-highlight">
+                                <div class="izzy-kpi-label">Neto total facturado</div>
+                                <p class="izzy-kpi-value izzy-kpi-success" id="dg_neto_total_facturado">L. 0.00</p>
+                                <small>Neto disponible + facturas pendientes de cobrar.</small>
                             </div>
                         </div>
                     </div>
@@ -5101,7 +5118,7 @@
                             <div class="izzy-kpi-card izzy-kpi-card-mini">
                                 <div class="izzy-kpi-label">Total egresos registrados</div>
                                 <p class="izzy-kpi-value izzy-kpi-danger" id="dg_total_egresos_registrados">L. 0.00</p>
-                                <small>Todo lo registrado como egreso tipo gasto, incluyendo inversión si se registró ahí.</small>
+                                <small>Solo retiros de caja confirmados como egreso.</small>
                             </div>
                         </div>
 
@@ -5129,7 +5146,7 @@
 
                     <div class="izzy-note mb-2">
                         <strong>Esta sección usa el detalle de productos.</strong>
-                        Venta neta de productos = <strong>cantidad x precio + impuesto - descuento</strong>.
+                        Venta neta de productos = <strong>cantidad x precio</strong>.
                         Costo productos = <strong>cantidad x costo unitario</strong>.
                     </div>
 
@@ -5172,7 +5189,7 @@
                             <div class="izzy-kpi-card izzy-kpi-card-mini izzy-kpi-card-diff">
                                 <div class="izzy-kpi-label">Diferencia factura / detalle</div>
                                 <p class="izzy-kpi-value izzy-kpi-warning" id="dg_diferencia_conciliacion">L. 0.00</p>
-                                <small>Total vendido/cobrado - venta neta productos.</small>
+                                <small>Total facturado - venta neta productos.</small>
                             </div>
                         </div>
 
@@ -5195,7 +5212,7 @@
 
                     <div class="izzy-note mb-0">
                         <strong>Para explicar al cliente:</strong>
-                        si el total vendido/cobrado es mayor que la venta neta de productos, la diferencia puede ser un cobro extra, servicio, mano de obra o valor facturado que no está registrado como producto en el detalle.
+                        si el total facturado es mayor que la venta neta de productos, la diferencia puede ser un cobro extra, servicio, mano de obra o valor facturado que no está registrado como producto en el detalle.
                         Por eso la ganancia bruta de productos se calcula solo sobre productos.
                     </div>
                 </div>

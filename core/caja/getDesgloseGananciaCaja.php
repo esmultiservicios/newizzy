@@ -31,6 +31,26 @@ function fechaGananciaValida($fecha) {
     return is_string($fecha) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha);
 }
 
+function obtenerCuentaTipoPagoGananciaCaja($insMainModel, $tipo_pago_id) {
+    $tipo_pago_id = (int)$tipo_pago_id;
+
+    $sql = "
+        SELECT cuentas_id
+        FROM tipo_pago
+        WHERE tipo_pago_id = '$tipo_pago_id'
+        LIMIT 1
+    ";
+
+    $res = $insMainModel->ejecutar_consulta_simple($sql);
+
+    if ($res && $res->num_rows > 0) {
+        $row = $res->fetch_assoc();
+        return isset($row['cuentas_id']) ? (int)$row['cuentas_id'] : 0;
+    }
+
+    return 0;
+}
+
 $empresa_id = isset($_SESSION['empresa_id_sd']) ? (int)$_SESSION['empresa_id_sd'] : 0;
 $colaboradores_id = isset($_SESSION['colaborador_id_sd']) ? (int)$_SESSION['colaborador_id_sd'] : 0;
 
@@ -90,6 +110,29 @@ if ($modo === 'caja' && $apertura_id <= 0) {
     exit;
 }
 
+$cuenta_efectivo = obtenerCuentaTipoPagoGananciaCaja($insMainModel, 1);
+$cuenta_transferencia = obtenerCuentaTipoPagoGananciaCaja($insMainModel, 3);
+
+if ($cuenta_efectivo <= 0) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'No se encontró la cuenta contable del efectivo en tipo_pago.',
+        'resumen' => [],
+        'detalles' => []
+    ]);
+    exit;
+}
+
+if ($cuenta_transferencia <= 0) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'No se encontró la cuenta contable de transferencia en tipo_pago.',
+        'resumen' => [],
+        'detalles' => []
+    ]);
+    exit;
+}
+
 $fecha_caja = $fechai;
 $estado_caja = 0;
 $texto_estado_caja = 'Período';
@@ -97,7 +140,12 @@ $texto_estado_caja = 'Período';
 $whereApertura = " a.empresa_id = '$empresa_id' ";
 $whereFacturas = " f.empresa_id = '$empresa_id' AND f.estado IN (2,3) ";
 $whereRetiros = " cr.empresa_id = '$empresa_id' AND cr.estado = 1 ";
-$whereRetirosPendientes = " cr.empresa_id = '$empresa_id' AND cr.estado = 1 AND IFNULL(cr.egresos_id, 0) = 0 ";
+$whereRetirosPendientes = "
+    cr.empresa_id = '$empresa_id'
+    AND cr.estado = 1
+    AND IFNULL(cr.egresos_id, 0) = 0
+    AND cr.cuentas_id IN ('$cuenta_efectivo', '$cuenta_transferencia')
+";
 $whereOtrosIngresos = " i.empresa_id = '$empresa_id' AND i.estado = 1 AND i.tipo_ingreso = 2 ";
 
 if ($modo === 'caja') {
@@ -324,17 +372,17 @@ if ($resOtrosIngresos && $resOtrosIngresos->num_rows > 0) {
 /*
     GASTOS REALES DE CAJA
 
-    IMPORTANTE:
-    Aquí NO se toman todos los egresos del módulo Egresos.
+    Solo entran retiros hechos desde caja_retiros que ya fueron confirmados
+    como egreso.
 
-    Solo se toman los egresos que nacieron desde caja_retiros:
-    - caja_retiros.estado = 1
-    - caja_retiros.egresos_id > 0
-    - egresos.estado = 1
-    - egresos.tipo_egreso = 2
+    Se toman únicamente:
+    - Retiros de efectivo
+    - Retiros de transferencia
+    - Que tengan egresos_id > 0
+    - Que el egreso exista y esté activo
+    - Que el egreso sea tipo_egreso = 2
 
-    Así evitamos que egresos manuales hechos desde el módulo Egresos
-    afecten la ganancia de esta caja.
+    No se toman egresos manuales creados directamente desde el módulo Egresos.
 */
 $sqlGastos = "
     SELECT
@@ -390,6 +438,7 @@ $sqlGastos = "
         ON cg.categoria_gastos_id = e.categoria_gastos_id
     WHERE $whereRetiros
       AND IFNULL(cr.egresos_id, 0) > 0
+      AND cr.cuentas_id IN ('$cuenta_efectivo', '$cuenta_transferencia')
 ";
 
 $resGastos = $insMainModel->ejecutar_consulta_simple($sqlGastos);
@@ -412,6 +461,7 @@ $sqlRetirosTotal = "
     SELECT COALESCE(SUM(cr.monto), 0) AS retiro_caja_total
     FROM caja_retiros cr
     WHERE $whereRetiros
+      AND cr.cuentas_id IN ('$cuenta_efectivo', '$cuenta_transferencia')
 ";
 
 $resRetirosTotal = $insMainModel->ejecutar_consulta_simple($sqlRetirosTotal);
@@ -443,6 +493,7 @@ $sqlRetirosConvertidos = "
     FROM caja_retiros cr
     WHERE $whereRetiros
       AND IFNULL(cr.egresos_id, 0) > 0
+      AND cr.cuentas_id IN ('$cuenta_efectivo', '$cuenta_transferencia')
 ";
 
 $resRetirosConvertidos = $insMainModel->ejecutar_consulta_simple($sqlRetirosConvertidos);
@@ -462,10 +513,16 @@ if ($pendiente_cobro < 0) {
 
 /*
     Neto disponible:
-    - total_gastos: solo retiros de caja que ya fueron convertidos a egreso.
-    - retiro_caja_pendiente: retiros de caja todavía flotantes, sin egresos_id.
+    Dinero realmente cobrado/disponible.
 */
 $neto_disponible = ($total_cobrado + $otros_ingresos) - $total_gastos - $retiro_caja_pendiente;
+
+/*
+    Neto total facturado:
+    Dinero disponible + facturas pendientes de cobrar.
+    Esto permite explicar por qué la caja puede tener más vendido que cobrado.
+*/
+$neto_total_facturado = $neto_disponible + $pendiente_cobro;
 
 $efectivo_esperado_caja = ($monto_apertura + $efectivo) - $retiro_caja_pendiente;
 
@@ -533,35 +590,37 @@ echo json_encode([
         'texto_estado_caja' => $texto_estado_caja,
         'fecha_caja' => $fecha_caja,
         'monto_apertura' => $monto_apertura,
+
         'total_facturado' => $total_facturado,
         'total_cobrado' => $total_cobrado,
         'total_vendido' => $total_cobrado,
         'pendiente_cobro' => $pendiente_cobro,
+
         'efectivo' => $efectivo,
         'tarjeta' => $tarjeta,
         'transferencia' => $transferencia,
         'cheque' => $cheque,
+
         'total_ingresos_registrados' => $total_ingresos_registrados,
         'otros_ingresos' => $otros_ingresos,
         'ingreso_inversion' => $ingreso_inversion,
 
-        /*
-            Estos gastos ya vienen filtrados:
-            solo retiros de caja que existen en caja_retiros
-            y que ya fueron convertidos a egreso.
-        */
         'total_gastos' => $total_gastos,
         'total_gastos_reales' => $total_gastos,
         'total_egresos_registrados' => $total_egresos_registrados,
 
         'total_inversion_apartada' => $total_inversion_apartada,
         'egreso_inversion_apartada' => $egreso_inversion_apartada,
+
         'retiro_caja' => $retiro_caja_total,
         'retiro_caja_total' => $retiro_caja_total,
         'retiro_caja_pendiente' => $retiro_caja_pendiente,
         'retiro_caja_convertido_gasto' => $retiro_caja_convertido_gasto,
+
         'neto_disponible' => $neto_disponible,
+        'neto_total_facturado' => $neto_total_facturado,
         'efectivo_esperado_caja' => $efectivo_esperado_caja,
+
         'costo_productos_vendidos' => $costo_productos_vendidos,
         'total_vendido_detalle' => $total_vendido_detalle,
         'ganancia_bruta' => $ganancia_bruta,

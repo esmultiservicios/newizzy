@@ -327,7 +327,7 @@ $(document)
                   window.resetProductoImagen();
                 }
 
-                $("#modal_registrar_productos").modal("hide");
+                //$("#modal_registrar_productos").modal("hide");
               }, 500);
             }
           },

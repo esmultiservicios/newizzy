@@ -748,6 +748,10 @@ function setTextoCuadreDia(selector, valor) {
     $(selector).html(formatoMoneda(valor));
 }
 
+function escaparTextoCuadreDia(texto) {
+    return $('<div>').text(texto || '').html();
+}
+
 function cargarCuadreDiaCaja(apertura_id, modo) {
     apertura_id = parseInt(apertura_id || 0);
 
@@ -774,13 +778,49 @@ function cargarCuadreDiaCaja(apertura_id, modo) {
     $('#modalCuadreDiaCaja').data('apertura_id', apertura_id);
 
     if (modo === 'periodo') {
+        $('#modalCuadreDiaCajaLabel').html('<i class="fas fa-balance-scale mr-1"></i> Cuadre del período');
         $('#cd_contexto_caja').html('Desde ' + fechai + ' hasta ' + fechaf);
     } else {
+        $('#modalCuadreDiaCajaLabel').html('<i class="fas fa-balance-scale mr-1"></i> Cuadre del día');
         $('#cd_contexto_caja').html('Apertura de caja #' + apertura_id);
     }
 
-    $('#cd_tabla_gastos tbody').html('<tr><td colspan="3" class="text-center text-muted">Cargando...</td></tr>');
-    $('#cd_tabla_inversiones tbody').html('<tr><td colspan="3" class="text-center text-muted">Cargando...</td></tr>');
+    $('#cd_total_cobrado').html('Cargando...');
+    $('#cd_inversion_reposicion').html('Cargando...');
+    $('#cd_gastos_total').html('Cargando...');
+    $('#cd_total_final_esperado').html('Cargando...');
+
+    $('#cd_efectivo').html('Cargando...');
+    $('#cd_transferencia').html('Cargando...');
+    $('#cd_tarjeta').html('Cargando...');
+    $('#cd_cheque').html('Cargando...');
+    $('#cd_monto_apertura').html('Cargando...');
+
+    $('#cd_efectivo_esperado').html('Cargando...');
+    $('#cd_transferencia_esperada').html('Cargando...');
+    $('#cd_tarjeta_esperada').html('Cargando...');
+    $('#cd_cheque_esperado').html('Cargando...');
+    $('#cd_total_final_esperado_tabla').html('Cargando...');
+
+    $('#cd_formula_efectivo').html('Cargando...');
+    $('#cd_formula_apertura').html('Cargando...');
+    $('#cd_formula_inversion').html('Cargando...');
+    $('#cd_formula_gastos_efectivo').html('Cargando...');
+    $('#cd_formula_resultado').html('Cargando...');
+
+    $('#cd_tabla_gastos tbody').html(
+        '<tr><td colspan="3" class="text-center text-muted">Cargando...</td></tr>'
+    );
+
+    $('#cd_tabla_inversiones tbody').html(
+        '<tr><td colspan="3" class="text-center text-muted">Cargando...</td></tr>'
+    );
+
+    $('#modalCuadreDiaCaja').modal({
+        show: true,
+        keyboard: false,
+        backdrop: 'static'
+    });
 
     $.ajax({
         type: 'POST',
@@ -793,8 +833,12 @@ function cargarCuadreDiaCaja(apertura_id, modo) {
             fechaf: fechaf
         },
         success: function (response) {
-            if (!response.success) {
-                showNotify('error', 'Error', response.message || 'No se pudo cargar el cuadre del día.');
+            if (!response || !response.success) {
+                showNotify(
+                    'error',
+                    'Error',
+                    response && response.message ? response.message : 'No se pudo cargar el cuadre del día.'
+                );
                 return;
             }
 
@@ -803,12 +847,7 @@ function cargarCuadreDiaCaja(apertura_id, modo) {
             var inversiones = response.inversiones || [];
 
             renderCuadreDiaCaja(resumen, gastos, inversiones);
-
-            $('#modalCuadreDiaCaja').modal({
-                show: true,
-                keyboard: false,
-                backdrop: 'static'
-            });
+            $('#modalCuadreDiaCaja').modal('handleUpdate');
         },
         error: function (xhr) {
             console.log(xhr.responseText);
@@ -825,28 +864,78 @@ function refrescarCuadreDiaCaja() {
 }
 
 function renderCuadreDiaCaja(resumen, gastos, inversiones) {
-    setTextoCuadreDia('#cd_total_cobrado', resumen.total_cobrado || 0);
-    setTextoCuadreDia('#cd_inversion_reposicion', resumen.inversion_total_considerada || resumen.inversion_reposicion || 0);
-    setTextoCuadreDia('#cd_gastos_total', resumen.gastos_total || 0);
-    setTextoCuadreDia('#cd_total_final_esperado', resumen.total_final_esperado || 0);
-    setTextoCuadreDia('#cd_total_final_esperado_tabla', resumen.total_final_esperado || 0);
+    var totalCobrado = parseMonto(resumen.total_cobrado || 0);
+    var montoApertura = parseMonto(resumen.monto_apertura || 0);
 
-    setTextoCuadreDia('#cd_efectivo', resumen.efectivo || 0);
-    setTextoCuadreDia('#cd_transferencia', resumen.transferencia || 0);
-    setTextoCuadreDia('#cd_tarjeta', resumen.tarjeta || 0);
-    setTextoCuadreDia('#cd_cheque', resumen.cheque || 0);
-    setTextoCuadreDia('#cd_monto_apertura', resumen.monto_apertura || 0);
+    var efectivo = parseMonto(resumen.efectivo || 0);
+    var transferencia = parseMonto(resumen.transferencia || 0);
+    var tarjeta = parseMonto(resumen.tarjeta || 0);
+    var cheque = parseMonto(resumen.cheque || 0);
 
-    setTextoCuadreDia('#cd_efectivo_esperado', resumen.efectivo_esperado || 0);
-    setTextoCuadreDia('#cd_transferencia_esperada', resumen.transferencia_esperada || 0);
-    setTextoCuadreDia('#cd_tarjeta_esperada', resumen.tarjeta_esperada || 0);
-    setTextoCuadreDia('#cd_cheque_esperado', resumen.cheque_esperado || 0);
+    var inversionTotal = parseMonto(resumen.inversion_total_considerada || resumen.inversion_reposicion || 0);
+    var inversionSugerida = parseMonto(resumen.inversion_sugerida || resumen.inversion_reposicion || 0);
+    var inversionManual = parseMonto(resumen.inversion_manual_registrada || 0);
+    var inversionPendiente = parseMonto(resumen.inversion_pendiente || 0);
+    var inversionNoCubierta = parseMonto(resumen.inversion_no_cubierta || 0);
 
-    setTextoCuadreDia('#cd_formula_efectivo', resumen.efectivo || 0);
-    setTextoCuadreDia('#cd_formula_apertura', resumen.monto_apertura || 0);
-    setTextoCuadreDia('#cd_formula_inversion', resumen.inversion_total_considerada || resumen.inversion_reposicion || 0);
-    setTextoCuadreDia('#cd_formula_gastos_efectivo', resumen.gastos_efectivo || 0);
-    setTextoCuadreDia('#cd_formula_resultado', resumen.efectivo_esperado || 0);
+    var gastosTotal = parseMonto(resumen.gastos_total || 0);
+
+    var gastosEfectivo = parseMonto(resumen.gastos_efectivo || 0);
+    var gastosTransferencia = parseMonto(resumen.gastos_transferencia || 0);
+    var gastosTarjeta = parseMonto(resumen.gastos_tarjeta || 0);
+    var gastosCheque = parseMonto(resumen.gastos_cheque || 0);
+
+    var inversionEfectivo = parseMonto(resumen.inversion_efectivo || 0);
+    var inversionTransferencia = parseMonto(resumen.inversion_transferencia || 0);
+    var inversionTarjeta = parseMonto(resumen.inversion_tarjeta || 0);
+    var inversionCheque = parseMonto(resumen.inversion_cheque || 0);
+
+    var efectivoEsperado = parseMonto(resumen.efectivo_esperado || 0);
+    var transferenciaEsperada = parseMonto(resumen.transferencia_esperada || 0);
+    var tarjetaEsperada = parseMonto(resumen.tarjeta_esperada || 0);
+    var chequeEsperado = parseMonto(resumen.cheque_esperado || 0);
+    var totalFinalEsperado = parseMonto(resumen.total_final_esperado || 0);
+
+    setTextoCuadreDia('#cd_total_cobrado', totalCobrado);
+    setTextoCuadreDia('#cd_inversion_reposicion', inversionTotal);
+    setTextoCuadreDia('#cd_gastos_total', gastosTotal);
+    setTextoCuadreDia('#cd_total_final_esperado', totalFinalEsperado);
+
+    setTextoCuadreDia('#cd_efectivo', efectivo);
+    setTextoCuadreDia('#cd_transferencia', transferencia);
+    setTextoCuadreDia('#cd_tarjeta', tarjeta);
+    setTextoCuadreDia('#cd_cheque', cheque);
+    setTextoCuadreDia('#cd_monto_apertura', montoApertura);
+
+    setTextoCuadreDia('#cd_efectivo_esperado', efectivoEsperado);
+    setTextoCuadreDia('#cd_transferencia_esperada', transferenciaEsperada);
+    setTextoCuadreDia('#cd_tarjeta_esperada', tarjetaEsperada);
+    setTextoCuadreDia('#cd_cheque_esperado', chequeEsperado);
+    setTextoCuadreDia('#cd_total_final_esperado_tabla', totalFinalEsperado);
+
+    setTextoCuadreDia('#cd_formula_efectivo', efectivo);
+    setTextoCuadreDia('#cd_formula_apertura', montoApertura);
+    setTextoCuadreDia('#cd_formula_inversion', inversionEfectivo);
+    setTextoCuadreDia('#cd_formula_gastos_efectivo', gastosEfectivo);
+    setTextoCuadreDia('#cd_formula_resultado', efectivoEsperado);
+
+    $('#cd_inversion_reposicion')
+        .closest('.card')
+        .find('small')
+        .html(
+            'Reposición sugerida: <strong>' + formatoMoneda(inversionSugerida) + '</strong>. ' +
+            'Manual registrada: <strong>' + formatoMoneda(inversionManual) + '</strong>.'
+        );
+
+    $('#cd_total_final_esperado')
+        .closest('.card')
+        .find('small')
+        .html('Total cobrado + apertura - inversión/reposición - gastos/retiros.');
+
+    $('#cd_formula_resultado')
+        .closest('.d-flex')
+        .find('span')
+        .html('= Efectivo esperado después de reposición');
 
     var htmlGastos = '';
 
@@ -856,8 +945,8 @@ function renderCuadreDiaCaja(resumen, gastos, inversiones) {
         gastos.forEach(function (item) {
             htmlGastos += '' +
                 '<tr>' +
-                    '<td>' + (item.tipo || '') + '</td>' +
-                    '<td>' + (item.cuenta || '') + '</td>' +
+                    '<td>' + escaparTextoCuadreDia(item.tipo || '') + '</td>' +
+                    '<td>' + escaparTextoCuadreDia(item.cuenta || '') + '</td>' +
                     '<td class="text-right font-weight-bold">' + formatoMoneda(item.monto || 0) + '</td>' +
                 '</tr>';
         });
@@ -868,19 +957,56 @@ function renderCuadreDiaCaja(resumen, gastos, inversiones) {
     var htmlInversiones = '';
 
     if (!inversiones || inversiones.length <= 0) {
-        htmlInversiones = '<tr><td colspan="3" class="text-center text-muted">No hay inversión manual registrada. Se toma el costo de productos vendidos como inversión/reposición.</td></tr>';
+        htmlInversiones = '' +
+            '<tr>' +
+                '<td>Reposición sugerida</td>' +
+                '<td>Inventario vendido</td>' +
+                '<td class="text-right font-weight-bold">' + formatoMoneda(inversionSugerida) + '</td>' +
+            '</tr>';
     } else {
         inversiones.forEach(function (item) {
             htmlInversiones += '' +
                 '<tr>' +
-                    '<td>' + (item.tipo || '') + '</td>' +
-                    '<td>' + (item.cuenta || '') + '</td>' +
+                    '<td>' + escaparTextoCuadreDia(item.tipo || '') + '</td>' +
+                    '<td>' + escaparTextoCuadreDia(item.cuenta || '') + '</td>' +
                     '<td class="text-right font-weight-bold">' + formatoMoneda(item.monto || 0) + '</td>' +
                 '</tr>';
         });
     }
 
+    if (inversionPendiente > 0 && inversionManual > 0) {
+        htmlInversiones += '' +
+            '<tr>' +
+                '<td>Reposición pendiente</td>' +
+                '<td>Inventario vendido</td>' +
+                '<td class="text-right font-weight-bold">' + formatoMoneda(inversionPendiente) + '</td>' +
+            '</tr>';
+    }
+
+    if (inversionNoCubierta > 0) {
+        htmlInversiones += '' +
+            '<tr>' +
+                '<td>Reposición no cubierta</td>' +
+                '<td>No hay suficiente cobro para cubrir todo el costo</td>' +
+                '<td class="text-right font-weight-bold text-danger">' + formatoMoneda(inversionNoCubierta) + '</td>' +
+            '</tr>';
+    }
+
     $('#cd_tabla_inversiones tbody').html(htmlInversiones);
+
+    var resumenFormula = '' +
+        '<div class="alert alert-light border mt-3 mb-0">' +
+            '<strong>Lectura rápida:</strong> de ' + formatoMoneda(totalCobrado) +
+            ' cobrado, se separan ' + formatoMoneda(inversionTotal) +
+            ' para inversión/reposición y ' + formatoMoneda(gastosTotal) +
+            ' en gastos/retiros. Resultado esperado: <strong>' + formatoMoneda(totalFinalEsperado) + '</strong>.' +
+        '</div>';
+
+    if ($('#cd_resumen_formula').length === 0) {
+        $('#cd_formula_resultado').closest('.card').after('<div id="cd_resumen_formula"></div>');
+    }
+
+    $('#cd_resumen_formula').html(resumenFormula);
 }
 
 function imprimirCuadreDiaCaja() {

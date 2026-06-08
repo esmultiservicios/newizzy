@@ -116,6 +116,20 @@ function sumarSalidaPorCuentaCuadre(
     }
 }
 
+function descontarSecuencialCuadre(&$pendiente, $disponible) {
+    $pendiente = (float)$pendiente;
+    $disponible = (float)$disponible;
+
+    if ($pendiente <= 0 || $disponible <= 0) {
+        return 0;
+    }
+
+    $descuento = min($pendiente, $disponible);
+    $pendiente -= $descuento;
+
+    return $descuento;
+}
+
 $empresa_id = isset($_SESSION['empresa_id_sd']) ? (int)$_SESSION['empresa_id_sd'] : 0;
 $colaboradores_id = isset($_SESSION['colaborador_id_sd']) ? (int)$_SESSION['colaborador_id_sd'] : 0;
 
@@ -184,23 +198,29 @@ if ($modo === 'caja' && $apertura_id <= 0) {
 $whereApertura = " a.empresa_id = '$empresa_id' ";
 $whereFacturas = " f.empresa_id = '$empresa_id' AND f.estado IN (2,3) ";
 $whereRetiros = " cr.empresa_id = '$empresa_id' AND cr.estado = 1 ";
-$whereOtrosEgresos = " e.empresa_id = '$empresa_id' AND e.estado = 1 AND e.tipo_egreso = 2 ";
+
+/*
+    IMPORTANTE:
+    Este cuadre NO toma egresos manuales del módulo Egresos.
+
+    Debe trabajar igual que el desglose de ganancias:
+    - Solo usa retiros registrados en caja_retiros.
+    - No toma egresos manuales de banco.
+    - No toma egresos manuales de caja.
+    - No toma egresos generales del día.
+
+    Si un retiro fue convertido a egreso, sigue entrando porque nace desde caja_retiros.
+*/
+$whereOtrosEgresos = " e.empresa_id = '$empresa_id' AND 1 = 0 ";
 
 if ($modo === 'caja') {
     $whereApertura .= " AND a.apertura_id = '$apertura_id' ";
     $whereFacturas .= " AND f.apertura_id = '$apertura_id' ";
     $whereRetiros .= " AND cr.apertura_id = '$apertura_id' ";
-
-    /*
-      En modo caja, no se suman egresos manuales generales del día
-      para evitar duplicar gastos que ya vienen desde caja_retiros.
-    */
-    $whereOtrosEgresos .= " AND 1 = 0 ";
 } else {
     $whereApertura .= " AND a.fecha BETWEEN '$fechai' AND '$fechaf' ";
     $whereFacturas .= " AND f.fecha BETWEEN '$fechai' AND '$fechaf' ";
     $whereRetiros .= " AND cr.fecha BETWEEN '$fechai' AND '$fechaf' ";
-    $whereOtrosEgresos .= " AND e.fecha BETWEEN '$fechai' AND '$fechaf' ";
 }
 
 if ($solo_mi_caja === 1 && $origen === 'facturacion') {
@@ -225,8 +245,6 @@ if ($solo_mi_caja === 1 && $origen === 'facturacion') {
               AND ar.colaboradores_id = '$colaboradores_id'
         )
     ";
-
-    $whereOtrosEgresos .= " AND e.colaboradores_id = '$colaboradores_id' ";
 }
 
 if ($modo === 'caja') {
@@ -346,6 +364,12 @@ $inversion_manual_cheque = 0;
 $gastos = [];
 $inversiones = [];
 
+/*
+    ÚNICA FUENTE DE GASTOS DEL CUADRE:
+    caja_retiros.
+
+    Si no está en caja_retiros, NO entra al cuadre.
+*/
 $sqlRetirosCuenta = "
     SELECT
         cr.cuentas_id,
@@ -425,94 +449,15 @@ if ($resRetirosCuenta) {
     }
 }
 
+/*
+    Egresos manuales bloqueados completamente.
+    Se dejan variables en cero para mantener compatibilidad con el JS.
+*/
 $otros_egresos_total = 0;
 $otros_egresos_efectivo = 0;
 $otros_egresos_transferencia = 0;
 $otros_egresos_tarjeta = 0;
 $otros_egresos_cheque = 0;
-
-$sqlOtrosEgresosCuenta = "
-    SELECT
-        e.cuentas_id,
-        COALESCE(c.nombre, 'Sin cuenta') AS cuenta,
-        COALESCE(cg.nombre, '') AS categoria,
-        COALESCE(cg.es_inversion, 0) AS es_inversion_categoria,
-        COALESCE(e.observacion, '') AS observacion,
-        COALESCE(SUM(e.total), 0) AS total
-    FROM egresos e
-    LEFT JOIN cuentas c
-        ON c.cuentas_id = e.cuentas_id
-    LEFT JOIN categoria_gastos cg
-        ON cg.categoria_gastos_id = e.categoria_gastos_id
-    WHERE $whereOtrosEgresos
-      AND NOT EXISTS (
-          SELECT 1
-          FROM caja_retiros crx
-          WHERE crx.egresos_id = e.egresos_id
-            AND crx.empresa_id = e.empresa_id
-            AND crx.estado = 1
-      )
-    GROUP BY e.cuentas_id, c.nombre, cg.nombre, cg.es_inversion, e.observacion
-    ORDER BY c.nombre ASC, cg.nombre ASC
-";
-
-$resOtrosEgresosCuenta = $insMainModel->ejecutar_consulta_simple($sqlOtrosEgresosCuenta);
-
-if ($resOtrosEgresosCuenta) {
-    while ($row = $resOtrosEgresosCuenta->fetch_assoc()) {
-        $cuentas_id = (int)$row['cuentas_id'];
-        $total = (float)$row['total'];
-        $es_inversion = clasificarSalidaCuadre($row);
-
-        if ($es_inversion === 1) {
-            $inversion_manual_registrada += $total;
-
-            sumarSalidaPorCuentaCuadre(
-                $cuentas_id,
-                $total,
-                $cuenta_efectivo,
-                $cuenta_transferencia,
-                $cuenta_tarjeta,
-                $cuenta_cheque,
-                $inversion_manual_efectivo,
-                $inversion_manual_transferencia,
-                $inversion_manual_tarjeta,
-                $inversion_manual_cheque
-            );
-
-            $inversiones[] = [
-                'tipo' => 'Egreso para inversión',
-                'cuentas_id' => $cuentas_id,
-                'cuenta' => $row['cuenta'],
-                'categoria' => $row['categoria'],
-                'monto' => $total
-            ];
-        } else {
-            $otros_egresos_total += $total;
-
-            sumarSalidaPorCuentaCuadre(
-                $cuentas_id,
-                $total,
-                $cuenta_efectivo,
-                $cuenta_transferencia,
-                $cuenta_tarjeta,
-                $cuenta_cheque,
-                $otros_egresos_efectivo,
-                $otros_egresos_transferencia,
-                $otros_egresos_tarjeta,
-                $otros_egresos_cheque
-            );
-
-            $gastos[] = [
-                'tipo' => 'Egreso del día',
-                'cuentas_id' => $cuentas_id,
-                'cuenta' => $row['cuenta'],
-                'categoria' => $row['categoria'],
-                'monto' => $total
-            ];
-        }
-    }
-}
 
 $gastos_total = $retiros_total + $otros_egresos_total;
 $gastos_efectivo = $retiros_efectivo + $otros_egresos_efectivo;
@@ -521,40 +466,108 @@ $gastos_tarjeta = $retiros_tarjeta + $otros_egresos_tarjeta;
 $gastos_cheque = $retiros_cheque + $otros_egresos_cheque;
 
 /*
-  IMPORTANTE:
-  El costo de productos vendidos es una reinversión sugerida, pero NO significa
-  que ese dinero ya salió físicamente de caja.
+    LÓGICA DEL CUADRE
 
-  Por eso, para el cuadre real del día solo se descuenta la inversión manual
-  registrada como retiro/egreso de inversión.
+    inversion_reposicion:
+    Es el costo de productos vendidos.
 
-  Ejemplo:
-  - Si vendí productos con costo L. 934.00, eso se muestra como recomendado para reponer.
-  - Pero si no hice un retiro/egreso real por inversión, NO se resta del efectivo esperado.
+    inversion_manual_registrada:
+    Es inversión/reposición que ya fue registrada desde caja_retiros.
+
+    inversion_total_considerada:
+    Es lo que se debe separar del dinero cobrado para reposición.
 */
-$inversion_total_considerada = $inversion_manual_registrada;
-$inversion_pendiente = $inversion_reposicion - $inversion_manual_registrada;
+$inversion_sugerida = $inversion_reposicion;
+$inversion_pendiente = $inversion_sugerida - $inversion_manual_registrada;
 
 if ($inversion_pendiente < 0) {
     $inversion_pendiente = 0;
 }
 
-$efectivo_esperado = ($monto_apertura + $efectivo) - $inversion_manual_efectivo - $gastos_efectivo;
-$transferencia_esperada = $transferencia - $inversion_manual_transferencia - $gastos_transferencia;
-$tarjeta_esperada = $tarjeta - $inversion_manual_tarjeta - $gastos_tarjeta;
-$cheque_esperado = $cheque - $inversion_manual_cheque - $gastos_cheque;
+$base_efectivo = $monto_apertura + $efectivo;
+$base_transferencia = $transferencia;
+$base_tarjeta = $tarjeta;
+$base_cheque = $cheque;
+
+$inversion_efectivo = $inversion_manual_efectivo;
+$inversion_transferencia = $inversion_manual_transferencia;
+$inversion_tarjeta = $inversion_manual_tarjeta;
+$inversion_cheque = $inversion_manual_cheque;
+
+$disponible_efectivo_para_reponer = $base_efectivo - $inversion_manual_efectivo;
+$disponible_transferencia_para_reponer = $base_transferencia - $inversion_manual_transferencia;
+$disponible_tarjeta_para_reponer = $base_tarjeta - $inversion_manual_tarjeta;
+$disponible_cheque_para_reponer = $base_cheque - $inversion_manual_cheque;
+
+if ($disponible_efectivo_para_reponer < 0) {
+    $disponible_efectivo_para_reponer = 0;
+}
+
+if ($disponible_transferencia_para_reponer < 0) {
+    $disponible_transferencia_para_reponer = 0;
+}
+
+if ($disponible_tarjeta_para_reponer < 0) {
+    $disponible_tarjeta_para_reponer = 0;
+}
+
+if ($disponible_cheque_para_reponer < 0) {
+    $disponible_cheque_para_reponer = 0;
+}
+
+$pendiente_distribuir_reposicion = $inversion_pendiente;
+
+$inversion_efectivo += descontarSecuencialCuadre($pendiente_distribuir_reposicion, $disponible_efectivo_para_reponer);
+$inversion_transferencia += descontarSecuencialCuadre($pendiente_distribuir_reposicion, $disponible_transferencia_para_reponer);
+$inversion_tarjeta += descontarSecuencialCuadre($pendiente_distribuir_reposicion, $disponible_tarjeta_para_reponer);
+$inversion_cheque += descontarSecuencialCuadre($pendiente_distribuir_reposicion, $disponible_cheque_para_reponer);
+
+$inversion_total_considerada = $inversion_efectivo + $inversion_transferencia + $inversion_tarjeta + $inversion_cheque;
+$inversion_no_cubierta = $inversion_sugerida - $inversion_total_considerada;
+
+if ($inversion_no_cubierta < 0) {
+    $inversion_no_cubierta = 0;
+}
+
+if ($inversion_sugerida > 0) {
+    if ($inversion_manual_registrada > 0) {
+        if ($inversion_pendiente > 0) {
+            $inversiones[] = [
+                'tipo' => 'Reposición pendiente sugerida',
+                'cuentas_id' => 0,
+                'cuenta' => 'Inventario vendido',
+                'categoria' => 'Costo pendiente de separar',
+                'monto' => $inversion_pendiente
+            ];
+        }
+    } else {
+        $inversiones[] = [
+            'tipo' => 'Reposición sugerida',
+            'cuentas_id' => 0,
+            'cuenta' => 'Inventario vendido',
+            'categoria' => 'Costo de productos vendidos',
+            'monto' => $inversion_sugerida
+        ];
+    }
+}
+
+$efectivo_esperado = $base_efectivo - $inversion_efectivo - $gastos_efectivo;
+$transferencia_esperada = $base_transferencia - $inversion_transferencia - $gastos_transferencia;
+$tarjeta_esperada = $base_tarjeta - $inversion_tarjeta - $gastos_tarjeta;
+$cheque_esperado = $base_cheque - $inversion_cheque - $gastos_cheque;
 
 $total_final_esperado = $efectivo_esperado + $transferencia_esperada + $tarjeta_esperada + $cheque_esperado;
-$total_sin_reponer = ($monto_apertura + $total_cobrado) - $gastos_total - $inversion_manual_registrada;
-$ganancia_real_dia = ($monto_apertura + $total_cobrado) - $inversion_reposicion - $gastos_total;
-$dinero_para_reponer = $inversion_reposicion;
+
+$total_sin_reponer = ($monto_apertura + $total_cobrado) - $gastos_total;
+$ganancia_real_dia = ($monto_apertura + $total_cobrado) - $inversion_total_considerada - $gastos_total;
+$dinero_para_reponer = $inversion_sugerida;
 
 $medios_pago = [
     [
         'medio' => 'Efectivo',
         'cobrado' => $efectivo,
         'apertura' => $monto_apertura,
-        'inversion' => $inversion_manual_efectivo,
+        'inversion' => $inversion_efectivo,
         'gastos' => $gastos_efectivo,
         'esperado' => $efectivo_esperado
     ],
@@ -562,7 +575,7 @@ $medios_pago = [
         'medio' => 'Transferencia',
         'cobrado' => $transferencia,
         'apertura' => 0,
-        'inversion' => $inversion_manual_transferencia,
+        'inversion' => $inversion_transferencia,
         'gastos' => $gastos_transferencia,
         'esperado' => $transferencia_esperada
     ],
@@ -570,7 +583,7 @@ $medios_pago = [
         'medio' => 'Tarjeta',
         'cobrado' => $tarjeta,
         'apertura' => 0,
-        'inversion' => $inversion_manual_tarjeta,
+        'inversion' => $inversion_tarjeta,
         'gastos' => $gastos_tarjeta,
         'esperado' => $tarjeta_esperada
     ],
@@ -578,7 +591,7 @@ $medios_pago = [
         'medio' => 'Cheque',
         'cobrado' => $cheque,
         'apertura' => 0,
-        'inversion' => $inversion_manual_cheque,
+        'inversion' => $inversion_cheque,
         'gastos' => $gastos_cheque,
         'esperado' => $cheque_esperado
     ]
@@ -602,27 +615,34 @@ echo json_encode([
         'cheque' => $cheque,
 
         'inversion_reposicion' => $inversion_reposicion,
+        'inversion_sugerida' => $inversion_sugerida,
         'inversion_manual_registrada' => $inversion_manual_registrada,
+
         'inversion_manual_efectivo' => $inversion_manual_efectivo,
         'inversion_manual_transferencia' => $inversion_manual_transferencia,
         'inversion_manual_tarjeta' => $inversion_manual_tarjeta,
         'inversion_manual_cheque' => $inversion_manual_cheque,
+
+        'inversion_efectivo' => $inversion_efectivo,
+        'inversion_transferencia' => $inversion_transferencia,
+        'inversion_tarjeta' => $inversion_tarjeta,
+        'inversion_cheque' => $inversion_cheque,
+
         'inversion_total_considerada' => $inversion_total_considerada,
         'inversion_pendiente' => $inversion_pendiente,
+        'inversion_no_cubierta' => $inversion_no_cubierta,
 
         'venta_base_productos' => $venta_base_productos,
         'ganancia_productos' => $ganancia_productos,
 
         'retiros_total' => $retiros_total,
         'otros_egresos_total' => $otros_egresos_total,
-
         'gastos_total' => $gastos_total,
+
         'gastos_efectivo' => $gastos_efectivo,
         'gastos_transferencia' => $gastos_transferencia,
         'gastos_tarjeta' => $gastos_tarjeta,
         'gastos_cheque' => $gastos_cheque,
-
-        'dinero_para_reponer' => $dinero_para_reponer,
 
         'efectivo_esperado' => $efectivo_esperado,
         'transferencia_esperada' => $transferencia_esperada,
@@ -631,7 +651,8 @@ echo json_encode([
 
         'total_sin_reponer' => $total_sin_reponer,
         'total_final_esperado' => $total_final_esperado,
-        'ganancia_real_dia' => $ganancia_real_dia
+        'ganancia_real_dia' => $ganancia_real_dia,
+        'dinero_para_reponer' => $dinero_para_reponer
     ],
     'medios_pago' => $medios_pago,
     'gastos' => $gastos,

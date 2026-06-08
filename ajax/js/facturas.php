@@ -2976,8 +2976,12 @@ var listar_clientes_factura_buscar = function() {
             "method": "POST",
             "url": "<?php echo SERVERURL; ?>core/llenarDataTableClientes.php"
         },
-        "columns": [{
-                "defaultContent": "<button class='table_view btn btn-primary ocultar'><span class='fas fa-copy'></span></button>"
+        "columns": [
+            {
+                "defaultContent": "<button type='button' class='table_view btn btn-primary ocultar' title='Seleccionar cliente'><span class='fas fa-copy'></span></button>"
+            },
+            {
+                "defaultContent": "<button type='button' class='table_edit btn btn-warning ocultar' title='Editar cliente'><span class='fas fa-edit'></span></button>"
             },
             {
                 "data": "cliente"
@@ -2986,10 +2990,22 @@ var listar_clientes_factura_buscar = function() {
                 "data": "rtn"
             },
             {
-                "data": "telefono"
+                "data": "correo"
             },
             {
-                "data": "correo"
+                "data": "telefono"
+            }
+        ],
+        "columnDefs": [
+            {
+                "targets": [0, 1],
+                "orderable": false,
+                "searchable": false,
+                "className": "text-center text-nowrap"
+            },
+            {
+                "targets": [2, 3, 4, 5],
+                "className": "align-middle"
             }
         ],
         "lengthMenu": lengthMenu,
@@ -2997,7 +3013,8 @@ var listar_clientes_factura_buscar = function() {
         "bDestroy": true,
         "language": idioma_español,
         "dom": dom,
-        "buttons": [{
+        "buttons": [
+            {
                 text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                 titleAttr: 'Actualizar Clientes',
                 className: 'table_actualizar btn btn-secondary ocultar',
@@ -3006,7 +3023,7 @@ var listar_clientes_factura_buscar = function() {
                 }
             },
             {
-                text: '<i class="fas fas fa-plus fa-lg crear"></i> Ingresar',
+                text: '<i class="fas fa-plus fa-lg crear"></i> Ingresar',
                 titleAttr: 'Agregar Clientes',
                 className: 'table_crear btn btn-primary ocultar',
                 action: function() {
@@ -3016,25 +3033,222 @@ var listar_clientes_factura_buscar = function() {
         ],
         "drawCallback": function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+
+            $('[title]').tooltip({
+                container: "body",
+                placement: "top"
+            });
         }
     });
-    table_clientes_factura_buscar.search('').draw();
-    $('#buscar').focus();
 
-    view_clientes_busqueda_factura_dataTable("#DatatableClientesBusquedaFactura tbody",
-        table_clientes_factura_buscar);
-}
+    table_clientes_factura_buscar.search('').draw();
+
+    setTimeout(function() {
+        $('#modal_buscar_clientes_facturacion .dataTables_filter input').trigger('focus');
+    }, 200);
+
+    view_clientes_busqueda_factura_dataTable(
+        "#DatatableClientesBusquedaFactura tbody",
+        table_clientes_factura_buscar
+    );
+};
 
 var view_clientes_busqueda_factura_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.table_view");
     $(tbody).on("click", "button.table_view", function(e) {
         e.preventDefault();
+
         var data = table.row($(this).parents("tr")).data();
+
+        if (!data) {
+            showNotify('error', 'Error', 'No se pudo obtener la información del cliente.');
+            return;
+        }
+
         $('#invoice-form #cliente_id').val(data.clientes_id);
         $('#invoice-form #cliente').val(data.cliente);
         $('#invoice-form #client-customers-bill').html("<b>Cliente: </b> " + data.cliente);
         $('#invoice-form #rtn-customers-bill').html("<b>RTN: </b>" + data.rtn);
+
         $('#modal_buscar_clientes_facturacion').modal('hide');
+    });
+
+    $(tbody).off("click", "button.table_edit");
+    $(tbody).on("click", "button.table_edit", function(e) {
+        e.preventDefault();
+
+        var data = table.row($(this).parents("tr")).data();
+
+        if (!data) {
+            showNotify('error', 'Error', 'No se pudo obtener la información del cliente.');
+            return;
+        }
+
+        abrirEditarClienteDesdeFacturacion(data);
+    });
+};
+
+function abrirEditarClienteDesdeFacturacion(data) {
+    if (!data || !data.clientes_id) {
+        showNotify('error', 'Error', 'No se pudo obtener el código del cliente.');
+        return;
+    }
+
+    if ($('#modal_registrar_clientes').length === 0 || $('#formClientes').length === 0) {
+        showNotify('error', 'Error', 'No se encontró el modal de clientes en esta vista.');
+        return;
+    }
+
+    var url = '<?php echo SERVERURL;?>core/editarClientes.php';
+
+    $('#formClientes #clientes_id').val(data.clientes_id);
+
+    $.ajax({
+        type: 'POST',
+        url: url,
+        data: $('#formClientes').serialize(),
+        dataType: 'json',
+        success: function(respuesta) {
+            $('#formClientes').attr({
+                'data-form': 'update',
+                'action': '<?php echo SERVERURL;?>ajax/modificarClientesAjax.php'
+            }).trigger('reset');
+
+            $('#formClientes #clientes_id').val(data.clientes_id);
+
+            $('#reg_cliente').hide();
+            $('#edi_cliente').show();
+
+            if ($('#delete_cliente').length > 0) {
+                $('#delete_cliente').hide();
+            }
+
+            $('#formClientes #nombre_clientes').val(respuesta.nombre || '');
+            $('#formClientes #identidad_clientes').val(respuesta.rtn || '');
+            $('#formClientes #fecha_clientes').attr('disabled', true).val(respuesta.fecha || '');
+
+            $('#formClientes #departamento_cliente').val(respuesta.departamentos_id || '');
+
+            if ($.fn.selectpicker) {
+                $('#formClientes #departamento_cliente').selectpicker('refresh');
+            }
+
+            if (typeof getMunicipiosClientes === 'function') {
+                getMunicipiosClientes(respuesta.municipios_id);
+            }
+
+            setTimeout(function() {
+                $('#formClientes #municipio_cliente').val(respuesta.municipios_id || '');
+
+                if ($.fn.selectpicker) {
+                    $('#formClientes #municipio_cliente').selectpicker('refresh');
+                }
+            }, 250);
+
+            $('#formClientes #dirección_clientes').val(respuesta.localidad || '');
+            $('#formClientes #telefono_clientes').val(respuesta.telefono || '');
+            $('#formClientes #correo_clientes').val(respuesta.correo || '');
+            $('#formClientes #clientes_activo').prop('checked', respuesta.estado == 1);
+
+            $('#card_puntos_cliente').show();
+
+            var puntos = respuesta.puntos || 0;
+            $('#puntos_acumulados').val(puntos);
+
+            var fechaActualizacion = 'No existe';
+
+            if (respuesta.ultima_actualizacion && respuesta.ultima_actualizacion !== 'No existe') {
+                var fecha = new Date(respuesta.ultima_actualizacion);
+
+                if (!isNaN(fecha.getTime())) {
+                    fechaActualizacion = fecha.toLocaleDateString('es-ES', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                }
+            }
+
+            $('#puntos_ultima_actualizacion').val(fechaActualizacion);
+
+            if (puntos == 0) {
+                $('#puntos_acumulados').removeClass('text-success').addClass('text-muted');
+            } else {
+                $('#puntos_acumulados').removeClass('text-muted').addClass('text-success');
+            }
+
+            if (fechaActualizacion === 'No existe') {
+                $('#puntos_ultima_actualizacion').addClass('text-muted');
+            } else {
+                $('#puntos_ultima_actualizacion').removeClass('text-muted');
+            }
+
+            $('#btn_ver_historial_puntos').off('click').on('click', function() {
+                $('#modal_historial_puntos').modal('show');
+
+                if (typeof cargarHistorialPuntos === 'function') {
+                    cargarHistorialPuntos(data.clientes_id);
+                }
+            });
+
+            $('#formClientes #nombre_clientes').attr('readonly', false);
+
+            $('#formClientes #departamento_cliente').attr('disabled', false);
+            $('#formClientes #municipio_cliente').attr('disabled', false);
+            $('#formClientes #dirección_clientes').attr('disabled', false);
+
+            $('#formClientes #telefono_clientes').attr('readonly', false);
+            $('#formClientes #correo_clientes').attr('readonly', false);
+            $('#formClientes #clientes_activo').attr('disabled', false);
+
+            $('#formClientes #identidad_clientes').attr('readonly', true);
+            $('#formClientes #fecha_clientes').attr('readonly', true);
+
+            $('#formClientes #grupo_editar_rtn_clientes').show();
+            $('#formClientes #grupo_editar_rtn').show();
+
+            $('#formClientes #proceso_clientes').val('Editar');
+
+            $('#modal_registrar_clientes .modal-title').html(
+                '<i class="fas fa-user-edit mr-2"></i>Editar Cliente'
+            );
+
+            $('#modal_registrar_clientes')
+                .off('shown.bs.modal.editarClienteFactura')
+                .on('shown.bs.modal.editarClienteFactura', function() {
+                    setTimeout(function() {
+                        $('#formClientes #nombre_clientes').trigger('focus').select();
+                    }, 150);
+                });
+
+            $('#modal_registrar_clientes')
+                .off('hidden.bs.modal.editarClienteFactura')
+                .on('hidden.bs.modal.editarClienteFactura', function() {
+                    $('#formClientes #fecha_clientes').attr('disabled', false);
+                    $('#formClientes #fecha_clientes').attr('readonly', false);
+
+                    if ($('#modal_buscar_clientes_facturacion').hasClass('show')) {
+                        listar_clientes_factura_buscar();
+
+                        setTimeout(function() {
+                            $('#modal_buscar_clientes_facturacion .dataTables_filter input').trigger('focus');
+                        }, 300);
+                    }
+                });
+
+            $('#modal_registrar_clientes').modal({
+                show: true,
+                keyboard: false,
+                backdrop: 'static'
+            });
+        },
+        error: function(xhr, status, error) {
+            console.log(xhr.responseText);
+            showNotify('error', 'Error', 'No se pudieron cargar los datos del cliente.');
+            $('#modal_registrar_clientes').modal('hide');
+        }
     });
 }
 //FIN BUSQUEDA CLIENTES EN FACTURACION

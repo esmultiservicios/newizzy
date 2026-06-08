@@ -598,6 +598,7 @@
                                     <thead>
                                         <tr>
                                             <th>Seleccione</th>
+                                            <th>Acciones</th>
                                             <th>Cliente</th>
                                             <th>RTN</th>
                                             <th>Correo</th>

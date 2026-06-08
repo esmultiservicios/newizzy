@@ -6587,26 +6587,87 @@ class mainModel
 		return $result;
 	}
 
-	public function getEgresosEdit($egresos_id)
+	public function getGastosEdit($egresos_id)
 	{
-		$query = "SELECT *
-
-				FROM egresos
-
-				WHERE egresos_id = '$egresos_id'";
-
+		$egresos_id = (int)$egresos_id;
+	
+		$query = "
+			SELECT
+				e.egresos_id,
+				e.fecha,
+				e.proveedores_id,
+				e.cuentas_id,
+				e.empresa_id,
+				e.categoria_gastos_id,
+				e.factura,
+				e.factura_pdf,
+				e.subtotal,
+				e.impuesto,
+				e.descuento,
+				e.nc,
+				e.total,
+				e.observacion,
+				e.estado,
+				COALESCE(p.nombre, 'Sin proveedor') AS proveedor,
+				COALESCE(c.nombre, '') AS nombre_cuenta,
+				COALESCE(emp.nombre, '') AS nombre_empresa,
+				COALESCE(cat.nombre, 'Sin categoría') AS categoria
+			FROM egresos AS e
+			LEFT JOIN proveedores AS p
+				ON e.proveedores_id = p.proveedores_id
+			LEFT JOIN cuentas AS c
+				ON e.cuentas_id = c.cuentas_id
+			LEFT JOIN empresa AS emp
+				ON e.empresa_id = emp.empresa_id
+			LEFT JOIN categoria_gastos AS cat
+				ON e.categoria_gastos_id = cat.categoria_gastos_id
+			WHERE e.egresos_id = '$egresos_id'
+			LIMIT 1
+		";
+	
 		$result = self::connection()->query($query);
-
+	
+		if (!$result) {
+			error_log('Error en getGastosEdit: ' . self::connection()->error);
+			return false;
+		}
+	
 		return $result;
-	}
+	}	
 
 	public function getIngresosEdit($ingresos_id)
 	{
-		$query = "SELECT *
-				FROM ingresos
-				WHERE ingresos_id = '$ingresos_id'";
+		$ingresos_id = (int)$ingresos_id;
+
+		$query = "
+			SELECT
+				i.ingresos_id,
+				i.fecha,
+				i.cuentas_id,
+				i.clientes_id,
+				i.empresa_id,
+				i.factura,
+				i.subtotal,
+				i.impuesto,
+				i.descuento,
+				i.nc,
+				i.total,
+				i.observacion,
+				i.estado,
+				COALESCE(cli.nombre, 'Sin cliente') AS recibide
+			FROM ingresos AS i
+			LEFT JOIN clientes AS cli
+				ON i.clientes_id = cli.clientes_id
+			WHERE i.ingresos_id = '$ingresos_id'
+			LIMIT 1
+		";
 
 		$result = self::connection()->query($query);
+
+		if (!$result) {
+			error_log('Error en getIngresosEdit: ' . self::connection()->error);
+			return false;
+		}
 
 		return $result;
 	}

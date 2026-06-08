@@ -175,6 +175,105 @@ function moneyRender(data, type) {
   return n;
 }
 
+
+function escapeHtmlEgresos(value) {
+  if (value == null) return "";
+
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function renderEgresoInfo(main, muted, iconClass) {
+  var textoMain = escapeHtmlEgresos(main || "");
+  var textoMuted = escapeHtmlEgresos(muted || "");
+
+  return '' +
+    '<div class="egresos-info-box">' +
+      '<div class="egresos-info-main">' +
+        (iconClass ? '<i class="' + iconClass + ' mr-1"></i>' : '') +
+        textoMain +
+      '</div>' +
+      (textoMuted !== '' ? '<div class="egresos-info-muted">' + textoMuted + '</div>' : '') +
+    '</div>';
+}
+
+function renderEgresoChip(value, iconClass) {
+  var texto = escapeHtmlEgresos(value || "Sin dato");
+
+  return '' +
+    '<span class="egresos-info-chip">' +
+      (iconClass ? '<i class="' + iconClass + ' mr-1"></i>' : '') +
+      texto +
+    '</span>';
+}
+
+function moneyRenderEgreso(data, type, row, meta) {
+  var n = toNumber(data);
+
+  if (type !== "display") {
+    return n;
+  }
+
+  var clase = "egresos-money-neutral";
+
+  if (meta && meta.col === 8) {
+    clase = "egresos-money-subtotal";
+  } else if (meta && meta.col === 9) {
+    clase = "egresos-money-impuesto";
+  } else if (meta && meta.col === 10) {
+    clase = "egresos-money-descuento";
+  } else if (meta && meta.col === 11) {
+    clase = "egresos-money-nc";
+  } else if (meta && meta.col === 12) {
+    clase = "egresos-money-total";
+  }
+
+  return '<span class="egresos-money-badge ' + clase + '">L ' + formatMoney(n) + '</span>';
+}
+
+function renderEstadoEgreso(data, type) {
+  if (type !== "display") {
+    return data;
+  }
+
+  var ok = parseInt(data, 10) === 1;
+  var icon = ok ? "fas fa-check-circle" : "fas fa-times-circle";
+  var cls = ok ? "egresos-status-active" : "egresos-status-inactive";
+  var text = ok ? "Activo" : "Inactivo";
+
+  return '' +
+    '<span class="egresos-status-badge ' + cls + '">' +
+      '<i class="' + icon + '"></i>' +
+      text +
+    '</span>';
+}
+
+function actualizarCardsEgresosDesdeData(json) {
+  var registros = 0;
+  var subtotal = 0;
+  var impuesto = 0;
+  var total = 0;
+
+  if (json && json.data && json.data.length > 0) {
+    registros = json.data.length;
+
+    json.data.forEach(function(item) {
+      subtotal += toNumber(item.subtotal_raw != null ? item.subtotal_raw : item.subtotal);
+      impuesto += toNumber(item.isv_raw != null ? item.isv_raw : item.impuesto);
+      total += toNumber(item.total_raw != null ? item.total_raw : item.total);
+    });
+  }
+
+  $("#egresos-card-registros").html(registros);
+  $("#egresos-card-subtotal").html("L " + formatMoney(subtotal));
+  $("#egresos-card-impuesto").html("L " + formatMoney(impuesto));
+  $("#egresos-card-total").html("L " + formatMoney(total));
+}
+
 // ===============================
 //  Cálculo automático de egresos
 // ===============================
@@ -257,7 +356,12 @@ var total_gastos_footer = function() {
     }
   })
   .done(function(data) {
-    data = JSON.parse(data || "{}");
+    try {
+      data = typeof data === 'string' ? JSON.parse(data || "{}") : data;
+    } catch (e) {
+      console.error("Error al procesar totales de gastos:", e, data);
+      data = {};
+    }
 
     $("#total-footer-gastos").html('L ' + formatMoney(data.total));
     $("#subtotal-g").html('L ' + formatMoney(data.subtotal));
@@ -295,6 +399,25 @@ var listar_gastos_contabilidad = function() {
         fechai: fechai,
         fechaf: fechaf,
         estado: estado
+      },
+      dataSrc: function(json) {
+        if (!json || !json.data) {
+          actualizarCardsEgresosDesdeData({ data: [] });
+          return [];
+        }
+
+        actualizarCardsEgresosDesdeData(json);
+
+        if (json.data.length === 0) {
+          showNotify("warning", "Advertencia", "No se encontraron registros con los filtros aplicados");
+        }
+
+        return json.data;
+      },
+      error: function(xhr) {
+        actualizarCardsEgresosDesdeData({ data: [] });
+        showNotify("error", "Error", "No se pudieron cargar los datos de egresos");
+        console.error("Error en AJAX egresos:", xhr.responseText);
       }
     },
 
@@ -361,12 +484,49 @@ var listar_gastos_contabilidad = function() {
         }
       },
 
-      { data: "fecha_registro" },
-      { data: "egresos_id" },
-      { data: "categoria" },
-      { data: "fecha" },
-      { data: "nombre" },
-      { data: "proveedor" },
+      {
+        data: "fecha_registro",
+        render: function(data, type) {
+          if (type !== 'display') return data;
+          return renderEgresoInfo(data, "Registro del egreso", "fas fa-clock");
+        }
+      },
+      {
+        data: "egresos_id",
+        className: "text-center align-middle",
+        render: function(data, type) {
+          if (type !== 'display') return data;
+          return renderEgresoChip("" + data, "fas fa-hashtag");
+        }
+      },
+      {
+        data: "categoria",
+        render: function(data, type) {
+          if (type !== 'display') return data;
+          return renderEgresoChip(data || "Sin categoría", "fas fa-layer-group");
+        }
+      },
+      {
+        data: "fecha",
+        render: function(data, type) {
+          if (type !== 'display') return data;
+          return renderEgresoInfo(data, "Fecha factura", "fas fa-calendar-day");
+        }
+      },
+      {
+        data: "nombre",
+        render: function(data, type) {
+          if (type !== 'display') return data;
+          return renderEgresoInfo(data, "Forma de pago / cuenta", "fas fa-wallet");
+        }
+      },
+      {
+        data: "proveedor",
+        render: function(data, type) {
+          if (type !== 'display') return data;
+          return renderEgresoInfo(data || "Sin proveedor", "Proveedor", "fas fa-truck");
+        }
+      },
 
       {
         data: "factura",
@@ -375,70 +535,65 @@ var listar_gastos_contabilidad = function() {
             return data;
           }
 
-          let numeroFactura = data ? data : '';
-          let icono = '';
+          var numeroFactura = data ? escapeHtmlEgresos(data) : 'Sin factura';
+          var icono = '';
 
           if (row.factura_pdf && row.factura_pdf !== '') {
-            icono = `
-              <a href="<?php echo SERVERURL; ?>vistas/plantilla/gastos/${row.factura_pdf}"
-                 target="_blank"
-                 class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center factura-btn"
-                 title="Ver/Descargar PDF" data-toggle="tooltip">
-                 <i class="fas fa-file-pdf"></i>
-              </a>`;
+            icono = '' +
+              '<a href="<?php echo SERVERURL; ?>vistas/plantilla/gastos/' + encodeURIComponent(row.factura_pdf) + '" ' +
+                 'target="_blank" ' +
+                 'class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center factura-btn" ' +
+                 'title="Ver/Descargar PDF" data-toggle="tooltip">' +
+                 '<i class="fas fa-file-pdf"></i>' +
+              '</a>';
           }
 
-          return `
-            <div class="d-flex justify-content-between align-items-center w-100">
-              <span>${numeroFactura}</span>
-              ${icono}
-            </div>`;
+          return '' +
+            '<div class="egresos-factura-box">' +
+              '<span class="egresos-info-chip"><i class="fas fa-file-invoice-dollar mr-1"></i>' + numeroFactura + '</span>' +
+              icono +
+            '</div>';
         }
       },
 
       {
         data: "subtotal",
-        className: "dt-body-right",
-        render: moneyRender
+        className: "dt-body-right text-right",
+        render: moneyRenderEgreso
       },
       {
         data: "impuesto",
-        className: "dt-body-right",
-        render: moneyRender
+        className: "dt-body-right text-right",
+        render: moneyRenderEgreso
       },
       {
         data: "descuento",
-        className: "dt-body-right",
-        render: moneyRender
+        className: "dt-body-right text-right",
+        render: moneyRenderEgreso
       },
       {
         data: "nc",
-        className: "dt-body-right",
-        render: moneyRender
+        className: "dt-body-right text-right",
+        render: moneyRenderEgreso
       },
       {
         data: "total",
-        className: "dt-body-right",
-        render: moneyRender
+        className: "dt-body-right text-right",
+        render: moneyRenderEgreso
       },
-      { data: "observacion" },
+      {
+        data: "observacion",
+        render: function(data, type) {
+          if (type !== 'display') return data;
+          var texto = data && $.trim(data) !== '' ? data : 'Sin observación';
+          return '<div class="egresos-observacion">' + escapeHtmlEgresos(texto) + '</div>';
+        }
+      },
 
       {
         data: "estado",
-        render: function(data, type) {
-          if (type !== 'display') {
-            return data;
-          }
-
-          var ok = parseInt(data, 10) === 1;
-          var icon = ok ? '<i class="fas fa-check-circle mr-1"></i>' : '<i class="fas fa-times-circle mr-1"></i>';
-          var cls  = ok ? 'badge badge-pill badge-success' : 'badge badge-pill badge-danger';
-
-          return '<span class="' + cls + '" style="font-size:.95rem;padding:.5em .8em;font-weight:600;">' +
-                    icon +
-                    (ok ? 'Activo' : 'Inactivo') +
-                 '</span>';
-        }
+        className: "text-center align-middle",
+        render: renderEstadoEgreso
       }
     ],
 
@@ -687,11 +842,20 @@ function setSelectpickerByValueOrText($sel, value, text) {
 var edit_reporte_gastos_dataTable = function(tbody, table) {
   $(tbody).off("click", "button.table_editar");
 
-  $(tbody).on("click", "button.table_editar", function() {
+  $(tbody).on("click", "button.table_editar", function(e) {
+    e.preventDefault();
+
     var data = table.row($(this).parents("tr")).data();
+
+    if (!data || !data.egresos_id) {
+      showNotify("error", "Error", "No se pudo obtener el ID del egreso.");
+      return;
+    }
+
+    var egresos_id = data.egresos_id;
     var urlEditar = '<?php echo SERVERURL;?>core/editarGastos.php';
 
-    $('#formEgresosContables #egresos_id').val(data.egresos_id);
+    $('#formEgresosContables #egresos_id').val(egresos_id);
     resetPdfUI();
 
     const $form   = $('#formEgresosContables');
@@ -739,7 +903,9 @@ var edit_reporte_gastos_dataTable = function(tbody, table) {
 
         provJSON.data.forEach(function(p) {
           $prov.append(
-            `<option value="${p.proveedores_id}" data-subtext="${p.rtn || 'Sin RTN o Identidad'}">${p.nombre}</option>`
+            '<option value="' + escapeHtmlEgresos(p.proveedores_id) + '" data-subtext="' + escapeHtmlEgresos(p.rtn || 'Sin RTN o Identidad') + '">' +
+              escapeHtmlEgresos(p.nombre) +
+            '</option>'
           );
         });
       } else {
@@ -758,14 +924,33 @@ var edit_reporte_gastos_dataTable = function(tbody, table) {
       $.ajax({
         type: 'POST',
         url: urlEditar,
-        data: $form.serialize(),
+        dataType: 'json',
+        data: {
+          egresos_id: egresos_id
+        },
+        beforeSend: function() {
+          $form.find('#pro_egresos_contabilidad').val("Cargando...");
+        },
         success: function(registro) {
-          var v = eval(registro);
+          if (!registro || registro.success !== true || !registro.data) {
+            var mensaje = registro && registro.message ? registro.message : "No se pudieron cargar los datos del egreso.";
+            showNotify("error", "Error", mensaje);
+            console.error("Respuesta inválida de editarGastos.php:", registro);
+            return;
+          }
+
+          var v = registro.data;
 
           $form.attr({
             'data-form': 'update',
             'action': '<?php echo SERVERURL;?>ajax/modificarGastosAjax.php'
-          })[0].reset();
+          });
+
+          if ($form[0]) {
+            $form[0].reset();
+          }
+
+          $('#formEgresosContables #egresos_id').val(egresos_id);
 
           $('#reg_egresosContabilidad').hide();
           $('#edi_egresosContabilidad').show();
@@ -773,8 +958,7 @@ var edit_reporte_gastos_dataTable = function(tbody, table) {
 
           $form.find('#pro_egresos_contabilidad').val("Editar Egresos");
 
-          // Fecha bloqueada y sin remember
-          var fechaReg = v[3];
+          var fechaReg = v.fecha || "";
           var $fecha = $form.find('#fecha_egresos');
 
           $form.addClass('modo-editar');
@@ -801,49 +985,44 @@ var edit_reporte_gastos_dataTable = function(tbody, table) {
             })();
           });
 
-          $form.find('#factura_egresos').val(v[4]);
-          $form.find('#subtotal_egresos').val(v[5]);
-          $form.find('#isv_egresos').val(v[6]);
-          $form.find('#descuento_egresos').val(v[7]);
-          $form.find('#nc_egresos').val(v[8]);
-          $form.find('#total_egresos').val(v[9]);
-          $form.find('#observacion_egresos').val(v[10]);
+          $form.find('#factura_egresos').val(v.factura || "");
+          $form.find('#subtotal_egresos').val(v.subtotal || "0.00");
+          $form.find('#isv_egresos').val(v.impuesto || "0.00");
+          $form.find('#descuento_egresos').val(v.descuento || "0.00");
+          $form.find('#nc_egresos').val(v.nc || "0.00");
+          $form.find('#total_egresos').val(v.total || "0.00");
+          $form.find('#observacion_egresos').val(v.observacion || "");
 
-          setSelectpickerByValueOrText($prov,   (v[0] || data.proveedores_id || data.proveedor_egresos), data.proveedor);
-          setSelectpickerByValueOrText($cuenta, (v[1] || data.cuentas_id     || data.cuenta_egresos),    data.nombre_cuenta);
-          setSelectpickerByValueOrText($emp,    (v[2] || data.empresa_id     || data.empresa_egresos),   data.nombre_empresa);
+          setSelectpickerByValueOrText($prov,   (v.proveedores_id || data.proveedores_id || data.proveedor_egresos), v.proveedor || data.proveedor);
+          setSelectpickerByValueOrText($cuenta, (v.cuentas_id     || data.cuentas_id     || data.cuenta_egresos),    v.nombre_cuenta || data.nombre_cuenta || data.nombre);
+          setSelectpickerByValueOrText($emp,    (v.empresa_id     || data.empresa_id     || data.empresa_egresos),   v.nombre_empresa || data.nombre_empresa);
 
           if ($cat.length) {
-            var catIdFromRow = data.categoria_gastos_id || data.categoria_id || '';
-            var catNameFromRow = data.categoria || '';
-
-            setSelectpickerByValueOrText($cat, catIdFromRow, catNameFromRow);
+            setSelectpickerByValueOrText($cat, (v.categoria_gastos_id || data.categoria_gastos_id || data.categoria_id), v.categoria || data.categoria);
           }
 
-          if (v[11] && v[11] !== '') {
-            $('#filePreview').html(`
-              <div class="existing-file d-flex align-items-center p-2 border rounded bg-light">
-                <i class="fas fa-file-pdf fa-2x text-danger mr-3"></i>
-                <div class="flex-grow-1">
-                  <div class="small text-muted">Archivo actual</div>
-                  <div class="font-weight-bold">${v[11]}</div>
-                </div>
-                <div class="btn-group ml-2">
-                  <a href="<?php echo SERVERURL; ?>vistas/plantilla/gastos/${v[11]}"
-                     target="_blank"
-                     class="btn btn-danger btn-sm">
-                    <i class="fas fa-file-pdf mr-1"></i> Ver/Descargar PDF
-                  </a>
-                  <button type="button" class="btn btn-secondary btn-sm" id="removeFile">
-                    <i class="fas fa-exchange-alt mr-1"></i> Cambiar archivo
-                  </button>
-                </div>
-              </div>
-            `).show();
+          if (v.factura_pdf && v.factura_pdf !== '') {
+            $('#filePreview').html(
+              '<div class="existing-file d-flex align-items-center p-2 border rounded bg-light">' +
+                '<i class="fas fa-file-pdf fa-2x text-danger mr-3"></i>' +
+                '<div class="flex-grow-1">' +
+                  '<div class="small text-muted">Archivo actual</div>' +
+                  '<div class="font-weight-bold">' + escapeHtmlEgresos(v.factura_pdf) + '</div>' +
+                '</div>' +
+                '<div class="btn-group ml-2">' +
+                  '<a href="<?php echo SERVERURL; ?>vistas/plantilla/gastos/' + encodeURIComponent(v.factura_pdf) + '" target="_blank" class="btn btn-danger btn-sm">' +
+                    '<i class="fas fa-file-pdf mr-1"></i> Ver/Descargar PDF' +
+                  '</a>' +
+                  '<button type="button" class="btn btn-secondary btn-sm" id="removeFile">' +
+                    '<i class="fas fa-exchange-alt mr-1"></i> Cambiar archivo' +
+                  '</button>' +
+                '</div>' +
+              '</div>'
+            ).show();
 
-            $('#fileInfo').text('Archivo actual: ' + v[11]);
+            $('#fileInfo').text('Archivo actual: ' + v.factura_pdf);
 
-            $('#removeFile').on('click', function() {
+            $('#removeFile').off('click').on('click', function() {
               $('#filePreview').hide().html('');
               $('#fileInfo').text('Ningún archivo seleccionado');
               $('#factura_pdf').val('');
@@ -877,7 +1056,7 @@ var edit_reporte_gastos_dataTable = function(tbody, table) {
         },
         error: function(xhr) {
           console.error('Error al cargar datos del gasto:', xhr.responseText);
-          showNotify("error", "Error", "No se pudieron cargar los datos del gasto");
+          showNotify("error", "Error", "No se pudieron cargar los datos del gasto. Revise la consola.");
         }
       });
     })

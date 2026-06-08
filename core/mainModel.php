@@ -2147,28 +2147,48 @@ class mainModel
 	public function getEmpresa($datos)
 	{
 		$privilegio = $datos['privilegio_colaborador'];
-		$stado = $datos['estado'];
-
-		if ($privilegio === 'Super Administrador' ||
-				$privilegio === 'Administrador' ||
-				$privilegio === 'Emprendedor' ||
-				$privilegio === 'Basico' ||
-				$privilegio === 'Regular' ||
-				$privilegio === 'Estandar' ||
-				$privilegio === 'Premium') {
-			$where = "WHERE estado = '$stado'";
+		$estado = self::cleanStringConverterCase($datos['estado']);
+	
+		if (
+			$privilegio === 'Super Administrador' ||
+			$privilegio === 'Administrador' ||
+			$privilegio === 'Emprendedor' ||
+			$privilegio === 'Basico' ||
+			$privilegio === 'Regular' ||
+			$privilegio === 'Estandar' ||
+			$privilegio === 'Premium'
+		) {
+			$where = "WHERE estado = '$estado'";
 		} else {
-			// $where = "WHERE estado = 1 AND empresa_id = '".$datos['empresa_id']."'";
-			$where = "WHERE estado = '$stado'";
+			$where = "WHERE estado = '$estado'";
 		}
-
-		$query = "SELECT *
+	
+		$query = "SELECT 
+					empresa_id,
+					razon_social,
+					nombre,
+					otra_informacion,
+					eslogan,
+					celular,
+					telefono,
+					correo,
+					logotipo,
+					rtn,
+					ubicacion,
+					facebook,
+					sitioweb,
+					horario,
+					estado,
+					colaboradores_id,
+					fecha_registro,
+					firma_documento,
+					MostrarFirma
 				FROM empresa
 				{$where}
 				ORDER BY nombre";
-
+	
 		$result = self::connection()->query($query);
-
+	
 		return $result;
 	}
 
@@ -3900,26 +3920,36 @@ class mainModel
 		$privilegio = $datos['privilegio_colaborador'];
 		$empresaId = $datos['empresa_id'];
 		$estado = $datos['estado'] ?? 1;
-
+	
 		$query = "
-			SELECT sf.secuencia_facturacion_id AS 'secuencia_facturacion_id', sf.cai AS 'cai', 
-			   sf.prefijo AS 'prefijo', sf.relleno AS 'relleno', sf.incremento AS 'incremento', 
-			   sf.siguiente AS 'siguiente', sf.rango_inicial AS 'rango_inicial', sf.rango_final AS 'rango_final', 
-			   DATE_FORMAT(sf.fecha_activacion, '%d/%m/%Y') AS 'fecha_activacion', 
-			   DATE_FORMAT(sf.fecha_registro, '%d/%m/%Y') AS 'fecha_registro', 
-			   e.nombre AS 'empresa', 
-			   DATE_FORMAT(sf.fecha_limite, '%d/%m/%Y') AS 'fecha_limite', 
-			   d.nombre AS 'documento', sf.activo AS 'estado'
+			SELECT 
+				sf.secuencia_facturacion_id AS secuencia_facturacion_id,
+				sf.cai AS cai,
+				sf.prefijo AS prefijo,
+				sf.relleno AS relleno,
+				sf.incremento AS incremento,
+				sf.siguiente AS siguiente,
+				sf.rango_inicial AS rango_inicial,
+				sf.rango_final AS rango_final,
+				DATE_FORMAT(sf.fecha_activacion, '%d/%m/%Y') AS fecha_activacion,
+				DATE_FORMAT(sf.fecha_limite, '%d/%m/%Y') AS fecha_limite,
+				DATE_FORMAT(sf.fecha_registro, '%d/%m/%Y') AS fecha_registro,
+				e.nombre AS empresa,
+				d.nombre AS documento,
+				sf.activo AS estado
 			FROM secuencia_facturacion AS sf
 			INNER JOIN empresa AS e ON sf.empresa_id = e.empresa_id
 			INNER JOIN documento AS d ON sf.documento_id = d.documento_id
 			WHERE sf.activo = '$estado'";
-
+	
 		if ($privilegio !== 'Administrador' && $privilegio !== 'Super Administrador') {
 			$query .= " AND e.empresa_id = '$empresaId'";
 		}
+	
+		$query .= " ORDER BY sf.activo DESC, sf.fecha_limite ASC, sf.secuencia_facturacion_id DESC";
+	
 		$result = self::connection()->query($query);
-
+	
 		return $result;
 	}
 

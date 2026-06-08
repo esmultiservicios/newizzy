@@ -8748,3 +8748,957 @@ table.dataTable tbody tr.shown td {
 /* =========================================================
    FIN DETALLES FACTURACIÓN CLIENTE - DISEÑO PREMIUM
 ========================================================= */
+
+/* =========================================================
+   INICIO EMPRESA - DISEÑO PROFESIONAL
+   SOLO DISEÑO VISUAL - NO TOCA BOTÓN DE ACCIONES
+   ========================================================= */
+
+.empresa-filtro-card {
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.empresa-label-filter {
+  font-weight: 700;
+  color: #334155;
+  letter-spacing: 0.02em;
+}
+
+.empresa-search-group .input-group-text {
+  background: #f8fafc;
+  color: #64748b;
+  border-color: #dbe3ef;
+}
+
+.empresa-search-group .form-control {
+  border-color: #dbe3ef;
+}
+
+.empresa-search-group .form-control:focus {
+  box-shadow: 0 0 0 0.15rem rgba(52, 152, 219, 0.14);
+  border-color: #3498db;
+}
+
+/* =========================================================
+     CARDS RESUMEN
+     ========================================================= */
+
+.empresa-resumen-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+  padding: 1.15rem 1.25rem;
+  min-height: 105px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.empresa-resumen-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 4px;
+  border-radius: 0 8px 8px 0;
+}
+
+.empresa-resumen-activa::before {
+  background: #22c55e;
+}
+
+.empresa-resumen-contacto::before {
+  background: #3498db;
+}
+
+.empresa-resumen-web::before {
+  background: #8b5cf6;
+}
+
+.empresa-resumen-firma::before {
+  background: #f59e0b;
+}
+
+.empresa-resumen-label {
+  color: #64748b;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.empresa-resumen-card h3 {
+  font-size: 1.55rem;
+  font-weight: 800;
+  margin: 0.35rem 0 0.2rem;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.empresa-resumen-card p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.empresa-resumen-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #334155;
+  font-size: 1.2rem;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+/* =========================================================
+     CARD TABLA
+     ========================================================= */
+
+.empresa-table-card {
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.empresa-card-header {
+  background: #ffffff;
+  color: #0f172a;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+  padding: 1rem 1.25rem;
+}
+
+.empresa-table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.25rem;
+}
+
+/* =========================================================
+     TABLA EMPRESA
+     ========================================================= */
+
+#dataTableEmpresa {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+#dataTableEmpresa thead th {
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+#dataTableEmpresa tbody td {
+  vertical-align: middle;
+  padding-top: 0.95rem;
+  padding-bottom: 0.95rem;
+  color: #334155;
+}
+
+#dataTableEmpresa tbody tr {
+  transition:
+    background-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+#dataTableEmpresa tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+/* =========================================================
+     EMPRESA PRINCIPAL
+     ========================================================= */
+
+.empresa-main-box {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 320px;
+}
+
+.empresa-logo-box {
+  flex: 0 0 auto;
+}
+
+.empresa-logo-img {
+  width: 58px !important;
+  height: 58px !important;
+  object-fit: contain;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 0.3rem;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+}
+
+.empresa-main-info {
+  min-width: 0;
+}
+
+.empresa-nombre {
+  margin: 0;
+  color: #0f172a;
+  font-weight: 800;
+  font-size: 0.94rem;
+  letter-spacing: 0.01em;
+}
+
+.empresa-razon {
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-top: 0.18rem;
+  line-height: 1.35;
+}
+
+.empresa-eslogan {
+  color: #0f766e;
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-top: 0.35rem;
+  line-height: 1.3;
+}
+
+.empresa-extra-info {
+  color: #64748b;
+  font-size: 0.76rem;
+  margin-top: 0.25rem;
+  line-height: 1.3;
+}
+
+/* =========================================================
+     DETALLES
+     ========================================================= */
+
+.empresa-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 210px;
+}
+
+.empresa-detail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: #334155;
+  word-break: break-word;
+}
+
+.empresa-detail-item strong {
+  color: #0f172a;
+}
+
+.empresa-detail-icon {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+}
+
+.empresa-icon-fiscal {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.empresa-icon-web {
+  background: #faf5ff;
+  color: #7c3aed;
+}
+
+.empresa-email-item span:last-child {
+  max-width: 220px;
+  overflow-wrap: anywhere;
+}
+
+/* =========================================================
+     UBICACIÓN
+     ========================================================= */
+
+.empresa-location-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  min-width: 250px;
+  max-width: 360px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #334155;
+}
+
+.empresa-location-icon {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 9px;
+  background: #fff7ed;
+  color: #ea580c;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* =========================================================
+     FIRMA
+     ========================================================= */
+
+.empresa-firma-box {
+  min-width: 95px;
+}
+
+.empresa-firma-img {
+  width: 58px;
+  height: 42px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 0.25rem;
+}
+
+.empresa-firma-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 99px;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.73rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.empresa-firma-badge.firma-visible {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.empresa-firma-badge.firma-oculta {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* =========================================================
+     ESTADO
+     ========================================================= */
+
+.empresa-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border-radius: 99px;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+  min-width: 92px;
+}
+
+.empresa-status-active {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.empresa-status-inactive {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* =========================================================
+     LINKS
+     ========================================================= */
+
+#dataTableEmpresa a {
+  color: #2563eb;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+#dataTableEmpresa a:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+/* =========================================================
+     RESPONSIVE
+     ========================================================= */
+
+@media (max-width: 1200px) {
+  .empresa-main-box {
+    min-width: 280px;
+  }
+
+  .empresa-location-box {
+    min-width: 230px;
+  }
+}
+
+@media (max-width: 768px) {
+  .empresa-resumen-card {
+    min-height: 95px;
+  }
+
+  .empresa-main-box {
+    min-width: 260px;
+  }
+
+  .empresa-logo-img {
+    width: 50px !important;
+    height: 50px !important;
+  }
+
+  .empresa-detail-list {
+    min-width: 190px;
+  }
+
+  .empresa-location-box {
+    min-width: 210px;
+  }
+}
+
+/* =========================================================
+     FIN EMPRESA - DISEÑO PROFESIONAL
+     SOLO DISEÑO VISUAL - NO TOCA BOTÓN DE ACCIONES
+     ========================================================= */
+
+\/* =========================================================
+     INICIO SECUENCIA FACTURACIÓN - DISEÑO PROFESIONAL
+     SOLO DISEÑO VISUAL - NO TOCA BOTÓN DE ACCIONES
+     ========================================================= */
+  
+  .secuencia-filtro-card {
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.secuencia-label-filter {
+  font-weight: 700;
+  color: #334155;
+  letter-spacing: 0.02em;
+}
+
+.secuencia-search-group .input-group-text {
+  background: #f8fafc;
+  color: #64748b;
+  border-color: #dbe3ef;
+}
+
+.secuencia-search-group .form-control {
+  border-color: #dbe3ef;
+}
+
+.secuencia-search-group .form-control:focus {
+  box-shadow: 0 0 0 0.15rem rgba(52, 152, 219, 0.14);
+  border-color: #3498db;
+}
+
+/* =========================================================
+     CARDS RESUMEN
+     ========================================================= */
+
+.secuencia-resumen-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+  padding: 1.15rem 1.25rem;
+  min-height: 105px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.secuencia-resumen-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 4px;
+  border-radius: 0 8px 8px 0;
+}
+
+.secuencia-resumen-activa::before {
+  background: #22c55e;
+}
+
+.secuencia-resumen-fiscal::before {
+  background: #3498db;
+}
+
+.secuencia-resumen-disponible::before {
+  background: #8b5cf6;
+}
+
+.secuencia-resumen-vencer::before {
+  background: #f59e0b;
+}
+
+.secuencia-resumen-label {
+  color: #64748b;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.secuencia-resumen-card h3 {
+  font-size: 1.55rem;
+  font-weight: 800;
+  margin: 0.35rem 0 0.2rem;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.secuencia-resumen-card p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.secuencia-resumen-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #334155;
+  font-size: 1.2rem;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+/* =========================================================
+     CARD TABLA
+     ========================================================= */
+
+.secuencia-table-card {
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.secuencia-card-header {
+  background: #ffffff;
+  color: #0f172a;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+  padding: 1rem 1.25rem;
+}
+
+.secuencia-table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.25rem;
+}
+
+/* =========================================================
+     TABLA SECUENCIA
+     ========================================================= */
+
+#dataTableSecuencia {
+  width: 100% !important;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+#dataTableSecuencia thead th {
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+#dataTableSecuencia th,
+#dataTableSecuencia td {
+  white-space: normal !important;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+#dataTableSecuencia th:first-child,
+#dataTableSecuencia td:first-child {
+  white-space: nowrap !important;
+  overflow-wrap: normal;
+}
+
+#dataTableSecuencia tbody td {
+  vertical-align: middle;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  color: #334155;
+}
+
+#dataTableSecuencia tbody tr {
+  transition:
+    background-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+#dataTableSecuencia tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+/* =========================================================
+     COLUMNA SECUENCIA
+     ========================================================= */
+
+.secuencia-main-box {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.secuencia-main-icon {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  border: 1px solid #dbeafe;
+}
+
+.secuencia-main-info {
+  min-width: 0;
+  width: 100%;
+}
+
+.secuencia-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.secuencia-empresa {
+  margin: 0;
+  color: #0f172a;
+  font-weight: 800;
+  font-size: 0.86rem;
+  line-height: 1.2;
+  max-width: 100%;
+}
+
+.secuencia-documento-row {
+  margin-top: 0.35rem;
+}
+
+.secuencia-id-text {
+  margin-top: 0.25rem;
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+/* =========================================================
+     BADGES
+     ========================================================= */
+
+.secuencia-status-badge,
+.secuencia-doc-badge,
+.secuencia-vencimiento-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  border-radius: 99px;
+  padding: 0.24rem 0.5rem;
+  font-size: 0.66rem;
+  font-weight: 800;
+  white-space: nowrap;
+  min-width: auto;
+  line-height: 1;
+  border: 1px solid transparent;
+}
+
+.secuencia-status-active {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.secuencia-status-inactive {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.secuencia-doc-factura {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.secuencia-doc-proforma {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+.secuencia-doc-normal {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+.secuencia-vencimiento-ok {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.secuencia-vencimiento-alerta {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+.secuencia-vencimiento-vencida {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.secuencia-vencimiento-normal {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+/* =========================================================
+     DETALLES
+     ========================================================= */
+
+.secuencia-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.secuencia-detail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  font-size: 0.73rem;
+  line-height: 1.28;
+  color: #334155;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+.secuencia-detail-item strong {
+  color: #0f172a;
+}
+
+.secuencia-detail-icon {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border-radius: 7px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.64rem;
+}
+
+.secuencia-icon-cai {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.secuencia-icon-prefijo {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.secuencia-icon-date {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.secuencia-cai-text {
+  font-family: Consolas, Monaco, monospace;
+  font-size: 0.7rem;
+  color: #334155;
+}
+
+.secuencia-mini-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+/* =========================================================
+     NUMERACIÓN
+     ========================================================= */
+
+.secuencia-number-box {
+  min-width: 0;
+  width: 100%;
+}
+
+.secuencia-next-number {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.55rem 0.7rem;
+}
+
+.secuencia-next-number span {
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.secuencia-next-number strong {
+  color: #0f172a;
+  font-size: 0.95rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.secuencia-range-text {
+  margin-top: 0.45rem;
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-family: Consolas, Monaco, monospace;
+}
+
+.secuencia-progress-box {
+  margin-top: 0.55rem;
+}
+
+.secuencia-progress-line {
+  width: 100%;
+  height: 7px;
+  border-radius: 99px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.secuencia-progress-line span {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #3498db, #22c55e);
+}
+
+.secuencia-progress-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.secuencia-progress-meta strong {
+  color: #166534;
+}
+
+/* =========================================================
+     VIGENCIA
+     ========================================================= */
+
+.secuencia-vencimiento-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.25rem;
+}
+
+.secuencia-vencimiento-row small {
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+/* =========================================================
+     RESPONSIVE
+     ========================================================= */
+
+@media (max-width: 1400px) {
+  .secuencia-empresa {
+    font-size: 0.82rem;
+  }
+
+  .secuencia-detail-item {
+    font-size: 0.7rem;
+  }
+
+  .secuencia-main-icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .secuencia-resumen-card {
+    min-height: 95px;
+  }
+
+  .secuencia-main-box {
+    align-items: flex-start;
+  }
+
+  .secuencia-progress-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* =========================================================
+     FIN SECUENCIA FACTURACIÓN - DISEÑO PROFESIONAL
+     SOLO DISEÑO VISUAL - NO TOCA BOTÓN DE ACCIONES
+     ========================================================= */

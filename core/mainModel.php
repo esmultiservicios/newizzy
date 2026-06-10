@@ -6775,82 +6775,85 @@ class mainModel
 
 	public function getTranferenciaProductos($datos)
 	{
-		$bodega       = '';
-		$tipo_product = '';
-		$id_producto  = '';
-
+		$bodega = '';
+		$categoria = '';
+		$id_producto = '';
+	
 		$empresa = self::cleanString($datos['empresa_id_sd']);
-
-		// Filtros
+	
 		if (!empty($datos['bodega']) && $datos['bodega'] != '0') {
 			$bodega = "AND bo.almacen_id = '" . self::cleanString($datos['bodega']) . "'";
 		}
-		if (!empty($datos['tipo_producto_id'])) {
-			$tipo_product = "AND p.tipo_producto_id = '" . self::cleanString($datos['tipo_producto_id']) . "'";
+	
+		if (!empty($datos['categoria_id']) && $datos['categoria_id'] != '0') {
+			$categoria = "AND p.categoria_id = '" . self::cleanString($datos['categoria_id']) . "'";
 		}
-		if (!empty($datos['productos_id'])) {
+	
+		if (!empty($datos['productos_id']) && $datos['productos_id'] != '0') {
 			$id_producto = "AND p.productos_id = '" . self::cleanString($datos['productos_id']) . "'";
 		}
-
-		// Subconsulta para agrupar por producto / almacén / lote y traer la última fecha de movimiento
+	
 		$query = "
 			SELECT
-			t.almacen_id,
-			t.movimientos_id,            -- último movimientos_id del grupo (opcional)
-			t.empresa_id,
-			p.barCode                AS barCode,
-			p.nombre                 AS producto,
-			me.nombre                AS medida,
-			p.file_name              AS image,
-			t.entrada,
-			t.salida,
-			(t.entrada - t.salida)   AS saldo,
-			bo.nombre                AS bodega,
-			t.ultima_fecha           AS fecha_registro,      -- RAW 'YYYY-MM-DD HH:mm:ss'
-			p.productos_id           AS productos_id,
-			p.id_producto_superior,
-			COALESCE(l.numero_lote,'') AS numero_lote,
-			t.lote_id,
-			COALESCE((
-				SELECT IFNULL(
-				SUM(CASE WHEN m2.cantidad_entrada > 0 THEN m2.cantidad_entrada ELSE 0 END) -
-				SUM(CASE WHEN m2.cantidad_salida  > 0 THEN m2.cantidad_salida  ELSE 0 END)
-				,0)
-				FROM movimientos m2
-				WHERE m2.productos_id = t.productos_id
-				AND m2.almacen_id   = t.almacen_id
-				AND m2.empresa_id   = t.empresa_id
-				AND m2.fecha_registro < t.ultima_fecha
-			),0) AS saldo_anterior
+				t.almacen_id,
+				t.movimientos_id,
+				t.empresa_id,
+				p.barCode AS barCode,
+				p.nombre AS producto,
+				me.nombre AS medida,
+				p.file_name AS image,
+				p.precio_venta,
+				p.precio_compra,
+				COALESCE(c.nombre, 'Sin categoría') AS categoria,
+				t.entrada,
+				t.salida,
+				(t.entrada - t.salida) AS saldo,
+				bo.nombre AS bodega,
+				t.ultima_fecha AS fecha_registro,
+				p.productos_id AS productos_id,
+				p.id_producto_superior,
+				COALESCE(l.numero_lote,'') AS numero_lote,
+				t.lote_id,
+				COALESCE((
+					SELECT IFNULL(
+						SUM(CASE WHEN m2.cantidad_entrada > 0 THEN m2.cantidad_entrada ELSE 0 END) -
+						SUM(CASE WHEN m2.cantidad_salida > 0 THEN m2.cantidad_salida ELSE 0 END)
+					,0)
+					FROM movimientos m2
+					WHERE m2.productos_id = t.productos_id
+					AND m2.almacen_id = t.almacen_id
+					AND m2.empresa_id = t.empresa_id
+					AND m2.fecha_registro < t.ultima_fecha
+				),0) AS saldo_anterior
 			FROM (
-			SELECT
-				m.productos_id,
-				m.almacen_id,
-				COALESCE(m.lote_id,0)       AS lote_id,
-				MAX(m.fecha_registro)       AS ultima_fecha,
-				-- opcional: el movimientos_id asociado a la última fecha (no siempre 1:1, pero útil)
-				SUBSTRING_INDEX(
-				GROUP_CONCAT(m.movimientos_id ORDER BY m.fecha_registro DESC SEPARATOR ','),
-				',', 1
-				) AS movimientos_id,
-				SUM(m.cantidad_entrada)     AS entrada,
-				SUM(m.cantidad_salida)      AS salida,
-				m.empresa_id
-			FROM movimientos m
-			WHERE m.empresa_id = '$empresa'
-			GROUP BY m.productos_id, m.almacen_id, COALESCE(m.lote_id,0), m.empresa_id
+				SELECT
+					m.productos_id,
+					m.almacen_id,
+					COALESCE(m.lote_id,0) AS lote_id,
+					MAX(m.fecha_registro) AS ultima_fecha,
+					SUBSTRING_INDEX(
+						GROUP_CONCAT(m.movimientos_id ORDER BY m.fecha_registro DESC SEPARATOR ','),
+						',', 1
+					) AS movimientos_id,
+					SUM(m.cantidad_entrada) AS entrada,
+					SUM(m.cantidad_salida) AS salida,
+					m.empresa_id
+				FROM movimientos m
+				WHERE m.empresa_id = '$empresa'
+				GROUP BY m.productos_id, m.almacen_id, COALESCE(m.lote_id,0), m.empresa_id
 			) t
 			INNER JOIN productos p ON p.productos_id = t.productos_id
-			LEFT  JOIN medida   me ON p.medida_id    = me.medida_id
-			LEFT  JOIN almacen  bo ON t.almacen_id   = bo.almacen_id
-			LEFT  JOIN lotes     l ON t.lote_id      = l.lote_id
+			LEFT JOIN medida me ON p.medida_id = me.medida_id
+			LEFT JOIN almacen bo ON t.almacen_id = bo.almacen_id
+			LEFT JOIN lotes l ON t.lote_id = l.lote_id
+			LEFT JOIN categoria c ON p.categoria_id = c.categoria_id
 			WHERE p.estado = 1
-			$tipo_product
+			$categoria
 			$bodega
 			$id_producto
 			ORDER BY t.ultima_fecha DESC
 		";
-
+	
 		$result = self::connection()->query($query);
 		return $result;
 	}

@@ -59,7 +59,7 @@
 
                         <div class="col-12 mb-3 text-right">
                             <button type="button" class="btn btn-info mr-2" id="btn_ver_resumen_inventario">
-                                <i class="fas fa-chart-pie fa-lg"></i> Resumen de inventario
+                                <i class="fas fa-chart-pie fa-lg"></i> Valor del Inventario
                             </button>
 
                             <button type="submit" class="btn btn-primary mr-2" id="search">

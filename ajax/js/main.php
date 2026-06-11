@@ -3613,16 +3613,21 @@ var ver_abono_cxp_proveedor_dataTable = function(tbody, table) {
     });
 }
 
-$('#modal_pagos_unificado').off('hidden.bs.modal.refrescarCXC').on('hidden.bs.modal.refrescarCXC', function() {
-    if (REFRESCAR_CXC_AL_CERRAR_PAGO === true) {
-        REFRESCAR_CXC_AL_CERRAR_PAGO = false;
+$(document).off('hidden.bs.modal.refrescarCXC', '#modal_pagos_unificado')
+.on('hidden.bs.modal.refrescarCXC', '#modal_pagos_unificado', function() {
 
-        listar_busqueda_cuentas_por_cobrar_clientes();
+    if (window.REFRESCAR_CXC_AL_CERRAR_PAGO === true) {
+        window.REFRESCAR_CXC_AL_CERRAR_PAGO = false;
+
+        if (typeof listar_busqueda_cuentas_por_cobrar_clientes === "function") {
+            listar_busqueda_cuentas_por_cobrar_clientes();
+        }
 
         if (typeof listar_cuentas_por_cobrar_clientes === "function") {
             listar_cuentas_por_cobrar_clientes();
         }
     }
+
 });
 
 function getClientesCXC() {

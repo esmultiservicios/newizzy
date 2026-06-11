@@ -3261,24 +3261,24 @@ function getConsultarAperturaCaja() {
                             '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
 
                                 '<button type="button" class="dropdown-item accion-item table_abono">' +
-                                    '<span class="accion-icon accion-icon-primary">' +
-                                        '<i class="fas fa-cash-register"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Abonar</span>' +
+                                  '<span class="accion-icon accion-icon-success">' +
+                                      '<i class="fas fa-cash-register"></i>' +
+                                  '</span>' +
+                                    '<span class="accion-label">Registrar abono</span>' +
                                 '</button>' +
 
                                 '<button type="button" class="dropdown-item accion-item table_reportes abono_factura ocultar">' +
-                                    '<span class="accion-icon accion-icon-secondary">' +
-                                        '<i class="fas fa-money-bill-wave"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Abonos</span>' +
+                                  '<span class="accion-icon accion-icon-warning">' +
+                                      '<i class="fas fa-money-bill-wave"></i>' +
+                                  '</span>' +
+                                  '<span class="accion-label">Ver abonos</span>' +
                                 '</button>' +
 
                                 '<button type="button" class="dropdown-item accion-item table_reportes print_factura ocultar">' +
-                                    '<span class="accion-icon accion-icon-success">' +
-                                        '<i class="fas fa-file-download"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Factura</span>' +
+                                  '<span class="accion-icon accion-icon-danger">' +
+                                      '<i class="fas fa-file-download"></i>' +
+                                  '</span>' +
+                                  '<span class="accion-label">Ver factura</span>' +
                                 '</button>' +
 
                             '</div>' +

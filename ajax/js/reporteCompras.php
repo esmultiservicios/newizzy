@@ -148,7 +148,7 @@ var listar_reporte_compras = function() {
                             ? 'badge badge-pill badge-warning'
                             : 'badge badge-pill badge-success';
 
-                        return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                        return '<span class="' + badgeClass + '" style="font-size:0.85rem; padding:0.45em 0.7em; font-weight:500;">' +
                             icon +
                             data +
                         '</span>';
@@ -176,81 +176,77 @@ var listar_reporte_compras = function() {
             {
                 "data": "subtotal",
                 render: function(data, type) {
+                    var valor = parseFloat(data || 0);
                     var number = $.fn.dataTable.render
                         .number(',', '.', 2, 'L ')
-                        .display(data);
+                        .display(valor);
 
                     if (type === 'display') {
-                        let color = 'green';
+                        var color = valor < 0 ? 'red' : 'green';
 
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
+                        return '<span style="color:' + color + '; font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
+                            number +
+                        '</span>';
                     }
 
-                    return number;
+                    return valor;
                 }
             },
             {
                 "data": "isv",
                 render: function(data, type) {
+                    var valor = parseFloat(data || 0);
                     var number = $.fn.dataTable.render
                         .number(',', '.', 2, 'L ')
-                        .display(data);
+                        .display(valor);
 
                     if (type === 'display') {
-                        let color = 'green';
+                        var color = valor < 0 ? 'red' : 'green';
 
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
+                        return '<span style="color:' + color + '; font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
+                            number +
+                        '</span>';
                     }
 
-                    return number;
+                    return valor;
                 }
             },
             {
                 "data": "descuento",
                 render: function(data, type) {
+                    var valor = parseFloat(data || 0);
                     var number = $.fn.dataTable.render
                         .number(',', '.', 2, 'L ')
-                        .display(data);
+                        .display(valor);
 
                     if (type === 'display') {
-                        let color = 'green';
+                        var color = valor < 0 ? 'red' : 'green';
 
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
+                        return '<span style="color:' + color + '; font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
+                            number +
+                        '</span>';
                     }
 
-                    return number;
+                    return valor;
                 }
             },
             {
                 "data": "total",
                 render: function(data, type) {
+                    var valor = parseFloat(data || 0);
                     var number = $.fn.dataTable.render
                         .number(',', '.', 2, 'L ')
-                        .display(data);
+                        .display(valor);
 
                     if (type === 'display') {
-                        let color = 'green';
+                        var color = valor < 0 ? 'red' : 'green';
 
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
+                        return '<span style="color:' + color + '; font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
+                            number +
+                        '</span>';
                     }
 
-                    return number;
+                    return valor;
                 }
             }
         ],
@@ -318,6 +314,8 @@ var listar_reporte_compras = function() {
             var api = this.api();
 
             function formatNumber(number) {
+                number = parseFloat(number || 0);
+
                 return 'L ' + number.toLocaleString('es-HN', {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2
@@ -340,10 +338,29 @@ var listar_reporte_compras = function() {
                 return a + (parseFloat(b) || 0);
             }, 0);
 
-            $('#subtotal-i').html(formatNumber(subtotal));
-            $('#impuesto-i').html(formatNumber(isv));
-            $('#descuento-i').html(formatNumber(descuento));
-            $('#total-footer-ingreso').html(formatNumber(total));
+            $('#subtotal-i').html(
+                '<span style="font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
+                    formatNumber(subtotal) +
+                '</span>'
+            );
+
+            $('#impuesto-i').html(
+                '<span style="font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
+                    formatNumber(isv) +
+                '</span>'
+            );
+
+            $('#descuento-i').html(
+                '<span style="font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
+                    formatNumber(descuento) +
+                '</span>'
+            );
+
+            $('#total-footer-ingreso').html(
+                '<span style="font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
+                    formatNumber(total) +
+                '</span>'
+            );
         },
         "buttons": [
             {
@@ -407,7 +424,7 @@ var listar_reporte_compras = function() {
 
     view_reporteCompras_dataTable("#dataTablaReporteCompras tbody", table_reporteCompras);
     view_anularCompras_dataTable("#dataTablaReporteCompras tbody", table_reporteCompras);
-}
+};
 
 var view_anularCompras_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.cancelar_compras");

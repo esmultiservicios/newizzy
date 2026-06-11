@@ -4590,9 +4590,8 @@ function cargarHistorialPuntos(cliente_id) {
 var listar_generar_clientes = function() {
     var clientes_id = $("#formGenerarSistema #clientes_id").val();
 
-    // Destruir la tabla si ya existe
     if ($.fn.DataTable.isDataTable("#DatatableGenerarSistema")) {
-        $("#DatatableGenerarSistema").DataTable().destroy();
+        $("#DatatableGenerarSistema").DataTable().clear().destroy();
     }
 
     var table_generar_clientes = $("#DatatableGenerarSistema").DataTable({
@@ -4601,7 +4600,7 @@ var listar_generar_clientes = function() {
             "method": "POST",
             "url": "<?php echo SERVERURL;?>core/llenarDataTableGenerarSistema.php",
             "data": {
-                "clientes_id": clientes_id,
+                "clientes_id": clientes_id
             }
         },
         "columns": [
@@ -4656,7 +4655,7 @@ var listar_generar_clientes = function() {
                 customize: function(doc) {
                     if (imagen) {
                         doc.content.splice(0, 0, {
-                            image: imagen,  
+                            image: imagen,
                             width: 100,
                             height: 45,
                             margin: [0, 0, 0, 12]
@@ -4666,26 +4665,46 @@ var listar_generar_clientes = function() {
             }
         ],
         "initComplete": function() {
-            // Redimensionar la tabla cuando se complete la inicialización
-            $(window).trigger('resize');
+            this.api().columns.adjust();
         },
         "drawCallback": function(settings) {
             getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-            // Forzar redimensionamiento después de dibujar
-            setTimeout(function() {
-                table_generar_clientes.columns.adjust().draw();
-            }, 100);
+
+            if (typeof cerrarDropdownAcciones === "function") {
+                cerrarDropdownAcciones();
+            }
         }
     });
 
-    // Ajustar tabla cuando el modal se muestre completamente
-    $('#modal_generar_sistema').on('shown.bs.modal', function () {
-        table_generar_clientes.columns.adjust().draw();
-    });
+    $("#modal_generar_sistema")
+        .off("shown.bs.modal.ajustarTablaGenerar")
+        .on("shown.bs.modal.ajustarTablaGenerar", function() {
+            if ($.fn.DataTable.isDataTable("#DatatableGenerarSistema")) {
+                $("#DatatableGenerarSistema").DataTable().columns.adjust();
+            }
+        });
 
     table_generar_clientes.search('').draw();
     $('#buscar').focus();
-};
+};  
+
+/* =========================================================
+   REFRESCAR TABLA GENERAR SISTEMA AL CERRAR MODAL CLIENTES
+   ========================================================= */
+$(document)
+.off('hidden.bs.modal.refrescarGenerarClientes', '#modal_registrar_clientes')
+.on('hidden.bs.modal.refrescarGenerarClientes', '#modal_registrar_clientes', function() {
+
+    if ($("#modal_generar_sistema").hasClass("show")) {
+
+        if ($.fn.DataTable.isDataTable("#DatatableGenerarSistema")) {
+            $("#DatatableGenerarSistema").DataTable().ajax.reload(null, false);
+            $("#DatatableGenerarSistema").DataTable().columns.adjust();
+        }
+
+    }
+
+});
 
 $("#modal_generar_sistema").on('shown.bs.modal', function () {
     $(this).find('#formGenerarSistema #empresa').focus();

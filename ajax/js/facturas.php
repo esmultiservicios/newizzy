@@ -73,6 +73,141 @@ $(() => {
     getClientesFacturasCXC();
 });
 
+
+/* =========================================================
+   CONSULTAR APERTURA DE CAJA
+   ---------------------------------------------------------
+   IMPORTANTE:
+   Esta función se deja igual para no afectar nada existente.
+   Devuelve solo el estado de la caja.
+========================================================= */
+
+function getConsultarAperturaCaja() {
+    var url = '<?php echo SERVERURL;?>core/getAperturaCajaUsuario.php';
+
+    var estado_apertura;
+
+    $.ajax({
+        type: 'POST',
+        url: url,
+        async: false,
+        success: function(registro) {
+            var valores = eval(registro);
+            estado_apertura = valores[0];
+        }
+    });
+
+    return estado_apertura;
+}
+
+/* =========================================================
+   CONSULTAR APERTURA_ID DE CAJA DEL USUARIO
+   ---------------------------------------------------------
+   Esta función usa el mismo PHP:
+   core/getAperturaCajaUsuario.php
+
+   Pero devuelve SOLO el apertura_id.
+   No afecta getConsultarAperturaCaja().
+========================================================= */
+
+function getAperturaIdCajaUsuario() {
+    var url = '<?php echo SERVERURL;?>core/getAperturaCajaUsuario.php';
+
+    var apertura_id = 0;
+
+    $.ajax({
+        type: 'POST',
+        url: url,
+        async: false,
+        success: function(registro) {
+            var valores = eval(registro);
+
+            if (valores && valores[1] !== undefined && valores[1] !== null && valores[1] !== '') {
+                apertura_id = parseInt(valores[1] || 0);
+            }
+        },
+        error: function(xhr) {
+            console.log(xhr.responseText);
+            apertura_id = 0;
+        }
+    });
+
+    if (isNaN(apertura_id)) {
+        apertura_id = 0;
+    }
+
+    return apertura_id;
+}
+
+/* =========================================================
+   INICIO - RETIRO DE CAJA DIRECTO DESDE FACTURACIÓN
+   Botón: #btn_retiro_caja
+
+   Este botón NO debe abrir el modal directamente desde HTML.
+   Primero valida si hay caja abierta, obtiene apertura_id,
+   carga saldos y luego abre el mismo modal #modalRetiroCaja.
+========================================================= */
+
+$(document)
+    .off('click.cajaFacturaRetiroDirecto', '#btn_retiro_caja')
+    .on('click.cajaFacturaRetiroDirecto', '#btn_retiro_caja', function (e) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        abrirRetiroCajaDirectoDesdeFactura();
+    });
+
+function abrirRetiroCajaDirectoDesdeFactura() {
+    /*
+      Validamos con tu función original.
+      Si retorna 2, significa que no hay caja abierta.
+    */
+    if (typeof getConsultarAperturaCaja === 'function') {
+        if (getConsultarAperturaCaja() == 2) {
+            notificarCajaFactura(
+                'error',
+                'Caja cerrada',
+                'Debe aperturar caja antes de realizar un retiro.'
+            );
+
+            return;
+        }
+    }
+
+    /*
+      Obtenemos el apertura_id usando la nueva función.
+      Esta consulta el mismo PHP, pero toma la posición [1].
+    */
+    var apertura_id = 0;
+
+    if (typeof getAperturaIdCajaUsuario === 'function') {
+        apertura_id = getAperturaIdCajaUsuario();
+    }
+
+    if (apertura_id <= 0) {
+        notificarCajaFactura(
+            'error',
+            'Caja no encontrada',
+            'No se pudo obtener la apertura activa para realizar el retiro.'
+        );
+
+        return;
+    }
+
+    /*
+      Abrimos el mismo modal que ya funciona desde la tabla.
+      Esta función ya carga los saldos con cargarSaldoRetiroCajaFactura().
+    */
+    abrirRetiroCajaDesdeFactura({
+        apertura_id: apertura_id,
+        estado: 1
+    });
+}
+
+/* =========================================================
+   FIN - RETIRO DE CAJA DIRECTO DESDE FACTURACIÓN
+========================================================= */
+
 /* =========================================================
    INICIO - CAJA DESDE FACTURACIÓN
    Este bloque pertenece a FACTURAS.

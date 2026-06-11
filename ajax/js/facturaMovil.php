@@ -1168,7 +1168,7 @@ $(() => {
 
           // imprimir si es contado
           if (response.imprimir && response.factura_id) {
-            try { printBill(response.factura_id); } catch (e) { console.error(e); }
+            try { printBillMovil(response.factura_id); } catch (e) { console.error(e); }
           }
 
           resetearFormulario();

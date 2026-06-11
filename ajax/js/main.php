@@ -1891,20 +1891,6 @@ function abrirReporte(document_id, type, db) {
 
 //INICIO FUNCION PARA OBTENER REPORTES DESDE IIS
 /**
- * viewReport
- * Función para generar y visualizar reportes en una nueva pestaña mediante un POST dinámico.
- * 
- * @param {Object} params Objeto con los parámetros necesarios para generar el reporte.
- *                        Debe contener las claves y valores esperados por el servidor IIS.
- * 
- * @example
- * // Ejemplo 1: Generar un reporte con parámetros básicos
- * var params = {
- *     "id": 123,              // ID del reporte o recurso
- *     "type": "Reporte",      // Tipo de reporte
- *     "db": "mi_base_datos"   // Nombre de la base de datos
- * };
- * viewReport(params);
  * 
  * @example
  * // Ejemplo 2: Generar un reporte para usuarios específicos
@@ -1918,7 +1904,7 @@ function abrirReporte(document_id, type, db) {
  * @throws {Error} Si la URL del servidor no está definida o es inválida.
  * @throws {Error} Si los parámetros enviados no son un objeto válido.
  */
-function viewReport(params) {
+function viewReport_old(params) {
     var url = "<?php echo defined('SERVERURLWINDOWS') ? SERVERURLWINDOWS : ''; ?>";
 
     if (!url || url.trim() === "") {
@@ -1984,75 +1970,6 @@ function enviarFormulario(url, params, ventana) {
 
 //FIN FUNCION PARA OBTENER REPORTES DESDE IIS
 
-/*function viewReport(params) {
-    var url = "<?php echo defined('SERVERURLWINDOWS') ? SERVERURLWINDOWS : ''; ?>";
-
-    // Verificar si la URL está vacía o no definida
-    if (!url || url.trim() === "") {
-        swal({
-            title: "Error de conexión",
-            content: {
-                element: "p",
-                attributes: {
-                    innerHTML: "No se pudo acceder al servidor de reportes. Esto puede deberse a un problema de conexión o a que el servicio no está disponible.<br><br>📌 <b>Pasos recomendados:</b><br>1️⃣ Verifique su conexión a internet.<br>2️⃣ Intente nuevamente en unos minutos.<br>3️⃣ Si el problema persiste, comuníquese con soporte e informe el siguiente código de error: <b>SERVIDOR_NO_RESPONDE</b>."
-                }
-            },
-            icon: "error",
-            button: "Entendido",
-            dangerMode: true,
-            closeOnEsc: false,
-            closeOnClickOutside: false
-        });
-        return;
-    }
-
-	// Verificar si la URL responde antes de enviar el formulario
-	fetch(url, { method: "GET" })
-	.then(response => {
-		if (!response.ok) {
-			throw new Error("El servidor de reportes no está disponible.");
-		}
-		enviarFormulario(url, params);
-	})
-	.catch(error => {
-		swal({
-			title: "Error al obtener el reporte",
-			content: {
-				element: "p",
-				attributes: {
-					innerHTML: "No fue posible conectarse con el servidor de reportes.<br><br>🔍 <b>Posibles causas:</b><br>✅ El servidor puede estar en mantenimiento.<br>✅ Puede haber un problema de conexión.<br><br>📌 <b>Pasos recomendados:</b><br>1️⃣ Verifique su conexión a internet.<br>2️⃣ Intente nuevamente en unos minutos.<br>3️⃣ Si el problema persiste, comuníquese con soporte e informe el siguiente código de error: <b>SERVIDOR_NO_DISPONIBLE</b>."
-				}
-			},
-			icon: "error",
-			button: "Entendido",
-			dangerMode: true,
-			closeOnEsc: false,
-			closeOnClickOutside: false
-		});
-	});
-}
-
-// 📝 Función para crear y enviar el formulario
-function enviarFormulario(url, params) {
-    var form = document.createElement("form");
-    form.method = "POST";
-    form.action = url;
-
-    for (var key in params) {
-        if (params.hasOwnProperty(key)) {
-            var input = document.createElement("input");
-            input.type = "hidden";
-            input.name = key;
-            input.value = params[key];
-            form.appendChild(input);
-        }
-    }
-
-    var newWindow = window.open("", "_blank");
-    newWindow.document.body.appendChild(form);
-    form.submit();
-}*/
-
 //INICIO IMPRIMIR FACTURACION
 function printQuote(cotizacion_id) {
     params = {
@@ -2063,7 +1980,7 @@ function printQuote(cotizacion_id) {
     };   
 
     // Llamar a la función para mostrar el reporte
-    viewReport(params);
+    viewReport(params, "Cotización");
 }
 
 function printBill(facturas_id, $print_comprobante) {
@@ -2115,7 +2032,70 @@ function printBill(facturas_id, $print_comprobante) {
                 }
 
                 // Llamar a la función para mostrar el reporte
-                viewReport(params);
+                viewReport(params, "Factura");
+            } else {
+                // Usando SweetAlert en lugar de alert
+                 showNotify('error', 'Error', 'La impresora no está activa. Diríjase al menú de "Configuración" > "Impresoras" para activar la impresora. Después de activarla, podrás reimprimir la factura desde el reporte de facturación.');
+            }
+        },
+        error: function(xhr, status, error) {            
+            showNotify('error', 'Error', 'Hubo un problema al procesar la solicitud.');
+        }
+    });
+
+    return false;
+}
+
+function printBillMovil(facturas_id, $print_comprobante) {
+    var url = "<?php echo SERVERURL;?>core/getImpresoraComprobante.php";
+
+    $.ajax({
+        type: 'POST',
+        url: url,
+        data: {
+            formato: "Factura",
+        },
+        success: function(data) {
+            // Parsear el JSON
+            const impresora = JSON.parse(data)[0]; // Acceder a la primera impresora
+
+            // Comprobar si la impresora está activa
+            if (impresora && impresora.estado === "1") {
+                // Generar la URL con los parámetros de facturas_id y formato
+                var params;
+
+                // Eliminar espacios adicionales del formato
+                var formato = impresora.formato.trim();                
+
+                if (formato === "Carta") {
+                    params = {
+                        "id": facturas_id,
+                        "type": "Factura_carta_izzy",
+                        "db": "<?php echo $GLOBALS['db']; ?>",
+                        "demo_sistema": "<?php echo $GLOBALS['SISTEMA_PRUEBA']; ?>"
+                    };
+                } else if (formato === "Media Carta") {
+                    params = {
+                        "id": facturas_id,
+                        "type": "Factura_media_izzy",
+                        "db": "<?php echo $GLOBALS['db']; ?>",
+                        "demo_sistema": "<?php echo $GLOBALS['SISTEMA_PRUEBA']; ?>"
+                    };
+                } else if (formato === "Ticket") {
+                    params = {
+                        "id": facturas_id,
+                        "type": "Factura_ticket_izzy",
+                        "db": "<?php echo $GLOBALS['db']; ?>",
+                        "demo_sistema": "<?php echo $GLOBALS['SISTEMA_PRUEBA']; ?>"
+                    };                
+                } else {
+                    // Manejar caso donde el formato no sea válido
+                    showNotify('error', 'Error', 'El formato de impresión no es válido. Verifica la configuración de la impresora.');
+                    return; // Salir si el formato no es válido
+                }
+
+                // Llamar a la función para mostrar el reporte
+                viewReport_old(params);
             } else {
                 // Usando SweetAlert en lugar de alert
                  showNotify('error', 'Error', 'La impresora no está activa. Diríjase al menú de "Configuración" > "Impresoras" para activar la impresora. Después de activarla, podrás reimprimir la factura desde el reporte de facturación.');
@@ -2178,7 +2158,7 @@ function printBillReporteVentas(facturas_id, print_comprobante) {
                 }
 
                 // Llamar a la función para mostrar el reporte
-                viewReport(params);
+                viewReport(params, "Factura");
             } else {
                 // Usando SweetAlert en lugar de alert
                 swal({
@@ -2255,14 +2235,15 @@ function printComprobanteCajas(apertura_id) {
             };   
 
             // Llamar a la función para mostrar el reporte
-            viewReport(params);
+            viewReport(params, "Comprobante de Caja");
         }
     });
 }
 
 function printPurchase(compras_id) {
-    var url = '<?php echo SERVERURL; ?>core/generaCompra.php?compras_id=' + compras_id;
-    window.open(url);
+  var url = '<?php echo SERVERURL; ?>core/generaCompra.php?compras_id=' + compras_id;
+
+  abrirDocumentoEnModal(url, "Documento de compra");
 }
 
 //INICIO ENVIAR COTIZACION POR CORREO ELECTRONICO
@@ -10798,4 +10779,418 @@ $(document).on("show.bs.modal.accionesGlobal", ".modal", function () {
 $(document).on("hidden.bs.modal.accionesGlobal", ".modal", function () {
     cerrarDropdownAcciones();
 });
+
+/* =========================================================
+   INICIO MODAL GLOBAL: VISTA PREVIA DE DOCUMENTOS Y REPORTES
+========================================================= */
+
+var timeoutLoadingDocumentoPreview = null;
+var tipoPreviewDocumentoActual = "documento";
+
+/* =========================================================
+   Loading del modal de documentos / reportes
+========================================================= */
+
+function mostrarLoadingDocumentoPreview() {
+  $("#loadingPreviewDocumento").addClass("is-active");
+}
+
+function ocultarLoadingDocumentoPreview() {
+  $("#loadingPreviewDocumento").removeClass("is-active");
+
+  if (timeoutLoadingDocumentoPreview) {
+    clearTimeout(timeoutLoadingDocumentoPreview);
+    timeoutLoadingDocumentoPreview = null;
+  }
+}
+
+/* =========================================================
+   Botón imprimir del modal
+========================================================= */
+
+function mostrarBotonImprimirDocumentoPreview() {
+  $("#modalPreviewDocumento .modal-documento-preview-btn-print").show();
+}
+
+function ocultarBotonImprimirDocumentoPreview() {
+  $("#modalPreviewDocumento .modal-documento-preview-btn-print").hide();
+}
+
+/* =========================================================
+   Preparar URL para documentos PDF normales del sistema
+========================================================= */
+
+function prepararUrlDocumentoPreview(urlDocumento) {
+  if (!urlDocumento) {
+    return "";
+  }
+
+  var url = String(urlDocumento);
+  var separadorCache = url.indexOf("?") === -1 ? "?" : "&";
+
+  url += separadorCache + "_preview=" + new Date().getTime();
+
+  /*
+    Opciones del visor PDF del navegador:
+    toolbar=1   muestra barra del PDF
+    navpanes=0  oculta panel lateral
+    scrollbar=1 permite scroll
+    zoom=115    tamaño inicial del documento
+  */
+  url += "#toolbar=1&navpanes=0&scrollbar=1&zoom=115";
+
+  return url;
+}
+
+/* =========================================================
+   Abrir documentos PDF normales del sistema en el modal
+   Esta función la usan printGastos, printIngresos, facturas, etc.
+========================================================= */
+
+function abrirDocumentoEnModal(urlDocumento, tituloDocumento = "Vista previa del documento") {
+  if (!urlDocumento) {
+    if (typeof showNotify === "function") {
+      showNotify("error", "Error", "No se recibió la URL del documento.");
+    }
+
+    return;
+  }
+
+  var urlPreview = prepararUrlDocumentoPreview(urlDocumento);
+  var iframe = $("#iframePreviewDocumento");
+
+  tipoPreviewDocumentoActual = "documento";
+
+  $("#modalPreviewDocumentoLabel").text(tituloDocumento);
+  $("#btnAbrirDocumentoNuevaVentana").attr("href", urlDocumento);
+
+  /*
+    En documentos internos sí mostramos nuestro botón imprimir.
+  */
+  mostrarBotonImprimirDocumentoPreview();
+
+  mostrarLoadingDocumentoPreview();
+
+  if (timeoutLoadingDocumentoPreview) {
+    clearTimeout(timeoutLoadingDocumentoPreview);
+    timeoutLoadingDocumentoPreview = null;
+  }
+
+  iframe
+    .off("load.previewDocumento")
+    .off("load.previewReporteIIS")
+    .attr("name", "iframePreviewDocumento")
+    .attr("src", "about:blank");
+
+  $("#modalPreviewDocumento").modal({
+    backdrop: "static",
+    keyboard: false
+  });
+
+  $("#modalPreviewDocumento").modal("show");
+
+  iframe.on("load.previewDocumento", function () {
+    var srcIframe = $(this).attr("src");
+
+    if (srcIframe && srcIframe !== "about:blank") {
+      ocultarLoadingDocumentoPreview();
+    }
+  });
+
+  setTimeout(function () {
+    iframe.attr("src", urlPreview);
+  }, 150);
+
+  /*
+    Respaldo:
+    Algunos navegadores no disparan bien el evento load con visor PDF.
+    Esto evita que el loading quede pegado encima del documento.
+  */
+  timeoutLoadingDocumentoPreview = setTimeout(function () {
+    ocultarLoadingDocumentoPreview();
+  }, 2500);
+}
+
+/* =========================================================
+   Abrir reportes Windows / IIS dentro del modal global
+========================================================= */
+
+function abrirReporteIISDentroDelModal(urlReporte, tituloReporte = "Vista previa del reporte") {
+  if (!urlReporte) {
+    if (typeof showNotify === "function") {
+      showNotify("error", "Error", "No se recibió la URL del reporte.");
+    }
+
+    return;
+  }
+
+  var iframe = $("#iframePreviewDocumento");
+
+  tipoPreviewDocumentoActual = "iis";
+
+  $("#modalPreviewDocumentoLabel").text(tituloReporte);
+  $("#btnAbrirDocumentoNuevaVentana").attr("href", urlReporte);
+
+  /*
+    En reportes Windows/IIS ocultamos nuestro botón imprimir.
+    El usuario debe usar el botón imprimir del visor PDF interno.
+  */
+  ocultarBotonImprimirDocumentoPreview();
+
+  mostrarLoadingDocumentoPreview();
+
+  if (timeoutLoadingDocumentoPreview) {
+    clearTimeout(timeoutLoadingDocumentoPreview);
+    timeoutLoadingDocumentoPreview = null;
+  }
+
+  iframe
+    .off("load.previewDocumento")
+    .off("load.previewReporteIIS")
+    .attr("name", "iframePreviewDocumento")
+    .attr("src", "about:blank");
+
+  $("#modalPreviewDocumento").modal({
+    backdrop: "static",
+    keyboard: false
+  });
+
+  $("#modalPreviewDocumento").modal("show");
+
+  iframe.on("load.previewReporteIIS", function () {
+    var srcIframe = $(this).attr("src");
+
+    if (srcIframe && srcIframe !== "about:blank") {
+      ocultarLoadingDocumentoPreview();
+    }
+  });
+
+  setTimeout(function () {
+    iframe.attr("src", urlReporte);
+  }, 150);
+
+  /*
+    Respaldo:
+    Algunos reportes dentro del iframe no siempre disparan bien el evento load.
+    Esto evita que el loading se quede pegado.
+  */
+  timeoutLoadingDocumentoPreview = setTimeout(function () {
+    ocultarLoadingDocumentoPreview();
+  }, 2500);
+}
+
+/* =========================================================
+   viewReport
+   Reportes Windows / IIS por GET dentro del modal global
+   tituloReporte es opcional.
+========================================================= */
+
+function viewReport(params, tituloReporte = "Vista previa del reporte") {
+  var url = "<?php echo defined('SERVERURLWINDOWS') ? SERVERURLWINDOWS : ''; ?>";
+
+  if (!url || url.trim() === "") {
+    swal({
+      title: "Error de conexión",
+      content: {
+        element: "p",
+        attributes: {
+          innerHTML: "No se pudo acceder al servidor de reportes. Esto puede deberse a un problema de conexión o a que el servicio no está disponible.<br><br>📌 <b>Pasos recomendados:</b><br>1️⃣ Verifique su conexión a internet.<br>2️⃣ Intente nuevamente en unos minutos.<br>3️⃣ Si el problema persiste, comuníquese con soporte e informe el siguiente código de error: <b>SERVIDOR_NO_RESPONDE</b>."
+        }
+      },
+      icon: "error",
+      button: "Entendido",
+      dangerMode: true,
+      closeOnEsc: false,
+      closeOnClickOutside: false
+    });
+
+    return;
+  }
+
+  if (!params || typeof params !== "object") {
+    swal({
+      title: "Error",
+      text: "No se recibieron los parámetros necesarios para generar el reporte.",
+      icon: "error",
+      button: "Entendido",
+      dangerMode: true,
+      closeOnEsc: false,
+      closeOnClickOutside: false
+    });
+
+    return;
+  }
+
+  var separador = url.indexOf("?") === -1 ? "?" : "&";
+  var urlReporte = url + separador + new URLSearchParams(params).toString();
+
+  abrirReporteIISDentroDelModal(urlReporte, tituloReporte);
+}
+
+/* =========================================================
+   enviarFormulario
+   Reportes Windows / IIS por POST dentro del iframe del modal
+   tituloReporte es opcional.
+========================================================= */
+
+function enviarFormulario(url, params, ventana, tituloReporte = "Vista previa del reporte") {
+  if (!url || url.trim() === "") {
+    swal({
+      title: "Error de conexión",
+      content: {
+        element: "p",
+        attributes: {
+          innerHTML: "No se pudo acceder al servidor de reportes. Esto puede deberse a un problema de conexión o a que el servicio no está disponible.<br><br>📌 <b>Pasos recomendados:</b><br>1️⃣ Verifique su conexión a internet.<br>2️⃣ Intente nuevamente en unos minutos.<br>3️⃣ Si el problema persiste, comuníquese con soporte."
+        }
+      },
+      icon: "error",
+      button: "Entendido",
+      dangerMode: true,
+      closeOnEsc: false,
+      closeOnClickOutside: false
+    });
+
+    return;
+  }
+
+  if (!params || typeof params !== "object") {
+    swal({
+      title: "Error",
+      text: "No se recibieron los parámetros necesarios para generar el reporte.",
+      icon: "error",
+      button: "Entendido",
+      dangerMode: true,
+      closeOnEsc: false,
+      closeOnClickOutside: false
+    });
+
+    return;
+  }
+
+  var iframe = $("#iframePreviewDocumento");
+
+  tipoPreviewDocumentoActual = "iis";
+
+  $("#modalPreviewDocumentoLabel").text(tituloReporte);
+  $("#btnAbrirDocumentoNuevaVentana").attr("href", url);
+
+  /*
+    En reportes Windows/IIS por POST también ocultamos nuestro botón imprimir.
+  */
+  ocultarBotonImprimirDocumentoPreview();
+
+  mostrarLoadingDocumentoPreview();
+
+  if (timeoutLoadingDocumentoPreview) {
+    clearTimeout(timeoutLoadingDocumentoPreview);
+    timeoutLoadingDocumentoPreview = null;
+  }
+
+  iframe
+    .off("load.previewDocumento")
+    .off("load.previewReporteIIS")
+    .attr("name", "iframePreviewDocumento")
+    .attr("src", "about:blank");
+
+  $("#modalPreviewDocumento").modal({
+    backdrop: "static",
+    keyboard: false
+  });
+
+  $("#modalPreviewDocumento").modal("show");
+
+  iframe.on("load.previewReporteIIS", function () {
+    ocultarLoadingDocumentoPreview();
+  });
+
+  setTimeout(function () {
+    var form = document.createElement("form");
+
+    form.method = "POST";
+    form.action = url;
+    form.target = "iframePreviewDocumento";
+    form.style.display = "none";
+
+    for (var key in params) {
+      if (params.hasOwnProperty(key)) {
+        var input = document.createElement("input");
+
+        input.type = "hidden";
+        input.name = key;
+        input.value = params[key];
+
+        form.appendChild(input);
+      }
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+  }, 150);
+
+  /*
+    Respaldo:
+    Algunos reportes dentro del iframe no siempre disparan bien el evento load.
+    Esto evita que el loading se quede pegado.
+  */
+  timeoutLoadingDocumentoPreview = setTimeout(function () {
+    ocultarLoadingDocumentoPreview();
+  }, 2500);
+}
+
+/* =========================================================
+   Imprimir documento cargado en el modal
+   Solo aplica para documentos internos del sistema
+========================================================= */
+
+function imprimirDocumentoPreview() {
+  var iframe = document.getElementById("iframePreviewDocumento");
+
+  if (!iframe) {
+    return;
+  }
+
+  /*
+    Si es reporte Windows/IIS no hacemos nada.
+    El botón estará oculto, pero esto evita errores si alguien lo llama manualmente.
+  */
+  if (tipoPreviewDocumentoActual === "iis") {
+    return;
+  }
+
+  try {
+    if (iframe.contentWindow) {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    }
+  } catch (error) {
+    console.warn("No se pudo imprimir el documento desde el modal:", error);
+  }
+}
+
+/* =========================================================
+   Limpiar modal al cerrar
+========================================================= */
+
+$(document).on("hidden.bs.modal", "#modalPreviewDocumento", function () {
+  $("#iframePreviewDocumento")
+    .off("load.previewDocumento")
+    .off("load.previewReporteIIS")
+    .attr("src", "about:blank");
+
+  $("#btnAbrirDocumentoNuevaVentana").attr("href", "#");
+
+  tipoPreviewDocumentoActual = "documento";
+
+  /*
+    Dejamos el botón imprimir visible por defecto para los documentos normales.
+  */
+  mostrarBotonImprimirDocumentoPreview();
+
+  ocultarLoadingDocumentoPreview();
+});
+
+/* =========================================================
+   FIN MODAL GLOBAL: VISTA PREVIA DE DOCUMENTOS Y REPORTES
+========================================================= */
 </script>

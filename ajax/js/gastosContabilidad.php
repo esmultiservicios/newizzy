@@ -1102,8 +1102,14 @@ var view_reporte_gastos_dataTable = function(tbody, table) {
 };
 
 function printGastos(egresos_id) {
-  var url = '<?php echo SERVERURL; ?>core/generaGastos.php?egresos_id=' + egresos_id;
-  window.open(url);
+  if (!egresos_id) {
+    showNotify("error", "Error", "ID de gasto inválido.");
+    return;
+  }
+
+  var url = '<?php echo SERVERURL; ?>core/generaGastos.php?egresos_id=' + encodeURIComponent(egresos_id);
+
+  abrirDocumentoEnModal(url, 'Registro de Gasto');
 }
 
 // ===============================

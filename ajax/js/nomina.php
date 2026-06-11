@@ -520,7 +520,7 @@ function PrintVoucherPago(nomina_id){
         "type": "Voucher_izzy",
         "db": "<?php echo $GLOBALS['db']; ?>",
     }; 
-    viewReport(params);   
+    viewReport(params, "Vocher de Pago");   
 }
 
 function PrintLibroSalarios(nomina_id){
@@ -529,7 +529,7 @@ function PrintLibroSalarios(nomina_id){
         "type": "Libro_salario_izzy",
         "db": "<?php echo $GLOBALS['db']; ?>",
     }; 
-    viewReport(params);
+    viewReport(params, "Libro de Salarios");
 }
 
 /* ============================

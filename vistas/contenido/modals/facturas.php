@@ -331,6 +331,7 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
+
             <div class="modal-body">
                 <form class="FormularioAjax" id="formulario_busqueda_cuentas_cobrar_clientes">
                     <div class="container-fluid">
@@ -371,7 +372,7 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
                             </div>
                         </div>
 
-                        <!-- Fila de botones ajustada -->
+                        <!-- Fila de botones -->
                         <div class="row mb-3">
                             <div class="col-12 text-right">
                                 <button type="submit" class="btn btn-primary mr-2">
@@ -390,20 +391,6 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
                                     <table id="DatatableBusquedaCuentasCobrarClientes"
                                         class="table table-header-gradient table-striped table-condensed table-hover"
                                         style="width:100%">
-                                        <thead>
-                                            <tr>
-                                                <th>Fecha</th>
-                                                <th>Cliente</th>
-                                                <th>Estado</th>
-                                                <th>Factura</th>
-                                                <th>Crédito</th>
-                                                <th>Abonos</th>
-                                                <th>Saldo</th>
-                                                <th>Abonar</th>
-                                                <th>Abonos Realizados</th>
-                                                <th>Factura</th>
-                                            </tr>
-                                        </thead>
                                     </table>
                                 </div>
                             </div>
@@ -411,6 +398,7 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
                     </div>
                 </form>
             </div>
+
             <div class="modal-footer">
                 <button class="btn btn-danger" data-dismiss="modal">
                     <i class="fas fa-times fa-lg mr-1"></i> Cancelar
@@ -521,6 +509,7 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
+
             <div class="modal-body">
                 <form class="FormularioAjax" id="formulario_bill">
                     <div class="container-fluid">
@@ -581,7 +570,6 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
                                 </div>
                             </div>
 
-                            <!-- Botones en la misma fila -->
                             <div class="col-md-6 col-sm-12 d-flex align-items-end justify-content-end">
                                 <button type="submit" class="btn btn-primary mr-2">
                                     <i class="fas fa-search fa-lg mr-1"></i> Buscar
@@ -595,8 +583,9 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
                         <!-- Contador de registros -->
                         <div class="row mb-2">
                             <div class="col-12 text-right">
-                                <small class="text-muted">Mostrando <span id="contador-registros">5</span>
-                                    registros</small>
+                                <small class="text-muted">
+                                    Mostrando <span id="contador-registros">0</span> registros
+                                </small>
                             </div>
                         </div>
 
@@ -607,22 +596,6 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
                                     <table id="DatatableBusquedaBill"
                                         class="table table-header-gradient table-striped table-condensed table-hover"
                                         style="width:100%">
-                                        <thead>
-                                            <tr>
-                                                <th>Fecha</th>
-                                                <th>Tipo</th>
-                                                <th>Cliente</th>
-                                                <th>Factura</th>
-                                                <th>SubTotal</th>
-                                                <th>ISV</th>
-                                                <th>Descuento</th>
-                                                <th>Total</th>
-                                                <th>Factura</th>
-                                                <th>Comprobante</th>
-                                                <th>Enviar</th>
-                                                <th>Anular</th>
-                                            </tr>
-                                        </thead>
                                     </table>
                                 </div>
                             </div>
@@ -630,6 +603,7 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
                     </div>
                 </form>
             </div>
+
             <div class="modal-footer">
                 <button class="btn btn-danger" data-dismiss="modal">
                     <i class="fas fa-times fa-lg mr-1"></i> Cancelar

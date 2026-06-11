@@ -3205,7 +3205,7 @@ function getConsultarAperturaCaja() {
 /* =========================================================
    LISTADO - CUENTAS POR COBRAR CLIENTES
    ========================================================= */
-var listar_cuentas_por_cobrar_clientes = function() {
+   var listar_cuentas_por_cobrar_clientes = function() {
     var cobrar_estado = "";
 
     if (
@@ -3306,7 +3306,7 @@ var listar_cuentas_por_cobrar_clientes = function() {
                             ? 'badge badge-pill badge-success'
                             : 'badge badge-pill badge-warning';
 
-                        return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
+                        return '<span class="' + badgeClass + '" style="font-size:0.85rem; padding:0.45em 0.7em; font-weight:500;">' +
                             icon +
                             text +
                         '</span>';
@@ -3328,61 +3328,58 @@ var listar_cuentas_por_cobrar_clientes = function() {
             {
                 "data": "credito",
                 "render": function(data, type) {
+                    var valor = parseFloat(data || 0);
                     var number = $.fn.dataTable.render
                         .number(',', '.', 2, 'L ')
-                        .display(data);
+                        .display(valor);
 
                     if (type === 'display') {
-                        let color = 'green';
+                        var color = valor < 0 ? 'red' : 'green';
 
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
+                        return '<span style="color:' + color + '; font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
+                            number +
+                        '</span>';
                     }
 
-                    return number;
+                    return valor;
                 }
             },
             {
                 "data": "abono",
                 "render": function(data, type) {
+                    var valor = parseFloat(data || 0);
                     var number = $.fn.dataTable.render
                         .number(',', '.', 2, 'L ')
-                        .display(data);
+                        .display(valor);
 
                     if (type === 'display') {
-                        let color = 'green';
+                        var color = valor < 0 ? 'red' : 'green';
 
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
+                        return '<span style="color:' + color + '; font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
+                            number +
+                        '</span>';
                     }
 
-                    return number;
+                    return valor;
                 }
             },
             {
                 "data": "saldo",
                 "render": function(data, type) {
+                    var valor = parseFloat(data || 0);
                     var number = $.fn.dataTable.render
                         .number(',', '.', 2, 'L ')
-                        .display(data);
+                        .display(valor);
 
                     if (type === 'display') {
-                        let color = 'green';
+                        var color = valor < 0 ? 'red' : 'green';
 
-                        if (data < 0) {
-                            color = 'red';
-                        }
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
+                        return '<span style="color:' + color + '; font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
+                            number +
+                        '</span>';
                     }
 
-                    return number;
+                    return valor;
                 }
             },
             {
@@ -3464,9 +3461,23 @@ var listar_cuentas_por_cobrar_clientes = function() {
                 minimumFractionDigits: 2
             });
 
-            $('#credito-cxc').html(formatter.format(totalCredito));
-            $('#abono-cxc').html(formatter.format(totalAbono));
-            $('#total-footer-cxc').html(formatter.format(totalPendiente));
+            $('#credito-cxc').html(
+                '<span style="font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
+                    formatter.format(totalCredito) +
+                '</span>'
+            );
+
+            $('#abono-cxc').html(
+                '<span style="font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
+                    formatter.format(totalAbono) +
+                '</span>'
+            );
+
+            $('#total-footer-cxc').html(
+                '<span style="font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
+                    formatter.format(totalPendiente) +
+                '</span>'
+            );
         },
         "buttons": [
             {
@@ -3537,7 +3548,7 @@ var listar_cuentas_por_cobrar_clientes = function() {
         "#dataTableCuentasPorCobrarClientes tbody",
         table_cuentas_por_cobrar_clientes
     );
-}
+};
 
 var view_reporte_facturas_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.print_factura");
@@ -3702,7 +3713,7 @@ $(() => {
 /* =========================================================
    LISTADO - CUENTAS POR PAGAR PROVEEDORES
    ========================================================= */
-var listar_cuentas_por_pagar_proveedores = function() {
+   var listar_cuentas_por_pagar_proveedores = function() {
     var estado = $('#form_main_pagar_proveedores #pagar_proveedores_estado').val();
 
     var proveedores_id = $("#form_main_pagar_proveedores #pagar_proveedores").val();
@@ -5214,47 +5225,47 @@ function saldoCompras(compras_id) {
    ESTADO GLOBAL DEL MODAL
    =============================== */
    var VALOR_POR_PUNTO = 1;
-var CURRENT_FACTURA_ID = null;
-var CURRENT_TIPO_PAGO = 1;     // 1: factura, 2: CxC
-var CURRENT_ORIGEN = '';       // 'cxc' para CxC
+  var CURRENT_FACTURA_ID = null;
+  var CURRENT_TIPO_PAGO = 1;     // 1: factura, 2: CxC
+  var CURRENT_ORIGEN = '';       // 'cxc' para CxC
 
-var CURRENT_STEP = 1;
-var SELECTED_METHODS = new Set(['cash']);
-var LAST_SELECTED = 'cash';
+  var CURRENT_STEP = 1;
+  var SELECTED_METHODS = new Set(['cash']);
+  var LAST_SELECTED = 'cash';
 
-var CASH_TYPED = 0;
-var CASH_CAMBIO = 0;
+  var CASH_TYPED = 0;
+  var CASH_CAMBIO = 0;
 
-var LAST_APPLIED_AMOUNTS = {
-  cash: 0,
-  card: 0,
-  transfer: 0,
-  check: 0,
-  points: 0
-};
+  var LAST_APPLIED_AMOUNTS = {
+    cash: 0,
+    card: 0,
+    transfer: 0,
+    check: 0,
+    points: 0
+  };
 
-var PAYMENT_MODAL_CACHE = window.PAYMENT_MODAL_CACHE || {
-  cliente_pago: '',
-  cliente_nombre: '',
-  total_pago: '',
-  efectivo: {},
-  tarjeta: {},
-  transferencia: {},
-  cheque: {},
-  puntos: {}
-};
+  var PAYMENT_MODAL_CACHE = window.PAYMENT_MODAL_CACHE || {
+    cliente_pago: '',
+    cliente_nombre: '',
+    total_pago: '',
+    efectivo: {},
+    tarjeta: {},
+    transferencia: {},
+    cheque: {},
+    puntos: {}
+  };
 
-window.PAYMENT_MODAL_CACHE = PAYMENT_MODAL_CACHE;
+  window.PAYMENT_MODAL_CACHE = PAYMENT_MODAL_CACHE;
 
-/* ===============================
-   MAPAS DEL MODAL
-   =============================== */
-var methodIdMap = {
-  cash: '#payment_cash',
-  card: '#payment_card',
-  transfer: '#payment_transfer',
-  check: '#payment_check',
-  points: '#payment_points'
+  /* ===============================
+    MAPAS DEL MODAL
+    =============================== */
+  var methodIdMap = {
+    cash: '#payment_cash',
+    card: '#payment_card',
+    transfer: '#payment_transfer',
+    check: '#payment_check',
+    points: '#payment_points'
 };
 
 var formMap = {

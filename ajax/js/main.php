@@ -3559,22 +3559,31 @@ var view_reporte_facturas_dataTable = function(tbody, table) {
     });
 }
 
+var REFRESCAR_CXC_AL_CERRAR_PAGO = false;
+
 var registrar_abono_cxc_clientes_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.table_abono");
+
     $(tbody).on("click", "button.table_abono", function(e) {
         e.preventDefault();
+
         var data = table.row($(this).parents("tr")).data();
-        if (data.estado == 2 || data.saldo <=
-            0) { //no tiene acceso a la accion si la factura ya fue cancelada
+
+        if (data.estado == 2 || data.saldo <= 0) {
+            // no tiene acceso a la accion si la factura ya fue cancelada
             showNotify('error', 'Error', 'No puede realizar esta accion a las facturas canceladas!');
         } else {
             $("#GrupoPagosMultiplesFacturas").hide();
+
+            REFRESCAR_CXC_AL_CERRAR_PAGO = true;
+
             pago(data.facturas_id, 2, 'cxc');
+
             // Para facturas
-            //openPaymentModal('factura', 1250.00, 'Cliente Ejemplo', 12345);
+            // openPaymentModal('factura', 1250.00, 'Cliente Ejemplo', 12345);
         }
     });
-}
+};
 
 var ver_abono_cxc_clientes_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.abono_factura");
@@ -3603,6 +3612,18 @@ var ver_abono_cxp_proveedor_dataTable = function(tbody, table) {
         listar_AbonosCXP();
     });
 }
+
+$('#modal_pagos_unificado').off('hidden.bs.modal.refrescarCXC').on('hidden.bs.modal.refrescarCXC', function() {
+    if (REFRESCAR_CXC_AL_CERRAR_PAGO === true) {
+        REFRESCAR_CXC_AL_CERRAR_PAGO = false;
+
+        listar_busqueda_cuentas_por_cobrar_clientes();
+
+        if (typeof listar_cuentas_por_cobrar_clientes === "function") {
+            listar_cuentas_por_cobrar_clientes();
+        }
+    }
+});
 
 function getClientesCXC() {
   var url = '<?php echo SERVERURL;?>core/getClientesCXC.php';

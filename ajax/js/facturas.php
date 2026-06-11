@@ -5766,18 +5766,23 @@ var view_reporte_facturas_dataTable = function(tbody, table) {
 
 var registrar_abono_cxc_clientes_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.table_abono");
+
     $(tbody).on("click", "button.table_abono", function(e) {
         e.preventDefault();
+
         var data = table.row($(this).parents("tr")).data();
-        if (data.estado == 2 || data.saldo <=
-            0) { //no tiene acceso a la accion si la factura ya fue cancelada							
+
+        if (data.estado == 2 || data.saldo <= 0) {
             showNotify('error', 'Error', 'No puede realizar esta accion a las facturas canceladas!');
         } else {
-            console.log('cxc', data.facturas_id, 2)
+            console.log('cxc', data.facturas_id, 2);
+
+            REFRESCAR_CXC_AL_CERRAR_PAGO = true;
+
             pago(data.facturas_id, 2, 'cxc');
         }
     });
-}
+};
 
 var ver_abono_cxc_clientes_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.abono_factura");

@@ -175,7 +175,6 @@ function moneyRender(data, type) {
   return n;
 }
 
-
 function escapeHtmlEgresos(value) {
   if (value == null) return "";
 
@@ -185,6 +184,84 @@ function escapeHtmlEgresos(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+// =========================================================
+// RESUMEN PREMIUM DE CUENTA EN FOOTER DEL MODAL EGRESOS
+// =========================================================
+function limpiarTextoSelectPremiumEgresos(texto) {
+  if (texto == null) return "";
+
+  texto = String(texto);
+  texto = texto.replace(/\s+/g, " ").trim();
+
+  if (
+    texto === "" ||
+    texto.toLowerCase() === "seleccione" ||
+    texto.toLowerCase() === "seleccione cuenta" ||
+    texto.toLowerCase() === "nothing selected"
+  ) {
+    return "";
+  }
+
+  return texto;
+}
+
+function obtenerTextoSelectPremiumEgresos(selector) {
+  var $select = $(selector);
+  var texto = "";
+
+  if (!$select.length) {
+    return "";
+  }
+
+  var $option = $select.find("option:selected");
+
+  if ($option.length) {
+    texto = $option.text();
+  }
+
+  texto = limpiarTextoSelectPremiumEgresos(texto);
+
+  if (!texto && $select.hasClass("selectpicker")) {
+    var $button = $select.parent(".bootstrap-select").find(".filter-option-inner-inner");
+
+    if ($button.length) {
+      texto = limpiarTextoSelectPremiumEgresos($button.text());
+    }
+  }
+
+  return texto;
+}
+
+function actualizarResumenFooterCuentaEgreso() {
+  var cuentaTexto = obtenerTextoSelectPremiumEgresos("#formEgresosContables #cuenta_egresos");
+  var $box = $("#footerCuentaEgresosResumen");
+  var $text = $("#footerCuentaEgresosTexto");
+
+  if (!$box.length || !$text.length) {
+    return;
+  }
+
+  if (cuentaTexto !== "") {
+    $box.removeClass("is-empty");
+    $text.html(escapeHtmlEgresos(cuentaTexto));
+  } else {
+    $box.addClass("is-empty");
+    $text.html("Seleccione una cuenta contable");
+  }
+}
+
+function limpiarResumenFooterCuentaEgreso() {
+  var $box = $("#footerCuentaEgresosResumen");
+  var $text = $("#footerCuentaEgresosTexto");
+
+  if (!$box.length || !$text.length) {
+    return;
+  }
+
+  $box.addClass("is-empty");
+  $text.html("Seleccione una cuenta contable");
 }
 
 function renderEgresoInfo(main, muted, iconClass) {
@@ -338,6 +415,25 @@ $(() => {
     $(this).find('.selectpicker').val('').selectpicker('refresh');
     listar_gastos_contabilidad();
   });
+
+  $(document).off("changed.bs.select change", "#formEgresosContables #cuenta_egresos");
+  $(document).on("changed.bs.select change", "#formEgresosContables #cuenta_egresos", function () {
+    actualizarResumenFooterCuentaEgreso();
+  });
+
+  $("#modalEgresosContables").on('shown.bs.modal', function () {
+    actualizarResumenFooterCuentaEgreso();
+
+    setTimeout(function () {
+      actualizarResumenFooterCuentaEgreso();
+    }, 150);
+
+    $(this).find('#formEgresosContables #proveedor_egresos').focus();
+  });
+
+  $("#modalEgresosContables").on('hidden.bs.modal', function () {
+    limpiarResumenFooterCuentaEgreso();
+  });
 });
 
 // ===============================
@@ -483,7 +579,6 @@ var listar_gastos_contabilidad = function() {
             '</div>';
         }
       },
-
       {
         data: "fecha_registro",
         render: function(data, type) {
@@ -527,7 +622,6 @@ var listar_gastos_contabilidad = function() {
           return renderEgresoInfo(data || "Sin proveedor", "Proveedor", "fas fa-truck");
         }
       },
-
       {
         data: "factura",
         render: function(data, type, row) {
@@ -555,7 +649,6 @@ var listar_gastos_contabilidad = function() {
             '</div>';
         }
       },
-
       {
         data: "subtotal",
         className: "dt-body-right text-right",
@@ -589,7 +682,6 @@ var listar_gastos_contabilidad = function() {
           return '<div class="egresos-observacion">' + escapeHtmlEgresos(texto) + '</div>';
         }
       },
-
       {
         data: "estado",
         className: "text-center align-middle",
@@ -611,68 +703,20 @@ var listar_gastos_contabilidad = function() {
         searchable: false,
         className: "text-center text-nowrap align-middle"
       },
-      {
-        targets: 1,
-        width: "7.14%"
-      },
-      {
-        targets: 2,
-        width: "7.14%"
-      },
-      {
-        targets: 3,
-        width: "7.14%"
-      },
-      {
-        targets: 4,
-        width: "7.14%"
-      },
-      {
-        targets: 5,
-        width: "7.14%"
-      },
-      {
-        targets: 6,
-        width: "7.14%"
-      },
-      {
-        targets: 7,
-        width: "7.14%"
-      },
-      {
-        targets: 8,
-        width: "7.14%",
-        className: "text-right text-nowrap"
-      },
-      {
-        targets: 9,
-        width: "7.14%",
-        className: "text-right text-nowrap"
-      },
-      {
-        targets: 10,
-        width: "7.14%",
-        className: "text-right text-nowrap"
-      },
-      {
-        targets: 11,
-        width: "7.14%",
-        className: "text-right text-nowrap"
-      },
-      {
-        targets: 12,
-        width: "7.14%",
-        className: "text-right text-nowrap"
-      },
-      {
-        targets: 13,
-        width: "7.14%"
-      },
-      {
-        targets: 14,
-        width: "7.14%",
-        className: "text-center text-nowrap"
-      }
+      { targets: 1, width: "7.14%" },
+      { targets: 2, width: "7.14%" },
+      { targets: 3, width: "7.14%" },
+      { targets: 4, width: "7.14%" },
+      { targets: 5, width: "7.14%" },
+      { targets: 6, width: "7.14%" },
+      { targets: 7, width: "7.14%" },
+      { targets: 8, width: "7.14%", className: "text-right text-nowrap" },
+      { targets: 9, width: "7.14%", className: "text-right text-nowrap" },
+      { targets: 10, width: "7.14%", className: "text-right text-nowrap" },
+      { targets: 11, width: "7.14%", className: "text-right text-nowrap" },
+      { targets: 12, width: "7.14%", className: "text-right text-nowrap" },
+      { targets: 13, width: "7.14%" },
+      { targets: 14, width: "7.14%", className: "text-center text-nowrap" }
     ],
 
     buttons: [
@@ -872,6 +916,8 @@ var edit_reporte_gastos_dataTable = function(tbody, table) {
       $cat.html('<option value="">Cargando categorías...</option>').selectpicker('refresh');
     }
 
+    limpiarResumenFooterCuentaEgreso();
+
     var reqProv = $.ajax({
       url: "<?php echo SERVERURL; ?>core/getProveedores.php",
       type: "POST",
@@ -982,6 +1028,8 @@ var edit_reporte_gastos_dataTable = function(tbody, table) {
               if (++i < 8) {
                 setTimeout(keep, 60);
               }
+
+              actualizarResumenFooterCuentaEgreso();
             })();
           });
 
@@ -1000,6 +1048,12 @@ var edit_reporte_gastos_dataTable = function(tbody, table) {
           if ($cat.length) {
             setSelectpickerByValueOrText($cat, (v.categoria_gastos_id || data.categoria_gastos_id || data.categoria_id), v.categoria || data.categoria);
           }
+
+          actualizarResumenFooterCuentaEgreso();
+
+          setTimeout(function () {
+            actualizarResumenFooterCuentaEgreso();
+          }, 150);
 
           if (v.factura_pdf && v.factura_pdf !== '') {
             $('#filePreview').html(
@@ -1045,6 +1099,12 @@ var edit_reporte_gastos_dataTable = function(tbody, table) {
             $cat.prop('disabled', true).selectpicker('refresh');
           }
 
+          actualizarResumenFooterCuentaEgreso();
+
+          setTimeout(function () {
+            actualizarResumenFooterCuentaEgreso();
+          }, 150);
+
           $form.find('#subtotal_egresos, #isv_egresos, #descuento_egresos, #nc_egresos, #total_egresos').prop('disabled', true);
           $form.find('#buscar_cuenta_egresos, #buscar_empresa_egresos').hide();
 
@@ -1084,6 +1144,8 @@ $(document).on('hidden.bs.modal', '#modalEgresosContables', function() {
   $('#formEgresosContables #fecha_egresos')
     .prop('disabled', false)
     .removeAttr('data-original-fecha');
+
+  limpiarResumenFooterCuentaEgreso();
 });
 
 // ===============================
@@ -1224,7 +1286,6 @@ var anular_gastos_dataTable = function(tbody, table) {
 };
 
 // ===============================
-// ===============================
 //  Modal egresos
 // ===============================
 function modal_egresos_contabilidad() {
@@ -1256,6 +1317,8 @@ function modal_egresos_contabilidad() {
 
   $form.find('select.selectpicker').val('').selectpicker('refresh');
   $form.find('input[type="text"], input[type="number"], textarea').val('');
+
+  limpiarResumenFooterCuentaEgreso();
 
   setTimeout(function() {
     var remembered = '';
@@ -1316,6 +1379,7 @@ function modal_egresos_contabilidad() {
   setupFileUpload();
   inicializarCalculoEgresos();
   calcularTotalEgreso();
+  actualizarResumenFooterCuentaEgreso();
 
   $('#modalEgresosContables').modal({
     show: true,
@@ -1328,12 +1392,16 @@ function modal_egresos_contabilidad() {
 $(document).off('reset', '#formEgresosContables');
 $(document).on('reset', '#formEgresosContables', function() {
   resetPdfUI();
+  limpiarResumenFooterCuentaEgreso();
 
   setTimeout(function() {
     inicializarCalculoEgresos();
     calcularTotalEgreso();
+    actualizarResumenFooterCuentaEgreso();
   }, 0);
 });
+
+// ===============================
 //  Cargar catálogos
 // ===============================
 function getProveedorEgresos() {
@@ -1389,6 +1457,12 @@ function getCuentaEgresos() {
     async: true,
     success: function(data) {
       $('#formEgresosContables #cuenta_egresos').html(data).selectpicker('refresh');
+
+      actualizarResumenFooterCuentaEgreso();
+
+      setTimeout(function () {
+        actualizarResumenFooterCuentaEgreso();
+      }, 150);
     }
   });
 }
@@ -2236,6 +2310,8 @@ function deleteCategoriaGastos(categoria_gastos_id, categoria) {
     }
   });
 }
+
+// ===============================
 //  Reporte categorías
 // ===============================
 var listar_reporte_categoria_egresos = function() {

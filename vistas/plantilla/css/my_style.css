@@ -13213,3 +13213,236 @@ table.dataTable tbody tr.shown td {
 /* =========================================================
    FIN MODAL GLOBAL ÚNICO: VISTA PREVIA DE DOCUMENTOS
 ========================================================= */
+
+/* =========================================================
+   RESUMEN PREMIUM EN FOOTER DE MODALES
+   Reutilizable para ingresos, egresos y otros formularios
+   ========================================================= */
+
+.modal-footer {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.modal-footer-context {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 16px;
+  margin-bottom: 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.98),
+    rgba(248, 251, 255, 0.96)
+  );
+  box-shadow:
+    0 12px 28px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  position: relative;
+  overflow: hidden;
+}
+
+.modal-footer-context::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 16px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(59, 130, 246, 0),
+    rgba(59, 130, 246, 0.45),
+    rgba(59, 130, 246, 0)
+  );
+}
+
+.modal-footer-context-left {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 13px;
+  position: relative;
+  z-index: 1;
+}
+
+.modal-footer-context-icon {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2563eb;
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.16),
+    rgba(37, 99, 235, 0.08)
+  );
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  box-shadow:
+    0 8px 18px rgba(37, 99, 235, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  font-size: 18px;
+}
+
+.modal-footer-context-info {
+  min-width: 0;
+}
+
+.modal-footer-context-label {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.65px;
+  color: #64748b;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.modal-footer-context-value {
+  display: block;
+  max-width: 100%;
+  font-size: 15px;
+  font-weight: 900;
+  color: #0f172a;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.modal-footer-context-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 135px;
+  position: relative;
+  z-index: 1;
+}
+
+.modal-footer-context-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.09);
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+}
+
+.modal-footer-context.is-empty {
+  border-color: rgba(148, 163, 184, 0.24);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.98),
+    rgba(248, 250, 252, 0.96)
+  );
+}
+
+.modal-footer-context.is-empty::before {
+  background: linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0),
+    rgba(148, 163, 184, 0.35),
+    rgba(148, 163, 184, 0)
+  );
+}
+
+.modal-footer-context.is-empty .modal-footer-context-icon {
+  color: #64748b;
+  background: linear-gradient(
+    135deg,
+    rgba(148, 163, 184, 0.16),
+    rgba(100, 116, 139, 0.07)
+  );
+  border-color: rgba(100, 116, 139, 0.18);
+  box-shadow:
+    0 8px 18px rgba(100, 116, 139, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.modal-footer-context.is-empty .modal-footer-context-value {
+  color: #64748b;
+  font-weight: 800;
+}
+
+.modal-footer-context.is-empty .modal-footer-context-badge {
+  color: #64748b;
+  background: rgba(100, 116, 139, 0.08);
+  border-color: rgba(100, 116, 139, 0.16);
+}
+
+.modal-footer-actions {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Variante para egresos si querés diferenciarlo levemente */
+.modal-footer-context.context-egreso .modal-footer-context-icon {
+  color: #dc2626;
+  background: linear-gradient(
+    135deg,
+    rgba(220, 38, 38, 0.14),
+    rgba(248, 113, 113, 0.07)
+  );
+  border-color: rgba(220, 38, 38, 0.18);
+  box-shadow:
+    0 8px 18px rgba(220, 38, 38, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.modal-footer-context.context-egreso .modal-footer-context-badge {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.16);
+}
+
+.modal-footer-context.context-egreso::before {
+  background: linear-gradient(
+    90deg,
+    rgba(220, 38, 38, 0),
+    rgba(220, 38, 38, 0.38),
+    rgba(220, 38, 38, 0)
+  );
+}
+
+/* Responsive */
+@media (max-width: 767.98px) {
+  .modal-footer-context {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 14px;
+  }
+
+  .modal-footer-context-right {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .modal-footer-context-value {
+    white-space: normal;
+  }
+
+  .modal-footer-actions {
+    justify-content: stretch;
+  }
+
+  .modal-footer-actions .btn {
+    width: 100%;
+  }
+}

@@ -947,7 +947,8 @@ function printIngresos(ingresos_id) {
   }
 
   var url = '<?php echo SERVERURL; ?>core/generaIngresos.php?ingresos_id=' + encodeURIComponent(ingresos_id);
-  window.open(url, '_blank');
+
+  abrirDocumentoEnModal(url, 'Registro de Ingreso');
 }
 
 function modal_ingresos_contabilidad() {

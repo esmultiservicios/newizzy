@@ -151,13 +151,11 @@
                                         <button
                                             class="btn btn-warning mr-2"
                                             type="button"
-                                            id="btn_retiro_caja"
-                                            data-toggle="modal"
-                                            data-target="#modalRetiroCaja">
+                                            id="btn_retiro_caja">
                                             <div class="sb-nav-link-icon"></div>
                                             <i class="fas fa-money-bill-wave fa-lg"></i> Retirar Caja
                                         </button>
-                                    </span>                                 
+                                    </span>                          
 
                                 </div>
 

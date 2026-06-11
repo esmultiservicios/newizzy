@@ -5813,3 +5813,62 @@
     </div>
 </div>
 <!--FIN MODAL PARA FORMULARIO DESCUENTOS EN FACTURACION / COTIZACION-->
+
+<!-- =========================================================
+     MODAL GLOBAL ÚNICO: VISTA PREVIA DE DOCUMENTOS
+========================================================= -->
+<div class="modal fade" id="modalPreviewDocumento" tabindex="-1" role="dialog" aria-labelledby="modalPreviewDocumentoLabel" aria-hidden="true">
+  <div class="modal-dialog modal-documento-preview-dialog" role="document">
+    <div class="modal-content modal-documento-preview-content">
+
+      <div class="modal-documento-preview-header">
+        <div class="modal-documento-preview-title-wrap">
+          <div class="modal-documento-preview-icon">
+            <i class="fas fa-file-pdf"></i>
+          </div>
+
+          <h5 class="modal-documento-preview-title" id="modalPreviewDocumentoLabel">
+            Vista previa del documento
+          </h5>
+        </div>
+
+        <div class="modal-documento-preview-actions">
+          <button type="button" class="modal-documento-preview-btn modal-documento-preview-btn-print" onclick="imprimirDocumentoPreview();">
+            <i class="fas fa-print"></i>
+            <span>Imprimir</span>
+          </button>
+
+          <a href="#" target="_blank" id="btnAbrirDocumentoNuevaVentana" class="modal-documento-preview-btn modal-documento-preview-btn-open">
+            <i class="fas fa-external-link-alt"></i>
+            <span>Abrir</span>
+          </a>
+
+          <button type="button" class="modal-documento-preview-btn modal-documento-preview-btn-close" data-dismiss="modal" aria-label="Cerrar">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-documento-preview-body">
+
+        <!-- LOADING DEL DOCUMENTO -->
+        <div id="loadingPreviewDocumento" class="modal-documento-preview-loading">
+          <div class="modal-documento-preview-loading-card">
+            <div class="modal-documento-preview-spinner"></div>
+            <div class="modal-documento-preview-loading-title">Cargando documento...</div>
+            <div class="modal-documento-preview-loading-text">Por favor espere un momento.</div>
+          </div>
+        </div>
+
+        <iframe
+          id="iframePreviewDocumento"
+          src="about:blank"
+          title="Vista previa del documento"
+          class="modal-documento-preview-iframe">
+        </iframe>
+      </div>
+
+    </div>
+  </div>
+</div>
+<!-- FIN MODAL REUTILIZABLE VISUALIZACION DE DOCUMENTOS -->

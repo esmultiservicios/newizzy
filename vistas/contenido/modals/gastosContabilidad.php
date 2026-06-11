@@ -8,15 +8,17 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
+
             <div class="modal-body">
                 <form class="form-horizontal FormularioAjax" id="formEgresosContables" action="" method="POST" data-form="" enctype="multipart/form-data">
-					<input type="hidden" required readonly id="egresos_id" name="egresos_id">				
+                    <input type="hidden" required readonly id="egresos_id" name="egresos_id">              
                     
                     <!-- Sección de Datos del Egreso -->
                     <div class="card border-primary mb-4">
                         <div class="card-header bg-primary text-white">
                             <h5 class="mb-0"><i class="fas fa-file-invoice-dollar mr-2"></i>Datos del Egreso</h5>
                         </div>
+
                         <div class="card-body">
                             <div class="form-row">
                                 <div class="col-md-3 mb-3">
@@ -24,6 +26,7 @@
                                     <input type="date" required id="fecha_egresos" name="fecha_egresos" data-remember="date" data-rem-key="egresos:lastFecha" value="<?php echo date ("Y-m-d");?>" class="form-control">
                                     <small class="form-text text-muted">Fecha de la factura del egreso</small>
                                 </div>
+
                                 <div class="col-md-6 mb-3">
                                     <label for="proveedor_egresos"><i class="fas fa-user-tie mr-1"></i>Entregado a <span class="priority">*</span></label>
                                     <select id="proveedor_egresos" name="proveedor_egresos" class="selectpicker form-control" data-live-search="true" title="Seleccione proveedor" required>
@@ -35,6 +38,7 @@
                                         <i class="fas fa-plus-circle mr-1"></i> Agregar Nuevo Proveedor
                                     </button>
                                 </div>
+
                                 <div class="col-md-3 mb-3">
                                     <label for="cuenta_egresos"><i class="fas fa-piggy-bank mr-1"></i>Cuenta <span class="priority">*</span></label>
                                     <select id="cuenta_egresos" name="cuenta_egresos" class="selectpicker form-control" data-live-search="true" title="Seleccione cuenta" required>
@@ -51,6 +55,7 @@
                         <div class="card-header bg-primary text-white">
                             <h5 class="mb-0"><i class="fas fa-file-alt mr-2"></i>Detalles de Factura</h5>
                         </div>
+
                         <div class="card-body">
                             <div class="form-row">
                                 <div class="col-md-3 mb-3">
@@ -60,6 +65,7 @@
                                     </select>
                                     <small class="form-text text-muted">Categoría del gasto</small>
                                 </div>
+
                                 <div class="col-md-9 mb-3">
                                     <label for="factura_egresos"><i class="fas fa-file-invoice mr-1"></i>Factura <span class="priority">*</span></label>
 
@@ -81,28 +87,27 @@
                                         <label class="small mb-1"><strong>Factura PDF</strong></label>
 
                                         <div class="file-upload-container">
-                                        <div class="file-upload-area" id="fileDropArea">
-                                            <i class="fas fa-file-pdf fa-3x mb-2"></i>
-                                            <p class="mb-2">
-                                            <span class="drag-text">Arrastra tu archivo PDF aquí,</span>
-                                            <button type="button" class="btn btn-primary btn-sm ml-1 btn-file-chooser" id="btnSelectPdf">
-                                                <i class="fas fa-file-pdf mr-1"></i> Seleccionar PDF
-                                            </button>
-                                            <span class="paste-text ml-1">o pega en cualquier área</span>
-                                            </p>
+                                            <div class="file-upload-area" id="fileDropArea">
+                                                <i class="fas fa-file-pdf fa-3x mb-2"></i>
+                                                <p class="mb-2">
+                                                    <span class="drag-text">Arrastra tu archivo PDF aquí,</span>
+                                                    <button type="button" class="btn btn-primary btn-sm ml-1 btn-file-chooser" id="btnSelectPdf">
+                                                        <i class="fas fa-file-pdf mr-1"></i> Seleccionar PDF
+                                                    </button>
+                                                    <span class="paste-text ml-1">o pega en cualquier área</span>
+                                                </p>
 
-                                            <!-- input file oculto, disparado por el botón -->
-                                            <input type="file" id="factura_pdf" name="factura_pdf" accept=".pdf" class="file-upload-input d-none">
-                                            <div class="file-preview" id="filePreview"></div>
-                                        </div>
+                                                <!-- input file oculto, disparado por el botón -->
+                                                <input type="file" id="factura_pdf" name="factura_pdf" accept=".pdf" class="file-upload-input d-none">
+                                                <div class="file-preview" id="filePreview"></div>
+                                            </div>
 
-                                        <div class="file-info" id="fileInfo">Ningún archivo seleccionado</div>
+                                            <div class="file-info" id="fileInfo">Ningún archivo seleccionado</div>
                                         </div>
 
                                         <small class="form-text text-muted">Documento PDF de la factura (Máx. 5MB)</small>
                                     </div>
                                 </div>                       
-
                             </div>
                         </div>
                     </div>
@@ -112,6 +117,7 @@
                         <div class="card-header bg-primary text-white">
                             <h5 class="mb-0"><i class="fas fa-calculator mr-2"></i>Montos</h5>
                         </div>
+
                         <div class="card-body">
                             <div class="form-row">
                                 <div class="col-md-3 mb-3">
@@ -119,22 +125,26 @@
                                     <input type="number" required id="subtotal_egresos" name="subtotal_egresos" placeholder="0.00" class="form-control" step="0.01">
                                     <small class="form-text text-muted">Subtotal antes de impuestos</small>
                                 </div>
+
                                 <div class="col-md-3 mb-3">
                                     <label for="isv_egresos"><i class="fas fa-percent mr-1"></i>ISV</label>
                                     <input type="number" id="isv_egresos" name="isv_egresos" placeholder="0.00" class="form-control" step="0.01" value="0">
                                     <small class="form-text text-muted">Impuesto sobre ventas</small>
                                 </div>
+
                                 <div class="col-md-3 mb-3">
                                     <label for="descuento_egresos"><i class="fas fa-tag mr-1"></i>Descuento</label>
                                     <input type="number" id="descuento_egresos" name="descuento_egresos" placeholder="0.00" class="form-control" step="0.01" value="0">
                                     <small class="form-text text-muted">Descuentos aplicados</small>
                                 </div>
+
                                 <div class="col-md-3 mb-3">
                                     <label for="nc_egresos"><i class="fas fa-file-invoice-dollar mr-1"></i>Nota Crédito</label>
                                     <input type="number" id="nc_egresos" name="nc_egresos" placeholder="0.00" class="form-control" step="0.01" value="0">
                                     <small class="form-text text-muted">Notas de crédito aplicadas</small>
                                 </div>
                             </div>
+
                             <div class="form-row">
                                 <div class="col-md-3 mb-3">
                                     <label for="total_egresos"><i class="fas fa-money-bill-wave mr-1"></i>Total</label>
@@ -150,6 +160,7 @@
                         <div class="card-header bg-primary text-white">
                             <h5 class="mb-0"><i class="fas fa-clipboard mr-2"></i>Observaciones</h5>
                         </div>
+
                         <div class="card-body">
                             <div class="form-row">
                                 <div class="col-md-12 mb-3">
@@ -164,16 +175,46 @@
                     <div class="RespuestaAjax"></div>
                 </form>
             </div>
+
             <div class="modal-footer">
-                <button class="btn btn-danger" data-dismiss="modal">
-                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
-                </button>
-                <button class="btn btn-success" type="submit" style="display: none;" id="reg_egresosContabilidad" form="formEgresosContables">
-                    <i class="far fa-save fa-lg mr-1"></i> Registrar
-                </button>
-                <button class="btn btn-success" type="submit" style="display: none;" id="edi_egresosContabilidad" form="formEgresosContables">
-                    <i class="fas fa-edit fa-lg mr-1"></i> Confirmar
-                </button>
+
+                <!-- RESUMEN PREMIUM DE CUENTA SELECCIONADA -->
+                <div class="modal-footer-context context-egreso is-empty" id="footerCuentaEgresosResumen">
+                    <div class="modal-footer-context-left">
+                        <div class="modal-footer-context-icon">
+                            <i class="fas fa-piggy-bank"></i>
+                        </div>
+
+                        <div class="modal-footer-context-info">
+                            <span class="modal-footer-context-label">Cuenta seleccionada para este egreso</span>
+                            <span class="modal-footer-context-value" id="footerCuentaEgresosTexto">
+                                Seleccione una cuenta contable
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer-context-right">
+                        <span class="modal-footer-context-badge">
+                            <i class="fas fa-info-circle"></i>
+                            Egreso
+                        </span>
+                    </div>
+                </div>
+
+                <div class="modal-footer-actions">
+                    <button class="btn btn-danger" data-dismiss="modal">
+                        <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                    </button>
+
+                    <button class="btn btn-success" type="submit" style="display: none;" id="reg_egresosContabilidad" form="formEgresosContables">
+                        <i class="far fa-save fa-lg mr-1"></i> Registrar
+                    </button>
+
+                    <button class="btn btn-success" type="submit" style="display: none;" id="edi_egresosContabilidad" form="formEgresosContables">
+                        <i class="fas fa-edit fa-lg mr-1"></i> Confirmar
+                    </button>
+                </div>
+
             </div>
         </div>
     </div>

@@ -55,12 +55,30 @@ $(() => {
     });
   });
 
+  // =========================================================
+  // RESUMEN PREMIUM DE CUENTA EN FOOTER DEL MODAL
+  // =========================================================
+  $(document).off("changed.bs.select change", "#formIngresosContables #cuenta_ingresos");
+  $(document).on("changed.bs.select change", "#formIngresosContables #cuenta_ingresos", function () {
+    actualizarResumenFooterCuentaIngreso();
+  });
+
   $("#modal_buscar_clientes_facturacion").on('shown.bs.modal', function () {
     $(this).find('#formulario_busqueda_clientes_facturacion #buscar').focus();
   });
 
   $("#modalIngresosContables").on('shown.bs.modal', function () {
+    actualizarResumenFooterCuentaIngreso();
+
+    setTimeout(function () {
+      actualizarResumenFooterCuentaIngreso();
+    }, 150);
+
     $(this).find('#formIngresosContables #recibide_ingresos').focus();
+  });
+
+  $("#modalIngresosContables").on('hidden.bs.modal', function () {
+    limpiarResumenFooterCuentaIngreso();
   });
 });
 
@@ -141,6 +159,82 @@ function escapeHtmlIngresos(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function limpiarTextoSelectPremium(texto) {
+  if (texto == null) return "";
+
+  texto = String(texto);
+
+  texto = texto.replace(/\s+/g, " ").trim();
+
+  if (
+    texto === "" ||
+    texto.toLowerCase() === "seleccione" ||
+    texto.toLowerCase() === "seleccione cuenta" ||
+    texto.toLowerCase() === "nothing selected"
+  ) {
+    return "";
+  }
+
+  return texto;
+}
+
+function obtenerTextoSelectPremium(selector) {
+  var $select = $(selector);
+  var texto = "";
+
+  if (!$select.length) {
+    return "";
+  }
+
+  var $option = $select.find("option:selected");
+
+  if ($option.length) {
+    texto = $option.text();
+  }
+
+  texto = limpiarTextoSelectPremium(texto);
+
+  if (!texto && $select.hasClass("selectpicker")) {
+    var $button = $select.parent(".bootstrap-select").find(".filter-option-inner-inner");
+
+    if ($button.length) {
+      texto = limpiarTextoSelectPremium($button.text());
+    }
+  }
+
+  return texto;
+}
+
+function actualizarResumenFooterCuentaIngreso() {
+  var cuentaTexto = obtenerTextoSelectPremium("#formIngresosContables #cuenta_ingresos");
+  var $box = $("#footerCuentaIngresosResumen");
+  var $text = $("#footerCuentaIngresosTexto");
+
+  if (!$box.length || !$text.length) {
+    return;
+  }
+
+  if (cuentaTexto !== "") {
+    $box.removeClass("is-empty");
+    $text.html(escapeHtmlIngresos(cuentaTexto));
+  } else {
+    $box.addClass("is-empty");
+    $text.html("Seleccione una cuenta contable");
+  }
+}
+
+function limpiarResumenFooterCuentaIngreso() {
+  var $box = $("#footerCuentaIngresosResumen");
+  var $text = $("#footerCuentaIngresosTexto");
+
+  if (!$box.length || !$text.length) {
+    return;
+  }
+
+  $box.addClass("is-empty");
+  $text.html("Seleccione una cuenta contable");
 }
 
 function renderIngresoInfo(main, muted, iconClass) {
@@ -853,6 +947,8 @@ var edit_reporte_ingresos_dataTable = function (tbody, table) {
               if (++i < 8) {
                 setTimeout(keep, 60);
               }
+
+              actualizarResumenFooterCuentaIngreso();
             })();
           });
 
@@ -866,6 +962,12 @@ var edit_reporte_ingresos_dataTable = function (tbody, table) {
 
           $form.find('#cuenta_ingresos').val(v.cuentas_id || "").selectpicker('refresh');
           $form.find('#empresa_ingresos').val(v.empresa_id || "").selectpicker('refresh');
+
+          actualizarResumenFooterCuentaIngreso();
+
+          setTimeout(function () {
+            actualizarResumenFooterCuentaIngreso();
+          }, 150);
 
           var clienteId    = (v.clientes_id != null && v.clientes_id !== '') ? String(v.clientes_id) : String(data.clientes_id || data.cliente_id || '');
           var clienteTexto = v.recibide || data.cliente || (clienteId ? ('Cliente #' + clienteId) : 'Cliente');
@@ -884,6 +986,12 @@ var edit_reporte_ingresos_dataTable = function (tbody, table) {
 
           $form.find('#cuenta_ingresos').prop('disabled', true).selectpicker('refresh');
           $form.find('#empresa_ingresos').prop('disabled', true).selectpicker('refresh');
+
+          actualizarResumenFooterCuentaIngreso();
+
+          setTimeout(function () {
+            actualizarResumenFooterCuentaIngreso();
+          }, 150);
 
           $form.find('#subtotal_ingresos, #isv_ingresos, #descuento_ingresos, #nc_ingresos, #total_ingresos').prop('disabled', true);
 
@@ -920,6 +1028,8 @@ $(document).on('hidden.bs.modal', '#modalIngresosContables', function () {
   $('#formIngresosContables #fecha_ingresos')
     .prop('disabled', false)
     .removeAttr('data-original-fecha');
+
+  limpiarResumenFooterCuentaIngreso();
 });
 
 // ===== Acciones de la tabla: REPORTE =====
@@ -967,6 +1077,8 @@ function modal_ingresos_contabilidad() {
 
   $form.find('select.selectpicker').prop('disabled', false).val('').selectpicker('refresh');
   $form.find('input[type="text"], input[type="number"], textarea').prop('disabled', false).val('');
+
+  limpiarResumenFooterCuentaIngreso();
 
   var $f = $form.find('#fecha_ingresos');
 
@@ -1033,6 +1145,7 @@ function modal_ingresos_contabilidad() {
   $('#formIngresosContables #pro_ingresos_contabilidad').val("Registro");
 
   calcularTotalIngreso();
+  actualizarResumenFooterCuentaIngreso();
 
   $('#modalIngresosContables').modal({
     show: true,
@@ -1062,6 +1175,12 @@ function getCuentaIngresos() {
     async: true,
     success: function (data) {
       $('#formIngresosContables #cuenta_ingresos').html(data).selectpicker('refresh');
+
+      actualizarResumenFooterCuentaIngreso();
+
+      setTimeout(function () {
+        actualizarResumenFooterCuentaIngreso();
+      }, 150);
     },
     error: function () {
       showNotify("error", "Error", "No se pudieron cargar las cuentas contables");

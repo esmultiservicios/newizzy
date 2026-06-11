@@ -8,6 +8,7 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
+
             <div class="modal-body">
                 <form class="form-horizontal FormularioAjax" id="formIngresosContables" action="" method="POST" data-form="" enctype="multipart/form-data">
                     <input type="hidden" required readonly id="ingresos_id" name="ingresos_id">
@@ -17,6 +18,7 @@
                         <div class="card-header bg-primary text-white">
                             <h5 class="mb-0"><i class="fas fa-file-invoice-dollar mr-2"></i>Datos del Ingreso</h5>
                         </div>
+
                         <div class="card-body">
                             <div class="form-row">
                                 <div class="col-md-3 mb-3">
@@ -24,6 +26,7 @@
                                     <input type="date" required id="fecha_ingresos" name="fecha_ingresos" data-remember="date" data-rem-key="ingresos:lastFecha" value="<?php echo date ("Y-m-d");?>" class="form-control">
                                     <small class="form-text text-muted">Fecha del documento del ingreso</small>
                                 </div>
+
                                 <div class="col-md-6 mb-3">
                                     <label for="recibide_ingresos"><i class="fas fa-user-tie mr-1"></i>Recibí de <span class="priority">*</span></label>
                                     <select id="recibide_ingresos" name="recibide_ingresos" class="selectpicker form-control" data-live-search="true" title="Seleccione cliente" required>
@@ -35,6 +38,7 @@
                                         <i class="fas fa-plus-circle mr-1"></i> Agregar Nuevo Cliente
                                     </button>
                                 </div>
+
                                 <div class="col-md-3 mb-3">
                                     <label for="cuenta_ingresos"><i class="fas fa-piggy-bank mr-1"></i>Cuenta <span class="priority">*</span></label>
                                     <select id="cuenta_ingresos" name="cuenta_ingresos" class="selectpicker form-control" data-live-search="true" title="Seleccione cuenta" required>
@@ -51,6 +55,7 @@
                         <div class="card-header bg-primary text-white">
                             <h5 class="mb-0"><i class="fas fa-file-alt mr-2"></i>Detalles de Documento</h5>
                         </div>
+
                         <div class="card-body">
                             <div class="form-row">
                                 <div class="col-md-6 mb-3">
@@ -77,6 +82,7 @@
                         <div class="card-header bg-primary text-white">
                             <h5 class="mb-0"><i class="fas fa-calculator mr-2"></i>Montos</h5>
                         </div>
+
                         <div class="card-body">
                             <div class="form-row">
                                 <div class="col-md-3 mb-3">
@@ -84,25 +90,29 @@
                                     <input type="number" required id="subtotal_ingresos" name="subtotal_ingresos" placeholder="0.00" class="form-control" step="0.01">
                                     <small class="form-text text-muted">Subtotal antes de impuestos</small>
                                 </div>
+
                                 <div class="col-md-3 mb-3">
                                     <label for="isv_ingresos"><i class="fas fa-percent mr-1"></i>ISV</label>
                                     <input type="number" id="isv_ingresos" name="isv_ingresos" placeholder="0.00" class="form-control" step="0.01" value="0">
                                     <small class="form-text text-muted">Impuesto sobre ventas</small>
                                 </div>
+
                                 <div class="col-md-3 mb-3">
                                     <label for="descuento_ingresos"><i class="fas fa-tag mr-1"></i>Descuento</label>
                                     <input type="number" id="descuento_ingresos" name="descuento_ingresos" placeholder="0.00" class="form-control" step="0.01" value="0">
                                     <small class="form-text text-muted">Descuentos aplicados</small>
                                 </div>
+
                                 <div class="col-md-3 mb-3">
                                     <label for="nc_ingresos"><i class="fas fa-money-bill-wave mr-1"></i>Nota Ingreso</label>
                                     <input type="number" id="nc_ingresos" name="nc_ingresos" placeholder="0.00" class="form-control" step="0.01" value="0">
                                     <small class="form-text text-muted">Nota de Credito</small>
                                 </div>
                             </div>
+
                             <div class="form-row">
                                 <div class="col-md-3 mb-3">
-                                <label for="total_ingresos"><i class="fas fa-money-bill-wave mr-1"></i>Total</label>
+                                    <label for="total_ingresos"><i class="fas fa-money-bill-wave mr-1"></i>Total</label>
                                     <input type="number" readonly id="total_ingresos" name="total_ingresos" placeholder="0.00" class="form-control" step="0.01" value="0">
                                     <small class="form-text text-muted">Total recibido</small>
                                 </div>
@@ -115,6 +125,7 @@
                         <div class="card-header bg-primary text-white">
                             <h5 class="mb-0"><i class="fas fa-clipboard mr-2"></i>Observaciones</h5>
                         </div>
+
                         <div class="card-body">
                             <div class="form-row">
                                 <div class="col-md-12 mb-3">
@@ -129,16 +140,46 @@
                     <div class="RespuestaAjax"></div>
                 </form>
             </div>
+
             <div class="modal-footer">
-                <button class="btn btn-danger" data-dismiss="modal">
-                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
-                </button>
-                <button class="btn btn-success" type="submit" style="display: none;" id="reg_ingresosContabilidad" form="formIngresosContables">
-                    <i class="far fa-save fa-lg mr-1"></i> Registrar
-                </button>
-                <button class="btn btn-success" type="submit" style="display: none;" id="edi_ingresosContabilidad" form="formIngresosContables">
-                    <i class="fas fa-edit fa-lg mr-1"></i> confirmar
-                </button>
+
+                <!-- RESUMEN PREMIUM DE CUENTA SELECCIONADA -->
+                <div class="modal-footer-context is-empty" id="footerCuentaIngresosResumen">
+                    <div class="modal-footer-context-left">
+                        <div class="modal-footer-context-icon">
+                            <i class="fas fa-piggy-bank"></i>
+                        </div>
+
+                        <div class="modal-footer-context-info">
+                            <span class="modal-footer-context-label">Cuenta seleccionada para este ingreso</span>
+                            <span class="modal-footer-context-value" id="footerCuentaIngresosTexto">
+                                Seleccione una cuenta contable
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer-context-right">
+                        <span class="modal-footer-context-badge">
+                            <i class="fas fa-info-circle"></i>
+                            Ingreso
+                        </span>
+                    </div>
+                </div>
+
+                <div class="modal-footer-actions">
+                    <button class="btn btn-danger" data-dismiss="modal">
+                        <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                    </button>
+
+                    <button class="btn btn-success" type="submit" style="display: none;" id="reg_ingresosContabilidad" form="formIngresosContables">
+                        <i class="far fa-save fa-lg mr-1"></i> Registrar
+                    </button>
+
+                    <button class="btn btn-success" type="submit" style="display: none;" id="edi_ingresosContabilidad" form="formIngresosContables">
+                        <i class="fas fa-edit fa-lg mr-1"></i> confirmar
+                    </button>
+                </div>
+
             </div>
         </div>
     </div>

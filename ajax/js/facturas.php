@@ -4676,9 +4676,28 @@ function obtenerPorcentajeISVFacturaEscritorio(isvId) {
 }
 
 function abrirEditarPrecioFacturaEscritorio(row_index) {
+  // Si no se pasó row_index, intentar obtener la fila activa
+  if (row_index === undefined || row_index === null) {
+    // Buscar la fila que tiene el foco o la última fila con producto
+    var $focusedRow = $('#invoice-form #invoiceItem tbody tr:has(input:focus)');
+    if ($focusedRow.length) {
+      row_index = $focusedRow.index();
+    } else {
+      // Buscar la última fila que tiene un producto cargado
+      var totalFilas = parseInt($('#bill_row').val(), 10) || 0;
+      for (var i = totalFilas; i >= 0; i--) {
+        var pid = $('#productos_id_' + i).val();
+        if (pid && pid !== '' && pid !== '0') {
+          row_index = i;
+          break;
+        }
+      }
+    }
+  }
+  
   row_index = parseInt(row_index, 10);
-
-  if (Number.isNaN(row_index) || row_index < 0) {
+  
+  if (isNaN(row_index) || row_index < 0) {
     showNotify('error', 'Error', 'No se pudo identificar la línea del producto');
     return;
   }
@@ -4687,8 +4706,13 @@ function abrirEditarPrecioFacturaEscritorio(row_index) {
   var producto = $('#invoice-form #invoiceItem #productName_' + row_index).val();
   var precioActual = parseFloat($('#invoice-form #invoiceItem #price_' + row_index).val()) || 0;
 
-  if (!productos_id || productos_id === '0') {
-    showNotify('error', 'Error', 'Debe seleccionar un producto antes de modificar el precio');
+  if (!productos_id || productos_id === '' || productos_id === '0') {
+    var barcode = $('#bar-code-id_' + row_index).val();
+    if (barcode && barcode !== '') {
+      showNotify('warning', 'Atención', 'El producto se agregó por código, pero falta el ID. Por favor, selecciónelo nuevamente de la lista.');
+    } else {
+      showNotify('error', 'Error', 'Debe seleccionar un producto antes de modificar el precio');
+    }
     return;
   }
 
@@ -6648,51 +6672,66 @@ $('#formulario_bill #search').on("click", function(e) {
 
 //INICIO DESCUENTO PRODUCTO EN FACTURACION
 $(() => {
-    $("#invoice-form #invoiceItem").off('click.descuentoFacturaEscritorio', '.aplicar_descuento');
-    $("#invoice-form #invoiceItem").on('click.descuentoFacturaEscritorio', '.aplicar_descuento', function(e) {
-        e.preventDefault();
+    $(() => {
+        $("#invoice-form #invoiceItem").off('click.descuentoFacturaEscritorio', '.aplicar_descuento');
+        $("#invoice-form #invoiceItem").on('click.descuentoFacturaEscritorio', '.aplicar_descuento', function(e) {
+            e.preventDefault();
 
-        $('#formDescuentoFacturacion')[0].reset();
+            // Obtener la fila actual
+            var row_index = $(this).closest("tr").index();
+            
+            // Validar si es una fila válida
+            if (row_index === undefined || row_index === null || row_index < 0) {
+                // Buscar la última fila con producto
+                var totalFilas = parseInt($('#bill_row').val(), 10) || 0;
+                for (var i = totalFilas; i >= 0; i--) {
+                    var pid = $('#productos_id_' + i).val();
+                    if (pid && pid !== '' && pid !== '0') {
+                        row_index = i;
+                        break;
+                    }
+                }
+            }
+            
+            var productos_id = $("#invoice-form #invoiceItem #productos_id_" + row_index).val();
+            var cliente_id = $('#invoice-form #cliente_id').val();
 
-        var row_index = $(this).closest("tr").index();
-        var col_index = $(this).closest("td").index();
+            if (cliente_id === "" || !productos_id || productos_id === "" || productos_id === "0") {
+                showNotify('error', 'Error', 'Debe seleccionar un cliente y un producto antes de continuar');
+                return;
+            }
 
-        var cliente_id = $('#invoice-form #cliente_id').val();
-        var productos_id = $("#invoice-form #invoiceItem #productos_id_" + row_index).val();
+            var producto = $("#invoice-form #invoiceItem #productName_" + row_index).val();
+            var precio = normalizarNumeroFactura($("#invoice-form #invoiceItem #price_" + row_index).val());
+            var cantidad = normalizarNumeroFactura($("#invoice-form #invoiceItem #quantity_" + row_index).val());
+            var descuentoActual = normalizarNumeroFactura($("#invoice-form #invoiceItem #discount_" + row_index).val());
+            var total = precio * cantidad;
 
-        if (cliente_id === "" || productos_id === "") {
-            showNotify('error', 'Error', 'Debe seleccionar un cliente y un producto antes de continuar');
-            return;
-        }
+            $('#formDescuentoFacturacion')[0].reset();
 
-        var producto = $("#invoice-form #invoiceItem #productName_" + row_index).val();
-        var precio = normalizarNumeroFactura($("#invoice-form #invoiceItem #price_" + row_index).val());
-        var cantidad = normalizarNumeroFactura($("#invoice-form #invoiceItem #quantity_" + row_index).val());
-        var descuentoActual = normalizarNumeroFactura($("#invoice-form #invoiceItem #discount_" + row_index).val());
-        var total = precio * cantidad;
+            $('#formDescuentoFacturacion #row_index').val(row_index);
+            $('#formDescuentoFacturacion #col_index').val($(this).closest("td").index());
+            $('#formDescuentoFacturacion #descuento_productos_id').val(productos_id);
+            $('#formDescuentoFacturacion #producto_descuento_fact').val(producto);
+            $('#formDescuentoFacturacion #precio_descuento_fact').val(total.toFixed(2));
+            $('#formDescuentoFacturacion #cantidad_descuento_fact').val(cantidad);
+            $('#formDescuentoFacturacion #descuento_fact').val(descuentoActual.toFixed(2));
 
-        $('#formDescuentoFacturacion #row_index').val(row_index);
-        $('#formDescuentoFacturacion #col_index').val(col_index);
-        $('#formDescuentoFacturacion #descuento_productos_id').val(productos_id);
-        $('#formDescuentoFacturacion #producto_descuento_fact').val(producto);
-        $('#formDescuentoFacturacion #precio_descuento_fact').val(total.toFixed(2));
-        $('#formDescuentoFacturacion #cantidad_descuento_fact').val(cantidad);
-        $('#formDescuentoFacturacion #descuento_fact').val(descuentoActual.toFixed(2));
+            if (total > 0) {
+                $('#formDescuentoFacturacion #porcentaje_descuento_fact').val(((descuentoActual / total) * 100).toFixed(2));
+            } else {
+                $('#formDescuentoFacturacion #porcentaje_descuento_fact').val('0.00');
+            }
 
-        if (total > 0) {
-            $('#formDescuentoFacturacion #porcentaje_descuento_fact').val(((descuentoActual / total) * 100).toFixed(2));
-        } else {
-            $('#formDescuentoFacturacion #porcentaje_descuento_fact').val('0.00');
-        }
+            $('#formDescuentoFacturacion #pro_descuento_fact').val("Aplicar Descuento");
 
-        $('#formDescuentoFacturacion #pro_descuento_fact').val("Aplicar Descuento");
+            getPermisosTipoUsuarioAccesosForms(getPrivilegioTipoUsuario());
 
-        getPermisosTipoUsuarioAccesosForms(getPrivilegioTipoUsuario());
-
-        $('#modalDescuentoFacturacion').modal({
-            show: true,
-            keyboard: false,
-            backdrop: 'static'
+            $('#modalDescuentoFacturacion').modal({
+                show: true,
+                keyboard: false,
+                backdrop: 'static'
+            });
         });
     });
 
@@ -6906,11 +6945,23 @@ function _localISOString(dt){
 function hayDetalleFactura(){
   const totalFilas = parseInt($('#bill_row').val(), 10) || 0;
   for (let i = 0; i <= totalFilas; i++){
+    // Buscar por cualquiera de estos campos
     const pid   = $('#productos_id_'+i).val();
     const pname = $('#productName_'+i).val();
     const qty   = $('#quantity_'+i).val();
     const price = $('#price_'+i).val();
-    if(pid && pname && qty && price) return true;
+    const barcode = $('#bar-code-id_'+i).val();
+    
+    // Si tiene código de barras o ID de producto, está cargado
+    if((barcode && barcode !== '') || (pid && pid !== '' && pid !== '0')){
+      return true;
+    }
+    if(pname && pname !== '' && pname !== 'Descripción del Producto'){
+      return true;
+    }
+    if(qty && parseFloat(qty) > 0 && price && parseFloat(price) > 0){
+      return true;
+    }
   }
   return false;
 }

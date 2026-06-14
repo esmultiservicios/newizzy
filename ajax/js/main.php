@@ -6395,7 +6395,7 @@ function hydrateCashForm() {
   var cambio = parseMonto($form.find('#cambio_efectivo').val());
 
   if (isFactura() && !isMultiOn()) {
-    var total = parseMonto($('#customer_bill_pay').val());
+    var total = parseMonto($('#modal_pagos_unificado #customer_bill_pay').val());
     cambio = Math.max(entregado - total, 0);
     aplicado = Math.min(total, entregado);
   }
@@ -8747,7 +8747,11 @@ $(function(){
       $('.comprobante_print_value').val(printVal);
       ensureAllFacturaIds();
 
-      if (SELECTED_METHODS.has('cash')) packCashForSubmit();
+      if (SELECTED_METHODS.has('cash')) {
+        syncAmountToForm('cash', LAST_APPLIED_AMOUNTS.cash || 0);
+        packCashForSubmit();
+    }
+
       if (SELECTED_METHODS.has('card')) { syncAmountToForm('card', LAST_APPLIED_AMOUNTS.card || 0); packCardForSubmit(); }
       if (SELECTED_METHODS.has('transfer')) { syncAmountToForm('transfer', LAST_APPLIED_AMOUNTS.transfer || 0); packTransferForSubmit(); }
       if (SELECTED_METHODS.has('check')) { syncAmountToForm('check', LAST_APPLIED_AMOUNTS.check || 0); packChequeForSubmit(); }

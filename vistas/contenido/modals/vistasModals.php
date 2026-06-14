@@ -5719,77 +5719,52 @@
  <!--FIN MODAL PARA FORMULARIO PRECIOS EN FACTURACION / COTIZACION-->
 
 <!--INICIO MODAL PARA FORMULARIO DESCUENTOS EN FACTURACION / COTIZACION-->
-<div class="modal fade" id="modalDescuentoFacturacion">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+<div class="modal fade" id="modalDescuentoFacturacion" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Descuento</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header bg-info text-white">
+                <h4 class="modal-title">
+                    <i class="fas fa-percent"></i> Descuento Edwin
+                </h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-
-            <div class="container"></div>
 
             <div class="modal-body">
                 <form class="form-horizontal" id="formDescuentoFacturacion" action="" method="POST" data-form=""
                     enctype="multipart/form-data">
 
-                    <div class="form-row">
-                        <div class="col-md-12 mb-3">
-                            <input type="hidden" required="required" readonly id="descuento_productos_id"
-                                name="descuento_productos_id" />
-
-                            <input type="hidden" required="required" readonly id="row_index" name="row_index" />
-
-                            <input type="hidden" required="required" readonly id="col_index" name="col_index" />
-
-                            <div class="input-group mb-3">
-                                <input type="text" required readonly id="pro_descuento_fact" name="pro_descuento_fact"
-                                    class="form-control" />
-
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div>
-                                        <i class="fa fa-plus-square fa-lg"></i>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <input type="hidden" id="descuento_productos_id" name="descuento_productos_id" />
+                    <input type="hidden" id="row_index" name="row_index" />
+                    <input type="hidden" id="col_index" name="col_index" />
+                    <input type="hidden" id="pro_descuento_fact" name="pro_descuento_fact" />
 
                     <div class="form-row">
                         <div class="col-md-8 mb-3">
                             <label for="producto_descuento_fact">Producto <span class="priority">*</span></label>
                             <input type="text" readonly required id="producto_descuento_fact"
-                                name="producto_descuento_fact" placeholder="Producto" class="form-control"
-                                maxlength="150"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
+                                name="producto_descuento_fact" placeholder="Producto" class="form-control" />
                         </div>
 
                         <div class="col-md-4 mb-3">
                             <label for="precio_descuento_fact">Precio <span class="priority">*</span></label>
                             <input type="text" readonly required id="precio_descuento_fact" name="precio_descuento_fact"
-                                placeholder="Precio" class="form-control" maxlength="30"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);"
-                                step="0.01" />
+                                placeholder="Precio" class="form-control" step="0.01" />
                         </div>
                     </div>
 
                     <div class="form-row">
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-6 mb-3">
                             <label for="porcentaje_descuento_fact">% Descuento <span class="priority">*</span></label>
                             <input type="text" required id="porcentaje_descuento_fact" name="porcentaje_descuento_fact"
-                                placeholder="Porcentaje de Descuento" class="form-control" maxlength="11"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" />
+                                placeholder="Porcentaje de Descuento" class="form-control" />
                         </div>
 
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-6 mb-3">
                             <label for="descuento_fact">Valor Descuento <span class="priority">*</span></label>
                             <input type="text" required id="descuento_fact" name="descuento_fact"
-                                placeholder="Descuento" class="form-control" maxlength="30"
-                                oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);"
-                                step="0.01" />
+                                placeholder="Descuento" class="form-control" step="0.01" />
                         </div>
                     </div>
 
@@ -5799,14 +5774,10 @@
 
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                    <div class="sb-nav-link-icon"></div>
-                    <i class="fas fa-times fa-lg"></i> Cancelar
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
-
-                <button class="guardar btn btn-primary ml-2" type="submit"
-                    id="reg_DescuentoFacturacion" form="formDescuentoFacturacion">
-                    <div class="sb-nav-link-icon"></div>
-                    <i class="far fa-save fa-lg"></i> Registrar
+                <button type="submit" class="btn btn-primary" id="reg_DescuentoFacturacion" form="formDescuentoFacturacion">
+                    <i class="far fa-save fa-lg mr-1"></i> Registrar
                 </button>
             </div>
         </div>

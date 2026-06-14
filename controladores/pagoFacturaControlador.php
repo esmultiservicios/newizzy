@@ -119,14 +119,27 @@ class pagoFacturaControlador extends pagoFacturaModelo {
         $EPS = 0.005;
 
         // === Validaciones por tipo de factura ===
+        $esCxc = (isset($origen_pago) && ($origen_pago === 'cxc' || $origen_pago === 'CxC'));
+
         if ($tipo_factura_post == 1) { // contado
-            if ($monto + $EPS < $saldoPendiente) {
-                return [
-                    "status"=>false,"title"=>"Error",
-                    "message"=>"Para pago completo debe ingresar un monto igual o mayor al saldo pendiente (L. ".number_format($saldoPendiente,2).")"
-                ];
+            // Solo validar contra saldo pendiente si es CxC
+            if ($esCxc) {
+                if ($monto + $EPS < $saldoPendiente) {
+                    return [
+                        "status"=>false,"title"=>"Error",
+                        "message"=>"Para pago completo debe ingresar un monto igual o mayor al saldo pendiente (L. ".number_format($saldoPendiente,2).")"
+                    ];
+                }
+            } else {
+                // Facturación normal: solo validar que el monto sea positivo
+                if ($monto <= 0) {
+                    return [
+                        "status"=>false,"title"=>"Error",
+                        "message"=>"El monto del pago debe ser mayor que cero"
+                    ];
+                }
             }
-        } else { // crédito / abono
+        } else { // crédito / abono (solo aplica para CxC)
             if ($monto - $saldoPendiente > $EPS) {
                 return [
                     "status"=>false,"title"=>"Error",

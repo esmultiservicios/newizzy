@@ -220,35 +220,31 @@
     <!-- Tabla Documentos Fiscales -->
     <div class="row">
         <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-white">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h6 class="m-0 font-weight-bold text-primary">
-                            <i class="fas fa-sliders-h mr-1"></i>
-                            Documentos Fiscales
-                        </h6>
-						<a href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>secuencia/" 
-						class="chart-btn" data-toggle="tooltip" data-placement="top" title="Ver reporte completo">
-							<i class="fas fa-arrow-right"></i>
-						</a>
+            <div class="card mb-4 secuencia-table-card">
+                <div class="card-header secuencia-card-header">
+                    <div>
+                        <i class="fas fa-sliders-h fa-lg mr-1"></i>
+                        <strong>Documentos Fiscales</strong>
+                        <small class="d-block text-muted mt-1">
+                            Control rápido de documentos fiscales, rangos autorizados, correlativo siguiente y fecha de expiración.
+                        </small>
                     </div>
+
+                    <a href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>secuencia/" 
+                    class="chart-btn" 
+                    data-toggle="tooltip" 
+                    data-placement="top" 
+                    title="Ver reporte completo">
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
                 </div>
+
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table id="dataTableSecuenciaDashboard" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-                            <thead>
-                                <tr>
-                                    <th>Empresa</th>
-                                    <th>Documento</th>
-                                    <th>Rango Inicio</th>
-                                    <th>Rango Fin</th>    
-                                    <th>Actual</th>                                        
-                                    <th>Fecha Expiración</th>                    
-                                </tr>
-                            </thead>
-                        </table>  
+                    <div class="table-responsive secuencia-table-responsive">
+                        <table id="dataTableSecuenciaDashboard" class="table table-header-gradient table-striped table-condensed table-hover secuencia-table" style="width:100%"></table>  
                     </div>
                 </div>
+
                 <div class="card-footer small text-muted">
                     <?php
                         require_once "./core/mainModel.php";

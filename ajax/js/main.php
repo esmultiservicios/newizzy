@@ -11253,4 +11253,180 @@ $(document).on("hidden.bs.modal", "#modalPreviewDocumento", function () {
 /* =========================================================
    FIN MODAL GLOBAL: VISTA PREVIA DE DOCUMENTOS Y REPORTES
 ========================================================= */
+
+/* =========================================================
+   AUTH ADMIN SISTEMA
+   Valida usuario administrador o super administrador.
+   Uso:
+   validarAdminSistema(function (permitido, data) {
+       if (permitido === true) {
+           // acción permitida
+       }
+   });
+========================================================= */
+
+var AUTH_ADMIN_SISTEMA_TOKEN = '';
+var AUTH_ADMIN_SISTEMA_CALLBACK = null;
+var AUTH_ADMIN_SISTEMA_ESPERANDO = false;
+
+function validarAdminSistema(callback, opciones) {
+    opciones = opciones || {};
+
+    AUTH_ADMIN_SISTEMA_CALLBACK = typeof callback === 'function' ? callback : null;
+    AUTH_ADMIN_SISTEMA_TOKEN = '';
+    AUTH_ADMIN_SISTEMA_ESPERANDO = true;
+
+    if ($('#modalAutenticacionAdminSistema').length === 0) {
+        showNotify('error', 'Modal no encontrado', 'No existe el modal de autenticación administrativa.');
+
+        AUTH_ADMIN_SISTEMA_ESPERANDO = false;
+
+        if (AUTH_ADMIN_SISTEMA_CALLBACK) {
+            AUTH_ADMIN_SISTEMA_CALLBACK(false, {
+                success: false,
+                permitido: false,
+                message: 'Modal no encontrado'
+            });
+        }
+
+        return;
+    }
+
+    if ($('#formAutenticacionAdminSistema').length > 0) {
+        $('#formAutenticacionAdminSistema')[0].reset();
+    }
+
+    if ($('#auth_admin_mensaje').length > 0) {
+        $('#auth_admin_mensaje').html(
+            opciones.mensaje || 'Ingrese credenciales de administrador.'
+        );
+    }
+
+    $('#btn_validar_auth_admin')
+        .prop('disabled', false)
+        .html('<i class="fas fa-unlock-alt"></i> Validar');
+
+    $('#modalAutenticacionAdminSistema').modal({
+        show: true,
+        keyboard: false,
+        backdrop: 'static'
+    });
+}
+
+function ejecutarValidacionAdminSistema() {
+    var usuario = $.trim($('#auth_admin_usuario').val() || '');
+    var password = $('#auth_admin_password').val() || '';
+
+    if (usuario === '' || password === '') {
+        showNotify('error', 'Datos requeridos', 'Ingrese usuario y contraseña.');
+        return;
+    }
+
+    $('#btn_validar_auth_admin')
+        .prop('disabled', true)
+        .html('<i class="fas fa-spinner fa-spin"></i> Validando...');
+
+    $.ajax({
+        type: 'POST',
+        url: '<?php echo SERVERURL;?>core/auth/validarAdministradorConfig.php',
+        dataType: 'json',
+        data: {
+            usuario: usuario,
+            password: password
+        },
+        success: function (response) {
+            $('#btn_validar_auth_admin')
+                .prop('disabled', false)
+                .html('<i class="fas fa-unlock-alt"></i> Validar');
+
+            if (!response || response.success !== true || response.permitido !== true) {
+                AUTH_ADMIN_SISTEMA_TOKEN = '';
+
+                showNotify(
+                    'error',
+                    'Acceso denegado',
+                    response && response.message ? response.message : 'El usuario no tiene permisos administrativos.'
+                );
+
+                if (AUTH_ADMIN_SISTEMA_CALLBACK) {
+                    AUTH_ADMIN_SISTEMA_CALLBACK(false, response || {
+                        success: false,
+                        permitido: false
+                    });
+                }
+
+                return;
+            }
+
+            AUTH_ADMIN_SISTEMA_TOKEN = response.token || '';
+            AUTH_ADMIN_SISTEMA_ESPERANDO = false;
+
+            $('#modalAutenticacionAdminSistema').modal('hide');
+
+            setTimeout(function () {
+                if (AUTH_ADMIN_SISTEMA_CALLBACK) {
+                    AUTH_ADMIN_SISTEMA_CALLBACK(true, response);
+                }
+            }, 250);
+        },
+        error: function (xhr) {
+            console.log(xhr.responseText);
+
+            $('#btn_validar_auth_admin')
+                .prop('disabled', false)
+                .html('<i class="fas fa-unlock-alt"></i> Validar');
+
+            AUTH_ADMIN_SISTEMA_TOKEN = '';
+
+            showNotify('error', 'Error', 'Error de comunicación al validar administrador.');
+
+            if (AUTH_ADMIN_SISTEMA_CALLBACK) {
+                AUTH_ADMIN_SISTEMA_CALLBACK(false, {
+                    success: false,
+                    permitido: false,
+                    message: 'Error de comunicación'
+                });
+            }
+        }
+    });
+}
+
+$(document)
+    .off('submit.authAdminSistema', '#formAutenticacionAdminSistema')
+    .on('submit.authAdminSistema', '#formAutenticacionAdminSistema', function (e) {
+        e.preventDefault();
+        ejecutarValidacionAdminSistema();
+    });
+
+$(document)
+    .off('click.authAdminSistema', '#btn_validar_auth_admin')
+    .on('click.authAdminSistema', '#btn_validar_auth_admin', function () {
+        ejecutarValidacionAdminSistema();
+    });
+
+$(document)
+    .off('shown.bs.modal.authAdminSistemaFocus', '#modalAutenticacionAdminSistema')
+    .on('shown.bs.modal.authAdminSistemaFocus', '#modalAutenticacionAdminSistema', function () {
+        setTimeout(function () {
+            $('#auth_admin_usuario').trigger('focus');
+        }, 150);
+    });
+
+$(document)
+    .off('hidden.bs.modal.authAdminSistemaCancelado', '#modalAutenticacionAdminSistema')
+    .on('hidden.bs.modal.authAdminSistemaCancelado', '#modalAutenticacionAdminSistema', function () {
+        if (AUTH_ADMIN_SISTEMA_ESPERANDO === true) {
+            AUTH_ADMIN_SISTEMA_ESPERANDO = false;
+            AUTH_ADMIN_SISTEMA_TOKEN = '';
+
+            if (AUTH_ADMIN_SISTEMA_CALLBACK) {
+                AUTH_ADMIN_SISTEMA_CALLBACK(false, {
+                    success: false,
+                    permitido: false,
+                    cancelado: true,
+                    message: 'Validación cancelada'
+                });
+            }
+        }
+    });
 </script>

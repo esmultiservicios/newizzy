@@ -1,3 +1,16 @@
+####20 de junio 2026####
+INSERT INTO config (config_id, accion, activar)
+VALUES (6, 'Activar ISV Proforma', 2);
+
+UPDATE correo
+SET
+    correo = 'izzycloud@esmultiservicios.com',
+    graph_user = 'izzycloud@esmultiservicios.com';
+
+INSERT INTO config (config_id, accion, activar)
+VALUES
+(5, 'Activar Cobro Proforma', 2);
+
 ####07 de junio 2026####
 ALTER TABLE cotizacion_detalles
 ADD COLUMN isv_valor1 FLOAT(12,2) NOT NULL DEFAULT 0.00 AFTER isv_valor;

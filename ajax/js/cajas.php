@@ -1,5 +1,5 @@
 <script>
-//caja.php
+// caja.js - COMPLETO Y CORREGIDO
 $(() => {
     $("#formMainCajas #estado_cajas").val(0);
     $('#formMainCajas #estado_cajas').selectpicker('refresh');
@@ -807,6 +807,9 @@ function cargarCuadreDiaCaja(apertura_id, modo) {
     $('#cd_formula_inversion').html('Cargando...');
     $('#cd_formula_gastos_efectivo').html('Cargando...');
     $('#cd_formula_resultado').html('Cargando...');
+    $('#cd_isv_factura_normal_sar').html('Cargando...');
+    $('#cd_isv_proforma_informativo').html('Cargando...');
+    $('#cd_isv_total_detalle').html('Cargando...');
 
     $('#cd_tabla_gastos tbody').html(
         '<tr><td colspan="3" class="text-center text-muted">Cargando...</td></tr>'
@@ -896,10 +899,26 @@ function renderCuadreDiaCaja(resumen, gastos, inversiones) {
     var chequeEsperado = parseMonto(resumen.cheque_esperado || 0);
     var totalFinalEsperado = parseMonto(resumen.total_final_esperado || 0);
 
+    // =====================================================
+    // VALORES ISV - DIRECTAMENTE DEL PHP, SIN MODIFICAR
+    // =====================================================
+    var isvFacturaNormalSar = parseMonto(resumen.isv_factura_normal_sar || 0);
+    var isvProformaInformativo = parseMonto(resumen.isv_proforma_informativo || 0);
+    var isvTotalDetalle = parseMonto(resumen.isv_total_detalle || 0);
+
+    // SOLO REDONDEAMOS PARA MOSTRAR - NO MODIFICAMOS LA LÓGICA
+    isvFacturaNormalSar = Math.round(isvFacturaNormalSar * 100) / 100;
+    isvProformaInformativo = Math.round(isvProformaInformativo * 100) / 100;
+    isvTotalDetalle = Math.round(isvTotalDetalle * 100) / 100;
+
+    // MOSTRAMOS LOS VALORES DIRECTAMENTE SIN NINGUNA MODIFICACIÓN
     setTextoCuadreDia('#cd_total_cobrado', totalCobrado);
     setTextoCuadreDia('#cd_inversion_reposicion', inversionTotal);
     setTextoCuadreDia('#cd_gastos_total', gastosTotal);
     setTextoCuadreDia('#cd_total_final_esperado', totalFinalEsperado);
+    setTextoCuadreDia('#cd_isv_factura_normal_sar', isvFacturaNormalSar);
+    setTextoCuadreDia('#cd_isv_proforma_informativo', isvProformaInformativo);
+    setTextoCuadreDia('#cd_isv_total_detalle', isvTotalDetalle);
 
     setTextoCuadreDia('#cd_efectivo', efectivo);
     setTextoCuadreDia('#cd_transferencia', transferencia);
@@ -1411,9 +1430,9 @@ $('#formReintegroRetiroCaja').off('submit').on('submit', function (e) {
 });
 
 /* =========================================================
-   DESGLOSE GANANCIA CAJA
+   DESGLOSE GANANCIA CAJA - CORREGIDO
    ========================================================= */
-   function cargarDesgloseGananciaCaja(apertura_id, modo) {
+function cargarDesgloseGananciaCaja(apertura_id, modo) {
     apertura_id = parseInt(apertura_id || 0);
 
     var fechai = $("#formMainCajas #fecha_cajas").val();
@@ -1483,6 +1502,9 @@ $('#formReintegroRetiroCaja').off('submit').on('submit', function (e) {
             $('#dg_porcentaje_costo').html('0.00%');
             $('#dg_porcentaje_ganancia').html('0.00%');
             $('#dg_diferencia_conciliacion').html('Cargando...');
+            $('#dg_isv_factura_normal_sar').html('Cargando...');
+            $('#dg_isv_proforma_informativo').html('Cargando...');
+            $('#dg_isv_total_detalle').html('Cargando...');
         },
         success: function (response) {
             if (!response || !response.success) {
@@ -1530,6 +1552,19 @@ $('#formReintegroRetiroCaja').off('submit').on('submit', function (e) {
             var porcentajeGanancia = parseMonto(resumen.porcentaje_ganancia);
             var diferenciaConciliacion = parseMonto(resumen.diferencia_conciliacion);
 
+            // =====================================================
+            // VALORES ISV - DIRECTAMENTE DEL PHP, SIN MODIFICAR
+            // =====================================================
+            var isvFacturaNormalSar = parseMonto(resumen.isv_factura_normal_sar || 0);
+            var isvProformaInformativo = parseMonto(resumen.isv_proforma_informativo || 0);
+            var isvTotalDetalle = parseMonto(resumen.isv_total_detalle || 0);
+
+            // SOLO REDONDEAMOS PARA MOSTRAR - NO MODIFICAMOS LA LÓGICA
+            isvFacturaNormalSar = Math.round(isvFacturaNormalSar * 100) / 100;
+            isvProformaInformativo = Math.round(isvProformaInformativo * 100) / 100;
+            isvTotalDetalle = Math.round(isvTotalDetalle * 100) / 100;
+
+            // MOSTRAMOS LOS VALORES DIRECTAMENTE SIN NINGUNA MODIFICACIÓN
             $('#dg_total_vendido').html(formatoMoneda(totalVendido));
             $('#dg_pendiente_cobro').html(formatoMoneda(pendienteCobro));
             $('#dg_otros_ingresos').html(formatoMoneda(otrosIngresos));
@@ -1559,6 +1594,11 @@ $('#formReintegroRetiroCaja').off('submit').on('submit', function (e) {
             $('#dg_porcentaje_costo').html(porcentajeCosto.toFixed(2) + '%');
             $('#dg_porcentaje_ganancia').html(porcentajeGanancia.toFixed(2) + '%');
             $('#dg_diferencia_conciliacion').html(formatoMoneda(diferenciaConciliacion));
+            
+            // ISV - VALORES DIRECTOS DEL PHP
+            $('#dg_isv_factura_normal_sar').html(formatoMoneda(isvFacturaNormalSar));
+            $('#dg_isv_proforma_informativo').html(formatoMoneda(isvProformaInformativo));
+            $('#dg_isv_total_detalle').html(formatoMoneda(isvTotalDetalle));
 
             var textoRegla = '';
 
@@ -1608,20 +1648,25 @@ function construirHeaderFooterDetalleGananciaCaja() {
         '<thead>' +
             '<tr>' +
                 '<th>Factura</th>' +
+                '<th>Tipo</th>' +
                 '<th>Producto</th>' +
                 '<th>Cantidad</th>' +
                 '<th>Costo Unit.</th>' +
                 '<th>Precio Venta</th>' +
+                '<th>ISV</th>' +
                 '<th>Total Costo</th>' +
                 '<th>Total Venta</th>' +
+                '<th>Total c/ISV</th>' +
                 '<th>Ganancia</th>' +
             '</tr>' +
         '</thead>' +
         '<tfoot>' +
             '<tr>' +
-                '<th colspan="5" class="text-right">Totales:</th>' +
+                '<th colspan="6" class="text-right">Totales:</th>' +
+                '<th id="dg_footer_total_isv">L. 0.00</th>' +
                 '<th id="dg_footer_total_costo">L. 0.00</th>' +
                 '<th id="dg_footer_total_venta">L. 0.00</th>' +
+                '<th id="dg_footer_total_con_isv">L. 0.00</th>' +
                 '<th id="dg_footer_total_ganancia">L. 0.00</th>' +
             '</tr>' +
         '</tfoot>'
@@ -1644,6 +1689,7 @@ function cargarTablaDetalleGananciaCaja(detalles) {
         data: detalles,
         columns: [
             { data: "factura" },
+            { data: "tipo_documento" },
             { data: "producto" },
             { data: "cantidad" },
             {
@@ -1654,6 +1700,12 @@ function cargarTablaDetalleGananciaCaja(detalles) {
             },
             {
                 data: "precio_venta",
+                render: function (data, type) {
+                    return type === 'display' ? formatoMoneda(data) : parseMonto(data);
+                }
+            },
+            {
+                data: "isv_detalle",
                 render: function (data, type) {
                     return type === 'display' ? formatoMoneda(data) : parseMonto(data);
                 }
@@ -1671,6 +1723,12 @@ function cargarTablaDetalleGananciaCaja(detalles) {
                 }
             },
             {
+                data: "total_con_isv",
+                render: function (data, type) {
+                    return type === 'display' ? formatoMoneda(data) : parseMonto(data);
+                }
+            },
+            {
                 data: "ganancia",
                 render: function (data, type) {
                     return type === 'display' ? formatoMoneda(data) : parseMonto(data);
@@ -1679,11 +1737,11 @@ function cargarTablaDetalleGananciaCaja(detalles) {
         ],
         columnDefs: [
             {
-                targets: [2],
+                targets: [3],
                 className: "text-center text-nowrap"
             },
             {
-                targets: [3, 4, 5, 6, 7],
+                targets: [4, 5, 6, 7, 8, 9, 10],
                 className: "text-right text-nowrap"
             }
         ],
@@ -1710,20 +1768,30 @@ function cargarTablaDetalleGananciaCaja(detalles) {
         footerCallback: function () {
             var api = this.api();
 
-            var totalCosto = api.column(5, { page: 'current' }).data().reduce(function (a, b) {
+            var totalIsv = api.column(6, { page: 'current' }).data().reduce(function (a, b) {
                 return parseMonto(a) + parseMonto(b);
             }, 0);
 
-            var totalVenta = api.column(6, { page: 'current' }).data().reduce(function (a, b) {
+            var totalCosto = api.column(7, { page: 'current' }).data().reduce(function (a, b) {
                 return parseMonto(a) + parseMonto(b);
             }, 0);
 
-            var totalGanancia = api.column(7, { page: 'current' }).data().reduce(function (a, b) {
+            var totalVenta = api.column(8, { page: 'current' }).data().reduce(function (a, b) {
                 return parseMonto(a) + parseMonto(b);
             }, 0);
 
+            var totalConIsv = api.column(9, { page: 'current' }).data().reduce(function (a, b) {
+                return parseMonto(a) + parseMonto(b);
+            }, 0);
+
+            var totalGanancia = api.column(10, { page: 'current' }).data().reduce(function (a, b) {
+                return parseMonto(a) + parseMonto(b);
+            }, 0);
+
+            $('#dg_footer_total_isv').html('<span>' + formatoMoneda(totalIsv) + '</span>');
             $('#dg_footer_total_costo').html('<span>' + formatoMoneda(totalCosto) + '</span>');
             $('#dg_footer_total_venta').html('<span>' + formatoMoneda(totalVenta) + '</span>');
+            $('#dg_footer_total_con_isv').html('<span>' + formatoMoneda(totalConIsv) + '</span>');
             $('#dg_footer_total_ganancia').html('<span>' + formatoMoneda(totalGanancia) + '</span>');
         }
     });

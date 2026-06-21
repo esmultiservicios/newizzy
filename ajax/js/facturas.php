@@ -429,6 +429,7 @@ function asegurarModalesCajaFacturaEstaticos() {
     aplicarModalEstaticoCajaFactura('#modalDetalleRetirosCaja');
     aplicarModalEstaticoCajaFactura('#modalReintegroRetiroCaja');
     aplicarModalEstaticoCajaFactura('#modalDesgloseGananciaCaja');
+    aplicarModalEstaticoCajaFactura('#modalCuadreDiaCaja');
 }
 
 function refrescarCajaFacturaDespuesDeRetiro(origen) {
@@ -483,7 +484,7 @@ if (!window.__controlModalesCajaFacturaRegistrado) {
         asegurarModalesCajaFacturaEstaticos();
     });
 
-    $(document).on('show.bs.modal.cajaFacturaEstatico', '#modalCajaFactura, #modalRetiroCaja, #modal_apertura_caja, #modalDetalleRetirosCaja, #modalReintegroRetiroCaja, #modalDesgloseGananciaCaja', function () {
+    $(document).on('show.bs.modal.cajaFacturaEstatico', '#modalCajaFactura, #modalRetiroCaja, #modal_apertura_caja, #modalDetalleRetirosCaja, #modalReintegroRetiroCaja, #modalDesgloseGananciaCaja, #modalCuadreDiaCaja', function () {
         aplicarModalEstaticoCajaFactura(this);
     });
 
@@ -1582,6 +1583,9 @@ function cargarCuadreDiaCajaFactura(apertura_id, modo) {
     setTextoCuadreDiaFactura('#cd_gastos_total', 0);
     setTextoCuadreDiaFactura('#cd_total_final_esperado', 0);
     setTextoCuadreDiaFactura('#cd_total_final_esperado_tabla', 0);
+    setTextoCuadreDiaFactura('#cd_isv_sar', 0);
+    setTextoCuadreDiaFactura('#cd_isv_proforma', 0);
+    setTextoCuadreDiaFactura('#cd_isv_total_detalle', 0);
 
     $('#cd_tabla_gastos tbody').html(
         '<tr><td colspan="3" class="text-center text-muted">Cargando.</td></tr>'
@@ -1656,7 +1660,7 @@ function refrescarCuadreDiaCajaFactura() {
      si realmente se retiró de caja.
    ========================================================= */
 
-function renderCuadreDiaCajaFactura(resumen, gastos, inversiones) {
+   function renderCuadreDiaCajaFactura(resumen, gastos, inversiones) {
     resumen = resumen || {};
     gastos = gastos || [];
     inversiones = inversiones || [];
@@ -1679,6 +1683,20 @@ function renderCuadreDiaCajaFactura(resumen, gastos, inversiones) {
     var chequeEsperado = parseMontoCuadreCajaFactura(resumen.cheque_esperado || 0);
     var totalFinalEsperado = parseMontoCuadreCajaFactura(resumen.total_final_esperado || 0);
 
+    var isvFacturaNormalSar = parseMontoCuadreCajaFactura(
+        resumen.isv_factura_normal_sar !== undefined
+            ? resumen.isv_factura_normal_sar
+            : resumen.isv_sar_factura_normal || 0
+    );
+
+    var isvProformaInformativo = parseMontoCuadreCajaFactura(
+        resumen.isv_proforma_informativo !== undefined
+            ? resumen.isv_proforma_informativo
+            : resumen.isv_proforma || 0
+    );
+
+    var isvTotalDetalle = parseMontoCuadreCajaFactura(resumen.isv_total_detalle || 0);
+
     var inversionManualEfectivo = parseMontoCuadreCajaFactura(resumen.inversion_manual_efectivo || 0);
     var gastosEfectivo = parseMontoCuadreCajaFactura(resumen.gastos_efectivo || 0);
 
@@ -1687,6 +1705,10 @@ function renderCuadreDiaCajaFactura(resumen, gastos, inversiones) {
     setTextoCuadreDiaFactura('#cd_gastos_total', gastosTotal);
     setTextoCuadreDiaFactura('#cd_total_final_esperado', totalFinalEsperado);
     setTextoCuadreDiaFactura('#cd_total_final_esperado_tabla', totalFinalEsperado);
+
+    setTextoCuadreDiaFactura('#cd_isv_factura_normal_sar', isvFacturaNormalSar);
+    setTextoCuadreDiaFactura('#cd_isv_proforma_informativo', isvProformaInformativo);
+    setTextoCuadreDiaFactura('#cd_isv_total_detalle', isvTotalDetalle);
 
     setTextoCuadreDiaFactura('#cd_efectivo', efectivo);
     setTextoCuadreDiaFactura('#cd_transferencia', transferencia);
@@ -2491,7 +2513,10 @@ $('#formReintegroRetiroCaja').off('submit.cajaFacturaReintegro').on('submit.caja
    INICIO - DESGLOSE GANANCIA CAJA
    ========================================================= */
 
-   function cargarDesgloseGananciaCaja(apertura_id, modo) {
+ /* =========================================================
+   INICIO - DESGLOSE GANANCIA CAJA
+   ========================================================= */
+function cargarDesgloseGananciaCaja(apertura_id, modo) {
     apertura_id = parseInt(apertura_id || 0);
 
     var fechas = obtenerFechasCajaFacturacion();
@@ -2541,12 +2566,14 @@ $('#formReintegroRetiroCaja').off('submit.cajaFacturaReintegro').on('submit.caja
             }
 
             $('#dg_total_vendido').html('Cargando...');
+            $('#dg_pendiente_cobro').html('Cargando...');
             $('#dg_otros_ingresos').html('Cargando...');
             $('#dg_total_gastos').html('Cargando...');
             $('#dg_total_egresos_registrados').html('Cargando...');
             $('#dg_total_inversion_apartada').html('Cargando...');
             $('#dg_retiro_caja_pendiente').html('Cargando...');
             $('#dg_neto_disponible').html('Cargando...');
+            $('#dg_neto_total_facturado').html('Cargando...');
 
             $('#dg_efectivo').html('Cargando...');
             $('#dg_transferencia').html('Cargando...');
@@ -2568,50 +2595,102 @@ $('#formReintegroRetiroCaja').off('submit.cajaFacturaReintegro').on('submit.caja
             $('#dg_porcentaje_costo').html('0.00%');
             $('#dg_porcentaje_ganancia').html('0.00%');
             $('#dg_diferencia_conciliacion').html('Cargando...');
+
+            $('#dg_isv_factura_normal_sar').html('Cargando...');
+            $('#dg_isv_proforma_informativo').html('Cargando...');
+            $('#dg_isv_total_detalle').html('Cargando...');
         },
         success: function (response) {
-            if (!response.success) {
-                notificarCaja('error', 'No se pudo cargar', response.message || 'No se pudo cargar el desglose de ganancia.');
+            if (!response || !response.success) {
+                notificarCaja(
+                    'error',
+                    'Error',
+                    response && response.message ? response.message : 'No se pudo cargar el desglose de ganancia.'
+                );
                 return;
             }
 
             var resumen = response.resumen || {};
             var detalles = response.detalles || [];
 
-            var totalVendido = parseMonto(resumen.total_vendido || resumen.total_cobrado);
-            var otrosIngresos = parseMonto(resumen.otros_ingresos);
-            var totalGastos = parseMonto(resumen.total_gastos_reales || resumen.total_gastos);
-            var totalEgresosRegistrados = parseMonto(resumen.total_egresos_registrados);
-            var totalInversionApartada = parseMonto(resumen.total_inversion_apartada);
-            var retiroCajaPendiente = parseMonto(resumen.retiro_caja_pendiente);
-            var netoDisponible = parseMonto(resumen.neto_disponible);
+            var totalVendido = parseMonto(resumen.total_vendido || resumen.total_cobrado || 0);
+            var totalCobrado = parseMonto(resumen.total_cobrado || totalVendido || 0);
+            var pendienteCobro = parseMonto(resumen.pendiente_cobro || 0);
 
-            var efectivo = parseMonto(resumen.efectivo);
-            var transferencia = parseMonto(resumen.transferencia);
-            var tarjeta = parseMonto(resumen.tarjeta);
-            var cheque = parseMonto(resumen.cheque);
+            if (pendienteCobro < 0.01 && pendienteCobro > -0.01) {
+                pendienteCobro = 0;
+            }
 
-            var montoApertura = parseMonto(resumen.monto_apertura);
-            var retiroCajaTotal = parseMonto(resumen.retiro_caja_total || resumen.retiro_caja);
-            var retiroCajaConvertido = parseMonto(resumen.retiro_caja_convertido_gasto);
-            var efectivoEsperadoCaja = parseMonto(resumen.efectivo_esperado_caja);
+            var otrosIngresos = parseMonto(resumen.otros_ingresos || resumen.total_ingresos_registrados || 0);
+            var totalGastos = parseMonto(resumen.total_gastos_reales || resumen.total_gastos || 0);
+            var totalEgresosRegistrados = parseMonto(resumen.total_egresos_registrados || 0);
+            var totalInversionApartada = parseMonto(resumen.total_inversion_apartada || resumen.egreso_inversion_apartada || 0);
 
-            var totalVendidoDetalle = parseMonto(resumen.total_vendido_detalle);
-            var costoProductos = parseMonto(resumen.costo_productos_vendidos);
-            var gananciaBruta = parseMonto(resumen.ganancia_bruta);
-            var dineroRecomendadoGuardar = parseMonto(resumen.dinero_recomendado_guardar);
-            var dineroDespuesReponer = parseMonto(resumen.dinero_despues_reponer);
-            var porcentajeCosto = parseMonto(resumen.porcentaje_costo);
-            var porcentajeGanancia = parseMonto(resumen.porcentaje_ganancia);
-            var diferenciaConciliacion = parseMonto(resumen.diferencia_conciliacion);
+            var retiroCajaPendiente = parseMonto(resumen.retiro_caja_pendiente || 0);
+            var retiroCajaTotal = parseMonto(resumen.retiro_caja_total || resumen.retiro_caja || 0);
+            var retiroCajaConvertido = parseMonto(resumen.retiro_caja_convertido_gasto || 0);
 
-            $('#dg_total_vendido').html(formatoMoneda(totalVendido));
+            var netoDisponible = parseMonto(resumen.neto_disponible || 0);
+            var netoTotalFacturado = parseMonto(resumen.neto_total_facturado || 0);
+
+            if (netoTotalFacturado === 0 && (netoDisponible > 0 || pendienteCobro > 0)) {
+                netoTotalFacturado = netoDisponible + pendienteCobro;
+            }
+
+            var efectivo = parseMonto(resumen.efectivo || 0);
+            var transferencia = parseMonto(resumen.transferencia || 0);
+            var tarjeta = parseMonto(resumen.tarjeta || 0);
+            var cheque = parseMonto(resumen.cheque || 0);
+
+            var montoApertura = parseMonto(resumen.monto_apertura || 0);
+            var efectivoEsperadoCaja = parseMonto(resumen.efectivo_esperado_caja || resumen.efectivo_esperado || 0);
+
+            var costoProductos = parseMonto(resumen.costo_productos_vendidos || 0);
+            var totalVendidoDetalle = parseMonto(resumen.total_vendido_detalle || resumen.venta_base_productos || 0);
+            var gananciaBruta = parseMonto(resumen.ganancia_bruta || resumen.ganancia_productos || 0);
+
+            var dineroRecomendadoGuardar = parseMonto(resumen.dinero_recomendado_guardar || costoProductos || 0);
+            var dineroDespuesReponer = parseMonto(resumen.dinero_despues_reponer || 0);
+
+            var porcentajeCosto = parseMonto(resumen.porcentaje_costo || 0);
+            var porcentajeGanancia = parseMonto(resumen.porcentaje_ganancia || 0);
+            var diferenciaConciliacion = parseMonto(resumen.diferencia_conciliacion || 0);
+
+            var isvFacturaNormalSar = parseMonto(
+                resumen.isv_factura_normal_sar !== undefined
+                    ? resumen.isv_factura_normal_sar
+                    : (
+                        resumen.isv_sar_factura_normal !== undefined
+                            ? resumen.isv_sar_factura_normal
+                            : 0
+                    )
+            );
+
+            var isvProformaInformativo = parseMonto(
+                resumen.isv_proforma_informativo !== undefined
+                    ? resumen.isv_proforma_informativo
+                    : (
+                        resumen.isv_proforma !== undefined
+                            ? resumen.isv_proforma
+                            : 0
+                    )
+            );
+
+            var isvTotalDetalle = parseMonto(resumen.isv_total_detalle || 0);
+
+            isvFacturaNormalSar = Math.round(isvFacturaNormalSar * 100) / 100;
+            isvProformaInformativo = Math.round(isvProformaInformativo * 100) / 100;
+            isvTotalDetalle = Math.round(isvTotalDetalle * 100) / 100;
+
+            $('#dg_total_vendido').html(formatoMoneda(totalCobrado));
+            $('#dg_pendiente_cobro').html(formatoMoneda(pendienteCobro));
             $('#dg_otros_ingresos').html(formatoMoneda(otrosIngresos));
             $('#dg_total_gastos').html(formatoMoneda(totalGastos));
             $('#dg_total_egresos_registrados').html(formatoMoneda(totalEgresosRegistrados));
             $('#dg_total_inversion_apartada').html(formatoMoneda(totalInversionApartada));
             $('#dg_retiro_caja_pendiente').html(formatoMoneda(retiroCajaPendiente));
             $('#dg_neto_disponible').html(formatoMoneda(netoDisponible));
+            $('#dg_neto_total_facturado').html(formatoMoneda(netoTotalFacturado));
 
             $('#dg_efectivo').html(formatoMoneda(efectivo));
             $('#dg_transferencia').html(formatoMoneda(transferencia));
@@ -2626,17 +2705,31 @@ $('#formReintegroRetiroCaja').off('submit.cajaFacturaReintegro').on('submit.caja
 
             $('#dg_total_vendido_detalle').html(formatoMoneda(totalVendidoDetalle));
             $('#dg_costo_productos').html(formatoMoneda(costoProductos));
-            $('#dg_costo_productos_2').html(formatoMoneda(costoProductos));
+
+            if ($('#dg_costo_productos_2').length > 0) {
+                $('#dg_costo_productos_2').html(formatoMoneda(costoProductos));
+            }
+
             $('#dg_ganancia_bruta').html(formatoMoneda(gananciaBruta));
             $('#dg_dinero_recomendado_guardar').html(formatoMoneda(dineroRecomendadoGuardar));
-            $('#dg_dinero_despues_reponer').html(formatoMoneda(dineroDespuesReponer));
+
+            if ($('#dg_dinero_despues_reponer').length > 0) {
+                $('#dg_dinero_despues_reponer').html(formatoMoneda(dineroDespuesReponer));
+            }
+
             $('#dg_porcentaje_costo').html(porcentajeCosto.toFixed(2) + '%');
             $('#dg_porcentaje_ganancia').html(porcentajeGanancia.toFixed(2) + '%');
             $('#dg_diferencia_conciliacion').html(formatoMoneda(diferenciaConciliacion));
 
+            $('#dg_isv_factura_normal_sar').html(formatoMoneda(isvFacturaNormalSar));
+            $('#dg_isv_proforma_informativo').html(formatoMoneda(isvProformaInformativo));
+            $('#dg_isv_total_detalle').html(formatoMoneda(isvTotalDetalle));
+
             var textoRegla = '';
 
-            if (totalInversionApartada > 0) {
+            if (pendienteCobro > 0) {
+                textoRegla = 'Hay facturas pendientes de cobrar. Por eso el neto disponible puede ser menor que el total facturado.';
+            } else if (totalInversionApartada > 0) {
                 textoRegla = 'Hay egresos marcados como inversión/reposición. Salen de caja, pero no se cuentan como gasto real.';
             } else if (retiroCajaConvertido > 0) {
                 textoRegla = 'Esta caja ya tiene retiros convertidos en gasto. Por eso no se restan doble en el neto.';
@@ -2648,7 +2741,10 @@ $('#formReintegroRetiroCaja').off('submit.cajaFacturaReintegro').on('submit.caja
 
             cargarTablaDetalleGananciaCaja(detalles);
 
-            aplicarModalEstaticoCajaFactura('#modalDesgloseGananciaCaja');
+            if (typeof aplicarModalEstaticoCajaFactura === 'function') {
+                aplicarModalEstaticoCajaFactura('#modalDesgloseGananciaCaja');
+                aplicarModalEstaticoCajaFactura('#modalCuadreDiaCaja');
+            }
 
             $('#modalDesgloseGananciaCaja').modal({
                 show: true,
@@ -2662,6 +2758,17 @@ $('#formReintegroRetiroCaja').off('submit.cajaFacturaReintegro').on('submit.caja
         }
     });
 }
+
+function refrescarDesgloseGananciaCaja() {
+    var apertura_id = parseInt($('#dg_apertura_id').val() || $('#modalDesgloseGananciaCaja').data('apertura_id') || 0);
+    var modo = $('#dg_modo').val() || $('#modalDesgloseGananciaCaja').data('modo') || 'caja';
+
+    cargarDesgloseGananciaCaja(apertura_id, modo);
+}
+
+/* =========================================================
+   FIN - DESGLOSE GANANCIA CAJA
+   ========================================================= */
 
 function refrescarDesgloseGananciaCaja() {
     var apertura_id = parseInt($('#dg_apertura_id').val() || $('#modalDesgloseGananciaCaja').data('apertura_id') || 0);
@@ -4108,6 +4215,96 @@ $(() => {
    FIN - LABELS DINÁMICOS ISV FACTURACIÓN
    ========================================================= */
 
+
+/* ===================================================
+   CONFIG ISV PROFORMA
+   ---------------------------------------------------
+   - Factura normal: calcula ISV según productos.
+   - Proforma: calcula ISV según productos solo si
+     config.accion = 'Activar ISV Proforma' tiene activar = 1.
+   =================================================== */
+window.IZZY_PROFORMA_APLICA_ISV = 0;
+window.IZZY_PROFORMA_APLICA_ISV_CARGADO = false;
+
+function facturaActualEsProformaISV() {
+    var $proforma = $('#invoice-form #facturas_proforma');
+
+    if (!$proforma.length) {
+        return false;
+    }
+
+    return $proforma.is(':checked') || String($proforma.val()) === '1';
+}
+
+function proformaPermiteCalcularISV() {
+    consultarConfigISVProformaFactura(false);
+
+    return parseInt(window.IZZY_PROFORMA_APLICA_ISV || 0, 10) === 1;
+}
+
+function documentoActualPermiteCalcularISV() {
+    if (!facturaActualEsProformaISV()) {
+        return true;
+    }
+
+    return proformaPermiteCalcularISV();
+}
+
+function consultarConfigISVProformaFactura(forzarRecarga) {
+    if (window.IZZY_PROFORMA_APLICA_ISV_CARGADO === true && forzarRecarga !== true) {
+        return;
+    }
+
+    $.ajax({
+        type: 'GET',
+        url: '<?php echo SERVERURL; ?>core/facturas/getIsvConfig.php',
+        dataType: 'json',
+        cache: false,
+        async: false,
+        success: function (response) {
+            if (response && response.proforma_aplica_isv !== undefined) {
+                window.IZZY_PROFORMA_APLICA_ISV = parseInt(response.proforma_aplica_isv || 0, 10) === 1 ? 1 : 0;
+            } else {
+                window.IZZY_PROFORMA_APLICA_ISV = 0;
+            }
+
+            window.IZZY_PROFORMA_APLICA_ISV_CARGADO = true;
+        },
+        error: function (xhr) {
+            console.log(xhr.responseText);
+            window.IZZY_PROFORMA_APLICA_ISV = 0;
+            window.IZZY_PROFORMA_APLICA_ISV_CARGADO = true;
+        }
+    });
+}
+
+async function recalcularTodasLineasISVFactura() {
+    var totalFilas = parseInt($('#bill_row').val() || 0, 10);
+
+    if (isNaN(totalFilas)) {
+        totalFilas = 0;
+    }
+
+    for (var i = 0; i <= totalFilas; i++) {
+        if ($('#price_' + i).length && $('#productos_id_' + i).length && $('#productos_id_' + i).val() !== '') {
+            await recalcISVForRow(i);
+        }
+    }
+
+    calculateTotalFacturas();
+}
+
+$(function () {
+    consultarConfigISVProformaFactura(false);
+
+    $(document)
+        .off('change.isvProformaDocumento', '#invoice-form #facturas_proforma')
+        .on('change.isvProformaDocumento', '#invoice-form #facturas_proforma', function () {
+            recalcularTodasLineasISVFactura();
+        });
+});
+
+
 /* ===================================================
    Recalcular ISV por línea
    - Lee: quantity_{row}, price_{row}, discount_{row}
@@ -4120,6 +4317,16 @@ $(() => {
     const qty     = parseFloat($('#invoice-form #invoiceItem #quantity_' + row).val()  || '1') || 1;
     const price   = parseFloat($('#invoice-form #invoiceItem #price_'    + row).val()  || '0') || 0;
     const disc    = parseFloat($('#invoice-form #invoiceItem #discount_' + row).val()  || '0') || 0;
+
+    /*
+     * Si es proforma y la configuración 'Activar ISV Proforma' está apagada,
+     * la línea queda sin ISV aunque el producto tenga ISV activo.
+     */
+    if (typeof documentoActualPermiteCalcularISV === 'function' && documentoActualPermiteCalcularISV() === false) {
+        if ($('#valor_isv_'  + row).length)  $('#valor_isv_'  + row).val('0.00');
+        if ($('#valor_isv1_' + row).length)  $('#valor_isv1_' + row).val('0.00');
+        return;
+    }
 
     // Base neta (no negativa)
     let base = (price * qty) - disc;
@@ -5038,6 +5245,10 @@ function consultarConfigProformaFacturaNormal() {
             rebajarInventarioProforma === 1
         );
 
+        if (typeof recalcularTodasLineasISVFactura === 'function') {
+            recalcularTodasLineasISVFactura();
+        }
+
     }).fail(function (xhr) {
         console.error('[ERROR CONFIG PROFORMA]', xhr.status, xhr.responseText);
 
@@ -5062,6 +5273,10 @@ $(function () {
         var rebajarActual = getCheckBajarInventarioProforma().is(':checked');
 
         actualizarUIProformaFacturaNormal(activo, rebajarActual);
+
+        if (typeof recalcularTodasLineasISVFactura === 'function') {
+            recalcularTodasLineasISVFactura();
+        }
     });
 
     // Cambio manual de rebajar inventario

@@ -181,14 +181,63 @@ class facturasControlador extends facturasModelo {
         return ['error'=>false];
     }
 
+
+    /* ===========================
+     * CONFIG: ISV EN PROFORMA
+     * =========================== */
+    protected function proformaAplicaISV() {
+        $cn = mainModel::connection();
+
+        if(!$cn){
+            return false;
+        }
+
+        $accion = 'Activar ISV Proforma';
+
+        $stmt = $cn->prepare("SELECT activar FROM config WHERE accion = ? LIMIT 1");
+
+        if(!$stmt){
+            return false;
+        }
+
+        $stmt->bind_param("s", $accion);
+        $stmt->execute();
+
+        $result = $stmt->get_result();
+        $aplica = false;
+
+        if($result && $result->num_rows > 0){
+            $row = $result->fetch_assoc();
+            $aplica = ((int)$row['activar'] === 1);
+        }
+
+        $stmt->close();
+
+        return $aplica;
+    }
+
     /* ===========================
      * DETALLE DE FACTURA
      * =========================== */
-    protected function procesarDetalleFactura($facturas_id, $clientes_id, $fecha, $fecha_registro, $empresa_id, $bajarInventario = true) {
+    protected function procesarDetalleFactura($facturas_id, $clientes_id, $fecha, $fecha_registro, $empresa_id, $bajarInventario = true, $tipo_documento = "0") {
         $total_valor  = 0.0;
         $descuentos   = 0.0;
         $isv15_total  = 0.0;
         $isv18_total  = 0.0;
+
+        /*
+         * Factura normal:
+         *   Calcula ISV según la configuración del producto.
+         *
+         * Proforma:
+         *   Si config 'Activar ISV Proforma' = 1, calcula ISV según producto.
+         *   Si config 'Activar ISV Proforma' = 2/no existe, fuerza ISV 0.
+         */
+        $aplicarISVDocumento = true;
+
+        if($tipo_documento === "1"){
+            $aplicarISVDocumento = $this->proformaAplicaISV();
+        }
 
         for ($i = 0; $i < count($_POST['productName']); $i++) {
             if (
@@ -207,7 +256,8 @@ class facturasControlador extends facturasModelo {
                 $fecha_registro,
                 $empresa_id,
                 $i,
-                $bajarInventario
+                $bajarInventario,
+                $aplicarISVDocumento
             );
 
             $total_valor += $p['subtotal'];
@@ -340,7 +390,7 @@ class facturasControlador extends facturasModelo {
     /* ===========================
      * PRODUCTO
      * =========================== */
-    protected function procesarProducto($facturas_id, $clientes_id, $fecha, $fecha_registro, $empresa_id, $index, $bajarInventario = true) {
+    protected function procesarProducto($facturas_id, $clientes_id, $fecha, $fecha_registro, $empresa_id, $index, $bajarInventario = true, $aplicarISVDocumento = true) {
         $isv_1 = number_format((float)($_POST['valor_isv'][$index] ?? 0), 4, '.', '');
         $isv_2 = number_format((float)($_POST['valor_isv1'][$index] ?? 0), 4, '.', '');
 
@@ -353,20 +403,30 @@ class facturasControlador extends facturasModelo {
         $referenciaProd = $_POST['referenciaProducto'][$index] ?? '';
         $price_anterior = number_format((float)($_POST['precio_real'][$index] ?? 0), 4, '.', '');
 
-        // Recalcular ISV en servidor para evitar errores cuando la cantidad es mayor a 1.
-        // Respeta isv1/isv2 del producto y calcula sobre: (precio * cantidad) - descuento.
-        $isvCalculado = $this->calcularISVLineaProductoDesdeBD(
-            $productos_id,
-            $price,
-            $quantity,
-            $discount,
-            $empresa_id,
-            $isv_1,
-            $isv_2
-        );
+        /*
+         * ISV por documento:
+         * - Factura normal: siempre calcula según productos.
+         * - Proforma: calcula solo si config 'Activar ISV Proforma' = 1.
+         */
+        if($aplicarISVDocumento === true){
+            // Recalcular ISV en servidor para evitar errores cuando la cantidad es mayor a 1.
+            // Respeta isv1/isv2 del producto y calcula sobre: (precio * cantidad) - descuento.
+            $isvCalculado = $this->calcularISVLineaProductoDesdeBD(
+                $productos_id,
+                $price,
+                $quantity,
+                $discount,
+                $empresa_id,
+                $isv_1,
+                $isv_2
+            );
 
-        $isv_1 = number_format((float)$isvCalculado['isv_valor'], 4, '.', '');
-        $isv_2 = number_format((float)$isvCalculado['isv_valor1'], 4, '.', '');
+            $isv_1 = number_format((float)$isvCalculado['isv_valor'], 4, '.', '');
+            $isv_2 = number_format((float)$isvCalculado['isv_valor1'], 4, '.', '');
+        }else{
+            $isv_1 = number_format(0, 4, '.', '');
+            $isv_2 = number_format(0, 4, '.', '');
+        }
 
         $costo_unitario = $this->obtenerCostoProducto(
             $productos_id,
@@ -744,8 +804,8 @@ class facturasControlador extends facturasModelo {
     }
 
     /* ===========================
-     * CADENA JS POST-GUARDADO CENTRALIZADA
-     * =========================== */
+    * CADENA JS POST-GUARDADO CENTRALIZADA
+    * =========================== */
     protected function armarFuncionesPostGuardado($facturas_id, $tipo_documento, $tipo_factura, $total_factura = 0, $cliente_nombre = "", $funcion_pagos = ""){
         $base = "limpiarTablaFactura();getCajero();getConsumidorFinal();getEstadoFactura();cleanFooterValueBill();resetRow();";
         $resetTipo = "setTipoFactura(\"contado\");";
@@ -753,15 +813,59 @@ class facturasControlador extends facturasModelo {
         $total_factura = number_format((float)$total_factura, 2, '.', '');
         $cliente_nombre_js = json_encode($cliente_nombre, JSON_UNESCAPED_UNICODE);
 
+        /*
+        * CONFIG:
+        * accion  = Activar Cobro Proforma
+        * activar = 1 Sí / 2 No
+        */
+        $cobrarProforma = false;
+
+        try {
+            $cn = mainModel::connection();
+
+            $sqlConfig = "SELECT activar
+                        FROM config
+                        WHERE accion = 'Activar Cobro Proforma'
+                        LIMIT 1";
+
+            $rsConfig = $cn->query($sqlConfig);
+
+            if ($rsConfig && $rsConfig->num_rows > 0) {
+                $rowConfig = $rsConfig->fetch_assoc();
+                $cobrarProforma = ((int)$rowConfig['activar'] === 1);
+            }
+        } catch (Exception $e) {
+            error_log("Error al validar config Activar Cobro Proforma: ".$e->getMessage());
+            $cobrarProforma = false;
+        }
+
+        /*
+        * PROFORMA:
+        * - Contado + config activo: abre modal de pago.
+        * - Crédito: imprime proforma.
+        * - Config apagado: imprime proforma.
+        */
         if($tipo_documento === "1"){
+            if((int)$tipo_factura === 1 && $cobrarProforma === true){
+                return $base."pago({$facturas_id}, 1, 'facturacion', {$total_factura}, {$cliente_nombre_js});".$resetTipo;
+            }
+
             return $base."printBill({$facturas_id});".$resetTipo;
         }
 
+        /*
+        * FACTURA NORMAL CONTADO:
+        * Abre modal de pago normal.
+        */
         if((int)$tipo_factura === 1){
             return $base."pago({$facturas_id}, 1, 'facturacion', {$total_factura}, {$cliente_nombre_js});getTotalFacturasDisponibles();".$funcion_pagos.$resetTipo;
-        }else{
-            return $base."printBill({$facturas_id});".$funcion_pagos.$resetTipo;
         }
+
+        /*
+        * FACTURA NORMAL CRÉDITO:
+        * Solo imprime.
+        */
+        return $base."printBill({$facturas_id});".$funcion_pagos.$resetTipo;
     }
 
     /* ===========================
@@ -953,7 +1057,8 @@ class facturasControlador extends facturasModelo {
                 $fecha,
                 $fecha_registro,
                 $datosBasicos['empresa_id'],
-                $bajarInventario
+                $bajarInventario,
+                $tipo_documento
             );
 
             // 11) Actualizar importe real

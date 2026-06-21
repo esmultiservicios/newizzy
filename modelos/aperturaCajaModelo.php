@@ -502,7 +502,7 @@ class aperturaCajaModelo extends mainModel{
             INNER JOIN documento d ON sf.documento_id = d.documento_id
             WHERE f.apertura_id = '$apertura_id'
               AND f.estado = 2
-              AND d.nombre = 'Factura Electronica'
+              AND d.nombre IN ('Factura Electronica', 'Factura Proforma')
               AND p.estado = 1
         ";
 
@@ -524,16 +524,52 @@ class aperturaCajaModelo extends mainModel{
         $query = "
             SELECT
                 tp.cuentas_id,
-                SUM(pd.efectivo) AS monto
+                SUM(pd.efectivo) AS monto,
+
+                SUM(CASE WHEN d.nombre = 'Factura Electronica' THEN pd.efectivo ELSE 0 END) AS monto_factura_normal,
+                SUM(CASE WHEN d.nombre = 'Factura Proforma' THEN pd.efectivo ELSE 0 END) AS monto_proforma,
+
+                COUNT(DISTINCT CASE WHEN d.nombre = 'Factura Electronica' THEN f.facturas_id END) AS cantidad_factura_normal,
+                COUNT(DISTINCT CASE WHEN d.nombre = 'Factura Proforma' THEN f.facturas_id END) AS cantidad_proforma,
+
+                COALESCE(SUM(
+                    ROUND(
+                        dt.subtotal * (pd.efectivo / NULLIF(f.importe, 0)),
+                        2
+                    )
+                ), 0) AS subtotal,
+
+                COALESCE(SUM(
+                    ROUND(
+                        dt.descuento * (pd.efectivo / NULLIF(f.importe, 0)),
+                        2
+                    )
+                ), 0) AS descuento,
+
+                COALESCE(SUM(
+                    ROUND(
+                        dt.impuesto * (pd.efectivo / NULLIF(f.importe, 0)),
+                        2
+                    )
+                ), 0) AS impuesto
             FROM pagos p
             INNER JOIN facturas f ON f.facturas_id = p.facturas_id
             INNER JOIN pagos_detalles pd ON pd.pagos_id = p.pagos_id
             INNER JOIN tipo_pago tp ON tp.tipo_pago_id = pd.tipo_pago_id
             INNER JOIN secuencia_facturacion sf ON f.secuencia_facturacion_id = sf.secuencia_facturacion_id
             INNER JOIN documento d ON sf.documento_id = d.documento_id
+            LEFT JOIN (
+                SELECT
+                    facturas_id,
+                    COALESCE(SUM(cantidad * precio), 0) AS subtotal,
+                    COALESCE(SUM(descuento), 0) AS descuento,
+                    COALESCE(SUM(isv_valor + isv_valor1), 0) AS impuesto
+                FROM facturas_detalles
+                GROUP BY facturas_id
+            ) dt ON dt.facturas_id = f.facturas_id
             WHERE f.apertura_id = '$apertura_id'
               AND f.estado = 2
-              AND d.nombre = 'Factura Electronica'
+              AND d.nombre IN ('Factura Electronica', 'Factura Proforma')
               AND p.estado = 1
               AND IFNULL(p.contabilizado,0) = 0
             GROUP BY tp.cuentas_id
@@ -613,11 +649,14 @@ class aperturaCajaModelo extends mainModel{
             INNER JOIN facturas f ON f.facturas_id = p.facturas_id
             INNER JOIN pagos_detalles pd ON pd.pagos_id = p.pagos_id
             INNER JOIN tipo_pago tp ON tp.tipo_pago_id = pd.tipo_pago_id
+            INNER JOIN secuencia_facturacion sf ON f.secuencia_facturacion_id = sf.secuencia_facturacion_id
+            INNER JOIN documento d ON sf.documento_id = d.documento_id
             SET
                 p.contabilizado = 1,
                 p.referencia_ingreso_id = '$ingresos_id'
             WHERE f.apertura_id = '$apertura_id'
               AND f.estado = 2
+              AND d.nombre IN ('Factura Electronica', 'Factura Proforma')
               AND p.estado = 1
               AND IFNULL(p.contabilizado,0) = 0
               AND tp.cuentas_id = '$cuentas_id'
@@ -658,30 +697,46 @@ class aperturaCajaModelo extends mainModel{
 
         $montos = $this->getMontosNoContabilizadosPorCuenta($apertura_id);
 
-        $porcentaje_isv = 0.0;
-        $rowISV = mainModel::getISV("Facturas");
-
-        if($rowISV && $rowISV->num_rows > 0){
-            $porcentaje_isv = (float)$rowISV->fetch_assoc()['valor'];
-        }
-
         if($montos){
             while($monto = $montos->fetch_assoc()){
                 $cuentas_id = (int)$monto['cuentas_id'];
-                $total_contabilizar = (float)$monto['monto'];
+                $total_contabilizar = round((float)$monto['monto'] + 1e-9, 2);
 
                 /*
                     En el cierre se registra el ingreso completo vendido.
-                    Los retiros NO se restan aquí.
-                    Los retiros se registran aparte como egresos del cierre.
+                    Incluye:
+                    - Factura Electronica pagada al contado y no contabilizada.
+                    - Factura Proforma pagada al contado y no contabilizada.
+                    Los abonos CxC que ya fueron contabilizados no entran aquí.
                 */
                 if($total_contabilizar <= 0){
                     $this->marcar_pagos_contabilizados_por_cuenta($apertura_id, $cuentas_id, 0);
                     continue;
                 }
 
-                $subtotal = ($porcentaje_isv > 0) ? ($total_contabilizar / (1 + ($porcentaje_isv / 100))) : $total_contabilizar;
-                $isv_neto = $total_contabilizar - $subtotal;
+                $subtotal = round((float)($monto['subtotal'] ?? 0) + 1e-9, 2);
+                $descuento = round((float)($monto['descuento'] ?? 0) + 1e-9, 2);
+                $isv_neto = round((float)($monto['impuesto'] ?? 0) + 1e-9, 2);
+
+                /*
+                    Ajuste de seguridad:
+                    Si por alguna factura no hay detalle, evitamos dejar subtotal en cero.
+                */
+                if($subtotal <= 0 && $isv_neto <= 0){
+                    $subtotal = $total_contabilizar;
+                    $descuento = 0;
+                    $isv_neto = 0;
+                }
+
+                $montoFacturaNormal = round((float)($monto['monto_factura_normal'] ?? 0) + 1e-9, 2);
+                $montoProforma = round((float)($monto['monto_proforma'] ?? 0) + 1e-9, 2);
+                $cantidadFacturaNormal = (int)($monto['cantidad_factura_normal'] ?? 0);
+                $cantidadProforma = (int)($monto['cantidad_proforma'] ?? 0);
+
+                $observacion = "Ingresos por venta Cierre de Caja AP-".$apertura_id.
+                    ". Total: L. ".number_format($total_contabilizar, 2).
+                    " | Factura normal: L. ".number_format($montoFacturaNormal, 2)." (".$cantidadFacturaNormal.")".
+                    " | Proforma: L. ".number_format($montoProforma, 2)." (".$cantidadProforma.")";
 
                 $datos_ingreso = [
                     "clientes_id" => 2,
@@ -691,10 +746,10 @@ class aperturaCajaModelo extends mainModel{
                     "factura" => "AP-".$apertura_id,
                     "subtotal" => $subtotal,
                     "isv" => $isv_neto,
-                    "descuento" => 0,
+                    "descuento" => $descuento,
                     "nc" => 0,
                     "total" => $total_contabilizar,
-                    "observacion" => "Ingresos por venta Cierre de Caja. Total registrado completo: L. ".number_format($total_contabilizar, 2),
+                    "observacion" => $observacion,
                     "estado" => 1,
                     "fecha_registro" => $fecha_registro,
                     "colaboradores_id" => $colaboradores_id,

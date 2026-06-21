@@ -426,14 +426,44 @@ var listar_reporte_compras = function() {
     view_anularCompras_dataTable("#dataTablaReporteCompras tbody", table_reporteCompras);
 };
 
-var view_anularCompras_dataTable = function(tbody, table) {
+var view_anularCompras_dataTable = function (tbody, table) {
     $(tbody).off("click", "button.cancelar_compras");
-    $(tbody).on("click", "button.cancelar_compras", function(e) {
+    $(tbody).on("click", "button.cancelar_compras", function (e) {
         e.preventDefault();
+
         var data = table.row($(this).parents("tr")).data();
-        anularCompra(data.compras_id)
+
+        if (!data || !data.compras_id) {
+            showNotify('error', 'Error', 'No se pudo obtener la compra seleccionada');
+            return false;
+        }
+
+        if (typeof validarAdminSistema !== 'function') {
+            showNotify('error', 'Validación no disponible', 'No está cargado el JS de autenticación administrativa.');
+            return false;
+        }
+
+        var compraId = data.compras_id;
+        var numeroCompra = data.number || data.numero || data.compra || data.numero_compra || data.factura_compra || data.compras_id;
+
+        validarAdminSistema(function (permitido) {
+            if (permitido !== true) {
+                return;
+            }
+
+            anularCompra(compraId);
+        }, {
+            mensaje: 'Para anular esta compra debe validar un administrador.',
+            modulo: 'Compras',
+            accion: 'Anular compra',
+            referencia_id: compraId,
+            referencia_texto: numeroCompra,
+            motivo: 'Validación requerida para anular compra'
+        });
+
+        return false;
     });
-}
+};
 
 var view_reporteCompras_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.print_compras");

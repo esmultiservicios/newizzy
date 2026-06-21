@@ -6822,14 +6822,44 @@ var listar_busqueda_bill = function() {
     view_anular_bill_dataTable("#DatatableBusquedaBill tbody", table_busqueda_bill);
 };
 
-var view_anular_bill_dataTable = function(tbody, table) {
+var view_anular_bill_dataTable = function (tbody, table) {
     $(tbody).off("click", "button.cancelar_factura");
-    $(tbody).on("click", "button.cancelar_factura", function(e) {
+    $(tbody).on("click", "button.cancelar_factura", function (e) {
         e.preventDefault();
+
         var data = table.row($(this).parents("tr")).data();
-        anularFacturas(data.facturas_id);
+
+        if (!data || !data.facturas_id) {
+            showNotify('error', 'Error', 'No se pudo obtener la factura seleccionada');
+            return false;
+        }
+
+        if (typeof validarAdminSistema !== 'function') {
+            showNotify('error', 'Validación no disponible', 'No está cargado el JS de autenticación administrativa.');
+            return false;
+        }
+
+        var facturaId = data.facturas_id;
+        var numeroFactura = data.number || data.numero || data.factura || data.numero_factura || data.facturas_id;
+
+        validarAdminSistema(function (permitido) {
+            if (permitido !== true) {
+                return;
+            }
+
+            anularFacturas(facturaId);
+        }, {
+            mensaje: 'Para anular esta factura debe validar un administrador.',
+            modulo: 'Facturación',
+            accion: 'Anular factura',
+            referencia_id: facturaId,
+            referencia_texto: numeroFactura,
+            motivo: 'Validación requerida para anular factura desde facturación'
+        });
+
+        return false;
     });
-}
+};
 
 var view_correo_bills_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.email_factura");
@@ -6857,49 +6887,6 @@ var view_comoprobante_bill_dataTable = function(tbody, table) {
         var url_comprobante = '<?php echo SERVERURL; ?>core/generaComprobante.php?facturas_id=' + data
             .facturas_id;
         window.open(url_comprobante);
-    });
-}
-
-function anularFacturas(facturas_id) {
-    swal({
-        title: "¿Estas seguro?",
-        text: "¿Desea anular la factura: # " + getNumeroFactura(facturas_id) + "?",
-        icon: "warning",
-        buttons: {
-            cancel: {
-                text: "Cancelar",
-                visible: true
-            },
-            confirm: {
-                text: "¡Sí, anular la factura!",
-            }
-        },
-        dangerMode: true,
-        closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-        closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-    }).then((willConfirm) => {
-        if (willConfirm === true) {
-            anular(facturas_id);
-        }
-    });
-}
-
-function anular(facturas_id) {
-    var url = '<?php echo SERVERURL; ?>core/anularFactura.php';
-
-    $.ajax({
-        type: 'POST',
-        url: url,
-        async: false,
-        data: 'facturas_id=' + facturas_id,
-        success: function(data) {
-            if (data == 1) {
-                showNotify('success', 'Success', 'La factura ha sido anulada con éxito');
-                listar_busqueda_bill();
-            } else {
-                showNotify('error', 'Error', 'La factura no se puede anular');
-            }
-        }
     });
 }
 
@@ -7505,7 +7492,12 @@ function abrirConfigFacturaConValidacionAdmin() {
 
         abrirModalConfigFactura();
     }, {
-        mensaje: 'Para modificar la configuración de facturación debe validar un administrador.'
+        mensaje: 'Para modificar la configuración de facturación debe validar un administrador.',
+        modulo: 'Facturación',
+        accion: 'Abrir configuración de facturación',
+        referencia_id: '',
+        referencia_texto: 'Configuración de factura / caja / proformas / ISV',
+        motivo: 'Validación requerida para modificar configuración'
     });
 }
 

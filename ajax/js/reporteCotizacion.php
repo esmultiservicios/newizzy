@@ -428,10 +428,9 @@ var listar_reporte_cotizaciones = function() {
 /* =========================================================
    ACCIONES DATATABLE - REPORTE DE COTIZACIONES
    ========================================================= */
-
-var view_anularCotizaciones_dataTable = function(tbody, table) {
+   var view_anularCotizaciones_dataTable = function (tbody, table) {
     $(tbody).off("click", "button.cancelar_cotizaciones");
-    $(tbody).on("click", "button.cancelar_cotizaciones", function(e) {
+    $(tbody).on("click", "button.cancelar_cotizaciones", function (e) {
         e.preventDefault();
 
         var data = table.row($(this).parents("tr")).data();
@@ -441,7 +440,30 @@ var view_anularCotizaciones_dataTable = function(tbody, table) {
             return false;
         }
 
-        anularCotizacion(data.cotizacion_id);
+        if (typeof validarAdminSistema !== 'function') {
+            showNotify('error', 'Validación no disponible', 'No está cargado el JS de autenticación administrativa.');
+            return false;
+        }
+
+        var cotizacionId = data.cotizacion_id;
+        var numeroCotizacion = data.number || data.numero || data.cotizacion || data.numero_cotizacion || data.cotizacion_id;
+
+        validarAdminSistema(function (permitido) {
+            if (permitido !== true) {
+                return;
+            }
+
+            anularCotizacion(cotizacionId);
+        }, {
+            mensaje: 'Para anular esta cotización debe validar un administrador.',
+            modulo: 'Cotizaciones',
+            accion: 'Anular cotización',
+            referencia_id: cotizacionId,
+            referencia_texto: numeroCotizacion,
+            motivo: 'Validación requerida para anular cotización'
+        });
+
+        return false;
     });
 };
 

@@ -1,7 +1,35 @@
+####21 de junio 2026####
+CREATE TABLE `auditoria_admin_autorizaciones` (
+  `auditoria_admin_id` int NOT NULL AUTO_INCREMENT,
+  `usuario_sesion_id` int DEFAULT NULL COMMENT 'Usuario que estaba logueado cuando se pidió autorización',
+  `usuario_sesion_tipo_id` int DEFAULT NULL COMMENT 'Tipo de usuario logueado',
+  `admin_users_id` int DEFAULT NULL COMMENT 'Usuario administrador que autorizó',
+  `admin_tipo_user_id` int DEFAULT NULL COMMENT 'Tipo de usuario administrador',
+  `empresa_id` int NOT NULL DEFAULT 0,
+  `modulo` varchar(80) COLLATE utf8mb4_spanish_ci NOT NULL DEFAULT 'Sistema',
+  `accion` varchar(120) COLLATE utf8mb4_spanish_ci NOT NULL DEFAULT 'Validación administrativa',
+  `referencia_id` varchar(80) COLLATE utf8mb4_spanish_ci DEFAULT NULL COMMENT 'ID de factura, compra, cotización u otro registro',
+  `referencia_texto` varchar(180) COLLATE utf8mb4_spanish_ci DEFAULT NULL COMMENT 'Número/documento/descripción visible',
+  `motivo` varchar(255) COLLATE utf8mb4_spanish_ci DEFAULT NULL,
+  `usuario_ingresado` varchar(80) COLLATE utf8mb4_spanish_ci DEFAULT NULL COMMENT 'Usuario escrito en el modal',
+  `permitido` tinyint NOT NULL DEFAULT 0 COMMENT '1 autorizado, 0 rechazado',
+  `resultado` varchar(30) COLLATE utf8mb4_spanish_ci NOT NULL DEFAULT 'RECHAZADO',
+  `mensaje` varchar(255) COLLATE utf8mb4_spanish_ci DEFAULT NULL,
+  `token_hash` char(64) COLLATE utf8mb4_spanish_ci DEFAULT NULL COMMENT 'Hash del token generado, no guarda el token real',
+  `ip` varchar(45) COLLATE utf8mb4_spanish_ci DEFAULT NULL,
+  `user_agent` varchar(255) COLLATE utf8mb4_spanish_ci DEFAULT NULL,
+  `fecha_registro` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`auditoria_admin_id`),
+  KEY `idx_empresa_fecha` (`empresa_id`, `fecha_registro`),
+  KEY `idx_admin_users` (`admin_users_id`),
+  KEY `idx_usuario_sesion` (`usuario_sesion_id`),
+  KEY `idx_modulo_accion` (`modulo`, `accion`),
+  KEY `idx_permitido` (`permitido`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
+
 ####20 de junio 2026####
 INSERT INTO config (config_id, accion, activar)
 VALUES (6, 'Activar ISV Proforma', 2);
-
 UPDATE correo
 SET
     correo = 'izzycloud@esmultiservicios.com',

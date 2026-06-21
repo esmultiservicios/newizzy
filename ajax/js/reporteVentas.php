@@ -679,118 +679,43 @@ var listar_reporte_ventas = function () {
   };
 
   var view_anular_facturas_dataTable = function (tbody, table) {
-  $(tbody).off("click", "button.cancelar_factura");
-  $(tbody).on("click", "button.cancelar_factura", function (e) {
-    e.preventDefault();
+    $(tbody).off("click", "button.cancelar_factura");
+    $(tbody).on("click", "button.cancelar_factura", function (e) {
+        e.preventDefault();
 
-    var data = table.row($(this).parents("tr")).data();
+        var data = table.row($(this).parents("tr")).data();
 
-    if (!data || !data.facturas_id) {
-      showNotify('error', 'Error', 'No se pudo obtener la factura seleccionada');
-      return false;
-    }
+        if (!data || !data.facturas_id) {
+            showNotify('error', 'Error', 'No se pudo obtener la factura seleccionada');
+            return false;
+        }
 
-    anularFacturas(data.facturas_id);
-  });
+        if (typeof validarAdminSistema !== 'function') {
+            showNotify('error', 'Validación no disponible', 'No está cargado el JS de autenticación administrativa.');
+            return false;
+        }
+
+        var facturaId = data.facturas_id;
+        var numeroFactura = data.number || data.numero || data.factura || data.numero_factura || data.facturas_id;
+
+        validarAdminSistema(function (permitido) {
+            if (permitido !== true) {
+                return;
+            }
+
+            anularFacturas(facturaId);
+        }, {
+            mensaje: 'Para anular esta factura debe validar un administrador.',
+            modulo: 'Facturación',
+            accion: 'Anular factura',
+            referencia_id: facturaId,
+            referencia_texto: numeroFactura,
+            motivo: 'Validación requerida para anular factura'
+        });
+
+        return false;
+    });
 };
-
-function anularFacturas(facturas_id) {
-  swal({
-    title: "¿Está seguro?",
-    text: "¿Desea anular la factura: # " + getNumeroFactura(facturas_id) + "?",
-    content: {
-      element: "input",
-      attributes: {
-        placeholder: "Comentario",
-        type: "text"
-      }
-    },
-    icon: "warning",
-    buttons: {
-      cancel: "Cancelar",
-      confirm: {
-        text: "¡Sí, anular la factura!",
-        closeModal: false
-      }
-    },
-    dangerMode: true,
-    closeOnEsc: false,
-    closeOnClickOutside: false
-  }).then((value) => {
-    if (value === null) {
-      swal.close();
-      return false;
-    }
-
-    if ($.trim(value) === "") {
-      showNotify('error', 'Error', '¡Necesita escribir algo!');
-      swal.close();
-      return false;
-    }
-
-    anular(facturas_id, value);
-  });
-}
-
-function anular(facturas_id, comentario) {
-  $.ajax({
-    type: 'POST',
-    url: '<?php echo SERVERURL; ?>core/anularFactura.php',
-    async: true,
-    timeout: 45000,
-    dataType: 'json',
-    data: {
-      facturas_id: facturas_id,
-      comentario: comentario
-    },
-    success: function (response) {
-      swal.close();
-
-      console.log('Respuesta anularFactura.php:', response);
-
-      if (response && response.success === true) {
-        showNotify(
-          'success',
-          'Success',
-          response.message || 'La factura ha sido anulada con éxito'
-        );
-
-        listar_reporte_ventas();
-      } else {
-        showNotify(
-          'error',
-          'Error',
-          response && response.message ? response.message : 'La factura no se puede anular'
-        );
-
-        console.warn('Detalle anulación:', response);
-      }
-    },
-    error: function (xhr, status, error) {
-      swal.close();
-
-      console.error('Error AJAX anularFactura.php:', {
-        status: status,
-        error: error,
-        responseText: xhr.responseText
-      });
-
-      if (status === 'timeout') {
-        showNotify(
-          'error',
-          'Error',
-          'La anulación tardó demasiado. Revise si la factura fue anulada antes de intentarlo otra vez.'
-        );
-      } else {
-        showNotify(
-          'error',
-          'Error',
-          'Hubo un problema al anular la factura. Revise la consola o el log del servidor.'
-        );
-      }
-    }
-  });
-}
 
   function getReporteFactura() {
     $.ajax({

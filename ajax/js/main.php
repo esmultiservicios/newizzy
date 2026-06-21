@@ -11255,38 +11255,57 @@ $(document).on("hidden.bs.modal", "#modalPreviewDocumento", function () {
 ========================================================= */
 
 /* =========================================================
-   AUTH ADMIN SISTEMA
-   Valida usuario administrador o super administrador.
-   Uso:
-   validarAdminSistema(function (permitido, data) {
-       if (permitido === true) {
-           // acción permitida
-       }
-   });
+   AUTENTICACIÓN ADMINISTRATIVA GLOBAL
+   ---------------------------------------------------------
+   validarAdminSistema(callback, opciones)
+
+   Sirve para proteger acciones críticas del sistema.
+   El PHP valida usuario administrador y guarda auditoría.
+
+   Variables:
+   AUTH_ADMIN_SISTEMA_TOKEN
+   - Token temporal devuelto por el PHP.
+
+   AUTH_ADMIN_SISTEMA_AUDITORIA_ID
+   - ID del registro creado en auditoría.
+
+   AUTH_ADMIN_SISTEMA_CALLBACK
+   - Función que se ejecuta después de validar.
+
+   AUTH_ADMIN_SISTEMA_OPCIONES
+   - Datos de auditoría enviados al PHP.
+
+   AUTH_ADMIN_SISTEMA_ESPERANDO
+   - Controla si el usuario cerró el modal sin validar.
 ========================================================= */
 
 var AUTH_ADMIN_SISTEMA_TOKEN = '';
+var AUTH_ADMIN_SISTEMA_AUDITORIA_ID = 0;
 var AUTH_ADMIN_SISTEMA_CALLBACK = null;
+var AUTH_ADMIN_SISTEMA_OPCIONES = {};
 var AUTH_ADMIN_SISTEMA_ESPERANDO = false;
+
+function enfocarUsuarioAuthAdminSistema() {
+    var $usuario = $('#auth_admin_usuario');
+
+    if ($usuario.length > 0) {
+        $usuario.trigger('focus');
+        $usuario.select();
+    }
+}
 
 function validarAdminSistema(callback, opciones) {
     opciones = opciones || {};
 
-    AUTH_ADMIN_SISTEMA_CALLBACK = typeof callback === 'function' ? callback : null;
-    AUTH_ADMIN_SISTEMA_TOKEN = '';
+    AUTH_ADMIN_SISTEMA_CALLBACK = callback;
+    AUTH_ADMIN_SISTEMA_OPCIONES = opciones;
     AUTH_ADMIN_SISTEMA_ESPERANDO = true;
 
     if ($('#modalAutenticacionAdminSistema').length === 0) {
-        showNotify('error', 'Modal no encontrado', 'No existe el modal de autenticación administrativa.');
+        showNotify('error', 'Modal no encontrado', 'No existe el modal de validación administrativa.');
 
-        AUTH_ADMIN_SISTEMA_ESPERANDO = false;
-
-        if (AUTH_ADMIN_SISTEMA_CALLBACK) {
-            AUTH_ADMIN_SISTEMA_CALLBACK(false, {
-                success: false,
-                permitido: false,
-                message: 'Modal no encontrado'
-            });
+        if (typeof AUTH_ADMIN_SISTEMA_CALLBACK === 'function') {
+            AUTH_ADMIN_SISTEMA_CALLBACK(false, {});
         }
 
         return;
@@ -11296,15 +11315,27 @@ function validarAdminSistema(callback, opciones) {
         $('#formAutenticacionAdminSistema')[0].reset();
     }
 
-    if ($('#auth_admin_mensaje').length > 0) {
-        $('#auth_admin_mensaje').html(
-            opciones.mensaje || 'Ingrese credenciales de administrador.'
-        );
-    }
+    $('#auth_admin_mensaje').html(
+        opciones.mensaje || 'Ingrese credenciales de un usuario administrador.'
+    );
 
     $('#btn_validar_auth_admin')
         .prop('disabled', false)
         .html('<i class="fas fa-unlock-alt"></i> Validar');
+
+    $('#modalAutenticacionAdminSistema')
+        .off('shown.bs.modal.authAdminSistemaFocus')
+        .on('shown.bs.modal.authAdminSistemaFocus', function () {
+            enfocarUsuarioAuthAdminSistema();
+
+            setTimeout(function () {
+                enfocarUsuarioAuthAdminSistema();
+            }, 120);
+
+            setTimeout(function () {
+                enfocarUsuarioAuthAdminSistema();
+            }, 300);
+        });
 
     $('#modalAutenticacionAdminSistema').modal({
         show: true,
@@ -11319,6 +11350,7 @@ function ejecutarValidacionAdminSistema() {
 
     if (usuario === '' || password === '') {
         showNotify('error', 'Datos requeridos', 'Ingrese usuario y contraseña.');
+        enfocarUsuarioAuthAdminSistema();
         return;
     }
 
@@ -11332,7 +11364,12 @@ function ejecutarValidacionAdminSistema() {
         dataType: 'json',
         data: {
             usuario: usuario,
-            password: password
+            password: password,
+            modulo: AUTH_ADMIN_SISTEMA_OPCIONES.modulo || 'Sistema',
+            accion: AUTH_ADMIN_SISTEMA_OPCIONES.accion || 'Validación administrativa',
+            referencia_id: AUTH_ADMIN_SISTEMA_OPCIONES.referencia_id || '',
+            referencia_texto: AUTH_ADMIN_SISTEMA_OPCIONES.referencia_texto || '',
+            motivo: AUTH_ADMIN_SISTEMA_OPCIONES.motivo || ''
         },
         success: function (response) {
             $('#btn_validar_auth_admin')
@@ -11340,34 +11377,27 @@ function ejecutarValidacionAdminSistema() {
                 .html('<i class="fas fa-unlock-alt"></i> Validar');
 
             if (!response || response.success !== true || response.permitido !== true) {
-                AUTH_ADMIN_SISTEMA_TOKEN = '';
-
                 showNotify(
                     'error',
-                    'Acceso denegado',
-                    response && response.message ? response.message : 'El usuario no tiene permisos administrativos.'
+                    'Validación rechazada',
+                    response && response.message ? response.message : 'Usuario, contraseña o permisos no válidos.'
                 );
 
-                if (AUTH_ADMIN_SISTEMA_CALLBACK) {
-                    AUTH_ADMIN_SISTEMA_CALLBACK(false, response || {
-                        success: false,
-                        permitido: false
-                    });
-                }
+                $('#auth_admin_password').val('');
+                enfocarUsuarioAuthAdminSistema();
 
                 return;
             }
 
             AUTH_ADMIN_SISTEMA_TOKEN = response.token || '';
+            AUTH_ADMIN_SISTEMA_AUDITORIA_ID = parseInt(response.auditoria_admin_id || 0, 10);
             AUTH_ADMIN_SISTEMA_ESPERANDO = false;
 
             $('#modalAutenticacionAdminSistema').modal('hide');
 
-            setTimeout(function () {
-                if (AUTH_ADMIN_SISTEMA_CALLBACK) {
-                    AUTH_ADMIN_SISTEMA_CALLBACK(true, response);
-                }
-            }, 250);
+            if (typeof AUTH_ADMIN_SISTEMA_CALLBACK === 'function') {
+                AUTH_ADMIN_SISTEMA_CALLBACK(true, response);
+            }
         },
         error: function (xhr) {
             console.log(xhr.responseText);
@@ -11376,17 +11406,8 @@ function ejecutarValidacionAdminSistema() {
                 .prop('disabled', false)
                 .html('<i class="fas fa-unlock-alt"></i> Validar');
 
-            AUTH_ADMIN_SISTEMA_TOKEN = '';
-
             showNotify('error', 'Error', 'Error de comunicación al validar administrador.');
-
-            if (AUTH_ADMIN_SISTEMA_CALLBACK) {
-                AUTH_ADMIN_SISTEMA_CALLBACK(false, {
-                    success: false,
-                    permitido: false,
-                    message: 'Error de comunicación'
-                });
-            }
+            enfocarUsuarioAuthAdminSistema();
         }
     });
 }
@@ -11399,34 +11420,115 @@ $(document)
     });
 
 $(document)
-    .off('click.authAdminSistema', '#btn_validar_auth_admin')
-    .on('click.authAdminSistema', '#btn_validar_auth_admin', function () {
-        ejecutarValidacionAdminSistema();
-    });
-
-$(document)
-    .off('shown.bs.modal.authAdminSistemaFocus', '#modalAutenticacionAdminSistema')
-    .on('shown.bs.modal.authAdminSistemaFocus', '#modalAutenticacionAdminSistema', function () {
-        setTimeout(function () {
-            $('#auth_admin_usuario').trigger('focus');
-        }, 150);
-    });
-
-$(document)
-    .off('hidden.bs.modal.authAdminSistemaCancelado', '#modalAutenticacionAdminSistema')
-    .on('hidden.bs.modal.authAdminSistemaCancelado', '#modalAutenticacionAdminSistema', function () {
+    .off('hidden.bs.modal.authAdminSistema', '#modalAutenticacionAdminSistema')
+    .on('hidden.bs.modal.authAdminSistema', '#modalAutenticacionAdminSistema', function () {
         if (AUTH_ADMIN_SISTEMA_ESPERANDO === true) {
             AUTH_ADMIN_SISTEMA_ESPERANDO = false;
-            AUTH_ADMIN_SISTEMA_TOKEN = '';
 
-            if (AUTH_ADMIN_SISTEMA_CALLBACK) {
-                AUTH_ADMIN_SISTEMA_CALLBACK(false, {
-                    success: false,
-                    permitido: false,
-                    cancelado: true,
-                    message: 'Validación cancelada'
-                });
+            if (typeof AUTH_ADMIN_SISTEMA_CALLBACK === 'function') {
+                AUTH_ADMIN_SISTEMA_CALLBACK(false, {});
             }
         }
     });
+
+
+  //INICIO METODO ANULAR FACTURAS
+  function anularFacturas(facturas_id) {
+  swal({
+    title: "¿Está seguro?",
+    text: "¿Desea anular la factura: # " + getNumeroFactura(facturas_id) + "?",
+    content: {
+      element: "input",
+      attributes: {
+        placeholder: "Comentario",
+        type: "text"
+      }
+    },
+    icon: "warning",
+    buttons: {
+      cancel: "Cancelar",
+      confirm: {
+        text: "¡Sí, anular la factura!",
+        closeModal: false
+      }
+    },
+    dangerMode: true,
+    closeOnEsc: false,
+    closeOnClickOutside: false
+  }).then((value) => {
+    if (value === null) {
+      swal.close();
+      return false;
+    }
+
+    if ($.trim(value) === "") {
+      showNotify('error', 'Error', '¡Necesita escribir algo!');
+      swal.close();
+      return false;
+    }
+
+    anular(facturas_id, value);
+  });
+}
+
+function anular(facturas_id, comentario) {
+  $.ajax({
+    type: 'POST',
+    url: '<?php echo SERVERURL; ?>core/anularFactura.php',
+    async: true,
+    timeout: 45000,
+    dataType: 'json',
+    data: {
+      facturas_id: facturas_id,
+      comentario: comentario
+    },
+    success: function (response) {
+      swal.close();
+
+      console.log('Respuesta anularFactura.php:', response);
+
+      if (response && response.success === true) {
+        showNotify(
+          'success',
+          'Success',
+          response.message || 'La factura ha sido anulada con éxito'
+        );
+
+        listar_reporte_ventas();
+      } else {
+        showNotify(
+          'error',
+          'Error',
+          response && response.message ? response.message : 'La factura no se puede anular'
+        );
+
+        console.warn('Detalle anulación:', response);
+      }
+    },
+    error: function (xhr, status, error) {
+      swal.close();
+
+      console.error('Error AJAX anularFactura.php:', {
+        status: status,
+        error: error,
+        responseText: xhr.responseText
+      });
+
+      if (status === 'timeout') {
+        showNotify(
+          'error',
+          'Error',
+          'La anulación tardó demasiado. Revise si la factura fue anulada antes de intentarlo otra vez.'
+        );
+      } else {
+        showNotify(
+          'error',
+          'Error',
+          'Hubo un problema al anular la factura. Revise la consola o el log del servidor.'
+        );
+      }
+    }
+  });
+}
+  //FIN METODO ANULAR FACTURAS
 </script>

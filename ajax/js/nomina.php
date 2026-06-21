@@ -1902,55 +1902,120 @@ var listar_vales = function() {
     anular_vale_nominas_dataTable("#DatatableVale tbody", table_vales);
 };
 
-var anular_vale_nominas_dataTable = function(tbody, table) {
+var anular_vale_nominas_dataTable = function (tbody, table) {
     $(tbody).off("click", "button.anular_vale");
-    $(tbody).on("click", "button.anular_vale", function(e) {
+    $(tbody).on("click", "button.anular_vale", function (e) {
         e.preventDefault();
+
         var data = table.row($(this).parents("tr")).data();
 
-        // CONFIRMACIÓN → swal
-        swal({
-            title: "¿Estás seguro?",
-            content: { element: "span", attributes: { innerHTML: "¿Desea anular este vale de <strong>" + data.empleado + "</strong>?" } },
-            icon: "warning",
-            buttons: {
-                cancel: { text: "Cancelar", visible: true },
-                confirm: { text: "¡Sí, anular el vale!" }
-            },
-            dangerMode: true,
-            closeOnEsc: false,
-            closeOnClickOutside: false
-        }).then((willConfirm) => {
-            if (willConfirm) {
-                anularVale(data.vale_id);
+        if (!data || !data.vale_id) {
+            showNotify('error', 'Error', 'No se pudo obtener el vale seleccionado');
+            return false;
+        }
+
+        if (typeof validarAdminSistema !== 'function') {
+            showNotify('error', 'Validación no disponible', 'No está cargado el JS de autenticación administrativa.');
+            return false;
+        }
+
+        var valeId = data.vale_id;
+        var empleado = data.empleado || 'Empleado no especificado';
+
+        validarAdminSistema(function (permitido) {
+            if (permitido !== true) {
+                return;
             }
+
+            anularVale(valeId, empleado);
+        }, {
+            mensaje: 'Para anular este vale debe validar un administrador.',
+            modulo: 'Nómina',
+            accion: 'Anular vale de nómina',
+            referencia_id: valeId,
+            referencia_texto: empleado,
+            motivo: 'Validación requerida para anular vale de nómina'
         });
+
+        return false;
     });
 };
 
-function anularVale(vale_id) {
-    var url = '<?php echo SERVERURL;?>core/anularVale.php';
-    $.ajax({
-        type: "POST",
-        url: url,
-        data: { vale_id: vale_id },
-        dataType: "json",
-        cache: false
-    })
-    .done(function(res){
-        if(res.status === "success"){
-            showNotify('success', res.title || 'Éxito', res.message || 'El vale ha sido anulado correctamente');
-            if (typeof listar_vales === 'function') listar_vales();
-            if (res.run) { try { eval(res.run); } catch(e){} }
-        }else if(res.status === "unauthorized"){
-            showNotify('error', res.title || 'Sesión expirada', res.message || 'Debes iniciar sesión nuevamente.');
-            if (res.redirect) { setTimeout(function(){ window.location.href = res.redirect; }, 1200); }
-        }else{
-            showNotify('error', res.title || 'Error', res.message || 'Lo sentimos, no se puede anular el vale');
+function anularVale(vale_id, empleado) {
+    if (!vale_id) {
+        showNotify('error', 'Error', 'No se recibió el vale a anular');
+        return;
+    }
+
+    empleado = empleado || 'Empleado no especificado';
+
+    swal({
+        title: "¿Estás seguro?",
+        content: {
+            element: "span",
+            attributes: {
+                innerHTML: "¿Desea anular este vale de <strong>" + empleado + "</strong>?"
+            }
+        },
+        icon: "warning",
+        buttons: {
+            cancel: {
+                text: "Cancelar",
+                visible: true
+            },
+            confirm: {
+                text: "¡Sí, anular el vale!"
+            }
+        },
+        dangerMode: true,
+        closeOnEsc: false,
+        closeOnClickOutside: false
+    }).then((willConfirm) => {
+        if (!willConfirm) {
+            return;
         }
-    })
-    .fail(function(){
-        showNotify('error','Error','Error de conexión al anular el vale');
+
+        var url = '<?php echo SERVERURL;?>core/anularVale.php';
+
+        $.ajax({
+            type: "POST",
+            url: url,
+            data: {
+                vale_id: vale_id,
+                admin_token: AUTH_ADMIN_SISTEMA_TOKEN || '',
+                auditoria_admin_id: AUTH_ADMIN_SISTEMA_AUDITORIA_ID || 0
+            },
+            dataType: "json",
+            cache: false
+        })
+        .done(function (res) {
+            if (res.status === "success") {
+                showNotify('success', res.title || 'Éxito', res.message || 'El vale ha sido anulado correctamente');
+
+                if (typeof listar_vales === 'function') {
+                    listar_vales();
+                }
+
+                if (res.run) {
+                    try {
+                        eval(res.run);
+                    } catch (e) {}
+                }
+            } else if (res.status === "unauthorized") {
+                showNotify('error', res.title || 'Sesión expirada', res.message || 'Debes iniciar sesión nuevamente.');
+
+                if (res.redirect) {
+                    setTimeout(function () {
+                        window.location.href = res.redirect;
+                    }, 1200);
+                }
+            } else {
+                showNotify('error', res.title || 'Error', res.message || 'Lo sentimos, no se puede anular el vale');
+            }
+        })
+        .fail(function () {
+            showNotify('error', 'Error', 'Error de conexión al anular el vale');
+        });
     });
 }
 

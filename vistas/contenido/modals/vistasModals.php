@@ -5140,8 +5140,47 @@
 
                 <div class="izzy-section-block">
                     <div class="izzy-section-title">
+                        <i class="fas fa-percent"></i>
+                        4. ISV / SAR
+                    </div>
+
+                    <div class="izzy-note mb-2">
+                        <strong>Importante:</strong>
+                        el ISV de <strong>facturas normales</strong> es el monto que el cliente debe apartar para SAR.
+                        El ISV de proformas se muestra solo como referencia, porque la proforma no es factura fiscal.
+                    </div>
+
+                    <div class="row izzy-kpi-row-compact">
+                        <div class="col-md-4 col-sm-6 mb-2">
+                            <div class="izzy-kpi-card izzy-kpi-card-mini izzy-kpi-card-reinversion">
+                                <div class="izzy-kpi-label">ISV facturas normales / SAR</div>
+                                <p class="izzy-kpi-value izzy-kpi-warning" id="dg_isv_factura_normal_sar">L. 0.00</p>
+                                <small>Monto de ISV en facturas electrónicas normales.</small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 col-sm-6 mb-2">
+                            <div class="izzy-kpi-card izzy-kpi-card-mini">
+                                <div class="izzy-kpi-label">ISV proformas</div>
+                                <p class="izzy-kpi-value" id="dg_isv_proforma_informativo">L. 0.00</p>
+                                <small>Informativo. No se toma como factura fiscal.</small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 col-sm-6 mb-2">
+                            <div class="izzy-kpi-card izzy-kpi-card-mini">
+                                <div class="izzy-kpi-label">ISV total detalle</div>
+                                <p class="izzy-kpi-value" id="dg_isv_total_detalle">L. 0.00</p>
+                                <small>Suma de ISV normal + proforma.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="izzy-section-block">
+                    <div class="izzy-section-title">
                         <i class="fas fa-boxes"></i>
-                        4. Venta, costo y ganancia de productos
+                        5. Venta, costo y ganancia de productos
                     </div>
 
                     <div class="izzy-note mb-2">
@@ -5220,7 +5259,7 @@
                 <div class="izzy-section-block mb-0">
                     <div class="izzy-section-title">
                         <i class="fas fa-list"></i>
-                        5. Detalle por producto vendido
+                        6. Detalle por producto vendido
                     </div>
 
                     <div class="table-responsive izzy-table-responsive-ganancia">
@@ -5245,6 +5284,297 @@
     </div>
 </div>
 <!-- FIN MODAL DESGLOSE GANANCIA CAJA -->
+
+<!-- =========================================================
+     MODAL CUADRE DEL DÍA
+     ========================================================= -->
+<div class="modal fade" id="modalCuadreDiaCaja" tabindex="-1" role="dialog" aria-labelledby="modalCuadreDiaCajaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <div>
+                    <h5 class="modal-title mb-1" id="modalCuadreDiaCajaLabel">
+                        <i class="fas fa-balance-scale mr-1"></i> Cuadre del Día
+                    </h5>
+                    <small id="cd_contexto_caja" class="text-white-50">Cargando...</small>
+                </div>
+
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div id="cd_ticket_area">
+                    <div class="alert alert-info mb-3">
+                        <strong>Resumen claro:</strong> este cuadre separa ventas, inversión/reposición, gastos, ISV/SAR y el dinero que debe quedar por forma de pago.
+                    </div>
+
+                    <div class="row">
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card border-success h-100">
+                                <div class="card-body">
+                                    <div class="small text-muted">Total cobrado</div>
+                                    <h4 class="font-weight-bold text-success mb-1" id="cd_total_cobrado">L. 0.00</h4>
+                                    <small>Efectivo + transferencia + tarjeta + cheque.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card border-danger h-100">
+                                <div class="card-body">
+                                    <div class="small text-muted">Inversión / reposición</div>
+                                    <h4 class="font-weight-bold text-danger mb-1" id="cd_inversion_reposicion">L. 0.00</h4>
+                                    <small>Costo de productos vendidos o inversión registrada.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card border-warning h-100">
+                                <div class="card-body">
+                                    <div class="small text-muted">Gastos / retiros</div>
+                                    <h4 class="font-weight-bold text-warning mb-1" id="cd_gastos_total">L. 0.00</h4>
+                                    <small>Retiros de caja + egresos del día.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card border-primary h-100">
+                                <div class="card-body">
+                                    <div class="small text-muted">Total final esperado</div>
+                                    <h4 class="font-weight-bold text-primary mb-1" id="cd_total_final_esperado">L. 0.00</h4>
+                                    <small>Lo que debe quedar después de inversión y gastos.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-lg-4 col-md-6 mb-3">
+                            <div class="card border-warning h-100">
+                                <div class="card-body">
+                                    <div class="small text-muted">ISV facturas normales / SAR</div>
+                                    <h4 class="font-weight-bold text-warning mb-1" id="cd_isv_factura_normal_sar">L. 0.00</h4>
+                                    <small>ISV de facturas electrónicas normales. Este monto debe apartarse para SAR.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4 col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <div class="small text-muted">ISV proformas</div>
+                                    <h4 class="font-weight-bold mb-1" id="cd_isv_proforma_informativo">L. 0.00</h4>
+                                    <small>Informativo. No se toma como factura fiscal.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4 col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <div class="small text-muted">ISV total detalle</div>
+                                    <h4 class="font-weight-bold mb-1" id="cd_isv_total_detalle">L. 0.00</h4>
+                                    <small>Suma de ISV normal + proforma.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-lg-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-header font-weight-bold">
+                                    <i class="fas fa-wallet mr-1"></i> Dinero cobrado por forma de pago
+                                </div>
+
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-striped mb-0">
+                                            <tbody>
+                                                <tr>
+                                                    <th>Efectivo cobrado</th>
+                                                    <td class="text-right font-weight-bold" id="cd_efectivo">L. 0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Transferencia cobrada</th>
+                                                    <td class="text-right font-weight-bold" id="cd_transferencia">L. 0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Tarjeta cobrada</th>
+                                                    <td class="text-right font-weight-bold" id="cd_tarjeta">L. 0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Cheque cobrado</th>
+                                                    <td class="text-right font-weight-bold" id="cd_cheque">L. 0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Monto apertura</th>
+                                                    <td class="text-right font-weight-bold" id="cd_monto_apertura">L. 0.00</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-header font-weight-bold">
+                                    <i class="fas fa-calculator mr-1"></i> Resultado que debe existir
+                                </div>
+
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-striped mb-0">
+                                            <tbody>
+                                                <tr>
+                                                    <th>Debe quedar en efectivo</th>
+                                                    <td class="text-right font-weight-bold text-success" id="cd_efectivo_esperado">L. 0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Debe quedar en transferencia</th>
+                                                    <td class="text-right font-weight-bold text-success" id="cd_transferencia_esperada">L. 0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Debe quedar en tarjeta</th>
+                                                    <td class="text-right font-weight-bold text-success" id="cd_tarjeta_esperada">L. 0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Debe quedar en cheque</th>
+                                                    <td class="text-right font-weight-bold text-success" id="cd_cheque_esperado">L. 0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Total final esperado</th>
+                                                    <td class="text-right font-weight-bold text-primary" id="cd_total_final_esperado_tabla">L. 0.00</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-lg-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-header font-weight-bold">
+                                    <i class="fas fa-minus-circle mr-1"></i> Desglose de gastos
+                                </div>
+
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-striped mb-0" id="cd_tabla_gastos">
+                                            <thead>
+                                                <tr>
+                                                    <th>Tipo</th>
+                                                    <th>Cuenta</th>
+                                                    <th class="text-right">Monto</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td colspan="3" class="text-center text-muted">Sin datos</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-header font-weight-bold">
+                                    <i class="fas fa-seedling mr-1"></i> Desglose de inversión / reposición
+                                </div>
+
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-striped mb-0" id="cd_tabla_inversiones">
+                                            <thead>
+                                                <tr>
+                                                    <th>Tipo</th>
+                                                    <th>Cuenta</th>
+                                                    <th class="text-right">Monto</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td colspan="3" class="text-center text-muted">Sin datos</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-lg-12 mb-3">
+                            <div class="card h-100">
+                                <div class="card-header font-weight-bold">
+                                    <i class="fas fa-list-alt mr-1"></i> Fórmula del efectivo
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between border-bottom py-1">
+                                        <span>Efectivo cobrado</span>
+                                        <strong id="cd_formula_efectivo">L. 0.00</strong>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between border-bottom py-1">
+                                        <span>+ Monto apertura</span>
+                                        <strong id="cd_formula_apertura">L. 0.00</strong>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between border-bottom py-1">
+                                        <span>- Inversión / reposición</span>
+                                        <strong id="cd_formula_inversion">L. 0.00</strong>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between border-bottom py-1">
+                                        <span>- Gastos/retiros en efectivo</span>
+                                        <strong id="cd_formula_gastos_efectivo">L. 0.00</strong>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between pt-2">
+                                        <span class="font-weight-bold">= Efectivo esperado</span>
+                                        <strong class="text-success" id="cd_formula_resultado">L. 0.00</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="btnImprimirCuadreDia">
+                    <i class="fas fa-print"></i> Imprimir / Ticket
+                </button>
+
+                <button type="button" class="btn btn-info" id="btnActualizarCuadreDia">
+                    <i class="fas fa-sync-alt"></i> Actualizar
+                </button>
+
+                <button type="button" class="btn btn-primary" data-dismiss="modal">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- =========================================================
+     FIN MODALES COMPARTIDOS DE CAJA - FACTURAS
+========================================================= -->
 
 <!-- INICIO MODAL RETIRO DE CAJA -->
 <div class="modal fade" id="modalRetiroCaja" tabindex="-1" role="dialog" aria-labelledby="modalRetiroCajaLabel" aria-hidden="true">
@@ -5402,253 +5732,6 @@
     </div>
 </div>
 <!-- FIN MODAL RETIRO DE CAJA -->
-
-<!-- =========================================================
-     MODAL CUADRE DEL DÍA
-     ========================================================= -->
-     <div class="modal fade" id="modalCuadreDiaCaja" tabindex="-1" role="dialog" aria-labelledby="modalCuadreDiaCajaLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
-        <div class="modal-content">
-            <div class="modal-header bg-dark text-white">
-                <div>
-                    <h5 class="modal-title mb-1" id="modalCuadreDiaCajaLabel">
-                        <i class="fas fa-balance-scale mr-1"></i> Cuadre del Día
-                    </h5>
-                    <small id="cd_contexto_caja" class="text-white-50">Cargando...</small>
-                </div>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-
-            <div class="modal-body">
-                <div id="cd_ticket_area">
-                    <div class="alert alert-info mb-3">
-                        <strong>Resumen claro:</strong> este cuadre separa ventas, inversión/reposición, gastos y el dinero que debe quedar por forma de pago.
-                    </div>
-
-                    <div class="row">
-                        <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card border-success h-100">
-                                <div class="card-body">
-                                    <div class="small text-muted">Total cobrado</div>
-                                    <h4 class="font-weight-bold text-success mb-1" id="cd_total_cobrado">L. 0.00</h4>
-                                    <small>Efectivo + transferencia + tarjeta + cheque.</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card border-danger h-100">
-                                <div class="card-body">
-                                    <div class="small text-muted">Inversión / reposición</div>
-                                    <h4 class="font-weight-bold text-danger mb-1" id="cd_inversion_reposicion">L. 0.00</h4>
-                                    <small>Costo de productos vendidos o inversión registrada.</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card border-warning h-100">
-                                <div class="card-body">
-                                    <div class="small text-muted">Gastos / retiros</div>
-                                    <h4 class="font-weight-bold text-warning mb-1" id="cd_gastos_total">L. 0.00</h4>
-                                    <small>Retiros de caja + egresos del día.</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card border-primary h-100">
-                                <div class="card-body">
-                                    <div class="small text-muted">Total final esperado</div>
-                                    <h4 class="font-weight-bold text-primary mb-1" id="cd_total_final_esperado">L. 0.00</h4>
-                                    <small>Lo que debe quedar después de inversión y gastos.</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-lg-6 mb-3">
-                            <div class="card h-100">
-                                <div class="card-header font-weight-bold">
-                                    <i class="fas fa-wallet mr-1"></i> Dinero cobrado por forma de pago
-                                </div>
-                                <div class="card-body p-0">
-                                    <div class="table-responsive">
-                                        <table class="table table-sm table-striped mb-0">
-                                            <tbody>
-                                                <tr>
-                                                    <th>Efectivo cobrado</th>
-                                                    <td class="text-right font-weight-bold" id="cd_efectivo">L. 0.00</td>
-                                                </tr>
-                                                <tr>
-                                                    <th>Transferencia cobrada</th>
-                                                    <td class="text-right font-weight-bold" id="cd_transferencia">L. 0.00</td>
-                                                </tr>
-                                                <tr>
-                                                    <th>Tarjeta cobrada</th>
-                                                    <td class="text-right font-weight-bold" id="cd_tarjeta">L. 0.00</td>
-                                                </tr>
-                                                <tr>
-                                                    <th>Cheque cobrado</th>
-                                                    <td class="text-right font-weight-bold" id="cd_cheque">L. 0.00</td>
-                                                </tr>
-                                                <tr>
-                                                    <th>Monto apertura</th>
-                                                    <td class="text-right font-weight-bold" id="cd_monto_apertura">L. 0.00</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-lg-6 mb-3">
-                            <div class="card h-100">
-                                <div class="card-header font-weight-bold">
-                                    <i class="fas fa-calculator mr-1"></i> Resultado que debe existir
-                                </div>
-                                <div class="card-body p-0">
-                                    <div class="table-responsive">
-                                        <table class="table table-sm table-striped mb-0">
-                                            <tbody>
-                                                <tr>
-                                                    <th>Debe quedar en efectivo</th>
-                                                    <td class="text-right font-weight-bold text-success" id="cd_efectivo_esperado">L. 0.00</td>
-                                                </tr>
-                                                <tr>
-                                                    <th>Debe quedar en transferencia</th>
-                                                    <td class="text-right font-weight-bold text-success" id="cd_transferencia_esperada">L. 0.00</td>
-                                                </tr>
-                                                <tr>
-                                                    <th>Debe quedar en tarjeta</th>
-                                                    <td class="text-right font-weight-bold text-success" id="cd_tarjeta_esperada">L. 0.00</td>
-                                                </tr>
-                                                <tr>
-                                                    <th>Debe quedar en cheque</th>
-                                                    <td class="text-right font-weight-bold text-success" id="cd_cheque_esperado">L. 0.00</td>
-                                                </tr>
-                                                <tr>
-                                                    <th>Total final esperado</th>
-                                                    <td class="text-right font-weight-bold text-primary" id="cd_total_final_esperado_tabla">L. 0.00</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-lg-6 mb-3">
-                            <div class="card h-100">
-                                <div class="card-header font-weight-bold">
-                                    <i class="fas fa-minus-circle mr-1"></i> Desglose de gastos
-                                </div>
-                                <div class="card-body p-0">
-                                    <div class="table-responsive">
-                                        <table class="table table-sm table-striped mb-0" id="cd_tabla_gastos">
-                                            <thead>
-                                                <tr>
-                                                    <th>Tipo</th>
-                                                    <th>Cuenta</th>
-                                                    <th class="text-right">Monto</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td colspan="3" class="text-center text-muted">Sin datos</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-lg-6 mb-3">
-                            <div class="card h-100">
-                                <div class="card-header font-weight-bold">
-                                    <i class="fas fa-seedling mr-1"></i> Desglose de inversión / reposición
-                                </div>
-                                <div class="card-body p-0">
-                                    <div class="table-responsive">
-                                        <table class="table table-sm table-striped mb-0" id="cd_tabla_inversiones">
-                                            <thead>
-                                                <tr>
-                                                    <th>Tipo</th>
-                                                    <th>Cuenta</th>
-                                                    <th class="text-right">Monto</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td colspan="3" class="text-center text-muted">Sin datos</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-lg-12 mb-3">
-                            <div class="card h-100">
-                                <div class="card-header font-weight-bold">
-                                    <i class="fas fa-list-alt mr-1"></i> Fórmula del efectivo
-                                </div>
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between border-bottom py-1">
-                                        <span>Efectivo cobrado</span>
-                                        <strong id="cd_formula_efectivo">L. 0.00</strong>
-                                    </div>
-                                    <div class="d-flex justify-content-between border-bottom py-1">
-                                        <span>+ Monto apertura</span>
-                                        <strong id="cd_formula_apertura">L. 0.00</strong>
-                                    </div>
-                                    <div class="d-flex justify-content-between border-bottom py-1">
-                                        <span>- Inversión / reposición</span>
-                                        <strong id="cd_formula_inversion">L. 0.00</strong>
-                                    </div>
-                                    <div class="d-flex justify-content-between border-bottom py-1">
-                                        <span>- Gastos/retiros en efectivo</span>
-                                        <strong id="cd_formula_gastos_efectivo">L. 0.00</strong>
-                                    </div>
-                                    <div class="d-flex justify-content-between pt-2">
-                                        <span class="font-weight-bold">= Efectivo esperado</span>
-                                        <strong class="text-success" id="cd_formula_resultado">L. 0.00</strong>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" id="btnImprimirCuadreDia">
-                    <i class="fas fa-print"></i> Imprimir / Ticket
-                </button>
-                <button type="button" class="btn btn-info" id="btnActualizarCuadreDia">
-                    <i class="fas fa-sync-alt"></i> Actualizar
-                </button>
-                <button type="button" class="btn btn-primary" data-dismiss="modal">
-                    <i class="fas fa-times"></i> Cerrar
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- =========================================================
-     FIN MODALES COMPARTIDOS DE CAJA - FACTURAS
-========================================================= -->
 
  <!--INICIO MODAL PARA FORMULARIO PRECIOS EN FACTURACION / COTIZACION-->
 <div class="modal fade" id="editarPrecioModal" tabindex="-1" role="dialog" aria-labelledby="editarPrecioModalLabel" aria-hidden="true">

@@ -13,6 +13,23 @@ try {
         throw new Exception('Sin conexión a BD');
     }
 
+    // Configuración de proforma:
+    // accion = 'Activar ISV Proforma'
+    // activar = 1 Sí / 2 No
+    $proforma_aplica_isv = 0;
+
+    $sqlProforma = "SELECT activar
+                    FROM config
+                    WHERE accion = 'Activar ISV Proforma'
+                    LIMIT 1";
+
+    $rsProforma = $mainModel->ejecutar_consulta_simple($sqlProforma);
+
+    if ($rsProforma && $rsProforma->num_rows > 0) {
+        $rowProforma = $rsProforma->fetch_assoc();
+        $proforma_aplica_isv = ((int)$rowProforma['activar'] === 1) ? 1 : 0;
+    }
+
     // Traer valores para isv_id 1 y 2 (si no existen, devolver 0)
     $rate1_value = 0.00; // porcentaje (ej. 15.00)
     $rate2_value = 0.00;
@@ -40,7 +57,8 @@ try {
         'rate1'       => $rate1,                                   // 0.15
         'rate2'       => $rate2,                                   // 0.18
         'label1'      => $label1,                                  // "ISV 15%"
-        'label2'      => $label2                                   // "ISV 18%"
+        'label2'      => $label2,                                  // "ISV 18%"
+        'proforma_aplica_isv' => $proforma_aplica_isv
     ], JSON_UNESCAPED_UNICODE);
 
 } catch (Throwable $e) {
@@ -51,6 +69,7 @@ try {
         'rate2'       => 0,
         'label1'      => 'ISV 0%',
         'label2'      => 'ISV 0%',
+        'proforma_aplica_isv' => 0,
         'error'       => $e->getMessage()
     ], JSON_UNESCAPED_UNICODE);
 }

@@ -412,11 +412,11 @@ class pagoFacturaModelo extends mainModel {
         $this->update_status_factura_cuentas_por_cobrar($datos['facturas_id'], 2, 0);
 
         // Contabilidad:
-        // - Proforma → registrar ingreso+mov y marcar contabilizado
-        // - Origen CXC (contado desde CxC) → registrar ingreso+mov y marcar contabilizado
-        // - Origen FACTURACIÓN (contado normal) → NO registrar ingreso/mov aquí
+        // - Factura normal contado desde facturación → NO registra ingreso aquí; lo registra el cierre de caja.
+        // - Proforma contado desde facturación → NO registra ingreso aquí; lo registra el cierre de caja.
+        // - Pagos desde CxC → SÍ registra ingreso inmediato.
         $origen = isset($datos['origen_pago']) ? $datos['origen_pago'] : 'facturacion';
-        if ($esProforma || $origen === 'cxc') {
+        if ($origen === 'cxc') {
             $ingreso_id = $this->registrar_contabilidad_pago($datos);
             $this->marcar_pago_contabilizado($pagoId, $ingreso_id);
         }
@@ -463,17 +463,13 @@ class pagoFacturaModelo extends mainModel {
             "descripcion3"=>$datos['referencia_pago3'],
         ]);
 
-        // Actualizar CxC y factura si queda saldada
+        // Actualizar CxC y factura si queda saldada.
+        // IMPORTANTE:
+        // - Proforma crédito NO se convierte a factura normal.
+        // - Si queda saldada, solo se marca cerrada/pagada manteniendo su secuencia de proforma.
         $this->update_status_factura_cuentas_por_cobrar($datos['facturas_id'], ($nuevoSaldo==0?2:1), $nuevoSaldo);
         if ($nuevoSaldo == 0) {
-            // Si era proforma y quedó saldada, convertirla y asignar número usando obtenerNumeroFactura
-            if ($esProforma) {
-                $conv = $this->convertir_proforma_a_factura($datos['facturas_id']);
-                if (!$conv['success']) { throw new Exception($conv['message']); }
-            } else {
-                // Factura normal ya debe traer correlativo desde su creación
-                $this->update_status_factura($datos['facturas_id']);
-            }
+            $this->update_status_factura($datos['facturas_id']);
         }
 
         // Crédito/Abono o Proforma → registrar ingreso+mov y marcar contabilizado

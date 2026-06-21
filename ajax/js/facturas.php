@@ -1583,8 +1583,8 @@ function cargarCuadreDiaCajaFactura(apertura_id, modo) {
     setTextoCuadreDiaFactura('#cd_gastos_total', 0);
     setTextoCuadreDiaFactura('#cd_total_final_esperado', 0);
     setTextoCuadreDiaFactura('#cd_total_final_esperado_tabla', 0);
-    setTextoCuadreDiaFactura('#cd_isv_sar', 0);
-    setTextoCuadreDiaFactura('#cd_isv_proforma', 0);
+    setTextoCuadreDiaFactura('#cd_isv_factura_normal_sar', 0);
+    setTextoCuadreDiaFactura('#cd_isv_proforma_informativo', 0);
     setTextoCuadreDiaFactura('#cd_isv_total_detalle', 0);
 
     $('#cd_tabla_gastos tbody').html(
@@ -3794,8 +3794,17 @@ var view_productos_busqueda_factura_dataTable = function(tbody, table) {
       $('#invoice-form #invoiceItem #precio_real_'         + row).val(data.precio_venta || 0);
 
       // FLAGS por línea (desde PHP): 1 si aplica ese ISV
-      if ($('#isv1_flag_' + row).length) $('#isv1_flag_' + row).val( parseInt(data.isv1 || 0, 10) === 1 ? 1 : 0 );
-      if ($('#isv2_flag_' + row).length) $('#isv2_flag_' + row).val( parseInt(data.isv2 || 0, 10) === 1 ? 1 : 0 );
+      var dataGravaISV = parseInt(data.impuesto_venta || data.isv_venta || 0, 10) === 1;
+      var dataFlagISV1 = parseInt(data.isv1 || 0, 10) === 1 ? 1 : 0;
+      var dataFlagISV2 = parseInt(data.isv2 || 0, 10) === 1 ? 1 : 0;
+
+      // Si grava, pero no trae isv1/isv2, usar ISV id=1 por defecto.
+      if (dataGravaISV && dataFlagISV1 === 0 && dataFlagISV2 === 0) {
+        dataFlagISV1 = 1;
+      }
+
+      if ($('#isv1_flag_' + row).length) $('#isv1_flag_' + row).val(dataFlagISV1);
+      if ($('#isv2_flag_' + row).length) $('#isv2_flag_' + row).val(dataFlagISV2);
 
       // Inicializa montos ISV de la línea
       if ($('#valor_isv_'  + row).length)  $('#valor_isv_'  + row).val('0.00'); // ISV id=1 (p.e. 15%)
@@ -4219,9 +4228,10 @@ $(() => {
 /* ===================================================
    CONFIG ISV PROFORMA
    ---------------------------------------------------
-   - Factura normal: calcula ISV según productos.
-   - Proforma: calcula ISV según productos solo si
-     config.accion = 'Activar ISV Proforma' tiene activar = 1.
+   Regla final:
+   - Factura normal: calcula ISV según producto.
+   - Proforma: calcula ISV según producto SOLO si
+     config_id = 6 / "Activar ISV Proforma" tiene activar = 1.
    =================================================== */
 window.IZZY_PROFORMA_APLICA_ISV = 0;
 window.IZZY_PROFORMA_APLICA_ISV_CARGADO = false;
@@ -4233,21 +4243,18 @@ function facturaActualEsProformaISV() {
         return false;
     }
 
-    return $proforma.is(':checked') || String($proforma.val()) === '1';
-}
+    var tipoInput = String($proforma.attr('type') || '').toLowerCase();
 
-function proformaPermiteCalcularISV() {
-    consultarConfigISVProformaFactura(false);
-
-    return parseInt(window.IZZY_PROFORMA_APLICA_ISV || 0, 10) === 1;
-}
-
-function documentoActualPermiteCalcularISV() {
-    if (!facturaActualEsProformaISV()) {
-        return true;
+    /*
+      Para checkbox/radio se usa SOLO checked.
+      No se valida por val(), porque un checkbox puede tener value="1"
+      aunque esté apagado.
+    */
+    if (tipoInput === 'checkbox' || tipoInput === 'radio') {
+        return $proforma.is(':checked') === true;
     }
 
-    return proformaPermiteCalcularISV();
+    return String($proforma.val() || '0') === '1';
 }
 
 function consultarConfigISVProformaFactura(forzarRecarga) {
@@ -4262,23 +4269,57 @@ function consultarConfigISVProformaFactura(forzarRecarga) {
         cache: false,
         async: false,
         success: function (response) {
-            if (response && response.proforma_aplica_isv !== undefined) {
-                window.IZZY_PROFORMA_APLICA_ISV = parseInt(response.proforma_aplica_isv || 0, 10) === 1 ? 1 : 0;
-            } else {
-                window.IZZY_PROFORMA_APLICA_ISV = 0;
+            var aplica = 0;
+
+            if (response) {
+                if (response.proforma_aplica_isv !== undefined) {
+                    aplica = parseInt(response.proforma_aplica_isv || 0, 10);
+                } else if (response.activar_isv_proforma !== undefined) {
+                    aplica = parseInt(response.activar_isv_proforma || 2, 10) === 1 ? 1 : 0;
+                } else if (response.activar !== undefined) {
+                    aplica = parseInt(response.activar || 2, 10) === 1 ? 1 : 0;
+                }
             }
 
+            window.IZZY_PROFORMA_APLICA_ISV = aplica === 1 ? 1 : 0;
             window.IZZY_PROFORMA_APLICA_ISV_CARGADO = true;
+
+            console.log('[ISV PROFORMA]', {
+                response: response,
+                aplica_isv_proforma: window.IZZY_PROFORMA_APLICA_ISV
+            });
         },
         error: function (xhr) {
             console.log(xhr.responseText);
+
             window.IZZY_PROFORMA_APLICA_ISV = 0;
             window.IZZY_PROFORMA_APLICA_ISV_CARGADO = true;
         }
     });
 }
 
-async function recalcularTodasLineasISVFactura() {
+function proformaPermiteCalcularISV(forzarRecarga) {
+    consultarConfigISVProformaFactura(forzarRecarga === true);
+
+    return parseInt(window.IZZY_PROFORMA_APLICA_ISV || 0, 10) === 1;
+}
+
+function documentoActualPermiteCalcularISV(forzarRecarga) {
+    if (!facturaActualEsProformaISV()) {
+        return true;
+    }
+
+    return proformaPermiteCalcularISV(forzarRecarga === true);
+}
+
+async function recalcularTodasLineasISVFactura(forzarRecargaConfig) {
+    if (forzarRecargaConfig === true) {
+        window.IZZY_PROFORMA_APLICA_ISV_CARGADO = false;
+        consultarConfigISVProformaFactura(true);
+    } else {
+        consultarConfigISVProformaFactura(false);
+    }
+
     var totalFilas = parseInt($('#bill_row').val() || 0, 10);
 
     if (isNaN(totalFilas)) {
@@ -4295,12 +4336,12 @@ async function recalcularTodasLineasISVFactura() {
 }
 
 $(function () {
-    consultarConfigISVProformaFactura(false);
+    consultarConfigISVProformaFactura(true);
 
     $(document)
         .off('change.isvProformaDocumento', '#invoice-form #facturas_proforma')
         .on('change.isvProformaDocumento', '#invoice-form #facturas_proforma', function () {
-            recalcularTodasLineasISVFactura();
+            recalcularTodasLineasISVFactura(true);
         });
 });
 
@@ -4322,7 +4363,7 @@ $(function () {
      * Si es proforma y la configuración 'Activar ISV Proforma' está apagada,
      * la línea queda sin ISV aunque el producto tenga ISV activo.
      */
-    if (typeof documentoActualPermiteCalcularISV === 'function' && documentoActualPermiteCalcularISV() === false) {
+    if (typeof documentoActualPermiteCalcularISV === 'function' && documentoActualPermiteCalcularISV(false) === false) {
         if ($('#valor_isv_'  + row).length)  $('#valor_isv_'  + row).val('0.00');
         if ($('#valor_isv1_' + row).length)  $('#valor_isv1_' + row).val('0.00');
         return;
@@ -4333,8 +4374,17 @@ $(function () {
     if (base < 0) base = 0;
 
     // Flags de ISV (1/0)
-    const flag1 = parseInt($('#isv1_flag_' + row).val() || '0', 10) === 1;
-    const flag2 = parseInt($('#isv2_flag_' + row).val() || '0', 10) === 1;
+    var flag1 = parseInt($('#isv1_flag_' + row).val() || '0', 10) === 1;
+    var flag2 = parseInt($('#isv2_flag_' + row).val() || '0', 10) === 1;
+
+    /*
+     * Si el producto grava ISV pero no trae marcado isv1/isv2,
+     * se aplica ISV id=1 por defecto. Esto evita que proforma quite el ISV
+     * cuando Activar ISV Proforma = 1 y el producto solo trae isv_venta/impuesto_venta.
+     */
+    if (grava === 1 && flag1 === false && flag2 === false) {
+        flag1 = true;
+    }
 
     let val1 = 0, val2 = 0;
 
@@ -4556,8 +4606,17 @@ async function manejarPresionEnter(row_index) {
       $("#invoice-form #invoiceItem #isv_" + row_index).val(producto.impuesto_venta);
 
       // FLAGS por línea (cuál ISV aplica)
-      if ($('#isv1_flag_' + row_index).length) $('#isv1_flag_' + row_index).val(parseInt(producto.isv1 || 0, 10) === 1 ? 1 : 0);
-      if ($('#isv2_flag_' + row_index).length) $('#isv2_flag_' + row_index).val(parseInt(producto.isv2 || 0, 10) === 1 ? 1 : 0);
+      var productoGravaISV = parseInt(producto.impuesto_venta || producto.isv_venta || 0, 10) === 1;
+      var productoFlagISV1 = parseInt(producto.isv1 || 0, 10) === 1 ? 1 : 0;
+      var productoFlagISV2 = parseInt(producto.isv2 || 0, 10) === 1 ? 1 : 0;
+
+      // Si grava, pero no trae isv1/isv2, usar ISV id=1 por defecto.
+      if (productoGravaISV && productoFlagISV1 === 0 && productoFlagISV2 === 0) {
+        productoFlagISV1 = 1;
+      }
+
+      if ($('#isv1_flag_' + row_index).length) $('#isv1_flag_' + row_index).val(productoFlagISV1);
+      if ($('#isv2_flag_' + row_index).length) $('#isv2_flag_' + row_index).val(productoFlagISV2);
 
       // % por línea (estos son PORCENTAJES que trae el PHP; ej 15.00 / 18.00)
       // Debes tener inputs hidden por fila: porc_isv_# y porc_isv1_#
@@ -5246,7 +5305,7 @@ function consultarConfigProformaFacturaNormal() {
         );
 
         if (typeof recalcularTodasLineasISVFactura === 'function') {
-            recalcularTodasLineasISVFactura();
+            recalcularTodasLineasISVFactura(true);
         }
 
     }).fail(function (xhr) {
@@ -5275,7 +5334,7 @@ $(function () {
         actualizarUIProformaFacturaNormal(activo, rebajarActual);
 
         if (typeof recalcularTodasLineasISVFactura === 'function') {
-            recalcularTodasLineasISVFactura();
+            recalcularTodasLineasISVFactura(true);
         }
     });
 
@@ -7410,4 +7469,305 @@ $(document).on('click', '#confirmRecurring', function(){
     w.document.close(); w.focus(); w.print();
   });
 })();
+
+/* =========================================================
+   CONFIGURACIÓN DE FACTURA
+   ---------------------------------------------------------
+   Funciones principales:
+   abrirConfigFacturaConValidacionAdmin()
+   - Pide validación administrativa.
+   - Si permite, abre el modal de configuración.
+
+   abrirModalConfigFactura()
+   - Abre #modalConfigFactura.
+   - Luego carga configuración.
+
+   cargarConfigFactura()
+   - Consulta core/facturas/getConfigFactura.php.
+
+   renderConfigFactura(items)
+   - Pinta las opciones dentro del modal.
+
+   guardarConfigFactura()
+   - Envía cambios a core/facturas/updateConfigFactura.php.
+========================================================= */
+
+function abrirConfigFacturaConValidacionAdmin() {
+    if (typeof validarAdminSistema !== 'function') {
+        showNotify('error', 'Validación no disponible', 'No está cargado el JS de autenticación administrativa.');
+        return;
+    }
+
+    validarAdminSistema(function (permitido) {
+        if (permitido !== true) {
+            return;
+        }
+
+        abrirModalConfigFactura();
+    }, {
+        mensaje: 'Para modificar la configuración de facturación debe validar un administrador.'
+    });
+}
+
+function abrirModalConfigFactura() {
+    if ($('#modalConfigFactura').length === 0) {
+        showNotify('error', 'Modal no encontrado', 'No existe el modal de configuración de factura.');
+        return;
+    }
+
+    if (!AUTH_ADMIN_SISTEMA_TOKEN || AUTH_ADMIN_SISTEMA_TOKEN === '') {
+        showNotify('error', 'Validación requerida', 'Debe validar un administrador antes de abrir la configuración.');
+        return;
+    }
+
+    $('#modalConfigFactura').modal({
+        show: true,
+        keyboard: false,
+        backdrop: 'static'
+    });
+
+    cargarConfigFactura();
+}
+
+function cargarConfigFactura() {
+    if (!AUTH_ADMIN_SISTEMA_TOKEN || AUTH_ADMIN_SISTEMA_TOKEN === '') {
+        showNotify('error', 'Validación requerida', 'Debe validar un administrador antes de cargar la configuración.');
+        return;
+    }
+
+    $('#config_factura_contenido').html(
+        '<div class="config-factura-loading">' +
+            '<i class="fas fa-spinner fa-spin"></i> Cargando configuración...' +
+        '</div>'
+    );
+
+    $.ajax({
+        type: 'POST',
+        url: '<?php echo SERVERURL;?>core/facturas/getConfigFactura.php',
+        dataType: 'json',
+        data: {
+            token: AUTH_ADMIN_SISTEMA_TOKEN
+        },
+        success: function (response) {
+            if (!response || response.success !== true) {
+                showNotify(
+                    'error',
+                    'Error',
+                    response && response.message ? response.message : 'No se pudo cargar la configuración.'
+                );
+                return;
+            }
+
+            renderConfigFactura(response.config || []);
+        },
+        error: function (xhr) {
+            console.log(xhr.responseText);
+            showNotify('error', 'Error', 'Error de comunicación al cargar configuración.');
+        }
+    });
+}
+
+function renderConfigFactura(items) {
+    if (!items || items.length === 0) {
+        $('#config_factura_contenido').html(
+            '<div class="config-factura-loading">No hay configuraciones disponibles.</div>'
+        );
+        return;
+    }
+
+    var html = '';
+
+    items.forEach(function (item) {
+        var activo = parseInt(item.activar || 2, 10) === 1;
+        var checked = activo ? 'checked' : '';
+        var estadoTexto = activo ? 'Activo' : 'Inactivo';
+        var badgeClass = activo ? 'is-active' : 'is-inactive';
+        var textoEstado = activo ? item.activo_texto : item.inactivo_texto;
+
+        var categoria = String(item.categoria || '').toLowerCase();
+        var icono = 'fa-cog';
+
+        if (categoria === 'caja') {
+            icono = 'fa-cash-register';
+        } else if (categoria === 'proformas') {
+            icono = 'fa-file-invoice';
+        }
+
+        html += ''
+            + '<div class="config-factura-item" data-config-id="' + item.config_id + '">'
+
+            + '    <div class="config-factura-item-header">'
+            + '        <div class="config-factura-item-title">'
+            + '            <div class="config-factura-icon">'
+            + '                <i class="fas ' + icono + '"></i>'
+            + '            </div>'
+            + '            <div>'
+            + '                <h6>' + escaparHtmlConfigFactura(item.titulo) + '</h6>'
+            + '                <span class="config-factura-meta">' + escaparHtmlConfigFactura(item.categoria) + ' / ID ' + item.config_id + '</span>'
+            + '            </div>'
+            + '        </div>'
+            + '        <span class="config-factura-badge ' + badgeClass + ' config-factura-estado">' + estadoTexto + '</span>'
+            + '    </div>'
+
+            + '    <div class="config-factura-descripcion">'
+            +          escaparHtmlConfigFactura(item.descripcion)
+            + '    </div>'
+
+            + '    <div class="config-factura-explicacion">'
+            +          escaparHtmlConfigFactura(textoEstado)
+            + '    </div>'
+
+            + '    <div class="config-factura-switch-row">'
+            + '        <div class="config-factura-switch-text">'
+            + '            <label class="config-factura-switch-label" for="config_factura_' + item.config_id + '">Activar / Desactivar</label>'
+            + '            <span class="config-factura-switch-ayuda">Cambie el estado y luego presione Guardar cambios.</span>'
+            + '        </div>'
+
+            + '        <label class="config-factura-switch-control" for="config_factura_' + item.config_id + '">'
+            + '            <input '
+            + '                type="checkbox" '
+            + '                class="config-factura-switch" '
+            + '                id="config_factura_' + item.config_id + '" '
+            + '                data-config-id="' + item.config_id + '" '
+            + '                data-activo-texto="' + escaparAtributoConfigFactura(item.activo_texto) + '" '
+            + '                data-inactivo-texto="' + escaparAtributoConfigFactura(item.inactivo_texto) + '" '
+            +                  checked
+            + '            >'
+            + '            <span class="config-factura-slider"></span>'
+            + '        </label>'
+            + '    </div>'
+
+            + '</div>';
+    });
+
+    $('#config_factura_contenido').html(html);
+}
+
+function escaparHtmlConfigFactura(texto) {
+    return $('<div>').text(texto || '').html();
+}
+
+function escaparAtributoConfigFactura(texto) {
+    return escaparHtmlConfigFactura(texto).replace(/"/g, '&quot;');
+}
+
+function obtenerCambiosConfigFactura() {
+    var cambios = [];
+
+    $('.config-factura-switch').each(function () {
+        var config_id = parseInt($(this).data('config-id') || 0, 10);
+        var activar = $(this).is(':checked') ? 1 : 2;
+
+        if (config_id > 0) {
+            cambios.push({
+                config_id: config_id,
+                activar: activar
+            });
+        }
+    });
+
+    return cambios;
+}
+
+function guardarConfigFactura() {
+    var cambios = obtenerCambiosConfigFactura();
+
+    if (cambios.length === 0) {
+        showNotify('error', 'Sin datos', 'No hay configuraciones para guardar.');
+        return;
+    }
+
+    if (!AUTH_ADMIN_SISTEMA_TOKEN || AUTH_ADMIN_SISTEMA_TOKEN === '') {
+        showNotify('error', 'Validación requerida', 'Debe validar un administrador antes de guardar.');
+        return;
+    }
+
+    $('#btn_guardar_config_factura')
+        .prop('disabled', true)
+        .html('<i class="fas fa-spinner fa-spin"></i> Guardando...');
+
+    $.ajax({
+        type: 'POST',
+        url: '<?php echo SERVERURL;?>core/facturas/updateConfigFactura.php',
+        dataType: 'json',
+        data: {
+            token: AUTH_ADMIN_SISTEMA_TOKEN,
+            configs: JSON.stringify(cambios)
+        },
+        success: function (response) {
+            $('#btn_guardar_config_factura')
+                .prop('disabled', false)
+                .html('<i class="far fa-save"></i> Guardar cambios');
+
+            if (!response || response.success !== true) {
+                showNotify(
+                    'error',
+                    'Error',
+                    response && response.message ? response.message : 'No se pudo guardar la configuración.'
+                );
+                return;
+            }
+
+            showNotify(
+                'success',
+                'Configuración actualizada',
+                response.message || 'Configuración actualizada correctamente.'
+            );
+
+            cargarConfigFactura();
+
+            if (typeof consultarConfigISVProformaFactura === 'function') {
+                window.IZZY_PROFORMA_APLICA_ISV_CARGADO = false;
+                consultarConfigISVProformaFactura(true);
+            }
+
+            if (typeof aplicarConfiguracionProformaDesdeServidor === 'function') {
+                aplicarConfiguracionProformaDesdeServidor();
+            }
+        },
+        error: function (xhr) {
+            console.log(xhr.responseText);
+
+            $('#btn_guardar_config_factura')
+                .prop('disabled', false)
+                .html('<i class="far fa-save"></i> Guardar cambios');
+
+            showNotify('error', 'Error', 'Error de comunicación al guardar configuración.');
+        }
+    });
+}
+
+$(document)
+    .off('click.configFacturaAbrir', '#btn_config_factura')
+    .on('click.configFacturaAbrir', '#btn_config_factura', function () {
+        abrirConfigFacturaConValidacionAdmin();
+    });
+
+$(document)
+    .off('click.configFacturaRecargar', '#btn_recargar_config_factura')
+    .on('click.configFacturaRecargar', '#btn_recargar_config_factura', function () {
+        cargarConfigFactura();
+    });
+
+$(document)
+    .off('click.configFacturaGuardar', '#btn_guardar_config_factura')
+    .on('click.configFacturaGuardar', '#btn_guardar_config_factura', function () {
+        guardarConfigFactura();
+    });
+
+$(document)
+    .off('change.configFacturaSwitch', '.config-factura-switch')
+    .on('change.configFacturaSwitch', '.config-factura-switch', function () {
+        var $switch = $(this);
+        var $item = $switch.closest('.config-factura-item');
+        var activo = $switch.is(':checked');
+        var texto = activo ? $switch.data('activo-texto') : $switch.data('inactivo-texto');
+
+        $item.find('.config-factura-estado')
+            .removeClass('is-active is-inactive')
+            .addClass(activo ? 'is-active' : 'is-inactive')
+            .text(activo ? 'Activo' : 'Inactivo');
+
+        $item.find('.config-factura-explicacion').text(texto || '');
+    });
 </script>

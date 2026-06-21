@@ -186,34 +186,113 @@ class facturasControlador extends facturasModelo {
      * CONFIG: ISV EN PROFORMA
      * =========================== */
     protected function proformaAplicaISV() {
-        $cn = mainModel::connection();
+        /*
+         * Regla final:
+         * config.accion = 'Activar ISV Proforma' / config_id = 6
+         * activar = 1 => la proforma calcula ISV según producto.
+         * activar = 2/no existe/error => la proforma fuerza ISV 0.
+         *
+         * Cache local para no consultar la tabla config por cada línea de producto.
+         */
+        static $cacheAplica = null;
 
-        if(!$cn){
-            return false;
+        if($cacheAplica !== null){
+            return $cacheAplica;
         }
 
-        $accion = 'Activar ISV Proforma';
+        $cacheAplica = false;
 
-        $stmt = $cn->prepare("SELECT activar FROM config WHERE accion = ? LIMIT 1");
+        try {
+            $cn = mainModel::connection();
 
-        if(!$stmt){
-            return false;
+            if(!$cn){
+                return false;
+            }
+
+            $accion = 'Activar ISV Proforma';
+
+            $stmt = $cn->prepare("
+                SELECT activar
+                FROM config
+                WHERE TRIM(accion) = ?
+                   OR config_id = 6
+                ORDER BY CASE WHEN TRIM(accion) = ? THEN 0 ELSE 1 END
+                LIMIT 1
+            ");
+
+            if(!$stmt){
+                return false;
+            }
+
+            $stmt->bind_param("ss", $accion, $accion);
+            $stmt->execute();
+
+            $result = $stmt->get_result();
+
+            if($result && $result->num_rows > 0){
+                $row = $result->fetch_assoc();
+                $cacheAplica = ((int)$row['activar'] === 1);
+            }
+
+            $stmt->close();
+        } catch (Throwable $e) {
+            error_log("Error al consultar config Activar ISV Proforma: ".$e->getMessage());
+            $cacheAplica = false;
         }
 
-        $stmt->bind_param("s", $accion);
-        $stmt->execute();
+        return $cacheAplica;
+    }
 
-        $result = $stmt->get_result();
-        $aplica = false;
+    /* ===========================
+     * PORCENTAJE ISV DESDE BD
+     * =========================== */
+    protected function obtenerPorcentajeISVDesdeBD($isv_id, $default = 0) {
+        static $cachePorcentaje = [];
 
-        if($result && $result->num_rows > 0){
-            $row = $result->fetch_assoc();
-            $aplica = ((int)$row['activar'] === 1);
+        $isv_id = (int)$isv_id;
+
+        if($isv_id <= 0){
+            return (float)$default;
         }
 
-        $stmt->close();
+        if(isset($cachePorcentaje[$isv_id])){
+            return (float)$cachePorcentaje[$isv_id];
+        }
 
-        return $aplica;
+        $valor = (float)$default;
+
+        try {
+            $cn = mainModel::connection();
+
+            if(!$cn){
+                $cachePorcentaje[$isv_id] = $valor;
+                return $valor;
+            }
+
+            $stmt = $cn->prepare("SELECT valor FROM isv WHERE isv_id = ? AND activar = 1 LIMIT 1");
+
+            if(!$stmt){
+                $cachePorcentaje[$isv_id] = $valor;
+                return $valor;
+            }
+
+            $stmt->bind_param("i", $isv_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            if($result && $result->num_rows > 0){
+                $row = $result->fetch_assoc();
+                $valor = (float)$row['valor'];
+            }
+
+            $stmt->close();
+        } catch (Throwable $e) {
+            error_log("Error al consultar porcentaje ISV {$isv_id}: ".$e->getMessage());
+            $valor = (float)$default;
+        }
+
+        $cachePorcentaje[$isv_id] = $valor;
+        return $valor;
     }
 
     /* ===========================
@@ -341,11 +420,15 @@ class facturasControlador extends facturasModelo {
         $valorISV1 = 0;
         $valorISV2 = 0;
 
+        $porcentajeISV1 = $this->obtenerPorcentajeISVDesdeBD(1, 15);
+        $porcentajeISV2 = $this->obtenerPorcentajeISVDesdeBD(2, 18);
+
         // Prioridad: si el producto tiene ISV2, se calcula en isv_valor1.
+        // Si grava pero no trae isv1/isv2, se usa ISV id=1 por defecto.
         if($isv2 === 1){
-            $valorISV2 = round($base * 0.18, 2);
+            $valorISV2 = round($base * ($porcentajeISV2 / 100), 2);
         }else if($isv1 === 1 || ($isv1 === 0 && $isv2 === 0)){
-            $valorISV1 = round($base * 0.15, 2);
+            $valorISV1 = round($base * ($porcentajeISV1 / 100), 2);
         }
 
         return [
@@ -1204,6 +1287,18 @@ class facturasControlador extends facturasModelo {
         $tipo_documento_input = isset($_POST['facturas_proforma']) ? (int)$_POST['facturas_proforma'] : 0;
         $tipo_documento = ($tipo_documento_input === 1) ? "1" : "0";
 
+        // Inventario en borrador:
+        // Factura normal: mantiene el flujo anterior.
+        // Proforma: respeta el switch de rebajar inventario.
+        $bajarInventario = true;
+
+        if ($tipo_documento === "1") {
+            $bajarInventario = (
+                isset($_POST['proforma_bajar_inventario']) &&
+                (int)$_POST['proforma_bajar_inventario'] === 1
+            );
+        }
+
         // 3) Datos base
         $datosBasicos = $this->prepararDatosFactura($tipo_factura, $tipo_documento);
         $estado_borrador = 1;
@@ -1305,14 +1400,16 @@ class facturasControlador extends facturasModelo {
             facturasModelo::guardar_facturas_modelo($datosFactura);
 
             // 6.4) Detalle + totales
-            // Se deja como estaba tu flujo. Si después querés que el borrador NO baje inventario, aquí se cambia a false.
+            // En borrador también se respeta la regla de ISV por proforma:
+            // config Activar ISV Proforma = 1 calcula ISV; = 2 fuerza ISV 0.
             $totales = $this->procesarDetalleFactura(
                 $facturas_id,
                 $clientes_id,
                 $fecha,
                 $fecha_registro,
                 $empresa_id,
-                true
+                $bajarInventario,
+                $tipo_documento
             );
 
             // 6.5) Actualizar importe

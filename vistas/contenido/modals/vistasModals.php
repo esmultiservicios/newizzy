@@ -5926,3 +5926,138 @@
   </div>
 </div>
 <!-- FIN MODAL REUTILIZABLE VISUALIZACION DE DOCUMENTOS -->
+
+<!-- MODAL PÚBLICO: AUTENTICACIÓN ADMINISTRATIVA -->
+<div class="modal fade" id="modalAutenticacionAdminSistema" tabindex="-1" role="dialog" aria-labelledby="modalAutenticacionAdminSistemaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+
+            <form id="formAutenticacionAdminSistema" autocomplete="off">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title" id="modalAutenticacionAdminSistemaLabel">
+                        <i class="fas fa-user-shield mr-1"></i> Validación administrativa
+                    </h5>
+
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="alert alert-info mb-3" id="auth_admin_mensaje">
+                        Ingrese credenciales de un usuario administrador.
+                    </div>
+
+                    <div class="form-group">
+                        <label for="auth_admin_usuario">Usuario</label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="auth_admin_usuario"
+                            name="auth_admin_usuario"
+                            placeholder="Usuario o correo sin @"
+                            autocomplete="off">
+                        <small class="text-muted">
+                            Puede escribir el username o la parte del correo antes del @.
+                        </small>
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label for="auth_admin_password">Contraseña</label>
+                        <input
+                            type="password"
+                            class="form-control"
+                            id="auth_admin_password"
+                            name="auth_admin_password"
+                            placeholder="Contraseña"
+                            autocomplete="new-password">
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+
+                    <button type="submit" class="btn btn-primary" id="btn_validar_auth_admin">
+                        <i class="fas fa-unlock-alt"></i> Validar
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+<!-- FIN MODAL PÚBLICO -->
+
+<!-- =========================================================
+     MODAL CONFIGURACIÓN DE FACTURACIÓN
+     Caja / Proformas / Cobros / ISV
+========================================================= -->
+<div class="modal fade" id="modalConfigFactura" tabindex="-1" role="dialog" aria-labelledby="modalConfigFacturaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+        <div class="modal-content modal-config-factura">
+
+            <div class="modal-header config-factura-header">
+                <div class="config-factura-header-title">
+                    <div class="config-factura-header-icon">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+
+                    <div>
+                        <h5 class="modal-title" id="modalConfigFacturaLabel">
+                            Configuración de facturación
+                        </h5>
+                        <small>Caja, proformas, cobros e ISV</small>
+                    </div>
+                </div>
+
+                <button type="button" class="close config-factura-close" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body config-factura-body">
+
+                <div class="config-factura-alerta">
+                    <div class="config-factura-alerta-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+
+                    <div>
+                        <strong>Importante</strong>
+                        <p>
+                            Estos cambios afectan el comportamiento de facturación, caja y proformas.
+                            Revise cada opción antes de guardar.
+                        </p>
+                    </div>
+                </div>
+
+                <div id="config_factura_contenido" class="config-factura-grid">
+                    <div class="config-factura-loading">
+                        <i class="fas fa-spinner fa-spin"></i> Cargando configuración...
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="modal-footer config-factura-footer">
+                <button type="button" class="btn btn-secondary" id="btn_recargar_config_factura">
+                    <i class="fas fa-sync-alt"></i> Recargar
+                </button>
+
+                <button type="button" class="btn btn-success" id="btn_guardar_config_factura">
+                    <i class="far fa-save"></i> Guardar cambios
+                </button>
+
+                <button type="button" class="btn btn-primary" data-dismiss="modal">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+<!-- =========================================================
+     FIN MODAL CONFIGURACIÓN DE FACTURACIÓN
+========================================================= -->

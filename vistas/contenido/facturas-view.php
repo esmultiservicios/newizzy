@@ -155,7 +155,19 @@
                                             <div class="sb-nav-link-icon"></div>
                                             <i class="fas fa-money-bill-wave fa-lg"></i> Retirar Caja
                                         </button>
-                                    </span>                          
+                                    </span>    
+                                    
+                                    <!-- Botón sugerido: colocarlo después del botón Ver Caja -->
+                                    <button
+                                        type="button"
+                                        id="btn_config_factura"
+                                        class="btn btn-dark ml-2"
+                                        data-toggle="tooltip"
+                                        data-placement="top"
+                                        data-html="true"
+                                        title="<strong>Configuración de facturación</strong><br>Permite activar o desactivar opciones de caja y proformas.<br>Requiere validación de administrador.">
+                                        <i class="fas fa-cogs fa-lg"></i> Config
+                                    </button>                                    
 
                                 </div>
 

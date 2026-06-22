@@ -7697,6 +7697,126 @@ function obtenerCambiosConfigFactura() {
     return cambios;
 }
 
+
+/* =========================================================
+   APLICAR CONFIGURACIÓN EN PANTALLA SIN RECARGAR
+   ---------------------------------------------------------
+   IDs de config usados:
+   3 = Activar proformas
+   4 = Rebajar inventario en proforma
+   6 = Calcular ISV en proformas
+
+   Esto evita tener que recargar la página después de guardar.
+========================================================= */
+function obtenerValorCambioConfigFactura(cambios, config_id, valorDefault) {
+    config_id = parseInt(config_id || 0, 10);
+
+    for (var i = 0; i < cambios.length; i++) {
+        if (parseInt(cambios[i].config_id || 0, 10) === config_id) {
+            return parseInt(cambios[i].activar || 2, 10);
+        }
+    }
+
+    return valorDefault;
+}
+
+function forzarEstadoCheckboxFactura(selector, activo) {
+    var $check = $(selector);
+
+    if (!$check.length) {
+        return;
+    }
+
+    activo = activo === true;
+
+    $check.prop('checked', activo);
+
+    if ($check[0]) {
+        $check[0].checked = activo;
+    }
+
+    $check.val(activo ? 1 : 0);
+
+    if (activo) {
+        $check.attr('checked', 'checked');
+    } else {
+        $check.removeAttr('checked');
+    }
+}
+
+function aplicarConfigFacturaEnVistaActual(cambios) {
+    cambios = cambios || [];
+
+    var valorProforma = obtenerValorCambioConfigFactura(cambios, 3, null);
+    var valorRebajarInventario = obtenerValorCambioConfigFactura(cambios, 4, null);
+    var valorISVProforma = obtenerValorCambioConfigFactura(cambios, 6, null);
+
+    var proformaActiva = valorProforma === 1;
+    var rebajarInventarioActivo = valorRebajarInventario === 1;
+    var isvProformaActivo = valorISVProforma === 1;
+
+    window.IZZY_CONFIG_FACTURA_ACTUAL = window.IZZY_CONFIG_FACTURA_ACTUAL || {};
+
+    if (valorProforma !== null) {
+        window.IZZY_CONFIG_FACTURA_ACTUAL.proforma_activa = proformaActiva ? 1 : 0;
+    }
+
+    if (valorRebajarInventario !== null) {
+        window.IZZY_CONFIG_FACTURA_ACTUAL.proforma_rebajar_inventario = rebajarInventarioActivo ? 1 : 0;
+    }
+
+    if (valorISVProforma !== null) {
+        window.IZZY_CONFIG_FACTURA_ACTUAL.proforma_aplica_isv = isvProformaActivo ? 1 : 0;
+        window.IZZY_PROFORMA_APLICA_ISV = isvProformaActivo ? 1 : 0;
+        window.IZZY_PROFORMA_APLICA_ISV_CARGADO = true;
+    }
+
+    if (valorProforma !== null || valorRebajarInventario !== null) {
+        if (typeof actualizarUIProformaFacturaNormal === 'function') {
+            actualizarUIProformaFacturaNormal(proformaActiva, rebajarInventarioActivo);
+        } else {
+            forzarEstadoCheckboxFactura('#invoice-form #facturas_proforma', proformaActiva);
+
+            $('#invoice-form #label_facturas_proforma')
+                .removeClass('badge-light badge-secondary badge-info text-white')
+                .addClass(proformaActiva ? 'badge-info text-white' : 'badge-light')
+                .html(proformaActiva ? 'Sí' : 'No');
+
+            if (proformaActiva) {
+                $('#invoice-form #proforma_rebajar_inventario_container').attr('style', 'display:flex !important;');
+                forzarEstadoCheckboxFactura('#invoice-form #proforma_bajar_inventario', rebajarInventarioActivo);
+                forzarEstadoCheckboxFactura('#invoice-form #bajar_inventario_proforma', rebajarInventarioActivo);
+            } else {
+                $('#invoice-form #proforma_rebajar_inventario_container').attr('style', 'display:none !important;');
+                forzarEstadoCheckboxFactura('#invoice-form #proforma_bajar_inventario', false);
+                forzarEstadoCheckboxFactura('#invoice-form #bajar_inventario_proforma', false);
+            }
+
+            $('#invoice-form #label_bajar_inventario_proforma')
+                .removeClass('badge-success badge-light text-white')
+                .addClass((proformaActiva && rebajarInventarioActivo) ? 'badge-success text-white' : 'badge-light')
+                .html((proformaActiva && rebajarInventarioActivo) ? 'Sí' : 'No');
+        }
+    }
+
+    if (valorISVProforma !== null) {
+        if (typeof recalcularTodasLineasISVFactura === 'function') {
+            recalcularTodasLineasISVFactura(true);
+        }
+
+        if (typeof calculateTotal === 'function') {
+            calculateTotal();
+        }
+    }
+
+    $(document).trigger('configFacturaAplicadaEnVista', [{
+        proforma_activa: proformaActiva ? 1 : 0,
+        proforma_rebajar_inventario: rebajarInventarioActivo ? 1 : 0,
+        proforma_aplica_isv: isvProformaActivo ? 1 : 0,
+        cambios: cambios
+    }]);
+}
+
 function guardarConfigFactura() {
     var cambios = obtenerCambiosConfigFactura();
 
@@ -7742,6 +7862,8 @@ function guardarConfigFactura() {
                 response.message || 'Configuración actualizada correctamente.'
             );
 
+            aplicarConfigFacturaEnVistaActual(cambios);
+
             cargarConfigFactura();
 
             if (typeof consultarConfigISVProformaFactura === 'function') {
@@ -7752,6 +7874,14 @@ function guardarConfigFactura() {
             if (typeof aplicarConfiguracionProformaDesdeServidor === 'function') {
                 aplicarConfiguracionProformaDesdeServidor();
             }
+
+            setTimeout(function () {
+                aplicarConfigFacturaEnVistaActual(cambios);
+            }, 150);
+
+            setTimeout(function () {
+                aplicarConfigFacturaEnVistaActual(cambios);
+            }, 600);
         },
         error: function (xhr) {
             console.log(xhr.responseText);

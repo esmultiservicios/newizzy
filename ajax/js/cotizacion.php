@@ -11,6 +11,168 @@
 
     var row = 0;
 
+    /* =========================================================
+       HELPERS VISUALES PRODUCTOS - COTIZACIÓN
+       ---------------------------------------------------------
+       Se usan únicamente en el DataTable de búsqueda de productos.
+       Mantienen botones normales de DataTables y muestran el saldo
+       como badge sin agrandar el precio.
+    ========================================================= */
+
+    function cotizacionNormalizarNumeroTablaProducto(valor) {
+        if (valor === null || valor === undefined || valor === '') {
+            return 0;
+        }
+
+        if (typeof valor === 'number') {
+            return isNaN(valor) ? 0 : valor;
+        }
+
+        valor = String(valor)
+            .replace(/L\./g, '')
+            .replace(/L/g, '')
+            .replace(/,/g, '')
+            .replace(/<[^>]*>/g, '')
+            .trim();
+
+        var numero = parseFloat(valor);
+
+        return isNaN(numero) ? 0 : numero;
+    }
+
+    function cotizacionFormatoNumeroTablaProducto(valor) {
+        valor = cotizacionNormalizarNumeroTablaProducto(valor);
+
+        return valor.toLocaleString('es-HN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    function cotizacionRenderBadgeSaldoProducto(data, type) {
+        var saldo = cotizacionNormalizarNumeroTablaProducto(data);
+
+        if (type !== 'display') {
+            return saldo;
+        }
+
+        var clase = 'producto-saldo-badge producto-saldo-ok';
+        var icono = 'fa-check-circle';
+        var texto = 'Disponible';
+
+        if (saldo <= 0) {
+            clase = 'producto-saldo-badge producto-saldo-danger';
+            icono = 'fa-times-circle';
+            texto = 'Sin saldo';
+        } else if (saldo <= 5) {
+            clase = 'producto-saldo-badge producto-saldo-warning';
+            icono = 'fa-exclamation-circle';
+            texto = 'Saldo bajo';
+        }
+
+        return ''
+            + '<div class="producto-saldo-wrap">'
+            + '    <span class="' + clase + '">'
+            + '        <i class="fas ' + icono + '"></i> ' + cotizacionFormatoNumeroTablaProducto(saldo)
+            + '    </span>'
+            + '    <small>' + texto + '</small>'
+            + '</div>';
+    }
+
+    function cotizacionRenderPrecioProductoNormal(data, type) {
+        var precio = cotizacionNormalizarNumeroTablaProducto(data);
+
+        if (type !== 'display') {
+            return precio;
+        }
+
+        var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(precio || 0);
+
+        return '<span style="color:green; font-size:inherit !important; font-weight:inherit !important; line-height:inherit !important;">' + number + '</span>';
+    }
+
+    function cotizacionAplicarEstilosProductosBusqueda() {
+        if ($('#styleProductosBusquedaCotizacion').length > 0) {
+            return;
+        }
+
+        $('head').append(
+            '<style id="styleProductosBusquedaCotizacion">' +
+                '.producto-saldo-wrap{' +
+                    'display:flex;' +
+                    'flex-direction:column;' +
+                    'align-items:center;' +
+                    'justify-content:center;' +
+                    'gap:3px;' +
+                '}' +
+                '.producto-saldo-wrap small{' +
+                    'font-size:12px;' +
+                    'font-weight:700;' +
+                    'line-height:1.1;' +
+                '}' +
+                '.producto-saldo-badge{' +
+                    'display:inline-flex;' +
+                    'align-items:center;' +
+                    'justify-content:center;' +
+                    'gap:6px;' +
+                    'border-radius:999px;' +
+                    'padding:5px 11px;' +
+                    'font-size:14px;' +
+                    'font-weight:800;' +
+                    'line-height:1;' +
+                    'white-space:nowrap;' +
+                '}' +
+                '.producto-saldo-ok{' +
+                    'background:#dcfce7;' +
+                    'border:1px solid #86efac;' +
+                    'color:#15803d;' +
+                '}' +
+                '.producto-saldo-warning{' +
+                    'background:#fef3c7;' +
+                    'border:1px solid #fde68a;' +
+                    'color:#b45309;' +
+                '}' +
+                '.producto-saldo-danger{' +
+                    'background:#fee2e2;' +
+                    'border:1px solid #fecaca;' +
+                    'color:#b91c1c;' +
+                '}' +
+                '#DatatableProductosBusquedaCotizacion tbody td:nth-child(8), #DatatableProductosBusquedaCotizacion tbody td:nth-child(8) span{' +
+                    'font-size:inherit !important;' +
+                    'font-weight:inherit !important;' +
+                    'line-height:inherit !important;' +
+                '}' +
+            '</style>'
+        );
+    }
+
+    function cotizacionConstruirHeaderProductosBusqueda() {
+        var $tabla = $('#DatatableProductosBusquedaCotizacion');
+
+        if ($tabla.length === 0) {
+            return;
+        }
+
+        $tabla.find('thead').remove();
+
+        $tabla.prepend(
+            '<thead>' +
+                '<tr>' +
+                    '<th>Seleccione</th>' +
+                    '<th>Imagen</th>' +
+                    '<th>Bar Code</th>' +
+                    '<th>Producto</th>' +
+                    '<th>Saldo</th>' +
+                    '<th>Medida</th>' +
+                    '<th>Tipo Producto</th>' +
+                    '<th>Venta</th>' +
+                    '<th>Bodega</th>' +
+                '</tr>' +
+            '</thead>'
+        );
+    }
+
+
     $(() => {
         $("#quoteForm #QuoteItem").on('keypress', '.product-bar-code', function(event) {
             //EVALUAMOS EL ENTER event.which == '13'
@@ -638,10 +800,15 @@
     });
 
     var listar_productos_cotizacion_buscar = function() {
+        cotizacionAplicarEstilosProductosBusqueda();
+        cotizacionConstruirHeaderProductosBusqueda();
+
         var bodega = $("#formulario_busqueda_productos_facturacion #almacen").val() === "" ? 1 : $("#formulario_busqueda_productos_facturacion #almacen").val();
 
         var table_productos_cotizacion_buscar = $("#DatatableProductosBusquedaCotizacion").DataTable({
             "destroy": true,
+            "processing": true,
+            "deferRender": true,
             "ajax": {
                 "method": "POST",
                 "url": "<?php echo SERVERURL; ?>core/llenarDataTableProductosCotizacion.php",
@@ -649,7 +816,8 @@
                     "bodega": bodega
                 }
             },
-            "columns": [{
+            "columns": [
+                {
                     "defaultContent": "<button class='table_view btn btn-secondary ocultar'><span class='fas fa-cart-plus fa-lg'></span></button>"
                 },
                 {
@@ -660,10 +828,8 @@
                         var imageUrl = data ? '<?php echo SERVERURL; ?>vistas/plantilla/img/products/' + data : defaultImageUrl;
                         var safeTitle = (row && row.nombre) ? String(row.nombre).replace(/"/g,'&quot;') : 'Imagen';
 
-                        // miniatura con cursor de mano
                         var imgHtml = '<img class="table-image mr-2" src="' + imageUrl + '" alt="' + safeTitle + '" style="cursor:pointer;">';
 
-                        // botón de zoom pequeño
                         var btnHtml =
                             '<button type="button" class="btn btn-light btn-icon btn-xs btn-zoom iv-trigger"' +
                             ' data-iv-src="' + imageUrl + '"' +
@@ -685,26 +851,9 @@
                 },
                 {
                     "data": "cantidad",
-                    render: function(data, type) {
-                        if (data == null) {
-                            data = 0;
-                        }
-
-                        var number = $.fn.dataTable.render
-                            .number(',', '.', 2, '')
-                            .display(data);
-
-                        if (type === 'display') {
-                            let color = 'green';
-                            if (data < 0) {
-                                color = 'red';
-                            }
-
-                            return '<span style="color:' + color + '">' + number + '</span>';
-                        }
-
-                        return number;
-                    },
+                    "render": function(data, type) {
+                        return cotizacionRenderBadgeSaldoProducto(data, type);
+                    }
                 },
                 {
                     "data": "medida"
@@ -714,33 +863,18 @@
                 },
                 {
                     "data": "precio_venta",
-                    render: function(data, type) {
-                        var number = $.fn.dataTable.render
-                            .number(',', '.', 2, 'L ')
-                            .display(data);
-
-                        if (type === 'display') {
-                            let color = 'green';
-                            if (data < 0) {
-                                color = 'red';
-                            }
-
-                            return '<span style="color:' + color + '">' + number + '</span>';
-                        }
-
-                        return number;
-                    },
+                    "render": function(data, type) {
+                        return cotizacionRenderPrecioProductoNormal(data, type);
+                    }
                 },
                 {
                     "data": null,
                     "render": function(data, type, row) {
-                        // Mostramos 'Sin bodega' si almacen es null o vacío
-                        if (row.almacen === null || row.almacen === "" || row.almacen ===
-                            undefined) {
+                        if (row.almacen === null || row.almacen === "" || row.almacen === undefined) {
                             return "Sin bodega";
-                        } else {
-                            return row.almacen;
                         }
+
+                        return row.almacen;
                     }
                 }
             ],
@@ -750,25 +884,27 @@
             "responsive": true,
             "language": idioma_español,
             "dom": dom,
-            "columnDefs": [{
+            "columnDefs": [
+                {
                     width: "2%",
                     targets: 0
                 },
                 {
-                    width: "17%",
+                    width: "14%",
                     targets: 1
                 },
                 {
-                    width: "17%",
+                    width: "14%",
                     targets: 2
                 },
                 {
-                    width: "10%",
+                    width: "18%",
                     targets: 3
                 },
                 {
-                    width: "10%",
-                    targets: 4
+                    width: "12%",
+                    targets: 4,
+                    className: "text-center"
                 },
                 {
                     width: "10%",
@@ -779,24 +915,24 @@
                     targets: 6
                 },
                 {
-                    width: "12%",
-                    targets: 7
+                    width: "10%",
+                    targets: 7,
+                    className: "text-right"
                 },
                 {
                     width: "12%",
                     targets: 8
                 }
             ],
-            "buttons": [{
+            "buttons": [
+                {
                     text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                     titleAttr: 'Actualizar Productos',
                     className: 'table_actualizar btn btn-secondary ocultar',
                     action: function() {
-
                         listar_productos_cotizacion_buscar();
                     }
                 },
-
                 {
                     text: '<i class="fas fas fa-plus fa-lg crear"></i> Ingresar',
                     titleAttr: 'Agregar Productos',

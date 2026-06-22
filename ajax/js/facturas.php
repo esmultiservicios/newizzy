@@ -3612,6 +3612,46 @@ $(() => {
     });
 });
 
+function renderSaldoProductoBusquedaFactura(data, type) {
+    var cantidad = parseFloat(data || 0);
+
+    if (isNaN(cantidad)) {
+        cantidad = 0;
+    }
+
+    if (type !== 'display') {
+        return cantidad;
+    }
+
+    var number = $.fn.dataTable.render.number(',', '.', 2, '').display(cantidad);
+    var color = '#15803d';
+    var fondo = '#dcfce7';
+    var borde = '#86efac';
+    var icono = 'fa-check-circle';
+    var texto = 'Disponible';
+
+    if (cantidad <= 0) {
+        color = '#b91c1c';
+        fondo = '#fee2e2';
+        borde = '#fecaca';
+        icono = 'fa-exclamation-triangle';
+        texto = 'Sin saldo';
+    } else if (cantidad <= 5) {
+        color = '#b45309';
+        fondo = '#fef3c7';
+        borde = '#fde68a';
+        icono = 'fa-exclamation-circle';
+        texto = 'Saldo bajo';
+    }
+
+    return ''
+        + '<span style="display:inline-flex;align-items:center;gap:6px;border:1px solid ' + borde + ';background:' + fondo + ';color:' + color + ';border-radius:999px;padding:6px 10px;font-weight:800;white-space:nowrap;">'
+        + '  <i class="fas ' + icono + '"></i>'
+        + '  <span>' + number + '</span>'
+        + '</span>'
+        + '<small style="display:block;color:' + color + ';font-weight:700;margin-top:3px;white-space:nowrap;">' + texto + '</small>';
+}
+
 var listar_productos_factura_buscar = function() {
     // Bodega seleccionada (si viene vacío, usa 1)
     var bodega = $("#formulario_busqueda_productos_facturacion #almacen_facturas").val();
@@ -3653,13 +3693,7 @@ var listar_productos_factura_buscar = function() {
             {
                 "data": "cantidad",
                 render: function(data, type) {
-                    if (data == null) data = 0;
-                    var number = $.fn.dataTable.render.number(',', '.', 2, '').display(data);
-                    if (type === 'display') {
-                        let color = (parseFloat(data) < 0) ? 'red' : 'green';
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-                    return number;
+                    return renderSaldoProductoBusquedaFactura(data, type);
                 },
             },
             { "data": "medida" },
@@ -3667,12 +3701,14 @@ var listar_productos_factura_buscar = function() {
             {
                 "data": "precio_venta",
                 render: function(data, type) {
-                    var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
+                    var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data || 0);
+
                     if (type === 'display') {
-                        let color = (parseFloat(data) < 0) ? 'red' : 'green';
-                        return '<span style="color:' + color + '">' + number + '</span>';
+                        var color = (parseFloat(data || 0) < 0) ? 'red' : 'green';
+                        return '<span style="color:' + color + ';">' + number + '</span>';
                     }
-                    return number;
+
+                    return parseFloat(data || 0);
                 },
             },
             {

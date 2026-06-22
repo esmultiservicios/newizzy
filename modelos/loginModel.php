@@ -11,11 +11,10 @@
 			$password = $datos['password'];
 			$db = $datos['db'];
 			
-			$estatus = 1; // USUARIO ACTIVO
+			$estatus = 1;
 		
 			$mysqli = mainModel::connectionDBLocal($db);
 			
-			// Preparar la consulta con parámetros
 			$query = "SELECT u.*, tu.nombre AS 'cuentaTipo', c.identidad
 				FROM users AS u
 				INNER JOIN tipo_user AS tu
@@ -25,19 +24,10 @@
 				WHERE BINARY u.email = ? AND u.password = ? AND u.estado = ?
 				GROUP BY u.tipo_user_id";
 		
-			// Preparar la declaración
 			$stmt = $mysqli->prepare($query);
-		
-			// Vincular parámetros
 			$stmt->bind_param("ssi", $username, $password, $estatus);
-		
-			// Ejecutar la consulta
 			$stmt->execute();
-		
-			// Obtener resultado
 			$result = $stmt->get_result();
-		
-			// Cerrar la declaración
 			$stmt->close();
 		
 			return $result;
@@ -48,11 +38,10 @@
 			$password = $datos['password'];
 			$db = $datos['db'];
 			
-			$estatus = 1; // USUARIO ACTIVO
+			$estatus = 1;
 		
 			$mysqli = mainModel::connectionDBLocal($db);
 			
-			// Preparar la consulta con parámetros
 			$query = "SELECT u.*, tu.nombre AS 'cuentaTipo', c.identidad
 				FROM users AS u
 				INNER JOIN tipo_user AS tu
@@ -62,28 +51,46 @@
 				WHERE BINARY u.username = ? AND u.password = ? AND u.estado = ?
 				GROUP BY u.tipo_user_id";
 		
-			// Preparar la declaración
 			$stmt = $mysqli->prepare($query);
-		
-			// Vincular parámetros
 			$stmt->bind_param("ssi", $username, $password, $estatus);
-		
-			// Ejecutar la consulta
 			$stmt->execute();
-		
-			// Obtener resultado
 			$result = $stmt->get_result();
-		
-			// Cerrar la declaración
 			$stmt->close();
 		
 			return $result;
-		}			
+		}
+
+        protected function obtener_server_customer_por_email_modelo($username){
+            $mysqli_main = mainModel::connect_mysqli_main_server();
+
+            $query = "SELECT 
+                    COALESCE(s.server_customers_id, 0) AS server_customers_id,
+                    COALESCE(s.db, ?) AS db,
+                    COALESCE(s.codigo_cliente, 0) AS codigo_cliente,
+                    COALESCE(s.clientes_id, 0) AS clientes_id,
+                    COALESCE(s.planes_id, 0) AS planes_id,
+                    COALESCE(s.sistema_id, 0) AS sistema_id,
+                    COALESCE(s.validar, 1) AS validar,
+                    COALESCE(s.estado, 0) AS estado
+                FROM users AS u
+                LEFT JOIN server_customers AS s 
+                    ON u.server_customers_id = s.server_customers_id
+                WHERE BINARY u.email = ?
+                LIMIT 1";
+
+            $stmt = $mysqli_main->prepare($query);
+            $dbDefault = DB_MAIN;
+            $stmt->bind_param("ss", $dbDefault, $username);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $stmt->close();
+
+            return $result;
+        }			
 		
 		protected function getMenuAccesoLogin($privilegio_id){
 			$mysqli = mainModel::connection();
 			
-			// Preparar la consulta con parámetros
 			$query = "SELECT am.acceso_menu_id AS 'acceso_menu_id', m.name AS 'name'
 				FROM acceso_menu AS am
 				INNER JOIN menu AS m
@@ -92,19 +99,10 @@
 				ORDER BY am.menu_id ASC
 				LIMIT 1";
 		
-			// Preparar la declaración
 			$stmt = $mysqli->prepare($query);
-		
-			// Vincular parámetros
 			$stmt->bind_param("i", $privilegio_id);
-		
-			// Ejecutar la consulta
 			$stmt->execute();
-		
-			// Obtener resultado
 			$result = $stmt->get_result();
-		
-			// Cerrar la declaración
 			$stmt->close();
 		
 			return $result;
@@ -113,7 +111,6 @@
 		protected function getSubMenuAccesoLogin($privilegio_id){
 			$mysqli = mainModel::connection();
 			
-			// Preparar la consulta con parámetros
 			$query = "SELECT asm.acceso_submenu_id AS 'acceso_menu_id', sm.name AS 'name'
 				FROM acceso_submenu AS asm
 				INNER JOIN submenu AS sm
@@ -122,19 +119,10 @@
 				ORDER BY asm.submenu_id ASC
 				LIMIT 1";
 		
-			// Preparar la declaración
 			$stmt = $mysqli->prepare($query);
-		
-			// Vincular parámetros
 			$stmt->bind_param("i", $privilegio_id);
-		
-			// Ejecutar la consulta
 			$stmt->execute();
-		
-			// Obtener resultado
 			$result = $stmt->get_result();
-		
-			// Cerrar la declaración
 			$stmt->close();
 		
 			return $result;
@@ -143,10 +131,8 @@
 		protected function getSubMenu1AccesoLogin($privilegio_id){
 			$mysqli = mainModel::connection();
 			
-			// Estado a validar
 			$estado = 1;
 			
-			// Preparar la consulta con parámetros
 			$query = "SELECT asm.acceso_submenu1_id AS 'acceso_menu_id', sm.name AS 'name'
 				FROM acceso_submenu1 AS asm
 				INNER JOIN submenu1 AS sm
@@ -154,19 +140,10 @@
 				WHERE asm.privilegio_id = ? AND asm.estado = ?
 				ORDER BY asm.submenu1_id ASC";
 			
-			// Preparar la declaración
 			$stmt = $mysqli->prepare($query);
-			
-			// Vincular parámetros
 			$stmt->bind_param("ii", $privilegio_id, $estado);
-			
-			// Ejecutar la consulta
 			$stmt->execute();
-			
-			// Obtener resultado
 			$result = $stmt->get_result();
-			
-			// Cerrar la declaración
 			$stmt->close();
 			
 			return $result;
@@ -177,8 +154,8 @@
 				$abitacora = mainModel::actualizar_hora_salida_bitacora($datos['codigo'], $datos['hora']);
 				
 				if($abitacora){
-					session_unset(); // VACIAR LA SESION
-					session_destroy(); // DESTRUIR LA SESION
+					session_unset();
+					session_destroy();
 					$respuesta = 1;
 				} else {
 					$respuesta = 2;
@@ -188,105 +165,82 @@
 				$respuesta = 2;
 			}
 			
-			return $respuesta; // Retorna 1 si se cerró la sesión correctamente, 2 si hubo un error
+			return $respuesta;
 		}		
 
 		protected function validar_pago_pendiente_main_server_modelo(){
 			$mysqli_main = mainModel::connect_mysqli_main_server();
-			$validar = 1; // SE VALIDARÁ EL CLIENTE PARA PODER INICIAR SESIÓN
-		
-			// Estado a validar
 			$estado = 1;
 		
-			// Preparar la consulta con parámetros
 			$query = "SELECT sc.clientes_id AS 'clientes_id'
 				FROM server_customers AS sc
 				INNER JOIN clientes AS c
 				ON sc.clientes_id = c.clientes_id
 				LEFT JOIN cobrar_clientes AS cc
-				on cc.clientes_id = sc.clientes_id
-				WHERE cc.estado = ? AND sc.db = ?";
+				ON cc.clientes_id = sc.clientes_id
+				WHERE cc.estado = ? 
+				AND sc.db = ?";
 		
-			// Preparar la declaración
 			$stmt = $mysqli_main->prepare($query);
-		
-			// Vincular parámetros
 			$stmt->bind_param("is", $estado, $GLOBALS['db']);
-		
-			// Ejecutar la consulta
 			$stmt->execute();
-		
-			// Obtener resultado
 			$result = $stmt->get_result();
-		
-			// Cerrar la declaración
 			$stmt->close();
 		
 			return $result;
 		}		
 
-		//CONSULTAMOS SI ES NECESARIO VALIDAR AL CLIENTE PARA SU INICIO DE SESION
 		protected function validar_cliente_server_modelo(){
 			$mysqli_main = mainModel::connect_mysqli_main_server();
 		
-			// Preparar la consulta con parámetros
-			$query = "SELECT sc.validar AS 'validar'
+			$query = "SELECT 
+                    sc.server_customers_id AS 'server_customers_id',
+                    sc.clientes_id AS 'clientes_id',
+                    sc.codigo_cliente AS 'codigo_cliente',
+                    sc.db AS 'db',
+                    sc.validar AS 'validar',
+                    sc.estado AS 'estado'
 				FROM server_customers AS sc
 				INNER JOIN clientes AS c
 				ON sc.clientes_id = c.clientes_id
-				WHERE sc.db = ?";
+				WHERE sc.db = ?
+                LIMIT 1";
 		
-			// Preparar la declaración
 			$stmt = $mysqli_main->prepare($query);
-		
-			// Vincular parámetros
 			$stmt->bind_param("s", $GLOBALS['db']);
-		
-			// Ejecutar la consulta
 			$stmt->execute();
-		
-			// Obtener resultado
 			$result = $stmt->get_result();
-		
-			// Cerrar la declaración
 			$stmt->close();
 		
 			return $result;
 		}		
 		
-		//CONSULTAMOS SI EL CLIENTE TIENE PAGO PENDIENTE DE MESES ANTERIORES
 		protected function validar_cliente_pagos_vencidos_main_server_modelo(){
 			$mysqli_main = mainModel::connect_mysqli_main_server();
-		
-			// Estado pendiente
 			$estado = 1;
 		
-			// Preparar la consulta con parámetros
 			$query = "SELECT DISTINCT sc.clientes_id AS 'clientes_id'
 				FROM server_customers AS sc
-				INNER JOIN clientes AS c ON sc.clientes_id = c.clientes_id
-				LEFT JOIN cobrar_clientes AS cc ON cc.clientes_id = sc.clientes_id
+				INNER JOIN clientes AS c 
+                    ON sc.clientes_id = c.clientes_id
+				LEFT JOIN cobrar_clientes AS cc 
+                    ON cc.clientes_id = sc.clientes_id
 				WHERE cc.estado = ? 
 				AND sc.db = ? 
 				AND (
-					(cc.fecha < DATE_FORMAT(CURDATE(), '%Y-%m-01')) -- Facturas de meses anteriores
+					cc.fecha < DATE_FORMAT(CURDATE(), '%Y-%m-01')
 					OR 
-					(DAY(CURDATE()) >= 16 AND MONTH(cc.fecha) = MONTH(CURDATE()) AND YEAR(cc.fecha) = YEAR(CURDATE())) -- Facturas del mes actual vencidas
+					(
+                        DAY(CURDATE()) >= 16 
+                        AND MONTH(cc.fecha) = MONTH(CURDATE()) 
+                        AND YEAR(cc.fecha) = YEAR(CURDATE())
+                    )
 				)";
 		
-			// Preparar la declaración
 			$stmt = $mysqli_main->prepare($query);
-		
-			// Vincular parámetros
 			$stmt->bind_param("is", $estado, $GLOBALS['db']);
-		
-			// Ejecutar la consulta
 			$stmt->execute();
-		
-			// Obtener resultado
 			$result = $stmt->get_result();
-		
-			// Cerrar la declaración
 			$stmt->close();
 		
 			return $result;

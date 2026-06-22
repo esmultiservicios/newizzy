@@ -24,7 +24,6 @@ class loginControlador extends loginModel{
         }
 
         $respuesta = false;
-        $query_server = "";
         $codigoCliente = "";
         $pingInvalido = false;
         $Consultacliente = false;
@@ -52,7 +51,9 @@ class loginControlador extends loginModel{
                         "db" => $datosPinSoporte['db'],
                         "codigo_cliente" => $datosPinSoporte['codigo_cliente'],
                         "planes_id" => $datosPinSoporte['planes_id'],
-                        "sistema_id" => $datosPinSoporte['sistema_id']
+                        "sistema_id" => $datosPinSoporte['sistema_id'],
+                        "validar" => $datosPinSoporte['validar'],
+                        "estado" => $datosPinSoporte['estado']
                     ];
 
                     $GLOBALS['db'] = $datosPinSoporte['db'] === "" ? $GLOBALS['DB_MAIN'] : $datosPinSoporte['db'];
@@ -65,15 +66,11 @@ class loginControlador extends loginModel{
 
         } else if ($inputCliente === "" && $inputPin === "") {
 
-            $query_server = "SELECT 
-                    COALESCE(s.server_customers_id, '0') AS server_customers_id, 
-                    COALESCE(s.db, '" . DB_MAIN . "') AS db, 
-                    s.codigo_cliente
-                FROM users AS u
-                LEFT JOIN server_customers AS s ON u.server_customers_id = s.server_customers_id
-                WHERE BINARY u.email = '$username'";
-
-            $respuesta = true;
+            if ($username !== "") {
+                $respuesta = true;
+            } else {
+                $respuesta = false;
+            }
 
         } else {
             $respuesta = false;
@@ -82,7 +79,7 @@ class loginControlador extends loginModel{
         if ($respuesta) {
 
             if (!$Consultacliente) {
-                $resultServerUser = mainModel::connectionLogin()->query($query_server);
+                $resultServerUser = loginModel::obtener_server_customer_por_email_modelo($username);
 
                 if ($resultServerUser && $resultServerUser->num_rows > 0) {
                     $consultaServeruser = $resultServerUser->fetch_assoc();
@@ -570,7 +567,7 @@ class loginControlador extends loginModel{
                 time() - 42000,
                 $params["path"], 
                 $params["domain"],
-                $params["secure"], 
+                $params["secure"],
                 $params["httponly"]
             );
         }
@@ -623,7 +620,7 @@ class loginControlador extends loginModel{
                 time() - 42000,
                 $params["path"], 
                 $params["domain"],
-                $params["secure"], 
+                $params["secure"],
                 $params["httponly"]
             );
         }
@@ -636,74 +633,54 @@ class loginControlador extends loginModel{
     
     public function validar_pago_pendiente_main_server_controlador(){
         $username = isset($_POST['inputEmail']) ? mainModel::cleanString($_POST['inputEmail']) : "";
-        
-        $query_server = "SELECT 
-                COALESCE(s.server_customers_id, '0') AS server_customers_id, 
-                COALESCE(s.db, '" . DB_MAIN . "') AS db, 
-                s.codigo_cliente
-            FROM users AS u
-            LEFT JOIN server_customers AS s ON u.server_customers_id = s.server_customers_id
-            WHERE BINARY u.email = '$username'";
-        
-        $resultServerUser = mainModel::connectionLogin()->query($query_server);
-                
-        if ($resultServerUser && $resultServerUser->num_rows > 0) {
-            $consultaServeruser = $resultServerUser->fetch_assoc();
-            $GLOBALS['db'] = $consultaServeruser['db'] === "" ? $GLOBALS['DB_MAIN'] : $consultaServeruser['db'];
-        }	
 
-        $result = loginModel::validar_pago_pendiente_main_server_modelo();
-        $result_validar_cliente = loginModel::validar_cliente_server_modelo();
-            
-        $date = date("Y-m-d");
-        $año = date("Y");
-        $mes = date("m");
+        if (!isset($GLOBALS['db']) || empty($GLOBALS['db'])) {
+            $GLOBALS['db'] = $GLOBALS['DB_MAIN'];
+        }
 
-        $fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-01"));
-        $fecha_final = date("Y-m-d", strtotime($año."-".$mes."-15"));
+        if ($username !== "") {
+            $resultServerUser = loginModel::obtener_server_customer_por_email_modelo($username);
+                    
+            if ($resultServerUser && $resultServerUser->num_rows > 0) {
+                $consultaServeruser = $resultServerUser->fetch_assoc();
+                $GLOBALS['db'] = $consultaServeruser['db'] === "" ? $GLOBALS['DB_MAIN'] : $consultaServeruser['db'];
+            }
+        }
 
-        if($GLOBALS['db'] == DB_MAIN_LOGIN_CONTROLADOR){
+        if ($GLOBALS['db'] == DB_MAIN_LOGIN_CONTROLADOR) {
             $datos = 1;
+            return json_encode($datos);
+        }
 
-        }else{			
-            $result_pagoVencido = loginModel::validar_cliente_pagos_vencidos_main_server_modelo();
+        $result_validar_cliente = loginModel::validar_cliente_server_modelo();
 
-            $row = $result_validar_cliente->fetch_assoc();
+        if (!$result_validar_cliente || $result_validar_cliente->num_rows <= 0) {
+            $datos = [
+                0 => "",
+                1 => "ErrorC",
+            ];
 
-            $validar = $row['validar'] ?? 0;
-            
-            if($validar == 0){
-                $datos = 1;
+            return json_encode($datos);
+        }
 
-            }else{
-                if($result_pagoVencido->num_rows >= 1){
-                    $datos = [
-                        0 => "",
-                        1 => "ErrorP",
-                    ];	
+        $row = $result_validar_cliente->fetch_assoc();
+        $validar = isset($row['validar']) ? (int)$row['validar'] : 1;
 
-                }else{
-                    if($result->num_rows == 1){
-                        if($date >= $fecha_inicial && $date <= $fecha_final){
-                            $datos = 1;
-                        }else{
-                            $datos = [
-                                0 => "",
-                                1 => "ErrorP",
-                            ];	
-                        }
+        if ($validar === 2) {
+            $datos = 1;
+            return json_encode($datos);
+        }
 
-                    }else if($result->num_rows > 2){
-                        $datos = [
-                            0 => "",
-                            1 => "ErrorP",
-                        ];	
+        $result_pagoVencido = loginModel::validar_cliente_pagos_vencidos_main_server_modelo();
 
-                    }else{
-                        $datos = 1;
-                    }
-                }					
-            }				
+        if ($result_pagoVencido && $result_pagoVencido->num_rows >= 1) {
+            $datos = [
+                0 => "",
+                1 => "ErrorP",
+            ];
+
+        } else {
+            $datos = 1;
         }
 
         return json_encode($datos);

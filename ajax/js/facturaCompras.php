@@ -49,6 +49,167 @@
         selectRecordatorio.selectpicker('refresh'); // Actualizar el Bootstrap Select
     }
 
+
+    /* =========================================================
+       HELPERS VISUALES PRODUCTOS - COMPRAS
+       ---------------------------------------------------------
+       Se usan únicamente en el DataTable de búsqueda de productos.
+       Mantienen botones normales de DataTables y muestran el saldo
+       como badge sin agrandar el precio.
+    ========================================================= */
+
+    function comprasNormalizarNumeroTablaProducto(valor) {
+        if (valor === null || valor === undefined || valor === '') {
+            return 0;
+        }
+
+        if (typeof valor === 'number') {
+            return isNaN(valor) ? 0 : valor;
+        }
+
+        valor = String(valor)
+            .replace(/L\./g, '')
+            .replace(/L/g, '')
+            .replace(/,/g, '')
+            .replace(/<[^>]*>/g, '')
+            .trim();
+
+        var numero = parseFloat(valor);
+
+        return isNaN(numero) ? 0 : numero;
+    }
+
+    function comprasFormatoNumeroTablaProducto(valor) {
+        valor = comprasNormalizarNumeroTablaProducto(valor);
+
+        return valor.toLocaleString('es-HN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    function comprasRenderBadgeSaldoProducto(data, type) {
+        var saldo = comprasNormalizarNumeroTablaProducto(data);
+
+        if (type !== 'display') {
+            return saldo;
+        }
+
+        var clase = 'producto-saldo-badge producto-saldo-ok';
+        var icono = 'fa-check-circle';
+        var texto = 'Disponible';
+
+        if (saldo <= 0) {
+            clase = 'producto-saldo-badge producto-saldo-danger';
+            icono = 'fa-times-circle';
+            texto = 'Sin saldo';
+        } else if (saldo <= 5) {
+            clase = 'producto-saldo-badge producto-saldo-warning';
+            icono = 'fa-exclamation-circle';
+            texto = 'Saldo bajo';
+        }
+
+        return ''
+            + '<div class="producto-saldo-wrap">'
+            + '    <span class="' + clase + '">'
+            + '        <i class="fas ' + icono + '"></i> ' + comprasFormatoNumeroTablaProducto(saldo)
+            + '    </span>'
+            + '    <small>' + texto + '</small>'
+            + '</div>';
+    }
+
+    function comprasRenderPrecioProductoNormal(data, type) {
+        var precio = comprasNormalizarNumeroTablaProducto(data);
+
+        if (type !== 'display') {
+            return precio;
+        }
+
+        var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(precio || 0);
+
+        return '<span style="color:green; font-size:inherit !important; font-weight:inherit !important; line-height:inherit !important;">' + number + '</span>';
+    }
+
+    function comprasAplicarEstilosProductosBusqueda() {
+        if ($('#styleProductosBusquedaCompras').length > 0) {
+            return;
+        }
+
+        $('head').append(
+            '<style id="styleProductosBusquedaCompras">' +
+                '.producto-saldo-wrap{' +
+                    'display:flex;' +
+                    'flex-direction:column;' +
+                    'align-items:center;' +
+                    'justify-content:center;' +
+                    'gap:3px;' +
+                '}' +
+                '.producto-saldo-wrap small{' +
+                    'font-size:12px;' +
+                    'font-weight:700;' +
+                    'line-height:1.1;' +
+                '}' +
+                '.producto-saldo-badge{' +
+                    'display:inline-flex;' +
+                    'align-items:center;' +
+                    'justify-content:center;' +
+                    'gap:6px;' +
+                    'border-radius:999px;' +
+                    'padding:5px 11px;' +
+                    'font-size:14px;' +
+                    'font-weight:800;' +
+                    'line-height:1;' +
+                    'white-space:nowrap;' +
+                '}' +
+                '.producto-saldo-ok{' +
+                    'background:#dcfce7;' +
+                    'border:1px solid #86efac;' +
+                    'color:#15803d;' +
+                '}' +
+                '.producto-saldo-warning{' +
+                    'background:#fef3c7;' +
+                    'border:1px solid #fde68a;' +
+                    'color:#b45309;' +
+                '}' +
+                '.producto-saldo-danger{' +
+                    'background:#fee2e2;' +
+                    'border:1px solid #fecaca;' +
+                    'color:#b91c1c;' +
+                '}' +
+                '#DatatableProductosBusquedaCompra tbody td:nth-child(8), #DatatableProductosBusquedaCompra tbody td:nth-child(8) span{' +
+                    'font-size:inherit !important;' +
+                    'font-weight:inherit !important;' +
+                    'line-height:inherit !important;' +
+                '}' +
+            '</style>'
+        );
+    }
+
+    function comprasConstruirHeaderProductosBusqueda() {
+        var $tabla = $('#DatatableProductosBusquedaCompra');
+
+        if ($tabla.length === 0) {
+            return;
+        }
+
+        $tabla.find('thead').remove();
+
+        $tabla.prepend(
+            '<thead>' +
+                '<tr>' +
+                    '<th>Seleccione</th>' +
+                    '<th>Imagen</th>' +
+                    '<th>Bar Code</th>' +
+                    '<th>Producto</th>' +
+                    '<th>Saldo</th>' +
+                    '<th>Medida</th>' +
+                    '<th>Tipo Producto</th>' +
+                    '<th>Precio Compra</th>' +
+                '</tr>' +
+            '</thead>'
+        );
+    }
+
     //INICIO PURCHARSE BILL
     $(document).ready(function () {
         $("#modal_buscar_productos_compras").on('shown.bs.modal', function () {
@@ -81,10 +242,15 @@
     });
 
     var listar_productos_compras_buscar = function () {
+        comprasAplicarEstilosProductosBusqueda();
+        comprasConstruirHeaderProductosBusqueda();
+
         var bodega = $("#formulario_busqueda_productos_compras #almacen").val();
 
         var table_productos_compras_buscar = $("#DatatableProductosBusquedaCompra").DataTable({
             "destroy": true,
+            "processing": true,
+            "deferRender": true,
             "ajax": {
                 "method": "POST",
                 "url": "<?php echo SERVERURL;?>core/llenarDataTableProductosCompras.php",
@@ -92,7 +258,8 @@
                     "bodega": bodega
                 }
             },
-            "columns": [{
+            "columns": [
+                {
                     "defaultContent": "<button class='table_view btn btn-secondary ocultar'><span class='fas fa-cart-plus'></span></button>"
                 },
                 {
@@ -103,10 +270,8 @@
                         var imageUrl = data ? '<?php echo SERVERURL; ?>vistas/plantilla/img/products/' + data : defaultImageUrl;
                         var safeTitle = (row && row.nombre) ? String(row.nombre).replace(/"/g, '&quot;') : 'Imagen';
 
-                        // miniatura con cursor de mano
                         var imgHtml = '<img class="table-image mr-2" src="' + imageUrl + '" alt="' + safeTitle + '" style="cursor:pointer;">';
 
-                        // botón de zoom pequeño
                         var btnHtml = '<button type="button" class="btn btn-light btn-icon btn-xs btn-zoom iv-trigger"'
                             + ' data-iv-src="' + imageUrl + '"'
                             + ' data-iv-fallback="' + defaultImageUrl + '"'
@@ -125,11 +290,24 @@
                     "data": "nombre"
                 },
                 {
+                    "data": "cantidad",
+                    "render": function (data, type) {
+                        return comprasRenderBadgeSaldoProducto(data, type);
+                    }
+                },
+                {
                     "data": "medida"
                 },
                 {
                     "data": "tipo_producto"
+                },
+                {
+                    "data": "precio_compra",
+                    "render": function (data, type) {
+                        return comprasRenderPrecioProductoNormal(data, type);
+                    }
                 }
+                
             ],
             "lengthMenu": lengthMenu,
             "stateSave": true,
@@ -137,41 +315,51 @@
             "responsive": true,
             "language": idioma_español,
             "dom": dom,
-            "columnDefs": [{
+            "columnDefs": [
+                {
                     width: "2%",
                     targets: 0
                 },
                 {
-                    width: "17%",
+                    width: "14%",
                     targets: 1
                 },
                 {
-                    width: "17%",
+                    width: "14%",
                     targets: 2
                 },
                 {
-                    width: "10%",
+                    width: "18%",
                     targets: 3
                 },
                 {
-                    width: "10%",
-                    targets: 4
+                    width: "12%",
+                    targets: 4,
+                    className: "text-center"
                 },
                 {
                     width: "10%",
                     targets: 5
+                },
+                {
+                    width: "14%",
+                    targets: 6
+                },
+                {
+                    width: "12%",
+                    targets: 7,
+                    className: "text-right"
                 }
             ],
-            "buttons": [{
+            "buttons": [
+                {
                     text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
                     titleAttr: 'Actualizar Productos',
                     className: 'table_actualizar btn btn-secondary ocultar',
                     action: function () {
-
                         listar_productos_compras_buscar();
                     }
                 },
-
                 {
                     text: '<i class="fas fas fa-plus fa-lg crear"></i> Crear',
                     titleAttr: 'Agregar Productos',

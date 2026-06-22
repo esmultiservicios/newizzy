@@ -56,16 +56,26 @@
 
                         <div class="card-body">
                             <div class="form-row">
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-6 mb-3">
                                     <label for="produto_barcode">
                                         <i class="fas fa-barcode mr-1"></i>Producto
                                     </label>
-                                    <input type="text" id="produto_barcode" name="produto_barcode" class="form-control"
-                                           title="Escanee el código de barras del producto para autocompletar">
+
+                                    <div class="input-group">
+                                        <input type="text" id="produto_barcode" name="produto_barcode" class="form-control"
+                                               title="Escanee el código de barras del producto para autocompletar">
+
+                                        <div class="input-group-append">
+                                            <button type="button" class="btn btn-info" id="btnBuscarProductoMovimiento" title="Buscar producto">
+                                                <i class="fas fa-search"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
                                     <small class="form-text text-muted">Escanee o busque el producto</small>
                                 </div>
 
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-6 mb-3">
                                     <label for="movimientos_tipo_producto_id">
                                         <i class="fas fa-cubes mr-1"></i>Tipo Producto <span class="priority">*</span>
                                     </label>
@@ -74,8 +84,10 @@
                                     </select>
                                     <small class="form-text text-muted">Categoría del producto</small>
                                 </div>
+                            </div>
 
-                                <div class="col-md-3 mb-3">
+                            <div class="form-row">
+                                <div class="col-md-6 mb-3">
                                     <label for="movimiento_producto">
                                         <i class="fas fa-box-open mr-1"></i>Nombre Producto <span class="priority">*</span>
                                     </label>
@@ -85,7 +97,7 @@
                                     <small class="form-text text-muted">Producto específico</small>
                                 </div>
 
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-6 mb-3">
                                     <label for="cliente_movimientos">
                                         <i class="fas fa-user-tie mr-1"></i>Cliente
                                     </label>
@@ -94,7 +106,7 @@
                                     </select>
                                     <small class="form-text text-muted">Requerido para salidas</small>
                                 </div>
-                            </div>
+                            </div>                            
 
                             <div class="form-row">
                                 <div class="col-md-12">
@@ -128,7 +140,7 @@
 
                         <div class="card-body">
                             <div class="form-row">
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-6 mb-3">
                                     <label for="movimiento_lote">
                                         <i class="fas fa-tags mr-1"></i>Lote
                                     </label>
@@ -138,7 +150,7 @@
                                     <small class="form-text text-muted">Número de lote del producto</small>
                                 </div>
 
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-6 mb-3">
                                     <label for="movimiento_cantidad">
                                         <i class="fas fa-sort-numeric-up mr-1"></i>Cantidad <span class="priority">*</span>
                                     </label>
@@ -146,8 +158,10 @@
                                            class="form-control" step="0.01">
                                     <small class="form-text text-muted">Presione Enter para registrar</small>
                                 </div>
+                            </div>
 
-                                <div class="col-md-3 mb-3">
+                            <div class="form-row">
+                                <div class="col-md-6 mb-3">
                                     <label for="almacen_modal">
                                         <i class="fas fa-warehouse mr-1"></i>Bodega <span class="priority">*</span>
                                     </label>
@@ -157,7 +171,7 @@
                                     <small class="form-text text-muted">Por defecto: Almacén Principal</small>
                                 </div>
 
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-6 mb-3">
                                     <label for="movimiento_fecha_vencimiento">
                                         <i class="fas fa-calendar-times mr-1"></i>Fecha Vencimiento
                                     </label>
@@ -165,7 +179,7 @@
                                            class="form-control">
                                     <small class="form-text text-muted">Fecha de caducidad del producto</small>
                                 </div>
-                            </div>
+                            </div>                            
 
                             <div class="form-row">
                                 <div class="col-md-12 mb-3">
@@ -201,11 +215,11 @@
                 </div>
 
                 <div class="movimiento-footer-botones">
-                    <button class="btn btn-danger" data-dismiss="modal">
+                    <button type="button" class="btn btn-danger" data-dismiss="modal">
                         <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                     </button>
 
-                    <button class="btn btn-success" type="submit" id="btnRegistrarMovimiento" form="formMovimientos">
+                    <button class="btn btn-success" type="button" id="btnRegistrarMovimiento">
                         <i class="fas fa-save fa-lg mr-1"></i> Registrar Movimiento
                     </button>
                 </div>
@@ -215,3 +229,53 @@
     </div>
 </div>
 <!--FIN MODAL MOVIMIENTO DE PRODUCTOS-->
+
+<!--INICIO MODAL BUSQUEDA GENERAL DE PRODUCTOS PARA MOVIMIENTOS-->
+<div class="modal fade" id="modal_buscar_productos_movimientos_general" tabindex="-1" role="dialog" aria-labelledby="modal_buscar_productos_movimientos_general_label" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title" id="modal_buscar_productos_movimientos_general_label">
+                    <i class="fas fa-search mr-2"></i> Buscar Productos
+                </h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="alert alert-info mb-3">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Seleccione un producto para cargarlo automáticamente en el movimiento de inventario.
+                </div>
+
+                <div class="overflow-auto">
+                    <table id="DatatableProductosBusquedaMovimiento"
+                           class="table table-header-gradient table-striped table-condensed table-hover"
+                           style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>Seleccione</th>
+                                <th>Imagen</th>
+                                <th>Bar Code</th>
+                                <th>Producto</th>
+                                <th>Saldo</th>
+                                <th>Medida</th>
+                                <th>Tipo Producto</th>
+                                <th>Precio Venta</th>
+                                <th>Bodega</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!--FIN MODAL BUSQUEDA GENERAL DE PRODUCTOS PARA MOVIMIENTOS-->

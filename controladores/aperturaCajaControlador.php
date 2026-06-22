@@ -169,6 +169,13 @@ class aperturaCajaControlador extends aperturaCajaModelo{
         $total_vendido = $this->obtener_total_ventas_caja_modelo($apertura_id);
         $total_retiros = $this->obtener_total_retiros_caja_modelo($apertura_id);
         $total_inversion_automatica = $this->obtener_monto_inversion_automatico_cierre_modelo($apertura_id);
+        $resumen_cierre = $this->obtener_resumen_ventas_cierre_caja_modelo($apertura_id);
+
+        $total_factura_normal = isset($resumen_cierre['total_factura_normal']) ? (float)$resumen_cierre['total_factura_normal'] : 0;
+        $total_proforma = isset($resumen_cierre['total_proforma']) ? (float)$resumen_cierre['total_proforma'] : 0;
+        $total_isv = isset($resumen_cierre['total_isv']) ? (float)$resumen_cierre['total_isv'] : 0;
+        $cantidad_factura_normal = isset($resumen_cierre['cantidad_factura_normal']) ? (int)$resumen_cierre['cantidad_factura_normal'] : 0;
+        $cantidad_proforma = isset($resumen_cierre['cantidad_proforma']) ? (int)$resumen_cierre['cantidad_proforma'] : 0;
 
         /*
             LÓGICA FINAL:
@@ -216,12 +223,12 @@ class aperturaCajaControlador extends aperturaCajaModelo{
 
         $this->registrarHistorial(
             "Cierre",
-            "Se cerró la caja. Venta: ".$total_vendido." | Retiros: ".$total_retiros." | Inversión: ".$total_inversion_automatica." | Neto físico: ".$neto_caja
+            "Se cerró la caja. Factura normal: ".$total_factura_normal." (".$cantidad_factura_normal.") | Proforma: ".$total_proforma." (".$cantidad_proforma.") | ISV: ".$total_isv." | Retiros: ".$total_retiros." | Neto físico: ".$neto_caja
         );
 
         return mainModel::showNotification([
             "title" => "Cierre exitoso",
-            "text" => "La caja se ha cerrado correctamente. Venta: L. ".number_format($total_vendido, 2)." | Retiros: L. ".number_format($total_retiros, 2)." | Inversión: L. ".number_format($total_inversion_automatica, 2)." | Neto físico: L. ".number_format($neto_caja, 2),
+            "text" => "La caja se ha cerrado correctamente. Factura normal: L. ".number_format($total_factura_normal, 2)." (".$cantidad_factura_normal.") | Proforma: L. ".number_format($total_proforma, 2)." (".$cantidad_proforma.") | ISV: L. ".number_format($total_isv, 2)." | Retiros: L. ".number_format($total_retiros, 2)." | Neto físico: L. ".number_format($neto_caja, 2),
             "type" => "success",
             "funcion" => "validarAperturaCajaUsuario();getCajero();printComprobanteCajas($apertura_id);listar_registro_cajas();",
             "form" => "formAperturaCaja",

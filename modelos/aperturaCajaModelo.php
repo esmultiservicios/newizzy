@@ -520,6 +520,87 @@ class aperturaCajaModelo extends mainModel{
         return 0;
     }
 
+    protected function obtener_resumen_ventas_cierre_caja_modelo($apertura_id){
+        $query = "
+            SELECT
+                COALESCE(SUM(pd.efectivo), 0) AS total_vendido,
+
+                COALESCE(SUM(
+                    CASE
+                        WHEN d.nombre = 'Factura Electronica'
+                        THEN pd.efectivo
+                        ELSE 0
+                    END
+                ), 0) AS total_factura_normal,
+
+                COALESCE(SUM(
+                    CASE
+                        WHEN d.nombre = 'Factura Proforma'
+                        THEN pd.efectivo
+                        ELSE 0
+                    END
+                ), 0) AS total_proforma,
+
+                COUNT(DISTINCT CASE WHEN d.nombre = 'Factura Electronica' THEN f.facturas_id END) AS cantidad_factura_normal,
+                COUNT(DISTINCT CASE WHEN d.nombre = 'Factura Proforma' THEN f.facturas_id END) AS cantidad_proforma,
+
+                COALESCE(SUM(
+                    CASE
+                        WHEN f.importe > 0
+                        THEN ROUND(
+                            IFNULL(dt.impuesto, 0) * (pd.efectivo / NULLIF(f.importe, 0)),
+                            2
+                        )
+                        ELSE 0
+                    END
+                ), 0) AS total_isv
+            FROM pagos p
+            INNER JOIN facturas f ON f.facturas_id = p.facturas_id
+            INNER JOIN pagos_detalles pd ON pd.pagos_id = p.pagos_id
+            INNER JOIN secuencia_facturacion sf ON f.secuencia_facturacion_id = sf.secuencia_facturacion_id
+            INNER JOIN documento d ON sf.documento_id = d.documento_id
+            LEFT JOIN (
+                SELECT
+                    facturas_id,
+                    COALESCE(SUM(isv_valor + isv_valor1), 0) AS impuesto
+                FROM facturas_detalles
+                GROUP BY facturas_id
+            ) dt ON dt.facturas_id = f.facturas_id
+            WHERE f.apertura_id = '$apertura_id'
+              AND f.estado = 2
+              AND d.nombre IN ('Factura Electronica', 'Factura Proforma')
+              AND p.estado = 1
+        ";
+
+        $sql = mainModel::connection()->query($query);
+
+        if(!$sql){
+            die(mainModel::connection()->error);
+        }
+
+        $resumen = [
+            "total_vendido" => 0,
+            "total_factura_normal" => 0,
+            "total_proforma" => 0,
+            "cantidad_factura_normal" => 0,
+            "cantidad_proforma" => 0,
+            "total_isv" => 0
+        ];
+
+        if($sql->num_rows > 0){
+            $row = $sql->fetch_assoc();
+
+            $resumen["total_vendido"] = (float)($row["total_vendido"] ?? 0);
+            $resumen["total_factura_normal"] = (float)($row["total_factura_normal"] ?? 0);
+            $resumen["total_proforma"] = (float)($row["total_proforma"] ?? 0);
+            $resumen["cantidad_factura_normal"] = (int)($row["cantidad_factura_normal"] ?? 0);
+            $resumen["cantidad_proforma"] = (int)($row["cantidad_proforma"] ?? 0);
+            $resumen["total_isv"] = (float)($row["total_isv"] ?? 0);
+        }
+
+        return $resumen;
+    }
+
     protected function getMontosNoContabilizadosPorCuenta($apertura_id){
         $query = "
             SELECT
@@ -736,7 +817,8 @@ class aperturaCajaModelo extends mainModel{
                 $observacion = "Ingresos por venta Cierre de Caja AP-".$apertura_id.
                     ". Total: L. ".number_format($total_contabilizar, 2).
                     " | Factura normal: L. ".number_format($montoFacturaNormal, 2)." (".$cantidadFacturaNormal.")".
-                    " | Proforma: L. ".number_format($montoProforma, 2)." (".$cantidadProforma.")";
+                    " | Proforma: L. ".number_format($montoProforma, 2)." (".$cantidadProforma.")".
+                    " | ISV: L. ".number_format($isv_neto, 2);
 
                 $datos_ingreso = [
                     "clientes_id" => 2,

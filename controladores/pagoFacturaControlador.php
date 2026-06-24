@@ -115,32 +115,65 @@ class pagoFacturaControlador extends pagoFacturaModelo {
             $saldoPendiente = round((float)$saldoRes->fetch_assoc()['saldo'] + 1e-9, 2);
         }
 
+        // === Total real de la factura ===
+        // Este dato es clave para efectivo con cambio.
+        // Ejemplo: factura L.150, cliente entrega L.200, cambio L.50.
+        // pagos.importe debe guardar L.150, pagos.efectivo L.200 y pagos.cambio L.50.
+        $totalFacturaBD = 0.00;
+
+        if (isset($factura['importe'])) {
+            $totalFacturaBD = round((float)$factura['importe'] + 1e-9, 2);
+        }
+
+        if ($totalFacturaBD <= 0) {
+            $rsTotalFactura = mainModel::connection()->query(
+                "SELECT ROUND(importe,2) AS importe FROM facturas WHERE facturas_id = '".intval($_POST[$campoId])."' LIMIT 1"
+            );
+
+            if ($rsTotalFactura && $rsTotalFactura->num_rows > 0) {
+                $rowTotalFactura = $rsTotalFactura->fetch_assoc();
+                $totalFacturaBD = round((float)$rowTotalFactura['importe'] + 1e-9, 2);
+            }
+        }
+
         // Tolerancia
         $EPS = 0.005;
 
         // === Validaciones por tipo de factura ===
         $esCxc = (isset($origen_pago) && ($origen_pago === 'cxc' || $origen_pago === 'CxC'));
 
-        if ($tipo_factura_post == 1) { // contado
-            // Solo validar contra saldo pendiente si es CxC
+        // === Importe que afecta saldo ===
+        if ($tipo_factura_post == 1) {
             if ($esCxc) {
-                if ($monto + $EPS < $saldoPendiente) {
-                    return [
-                        "status"=>false,"title"=>"Error",
-                        "message"=>"Para pago completo debe ingresar un monto igual o mayor al saldo pendiente (L. ".number_format($saldoPendiente,2).")"
-                    ];
-                }
+                // Desde CxC: liquida el saldo pendiente.
+                $importeReal = ($saldoPendiente > 0 ? $saldoPendiente : ($totalFacturaBD > 0 ? $totalFacturaBD : $monto));
             } else {
-                // Facturación normal: solo validar que el monto sea positivo
-                if ($monto <= 0) {
-                    return [
-                        "status"=>false,"title"=>"Error",
-                        "message"=>"El monto del pago debe ser mayor que cero"
-                    ];
-                }
+                // Desde facturación: siempre toma el total real de la factura, no el efectivo entregado.
+                $importeReal = ($totalFacturaBD > 0 ? $totalFacturaBD : ($saldoPendiente > 0 ? $saldoPendiente : ($montoAplicado > 0 ? $montoAplicado : $monto)));
             }
-        } else { // crédito / abono (solo aplica para CxC)
-            if ($monto - $saldoPendiente > $EPS) {
+        } else {
+            // Crédito / abono: toma el monto realmente aplicado.
+            $importeReal = ($montoAplicado > 0 ? $montoAplicado : $monto);
+        }
+
+        $importeReal = round((float)$importeReal + 1e-9, 2);
+
+        if ($tipo_factura_post == 1) { // contado
+            if ($importeReal <= 0) {
+                return [
+                    "status"=>false,"title"=>"Error",
+                    "message"=>"No se pudo determinar el total real de la factura."
+                ];
+            }
+
+            if ($monto + $EPS < $importeReal) {
+                return [
+                    "status"=>false,"title"=>"Error",
+                    "message"=>"El monto recibido no puede ser menor al total de la factura (L. ".number_format($importeReal,2).")"
+                ];
+            }
+        } else { // crédito / abono
+            if ($saldoPendiente > 0 && ($importeReal - $saldoPendiente > $EPS)) {
                 return [
                     "status"=>false,"title"=>"Error",
                     "message"=>"El monto no puede ser mayor al saldo pendiente (L. ".number_format($saldoPendiente,2).")"
@@ -157,12 +190,6 @@ class pagoFacturaControlador extends pagoFacturaModelo {
         $usuario = (isset($_POST[$campoUsuario]) && $_POST[$campoUsuario] !== '')
             ? intval($_POST[$campoUsuario])
             : $_SESSION['users_id_sd'];
-
-        // === Importe que afecta saldo ===
-        $importeReal = ($tipo_factura_post == 1
-            ? ($saldoPendiente > 0 ? $saldoPendiente : $monto)          // contado: liquida
-            : ($montoAplicado > 0 ? $montoAplicado : $monto)            // crédito: lo aplicado
-        );
 
         // === Cambio (solo contado, solo efectivo) ===
         $cambio = 0.00;

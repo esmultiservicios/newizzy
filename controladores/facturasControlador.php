@@ -244,6 +244,103 @@ class facturasControlador extends facturasModelo {
     }
 
     /* ===========================
+     * CONFIG GENERAL FACTURACIÓN
+     * =========================== */
+    protected function configFacturaActiva($accion, $config_id = 0, $default = false) {
+        static $cacheConfig = [];
+
+        $accion = trim((string)$accion);
+        $config_id = (int)$config_id;
+        $cacheKey = $accion.'|'.$config_id;
+
+        if(isset($cacheConfig[$cacheKey])){
+            return $cacheConfig[$cacheKey];
+        }
+
+        $activo = (bool)$default;
+
+        try {
+            $cn = mainModel::connection();
+
+            if(!$cn){
+                $cacheConfig[$cacheKey] = $activo;
+                return $activo;
+            }
+
+            if($config_id > 0){
+                $stmt = $cn->prepare("SELECT activar FROM config WHERE TRIM(accion) = ? OR config_id = ? ORDER BY CASE WHEN TRIM(accion) = ? THEN 0 ELSE 1 END LIMIT 1");
+
+                if(!$stmt){
+                    $cacheConfig[$cacheKey] = $activo;
+                    return $activo;
+                }
+
+                $stmt->bind_param("sis", $accion, $config_id, $accion);
+            }else{
+                $stmt = $cn->prepare("SELECT activar FROM config WHERE TRIM(accion) = ? LIMIT 1");
+
+                if(!$stmt){
+                    $cacheConfig[$cacheKey] = $activo;
+                    return $activo;
+                }
+
+                $stmt->bind_param("s", $accion);
+            }
+
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            if($result && $result->num_rows > 0){
+                $row = $result->fetch_assoc();
+                $activo = ((int)$row['activar'] === 1);
+            }
+
+            $stmt->close();
+        } catch (Throwable $e) {
+            error_log("Error al consultar config {$accion}: ".$e->getMessage());
+            $activo = (bool)$default;
+        }
+
+        $cacheConfig[$cacheKey] = $activo;
+        return $activo;
+    }
+
+    /* ===========================
+     * CONFIG: REBAJAR INVENTARIO EN PROFORMA
+     * =========================== */
+    protected function proformaRebajaInventario() {
+        /*
+         * Regla final del servidor:
+         * - Factura normal (documento_id = 1): siempre rebaja inventario.
+         * - Proforma (documento_id = 4): rebaja inventario SOLO si
+         *   config_id = 4 / 'Activar Rebajar Inventario Proforma' tiene activar = 1.
+         *
+         * No dependemos del checkbox recibido por POST, porque el origen real
+         * de la regla es la tabla config.
+         */
+        return $this->configFacturaActiva('Activar Rebajar Inventario Proforma', 4, false);
+    }
+
+    /* ===========================
+     * REGISTRO AUXILIAR DE PROFORMA
+     * =========================== */
+    protected function guardarFacturaProformaRelacion($facturas_id, $clientes_id, $secuencia_facturacion_id, $numero, $importe, $usuario, $empresa_id, $fecha_creacion) {
+        $datosProforma = [
+            'facturas_id'              => (int)$facturas_id,
+            'clientes_id'              => (int)$clientes_id,
+            'secuencia_facturacion_id' => (int)$secuencia_facturacion_id,
+            'numero'                   => (int)$numero,
+            'importe'                  => number_format((float)$importe, 2, '.', ''),
+            'usuario'                  => (int)$usuario,
+            'empresa_id'               => (int)$empresa_id,
+            'estado'                   => 0,
+            'fecha_creacion'           => $fecha_creacion
+        ];
+
+        return facturasModelo::agregar_facturas_proforma_modelo($datosProforma);
+    }
+
+    /* ===========================
      * PORCENTAJE ISV DESDE BD
      * =========================== */
     protected function obtenerPorcentajeISVDesdeBD($isv_id, $default = 0) {
@@ -680,7 +777,11 @@ class facturasControlador extends facturasModelo {
             "documento"   => $doc
         ];
 
-        facturasModelo::registrar_salida_lote_modelo($datos);
+        $salidaInventario = facturasModelo::registrar_salida_lote_modelo($datos);
+
+        if (is_array($salidaInventario) && isset($salidaInventario['status']) && $salidaInventario['status'] === 'error') {
+            throw new Exception($salidaInventario['message'] ?? 'No se pudo rebajar el inventario del producto.');
+        }
 
         $this->procesarRelacionProductos(
             $facturas_id,
@@ -790,7 +891,11 @@ class facturasControlador extends facturasModelo {
             "documento"   => "Factura ".$facturas_id."_".$valor
         ];
 
-        facturasModelo::registrar_salida_lote_modelo($datos);
+        $salidaInventario = facturasModelo::registrar_salida_lote_modelo($datos);
+
+        if (is_array($salidaInventario) && isset($salidaInventario['status']) && $salidaInventario['status'] === 'error') {
+            throw new Exception($salidaInventario['message'] ?? 'No se pudo rebajar el inventario del producto relacionado.');
+        }
     }
 
     protected function registrarSalidaPadre($facturas_id,$producto_id,$clientes_id,$cantidad,$bodega,$empresa_id,$valor){
@@ -1012,15 +1117,12 @@ class facturasControlador extends facturasModelo {
             $tipo_documento = ($tipo_documento_input === 1) ? "1" : "0";
 
             // Inventario:
-            // Factura normal/credito: baja siempre
-            // Proforma: baja solo si viene marcado proforma_bajar_inventario=1
+            // Factura normal/credito: baja siempre.
+            // Proforma: baja SOLO si config_id=4 / Activar Rebajar Inventario Proforma = 1.
             $bajarInventario = true;
 
             if ($tipo_documento === "1") {
-                $bajarInventario = (
-                    isset($_POST['proforma_bajar_inventario']) &&
-                    intval($_POST['proforma_bajar_inventario']) === 1
-                );
+                $bajarInventario = $this->proformaRebajaInventario();
             }
 
             // 3) Datos base
@@ -1160,7 +1262,31 @@ class facturasControlador extends facturasModelo {
                 ]);
             }
 
-            // 12) CxC
+            // 12) Si el documento es Proforma, registrar/actualizar también en facturas_proforma
+            if ($tipo_documento === "1") {
+                $okProforma = $this->guardarFacturaProformaRelacion(
+                    $facturas_id,
+                    $clientes_id,
+                    $numeroFactura['data']['secuencia_facturacion_id'],
+                    $numeroFactura['data']['numero'],
+                    $totales['total_despues_isv'],
+                    $datosBasicos['usuario'],
+                    $datosBasicos['empresa_id'],
+                    $fecha_registro
+                );
+
+                if(!$okProforma){
+                    $conexionPrincipal->rollback();
+
+                    return mainModel::showNotification([
+                        "title" => "Error",
+                        "text"  => "Error al registrar la proforma en facturas_proforma",
+                        "type"  => "error"
+                    ]);
+                }
+            }
+
+            // 13) CxC
             $estado_cuenta = 1;
 
             $okCxC = $this->guardarCuentaPorCobrar(
@@ -1289,14 +1415,11 @@ class facturasControlador extends facturasModelo {
 
         // Inventario en borrador:
         // Factura normal: mantiene el flujo anterior.
-        // Proforma: respeta el switch de rebajar inventario.
+        // Proforma: respeta config_id=4 / Activar Rebajar Inventario Proforma.
         $bajarInventario = true;
 
         if ($tipo_documento === "1") {
-            $bajarInventario = (
-                isset($_POST['proforma_bajar_inventario']) &&
-                (int)$_POST['proforma_bajar_inventario'] === 1
-            );
+            $bajarInventario = $this->proformaRebajaInventario();
         }
 
         // 3) Datos base
@@ -1428,9 +1551,33 @@ class facturasControlador extends facturasModelo {
                 ]);
             }
 
-            // 6.6) Borrador: NO CxC
+            // 6.6) Si el borrador es Proforma, registrar/actualizar también en facturas_proforma
+            if ($tipo_documento === "1") {
+                $okProforma = $this->guardarFacturaProformaRelacion(
+                    $facturas_id,
+                    $clientes_id,
+                    $sec_id,
+                    0,
+                    $totales['total_despues_isv'],
+                    $datosBasicos['usuario'],
+                    $empresa_id,
+                    $fecha_registro
+                );
 
-            // 6.7) Commit
+                if(!$okProforma){
+                    $cn->rollback();
+
+                    return mainModel::showNotification([
+                        "title" => "Error",
+                        "text"  => "Error al registrar la proforma en facturas_proforma (borrador)",
+                        "type"  => "error"
+                    ]);
+                }
+            }
+
+            // 6.7) Borrador: NO CxC
+
+            // 6.8) Commit
             $cn->commit();
 
             // 6.8) UI

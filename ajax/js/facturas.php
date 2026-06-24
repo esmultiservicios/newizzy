@@ -3026,7 +3026,7 @@ $('#formulario_busqueda_cuentas_cobrar_clientes #fechaf').on("change", function(
 //FIN CUENTAS POR COBRAR CLIENTES
 
 function resetRow() {
-    $("#invoice-form #bill_row").val(0);
+    $("#invoice-form #bill_row, #bill_row").val(0);
 }
 
 $('#formulario_busqueda_productos_facturacion #almacen_facturas').on('change', function() {
@@ -3599,7 +3599,7 @@ $(() => {
     $("#invoice-form #invoiceItem").on('click', '.buscar_productos', function(e) {
         e.preventDefault();
         listar_productos_factura_buscar();
-        var row_index = $(this).closest("tr").index();
+        var row_index = obtenerRowIndexFacturaDesdeElemento(this);
         var col_index = $(this).closest("td").index();
 
         $('#formulario_busqueda_productos_facturacion #row').val(row_index);
@@ -3781,7 +3781,8 @@ var view_productos_busqueda_factura_dataTable = function(tbody, table) {
   $(tbody).on("click", "button.table_view, td img", async function(e) {
     e.preventDefault();
 
-    var row = parseInt($("#invoice-form #bill_row").val() || '0', 10);
+    var row = parseInt($("#formulario_busqueda_productos_facturacion #row").val() || $("#invoice-form #bill_row").val() || '0', 10);
+    row = asegurarFilaFacturaDisponible(row);
 
     // Caja abierta
     if (getConsultarAperturaCaja() == 2) {
@@ -3854,9 +3855,9 @@ var view_productos_busqueda_factura_dataTable = function(tbody, table) {
       // ===== Calcular ISV de la línea (usa flags + % actuales de tabla isv) =====
       await recalcISVForRow(row); // escribe valor_isv_# y valor_isv1_#
 
-      // Totales y nueva fila
+      // Totales y nueva fila vacía final
       calculateTotalFacturas();
-      addRowFacturas();
+      asegurarFilaVaciaFinalFactura();
 
       // UI: ocultar iconos de búsqueda en la fila actual y la anterior
       if (row > 0) {
@@ -3892,7 +3893,7 @@ function actualizarPrecioPorMayoreo(row_index){
 /* ===== listener único: blur + keyup en cantidad ===== */
 $(() => {
   $("#invoice-form #invoiceItem").on('blur keyup', '.buscar_cantidad', function() {
-    var row_index = $(this).closest("tr").index();
+    var row_index = obtenerRowIndexFacturaDesdeElemento(this);
 
     // 1) Precio mayoreo vs real
     actualizarPrecioPorMayoreo(row_index);
@@ -3906,7 +3907,12 @@ $(() => {
 });
 
 function generarFilaFactura(count) {
-  let htmlRow = '<tr>';
+  count = parseInt(count || 0, 10);
+  if (isNaN(count) || count < 0) {
+    count = 0;
+  }
+
+  let htmlRow = '<tr data-row-id="' + count + '">';
 
   htmlRow += '<td><input class="itemRow" id="itemRow_' + count + '" type="checkbox"></td>';
 
@@ -3980,22 +3986,31 @@ function limpiarTablaFactura() {
     $("#invoice-form #invoiceItem > tbody").empty();
     let count = 0;
     $('#invoiceItem').append(generarFilaFactura(count));
+    $('#invoice-form #bill_row, #bill_row').val(count);
     $("#invoice-form .tableFixHead").scrollTop($(document).height());
-    $("#bar-code-id_" + count).focus();
+    enfocarFilaFactura(count);
 }
 
 function limpiarTablaFacturaDetalles(count) {
+    count = parseInt(count || 0, 10);
+    if (isNaN(count) || count < 0) {
+        count = 0;
+    }
+
     $("#invoice-form #invoiceItem > tbody").empty();
     $('#invoiceItem').append(generarFilaFactura(count));
+    $('#invoice-form #bill_row, #bill_row').val(count);
     $("#invoice-form .tableFixHead").scrollTop($(document).height());
-    $("#bar-code-id_" + count).focus();
+    enfocarFilaFactura(count);
 }
 
 function addRowFacturas() {
-    let count = parseInt($("#bill_row").val()) + 1;
+    let count = obtenerSiguienteIndiceFilaFactura();
     $('#invoiceItem').append(generarFilaFactura(count));
-    $("#bill_row").val(count);
-    $("#bar-code-id_" + count).focus();
+    $('#invoice-form #bill_row, #bill_row').val(count);
+    $("#invoice-form .tableFixHead").scrollTop($(document).height());
+    enfocarFilaFactura(count);
+    return count;
 }
 
 // Función para actualizar la descripción y medida cuando se carga un producto
@@ -4010,17 +4025,166 @@ function actualizarTextoProducto(index, nombreProducto, medidaProducto) {
     $("#medida_text_" + index).text(medidaProducto || "Medida");
 }
 
+/* =========================================================
+   CONTROL SEGURO DE FILAS DE FACTURA
+   ---------------------------------------------------------
+   No usamos .closest("tr").index() para identificar la fila,
+   porque al borrar filas el índice visual cambia, pero los IDs
+   reales siguen siendo productos_id_#, quantity_#, price_#, etc.
+   Estas funciones mantienen el correlativo estable y evitan que
+   al quitar una línea se escriba en la fila equivocada o se congele
+   el flujo de agregar/quitar productos.
+========================================================= */
+function obtenerRowIndexFacturaDesdeElemento(elemento) {
+    var $tr = $(elemento).closest('tr');
+    var rowIndex = parseInt($tr.attr('data-row-id') || $tr.data('row-id'), 10);
+
+    if (!isNaN(rowIndex) && rowIndex >= 0) {
+        return rowIndex;
+    }
+
+    var $campo = $tr.find('[id^="productos_id_"], [id^="bar-code-id_"], [id^="quantity_"], [id^="price_"], [id^="discount_"], [id^="total_"]').first();
+
+    if ($campo.length > 0) {
+        var id = String($campo.attr('id') || '');
+        var match = id.match(/_(\d+)$/);
+
+        if (match && match[1] !== undefined) {
+            rowIndex = parseInt(match[1], 10);
+
+            if (!isNaN(rowIndex) && rowIndex >= 0) {
+                $tr.attr('data-row-id', rowIndex);
+                return rowIndex;
+            }
+        }
+    }
+
+    rowIndex = $tr.index();
+    return (!isNaN(rowIndex) && rowIndex >= 0) ? rowIndex : 0;
+}
+
+function obtenerMayorIndiceFilaFactura() {
+    var mayor = -1;
+
+    $('#invoice-form #invoiceItem [id^="productos_id_"]').each(function () {
+        var id = String($(this).attr('id') || '');
+        var match = id.match(/_(\d+)$/);
+
+        if (match && match[1] !== undefined) {
+            var numero = parseInt(match[1], 10);
+
+            if (!isNaN(numero) && numero > mayor) {
+                mayor = numero;
+            }
+        }
+    });
+
+    return mayor;
+}
+
+function sincronizarBillRowFactura() {
+    var mayor = obtenerMayorIndiceFilaFactura();
+
+    if (mayor < 0) {
+        mayor = 0;
+    }
+
+    $('#invoice-form #bill_row, #bill_row').val(mayor);
+    return mayor;
+}
+
+function obtenerSiguienteIndiceFilaFactura() {
+    var mayor = obtenerMayorIndiceFilaFactura();
+    return mayor < 0 ? 0 : mayor + 1;
+}
+
+function filaFacturaTieneProducto(rowIndex) {
+    var pid = $('#invoice-form #invoiceItem #productos_id_' + rowIndex).val();
+    var barcode = $('#invoice-form #invoiceItem #bar-code-id_' + rowIndex).val();
+    var nombre = $('#invoice-form #invoiceItem #productName_' + rowIndex).val();
+    var precio = normalizarNumeroFactura($('#invoice-form #invoiceItem #price_' + rowIndex).val());
+
+    return !!(
+        (pid && pid !== '' && pid !== '0') ||
+        (barcode && barcode !== '') ||
+        (nombre && nombre !== '' && nombre !== 'Descripción del Producto') ||
+        precio > 0
+    );
+}
+
+function asegurarFilaFacturaDisponible(rowIndex) {
+    rowIndex = parseInt(rowIndex, 10);
+
+    if (!isNaN(rowIndex) && rowIndex >= 0 && $('#invoice-form #invoiceItem #productos_id_' + rowIndex).length > 0) {
+        return rowIndex;
+    }
+
+    var primeraLibre = null;
+
+    $('#invoice-form #invoiceItem [id^="productos_id_"]').each(function () {
+        if (primeraLibre !== null) {
+            return;
+        }
+
+        var id = String($(this).attr('id') || '');
+        var match = id.match(/_(\d+)$/);
+
+        if (match && match[1] !== undefined) {
+            var numero = parseInt(match[1], 10);
+
+            if (!filaFacturaTieneProducto(numero)) {
+                primeraLibre = numero;
+            }
+        }
+    });
+
+    if (primeraLibre !== null) {
+        return primeraLibre;
+    }
+
+    return addRowFacturas();
+}
+
+function asegurarFilaVaciaFinalFactura() {
+    var tieneFilaVacia = false;
+
+    $('#invoice-form #invoiceItem [id^="productos_id_"]').each(function () {
+        var id = String($(this).attr('id') || '');
+        var match = id.match(/_(\d+)$/);
+
+        if (match && match[1] !== undefined) {
+            var numero = parseInt(match[1], 10);
+
+            if (!filaFacturaTieneProducto(numero)) {
+                tieneFilaVacia = true;
+                return false;
+            }
+        }
+    });
+
+    if (!tieneFilaVacia) {
+        addRowFacturas();
+    }
+}
+
+function enfocarFilaFactura(rowIndex) {
+    setTimeout(function () {
+        $('#invoice-form #invoiceItem #bar-code-id_' + rowIndex).trigger('focus').select();
+    }, 50);
+}
+
+
 $(() => {
     $("#invoice-form #invoiceItem #bar-code-id_0").focus();
 
     $(document).on('click', '#checkAll', function() {
-        $(".itemRow").attr("checked", this.checked);
+        $(".itemRow").prop("checked", this.checked);
     });
     $(document).on('click', '.itemRow', function() {
         if ($('.itemRow:checked').length == $('.itemRow').length) {
-            $('#checkAll').attr('checked', true);
+            $('#checkAll').prop('checked', true);
         } else {
-            $('#checkAll').attr('checked', false);
+            $('#checkAll').prop('checked', false);
         }
     });
     var count = $(".itemRow").length;
@@ -4032,15 +4196,26 @@ $(() => {
         }
     });
     $(document).on('click', '#removeRows', function() {
-        if ($('.itemRow ').is(':checked')) {
+        if ($('.itemRow').is(':checked')) {
             $(".itemRow:checked").each(function() {
                 $(this).closest('tr').remove();
                 count--;
             });
-            $('#checkAll').attr('checked', false);
+
+            $('#checkAll').prop('checked', false);
+
+            if ($('#invoice-form #invoiceItem tbody tr').length === 0) {
+                $('#invoiceItem').append(generarFilaFactura(0));
+                $('#invoice-form #bill_row, #bill_row').val(0);
+                enfocarFilaFactura(0);
+            } else {
+                sincronizarBillRowFactura();
+                asegurarFilaVaciaFinalFactura();
+            }
+
             calculateTotalFacturas();
         } else {
-            showNotify('error', 'Error', 'Lo sentimos debe seleccionar un fila antes de intentar eliminarla');
+            showNotify('error', 'Error', 'Lo sentimos debe seleccionar una fila antes de intentar eliminarla');
         }
     });
     $(document).on('blur', "[id^=quantity_]", function() {
@@ -4544,7 +4719,7 @@ function redondearEnteroCercano(numero) {
 
 $(() => {
   $("#invoice-form #invoiceItem").on('keypress', '.product-bar-code', function (event) {
-    const row_index = $(this).closest("tr").index();
+    const row_index = obtenerRowIndexFacturaDesdeElemento(this);
     const code = event.which || event.keyCode;
 
     if (code === 10 || code === 13) { // Enter
@@ -4683,7 +4858,7 @@ async function manejarPresionEnter(row_index) {
       await recalcISVForRow(row_index);
 
       // UI
-      addRowFacturas();
+      asegurarFilaVaciaFinalFactura();
       const icon_search = (row_index > 0) ? (row_index - 1) : 0;
       $("#invoice-form #invoiceItem #icon-search-bar_" + row_index).hide();
       $("#invoice-form #invoiceItem #icon-search-bar_" + icon_search).hide();
@@ -4828,7 +5003,7 @@ $(() => {
 
     if (e.which === 114) { // F3 -> buscar producto
       listar_productos_factura_buscar();
-      var row_index = $(this).closest("tr").index();
+      var row_index = obtenerRowIndexFacturaDesdeElemento(this);
       var col_index = $(this).closest("td").index();
 
       $('#formulario_busqueda_productos_facturacion #row').val(row_index);
@@ -4842,7 +5017,7 @@ $(() => {
     }
 
     if (e.which === 115) { // F4 -> descuento por producto
-      var row_index = $(this).closest("tr").index();
+      var row_index = obtenerRowIndexFacturaDesdeElemento(this);
       var col_index = $(this).closest("td").index();
 
       $('#formDescuentoFacturacion #row_index').val(row_index);
@@ -4872,7 +5047,7 @@ $(() => {
     }
 
     if (e.which === 117) { // F6 -> modificar precio
-      var row_index = $(this).closest("tr").index();
+      var row_index = obtenerRowIndexFacturaDesdeElemento(this);
       abrirEditarPrecioFacturaEscritorio(row_index);
       e.preventDefault();
     }
@@ -6975,7 +7150,7 @@ $(() => {
             e.preventDefault();
 
             // Obtener la fila actual
-            var row_index = $(this).closest("tr").index();
+            var row_index = obtenerRowIndexFacturaDesdeElemento(this);
             
             // Validar si es una fila válida
             if (row_index === undefined || row_index === null || row_index < 0) {
@@ -7102,7 +7277,7 @@ $(() => {
     $("#invoice-form #invoiceItem").off('click.editarPrecioFacturaEscritorio', '.aplicar_precio');
     $("#invoice-form #invoiceItem").on('click.editarPrecioFacturaEscritorio', '.aplicar_precio', function(e) {
         e.preventDefault();
-        var row_index = $(this).closest("tr").index();
+        var row_index = obtenerRowIndexFacturaDesdeElemento(this);
         abrirEditarPrecioFacturaEscritorio(row_index);
     });
 });

@@ -172,59 +172,75 @@ if ($monto_restante < 0) {
 }
 
 $saldo_actual = 0;
+$nuevo_saldo = 0;
+$movimientos_cuentas_id = 0;
 
-$sqlSaldo = "
-    SELECT saldo
-    FROM movimientos_cuentas
-    WHERE cuentas_id = '$cuentas_id'
-      AND empresa_id = '$empresa_id'
-    ORDER BY movimientos_cuentas_id DESC
-    LIMIT 1
-";
+/*
+    IMPORTANTE:
+    El retiro normal de caja solo se guarda en caja_retiros mientras la caja está abierta.
+    La salida contable real se crea hasta el cierre de caja, cuando egresos_id queda relacionado.
 
-$resSaldo = $insMainModel->ejecutar_consulta_simple($sqlSaldo);
+    Por eso, si el retiro aún NO tiene egresos_id, el reintegro solo debe ajustar/anular
+    caja_retiros y NO debe insertar movimientos_cuentas, porque no existe un egreso contable
+    previo que reversar.
 
-if ($resSaldo && $resSaldo->num_rows > 0) {
-    $rowSaldo = $resSaldo->fetch_assoc();
-    $saldo_actual = (float)$rowSaldo['saldo'];
-}
+    Si por compatibilidad existe un retiro con egresos_id > 0, entonces sí registramos
+    el movimiento de entrada para revertir total o parcialmente ese egreso.
+*/
+if ($egresos_id > 0) {
+    $sqlSaldo = "
+        SELECT saldo
+        FROM movimientos_cuentas
+        WHERE cuentas_id = '$cuentas_id'
+          AND empresa_id = '$empresa_id'
+        ORDER BY movimientos_cuentas_id DESC
+        LIMIT 1
+    ";
 
-$nuevo_saldo = $saldo_actual + $monto_reintegro;
+    $resSaldo = $insMainModel->ejecutar_consulta_simple($sqlSaldo);
 
-$movimientos_cuentas_id = $insMainModel->correlativo('movimientos_cuentas_id', 'movimientos_cuentas');
+    if ($resSaldo && $resSaldo->num_rows > 0) {
+        $rowSaldo = $resSaldo->fetch_assoc();
+        $saldo_actual = (float)$rowSaldo['saldo'];
+    }
 
-$insertMovimiento = "
-    INSERT INTO movimientos_cuentas (
-        movimientos_cuentas_id,
-        cuentas_id,
-        empresa_id,
-        fecha,
-        ingreso,
-        egreso,
-        saldo,
-        colaboradores_id,
-        fecha_registro
-    ) VALUES (
-        '$movimientos_cuentas_id',
-        '$cuentas_id',
-        '$empresa_id',
-        '$fecha',
-        '$monto_reintegro',
-        '0',
-        '$nuevo_saldo',
-        '$colaboradores_id',
-        '$fecha_registro'
-    )
-";
+    $nuevo_saldo = $saldo_actual + $monto_reintegro;
 
-$okMovimiento = $insMainModel->ejecutar_consulta_simple($insertMovimiento);
+    $movimientos_cuentas_id = $insMainModel->correlativo('movimientos_cuentas_id', 'movimientos_cuentas');
 
-if (!$okMovimiento) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'No se pudo registrar el movimiento del reintegro.'
-    ]);
-    exit;
+    $insertMovimiento = "
+        INSERT INTO movimientos_cuentas (
+            movimientos_cuentas_id,
+            cuentas_id,
+            empresa_id,
+            fecha,
+            ingreso,
+            egreso,
+            saldo,
+            colaboradores_id,
+            fecha_registro
+        ) VALUES (
+            '$movimientos_cuentas_id',
+            '$cuentas_id',
+            '$empresa_id',
+            '$fecha',
+            '$monto_reintegro',
+            '0',
+            '$nuevo_saldo',
+            '$colaboradores_id',
+            '$fecha_registro'
+        )
+    ";
+
+    $okMovimiento = $insMainModel->ejecutar_consulta_simple($insertMovimiento);
+
+    if (!$okMovimiento) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'No se pudo registrar el movimiento del reintegro.'
+        ]);
+        exit;
+    }
 }
 
 $textoReintegro = " | Reintegro: L. ".number_format($monto_reintegro, 2, '.', '')." - ".$fecha_registro;
@@ -265,7 +281,7 @@ $okRetiro = $insMainModel->ejecutar_consulta_simple($updateRetiro);
 if (!$okRetiro) {
     echo json_encode([
         'success' => false,
-        'message' => 'El movimiento fue registrado, pero no se pudo actualizar el retiro.'
+        'message' => 'No se pudo actualizar el retiro con el reintegro.'
     ]);
     exit;
 }

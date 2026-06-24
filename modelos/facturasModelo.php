@@ -241,65 +241,109 @@ class facturasModelo extends mainModel{
     } 
     
     protected function agregar_facturas_proforma_modelo($datos){
-        $facturas_proforma_id = mainModel::correlativo("facturas_proforma_id", "facturas_proforma");
-
         $conexion = mainModel::connection();
-    
-        // Preparar la consulta
-        $insert = "INSERT INTO facturas_proforma (
-                        facturas_proforma_id,
-                        facturas_id,
-                        clientes_id,
-                        secuencia_facturacion_id,
-                        numero,
-                        importe,
-                        usuario,
-                        empresa_id,
-                        estado,
-                        fecha_creacion
-                    ) VALUES (
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        ?
-                    )";
-        
-        $stmt = $conexion->prepare($insert);
-    
-        if (!$stmt) {
-            die("Error al preparar la consulta: " . $conexion->error);
+
+        $facturas_id = (int)$datos['facturas_id'];
+        $clientes_id = (int)$datos['clientes_id'];
+        $secuencia_facturacion_id = (int)$datos['secuencia_facturacion_id'];
+        $numero = (int)$datos['numero'];
+        $importe = (float)$datos['importe'];
+        $usuario = (int)$datos['usuario'];
+        $empresa_id = (int)$datos['empresa_id'];
+        $estado = (int)$datos['estado'];
+        $fecha_creacion = (string)$datos['fecha_creacion'];
+
+        // Evita duplicar el registro si una proforma viene desde borrador
+        // o si se vuelve a guardar el mismo encabezado.
+        $check = $conexion->prepare("SELECT facturas_proforma_id FROM facturas_proforma WHERE facturas_id = ? LIMIT 1");
+
+        if (!$check) {
+            error_log("Error al preparar validación facturas_proforma: " . $conexion->error);
+            return false;
         }
-    
-        // Enlazar parámetros
-        $stmt->bind_param("iiisisisss", 
-            $facturas_proforma_id,
-            $datos['facturas_id'],
-            $datos['clientes_id'],
-            $datos['secuencia_facturacion_id'],
-            $datos['numero'],
-            $datos['importe'],
-            $datos['usuario'],
-            $datos['empresa_id'],
-            $datos['estado'],
-            $datos['fecha_creacion']
-        );
-    
-        // Ejecutar la consulta
+
+        $check->bind_param("i", $facturas_id);
+        $check->execute();
+        $resultCheck = $check->get_result();
+        $existe = ($resultCheck && $resultCheck->num_rows > 0);
+        $check->close();
+
+        if ($existe) {
+            $update = "UPDATE facturas_proforma
+                       SET clientes_id = ?,
+                           secuencia_facturacion_id = ?,
+                           numero = ?,
+                           importe = ?,
+                           usuario = ?,
+                           empresa_id = ?,
+                           estado = ?
+                       WHERE facturas_id = ?";
+
+            $stmt = $conexion->prepare($update);
+
+            if (!$stmt) {
+                error_log("Error al preparar UPDATE facturas_proforma: " . $conexion->error);
+                return false;
+            }
+
+            $stmt->bind_param(
+                "iiidiiii",
+                $clientes_id,
+                $secuencia_facturacion_id,
+                $numero,
+                $importe,
+                $usuario,
+                $empresa_id,
+                $estado,
+                $facturas_id
+            );
+        } else {
+            $facturas_proforma_id = mainModel::correlativo("facturas_proforma_id", "facturas_proforma");
+
+            $insert = "INSERT INTO facturas_proforma (
+                            facturas_proforma_id,
+                            facturas_id,
+                            clientes_id,
+                            secuencia_facturacion_id,
+                            numero,
+                            importe,
+                            usuario,
+                            empresa_id,
+                            estado,
+                            fecha_creacion
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+            $stmt = $conexion->prepare($insert);
+
+            if (!$stmt) {
+                error_log("Error al preparar INSERT facturas_proforma: " . $conexion->error);
+                return false;
+            }
+
+            $stmt->bind_param(
+                "iiiiidiiis",
+                $facturas_proforma_id,
+                $facturas_id,
+                $clientes_id,
+                $secuencia_facturacion_id,
+                $numero,
+                $importe,
+                $usuario,
+                $empresa_id,
+                $estado,
+                $fecha_creacion
+            );
+        }
+
         $result = $stmt->execute();
-    
+
         if (!$result) {
-            die("Error al ejecutar la consulta: " . $stmt->error);
+            error_log("Error al guardar facturas_proforma: " . $stmt->error);
         }
-    
+
         $stmt->close();
-    
-        return $result;            
+
+        return $result ? true : false;
     }
 
     protected function actualizar_detalle_facturas($datos){

@@ -130,7 +130,7 @@ class cierreCajaControlador extends aperturaCajaModelo{
         return mainModel::showNotification([
             "type"          => "success",
             "title"         => "Cierre de caja",
-            "text"          => "La caja se ha cerrado correctamente. Factura normal: L. ".number_format($total_factura_normal, 2)." (".$cantidad_factura_normal.") | Proforma: L. ".number_format($total_proforma, 2)." (".$cantidad_proforma.") | ISV: L. ".number_format($total_isv, 2)." | Retiros: L. ".number_format($total_retiros, 2)." | Neto físico: L. ".number_format($neto_caja, 2),
+            "text"          => "La caja se ha cerrado correctamente. Factura normal: L. ".number_format($total_factura_normal, 2)." (".$cantidad_factura_normal.") | Proforma: L. ".number_format($total_proforma, 2)." (".$cantidad_proforma.") | ISV: L. ".number_format($total_isv, 2)." | Retiros: L. ".number_format($total_retiros, 2)." | Inversión/reposición: L. ".number_format($total_inversion_automatica, 2)." | Neto físico: L. ".number_format($neto_caja, 2),
             "form"          => "formColaboradores",
             "funcion"       => "validarAperturaCajaUsuario();getCajero();printComprobanteCajas($apertura_id);listar_registro_cajas();",
             "closeAllModals"=> true

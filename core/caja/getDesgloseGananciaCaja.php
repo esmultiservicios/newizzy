@@ -167,8 +167,10 @@ if ($resPagos && $resPagos->num_rows > 0) {
 $sqlResumenInventario = "
     SELECT
         COALESCE(SUM(fd.cantidad * fd.costo_unitario), 0) AS costo_productos_vendidos,
-        COALESCE(SUM(fd.cantidad * fd.precio), 0) AS total_vendido_detalle,
-        COALESCE(SUM((fd.cantidad * fd.precio) - (fd.cantidad * fd.costo_unitario)), 0) AS ganancia_bruta,
+        COALESCE(SUM(fd.cantidad * fd.precio), 0) AS total_bruto_detalle,
+        COALESCE(SUM(fd.descuento), 0) AS total_descuento_detalle,
+        COALESCE(SUM((fd.cantidad * fd.precio) - fd.descuento), 0) AS total_vendido_detalle,
+        COALESCE(SUM(((fd.cantidad * fd.precio) - fd.descuento) - (fd.cantidad * fd.costo_unitario)), 0) AS ganancia_bruta,
         COALESCE(SUM(CASE WHEN sf.documento_id = 1 THEN (fd.isv_valor + fd.isv_valor1) ELSE 0 END), 0) AS isv_sar_factura_normal,
         COALESCE(SUM(CASE WHEN sf.documento_id = 4 THEN (fd.isv_valor + fd.isv_valor1) ELSE 0 END), 0) AS isv_proforma,
         COALESCE(SUM(fd.isv_valor + fd.isv_valor1), 0) AS isv_total_detalle
@@ -179,11 +181,13 @@ $sqlResumenInventario = "
     WHERE $whereFacturas
 ";
 $resResumenInventario = $insMainModel->ejecutar_consulta_simple($sqlResumenInventario);
-$costo_productos_vendidos = $total_vendido_detalle = $ganancia_bruta = 0;
+$costo_productos_vendidos = $total_bruto_detalle = $total_descuento_detalle = $total_vendido_detalle = $ganancia_bruta = 0;
 $isv_sar_factura_normal = $isv_proforma = $isv_total_detalle = 0;
 if ($resResumenInventario && $resResumenInventario->num_rows > 0) {
     $rowResumenInventario = $resResumenInventario->fetch_assoc();
     $costo_productos_vendidos = (float)$rowResumenInventario['costo_productos_vendidos'];
+    $total_bruto_detalle = (float)$rowResumenInventario['total_bruto_detalle'];
+    $total_descuento_detalle = (float)$rowResumenInventario['total_descuento_detalle'];
     $total_vendido_detalle = (float)$rowResumenInventario['total_vendido_detalle'];
     $ganancia_bruta = (float)$rowResumenInventario['ganancia_bruta'];
     $isv_sar_factura_normal = (float)$rowResumenInventario['isv_sar_factura_normal'];
@@ -333,7 +337,15 @@ $dinero_recomendado_guardar = $costo_productos_vendidos;
 $dinero_despues_reponer = $total_cobrado - $costo_productos_vendidos;
 $porcentaje_costo = $total_vendido_detalle > 0 ? ($costo_productos_vendidos / $total_vendido_detalle) * 100 : 0;
 $porcentaje_ganancia = $total_vendido_detalle > 0 ? ($ganancia_bruta / $total_vendido_detalle) * 100 : 0;
-$diferencia_conciliacion = $total_facturado - $total_vendido_detalle;
+
+/*
+    Diferencia real de conciliación:
+    total_facturado ya incluye descuentos e ISV.
+    total_vendido_detalle aquí ya es neto de productos: (cantidad * precio) - descuento.
+    Para no confundir descuentos ni ISV como diferencia, comparamos contra:
+    venta neta productos + ISV del detalle.
+*/
+$diferencia_conciliacion = $total_facturado - ($total_vendido_detalle + $isv_total_detalle);
 
 $sqlDetalles = "
     SELECT
@@ -343,11 +355,13 @@ $sqlDetalles = "
         fd.cantidad,
         fd.costo_unitario,
         fd.precio AS precio_venta,
+        fd.descuento AS descuento_detalle,
         (fd.cantidad * fd.costo_unitario) AS total_costo,
-        (fd.cantidad * fd.precio) AS total_venta,
+        (fd.cantidad * fd.precio) AS total_bruto,
+        ((fd.cantidad * fd.precio) - fd.descuento) AS total_venta,
         (fd.isv_valor + fd.isv_valor1) AS isv_detalle,
-        ((fd.cantidad * fd.precio) + (fd.isv_valor + fd.isv_valor1)) AS total_con_isv,
-        ((fd.cantidad * fd.precio) - (fd.cantidad * fd.costo_unitario)) AS ganancia
+        (((fd.cantidad * fd.precio) - fd.descuento) + (fd.isv_valor + fd.isv_valor1)) AS total_con_isv,
+        (((fd.cantidad * fd.precio) - fd.descuento) - (fd.cantidad * fd.costo_unitario)) AS ganancia
     FROM facturas f
     INNER JOIN secuencia_facturacion sf ON sf.secuencia_facturacion_id = f.secuencia_facturacion_id
     INNER JOIN documento d ON d.documento_id = sf.documento_id
@@ -367,7 +381,9 @@ if ($resDetalles) {
             'cantidad'=>(float)$row['cantidad'],
             'costo_unitario'=>(float)$row['costo_unitario'],
             'precio_venta'=>(float)$row['precio_venta'],
+            'descuento_detalle'=>(float)$row['descuento_detalle'],
             'total_costo'=>(float)$row['total_costo'],
+            'total_bruto'=>(float)$row['total_bruto'],
             'total_venta'=>(float)$row['total_venta'],
             'isv_detalle'=>(float)$row['isv_detalle'],
             'total_con_isv'=>(float)$row['total_con_isv'],
@@ -409,6 +425,8 @@ echo json_encode([
         'neto_total_facturado'=>$neto_total_facturado,
         'efectivo_esperado_caja'=>$efectivo_esperado_caja,
         'costo_productos_vendidos'=>$costo_productos_vendidos,
+        'total_bruto_detalle'=>$total_bruto_detalle,
+        'total_descuento_detalle'=>$total_descuento_detalle,
         'total_vendido_detalle'=>$total_vendido_detalle,
         'ganancia_bruta'=>$ganancia_bruta,
         'isv_sar_factura_normal'=>$isv_sar_factura_normal,

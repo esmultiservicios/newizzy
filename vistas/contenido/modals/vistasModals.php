@@ -5185,7 +5185,7 @@
 
                     <div class="izzy-note mb-2">
                         <strong>Esta sección usa el detalle de productos.</strong>
-                        Venta neta de productos = <strong>cantidad x precio</strong>.
+                        Venta neta de productos = <strong>(cantidad x precio) - descuento</strong>.
                         Costo productos = <strong>cantidad x costo unitario</strong>.
                     </div>
 
@@ -5194,7 +5194,7 @@
                             <div class="izzy-kpi-card">
                                 <div class="izzy-kpi-label">Venta neta productos</div>
                                 <p class="izzy-kpi-value izzy-kpi-success" id="dg_total_vendido_detalle">L. 0.00</p>
-                                <small>Solo lo encontrado en facturas_detalles.</small>
+                                <small>Precio de productos menos descuentos de producto.</small>
                             </div>
                         </div>
 
@@ -5228,7 +5228,7 @@
                             <div class="izzy-kpi-card izzy-kpi-card-mini izzy-kpi-card-diff">
                                 <div class="izzy-kpi-label">Diferencia factura / detalle</div>
                                 <p class="izzy-kpi-value izzy-kpi-warning" id="dg_diferencia_conciliacion">L. 0.00</p>
-                                <small>Total facturado - venta neta productos.</small>
+                                <small>Total facturado - (venta neta productos + ISV detalle).</small>
                             </div>
                         </div>
 
@@ -5251,8 +5251,8 @@
 
                     <div class="izzy-note mb-0">
                         <strong>Para explicar al cliente:</strong>
-                        si el total facturado es mayor que la venta neta de productos, la diferencia puede ser un cobro extra, servicio, mano de obra o valor facturado que no está registrado como producto en el detalle.
-                        Por eso la ganancia bruta de productos se calcula solo sobre productos.
+                        si aparece diferencia, significa que hay un valor cobrado que no cuadra contra el detalle de productos + ISV. 
+                        Los descuentos e ISV ya no deben aparecer como diferencia. Por eso la ganancia bruta se calcula sobre productos netos.
                     </div>
                 </div>
 

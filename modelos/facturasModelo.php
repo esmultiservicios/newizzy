@@ -8,12 +8,44 @@ if($peticionAjax){
 
 class facturasModelo extends mainModel{		
     protected function guardar_facturas_modelo($datos) {
+        $conexion = mainModel::connection();
+
+        $facturas_id = (int)$datos['facturas_id'];
+        $empresa_id = (int)$datos['empresa'];
+        $secuencia_facturacion_id = (int)$datos['secuencia_facturacion_id'];
+        $numero = (int)$datos['numero'];
+
+        // Seguridad: no permitir duplicar number dentro de la misma empresa/secuencia.
+        $stmtDuplicado = $conexion->prepare(
+            "SELECT facturas_id
+             FROM facturas
+             WHERE empresa_id = ?
+               AND secuencia_facturacion_id = ?
+               AND number = ?
+               AND facturas_id <> ?
+             LIMIT 1"
+        );
+
+        if($stmtDuplicado){
+            $stmtDuplicado->bind_param("iiii", $empresa_id, $secuencia_facturacion_id, $numero, $facturas_id);
+            $stmtDuplicado->execute();
+            $resDuplicado = $stmtDuplicado->get_result();
+
+            if($resDuplicado && $resDuplicado->num_rows > 0){
+                $stmtDuplicado->close();
+                error_log("Duplicado bloqueado en facturas: empresa={$empresa_id}, secuencia={$secuencia_facturacion_id}, numero={$numero}, facturas_id={$facturas_id}");
+                return false;
+            }
+
+            $stmtDuplicado->close();
+        }
+
         // Verificar si ya existe un registro con el mismo facturas_id
         $check = "SELECT COUNT(*) as count FROM facturas 
-                  WHERE facturas_id = '".$datos['facturas_id']."'";
-        $result_check = mainModel::connection()->query($check) or die(mainModel::connection()->error);
+                  WHERE facturas_id = '".$facturas_id."'";
+        $result_check = $conexion->query($check) or die($conexion->error);
         $row = $result_check->fetch_assoc();
-    
+
         if ($row['count'] > 0) {
             // Si existe, realizar un UPDATE
             $query = "UPDATE facturas SET
@@ -50,10 +82,10 @@ class facturasModelo extends mainModel{
                         `empresa_id`, 
                         `fecha_registro`, 
                         `fecha_dolar`,
-						`no_orden`,
-						`constancia`,
-						`identificativo_sag`,
-						`numero_interno`                        
+                        `no_orden`,
+                        `constancia`,
+                        `identificativo_sag`,
+                        `numero_interno`                        
                     )
                     VALUES (
                         '".$datos['facturas_id']."',
@@ -71,43 +103,15 @@ class facturasModelo extends mainModel{
                         '".$datos['empresa']."',
                         '".$datos['fecha_registro']."',
                         '".$datos['fecha_dolar']."',
-						'".$datos['exoneracion_orden']."',
-						'".$datos['exoneracion_constancia']."',
-						'".$datos['exoneracion_sag']."',
-						'".$datos['exoneracion_orden_interno']."'	                        
+                        '".($datos['exoneracion_orden'] ?? '')."',
+                        '".($datos['exoneracion_constancia'] ?? '')."',
+                        '".($datos['exoneracion_sag'] ?? '')."',
+                        '".($datos['exoneracion_orden_interno'] ?? '')."'	                        
                     )";
         }
-    
-        $result = mainModel::connection()->query($query) or die(mainModel::connection()->error);
 
-        /*
-            PROFORMA HISTÓRICA / IDENTIFICADOR
-            -----------------------------------------------------------
-            Este respaldo se ejecuta desde el modelo para que NO dependa
-            únicamente del bloque del controlador.
+        $result = $conexion->query($query) or die($conexion->error);
 
-            Regla final:
-            - Si la secuencia usada pertenece a documento_id = 4, entonces
-              esta factura ES PROFORMA.
-            - Toda proforma debe existir en facturas y también en
-              facturas_proforma.
-            - Si ya existe, se actualiza.
-            - Si no existe, se inserta.
-
-            Esto evita el caso visto en producción:
-            - facturas.number = 460 / secuencia_facturacion_id = 3
-            - se guarda en facturas
-            - pero no queda histórico en facturas_proforma
-        */
-        if ($result) {
-            $okSyncProforma = $this->sincronizar_facturas_proforma_desde_factura_modelo($datos);
-
-            if (!$okSyncProforma) {
-                return false;
-            }
-        }
-    
-        // Devolver true si la consulta fue exitosa, false en caso contrario
         return $result ? true : false;
     }
     
@@ -270,75 +274,41 @@ class facturasModelo extends mainModel{
     protected function agregar_facturas_proforma_modelo($datos){
         $conexion = mainModel::connection();
 
-        if (!$conexion) {
-            error_log("Error facturas_proforma: no hay conexión disponible");
-            return false;
-        }
+        $facturas_id = (int)$datos['facturas_id'];
+        $clientes_id = (int)$datos['clientes_id'];
+        $secuencia_facturacion_id = (int)$datos['secuencia_facturacion_id'];
+        $numero = (int)$datos['numero'];
+        $importe = (float)$datos['importe'];
+        $usuario = (int)$datos['usuario'];
+        $empresa_id = (int)$datos['empresa_id'];
+        $estado = (int)$datos['estado'];
+        $fecha_creacion = (string)$datos['fecha_creacion'];
 
-        $facturas_id = (int)($datos['facturas_id'] ?? 0);
-        $clientes_id = (int)($datos['clientes_id'] ?? 0);
-        $secuencia_facturacion_id = (int)($datos['secuencia_facturacion_id'] ?? 0);
-        $numero = (int)($datos['numero'] ?? 0);
-        $importe = (float)($datos['importe'] ?? 0);
-        $usuario = (int)($datos['usuario'] ?? 0);
-        $empresa_id = (int)($datos['empresa_id'] ?? 0);
-        $estado = (int)($datos['estado'] ?? 0);
-        $fecha_creacion = (string)($datos['fecha_creacion'] ?? date('Y-m-d H:i:s'));
-
-        if ($facturas_id <= 0 || $clientes_id <= 0 || $secuencia_facturacion_id <= 0 || $empresa_id <= 0) {
-            error_log(
-                "Datos inválidos para facturas_proforma: " . json_encode([
-                    'facturas_id' => $facturas_id,
-                    'clientes_id' => $clientes_id,
-                    'secuencia_facturacion_id' => $secuencia_facturacion_id,
-                    'numero' => $numero,
-                    'empresa_id' => $empresa_id
-                ], JSON_UNESCAPED_UNICODE)
-            );
-            return false;
-        }
-
-        /*
-            Evita duplicados y también repara casos donde una proforma
-            viene desde borrador o ya existe por empresa + secuencia + número.
-
-            Antes solo buscaba por facturas_id. Si por alguna razón el JS/flujo
-            generaba otro encabezado con el mismo número de proforma, podía quedar
-            desincronizado o no actualizarse correctamente.
-        */
-        $check = $conexion->prepare(
-            "SELECT facturas_proforma_id
-             FROM facturas_proforma
-             WHERE facturas_id = ?
-                OR (empresa_id = ? AND secuencia_facturacion_id = ? AND numero = ?)
-             ORDER BY facturas_proforma_id ASC
-             LIMIT 1"
-        );
+        // Evita duplicar el registro si una proforma viene desde borrador
+        // o si se vuelve a guardar el mismo encabezado.
+        $check = $conexion->prepare("SELECT facturas_proforma_id FROM facturas_proforma WHERE facturas_id = ? LIMIT 1");
 
         if (!$check) {
             error_log("Error al preparar validación facturas_proforma: " . $conexion->error);
             return false;
         }
 
-        $check->bind_param("iiii", $facturas_id, $empresa_id, $secuencia_facturacion_id, $numero);
+        $check->bind_param("i", $facturas_id);
         $check->execute();
         $resultCheck = $check->get_result();
-        $rowCheck = ($resultCheck && $resultCheck->num_rows > 0) ? $resultCheck->fetch_assoc() : null;
+        $existe = ($resultCheck && $resultCheck->num_rows > 0);
         $check->close();
 
-        if ($rowCheck) {
-            $facturas_proforma_id = (int)$rowCheck['facturas_proforma_id'];
-
+        if ($existe) {
             $update = "UPDATE facturas_proforma
-                       SET facturas_id = ?,
-                           clientes_id = ?,
+                       SET clientes_id = ?,
                            secuencia_facturacion_id = ?,
                            numero = ?,
                            importe = ?,
                            usuario = ?,
                            empresa_id = ?,
                            estado = ?
-                       WHERE facturas_proforma_id = ?";
+                       WHERE facturas_id = ?";
 
             $stmt = $conexion->prepare($update);
 
@@ -348,8 +318,7 @@ class facturasModelo extends mainModel{
             }
 
             $stmt->bind_param(
-                "iiiidiiii",
-                $facturas_id,
+                "iiidiiii",
                 $clientes_id,
                 $secuencia_facturacion_id,
                 $numero,
@@ -357,18 +326,10 @@ class facturasModelo extends mainModel{
                 $usuario,
                 $empresa_id,
                 $estado,
-                $facturas_proforma_id
+                $facturas_id
             );
         } else {
             $facturas_proforma_id = mainModel::correlativo("facturas_proforma_id", "facturas_proforma");
-
-            if ((int)$facturas_proforma_id <= 0) {
-                $facturas_proforma_id = 1;
-                $resMax = $conexion->query("SELECT COALESCE(MAX(facturas_proforma_id), 0) + 1 AS nuevo_id FROM facturas_proforma");
-                if ($resMax && $resMax->num_rows > 0) {
-                    $facturas_proforma_id = (int)$resMax->fetch_assoc()['nuevo_id'];
-                }
-            }
 
             $insert = "INSERT INTO facturas_proforma (
                             facturas_proforma_id,
@@ -416,141 +377,6 @@ class facturasModelo extends mainModel{
         return $result ? true : false;
     }
 
-    /* ===========================
-     * PROFORMA: VALIDAR SECUENCIA Y SINCRONIZAR HISTÓRICO
-     * -----------------------------------------------------------
-     * Punto clave:
-     * El controlador puede recibir el switch de proforma en varios formatos,
-     * pero la verdad final está en secuencia_facturacion.documento_id.
-     * Si documento_id = 4, se debe guardar en facturas_proforma siempre.
-     * =========================== */
-    protected function secuencia_es_proforma_modelo($secuencia_facturacion_id){
-        $conexion = mainModel::connection();
-        $secuencia_facturacion_id = (int)$secuencia_facturacion_id;
-
-        if (!$conexion || $secuencia_facturacion_id <= 0) {
-            return false;
-        }
-
-        $stmt = $conexion->prepare("SELECT documento_id FROM secuencia_facturacion WHERE secuencia_facturacion_id = ? LIMIT 1");
-
-        if (!$stmt) {
-            error_log("Error al preparar validación de secuencia proforma: " . $conexion->error);
-            return false;
-        }
-
-        $stmt->bind_param("i", $secuencia_facturacion_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        $esProforma = false;
-
-        if ($result && $result->num_rows > 0) {
-            $row = $result->fetch_assoc();
-            $esProforma = ((int)$row['documento_id'] === 4);
-        }
-
-        $stmt->close();
-
-        return $esProforma;
-    }
-
-    protected function sincronizar_facturas_proforma_desde_factura_modelo($datos){
-        $secuencia_facturacion_id = (int)($datos['secuencia_facturacion_id'] ?? 0);
-
-        if (!$this->secuencia_es_proforma_modelo($secuencia_facturacion_id)) {
-            return true;
-        }
-
-        $datosProforma = [
-            'facturas_id'              => (int)($datos['facturas_id'] ?? 0),
-            'clientes_id'              => (int)($datos['clientes_id'] ?? 0),
-            'secuencia_facturacion_id' => $secuencia_facturacion_id,
-            'numero'                   => (int)($datos['numero'] ?? 0),
-            'importe'                  => number_format((float)($datos['importe'] ?? 0), 2, '.', ''),
-            'usuario'                  => (int)($datos['usuario'] ?? 0),
-            'empresa_id'               => (int)($datos['empresa'] ?? ($datos['empresa_id'] ?? 0)),
-            'estado'                   => 0,
-            'fecha_creacion'           => (string)($datos['fecha_registro'] ?? date('Y-m-d H:i:s'))
-        ];
-
-        $ok = $this->agregar_facturas_proforma_modelo($datosProforma);
-
-        if (!$ok) {
-            error_log("No se pudo sincronizar facturas_proforma desde guardar_facturas_modelo: " . json_encode($datosProforma, JSON_UNESCAPED_UNICODE));
-        }
-
-        return $ok;
-    }
-
-    protected function sincronizar_facturas_proforma_por_facturas_id_modelo($facturas_id){
-        $conexion = mainModel::connection();
-        $facturas_id = (int)$facturas_id;
-
-        if (!$conexion || $facturas_id <= 0) {
-            return false;
-        }
-
-        $sql = "SELECT
-                    f.facturas_id,
-                    f.clientes_id,
-                    f.secuencia_facturacion_id,
-                    f.number AS numero,
-                    f.importe,
-                    f.usuario,
-                    f.empresa_id,
-                    f.fecha_registro,
-                    sf.documento_id
-                FROM facturas f
-                INNER JOIN secuencia_facturacion sf
-                    ON sf.secuencia_facturacion_id = f.secuencia_facturacion_id
-                WHERE f.facturas_id = ?
-                LIMIT 1";
-
-        $stmt = $conexion->prepare($sql);
-
-        if (!$stmt) {
-            error_log("Error al preparar sincronización de proforma por facturas_id: " . $conexion->error);
-            return false;
-        }
-
-        $stmt->bind_param("i", $facturas_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        if (!$result || $result->num_rows <= 0) {
-            $stmt->close();
-            return false;
-        }
-
-        $factura = $result->fetch_assoc();
-        $stmt->close();
-
-        if ((int)$factura['documento_id'] !== 4) {
-            return true;
-        }
-
-        $datosProforma = [
-            'facturas_id'              => (int)$factura['facturas_id'],
-            'clientes_id'              => (int)$factura['clientes_id'],
-            'secuencia_facturacion_id' => (int)$factura['secuencia_facturacion_id'],
-            'numero'                   => (int)$factura['numero'],
-            'importe'                  => number_format((float)$factura['importe'], 2, '.', ''),
-            'usuario'                  => (int)$factura['usuario'],
-            'empresa_id'               => (int)$factura['empresa_id'],
-            'estado'                   => 0,
-            'fecha_creacion'           => (string)$factura['fecha_registro']
-        ];
-
-        $ok = $this->agregar_facturas_proforma_modelo($datosProforma);
-
-        if (!$ok) {
-            error_log("No se pudo sincronizar facturas_proforma desde actualizar_factura_importe: " . json_encode($datosProforma, JSON_UNESCAPED_UNICODE));
-        }
-
-        return $ok;
-    }
-
     protected function actualizar_detalle_facturas($datos){
         $update = "UPDATE facturas_detalles
                     SET 
@@ -575,20 +401,6 @@ class facturasModelo extends mainModel{
                     WHERE facturas_id = '".$datos['facturas_id']."'";
     
         $result = mainModel::connection()->query($update) or die(mainModel::connection()->error);
-
-        /*
-            Si es proforma, mantener facturas_proforma sincronizada con
-            el importe final. El encabezado primero se guarda con importe 0
-            y luego aquí se actualiza con el total real calculado por detalle.
-        */
-        if ($result) {
-            $okSyncProforma = $this->sincronizar_facturas_proforma_por_facturas_id_modelo((int)$datos['facturas_id']);
-
-            if (!$okSyncProforma) {
-                return false;
-            }
-        }
-
         return $result;                
     }
 
@@ -853,84 +665,11 @@ class facturasModelo extends mainModel{
     }
 
     /* ===========================
-    * INVENTARIO: DISPONIBILIDAD SEGURA PARA SALIDA
-    * -----------------------------------------------------------
-    * Se usa antes de insertar movimientos para evitar este caso:
-    * - Se consume un lote parcialmente
-    * - Luego falta saldo para completar la salida
-    * - Se devuelve error, pero ya quedaron movimientos/lotes tocados
-    *
-    * Regla:
-    * - Si hay lotes activos, se consideran.
-    * - También se compara contra el saldo histórico de movimientos.
-    * - La disponibilidad usable es el mayor entre ambos, para respetar
-    *   la lógica anterior sin duplicar inventario.
-    * =========================== */
-    protected function obtener_disponibilidad_salida_modelo($producto_id, $empresa_id = 0, $almacen_id = 0) {
-        $mysqli = mainModel::connection();
-
-        $producto_id = (int)$producto_id;
-        $empresa_id = (int)$empresa_id;
-        $almacen_id = (int)$almacen_id;
-
-        if ($producto_id <= 0) {
-            return [
-                "lotes" => 0.0,
-                "movimientos" => 0.0,
-                "disponible" => 0.0
-            ];
-        }
-
-        $sqlLotes = "SELECT COALESCE(SUM(cantidad), 0) AS disponible_lotes
-                     FROM lotes
-                     WHERE productos_id = ?
-                       AND estado = 'Activo'
-                       AND cantidad > 0";
-
-        if ($almacen_id > 0) {
-            $sqlLotes .= " AND almacen_id = ?";
-        }
-
-        $stmtLotes = $mysqli->prepare($sqlLotes);
-
-        if (!$stmtLotes) {
-            return [
-                "lotes" => 0.0,
-                "movimientos" => 0.0,
-                "disponible" => 0.0
-            ];
-        }
-
-        if ($almacen_id > 0) {
-            $stmtLotes->bind_param("ii", $producto_id, $almacen_id);
-        } else {
-            $stmtLotes->bind_param("i", $producto_id);
-        }
-
-        $stmtLotes->execute();
-        $resLotes = $stmtLotes->get_result();
-        $rowLotes = ($resLotes && $resLotes->num_rows > 0) ? $resLotes->fetch_assoc() : ["disponible_lotes" => 0];
-        $stmtLotes->close();
-
-        $disponible_lotes = (float)($rowLotes["disponible_lotes"] ?? 0);
-
-        $saldo_movimientos = (float)$this->getSaldoProductosMovimientosModelo($producto_id, $empresa_id, $almacen_id);
-
-        $disponible = max($disponible_lotes, $saldo_movimientos);
-
-        return [
-            "lotes" => $disponible_lotes,
-            "movimientos" => $saldo_movimientos,
-            "disponible" => $disponible
-        ];
-    }
-
-    /* ===========================
     * INVENTARIO: ARREGLA bind_param (con/sin lote)
     * =========================== */
     protected function registrar_salida_lote_modelo($datos) {
         $mysqli = mainModel::connection();
-    
+
         $producto_id         = (int)$datos['productos_id'];
         $empresa_id          = (int)$datos['empresa_id'];
         $clientes_id         = (int)($datos['clientes_id'] ?? 0);
@@ -939,24 +678,30 @@ class facturasModelo extends mainModel{
         $cantidad_solicitada = (float)$datos['cantidad'];
         $almacen_solicitado  = isset($datos['almacen_id']) ? (int)$datos['almacen_id'] : 0;
 
-        if ($cantidad_solicitada <= 0) {
-            return ["status" => "error", "message" => "La cantidad de salida debe ser mayor que cero"];
+        if($producto_id <= 0 || $empresa_id <= 0 || $cantidad_solicitada <= 0){
+            return ["status" => "error", "message" => "Datos inválidos para rebajar inventario"];
         }
 
-        // Validación previa sin tocar lotes ni movimientos.
-        // Esto evita que una salida parcial quede registrada antes de devolver "saldo insuficiente".
-        $disponibilidadPrevia = $this->obtener_disponibilidad_salida_modelo($producto_id, $empresa_id, $almacen_solicitado);
-        $disponiblePrevia = (float)$disponibilidadPrevia['disponible'];
-
-        if (($disponiblePrevia + 0.000001) < $cantidad_solicitada) {
-            $falta = $cantidad_solicitada - $disponiblePrevia;
-            return [
-                "status" => "error",
-                "message" => "Saldo insuficiente para la salida (disponible ".number_format($disponiblePrevia, 4, '.', '').", falta ".number_format($falta, 4, '.', '').")"
-            ];
+        $nombre_producto = "Producto ID ".$producto_id;
+        $stmtNombre = $mysqli->prepare("SELECT nombre FROM productos WHERE productos_id = ? LIMIT 1");
+        if($stmtNombre){
+            $stmtNombre->bind_param("i", $producto_id);
+            $stmtNombre->execute();
+            $resNombre = $stmtNombre->get_result();
+            if($resNombre && $resNombre->num_rows > 0){
+                $rowNombre = $resNombre->fetch_assoc();
+                $nombre_producto = $rowNombre['nombre'];
+            }
+            $stmtNombre->close();
         }
-    
-        // 1) Traer lotes activos con stock > 0 (FIFO real)
+
+        $restante = $cantidad_solicitada;
+        $consumos = [];
+
+        /*
+         * 1) Si existen lotes activos, consume FIFO.
+         *    Si el producto no maneja lotes, simplemente pasa a saldo global por movimientos.
+         */
         $sql = "
             SELECT lote_id, cantidad, almacen_id
             FROM lotes
@@ -966,121 +711,188 @@ class facturasModelo extends mainModel{
               ".($almacen_solicitado > 0 ? " AND almacen_id = ? " : "")."
             ORDER BY fecha_ingreso ASC, fecha_vencimiento ASC, lote_id ASC
         ";
+
         $stmt = $mysqli->prepare($sql);
-        if (!$stmt) {
-            return ["status" => "error", "message" => "Error prepare lotes: ".$mysqli->error];
-        }
-        if ($almacen_solicitado > 0) {
-            $stmt->bind_param("ii", $producto_id, $almacen_solicitado);
+
+        if($stmt){
+            if ($almacen_solicitado > 0) {
+                $stmt->bind_param("ii", $producto_id, $almacen_solicitado);
+            } else {
+                $stmt->bind_param("i", $producto_id);
+            }
+
+            if($stmt->execute()){
+                $rs = $stmt->get_result();
+
+                while ($restante > 0 && $rs && ($lote = $rs->fetch_assoc())) {
+                    $lote_id      = (int)$lote['lote_id'];
+                    $en_lote      = (float)$lote['cantidad'];
+                    $almacen_lote = (int)$lote['almacen_id'];
+
+                    if ($en_lote <= 0) {
+                        continue;
+                    }
+
+                    $a_usar           = ($en_lote >= $restante) ? $restante : $en_lote;
+                    $nuevo_saldo_lote = $en_lote - $a_usar;
+
+                    $insertMov = "INSERT INTO movimientos
+                        (productos_id, cantidad_entrada, cantidad_salida, saldo, empresa_id, fecha_registro,
+                         almacen_id, lote_id, clientes_id, documento, comentario)
+                        VALUES (?, 0, ?, ?, ?, NOW(), ?, ?, ?, ?, ?)";
+
+                    $stmtMov = $mysqli->prepare($insertMov);
+                    if (!$stmtMov) {
+                        $stmt->close();
+                        return ["status" => "error", "message" => "Error prepare movimiento con lote: ".$mysqli->error];
+                    }
+
+                    $stmtMov->bind_param(
+                        "iddiiiiss",
+                        $producto_id,
+                        $a_usar,
+                        $nuevo_saldo_lote,
+                        $empresa_id,
+                        $almacen_lote,
+                        $lote_id,
+                        $clientes_id,
+                        $documento,
+                        $comentario
+                    );
+
+                    if (!$stmtMov->execute()) {
+                        $msg = $stmtMov->error;
+                        $stmtMov->close();
+                        $stmt->close();
+                        return ["status" => "error", "message" => "Error ejecutar movimiento con lote: ".$msg];
+                    }
+
+                    $stmtMov->close();
+
+                    $sqlUp = "UPDATE lotes SET cantidad = ?".($nuevo_saldo_lote <= 0 ? ", estado='Inactivo' " : " ")."WHERE lote_id = ?";
+                    $up = $mysqli->prepare($sqlUp);
+                    if (!$up) {
+                        $stmt->close();
+                        return ["status" => "error", "message" => "Error prepare update lote: ".$mysqli->error];
+                    }
+
+                    $up->bind_param("di", $nuevo_saldo_lote, $lote_id);
+
+                    if (!$up->execute()) {
+                        $msg = $up->error;
+                        $up->close();
+                        $stmt->close();
+                        return ["status" => "error", "message" => "Error update lote: ".$msg];
+                    }
+
+                    $up->close();
+
+                    $consumos[] = [
+                        "lote_id"     => $lote_id,
+                        "usado"       => $a_usar,
+                        "almacen_id"  => $almacen_lote,
+                        "saldo_final" => $nuevo_saldo_lote
+                    ];
+
+                    $restante -= $a_usar;
+                }
+            }
+
+            $stmt->close();
         } else {
-            $stmt->bind_param("i", $producto_id);
+            error_log("No se pudo preparar consulta de lotes, se usará saldo global por movimientos: ".$mysqli->error);
         }
-        $stmt->execute();
-        $rs = $stmt->get_result();
-    
-        $restante = $cantidad_solicitada;
-        $consumos = [];
-    
-        // 2) Consumir por lotes
-        while ($restante > 0 && ($lote = $rs->fetch_assoc())) {
-            $lote_id      = (int)$lote['lote_id'];
-            $en_lote      = (float)$lote['cantidad'];
-            $almacen_lote = (int)$lote['almacen_id'];
-            if ($en_lote <= 0) continue;
-    
-            $a_usar           = ($en_lote >= $restante) ? $restante : $en_lote;
-            $nuevo_saldo_lote = $en_lote - $a_usar;
-    
-            // INSERT con lote (9 placeholders → 9 tipos/valores)
-            $insertMov = "INSERT INTO movimientos
-                (productos_id, cantidad_entrada, cantidad_salida, saldo, empresa_id, fecha_registro,
-                 almacen_id, lote_id, clientes_id, documento, comentario)
-                VALUES (?, 0, ?, ?, ?, NOW(), ?, ?, ?, ?, ?)";
-            $stmtMov = $mysqli->prepare($insertMov);
-            if (!$stmtMov) {
-                return ["status" => "error", "message" => "Error prepare mov: ".$mysqli->error];
-            }
-            $stmtMov->bind_param(
-                "iddiiiiss",
-                $producto_id,        // i
-                $a_usar,             // d
-                $nuevo_saldo_lote,   // d
-                $empresa_id,         // i
-                $almacen_lote,       // i
-                $lote_id,            // i
-                $clientes_id,        // i
-                $documento,          // s
-                $comentario          // s
-            );
-            if (!$stmtMov->execute()) {
-                return ["status" => "error", "message" => "Error ejecutar mov: ".$stmtMov->error];
-            }
-    
-            // Actualizar lote
-            $sqlUp = "UPDATE lotes SET cantidad = ?".($nuevo_saldo_lote <= 0 ? ", estado='Inactivo' " : " ")."WHERE lote_id = ?";
-            $up = $mysqli->prepare($sqlUp);
-            if (!$up) {
-                return ["status" => "error", "message" => "Error prepare update lote: ".$mysqli->error];
-            }
-            $up->bind_param("di", $nuevo_saldo_lote, $lote_id);
-            if (!$up->execute()) {
-                return ["status" => "error", "message" => "Error update lote: ".$up->error];
-            }
-    
-            $consumos[] = [
-                "lote_id"     => $lote_id,
-                "usado"       => $a_usar,
-                "almacen_id"  => $almacen_lote,
-                "saldo_final" => $nuevo_saldo_lote
-            ];
-            $restante -= $a_usar;
-        }
-        $stmt->close();
-    
-        // 3) Sin lote (saldo global)
+
+        /*
+         * 2) Si aún queda cantidad, usa saldo global por movimientos.
+         *    Esta consulta usa la MISMA conexión y respeta empresa/bodega.
+         */
         if ($restante > 0) {
-            $saldo_global = (float)$this->getSaldoProductosMovimientosModelo($producto_id, $empresa_id, $almacen_solicitado);
-            if ($saldo_global < $restante) {
-                return ["status" => "error", "message" => "Saldo insuficiente para la salida (falta $restante)"];
+            $sqlSaldo = "
+                SELECT COALESCE(SUM(cantidad_entrada), 0) - COALESCE(SUM(cantidad_salida), 0) AS saldo
+                FROM movimientos
+                WHERE productos_id = ?
+                  AND empresa_id = ?
+            ";
+
+            $tiposSaldo = "ii";
+            $paramsSaldo = [$producto_id, $empresa_id];
+
+            if($almacen_solicitado > 0){
+                $sqlSaldo .= " AND almacen_id = ?";
+                $tiposSaldo .= "i";
+                $paramsSaldo[] = $almacen_solicitado;
             }
+
+            $stmtSaldo = $mysqli->prepare($sqlSaldo);
+            if(!$stmtSaldo){
+                return ["status" => "error", "message" => "Error prepare saldo: ".$mysqli->error];
+            }
+
+            $stmtSaldo->bind_param($tiposSaldo, ...$paramsSaldo);
+            $stmtSaldo->execute();
+            $resSaldo = $stmtSaldo->get_result();
+            $saldo_global = 0.0;
+
+            if($resSaldo && $resSaldo->num_rows > 0){
+                $rowSaldo = $resSaldo->fetch_assoc();
+                $saldo_global = (float)$rowSaldo['saldo'];
+            }
+
+            $stmtSaldo->close();
+
+            if (($saldo_global + 0.000001) < $restante) {
+                $falta = $restante - $saldo_global;
+                return [
+                    "status" => "error",
+                    "message" => "Saldo insuficiente para el producto {$nombre_producto}. Disponible: ".number_format($saldo_global, 4, '.', '').", solicitado: ".number_format($restante, 4, '.', '').", falta: ".number_format($falta, 4, '.', '')
+                ];
+            }
+
             $nuevo_saldo_global = $saldo_global - $restante;
-    
             $almacen_mov = $almacen_solicitado > 0 ? $almacen_solicitado : (int)$this->getAlmacenProducto($producto_id);
-    
+
             $insertMov = "INSERT INTO movimientos
                 (productos_id, cantidad_entrada, cantidad_salida, saldo, empresa_id, fecha_registro,
                  almacen_id, lote_id, clientes_id, documento, comentario)
                 VALUES (?, 0, ?, ?, ?, NOW(), ?, 0, ?, ?, ?)";
+
             $stmtMov = $mysqli->prepare($insertMov);
             if (!$stmtMov) {
-                return ["status" => "error", "message" => "Error prepare mov (sin lote): ".$mysqli->error];
+                return ["status" => "error", "message" => "Error prepare movimiento sin lote: ".$mysqli->error];
             }
-            // 8 placeholders → 8 tipos/valores
+
             $stmtMov->bind_param(
                 "iddiiiss",
-                $producto_id,        // i
-                $restante,           // d
-                $nuevo_saldo_global, // d
-                $empresa_id,         // i
-                $almacen_mov,        // i
-                $clientes_id,        // i
-                $documento,          // s
-                $comentario          // s
+                $producto_id,
+                $restante,
+                $nuevo_saldo_global,
+                $empresa_id,
+                $almacen_mov,
+                $clientes_id,
+                $documento,
+                $comentario
             );
+
             if (!$stmtMov->execute()) {
-                return ["status" => "error", "message" => "Error ejecutar mov (sin lote): ".$stmtMov->error];
+                $msg = $stmtMov->error;
+                $stmtMov->close();
+                return ["status" => "error", "message" => "Error ejecutar movimiento sin lote: ".$msg];
             }
-    
+
+            $stmtMov->close();
+
             $consumos[] = [
                 "lote_id"     => 0,
                 "usado"       => $restante,
                 "almacen_id"  => $almacen_mov,
                 "saldo_final" => $nuevo_saldo_global
             ];
+
             $restante = 0;
         }
-    
-        return ["status" => "success", "message" => "Salida registrada (FIFO)", "detalle" => $consumos];
+
+        return ["status" => "success", "message" => "Salida registrada correctamente", "detalle" => $consumos];
     }    
 
     // --- HELPER: almacén por defecto del producto (por si no hay lotes) ---
@@ -1094,50 +906,24 @@ class facturasModelo extends mainModel{
         return 0;
     }
     
-    protected function getSaldoProductosMovimientosModelo($productos_id, $empresa_id = 0, $almacen_id = 0)
+    protected function getSaldoProductosMovimientosModelo($productos_id)
     {
         $mysqli = self::connection();
-
-        $productos_id = (int)$productos_id;
-        $empresa_id = (int)$empresa_id;
-        $almacen_id = (int)$almacen_id;
-
-        $query = "SELECT COALESCE(SUM(m.cantidad_entrada), 0) - COALESCE(SUM(m.cantidad_salida), 0) AS saldo
+    
+        // Consulta preparada para evitar inyecciones SQL
+        $query = "SELECT COALESCE(SUM(m.cantidad_entrada), 0) - COALESCE(SUM(m.cantidad_salida), 0) AS saldo 
                   FROM movimientos AS m
-                  INNER JOIN productos AS p ON m.productos_id = p.productos_id
-                  WHERE p.estado = 1
-                    AND p.productos_id = ?";
-
-        $tipos = "i";
-        $params = [$productos_id];
-
-        if ($empresa_id > 0) {
-            $query .= " AND m.empresa_id = ?";
-            $tipos .= "i";
-            $params[] = $empresa_id;
-        }
-
-        if ($almacen_id > 0) {
-            $query .= " AND m.almacen_id = ?";
-            $tipos .= "i";
-            $params[] = $almacen_id;
-        }
-
+                  INNER JOIN productos AS p ON m.productos_id = p.productos_id 
+                  WHERE p.estado = 1 AND p.productos_id = ?";
+    
+        // Preparar y ejecutar la consulta
         $stmt = $mysqli->prepare($query);
-
-        if (!$stmt) {
-            error_log("Error preparando saldo de movimientos: " . $mysqli->error);
-            return 0;
-        }
-
-        $stmt->bind_param($tipos, ...$params);
+        $stmt->bind_param("i", $productos_id);  // Bind para el parámetro del producto
         $stmt->execute();
-
+    
+        // Obtener el resultado y devolver el saldo
         $result = $stmt->get_result();
-        $saldo = ($result && $row = $result->fetch_assoc()) ? (float)$row['saldo'] : 0;
-        $stmt->close();
-
-        return $saldo;
+        return ($result && $row = $result->fetch_assoc()) ? $row['saldo'] : 0;
     }    
 
     protected function getTotalFacturasRegistradas() {

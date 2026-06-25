@@ -682,16 +682,23 @@ class aperturaCajaModelo extends mainModel{
                 cr.colaboradores_id,
                 cr.fecha,
                 cr.fecha_registro,
-                COALESCE(cg.categoria_gastos_id, 0) AS categoria_gastos_id
+                COALESCE(cg.categoria_gastos_id, 0) AS categoria_gastos_id,
+                COALESCE(cg.es_inversion, 0) AS categoria_es_inversion,
+                COALESCE(cg.nombre, '') AS categoria_nombre
             FROM caja_retiros cr
             LEFT JOIN categoria_gastos cg
-                ON cg.nombre = cr.motivo
-               AND cg.estado = 1
+                ON cg.estado = 1
+               AND (
+                    UPPER(TRIM(cg.nombre)) = UPPER(TRIM(cr.motivo))
+                    OR UPPER(TRIM(cr.motivo)) LIKE CONCAT('%', UPPER(TRIM(cg.nombre)), '%')
+                    OR UPPER(TRIM(cg.nombre)) LIKE CONCAT('%', UPPER(TRIM(cr.motivo)), '%')
+               )
             WHERE cr.apertura_id = '$apertura_id'
               AND cr.empresa_id = '$empresa_id'
               AND cr.estado = 1
               AND IFNULL(cr.egresos_id,0) = 0
               AND cr.monto > 0
+            GROUP BY cr.caja_retiros_id
             ORDER BY cr.caja_retiros_id ASC
         ";
 
@@ -870,6 +877,73 @@ class aperturaCajaModelo extends mainModel{
         return true;
     }
 
+    protected function texto_es_inversion_cierre_modelo($texto){
+        $texto = trim((string)$texto);
+
+        if($texto === ''){
+            return false;
+        }
+
+        $texto = mb_strtoupper($texto, 'UTF-8');
+
+        return (
+            strpos($texto, 'INVERSION') !== false ||
+            strpos($texto, 'INVERSIÓN') !== false ||
+            strpos($texto, 'REPOSICION') !== false ||
+            strpos($texto, 'REPOSICIÓN') !== false
+        );
+    }
+
+    protected function registrar_entrada_inversion_por_retiro_cierre_modelo($apertura_id, $caja_retiros_id, $cuenta_origen_id, $monto, $fecha, $fecha_registro, $empresa_id, $colaboradores_id, $motivo){
+        $cuenta_inversion_id = $this->obtener_cuenta_inversion_cierre_modelo();
+
+        if($cuenta_inversion_id <= 0 || $monto <= 0){
+            return true;
+        }
+
+        if((int)$cuenta_inversion_id === (int)$cuenta_origen_id){
+            return true;
+        }
+
+        $factura_inversion = 'INV-RC-'.$apertura_id.'-'.$caja_retiros_id;
+
+        $datos_ingreso = [
+            "clientes_id" => 2,
+            "cuentas_id" => $cuenta_inversion_id,
+            "empresa_id" => $empresa_id,
+            "fecha" => $fecha,
+            "factura" => $factura_inversion,
+            "subtotal" => $monto,
+            "isv" => 0,
+            "descuento" => 0,
+            "nc" => 0,
+            "total" => $monto,
+            "observacion" => mb_substr("Entrada a cuenta de inversión por retiro de caja AP-".$apertura_id." - ".$motivo, 0, 150, 'UTF-8'),
+            "estado" => 1,
+            "fecha_registro" => $fecha_registro,
+            "colaboradores_id" => $colaboradores_id,
+            "tipo_ingreso" => 2
+        ];
+
+        $this->agregar_ingresos_contabilidad_modelo($datos_ingreso);
+
+        $saldo_inversion = $this->obtener_saldo_actual_cuenta_cierre_modelo($cuenta_inversion_id);
+        $nuevo_saldo_inversion = $saldo_inversion + $monto;
+
+        $this->agregar_movimientos_contabilidad_modelo([
+            "cuentas_id" => $cuenta_inversion_id,
+            "empresa_id" => $empresa_id,
+            "fecha" => $fecha,
+            "ingreso" => $monto,
+            "egreso" => 0,
+            "saldo" => $nuevo_saldo_inversion,
+            "colaboradores_id" => $colaboradores_id,
+            "fecha_registro" => $fecha_registro
+        ]);
+
+        return true;
+    }
+
     protected function registrar_egresos_retiros_cierre_caja_modelo($apertura_id, $fecha, $fecha_registro, $empresa_id, $colaboradores_id){
         $retiros = $this->obtener_retiros_pendientes_cierre_modelo($apertura_id);
 
@@ -884,12 +958,27 @@ class aperturaCajaModelo extends mainModel{
             $motivo = trim($retiro['motivo']);
             $observacion_retiro = trim($retiro['observacion']);
             $categoria_gastos_id = (int)$retiro['categoria_gastos_id'];
+            $categoria_es_inversion = isset($retiro['categoria_es_inversion']) ? (int)$retiro['categoria_es_inversion'] : 0;
+            $categoria_nombre = isset($retiro['categoria_nombre']) ? trim($retiro['categoria_nombre']) : '';
+
+            $es_retiro_inversion = (
+                $categoria_es_inversion === 1 ||
+                $this->texto_es_inversion_cierre_modelo($motivo) ||
+                $this->texto_es_inversion_cierre_modelo($observacion_retiro) ||
+                $this->texto_es_inversion_cierre_modelo($categoria_nombre)
+            );
+
+            if($es_retiro_inversion && $categoria_gastos_id <= 0){
+                $categoria_gastos_id = $this->obtener_categoria_inversion_cierre_modelo();
+            }
 
             if($monto <= 0 || $cuentas_id <= 0){
                 continue;
             }
 
-            $observacion = "Retiro de caja cierre AP-".$apertura_id." - ".$motivo;
+            $observacion = $es_retiro_inversion
+                ? "Retiro de caja a inversión cierre AP-".$apertura_id." - ".$motivo
+                : "Retiro de caja cierre AP-".$apertura_id." - ".$motivo;
 
             if($observacion_retiro !== ""){
                 $observacion .= " - ".$observacion_retiro;
@@ -940,6 +1029,20 @@ class aperturaCajaModelo extends mainModel{
             ];
 
             $this->agregar_movimientos_contabilidad_modelo($datos_movimiento);
+
+            if($es_retiro_inversion){
+                $this->registrar_entrada_inversion_por_retiro_cierre_modelo(
+                    $apertura_id,
+                    $caja_retiros_id,
+                    $cuentas_id,
+                    $monto,
+                    $fecha,
+                    $fecha_registro,
+                    $empresa_id,
+                    $colaboradores_id,
+                    $motivo
+                );
+            }
 
             $this->actualizar_retiro_caja_egreso_modelo($caja_retiros_id, $egresos_id);
         }
@@ -996,18 +1099,47 @@ class aperturaCajaModelo extends mainModel{
     }
     
     protected function obtener_costo_productos_vendidos_caja_modelo($apertura_id){
+        /*
+            Inversión / reposición automática:
+            Se calcula sobre el costo de productos vendidos en documentos cobrados
+            dentro de la apertura de caja. Incluye factura normal y proforma,
+            porque ambas pueden cobrar y rebajar inventario según configuración.
+
+            Si una factura tiene pago parcial, se aparta el costo proporcional
+            al monto realmente cobrado en la caja.
+        */
         $query = "
-            SELECT COALESCE(SUM(fd.cantidad * fd.costo_unitario), 0) AS costo_productos_vendidos
+            SELECT COALESCE(SUM(
+                CASE
+                    WHEN f.importe > 0 THEN ROUND(dt.costo_productos * (pg.total_pagado / NULLIF(f.importe, 0)), 2)
+                    ELSE dt.costo_productos
+                END
+            ), 0) AS costo_productos_vendidos
             FROM facturas f
-            INNER JOIN facturas_detalles fd
-                ON fd.facturas_id = f.facturas_id
             INNER JOIN secuencia_facturacion sf
                 ON f.secuencia_facturacion_id = sf.secuencia_facturacion_id
             INNER JOIN documento d
                 ON sf.documento_id = d.documento_id
+            INNER JOIN (
+                SELECT
+                    facturas_id,
+                    COALESCE(SUM(cantidad * costo_unitario), 0) AS costo_productos
+                FROM facturas_detalles
+                GROUP BY facturas_id
+            ) dt ON dt.facturas_id = f.facturas_id
+            INNER JOIN (
+                SELECT
+                    p.facturas_id,
+                    COALESCE(SUM(pd.efectivo), 0) AS total_pagado
+                FROM pagos p
+                INNER JOIN pagos_detalles pd ON pd.pagos_id = p.pagos_id
+                WHERE p.estado = 1
+                GROUP BY p.facturas_id
+            ) pg ON pg.facturas_id = f.facturas_id
             WHERE f.apertura_id = '$apertura_id'
               AND f.estado = 2
-              AND d.nombre = 'Factura Electronica'
+              AND d.nombre IN ('Factura Electronica', 'Factura Proforma')
+              AND pg.total_pagado > 0
         ";
     
         $sql = mainModel::connection()->query($query);

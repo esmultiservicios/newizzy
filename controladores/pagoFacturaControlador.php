@@ -22,18 +22,41 @@ class pagoFacturaControlador extends pagoFacturaModelo {
             ];
         }
 
-        // Helpers
-        $get = function($key, $alt = null) {
-            if (isset($_POST[$key]) && $_POST[$key] !== '') return trim((string)$_POST[$key]);
-            if ($alt && isset($_POST[$alt]) && $_POST[$alt] !== '') return trim((string)$_POST[$alt]);
+        /* ==========================================================
+         * Helpers de lectura
+         * ----------------------------------------------------------
+         * Se leen varios nombres porque el modal nuevo y algunos JS
+         * antiguos no siempre envían el mismo name/id.
+         * ========================================================== */
+        $getAny = function($keys) {
+            if (!is_array($keys)) {
+                $keys = [$keys];
+            }
+
+            foreach ($keys as $key) {
+                if (isset($_POST[$key]) && trim((string)$_POST[$key]) !== '') {
+                    return trim((string)$_POST[$key]);
+                }
+            }
+
             return '';
         };
+
+        $get = function($key, $alt = null) use ($getAny) {
+            $keys = [$key];
+            if ($alt !== null) {
+                $keys[] = $alt;
+            }
+            return $getAny($keys);
+        };
+
         $getInt = function($key, $alt = null) use ($get) {
             $v = $get($key, $alt);
             return ($v === '') ? 0 : intval($v);
         };
-        $getMoney = function($key, $alt = null) use ($get) {
-            $v = $get($key, $alt);
+
+        $getMoneyAny = function($keys) use ($getAny) {
+            $v = $getAny($keys);
             return ($v === '') ? 0.0 : $this->parseMonto($v);
         };
 
@@ -41,93 +64,47 @@ class pagoFacturaControlador extends pagoFacturaModelo {
         $campoFecha   = "fecha_" . $tipoPago;          // fecha_efectivo/tarjeta/transferencia/cheque/puntos
         $campoUsuario = "usuario_" . $tipoPago;        // usuario_efectivo/usuario_tarjeta/...
 
-        if (!isset($_POST[$campoId])) {
+        if (!isset($_POST[$campoId]) || intval($_POST[$campoId]) <= 0) {
             return ["status"=>false,"title"=>"Error","message"=>"No se recibió el ID de la factura"];
         }
 
-        // === valores digitados / aplicados ===
-        $montoEntregadoCliente = 0.0;   // lo que escribe el cajero (solo efectivo)
-        $montoAplicado         = 0.0;   // lo que realmente se aplica al saldo
-
-        // === Monto según tipo de pago ===
-        switch ($tipoPago) {
-            case 'efectivo':
-                $montoEntregadoCliente = $getMoney('efectivo_bill');
-                $montoAplicado         = $getMoney('monto_efectivo');
-                if ($montoEntregadoCliente <= 0 && $montoAplicado > 0) {
-                    $montoEntregadoCliente = $montoAplicado;
-                }
-                $monto = $montoEntregadoCliente;
-                break;
-
-            case 'tarjeta':
-                $monto = $getMoney('importe_tarjeta', 'importe');
-                $montoAplicado = $monto;
-                break;
-
-            case 'transferencia':
-                $monto = $getMoney('importe_transferencia', 'importe');
-                $montoAplicado = $monto;
-                break;
-
-            case 'cheque':
-                $monto = $getMoney('importe_cheque', 'importe');
-                $montoAplicado = $monto;
-                break;
-
-            case 'puntos':
-                $monto = $getMoney('importe_puntos', 'importe');
-                $montoAplicado = $monto;
-                break;
-
-            default:
-                $monto = $getMoney('importe');
-                $montoAplicado = $monto;
-                break;
-        }
-
-        // Normaliza a 2 decimales
-        $monto = round($monto + 1e-9, 2);
+        $facturas_id = intval($_POST[$campoId]);
 
         // === Factura ===
-        $factura = mainModel::getFactura($_POST[$campoId])->fetch_assoc();
+        $rsFactura = mainModel::getFactura($facturas_id);
+        $factura = ($rsFactura && $rsFactura->num_rows > 0) ? $rsFactura->fetch_assoc() : null;
         if(!$factura) {
             return ["status"=>false,"title"=>"Error","message"=>"No se encontró la factura"];
-        }
-        if ($monto <= 0) {
-            return ["status"=>false,"title"=>"Error","message"=>"El monto debe ser mayor que cero"];
         }
 
         // 1=contado, 2=crédito/abonos
         $tipo_factura_post = isset($_POST['tipo_factura']) ? intval($_POST['tipo_factura'])
+                        : (isset($_POST['tipo_factura_'.$tipoPago]) ? intval($_POST['tipo_factura_'.$tipoPago])
                         : (isset($_POST['tipo_factura_transferencia']) ? intval($_POST['tipo_factura_transferencia'])
                         : (isset($_POST['tipo_factura_cheque']) ? intval($_POST['tipo_factura_cheque'])
-                        : ((isset($_POST['facturas_activo']) && $_POST['facturas_activo']=='1') ? 1 : 2)));
+                        : ((isset($_POST['facturas_activo']) && $_POST['facturas_activo']=='1') ? 1 : 2))));
 
-        $origen_pago = isset($_POST['origen_pago']) ? $_POST['origen_pago'] : 'facturacion';
+        $origen_pago = isset($_POST['origen_pago']) ? trim((string)$_POST['origen_pago']) : 'facturacion';
+        $esCxc = ($origen_pago === 'cxc' || $origen_pago === 'CxC');
 
         // === Saldo pendiente CxC ===
         $saldoPendiente = 0.00;
         $saldoRes = mainModel::connection()->query(
-            "SELECT ROUND(saldo,2) AS saldo FROM cobrar_clientes WHERE facturas_id = '".intval($_POST[$campoId])."'"
+            "SELECT ROUND(saldo,2) AS saldo FROM cobrar_clientes WHERE facturas_id = '".$facturas_id."' LIMIT 1"
         );
         if ($saldoRes && $saldoRes->num_rows > 0) {
             $saldoPendiente = round((float)$saldoRes->fetch_assoc()['saldo'] + 1e-9, 2);
         }
 
         // === Total real de la factura ===
-        // Este dato es clave para efectivo con cambio.
-        // Ejemplo: factura L.150, cliente entrega L.200, cambio L.50.
-        // pagos.importe debe guardar L.150, pagos.efectivo L.200 y pagos.cambio L.50.
         $totalFacturaBD = 0.00;
-
         if (isset($factura['importe'])) {
             $totalFacturaBD = round((float)$factura['importe'] + 1e-9, 2);
         }
 
         if ($totalFacturaBD <= 0) {
             $rsTotalFactura = mainModel::connection()->query(
-                "SELECT ROUND(importe,2) AS importe FROM facturas WHERE facturas_id = '".intval($_POST[$campoId])."' LIMIT 1"
+                "SELECT ROUND(importe,2) AS importe FROM facturas WHERE facturas_id = '".$facturas_id."' LIMIT 1"
             );
 
             if ($rsTotalFactura && $rsTotalFactura->num_rows > 0) {
@@ -136,11 +113,101 @@ class pagoFacturaControlador extends pagoFacturaModelo {
             }
         }
 
+        // === valores digitados / aplicados ===
+        $montoEntregadoCliente = 0.0;   // lo que escribe el cajero (solo efectivo)
+        $montoAplicado         = 0.0;   // lo que realmente se aplica al saldo
+        $monto                 = 0.0;   // valor recibido por el método seleccionado
+
+        // === Monto según tipo de pago ===
+        switch ($tipoPago) {
+            case 'efectivo':
+                $montoEntregadoCliente = $getMoneyAny([
+                    'efectivo_bill',
+                    'efectivo_recibido',
+                    'monto_efectivo_recibido',
+                    'importe_efectivo',
+                    'efectivo',
+                    'cash_bill'
+                ]);
+
+                $montoAplicado = $getMoneyAny([
+                    'monto_efectivo',
+                    'importe_aplicado_efectivo',
+                    'total_efectivo',
+                    'importe'
+                ]);
+
+                if ($montoEntregadoCliente <= 0 && $montoAplicado > 0) {
+                    $montoEntregadoCliente = $montoAplicado;
+                }
+
+                $monto = $montoEntregadoCliente;
+                break;
+
+            case 'tarjeta':
+                $monto = $getMoneyAny([
+                    'importe_tarjeta',
+                    'monto_tarjeta',
+                    'total_tarjeta',
+                    'importe_aplicado_tarjeta',
+                    'importe'
+                ]);
+                $montoAplicado = $monto;
+                break;
+
+            case 'transferencia':
+                $monto = $getMoneyAny([
+                    'importe_transferencia',
+                    'monto_transferencia',
+                    'total_transferencia',
+                    'importe_aplicado_transferencia',
+                    'importe'
+                ]);
+                $montoAplicado = $monto;
+                break;
+
+            case 'cheque':
+                $monto = $getMoneyAny([
+                    'importe_cheque',
+                    'monto_cheque',
+                    'total_cheque',
+                    'importe_aplicado_cheque',
+                    'importe'
+                ]);
+                $montoAplicado = $monto;
+                break;
+
+            case 'puntos':
+                $monto = $getMoneyAny([
+                    'importe_puntos',
+                    'monto_puntos',
+                    'equivalente_puntos',
+                    'importe'
+                ]);
+                $montoAplicado = $monto;
+                break;
+
+            default:
+                $monto = $getMoneyAny(['importe', 'monto', 'total_pago']);
+                $montoAplicado = $monto;
+                break;
+        }
+
+        // Normaliza a 2 decimales
+        $monto                 = round((float)$monto + 1e-9, 2);
+        $montoAplicado          = round((float)$montoAplicado + 1e-9, 2);
+        $montoEntregadoCliente  = round((float)$montoEntregadoCliente + 1e-9, 2);
+
+        // Si es contado desde facturación y el método no es efectivo, el pago debe cubrir el total.
+        // Esto evita falsos errores cuando el JS no envía importe_tarjeta/transferencia/cheque
+        // porque el modal ya asumió el total de la factura.
+        if ($tipo_factura_post == 1 && !$esCxc && $tipoPago !== 'efectivo' && $monto <= 0 && $totalFacturaBD > 0) {
+            $monto = $totalFacturaBD;
+            $montoAplicado = $totalFacturaBD;
+        }
+
         // Tolerancia
         $EPS = 0.005;
-
-        // === Validaciones por tipo de factura ===
-        $esCxc = (isset($origen_pago) && ($origen_pago === 'cxc' || $origen_pago === 'CxC'));
 
         // === Importe que afecta saldo ===
         if ($tipo_factura_post == 1) {
@@ -158,6 +225,7 @@ class pagoFacturaControlador extends pagoFacturaModelo {
 
         $importeReal = round((float)$importeReal + 1e-9, 2);
 
+        // === Validaciones por tipo de factura ===
         if ($tipo_factura_post == 1) { // contado
             if ($importeReal <= 0) {
                 return [
@@ -166,13 +234,34 @@ class pagoFacturaControlador extends pagoFacturaModelo {
                 ];
             }
 
-            if ($monto + $EPS < $importeReal) {
-                return [
-                    "status"=>false,"title"=>"Error",
-                    "message"=>"El monto recibido no puede ser menor al total de la factura (L. ".number_format($importeReal,2).")"
-                ];
+            if ($tipoPago === 'efectivo') {
+                if ($montoEntregadoCliente <= 0) {
+                    return ["status"=>false,"title"=>"Error","message"=>"El efectivo recibido debe ser mayor que cero"];
+                }
+
+                if ($montoEntregadoCliente + $EPS < $importeReal) {
+                    return [
+                        "status"=>false,"title"=>"Error",
+                        "message"=>"El monto recibido no puede ser menor al total de la factura (L. ".number_format($importeReal,2).")"
+                    ];
+                }
+            } else {
+                if ($monto <= 0) {
+                    return ["status"=>false,"title"=>"Error","message"=>"El monto debe ser mayor que cero"];
+                }
+
+                if ($monto + $EPS < $importeReal) {
+                    return [
+                        "status"=>false,"title"=>"Error",
+                        "message"=>"El monto recibido no puede ser menor al total de la factura (L. ".number_format($importeReal,2).")"
+                    ];
+                }
             }
         } else { // crédito / abono
+            if ($importeReal <= 0) {
+                return ["status"=>false,"title"=>"Error","message"=>"El monto debe ser mayor que cero"];
+            }
+
             if ($saldoPendiente > 0 && ($importeReal - $saldoPendiente > $EPS)) {
                 return [
                     "status"=>false,"title"=>"Error",
@@ -242,7 +331,7 @@ class pagoFacturaControlador extends pagoFacturaModelo {
 
         return [
             'multiple_pago'      => ($tipo_factura_post == 2 ? 1 : 0),
-            'facturas_id'        => intval($_POST[$campoId]),
+            'facturas_id'        => $facturas_id,
             'fecha'              => isset($_POST[$campoFecha]) ? $_POST[$campoFecha] : date('Y-m-d'),
             'importe'            => $importeReal,                       // lo que aplica al saldo
             'cambio'             => $cambio,                            // cambio (si aplica)
@@ -260,7 +349,7 @@ class pagoFacturaControlador extends pagoFacturaModelo {
             'referencia_pago1'   => $referencia1,
             'referencia_pago2'   => $referencia2,
             'referencia_pago3'   => $referencia3,
-            'clientes_id'        => $factura['clientes_id'],
+            'clientes_id'        => isset($factura['clientes_id']) ? $factura['clientes_id'] : 0,
             'factura_number'     => $factura_number,
             'origen_pago'        => $origen_pago
         ];
@@ -396,12 +485,55 @@ class pagoFacturaControlador extends pagoFacturaModelo {
         ]);
     }
 
-    /** Sanea montos: quita comas, moneda y deja solo dígitos, punto y signo. */
+    /**
+     * Sanea montos de forma segura.
+     * Corrige el caso crítico: "L. 92.00" antes se convertía en 0.92
+     * porque quedaba como ".92.00" al quitar solo la letra L.
+     */
     private function parseMonto($str){
-        $s = (string)$str;
-        $s = str_replace([',','L','l',' '], '', $s);     // quitar separadores y moneda
-        $s = preg_replace('/[^0-9.\-]/', '', $s);        // dejar dígitos, punto y signo
-        return (float)$s;
+        $s = trim((string)$str);
+
+        if ($s === '') {
+            return 0.0;
+        }
+
+        $s = html_entity_decode($s, ENT_QUOTES, 'UTF-8');
+        $s = strip_tags($s);
+        $s = str_replace(["\xc2\xa0", ' '], '', $s);
+
+        // Quitar moneda antes de limpiar símbolos para no dejar el punto de "L."
+        $s = preg_replace('/\bHNL\b/i', '', $s);
+        $s = preg_replace('/\bLPS\.?\b/i', '', $s);
+        $s = preg_replace('/\bL\.\s*/i', '', $s);
+        $s = preg_replace('/\bL\s*/i', '', $s);
+        $s = str_replace(['₡', '$'], '', $s);
+
+        // Si viene formato decimal con coma y sin punto: 92,50 => 92.50
+        if (strpos($s, ',') !== false && strpos($s, '.') === false) {
+            $s = str_replace(',', '.', $s);
+        } else {
+            // Formato normal: 1,500.00 => 1500.00
+            $s = str_replace(',', '', $s);
+        }
+
+        // Dejar solo números, punto y signo negativo
+        $s = preg_replace('/[^0-9.\-]/', '', $s);
+
+        if ($s === '' || $s === '-' || $s === '.') {
+            return 0.0;
+        }
+
+        // Si por cualquier razón quedaron varios puntos, conservar el último como decimal.
+        if (substr_count($s, '.') > 1) {
+            $negativo = (strpos($s, '-') === 0);
+            $s = str_replace('-', '', $s);
+            $partes = explode('.', $s);
+            $decimal = array_pop($partes);
+            $entero = implode('', $partes);
+            $s = ($negativo ? '-' : '') . $entero . '.' . $decimal;
+        }
+
+        return round((float)$s + 1e-9, 2);
     }
 
     private function json($arr){

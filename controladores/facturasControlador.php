@@ -12,119 +12,209 @@ class facturasControlador extends facturasModelo {
      * SECUENCIA: N° FACTURA (con FOR UPDATE y recuperación de fallidos)
      * =========================== */
     protected function obtenerNumeroFactura($empresa_id, $documento_id, $conexion = null) {
+        /*
+         * Regla:
+         * 1) Primero intenta usar secuencia_factura_fallida.
+         * 2) Antes de usar un número fallido, valida si ya existe en facturas.
+         *    Si existe, lo elimina de secuencia_factura_fallida y busca otro.
+         * 3) Si no hay fallidos válidos, toma el siguiente de secuencia_facturacion.
+         * 4) Si el siguiente ya existe en facturas, lo salta y avanza hasta encontrar uno libre.
+         */
         $conexionLocal = false;
+
         try {
             if($conexion === null) {
                 $conexion = mainModel::connection();
                 $conexionLocal = true;
+            }
+
+            if($conexionLocal) {
                 $conexion->begin_transaction();
             }
 
-            // 1) Reusar número fallido si existe
-            $sql_fallidos = "SELECT numero FROM secuencia_factura_fallida 
-                             WHERE empresa_id = ? AND documento_id = ? 
-                             ORDER BY numero ASC LIMIT 1 FOR UPDATE";
-            $stmt_fallidos = $conexion->prepare($sql_fallidos);
-            $stmt_fallidos->bind_param("ii", $empresa_id, $documento_id);
-            $stmt_fallidos->execute();
-            $result_fallidos = $stmt_fallidos->get_result();
+            // Bloquear secuencia activa del documento
+            $sqlSec = "SELECT secuencia_facturacion_id, prefijo, siguiente, rango_final, incremento, relleno
+                       FROM secuencia_facturacion
+                       WHERE empresa_id = ? AND documento_id = ? AND activo = 1
+                       LIMIT 1 FOR UPDATE";
+            $stmtSec = $conexion->prepare($sqlSec);
+            if(!$stmtSec){
+                if($conexionLocal) $conexion->rollback();
+                return ['error'=>true, 'mensaje'=>'Error al preparar secuencia: '.$conexion->error];
+            }
 
-            if ($result_fallidos->num_rows > 0) {
-                $row = $result_fallidos->fetch_assoc();
-                $numero_usado = (int)$row['numero'];
-                $stmt_fallidos->close();
+            $stmtSec->bind_param("ii", $empresa_id, $documento_id);
+            $stmtSec->execute();
+            $resSec = $stmtSec->get_result();
 
-                $sql_secuencia = "SELECT secuencia_facturacion_id, prefijo, relleno
-                                  FROM secuencia_facturacion
-                                  WHERE empresa_id = ? AND documento_id = ? AND activo = 1
-                                  LIMIT 1";
-                $stmt_sec = $conexion->prepare($sql_secuencia);
-                $stmt_sec->bind_param("ii", $empresa_id, $documento_id);
-                $stmt_sec->execute();
-                $res_sec = $stmt_sec->get_result();
+            if(!$resSec || $resSec->num_rows === 0){
+                $stmtSec->close();
+                if($conexionLocal) $conexion->rollback();
+                return ['error'=>true, 'mensaje'=>'No se encontró secuencia activa'];
+            }
 
-                if($res_sec->num_rows === 0){
-                    $stmt_sec->close();
-                    if($conexionLocal) $conexion->rollback();
-                    return ['error'=>true, 'mensaje'=>'No se encontró secuencia activa para esta empresa y documento'];
+            $sec = $resSec->fetch_assoc();
+            $stmtSec->close();
+
+            $secuenciaId = (int)$sec['secuencia_facturacion_id'];
+
+            // Helper local: verifica si el número ya existe en facturas para esta empresa/secuencia.
+            $numeroExiste = function($numero) use ($conexion, $empresa_id, $secuenciaId) {
+                $numero = (int)$numero;
+                $stmtExiste = $conexion->prepare(
+                    "SELECT facturas_id
+                     FROM facturas
+                     WHERE empresa_id = ?
+                       AND secuencia_facturacion_id = ?
+                       AND number = ?
+                     LIMIT 1"
+                );
+
+                if(!$stmtExiste){
+                    // Si no puede validar, por seguridad se considera existente.
+                    error_log("No se pudo validar duplicado de factura: ".$conexion->error);
+                    return true;
                 }
 
-                $sec = $res_sec->fetch_assoc();
-                $stmt_sec->close();
+                $stmtExiste->bind_param("iii", $empresa_id, $secuenciaId, $numero);
+                $stmtExiste->execute();
+                $resExiste = $stmtExiste->get_result();
+                $existe = ($resExiste && $resExiste->num_rows > 0);
+                $stmtExiste->close();
 
-                $del = $conexion->prepare("DELETE FROM secuencia_factura_fallida WHERE empresa_id=? AND documento_id=? AND numero=?");
-                $del->bind_param("iii", $empresa_id, $documento_id, $numero_usado);
-                $del->execute();
-                $del->close();
+                return $existe;
+            };
+
+            // 1) Procesar números fallidos, eliminando los que ya existen en facturas.
+            while(true){
+                $sqlFallido = "SELECT numero
+                               FROM secuencia_factura_fallida
+                               WHERE empresa_id = ? AND documento_id = ?
+                               ORDER BY numero ASC
+                               LIMIT 1 FOR UPDATE";
+                $stmtFallido = $conexion->prepare($sqlFallido);
+                if(!$stmtFallido){
+                    if($conexionLocal) $conexion->rollback();
+                    return ['error'=>true, 'mensaje'=>'Error al preparar secuencia fallida: '.$conexion->error];
+                }
+
+                $stmtFallido->bind_param("ii", $empresa_id, $documento_id);
+                $stmtFallido->execute();
+                $resFallido = $stmtFallido->get_result();
+
+                if(!$resFallido || $resFallido->num_rows === 0){
+                    $stmtFallido->close();
+                    break;
+                }
+
+                $rowFallido = $resFallido->fetch_assoc();
+                $numeroFallido = (int)$rowFallido['numero'];
+                $stmtFallido->close();
+
+                // Siempre se elimina el fallido que se está evaluando.
+                $stmtDel = $conexion->prepare(
+                    "DELETE FROM secuencia_factura_fallida
+                     WHERE empresa_id = ? AND documento_id = ? AND numero = ?"
+                );
+                if($stmtDel){
+                    $stmtDel->bind_param("iii", $empresa_id, $documento_id, $numeroFallido);
+                    $stmtDel->execute();
+                    $stmtDel->close();
+                }
+
+                if($numeroFallido <= 0){
+                    continue;
+                }
+
+                if($numeroExiste($numeroFallido)){
+                    error_log("Número fallido {$numeroFallido} descartado porque ya existe en facturas. Empresa={$empresa_id}, secuencia={$secuenciaId}");
+                    continue;
+                }
 
                 if($conexionLocal) $conexion->commit();
 
                 return [
                     'error'=>false,
                     'data'=>[
-                        'secuencia_facturacion_id'=>$sec['secuencia_facturacion_id'],
-                        'numero'=>$numero_usado,
+                        'secuencia_facturacion_id'=>$secuenciaId,
+                        'numero'=>$numeroFallido,
                         'prefijo'=>$sec['prefijo'] ?? '',
                         'relleno'=>$sec['relleno'] ?? ''
                     ]
                 ];
             }
 
-            $stmt_fallidos->close();
-
-            // 2) Secuencia normal
-            $sql = "SELECT secuencia_facturacion_id, prefijo, siguiente, rango_final, incremento, relleno
-                    FROM secuencia_facturacion
-                    WHERE empresa_id = ? AND documento_id = ? AND activo = 1
-                    LIMIT 1 FOR UPDATE";
-            $stmt = $conexion->prepare($sql);
-            $stmt->bind_param("ii", $empresa_id, $documento_id);
-            $stmt->execute();
-            $result = $stmt->get_result();
-
-            if($result->num_rows === 0){
-                $stmt->close();
-                if($conexionLocal) $conexion->rollback();
-                return ['error'=>true,'mensaje'=>'No se encontró secuencia activa'];
-            }
-
-            $sec = $result->fetch_assoc();
-            $stmt->close();
-
+            // 2) Secuencia normal: saltar cualquier número que ya exista en facturas.
             $siguiente = (int)$sec['siguiente'];
+            $rangoFinal = (int)$sec['rango_final'];
+            $incremento = (int)$sec['incremento'];
 
-            if($siguiente > (int)$sec['rango_final']){
-                if($conexionLocal) $conexion->rollback();
-                return ['error'=>true,'mensaje'=>'Se ha alcanzado el límite del rango de numeración'];
+            if($incremento <= 0){
+                $incremento = 1;
             }
 
-            $nuevo = $siguiente + (int)$sec['incremento'];
+            while($siguiente <= $rangoFinal){
+                if(!$numeroExiste($siguiente)){
+                    $nuevo = $siguiente + $incremento;
 
-            $upd = $conexion->prepare("UPDATE secuencia_facturacion SET siguiente=? WHERE secuencia_facturacion_id=?");
-            $upd->bind_param("ii", $nuevo, $sec['secuencia_facturacion_id']);
+                    $stmtUpd = $conexion->prepare(
+                        "UPDATE secuencia_facturacion
+                         SET siguiente = ?
+                         WHERE secuencia_facturacion_id = ?"
+                    );
 
-            if(!$upd->execute()){
-                $upd->close();
-                if($conexionLocal) $conexion->rollback();
-                return ['error'=>true,'mensaje'=>'Error al actualizar secuencia'];
+                    if(!$stmtUpd){
+                        if($conexionLocal) $conexion->rollback();
+                        return ['error'=>true, 'mensaje'=>'Error al preparar actualización de secuencia: '.$conexion->error];
+                    }
+
+                    $stmtUpd->bind_param("ii", $nuevo, $secuenciaId);
+
+                    if(!$stmtUpd->execute()){
+                        $stmtUpd->close();
+                        if($conexionLocal) $conexion->rollback();
+                        return ['error'=>true, 'mensaje'=>'Error al actualizar secuencia'];
+                    }
+
+                    $stmtUpd->close();
+
+                    if($conexionLocal) $conexion->commit();
+
+                    return [
+                        'error'=>false,
+                        'data'=>[
+                            'secuencia_facturacion_id'=>$secuenciaId,
+                            'numero'=>$siguiente,
+                            'prefijo'=>$sec['prefijo'] ?? '',
+                            'relleno'=>$sec['relleno'] ?? ''
+                        ]
+                    ];
+                }
+
+                error_log("Número {$siguiente} saltado porque ya existe en facturas. Empresa={$empresa_id}, secuencia={$secuenciaId}");
+                $siguiente += $incremento;
             }
 
-            $upd->close();
+            // Actualizar la secuencia al valor siguiente aunque ya se terminó el rango, para no repetir intentos.
+            $stmtFin = $conexion->prepare(
+                "UPDATE secuencia_facturacion
+                 SET siguiente = ?
+                 WHERE secuencia_facturacion_id = ?"
+            );
+            if($stmtFin){
+                $stmtFin->bind_param("ii", $siguiente, $secuenciaId);
+                $stmtFin->execute();
+                $stmtFin->close();
+            }
 
-            if($conexionLocal) $conexion->commit();
+            if($conexionLocal) $conexion->rollback();
 
-            return [
-                'error'=>false,
-                'data'=>[
-                    'secuencia_facturacion_id'=>$sec['secuencia_facturacion_id'],
-                    'numero'=>$siguiente,
-                    'prefijo'=>$sec['prefijo'],
-                    'relleno'=>$sec['relleno']
-                ]
-            ];
+            return ['error'=>true, 'mensaje'=>'Se ha alcanzado el límite del rango de numeración'];
 
         } catch (Exception $e) {
-            if($conexionLocal && isset($conexion)) $conexion->rollback();
+            if($conexionLocal && isset($conexion)) {
+                $conexion->rollback();
+            }
 
             error_log("Error en obtenerNumeroFactura: ".$e->getMessage());
 
@@ -150,99 +240,6 @@ class facturasControlador extends facturasModelo {
         $estado = ($tipo_factura == 1) ? 2 : 3;
 
         return compact('usuario','empresa_id','documento_id','documento_nombre','estado');
-    }
-
-    /* ===========================
-     * DETECCIÓN SEGURA DE PROFORMA
-     * -----------------------------------------------------------
-     * El switch de proforma puede llegar desde el JS como:
-     * 1, "1", true, "true", "on", "si" o en otro campo
-     * compatible. Antes solo se validaba con intval(), por eso si el
-     * valor no venía exactamente como 1, la factura se guardaba en
-     * facturas pero NO se registraba en facturas_proforma.
-     * =========================== */
-    protected function normalizarFlagProformaDesdePost() {
-        $campos = [
-            'facturas_proforma',
-            'tipo_documento',
-            'documento_id',
-            'es_proforma',
-            'proforma',
-            'factura_proforma'
-        ];
-
-        foreach ($campos as $campo) {
-            if (!isset($_POST[$campo])) {
-                continue;
-            }
-
-            $valor = $_POST[$campo];
-
-            if (is_array($valor)) {
-                $valor = reset($valor);
-            }
-
-            $valorTexto = strtolower(trim((string)$valor));
-
-            if (in_array($valorTexto, ['1', 'true', 'on', 'si', 'sí', 'yes', 'proforma'], true)) {
-                return "1";
-            }
-
-            // Compatibilidad: si algún JS manda directamente documento_id=4.
-            if ($campo === 'documento_id' && (int)$valor === 4) {
-                return "1";
-            }
-        }
-
-        return "0";
-    }
-
-    /* ===========================
-     * PROFORMA: VERIFICACIÓN REAL POR SECUENCIA
-     * -----------------------------------------------------------
-     * El switch ayuda, pero la verdad final del documento es la
-     * secuencia usada. Si secuencia_facturacion.documento_id = 4,
-     * entonces debe guardarse también en facturas_proforma.
-     * =========================== */
-    protected function secuenciaFacturacionEsProforma($secuencia_facturacion_id) {
-        $secuencia_facturacion_id = (int)$secuencia_facturacion_id;
-
-        if ($secuencia_facturacion_id <= 0) {
-            return false;
-        }
-
-        try {
-            $cn = mainModel::connection();
-
-            if (!$cn) {
-                return false;
-            }
-
-            $stmt = $cn->prepare("SELECT documento_id FROM secuencia_facturacion WHERE secuencia_facturacion_id = ? LIMIT 1");
-
-            if (!$stmt) {
-                error_log("Error preparando validación de secuencia proforma: ".$cn->error);
-                return false;
-            }
-
-            $stmt->bind_param("i", $secuencia_facturacion_id);
-            $stmt->execute();
-            $result = $stmt->get_result();
-
-            $esProforma = false;
-
-            if ($result && $result->num_rows > 0) {
-                $row = $result->fetch_assoc();
-                $esProforma = ((int)$row['documento_id'] === 4);
-            }
-
-            $stmt->close();
-
-            return $esProforma;
-        } catch (Throwable $e) {
-            error_log("Error verificando secuencia de proforma: ".$e->getMessage());
-            return false;
-        }
     }
 
     /* ===========================
@@ -430,13 +427,7 @@ class facturasControlador extends facturasModelo {
             'fecha_creacion'           => $fecha_creacion
         ];
 
-        $ok = facturasModelo::agregar_facturas_proforma_modelo($datosProforma);
-
-        if(!$ok){
-            error_log("No se pudo registrar/actualizar facturas_proforma para facturas_id={$facturas_id}, numero={$numero}, secuencia={$secuencia_facturacion_id}");
-        }
-
-        return $ok;
+        return facturasModelo::agregar_facturas_proforma_modelo($datosProforma);
     }
 
     /* ===========================
@@ -667,194 +658,6 @@ class facturasControlador extends facturasModelo {
     }
 
     /* ===========================
-     * VALIDACIÓN PREVIA DE INVENTARIO
-     * -----------------------------------------------------------
-     * Evita que se guarde encabezado/detalle o se toque inventario
-     * cuando realmente no hay saldo suficiente.
-     * También suma productos repetidos en la misma factura para no
-     * validar línea por línea de forma incorrecta.
-     * =========================== */
-    protected function obtenerNombreProductoInventario($productos_id){
-        $productos_id = (int)$productos_id;
-
-        if($productos_id <= 0){
-            return 'Producto desconocido';
-        }
-
-        try {
-            $cn = mainModel::connection();
-            $stmt = $cn->prepare("SELECT nombre FROM productos WHERE productos_id = ? LIMIT 1");
-
-            if(!$stmt){
-                return 'Producto ID '.$productos_id;
-            }
-
-            $stmt->bind_param("i", $productos_id);
-            $stmt->execute();
-            $res = $stmt->get_result();
-
-            if($res && $res->num_rows > 0){
-                $row = $res->fetch_assoc();
-                $stmt->close();
-                return $row['nombre'] ?? ('Producto ID '.$productos_id);
-            }
-
-            $stmt->close();
-        } catch (Throwable $e) {
-            error_log("Error obteniendo nombre producto inventario: ".$e->getMessage());
-        }
-
-        return 'Producto ID '.$productos_id;
-    }
-
-    protected function agregarRequerimientoInventario(&$requerimientos, $productos_id, $cantidad, $bodega, $empresa_id, $origen = ''){
-        $productos_id = (int)$productos_id;
-        $cantidad = (float)$cantidad;
-        $bodega = (int)$bodega;
-        $empresa_id = (int)$empresa_id;
-
-        if($productos_id <= 0 || $cantidad <= 0){
-            return;
-        }
-
-        // Mantiene la misma regla del flujo real: solo productos/insumos con movimientos.
-        $tipo_producto = facturasModelo::tipo_producto_modelo($productos_id);
-        if($tipo_producto && $tipo_producto->num_rows > 0){
-            $consulta = $tipo_producto->fetch_assoc();
-            $tipo = strtolower(trim($consulta['tipo_producto'] ?? ''));
-
-            if(!in_array($tipo, ['producto', 'insumo'], true)){
-                return;
-            }
-        }
-
-        if(!$this->productoTieneMovimientoInventario($productos_id, $empresa_id, $bodega)){
-            return;
-        }
-
-        $key = $productos_id.'|'.$bodega;
-
-        if(!isset($requerimientos[$key])){
-            $requerimientos[$key] = [
-                'productos_id' => $productos_id,
-                'bodega'       => $bodega,
-                'cantidad'     => 0,
-                'producto'     => $this->obtenerNombreProductoInventario($productos_id),
-                'origen'       => $origen
-            ];
-        }
-
-        $requerimientos[$key]['cantidad'] += $cantidad;
-    }
-
-    protected function construirRequerimientosInventarioFactura($empresa_id){
-        $requerimientos = [];
-
-        if(empty($_POST['productName']) || !is_array($_POST['productName'])){
-            return $requerimientos;
-        }
-
-        for ($i = 0; $i < count($_POST['productName']); $i++) {
-            if (
-                empty($_POST['productos_id'][$i]) ||
-                empty($_POST['productName'][$i]) ||
-                !isset($_POST['quantity'][$i]) || $_POST['quantity'][$i] === '' ||
-                !isset($_POST['price'][$i]) || $_POST['price'][$i] === ''
-            ) {
-                continue;
-            }
-
-            $productos_id = (int)$_POST['productos_id'][$i];
-            $quantity = (float)$_POST['quantity'][$i];
-            $bodega = isset($_POST['bodega'][$i]) ? (int)$_POST['bodega'][$i] : 0;
-            $medida = $_POST['medida'][$i] ?? 'Und';
-            $medidaName = strtolower(trim($medida));
-
-            if($productos_id <= 0 || $quantity <= 0){
-                continue;
-            }
-
-            // Producto principal: mismo movimiento que registrarSalidaInventario().
-            $this->agregarRequerimientoInventario(
-                $requerimientos,
-                $productos_id,
-                $quantity,
-                $bodega,
-                $empresa_id,
-                'principal'
-            );
-
-            // Productos relacionados: mismo comportamiento que procesarRelacionProductos().
-            $producto = facturasModelo::cantidad_producto_modelo($productos_id)->fetch_assoc();
-            $producto_padre_id = isset($producto['id_producto_superior']) ? (int)$producto['id_producto_superior'] : 0;
-
-            if($producto_padre_id === 0){
-                $resultHijos = facturasModelo::total_hijos_segun_padre_modelo($productos_id);
-
-                if($resultHijos && $resultHijos->num_rows > 0){
-                    while($hijo = $resultHijos->fetch_assoc()){
-                        $producto_hijo = (int)$hijo['productos_id'];
-                        $cantidad_hijo = $this->convertirMedida($quantity, $medidaName, true);
-
-                        $this->agregarRequerimientoInventario(
-                            $requerimientos,
-                            $producto_hijo,
-                            $cantidad_hijo,
-                            $bodega,
-                            $empresa_id,
-                            'relacionado'
-                        );
-                    }
-                }
-            }else{
-                $cantidad_padre = $this->convertirMedida($quantity, $medidaName, false);
-
-                $this->agregarRequerimientoInventario(
-                    $requerimientos,
-                    $producto_padre_id,
-                    $cantidad_padre,
-                    $bodega,
-                    $empresa_id,
-                    'relacionado'
-                );
-            }
-        }
-
-        return $requerimientos;
-    }
-
-    protected function validarInventarioAntesDeFacturar($empresa_id, $bajarInventario){
-        if($bajarInventario !== true){
-            return true;
-        }
-
-        $requerimientos = $this->construirRequerimientosInventarioFactura($empresa_id);
-
-        foreach($requerimientos as $req){
-            $productos_id = (int)$req['productos_id'];
-            $bodega = (int)$req['bodega'];
-            $cantidad = (float)$req['cantidad'];
-
-            $disp = $this->obtener_disponibilidad_salida_modelo($productos_id, $empresa_id, $bodega);
-            $disponible = isset($disp['disponible']) ? (float)$disp['disponible'] : 0;
-
-            if(($disponible + 0.000001) < $cantidad){
-                $falta = $cantidad - $disponible;
-                $nombre = $req['producto'];
-
-                throw new Exception(
-                    "Saldo insuficiente para el producto {$nombre}. " .
-                    "Disponible: ".number_format($disponible, 4, '.', '').", " .
-                    "solicitado: ".number_format($cantidad, 4, '.', '').", " .
-                    "falta: ".number_format($falta, 4, '.', '')
-                );
-            }
-        }
-
-        return true;
-    }
-
-    /* ===========================
      * PRODUCTO
      * =========================== */
     protected function procesarProducto($facturas_id, $clientes_id, $fecha, $fecha_registro, $empresa_id, $index, $bajarInventario = true, $aplicarISVDocumento = true) {
@@ -1081,10 +884,34 @@ class facturasControlador extends facturasModelo {
         );
     }
 
+    protected function debeProcesarProductosRelacionados($medidaName){
+        $medidaName = strtolower(trim((string)$medidaName));
+
+        // En venta normal por unidad no se deben rebajar productos padre/hijo.
+        // La relación solo se procesa cuando la medida realmente requiere conversión.
+        return in_array($medidaName, [
+            'ton', 'tons', 'tonelada', 'toneladas',
+            'lbs', 'lb', 'libra', 'libras'
+        ], true);
+    }
+
     protected function procesarRelacionProductos($facturas_id,$productos_id,$clientes_id,$quantity,$bodega,$empresa_id,$medida){
-        $producto = facturasModelo::cantidad_producto_modelo($productos_id)->fetch_assoc();
-        $producto_padre_id = (int)$producto['id_producto_superior'];
-        $medidaName = strtolower($medida);
+        $medidaName = strtolower(trim((string)$medida));
+
+        // Evita el error donde un producto con saldo disponible queda bloqueado
+        // por un producto relacionado sin inventario (ejemplo: venta en Und).
+        if(!$this->debeProcesarProductosRelacionados($medidaName)){
+            return;
+        }
+
+        $productoData = facturasModelo::cantidad_producto_modelo($productos_id);
+
+        if(!$productoData || $productoData->num_rows <= 0){
+            return;
+        }
+
+        $producto = $productoData->fetch_assoc();
+        $producto_padre_id = isset($producto['id_producto_superior']) ? (int)$producto['id_producto_superior'] : 0;
 
         if($producto_padre_id === 0) {
             $this->procesarHijos(
@@ -1347,16 +1174,11 @@ class facturasControlador extends facturasModelo {
      * AGREGAR FACTURAS
      * =========================== */
     public function agregar_facturas_controlador() {
-        $conexionPrincipal = mainModel::connection();
-        $conexionPrincipal->begin_transaction();
-
         try {
             // 0) Sesión
             $validacion = mainModel::validarSesion();
 
             if ($validacion['error']) {
-                $conexionPrincipal->rollback();
-
                 return mainModel::showNotification([
                     "title"   => "Error de sesión",
                     "text"    => $validacion['mensaje'],
@@ -1373,9 +1195,7 @@ class facturasControlador extends facturasModelo {
                 $limite = (int)$planConfig['facturas'];
 
                 if ($limite === 0) {
-                    $conexionPrincipal->rollback();
-
-                    return mainModel::showNotification([
+                        return mainModel::showNotification([
                         "type"  => "error",
                         "title" => "Acceso restringido",
                         "text"  => "Su plan no incluye la creación de facturas."
@@ -1385,9 +1205,7 @@ class facturasControlador extends facturasModelo {
                 $totalReg = (int)facturasModelo::getTotalFacturasRegistradas();
 
                 if ($totalReg >= $limite) {
-                    $conexionPrincipal->rollback();
-
-                    return mainModel::showNotification([
+                        return mainModel::showNotification([
                         "type"  => "error",
                         "title" => "Límite alcanzado",
                         "text"  => "Ha excedido el límite mensual de facturas (Máximo: $limite)."
@@ -1400,8 +1218,8 @@ class facturasControlador extends facturasModelo {
             $tipo_factura = ($tipo_factura_input === 1) ? 1 : 2;
 
             // Proforma
-            // Se detecta de forma segura porque el switch puede llegar como 1, on, true, etc.
-            $tipo_documento = $this->normalizarFlagProformaDesdePost();
+            $tipo_documento_input = isset($_POST['facturas_proforma']) ? intval($_POST['facturas_proforma']) : 0;
+            $tipo_documento = ($tipo_documento_input === 1) ? "1" : "0";
 
             // Inventario:
             // Factura normal/credito: baja siempre.
@@ -1420,7 +1238,6 @@ class facturasControlador extends facturasModelo {
             $valid = $this->validarDatosFormulario();
 
             if($valid['error']){
-                $conexionPrincipal->rollback();
                 return mainModel::showNotification($valid['notification']);
             }
 
@@ -1467,35 +1284,21 @@ class facturasControlador extends facturasModelo {
 
             $apertura_id = $apertura['apertura_id'];
 
-            // 8) Validar inventario ANTES de tomar secuencia, guardar factura o rebajar stock.
-            // Si no hay inventario real, no se registra nada.
+            // 8) Tomar número
             $empresa_id   = $_SESSION['empresa_id_sd'];
             $documento_id = ($tipo_documento === "1") ? "4" : "1";
 
-            $this->validarInventarioAntesDeFacturar($empresa_id, $bajarInventario);
-
-            // 9) Tomar número
             $numeroFactura = $this->obtenerNumeroFactura(
                 $empresa_id,
-                $documento_id,
-                $conexionPrincipal
+                $documento_id
             );
 
             if($numeroFactura['error']){
-                $conexionPrincipal->rollback();
-
                 return mainModel::showNotification([
                     "title" => "Error",
                     "text"  => $numeroFactura['mensaje'],
                     "type"  => "error"
                 ]);
-            }
-
-            // 9.1) Reconfirmar proforma por la secuencia real obtenida.
-            // Si la secuencia es documento_id = 4, el histórico facturas_proforma
-            // se debe guardar sí o sí aunque el POST/switch venga inconsistente.
-            if ($this->secuenciaFacturacionEsProforma($numeroFactura['data']['secuencia_facturacion_id'])) {
-                $tipo_documento = "1";
             }
 
             // 9) Guardar encabezado con importe provisional
@@ -1524,8 +1327,6 @@ class facturasControlador extends facturasModelo {
             $okHead = facturasModelo::guardar_facturas_modelo($datosFactura);
 
             if(!$okHead){
-                $conexionPrincipal->rollback();
-
                 return mainModel::showNotification([
                     "title" => "Error",
                     "text"  => "No hemos podido procesar su solicitud",
@@ -1551,8 +1352,6 @@ class facturasControlador extends facturasModelo {
             ]);
 
             if(!$okImporte){
-                $conexionPrincipal->rollback();
-
                 return mainModel::showNotification([
                     "title" => "Error",
                     "text"  => "Error al actualizar el importe de la factura",
@@ -1574,9 +1373,7 @@ class facturasControlador extends facturasModelo {
                 );
 
                 if(!$okProforma){
-                    $conexionPrincipal->rollback();
-
-                    return mainModel::showNotification([
+                        return mainModel::showNotification([
                         "title" => "Error",
                         "text"  => "Error al registrar la proforma en facturas_proforma",
                         "type"  => "error"
@@ -1600,8 +1397,6 @@ class facturasControlador extends facturasModelo {
             );
 
             if(!$okCxC){
-                $conexionPrincipal->rollback();
-
                 return mainModel::showNotification([
                     "title" => "Error",
                     "text"  => "Error al registrar la cuenta por cobrar",
@@ -1651,8 +1446,6 @@ class facturasControlador extends facturasModelo {
                 $funcion_pagos
             );
 
-            $conexionPrincipal->commit();
-
             return mainModel::showNotification([
                 "type"    => "success",
                 "title"   => "Registro almacenado",
@@ -1662,8 +1455,6 @@ class facturasControlador extends facturasModelo {
             ]);
 
         } catch (Exception $e) {
-            if(isset($conexionPrincipal)) $conexionPrincipal->rollback();
-
             if (isset($numeroFactura['data']['numero'])) {
                 $numero = $numeroFactura['data']['numero'];
                 $conexion = mainModel::connection();
@@ -1708,9 +1499,8 @@ class facturasControlador extends facturasModelo {
         $tipo_factura = ($tipo_factura_input === 1) ? 1 : 2;
 
         // Proforma en borrador
-        // Proforma
-        // Se detecta de forma segura porque el switch puede llegar como 1, on, true, etc.
-        $tipo_documento = $this->normalizarFlagProformaDesdePost();
+        $tipo_documento_input = isset($_POST['facturas_proforma']) ? (int)$_POST['facturas_proforma'] : 0;
+        $tipo_documento = ($tipo_documento_input === 1) ? "1" : "0";
 
         // Inventario en borrador:
         // Factura normal: mantiene el flujo anterior.
@@ -1795,11 +1585,6 @@ class facturasControlador extends facturasModelo {
 
             $sec_id = (int)$resSec->fetch_assoc()['secuencia_facturacion_id'];
             $stmtSec->close();
-
-            // Reconfirmar proforma por secuencia real.
-            if ($this->secuenciaFacturacionEsProforma($sec_id)) {
-                $tipo_documento = "1";
-            }
 
             // 6.3) Guardar encabezado
             $datosFactura = [

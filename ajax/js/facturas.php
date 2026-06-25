@@ -127,8 +127,7 @@ function getAperturaIdCajaUsuario() {
             }
         },
         error: function(xhr) {
-            console.log(xhr.responseText);
-            apertura_id = 0;
+                        apertura_id = 0;
         }
     });
 
@@ -164,7 +163,7 @@ function abrirRetiroCajaDirectoDesdeFactura() {
     */
     if (typeof getConsultarAperturaCaja === 'function') {
         if (getConsultarAperturaCaja() == 2) {
-            notificarCajaFactura(
+            showNotify(
                 'error',
                 'Caja cerrada',
                 'Debe aperturar caja antes de realizar un retiro.'
@@ -185,7 +184,7 @@ function abrirRetiroCajaDirectoDesdeFactura() {
     }
 
     if (apertura_id <= 0) {
-        notificarCajaFactura(
+        showNotify(
             'error',
             'Caja no encontrada',
             'No se pudo obtener la apertura activa para realizar el retiro.'
@@ -276,49 +275,6 @@ $('#fecha_caja_factura_f').off('change.cajaFacturaFechaF').on('change.cajaFactur
 /* =========================================================
    INICIO - HELPERS GENERALES DE CAJA FACTURACIÓN
    ========================================================= */
-
-function notificarCaja(tipo, titulo, mensaje) {
-    if (typeof mensaje === 'undefined') {
-        mensaje = titulo;
-        titulo = tipo === 'error' ? 'Error' : 'Información';
-    }
-
-    if (typeof showNotify === 'function') {
-        showNotify(tipo, titulo, mensaje);
-        return;
-    }
-
-    if (typeof swal === 'function') {
-        swal({
-            title: titulo,
-            text: mensaje,
-            icon: tipo === 'error' ? 'error' : 'success',
-            button: 'Aceptar'
-        });
-        return;
-    }
-
-    console.log(tipo + ' - ' + titulo + ': ' + mensaje);
-}
-
-function notificarCajaFactura(tipo, titulo, mensaje) {
-    if (typeof showNotify === 'function') {
-        showNotify(tipo, titulo, mensaje);
-        return;
-    }
-
-    if (typeof swal === 'function') {
-        swal({
-            title: titulo,
-            text: mensaje,
-            icon: tipo === 'error' ? 'error' : 'success',
-            button: 'Aceptar'
-        });
-        return;
-    }
-
-    console.log(tipo + ' - ' + titulo + ': ' + mensaje);
-}
 
 function parseMonto(valor) {
     if (typeof valor === 'string') {
@@ -540,7 +496,7 @@ if (!window.__eventosCajaFacturaRegistrados) {
         var data = obtenerFilaCajaFacturaPorBoton(boton);
 
         if (!data || !esCajaActivaFactura(data)) {
-            notificarCajaFactura('error', 'Caja no disponible', 'Solo puede retirar dinero de una caja activa.');
+            showNotify('error', 'Caja no disponible', 'Solo puede retirar dinero de una caja activa.');
             return;
         }
 
@@ -562,7 +518,7 @@ if (!window.__eventosCajaFacturaRegistrados) {
         var data = obtenerFilaCajaFacturaPorBoton(boton);
 
         if (!data || !esCajaActivaFactura(data)) {
-            notificarCajaFactura('error', 'Caja cerrada', 'La caja seleccionada ya está cerrada.');
+            showNotify('error', 'Caja cerrada', 'La caja seleccionada ya está cerrada.');
             return;
         }
 
@@ -584,14 +540,14 @@ if (!window.__eventosCajaFacturaRegistrados) {
         var data = obtenerFilaCajaFacturaPorBoton(boton);
 
         if (!data || !data.apertura_id) {
-            notificarCajaFactura('error', 'Apertura no encontrada', 'No se encontró la apertura de caja.');
+            showNotify('error', 'Apertura no encontrada', 'No se encontró la apertura de caja.');
             return;
         }
 
         if (typeof printComprobanteCajas === 'function') {
             printComprobanteCajas(data.apertura_id);
         } else {
-            notificarCajaFactura('error', 'Función no disponible', 'No está disponible la función para imprimir comprobante.');
+            showNotify('error', 'Función no disponible', 'No está disponible la función para imprimir comprobante.');
         }
     }, true);
 
@@ -610,7 +566,7 @@ if (!window.__eventosCajaFacturaRegistrados) {
         var data = obtenerFilaCajaFacturaPorBoton(boton);
 
         if (!data || !data.apertura_id) {
-            notificarCajaFactura('error', 'Apertura no encontrada', 'No se encontró la apertura de caja.');
+            showNotify('error', 'Apertura no encontrada', 'No se encontró la apertura de caja.');
             return;
         }
 
@@ -632,7 +588,7 @@ if (!window.__eventosCajaFacturaRegistrados) {
         var data = obtenerFilaCajaFacturaPorBoton(boton);
 
         if (!data || !data.apertura_id) {
-            notificarCajaFactura('error', 'Apertura no encontrada', 'No se encontró la apertura de caja.');
+            showNotify('error', 'Apertura no encontrada', 'No se encontró la apertura de caja.');
             return;
         }
 
@@ -895,8 +851,7 @@ function cargarCajaFactura() {
                 origen: 'facturacion'
             },
             error: function (xhr) {
-                console.log(xhr.responseText);
-                notificarCajaFactura('error', 'Error de comunicación', 'No se pudo cargar la información de caja.');
+                                showNotify('error', 'Error de comunicación', 'No se pudo cargar la información de caja.');
             }
         },
 
@@ -1143,12 +1098,12 @@ function cargarCajaFactura() {
 
    function abrirRetiroCajaDesdeFactura(data) {
     if ($('#modalRetiroCaja').length === 0 || $('#formRetiroCaja').length === 0) {
-        notificarCajaFactura('error', 'Modal no encontrado', 'No se encontró el modal de retiro de caja en esta vista.');
+        showNotify('error', 'Modal no encontrado', 'No se encontró el modal de retiro de caja en esta vista.');
         return;
     }
 
     if (!data || !data.apertura_id) {
-        notificarCajaFactura('error', 'Apertura no encontrada', 'No se encontró la apertura de caja.');
+        showNotify('error', 'Apertura no encontrada', 'No se encontró la apertura de caja.');
         return;
     }
 
@@ -1221,7 +1176,7 @@ function cargarSaldoRetiroCajaFactura(apertura_id, callback) {
     apertura_id = parseInt(apertura_id || $('#retiro_apertura_id').val() || 0);
 
     if (apertura_id <= 0) {
-        notificarCajaFactura('error', 'Apertura no encontrada', 'No se encontró la apertura de caja para consultar el saldo.');
+        showNotify('error', 'Apertura no encontrada', 'No se encontró la apertura de caja para consultar el saldo.');
         $('#modalRetiroCaja').modal('hide');
         return;
     }
@@ -1237,8 +1192,7 @@ function cargarSaldoRetiroCajaFactura(apertura_id, callback) {
         },
         success: function (response) {
             if (!response || !response.success) {
-                console.log(response);
-                notificarCajaFactura(
+                                showNotify(
                     'error',
                     'Error',
                     response && response.message ? response.message : 'No se pudo obtener el saldo disponible para retiro.'
@@ -1275,8 +1229,7 @@ function cargarSaldoRetiroCajaFactura(apertura_id, callback) {
             }
         },
         error: function (xhr) {
-            console.log(xhr.responseText);
-            notificarCajaFactura('error', 'Error', 'Error de comunicación al obtener el saldo disponible.');
+                        showNotify('error', 'Error', 'Error de comunicación al obtener el saldo disponible.');
             $('#modalRetiroCaja').modal('hide');
         }
     });
@@ -1357,7 +1310,7 @@ function validarRetiroCajaFactura(mostrarMensaje) {
         $('#btn_guardar_retiro_caja').prop('disabled', false);
 
         if (mostrarMensaje === true) {
-            notificarCajaFactura('error', 'Error', errores[0]);
+            showNotify('error', 'Error', errores[0]);
         }
 
         return false;
@@ -1619,8 +1572,7 @@ function cargarCuadreDiaCajaFactura(apertura_id, modo) {
         },
         success: function (response) {
             if (!response || !response.success) {
-                console.log(response);
-                showNotify(
+                                showNotify(
                     'error',
                     'Error',
                     response && response.message ? response.message : 'No se pudo cargar el cuadre del día.'
@@ -1637,8 +1589,7 @@ function cargarCuadreDiaCajaFactura(apertura_id, modo) {
             $('#modalCuadreDiaCaja').modal('handleUpdate');
         },
         error: function (xhr) {
-            console.log(xhr.responseText);
-            showNotify('error', 'Error', 'Error de comunicación al cargar el cuadre del día.');
+                        showNotify('error', 'Error', 'Error de comunicación al cargar el cuadre del día.');
         }
     });
 }
@@ -1989,22 +1940,22 @@ setTimeout(function () {
 
 function cerrarCajaDesdeFactura(data) {
     if (!data || !data.apertura_id) {
-        notificarCajaFactura('error', 'Apertura no encontrada', 'No se encontró la apertura de caja.');
+        showNotify('error', 'Apertura no encontrada', 'No se encontró la apertura de caja.');
         return;
     }
 
     if (!esCajaActivaFactura(data)) {
-        notificarCajaFactura('error', 'Caja cerrada', 'La caja seleccionada ya está cerrada.');
+        showNotify('error', 'Caja cerrada', 'La caja seleccionada ya está cerrada.');
         return;
     }
 
     if ($('#formAperturaCaja').length === 0) {
-        notificarCajaFactura('error', 'Formulario no encontrado', 'No se encontró el formulario de apertura/cierre de caja en esta vista.');
+        showNotify('error', 'Formulario no encontrado', 'No se encontró el formulario de apertura/cierre de caja en esta vista.');
         return;
     }
 
     if ($('#modal_apertura_caja').length === 0) {
-        notificarCajaFactura('error', 'Modal no encontrado', 'No se encontró el modal de apertura/cierre de caja en esta vista.');
+        showNotify('error', 'Modal no encontrado', 'No se encontró el modal de apertura/cierre de caja en esta vista.');
         return;
     }
 
@@ -2027,14 +1978,12 @@ function prepararFormularioCierreCajaDesdeFactura(data) {
             try {
                 valores = eval(registro);
             } catch (e) {
-                console.log(registro);
-                notificarCajaFactura('error', 'Respuesta inválida', 'No se pudo leer la información de la caja.');
+                                showNotify('error', 'Respuesta inválida', 'No se pudo leer la información de la caja.');
                 return;
             }
 
             if (!valores || valores.length < 4) {
-                console.log(registro);
-                notificarCajaFactura('error', 'Datos incompletos', 'No se recibieron los datos necesarios para cerrar la caja.');
+                                showNotify('error', 'Datos incompletos', 'No se recibieron los datos necesarios para cerrar la caja.');
                 return;
             }
 
@@ -2094,8 +2043,7 @@ function prepararFormularioCierreCajaDesdeFactura(data) {
             });
         },
         error: function (xhr) {
-            console.log(xhr.responseText);
-            notificarCajaFactura('error', 'Error de comunicación', 'No se pudo obtener la información de la caja para cerrar.');
+                        showNotify('error', 'Error de comunicación', 'No se pudo obtener la información de la caja para cerrar.');
         }
     });
 }
@@ -2121,19 +2069,19 @@ function cargarDetalleRetirosCaja(apertura_id, modo) {
     }
 
     if (modo === 'caja' && apertura_id <= 0) {
-        notificarCaja('error', 'Apertura inválida', 'No se recibió una apertura válida.');
+        showNotify('error', 'Apertura inválida', 'No se recibió una apertura válida.');
         return;
     }
 
     if (modo === 'periodo') {
         if (fechai === '' || fechaf === '') {
-            notificarCaja('error', 'Fechas requeridas', 'Debe seleccionar fecha inicial y fecha final.');
+            showNotify('error', 'Fechas requeridas', 'Debe seleccionar fecha inicial y fecha final.');
             return;
         }
     }
 
     if ($('#modalDetalleRetirosCaja').length === 0) {
-        notificarCaja('error', 'Modal no encontrado', 'No existe el modal modalDetalleRetirosCaja en esta vista.');
+        showNotify('error', 'Modal no encontrado', 'No existe el modal modalDetalleRetirosCaja en esta vista.');
         return;
     }
 
@@ -2180,8 +2128,7 @@ function cargarDetalleRetirosCaja(apertura_id, modo) {
             },
             success: function (response) {
                 if (!response || !response.success) {
-                    console.log(response);
-                    notificarCaja('error', 'No se pudo cargar', response && response.message ? response.message : 'No se pudo cargar el detalle de retiros.');
+                                        showNotify('error', 'No se pudo cargar', response && response.message ? response.message : 'No se pudo cargar el detalle de retiros.');
                     return;
                 }
 
@@ -2207,8 +2154,7 @@ function cargarDetalleRetirosCaja(apertura_id, modo) {
                 $('#modalDetalleRetirosCaja').modal('handleUpdate');
             },
             error: function (xhr) {
-                console.log(xhr.responseText);
-                notificarCaja('error', 'Error de comunicación', 'Error de comunicación al cargar los retiros de caja.');
+                                showNotify('error', 'Error de comunicación', 'Error de comunicación al cargar los retiros de caja.');
             }
         });
     }, 150);
@@ -2408,12 +2354,12 @@ function abrirModalReintegroRetiroCaja(caja_retiros_id, apertura_id, monto) {
     monto = parseMonto(monto);
 
     if (caja_retiros_id <= 0 || apertura_id <= 0 || monto <= 0) {
-        notificarCaja('error', 'Datos inválidos', 'No se pudo cargar la información del retiro.');
+        showNotify('error', 'Datos inválidos', 'No se pudo cargar la información del retiro.');
         return;
     }
 
     if ($('#modalReintegroRetiroCaja').length === 0 || $('#formReintegroRetiroCaja').length === 0) {
-        notificarCaja('error', 'Modal no encontrado', 'No existe el modal de reintegro de retiro en esta vista.');
+        showNotify('error', 'Modal no encontrado', 'No existe el modal de reintegro de retiro en esta vista.');
         return;
     }
 
@@ -2454,12 +2400,12 @@ $('#formReintegroRetiroCaja').off('submit.cajaFacturaReintegro').on('submit.caja
     var montoReintegro = parseMonto($('#reintegro_monto').val());
 
     if (montoReintegro <= 0) {
-        notificarCaja('error', 'Monto inválido', 'Ingrese un monto válido para reintegrar.');
+        showNotify('error', 'Monto inválido', 'Ingrese un monto válido para reintegrar.');
         return;
     }
 
     if (montoReintegro > montoActual) {
-        notificarCaja('error', 'Monto inválido', 'El monto a reintegrar no puede ser mayor al retiro actual.');
+        showNotify('error', 'Monto inválido', 'El monto a reintegrar no puede ser mayor al retiro actual.');
         return;
     }
 
@@ -2474,13 +2420,13 @@ $('#formReintegroRetiroCaja').off('submit.cajaFacturaReintegro').on('submit.caja
             $('#btnGuardarReintegroRetiroCaja').prop('disabled', false);
 
             if (!response.success) {
-                notificarCaja('error', 'No se pudo reintegrar', response.message || 'No se pudo realizar el reintegro.');
+                showNotify('error', 'No se pudo reintegrar', response.message || 'No se pudo realizar el reintegro.');
                 return;
             }
 
             $('#modalReintegroRetiroCaja').modal('hide');
 
-            notificarCaja('success', 'Reintegro registrado', response.message || 'Reintegro registrado correctamente.');
+            showNotify('success', 'Reintegro registrado', response.message || 'Reintegro registrado correctamente.');
 
             refrescarDetalleRetirosCaja();
 
@@ -2498,8 +2444,7 @@ $('#formReintegroRetiroCaja').off('submit.cajaFacturaReintegro').on('submit.caja
         },
         error: function (xhr) {
             $('#btnGuardarReintegroRetiroCaja').prop('disabled', false);
-            console.log(xhr.responseText);
-            notificarCaja('error', 'Error de comunicación', 'Error de comunicación al registrar el reintegro.');
+                        showNotify('error', 'Error de comunicación', 'Error de comunicación al registrar el reintegro.');
         }
     });
 });
@@ -2528,7 +2473,7 @@ function cargarDesgloseGananciaCaja(apertura_id, modo) {
     }
 
     if ($('#modalDesgloseGananciaCaja').length === 0) {
-        notificarCaja('error', 'Modal no encontrado', 'No existe el modal de desglose de ganancia en esta vista.');
+        showNotify('error', 'Modal no encontrado', 'No existe el modal de desglose de ganancia en esta vista.');
         return;
     }
 
@@ -2539,7 +2484,7 @@ function cargarDesgloseGananciaCaja(apertura_id, modo) {
 
     if (modo === 'periodo') {
         if (fechai === '' || fechaf === '') {
-            notificarCaja('error', 'Fechas requeridas', 'Debe seleccionar fecha inicial y fecha final.');
+            showNotify('error', 'Fechas requeridas', 'Debe seleccionar fecha inicial y fecha final.');
             return;
         }
     }
@@ -2602,7 +2547,7 @@ function cargarDesgloseGananciaCaja(apertura_id, modo) {
         },
         success: function (response) {
             if (!response || !response.success) {
-                notificarCaja(
+                showNotify(
                     'error',
                     'Error',
                     response && response.message ? response.message : 'No se pudo cargar el desglose de ganancia.'
@@ -2753,8 +2698,7 @@ function cargarDesgloseGananciaCaja(apertura_id, modo) {
             });
         },
         error: function (xhr) {
-            console.log(xhr.responseText);
-            notificarCaja('error', 'Error de comunicación', 'Error de comunicación al cargar el desglose de ganancia.');
+                        showNotify('error', 'Error de comunicación', 'Error de comunicación al cargar el desglose de ganancia.');
         }
     });
 }
@@ -3140,32 +3084,164 @@ function validarFacturaAntesDeEnviar() {
     return true;
 }
 
+/* =========================================================
+   CONTROL DE BLOQUEO DE BOTONES FACTURA
+   ---------------------------------------------------------
+   Problema corregido:
+   - Guardar/Registrar deshabilitaban los botones antes de abrir
+     el modal de confirmación del formulario Ajax.
+   - Si el usuario presionaba Cancelar en ese modal, no había AJAX,
+     por eso nunca se ejecutaba ajaxComplete y los botones quedaban
+     bloqueados.
+
+   Solución:
+   - Se mantiene el bloqueo mientras está el modal/confirmación.
+   - Si el usuario cancela y no arrancó AJAX, se desbloquea.
+   - Si el usuario confirma y sí arranca AJAX, se desbloquea hasta
+     ajaxComplete/ajaxError de addFacturaAjax.php/addFacturaOpenAjax.php.
+========================================================= */
+
+window.__facturaProcesando = false;
+window.__facturaAjaxEnCurso = false;
+window.__facturaWatchdogCancel = null;
+
 function setEstadoProcesandoFactura(activo) {
     window.__facturaProcesando = activo === true;
 
-    $('#reg_factura, #guardar_factura').prop('disabled', window.__facturaProcesando);
+    var $botonesFactura = $('#reg_factura, #guardar_factura');
+
+    $botonesFactura.prop('disabled', window.__facturaProcesando);
 
     if (window.__facturaProcesando) {
-        $('#reg_factura').addClass('disabled');
-        $('#guardar_factura').addClass('disabled');
+        $botonesFactura.addClass('disabled');
     } else {
-        $('#reg_factura').removeClass('disabled');
-        $('#guardar_factura').removeClass('disabled');
+        $botonesFactura.removeClass('disabled');
     }
 }
 
-$(document)
-    .off('ajaxComplete.facturaProcesando ajaxError.facturaProcesando')
-    .on('ajaxComplete.facturaProcesando ajaxError.facturaProcesando', function (event, xhr, settings) {
-        var url = settings && settings.url ? String(settings.url).toLowerCase() : '';
+function esAjaxFacturaUrl(url) {
+    url = String(url || '').toLowerCase();
 
-        if (
-            url.indexOf('addfacturaajax.php') !== -1 ||
-            url.indexOf('addfacturaopenajax.php') !== -1
-        ) {
+    return (
+        url.indexOf('addfacturaajax.php') !== -1 ||
+        url.indexOf('addfacturaopenajax.php') !== -1
+    );
+}
+
+function hayModalConfirmacionFacturaVisible() {
+    return (
+        $('.swal-overlay--show-modal:visible').length > 0 ||
+        $('.swal-modal:visible').length > 0 ||
+        $('.swal2-container:visible').length > 0 ||
+        $('.bootbox.modal.show:visible').length > 0 ||
+        $('.modal.show:visible').filter(function () {
+            var id = String($(this).attr('id') || '').toLowerCase();
+            return id.indexOf('confirm') !== -1 || id.indexOf('alert') !== -1 || id.indexOf('swal') !== -1;
+        }).length > 0
+    );
+}
+
+function desbloquearFacturaSiNoHayAjax(origen) {
+    setTimeout(function () {
+        if (window.__facturaAjaxEnCurso === true) {
+            return;
+        }
+
+        setEstadoProcesandoFactura(false);
+    }, 180);
+}
+
+function iniciarVigilanciaCancelacionFactura() {
+    if (window.__facturaWatchdogCancel) {
+        clearInterval(window.__facturaWatchdogCancel);
+        window.__facturaWatchdogCancel = null;
+    }
+
+    var intentos = 0;
+
+    window.__facturaWatchdogCancel = setInterval(function () {
+        intentos++;
+
+        if (window.__facturaAjaxEnCurso === true) {
+            clearInterval(window.__facturaWatchdogCancel);
+            window.__facturaWatchdogCancel = null;
+            return;
+        }
+
+        if (window.__facturaProcesando === true && !hayModalConfirmacionFacturaVisible() && intentos >= 2) {
+            clearInterval(window.__facturaWatchdogCancel);
+            window.__facturaWatchdogCancel = null;
             setEstadoProcesandoFactura(false);
+            return;
+        }
+
+        if (intentos >= 60) {
+            clearInterval(window.__facturaWatchdogCancel);
+            window.__facturaWatchdogCancel = null;
+
+            if (window.__facturaAjaxEnCurso !== true) {
+                setEstadoProcesandoFactura(false);
+            }
+        }
+    }, 250);
+}
+
+$(document)
+    .off('ajaxSend.facturaProcesando ajaxComplete.facturaProcesando ajaxError.facturaProcesando')
+    .on('ajaxSend.facturaProcesando', function (event, xhr, settings) {
+        var url = settings && settings.url ? settings.url : '';
+
+        if (esAjaxFacturaUrl(url)) {
+            window.__facturaAjaxEnCurso = true;
+            setEstadoProcesandoFactura(true);
+        }
+    })
+    .on('ajaxComplete.facturaProcesando ajaxError.facturaProcesando', function (event, xhr, settings) {
+        var url = settings && settings.url ? settings.url : '';
+
+        if (esAjaxFacturaUrl(url)) {
+            window.__facturaAjaxEnCurso = false;
+            setEstadoProcesandoFactura(false);
+
+            if (window.__facturaWatchdogCancel) {
+                clearInterval(window.__facturaWatchdogCancel);
+                window.__facturaWatchdogCancel = null;
+            }
         }
     });
+
+$(document)
+    .off('click.facturaCancelarConfirmacion')
+    .on('click.facturaCancelarConfirmacion', '.swal-button--cancel, .swal2-cancel, .bootbox .btn-secondary, .bootbox .btn-default, [data-dismiss="modal"]', function () {
+        if (window.__facturaProcesando === true && window.__facturaAjaxEnCurso !== true) {
+            desbloquearFacturaSiNoHayAjax('cancel-click');
+        }
+    });
+
+$(document)
+    .off('keyup.facturaCancelarConfirmacion')
+    .on('keyup.facturaCancelarConfirmacion', function (e) {
+        if (e.key === 'Escape' || e.keyCode === 27) {
+            if (window.__facturaProcesando === true && window.__facturaAjaxEnCurso !== true) {
+                desbloquearFacturaSiNoHayAjax('escape');
+            }
+        }
+    });
+
+function prepararEnvioFacturaAjax(actionUrl) {
+    setEstadoProcesandoFactura(true);
+
+    $('#invoice-form').attr({
+        'data-form': 'save'
+    });
+
+    $('#invoice-form').attr({
+        'action': actionUrl
+    });
+
+    iniciarVigilanciaCancelacionFactura();
+    $('#invoice-form').trigger('submit');
+}
 
 function ProcesarFactura(){
     if (window.__facturaProcesando === true) {
@@ -3174,21 +3250,19 @@ function ProcesarFactura(){
     }
 
     if (!validarFacturaAntesDeEnviar()) {
+        setEstadoProcesandoFactura(false);
         return;
     }
 
-    setEstadoProcesandoFactura(true);
-
-    $('#invoice-form').attr({
-        'data-form': 'save'
-    });
-    $('#invoice-form').attr({
-        'action': '<?php echo SERVERURL; ?>ajax/addFacturaAjax.php'
-    });
-    $("#invoice-form").submit();
+    prepararEnvioFacturaAjax('<?php echo SERVERURL; ?>ajax/addFacturaAjax.php');
 }
 
-$("#guardar_factura").off("click").on("click", function(e) {
+$('#reg_factura').off('click').on('click', function(e) {
+    e.preventDefault();
+    ProcesarFactura();
+});
+
+$('#guardar_factura').off('click').on('click', function(e) {
     e.preventDefault();
     GuardarFactura();
 });
@@ -3200,18 +3274,11 @@ function GuardarFactura(){
     }
 
     if (!validarFacturaAntesDeEnviar()) {
+        setEstadoProcesandoFactura(false);
         return;
     }
 
-    setEstadoProcesandoFactura(true);
-
-    $('#invoice-form').attr({
-        'data-form': 'save'
-    });
-    $('#invoice-form').attr({
-        'action': '<?php echo SERVERURL; ?>ajax/addFacturaOpenAjax.php'
-    });
-    $("#invoice-form").submit();
+    prepararEnvioFacturaAjax('<?php echo SERVERURL; ?>ajax/addFacturaOpenAjax.php');
 }
 
 $("#invoice-form #btn_cierre").on("click", function(e) {
@@ -3528,8 +3595,7 @@ function abrirEditarClienteDesdeFacturacion(data) {
             });
         },
         error: function(xhr, status, error) {
-            console.log(xhr.responseText);
-            showNotify('error', 'Error', 'No se pudieron cargar los datos del cliente.');
+                        showNotify('error', 'Error', 'No se pudieron cargar los datos del cliente.');
             $('#modal_registrar_clientes').modal('hide');
         }
     });
@@ -4377,8 +4443,7 @@ function fetchISVPercentSync(isv_id) {
             }
         },
         error: function(xhr) {
-            console.log(xhr.responseText);
-            porcentaje = 0;
+                        porcentaje = 0;
         }
     });
 
@@ -4536,14 +4601,9 @@ function consultarConfigISVProformaFactura(forzarRecarga) {
             window.IZZY_PROFORMA_APLICA_ISV = aplica === 1 ? 1 : 0;
             window.IZZY_PROFORMA_APLICA_ISV_CARGADO = true;
 
-            console.log('[ISV PROFORMA]', {
-                response: response,
-                aplica_isv_proforma: window.IZZY_PROFORMA_APLICA_ISV
-            });
-        },
+                    },
         error: function (xhr) {
-            console.log(xhr.responseText);
-
+            
             window.IZZY_PROFORMA_APLICA_ISV = 0;
             window.IZZY_PROFORMA_APLICA_ISV_CARGADO = true;
         }
@@ -5371,12 +5431,10 @@ function facturarEnCeroAlmacen(almacen_id) {
             if(response.success) {
                 estado = response.facturar_cero;
             } else {
-                console.error("Error al verificar facturación en cero");
-            }
+                            }
         },
         error: function(xhr) {
-            console.error("Error de conexión al verificar facturación en cero");
-        }
+                    }
     });
     return estado;
 }
@@ -5425,8 +5483,7 @@ function actualizarUIProformaFacturaNormal(activo, rebajarInventarioDefault) {
     var $labelProforma = $('#invoice-form #label_facturas_proforma');
 
     if (!$proforma.length) {
-        console.error('[PROFORMA] No existe el input #facturas_proforma');
-        return;
+                return;
     }
 
     // Forzado real del checkbox Proforma
@@ -5453,14 +5510,7 @@ function actualizarUIProformaFacturaNormal(activo, rebajarInventarioDefault) {
     // Mostrar/Ocultar y aplicar default de rebajar inventario
     mostrarOpcionesInventarioProforma(activo, rebajarInventarioDefault);
 
-    console.log('[PROFORMA UI]', {
-        activo: activo,
-        rebajarInventarioDefault: rebajarInventarioDefault,
-        checked_prop: $proforma.prop('checked'),
-        checked_dom: $proforma[0] ? $proforma[0].checked : null,
-        value: $proforma.val()
-    });
-}
+    }
 
 function mostrarOpcionesInventarioProforma(mostrar, rebajarInventarioDefault) {
     mostrar = normalizarActivoFactura(mostrar);
@@ -5471,8 +5521,7 @@ function mostrarOpcionesInventarioProforma(mostrar, rebajarInventarioDefault) {
     var $label = $('#invoice-form #label_bajar_inventario_proforma');
 
     if (!$container.length) {
-        console.warn('[PROFORMA] No existe #proforma_rebajar_inventario_container');
-        return;
+                return;
     }
 
     if (mostrar) {
@@ -5541,8 +5590,7 @@ function consultarConfigProformaFacturaNormal() {
         dataType: 'json',
         cache: false
     }).done(function (res) {
-        console.log('[DEBUG CONFIG PROFORMA]', res);
-
+        
         var proformaActiva = 0;
         var rebajarInventarioProforma = 0;
 
@@ -5561,8 +5609,7 @@ function consultarConfigProformaFacturaNormal() {
         }
 
     }).fail(function (xhr) {
-        console.error('[ERROR CONFIG PROFORMA]', xhr.status, xhr.responseText);
-
+        
         // Si falla la consulta, por seguridad queda apagado visualmente.
         actualizarUIProformaFacturaNormal(false, false);
     });
@@ -5899,8 +5946,7 @@ $(document)
       showNotify('success', 'Cotización cargada', 'Se cargó la cotización en la factura');
     })
     .fail(function (xhr) {
-      console.error('AJAX error', xhr.responseText);
-      showNotify('error', 'Error', 'Falló la petición al servidor');
+            showNotify('error', 'Error', 'Falló la petición al servidor');
     })
     .always(function(){
       $btn.prop('disabled', false).html(originalHtml);
@@ -6325,8 +6371,7 @@ var registrar_abono_cxc_clientes_dataTable = function(tbody, table) {
         if (data.estado == 2 || data.saldo <= 0) {
             showNotify('error', 'Error', 'No puede realizar esta accion a las facturas canceladas!');
         } else {
-            console.log('cxc', data.facturas_id, 2);
-
+            
             REFRESCAR_CXC_AL_CERRAR_PAGO = true;
 
             pago(data.facturas_id, 2, 'cxc');
@@ -6657,8 +6702,7 @@ function getTipoDocumento() {
 			Documento = datos[0];				
         },
         error: function(xhr, status, error) {
-            console.error("Error en la solicitud:", error);
-        }
+                    }
     });
 	
 	return Documento;
@@ -7392,12 +7436,7 @@ function setTipoFactura(tipo) {
         $('#label_facturas_activo').text(isContado ? 'Contado' : 'Crédito');
     }
 
-    console.log('[TIPO FACTURA]', {
-        tipo: tipo,
-        facturas_activo: $('#facturas_activo').val(),
-        proforma: $('#invoice-form #facturas_proforma').is(':checked')
-    });
-}
+    }
 
 // Inicial: siempre Contado seleccionado
 $(function () {
@@ -7640,8 +7679,7 @@ $(document).on('click', '#confirmRecurring', function(){
   .fail(function(xhr){
     $('#rec_info').show();
     $('#rec_spinner').hide();
-    console.error('AJAX error:', xhr.responseText);
-    showNotify('error','Error','Falló la petición al servidor');
+        showNotify('error','Error','Falló la petición al servidor');
   });
 });
 
@@ -7805,8 +7843,7 @@ function cargarConfigFactura() {
             renderConfigFactura(response.config || []);
         },
         error: function (xhr) {
-            console.log(xhr.responseText);
-            showNotify('error', 'Error', 'Error de comunicación al cargar configuración.');
+                        showNotify('error', 'Error', 'Error de comunicación al cargar configuración.');
         }
     });
 }
@@ -8100,8 +8137,7 @@ function guardarConfigFactura() {
             }, 600);
         },
         error: function (xhr) {
-            console.log(xhr.responseText);
-
+            
             $('#btn_guardar_config_factura')
                 .prop('disabled', false)
                 .html('<i class="far fa-save"></i> Guardar cambios');

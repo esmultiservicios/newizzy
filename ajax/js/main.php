@@ -807,7 +807,7 @@ function getCajero(setAlways = false) {
     $('#formAperturaCaja #usuario_apertura').val(nom);
   })
   .fail(function(xhr){
-    console.error('getCajero error:', xhr.responseText);
+    return false;
   });
 }
 
@@ -1310,9 +1310,7 @@ function cargarConfiguracionISV() {
         type: 'POST',
         dataType: 'json',
         success: function(response) {
-            if (response.success) {
-                console.log('Configuración ISV recibida:', response);
-                
+            if (response.success) {                
                 // Procesar ISV tipo 1
                 $('#producto_isv1').closest('.col-md-6').show();
                 $('#producto_isv1').prop('checked', response.isv1.activar === 1);
@@ -1338,7 +1336,6 @@ function cargarConfiguracionISV() {
                 // Aplicar lógica de selección exclusiva automática
                 aplicarSeleccionExclusivaISV();
             } else {
-                console.error('Error al cargar configuración ISV:', response.message);
                 // Mostrar ambos con valores por defecto en caso de error
                 $('#producto_isv1').closest('.col-md-6').show();
                 $('#producto_isv2').closest('.col-md-6').show();
@@ -1346,7 +1343,7 @@ function cargarConfiguracionISV() {
             }
         },
         error: function(xhr, status, error) {
-            console.error('Error en la solicitud AJAX:', error);
+            showNotify('warning', 'Aviso', 'No se pudo completar la acción solicitada.');
             // Mostrar ambos con valores por defecto en caso de error
             $('#producto_isv1').closest('.col-md-6').show();
             $('#producto_isv2').closest('.col-md-6').show();
@@ -2299,16 +2296,20 @@ function sendQuote(cotizacion_id) {
             $respuestaAjax.html(respuesta);
 
             $respuestaAjax.find('script').each(function() {
-                var codigo = this.text || this.textContent || this.innerHTML || '';
+              var codigo = this.text || this.textContent || this.innerHTML || '';
 
-                if ($.trim(codigo) !== '') {
-                    try {
-                        $.globalEval(codigo);
-                    } catch (e) {
-                        console.error('Error ejecutando respuesta de sendCotizacion.php:', e);
-                    }
-                }
-            });
+              if ($.trim(codigo) !== '') {
+                  try {
+                      $.globalEval(codigo);
+                  } catch (e) {
+                      showNotify(
+                          'error',
+                          'Error',
+                          'No se pudo completar el envío de la cotización.'
+                      );
+                  }
+              }
+          });
 
             if (
                 respuesta.indexOf("showNotify('success'") === -1 &&
@@ -2369,9 +2370,13 @@ function mailBill(facturas_id) {
     facturas_id = parseInt(facturas_id || 0);
 
     if (facturas_id <= 0) {
-        console.warn('No se recibió una factura válida para enviar por correo.');
-        return;
-    }
+      showNotify(
+          'warning',
+          'Factura no válida',
+          'No se encontró una factura válida para enviar por correo.'
+      );
+      return;
+  }
 
     // Evita doble envío accidental si la función se dispara dos veces seguidas
     if (!window.__mailBillEnProceso) {
@@ -2388,7 +2393,11 @@ function mailBill(facturas_id) {
         if (typeof sendMail === 'function') {
             sendMail(facturas_id);
         } else {
-            console.error('La función sendMail no está disponible.');
+            showNotify(
+                'error',
+                'Error',
+                'No se pudo iniciar el envío del correo.'
+            );
         }
 
         setTimeout(function () {
@@ -5506,7 +5515,7 @@ async function forceFocus(selector) {
 
     return true;
   } catch (e) {
-    console.log('Error en forceFocus:', e);
+    showNotify('warning', 'Aviso', 'No se pudo enfocar el campo automáticamente.');
     return false;
   }
 }
@@ -6688,7 +6697,7 @@ function handleServerResponse(resp) {
       try {
         eval(resp.funcion);
       } catch (e) {
-        console.warn('Error ejecutando funcion:', e);
+         showNotify('warning', 'Aviso', 'No se pudo completar la acción solicitada.');
       }
     }
   } catch (_) {}
@@ -6733,8 +6742,6 @@ function submitFormAjax($f) {
   $f.find(':input').prop('disabled', false);
 
   var payload = $f.serialize();
-
-  console.log('[PAYLOAD ENVIADO] ' + ($f.attr('id') || ''), payload);
 
   return $.ajax({
     type: $f.attr('method') || 'POST',
@@ -7429,8 +7436,6 @@ function pago(facturas_id, tipoPago, origen, totalManual, clienteManual) {
     data: { facturas_id: facturas_id },
     dataType: 'json'
   }).done(function (datos) {
-    console.log('[DEBUG pago editarPagoFacturas.php]', datos);
-
     var info = extractPagoDataRobusto(datos, totalManual, clienteManual);
     var cliente = info.cliente || '—';
     var total = parseMonto(info.total);
@@ -7494,7 +7499,7 @@ function pago(facturas_id, tipoPago, origen, totalManual, clienteManual) {
     }, 300);
 
   }).fail(function (xhr) {
-    console.error('[ERROR pago editarPagoFacturas.php]', xhr.responseText);
+    showNotify('error', 'Error', 'No se pudo cargar la información del pago.');
 
     handleServerResponse({
       status: false,
@@ -11224,7 +11229,7 @@ function imprimirDocumentoPreview() {
       iframe.contentWindow.print();
     }
   } catch (error) {
-    console.warn("No se pudo imprimir el documento desde el modal:", error);
+    showNotify('error', 'Error', 'No se pudo imprimir el documento desde el modal.');
   }
 }
 
@@ -11400,7 +11405,7 @@ function ejecutarValidacionAdminSistema() {
             }
         },
         error: function (xhr) {
-            console.log(xhr.responseText);
+            showNotify('warning', 'Aviso', 'No se pudo completar la acción solicitada.');
 
             $('#btn_validar_auth_admin')
                 .prop('disabled', false)
@@ -11485,8 +11490,6 @@ function anular(facturas_id, comentario) {
     success: function (response) {
       swal.close();
 
-      console.log('Respuesta anularFactura.php:', response);
-
       if (response && response.success === true) {
         showNotify(
           'success',
@@ -11501,33 +11504,36 @@ function anular(facturas_id, comentario) {
           'Error',
           response && response.message ? response.message : 'La factura no se puede anular'
         );
-
-        console.warn('Detalle anulación:', response);
       }
     },
     error: function (xhr, status, error) {
       swal.close();
 
-      console.error('Error AJAX anularFactura.php:', {
-        status: status,
-        error: error,
-        responseText: xhr.responseText
-      });
+      if (xhr && xhr.status === 401) {
+          showNotify('error', 'Sesión expirada', 'Debe iniciar sesión nuevamente.');
+          return;
+      }
+
+      if (xhr && xhr.status === 403) {
+          showNotify('error', 'Acceso denegado', 'No tiene permisos para anular esta factura.');
+          return;
+      }
 
       if (status === 'timeout') {
-        showNotify(
-          'error',
-          'Error',
-          'La anulación tardó demasiado. Revise si la factura fue anulada antes de intentarlo otra vez.'
-        );
-      } else {
-        showNotify(
-          'error',
-          'Error',
-          'Hubo un problema al anular la factura. Revise la consola o el log del servidor.'
-        );
+          showNotify(
+              'error',
+              'Tiempo agotado',
+              'La anulación tardó demasiado. Revise si la factura fue anulada antes de intentarlo otra vez.'
+          );
+          return;
       }
-    }
+
+      showNotify(
+          'error',
+          'Error',
+          'No se pudo anular la factura. Intente nuevamente.'
+      );
+  }
   });
 }
   //FIN METODO ANULAR FACTURAS

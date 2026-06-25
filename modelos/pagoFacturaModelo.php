@@ -209,98 +209,196 @@ class pagoFacturaModelo extends mainModel {
      * - Si $conexion es null, el método controla su propia transacción.
      * - Si se pasa $conexion, NO abre/commit/rollback aquí (lo maneja el llamador).
      */
+    protected function numeroFacturaYaExiste($empresa_id, $documento_id, $numero, $conexion = null) {
+        $empresa_id = (int)$empresa_id;
+        $documento_id = (int)$documento_id;
+        $numero = (int)$numero;
+
+        if ($empresa_id <= 0 || $documento_id <= 0 || $numero <= 0) {
+            return false;
+        }
+
+        $cn = $conexion ?: mainModel::connection();
+
+        if (!$cn) {
+            return false;
+        }
+
+        $sql = "SELECT f.facturas_id
+                FROM facturas f
+                INNER JOIN secuencia_facturacion sf
+                    ON sf.secuencia_facturacion_id = f.secuencia_facturacion_id
+                WHERE f.empresa_id = ?
+                  AND sf.documento_id = ?
+                  AND f.number = ?
+                LIMIT 1";
+
+        $stmt = $cn->prepare($sql);
+
+        if (!$stmt) {
+            error_log("Error preparando validación de número usado en pago: " . $cn->error);
+            return false;
+        }
+
+        $stmt->bind_param("iii", $empresa_id, $documento_id, $numero);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $existe = ($result && $result->num_rows > 0);
+
+        $stmt->close();
+
+        return $existe;
+    }
+
     protected function obtenerNumeroFactura($empresa_id, $documento_id, $conexion = null) {
         $conexionLocal = false;
+
         try {
+            $empresa_id = (int)$empresa_id;
+            $documento_id = (int)$documento_id;
+
             if($conexion === null) {
                 $conexion = mainModel::connection();
                 $conexionLocal = true;
                 $conexion->begin_transaction();
             }
 
-            // 1) Reusar número fallido si existe
-            $sql_fallidos = "SELECT numero FROM secuencia_factura_fallida 
-                             WHERE empresa_id = ? AND documento_id = ? 
-                             ORDER BY numero ASC LIMIT 1 FOR UPDATE";
-            $stmt_fallidos = $conexion->prepare($sql_fallidos);
-            $stmt_fallidos->bind_param("ii", $empresa_id, $documento_id);
-            $stmt_fallidos->execute();
-            $result_fallidos = $stmt_fallidos->get_result();
+            if (!$conexion) {
+                return ['error' => true, 'mensaje' => 'No se pudo conectar a la base de datos'];
+            }
 
-            if ($result_fallidos->num_rows > 0) {
-                $row = $result_fallidos->fetch_assoc();
-                $numero_usado = (int)$row['numero'];
-                $stmt_fallidos->close();
+            $sqlSecuencia = "SELECT secuencia_facturacion_id, prefijo, siguiente, rango_final, incremento, relleno
+                             FROM secuencia_facturacion
+                             WHERE empresa_id = ?
+                               AND documento_id = ?
+                               AND activo = 1
+                             LIMIT 1
+                             FOR UPDATE";
 
-                $sql_secuencia = "SELECT secuencia_facturacion_id, prefijo, relleno
-                                  FROM secuencia_facturacion
-                                  WHERE empresa_id = ? AND documento_id = ? AND activo = 1
-                                  LIMIT 1";
-                $stmt_sec = $conexion->prepare($sql_secuencia);
-                $stmt_sec->bind_param("ii", $empresa_id, $documento_id);
-                $stmt_sec->execute();
-                $res_sec = $stmt_sec->get_result();
+            $stmtSecuencia = $conexion->prepare($sqlSecuencia);
 
-                if($res_sec->num_rows === 0){
-                    $stmt_sec->close();
-                    if($conexionLocal) $conexion->rollback();
-                    return ['error'=>true, 'mensaje'=>'No se encontró secuencia activa para esta empresa y documento'];
+            if (!$stmtSecuencia) {
+                if($conexionLocal) $conexion->rollback();
+                return ['error' => true, 'mensaje' => 'Error preparando consulta de secuencia: '.$conexion->error];
+            }
+
+            $stmtSecuencia->bind_param("ii", $empresa_id, $documento_id);
+            $stmtSecuencia->execute();
+            $resultSecuencia = $stmtSecuencia->get_result();
+
+            if(!$resultSecuencia || $resultSecuencia->num_rows === 0){
+                $stmtSecuencia->close();
+
+                if($conexionLocal) $conexion->rollback();
+
+                return ['error'=>true,'mensaje'=>'No se encontró secuencia activa para esta empresa y documento'];
+            }
+
+            $sec = $resultSecuencia->fetch_assoc();
+            $stmtSecuencia->close();
+
+            $incremento = (int)$sec['incremento'];
+            if ($incremento <= 0) {
+                $incremento = 1;
+            }
+
+            $sqlFallidos = "SELECT numero
+                            FROM secuencia_factura_fallida
+                            WHERE empresa_id = ?
+                              AND documento_id = ?
+                            ORDER BY numero ASC
+                            FOR UPDATE";
+
+            $stmtFallidos = $conexion->prepare($sqlFallidos);
+
+            if (!$stmtFallidos) {
+                if($conexionLocal) $conexion->rollback();
+                return ['error' => true, 'mensaje' => 'Error preparando consulta de secuencias fallidas: '.$conexion->error];
+            }
+
+            $stmtFallidos->bind_param("ii", $empresa_id, $documento_id);
+            $stmtFallidos->execute();
+            $resultFallidos = $stmtFallidos->get_result();
+
+            if ($resultFallidos && $resultFallidos->num_rows > 0) {
+                while ($rowFallido = $resultFallidos->fetch_assoc()) {
+                    $numeroFallido = (int)$rowFallido['numero'];
+
+                    if ($numeroFallido <= 0) {
+                        continue;
+                    }
+
+                    $stmtDeleteFallido = $conexion->prepare("DELETE FROM secuencia_factura_fallida WHERE empresa_id = ? AND documento_id = ? AND numero = ?");
+
+                    if (!$stmtDeleteFallido) {
+                        $stmtFallidos->close();
+                        if($conexionLocal) $conexion->rollback();
+                        return ['error' => true, 'mensaje' => 'Error preparando limpieza de secuencia fallida: '.$conexion->error];
+                    }
+
+                    $stmtDeleteFallido->bind_param("iii", $empresa_id, $documento_id, $numeroFallido);
+
+                    if ($this->numeroFacturaYaExiste($empresa_id, $documento_id, $numeroFallido, $conexion)) {
+                        $stmtDeleteFallido->execute();
+                        $stmtDeleteFallido->close();
+                        continue;
+                    }
+
+                    $stmtDeleteFallido->execute();
+                    $stmtDeleteFallido->close();
+                    $stmtFallidos->close();
+
+                    if($conexionLocal) $conexion->commit();
+
+                    return [
+                        'error'=>false,
+                        'data'=>[
+                            'secuencia_facturacion_id'=>$sec['secuencia_facturacion_id'],
+                            'numero'=>$numeroFallido,
+                            'prefijo'=>$sec['prefijo'] ?? '',
+                            'relleno'=>$sec['relleno'] ?? ''
+                        ]
+                    ];
                 }
-                $sec = $res_sec->fetch_assoc();
-                $stmt_sec->close();
-
-                $del = $conexion->prepare("DELETE FROM secuencia_factura_fallida WHERE empresa_id=? AND documento_id=? AND numero=?");
-                $del->bind_param("iii", $empresa_id, $documento_id, $numero_usado);
-                $del->execute();
-                $del->close();
-
-                if($conexionLocal) $conexion->commit();
-
-                return [
-                    'error'=>false,
-                    'data'=>[
-                        'secuencia_facturacion_id'=>$sec['secuencia_facturacion_id'],
-                        'numero'=>$numero_usado,
-                        'prefijo'=>$sec['prefijo'] ?? '',
-                        'relleno'=>$sec['relleno'] ?? ''
-                    ]
-                ];
             }
-            $stmt_fallidos->close();
 
-            // 2) Secuencia normal
-            $sql = "SELECT secuencia_facturacion_id, prefijo, siguiente, rango_final, incremento, relleno
-                    FROM secuencia_facturacion
-                    WHERE empresa_id = ? AND documento_id = ? AND activo = 1
-                    LIMIT 1 FOR UPDATE";
-            $stmt = $conexion->prepare($sql);
-            $stmt->bind_param("ii", $empresa_id, $documento_id);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            if($result->num_rows === 0){
-                $stmt->close();
-                if($conexionLocal) $conexion->rollback();
-                return ['error'=>true,'mensaje'=>'No se encontró secuencia activa'];
+            $stmtFallidos->close();
+
+            $numeroUsar = (int)$sec['siguiente'];
+            $rangoFinal = (int)$sec['rango_final'];
+
+            while ($numeroUsar <= $rangoFinal && $this->numeroFacturaYaExiste($empresa_id, $documento_id, $numeroUsar, $conexion)) {
+                $numeroUsar += $incremento;
             }
-            $sec = $result->fetch_assoc();
-            $stmt->close();
 
-            $siguiente = (int)$sec['siguiente'];
-            if($siguiente > (int)$sec['rango_final']){
+            if($numeroUsar > $rangoFinal){
                 if($conexionLocal) $conexion->rollback();
+
                 return ['error'=>true,'mensaje'=>'Se ha alcanzado el límite del rango de numeración'];
             }
 
-            $nuevo = $siguiente + (int)$sec['incremento'];
+            $nuevoSiguiente = $numeroUsar + $incremento;
 
-            $upd = $conexion->prepare("UPDATE secuencia_facturacion SET siguiente=? WHERE secuencia_facturacion_id=?");
-            $upd->bind_param("ii", $nuevo, $sec['secuencia_facturacion_id']);
-            if(!$upd->execute()){
-                $upd->close();
+            $stmtUpdate = $conexion->prepare("UPDATE secuencia_facturacion SET siguiente = ? WHERE secuencia_facturacion_id = ?");
+
+            if (!$stmtUpdate) {
                 if($conexionLocal) $conexion->rollback();
-                return ['error'=>true,'mensaje'=>'Error al actualizar secuencia'];
+                return ['error'=>true,'mensaje'=>'Error preparando actualización de secuencia: '.$conexion->error];
             }
-            $upd->close();
+
+            $stmtUpdate->bind_param("ii", $nuevoSiguiente, $sec['secuencia_facturacion_id']);
+
+            if(!$stmtUpdate->execute()){
+                $error = $stmtUpdate->error;
+                $stmtUpdate->close();
+
+                if($conexionLocal) $conexion->rollback();
+
+                return ['error'=>true,'mensaje'=>'Error al actualizar secuencia: '.$error];
+            }
+
+            $stmtUpdate->close();
 
             if($conexionLocal) $conexion->commit();
 
@@ -308,14 +406,18 @@ class pagoFacturaModelo extends mainModel {
                 'error'=>false,
                 'data'=>[
                     'secuencia_facturacion_id'=>$sec['secuencia_facturacion_id'],
-                    'numero'=>$siguiente,
-                    'prefijo'=>$sec['prefijo'],
-                    'relleno'=>$sec['relleno']
+                    'numero'=>$numeroUsar,
+                    'prefijo'=>$sec['prefijo'] ?? '',
+                    'relleno'=>$sec['relleno'] ?? ''
                 ]
             ];
-        } catch (Exception $e) {
-            if($conexionLocal && isset($conexion)) $conexion->rollback();
-            error_log("Error en obtenerNumeroFactura: ".$e->getMessage());
+        } catch (Throwable $e) {
+            if($conexionLocal && isset($conexion)) {
+                $conexion->rollback();
+            }
+
+            error_log("Error en obtenerNumeroFactura pago: ".$e->getMessage());
+
             return ['error'=>true, 'mensaje'=>'Error al generar número de factura: '.$e->getMessage()];
         }
     }

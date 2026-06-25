@@ -3140,10 +3140,44 @@ function validarFacturaAntesDeEnviar() {
     return true;
 }
 
+function setEstadoProcesandoFactura(activo) {
+    window.__facturaProcesando = activo === true;
+
+    $('#reg_factura, #guardar_factura').prop('disabled', window.__facturaProcesando);
+
+    if (window.__facturaProcesando) {
+        $('#reg_factura').addClass('disabled');
+        $('#guardar_factura').addClass('disabled');
+    } else {
+        $('#reg_factura').removeClass('disabled');
+        $('#guardar_factura').removeClass('disabled');
+    }
+}
+
+$(document)
+    .off('ajaxComplete.facturaProcesando ajaxError.facturaProcesando')
+    .on('ajaxComplete.facturaProcesando ajaxError.facturaProcesando', function (event, xhr, settings) {
+        var url = settings && settings.url ? String(settings.url).toLowerCase() : '';
+
+        if (
+            url.indexOf('addfacturaajax.php') !== -1 ||
+            url.indexOf('addfacturaopenajax.php') !== -1
+        ) {
+            setEstadoProcesandoFactura(false);
+        }
+    });
+
 function ProcesarFactura(){
+    if (window.__facturaProcesando === true) {
+        showNotify('warning', 'Proceso en curso', 'La factura ya se está procesando. Espere un momento.');
+        return;
+    }
+
     if (!validarFacturaAntesDeEnviar()) {
         return;
     }
+
+    setEstadoProcesandoFactura(true);
 
     $('#invoice-form').attr({
         'data-form': 'save'
@@ -3160,9 +3194,16 @@ $("#guardar_factura").off("click").on("click", function(e) {
 });
 
 function GuardarFactura(){
+    if (window.__facturaProcesando === true) {
+        showNotify('warning', 'Proceso en curso', 'La factura ya se está procesando. Espere un momento.');
+        return;
+    }
+
     if (!validarFacturaAntesDeEnviar()) {
         return;
     }
+
+    setEstadoProcesandoFactura(true);
 
     $('#invoice-form').attr({
         'data-form': 'save'

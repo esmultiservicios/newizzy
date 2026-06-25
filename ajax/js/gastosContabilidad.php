@@ -187,6 +187,130 @@ function escapeHtmlEgresos(value) {
 }
 
 // =========================================================
+// ESTILOS SEGUROS PARA TABLA DE EGRESOS
+// ---------------------------------------------------------
+// Evita que cualquier texto largo se salga de su columna.
+// Aplica wrap general, pero mantiene acciones y montos controlados.
+// =========================================================
+function inyectarEstilosTablaEgresos() {
+  if (document.getElementById('egresos-datatable-wrap-fix-style')) {
+    return;
+  }
+
+  var style = document.createElement('style');
+  style.id = 'egresos-datatable-wrap-fix-style';
+  style.type = 'text/css';
+  style.appendChild(document.createTextNode(`
+    #dataTableGastosContabilidad {
+      table-layout: fixed !important;
+      width: 100% !important;
+    }
+
+    #dataTableGastosContabilidad th,
+    #dataTableGastosContabilidad td {
+      white-space: normal !important;
+      overflow-wrap: anywhere !important;
+      word-break: break-word !important;
+      vertical-align: middle !important;
+    }
+
+    #dataTableGastosContabilidad th *,
+    #dataTableGastosContabilidad td * {
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+    }
+
+    #dataTableGastosContabilidad .egresos-info-box,
+    #dataTableGastosContabilidad .egresos-info-main,
+    #dataTableGastosContabilidad .egresos-info-muted,
+    #dataTableGastosContabilidad .egresos-info-chip,
+    #dataTableGastosContabilidad .egresos-observacion,
+    #dataTableGastosContabilidad .egresos-factura-texto {
+      white-space: normal !important;
+      overflow-wrap: anywhere !important;
+      word-break: break-word !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      line-height: 1.25 !important;
+    }
+
+    #dataTableGastosContabilidad .egresos-info-box {
+      width: 100% !important;
+      min-width: 0 !important;
+    }
+
+    #dataTableGastosContabilidad .egresos-money-badge,
+    #dataTableGastosContabilidad .egresos-status-badge {
+      white-space: nowrap !important;
+      max-width: 100% !important;
+      display: inline-block !important;
+    }
+
+    #dataTableGastosContabilidad td:first-child,
+    #dataTableGastosContabilidad th:first-child,
+    #dataTableGastosContabilidad .acciones-dropdown,
+    #dataTableGastosContabilidad .btn-acciones {
+      white-space: nowrap !important;
+      overflow-wrap: normal !important;
+      word-break: normal !important;
+    }
+
+    #dataTableGastosContabilidad td:nth-child(8),
+    #dataTableGastosContabilidad th:nth-child(8) {
+      min-width: 170px !important;
+      max-width: 230px !important;
+      width: 170px !important;
+      white-space: normal !important;
+      overflow-wrap: anywhere !important;
+      word-break: break-word !important;
+    }
+
+    .egresos-factura-box {
+      display: flex !important;
+      align-items: flex-start !important;
+      justify-content: flex-start !important;
+      gap: .45rem !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      white-space: normal !important;
+      overflow: visible !important;
+    }
+
+    .egresos-factura-numero {
+      flex: 1 1 auto !important;
+      min-width: 0 !important;
+      max-width: calc(100% - 40px) !important;
+      display: inline-flex !important;
+      align-items: flex-start !important;
+      white-space: normal !important;
+      overflow-wrap: anywhere !important;
+      word-break: break-word !important;
+      line-height: 1.25 !important;
+      text-align: left !important;
+    }
+
+    .egresos-factura-numero i {
+      flex: 0 0 auto !important;
+      margin-top: .12rem !important;
+    }
+
+    .egresos-factura-box .factura-btn {
+      flex: 0 0 34px !important;
+      width: 34px !important;
+      min-width: 34px !important;
+      height: 34px !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      align-self: flex-start !important;
+      border-radius: .5rem !important;
+    }
+  `));
+
+  document.head.appendChild(style);
+}
+
+// =========================================================
 // RESUMEN PREMIUM DE CUENTA EN FOOTER DEL MODAL EGRESOS
 // =========================================================
 function limpiarTextoSelectPremiumEgresos(texto) {
@@ -399,6 +523,7 @@ function inicializarCalculoEgresos() {
 //  Ready
 // ===============================
 $(() => {
+  inyectarEstilosTablaEgresos();
   listar_gastos_contabilidad();
   getEmpresaEgresos();
   getCuentaEgresos();
@@ -474,6 +599,8 @@ var total_gastos_footer = function() {
 //  DataTable Gastos
 // ===============================
 var listar_gastos_contabilidad = function() {
+  inyectarEstilosTablaEgresos();
+
   var estado = $("#formMainGastosContabilidad #estado_egresos").val() || 1;
   var fechai = $("#formMainGastosContabilidad #fechai").val();
   var fechaf = $("#formMainGastosContabilidad #fechaf").val();
@@ -487,6 +614,7 @@ var listar_gastos_contabilidad = function() {
     destroy: true,
     stateSave: false,
     orderMulti: false,
+    autoWidth: false,
 
     ajax: {
       method: "POST",
@@ -644,7 +772,10 @@ var listar_gastos_contabilidad = function() {
 
           return '' +
             '<div class="egresos-factura-box">' +
-              '<span class="egresos-info-chip"><i class="fas fa-file-invoice-dollar mr-1"></i>' + numeroFactura + '</span>' +
+              '<span class="egresos-info-chip egresos-factura-numero" title="' + numeroFactura + '" data-toggle="tooltip">' +
+                '<i class="fas fa-file-invoice-dollar mr-1"></i>' +
+                '<span class="egresos-factura-texto">' + numeroFactura + '</span>' +
+              '</span>' +
               icono +
             '</div>';
         }
@@ -709,14 +840,14 @@ var listar_gastos_contabilidad = function() {
       { targets: 4, width: "7.14%" },
       { targets: 5, width: "7.14%" },
       { targets: 6, width: "7.14%" },
-      { targets: 7, width: "7.14%" },
-      { targets: 8, width: "7.14%", className: "text-right text-nowrap" },
-      { targets: 9, width: "7.14%", className: "text-right text-nowrap" },
-      { targets: 10, width: "7.14%", className: "text-right text-nowrap" },
-      { targets: 11, width: "7.14%", className: "text-right text-nowrap" },
-      { targets: 12, width: "7.14%", className: "text-right text-nowrap" },
+      { targets: 7, width: "170px", className: "align-middle egresos-col-factura" },
+      { targets: 8, width: "7.14%", className: "text-right align-middle" },
+      { targets: 9, width: "7.14%", className: "text-right align-middle" },
+      { targets: 10, width: "7.14%", className: "text-right align-middle" },
+      { targets: 11, width: "7.14%", className: "text-right align-middle" },
+      { targets: 12, width: "7.14%", className: "text-right align-middle" },
       { targets: 13, width: "7.14%" },
-      { targets: 14, width: "7.14%", className: "text-center text-nowrap" }
+      { targets: 14, width: "7.14%", className: "text-center align-middle" }
     ],
 
     buttons: [

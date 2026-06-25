@@ -1,22 +1,46 @@
 <script>
   $(() => {
-    getReporteFactura();
     getFacturador();
     getVendedores();
     GetProductos();
-    listar_reporte_ventas();
 
-    $('#form_main_ventas #tipo_factura_reporte').val(1);
-    $('#form_main_ventas #tipo_factura_reporte').selectpicker('refresh');
+    restaurarTipoFacturaReporteVentas();
+
+    // IMPORTANTE:
+    // Primero cargamos el combo de categoría y hasta después listamos.
+    // Antes se llamaba listar_reporte_ventas() antes de que el select tuviera opciones,
+    // por eso a veces el filtro quedaba vacío y el backend podía devolver anuladas.
+    getReporteFactura(function () {
+      restaurarCategoriaFacturaReporteVentas();
+      setCategoriaFacturaDefaultActivas();
+      refrescarSelectpickersReporteVentas();
+      listar_reporte_ventas();
+    });
+
+    $('#form_main_ventas #factura_reporte, #form_main_ventas #tipo_factura_reporte')
+      .off('changed.bs.select.reporteVentasMemoria change.reporteVentasMemoria')
+      .on('changed.bs.select.reporteVentasMemoria change.reporteVentasMemoria', function () {
+        guardarFiltrosReporteVentas();
+      });
 
     $('#form_main_ventas #search').on('click', function (e) {
       e.preventDefault();
+      setCategoriaFacturaDefaultActivas();
+      guardarFiltrosReporteVentas();
       listar_reporte_ventas();
     });
 
     $('#form_main_ventas').on('reset', function () {
-      $(this).find('.selectpicker').val('').selectpicker('refresh');
-      listar_reporte_ventas();
+      var form = this;
+
+      setTimeout(function () {
+        $(form).find('.selectpicker').val('').selectpicker('refresh');
+        $('#form_main_ventas #factura_reporte').val('1');
+        $('#form_main_ventas #tipo_factura_reporte').val('1');
+        guardarFiltrosReporteVentas();
+        refrescarSelectpickersReporteVentas();
+        listar_reporte_ventas();
+      }, 50);
     });
   });
 
@@ -27,6 +51,163 @@
       ? parseFloat((truncated + 0.01).toFixed(2))
       : parseFloat(truncated.toFixed(2));
   }
+
+
+
+/* =========================================================
+   MEMORIA DE FILTROS - REPORTE DE VENTAS
+   ---------------------------------------------------------
+   Guarda el último Tipo Factura usado:
+   1 = Electrónica
+   4 = Proforma
+
+   También guarda Categoría Factura:
+   1 = Activas
+   2 = Anuladas
+========================================================= */
+var RV_STORAGE_TIPO_FACTURA = 'izzy_reporte_ventas_tipo_factura';
+var RV_STORAGE_CATEGORIA_FACTURA = 'izzy_reporte_ventas_categoria_factura';
+
+function refrescarSelectpickersReporteVentas() {
+    if ($.fn.selectpicker) {
+        $('#form_main_ventas .selectpicker').selectpicker('refresh');
+    }
+}
+
+function normalizarTipoFacturaReporte(valor) {
+    valor = parseInt(valor, 10);
+    return (valor === 4) ? 4 : 1;
+}
+
+function normalizarCategoriaFacturaReporte(valor) {
+    valor = parseInt(valor, 10);
+    return (valor === 2) ? 2 : 1;
+}
+
+function restaurarTipoFacturaReporteVentas() {
+    var guardado = '1';
+
+    try {
+        guardado = localStorage.getItem(RV_STORAGE_TIPO_FACTURA) || '1';
+    } catch (e) {
+        guardado = '1';
+    }
+
+    $('#form_main_ventas #factura_reporte').val(String(normalizarTipoFacturaReporte(guardado)));
+    refrescarSelectpickersReporteVentas();
+}
+
+function restaurarCategoriaFacturaReporteVentas() {
+    var guardado = '1';
+
+    try {
+        guardado = localStorage.getItem(RV_STORAGE_CATEGORIA_FACTURA) || '1';
+    } catch (e) {
+        guardado = '1';
+    }
+
+    $('#form_main_ventas #tipo_factura_reporte').val(String(normalizarCategoriaFacturaReporte(guardado)));
+    refrescarSelectpickersReporteVentas();
+}
+
+function guardarFiltrosReporteVentas() {
+    var tipoFactura = getTipoFacturaReporte();
+    var categoriaFactura = getCategoriaFacturaReporte();
+
+    try {
+        localStorage.setItem(RV_STORAGE_TIPO_FACTURA, String(tipoFactura));
+        localStorage.setItem(RV_STORAGE_CATEGORIA_FACTURA, String(categoriaFactura));
+    } catch (e) {}
+}
+
+function getTipoFacturaReporte() {
+    return normalizarTipoFacturaReporte($('#form_main_ventas #factura_reporte').val() || 1);
+}
+
+function registroReporteEsAnulado(row) {
+    if (!row) {
+        return false;
+    }
+
+    var estadoFactura = parseInt(row.estado || row.factura_estado || row.Estado || 0, 10);
+    var estadoProforma = parseInt(row.proforma_estado || row.estado_proforma || 0, 10);
+
+    return estadoFactura === 4 || estadoProforma === 4;
+}
+
+function filtrarDatosReporteVentasCliente(json) {
+    var data = (json && json.data) ? json.data : [];
+    var categoria = getCategoriaFacturaReporte();
+    var tipoFactura = getTipoFacturaReporte();
+
+    return data.filter(function (row) {
+        var doc = parseInt(row.documento_id || row.documento || row.tipo_documento_id || 0, 10);
+        var anulada = registroReporteEsAnulado(row);
+
+        // Seguridad visual: aunque el PHP mande anuladas, no se muestran en Activas.
+        if (categoria === 2) {
+            if (!anulada) {
+                return false;
+            }
+        } else {
+            if (anulada) {
+                return false;
+            }
+        }
+
+        // Seguridad visual por Tipo Factura si el backend no filtra.
+        if (doc > 0) {
+            if (tipoFactura === 4 && doc !== 4) {
+                return false;
+            }
+
+            if (tipoFactura === 1 && doc === 4) {
+                return false;
+            }
+        }
+
+        return true;
+    });
+}
+
+/* =========================================================
+   FILTRO CATEGORÍA FACTURA
+   ---------------------------------------------------------
+   1 = Activas  => estados 2 y 3
+   2 = Anuladas => estado 4
+   Por defecto SIEMPRE debe consultar Activas.
+========================================================= */
+function setCategoriaFacturaDefaultActivas() {
+    var $select = $('#form_main_ventas #tipo_factura_reporte');
+
+    if (!$select.val() || $select.val() === '' || $select.val() === null) {
+        $select.val('1');
+    }
+
+    if ($.fn.selectpicker) {
+        $select.selectpicker('refresh');
+    }
+}
+
+function getCategoriaFacturaReporte() {
+    var valor = $('#form_main_ventas #tipo_factura_reporte').val();
+
+    if (valor === undefined || valor === null || valor === '') {
+        return 1;
+    }
+
+    valor = parseInt(valor, 10);
+
+    if (isNaN(valor) || (valor !== 1 && valor !== 2)) {
+        return 1;
+    }
+
+    return valor;
+}
+
+function facturaEstaAnuladaReporte(row) {
+    return registroReporteEsAnulado(row);
+}
 
 /* =========================================================
    HEADER Y FOOTER DINÁMICO - REPORTE DE VENTAS
@@ -79,8 +260,10 @@ var listar_reporte_ventas = function () {
         localStorage.removeItem(_dtKey);
     } catch (e) {}
 
-    let tipo_factura_reporte = $("#form_main_ventas #tipo_factura_reporte").val() || 1;
-    let factura = $("#form_main_ventas #factura_reporte").val() || 1;
+    setCategoriaFacturaDefaultActivas();
+    let tipo_factura_reporte = getCategoriaFacturaReporte();
+    let factura = getTipoFacturaReporte();
+    guardarFiltrosReporteVentas();
 
     var fechai = $("#form_main_ventas #fechai").val();
     var fechaf = $("#form_main_ventas #fechaf").val();
@@ -104,11 +287,16 @@ var listar_reporte_ventas = function () {
             url: "<?php echo SERVERURL;?>core/llenarDataTableReporteVentas.php",
             data: {
                 "tipo_factura_reporte": tipo_factura_reporte,
+                "categoria_factura": tipo_factura_reporte,
+                "estado_factura": tipo_factura_reporte,
                 "facturador": facturador,
                 "vendedor": vendedor,
                 "fechai": fechai,
                 "fechaf": fechaf,
                 "factura": factura
+            },
+            dataSrc: function (json) {
+                return filtrarDatosReporteVentasCliente(json);
             }
         },
 
@@ -123,53 +311,67 @@ var listar_reporte_ventas = function () {
                         return "";
                     }
 
+                    var acciones = '';
+
+                    acciones +=
+                        '<button type="button" class="dropdown-item accion-item table_reportes detalle_factura">' +
+                            '<span class="accion-icon accion-icon-primary">' +
+                                '<i class="fas fa-search"></i>' +
+                            '</span>' +
+                            '<span class="accion-label">Ver detalle</span>' +
+                        '</button>';
+
+                    acciones +=
+                        '<button type="button" class="dropdown-item accion-item table_reportes print_factura">' +
+                            '<span class="accion-icon accion-icon-success">' +
+                                '<i class="fas fa-file-download"></i>' +
+                            '</span>' +
+                            '<span class="accion-label">Factura</span>' +
+                        '</button>';
+
+                    acciones +=
+                        '<button type="button" class="dropdown-item accion-item table_reportes print_comprobante">' +
+                            '<span class="accion-icon accion-icon-success">' +
+                                '<i class="far fa-file-pdf"></i>' +
+                            '</span>' +
+                            '<span class="accion-label">Comprobante</span>' +
+                        '</button>';
+
+                    if (!facturaEstaAnuladaReporte(row)) {
+                        acciones +=
+                            '<button type="button" class="dropdown-item accion-item table_reportes email_factura">' +
+                                '<span class="accion-icon accion-icon-secondary">' +
+                                    '<i class="fas fa-paper-plane"></i>' +
+                                '</span>' +
+                                '<span class="accion-label">Enviar</span>' +
+                            '</button>';
+
+                        acciones +=
+                            '<button type="button" class="dropdown-item accion-item accion-eliminar table_cancelar cancelar_factura">' +
+                                '<span class="accion-icon accion-icon-eliminar">' +
+                                    '<i class="fas fa-ban"></i>' +
+                                '</span>' +
+                                '<span class="accion-label">Anular</span>' +
+                            '</button>';
+                    } else {
+                        acciones +=
+                            '<button type="button" class="dropdown-item accion-item accion-eliminar" disabled>' +
+                                '<span class="accion-icon accion-icon-eliminar">' +
+                                    '<i class="fas fa-ban"></i>' +
+                                '</span>' +
+                                '<span class="accion-label">Factura anulada</span>' +
+                            '</button>';
+                    }
+
                     return '' +
                         '<div class="dropdown acciones-dropdown">' +
-
                             '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
                                 '<i class="fas fa-cog"></i>' +
                                 '<span>Acciones</span>' +
                             '</button>' +
-
                             '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
-
-                                '<button type="button" class="dropdown-item accion-item table_reportes detalle_factura">' +
-                                    '<span class="accion-icon accion-icon-primary">' +
-                                        '<i class="fas fa-search"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Ver detalle</span>' +
-                                '</button>' +
-
-                                '<button type="button" class="dropdown-item accion-item table_reportes print_factura">' +
-                                    '<span class="accion-icon accion-icon-success">' +
-                                        '<i class="fas fa-file-download"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Factura</span>' +
-                                '</button>' +
-
-                                '<button type="button" class="dropdown-item accion-item table_reportes print_comprobante">' +
-                                    '<span class="accion-icon accion-icon-success">' +
-                                        '<i class="far fa-file-pdf"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Comprobante</span>' +
-                                '</button>' +
-
-                                '<button type="button" class="dropdown-item accion-item table_reportes email_factura">' +
-                                    '<span class="accion-icon accion-icon-secondary">' +
-                                        '<i class="fas fa-paper-plane"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Enviar</span>' +
-                                '</button>' +
-
-                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_cancelar cancelar_factura">' +
-                                    '<span class="accion-icon accion-icon-eliminar">' +
-                                        '<i class="fas fa-ban"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Anular</span>' +
-                                '</button>' +
-
+                                acciones +
                             '</div>' +
-
                         '</div>';
                 }
             },
@@ -210,13 +412,16 @@ var listar_reporte_ventas = function () {
 
                     if (parseInt(row.documento_id, 10) === 4) {
                         const est = parseInt(row.proforma_estado, 10);
+                        const isAnulada = facturaEstaAnuladaReporte(row);
                         const isCerrada = (est === 2);
 
-                        const badge = isCerrada
-                            ? '<span class="badge badge-secondary ml-2">Cerrada</span>'
-                            : '<span class="badge badge-info ml-2">Abierta</span>';
+                        const badge = isAnulada
+                            ? '<span class="badge badge-danger ml-2">Anulada</span>'
+                            : (isCerrada
+                                ? '<span class="badge badge-secondary ml-2">Cerrada</span>'
+                                : '<span class="badge badge-info ml-2">Abierta</span>');
 
-                        const cerrarBtn = !isCerrada
+                        const cerrarBtn = (!isAnulada && !isCerrada)
                             ? `<button class="btn btn-sm btn-danger ml-2 cerrar_proforma"
                                  data-toggle="tooltip" data-placement="top" title="Cerrar proforma">
                                  <i class="fas fa-times-circle"></i>
@@ -258,6 +463,21 @@ var listar_reporte_ventas = function () {
                     });
 
                     if (type !== 'display') return numberFormatted;
+
+                    if (facturaEstaAnuladaReporte(row)) {
+                        return `
+                            <div class="total-container" style="display:flex;flex-direction:column;align-items:flex-end;">
+                                <div style="background:#fff;border-left:6px solid #dc3545;padding:8px 12px;border-radius:.5rem;box-shadow:0 1px 5px rgba(0,0,0,.08);font-size:1.1em;font-weight:bold;color:#212529;">
+                                    ${numberFormatted}
+                                </div>
+                                <div class="status-badge bg-danger text-white"
+                                    data-toggle="tooltip" data-placement="top"
+                                    title="Factura anulada"
+                                    style="font-size:.75em;padding:.4em .8em;border-radius:999px;display:inline-block;line-height:1.2;margin-top:6px;font-weight:600;letter-spacing:.2px;text-transform:uppercase;white-space:nowrap;min-width:fit-content;">
+                                    <i class="fas fa-ban mr-1"></i>Anulada
+                                </div>
+                            </div>`;
+                    }
 
                     if (parseInt(row.documento_id, 10) === 4) {
                         const est = parseInt(row.proforma_estado, 10);
@@ -690,6 +910,11 @@ var listar_reporte_ventas = function () {
             return false;
         }
 
+        if (facturaEstaAnuladaReporte(data)) {
+            showNotify('info', 'Factura anulada', 'Esta factura ya está anulada.');
+            return false;
+        }
+
         if (typeof validarAdminSistema !== 'function') {
             showNotify('error', 'Validación no disponible', 'No está cargado el JS de autenticación administrativa.');
             return false;
@@ -717,13 +942,26 @@ var listar_reporte_ventas = function () {
     });
 };
 
-  function getReporteFactura() {
+  function getReporteFactura(callback) {
     $.ajax({
       type: "POST",
       url: '<?php echo SERVERURL;?>core/getTipoFacturaReporte.php',
       async: true,
       success: function (data) {
-        $('#form_main_ventas #tipo_factura_reporte').html(data).selectpicker('refresh');
+        $('#form_main_ventas #tipo_factura_reporte').html(data);
+        restaurarCategoriaFacturaReporteVentas();
+        setCategoriaFacturaDefaultActivas();
+
+        if (typeof callback === 'function') {
+          callback();
+        }
+      },
+      error: function () {
+        setCategoriaFacturaDefaultActivas();
+
+        if (typeof callback === 'function') {
+          callback();
+        }
       }
     });
   }
@@ -780,7 +1018,19 @@ var listar_reporte_ventas = function () {
       ajax: {
         method: "POST",
         url: "<?php echo SERVERURL;?>core/llenarDataTableDetalleVentas.php",
-        data: { "fechai": fechai, "fechaf": fechaf, "productos_id": productos_id, "colaboradores_id": colaboradores_id }
+        data: {
+          "fechai": fechai,
+          "fechaf": fechaf,
+          "productos_id": productos_id,
+          "colaboradores_id": colaboradores_id,
+          "tipo_factura_reporte": getCategoriaFacturaReporte(),
+          "categoria_factura": getCategoriaFacturaReporte(),
+          "estado_factura": getCategoriaFacturaReporte(),
+          "factura": getTipoFacturaReporte()
+        },
+        dataSrc: function (json) {
+          return filtrarDatosReporteVentasCliente(json);
+        }
       },
       columns: [
         { data: "Fecha" },

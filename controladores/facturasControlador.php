@@ -153,6 +153,99 @@ class facturasControlador extends facturasModelo {
     }
 
     /* ===========================
+     * DETECCIÓN SEGURA DE PROFORMA
+     * -----------------------------------------------------------
+     * El switch de proforma puede llegar desde el JS como:
+     * 1, "1", true, "true", "on", "si" o en otro campo
+     * compatible. Antes solo se validaba con intval(), por eso si el
+     * valor no venía exactamente como 1, la factura se guardaba en
+     * facturas pero NO se registraba en facturas_proforma.
+     * =========================== */
+    protected function normalizarFlagProformaDesdePost() {
+        $campos = [
+            'facturas_proforma',
+            'tipo_documento',
+            'documento_id',
+            'es_proforma',
+            'proforma',
+            'factura_proforma'
+        ];
+
+        foreach ($campos as $campo) {
+            if (!isset($_POST[$campo])) {
+                continue;
+            }
+
+            $valor = $_POST[$campo];
+
+            if (is_array($valor)) {
+                $valor = reset($valor);
+            }
+
+            $valorTexto = strtolower(trim((string)$valor));
+
+            if (in_array($valorTexto, ['1', 'true', 'on', 'si', 'sí', 'yes', 'proforma'], true)) {
+                return "1";
+            }
+
+            // Compatibilidad: si algún JS manda directamente documento_id=4.
+            if ($campo === 'documento_id' && (int)$valor === 4) {
+                return "1";
+            }
+        }
+
+        return "0";
+    }
+
+    /* ===========================
+     * PROFORMA: VERIFICACIÓN REAL POR SECUENCIA
+     * -----------------------------------------------------------
+     * El switch ayuda, pero la verdad final del documento es la
+     * secuencia usada. Si secuencia_facturacion.documento_id = 4,
+     * entonces debe guardarse también en facturas_proforma.
+     * =========================== */
+    protected function secuenciaFacturacionEsProforma($secuencia_facturacion_id) {
+        $secuencia_facturacion_id = (int)$secuencia_facturacion_id;
+
+        if ($secuencia_facturacion_id <= 0) {
+            return false;
+        }
+
+        try {
+            $cn = mainModel::connection();
+
+            if (!$cn) {
+                return false;
+            }
+
+            $stmt = $cn->prepare("SELECT documento_id FROM secuencia_facturacion WHERE secuencia_facturacion_id = ? LIMIT 1");
+
+            if (!$stmt) {
+                error_log("Error preparando validación de secuencia proforma: ".$cn->error);
+                return false;
+            }
+
+            $stmt->bind_param("i", $secuencia_facturacion_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            $esProforma = false;
+
+            if ($result && $result->num_rows > 0) {
+                $row = $result->fetch_assoc();
+                $esProforma = ((int)$row['documento_id'] === 4);
+            }
+
+            $stmt->close();
+
+            return $esProforma;
+        } catch (Throwable $e) {
+            error_log("Error verificando secuencia de proforma: ".$e->getMessage());
+            return false;
+        }
+    }
+
+    /* ===========================
      * VALIDACIONES BÁSICAS
      * =========================== */
     protected function validarDatosFormulario() {
@@ -337,7 +430,13 @@ class facturasControlador extends facturasModelo {
             'fecha_creacion'           => $fecha_creacion
         ];
 
-        return facturasModelo::agregar_facturas_proforma_modelo($datosProforma);
+        $ok = facturasModelo::agregar_facturas_proforma_modelo($datosProforma);
+
+        if(!$ok){
+            error_log("No se pudo registrar/actualizar facturas_proforma para facturas_id={$facturas_id}, numero={$numero}, secuencia={$secuencia_facturacion_id}");
+        }
+
+        return $ok;
     }
 
     /* ===========================
@@ -565,6 +664,194 @@ class facturasControlador extends facturasModelo {
         $stmt->close();
 
         return number_format(0, 4, '.', '');
+    }
+
+    /* ===========================
+     * VALIDACIÓN PREVIA DE INVENTARIO
+     * -----------------------------------------------------------
+     * Evita que se guarde encabezado/detalle o se toque inventario
+     * cuando realmente no hay saldo suficiente.
+     * También suma productos repetidos en la misma factura para no
+     * validar línea por línea de forma incorrecta.
+     * =========================== */
+    protected function obtenerNombreProductoInventario($productos_id){
+        $productos_id = (int)$productos_id;
+
+        if($productos_id <= 0){
+            return 'Producto desconocido';
+        }
+
+        try {
+            $cn = mainModel::connection();
+            $stmt = $cn->prepare("SELECT nombre FROM productos WHERE productos_id = ? LIMIT 1");
+
+            if(!$stmt){
+                return 'Producto ID '.$productos_id;
+            }
+
+            $stmt->bind_param("i", $productos_id);
+            $stmt->execute();
+            $res = $stmt->get_result();
+
+            if($res && $res->num_rows > 0){
+                $row = $res->fetch_assoc();
+                $stmt->close();
+                return $row['nombre'] ?? ('Producto ID '.$productos_id);
+            }
+
+            $stmt->close();
+        } catch (Throwable $e) {
+            error_log("Error obteniendo nombre producto inventario: ".$e->getMessage());
+        }
+
+        return 'Producto ID '.$productos_id;
+    }
+
+    protected function agregarRequerimientoInventario(&$requerimientos, $productos_id, $cantidad, $bodega, $empresa_id, $origen = ''){
+        $productos_id = (int)$productos_id;
+        $cantidad = (float)$cantidad;
+        $bodega = (int)$bodega;
+        $empresa_id = (int)$empresa_id;
+
+        if($productos_id <= 0 || $cantidad <= 0){
+            return;
+        }
+
+        // Mantiene la misma regla del flujo real: solo productos/insumos con movimientos.
+        $tipo_producto = facturasModelo::tipo_producto_modelo($productos_id);
+        if($tipo_producto && $tipo_producto->num_rows > 0){
+            $consulta = $tipo_producto->fetch_assoc();
+            $tipo = strtolower(trim($consulta['tipo_producto'] ?? ''));
+
+            if(!in_array($tipo, ['producto', 'insumo'], true)){
+                return;
+            }
+        }
+
+        if(!$this->productoTieneMovimientoInventario($productos_id, $empresa_id, $bodega)){
+            return;
+        }
+
+        $key = $productos_id.'|'.$bodega;
+
+        if(!isset($requerimientos[$key])){
+            $requerimientos[$key] = [
+                'productos_id' => $productos_id,
+                'bodega'       => $bodega,
+                'cantidad'     => 0,
+                'producto'     => $this->obtenerNombreProductoInventario($productos_id),
+                'origen'       => $origen
+            ];
+        }
+
+        $requerimientos[$key]['cantidad'] += $cantidad;
+    }
+
+    protected function construirRequerimientosInventarioFactura($empresa_id){
+        $requerimientos = [];
+
+        if(empty($_POST['productName']) || !is_array($_POST['productName'])){
+            return $requerimientos;
+        }
+
+        for ($i = 0; $i < count($_POST['productName']); $i++) {
+            if (
+                empty($_POST['productos_id'][$i]) ||
+                empty($_POST['productName'][$i]) ||
+                !isset($_POST['quantity'][$i]) || $_POST['quantity'][$i] === '' ||
+                !isset($_POST['price'][$i]) || $_POST['price'][$i] === ''
+            ) {
+                continue;
+            }
+
+            $productos_id = (int)$_POST['productos_id'][$i];
+            $quantity = (float)$_POST['quantity'][$i];
+            $bodega = isset($_POST['bodega'][$i]) ? (int)$_POST['bodega'][$i] : 0;
+            $medida = $_POST['medida'][$i] ?? 'Und';
+            $medidaName = strtolower(trim($medida));
+
+            if($productos_id <= 0 || $quantity <= 0){
+                continue;
+            }
+
+            // Producto principal: mismo movimiento que registrarSalidaInventario().
+            $this->agregarRequerimientoInventario(
+                $requerimientos,
+                $productos_id,
+                $quantity,
+                $bodega,
+                $empresa_id,
+                'principal'
+            );
+
+            // Productos relacionados: mismo comportamiento que procesarRelacionProductos().
+            $producto = facturasModelo::cantidad_producto_modelo($productos_id)->fetch_assoc();
+            $producto_padre_id = isset($producto['id_producto_superior']) ? (int)$producto['id_producto_superior'] : 0;
+
+            if($producto_padre_id === 0){
+                $resultHijos = facturasModelo::total_hijos_segun_padre_modelo($productos_id);
+
+                if($resultHijos && $resultHijos->num_rows > 0){
+                    while($hijo = $resultHijos->fetch_assoc()){
+                        $producto_hijo = (int)$hijo['productos_id'];
+                        $cantidad_hijo = $this->convertirMedida($quantity, $medidaName, true);
+
+                        $this->agregarRequerimientoInventario(
+                            $requerimientos,
+                            $producto_hijo,
+                            $cantidad_hijo,
+                            $bodega,
+                            $empresa_id,
+                            'relacionado'
+                        );
+                    }
+                }
+            }else{
+                $cantidad_padre = $this->convertirMedida($quantity, $medidaName, false);
+
+                $this->agregarRequerimientoInventario(
+                    $requerimientos,
+                    $producto_padre_id,
+                    $cantidad_padre,
+                    $bodega,
+                    $empresa_id,
+                    'relacionado'
+                );
+            }
+        }
+
+        return $requerimientos;
+    }
+
+    protected function validarInventarioAntesDeFacturar($empresa_id, $bajarInventario){
+        if($bajarInventario !== true){
+            return true;
+        }
+
+        $requerimientos = $this->construirRequerimientosInventarioFactura($empresa_id);
+
+        foreach($requerimientos as $req){
+            $productos_id = (int)$req['productos_id'];
+            $bodega = (int)$req['bodega'];
+            $cantidad = (float)$req['cantidad'];
+
+            $disp = $this->obtener_disponibilidad_salida_modelo($productos_id, $empresa_id, $bodega);
+            $disponible = isset($disp['disponible']) ? (float)$disp['disponible'] : 0;
+
+            if(($disponible + 0.000001) < $cantidad){
+                $falta = $cantidad - $disponible;
+                $nombre = $req['producto'];
+
+                throw new Exception(
+                    "Saldo insuficiente para el producto {$nombre}. " .
+                    "Disponible: ".number_format($disponible, 4, '.', '').", " .
+                    "solicitado: ".number_format($cantidad, 4, '.', '').", " .
+                    "falta: ".number_format($falta, 4, '.', '')
+                );
+            }
+        }
+
+        return true;
     }
 
     /* ===========================
@@ -1113,8 +1400,8 @@ class facturasControlador extends facturasModelo {
             $tipo_factura = ($tipo_factura_input === 1) ? 1 : 2;
 
             // Proforma
-            $tipo_documento_input = isset($_POST['facturas_proforma']) ? intval($_POST['facturas_proforma']) : 0;
-            $tipo_documento = ($tipo_documento_input === 1) ? "1" : "0";
+            // Se detecta de forma segura porque el switch puede llegar como 1, on, true, etc.
+            $tipo_documento = $this->normalizarFlagProformaDesdePost();
 
             // Inventario:
             // Factura normal/credito: baja siempre.
@@ -1180,10 +1467,14 @@ class facturasControlador extends facturasModelo {
 
             $apertura_id = $apertura['apertura_id'];
 
-            // 8) Tomar número
+            // 8) Validar inventario ANTES de tomar secuencia, guardar factura o rebajar stock.
+            // Si no hay inventario real, no se registra nada.
             $empresa_id   = $_SESSION['empresa_id_sd'];
             $documento_id = ($tipo_documento === "1") ? "4" : "1";
 
+            $this->validarInventarioAntesDeFacturar($empresa_id, $bajarInventario);
+
+            // 9) Tomar número
             $numeroFactura = $this->obtenerNumeroFactura(
                 $empresa_id,
                 $documento_id,
@@ -1198,6 +1489,13 @@ class facturasControlador extends facturasModelo {
                     "text"  => $numeroFactura['mensaje'],
                     "type"  => "error"
                 ]);
+            }
+
+            // 9.1) Reconfirmar proforma por la secuencia real obtenida.
+            // Si la secuencia es documento_id = 4, el histórico facturas_proforma
+            // se debe guardar sí o sí aunque el POST/switch venga inconsistente.
+            if ($this->secuenciaFacturacionEsProforma($numeroFactura['data']['secuencia_facturacion_id'])) {
+                $tipo_documento = "1";
             }
 
             // 9) Guardar encabezado con importe provisional
@@ -1410,8 +1708,9 @@ class facturasControlador extends facturasModelo {
         $tipo_factura = ($tipo_factura_input === 1) ? 1 : 2;
 
         // Proforma en borrador
-        $tipo_documento_input = isset($_POST['facturas_proforma']) ? (int)$_POST['facturas_proforma'] : 0;
-        $tipo_documento = ($tipo_documento_input === 1) ? "1" : "0";
+        // Proforma
+        // Se detecta de forma segura porque el switch puede llegar como 1, on, true, etc.
+        $tipo_documento = $this->normalizarFlagProformaDesdePost();
 
         // Inventario en borrador:
         // Factura normal: mantiene el flujo anterior.
@@ -1496,6 +1795,11 @@ class facturasControlador extends facturasModelo {
 
             $sec_id = (int)$resSec->fetch_assoc()['secuencia_facturacion_id'];
             $stmtSec->close();
+
+            // Reconfirmar proforma por secuencia real.
+            if ($this->secuenciaFacturacionEsProforma($sec_id)) {
+                $tipo_documento = "1";
+            }
 
             // 6.3) Guardar encabezado
             $datosFactura = [

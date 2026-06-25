@@ -122,10 +122,12 @@ class pagoFacturaModelo extends mainModel {
     }
 
     protected function es_factura_proforma($facturas_id) {
+        $facturas_id = (int)$facturas_id;
         $query = "SELECT sf.documento_id
                   FROM facturas f
                   JOIN secuencia_facturacion sf ON f.secuencia_facturacion_id = sf.secuencia_facturacion_id
-                  WHERE f.facturas_id = '$facturas_id'";
+                  WHERE f.facturas_id = '$facturas_id'
+                  LIMIT 1";
         $rs = mainModel::connection()->query($query);
         if ($rs === false) throw new Exception("Error en es_factura_proforma: ".mainModel::connection()->error);
 
@@ -134,6 +136,69 @@ class pagoFacturaModelo extends mainModel {
             return intval($d['documento_id']) === 4; // 4 = proforma
         }
         return false;
+    }
+
+    /* ==========================================================
+       PROFORMAS: SOLO ACTUALIZAR ESTADO DESDE PAGOS
+       ----------------------------------------------------------
+       Regla final:
+       - Pagos NO crea registros en facturas_proforma.
+       - Pagos NO elimina registros de facturas_proforma.
+       - El histórico/identificador se crea únicamente al guardar la proforma
+         desde facturación.
+       - Si existe el registro en facturas_proforma y la proforma se paga,
+         solo se actualiza estado = 1.
+       - Si no existe el histórico, pagos no lo inventa; solo continúa para
+         no bloquear el cobro. Ese caso debe corregirse en facturación.
+       ========================================================== */
+    protected function actualizar_estado_facturas_proforma_pago($facturas_id, $estado = 1) {
+        $conexion = mainModel::connection();
+        $facturas_id = (int)$facturas_id;
+        $estado = (int)$estado;
+
+        if ($facturas_id <= 0) {
+            return false;
+        }
+
+        if (!$this->es_factura_proforma($facturas_id)) {
+            return true;
+        }
+
+        $stmtCheck = $conexion->prepare("SELECT facturas_proforma_id FROM facturas_proforma WHERE facturas_id = ? LIMIT 1");
+        if (!$stmtCheck) {
+            throw new Exception("Error preparando validación de facturas_proforma: " . $conexion->error);
+        }
+
+        $stmtCheck->bind_param("i", $facturas_id);
+        if (!$stmtCheck->execute()) {
+            $error = $stmtCheck->error;
+            $stmtCheck->close();
+            throw new Exception("Error validando facturas_proforma: " . $error);
+        }
+
+        $rsCheck = $stmtCheck->get_result();
+        $existe = ($rsCheck && $rsCheck->num_rows > 0);
+        $stmtCheck->close();
+
+        if (!$existe) {
+            error_log("Pago registrado en proforma sin histórico facturas_proforma. facturas_id={$facturas_id}. Pagos no crea el histórico; revisar guardado de facturación.");
+            return true;
+        }
+
+        $stmt = $conexion->prepare("UPDATE facturas_proforma SET estado = ? WHERE facturas_id = ?");
+        if (!$stmt) {
+            throw new Exception("Error preparando actualización de facturas_proforma: " . $conexion->error);
+        }
+
+        $stmt->bind_param("ii", $estado, $facturas_id);
+        if (!$stmt->execute()) {
+            $error = $stmt->error;
+            $stmt->close();
+            throw new Exception("Error actualizando estado de proforma por pago: " . $error);
+        }
+
+        $stmt->close();
+        return true;
     }
 
     /* ==========================================================
@@ -411,6 +476,12 @@ class pagoFacturaModelo extends mainModel {
         $this->update_status_factura($datos['facturas_id']);
         $this->update_status_factura_cuentas_por_cobrar($datos['facturas_id'], 2, 0);
 
+        // Si es proforma, mantener el histórico y marcarla como pagada.
+        // No se elimina ni se convierte en factura normal.
+        if ($esProforma) {
+            $this->actualizar_estado_facturas_proforma_pago($datos['facturas_id'], 1);
+        }
+
         // Contabilidad:
         // - Factura normal contado desde facturación → NO registra ingreso aquí; lo registra el cierre de caja.
         // - Proforma contado desde facturación → NO registra ingreso aquí; lo registra el cierre de caja.
@@ -470,6 +541,12 @@ class pagoFacturaModelo extends mainModel {
         $this->update_status_factura_cuentas_por_cobrar($datos['facturas_id'], ($nuevoSaldo==0?2:1), $nuevoSaldo);
         if ($nuevoSaldo == 0) {
             $this->update_status_factura($datos['facturas_id']);
+
+            // Si es proforma y quedó pagada, mantener el histórico y marcarla como pagada.
+            // No se elimina ni se convierte en factura normal.
+            if ($esProforma) {
+                $this->actualizar_estado_facturas_proforma_pago($datos['facturas_id'], 1);
+            }
         }
 
         // Crédito/Abono o Proforma → registrar ingreso+mov y marcar contabilizado

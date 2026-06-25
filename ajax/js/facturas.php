@@ -1,5 +1,32 @@
 <script>
-    //FAactura.php - js de las facturas escritorio
+/* =========================================================
+   COMPATIBILIDAD SELECTPICKER
+   ---------------------------------------------------------
+   Evita errores cuando bootstrap-select no está cargado o se
+   carga después del JS de facturación.
+   No cambia la lógica existente: si selectpicker existe, usa
+   el plugin; si no existe, usa el select normal.
+========================================================= */
+if (window.jQuery && !$.fn.selectpicker) {
+    $.fn.selectpicker = function (accion, valor) {
+        if (accion === 'val') {
+            if (arguments.length > 1) {
+                this.val(valor);
+                return this;
+            }
+
+            return this.val();
+        }
+
+        if (accion === 'refresh' || accion === 'render' || accion === 'mobile' || accion === 'destroy' || accion === undefined) {
+            return this;
+        }
+
+        return this;
+    };
+}
+
+//FAactura.php - js de las facturas escritorio
 $(() => {
      // Evento para el botón de Generar Reporte
     $('#formulario_busqueda_cotizaciones').on('submit', function(e) {

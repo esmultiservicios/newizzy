@@ -422,23 +422,62 @@ class pagoFacturaModelo extends mainModel {
         }
     }
 
-    /** Suma totales de la factura desde facturas_detalles. */
+    protected function tablaExiste($tabla, $conexion = null) {
+        $conexion = $conexion ?: mainModel::connection();
+        $tabla = $conexion->real_escape_string($tabla);
+        $rs = $conexion->query("SHOW TABLES LIKE '$tabla'");
+        return ($rs && $rs->num_rows > 0);
+    }
+
+    protected function columnaExiste($tabla, $columna, $conexion = null) {
+        $conexion = $conexion ?: mainModel::connection();
+        $tabla = $conexion->real_escape_string($tabla);
+        $columna = $conexion->real_escape_string($columna);
+        $rs = $conexion->query("SHOW COLUMNS FROM `$tabla` LIKE '$columna'");
+        return ($rs && $rs->num_rows > 0);
+    }
+
+    /**
+     * Suma totales de la factura desde el detalle.
+     * Soporta IZZY antiguo/nuevo:
+     * - facturas_detalles con isv_valor + isv_valor1
+     * - facturas_detalle con solo isv_valor
+     */
     protected function obtener_totales_factura($facturas_id) {
+        $conexion = mainModel::connection();
+        $facturas_id = (int)$facturas_id;
+
+        if ($facturas_id <= 0) {
+            return ['subtotal'=>0.00, 'descuento'=>0.00, 'impuesto'=>0.00, 'total'=>0.00];
+        }
+
+        $tablaDetalle = 'facturas_detalles';
+        if (!$this->tablaExiste($tablaDetalle, $conexion)) {
+            if ($this->tablaExiste('facturas_detalle', $conexion)) {
+                $tablaDetalle = 'facturas_detalle';
+            } else {
+                throw new Exception("No se encontró la tabla de detalle de factura");
+            }
+        }
+
+        $isvExtra = $this->columnaExiste($tablaDetalle, 'isv_valor1', $conexion) ? " + IFNULL(fd.isv_valor1,0)" : "";
+
         $q = "SELECT 
-                ROUND(SUM(fd.cantidad * fd.precio), 2) AS subtotal,
-                ROUND(SUM(fd.descuento), 2)            AS descuento,
-                ROUND(SUM(fd.isv_valor + fd.isv_valor1), 2) AS impuesto
-              FROM facturas_detalles fd
+                ROUND(IFNULL(SUM(IFNULL(fd.cantidad,0) * IFNULL(fd.precio,0)),0), 2) AS subtotal,
+                ROUND(IFNULL(SUM(IFNULL(fd.descuento,0)),0), 2) AS descuento,
+                ROUND(IFNULL(SUM(IFNULL(fd.isv_valor,0)$isvExtra),0), 2) AS impuesto
+              FROM `$tablaDetalle` fd
               WHERE fd.facturas_id = '$facturas_id'";
-        $rs = mainModel::connection()->query($q);
-        if ($rs === false) throw new Exception("Error al obtener totales de la factura: ".mainModel::connection()->error);
+
+        $rs = $conexion->query($q);
+        if ($rs === false) throw new Exception("Error al obtener totales de la factura: ".$conexion->error);
 
         $sub = 0.00; $desc = 0.00; $imp = 0.00;
         if ($rs->num_rows > 0) {
             $row = $rs->fetch_assoc();
-            $sub  = (float)$row['subtotal'];
-            $desc = (float)$row['descuento'];
-            $imp  = (float)$row['impuesto'];
+            $sub  = round((float)$row['subtotal'] + 1e-9, 2);
+            $desc = round((float)$row['descuento'] + 1e-9, 2);
+            $imp  = round((float)$row['impuesto'] + 1e-9, 2);
         }
         $total = round($sub + $imp - $desc + 1e-9, 2);
 

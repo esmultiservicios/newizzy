@@ -6,7 +6,6 @@ require_once "../controladores/pagoFacturaControlador.php";
 
 header('Content-Type: application/json; charset=utf-8');
 
-
 function validarCamposRequeridosPago(array $required, array $labels = []) {
     $missing = [];
 
@@ -21,13 +20,60 @@ function validarCamposRequeridosPago(array $required, array $labels = []) {
 
 function valorNumericoPago($field) {
     if (!isset($_POST[$field])) {
-        return 0;
+        return 0.0;
     }
 
-    $valor = str_replace([',', 'L', 'l', ' '], '', (string)$_POST[$field]);
-    $valor = preg_replace('/[^0-9.\-]/', '', $valor);
+    $valor = trim((string)$_POST[$field]);
 
-    return is_numeric($valor) ? (float)$valor : 0;
+    if ($valor === '') {
+        return 0.0;
+    }
+
+    $valor = str_replace(["\xc2\xa0", ' '], '', $valor);
+    $valor = str_ireplace(['Lps.', 'Lps', 'L.', 'L'], '', $valor);
+    $valor = preg_replace('/[^0-9,\.\-]/', '', $valor);
+
+    if ($valor === '' || $valor === '-' || $valor === '.' || $valor === ',') {
+        return 0.0;
+    }
+
+    $ultimaComa = strrpos($valor, ',');
+    $ultimoPunto = strrpos($valor, '.');
+
+    if ($ultimaComa !== false && $ultimoPunto !== false) {
+        if ($ultimaComa > $ultimoPunto) {
+            // Formato 1.500,00
+            $valor = str_replace('.', '', $valor);
+            $valor = str_replace(',', '.', $valor);
+        } else {
+            // Formato 1,500.00
+            $valor = str_replace(',', '', $valor);
+        }
+    } elseif ($ultimaComa !== false) {
+        if (preg_match('/,\d{1,2}$/', $valor)) {
+            $valor = str_replace(',', '.', $valor);
+        } else {
+            $valor = str_replace(',', '', $valor);
+        }
+    } elseif ($ultimoPunto !== false) {
+        if (!preg_match('/\.\d{1,2}$/', $valor)) {
+            $valor = str_replace('.', '', $valor);
+        }
+    }
+
+    if (substr_count($valor, '-') > 1 || (strpos($valor, '-') !== false && strpos($valor, '-') !== 0)) {
+        return 0.0;
+    }
+
+    return is_numeric($valor) ? (float)$valor : 0.0;
+}
+
+function normalizarPostNumericoPago(array $fields) {
+    foreach ($fields as $field) {
+        if (isset($_POST[$field])) {
+            $_POST[$field] = number_format(valorNumericoPago($field), 2, '.', '');
+        }
+    }
 }
 
 function responderErrorPago($message) {
@@ -38,7 +84,6 @@ function responderErrorPago($message) {
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
-
 
 $required = [
     'importe_transferencia',
@@ -57,13 +102,24 @@ if (!empty($missing)) {
     responderErrorPago("Faltan los siguientes campos obligatorios: " . implode(", ", $missing) . ".");
 }
 
-if ((string)$_POST['bk_nm'] === 'undefined' || (string)$_POST['bk_nm'] === 'null') {
+if (isset($_POST['bk_nm']) && ((string)$_POST['bk_nm'] === 'undefined' || (string)$_POST['bk_nm'] === 'null')) {
     responderErrorPago("Debe seleccionar un banco válido.");
 }
 
-if (valorNumericoPago('importe_transferencia') <= 0) {
+$importeTransferencia = valorNumericoPago('importe_transferencia');
+
+if ($importeTransferencia <= 0) {
     responderErrorPago("El importe de transferencia debe ser mayor a cero.");
 }
+
+normalizarPostNumericoPago([
+    'total_pago',
+    'customer_bill_pay',
+    'monto_efectivo',
+    'importe_transferencia'
+]);
+
+$_POST['importe_transferencia'] = number_format($importeTransferencia, 2, '.', '');
 
 $ctrl = new pagoFacturaControlador();
 $ctrl->agregar_pago_factura_controlador_transferencia();

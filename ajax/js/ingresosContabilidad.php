@@ -1,6 +1,8 @@
 <script>
   // ingresosContabilidad.php - este es el js
 $(() => {
+  inyectarEstilosTablaIngresos();
+
   // Inicializar
   listar_ingresos_contabilidad();
 
@@ -159,6 +161,121 @@ function escapeHtmlIngresos(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+
+// =========================================================
+// ESTILOS SEGUROS PARA TABLA DE INGRESOS
+// ---------------------------------------------------------
+// Evita que cualquier texto largo se salga de su columna.
+// Aplica wrap general, pero mantiene acciones, estados y montos controlados.
+// =========================================================
+function inyectarEstilosTablaIngresos() {
+  if (document.getElementById('ingresos-datatable-wrap-fix-style')) {
+    return;
+  }
+
+  var style = document.createElement('style');
+  style.id = 'ingresos-datatable-wrap-fix-style';
+  style.type = 'text/css';
+  style.appendChild(document.createTextNode(`
+    #dataTableIngresosContabilidad {
+      table-layout: fixed !important;
+      width: 100% !important;
+    }
+
+    #dataTableIngresosContabilidad th,
+    #dataTableIngresosContabilidad td {
+      white-space: normal !important;
+      overflow-wrap: anywhere !important;
+      word-break: break-word !important;
+      vertical-align: middle !important;
+    }
+
+    #dataTableIngresosContabilidad th *,
+    #dataTableIngresosContabilidad td * {
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+    }
+
+    #dataTableIngresosContabilidad .ingresos-info-box,
+    #dataTableIngresosContabilidad .ingresos-info-main,
+    #dataTableIngresosContabilidad .ingresos-info-muted,
+    #dataTableIngresosContabilidad .ingresos-info-chip,
+    #dataTableIngresosContabilidad .ingresos-observacion,
+    #dataTableIngresosContabilidad .ingresos-factura-texto,
+    #dataTableIngresosContabilidad .ingresos-type-badge {
+      white-space: normal !important;
+      overflow-wrap: anywhere !important;
+      word-break: break-word !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      line-height: 1.25 !important;
+    }
+
+    #dataTableIngresosContabilidad .ingresos-info-box {
+      width: 100% !important;
+      min-width: 0 !important;
+    }
+
+    #dataTableIngresosContabilidad .ingresos-money-badge,
+    #dataTableIngresosContabilidad .ingresos-status-badge {
+      white-space: nowrap !important;
+      max-width: 100% !important;
+      display: inline-block !important;
+    }
+
+    #dataTableIngresosContabilidad td:first-child,
+    #dataTableIngresosContabilidad th:first-child,
+    #dataTableIngresosContabilidad .acciones-dropdown,
+    #dataTableIngresosContabilidad .btn-acciones {
+      white-space: nowrap !important;
+      overflow-wrap: normal !important;
+      word-break: normal !important;
+    }
+
+    #dataTableIngresosContabilidad td:nth-child(8),
+    #dataTableIngresosContabilidad th:nth-child(8) {
+      min-width: 170px !important;
+      max-width: 230px !important;
+      width: 170px !important;
+      white-space: normal !important;
+      overflow-wrap: anywhere !important;
+      word-break: break-word !important;
+    }
+
+    .ingresos-factura-box {
+      display: flex !important;
+      align-items: flex-start !important;
+      justify-content: flex-start !important;
+      gap: .45rem !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      white-space: normal !important;
+      overflow: visible !important;
+    }
+
+    .ingresos-factura-numero {
+      flex: 1 1 auto !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      display: inline-flex !important;
+      align-items: flex-start !important;
+      white-space: normal !important;
+      overflow-wrap: anywhere !important;
+      word-break: break-word !important;
+      line-height: 1.25 !important;
+      text-align: left !important;
+    }
+
+    .ingresos-factura-numero i {
+      flex: 0 0 auto !important;
+      margin-top: .12rem !important;
+    }
+  `));
+
+  document.head.appendChild(style);
 }
 
 function limpiarTextoSelectPremium(texto) {
@@ -376,6 +493,8 @@ var total_ingreso_footer = function () {
 
 // ===== DataTable principal =====
 var listar_ingresos_contabilidad = function () {
+  inyectarEstilosTablaIngresos();
+
   var estado = $("#formMainIngresosContabilidad #estado_ingresos").val() || 1;
   var fechai = $("#formMainIngresosContabilidad #fechai").val();
   var fechaf = $("#formMainIngresosContabilidad #fechaf").val();
@@ -566,7 +685,15 @@ var listar_ingresos_contabilidad = function () {
             return data;
           }
 
-          return renderIngresoChip(data || "Sin factura", "fas fa-file-invoice-dollar");
+          var numeroFactura = data ? escapeHtmlIngresos(data) : "Sin factura";
+
+          return '' +
+            '<div class="ingresos-factura-box">' +
+              '<span class="ingresos-info-chip ingresos-factura-numero" title="' + numeroFactura + '" data-toggle="tooltip">' +
+                '<i class="fas fa-file-invoice-dollar mr-1"></i>' +
+                '<span class="ingresos-factura-texto">' + numeroFactura + '</span>' +
+              '</span>' +
+            '</div>';
         }
       },
       {

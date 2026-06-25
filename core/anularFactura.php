@@ -1,4 +1,5 @@
 <?php
+// anularFactura.php
 header('Content-Type: application/json; charset=utf-8');
 
 $peticionAjax = true;
@@ -6,7 +7,6 @@ require_once "configGenerales.php";
 require_once "mainModel.php";
 
 $insMainModel = new mainModel();
-
 $inicioProceso = microtime(true);
 
 function responderAnulacionFactura($success, $message, $extra = []) {
@@ -18,6 +18,260 @@ function responderAnulacionFactura($success, $message, $extra = []) {
 
     echo json_encode(array_merge($base, $extra), JSON_UNESCAPED_UNICODE);
     exit();
+}
+
+function cerrarStmtSeguro($stmt) {
+    if ($stmt) {
+        $stmt->close();
+    }
+}
+
+function limitarTextoAnulacion($texto, $limite) {
+    $texto = (string)$texto;
+
+    if (function_exists('mb_substr')) {
+        return mb_substr($texto, 0, $limite, 'UTF-8');
+    }
+
+    return substr($texto, 0, $limite);
+}
+
+function ejecutarUpdateAnulacion($cn, $sql, $types = '', $params = []) {
+    $stmt = $cn->prepare($sql);
+
+    if (!$stmt) {
+        throw new Exception("Error preparando actualización: " . $cn->error);
+    }
+
+    if ($types !== '' && !empty($params)) {
+        $stmt->bind_param($types, ...$params);
+    }
+
+    if (!$stmt->execute()) {
+        $error = $stmt->error;
+        $stmt->close();
+        throw new Exception("Error ejecutando actualización: " . $error);
+    }
+
+    $affected = $stmt->affected_rows;
+    $stmt->close();
+
+    return $affected;
+}
+
+function obtenerEnteroConsultaAnulacion($cn, $sql, $types = '', $params = [], $campo = '') {
+    $stmt = $cn->prepare($sql);
+
+    if (!$stmt) {
+        throw new Exception("Error preparando consulta: " . $cn->error);
+    }
+
+    if ($types !== '' && !empty($params)) {
+        $stmt->bind_param($types, ...$params);
+    }
+
+    if (!$stmt->execute()) {
+        $error = $stmt->error;
+        $stmt->close();
+        throw new Exception("Error ejecutando consulta: " . $error);
+    }
+
+    $res = $stmt->get_result();
+    $valor = 0;
+
+    if ($res && $res->num_rows > 0) {
+        $row = $res->fetch_assoc();
+        if ($campo !== '' && isset($row[$campo])) {
+            $valor = (int)$row[$campo];
+        } else {
+            $primero = reset($row);
+            $valor = (int)$primero;
+        }
+    }
+
+    $stmt->close();
+    return $valor;
+}
+
+function buscarProformaAnulacion($cn, $facturas_id, $empresa_id, $secuencia_facturacion_id, $numero_factura) {
+    $sql = "
+        SELECT
+            facturas_proforma_id,
+            facturas_id,
+            numero,
+            estado
+        FROM facturas_proforma
+        WHERE facturas_id = ?
+           OR (
+                empresa_id = ?
+            AND secuencia_facturacion_id = ?
+            AND numero = ?
+           )
+        LIMIT 1
+        FOR UPDATE
+    ";
+
+    $stmt = $cn->prepare($sql);
+
+    if (!$stmt) {
+        throw new Exception("Error preparando consulta de proforma: " . $cn->error);
+    }
+
+    $stmt->bind_param("iiii", $facturas_id, $empresa_id, $secuencia_facturacion_id, $numero_factura);
+
+    if (!$stmt->execute()) {
+        $error = $stmt->error;
+        $stmt->close();
+        throw new Exception("Error consultando la proforma: " . $error);
+    }
+
+    $res = $stmt->get_result();
+    $proforma = null;
+
+    if ($res && $res->num_rows > 0) {
+        $proforma = $res->fetch_assoc();
+    }
+
+    $stmt->close();
+    return $proforma;
+}
+
+function construirVariantesDocumentoAnulacion($facturas_id, $numero_factura, $no_factura, $documento_nombre, $documento_id) {
+    $variantes = [];
+
+    $agregar = function($valor) use (&$variantes) {
+        $valor = trim((string)$valor);
+        if ($valor !== '' && !in_array($valor, $variantes, true)) {
+            $variantes[] = $valor;
+        }
+    };
+
+    $no_factura = trim((string)$no_factura);
+    $documento_nombre = trim((string)$documento_nombre);
+
+    // Formato que ya usa el sistema para salidas de inventario.
+    $agregar("Factura " . $facturas_id);
+    $agregar("Factura " . $numero_factura);
+
+    // Proformas actuales o futuras.
+    $agregar("Proforma " . $facturas_id);
+    $agregar("Proforma " . $numero_factura);
+    $agregar("PROFORMA " . $facturas_id);
+    $agregar("PROFORMA " . $numero_factura);
+
+    // Número completo con prefijo.
+    $agregar($no_factura);
+    $agregar("Factura " . $no_factura);
+    $agregar("Proforma " . $no_factura);
+    $agregar("PROFORMA " . $no_factura);
+
+    // Nombre del documento desde secuencia/documento si viene disponible.
+    if ($documento_nombre !== '') {
+        $agregar($documento_nombre . " " . $facturas_id);
+        $agregar($documento_nombre . " " . $numero_factura);
+        $agregar($documento_nombre . " " . $no_factura);
+    }
+
+    // Compatibilidad para documento_id = 4.
+    if ((int)$documento_id === 4) {
+        $agregar("Factura Proforma " . $facturas_id);
+        $agregar("Factura Proforma " . $numero_factura);
+        $agregar("Factura Proforma " . $no_factura);
+    }
+
+    return $variantes;
+}
+
+function obtenerSalidasInventarioAnulacion($cn, $empresa_id, $variantesDocumento) {
+    if (empty($variantesDocumento)) {
+        return [];
+    }
+
+    $condiciones = [];
+    $types = "i";
+    $params = [$empresa_id];
+
+    foreach ($variantesDocumento as $doc) {
+        $condiciones[] = "documento = ?";
+        $types .= "s";
+        $params[] = $doc;
+
+        $condiciones[] = "documento LIKE ? ESCAPE '\\\\'";
+        $types .= "s";
+        $params[] = $doc . "\\_%";
+    }
+
+    $sql = "
+        SELECT
+            movimientos_id,
+            productos_id,
+            documento,
+            cantidad_salida,
+            almacen_id,
+            lote_id
+        FROM movimientos
+        WHERE empresa_id = ?
+          AND cantidad_salida > 0
+          AND (" . implode(" OR ", $condiciones) . ")
+        ORDER BY movimientos_id ASC
+    ";
+
+    $stmt = $cn->prepare($sql);
+
+    if (!$stmt) {
+        throw new Exception("Error preparando consulta de salidas de inventario: " . $cn->error);
+    }
+
+    $stmt->bind_param($types, ...$params);
+
+    if (!$stmt->execute()) {
+        $error = $stmt->error;
+        $stmt->close();
+        throw new Exception("Error consultando salidas de inventario: " . $error);
+    }
+
+    $res = $stmt->get_result();
+    $salidas = [];
+
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $salidas[] = $row;
+        }
+    }
+
+    $stmt->close();
+    return $salidas;
+}
+
+function validarDevolucionPreviaAnulacion($cn, $empresa_id, $documentoAnulacion) {
+    $sql = "
+        SELECT movimientos_id
+        FROM movimientos
+        WHERE empresa_id = ?
+          AND documento = ?
+          AND cantidad_entrada > 0
+        LIMIT 1
+    ";
+
+    $stmt = $cn->prepare($sql);
+
+    if (!$stmt) {
+        throw new Exception("Error preparando validación de devolución: " . $cn->error);
+    }
+
+    $stmt->bind_param("is", $empresa_id, $documentoAnulacion);
+
+    if (!$stmt->execute()) {
+        $error = $stmt->error;
+        $stmt->close();
+        throw new Exception("Error validando devolución de inventario: " . $error);
+    }
+
+    $res = $stmt->get_result();
+    $existe = ($res && $res->num_rows > 0);
+
+    $stmt->close();
+    return $existe;
 }
 
 try {
@@ -36,7 +290,7 @@ try {
     }
 
     $facturas_id = isset($_POST['facturas_id']) ? (int)$_POST['facturas_id'] : 0;
-    $comentario = isset($_POST['comentario']) ? trim($_POST['comentario']) : '';
+    $comentario = isset($_POST['comentario']) ? trim((string)$_POST['comentario']) : '';
 
     if ($facturas_id <= 0) {
         responderAnulacionFactura(false, 'Factura inválida');
@@ -45,6 +299,8 @@ try {
     if ($comentario === '') {
         responderAnulacionFactura(false, 'Debe ingresar un comentario para anular la factura');
     }
+
+    $comentario = limitarTextoAnulacion($comentario, 180);
 
     $cn = $insMainModel->connection();
 
@@ -56,11 +312,8 @@ try {
     $cn->begin_transaction();
 
     /*
-        1. Consultar factura.
-
-        Importante:
-        NO usamos FOR UPDATE aquí para luego llamar otro método que abra otra conexión.
-        En este archivo anulamos la factura directamente con la misma conexión.
+        1. Consultar y bloquear factura.
+        Se incluye documento_id para saber si es proforma.
     */
     $sqlFactura = "
         SELECT
@@ -71,12 +324,17 @@ try {
             f.estado,
             f.empresa_id,
             sf.prefijo,
-            sf.relleno
+            sf.relleno,
+            sf.documento_id,
+            COALESCE(d.nombre, '') AS documento_nombre
         FROM facturas f
         LEFT JOIN secuencia_facturacion sf
             ON sf.secuencia_facturacion_id = f.secuencia_facturacion_id
+        LEFT JOIN documento d
+            ON d.documento_id = sf.documento_id
         WHERE f.facturas_id = ?
         LIMIT 1
+        FOR UPDATE
     ";
 
     $stmtFactura = $cn->prepare($sqlFactura);
@@ -102,21 +360,22 @@ try {
 
     $clientes_id = (int)$factura['clientes_id'];
     $empresa_id = (int)$factura['empresa_id'];
+    $secuencia_facturacion_id = (int)$factura['secuencia_facturacion_id'];
     $numero_factura = (int)$factura['number'];
     $estado_factura = (int)$factura['estado'];
+    $documento_id = isset($factura['documento_id']) ? (int)$factura['documento_id'] : 0;
+    $documento_nombre = isset($factura['documento_nombre']) ? trim((string)$factura['documento_nombre']) : '';
 
-    if ($estado_factura === 4) {
+    $proforma = buscarProformaAnulacion($cn, $facturas_id, $empresa_id, $secuencia_facturacion_id, $numero_factura);
+    $es_proforma = ((int)$documento_id === 4 || $proforma !== null);
+    $estado_proforma = ($proforma !== null && isset($proforma['estado'])) ? (int)$proforma['estado'] : null;
+
+    if ($estado_factura === 4 && (!$es_proforma || $estado_proforma === 4 || $proforma === null)) {
         throw new Exception("Esta factura ya está anulada");
     }
 
     /*
-        2. Armar número completo de factura.
-
-        Ejemplo:
-        prefijo = 000-001-01-
-        number = 114
-        relleno = 8
-        resultado = 000-001-01-00000114
+        2. Armar número completo.
     */
     $prefijo = isset($factura['prefijo']) ? trim((string)$factura['prefijo']) : '';
     $relleno = isset($factura['relleno']) ? (int)$factura['relleno'] : 0;
@@ -132,156 +391,69 @@ try {
     }
 
     /*
-        3. Documentos de salida que puede tener movimientos.
-
-        Tu facturación actual guarda:
-        Factura {facturas_id}
-
-        Y productos relacionados:
-        Factura {facturas_id}_0
-        Factura {facturas_id}_1
-
-        Ojo:
-        El _ en LIKE es comodín, por eso se escapa.
-    */
-    $documentoFacturaPorId = "Factura " . $facturas_id;
-    $documentoFacturaPorIdLike = "Factura " . $facturas_id . "\\_%";
-
-    $documentoFacturaPorNumero = (string)$numero_factura;
-    $documentoFacturaCompleta = (string)$no_factura;
-
-    $documentoFacturaTextoNumero = "Factura " . $numero_factura;
-    $documentoFacturaTextoCompleta = "Factura " . $no_factura;
-
-    /*
-        4. Documento de entrada por anulación.
+        3. Documento de entrada por anulación.
+        Para proformas queda como ANULA PROFORMA00000487 si el prefijo ya es PROFORMA.
     */
     $documentoAnulacion = "ANULA " . $no_factura;
+    $documentoAnulacion = limitarTextoAnulacion($documentoAnulacion, 50);
 
-    if (strlen($documentoAnulacion) > 50) {
-        $documentoAnulacion = substr($documentoAnulacion, 0, 50);
-    }
-
-    /*
-        5. Validar devolución previa.
-    */
-    $sqlValidarDevolucion = "
-        SELECT movimientos_id
-        FROM movimientos
-        WHERE empresa_id = ?
-          AND documento = ?
-          AND cantidad_entrada > 0
-        LIMIT 1
-    ";
-
-    $stmtValidarDevolucion = $cn->prepare($sqlValidarDevolucion);
-
-    if (!$stmtValidarDevolucion) {
-        throw new Exception("Error preparando validación de devolución: " . $cn->error);
-    }
-
-    $stmtValidarDevolucion->bind_param("is", $empresa_id, $documentoAnulacion);
-
-    if (!$stmtValidarDevolucion->execute()) {
-        throw new Exception("Error validando devolución de inventario: " . $stmtValidarDevolucion->error);
-    }
-
-    $resultValidarDevolucion = $stmtValidarDevolucion->get_result();
-
-    if ($resultValidarDevolucion && $resultValidarDevolucion->num_rows > 0) {
-        throw new Exception("Esta factura ya tiene devolución de inventario registrada");
-    }
-
-    $stmtValidarDevolucion->close();
-
-    /*
-        6. Buscar salidas originales de inventario.
-    */
-    $sqlSalidas = "
-        SELECT
-            movimientos_id,
-            productos_id,
-            documento,
-            cantidad_salida,
-            almacen_id,
-            lote_id
-        FROM movimientos
-        WHERE empresa_id = ?
-          AND cantidad_salida > 0
-          AND (
-                documento = ?
-             OR documento LIKE ? ESCAPE '\\\\'
-             OR documento = ?
-             OR documento = ?
-             OR documento = ?
-             OR documento = ?
-          )
-        ORDER BY movimientos_id ASC
-    ";
-
-    $stmtSalidas = $cn->prepare($sqlSalidas);
-
-    if (!$stmtSalidas) {
-        throw new Exception("Error preparando consulta de movimientos de salida: " . $cn->error);
-    }
-
-    $stmtSalidas->bind_param(
-        "issssss",
-        $empresa_id,
-        $documentoFacturaPorId,
-        $documentoFacturaPorIdLike,
-        $documentoFacturaPorNumero,
-        $documentoFacturaCompleta,
-        $documentoFacturaTextoNumero,
-        $documentoFacturaTextoCompleta
+    $variantesDocumento = construirVariantesDocumentoAnulacion(
+        $facturas_id,
+        $numero_factura,
+        $no_factura,
+        $documento_nombre,
+        $documento_id
     );
 
-    if (!$stmtSalidas->execute()) {
-        throw new Exception("Error consultando movimientos de salida: " . $stmtSalidas->error);
-    }
-
-    $resultSalidas = $stmtSalidas->get_result();
-
     /*
-        7. Anular factura directamente usando la misma conexión.
-
-        Evita el bloqueo/lentitud de:
-        SELECT ... FOR UPDATE
-        +
-        anular_factura() con otra conexión.
+        4. Buscar salidas originales y validar si ya se devolvió antes.
+        Si ya existe devolución previa NO se vuelve a devolver, pero sí se permite
+        terminar de anular factura/proforma para corregir estados incompletos.
     */
-    $sqlAnularFactura = "
-        UPDATE facturas
-        SET estado = 4
-        WHERE facturas_id = ?
-          AND empresa_id = ?
-          AND estado <> 4
-        LIMIT 1
-    ";
-
-    $stmtAnularFactura = $cn->prepare($sqlAnularFactura);
-
-    if (!$stmtAnularFactura) {
-        throw new Exception("Error preparando anulación de factura: " . $cn->error);
-    }
-
-    $stmtAnularFactura->bind_param("ii", $facturas_id, $empresa_id);
-
-    if (!$stmtAnularFactura->execute()) {
-        throw new Exception("Error anulando factura: " . $stmtAnularFactura->error);
-    }
-
-    if ($stmtAnularFactura->affected_rows <= 0) {
-        throw new Exception("La factura no se pudo anular o ya estaba anulada");
-    }
-
-    $stmtAnularFactura->close();
+    $salidasInventario = obtenerSalidasInventarioAnulacion($cn, $empresa_id, $variantesDocumento);
+    $devolucionPrevia = validarDevolucionPreviaAnulacion($cn, $empresa_id, $documentoAnulacion);
 
     /*
-        8. Preparar correlativo de movimientos una sola vez.
+        5. Anular factura.
+    */
+    $factura_anulada = false;
 
-        Tu movimientos_id no es AUTO_INCREMENT.
-        Por eso se toma el último y se incrementa en memoria.
+    if ($estado_factura !== 4) {
+        $afectadasFactura = ejecutarUpdateAnulacion(
+            $cn,
+            "UPDATE facturas SET estado = 4 WHERE facturas_id = ? AND empresa_id = ? AND estado <> 4 LIMIT 1",
+            "ii",
+            [$facturas_id, $empresa_id]
+        );
+
+        $factura_anulada = ($afectadasFactura > 0);
+    }
+
+    /*
+        6. Anular/sincronizar proforma si existe.
+        No se elimina la proforma; se marca como estado 4 para que el reporte pueda filtrarla.
+    */
+    $proforma_anulada = false;
+    $proforma_encontrada = ($proforma !== null);
+
+    if ($proforma_encontrada) {
+        $facturas_proforma_id = (int)$proforma['facturas_proforma_id'];
+
+        $afectadasProforma = ejecutarUpdateAnulacion(
+            $cn,
+            "UPDATE facturas_proforma SET estado = 4 WHERE facturas_proforma_id = ? AND empresa_id = ? AND estado <> 4 LIMIT 1",
+            "ii",
+            [$facturas_proforma_id, $empresa_id]
+        );
+
+        $proforma_anulada = ($afectadasProforma > 0);
+    } elseif ($es_proforma) {
+        // Si por algún motivo no existe en facturas_proforma, no detenemos la anulación.
+        $proforma_anulada = false;
+    }
+
+    /*
+        7. Preparar correlativo de movimientos.
     */
     $nuevo_movimientos_id = 1;
 
@@ -305,15 +477,15 @@ try {
     }
 
     /*
-        9. Devolver inventario.
+        8. Devolver inventario solo si existieron salidas y no se devolvió antes.
     */
     $totalProductosDevueltos = 0;
     $totalMovimientosDevueltos = 0;
 
-    if ($resultSalidas && $resultSalidas->num_rows > 0) {
-        while ($salida = $resultSalidas->fetch_assoc()) {
+    if (!$devolucionPrevia && !empty($salidasInventario)) {
+        foreach ($salidasInventario as $salida) {
             $productos_id = (int)$salida['productos_id'];
-            $cantidad_devolver = (int)$salida['cantidad_salida'];
+            $cantidad_devolver = (float)$salida['cantidad_salida'];
             $almacen_id = (int)$salida['almacen_id'];
             $lote_id = (int)$salida['lote_id'];
 
@@ -330,6 +502,7 @@ try {
                   AND empresa_id = ?
                 ORDER BY movimientos_id DESC
                 LIMIT 1
+                FOR UPDATE
             ";
 
             $stmtSaldo = $cn->prepare($sqlSaldo);
@@ -341,27 +514,25 @@ try {
             $stmtSaldo->bind_param("iiii", $productos_id, $almacen_id, $lote_id, $empresa_id);
 
             if (!$stmtSaldo->execute()) {
-                throw new Exception("Error consultando saldo actual: " . $stmtSaldo->error);
+                $error = $stmtSaldo->error;
+                $stmtSaldo->close();
+                throw new Exception("Error consultando saldo actual: " . $error);
             }
 
             $resultSaldo = $stmtSaldo->get_result();
-
             $saldo_actual = 0;
 
             if ($resultSaldo && $resultSaldo->num_rows > 0) {
                 $rowSaldo = $resultSaldo->fetch_assoc();
-                $saldo_actual = (int)$rowSaldo['saldo'];
+                $saldo_actual = (float)$rowSaldo['saldo'];
             }
 
             $stmtSaldo->close();
 
             $nuevo_saldo = $saldo_actual + $cantidad_devolver;
 
-            $comentarioMovimiento = "Entrada por anulación de factura " . $no_factura . ". Comentario: " . $comentario;
-
-            if (strlen($comentarioMovimiento) > 254) {
-                $comentarioMovimiento = substr($comentarioMovimiento, 0, 254);
-            }
+            $comentarioMovimiento = "Entrada por anulación de " . ($es_proforma ? "proforma " : "factura ") . $no_factura . ". Comentario: " . $comentario;
+            $comentarioMovimiento = limitarTextoAnulacion($comentarioMovimiento, 254);
 
             $fechaRegistro = date("Y-m-d H:i:s");
 
@@ -402,7 +573,7 @@ try {
             }
 
             $stmtInsertMovimiento->bind_param(
-                "iisiiisisii",
+                "iisddisisii",
                 $nuevo_movimientos_id,
                 $productos_id,
                 $documentoAnulacion,
@@ -417,76 +588,96 @@ try {
             );
 
             if (!$stmtInsertMovimiento->execute()) {
-                throw new Exception("Error registrando entrada por anulación: " . $stmtInsertMovimiento->error);
+                $error = $stmtInsertMovimiento->error;
+                $stmtInsertMovimiento->close();
+                throw new Exception("Error registrando entrada por anulación: " . $error);
             }
 
             $stmtInsertMovimiento->close();
 
             $nuevo_movimientos_id++;
-
             $totalProductosDevueltos += $cantidad_devolver;
             $totalMovimientosDevueltos++;
         }
     }
 
-    if ($stmtSalidas) {
-        $stmtSalidas->close();
-    }
+    /*
+        9. Anular pagos activos directamente en la misma transacción.
+        En tu flujo pagos.estado = 1 representa activo.
+    */
+    $pagos_anulados = 0;
+
+    $pagos_anulados = ejecutarUpdateAnulacion(
+        $cn,
+        "UPDATE pagos SET estado = 2 WHERE facturas_id = ? AND estado = 1",
+        "i",
+        [$facturas_id]
+    );
 
     /*
-        10. Anular pago.
-
-        Se deja con tus métodos actuales porque no compartiste la estructura
-        de pagos. Ya no debería quedar bloqueado por la factura porque la
-        anulación de factura se hizo en la misma conexión.
+        10. Cerrar/limpiar cuenta por cobrar asociada si existe.
+        No se elimina; se marca como saldada/cerrada para no dejar saldo vivo.
     */
-    $pago_anulado = false;
-    $pago_encontrado = false;
+    $cxc_actualizadas = 0;
 
-    $resultPagos = $insMainModel->valid_pago_factura($facturas_id);
-
-    if ($resultPagos && $resultPagos->num_rows > 0) {
-        $pago_encontrado = true;
-        $insMainModel->anular_pago_factura($facturas_id);
-        $pago_anulado = true;
-    }
+    $cxc_actualizadas = ejecutarUpdateAnulacion(
+        $cn,
+        "UPDATE cobrar_clientes SET estado = 2, saldo = 0 WHERE facturas_id = ? AND empresa_id = ?",
+        "ii",
+        [$facturas_id, $empresa_id]
+    );
 
     /*
         11. Historial.
     */
-    $observacion = "El número de factura " . $no_factura . " ha sido anulada correctamente segun comentario: " . $comentario;
+    $tipoTexto = $es_proforma ? "proforma" : "factura";
 
-    if ($totalMovimientosDevueltos > 0) {
+    $observacion = "El número de " . $tipoTexto . " " . $no_factura . " ha sido anulado correctamente según comentario: " . $comentario;
+
+    if ($devolucionPrevia) {
+        $observacion .= ". La devolución de inventario ya existía previamente y no se duplicó.";
+    } elseif ($totalMovimientosDevueltos > 0) {
         $observacion .= ". Inventario devuelto: " . $totalProductosDevueltos . " unidades en " . $totalMovimientosDevueltos . " movimiento(s).";
     } else {
         $observacion .= ". No se encontraron movimientos de salida para devolver inventario.";
     }
 
-    if ($pago_encontrado) {
-        $observacion .= ". Pago anulado correctamente.";
+    if ($pagos_anulados > 0) {
+        $observacion .= ". Pagos anulados: " . $pagos_anulados . ".";
     }
 
-    $datos = [
+    if ($cxc_actualizadas > 0) {
+        $observacion .= ". Cuenta por cobrar actualizada.";
+    }
+
+    $datosHistorial = [
         "modulo" => "Facturación",
         "colaboradores_id" => $_SESSION['colaborador_id_sd'],
         "status" => "Anulada",
         "observacion" => $observacion,
     ];
 
-    $insMainModel->guardarHistorial($datos);
+    $insMainModel->guardarHistorial($datosHistorial);
 
     $cn->commit();
 
     $duracion = round(microtime(true) - $inicioProceso, 4);
 
-    responderAnulacionFactura(true, "La factura ha sido anulada correctamente", [
+    responderAnulacionFactura(true, ucfirst($tipoTexto) . " anulada correctamente", [
         "facturas_id" => $facturas_id,
         "factura" => $no_factura,
+        "documento_id" => $documento_id,
+        "es_proforma" => $es_proforma,
+        "factura_anulada" => $factura_anulada,
+        "proforma_encontrada" => $proforma_encontrada,
+        "proforma_anulada" => $proforma_anulada,
+        "inventario_tenia_salida" => !empty($salidasInventario),
         "inventario_devuelto" => $totalMovimientosDevueltos > 0,
+        "devolucion_previa" => $devolucionPrevia,
         "total_movimientos_devueltos" => $totalMovimientosDevueltos,
         "total_productos_devueltos" => $totalProductosDevueltos,
-        "pago_encontrado" => $pago_encontrado,
-        "pago_anulado" => $pago_anulado,
+        "pagos_anulados" => $pagos_anulados,
+        "cxc_actualizadas" => $cxc_actualizadas,
         "duracion_segundos" => $duracion
     ]);
 

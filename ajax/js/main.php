@@ -1,6 +1,35 @@
 <script>
+<?php
+/*
+ * Fallback seguro para variables usadas en los reportes IIS.
+ * Evita warnings cuando configGenerales.php no dejó cargado $GLOBALS['SISTEMA_PRUEBA']
+ * o $GLOBALS['db'] antes de imprimir este main.php.
+ */
+$IZZY_DB_JS = '';
+if (isset($GLOBALS['db']) && trim((string)$GLOBALS['db']) !== '') {
+    $IZZY_DB_JS = trim((string)$GLOBALS['db']);
+} elseif (isset($_SESSION['db_cliente']) && trim((string)$_SESSION['db_cliente']) !== '') {
+    $IZZY_DB_JS = trim((string)$_SESSION['db_cliente']);
+} elseif (defined('DB_MAIN')) {
+    $IZZY_DB_JS = DB_MAIN;
+}
+
+$IZZY_DB_MAIN_JS = defined('DB_MAIN') ? DB_MAIN : $IZZY_DB_JS;
+
+$IZZY_SISTEMA_PRUEBA_JS = 'NO';
+if (isset($GLOBALS['SISTEMA_PRUEBA']) && trim((string)$GLOBALS['SISTEMA_PRUEBA']) !== '') {
+    $IZZY_SISTEMA_PRUEBA_JS = trim((string)$GLOBALS['SISTEMA_PRUEBA']);
+} elseif (defined('SISTEMA_PRUEBA')) {
+    $IZZY_SISTEMA_PRUEBA_JS = SISTEMA_PRUEBA;
+}
+
+$IZZY_DB_JS = htmlspecialchars((string)$IZZY_DB_JS, ENT_QUOTES, 'UTF-8');
+$IZZY_DB_MAIN_JS = htmlspecialchars((string)$IZZY_DB_MAIN_JS, ENT_QUOTES, 'UTF-8');
+$IZZY_SISTEMA_PRUEBA_JS = htmlspecialchars((string)$IZZY_SISTEMA_PRUEBA_JS, ENT_QUOTES, 'UTF-8');
+?>
+
 //main.php
-var DB_MAIN = "<?php echo DB_MAIN; ?>";
+var DB_MAIN = "<?php echo $IZZY_DB_MAIN_JS; ?>";
 
 // LLAMAMOS EL MÉTODO QUE IDENTIFICA EL USUARIO QUE HA INICIADO SESIÓN
 getUserSessionStart();
@@ -1972,8 +2001,8 @@ function printQuote(cotizacion_id) {
     params = {
         "id": cotizacion_id,
         "type": "Cotizacion_carta_izzy",
-        "db": "<?php echo $GLOBALS['db']; ?>",
-        "demo_sistema": "<?php echo $GLOBALS['SISTEMA_PRUEBA']; ?>"
+        "db": "<?php echo $IZZY_DB_JS; ?>",
+        "demo_sistema": "<?php echo $IZZY_SISTEMA_PRUEBA_JS; ?>"
     };   
 
     // Llamar a la función para mostrar el reporte
@@ -2005,22 +2034,22 @@ function printBill(facturas_id, $print_comprobante) {
                     params = {
                         "id": facturas_id,
                         "type": "Factura_carta_izzy",
-                        "db": "<?php echo $GLOBALS['db']; ?>",
-                        "demo_sistema": "<?php echo $GLOBALS['SISTEMA_PRUEBA']; ?>"
+                        "db": "<?php echo $IZZY_DB_JS; ?>",
+                        "demo_sistema": "<?php echo $IZZY_SISTEMA_PRUEBA_JS; ?>"
                     };
                 } else if (formato === "Media Carta") {
                     params = {
                         "id": facturas_id,
                         "type": "Factura_media_izzy",
-                        "db": "<?php echo $GLOBALS['db']; ?>",
-                        "demo_sistema": "<?php echo $GLOBALS['SISTEMA_PRUEBA']; ?>"
+                        "db": "<?php echo $IZZY_DB_JS; ?>",
+                        "demo_sistema": "<?php echo $IZZY_SISTEMA_PRUEBA_JS; ?>"
                     };
                 } else if (formato === "Ticket") {
                     params = {
                         "id": facturas_id,
                         "type": "Factura_ticket_izzy",
-                        "db": "<?php echo $GLOBALS['db']; ?>",
-                        "demo_sistema": "<?php echo $GLOBALS['SISTEMA_PRUEBA']; ?>"
+                        "db": "<?php echo $IZZY_DB_JS; ?>",
+                        "demo_sistema": "<?php echo $IZZY_SISTEMA_PRUEBA_JS; ?>"
                     };                
                 } else {
                     // Manejar caso donde el formato no sea válido
@@ -2068,22 +2097,22 @@ function printBillMovil(facturas_id, $print_comprobante) {
                     params = {
                         "id": facturas_id,
                         "type": "Factura_carta_izzy",
-                        "db": "<?php echo $GLOBALS['db']; ?>",
-                        "demo_sistema": "<?php echo $GLOBALS['SISTEMA_PRUEBA']; ?>"
+                        "db": "<?php echo $IZZY_DB_JS; ?>",
+                        "demo_sistema": "<?php echo $IZZY_SISTEMA_PRUEBA_JS; ?>"
                     };
                 } else if (formato === "Media Carta") {
                     params = {
                         "id": facturas_id,
                         "type": "Factura_media_izzy",
-                        "db": "<?php echo $GLOBALS['db']; ?>",
-                        "demo_sistema": "<?php echo $GLOBALS['SISTEMA_PRUEBA']; ?>"
+                        "db": "<?php echo $IZZY_DB_JS; ?>",
+                        "demo_sistema": "<?php echo $IZZY_SISTEMA_PRUEBA_JS; ?>"
                     };
                 } else if (formato === "Ticket") {
                     params = {
                         "id": facturas_id,
                         "type": "Factura_ticket_izzy",
-                        "db": "<?php echo $GLOBALS['db']; ?>",
-                        "demo_sistema": "<?php echo $GLOBALS['SISTEMA_PRUEBA']; ?>"
+                        "db": "<?php echo $IZZY_DB_JS; ?>",
+                        "demo_sistema": "<?php echo $IZZY_SISTEMA_PRUEBA_JS; ?>"
                     };                
                 } else {
                     // Manejar caso donde el formato no sea válido
@@ -2131,22 +2160,22 @@ function printBillReporteVentas(facturas_id, print_comprobante) {
                     params = {
                         "id": facturas_id,
                         "type": "Factura_carta_izzy",
-                        "db": "<?php echo $GLOBALS['db']; ?>",
-                        "demo_sistema": "<?php echo $GLOBALS['SISTEMA_PRUEBA']; ?>"
+                        "db": "<?php echo $IZZY_DB_JS; ?>",
+                        "demo_sistema": "<?php echo $IZZY_SISTEMA_PRUEBA_JS; ?>"
                     };
                 } else if (formato === "Media Carta") {
                     params = {
                         "id": facturas_id,
                         "type": "Factura_media_izzy",
-                        "db": "<?php echo $GLOBALS['db']; ?>",
-                        "demo_sistema": "<?php echo $GLOBALS['SISTEMA_PRUEBA']; ?>"
+                        "db": "<?php echo $IZZY_DB_JS; ?>",
+                        "demo_sistema": "<?php echo $IZZY_SISTEMA_PRUEBA_JS; ?>"
                     };
                 } else if (formato === "Ticket") {
                     params = {
                         "id": facturas_id,
                         "type": "Factura_ticket_izzy",
-                        "db": "<?php echo $GLOBALS['db']; ?>",
-                        "demo_sistema": "<?php echo $GLOBALS['SISTEMA_PRUEBA']; ?>"
+                        "db": "<?php echo $IZZY_DB_JS; ?>",
+                        "demo_sistema": "<?php echo $IZZY_SISTEMA_PRUEBA_JS; ?>"
                     };                
                 } else {
                     // Manejar caso donde el formato no sea válido
@@ -2227,8 +2256,8 @@ function printComprobanteCajas(apertura_id) {
             params = {
                 "id": apertura_id,
                 "type": "Comprobante_caja_izzy",
-                "db": "<?php echo $GLOBALS['db']; ?>",
-                "demo_sistema": "<?php echo $GLOBALS['SISTEMA_PRUEBA']; ?>"
+                "db": "<?php echo $IZZY_DB_JS; ?>",
+                "demo_sistema": "<?php echo $IZZY_SISTEMA_PRUEBA_JS; ?>"
             };   
 
             // Llamar a la función para mostrar el reporte

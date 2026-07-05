@@ -1335,7 +1335,7 @@ function getDepartamentoClientes() {
 // Función para cargar la configuración ISV (VERSIÓN CORREGIDA)
 function cargarConfiguracionISV() {
     $.ajax({
-        url: 'core/productos/getIsvConfig.php',
+        url: '<?php echo SERVERURL;?>core/productos/getIsvConfig.php',
         type: 'POST',
         dataType: 'json',
         success: function(response) {
@@ -5269,7 +5269,7 @@ function saldoFactura(facturas_id) {
         url: url,
         data: 'facturas_id=' + facturas_id,
         success: function(saldoFactura) {
-            $('#formEfectivoBill #monto_efectivo').val(saldoFactura);
+            $('#formEfectivoBill #monto_efectivo, #monto_efectivo_efectivo').val(saldoFactura);
             $('#bill-pay').html(saldoFactura);
         }
     });
@@ -5285,7 +5285,7 @@ function saldoCompras(compras_id) {
         url: url,
         data: 'compras_id=' + compras_id,
         success: function(saldoFactura) {
-            //$('#formEfectivoBill #monto_efectivo').val(saldoFactura);
+            //$('#formEfectivoBill #monto_efectivo, #monto_efectivo_efectivo').val(saldoFactura);
             $('#Purchase-pay').html(saldoFactura);
         }
     });
@@ -5638,10 +5638,7 @@ function updateCardAmountVisibility() {
   }
 }
 
-function getCardAmountValue() {
-  var $f = $('#formTarjetaBill');
-  return parseMonto($f.find('#importe_tarjeta').val());
-}
+
 
 /* ===============================
    UI DE PASOS
@@ -5880,6 +5877,26 @@ function showDetailsForSelected() {
   resetDetailsScroll();
 }
 
+
+function getEfectivoRecibidoActual() {
+  var $m = $('#modal_pagos_unificado');
+  var $field = $m.find('#formEfectivoBill #efectivo_bill:visible:enabled').first();
+
+  if (!$field.length) {
+    $field = $m.find('#formEfectivoBill input[name="efectivo_bill"]:visible:enabled').first();
+  }
+
+  if (!$field.length) {
+    $field = $m.find('#formEfectivoBill #efectivo_bill').first();
+  }
+
+  if (!$field.length) {
+    $field = $m.find('#formEfectivoBill input[name="efectivo_bill"]').first();
+  }
+
+  return parseMontoSeguro($field.val());
+}
+
 /* ===============================
    LECTURA Y CÁLCULO DE IMPORTES
    =============================== */
@@ -5894,7 +5911,7 @@ function getCardAmountValue() {
     }
   }
 
-  return parseMonto($f.find('#importe_tarjeta').val() || $f.find('#monto_efectivo_tarjeta').val());
+  return parseMonto($f.find('#importe_tarjeta').val() || $f.find('#monto_efectivo, #monto_efectivo_efectivo_tarjeta').val());
 }
 
 function readAmounts() {
@@ -5902,7 +5919,7 @@ function readAmounts() {
   var totalFactura = parseMonto($m.find('#customer_bill_pay').val());
 
   var amounts = {
-    cash: parseMonto($m.find('#formEfectivoBill #efectivo_bill').val()),
+    cash: getEfectivoRecibidoActual(),
     card: getCardAmountValue(),
     transfer: parseMonto($m.find('#formTransferenciaBill #importe_transferencia').val()),
     check: parseMonto($m.find('#formChequeBill #importe_cheque').val()),
@@ -5990,7 +6007,7 @@ function validateBeforeConfirm() {
   if (!multi && isFactura()) {
     if (SELECTED_METHODS.has('card')) {
       $('#formTarjetaBill #importe_tarjeta').val(fixed2(totalFactura));
-      $('#formTarjetaBill #monto_efectivo_tarjeta').val(fixed2(totalFactura));
+      $('#formTarjetaBill #monto_efectivo, #monto_efectivo_efectivo_tarjeta').val(fixed2(totalFactura));
     }
 
     if (SELECTED_METHODS.has('transfer') && parseMonto($('#formTransferenciaBill #importe_transferencia').val()) <= 0) {
@@ -6003,7 +6020,7 @@ function validateBeforeConfirm() {
   }
 
   if (SELECTED_METHODS.has('cash')) {
-    var efectivo = parseMonto($('#formEfectivoBill #efectivo_bill').val());
+    var efectivo = getEfectivoRecibidoActual();
 
     if (efectivo <= 0) {
       warnPago('El efectivo recibido debe ser mayor que 0.', '#efectivo_bill');
@@ -6040,7 +6057,7 @@ function validateBeforeConfirm() {
     } else {
       // Regla para Factura: igual al total (y ocultar el campo)
       $('#formTarjetaBill #importe_tarjeta').val(fixed2(totalFactura));
-      $('#formTarjetaBill #monto_efectivo_tarjeta').val(fixed2(totalFactura));
+      $('#formTarjetaBill #monto_efectivo, #monto_efectivo_efectivo_tarjeta').val(fixed2(totalFactura));
       
       // Si no es múltiple, validar que el monto sea exactamente el total
       if (!multi && Math.abs(tarjeta - totalFactura) > 0.005) {
@@ -6423,13 +6440,13 @@ function hydrateCashForm() {
   if (!$form.length) return;
 
   var calc = computeAppliedAmounts();
-  var entregado = parseMonto($form.find('#efectivo_bill').val());
+  var entregado = getEfectivoRecibidoActual();
 
   if (entregado <= 0) {
     entregado = parseMonto(getCacheValue('efectivo', 'efectivo_bill', 0));
   }
 
-  var aplicado = calc.apply.cash || parseMonto($form.find('#monto_efectivo').val()) || entregado;
+  var aplicado = calc.apply.cash || parseMonto($form.find('#monto_efectivo, #monto_efectivo_efectivo').val()) || entregado;
   var cambio = parseMonto($form.find('#cambio_efectivo').val());
 
   if (isFactura() && !isMultiOn()) {
@@ -6498,7 +6515,7 @@ function hydrateCardForm() {
   ensureNamedHidden($form, 'numero_aprobacion_bk', aprob);
   ensureNamedHidden($form, 'banco_id_tarjeta', banco || '0');
 
-  $form.find('#monto_efectivo_tarjeta').val(fixed2(importe));
+  $form.find('#monto_efectivo, #monto_efectivo_efectivo_tarjeta').val(fixed2(importe));
   $form.find('#importe_tarjeta').val(fixed2(importe));
 
   if (isCxC()) {
@@ -6693,7 +6710,7 @@ function syncAmountToForm(method, override) {
     ensureNamedHidden($f, 'importe_tarjeta', uiVal);
     ensureNamedHidden($f, 'monto_efectivo', uiVal);
     $f.find('#importe_tarjeta').val(uiVal);
-    $f.find('#monto_efectivo_tarjeta').val(uiVal);
+    $f.find('#monto_efectivo, #monto_efectivo_efectivo_tarjeta').val(uiVal);
     return parseMonto(uiVal);
   }
 
@@ -6830,7 +6847,7 @@ function calcularCambioEfectivo() {
 
   if (!$f.length) return;
 
-  var efectivo = parseMonto($f.find('#efectivo_bill').val());
+  var efectivo = getEfectivoRecibidoActual();
   var monto = parseMonto($('#modal_pagos_unificado #customer_bill_pay').val());
 
   CASH_TYPED = efectivo;
@@ -7010,11 +7027,11 @@ function buildConfirmSummary() {
 
       var tipoFinal = isCxC() ? 2 : (isMultiOn() ? 2 : 1);
 
-      $('#formEfectivoBill #tipo_factura').val(tipoFinal);
-      $('#formTarjetaBill #tipo_factura').val(tipoFinal);
-      $('#formTransferenciaBill #tipo_factura_transferencia').val(tipoFinal);
-      $('#formChequeBill #tipo_factura_cheque').val(tipoFinal);
-      $('#formPuntosBill #tipo_factura_puntos').val(tipoFinal);
+      $('#formEfectivoBill #tipo_factura, #tipo_factura_efectivo').val(tipoFinal);
+      $('#formTarjetaBill #tipo_factura, #tipo_factura_efectivo').val(tipoFinal);
+      $('#formTransferenciaBill #tipo_factura, #tipo_factura_efectivo_transferencia').val(tipoFinal);
+      $('#formChequeBill #tipo_factura, #tipo_factura_efectivo_cheque').val(tipoFinal);
+      $('#formPuntosBill #tipo_factura, #tipo_factura_efectivo_puntos').val(tipoFinal);
 
       var printVal = $('#comprobante_print_switch').is(':checked') ? 1 : 0;
 
@@ -7098,10 +7115,10 @@ function configurarFormularioEfectivo(facturas_id, tipoPago, monto, origen) {
 
   var m = parseMonto(monto);
 
-  $f.find('#monto_efectivo').val(fixed2(m));
+  $f.find('#monto_efectivo, #monto_efectivo_efectivo').val(fixed2(m));
   $f.find('#factura_id_efectivo').val(facturas_id);
-  $f.find('#tipo_factura').val(tipoPago);
-  $f.find('#origen_pago').val(origen);
+  $f.find('#tipo_factura, #tipo_factura_efectivo').val(tipoPago);
+  $f.find('#origen_pago, #origen_pago_efectivo').val(origen);
   $f.find('#pago_efectivo').prop('disabled', true);
   $f.find('#efectivo_bill').prop('required', true);
 
@@ -7127,11 +7144,11 @@ function configurarFormularioTarjeta(facturas_id, tipoPago, monto, origen) {
 
   var m = parseMonto(monto);
 
-  $f.find('#monto_efectivo_tarjeta').val(fixed2(m));
+  $f.find('#monto_efectivo, #monto_efectivo_efectivo_tarjeta').val(fixed2(m));
   $f.find('#importe_tarjeta').val(fixed2(m));
   $f.find('#factura_id_tarjeta').val(facturas_id);
-  $f.find('#tipo_factura').val(tipoPago);
-  $f.find('#origen_pago').val(origen);
+  $f.find('#tipo_factura, #tipo_factura_efectivo').val(tipoPago);
+  $f.find('#origen_pago, #origen_pago_efectivo').val(origen);
   $f.find('#pago_tarjeta').prop('disabled', false);
   $f.find('#cr_bill, #exp, #cvcpwd').prop('required', false);
 
@@ -7145,10 +7162,10 @@ function configurarFormularioTransferencia(facturas_id, tipoPago, monto, origen)
 
   var m = parseMonto(monto);
 
-  $f.find('#monto_efectivo').val(fixed2(m));
+  $f.find('#monto_efectivo, #monto_efectivo_efectivo').val(fixed2(m));
   $f.find('#factura_id_transferencia').val(facturas_id);
-  $f.find('#tipo_factura_transferencia').val(tipoPago);
-  $f.find('#origen_pago').val(origen);
+  $f.find('#tipo_factura, #tipo_factura_efectivo_transferencia').val(tipoPago);
+  $f.find('#origen_pago, #origen_pago_efectivo').val(origen);
   $f.find('#pago_transferencia').prop('disabled', false);
   $f.find('#importe_transferencia').prop('required', true);
 
@@ -7163,10 +7180,10 @@ function configurarFormularioCheque(facturas_id, tipoPago, monto, origen) {
 
   var m = parseMonto(monto);
 
-  $f.find('#monto_efectivo').val(fixed2(m));
+  $f.find('#monto_efectivo, #monto_efectivo_efectivo').val(fixed2(m));
   $f.find('#factura_id_cheque').val(facturas_id);
-  $f.find('#tipo_factura_cheque').val(tipoPago);
-  $f.find('#origen_pago').val(origen);
+  $f.find('#tipo_factura, #tipo_factura_efectivo_cheque').val(tipoPago);
+  $f.find('#origen_pago, #origen_pago_efectivo').val(origen);
   $f.find('#pago_cheque').prop('disabled', false);
   $f.find('#importe_cheque').prop('required', true);
 
@@ -7180,8 +7197,8 @@ function configurarFormularioPuntos(facturas_id, tipoPago, monto, origen) {
   if ($f[0]) $f[0].reset();
 
   $f.find('#factura_id_puntos').val(facturas_id);
-  $f.find('#tipo_factura_puntos').val(tipoPago);
-  $f.find('#origen_pago').val(origen);
+  $f.find('#tipo_factura, #tipo_factura_efectivo_puntos').val(tipoPago);
+  $f.find('#origen_pago, #origen_pago_efectivo').val(origen);
   $f.find('#importe_puntos').val('0');
   $f.find('#puntos_disponibles').val('');
   $f.find('#puntos_uso, #puntos_usar').val('');
@@ -7358,7 +7375,7 @@ function limpiarMontosPagoUnificado() {
 
   if (isCxC()) {
     $m.find('#formTarjetaBill #importe_tarjeta').val('');
-    $m.find('#formTarjetaBill #monto_efectivo_tarjeta').val('');
+    $m.find('#formTarjetaBill #monto_efectivo, #monto_efectivo_efectivo_tarjeta').val('');
   }
 
   $m.find('#formTransferenciaBill #importe_transferencia').val('');
@@ -7689,11 +7706,11 @@ function initPagoUnificado() {
 
       var tipo = isCxC() ? 2 : (on ? 2 : 1);
 
-      $('#formEfectivoBill #tipo_factura').val(tipo);
-      $('#formTarjetaBill #tipo_factura').val(tipo);
-      $('#formTransferenciaBill #tipo_factura_transferencia').val(tipo);
-      $('#formChequeBill #tipo_factura_cheque').val(tipo);
-      $('#formPuntosBill #tipo_factura_puntos').val(tipo);
+      $('#formEfectivoBill #tipo_factura, #tipo_factura_efectivo').val(tipo);
+      $('#formTarjetaBill #tipo_factura, #tipo_factura_efectivo').val(tipo);
+      $('#formTransferenciaBill #tipo_factura, #tipo_factura_efectivo_transferencia').val(tipo);
+      $('#formChequeBill #tipo_factura, #tipo_factura_efectivo_cheque').val(tipo);
+      $('#formPuntosBill #tipo_factura, #tipo_factura_efectivo_puntos').val(tipo);
 
       if (!on && SELECTED_METHODS.size > 1) {
         var keep = LAST_SELECTED && SELECTED_METHODS.has(LAST_SELECTED)
@@ -7731,7 +7748,7 @@ function initPagoUnificado() {
 
       if ($(this).attr('id') === 'importe_tarjeta_cxc_visible') {
         $('#formTarjetaBill #importe_tarjeta').val(clean);
-        $('#formTarjetaBill #monto_efectivo_tarjeta').val(clean);
+        $('#formTarjetaBill #monto_efectivo, #monto_efectivo_efectivo_tarjeta').val(clean);
       }
 
       cachePaymentForm($(this).closest('form'));
@@ -7774,7 +7791,7 @@ function initPagoUnificado() {
 
       if ($(this).attr('id') === 'importe_tarjeta_cxc_visible') {
         $('#formTarjetaBill #importe_tarjeta').val($(this).val());
-        $('#formTarjetaBill #monto_efectivo_tarjeta').val($(this).val());
+        $('#formTarjetaBill #monto_efectivo, #monto_efectivo_efectivo_tarjeta').val($(this).val());
       }
 
       cachePaymentForm($(this).closest('form'));
@@ -7866,999 +7883,6 @@ if (document.readyState === 'loading') {
 }
 
 /* FIN NUEVO PAGO */
-
-/* ============================================================
-   CORRECCIÓN FINAL - REGLAS CXC / FACTURACIÓN / LIMPIEZA
-   Este bloque queda al final para sobrescribir los cálculos anteriores.
-   ============================================================ */
-
-/* 1) Focus correcto por método */
-firstFieldByMethod.card = '#importe_tarjeta';
-firstFieldByMethod.cash = '#efectivo_bill';
-firstFieldByMethod.transfer = '#importe_transferencia';
-firstFieldByMethod.check = '#importe_cheque';
-firstFieldByMethod.points = '#puntos_uso';
-
-amountFieldByMethod.cash = '#efectivo_bill';
-amountFieldByMethod.card = '#importe_tarjeta';
-amountFieldByMethod.transfer = '#importe_transferencia';
-amountFieldByMethod.check = '#importe_cheque';
-amountFieldByMethod.points = '#importe_puntos';
-
-function limpiarDetallesPagoManteniendoFactura() {
-  var $m = $('#modal_pagos_unificado');
-  var facturaId = CURRENT_FACTURA_ID;
-  var tipoPago = CURRENT_TIPO_PAGO;
-  var origen = CURRENT_ORIGEN;
-  var total = parseMontoSeguro($m.find('#customer_bill_pay').val());
-  var cliente = $m.find('#customer-name-bill').text().trim() || '—';
-
-  SELECTED_METHODS = new Set(['cash']);
-  LAST_SELECTED = 'cash';
-  LAST_APPLIED_AMOUNTS = { cash:0, card:0, transfer:0, check:0, points:0 };
-  CASH_TYPED = 0;
-  CASH_CAMBIO = 0;
-
-  $m.find('#pagos_multiples_switch').prop('checked', false).val(0);
-  $m.find('#label_pagos_multiples').text('Desactivado');
-  $m.find('.multiple_pago').val(0);
-
-  $m.find('form').each(function(){
-    this.reset();
-  });
-
-  $m.find('input[type="text"], input[type="number"], input[type="tel"]').val('');
-  $m.find('#cambio_efectivo').val('0.00');
-  $m.find('#importe_puntos').val('0');
-  $m.find('#equivalente_puntos').val('');
-  $m.find('.RespuestaAjax').empty();
-
-  CURRENT_FACTURA_ID = facturaId;
-  CURRENT_TIPO_PAGO = tipoPago;
-  CURRENT_ORIGEN = origen;
-
-  $m.find('#customer-name-bill').text(cliente);
-  $m.find('#customer_bill_pay').val(fixed2Seguro(total));
-  $m.find('#bill-pay').text('L. ' + fmtMilesSeguro(total));
-
-  configurarFormularioEfectivo(facturaId, tipoPago, total, origen);
-  configurarFormularioTarjeta(facturaId, tipoPago, total, origen);
-  configurarFormularioTransferencia(facturaId, tipoPago, total, origen);
-  configurarFormularioCheque(facturaId, tipoPago, total, origen);
-  configurarFormularioPuntos(facturaId, tipoPago, total, origen);
-
-  if ($.fn.selectpicker) {
-    $m.find('.selectpicker').selectpicker('refresh');
-  }
-
-  updateMethodsUI();
-  syncPaymentConfirm();
-}
-
-/* 2) Al regresar al paso 1, limpiar todo lo digitado para evitar duplicados */
-var goToStepBaseFinal = goToStep;
-goToStep = function(step) {
-  if (step === 1 && CURRENT_STEP !== 1) {
-    limpiarDetallesPagoManteniendoFactura();
-  }
-
-  goToStepBaseFinal(step);
-
-  if (step === 2) {
-    setTimeout(function(){
-      var method = LAST_SELECTED && SELECTED_METHODS.has(LAST_SELECTED) ? LAST_SELECTED : Array.from(SELECTED_METHODS)[0] || 'cash';
-      focusFirstFieldFor(method);
-    }, 180);
-  }
-
-  syncPaymentConfirm();
-};
-
-/* 3) Leer montos SOLO de métodos seleccionados */
-function readAmounts() {
-  var $m = $('#modal_pagos_unificado');
-  var totalFactura = parseMontoSeguro($m.find('#customer_bill_pay').val());
-
-  var amounts = { cash:0, card:0, transfer:0, check:0, points:0 };
-
-  if (SELECTED_METHODS.has('cash')) {
-    amounts.cash = parseMontoSeguro($m.find('#formEfectivoBill #efectivo_bill').val());
-  }
-
-  if (SELECTED_METHODS.has('card')) {
-    amounts.card = parseMontoSeguro($m.find('#formTarjetaBill #importe_tarjeta').val());
-    if (isFactura() && !isMultiOn() && amounts.card <= 0) {
-      amounts.card = totalFactura;
-    }
-  }
-
-  if (SELECTED_METHODS.has('transfer')) {
-    amounts.transfer = parseMontoSeguro($m.find('#formTransferenciaBill #importe_transferencia').val());
-  }
-
-  if (SELECTED_METHODS.has('check')) {
-    amounts.check = parseMontoSeguro($m.find('#formChequeBill #importe_cheque').val());
-  }
-
-  if (SELECTED_METHODS.has('points')) {
-    amounts.points = parseMontoSeguro($m.find('#formPuntosBill #importe_puntos').val());
-  }
-
-  var sumSel = 0;
-  SELECTED_METHODS.forEach(function(m){
-    sumSel += amounts[m] || 0;
-  });
-
-  return { totalFactura: totalFactura, amounts: amounts, sumSel: sumSel };
-}
-
-/* 4) Calcular lo aplicado correctamente */
-function computeAppliedAmounts() {
-  var data = readAmounts();
-  var totalFactura = data.totalFactura;
-  var amounts = data.amounts;
-  var apply = { cash:0, card:0, transfer:0, check:0, points:0 };
-
-  if (isCxC()) {
-    apply.cash = SELECTED_METHODS.has('cash') ? amounts.cash : 0;
-    apply.card = SELECTED_METHODS.has('card') ? amounts.card : 0;
-    apply.transfer = SELECTED_METHODS.has('transfer') ? amounts.transfer : 0;
-    apply.check = SELECTED_METHODS.has('check') ? amounts.check : 0;
-    apply.points = SELECTED_METHODS.has('points') ? amounts.points : 0;
-  } else {
-    if (isMultiOn() && SELECTED_METHODS.size === 2) {
-      apply.card = SELECTED_METHODS.has('card') ? amounts.card : 0;
-      apply.transfer = SELECTED_METHODS.has('transfer') ? amounts.transfer : 0;
-      apply.check = SELECTED_METHODS.has('check') ? amounts.check : 0;
-      apply.points = SELECTED_METHODS.has('points') ? amounts.points : 0;
-
-      var noCash = apply.card + apply.transfer + apply.check + apply.points;
-      apply.cash = SELECTED_METHODS.has('cash') ? Math.max(totalFactura - noCash, 0) : 0;
-    } else {
-      var only = Array.from(SELECTED_METHODS)[0];
-      if (only === 'cash') {
-        apply.cash = totalFactura;
-      } else if (only === 'card') {
-        apply.card = totalFactura;
-      } else if (only === 'transfer') {
-        apply.transfer = totalFactura;
-      } else if (only === 'check') {
-        apply.check = totalFactura;
-      } else if (only === 'points') {
-        apply.points = totalFactura;
-      }
-    }
-  }
-
-  var sumApplied = 0;
-  SELECTED_METHODS.forEach(function(m){
-    sumApplied += apply[m] || 0;
-  });
-
-  return { totalFactura: totalFactura, amounts: amounts, apply: apply, sumApplied: sumApplied };
-}
-
-/* 5) Resumen correcto: cambio = efectivo recibido - total en factura normal */
-function calcularResumenPagosUnificado() {
-  var $m = $('#modal_pagos_unificado');
-  var calc = computeAppliedAmounts();
-  var totalFactura = calc.totalFactura;
-  var amounts = calc.amounts;
-  var apply = calc.apply;
-  var sumApplied = calc.sumApplied;
-
-  var efectivoRecibido = SELECTED_METHODS.has('cash') ? amounts.cash : 0;
-  var efectivoAplicado = SELECTED_METHODS.has('cash') ? apply.cash : 0;
-  var cambio = 0;
-
-  if (SELECTED_METHODS.has('cash') && isFactura() && !isMultiOn()) {
-    cambio = Math.max(efectivoRecibido - totalFactura, 0);
-    efectivoAplicado = totalFactura;
-  }
-
-  if (SELECTED_METHODS.has('cash') && (isCxC() || isMultiOn())) {
-    cambio = 0;
-    efectivoAplicado = apply.cash;
-  }
-
-  $m.find('#formEfectivoBill #cambio_efectivo').val(cambio > 0 ? fixed2Seguro(cambio) : '0.00');
-
-  return {
-    totalFactura: totalFactura,
-    efectivoRecibido: efectivoRecibido,
-    efectivoAplicado: efectivoAplicado,
-    cambio: cambio,
-    transferencia: SELECTED_METHODS.has('transfer') ? apply.transfer : 0,
-    cheque: SELECTED_METHODS.has('check') ? apply.check : 0,
-    tarjeta: SELECTED_METHODS.has('card') ? apply.card : 0,
-    puntos: SELECTED_METHODS.has('points') ? apply.points : 0,
-    totalNoEfectivo: (apply.card + apply.transfer + apply.check + apply.points),
-    totalAplicado: sumApplied,
-    diferencia: totalFactura - sumApplied
-  };
-}
-
-/* 6) Validación final */
-function validateBeforeConfirm() {
-  var $m = $('#modal_pagos_unificado');
-  var totalFactura = parseMontoSeguro($m.find('#customer_bill_pay').val());
-  var multi = isMultiOn();
-
-  if (totalFactura <= 0) {
-    warnPagoFinal('El total a pagar debe ser mayor que 0.', '#customer_bill_pay');
-    return false;
-  }
-
-  if (SELECTED_METHODS.has('card')) {
-    if (isFactura() && !multi) {
-      $m.find('#formTarjetaBill #importe_tarjeta').val(fixed2Seguro(totalFactura));
-      $m.find('#formTarjetaBill #monto_efectivo_tarjeta').val(fixed2Seguro(totalFactura));
-    }
-
-    if (isCxC()) {
-      var importeTarjeta = parseMontoSeguro($m.find('#formTarjetaBill #importe_tarjeta').val());
-      if (importeTarjeta <= 0) {
-        warnPagoFinal('El importe de tarjeta debe ser mayor que 0.', '#importe_tarjeta');
-        return false;
-      }
-      if (importeTarjeta > totalFactura + 0.0001) {
-        warnPagoFinal('En CxC, el importe de tarjeta no puede exceder el saldo.', '#importe_tarjeta');
-        return false;
-      }
-    }
-  }
-
-  if (SELECTED_METHODS.has('cash')) {
-    var efectivo = parseMontoSeguro($m.find('#formEfectivoBill #efectivo_bill').val());
-    if (efectivo <= 0) {
-      warnPagoFinal('El efectivo recibido debe ser mayor que 0.', '#efectivo_bill');
-      return false;
-    }
-    if (isFactura() && !multi && efectivo + 0.0001 < totalFactura) {
-      warnPagoFinal('En facturación, el efectivo debe ser igual o mayor al total.', '#efectivo_bill');
-      return false;
-    }
-    if (isCxC() && efectivo > totalFactura + 0.0001) {
-      warnPagoFinal('En CxC, el efectivo no puede exceder el saldo.', '#efectivo_bill');
-      return false;
-    }
-  }
-
-  if (SELECTED_METHODS.has('transfer')) {
-    var importeT = parseMontoSeguro($m.find('#formTransferenciaBill #importe_transferencia').val());
-
-    if (importeT <= 0) {
-      warnPagoFinal('El importe de transferencia debe ser mayor que 0.', '#importe_transferencia');
-      return false;
-    }
-
-    if (isFactura() && !multi && Math.abs(importeT - totalFactura) > 0.005) {
-      warnPagoFinal('En facturación, la transferencia debe ser igual al total.', '#importe_transferencia');
-      return false;
-    }
-
-    if (isCxC() && importeT > totalFactura + 0.0001) {
-      warnPagoFinal('En CxC, la transferencia no puede exceder el saldo.', '#importe_transferencia');
-      return false;
-    }
-  }
-
-  if (SELECTED_METHODS.has('check')) {
-    var importeC = parseMontoSeguro($m.find('#formChequeBill #importe_cheque').val());
-
-    if (importeC <= 0) {
-      warnPagoFinal('El importe de cheque debe ser mayor que 0.', '#importe_cheque');
-      return false;
-    }
-
-    if (isFactura() && !multi && Math.abs(importeC - totalFactura) > 0.005) {
-      warnPagoFinal('En facturación, el cheque debe ser igual al total.', '#importe_cheque');
-      return false;
-    }
-
-    if (isCxC() && importeC > totalFactura + 0.0001) {
-      warnPagoFinal('En CxC, el cheque no puede exceder el saldo.', '#importe_cheque');
-      return false;
-    }
-  }
-
-  if (SELECTED_METHODS.has('points')) {
-    var puntosDisp = parseMontoSeguro($m.find('#formPuntosBill #puntos_disponibles').val());
-    var puntosUso = parseMontoSeguro($m.find('#formPuntosBill #puntos_uso').val());
-    var importePts = parseMontoSeguro($m.find('#formPuntosBill #importe_puntos').val());
-
-    if (puntosDisp <= 0) {
-      warnPagoFinal('Los puntos disponibles deben ser mayores que 0.', '#puntos_disponibles');
-      return false;
-    }
-    if (puntosUso <= 0) {
-      warnPagoFinal('Los puntos a usar deben ser mayores que 0.', '#puntos_uso');
-      return false;
-    }
-    if (importePts <= 0) {
-      warnPagoFinal('El equivalente en lempiras de los puntos debe ser mayor que 0.', '#puntos_uso');
-      return false;
-    }
-  }
-
-  var calc = computeAppliedAmounts();
-
-  if (multi) {
-    if (isFactura() && !SELECTED_METHODS.has('cash')) {
-      warnPagoFinal('En facturación, el pago múltiple debe incluir efectivo.', amountFieldByMethod[Array.from(SELECTED_METHODS)[0]]);
-      return false;
-    }
-
-    if (calc.sumApplied > totalFactura + 0.0001) {
-      warnPagoFinal('La suma aplicada no puede exceder el total.', amountFieldByMethod[LAST_SELECTED] || '#customer_bill_pay');
-      return false;
-    }
-  }
-
-  if (isCxC()) {
-    if (calc.sumApplied <= 0) {
-      warnPagoFinal('Debe ingresar un abono mayor que 0.', amountFieldByMethod[LAST_SELECTED] || '#customer_bill_pay');
-      return false;
-    }
-    if (calc.sumApplied > totalFactura + 0.0001) {
-      warnPagoFinal('El abono no puede exceder el saldo pendiente.', amountFieldByMethod[LAST_SELECTED] || '#customer_bill_pay');
-      return false;
-    }
-  } else {
-    if (calc.sumApplied + 0.0001 < totalFactura) {
-      warnPagoFinal('El pago debe cubrir el total de la factura.', amountFieldByMethod[LAST_SELECTED] || '#customer_bill_pay');
-      return false;
-    }
-  }
-
-  syncPaymentConfirm();
-  return true;
-}
-
-function warnPagoFinal(msg, selectorToFocus) {
-  if (typeof showNotify === 'function') {
-    showNotify('warning', 'Atención', msg);
-  } else {
-    alert(msg);
-  }
-
-  if (selectorToFocus) {
-    setTimeout(function(){
-      forceFocus(selectorToFocus);
-    }, 200);
-  }
-}
-
-/* 7) Resumen visual limpio, sin duplicar montos */
-function syncPaymentConfirm() {
-  var $m = $('#modal_pagos_unificado');
-  var cliente = $m.find('#customer-name-bill').text().trim() || '—';
-  var resumen = calcularResumenPagosUnificado();
-
-  $m.find('#confirm-customer-name').text(cliente);
-  $m.find('#confirm-total-amount').text('L. ' + fmtMilesSeguro(resumen.totalFactura));
-  $m.find('#confirm-print-option').text($m.find('#comprobante_print_switch').is(':checked') ? 'Sí' : 'No');
-  $m.find('#confirm-multi-option').text($m.find('#pagos_multiples_switch').is(':checked') ? 'Activado' : 'Desactivado');
-
-  var html = '';
-
-  if (SELECTED_METHODS.has('cash')) {
-    html += '<div class="confirm-method-row"><span><i class="fas fa-circle text-primary mr-1"></i> Efectivo recibido</span><strong>L. ' + fmtMilesSeguro(resumen.efectivoRecibido) + '</strong></div>';
-    if (resumen.cambio > 0) {
-      html += '<div class="confirm-method-row text-success"><span><i class="fas fa-circle text-success mr-1"></i> Cambio</span><strong>L. ' + fmtMilesSeguro(resumen.cambio) + '</strong></div>';
-    }
-    html += '<div class="confirm-method-row"><span><i class="fas fa-circle text-info mr-1"></i> Efectivo aplicado</span><strong>L. ' + fmtMilesSeguro(resumen.efectivoAplicado) + '</strong></div>';
-  }
-
-  if (SELECTED_METHODS.has('card')) {
-    html += '<div class="confirm-method-row"><span><i class="fas fa-circle text-primary mr-1"></i> Tarjeta</span><strong>L. ' + fmtMilesSeguro(resumen.tarjeta) + '</strong></div>';
-  }
-
-  if (SELECTED_METHODS.has('transfer')) {
-    html += '<div class="confirm-method-row"><span><i class="fas fa-circle text-primary mr-1"></i> Transferencia</span><strong>L. ' + fmtMilesSeguro(resumen.transferencia) + '</strong></div>';
-  }
-
-  if (SELECTED_METHODS.has('check')) {
-    html += '<div class="confirm-method-row"><span><i class="fas fa-circle text-primary mr-1"></i> Cheque</span><strong>L. ' + fmtMilesSeguro(resumen.cheque) + '</strong></div>';
-  }
-
-  if (SELECTED_METHODS.has('points')) {
-    html += '<div class="confirm-method-row"><span><i class="fas fa-circle text-warning mr-1"></i> Puntos</span><strong>L. ' + fmtMilesSeguro(resumen.puntos) + '</strong></div>';
-  }
-
-  if (!html) {
-    html = '<div class="confirm-method-row"><span><i class="fas fa-circle text-muted mr-1"></i> Sin método aplicado</span><strong>L. 0.00</strong></div>';
-  }
-
-  $m.find('#confirm-methods-list').html(html);
-  $m.find('#confirm-total-apply').text('L. ' + fmtMilesSeguro(resumen.totalAplicado));
-  $m.find('#confirm-difference').text('L. ' + fmtMilesSeguro(Math.abs(resumen.diferencia)));
-
-  if (Math.abs(resumen.diferencia) <= 0.01) {
-    $m.find('#difference-line').removeClass('text-danger').addClass('text-success');
-  } else {
-    $m.find('#difference-line').removeClass('text-success').addClass('text-danger');
-  }
-}
-
-/* 8) Confirmar con los montos corregidos */
-function buildConfirmSummary() {
-  syncPaymentConfirm();
-
-  var $m = $('#modal_pagos_unificado');
-  var calc = computeAppliedAmounts();
-  LAST_APPLIED_AMOUNTS = calc.apply;
-
-  var canConfirm = isCxC()
-    ? (calc.sumApplied > 0 && calc.sumApplied <= calc.totalFactura)
-    : (calc.sumApplied >= calc.totalFactura);
-
-  $m.find('#btnConfirmPay').prop('disabled', !canConfirm).off('click.finalPago').on('click.finalPago', function(){
-    var $btn = $(this);
-    $btn.prop('disabled', true);
-
-    var tipoFinal = isCxC() ? 2 : (isMultiOn() ? 2 : 1);
-    $('#formEfectivoBill #tipo_factura, #formTarjetaBill #tipo_factura, #formTransferenciaBill #tipo_factura_transferencia, #formChequeBill #tipo_factura_cheque, #formPuntosBill #tipo_factura_puntos').val(tipoFinal);
-
-    var printVal = $('#comprobante_print_switch').is(':checked') ? 1 : 0;
-    $('.comprobante_print_value').val(printVal);
-    ensureAllFacturaIds();
-
-    if (SELECTED_METHODS.has('cash')) {
-      syncAmountToForm('cash', LAST_APPLIED_AMOUNTS.cash || 0);
-      packCashForSubmit();
-    }
-    if (SELECTED_METHODS.has('card')) {
-      syncAmountToForm('card', LAST_APPLIED_AMOUNTS.card || 0);
-      packCardForSubmit();
-    }
-    if (SELECTED_METHODS.has('transfer')) {
-      syncAmountToForm('transfer', LAST_APPLIED_AMOUNTS.transfer || 0);
-      packTransferForSubmit();
-    }
-    if (SELECTED_METHODS.has('check')) {
-      syncAmountToForm('check', LAST_APPLIED_AMOUNTS.check || 0);
-      packChequeForSubmit();
-    }
-    if (SELECTED_METHODS.has('points')) {
-      syncAmountToForm('points', LAST_APPLIED_AMOUNTS.points || 0);
-      packPuntosForSubmit();
-    }
-
-    var finishOk = function(resp){ handleServerResponse(resp || {status:true,title:'Éxito',message:'Pago registrado.'}); };
-    var finishErr = function(resp){ $btn.prop('disabled', false); handleServerResponse(resp || {status:false,title:'Error',message:'No se pudo registrar el pago.'}); };
-
-    if (isMultiOn() && SELECTED_METHODS.size === 2) {
-      $('.multiple_pago').val(1);
-      doMultiplePayment().then(finishOk).catch(finishErr);
-    } else {
-      $('.multiple_pago').val(0);
-      var only = Array.from(SELECTED_METHODS)[0];
-      var $f = formMap[only]();
-      $f.find('.comprobante_print_value').val(printVal);
-      $f.find('.multiple_pago').val(0);
-      submitFormAjax($f).then(finishOk).catch(finishErr);
-    }
-  });
-}
-
-/* 9) Rebinding final de botones principales para evitar eventos viejos */
-$(function(){
-  var $m = $('#modal_pagos_unificado');
-
-  $m.find('#btnPrev').off('click.finalNav').on('click.finalNav', function(){
-    if (CURRENT_STEP === 2) {
-      goToStep(1);
-    } else if (CURRENT_STEP === 3) {
-      goToStep(2);
-    }
-  });
-
-  $m.find('#btnNext').off('click.finalNav').on('click.finalNav', function(){
-    if (CURRENT_STEP === 1) {
-      if (SELECTED_METHODS.size === 0) {
-        warnPagoFinal('Selecciona al menos un método.', null);
-        return;
-      }
-      goToStep(2);
-      return;
-    }
-
-    if (CURRENT_STEP === 2) {
-      if (!validateBeforeConfirm()) {
-        return;
-      }
-      goToStep(3);
-      setTimeout(syncPaymentConfirm, 80);
-    }
-  });
-
-  $m.off('input.finalMonto blur.finalMonto', '#formEfectivoBill #efectivo_bill, #formTarjetaBill #importe_tarjeta, #formTransferenciaBill #importe_transferencia, #formChequeBill #importe_cheque')
-    .on('input.finalMonto', '#formEfectivoBill #efectivo_bill, #formTarjetaBill #importe_tarjeta, #formTransferenciaBill #importe_transferencia, #formChequeBill #importe_cheque', function(e){
-      var cur = e.target.selectionStart;
-      var orig = $(this).val();
-      var clean = normalizarMontoEntrada(orig);
-      $(this).val(clean);
-      try { e.target.setSelectionRange(cur + (clean.length - orig.length), cur + (clean.length - orig.length)); } catch(_) {}
-      calcularCambioEfectivo();
-      syncPaymentConfirm();
-    })
-    .on('blur.finalMonto', '#formEfectivoBill #efectivo_bill, #formTarjetaBill #importe_tarjeta, #formTransferenciaBill #importe_transferencia, #formChequeBill #importe_cheque', function(){
-      var v = $(this).val();
-      if (v) $(this).val(fixed2Seguro(v));
-      calcularCambioEfectivo();
-      syncPaymentConfirm();
-    });
-});
-
-/* FIN CORRECCIÓN FINAL - REGLAS CXC / FACTURACIÓN / LIMPIEZA */
-
-/* ============================================================
-   PARCHE DEFINITIVO - LIMPIEZA REAL STEP 1 + CXC/FACTURACIÓN
-   IMPORTANTE: este bloque va al FINAL y anula eventos/cálculos anteriores.
-   ============================================================ */
-(function(){
-  function modalPago(){ return $('#modal_pagos_unificado'); }
-
-  function resetPaymentCacheFinal(){
-    window.PAYMENT_MODAL_CACHE = {
-      efectivo:{}, tarjeta:{}, transferencia:{}, cheque:{}, puntos:{},
-      cliente_pago:'', cliente_nombre:'', total_pago:'0.00'
-    };
-    if (typeof PAYMENT_MODAL_CACHE !== 'undefined') {
-      PAYMENT_MODAL_CACHE.efectivo = {};
-      PAYMENT_MODAL_CACHE.tarjeta = {};
-      PAYMENT_MODAL_CACHE.transferencia = {};
-      PAYMENT_MODAL_CACHE.cheque = {};
-      PAYMENT_MODAL_CACHE.puntos = {};
-      PAYMENT_MODAL_CACHE.cliente_pago = '';
-      PAYMENT_MODAL_CACHE.cliente_nombre = '';
-      PAYMENT_MODAL_CACHE.total_pago = '0.00';
-    }
-  }
-
-  function limpiarFormularioPagoFinal($form){
-    if (!$form || !$form.length) return;
-
-    $form.find('input[type="text"], input[type="number"], input[type="tel"], textarea').val('');
-    $form.find('input[type="checkbox"]').prop('checked', false).val(0);
-    $form.find('select').val('');
-
-    if ($.fn.selectpicker) {
-      $form.find('.selectpicker').selectpicker('val', '');
-      $form.find('.selectpicker').selectpicker('refresh');
-    }
-
-    $form.find('.RespuestaAjax').empty();
-  }
-
-  function limpiarTodoAlVolverStep1Final(){
-    var $m = modalPago();
-    var facturaId = CURRENT_FACTURA_ID;
-    var tipoPago = CURRENT_TIPO_PAGO;
-    var origen = CURRENT_ORIGEN;
-    var total = parseMontoSeguro($m.find('#customer_bill_pay').val());
-    var cliente = $m.find('#customer-name-bill').text().trim() || '—';
-
-    resetPaymentCacheFinal();
-
-    SELECTED_METHODS = new Set();
-    LAST_SELECTED = '';
-    LAST_APPLIED_AMOUNTS = { cash:0, card:0, transfer:0, check:0, points:0 };
-    CASH_TYPED = 0;
-    CASH_CAMBIO = 0;
-
-    $m.find('#pagos_multiples_switch').prop('checked', false).val(0);
-    $m.find('#label_pagos_multiples').text('Desactivado');
-    $m.find('.multiple_pago').val(0);
-
-    limpiarFormularioPagoFinal($m.find('#formEfectivoBill'));
-    limpiarFormularioPagoFinal($m.find('#formTarjetaBill'));
-    limpiarFormularioPagoFinal($m.find('#formTransferenciaBill'));
-    limpiarFormularioPagoFinal($m.find('#formChequeBill'));
-    limpiarFormularioPagoFinal($m.find('#formPuntosBill'));
-
-    $m.find('#cambio_efectivo').val('0.00');
-    $m.find('#importe_puntos').val('0');
-    $m.find('#equivalente_puntos').val('');
-    $m.find('#confirm-methods-list').empty();
-    $m.find('#confirm-total-apply').text('L. 0.00');
-    $m.find('#confirm-difference').text('L. ' + fmtMilesSeguro(total));
-    $m.find('#btnConfirmPay').prop('disabled', true);
-
-    CURRENT_FACTURA_ID = facturaId;
-    CURRENT_TIPO_PAGO = tipoPago;
-    CURRENT_ORIGEN = origen;
-
-    $m.find('#customer-name-bill').text(cliente);
-    $m.find('#customer_bill_pay').val(fixed2Seguro(total));
-    $m.find('#bill-pay').text('L. ' + fmtMilesSeguro(total));
-
-    configurarFormularioEfectivo(facturaId, tipoPago, total, origen);
-    configurarFormularioTarjeta(facturaId, tipoPago, total, origen);
-    configurarFormularioTransferencia(facturaId, tipoPago, total, origen);
-    configurarFormularioCheque(facturaId, tipoPago, total, origen);
-    configurarFormularioPuntos(facturaId, tipoPago, total, origen);
-
-    limpiarFormularioPagoFinal($m.find('#formEfectivoBill'));
-    limpiarFormularioPagoFinal($m.find('#formTarjetaBill'));
-    limpiarFormularioPagoFinal($m.find('#formTransferenciaBill'));
-    limpiarFormularioPagoFinal($m.find('#formChequeBill'));
-    limpiarFormularioPagoFinal($m.find('#formPuntosBill'));
-
-    ensureAllFacturaIds();
-
-    $m.find('#formEfectivoBill #monto_efectivo').val(fixed2Seguro(total));
-    $m.find('#formTarjetaBill #monto_efectivo_tarjeta').val(isFactura() ? fixed2Seguro(total) : '');
-    $m.find('#formTarjetaBill #importe_tarjeta').val('');
-    $m.find('#formTransferenciaBill #monto_efectivo').val(fixed2Seguro(total));
-    $m.find('#formChequeBill #monto_efectivo').val(fixed2Seguro(total));
-    $m.find('#formPuntosBill #importe_puntos').val('0');
-
-    $m.find('#paymentMethodsGrid .method-card').removeClass('selected default-focus').attr('aria-pressed','false');
-    $m.find('#btnNext').prop('disabled', true);
-  }
-
-  function mostrarPasoFinal(step){
-    var $m = modalPago();
-    CURRENT_STEP = step;
-
-    if (step === 1) {
-      $m.find('#pills_info').show();
-      $m.find('#global_options_bar').show();
-      $m.find('#opt_multi_wrap').show();
-      $m.find('#section_methods').show();
-      $m.find('#section_details').hide();
-      $m.find('#section_confirm').hide();
-      $m.find('.payment-details.payment-step').removeClass('active').hide();
-      setStepActive(1);
-      $m.find('#btnPrev').prop('disabled', true);
-      $m.find('#btnNext').show().prop('disabled', SELECTED_METHODS.size === 0);
-      return;
-    }
-
-    if (step === 2) {
-      $m.find('#pills_info').show();
-      $m.find('#global_options_bar').show();
-      $m.find('#opt_multi_wrap').hide();
-      $m.find('#section_methods').hide();
-      $m.find('#section_details').show();
-      $m.find('#section_confirm').hide();
-      setStepActive(2);
-      $m.find('#btnPrev').prop('disabled', false);
-      $m.find('#btnNext').show().prop('disabled', false);
-      showDetailsForSelected();
-
-      if (SELECTED_METHODS.has('card') && isFactura() && !isMultiOn()) {
-        var total = parseMontoSeguro($m.find('#customer_bill_pay').val());
-        $m.find('#formTarjetaBill #importe_tarjeta').val(fixed2Seguro(total));
-        $m.find('#formTarjetaBill #monto_efectivo_tarjeta').val(fixed2Seguro(total));
-      }
-
-      setTimeout(function(){
-        var method = LAST_SELECTED && SELECTED_METHODS.has(LAST_SELECTED) ? LAST_SELECTED : Array.from(SELECTED_METHODS)[0] || 'cash';
-        focusFirstFieldFor(method);
-      }, 150);
-      return;
-    }
-
-    $m.find('#pills_info').hide();
-    $m.find('#global_options_bar').hide();
-    $m.find('#section_methods').hide();
-    $m.find('#section_details').hide();
-    $m.find('#section_confirm').show();
-    setStepActive(3);
-    $m.find('#btnPrev').prop('disabled', false);
-    $m.find('#btnNext').hide();
-    buildConfirmSummary();
-  }
-
-  goToStep = function(step){
-    if (step === 1 && CURRENT_STEP !== 1) {
-      limpiarTodoAlVolverStep1Final();
-    }
-    mostrarPasoFinal(step);
-  };
-
-  toggleMethod = function(method){
-    LAST_SELECTED = method;
-
-    if (!isMultiOn()) {
-      SELECTED_METHODS = new Set([method]);
-    } else {
-      var candidate = new Set(SELECTED_METHODS);
-      if (candidate.has(method)) candidate.delete(method); else candidate.add(method);
-      var v = isValidCombo(candidate);
-      if (!v.ok) {
-        warnPagoFinal(v.msg, null);
-        return;
-      }
-      SELECTED_METHODS = candidate;
-    }
-
-    var $m = modalPago();
-    $m.find('#paymentMethodsGrid .method-card').removeClass('selected').attr('aria-pressed','false');
-    SELECTED_METHODS.forEach(function(m){
-      $m.find('#paymentMethodsGrid .method-card[data-method="'+m+'"]').addClass('selected').attr('aria-pressed','true');
-    });
-    $m.find('#btnNext').prop('disabled', SELECTED_METHODS.size === 0);
-
-    if (method === 'points' && SELECTED_METHODS.has('points') && CURRENT_FACTURA_ID) {
-      cargarPuntosClienteAjax(CURRENT_FACTURA_ID);
-    }
-
-    if (CURRENT_STEP === 2) {
-      showDetailsForSelected();
-      setTimeout(function(){ focusFirstFieldFor(method); }, 120);
-    }
-  };
-
-  readAmounts = function(){
-    var $m = modalPago();
-    var totalFactura = parseMontoSeguro($m.find('#customer_bill_pay').val());
-    var amounts = { cash:0, card:0, transfer:0, check:0, points:0 };
-
-    if (SELECTED_METHODS.has('cash')) amounts.cash = parseMontoSeguro($m.find('#formEfectivoBill #efectivo_bill').val());
-    if (SELECTED_METHODS.has('card')) amounts.card = parseMontoSeguro($m.find('#formTarjetaBill #importe_tarjeta').val());
-    if (SELECTED_METHODS.has('transfer')) amounts.transfer = parseMontoSeguro($m.find('#formTransferenciaBill #importe_transferencia').val());
-    if (SELECTED_METHODS.has('check')) amounts.check = parseMontoSeguro($m.find('#formChequeBill #importe_cheque').val());
-    if (SELECTED_METHODS.has('points')) amounts.points = parseMontoSeguro($m.find('#formPuntosBill #importe_puntos').val());
-
-    if (SELECTED_METHODS.has('card') && isFactura() && !isMultiOn() && amounts.card <= 0) {
-      amounts.card = totalFactura;
-    }
-
-    var sumSel = 0;
-    SELECTED_METHODS.forEach(function(m){ sumSel += amounts[m] || 0; });
-    return { totalFactura: totalFactura, amounts: amounts, sumSel: sumSel };
-  };
-
-  computeAppliedAmounts = function(){
-    var data = readAmounts();
-    var totalFactura = data.totalFactura;
-    var amounts = data.amounts;
-    var apply = { cash:0, card:0, transfer:0, check:0, points:0 };
-
-    if (isCxC()) {
-      SELECTED_METHODS.forEach(function(m){ apply[m] = amounts[m] || 0; });
-    } else {
-      if (isMultiOn() && SELECTED_METHODS.size === 2) {
-        apply.card = SELECTED_METHODS.has('card') ? amounts.card : 0;
-        apply.transfer = SELECTED_METHODS.has('transfer') ? amounts.transfer : 0;
-        apply.check = SELECTED_METHODS.has('check') ? amounts.check : 0;
-        apply.points = SELECTED_METHODS.has('points') ? amounts.points : 0;
-        var noCash = apply.card + apply.transfer + apply.check + apply.points;
-        apply.cash = SELECTED_METHODS.has('cash') ? Math.max(totalFactura - noCash, 0) : 0;
-      } else {
-        var only = Array.from(SELECTED_METHODS)[0];
-        if (only) apply[only] = totalFactura;
-      }
-    }
-
-    var sumApplied = 0;
-    SELECTED_METHODS.forEach(function(m){ sumApplied += apply[m] || 0; });
-    return { totalFactura: totalFactura, amounts: amounts, apply: apply, sumApplied: sumApplied };
-  };
-
-  calcularResumenPagosUnificado = function(){
-    var $m = modalPago();
-    var calc = computeAppliedAmounts();
-    var totalFactura = calc.totalFactura;
-    var amounts = calc.amounts;
-    var apply = calc.apply;
-
-    var efectivoRecibido = SELECTED_METHODS.has('cash') ? amounts.cash : 0;
-    var efectivoAplicado = SELECTED_METHODS.has('cash') ? apply.cash : 0;
-    var cambio = 0;
-
-    if (SELECTED_METHODS.has('cash') && isFactura() && !isMultiOn()) {
-      cambio = Math.max(efectivoRecibido - totalFactura, 0);
-      efectivoAplicado = totalFactura;
-    }
-
-    $m.find('#formEfectivoBill #cambio_efectivo').val(fixed2Seguro(cambio));
-
-    return {
-      totalFactura: totalFactura,
-      efectivoRecibido: efectivoRecibido,
-      efectivoAplicado: efectivoAplicado,
-      cambio: cambio,
-      tarjeta: SELECTED_METHODS.has('card') ? apply.card : 0,
-      transferencia: SELECTED_METHODS.has('transfer') ? apply.transfer : 0,
-      cheque: SELECTED_METHODS.has('check') ? apply.check : 0,
-      puntos: SELECTED_METHODS.has('points') ? apply.points : 0,
-      totalAplicado: calc.sumApplied,
-      diferencia: totalFactura - calc.sumApplied
-    };
-  };
-
-  validateBeforeConfirm = function(){
-    var $m = modalPago();
-    var total = parseMontoSeguro($m.find('#customer_bill_pay').val());
-    var multi = isMultiOn();
-
-    if (total <= 0) { warnPagoFinal('El total a pagar debe ser mayor que 0.', '#customer_bill_pay'); return false; }
-
-    if (SELECTED_METHODS.has('cash')) {
-      var ef = parseMontoSeguro($m.find('#formEfectivoBill #efectivo_bill').val());
-      if (ef <= 0) { warnPagoFinal('El efectivo recibido debe ser mayor que 0.', '#efectivo_bill'); return false; }
-      if (isCxC() && ef > total + 0.0001) { warnPagoFinal('En CxC, el efectivo no puede exceder el saldo.', '#efectivo_bill'); return false; }
-      if (isFactura() && !multi && ef + 0.0001 < total) { warnPagoFinal('En facturación, el efectivo debe ser igual o mayor al total.', '#efectivo_bill'); return false; }
-    }
-
-    if (SELECTED_METHODS.has('card')) {
-      if (isFactura() && !multi) {
-        $m.find('#formTarjetaBill #importe_tarjeta').val(fixed2Seguro(total));
-        $m.find('#formTarjetaBill #monto_efectivo_tarjeta').val(fixed2Seguro(total));
-      }
-      var card = parseMontoSeguro($m.find('#formTarjetaBill #importe_tarjeta').val());
-      if (card <= 0) { warnPagoFinal('El importe de tarjeta debe ser mayor que 0.', '#importe_tarjeta'); return false; }
-      if (isCxC() && card > total + 0.0001) { warnPagoFinal('En CxC, la tarjeta no puede exceder el saldo.', '#importe_tarjeta'); return false; }
-      if (isFactura() && !multi && Math.abs(card - total) > 0.005) { warnPagoFinal('En facturación, la tarjeta debe ser igual al total.', '#importe_tarjeta'); return false; }
-    }
-
-    if (SELECTED_METHODS.has('transfer')) {
-      var bt = ($m.find('#formTransferenciaBill #bk_nm').val() || '').toString().trim();
-      var tr = parseMontoSeguro($m.find('#formTransferenciaBill #importe_transferencia').val());
-      if (tr <= 0) { warnPagoFinal('El importe de transferencia debe ser mayor que 0.', '#importe_transferencia'); return false; }
-      if (isCxC() && tr > total + 0.0001) { warnPagoFinal('En CxC, la transferencia no puede exceder el saldo.', '#importe_transferencia'); return false; }
-      if (isFactura() && !multi && Math.abs(tr - total) > 0.005) { warnPagoFinal('En facturación, la transferencia debe ser igual al total.', '#importe_transferencia'); return false; }
-    }
-
-    if (SELECTED_METHODS.has('check')) {
-      var bc = ($m.find('#formChequeBill #bk_nm_chk').val() || '').toString().trim();
-      var ch = parseMontoSeguro($m.find('#formChequeBill #importe_cheque').val());
-      if (ch <= 0) { warnPagoFinal('El importe de cheque debe ser mayor que 0.', '#importe_cheque'); return false; }
-      if (isCxC() && ch > total + 0.0001) { warnPagoFinal('En CxC, el cheque no puede exceder el saldo.', '#importe_cheque'); return false; }
-      if (isFactura() && !multi && Math.abs(ch - total) > 0.005) { warnPagoFinal('En facturación, el cheque debe ser igual al total.', '#importe_cheque'); return false; }
-    }
-
-    if (SELECTED_METHODS.has('points')) {
-      var pd = parseMontoSeguro($m.find('#formPuntosBill #puntos_disponibles').val());
-      var pu = parseMontoSeguro($m.find('#formPuntosBill #puntos_uso').val());
-      var ip = parseMontoSeguro($m.find('#formPuntosBill #importe_puntos').val());
-      if (pd <= 0) { warnPagoFinal('Los puntos disponibles deben ser mayores que 0.', '#puntos_disponibles'); return false; }
-      if (pu <= 0) { warnPagoFinal('Los puntos a usar deben ser mayores que 0.', '#puntos_uso'); return false; }
-      if (ip <= 0) { warnPagoFinal('El equivalente en lempiras de los puntos debe ser mayor que 0.', '#puntos_uso'); return false; }
-    }
-
-    var calc = computeAppliedAmounts();
-    if (isCxC()) {
-      if (calc.sumApplied <= 0) { warnPagoFinal('Debe ingresar un abono mayor que 0.', amountFieldByMethod[LAST_SELECTED] || '#customer_bill_pay'); return false; }
-      if (calc.sumApplied > total + 0.0001) { warnPagoFinal('El abono no puede exceder el saldo pendiente.', amountFieldByMethod[LAST_SELECTED] || '#customer_bill_pay'); return false; }
-    } else {
-      if (multi && !SELECTED_METHODS.has('cash')) { warnPagoFinal('En facturación, el pago múltiple debe incluir efectivo.', amountFieldByMethod[LAST_SELECTED] || '#customer_bill_pay'); return false; }
-      if (calc.sumApplied + 0.0001 < total) { warnPagoFinal('El pago debe cubrir el total de la factura.', amountFieldByMethod[LAST_SELECTED] || '#customer_bill_pay'); return false; }
-      if (calc.sumApplied > total + 0.0001 && !SELECTED_METHODS.has('cash')) { warnPagoFinal('El pago no efectivo no puede exceder el total.', amountFieldByMethod[LAST_SELECTED] || '#customer_bill_pay'); return false; }
-    }
-
-    syncPaymentConfirm();
-    return true;
-  };
-
-  syncPaymentConfirm = function(){
-    var $m = modalPago();
-    var r = calcularResumenPagosUnificado();
-    var cliente = $m.find('#customer-name-bill').text().trim() || '—';
-
-    $m.find('#confirm-customer-name').text(cliente);
-    $m.find('#confirm-total-amount').text('L. ' + fmtMilesSeguro(r.totalFactura));
-    $m.find('#confirm-print-option').text($m.find('#comprobante_print_switch').is(':checked') ? 'Sí' : 'No');
-    $m.find('#confirm-multi-option').text($m.find('#pagos_multiples_switch').is(':checked') ? 'Activado' : 'Desactivado');
-
-    var html = '';
-    if (SELECTED_METHODS.has('cash')) {
-      html += '<div class="confirm-method-row"><span><i class="fas fa-circle text-primary mr-1"></i> Efectivo recibido</span><strong>L. ' + fmtMilesSeguro(r.efectivoRecibido) + '</strong></div>';
-      if (r.cambio > 0) html += '<div class="confirm-method-row text-success"><span><i class="fas fa-circle text-success mr-1"></i> Cambio</span><strong>L. ' + fmtMilesSeguro(r.cambio) + '</strong></div>';
-      html += '<div class="confirm-method-row"><span><i class="fas fa-circle text-info mr-1"></i> Efectivo aplicado</span><strong>L. ' + fmtMilesSeguro(r.efectivoAplicado) + '</strong></div>';
-    }
-    if (SELECTED_METHODS.has('card')) html += '<div class="confirm-method-row"><span><i class="fas fa-circle text-primary mr-1"></i> Tarjeta</span><strong>L. ' + fmtMilesSeguro(r.tarjeta) + '</strong></div>';
-    if (SELECTED_METHODS.has('transfer')) html += '<div class="confirm-method-row"><span><i class="fas fa-circle text-primary mr-1"></i> Transferencia</span><strong>L. ' + fmtMilesSeguro(r.transferencia) + '</strong></div>';
-    if (SELECTED_METHODS.has('check')) html += '<div class="confirm-method-row"><span><i class="fas fa-circle text-primary mr-1"></i> Cheque</span><strong>L. ' + fmtMilesSeguro(r.cheque) + '</strong></div>';
-    if (SELECTED_METHODS.has('points')) html += '<div class="confirm-method-row"><span><i class="fas fa-circle text-warning mr-1"></i> Puntos</span><strong>L. ' + fmtMilesSeguro(r.puntos) + '</strong></div>';
-    if (!html) html = '<div class="confirm-method-row"><span><i class="fas fa-circle text-muted mr-1"></i> Sin método aplicado</span><strong>L. 0.00</strong></div>';
-
-    $m.find('#confirm-methods-list').html(html);
-    $m.find('#confirm-total-apply').text('L. ' + fmtMilesSeguro(r.totalAplicado));
-    $m.find('#confirm-difference').text('L. ' + fmtMilesSeguro(Math.abs(r.diferencia)));
-    $m.find('#difference-line').toggleClass('text-success', Math.abs(r.diferencia) <= 0.01).toggleClass('text-danger', Math.abs(r.diferencia) > 0.01);
-  };
-
-  buildConfirmSummary = function(){
-    syncPaymentConfirm();
-    var calc = computeAppliedAmounts();
-    LAST_APPLIED_AMOUNTS = calc.apply;
-    var canConfirm = isCxC() ? (calc.sumApplied > 0 && calc.sumApplied <= calc.totalFactura) : (calc.sumApplied >= calc.totalFactura);
-
-    modalPago().find('#btnConfirmPay').prop('disabled', !canConfirm).off('click').on('click', function(){
-      var $btn = $(this);
-      $btn.prop('disabled', true);
-
-      var tipoFinal = isCxC() ? 2 : (isMultiOn() ? 2 : 1);
-      $('#formEfectivoBill #tipo_factura, #formTarjetaBill #tipo_factura, #formTransferenciaBill #tipo_factura_transferencia, #formChequeBill #tipo_factura_cheque, #formPuntosBill #tipo_factura_puntos').val(tipoFinal);
-
-      var printVal = $('#comprobante_print_switch').is(':checked') ? 1 : 0;
-      $('.comprobante_print_value').val(printVal);
-      ensureAllFacturaIds();
-
-      if (SELECTED_METHODS.has('cash')) {
-        syncAmountToForm('cash', LAST_APPLIED_AMOUNTS.cash || 0);
-        packCashForSubmit();
-    }
-
-      if (SELECTED_METHODS.has('card')) { syncAmountToForm('card', LAST_APPLIED_AMOUNTS.card || 0); packCardForSubmit(); }
-      if (SELECTED_METHODS.has('transfer')) { syncAmountToForm('transfer', LAST_APPLIED_AMOUNTS.transfer || 0); packTransferForSubmit(); }
-      if (SELECTED_METHODS.has('check')) { syncAmountToForm('check', LAST_APPLIED_AMOUNTS.check || 0); packChequeForSubmit(); }
-      if (SELECTED_METHODS.has('points')) { syncAmountToForm('points', LAST_APPLIED_AMOUNTS.points || 0); packPuntosForSubmit(); }
-
-      var ok = function(resp){ handleServerResponse(resp || {status:true,title:'Éxito',message:'Pago registrado.'}); };
-      var err = function(resp){ $btn.prop('disabled', false); handleServerResponse(resp || {status:false,title:'Error',message:'No se pudo registrar el pago.'}); };
-
-      if (isMultiOn() && SELECTED_METHODS.size === 2) {
-        $('.multiple_pago').val(1);
-        doMultiplePayment().then(ok).catch(err);
-      } else {
-        $('.multiple_pago').val(0);
-        var only = Array.from(SELECTED_METHODS)[0];
-        var $f = formMap[only]();
-        $f.find('.comprobante_print_value').val(printVal);
-        $f.find('.multiple_pago').val(0);
-        submitFormAjax($f).then(ok).catch(err);
-      }
-    });
-  };
-
-  $(function(){
-    var $m = modalPago();
-
-    $m.find('#paymentMethodsGrid .method-card').off('click keydown').on('click', function(){
-      toggleMethod($(this).data('method'));
-    }).on('keydown', function(e){
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        toggleMethod($(this).data('method'));
-      }
-    });
-
-    $m.find('#btnPrev').off('click').on('click', function(){
-      if (CURRENT_STEP === 2) goToStep(1);
-      else if (CURRENT_STEP === 3) mostrarPasoFinal(2);
-    });
-
-    $m.find('#btnNext').off('click').on('click', function(){
-      if (CURRENT_STEP === 1) {
-        if (SELECTED_METHODS.size === 0) { warnPagoFinal('Selecciona al menos un método.', null); return; }
-        mostrarPasoFinal(2);
-        return;
-      }
-      if (CURRENT_STEP === 2) {
-        if (!validateBeforeConfirm()) return;
-        mostrarPasoFinal(3);
-      }
-    });
-
-    $m.off('input.finalClean blur.finalClean', '#formEfectivoBill #efectivo_bill, #formTarjetaBill #importe_tarjeta, #formTransferenciaBill #importe_transferencia, #formChequeBill #importe_cheque')
-      .on('input.finalClean', '#formEfectivoBill #efectivo_bill, #formTarjetaBill #importe_tarjeta, #formTransferenciaBill #importe_transferencia, #formChequeBill #importe_cheque', function(e){
-        var cur = e.target.selectionStart;
-        var orig = $(this).val();
-        var clean = normalizarMontoEntrada(orig);
-        $(this).val(clean);
-        try { e.target.setSelectionRange(cur + (clean.length - orig.length), cur + (clean.length - orig.length)); } catch(_) {}
-        CASH_TYPED = parseMontoSeguro($('#formEfectivoBill #efectivo_bill').val());
-        calcularCambioEfectivo();
-        syncPaymentConfirm();
-      })
-      .on('blur.finalClean', '#formEfectivoBill #efectivo_bill, #formTarjetaBill #importe_tarjeta, #formTransferenciaBill #importe_transferencia, #formChequeBill #importe_cheque', function(){
-        var v = $(this).val();
-        if (v) $(this).val(fixed2Seguro(v));
-        CASH_TYPED = parseMontoSeguro($('#formEfectivoBill #efectivo_bill').val());
-        calcularCambioEfectivo();
-        syncPaymentConfirm();
-      });
-  });
-})();
-/* FIN PARCHE DEFINITIVO - LIMPIEZA REAL STEP 1 + CXC/FACTURACIÓN */
-
 
 // Función para obtener los colaboradores
 function getCollaboradoresModalPagoFacturas() {
@@ -9252,7 +8276,7 @@ $(document).ready(function() {
             $('#formEfectivoPurchase #pago_efectivo').prop('disabled', false);
             ///TARJETA
             $('#formTarjetaPurchase #pago_tarjeta').prop('disabled', false);
-            $('#formTarjetaPurchase #monto_efectivo_tarjeta').prop("type", "text")
+            $('#formTarjetaPurchase #monto_efectivo, #monto_efectivo_efectivo_tarjeta').prop("type", "text")
             ///TRANSFERENCIA
             $('#formTransferenciaPurchase #importe_transferencia').prop("type", "text")
             //INPUTS CAMBIO
@@ -9267,7 +8291,7 @@ $(document).ready(function() {
             $('#formEfectivoPurchase #pago_efectivo').prop('disabled', true)
             ///TARJETA
             //--$('#formTarjetaPurchase #pago_tarjeta').prop('disabled', true);
-            $('#formTarjetaPurchase #monto_efectivo_tarjeta').prop("type", "hidden")
+            $('#formTarjetaPurchase #monto_efectivo, #monto_efectivo_efectivo_tarjeta').prop("type", "hidden")
             ///TRANSFERENCIA
             $('#formTransferenciaPurchase #importe_transferencia').prop("type", "hidden")
             //INPUTS CAMBIO
@@ -9289,7 +8313,7 @@ $(document).ready(function() {
             $('#formTarjetaBill #pago_efectivo').prop('disabled', false);
             ///TARJETA
             $('#formTarjetaPurchase #pago_tarjeta').prop('disabled', false);
-            $('#formTarjetaPurchase #monto_efectivo_tarjeta').prop("type", "text")
+            $('#formTarjetaPurchase #monto_efectivo, #monto_efectivo_efectivo_tarjeta').prop("type", "text")
             ///TRANSFERENCIA
             $('#formTransferenciaBill #importe_transferencia').prop("type", "text")
             //INPUTS CAMBIO
@@ -9304,7 +8328,7 @@ $(document).ready(function() {
             $('#formTarjetaBill #pago_efectivo').prop('disabled', true)
             ///TARJETA
             //--$('#formTarjetaPurchase #pago_tarjeta').prop('disabled', true);
-            $('#formTarjetaPurchase #monto_efectivo_tarjeta').prop("type", "hidden")
+            $('#formTarjetaPurchase #monto_efectivo, #monto_efectivo_efectivo_tarjeta').prop("type", "hidden")
             ///TRANSFERENCIA
             $('#formTransferenciaBill #importe_transferencia').prop("type", "hidden")
             //INPUTS CAMBIO
@@ -9335,13 +8359,13 @@ function pagoCompras(compras_id, saldo, tipo) {
 
             //EFECTIVO
             $('#formEfectivoPurchase')[0].reset();
-            $('#formEfectivoPurchase #monto_efectivoPurchase').val(datos[3]);
+            $('#formEfectivoPurchase #monto_efectivo, #monto_efectivo_efectivoPurchase').val(datos[3]);
             $('#formEfectivoPurchase #compras_id_efectivo').val(compras_id);
             $('#formEfectivoPurchase #pago_efectivo').attr('disabled', true);
             $('#formEfectivoPurchase #tipo_purchase_efectivo').val(tipo);
 
             if (tipo == '2') {
-                $('#monto_efectivo_tarjeta').attr('type', 'number');
+                $('#monto_efectivo, #monto_efectivo_efectivo_tarjeta').attr('type', 'number');
                 $('#tab5Purchase').hide();
                 $('#importe_transferencia').attr('type', 'number');
                 $('#importe_cheque').attr('type', 'number');
@@ -9352,14 +8376,14 @@ function pagoCompras(compras_id, saldo, tipo) {
 
             //TARJETA
             $('#formTarjetaPurchase')[0].reset();
-            $('#formTarjetaPurchase #monto_efectivoPurchase').val(datos[3]);
+            $('#formTarjetaPurchase #monto_efectivo, #monto_efectivo_efectivoPurchase').val(datos[3]);
             $('#formTarjetaPurchase #compras_id_tarjeta').val(compras_id);
             $('#formTarjetaPurchase #pago_efectivo').attr('disabled', true);
             $('#formTarjetaPurchase #tipo_purchase_efectivo').val(tipo);
 
             //TRANSFERENCIA
             $('#formTransferenciaPurchase')[0].reset();
-            $('#formTransferenciaPurchase #monto_efectivoPurchase').val(datos[3]);
+            $('#formTransferenciaPurchase #monto_efectivo, #monto_efectivo_efectivoPurchase').val(datos[3]);
             $('#formTransferenciaPurchase #compras_id_transferencia').val(compras_id);
             $('#formTransferenciaPurchase #pago_efectivo').attr('disabled', true);
             $('#formTransferenciaPurchase #tipo_purchase_efectivo').val(tipo);
@@ -9367,7 +8391,7 @@ function pagoCompras(compras_id, saldo, tipo) {
             //CHEQUE
             $('#formChequePurchase #compras_id_cheque').val(compras_id);
             $('#formChequePurchase #tipo_purchase_efectivo').val(tipo);
-            $('#formChequePurchase #monto_efectivoPurchase').val(datos[3]);
+            $('#formChequePurchase #monto_efectivo, #monto_efectivo_efectivoPurchase').val(datos[3]);
 
             $('#modal_pagosPurchase').modal({
                 show: true,
@@ -9415,7 +8439,7 @@ $(document).ready(function() {
 $(document).ready(function() {
     $("#formEfectivoPurchase #efectivo_Purchase").on("keyup", function() {
         var efectivo = parseFloat($("#formEfectivoPurchase #efectivo_Purchase").val()).toFixed(2);
-        var monto = parseFloat($("#formEfectivoPurchase #monto_efectivoPurchase").val()).toFixed(2);
+        var monto = parseFloat($("#formEfectivoPurchase #monto_efectivo, #monto_efectivo_efectivoPurchase").val()).toFixed(2);
         var credito = $("#formEfectivoPurchase #tipo_purchase_efectivo").val();
         var pagos_multiples = $('#pagos_multiples_switch').val();
 
@@ -11566,4 +10590,877 @@ function anular(facturas_id, comentario) {
   });
 }
   //FIN METODO ANULAR FACTURAS
+</script>
+/* ============================================================
+   PARCHE FINAL IZZY - MODAL PAGOS SIN VALORES BASURA
+   Objetivo:
+   1) Evitar que campos duplicados/temporales queden con valores viejos.
+   2) Validar importes solamente al avanzar de STEP 2 a STEP 3.
+   3) Antes de enviar AJAX, reconstruir el payload del método seleccionado.
+   ============================================================ */
+(function(){
+  function modalPagoIzzy(){ return $('#modal_pagos_unificado'); }
+
+  function izzyParse(v){
+    if (typeof parseMontoSeguro === 'function') return parseMontoSeguro(v);
+    if (typeof parseMonto === 'function') return parseMonto(v);
+    var n = parseFloat(String(v || '').replace(/L\./gi,'').replace(/,/g,'').replace(/[^0-9.]/g,''));
+    return isNaN(n) ? 0 : n;
+  }
+
+  function izzyFixed(v){
+    if (typeof fixed2Seguro === 'function') return fixed2Seguro(v);
+    if (typeof fixed2 === 'function') return fixed2(v);
+    return (parseFloat(v || 0) || 0).toFixed(2);
+  }
+
+  function izzyEscapeName(name){
+    return String(name || '').replace(/([ #;?%&,.+*~\':"!^$[\]()=>|\/@])/g, '\\$1');
+  }
+
+  function izzySetAllNamed($form, name, value){
+    if (!$form || !$form.length || !name) return;
+    value = value === null || typeof value === 'undefined' ? '' : String(value);
+
+    var selector = '[name="' + izzyEscapeName(name) + '"]';
+    var $fields = $form.find(selector);
+
+    if (!$fields.length) {
+      $('<input>', { type:'hidden', name:name, value:value }).appendTo($form);
+      return;
+    }
+
+    $fields.each(function(){
+      var $field = $(this);
+      var type = ($field.attr('type') || '').toLowerCase();
+      if (type === 'checkbox') {
+        $field.prop('checked', value === '1' || value === 'true').val(value);
+      } else {
+        $field.val(value);
+      }
+      $field.prop('disabled', false);
+    });
+  }
+
+  function izzyClearAllNamed($form, names){
+    if (!$form || !$form.length) return;
+    names.forEach(function(name){
+      $form.find('[name="' + izzyEscapeName(name) + '"]').val('');
+    });
+  }
+
+  function izzyResetCache(){
+    window.PAYMENT_MODAL_CACHE = {
+      cliente_pago:'', cliente_nombre:'', total_pago:'0.00',
+      efectivo:{}, tarjeta:{}, transferencia:{}, cheque:{}, puntos:{}
+    };
+    try { PAYMENT_MODAL_CACHE = window.PAYMENT_MODAL_CACHE; } catch(_) {}
+  }
+
+  function izzyResetPagoFormsBase(){
+    var $m = modalPagoIzzy();
+    izzyResetCache();
+
+    try { LAST_APPLIED_AMOUNTS = { cash:0, card:0, transfer:0, check:0, points:0 }; } catch(_) {}
+    try { CASH_TYPED = 0; CASH_CAMBIO = 0; } catch(_) {}
+
+    $m.find('#formEfectivoBill, #formTarjetaBill, #formTransferenciaBill, #formChequeBill, #formPuntosBill').each(function(){
+      if (this.reset) this.reset();
+      var $f = $(this);
+      $f.find('input[type="text"], input[type="number"], input[type="tel"], input[type="hidden"], textarea').val('');
+      $f.find('input[type="checkbox"]').prop('checked', false).val(0);
+      $f.find('select').val('');
+      $f.find('.RespuestaAjax').empty();
+    });
+
+    $m.find('#cambio_efectivo').val('0.00');
+    $m.find('#importe_puntos').val('0');
+    $m.find('#equivalente_puntos').val('');
+    $m.find('#confirm-methods-list').empty();
+    $m.find('#confirm-total-apply').text('L. 0.00');
+    $m.find('#btnConfirmPay').prop('disabled', true);
+
+    if ($.fn.selectpicker) {
+      try { $m.find('.selectpicker').selectpicker('refresh'); } catch(_) {}
+    }
+  }
+
+  function izzyRearmarFormulariosFacturaActual(){
+    var $m = modalPagoIzzy();
+    var fid = CURRENT_FACTURA_ID || '';
+    var tipo = CURRENT_TIPO_PAGO || 1;
+    var origen = CURRENT_ORIGEN || '';
+    var total = izzyParse($m.find('#customer_bill_pay').val());
+
+    if (typeof configurarFormularioEfectivo === 'function') configurarFormularioEfectivo(fid, tipo, total, origen);
+    if (typeof configurarFormularioTarjeta === 'function') configurarFormularioTarjeta(fid, tipo, total, origen);
+    if (typeof configurarFormularioTransferencia === 'function') configurarFormularioTransferencia(fid, tipo, total, origen);
+    if (typeof configurarFormularioCheque === 'function') configurarFormularioCheque(fid, tipo, total, origen);
+    if (typeof configurarFormularioPuntos === 'function') configurarFormularioPuntos(fid, tipo, total, origen);
+    if (typeof ensureAllFacturaIds === 'function') ensureAllFacturaIds();
+
+    izzySetAllNamed($('#formEfectivoBill'), 'factura_id_efectivo', fid);
+    izzySetAllNamed($('#formTarjetaBill'), 'factura_id_tarjeta', fid);
+    izzySetAllNamed($('#formTransferenciaBill'), 'factura_id_transferencia', fid);
+    izzySetAllNamed($('#formChequeBill'), 'factura_id_cheque', fid);
+    izzySetAllNamed($('#formPuntosBill'), 'factura_id_puntos', fid);
+
+    izzySetAllNamed($('#formEfectivoBill'), 'monto_efectivo', izzyFixed(total));
+    izzySetAllNamed($('#formTransferenciaBill'), 'monto_efectivo', izzyFixed(total));
+    izzySetAllNamed($('#formChequeBill'), 'monto_efectivo', izzyFixed(total));
+    izzySetAllNamed($('#formTarjetaBill'), 'monto_efectivo_tarjeta', isFactura() ? izzyFixed(total) : '');
+    izzySetAllNamed($('#formTarjetaBill'), 'importe_tarjeta', isFactura() ? izzyFixed(total) : '');
+  }
+
+  // Reemplazo seguro: si hay varios inputs con el mismo name, TODOS reciben el mismo valor.
+  ensureNamedHidden = function($form, name, value){
+    izzySetAllNamed($form, name, value);
+  };
+
+  // Al abrir el modal con una factura/CxC nueva, limpiar primero de verdad.
+  if (typeof pago === 'function' && !window.__izzyPagoWrappedSinBasura) {
+    window.__izzyPagoWrappedSinBasura = true;
+    var pagoOriginalIzzy = pago;
+    pago = function(facturas_id, tipoPago, origen, totalManual, clienteManual){
+      izzyResetPagoFormsBase();
+      return pagoOriginalIzzy(facturas_id, tipoPago, origen, totalManual, clienteManual);
+    };
+    window.pago = pago;
+  }
+
+  function izzySanitizarCashAntesSubmit(){
+    var $m = modalPagoIzzy();
+    var $f = $('#formEfectivoBill');
+    if (!$f.length) return;
+
+    var total = izzyParse($m.find('#customer_bill_pay').val());
+    var recibido = izzyParse($f.find('#efectivo_bill').val());
+    var aplicado = recibido;
+    var cambio = 0;
+
+    if (isFactura() && !isMultiOn()) {
+      aplicado = total;
+      cambio = Math.max(recibido - total, 0);
+    } else if (isCxC()) {
+      aplicado = recibido;
+      cambio = 0;
+    } else if (isMultiOn()) {
+      var calc = (typeof computeAppliedAmounts === 'function') ? computeAppliedAmounts() : null;
+      aplicado = calc && calc.apply ? izzyParse(calc.apply.cash) : recibido;
+      cambio = 0;
+    }
+
+    izzySetAllNamed($f, 'fecha_efectivo', $f.find('#fecha_efectivo').val() || (typeof todaySafe === 'function' ? todaySafe() : ''));
+    izzySetAllNamed($f, 'factura_id_efectivo', CURRENT_FACTURA_ID || '');
+    izzySetAllNamed($f, 'tipo_factura', isCxC() ? 2 : (isMultiOn() ? 2 : 1));
+    izzySetAllNamed($f, 'origen_pago', CURRENT_ORIGEN || '');
+    izzySetAllNamed($f, 'total_pago', izzyFixed(total));
+    izzySetAllNamed($f, 'customer_bill_pay', izzyFixed(total));
+    izzySetAllNamed($f, 'monto_efectivo', izzyFixed(aplicado));
+    izzySetAllNamed($f, 'efectivo_bill', izzyFixed(recibido));
+    izzySetAllNamed($f, 'efectivo_bill_bk', izzyFixed(recibido));
+    izzySetAllNamed($f, 'efectivo_bill_ok', izzyFixed(recibido));
+    izzySetAllNamed($f, 'cambio_efectivo', izzyFixed(cambio));
+    izzySetAllNamed($f, 'cambio_efectivo_bk', izzyFixed(cambio));
+    izzySetAllNamed($f, 'cambio_efectivo_ok', izzyFixed(cambio));
+  }
+
+  function izzySanitizarCardAntesSubmit(){
+    var $m = modalPagoIzzy();
+    var $f = $('#formTarjetaBill');
+    if (!$f.length) return;
+    var total = izzyParse($m.find('#customer_bill_pay').val());
+    var importe = isCxC() ? izzyParse($f.find('#importe_tarjeta').val()) : total;
+    izzySetAllNamed($f, 'factura_id_tarjeta', CURRENT_FACTURA_ID || '');
+    izzySetAllNamed($f, 'tipo_factura', isCxC() ? 2 : (isMultiOn() ? 2 : 1));
+    izzySetAllNamed($f, 'origen_pago', CURRENT_ORIGEN || '');
+    izzySetAllNamed($f, 'total_pago', izzyFixed(total));
+    izzySetAllNamed($f, 'customer_bill_pay', izzyFixed(total));
+    izzySetAllNamed($f, 'importe_tarjeta', izzyFixed(importe));
+    izzySetAllNamed($f, 'monto_efectivo', izzyFixed(importe));
+    izzySetAllNamed($f, 'monto_efectivo_tarjeta', izzyFixed(importe));
+  }
+
+  function izzySanitizarMontoSimple($f, campoImporte, campoFactura, campoTipo){
+    if (!$f || !$f.length) return;
+    var $m = modalPagoIzzy();
+    var total = izzyParse($m.find('#customer_bill_pay').val());
+    var importe = isFactura() && !isMultiOn() ? total : izzyParse($f.find('#' + campoImporte).val());
+    izzySetAllNamed($f, campoFactura, CURRENT_FACTURA_ID || '');
+    izzySetAllNamed($f, campoTipo, isCxC() ? 2 : (isMultiOn() ? 2 : 1));
+    izzySetAllNamed($f, 'origen_pago', CURRENT_ORIGEN || '');
+    izzySetAllNamed($f, 'total_pago', izzyFixed(total));
+    izzySetAllNamed($f, 'customer_bill_pay', izzyFixed(total));
+    izzySetAllNamed($f, campoImporte, izzyFixed(importe));
+    izzySetAllNamed($f, 'monto_efectivo', izzyFixed(importe));
+  }
+
+  function izzySanitizarFormularioAntesSubmit($f){
+    if (!$f || !$f.length) return;
+    var id = $f.attr('id') || '';
+    if (id === 'formEfectivoBill') izzySanitizarCashAntesSubmit();
+    if (id === 'formTarjetaBill') izzySanitizarCardAntesSubmit();
+    if (id === 'formTransferenciaBill') izzySanitizarMontoSimple($f, 'importe_transferencia', 'factura_id_transferencia', 'tipo_factura_transferencia');
+    if (id === 'formChequeBill') izzySanitizarMontoSimple($f, 'importe_cheque', 'factura_id_cheque', 'tipo_factura_cheque');
+    if (id === 'formPuntosBill') {
+      var total = izzyParse(modalPagoIzzy().find('#customer_bill_pay').val());
+      var importe = izzyParse($f.find('#importe_puntos').val());
+      izzySetAllNamed($f, 'factura_id_puntos', CURRENT_FACTURA_ID || '');
+      izzySetAllNamed($f, 'tipo_factura_puntos', isCxC() ? 2 : (isMultiOn() ? 2 : 1));
+      izzySetAllNamed($f, 'origen_pago', CURRENT_ORIGEN || '');
+      izzySetAllNamed($f, 'total_pago', izzyFixed(total));
+      izzySetAllNamed($f, 'customer_bill_pay', izzyFixed(total));
+      izzySetAllNamed($f, 'importe_puntos', izzyFixed(importe));
+    }
+    $f.find(':input').prop('disabled', false);
+  }
+
+  // Reemplazo del submit para serializar ya saneado, evitando que PHP reciba 40 viejo y 80 nuevo mezclados.
+  submitFormAjax = function($f){
+    if (!$f || !$f.length) {
+      return $.Deferred().reject({ status:false, title:'Error', message:'Formulario de pago no encontrado.' }).promise();
+    }
+
+    izzySanitizarFormularioAntesSubmit($f);
+    var payload = $f.serialize();
+
+    return $.ajax({
+      type: $f.attr('method') || 'POST',
+      url: $f.attr('action'),
+      data: payload,
+      dataType: 'json'
+    }).then(function(resp){
+      return resp;
+    }, function(xhr){
+      try {
+        return $.Deferred().reject(JSON.parse(xhr.responseText)).promise();
+      } catch(_) {
+        return $.Deferred().reject({ status:false, title:'Error', message:xhr.statusText || 'Ajax error' }).promise();
+      }
+    });
+  };
+
+  // Step 1 -> 2: nunca valida importes. Step 2 -> 3: valida. Esto elimina la alerta prematura en CxC.
+  $(function(){
+    var $m = modalPagoIzzy();
+
+    $m.find('#btnNext').off('click.izzyStepSeguro').on('click.izzyStepSeguro', function(e){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      if (CURRENT_STEP === 1) {
+        if (!SELECTED_METHODS || SELECTED_METHODS.size === 0) {
+          if (typeof warnPagoFinal === 'function') warnPagoFinal('Selecciona al menos un método.', null);
+          else if (typeof notifyPago === 'function') notifyPago('warning', 'Atención', 'Selecciona al menos un método.');
+          return;
+        }
+        if (typeof mostrarPasoFinal === 'function') mostrarPasoFinal(2);
+        else if (typeof goToStep === 'function') goToStep(2);
+        return;
+      }
+
+      if (CURRENT_STEP === 2) {
+        if (typeof validateBeforeConfirm === 'function' && !validateBeforeConfirm()) return;
+        if (typeof mostrarPasoFinal === 'function') mostrarPasoFinal(3);
+        else if (typeof goToStep === 'function') goToStep(3);
+      }
+    });
+
+    $m.off('shown.bs.modal.izzyPagoLimpio').on('shown.bs.modal.izzyPagoLimpio', function(){
+      izzyRearmarFormulariosFacturaActual();
+    });
+  });
+})();
+/* FIN PARCHE FINAL IZZY - MODAL PAGOS SIN VALORES BASURA */
+
+
+/* ============================================================
+   PARCHE FINAL BLINDADO IZZY - PAGOS TODOS LOS MÉTODOS
+   ------------------------------------------------------------
+   Objetivo:
+   1) No usar valores cacheados/viejos para importes.
+   2) Antes de confirmar/enviar, reconstruir el payload desde
+      los inputs actuales del modal.
+   3) Facturación normal: tarjeta/transferencia/cheque = total.
+      Efectivo: recibido puede ser >= total, monto aplicado = total.
+   4) CxC: cada método manda exactamente lo que el usuario escribió,
+      validando que no sea mayor al saldo.
+   5) Pago múltiple: se sincronizan todos los hidden antes del Ajax.
+============================================================ */
+(function(){
+  if (window.__IZZY_PAGO_BLINDADO_TODOS_V3) return;
+  window.__IZZY_PAGO_BLINDADO_TODOS_V3 = true;
+
+  function $modalPago(){
+    return $('#modal_pagos_unificado').length ? $('#modal_pagos_unificado') : $('#modal_pagos');
+  }
+
+  function nPago(valor){
+    if (valor === null || valor === undefined) return 0;
+    if (typeof valor === 'number') return isNaN(valor) ? 0 : valor;
+
+    valor = String(valor)
+      .replace(/L\./gi, '')
+      .replace(/L/gi, '')
+      .replace(/,/g, '')
+      .replace(/[^0-9.\-]/g, '')
+      .trim();
+
+    var n = parseFloat(valor || '0');
+    return isNaN(n) ? 0 : n;
+  }
+
+  function fPago(valor){
+    return nPago(valor).toFixed(2);
+  }
+
+  function hoyPago(){
+    if (typeof todaySafe === 'function') return todaySafe();
+    var d = new Date();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return d.getFullYear() + '-' + m + '-' + day;
+  }
+
+  function escName(name){
+    return String(name || '').replace(/([ #;?%&,.+*~\':"!^$[\]()=>|\/@])/g, '\\$1');
+  }
+
+  function setAll($form, name, value){
+    if (!$form || !$form.length || !name) return;
+
+    value = value === null || typeof value === 'undefined' ? '' : String(value);
+
+    var $fields = $form.find('[name="' + escName(name) + '"]');
+
+    if (!$fields.length) {
+      $('<input>', {
+        type: 'hidden',
+        name: name,
+        value: value
+      }).appendTo($form);
+      return;
+    }
+
+    $fields.each(function(){
+      var $field = $(this);
+      var type = String($field.attr('type') || '').toLowerCase();
+
+      $field.prop('disabled', false);
+
+      if (type === 'checkbox') {
+        $field.prop('checked', value === '1' || value === 'true').val(value);
+      } else {
+        $field.val(value);
+      }
+    });
+  }
+
+  function getVal($field){
+    if (!$field || !$field.length) return '';
+    return $field.val();
+  }
+
+  function getSelectVal($field){
+    if (!$field || !$field.length) return '';
+    var v = $field.val();
+    if (v !== null && v !== undefined && String(v).trim() !== '') return v;
+    return '';
+  }
+
+  function totalActualPago(){
+    var $m = $modalPago();
+    var total = nPago($m.find('#customer_bill_pay').val());
+    if (total <= 0) total = nPago($m.find('#bill-pay').text());
+    if (total <= 0 && window.PAYMENT_MODAL_CACHE) total = nPago(window.PAYMENT_MODAL_CACHE.total_pago);
+    return total;
+  }
+
+  function facturaIdActualPago(){
+    return CURRENT_FACTURA_ID ||
+      $('#formEfectivoBill #factura_id_efectivo').val() ||
+      $('#formTarjetaBill #factura_id_tarjeta').val() ||
+      $('#formTransferenciaBill #factura_id_transferencia').val() ||
+      $('#formChequeBill #factura_id_cheque').val() ||
+      $('#formPuntosBill #factura_id_puntos').val() || '';
+  }
+
+  function tipoFacturaActualPago(){
+    return (typeof isCxC === 'function' && isCxC()) ? 2 : ((typeof isMultiOn === 'function' && isMultiOn()) ? 2 : 1);
+  }
+
+  function origenActualPago(){
+    return CURRENT_ORIGEN || '';
+  }
+
+  function printActualPago(){
+    return $modalPago().find('#comprobante_print_switch').is(':checked') ? 1 : 0;
+  }
+
+  function multipleActualPago(){
+    return (typeof isMultiOn === 'function' && isMultiOn()) ? 1 : 0;
+  }
+
+  function clienteActualPago(){
+    var $m = $modalPago();
+    return ($m.find('#customer-name-bill').text() || '').trim() || (window.PAYMENT_MODAL_CACHE ? (window.PAYMENT_MODAL_CACHE.cliente_pago || '') : '');
+  }
+
+  function selectedHas(metodo){
+    try { return SELECTED_METHODS && SELECTED_METHODS.has(metodo); } catch(_) { return false; }
+  }
+
+  function selectedArray(){
+    try { return Array.from(SELECTED_METHODS || []); } catch(_) { return []; }
+  }
+
+  function cardImporteActual(){
+    var $f = $('#formTarjetaBill');
+    var visible = nPago($f.find('#importe_tarjeta_cxc_visible').val());
+    var hidden = nPago($f.find('#importe_tarjeta').val());
+    var monto = nPago($f.find('#monto_efectivo, #monto_efectivo_efectivo_tarjeta').val());
+
+    if (typeof isCxC === 'function' && isCxC()) {
+      return visible > 0 ? visible : (hidden > 0 ? hidden : monto);
+    }
+
+    if (typeof isFactura === 'function' && isFactura() && !(typeof isMultiOn === 'function' && isMultiOn())) {
+      return totalActualPago();
+    }
+
+    return hidden > 0 ? hidden : (visible > 0 ? visible : monto);
+  }
+
+  function leerMontosActuales(){
+    return {
+      cash: nPago($('#formEfectivoBill #efectivo_bill').val()),
+      card: cardImporteActual(),
+      transfer: nPago($('#formTransferenciaBill #importe_transferencia').val()),
+      check: nPago($('#formChequeBill #importe_cheque').val()),
+      points: nPago($('#formPuntosBill #importe_puntos').val())
+    };
+  }
+
+  readAmounts = function(){
+    var amounts = leerMontosActuales();
+    var sumSel = selectedArray().reduce(function(acc, m){ return acc + (amounts[m] || 0); }, 0);
+
+    return {
+      totalFactura: totalActualPago(),
+      amounts: amounts,
+      sumSel: sumSel
+    };
+  };
+
+  computeAppliedAmounts = function(){
+    var total = totalActualPago();
+    var amounts = leerMontosActuales();
+    var apply = { cash:0, card:0, transfer:0, check:0, points:0 };
+    var multi = typeof isMultiOn === 'function' && isMultiOn();
+    var factura = typeof isFactura === 'function' && isFactura();
+
+    if (factura) {
+      if (multi) {
+        apply.card = selectedHas('card') ? amounts.card : 0;
+        apply.transfer = selectedHas('transfer') ? amounts.transfer : 0;
+        apply.check = selectedHas('check') ? amounts.check : 0;
+        apply.points = selectedHas('points') ? amounts.points : 0;
+
+        var noCash = apply.card + apply.transfer + apply.check + apply.points;
+        apply.cash = selectedHas('cash') ? Math.max(total - noCash, 0) : 0;
+      } else {
+        var only = selectedArray()[0];
+
+        if (only === 'cash') apply.cash = Math.min(amounts.cash, total);
+        if (only === 'card') apply.card = total;
+        if (only === 'transfer') apply.transfer = total;
+        if (only === 'check') apply.check = total;
+        if (only === 'points') apply.points = Math.min(amounts.points, total);
+      }
+    } else {
+      apply.cash = selectedHas('cash') ? amounts.cash : 0;
+      apply.card = selectedHas('card') ? amounts.card : 0;
+      apply.transfer = selectedHas('transfer') ? amounts.transfer : 0;
+      apply.check = selectedHas('check') ? amounts.check : 0;
+      apply.points = selectedHas('points') ? amounts.points : 0;
+    }
+
+    var sumApplied = selectedArray().reduce(function(acc, m){ return acc + (apply[m] || 0); }, 0);
+
+    return {
+      totalFactura: total,
+      amounts: amounts,
+      apply: apply,
+      sumApplied: sumApplied
+    };
+  };
+
+  ensureNamedHidden = function($form, name, value){
+    setAll($form, name, value);
+  };
+
+  function common($form, key){
+    var total = totalActualPago();
+    setAll($form, 'cliente_pago', clienteActualPago());
+    setAll($form, 'cliente_nombre', clienteActualPago());
+    setAll($form, 'total_pago', fPago(total));
+    setAll($form, 'customer_bill_pay', fPago(total));
+    setAll($form, 'origen_pago', origenActualPago());
+    setAll($form, 'comprobante_print', printActualPago());
+    setAll($form, 'multiple_pago', multipleActualPago());
+
+    if (key === 'efectivo' || key === 'tarjeta') setAll($form, 'tipo_factura', tipoFacturaActualPago());
+    if (key === 'transferencia') setAll($form, 'tipo_factura_transferencia', tipoFacturaActualPago());
+    if (key === 'cheque') setAll($form, 'tipo_factura_cheque', tipoFacturaActualPago());
+    if (key === 'puntos') setAll($form, 'tipo_factura_puntos', tipoFacturaActualPago());
+  }
+
+  hydrateCommonFields = function($form, key){
+    common($form, key);
+  };
+
+  hydrateCashForm = function(){
+    var $f = $('#formEfectivoBill');
+    if (!$f.length) return;
+
+    var total = totalActualPago();
+    var recibido = nPago($f.find('#efectivo_bill').val());
+    var calc = computeAppliedAmounts();
+    var aplicado = calc.apply.cash || 0;
+    var cambio = 0;
+
+    if (typeof isFactura === 'function' && isFactura() && !(typeof isMultiOn === 'function' && isMultiOn())) {
+      aplicado = Math.min(recibido, total);
+      cambio = Math.max(recibido - total, 0);
+    } else if (typeof isCxC === 'function' && isCxC()) {
+      aplicado = recibido;
+      cambio = 0;
+    } else if (typeof isMultiOn === 'function' && isMultiOn()) {
+      cambio = 0;
+    }
+
+    common($f, 'efectivo');
+    setAll($f, 'fecha_efectivo', getVal($f.find('#fecha_efectivo')) || hoyPago());
+    setAll($f, 'factura_id_efectivo', facturaIdActualPago());
+    setAll($f, 'monto_efectivo', fPago(aplicado));
+    setAll($f, 'efectivo_bill', fPago(recibido));
+    setAll($f, 'efectivo_bill_bk', fPago(recibido));
+    setAll($f, 'efectivo_bill_ok', fPago(recibido));
+    setAll($f, 'cambio_efectivo', fPago(cambio));
+    setAll($f, 'cambio_efectivo_bk', fPago(cambio));
+    setAll($f, 'cambio_efectivo_ok', fPago(cambio));
+    setAll($f, 'usuario_efectivo', getSelectVal($f.find('#usuario_efectivo')));
+  };
+
+  hydrateCardForm = function(){
+    var $f = $('#formTarjetaBill');
+    if (!$f.length) return;
+
+    var calc = computeAppliedAmounts();
+    var importe = calc.apply.card || 0;
+
+    common($f, 'tarjeta');
+    setAll($f, 'fecha_tarjeta', getVal($f.find('#fecha_tarjeta')) || hoyPago());
+    setAll($f, 'factura_id_tarjeta', facturaIdActualPago());
+    setAll($f, 'monto_efectivo', fPago(importe));
+    setAll($f, 'monto_efectivo_tarjeta', fPago(importe));
+    setAll($f, 'importe_tarjeta', fPago(importe));
+    setAll($f, 'cr_bill', getVal($f.find('#cr_bill')) || '');
+    setAll($f, 'exp', getVal($f.find('#exp')) || '');
+    setAll($f, 'cvcpwd', getVal($f.find('#cvcpwd')) || '');
+    setAll($f, 'usuario_tarjeta', getSelectVal($f.find('#usuario_tarjeta')));
+    setAll($f, 'numero_tarjeta_bk', getVal($f.find('#cr_bill')) || '');
+    setAll($f, 'expiracion_bk', String(getVal($f.find('#exp')) || '').replace('/', ''));
+    setAll($f, 'numero_aprobacion_bk', getVal($f.find('#cvcpwd')) || '');
+    setAll($f, 'banco_id_tarjeta', getSelectVal($f.find('#bk_nm_tarjeta')) || '0');
+
+    if ($f.find('#importe_tarjeta_cxc_visible').length) {
+      $f.find('#importe_tarjeta_cxc_visible').val(fPago(importe));
+    }
+  };
+
+  hydrateTransferForm = function(){
+    var $f = $('#formTransferenciaBill');
+    if (!$f.length) return;
+
+    var calc = computeAppliedAmounts();
+    var importe = calc.apply.transfer || 0;
+    var banco = getSelectVal($f.find('#bk_nm'));
+    var ref = getVal($f.find('#ben_nm')) || getVal($f.find('#ref_transferencia')) || '';
+
+    common($f, 'transferencia');
+    setAll($f, 'fecha_transferencia', getVal($f.find('#fecha_transferencia')) || hoyPago());
+    setAll($f, 'factura_id_transferencia', facturaIdActualPago());
+    setAll($f, 'monto_efectivo', fPago(importe));
+    setAll($f, 'importe_transferencia', fPago(importe));
+    setAll($f, 'bk_nm', banco);
+    setAll($f, 'ben_nm', ref);
+    setAll($f, 'ref_transferencia', ref);
+    setAll($f, 'banco_id_transferencia', banco || '0');
+    setAll($f, 'cta_transferencia', getVal($f.find('#cta_transferencia')) || '');
+    setAll($f, 'usuario_transferencia', getSelectVal($f.find('#usuario_transferencia')));
+  };
+
+  hydrateChequeForm = function(){
+    var $f = $('#formChequeBill');
+    if (!$f.length) return;
+
+    var calc = computeAppliedAmounts();
+    var importe = calc.apply.check || 0;
+    var banco = getSelectVal($f.find('#bk_nm_chk'));
+    var cheque = getVal($f.find('#check_num')) || getVal($f.find('#numero_cheque')) || '';
+
+    common($f, 'cheque');
+    setAll($f, 'fecha_cheque', getVal($f.find('#fecha_cheque')) || hoyPago());
+    setAll($f, 'factura_id_cheque', facturaIdActualPago());
+    setAll($f, 'monto_efectivo', fPago(importe));
+    setAll($f, 'importe_cheque', fPago(importe));
+    setAll($f, 'bk_nm_chk', banco);
+    setAll($f, 'check_num', cheque);
+    setAll($f, 'numero_cheque', cheque);
+    setAll($f, 'banco_id_cheque', banco || '0');
+    setAll($f, 'banco_cheque', banco || '');
+    setAll($f, 'usuario_cheque', getSelectVal($f.find('#usuario_cheque')));
+  };
+
+  hydratePuntosForm = function(){
+    var $f = $('#formPuntosBill');
+    if (!$f.length) return;
+
+    var calc = computeAppliedAmounts();
+    var importe = calc.apply.points || 0;
+    var puntos = getVal($f.find('#puntos_uso')) || getVal($f.find('#puntos_usar')) || '';
+    var equivalente = getVal($f.find('#equivalente_puntos')) || getVal($f.find('#equivalente_lempiras')) || importe;
+
+    common($f, 'puntos');
+    setAll($f, 'fecha_puntos', getVal($f.find('#fecha_puntos')) || hoyPago());
+    setAll($f, 'factura_id_puntos', facturaIdActualPago());
+    setAll($f, 'puntos_disponibles', getVal($f.find('#puntos_disponibles')) || '');
+    setAll($f, 'puntos_uso', puntos);
+    setAll($f, 'puntos_usar', puntos);
+    setAll($f, 'equivalente_lempiras', equivalente);
+    setAll($f, 'equivalente_puntos', equivalente);
+    setAll($f, 'importe_puntos', fPago(importe));
+    setAll($f, 'usuario_puntos', getSelectVal($f.find('#usuario_puntos')));
+  };
+
+  hydratePaymentFormByKey = function(key){
+    if (key === 'efectivo' || key === 'cash') hydrateCashForm();
+    if (key === 'tarjeta' || key === 'card') hydrateCardForm();
+    if (key === 'transferencia' || key === 'transfer') hydrateTransferForm();
+    if (key === 'cheque' || key === 'check') hydrateChequeForm();
+    if (key === 'puntos' || key === 'points') hydratePuntosForm();
+  };
+
+  hydrateSelectedPaymentForms = function(){
+    if (typeof ensureAllFacturaIds === 'function') ensureAllFacturaIds();
+
+    if (selectedHas('cash')) hydrateCashForm();
+    if (selectedHas('card')) hydrateCardForm();
+    if (selectedHas('transfer')) hydrateTransferForm();
+    if (selectedHas('check')) hydrateChequeForm();
+    if (selectedHas('points')) hydratePuntosForm();
+  };
+
+  function focusPago(selector){
+    if (!selector) return;
+    setTimeout(function(){
+      try {
+        var $el = $(selector).first();
+        if ($el.length) $el.focus().select();
+      } catch(_) {}
+    }, 120);
+  }
+
+  validateBeforeConfirm = function(){
+    var total = totalActualPago();
+    var multi = typeof isMultiOn === 'function' && isMultiOn();
+    var factura = typeof isFactura === 'function' && isFactura();
+    var cxc = typeof isCxC === 'function' && isCxC();
+    var amounts = leerMontosActuales();
+
+    if (total <= 0) {
+      if (typeof notifyPago === 'function') notifyPago('warning', 'Atención', 'El total a pagar debe ser mayor que 0.');
+      focusPago('#customer_bill_pay');
+      return false;
+    }
+
+    if (selectedHas('cash')) {
+      if (amounts.cash <= 0) {
+        if (typeof notifyPago === 'function') notifyPago('warning', 'Atención', 'El efectivo recibido debe ser mayor que 0.');
+        focusPago('#efectivo_bill');
+        return false;
+      }
+      if (factura && !multi && amounts.cash + 0.0001 < total) {
+        if (typeof notifyPago === 'function') notifyPago('warning', 'Atención', 'En facturación, el efectivo debe ser igual o mayor al valor a cobrar.');
+        focusPago('#efectivo_bill');
+        return false;
+      }
+      if (cxc && amounts.cash > total + 0.0001) {
+        if (typeof notifyPago === 'function') notifyPago('warning', 'Atención', 'En CxC, el efectivo recibido no puede ser mayor al saldo.');
+        focusPago('#efectivo_bill');
+        return false;
+      }
+    }
+
+    if (selectedHas('card')) {
+      if (factura && !multi) amounts.card = total;
+      if (amounts.card <= 0) {
+        if (typeof notifyPago === 'function') notifyPago('warning', 'Atención', 'El importe de tarjeta debe ser mayor que 0.');
+        focusPago('#importe_tarjeta_cxc_visible, #importe_tarjeta');
+        return false;
+      }
+      if (cxc && amounts.card > total + 0.0001) {
+        if (typeof notifyPago === 'function') notifyPago('warning', 'Atención', 'En CxC, el importe de tarjeta no puede ser mayor al saldo pendiente.');
+        focusPago('#importe_tarjeta_cxc_visible, #importe_tarjeta');
+        return false;
+      }
+      if (factura && !multi && Math.abs(amounts.card - total) > 0.005) {
+        if (typeof notifyPago === 'function') notifyPago('warning', 'Atención', 'En facturación, la tarjeta debe ser igual al valor a cobrar.');
+        focusPago('#cr_bill');
+        return false;
+      }
+    }
+
+    if (selectedHas('transfer')) {
+      if (factura && !multi) amounts.transfer = total;
+      if (amounts.transfer <= 0) {
+        if (typeof notifyPago === 'function') notifyPago('warning', 'Atención', 'El importe de transferencia debe ser mayor que 0.');
+        focusPago('#importe_transferencia');
+        return false;
+      }
+      if (cxc && amounts.transfer > total + 0.0001) {
+        if (typeof notifyPago === 'function') notifyPago('warning', 'Atención', 'En CxC, la transferencia no puede ser mayor al saldo.');
+        focusPago('#importe_transferencia');
+        return false;
+      }
+      if (factura && !multi && Math.abs(amounts.transfer - total) > 0.005) {
+        if (typeof notifyPago === 'function') notifyPago('warning', 'Atención', 'En facturación, la transferencia debe ser igual al valor a cobrar.');
+        focusPago('#importe_transferencia');
+        return false;
+      }
+    }
+
+    if (selectedHas('check')) {
+      if (factura && !multi) amounts.check = total;
+      if (amounts.check <= 0) {
+        if (typeof notifyPago === 'function') notifyPago('warning', 'Atención', 'El importe de cheque debe ser mayor que 0.');
+        focusPago('#importe_cheque');
+        return false;
+      }
+      if (cxc && amounts.check > total + 0.0001) {
+        if (typeof notifyPago === 'function') notifyPago('warning', 'Atención', 'En CxC, el cheque no puede ser mayor al saldo.');
+        focusPago('#importe_cheque');
+        return false;
+      }
+      if (factura && !multi && Math.abs(amounts.check - total) > 0.005) {
+        if (typeof notifyPago === 'function') notifyPago('warning', 'Atención', 'En facturación, el cheque debe ser igual al valor a cobrar.');
+        focusPago('#importe_cheque');
+        return false;
+      }
+    }
+
+    if (selectedHas('points')) {
+      if (amounts.points <= 0) {
+        if (typeof notifyPago === 'function') notifyPago('warning', 'Atención', 'El importe de puntos debe ser mayor que 0.');
+        focusPago('#puntos_uso');
+        return false;
+      }
+      if (amounts.points > total + 0.0001) {
+        if (typeof notifyPago === 'function') notifyPago('warning', 'Atención', 'El importe de puntos no puede ser mayor al valor a cobrar.');
+        focusPago('#puntos_uso');
+        return false;
+      }
+    }
+
+    if (multi) {
+      if (factura && !selectedHas('cash')) {
+        if (typeof notifyPago === 'function') notifyPago('warning', 'Atención', 'En facturación, el pago múltiple debe incluir efectivo.');
+        focusPago('#efectivo_bill');
+        return false;
+      }
+
+      var sumaSeleccionada = selectedArray().reduce(function(acc, m){ return acc + (amounts[m] || 0); }, 0);
+      var sumaNoCash = (selectedHas('card') ? amounts.card : 0) + (selectedHas('transfer') ? amounts.transfer : 0) + (selectedHas('check') ? amounts.check : 0) + (selectedHas('points') ? amounts.points : 0);
+
+      if (factura && sumaNoCash > total + 0.0001) {
+        if (typeof notifyPago === 'function') notifyPago('warning', 'Atención', 'La parte no efectiva no puede exceder el total.');
+        return false;
+      }
+      if (cxc && sumaSeleccionada > total + 0.0001) {
+        if (typeof notifyPago === 'function') notifyPago('warning', 'Atención', 'En CxC, la suma de métodos no puede exceder el saldo.');
+        return false;
+      }
+    }
+
+    hydrateSelectedPaymentForms();
+    if (typeof syncPaymentConfirm === 'function') syncPaymentConfirm();
+    return true;
+  };
+
+  function sanitizarFormPago($form){
+    if (!$form || !$form.length) return;
+    var id = $form.attr('id') || '';
+
+    if (id === 'formEfectivoBill') hydrateCashForm();
+    if (id === 'formTarjetaBill') hydrateCardForm();
+    if (id === 'formTransferenciaBill') hydrateTransferForm();
+    if (id === 'formChequeBill') hydrateChequeForm();
+    if (id === 'formPuntosBill') hydratePuntosForm();
+
+    $form.find(':input').prop('disabled', false);
+  }
+
+  submitFormAjax = function($form){
+    if (!$form || !$form.length) {
+      return $.Deferred().reject({ status:false, title:'Error', message:'Formulario de pago no encontrado.' }).promise();
+    }
+
+    sanitizarFormPago($form);
+
+    return $.ajax({
+      type: $form.attr('method') || 'POST',
+      url: $form.attr('action'),
+      data: $form.serialize(),
+      dataType: 'json'
+    }).then(function(resp){
+      return resp;
+    }, function(xhr){
+      var errorResp = { status:false, title:'Error', message:'No se pudo registrar el pago.' };
+      try { errorResp = JSON.parse(xhr.responseText); } catch(_) {}
+      return $.Deferred().reject(errorResp).promise();
+    });
+  };
+
+  document.addEventListener('submit', function(e){
+    var form = e.target;
+    if (!form || !form.id) return;
+    if (!/^(formEfectivoBill|formTarjetaBill|formTransferenciaBill|formChequeBill|formPuntosBill)$/.test(form.id)) return;
+    sanitizarFormPago($(form));
+  }, true);
+
+  $(document)
+    .off('input.izzyBlindadoPagos blur.izzyBlindadoPagos', '#formEfectivoBill #efectivo_bill, #formTarjetaBill #importe_tarjeta, #formTarjetaBill #importe_tarjeta_cxc_visible, #formTransferenciaBill #importe_transferencia, #formChequeBill #importe_cheque, #formPuntosBill #puntos_uso, #formPuntosBill #puntos_usar')
+    .on('input.izzyBlindadoPagos', '#formEfectivoBill #efectivo_bill, #formTarjetaBill #importe_tarjeta, #formTarjetaBill #importe_tarjeta_cxc_visible, #formTransferenciaBill #importe_transferencia, #formChequeBill #importe_cheque, #formPuntosBill #puntos_uso, #formPuntosBill #puntos_usar', function(){
+      if (this.id === 'importe_tarjeta_cxc_visible') {
+        var v = $(this).val();
+        $('#formTarjetaBill #importe_tarjeta').val(v);
+        $('#formTarjetaBill #monto_efectivo, #monto_efectivo_efectivo_tarjeta').val(v);
+      }
+      if (typeof calcularCambioEfectivo === 'function') calcularCambioEfectivo();
+      if (typeof syncPaymentConfirm === 'function') syncPaymentConfirm();
+    })
+    .on('blur.izzyBlindadoPagos', '#formEfectivoBill #efectivo_bill, #formTarjetaBill #importe_tarjeta, #formTarjetaBill #importe_tarjeta_cxc_visible, #formTransferenciaBill #importe_transferencia, #formChequeBill #importe_cheque', function(){
+      var v = nPago($(this).val());
+      if (v > 0 || $(this).val() !== '') $(this).val(fPago(v));
+      if (this.id === 'importe_tarjeta_cxc_visible') {
+        $('#formTarjetaBill #importe_tarjeta').val($(this).val());
+        $('#formTarjetaBill #monto_efectivo, #monto_efectivo_efectivo_tarjeta').val($(this).val());
+      }
+      if (typeof calcularCambioEfectivo === 'function') calcularCambioEfectivo();
+      if (typeof syncPaymentConfirm === 'function') syncPaymentConfirm();
+    });
+})();
+/* FIN PARCHE FINAL BLINDADO IZZY - PAGOS TODOS LOS MÉTODOS */
+
 </script>

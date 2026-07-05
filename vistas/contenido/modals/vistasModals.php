@@ -1898,9 +1898,9 @@
                 <input type="hidden" class="comprobante_print_value" name="comprobante_print" value="0">
                 <input type="hidden" class="multiple_pago" name="multiple_pago" value="0">
                 <input type="hidden" name="factura_id_efectivo" id="factura_id_efectivo">
-                <input type="hidden" name="tipo_factura" id="tipo_factura" value="1">
-                <input type="hidden" name="origen_pago" id="origen_pago" value="0">
-                <input type="hidden" name="monto_efectivo" id="monto_efectivo" step="0.01" placeholder="0.00">
+				<input type="hidden" name="origen_pago" id="origen_pago_efectivo" value="0">
+				<input type="hidden" name="tipo_factura" id="tipo_factura_efectivo" value="1">
+				<input type="hidden" name="monto_efectivo" id="monto_efectivo_efectivo">
 
                 <div class="payment-form-group">
                   <input type="text" inputmode="decimal" name="efectivo_bill" id="efectivo_bill"
@@ -1946,11 +1946,11 @@
                 </div>
 
                 <input type="hidden" name="factura_id_tarjeta" id="factura_id_tarjeta">
-                <input type="hidden" name="origen_pago" id="origen_pago" value="0">
                 <input type="hidden" class="comprobante_print_value" name="comprobante_print" value="0">
                 <input type="hidden" class="multiple_pago" name="multiple_pago" value="0">
                 <input type="number" style="display:none;" name="monto_efectivo" id="monto_efectivo_tarjeta" step="0.01">                
-                <input type="hidden" name="tipo_factura" id="tipo_factura" value="1">
+				<input type="hidden" name="origen_pago" id="origen_pago_tarjeta" value="0">
+				<input type="hidden" name="tipo_factura" id="tipo_factura_tarjeta" value="1">
 
                 <div class="payment-form-group">
                 <input type="text" inputmode="decimal" name="importe_tarjeta" id="importe_tarjeta" class="payment-form-control" placeholder=" " step="0.01">
@@ -2010,11 +2010,11 @@
                 </div>
 
                 <input type="hidden" name="factura_id_transferencia" id="factura_id_transferencia">
-                <input type="hidden" name="origen_pago" id="origen_pago" value="0">
                 <input type="hidden" class="multiple_pago" name="multiple_pago" value="0">
                 <input type="hidden" class="comprobante_print_value" name="comprobante_print" value="0">
-                <input type="hidden" name="monto_efectivo" id="monto_efectivo">
                 <input type="hidden" name="tipo_factura" id="tipo_factura_transferencia" value="1" step="0.01">
+				<input type="hidden" name="origen_pago" id="origen_pago_transferencia" value="0">
+				<input type="hidden" name="monto_efectivo" id="monto_efectivo_transferencia" placeholder="0.00">
 
                 <div class="payment-form-group">
                   <label class="d-block mb-1">Banco</label>
@@ -2066,10 +2066,10 @@
 
                 <input type="hidden" class="multiple_pago" name="multiple_pago" value="0">
                 <input type="hidden" class="comprobante_print_value" name="comprobante_print" value="0">
-                <input type="hidden" name="origen_pago" id="origen_pago" value="0">
                 <input type="hidden" name="factura_id_cheque" id="factura_id_cheque">
-                <input type="hidden" name="monto_efectivo" id="monto_efectivo">
                 <input type="hidden" name="tipo_factura" id="tipo_factura_cheque" value="1" step="0.01">
+				<input type="hidden" name="origen_pago" id="origen_pago_cheque" value="0">
+				<input type="hidden" name="monto_efectivo" id="monto_efectivo_cheque" placeholder="0.00">
 
                 <div class="payment-form-group">
                   <label class="d-block mb-1">Banco</label>
@@ -2122,7 +2122,7 @@
                 <input type="hidden" class="multiple_pago" name="multiple_pago" value="0">
                 <input type="hidden" name="factura_id_puntos" id="factura_id_puntos">
                 <input type="hidden" name="tipo_factura" id="tipo_factura_puntos" value="1">
-                <input type="hidden" name="origen_pago" id="origen_pago" value="0">
+                <input type="hidden" name="origen_pago" id="origen_pago_puntos" value="0">
 
                 <div class="payment-form-group">
                   <input type="text" name="puntos_disponibles" id="puntos_disponibles"

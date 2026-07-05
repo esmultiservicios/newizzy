@@ -2955,7 +2955,7 @@ $(() => {
     });
 });
 
-$('#formulario_bill #tipo_factura_reporte').on("change", function(e) {
+$('#formulario_bill #tipo_factura, #tipo_factura_efectivo_reporte').on("change", function(e) {
     listar_busqueda_bill();
 });
 
@@ -6817,12 +6817,12 @@ var listar_busqueda_bill = function() {
     var tipo_factura_reporte = 1;
 
     if (
-        $("#formulario_bill #tipo_factura_reporte").val() == null ||
-        $("#formulario_bill #tipo_factura_reporte").val() == ""
+        $("#formulario_bill #tipo_factura, #tipo_factura_efectivo_reporte").val() == null ||
+        $("#formulario_bill #tipo_factura, #tipo_factura_efectivo_reporte").val() == ""
     ) {
         tipo_factura_reporte = 1;
     } else {
-        tipo_factura_reporte = $("#formulario_bill #tipo_factura_reporte").val();
+        tipo_factura_reporte = $("#formulario_bill #tipo_factura, #tipo_factura_efectivo_reporte").val();
     }
 
     var fechai = $("#formulario_bill #fechai").val();
@@ -7221,9 +7221,9 @@ function getReporteFactura() {
         url: url,
         async: true,
         success: function(data) {
-            $('#formulario_bill #tipo_factura_reporte').html("");
-            $('#formulario_bill #tipo_factura_reporte').html(data);
-            $('#formulario_bill #tipo_factura_reporte').selectpicker('refresh');
+            $('#formulario_bill #tipo_factura, #tipo_factura_efectivo_reporte').html("");
+            $('#formulario_bill #tipo_factura, #tipo_factura_efectivo_reporte').html(data);
+            $('#formulario_bill #tipo_factura, #tipo_factura_efectivo_reporte').selectpicker('refresh');
         }
     });
 }

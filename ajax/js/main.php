@@ -10492,41 +10492,41 @@ $(document)
 
   //INICIO METODO ANULAR FACTURAS
   function anularFacturas(facturas_id) {
-  swal({
-    title: "¿Está seguro?",
-    text: "¿Desea anular la factura: # " + getNumeroFactura(facturas_id) + "?",
-    content: {
-      element: "input",
-      attributes: {
-        placeholder: "Comentario",
-        type: "text"
-      }
-    },
-    icon: "warning",
-    buttons: {
-      cancel: "Cancelar",
-      confirm: {
-        text: "¡Sí, anular la factura!",
-        closeModal: false
-      }
-    },
-    dangerMode: true,
-    closeOnEsc: false,
-    closeOnClickOutside: false
-  }).then((value) => {
-    if (value === null) {
-      swal.close();
-      return false;
-    }
+    swal({
+        title: "¿Está seguro?",
+        text: "¿Desea anular la factura: # " + getNumeroFactura(facturas_id) + "?",
+        content: {
+        element: "input",
+        attributes: {
+            placeholder: "Comentario",
+            type: "text"
+        }
+        },
+        icon: "warning",
+        buttons: {
+        cancel: "Cancelar",
+        confirm: {
+            text: "¡Sí, anular la factura!",
+            closeModal: false
+        }
+        },
+        dangerMode: true,
+        closeOnEsc: false,
+        closeOnClickOutside: false
+    }).then((value) => {
+        if (value === null) {
+        swal.close();
+        return false;
+        }
 
-    if ($.trim(value) === "") {
-      showNotify('error', 'Error', '¡Necesita escribir algo!');
-      swal.close();
-      return false;
-    }
+        if ($.trim(value) === "") {
+        showNotify('error', 'Error', '¡Necesita escribir algo!');
+        swal.close();
+        return false;
+        }
 
-    anular(facturas_id, value);
-  });
+        anular(facturas_id, value);
+    });
 }
 
 function anular(facturas_id, comentario) {

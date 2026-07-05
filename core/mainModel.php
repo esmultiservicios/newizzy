@@ -1355,6 +1355,73 @@ class mainModel
 		return $result;
 	}
 
+	/* =========================================================
+	HISTORIAL GENERAL CON CONSULTAS PREPARADAS
+	---------------------------------------------------------
+	Pegar dentro de la clase mainModel.
+	Tabla: historial
+	========================================================= */
+	public function guardar_historial($modulo, $status, $observacion, $colaboradores_id = null)
+	{
+		date_default_timezone_set('America/Tegucigalpa');
+
+		$conexion = $this->connection();
+
+		$historial_id = (int)$this->correlativo('historial_id', 'historial');
+		$modulo = mb_substr(trim((string)$modulo), 0, 30, 'UTF-8');
+		$status = mb_substr(trim((string)$status), 0, 50, 'UTF-8');
+		$observacion = mb_substr(trim((string)$observacion), 0, 254, 'UTF-8');
+		$fecha_registro = date('Y-m-d H:i:s');
+
+		if ($colaboradores_id === null) {
+			$colaboradores_id = isset($_SESSION['colaborador_id_sd']) ? (int)$_SESSION['colaborador_id_sd'] : 0;
+		} else {
+			$colaboradores_id = (int)$colaboradores_id;
+		}
+
+		if ($modulo === '') {
+			$modulo = 'Sistema';
+		}
+
+		if ($status === '') {
+			$status = 'Registro';
+		}
+
+		if ($observacion === '') {
+			$observacion = 'Sin observación.';
+		}
+
+		$sql = "INSERT INTO historial (
+					historial_id,
+					modulo,
+					colaboradores_id,
+					status,
+					observacion,
+					fecha_registro
+				) VALUES (?, ?, ?, ?, ?, ?)";
+
+		$stmt = $conexion->prepare($sql);
+
+		if (!$stmt) {
+			return false;
+		}
+
+		$stmt->bind_param(
+			"isisss",
+			$historial_id,
+			$modulo,
+			$colaboradores_id,
+			$status,
+			$observacion,
+			$fecha_registro
+		);
+
+		$resultado = $stmt->execute();
+		$stmt->close();
+
+		return $resultado;
+	}	
+
 	public function anular_cotizacion($cotizacion_id)
 	{
 		$update = "UPDATE cotizacion
@@ -1379,13 +1446,200 @@ class mainModel
 		return $sql;
 	}
 
-	public function delete_bill_draft($facturas_id)
+	/* =========================================================
+	ELIMINAR FACTURA BORRADOR + HISTORIAL
+	---------------------------------------------------------
+	Reemplaza tu método delete_bill_draft actual.
+	Solo elimina facturas en estado 0.
+	Guarda historial antes de eliminar.
+	========================================================= */
+	public function delete_bill_draft($facturas_id, $motivo)
 	{
-		$delete = "DELETE FROM facturas WHERE facturas_id = '$facturas_id' AND estado = 1";
+		date_default_timezone_set('America/Tegucigalpa');
 
-		$sql = mainModel::connection()->query($delete) or die(mainModel::connection()->error);
+		$conexion = $this->connection();
 
-		return $sql;
+		$facturas_id = (int)$facturas_id;
+		$motivo = mb_substr(trim((string)$motivo), 0, 180, 'UTF-8');
+
+		$colaboradores_id = isset($_SESSION['colaborador_id_sd']) ? (int)$_SESSION['colaborador_id_sd'] : 0;
+
+		if ($facturas_id <= 0) {
+			return [
+				"success" => false,
+				"title" => "Factura inválida",
+				"message" => "No se recibió una factura válida."
+			];
+		}
+
+		if ($motivo === '' || mb_strlen($motivo, 'UTF-8') < 5) {
+			return [
+				"success" => false,
+				"title" => "Motivo requerido",
+				"message" => "Debe escribir una razón válida para eliminar la factura borrador."
+			];
+		}
+
+		/*
+			En tu sistema:
+			estado = 1 → Borrador
+			estado = 2 → Pagada
+			estado = 3 → Crédito
+			estado = 4 → Cancelada / Anulada
+
+			Solo se permite eliminar estado = 1.
+		*/
+		$sqlFactura = "
+			SELECT 
+				f.facturas_id,
+				f.clientes_id,
+				f.number,
+				f.importe,
+				f.estado,
+				f.fecha,
+				COALESCE(c.nombre, 'Cliente no especificado') AS cliente_nombre,
+				COALESCE(c.rtn, 'Sin RTN') AS cliente_rtn
+			FROM facturas f
+			LEFT JOIN clientes c ON c.clientes_id = f.clientes_id
+			WHERE f.facturas_id = ?
+			LIMIT 1
+		";
+
+		$stmtFactura = $conexion->prepare($sqlFactura);
+
+		if (!$stmtFactura) {
+			return [
+				"success" => false,
+				"title" => "Error",
+				"message" => "No se pudo preparar la consulta de la factura."
+			];
+		}
+
+		$stmtFactura->bind_param("i", $facturas_id);
+		$stmtFactura->execute();
+
+		$resultFactura = $stmtFactura->get_result();
+
+		if (!$resultFactura || $resultFactura->num_rows <= 0) {
+			$stmtFactura->close();
+
+			return [
+				"success" => false,
+				"title" => "Factura no encontrada",
+				"message" => "La factura borrador no fue encontrada."
+			];
+		}
+
+		$factura = $resultFactura->fetch_assoc();
+		$stmtFactura->close();
+
+		$estado = (int)$factura['estado'];
+
+		if ($estado !== 1) {
+			return [
+				"success" => false,
+				"title" => "No permitido",
+				"message" => "Solo se pueden eliminar facturas en borrador. Las facturas registradas deben anularse."
+			];
+		}
+
+		$numeroFactura = isset($factura['number']) ? (int)$factura['number'] : 0;
+		$clienteNombre = trim((string)($factura['cliente_nombre'] ?? 'Cliente no especificado'));
+		$clienteRtn = trim((string)($factura['cliente_rtn'] ?? 'Sin RTN'));
+		$importe = isset($factura['importe']) ? number_format((float)$factura['importe'], 2) : '0.00';
+
+		/*
+			Si number es 0, no mostramos factura #0.
+			Mostramos referencia interna y cliente.
+		*/
+		if ($numeroFactura > 0) {
+			$referenciaFactura = "factura borrador #{$numeroFactura}";
+		} else {
+			$referenciaFactura = "factura borrador interna ID {$facturas_id}";
+		}
+
+		$comentarioHistorial = "Eliminación de {$referenciaFactura}. Cliente: {$clienteNombre}. RTN: {$clienteRtn}. Importe: L. {$importe}. Motivo: {$motivo}";
+
+		/*
+			Usa el método de historial que ya tenés.
+		*/
+		$historialGuardado = $this->guardar_historial(
+			"Facturación",
+			"Eliminación borrador",
+			$comentarioHistorial,
+			$colaboradores_id
+		);
+
+		if (!$historialGuardado) {
+			return [
+				"success" => false,
+				"title" => "Error historial",
+				"message" => "No se pudo guardar el historial de la eliminación."
+			];
+		}
+
+		/*
+			Tabla correcta:
+			facturas_detalles
+		*/
+		$sqlDetalle = "DELETE FROM facturas_detalles WHERE facturas_id = ?";
+		$stmtDetalle = $conexion->prepare($sqlDetalle);
+
+		if (!$stmtDetalle) {
+			return [
+				"success" => false,
+				"title" => "Error",
+				"message" => "No se pudo preparar la eliminación del detalle de la factura."
+			];
+		}
+
+		$stmtDetalle->bind_param("i", $facturas_id);
+		$okDetalle = $stmtDetalle->execute();
+		$stmtDetalle->close();
+
+		if (!$okDetalle) {
+			return [
+				"success" => false,
+				"title" => "Error",
+				"message" => "No se pudo eliminar el detalle de la factura borrador."
+			];
+		}
+
+		/*
+			Luego eliminamos el encabezado, solo si sigue siendo borrador.
+		*/
+		$sqlDelete = "DELETE FROM facturas WHERE facturas_id = ? AND estado = 1";
+		$stmtDelete = $conexion->prepare($sqlDelete);
+
+		if (!$stmtDelete) {
+			return [
+				"success" => false,
+				"title" => "Error",
+				"message" => "No se pudo preparar la eliminación de la factura borrador."
+			];
+		}
+
+		$stmtDelete->bind_param("i", $facturas_id);
+		$okDelete = $stmtDelete->execute();
+		$filasAfectadas = $stmtDelete->affected_rows;
+		$stmtDelete->close();
+
+		if (!$okDelete || $filasAfectadas <= 0) {
+			return [
+				"success" => false,
+				"title" => "No eliminado",
+				"message" => "La factura borrador no pudo eliminarse o ya no está en estado borrador."
+			];
+		}
+
+		return [
+			"success" => true,
+			"title" => "Borrador eliminado",
+			"message" => "La {$referenciaFactura} de {$clienteNombre}, RTN {$clienteRtn}, fue eliminada correctamente.",
+			"facturas_id" => $facturas_id,
+			"cliente" => $clienteNombre,
+			"rtn" => $clienteRtn
+		];
 	}
 
 	public function anular_compra($compras_id)

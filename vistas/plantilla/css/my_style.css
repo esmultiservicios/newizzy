@@ -13448,6 +13448,10 @@ table.dataTable tbody tr.shown td {
 }
 
 /*INICIO PARA MODAL AUDITORIA DE INVENTARIO*/
+#modal_consultar_inventario {
+    padding-right: 0 !important;
+}
+
 #modal_consultar_inventario .modal-auditoria-ajustes-dialog {
     width: 96vw;
     max-width: 96vw;
@@ -13455,14 +13459,57 @@ table.dataTable tbody tr.shown td {
     margin-right: auto;
 }
 
+/* Contenedor principal */
 #modal_consultar_inventario .modal-content {
     min-height: 88vh;
+    max-height: calc(100vh - 28px);
+    overflow: hidden;
+    border-radius: 10px;
 }
 
+/* Header fijo y visible */
+#modal_consultar_inventario .modal-header {
+    padding: 1rem 3.25rem 1rem 1.25rem !important;
+    min-height: auto !important;
+    position: relative;
+    flex-shrink: 0;
+}
+
+#modal_consultar_inventario .modal-title {
+    width: 100%;
+    padding-right: 0;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    line-height: 1.25;
+}
+
+/* Botón X visible */
+#modal_consultar_inventario .modal-header .close {
+    position: absolute !important;
+    top: 50% !important;
+    right: 1rem !important;
+    transform: translateY(-50%) !important;
+    margin: 0 !important;
+    padding: 0.45rem !important;
+    color: #ffffff !important;
+    opacity: 1 !important;
+    z-index: 20 !important;
+}
+
+#modal_consultar_inventario .modal-header .close:hover {
+    transform: translateY(-50%) rotate(90deg) !important;
+    color: #ffffff !important;
+}
+
+/* Body */
 #modal_consultar_inventario .modal-body {
     overflow-x: hidden;
+    overflow-y: auto;
+    max-height: calc(100vh - 170px);
 }
 
+/* Tabla */
 #modal_consultar_inventario .auditoria-ajustes-table-wrapper {
     width: 100%;
     overflow-x: auto;
@@ -13476,11 +13523,11 @@ table.dataTable tbody tr.shown td {
 
 /* =========================================================
    CARDS RESUMEN AUDITORÍA - MINIMALISTA
-   Sin degradados, sin saturación, estilo sobrio del sistema
 ========================================================= */
 #modal_consultar_inventario .auditoria-resumen-card {
     background: #ffffff !important;
     border: 1px solid #dfe6ee !important;
+    border-top: 4px solid #3a4f6b !important;
     border-radius: 12px !important;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04) !important;
     padding: 18px 20px !important;
@@ -13504,12 +13551,6 @@ table.dataTable tbody tr.shown td {
     content: none !important;
 }
 
-/* Línea superior sobria, como las cards del dashboard */
-#modal_consultar_inventario .auditoria-resumen-card {
-    border-top: 4px solid #3a4f6b !important;
-}
-
-/* Contenido */
 #modal_consultar_inventario .auditoria-resumen-content {
     display: flex;
     flex-direction: column;
@@ -13545,7 +13586,6 @@ table.dataTable tbody tr.shown td {
     line-height: 1.2;
 }
 
-/* Icono sobrio */
 #modal_consultar_inventario .auditoria-resumen-icon {
     width: 48px;
     height: 48px;
@@ -13603,9 +13643,9 @@ table.dataTable tbody tr.shown td {
     color: #3182ce !important;
 }
 
-/* Quitar estilos viejos por si quedaron pegados de versiones anteriores */
-#modal_consultar_inventario .auditoria-resumen-card *,
-#modal_consultar_inventario .auditoria-resumen-card {
+/* Limpieza de estilos anteriores */
+#modal_consultar_inventario .auditoria-resumen-card,
+#modal_consultar_inventario .auditoria-resumen-card * {
     background-image: none !important;
 }
 
@@ -13616,7 +13656,7 @@ table.dataTable tbody tr.shown td {
     box-shadow: none !important;
 }
 
-/* DataTable dentro del modal */
+/* DataTable */
 #modal_consultar_inventario .dataTables_wrapper {
     width: 100%;
 }
@@ -13626,13 +13666,16 @@ table.dataTable tbody tr.shown td {
     margin-bottom: 12px;
 }
 
-/* Footer del modal */
+/* Footer */
 #modal_consultar_inventario .modal-footer {
     background: #ffffff;
     border-top: 1px solid #e5e7eb;
+    flex-shrink: 0;
 }
 
-/* Responsive */
+/* =========================================================
+   RESPONSIVE TABLET / CELULAR
+========================================================= */
 @media (max-width: 991.98px) {
     #modal_consultar_inventario .modal-auditoria-ajustes-dialog {
         width: 98vw;
@@ -13641,7 +13684,12 @@ table.dataTable tbody tr.shown td {
     }
 
     #modal_consultar_inventario .modal-content {
-        min-height: 92vh;
+        min-height: auto;
+        max-height: calc(100vh - 1rem);
+    }
+
+    #modal_consultar_inventario .modal-body {
+        max-height: calc(100vh - 155px);
     }
 
     #modal_consultar_inventario .auditoria-resumen-card {
@@ -13662,13 +13710,134 @@ table.dataTable tbody tr.shown td {
 }
 
 @media (max-width: 575.98px) {
-    #modal_consultar_inventario .auditoria-resumen-card {
+    #modal_consultar_inventario {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    #modal_consultar_inventario .modal-auditoria-ajustes-dialog {
+        width: calc(100vw - 18px);
+        max-width: calc(100vw - 18px);
+        margin: 9px auto;
         align-items: flex-start;
+    }
+
+    #modal_consultar_inventario .modal-content {
+        width: 100%;
+        min-height: auto;
+        max-height: calc(100dvh - 18px);
+        margin: 0;
+        border-radius: 8px;
+    }
+
+    #modal_consultar_inventario .modal-header {
+        padding: .85rem 3rem .85rem 1rem !important;
+        min-height: 56px !important;
+    }
+
+    #modal_consultar_inventario .modal-title {
+        font-size: 1rem;
+        line-height: 1.25;
+        white-space: normal;
+    }
+
+    #modal_consultar_inventario .modal-header .close {
+        top: 50% !important;
+        right: .75rem !important;
+        font-size: 1.2rem;
+        width: 34px;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #modal_consultar_inventario .modal-body {
+        padding: .85rem;
+        max-height: calc(100dvh - 138px);
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    #modal_consultar_inventario .card {
+        margin-bottom: 1rem !important;
+    }
+
+    #modal_consultar_inventario .card-header {
+        padding: .85rem 1rem;
+    }
+
+    #modal_consultar_inventario .card-header h5 {
+        font-size: 1rem;
+        line-height: 1.25;
+    }
+
+    #modal_consultar_inventario .card-body {
+        padding: 1rem;
+    }
+
+    #modal_consultar_inventario .auditoria-resumen-card {
+        align-items: center;
+        min-height: 92px;
+        padding: 14px 15px !important;
+        margin-bottom: .35rem;
+    }
+
+    #modal_consultar_inventario .auditoria-resumen-label {
+        font-size: .68rem;
+        margin-bottom: 5px;
+    }
+
+    #modal_consultar_inventario .auditoria-resumen-value {
+        font-size: 1.35rem;
+    }
+
+    #modal_consultar_inventario .auditoria-resumen-text {
+        font-size: .7rem;
+        margin-top: 6px;
     }
 
     #modal_consultar_inventario .auditoria-resumen-icon {
         width: 38px;
         height: 38px;
+        font-size: .95rem;
+        margin-left: 10px;
+    }
+
+    #modal_consultar_inventario .auditoria-ajustes-table-wrapper {
+        overflow-x: auto;
+        padding-bottom: 6px;
+    }
+
+    #modal_consultar_inventario #dataTablaConsultaInventario {
+        min-width: 1100px;
+    }
+
+    #modal_consultar_inventario .modal-footer {
+        padding: .75rem .85rem;
+        display: block;
+    }
+
+    #modal_consultar_inventario .modal-footer .mr-auto {
+        margin-right: 0 !important;
+        margin-bottom: .65rem;
+    }
+
+    #modal_consultar_inventario .modal-footer .badge {
+        display: block;
+        width: 100%;
+        white-space: normal;
+        line-height: 1.3;
+    }
+
+    #modal_consultar_inventario .movimiento-footer-botones {
+        width: 100%;
+    }
+
+    #modal_consultar_inventario .movimiento-footer-botones .btn,
+    #modal_consultar_inventario .modal-footer .btn {
+        width: 100%;
+        margin: 0;
     }
 }
 /*FIN PARA MODAL AUDITORIA DE INVENTARIO*/

@@ -717,6 +717,18 @@ var listar_movimientos = function () {
         action: function(){ modal_movimientos(); }
       },
       {
+        text: '<i class="fas fa-balance-scale fa-lg"></i> Ajuste Inventario',
+        titleAttr: 'Ajuste de Inventario por Conteo Físico',
+        className: 'table_crear btn btn-warning ocultar',
+        action: function(){ modal_ajuste_inventario(); }
+      },
+      {
+        text: '<i class="fas fa-clipboard-check fa-lg"></i> Auditoría Ajustes',
+        titleAttr: 'Auditoría de Ajustes de Inventario',
+        className: 'table_crear btn btn-info ocultar',
+        action: function(){ modal_consultar_inventario(); }
+      },   
+      {
         extend: 'excelHtml5',
         footer: true,
         text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
@@ -1104,6 +1116,10 @@ function renderSaldoProductoBusquedaMovimiento(data, type) {
 function cargarDataTableProductosMovimiento() {
   var bodega = $('#formMovimientos #almacen_modal').val();
 
+  if (window.AJUSTE_INVENTARIO_BUSQUEDA_ACTIVA === true || $('#modal_ajuste_inventario').hasClass('show')) {
+    bodega = $('#formAjusteInventario #ajuste_almacen').val();
+  }
+
   if (bodega === '' || bodega == null) {
     bodega = 1;
   }
@@ -1309,6 +1325,11 @@ function cargarDataTableProductosMovimiento() {
 }
 
 function aplicarProductoMovimientoSeleccionado(row) {
+  if (window.AJUSTE_INVENTARIO_BUSQUEDA_ACTIVA === true || $('#modal_ajuste_inventario').hasClass('show')) {
+    aplicarProductoAjusteSeleccionado(row);
+    return;
+  }
+
   if (!row || !row.productos_id) {
     showNotify('error', 'Error', 'No se pudo obtener el producto seleccionado.');
     return;
@@ -1746,4 +1767,1115 @@ function restaurarOperacionDespuesDeReset() {
 
   }, 300);
 }
+
+/* =========================================================
+   AJUSTE DE INVENTARIO POR CONTEO FÍSICO
+   ---------------------------------------------------------
+   Modal: #modal_ajuste_inventario
+   Form : #formAjusteInventario
+   Save : core/inventario/addAjusteInventario.php
+   Nota : El backend debe registrar movimiento + auditoría.
+========================================================= */
+var AJUSTE_INVENTARIO_GUARDANDO = false;
+var AJUSTE_INVENTARIO_BUSQUEDA_ACTIVA = false;
+window.AJUSTE_INVENTARIO_BUSQUEDA_ACTIVA = false;
+
+function ajusteToNumber(valor) {
+  if (valor === null || typeof valor === 'undefined') return 0;
+  return parseFloat(String(valor).replace(/[^\d.-]/g, '')) || 0;
+}
+
+function ajusteFormatNumber(valor) {
+  try {
+    return Number(valor || 0).toLocaleString('es-HN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  } catch (e) {
+    return (Number(valor || 0) || 0).toFixed(2);
+  }
+}
+
+function limpiarFormularioAjusteInventario() {
+  var $form = $('#formAjusteInventario');
+
+  if (!$form.length) return;
+
+  if ($form[0]) {
+    $form[0].reset();
+  }
+
+  $('#formAjusteInventario #ajuste_barcode').val('');
+  $('#formAjusteInventario #ajuste_saldo_sistema').val('0');
+  $('#formAjusteInventario #ajuste_saldo_visible').val('0.00');
+  $('#formAjusteInventario #ajuste_conteo_fisico').val('');
+  $('#formAjusteInventario #ajuste_diferencia').val('0');
+  $('#formAjusteInventario #ajuste_diferencia_visible').val('0.00');
+  $('#formAjusteInventario #ajuste_nueva_existencia').val('0.00');
+  $('#formAjusteInventario #ajuste_tipo').val('sin_cambio');
+  $('#formAjusteInventario #ajuste_fecha_vencimiento').val('');
+  $('#formAjusteInventario #ajuste_comentario').val('');
+
+  $('#formAjusteInventario #ajuste_tipo_producto_id').val('').selectpicker('refresh');
+  $('#formAjusteInventario #ajuste_producto').val('').selectpicker('refresh');
+  $('#formAjusteInventario #ajuste_lote').html('').selectpicker('refresh');
+
+  $('#ajuste_resultado_info')
+    .removeClass('alert-success alert-danger alert-warning alert-info')
+    .addClass('alert-secondary')
+    .html('<i class="fas fa-info-circle mr-1"></i> Seleccione un producto y escriba el conteo físico para calcular el ajuste.');
+}
+
+function modal_ajuste_inventario() {
+  if ($('#modal_ajuste_inventario').length === 0) {
+    showNotify('error', 'Modal no encontrado', 'No existe el modal de ajuste de inventario.');
+    return;
+  }
+
+  limpiarFormularioAjusteInventario();
+
+  getTipoProductosAjuste();
+  getAlmacenAjuste();
+  getProductosAjuste(1);
+
+  $('#modal_ajuste_inventario').modal({
+    show: true,
+    keyboard: false,
+    backdrop: 'static'
+  });
+
+  setTimeout(function () {
+    $('#formAjusteInventario #ajuste_barcode').trigger('focus').select();
+  }, 350);
+}
+
+function getTipoProductosAjuste() {
+  $.ajax({
+    type: 'POST',
+    url: '<?php echo SERVERURL;?>core/getTipoProductoMovimientosModal.php',
+    success: function (data) {
+      $('#formAjusteInventario #ajuste_tipo_producto_id').html(data).selectpicker('refresh');
+    }
+  });
+}
+
+function getAlmacenAjuste() {
+  $.ajax({
+    type: 'POST',
+    url: '<?php echo SERVERURL;?>core/getAlmacenCompras.php',
+    success: function (data) {
+      $('#formAjusteInventario #ajuste_almacen').html(data).selectpicker('refresh');
+      seleccionarBodegaPrincipal('#formAjusteInventario #ajuste_almacen');
+    }
+  });
+}
+
+function getProductosAjuste(tipo_producto_id, callback) {
+  $.ajax({
+    type: 'POST',
+    url: '<?php echo SERVERURL;?>core/getProductosMovimientosTipoProducto.php',
+    data: {
+      tipo_producto_id: tipo_producto_id || 1
+    },
+    success: function (data) {
+      $('#formAjusteInventario #ajuste_producto').html(data).selectpicker('refresh');
+
+      if (typeof callback === 'function') {
+        callback(data);
+      }
+    }
+  });
+}
+
+function getLotesProductosAjuste(producto_id, callback) {
+  if (!producto_id) {
+    $('#formAjusteInventario #ajuste_lote').html('').selectpicker('refresh');
+    if (typeof callback === 'function') callback('');
+    return;
+  }
+
+  $.ajax({
+    type: 'POST',
+    url: '<?php echo SERVERURL;?>core/getLotesProductos.php',
+    data: {
+      producto_id: producto_id
+    },
+    success: function (data) {
+      $('#formAjusteInventario #ajuste_lote').html(data).selectpicker('refresh');
+
+      if (typeof callback === 'function') {
+        callback(data);
+      }
+    }
+  });
+}
+
+function consultarSaldoProductoAjuste() {
+  var producto_id = $('#formAjusteInventario #ajuste_producto').val();
+  var almacen_id = $('#formAjusteInventario #ajuste_almacen').val();
+  var lote_id = $('#formAjusteInventario #ajuste_lote').val();
+
+  if (!producto_id || !almacen_id) {
+    $('#formAjusteInventario #ajuste_saldo_sistema').val('0');
+    $('#formAjusteInventario #ajuste_saldo_visible').val('0.00');
+    calcularDiferenciaAjusteInventario();
+    return;
+  }
+
+  $('#ajuste_resultado_info')
+    .removeClass('alert-secondary alert-success alert-danger alert-warning')
+    .addClass('alert-info')
+    .html('<i class="fas fa-spinner fa-spin mr-1"></i> Consultando saldo actual del producto...');
+
+  $.ajax({
+    type: 'POST',
+    url: '<?php echo SERVERURL;?>core/productos/getSaldoProductoMovimiento.php',
+    dataType: 'json',
+    data: {
+      producto_id: producto_id,
+      almacen_id: almacen_id,
+      lote_id: lote_id
+    },
+    success: function (response) {
+      var saldo = 0;
+
+      if (response && response.success) {
+        saldo = ajusteToNumber(response.saldo);
+      }
+
+      $('#formAjusteInventario #ajuste_saldo_sistema').val(saldo);
+      $('#formAjusteInventario #ajuste_saldo_visible').val(ajusteFormatNumber(saldo));
+
+      calcularDiferenciaAjusteInventario();
+    },
+    error: function () {
+      $('#formAjusteInventario #ajuste_saldo_sistema').val('0');
+      $('#formAjusteInventario #ajuste_saldo_visible').val('0.00');
+
+      $('#ajuste_resultado_info')
+        .removeClass('alert-secondary alert-success alert-warning alert-info')
+        .addClass('alert-danger')
+        .html('<i class="fas fa-times-circle mr-1"></i> No se pudo consultar el saldo actual del producto.');
+    }
+  });
+}
+
+function calcularDiferenciaAjusteInventario() {
+  var saldoSistema = ajusteToNumber($('#formAjusteInventario #ajuste_saldo_sistema').val());
+  var conteoTexto = $('#formAjusteInventario #ajuste_conteo_fisico').val();
+
+  $('#formAjusteInventario #ajuste_saldo_visible').val(ajusteFormatNumber(saldoSistema));
+
+  if (conteoTexto === '' || conteoTexto === null || typeof conteoTexto === 'undefined') {
+    $('#formAjusteInventario #ajuste_diferencia').val('0');
+    $('#formAjusteInventario #ajuste_diferencia_visible').val('0.00');
+    $('#formAjusteInventario #ajuste_nueva_existencia').val('0.00');
+    $('#formAjusteInventario #ajuste_tipo').val('sin_cambio');
+
+    $('#ajuste_resultado_info')
+      .removeClass('alert-success alert-danger alert-warning alert-info')
+      .addClass('alert-secondary')
+      .html('<i class="fas fa-info-circle mr-1"></i> Escriba la cantidad física encontrada.');
+
+    return;
+  }
+
+  var conteoFisico = ajusteToNumber(conteoTexto);
+  var diferencia = conteoFisico - saldoSistema;
+  var tipo = 'sin_cambio';
+
+  if (diferencia > 0) {
+    tipo = 'entrada';
+  } else if (diferencia < 0) {
+    tipo = 'salida';
+  }
+
+  $('#formAjusteInventario #ajuste_diferencia').val(diferencia.toFixed(2));
+  $('#formAjusteInventario #ajuste_diferencia_visible').val(ajusteFormatNumber(diferencia));
+  $('#formAjusteInventario #ajuste_nueva_existencia').val(ajusteFormatNumber(conteoFisico));
+  $('#formAjusteInventario #ajuste_tipo').val(tipo);
+
+  if (!$('#formAjusteInventario #ajuste_producto').val()) {
+    $('#ajuste_resultado_info')
+      .removeClass('alert-success alert-danger alert-warning alert-info')
+      .addClass('alert-secondary')
+      .html('<i class="fas fa-info-circle mr-1"></i> Seleccione un producto para calcular el ajuste.');
+    return;
+  }
+
+  if (tipo === 'entrada') {
+    $('#ajuste_resultado_info')
+      .removeClass('alert-secondary alert-danger alert-warning alert-info')
+      .addClass('alert-success')
+      .html(
+        '<i class="fas fa-sign-in-alt mr-1"></i>' +
+        'Se registrará una <strong>ENTRADA por ajuste</strong> de <strong>' + ajusteFormatNumber(Math.abs(diferencia)) + '</strong> unidades. ' +
+        'La nueva existencia será <strong>' + ajusteFormatNumber(conteoFisico) + '</strong>.'
+      );
+  } else if (tipo === 'salida') {
+    $('#ajuste_resultado_info')
+      .removeClass('alert-secondary alert-success alert-warning alert-info')
+      .addClass('alert-danger')
+      .html(
+        '<i class="fas fa-sign-out-alt mr-1"></i>' +
+        'Se registrará una <strong>SALIDA por ajuste</strong> de <strong>' + ajusteFormatNumber(Math.abs(diferencia)) + '</strong> unidades. ' +
+        'La nueva existencia será <strong>' + ajusteFormatNumber(conteoFisico) + '</strong>.'
+      );
+  } else {
+    $('#ajuste_resultado_info')
+      .removeClass('alert-secondary alert-success alert-danger alert-info')
+      .addClass('alert-warning')
+      .html(
+        '<i class="fas fa-check-circle mr-1"></i>' +
+        'No hay diferencia. El conteo físico coincide con el saldo del sistema.'
+      );
+  }
+}
+
+function buscarProductoAjustePorBarcode() {
+  var barcode = $('#formAjusteInventario #ajuste_barcode').val().trim();
+
+  if (barcode === '') {
+    showNotify('warning', 'Atención', 'Debe escanear o ingresar un código de producto.');
+    $('#formAjusteInventario #ajuste_barcode').trigger('focus').select();
+    return;
+  }
+
+  $.ajax({
+    type: 'POST',
+    url: '<?php echo SERVERURL;?>core/buscar_producto.php',
+    data: {
+      barcode: barcode
+    },
+    dataType: 'json',
+    success: function (registro) {
+      if (!registro || !registro.success) {
+        showNotify('warning', 'Producto no encontrado', registro && registro.message ? registro.message : 'No se encontró un producto con ese código.');
+        $('#formAjusteInventario #ajuste_barcode').trigger('focus').select();
+        return;
+      }
+
+      aplicarProductoAjusteSeleccionado({
+        productos_id: registro.productos_id,
+        tipo_producto_id: registro.tipo_producto_id,
+        barCode: barcode,
+        almacen_id: $('#formAjusteInventario #ajuste_almacen').val()
+      });
+    },
+    error: function () {
+      showNotify('error', 'Error', 'No se pudo buscar el producto.');
+      $('#formAjusteInventario #ajuste_barcode').trigger('focus').select();
+    }
+  });
+}
+
+function abrirModalBuscarProductosAjuste() {
+  window.AJUSTE_INVENTARIO_BUSQUEDA_ACTIVA = true;
+  AJUSTE_INVENTARIO_BUSQUEDA_ACTIVA = true;
+
+  if ($('#modal_buscar_productos_movimientos_general').length === 0) {
+    showNotify('error', 'Modal no encontrado', 'No existe el buscador de productos.');
+    return;
+  }
+
+  cargarDataTableProductosMovimiento();
+
+  $('#modal_buscar_productos_movimientos_general').modal({
+    show: true,
+    keyboard: false,
+    backdrop: 'static'
+  });
+}
+
+function aplicarProductoAjusteSeleccionado(row) {
+  if (!row || !row.productos_id) {
+    showNotify('error', 'Error', 'No se pudo obtener el producto seleccionado.');
+    return;
+  }
+
+  var productoId = row.productos_id;
+  var tipoProductoId = row.tipo_producto_id || '';
+  var barcode = row.barCode || '';
+  var almacenId = row.almacen_id || '';
+  var loteId = row.lote_id || '';
+
+  $('#formAjusteInventario #ajuste_barcode').val(barcode);
+
+  if (almacenId !== '' && parseInt(almacenId || 0, 10) > 0) {
+    $('#formAjusteInventario #ajuste_almacen').val(almacenId).selectpicker('refresh');
+  } else {
+    seleccionarBodegaPrincipal('#formAjusteInventario #ajuste_almacen');
+  }
+
+  if (tipoProductoId !== '') {
+    $('#formAjusteInventario #ajuste_tipo_producto_id').val(tipoProductoId).selectpicker('refresh');
+
+    getProductosAjuste(tipoProductoId, function () {
+      $('#formAjusteInventario #ajuste_producto').val(productoId).selectpicker('refresh');
+
+      getLotesProductosAjuste(productoId, function () {
+        if (loteId !== '' && parseInt(loteId || 0, 10) > 0) {
+          $('#formAjusteInventario #ajuste_lote').val(loteId).selectpicker('refresh');
+        }
+
+        setTimeout(function () {
+          consultarSaldoProductoAjuste();
+          $('#formAjusteInventario #ajuste_conteo_fisico').trigger('focus').select();
+        }, 350);
+      });
+    });
+  } else {
+    $('#formAjusteInventario #ajuste_producto').val(productoId).selectpicker('refresh');
+
+    getLotesProductosAjuste(productoId, function () {
+      if (loteId !== '' && parseInt(loteId || 0, 10) > 0) {
+        $('#formAjusteInventario #ajuste_lote').val(loteId).selectpicker('refresh');
+      }
+
+      setTimeout(function () {
+        consultarSaldoProductoAjuste();
+        $('#formAjusteInventario #ajuste_conteo_fisico').trigger('focus').select();
+      }, 350);
+    });
+  }
+
+  window.AJUSTE_INVENTARIO_BUSQUEDA_ACTIVA = false;
+  AJUSTE_INVENTARIO_BUSQUEDA_ACTIVA = false;
+  $('#modal_buscar_productos_movimientos_general').modal('hide');
+}
+
+function validarAjusteInventario() {
+  var productoId = $('#formAjusteInventario #ajuste_producto').val();
+  var almacenId = $('#formAjusteInventario #ajuste_almacen').val();
+  var conteoFisicoRaw = $('#formAjusteInventario #ajuste_conteo_fisico').val();
+
+  if (!productoId) {
+    showNotify('warning', 'Producto requerido', 'Seleccione o escanee el producto que desea ajustar.');
+    $('#formAjusteInventario #ajuste_barcode').trigger('focus').select();
+    return false;
+  }
+
+  if (!almacenId) {
+    showNotify('warning', 'Bodega requerida', 'Seleccione la bodega del producto.');
+    seleccionarBodegaPrincipal('#formAjusteInventario #ajuste_almacen');
+    return false;
+  }
+
+  if (conteoFisicoRaw === '' || ajusteToNumber(conteoFisicoRaw) < 0) {
+    showNotify('warning', 'Conteo inválido', 'Ingrese la cantidad física encontrada.');
+    $('#formAjusteInventario #ajuste_conteo_fisico').trigger('focus').select();
+    return false;
+  }
+
+  return true;
+}
+
+function obtenerTextoConfirmacionAjusteInventario() {
+  var producto = $('#formAjusteInventario #ajuste_producto option:selected').text() || 'Producto seleccionado';
+  var bodega = $('#formAjusteInventario #ajuste_almacen option:selected').text() || 'Bodega seleccionada';
+  var saldoSistema = ajusteToNumber($('#formAjusteInventario #ajuste_saldo_sistema').val());
+  var conteoFisico = ajusteToNumber($('#formAjusteInventario #ajuste_conteo_fisico').val());
+  var diferencia = ajusteToNumber($('#formAjusteInventario #ajuste_diferencia').val());
+  var tipo = $('#formAjusteInventario #ajuste_tipo').val();
+
+  var accion = 'Sin movimiento';
+
+  if (tipo === 'entrada') {
+    accion = 'Entrada por ajuste';
+  } else if (tipo === 'salida') {
+    accion = 'Salida por ajuste';
+  }
+
+  return '' +
+    '<strong>Producto:</strong> ' + movimientosEscape(producto) + '<br>' +
+    '<strong>Bodega:</strong> ' + movimientosEscape(bodega) + '<br><br>' +
+    '<strong>Stock actual sistema:</strong> ' + ajusteFormatNumber(saldoSistema) + '<br>' +
+    '<strong>Conteo físico:</strong> ' + ajusteFormatNumber(conteoFisico) + '<br>' +
+    '<strong>Diferencia:</strong> ' + ajusteFormatNumber(diferencia) + '<br>' +
+    '<strong>Acción:</strong> ' + movimientosEscape(accion);
+}
+
+function confirmarGuardarAjusteInventario() {
+  if (AJUSTE_INVENTARIO_GUARDANDO === true) {
+    return false;
+  }
+
+  if (!validarAjusteInventario()) {
+    return false;
+  }
+
+  calcularDiferenciaAjusteInventario();
+
+  swal({
+    title: '¿Registrar ajuste de inventario?',
+    content: {
+      element: 'span',
+      attributes: {
+        innerHTML: obtenerTextoConfirmacionAjusteInventario()
+      }
+    },
+    icon: 'warning',
+    buttons: {
+      cancel: {
+        text: 'Cancelar',
+        visible: true
+      },
+      confirm: {
+        text: 'Sí, registrar ajuste'
+      }
+    },
+    closeOnEsc: false,
+    closeOnClickOutside: false
+  }).then(function (confirmar) {
+    if (confirmar) {
+      guardarAjusteInventarioAjax();
+    }
+  });
+
+  return false;
+}
+
+function guardarAjusteInventarioAjax() {
+  var productoId = $('#formAjusteInventario #ajuste_producto').val();
+  var almacenId = $('#formAjusteInventario #ajuste_almacen').val();
+  var loteId = $('#formAjusteInventario #ajuste_lote').val();
+  var fechaVencimiento = $('#formAjusteInventario #ajuste_fecha_vencimiento').val();
+  var saldoSistema = ajusteToNumber($('#formAjusteInventario #ajuste_saldo_sistema').val());
+  var conteoFisico = ajusteToNumber($('#formAjusteInventario #ajuste_conteo_fisico').val());
+  var diferencia = ajusteToNumber($('#formAjusteInventario #ajuste_diferencia').val());
+  var tipo = $('#formAjusteInventario #ajuste_tipo').val();
+  var comentario = $.trim($('#formAjusteInventario #ajuste_comentario').val());
+
+  if (comentario === '') {
+    comentario = 'Ajuste por conteo físico de inventario';
+  }
+
+  /*
+    IMPORTANTE:
+    El JS solo envía el ajuste. Quien debe afectar inventario es:
+    core/inventario/addAjusteInventario.php
+
+    Ese PHP debe:
+    1) Insertar en movimientos la entrada/salida por diferencia.
+    2) Insertar en inventario_ajustes la auditoría.
+    3) Responder movimientos_id o movimiento_registrado=true cuando afectó movimientos.
+  */
+  var cantidadMovimiento = Math.abs(diferencia);
+  var comentarioMovimiento = comentario +
+    ' | Ajuste inventario' +
+    ' | Stock sistema: ' + ajusteFormatNumber(saldoSistema) +
+    ' | Conteo físico: ' + ajusteFormatNumber(conteoFisico) +
+    ' | Diferencia: ' + ajusteFormatNumber(diferencia);
+
+  AJUSTE_INVENTARIO_GUARDANDO = true;
+
+  $('#btnRegistrarAjusteInventario')
+    .prop('disabled', true)
+    .html('<i class="fas fa-spinner fa-spin fa-lg mr-1"></i> Registrando...');
+
+  $.ajax({
+    type: 'POST',
+    url: '<?php echo SERVERURL;?>core/inventario/addAjusteInventario.php',
+    dataType: 'json',
+    data: {
+      /* Datos propios del ajuste */
+      productos_id: productoId,
+      almacen_id: almacenId,
+      lote_id: loteId,
+      fecha_vencimiento: fechaVencimiento,
+      saldo_sistema: saldoSistema,
+      conteo_fisico: conteoFisico,
+      diferencia: diferencia,
+      tipo_ajuste: tipo,
+      comentario: comentario,
+
+      /* Datos espejo para que el PHP registre en movimientos sin usar ajax/ */
+      movimiento_operacion: tipo,
+      movimiento_producto: productoId,
+      movimiento_cantidad: cantidadMovimiento,
+      almacen_modal: almacenId,
+      movimiento_lote: loteId,
+      movimiento_fecha_vencimiento: fechaVencimiento,
+      movimiento_comentario: comentarioMovimiento,
+      documento: tipo === 'entrada' ? 'Ajuste de inventario - Entrada' : (tipo === 'salida' ? 'Ajuste de inventario - Salida' : 'Ajuste de inventario - Sin cambio')
+    },
+    success: function (resp) {
+      if (resp && resp.success) {
+        var requiereMovimiento = tipo !== 'sin_cambio' && Math.abs(diferencia) > 0.0001;
+        var movimientoConfirmado = false;
+
+        if (!requiereMovimiento) {
+          movimientoConfirmado = true;
+        }
+
+        if (resp.movimiento_registrado === true || resp.movimientos_id || resp.movimiento_id) {
+          movimientoConfirmado = true;
+        }
+
+        if (requiereMovimiento && !movimientoConfirmado) {
+          showNotify(
+            'warning',
+            'Ajuste guardado sin movimiento',
+            'Se guardó la auditoría, pero el servidor no confirmó que haya registrado la entrada/salida en movimientos. Revise core/inventario/addAjusteInventario.php.'
+          );
+
+          if (typeof listar_movimientos === 'function') {
+            listar_movimientos();
+          }
+
+          return;
+        }
+
+        showNotify(
+          'success',
+          resp.title || 'Ajuste registrado',
+          resp.message || 'El ajuste de inventario se registró correctamente.'
+        );
+
+        $('#modal_ajuste_inventario').modal('hide');
+
+        if (typeof listar_movimientos === 'function') {
+          listar_movimientos();
+        }
+
+        if (typeof listar_consulta_inventario === 'function' && $('#modal_consultar_inventario').length) {
+          listar_consulta_inventario();
+        }
+
+        setTimeout(function () {
+          if ($('#modal_ajuste_inventario').length) {
+            limpiarFormularioAjusteInventario();
+          }
+        }, 300);
+      } else {
+        showNotify(
+          'error',
+          resp && resp.title ? resp.title : 'Error',
+          resp && resp.message ? resp.message : 'No se pudo registrar el ajuste de inventario.'
+        );
+      }
+    },
+    error: function (xhr) {
+      console.log(xhr.responseText);
+      showNotify('error', 'Error', 'No se pudo comunicar con el servidor para registrar el ajuste.');
+    },
+    complete: function () {
+      AJUSTE_INVENTARIO_GUARDANDO = false;
+
+      $('#btnRegistrarAjusteInventario')
+        .prop('disabled', false)
+        .html('<i class="fas fa-save fa-lg mr-1"></i> Registrar Ajuste');
+    }
+  });
+}
+
+/* =========================================================
+   EVENTOS AJUSTE INVENTARIO
+========================================================= */
+$(document)
+  .off('click.ajusteInventario', '#btnRegistrarAjusteInventario')
+  .on('click.ajusteInventario', '#btnRegistrarAjusteInventario', function (e) {
+    e.preventDefault();
+    confirmarGuardarAjusteInventario();
+    return false;
+  });
+
+$(document)
+  .off('click.ajusteBuscarProducto', '#btnBuscarProductoAjuste')
+  .on('click.ajusteBuscarProducto', '#btnBuscarProductoAjuste', function (e) {
+    e.preventDefault();
+    abrirModalBuscarProductosAjuste();
+    return false;
+  });
+
+$(document)
+  .off('keydown.ajusteBarcode', '#formAjusteInventario #ajuste_barcode')
+  .on('keydown.ajusteBarcode', '#formAjusteInventario #ajuste_barcode', function (e) {
+    if (e.key === 'Enter' || e.which === 13) {
+      e.preventDefault();
+      buscarProductoAjustePorBarcode();
+      return false;
+    }
+  });
+
+$(document)
+  .off('changed.bs.select.ajusteTipo change.ajusteTipo', '#formAjusteInventario #ajuste_tipo_producto_id')
+  .on('changed.bs.select.ajusteTipo change.ajusteTipo', '#formAjusteInventario #ajuste_tipo_producto_id', function () {
+    var tipo = $(this).val() || 1;
+    getProductosAjuste(tipo);
+  });
+
+$(document)
+  .off('changed.bs.select.ajusteProducto change.ajusteProducto', '#formAjusteInventario #ajuste_producto')
+  .on('changed.bs.select.ajusteProducto change.ajusteProducto', '#formAjusteInventario #ajuste_producto', function () {
+    var productoId = $(this).val();
+
+    getLotesProductosAjuste(productoId, function () {
+      consultarSaldoProductoAjuste();
+    });
+  });
+
+$(document)
+  .off('changed.bs.select.ajusteAlmacen change.ajusteAlmacen', '#formAjusteInventario #ajuste_almacen')
+  .on('changed.bs.select.ajusteAlmacen change.ajusteAlmacen', '#formAjusteInventario #ajuste_almacen', function () {
+    consultarSaldoProductoAjuste();
+  });
+
+$(document)
+  .off('changed.bs.select.ajusteLote change.ajusteLote', '#formAjusteInventario #ajuste_lote')
+  .on('changed.bs.select.ajusteLote change.ajusteLote', '#formAjusteInventario #ajuste_lote', function () {
+    consultarSaldoProductoAjuste();
+  });
+
+$(document)
+  .off('input.ajusteConteo', '#formAjusteInventario #ajuste_conteo_fisico')
+  .on('input.ajusteConteo', '#formAjusteInventario #ajuste_conteo_fisico', function () {
+    calcularDiferenciaAjusteInventario();
+  });
+
+$(document)
+  .off('keypress.ajusteConteoEnter', '#formAjusteInventario #ajuste_conteo_fisico')
+  .on('keypress.ajusteConteoEnter', '#formAjusteInventario #ajuste_conteo_fisico', function (e) {
+    if (e.which === 13) {
+      e.preventDefault();
+      confirmarGuardarAjusteInventario();
+      return false;
+    }
+  });
+
+$(document)
+  .off('shown.bs.modal.ajusteInventario', '#modal_ajuste_inventario')
+  .on('shown.bs.modal.ajusteInventario', '#modal_ajuste_inventario', function () {
+    setTimeout(function () {
+      $('#formAjusteInventario #ajuste_barcode').trigger('focus').select();
+    }, 250);
+  });
+
+$(document)
+  .off('hidden.bs.modal.productosAjusteFocus', '#modal_buscar_productos_movimientos_general')
+  .on('hidden.bs.modal.productosAjusteFocus', '#modal_buscar_productos_movimientos_general', function () {
+    if ($('#modal_ajuste_inventario').hasClass('show')) {
+      window.AJUSTE_INVENTARIO_BUSQUEDA_ACTIVA = false;
+      AJUSTE_INVENTARIO_BUSQUEDA_ACTIVA = false;
+
+      setTimeout(function () {
+        $('#formAjusteInventario #ajuste_conteo_fisico').trigger('focus').select();
+      }, 200);
+    }
+  });
+
+
+/* =========================================================
+   AUDITORÍA DE AJUSTES DE INVENTARIO
+   ---------------------------------------------------------
+   Modal: #modal_consultar_inventario
+   Tabla: #dataTablaConsultaInventario
+   Fuente: core/inventario/llenarDataTableConsultaInventario.php
+   Nota : Consulta inventario_ajustes, no el inventario actual.
+========================================================= */
+var TABLE_CONSULTA_INVENTARIO = null;
+
+function modal_consultar_inventario() {
+  if ($('#modal_consultar_inventario').length === 0) {
+    showNotify('error', 'Modal no encontrado', 'No existe el modal de auditoría de ajustes de inventario.');
+    return;
+  }
+
+  cargarCombosConsultaInventario();
+  limpiarFiltrosAuditoriaAjustes(false);
+
+  $('#modal_consultar_inventario').modal({
+    show: true,
+    keyboard: false,
+    backdrop: 'static'
+  });
+
+  setTimeout(function () {
+    listar_consulta_inventario();
+  }, 350);
+}
+
+function cargarCombosConsultaInventario() {
+  getAlmacenConsultaInventario();
+  getTipoProductosConsultaInventario();
+  getProductosConsultaInventario(1);
+}
+
+function getAlmacenConsultaInventario() {
+  $.ajax({
+    type: 'POST',
+    url: '<?php echo SERVERURL;?>core/getAlmacenCompras.php',
+    success: function (data) {
+      $('#formConsultaInventario #consulta_almacen').html(data).selectpicker('refresh');
+      seleccionarBodegaPrincipal('#formConsultaInventario #consulta_almacen');
+    }
+  });
+}
+
+function getTipoProductosConsultaInventario() {
+  $.ajax({
+    type: 'POST',
+    url: '<?php echo SERVERURL;?>core/getTipoProductoMovimientosModal.php',
+    success: function (data) {
+      $('#formConsultaInventario #consulta_tipo_producto_id').html(data).selectpicker('refresh');
+    }
+  });
+}
+
+function getProductosConsultaInventario(tipo_producto_id, callback) {
+  $.ajax({
+    type: 'POST',
+    url: '<?php echo SERVERURL;?>core/getProductosMovimientosTipoProducto.php',
+    data: {
+      tipo_producto_id: tipo_producto_id || 1
+    },
+    success: function (data) {
+      $('#formConsultaInventario #consulta_producto').html(data).selectpicker('refresh');
+
+      if (typeof callback === 'function') {
+        callback(data);
+      }
+    }
+  });
+}
+
+function limpiarFiltrosAuditoriaAjustes(recargar) {
+  var hoy = new Date();
+  var primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+
+  function fechaIso(fecha) {
+    var y = fecha.getFullYear();
+    var m = String(fecha.getMonth() + 1).padStart(2, '0');
+    var d = String(fecha.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + d;
+  }
+
+  $('#formConsultaInventario #consulta_barcode').val('');
+  $('#formConsultaInventario #consulta_fechai').val(fechaIso(primerDia));
+  $('#formConsultaInventario #consulta_fechaf').val(fechaIso(hoy));
+  $('#formConsultaInventario #consulta_tipo_ajuste').val('').selectpicker('refresh');
+  $('#formConsultaInventario #consulta_tipo_producto_id').val('').selectpicker('refresh');
+  $('#formConsultaInventario #consulta_producto').val('').selectpicker('refresh');
+  seleccionarBodegaPrincipal('#formConsultaInventario #consulta_almacen');
+
+  if (recargar === true) {
+    listar_consulta_inventario();
+  }
+}
+
+function listar_consulta_inventario() {
+  if ($('#dataTablaConsultaInventario').length === 0) {
+    return;
+  }
+
+  var fechai = $('#formConsultaInventario #consulta_fechai').val();
+  var fechaf = $('#formConsultaInventario #consulta_fechaf').val();
+  var almacen = $('#formConsultaInventario #consulta_almacen').val();
+  var tipoProducto = $('#formConsultaInventario #consulta_tipo_producto_id').val();
+  var producto = $('#formConsultaInventario #consulta_producto').val();
+  var tipoAjuste = $('#formConsultaInventario #consulta_tipo_ajuste').val();
+  var barcode = $.trim($('#formConsultaInventario #consulta_barcode').val());
+
+  if ($.fn.DataTable.isDataTable('#dataTablaConsultaInventario')) {
+    $('#dataTablaConsultaInventario').DataTable().clear().destroy();
+  }
+
+  TABLE_CONSULTA_INVENTARIO = $('#dataTablaConsultaInventario').DataTable({
+    destroy: true,
+    processing: true,
+    deferRender: true,
+    responsive: true,
+    autoWidth: false,
+    language: idioma_español,
+    lengthMenu: lengthMenu10,
+    dom: dom,
+    ajax: {
+      method: 'POST',
+      url: '<?php echo SERVERURL;?>core/inventario/llenarDataTableConsultaInventario.php',
+      data: {
+        fechai: fechai,
+        fechaf: fechaf,
+        almacen: almacen,
+        tipo_producto_id: tipoProducto,
+        producto: producto,
+        tipo_ajuste: tipoAjuste,
+        barcode: barcode
+      },
+      dataSrc: function (json) {
+        if (json && json.data) {
+          actualizarResumenConsultaInventario(json.data);
+          return json.data;
+        }
+
+        actualizarResumenConsultaInventario([]);
+        return [];
+      },
+      error: function (xhr) {
+        actualizarResumenConsultaInventario([]);
+        console.log(xhr.responseText);
+        showNotify('error', 'Error', 'No se pudo consultar la auditoría de ajustes de inventario.');
+      }
+    },
+    columns: [
+      {
+        data: null,
+        className: 'align-middle text-nowrap',
+        render: function (data, type, row) {
+          var fecha = movimientosEscape(row.fecha_registro || 'Sin fecha');
+          var id = movimientosEscape(row.inventario_ajustes_id || '');
+
+          if (type !== 'display') {
+            return fecha + ' ' + id;
+          }
+
+          return '' +
+            '<div class="movimientos-detail-list">' +
+              '<div class="movimientos-detail-item">' +
+                '<span class="movimientos-detail-icon movimientos-icon-doc"><i class="fas fa-history"></i></span>' +
+                '<span><strong>Ajuste #:</strong> ' + id + '</span>' +
+              '</div>' +
+              '<div class="movimientos-detail-item">' +
+                '<span class="movimientos-detail-icon movimientos-icon-lote"><i class="fas fa-calendar-alt"></i></span>' +
+                '<span>' + fecha + '</span>' +
+              '</div>' +
+            '</div>';
+        }
+      },
+      {
+        data: null,
+        className: 'align-middle',
+        render: function (data, type, row) {
+          var productoTexto = movimientosEscape(row.producto || row.nombre || 'Sin nombre');
+          var barcodeTexto = movimientosEscape(row.barCode || row.barcode || 'Sin código');
+          var tipoTexto = movimientosEscape(row.tipo_producto_nombre || 'No registrado');
+
+          if (type !== 'display') {
+            return productoTexto + ' ' + barcodeTexto + ' ' + tipoTexto;
+          }
+
+          return '' +
+            '<div class="movimientos-product-info">' +
+              '<h6 class="movimientos-product-name mb-1">' + productoTexto + '</h6>' +
+              '<div class="movimientos-product-meta">' +
+                '<span><i class="fas fa-barcode mr-1"></i>' + barcodeTexto + '</span>' +
+                '<span><i class="fas fa-cubes mr-1"></i>' + tipoTexto + '</span>' +
+              '</div>' +
+            '</div>';
+        }
+      },
+      {
+        data: null,
+        className: 'align-middle text-nowrap',
+        render: function (data, type, row) {
+          var bodega = movimientosEscape(row.bodega || 'Sin bodega');
+          var lote = movimientosEscape(row.numero_lote || 'Sin lote');
+          var vence = movimientosEscape(row.fecha_vencimiento || 'Sin vencimiento');
+
+          if (type !== 'display') {
+            return bodega + ' ' + lote + ' ' + vence;
+          }
+
+          return '' +
+            '<strong><i class="fas fa-warehouse mr-1"></i>' + bodega + '</strong><br>' +
+            '<small class="text-muted"><i class="fas fa-tags mr-1"></i>' + lote + ' / ' + vence + '</small>';
+        }
+      },
+      {
+        data: 'saldo_sistema',
+        className: 'text-right align-middle text-nowrap',
+        render: function (data, type) {
+          var valor = ajusteToNumber(data);
+          if (type !== 'display') return valor;
+          return '<span class="badge badge-secondary p-2" style="font-size:13px;">' + ajusteFormatNumber(valor) + '</span>';
+        }
+      },
+      {
+        data: 'conteo_fisico',
+        className: 'text-right align-middle text-nowrap',
+        render: function (data, type) {
+          var valor = ajusteToNumber(data);
+          if (type !== 'display') return valor;
+          return '<span class="badge badge-info p-2" style="font-size:13px;">' + ajusteFormatNumber(valor) + '</span>';
+        }
+      },
+      {
+        data: null,
+        className: 'text-right align-middle text-nowrap',
+        render: function (data, type, row) {
+          var diferencia = ajusteToNumber(row.diferencia);
+          var tipo = String(row.tipo_ajuste || 'sin_cambio').toLowerCase();
+
+          if (type !== 'display') return diferencia;
+
+          var clase = 'badge-warning';
+          var icono = 'fa-check-circle';
+          var texto = 'Sin cambio';
+
+          if (tipo === 'entrada') {
+            clase = 'badge-success';
+            icono = 'fa-sign-in-alt';
+            texto = 'Entrada';
+          } else if (tipo === 'salida') {
+            clase = 'badge-danger';
+            icono = 'fa-sign-out-alt';
+            texto = 'Salida';
+          }
+
+          return '' +
+            '<span class="badge ' + clase + ' p-2" style="font-size:13px;">' +
+              '<i class="fas ' + icono + ' mr-1"></i>' + texto +
+            '</span><br>' +
+            '<strong>' + ajusteFormatNumber(diferencia) + '</strong>';
+        }
+      },
+      {
+        data: null,
+        className: 'align-middle',
+        render: function (data, type, row) {
+          var usuario = movimientosEscape(row.colaborador || 'No registrado');
+          var comentario = movimientosEscape(row.comentario || 'Sin comentario');
+          var mov = row.movimientos_id && parseInt(row.movimientos_id, 10) > 0 ? row.movimientos_id : 'Sin movimiento';
+
+          if (type !== 'display') {
+            return usuario + ' ' + comentario + ' ' + mov;
+          }
+
+          return '' +
+            '<div><strong><i class="fas fa-user mr-1"></i>' + usuario + '</strong></div>' +
+            '<small class="text-muted"><i class="fas fa-exchange-alt mr-1"></i>Movimiento: ' + movimientosEscape(mov) + '</small><br>' +
+            '<small class="text-muted"><i class="fas fa-comment mr-1"></i>' + comentario + '</small>';
+        }
+      }
+    ],
+    order: [[0, 'desc']],
+    buttons: [
+      {
+        text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
+        titleAttr: 'Actualizar Auditoría',
+        className: 'table_actualizar btn btn-secondary ocultar',
+        action: function () {
+          listar_consulta_inventario();
+        }
+      },
+      {
+        extend: 'collection',
+        text: '<i class="fas fa-file-export fa-lg"></i> Exportar',
+        titleAttr: 'Exportar Auditoría',
+        className: 'table_reportes btn btn-success ocultar',
+        buttons: [
+          {
+            extend: 'excelHtml5',
+            footer: false,
+            text: '<i class="fas fa-file-excel mr-1"></i> Excel',
+            title: 'Auditoría de Ajustes de Inventario',
+            exportOptions: { columns: [0, 1, 2, 3, 4, 5, 6] }
+          },
+          {
+            extend: 'pdf',
+            footer: false,
+            text: '<i class="fas fa-file-pdf mr-1"></i> PDF',
+            orientation: 'landscape',
+            pageSize: 'LEGAL',
+            title: 'Auditoría de Ajustes de Inventario',
+            exportOptions: { columns: [0, 1, 2, 3, 4, 5, 6] }
+          }
+        ]
+      }
+    ],
+    drawCallback: function () {
+      if (typeof getPermisosTipoUsuarioAccesosTable === 'function' && typeof getPrivilegioTipoUsuario === 'function') {
+        getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+      }
+
+      $('[title]').tooltip({
+        container: 'body',
+        placement: 'top'
+      });
+    }
+  });
+}
+
+function actualizarResumenConsultaInventario(rows) {
+  rows = rows || [];
+
+  var totalAjustes = rows.length;
+  var totalEntradas = 0;
+  var totalSalidas = 0;
+  var totalSinCambio = 0;
+  var balance = 0;
+
+  rows.forEach(function (item) {
+    var diferencia = ajusteToNumber(item.diferencia);
+    var tipo = String(item.tipo_ajuste || 'sin_cambio').toLowerCase();
+
+    balance += diferencia;
+
+    if (tipo === 'entrada') {
+      totalEntradas++;
+    } else if (tipo === 'salida') {
+      totalSalidas++;
+    } else {
+      totalSinCambio++;
+    }
+  });
+
+  $('#consulta_total_productos').text(totalAjustes);
+  $('#consulta_total_saldo').text(totalEntradas + ' / ' + totalSalidas);
+  $('#consulta_total_sin_saldo').text(totalSinCambio);
+  $('#consulta_total_balance_ajuste').text(ajusteFormatNumber(balance));
+}
+
+$(document)
+  .off('click.consultaInventarioBuscar', '#btnBuscarConsultaInventario')
+  .on('click.consultaInventarioBuscar', '#btnBuscarConsultaInventario', function (e) {
+    e.preventDefault();
+    listar_consulta_inventario();
+    return false;
+  });
+
+$(document)
+  .off('click.consultaInventarioLimpiar', '#btnLimpiarConsultaInventario')
+  .on('click.consultaInventarioLimpiar', '#btnLimpiarConsultaInventario', function (e) {
+    e.preventDefault();
+    limpiarFiltrosAuditoriaAjustes(true);
+    return false;
+  });
+
+$(document)
+  .off('changed.bs.select.consultaTipo change.consultaTipo', '#formConsultaInventario #consulta_tipo_producto_id')
+  .on('changed.bs.select.consultaTipo change.consultaTipo', '#formConsultaInventario #consulta_tipo_producto_id', function () {
+    var tipo = $(this).val() || 1;
+    getProductosConsultaInventario(tipo);
+  });
+
+$(document)
+  .off('changed.bs.select.consultaFiltro change.consultaFiltro', '#formConsultaInventario #consulta_almacen, #formConsultaInventario #consulta_producto, #formConsultaInventario #consulta_tipo_ajuste')
+  .on('changed.bs.select.consultaFiltro change.consultaFiltro', '#formConsultaInventario #consulta_almacen, #formConsultaInventario #consulta_producto, #formConsultaInventario #consulta_tipo_ajuste', function () {
+    listar_consulta_inventario();
+  });
+
+$(document)
+  .off('change.consultaFechas', '#formConsultaInventario #consulta_fechai, #formConsultaInventario #consulta_fechaf')
+  .on('change.consultaFechas', '#formConsultaInventario #consulta_fechai, #formConsultaInventario #consulta_fechaf', function () {
+    listar_consulta_inventario();
+  });
+
+$(document)
+  .off('keypress.consultaBarcode', '#formConsultaInventario #consulta_barcode')
+  .on('keypress.consultaBarcode', '#formConsultaInventario #consulta_barcode', function (e) {
+    if (e.which === 13) {
+      e.preventDefault();
+      listar_consulta_inventario();
+      return false;
+    }
+  });
+
+$(document)
+  .off('shown.bs.modal.consultaInventario', '#modal_consultar_inventario')
+  .on('shown.bs.modal.consultaInventario', '#modal_consultar_inventario', function () {
+    setTimeout(function () {
+      $('#formConsultaInventario #consulta_barcode').trigger('focus').select();
+    }, 250);
+  });
+
 </script>

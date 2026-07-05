@@ -13446,3 +13446,229 @@ table.dataTable tbody tr.shown td {
     width: 100%;
   }
 }
+
+/*INICIO PARA MODAL AUDITORIA DE INVENTARIO*/
+#modal_consultar_inventario .modal-auditoria-ajustes-dialog {
+    width: 96vw;
+    max-width: 96vw;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#modal_consultar_inventario .modal-content {
+    min-height: 88vh;
+}
+
+#modal_consultar_inventario .modal-body {
+    overflow-x: hidden;
+}
+
+#modal_consultar_inventario .auditoria-ajustes-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+#modal_consultar_inventario #dataTablaConsultaInventario {
+    width: 100% !important;
+    min-width: 1350px;
+}
+
+/* =========================================================
+   CARDS RESUMEN AUDITORÍA - MINIMALISTA
+   Sin degradados, sin saturación, estilo sobrio del sistema
+========================================================= */
+#modal_consultar_inventario .auditoria-resumen-card {
+    background: #ffffff !important;
+    border: 1px solid #dfe6ee !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04) !important;
+    padding: 18px 20px !important;
+    min-height: 118px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.25s ease;
+}
+
+#modal_consultar_inventario .auditoria-resumen-card:hover {
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.07) !important;
+    transform: translateY(-2px);
+}
+
+#modal_consultar_inventario .auditoria-resumen-card::before,
+#modal_consultar_inventario .auditoria-resumen-card::after {
+    display: none !important;
+    content: none !important;
+}
+
+/* Línea superior sobria, como las cards del dashboard */
+#modal_consultar_inventario .auditoria-resumen-card {
+    border-top: 4px solid #3a4f6b !important;
+}
+
+/* Contenido */
+#modal_consultar_inventario .auditoria-resumen-content {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
+#modal_consultar_inventario .auditoria-resumen-label {
+    display: block;
+    color: #6c757d !important;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.45px;
+    margin-bottom: 7px;
+    line-height: 1.2;
+}
+
+#modal_consultar_inventario .auditoria-resumen-value {
+    color: #2d3748 !important;
+    font-size: 1.9rem;
+    font-weight: 800;
+    line-height: 1;
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+#modal_consultar_inventario .auditoria-resumen-text {
+    display: block;
+    color: #718096 !important;
+    font-size: 0.78rem;
+    margin-top: 9px;
+    line-height: 1.2;
+}
+
+/* Icono sobrio */
+#modal_consultar_inventario .auditoria-resumen-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f4f6f9 !important;
+    color: #3a4f6b !important;
+    border: 1px solid #e1e7ef;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    margin-left: 16px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+}
+
+#modal_consultar_inventario .auditoria-resumen-icon i {
+    color: inherit !important;
+}
+
+/* Variantes sobrias */
+#modal_consultar_inventario .auditoria-card-total {
+    border-top-color: #3a4f6b !important;
+}
+
+#modal_consultar_inventario .auditoria-card-total .auditoria-resumen-icon {
+    background: #f2f6fb !important;
+    color: #3a4f6b !important;
+}
+
+#modal_consultar_inventario .auditoria-card-movimientos {
+    border-top-color: #2f855a !important;
+}
+
+#modal_consultar_inventario .auditoria-card-movimientos .auditoria-resumen-icon {
+    background: #f1f8f4 !important;
+    color: #2f855a !important;
+}
+
+#modal_consultar_inventario .auditoria-card-sin-cambio {
+    border-top-color: #718096 !important;
+}
+
+#modal_consultar_inventario .auditoria-card-sin-cambio .auditoria-resumen-icon {
+    background: #f6f7f9 !important;
+    color: #718096 !important;
+}
+
+#modal_consultar_inventario .auditoria-card-balance {
+    border-top-color: #3182ce !important;
+}
+
+#modal_consultar_inventario .auditoria-card-balance .auditoria-resumen-icon {
+    background: #f1f7fc !important;
+    color: #3182ce !important;
+}
+
+/* Quitar estilos viejos por si quedaron pegados de versiones anteriores */
+#modal_consultar_inventario .auditoria-resumen-card *,
+#modal_consultar_inventario .auditoria-resumen-card {
+    background-image: none !important;
+}
+
+#modal_consultar_inventario .auditoria-resumen-card .card,
+#modal_consultar_inventario .auditoria-resumen-card .card-body {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+/* DataTable dentro del modal */
+#modal_consultar_inventario .dataTables_wrapper {
+    width: 100%;
+}
+
+#modal_consultar_inventario .dataTables_length,
+#modal_consultar_inventario .dataTables_filter {
+    margin-bottom: 12px;
+}
+
+/* Footer del modal */
+#modal_consultar_inventario .modal-footer {
+    background: #ffffff;
+    border-top: 1px solid #e5e7eb;
+}
+
+/* Responsive */
+@media (max-width: 991.98px) {
+    #modal_consultar_inventario .modal-auditoria-ajustes-dialog {
+        width: 98vw;
+        max-width: 98vw;
+        margin: .5rem auto;
+    }
+
+    #modal_consultar_inventario .modal-content {
+        min-height: 92vh;
+    }
+
+    #modal_consultar_inventario .auditoria-resumen-card {
+        min-height: 105px;
+        padding: 16px 18px !important;
+    }
+
+    #modal_consultar_inventario .auditoria-resumen-value {
+        font-size: 1.55rem;
+    }
+
+    #modal_consultar_inventario .auditoria-resumen-icon {
+        width: 42px;
+        height: 42px;
+        font-size: 1rem;
+        margin-left: 12px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    #modal_consultar_inventario .auditoria-resumen-card {
+        align-items: flex-start;
+    }
+
+    #modal_consultar_inventario .auditoria-resumen-icon {
+        width: 38px;
+        height: 38px;
+    }
+}
+/*FIN PARA MODAL AUDITORIA DE INVENTARIO*/

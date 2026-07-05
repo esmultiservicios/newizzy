@@ -1503,13 +1503,10 @@ class facturasControlador extends facturasModelo {
         $tipo_documento = ($tipo_documento_input === 1) ? "1" : "0";
 
         // Inventario en borrador:
-        // Factura normal: mantiene el flujo anterior.
-        // Proforma: respeta config_id=4 / Activar Rebajar Inventario Proforma.
-        $bajarInventario = true;
-
-        if ($tipo_documento === "1") {
-            $bajarInventario = $this->proformaRebajaInventario();
-        }
+        // Una factura en borrador NO debe rebajar inventario.
+        // El inventario se rebaja hasta que el documento se confirma/guarda como factura real.
+        // Esto evita que productos queden descontados por ventas no confirmadas.
+        $bajarInventario = false;
 
         // 3) Datos base
         $datosBasicos = $this->prepararDatosFactura($tipo_factura, $tipo_documento);

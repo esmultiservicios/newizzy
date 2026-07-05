@@ -75,8 +75,8 @@
                                 Tipo de Factura
                             </label>
 
-                            <select class="form-control selectpicker" id="tipo_factura" name="tipo_factura" title="Tipo de Factura" data-live-search="true">
-                                <option value="">Todos</option>
+                            <select class="form-control selectpicker" id="tipo_factura" name="tipo_factura" title="Todos los tipos" data-live-search="true" data-none-selected-text="Todos los tipos">
+                                <option value="">Todos los tipos</option>
                                 <option value="1">Contado</option>
                                 <option value="2">Crédito</option>
                             </select>
@@ -90,11 +90,13 @@
                                 Estado
                             </label>
 
-                            <select class="form-control selectpicker" id="estado_factura" name="estado_factura" title="Estado" data-live-search="true">
-                                <option value="">Todos</option>
-                                <option value="2">Pagadas</option>
-                                <option value="3">Crédito</option>
-                                <option value="4">Canceladas</option>
+                            <select class="form-control selectpicker" id="estado_factura" name="estado_factura" title="Todos los estados" data-live-search="true" data-none-selected-text="Todos los estados">
+                                <option value="">Todos los estados</option>
+                                <option value="pendiente_pago">Solo pendientes de pago</option>
+                                <option value="1">Borrador / Pendiente de pago</option>
+                                <option value="2">Pagada al contado</option>
+                                <option value="3">Crédito pendiente / con abono</option>
+                                <option value="4">Anulada / Cancelada</option>
                             </select>
                         </div>
                     </div>
@@ -141,7 +143,7 @@
 
         <div class="card-body">
             <div class="table-responsive factura-table-responsive">
-                <table id="dataTableFacturas" class="table table-header-gradient table-striped table-condensed table-hover factura-premium-table" style="width:100%"></table>
+                <table id="dataTableFacturas" class="table table-header-gradient table-striped table-condensed factura-premium-table" style="width:100%"></table>
             </div>
         </div>
 
@@ -221,7 +223,7 @@
                 </div>
                 
                 <div class="table-responsive">
-                    <table class="table table-header-gradient table-striped table-condensed table-hover factura-premium-table">
+                    <table class="table table-header-gradient table-striped table-condensed factura-premium-table">
                         <thead>
                             <tr>
                                 <th>Producto/Servicio</th>

@@ -6674,31 +6674,183 @@ var delete_bill_draft_dataTable = function (tbody, table) {
 };
 
 function deleteBillDraft(facturas_id) {
+  var numeroFactura = '';
+
+  try {
+    numeroFactura = getNumeroFactura(facturas_id);
+  } catch (e) {
+    numeroFactura = facturas_id;
+  }
+
+  /*
+    IMPORTANTE:
+    Cuando SweetAlert se abre encima de un modal Bootstrap,
+    Bootstrap puede bloquear el foco y no deja escribir en textarea/input.
+    Por eso desactivamos temporalmente enforceFocus y lo restauramos al final.
+  */
+  var bootstrapEnforceFocusOriginal = null;
+
+  try {
+    if ($.fn.modal && $.fn.modal.Constructor && $.fn.modal.Constructor.prototype.enforceFocus) {
+      bootstrapEnforceFocusOriginal = $.fn.modal.Constructor.prototype.enforceFocus;
+      $.fn.modal.Constructor.prototype.enforceFocus = function () {};
+    }
+
+    if ($.fn.modal && $.fn.modal.Constructor && $.fn.modal.Constructor.prototype._enforceFocus) {
+      bootstrapEnforceFocusOriginal = $.fn.modal.Constructor.prototype._enforceFocus;
+      $.fn.modal.Constructor.prototype._enforceFocus = function () {};
+    }
+  } catch (e) {}
+
+  function restaurarFocusBootstrap() {
+    try {
+      if (bootstrapEnforceFocusOriginal) {
+        if ($.fn.modal && $.fn.modal.Constructor && $.fn.modal.Constructor.prototype.enforceFocus) {
+          $.fn.modal.Constructor.prototype.enforceFocus = bootstrapEnforceFocusOriginal;
+        }
+
+        if ($.fn.modal && $.fn.modal.Constructor && $.fn.modal.Constructor.prototype._enforceFocus) {
+          $.fn.modal.Constructor.prototype._enforceFocus = bootstrapEnforceFocusOriginal;
+        }
+      }
+    } catch (e) {}
+  }
+
+  var textarea = document.createElement('textarea');
+  textarea.id = 'motivo_eliminar_borrador';
+  textarea.className = 'swal-content__textarea';
+  textarea.rows = 4;
+  textarea.placeholder = 'Ejemplo: Borrador creado por error, cliente cambió la compra, datos incorrectos...';
+  textarea.style.width = '100%';
+  textarea.style.minHeight = '105px';
+  textarea.style.resize = 'vertical';
+  textarea.style.padding = '12px';
+  textarea.style.border = '1px solid #d9d9d9';
+  textarea.style.borderRadius = '4px';
+  textarea.style.outline = 'none';
+  textarea.style.fontSize = '14px';
+
   swal({
-    title: "¿Estas seguro?",
-    text: "¿Desea anular la factura: # " + getNumeroFactura(facturas_id) + "?",
+    title: "Eliminar factura borrador",
+    text: "Escriba la razón por la que desea eliminar la factura borrador # " + numeroFactura + ".",
     icon: "warning",
-    buttons: { cancel: { text: "Cancelar", visible: true }, confirm: { text: "¡Sí, anular la factura!" } },
+    content: textarea,
+    buttons: {
+      cancel: {
+        text: "Cancelar",
+        visible: true,
+        closeModal: true
+      },
+      confirm: {
+        text: "Eliminar borrador",
+        closeModal: false
+      }
+    },
     dangerMode: true,
     closeOnEsc: false,
     closeOnClickOutside: false
-  }).then((willConfirm) => {
-    if (willConfirm === true) deleteBill(facturas_id);
+  }).then(function (willConfirm) {
+    if (willConfirm !== true) {
+      restaurarFocusBootstrap();
+      swal.close();
+      return false;
+    }
+
+    var motivo = $.trim($('#motivo_eliminar_borrador').val() || '');
+
+    if (motivo.length < 5) {
+      swal.stopLoading();
+
+      showNotify(
+        'error',
+        'Motivo requerido',
+        'Debe escribir una razón válida para eliminar la factura borrador.'
+      );
+
+      setTimeout(function () {
+        $('#motivo_eliminar_borrador').trigger('focus');
+      }, 150);
+
+      return false;
+    }
+
+    deleteBill(facturas_id, motivo, restaurarFocusBootstrap);
   });
+
+  setTimeout(function () {
+    $('#motivo_eliminar_borrador').trigger('focus');
+  }, 250);
 }
 
-function deleteBill(facturas_id) {
+function deleteBill(facturas_id, motivo, callbackFinal) {
+  var url = '';
+
+  if (typeof BASE_URL !== 'undefined' && BASE_URL !== '') {
+    url = BASE_URL + 'core/deleteBillDraft.php';
+  } else {
+    url = '<?php echo SERVERURL;?>core/deleteBillDraft.php';
+  }
+
   $.ajax({
     type: 'POST',
-    url: BASE_URL + 'core/deleteBillDraft.php',
-    data: { facturas_id: facturas_id },
-    success: function (data) {
-      if (String(data).trim() === "1") {
-        showNotify('success', 'Success', 'La factura en borrador ha sido eliminada con éxito');
-        listar_busqueda_bill_draf();
-      } else {
-        showNotify('error', 'Error', 'La factura no se puede eliminar');
+    url: url,
+    dataType: 'json',
+    data: {
+      facturas_id: facturas_id,
+      motivo: motivo
+    },
+    beforeSend: function () {
+      swal.stopLoading();
+    },
+    success: function (response) {
+      if (typeof callbackFinal === 'function') {
+        callbackFinal();
       }
+
+      swal.close();
+
+      if (response && response.success === true) {
+        showNotify(
+          'success',
+          response.title || 'Borrador eliminado',
+          response.message || 'La factura borrador ha sido eliminada correctamente.'
+        );
+
+        if (typeof listar_busqueda_bill_draf === 'function') {
+          listar_busqueda_bill_draf();
+        }
+
+        if (typeof listar_busqueda_bill === 'function') {
+          listar_busqueda_bill();
+        }
+
+        return;
+      }
+
+      showNotify(
+        'error',
+        response && response.title ? response.title : 'Error',
+        response && response.message ? response.message : 'La factura borrador no se pudo eliminar.'
+      );
+    },
+    error: function (xhr) {
+      if (typeof callbackFinal === 'function') {
+        callbackFinal();
+      }
+
+      swal.close();
+
+      var mensaje = 'Error de comunicación al eliminar la factura borrador.';
+
+      try {
+        var response = JSON.parse(xhr.responseText || '{}');
+
+        if (response && response.message) {
+          mensaje = response.message;
+        }
+      } catch (e) {}
+
+      showNotify('error', 'Error', mensaje);
     }
   });
 }

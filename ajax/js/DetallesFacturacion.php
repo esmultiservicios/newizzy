@@ -19,8 +19,30 @@ $(() => {
         }
     });
 
-    $('#tipo_factura, #estado_factura').off('changed.bs.select change');
-    $('#tipo_factura, #estado_factura').on('changed.bs.select change', function() {
+    $('#tipo_factura, #estado_factura').off('changed.bs.select.detallesFacturacion change.detallesFacturacion');
+
+    $('#tipo_factura, #estado_factura').on('changed.bs.select.detallesFacturacion', function(e, clickedIndex) {
+        e.preventDefault();
+
+        var valorSeleccionado = $(this).val();
+
+        if (clickedIndex !== undefined && this.options && this.options[clickedIndex]) {
+            valorSeleccionado = this.options[clickedIndex].value;
+        }
+
+        fijarValorSelectFactura(this, valorSeleccionado);
+
+        setTimeout(function() {
+            dataTableFacturas.ajax.reload(null, true);
+        }, 80);
+    });
+
+    $('#tipo_factura, #estado_factura').on('change.detallesFacturacion', function() {
+        if ($(this).data('selectpicker')) {
+            return;
+        }
+
+        fijarValorSelectFactura(this, $(this).val());
         dataTableFacturas.ajax.reload(null, true);
     });
 
@@ -128,6 +150,51 @@ $(() => {
     });
 });
 
+function normalizarFiltroFactura(valor) {
+    valor = (valor === null || valor === undefined) ? '' : String(valor).trim();
+
+    if (valor === 'todos') {
+        return '';
+    }
+
+    return valor;
+}
+
+function fijarValorSelectFactura(selector, valor) {
+    var $select = $(selector);
+
+    if ($select.length === 0) {
+        return;
+    }
+
+    valor = (valor === null || valor === undefined || valor === '') ? 'todos' : String(valor);
+
+    $select.val(valor);
+
+    var textoSeleccionado = $select.find('option:selected').text();
+
+    if (textoSeleccionado === '') {
+        textoSeleccionado = valor === 'todos' ? 'Todos' : valor;
+    }
+
+    if ($.fn.selectpicker && $select.data('selectpicker')) {
+        $select.selectpicker('val', valor);
+        $select.selectpicker('render');
+
+        var $bootstrapSelect = $select.closest('.bootstrap-select');
+        var $textoBoton = $bootstrapSelect.find('.filter-option-inner-inner').first();
+
+        if ($textoBoton.length > 0) {
+            $textoBoton.text(textoSeleccionado);
+        }
+    }
+}
+
+function refrescarSelectsFiltrosFacturas() {
+    fijarValorSelectFactura('#tipo_factura', $('#tipo_factura').val() || 'todos');
+    fijarValorSelectFactura('#estado_factura', $('#estado_factura').val() || 'todos');
+}
+
 function construirEstructuraTablaFacturas() {
     const $tabla = $('#dataTableFacturas');
 
@@ -198,8 +265,8 @@ function inicializarDataTableFacturas() {
             data: function(d) {
                 d.fecha_inicio = $('#fecha_inicio').val();
                 d.fecha_fin = $('#fecha_fin').val();
-                d.tipo_factura = $('#tipo_factura').val();
-                d.estado_factura = $('#estado_factura').val();
+                d.tipo_factura = normalizarFiltroFactura($('#tipo_factura').val());
+                d.estado_factura = normalizarFiltroFactura($('#estado_factura').val());
                 d.numero_factura = $('#numero_factura').val();
             },
             dataSrc: function(json) {
@@ -360,19 +427,19 @@ function inicializarDataTableFacturas() {
 }
 
 function inicializarFechasFacturas() {
-    const today = new Date();
-    const thirtyDaysAgo = new Date();
+    /*
+        Importante:
+        Este historial debe mostrar TODAS las facturas del cliente por defecto.
+        Antes se cargaban solo los últimos 30 días, por eso facturas antiguas
+        como una del 01/06/2026 no aparecían cuando el filtro iniciaba en 06/06/2026.
 
-    thirtyDaysAgo.setDate(today.getDate() - 30);
-
-    $('#fecha_inicio').val(thirtyDaysAgo.toISOString().split('T')[0]);
-    $('#fecha_fin').val(today.toISOString().split('T')[0]);
-
-    if ($.fn.selectpicker) {
-        $('#tipo_factura').selectpicker('val', '');
-        $('#estado_factura').selectpicker('val', '');
-        $('.selectpicker').selectpicker('refresh');
-    }
+        Dejamos las fechas vacías para que el backend no filtre por rango
+        hasta que el usuario seleccione fechas manualmente.
+    */
+    $('#fecha_inicio').val('');
+    $('#fecha_fin').val('');
+    fijarValorSelectFactura('#tipo_factura', 'todos');
+    fijarValorSelectFactura('#estado_factura', 'todos');
 }
 
 function limpiarFiltrosFacturas() {
@@ -381,12 +448,8 @@ function limpiarFiltrosFacturas() {
     inicializarFechasFacturas();
 
     $('#numero_factura').val('');
-
-    if ($.fn.selectpicker) {
-        $('#tipo_factura').selectpicker('val', '');
-        $('#estado_factura').selectpicker('val', '');
-        $('.selectpicker').selectpicker('refresh');
-    }
+    fijarValorSelectFactura('#tipo_factura', 'todos');
+    fijarValorSelectFactura('#estado_factura', 'todos');
 }
 
 function actualizarFooterFacturas(api) {
@@ -409,49 +472,51 @@ function actualizarFooterFacturas(api) {
 }
 
 function renderEstadoFactura(row) {
-    const esProforma = parseInt(row.documento_id || 0, 10) === 4;
-    const tienePendiente = parseInt(row.tiene_pendiente || 0, 10) > 0;
     const estadoNum = parseInt(row.estado || 0, 10);
+    const documentoId = parseInt(row.documento_id || 0, 10);
+    const pagosRealizados = parseInt(row.pagos_realizados || 0, 10);
+    const textoBase = row.estado_texto || 'Sin estado';
+
     let clase = 'badge-factura-secondary';
     let icono = 'fas fa-file-alt';
-    let texto = row.estado_texto || 'Borrador';
+    let texto = textoBase;
 
-    if (esProforma) {
-        if (tienePendiente) {
-            clase = 'badge-factura-warning';
-            icono = 'fas fa-clock';
-            texto = 'Pendiente de pago';
-        } else {
-            clase = 'badge-factura-info';
-            icono = 'fas fa-file-invoice';
-            texto = 'Proforma cerrada';
-        }
-    } else {
-        switch (estadoNum) {
-            case 2:
-                clase = 'badge-factura-success';
-                icono = 'fas fa-check-circle';
-                texto = row.estado_texto || 'Pagada';
-                break;
-
-            case 3:
+    switch (estadoNum) {
+        case 1:
+            if (documentoId === 4) {
                 clase = 'badge-factura-warning';
                 icono = 'fas fa-clock';
-                texto = row.estado_texto || 'Crédito';
-                break;
-
-            case 4:
-                clase = 'badge-factura-danger';
-                icono = 'fas fa-times-circle';
-                texto = row.estado_texto || 'Cancelada';
-                break;
-
-            default:
+                texto = textoBase || 'Pendiente de pago';
+            } else {
                 clase = 'badge-factura-secondary';
                 icono = 'fas fa-file-alt';
-                texto = row.estado_texto || 'Borrador';
-                break;
-        }
+                texto = textoBase || 'Borrador';
+            }
+            break;
+
+        case 2:
+            clase = 'badge-factura-success';
+            icono = 'fas fa-check-circle';
+            texto = textoBase || 'Pagada al contado';
+            break;
+
+        case 3:
+            clase = 'badge-factura-warning';
+            icono = pagosRealizados > 0 ? 'fas fa-hand-holding-usd' : 'fas fa-clock';
+            texto = textoBase || (pagosRealizados > 0 ? 'Crédito con abono' : 'Crédito pendiente');
+            break;
+
+        case 4:
+            clase = 'badge-factura-danger';
+            icono = 'fas fa-times-circle';
+            texto = textoBase || 'Anulada / Cancelada';
+            break;
+
+        default:
+            clase = 'badge-factura-secondary';
+            icono = 'fas fa-question-circle';
+            texto = textoBase || 'Sin estado';
+            break;
     }
 
     return '<span class="badge-factura ' + clase + '">' +
@@ -462,7 +527,7 @@ function renderEstadoFactura(row) {
 
 function renderAccionesFactura(row) {
     const facturaId = escapeHtmlFactura(row.facturas_id);
-    const puedePagar = row.estado == '3' || (parseInt(row.documento_id || 0, 10) === 4 && parseInt(row.tiene_pendiente || 0, 10) > 0);
+    const puedePagar = row.estado == '3' || (parseInt(row.documento_id || 0, 10) === 4 && (row.estado == '1' || parseInt(row.tiene_pendiente || 0, 10) > 0));
 
     let html = '' +
         '<div class="dropdown acciones-dropdown factura-acciones-dropdown">' +
@@ -616,9 +681,9 @@ function cargarLineasDetalleFactura(facturaId, factura) {
                         '<td colspan="3" class="text-right">' + formatMoneyFactura(factura.descuento || 0) + '</td>' +
                     '</tr>' +
 
-                    '<tr class="factura-total-row-final">' +
-                        '<td colspan="3" class="text-right"><strong>TOTAL:</strong></td>' +
-                        '<td colspan="3" class="text-right"><strong>' + formatMoneyFactura(factura.total || 0) + '</strong></td>' +
+                    '<tr class="factura-total-row-light">' +
+                        '<td colspan="3" class="text-right"><strong class="text-success">TOTAL:</strong></td>' +
+                        '<td colspan="3" class="text-right"><strong class="text-success">' + formatMoneyFactura(factura.total || 0) + '</strong></td>' +
                     '</tr>';
 
                 $('#detalle-factura-body').html(detalleHtml);

@@ -11,7 +11,7 @@ header('Content-Type: application/json; charset=utf-8');
 $insMainModel = new mainModel();
 
 function responderDetallesFacturacion($data) {
-    echo json_encode($data);
+    echo json_encode($data, JSON_UNESCAPED_UNICODE);
     exit();
 }
 
@@ -207,24 +207,73 @@ try {
         $paramTypes .= "s";
     }
 
-    if ($tipoFactura !== '') {
+    if ($tipoFactura !== '' && $tipoFactura !== 'todos') {
         $where .= " AND f.tipo_factura = ?";
         $params[] = (int)$tipoFactura;
         $paramTypes .= "i";
     }
 
-    if ($estadoFactura !== '') {
-        $where .= " AND f.estado = ?";
-        $params[] = (int)$estadoFactura;
-        $paramTypes .= "i";
+    if ($estadoFactura !== '' && $estadoFactura !== 'todos') {
+        $sqlTotalPagadoFiltro = "COALESCE((SELECT SUM(pg.importe) FROM pagos pg WHERE pg.facturas_id = f.facturas_id AND pg.estado = 1), 0)";
+
+        if ($estadoFactura === 'pendiente_pago') {
+            /*
+             * Solo pendientes de pago:
+             * - estado 1: borrador/proforma pendiente.
+             * - estado 3: crédito/proforma crédito con saldo pendiente.
+             */
+            $where .= " AND (
+                f.estado = 1
+                OR (
+                    f.estado = 3
+                    AND {$sqlTotalPagadoFiltro} < f.importe
+                )
+            )";
+        } elseif ($estadoFactura === '1') {
+            /*
+             * Borrador / Pendiente de pago:
+             * - estado 1 se muestra siempre.
+             * - proforma en crédito estado 3 se muestra aquí si todavía no está pagada.
+             */
+            $where .= " AND (
+                f.estado = 1
+                OR (
+                    d.documento_id = 4
+                    AND f.estado = 3
+                    AND {$sqlTotalPagadoFiltro} < f.importe
+                )
+            )";
+        } else {
+            $where .= " AND f.estado = ?";
+            $params[] = (int)$estadoFactura;
+            $paramTypes .= "i";
+        }
     }
 
     if ($numeroFactura !== '') {
         $where .= " AND (
             CONCAT(sf.prefijo, LPAD(f.number, sf.relleno, 0)) LIKE ?
             OR CONCAT('PROFORMA-', sf.prefijo, LPAD(f.number, sf.relleno, 0)) LIKE ?
-            OR c.nombre LIKE ?
+            OR COALESCE(NULLIF(TRIM(c.nombre), ''), 'Cliente no especificado') LIKE ?
             OR f.importe LIKE ?
+            OR CASE
+                WHEN f.tipo_factura = 1 THEN 'Contado'
+                WHEN f.tipo_factura = 2 THEN 'Crédito'
+                ELSE 'Sin tipo'
+            END LIKE ?
+            OR CASE
+                WHEN f.estado = 1 AND d.documento_id = 4 THEN 'Pendiente de pago'
+                WHEN f.estado = 1 THEN 'Borrador'
+                WHEN d.documento_id = 4 AND f.estado = 3 AND COALESCE((SELECT COUNT(*) FROM cobrar_clientes cc WHERE cc.facturas_id = f.facturas_id AND cc.estado = 2), 0) = 0 THEN 'Pendiente de pago'
+                WHEN d.documento_id = 4 AND f.estado = 3 THEN 'Crédito con abono'
+                WHEN f.estado = 2 AND f.tipo_factura = 1 THEN 'Pagada al contado'
+                WHEN f.estado = 2 AND f.tipo_factura = 2 THEN 'Crédito pagado'
+                WHEN f.estado = 2 THEN 'Pagada'
+                WHEN f.estado = 3 AND COALESCE((SELECT SUM(pg.importe) FROM pagos pg WHERE pg.facturas_id = f.facturas_id AND pg.estado = 1), 0) > 0 THEN 'Crédito con abono'
+                WHEN f.estado = 3 THEN 'Crédito pendiente'
+                WHEN f.estado = 4 THEN 'Anulada / Cancelada'
+                ELSE 'Sin estado'
+            END LIKE ?
         )";
 
         $busqueda = '%' . $numeroFactura . '%';
@@ -233,8 +282,10 @@ try {
         $params[] = $busqueda;
         $params[] = $busqueda;
         $params[] = $busqueda;
+        $params[] = $busqueda;
+        $params[] = $busqueda;
 
-        $paramTypes .= "ssss";
+        $paramTypes .= "ssssss";
     }
 
     /*
@@ -245,7 +296,7 @@ try {
     $query = "SELECT 
         f.facturas_id,
         DATE_FORMAT(f.fecha, '%d/%m/%Y') AS fecha,
-        c.nombre AS cliente,
+        COALESCE(NULLIF(TRIM(c.nombre), ''), 'Cliente no especificado') AS cliente,
         CASE 
             WHEN d.documento_id = 4 THEN CONCAT('PROFORMA-', sf.prefijo, LPAD(f.number, sf.relleno, 0))
             ELSE CONCAT(sf.prefijo, LPAD(f.number, sf.relleno, 0))
@@ -253,24 +304,31 @@ try {
         f.importe AS total,
         CASE 
             WHEN f.tipo_factura = 1 THEN 'Contado'
-            ELSE 'Crédito'
+            WHEN f.tipo_factura = 2 THEN 'Crédito'
+            ELSE 'Sin tipo'
         END AS tipo_documento,
+        f.tipo_factura AS tipo_factura_id,
         co.nombre AS vendedor,
         co1.nombre AS facturador,
         COALESCE((SELECT SUM(fd.cantidad * fd.precio) FROM facturas_detalles AS fd WHERE fd.facturas_id = f.facturas_id), 0) AS subtotal,
         COALESCE((SELECT SUM(fd.cantidad * p.precio_compra) FROM facturas_detalles AS fd INNER JOIN productos AS p ON fd.productos_id = p.productos_id WHERE fd.facturas_id = f.facturas_id), 0) AS subCosto,
         COALESCE((SELECT SUM(fd.isv_valor) FROM facturas_detalles AS fd WHERE fd.facturas_id = f.facturas_id), 0) AS isv,
         COALESCE((SELECT SUM(fd.descuento) FROM facturas_detalles AS fd WHERE fd.facturas_id = f.facturas_id), 0) AS descuento,
-        COALESCE((SELECT COUNT(*) FROM cobrar_clientes WHERE facturas_id = f.facturas_id AND estado = 2), 0) AS pagos_realizados,
+        COALESCE((SELECT COUNT(*) FROM pagos pg WHERE pg.facturas_id = f.facturas_id AND pg.estado = 1), 0) AS pagos_realizados,
+        COALESCE((SELECT SUM(pg.importe) FROM pagos pg WHERE pg.facturas_id = f.facturas_id AND pg.estado = 1), 0) AS total_pagado,
         f.estado,
         CASE
-            WHEN d.documento_id = 4 AND COALESCE((SELECT COUNT(*) FROM cobrar_clientes WHERE facturas_id = f.facturas_id AND estado = 1), 0) > 0 THEN 'Pendiente de pago'
-            WHEN d.documento_id = 4 THEN 'Proforma cerrada'
+            WHEN f.estado = 1 AND d.documento_id = 4 THEN 'Pendiente de pago'
             WHEN f.estado = 1 THEN 'Borrador'
+            WHEN f.estado = 2 AND f.tipo_factura = 1 THEN 'Pagada al contado'
+            WHEN f.estado = 2 AND f.tipo_factura = 2 THEN 'Crédito pagado'
             WHEN f.estado = 2 THEN 'Pagada'
-            WHEN f.estado = 3 THEN 'Crédito'
-            WHEN f.estado = 4 THEN 'Cancelada'
-            ELSE 'Borrador'
+            WHEN f.estado = 3 AND COALESCE((SELECT SUM(pg.importe) FROM pagos pg WHERE pg.facturas_id = f.facturas_id AND pg.estado = 1), 0) >= f.importe AND f.importe > 0 THEN 'Crédito pagado'
+            WHEN f.estado = 3 AND COALESCE((SELECT SUM(pg.importe) FROM pagos pg WHERE pg.facturas_id = f.facturas_id AND pg.estado = 1), 0) > 0 THEN 'Crédito con abono'
+            WHEN f.estado = 3 AND d.documento_id = 4 THEN 'Pendiente de pago'
+            WHEN f.estado = 3 THEN 'Crédito pendiente'
+            WHEN f.estado = 4 THEN 'Anulada / Cancelada'
+            ELSE 'Sin estado'
         END AS estado_texto,
         d.documento_id,
         COALESCE((SELECT COUNT(*) FROM cobrar_clientes WHERE facturas_id = f.facturas_id AND estado = 1), 0) AS tiene_pendiente,
@@ -284,7 +342,7 @@ try {
         INNER JOIN secuencia_facturacion AS sf ON f.secuencia_facturacion_id = sf.secuencia_facturacion_id
         INNER JOIN documento AS d ON sf.documento_id = d.documento_id
     WHERE $where
-    ORDER BY f.number DESC";
+    ORDER BY f.fecha DESC, f.facturas_id DESC";
 
     array_unshift($params, DB_MAIN);
     $paramTypes = "s" . $paramTypes;
@@ -314,6 +372,7 @@ try {
             'facturas_id' => (int)$row['facturas_id'],
             'fecha' => $row['fecha'],
             'tipo_documento' => $row['tipo_documento'],
+            'tipo_factura_id' => (int)$row['tipo_factura_id'],
             'cliente' => $row['cliente'],
             'numero' => $row['numero'],
             'subtotal' => $subtotal,
@@ -325,6 +384,8 @@ try {
             'facturador' => $row['facturador'],
             'estado' => (int)$row['estado'],
             'estado_texto' => $row['estado_texto'],
+            'pagos_realizados' => (int)$row['pagos_realizados'],
+            'total_pagado' => isset($row['total_pagado']) ? (float)$row['total_pagado'] : 0.00,
             'documento_id' => (int)$row['documento_id'],
             'tiene_pendiente' => (int)$row['tiene_pendiente'],
             'notas' => $row['notas'],

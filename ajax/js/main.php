@@ -1432,8 +1432,29 @@ function getPorcentajeTextoISVProducto(isv_id) {
   return '';
 }
 
+function formatearPorcentajeLabelISVProductos(valor) {
+  valor = parseFloat(valor || 0);
+
+  if (isNaN(valor) || valor <= 0) {
+    return '';
+  }
+
+  if (valor % 1 === 0) {
+    return String(parseInt(valor, 10));
+  }
+
+  return valor.toFixed(2).replace(/\.?0+$/, '');
+}
+
 function getTextoISVProducto(isv_id) {
-  var porcentaje = fetchISVProductoSync(isv_id);
+  var porcentaje = 0;
+
+  if (parseInt(isv_id, 10) === 1) {
+    porcentaje = getPorcentajeISV(1, 0).valor;
+  } else if (parseInt(isv_id, 10) === 2) {
+    porcentaje = getPorcentajeISV(0, 1).valor;
+  }
+
   var texto = 'ISV';
 
   if (porcentaje > 0) {
@@ -5624,8 +5645,7 @@ function updateCardAmountVisibility() {
     if ($grupo.length) $grupo.show();
     $campoImporte.show();
     $campoImporte.prop('required', true);
-    $campoImporte.val(''); // Limpiar valor anterior
-    
+    // No limpiar aquí: si se limpia durante la validación, CxC siempre valida 0 aunque el usuario haya digitado importe.
     firstFieldByMethod.card = '#importe_tarjeta';
   } else {
     // Factura: campo OCULTO, no requerido, valor automático
@@ -5900,18 +5920,61 @@ function getEfectivoRecibidoActual() {
 /* ===============================
    LECTURA Y CÁLCULO DE IMPORTES
    =============================== */
-function getCardAmountValue() {
-  var $f = $('#formTarjetaBill');
+function getImporteMetodoActual(method) {
+  var $m = $('#modal_pagos_unificado');
+  var selectors = {
+    cash: [
+      '#payment_cash.active #efectivo_bill',
+      '#formEfectivoBill #efectivo_bill',
+      '#formEfectivoBill [name="efectivo_bill"]'
+    ],
+    card: [
+      '#payment_card.active #importe_tarjeta',
+      '#formTarjetaBill #importe_tarjeta',
+      '#formTarjetaBill [name="importe_tarjeta"]',
+      '#formTarjetaBill #importe_tarjeta, #formTarjetaBill #importe_tarjeta_cxc_visible'
+    ],
+    transfer: [
+      '#payment_transfer.active #importe_transferencia',
+      '#formTransferenciaBill #importe_transferencia',
+      '#formTransferenciaBill [name="importe_transferencia"]'
+    ],
+    check: [
+      '#payment_check.active #importe_cheque',
+      '#formChequeBill #importe_cheque',
+      '#formChequeBill [name="importe_cheque"]'
+    ],
+    points: [
+      '#payment_points.active #importe_puntos',
+      '#formPuntosBill #importe_puntos',
+      '#formPuntosBill [name="importe_puntos"]'
+    ]
+  };
 
-  if (isCxC()) {
-    var visible = parseMonto($f.find('#importe_tarjeta_cxc_visible').val());
+  var list = selectors[method] || [];
 
-    if (visible > 0) {
-      return visible;
+  for (var i = 0; i < list.length; i++) {
+    var $field = $m.find(list[i]).filter(':enabled').first();
+
+    if (!$field.length) {
+      $field = $m.find(list[i]).first();
+    }
+
+    if ($field.length) {
+      var raw = getRealFieldValue($field);
+      var val = parseMontoSeguro(raw);
+
+      if (val > 0) {
+        return val;
+      }
     }
   }
 
-  return parseMonto($f.find('#importe_tarjeta').val() || $f.find('#monto_efectivo, #monto_efectivo_efectivo_tarjeta').val());
+  return 0;
+}
+
+function getCardAmountValue() {
+  return getImporteMetodoActual('card');
 }
 
 function readAmounts() {
@@ -5919,11 +5982,11 @@ function readAmounts() {
   var totalFactura = parseMonto($m.find('#customer_bill_pay').val());
 
   var amounts = {
-    cash: getEfectivoRecibidoActual(),
-    card: getCardAmountValue(),
-    transfer: parseMonto($m.find('#formTransferenciaBill #importe_transferencia').val()),
-    check: parseMonto($m.find('#formChequeBill #importe_cheque').val()),
-    points: parseMonto($m.find('#formPuntosBill #importe_puntos').val())
+    cash: getImporteMetodoActual('cash'),
+    card: getImporteMetodoActual('card'),
+    transfer: getImporteMetodoActual('transfer'),
+    check: getImporteMetodoActual('check'),
+    points: getImporteMetodoActual('points')
   };
 
   var sumSel = Array.from(SELECTED_METHODS).reduce(function (acc, m) {
@@ -6020,7 +6083,7 @@ function validateBeforeConfirm() {
   }
 
   if (SELECTED_METHODS.has('cash')) {
-    var efectivo = getEfectivoRecibidoActual();
+    var efectivo = getImporteMetodoActual('cash');
 
     if (efectivo <= 0) {
       warnPago('El efectivo recibido debe ser mayor que 0.', '#efectivo_bill');
@@ -6039,7 +6102,7 @@ function validateBeforeConfirm() {
   }
 
   if (SELECTED_METHODS.has('card')) {
-    var tarjeta = getCardAmountValue();
+    var tarjeta = getImporteMetodoActual('card');
     var totalFactura = parseMonto($('#modal_pagos_unificado #customer_bill_pay').val());
     var multi = isMultiOn();
 
@@ -6068,7 +6131,7 @@ function validateBeforeConfirm() {
   }
 
   if (SELECTED_METHODS.has('transfer')) {
-    var transferencia = parseMonto($('#formTransferenciaBill #importe_transferencia').val());
+    var transferencia = getImporteMetodoActual('transfer');
 
     if (transferencia <= 0) {
       warnPago('El importe de transferencia debe ser mayor que 0.', '#importe_transferencia');
@@ -6089,7 +6152,7 @@ function validateBeforeConfirm() {
   }
 
   if (SELECTED_METHODS.has('check')) {
-    var cheque = parseMonto($('#formChequeBill #importe_cheque').val());
+    var cheque = getImporteMetodoActual('check');
 
     if (cheque <= 0) {
       warnPago('El importe de cheque debe ser mayor que 0.', '#importe_cheque');
@@ -6692,11 +6755,7 @@ function syncAmountToForm(method, override) {
   var srcVal = typeof override === 'number' ? override : 0;
 
   if (typeof override !== 'number') {
-    if (method === 'card') {
-      srcVal = getCardAmountValue();
-    } else {
-      srcVal = parseMonto($(amountFieldByMethod[method]).val());
-    }
+    srcVal = getImporteMetodoActual(method);
   }
 
   var uiVal = fixed2(srcVal);
@@ -6847,7 +6906,7 @@ function calcularCambioEfectivo() {
 
   if (!$f.length) return;
 
-  var efectivo = getEfectivoRecibidoActual();
+  var efectivo = getImporteMetodoActual('cash');
   var monto = parseMonto($('#modal_pagos_unificado #customer_bill_pay').val());
 
   CASH_TYPED = efectivo;
@@ -7371,7 +7430,7 @@ function limpiarMontosPagoUnificado() {
   $m.find('#formEfectivoBill #efectivo_bill').val('');
   $m.find('#formEfectivoBill #cambio_efectivo').val('');
 
-  $m.find('#formTarjetaBill #importe_tarjeta_cxc_visible').val('');
+  $m.find('#formTarjetaBill #importe_tarjeta, #formTarjetaBill #importe_tarjeta_cxc_visible').val('');
 
   if (isCxC()) {
     $m.find('#formTarjetaBill #importe_tarjeta').val('');
@@ -7730,8 +7789,8 @@ function initPagoUnificado() {
       syncPaymentConfirm();
     });
 
-  $m.off('input.pagoMoney', '#formEfectivoBill #efectivo_bill, #formTransferenciaBill #importe_transferencia, #formChequeBill #importe_cheque, #formTarjetaBill #importe_tarjeta_cxc_visible')
-    .on('input.pagoMoney', '#formEfectivoBill #efectivo_bill, #formTransferenciaBill #importe_transferencia, #formChequeBill #importe_cheque, #formTarjetaBill #importe_tarjeta_cxc_visible', function (e) {
+  $m.off('input.pagoMoney', '#formEfectivoBill #efectivo_bill, #formTransferenciaBill #importe_transferencia, #formChequeBill #importe_cheque, #formTarjetaBill #importe_tarjeta, #formTarjetaBill #importe_tarjeta_cxc_visible')
+    .on('input.pagoMoney', '#formEfectivoBill #efectivo_bill, #formTransferenciaBill #importe_transferencia, #formChequeBill #importe_cheque, #formTarjetaBill #importe_tarjeta, #formTarjetaBill #importe_tarjeta_cxc_visible', function (e) {
       var cur = e.target.selectionStart;
       var orig = $(this).val();
       var clean = normalizarMontoEntrada(orig);
@@ -7777,8 +7836,8 @@ function initPagoUnificado() {
       syncPaymentConfirm();
     });
 
-  $m.off('blur.pagoMoney', '#formEfectivoBill #efectivo_bill, #formTransferenciaBill #importe_transferencia, #formChequeBill #importe_cheque, #formTarjetaBill #importe_tarjeta_cxc_visible')
-    .on('blur.pagoMoney', '#formEfectivoBill #efectivo_bill, #formTransferenciaBill #importe_transferencia, #formChequeBill #importe_cheque, #formTarjetaBill #importe_tarjeta_cxc_visible', function () {
+  $m.off('blur.pagoMoney', '#formEfectivoBill #efectivo_bill, #formTransferenciaBill #importe_transferencia, #formChequeBill #importe_cheque, #formTarjetaBill #importe_tarjeta, #formTarjetaBill #importe_tarjeta_cxc_visible')
+    .on('blur.pagoMoney', '#formEfectivoBill #efectivo_bill, #formTransferenciaBill #importe_transferencia, #formChequeBill #importe_cheque, #formTarjetaBill #importe_tarjeta, #formTarjetaBill #importe_tarjeta_cxc_visible', function () {
       var v = $(this).val();
 
       if (v) {

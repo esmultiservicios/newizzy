@@ -21,6 +21,7 @@ $(() => {
   let configProformaRebajarInventario = false; // Config: marcar por defecto rebajar inventario en proforma
   let currentProductPriceIndex = null; // Índice actual para editar precio
   let cacheISVFacturaMovil = {};
+  let consultaCajaFacturaMovil = null; // Evita solicitudes de caja superpuestas
 
   // Formateador de números para montos en lempiras
   const formatter = new Intl.NumberFormat('es-HN', {
@@ -72,24 +73,22 @@ $(() => {
     isv_id = parseInt(isv_id, 10);
 
     if (!isv_id || isv_id <= 0) {
-      return 0;
+      return $.Deferred().resolve(0).promise();
     }
 
     if (cacheISVFacturaMovil[isv_id] !== undefined) {
-      return cacheISVFacturaMovil[isv_id];
+      return $.Deferred().resolve(cacheISVFacturaMovil[isv_id]).promise();
     }
 
-    let porcentaje = 0;
-
-    $.ajax({
+    return $.ajax({
       type: 'POST',
       url: '<?php echo SERVERURL;?>core/getISV.php',
       data: {
         isv_id: isv_id
       },
       dataType: 'json',
-      async: false,
-      success: function(response) {
+    }).then(function(response) {
+        let porcentaje = 0;
         if (response && response.success === true && response.valor !== undefined) {
           porcentaje = normalizarNumeroISVFacturaMovil(response.valor);
         } else if (response && response.valor !== undefined) {
@@ -103,34 +102,31 @@ $(() => {
         } else if (typeof response === 'number' || typeof response === 'string') {
           porcentaje = normalizarNumeroISVFacturaMovil(response);
         }
-      },
-      error: function(xhr) {
+
+        cacheISVFacturaMovil[isv_id] = porcentaje;
+        return porcentaje;
+      }, function(xhr) {
         console.log(xhr.responseText);
-        porcentaje = 0;
-      }
+        cacheISVFacturaMovil[isv_id] = 0;
+        return 0;
     });
-
-    cacheISVFacturaMovil[isv_id] = porcentaje;
-
-    return porcentaje;
   }
 
   function getTextoISVFacturaMovil(isv_id) {
-    const porcentaje = fetchISVFacturaMovilSync(isv_id);
-    const texto = formatearPorcentajeISVFacturaMovil(porcentaje);
-
-    return texto !== '' ? 'ISV ' + texto + '%' : 'ISV';
+    return fetchISVFacturaMovilSync(isv_id).then(function(porcentaje) {
+      const texto = formatearPorcentajeISVFacturaMovil(porcentaje);
+      return texto !== '' ? 'ISV ' + texto + '%' : 'ISV';
+    });
   }
 
   function actualizarLabelsISVFacturaMovil() {
-    const textoISV1 = getTextoISVFacturaMovil(1);
-    const textoISV2 = getTextoISVFacturaMovil(2);
-
-    $('#label-isv-15').text(textoISV1 + ':');
-    $('#label-isv-18').text(textoISV2 + ':');
-
-    $('#label-preview-isv15').text(textoISV1);
-    $('#label-preview-isv18').text(textoISV2);
+    return $.when(getTextoISVFacturaMovil(1), getTextoISVFacturaMovil(2))
+      .done(function(textoISV1, textoISV2) {
+        $('#label-isv-15').text(textoISV1 + ':');
+        $('#label-isv-18').text(textoISV2 + ':');
+        $('#label-preview-isv15').text(textoISV1);
+        $('#label-preview-isv18').text(textoISV2);
+      });
   }
 
   function recargarLabelsISVFacturaMovil() {
@@ -383,35 +379,38 @@ $(() => {
    */
   function getConsultarAperturaCaja() {
     var url = '<?php echo SERVERURL; ?>core/getAperturaCajaUsuario.php';
-    var estado_apertura = 2; // Por defecto cerrada
 
-    $.ajax({
+    if (consultaCajaFacturaMovil) {
+      return consultaCajaFacturaMovil;
+    }
+
+    consultaCajaFacturaMovil = $.ajax({
       type: 'POST',
-      url: url,
-      async: false,
-      success: function (registro) {
+      url: url
+    }).then(function (registro) {
         try {
           var valores = JSON.parse(registro);
-          estado_apertura = valores[0];
+          return Number(valores[0]) || 2;
         } catch (e) {
           console.error("Error parsing apertura caja response:", e);
-          estado_apertura = 2;
+          return 2;
         }
-      },
-      error: function () {
+      }, function () {
         console.error("Error en AJAX getAperturaCajaUsuario");
-        estado_apertura = 2;
-      }
+        return 2;
+    }).always(function() {
+      consultaCajaFacturaMovil = null;
     });
-    return estado_apertura;
+
+    return consultaCajaFacturaMovil;
   }
 
   /**
    * Verifica y actualiza el estado de la caja
    */
   function verificarAperturaCaja() {
-    var estado = Number(getConsultarAperturaCaja());
-    cajaAbierta = (estado === 1);
+    return getConsultarAperturaCaja().done(function(estado) {
+    cajaAbierta = (Number(estado) === 1);
 
     // Actualizar botón de apertura/cierre
     var $btn = $('#btn-apertura-caja');
@@ -435,6 +434,7 @@ $(() => {
 
     // Mantener estado visual correcto
     actualizarOpcionesProforma();
+    });
   }
 
   /**
@@ -1600,7 +1600,6 @@ $(() => {
   // Cada 5s: comprobar caja y contador SAR
   setInterval(() => {
     verificarAperturaCaja();
-    getTotalFacturasDisponibles();
   }, 5000);
 
   // ===============================

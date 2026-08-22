@@ -31,6 +31,85 @@ $IZZY_SISTEMA_PRUEBA_JS = htmlspecialchars((string)$IZZY_SISTEMA_PRUEBA_JS, ENT_
 //main.php
 var DB_MAIN = "<?php echo $IZZY_DB_MAIN_JS; ?>";
 
+/*
+ * Contexto ya disponible al renderizar PHP.
+ * Los DataTables lo reutilizan sin hacer peticiones síncronas por cada fila.
+ * No altera el flujo de inicio, los menús ni el navbar lateral.
+ */
+var IZZY_DB_ACTUAL = "<?php echo $IZZY_DB_JS; ?>";
+var IZZY_PRIVILEGIO_USUARIO = <?php echo (int)($_SESSION['privilegio_id'] ?? 0); ?>;
+
+var izzyPermisosDataTablesPromise = null;
+var izzyProgramaPuntosPromise = null;
+
+function izzyParseJsonSeguro(valor, respaldo) {
+    if (valor !== null && typeof valor === 'object') {
+        return valor;
+    }
+
+    try {
+        return JSON.parse(valor || '');
+    } catch (error) {
+        return respaldo;
+    }
+}
+
+function aplicarPermisosDataTablesAsync() {
+    if (!izzyPermisosDataTablesPromise) {
+        izzyPermisosDataTablesPromise = $.ajax({
+            type: 'POST',
+            url: '<?php echo SERVERURL;?>core/getPrivilegioUsuarioTipo.php',
+            timeout: 30000
+        }).then(function(respuestaTipoUsuario) {
+            var tipoUsuario = izzyParseJsonSeguro(respuestaTipoUsuario, []);
+
+            return $.ajax({
+                type: 'POST',
+                url: '<?php echo SERVERURL;?>core/getTipoUsuarioAccesos.php',
+                data: {
+                    permisos_tipo_user_id: tipoUsuario[0]
+                },
+                timeout: 30000
+            });
+        }).then(function(respuestaPermisos) {
+            return izzyParseJsonSeguro(respuestaPermisos, []);
+        }).catch(function(error) {
+            izzyPermisosDataTablesPromise = null;
+            throw error;
+        });
+    }
+
+    return izzyPermisosDataTablesPromise.then(function(permisos) {
+        permisos.forEach(function(permiso) {
+            var $controles = $('.table_' + permiso.tipo_permiso);
+            var habilitado = Number(permiso.estado) === 1;
+
+            $controles.toggle(habilitado).prop('disabled', !habilitado);
+        });
+    }).catch(function(error) {
+        console.error('No se pudieron aplicar los permisos de los DataTables.', error);
+    });
+}
+
+function obtenerProgramaPuntosAsync() {
+    if (!izzyProgramaPuntosPromise) {
+        izzyProgramaPuntosPromise = $.ajax({
+            url: '<?php echo SERVERURL;?>core/programaPuntos/verificarProgramaPuntos.php',
+            type: 'POST',
+            dataType: 'json',
+            timeout: 30000
+        }).then(function(response) {
+            return Boolean(response && response.mostrar_puntos);
+        }).catch(function(error) {
+            izzyProgramaPuntosPromise = null;
+            console.error('No se pudo verificar el programa de puntos.', error);
+            return false;
+        });
+    }
+
+    return izzyProgramaPuntosPromise;
+}
+
 // LLAMAMOS EL MÉTODO QUE IDENTIFICA EL USUARIO QUE HA INICIADO SESIÓN
 getUserSessionStart();
 // LLAMAMOS LOS MÉTODOS CORRESPONDIENTES A LOS MENÚS
@@ -3288,6 +3367,9 @@ function getConsultarAperturaCaja() {
 
     var table_cuentas_por_cobrar_clientes = $("#dataTableCuentasPorCobrarClientes").DataTable({
         "destroy": true,
+        "processing": true,
+        "deferRender": true,
+        "searchDelay": 350,
         "ajax": {
             "method": "POST",
             "url": "<?php echo SERVERURL;?>core/llenarDataTableCobrarClientes.php",
@@ -3296,7 +3378,8 @@ function getConsultarAperturaCaja() {
                 "clientes_id": cobrar_clientes_id,
                 "fechai": cobrar_fechai,
                 "fechaf": cobrar_fechaf
-            }
+            },
+            "timeout": 30000
         },
         "columns": [
             {
@@ -3582,7 +3665,7 @@ function getConsultarAperturaCaja() {
             }
         ],
         "drawCallback": function(settings) {
-            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+            aplicarPermisosDataTablesAsync();
 
             if (typeof cerrarDropdownAcciones === "function") {
                 cerrarDropdownAcciones();
@@ -3813,6 +3896,9 @@ $(() => {
 
     var table_cuentas_por_pagar_proveedores = $("#dataTableCuentasPorPagarProveedores").DataTable({
         "destroy": true,
+        "processing": true,
+        "deferRender": true,
+        "searchDelay": 350,
         "ajax": {
             "method": "POST",
             "url": "<?php echo SERVERURL;?>core/llenarDataTablePagarProveedores.php",
@@ -3821,7 +3907,8 @@ $(() => {
                 "proveedores_id": proveedores_id,
                 "fechai": fechai,
                 "fechaf": fechaf
-            }
+            },
+            "timeout": 30000
         },
         "columns": [
             {
@@ -4089,7 +4176,7 @@ $(() => {
             }
         ],
         "drawCallback": function(settings) {
-            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+            aplicarPermisosDataTablesAsync();
 
             if (typeof cerrarDropdownAcciones === "function") {
                 cerrarDropdownAcciones();
@@ -4238,13 +4325,17 @@ var listar_clientes = function(estado) {
 
     var table_clientes = $("#dataTableClientes").DataTable({
         destroy: true,
+        processing: true,
+        deferRender: true,
+        searchDelay: 350,
 
         ajax: {
             method: "POST",
             url: "<?php echo SERVERURL;?>core/llenarDataTableClientes.php",
             data: {
                 estado: estado
-            }
+            },
+            timeout: 30000
         },
 
         columns: [
@@ -4258,8 +4349,8 @@ var listar_clientes = function(estado) {
                         return "";
                     }
 
-                    var privilegio = getPrivilegioUsuario();
-                    var db_consulta = getSessionUser() === "" ? DB_MAIN : getSessionUser();
+                    var privilegio = Number(IZZY_PRIVILEGIO_USUARIO || 0);
+                    var db_consulta = IZZY_DB_ACTUAL === "" ? DB_MAIN : IZZY_DB_ACTUAL;
 
                     /*
                        Generar solo debe mostrarse si:
@@ -4524,14 +4615,13 @@ var listar_clientes = function(estado) {
         ],
 
         drawCallback: function(settings) {
-            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+            aplicarPermisosDataTablesAsync();
 
             if (typeof cerrarDropdownAcciones === "function") {
                 cerrarDropdownAcciones();
             }
 
-            var privilegio = getPrivilegioUsuario();
-            var db_consulta = getSessionUser() === "" ? DB_MAIN : getSessionUser();
+            var db_consulta = IZZY_DB_ACTUAL === "" ? DB_MAIN : IZZY_DB_ACTUAL;
             var table = this.api();
 
             /*
@@ -4540,30 +4630,18 @@ var listar_clientes = function(estado) {
                Se oculta si no está en DB_MAIN.
             */
             if (db_consulta === DB_MAIN) {
-                table.column(7).visible(true);
+                table.column(7).visible(true, false);
             } else {
-                table.column(7).visible(false);
+                table.column(7).visible(false, false);
             }
 
             /*
                Programa de puntos.
                Puntos es columna 9.
             */
-            $.ajax({
-                url: "<?php echo SERVERURL;?>core/programaPuntos/verificarProgramaPuntos.php",
-                type: "POST",
-                dataType: "json",
-                async: false,
-                success: function(response) {
-                    if (response.mostrar_puntos) {
-                        table.column(9).visible(true);
-                    } else {
-                        table.column(9).visible(false);
-                    }
-                },
-                error: function() {
-                    table.column(9).visible(false);
-                }
+            obtenerProgramaPuntosAsync().then(function(mostrarPuntos) {
+                table.column(9).visible(mostrarPuntos, false);
+                table.columns.adjust();
             });
         }
     });
@@ -4655,12 +4733,16 @@ var listar_generar_clientes = function() {
 
     var table_generar_clientes = $("#DatatableGenerarSistema").DataTable({
         "destroy": true,
+        "processing": true,
+        "deferRender": true,
+        "searchDelay": 350,
         "ajax": {
             "method": "POST",
             "url": "<?php echo SERVERURL;?>core/llenarDataTableGenerarSistema.php",
             "data": {
                 "clientes_id": clientes_id
-            }
+            },
+            "timeout": 30000
         },
         "columns": [
             {"data": "nombre"},
@@ -4727,7 +4809,7 @@ var listar_generar_clientes = function() {
             this.api().columns.adjust();
         },
         "drawCallback": function(settings) {
-            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+            aplicarPermisosDataTablesAsync();
 
             if (typeof cerrarDropdownAcciones === "function") {
                 cerrarDropdownAcciones();
@@ -8029,12 +8111,16 @@ var listar_AbonosCXC = function() {
 
     var table_cuentas_por_cobrar_clientes = $("#table-modal-abonos").DataTable({
         "destroy": true,
+        "processing": true,
+        "deferRender": true,
+        "searchDelay": 350,
         "ajax": {
             "method": "POST",
             "url": "<?php echo SERVERURL;?>core/getAbonosCXC.php",
             "data": {
                 "factura_id": factura_id
-            }
+            },
+            "timeout": 30000
         },
         "columns": [{
                 "data": "fecha"
@@ -8124,7 +8210,7 @@ var listar_AbonosCXC = function() {
             }
         ],
         "drawCallback": function(settings) {
-            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+            aplicarPermisosDataTablesAsync();
         }
     });
     table_cuentas_por_cobrar_clientes.search('').draw();
@@ -8180,12 +8266,16 @@ var listar_AbonosCXP = function() {
 
     var table_cuentas_por_cobrar_clientes = $("#table-modal-abonosCXP").DataTable({
         "destroy": true,
+        "processing": true,
+        "deferRender": true,
+        "searchDelay": 350,
         "ajax": {
             "method": "POST",
             "url": "<?php echo SERVERURL;?>core/getAbonosCXP.php",
             "data": {
                 "compras_id": compras_id
             },
+            "timeout": 30000,
         },
         "columns": [{
                 "data": "fecha"
@@ -8277,7 +8367,7 @@ var listar_AbonosCXP = function() {
             }
         ],
         "drawCallback": function(settings) {
-            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+            aplicarPermisosDataTablesAsync();
         }
     });
     table_cuentas_por_cobrar_clientes.search('').draw();
@@ -8741,6 +8831,9 @@ var listar_asistencia = function() {
 
     var table_asistencia = $("#dataTableAsistencia").DataTable({
         "destroy": true,
+        "processing": true,
+        "deferRender": true,
+        "searchDelay": 350,
         "ajax": {
             "method": "POST",
             "url": "<?php echo SERVERURL;?>core/asistencia/llenarDataTableAsistencia.php",
@@ -8749,7 +8842,8 @@ var listar_asistencia = function() {
                 "fechaf": fechaf,
                 "colaborador": colaboradores_id,
                 "estado": estado
-            }
+            },
+            "timeout": 30000
         },
         "columns": [
             {
@@ -8912,7 +9006,7 @@ var listar_asistencia = function() {
             }
         ],
         "drawCallback": function(settings) {
-            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+            aplicarPermisosDataTablesAsync();
 
             if (typeof cerrarDropdownAcciones === "function") {
                 cerrarDropdownAcciones();

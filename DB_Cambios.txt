@@ -1,3 +1,143 @@
+####21 de agost 2026####
+UPDATE config
+SET accion = 'Convertir Proforma Pagada a Factura',
+    activar = 1
+WHERE config_id = 7;
+
+-- IZZY - Instalación/actualización de facturación recurrente (MySQL 8+)
+-- 1=Activa, 2=Cancelada, 3=Finalizada
+
+CREATE TABLE IF NOT EXISTS facturas_recurrentes (
+  rec_id INT NOT NULL AUTO_INCREMENT,
+  empresa_id INT NOT NULL,
+  clientes_id INT NOT NULL,
+  colaboradores_id INT NOT NULL,
+  tipo_documento TINYINT NOT NULL COMMENT '0=Normal, 1=Proforma',
+  tipo_factura TINYINT NOT NULL DEFAULT 2 COMMENT 'Siempre 2=Credito',
+  notas VARCHAR(255) NOT NULL DEFAULT '',
+  fecha_dolar DATE NOT NULL,
+  exoneracion_orden VARCHAR(100) DEFAULT NULL,
+  exoneracion_constancia VARCHAR(100) DEFAULT NULL,
+  exoneracion_sag VARCHAR(100) DEFAULT NULL,
+  exoneracion_orden_interno VARCHAR(100) DEFAULT NULL,
+  periodicidad ENUM('once','daily','weekly','monthly') NOT NULL DEFAULT 'monthly',
+  dia_mes TINYINT DEFAULT NULL COMMENT 'Día original para recurrencia mensual',
+  start_at DATETIME NOT NULL,
+  next_run_at DATETIME NOT NULL,
+  until_at DATE DEFAULT NULL,
+  estado TINYINT NOT NULL DEFAULT 1 COMMENT '1=Activa, 2=Cancelada, 3=Finalizada',
+  enviar_correo TINYINT NOT NULL DEFAULT 1 COMMENT '1=Enviar al cliente, 2=No enviar',
+  ultimo_facturas_id INT DEFAULT NULL,
+  last_run_at DATETIME DEFAULT NULL,
+  ultimo_error TEXT DEFAULT NULL,
+  usuario_crea INT NOT NULL,
+  fecha_crea DATETIME NOT NULL,
+  PRIMARY KEY (rec_id),
+  KEY idx_recurrente_pendiente (estado, next_run_at),
+  KEY idx_recurrente_empresa (empresa_id, rec_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
+
+-- MySQL no soporta ADD COLUMN IF NOT EXISTS en todas sus variantes.
+-- Este procedimiento permite ejecutar el instalador aunque las tablas ya existan.
+DROP PROCEDURE IF EXISTS izzy_agregar_columna;
+DELIMITER $$
+CREATE PROCEDURE izzy_agregar_columna(
+  IN p_tabla VARCHAR(64),
+  IN p_columna VARCHAR(64),
+  IN p_definicion TEXT
+)
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = p_tabla
+      AND COLUMN_NAME = p_columna
+  ) THEN
+    SET @sql_izzy = CONCAT('ALTER TABLE `', p_tabla, '` ADD COLUMN `', p_columna, '` ', p_definicion);
+    PREPARE stmt_izzy FROM @sql_izzy;
+    EXECUTE stmt_izzy;
+    DEALLOCATE PREPARE stmt_izzy;
+  END IF;
+END$$
+DELIMITER ;
+
+CALL izzy_agregar_columna('facturas_recurrentes', 'dia_mes', 'TINYINT DEFAULT NULL AFTER `periodicidad`');
+CALL izzy_agregar_columna('facturas_recurrentes', 'enviar_correo', 'TINYINT NOT NULL DEFAULT 1 AFTER `estado`');
+CALL izzy_agregar_columna('facturas_recurrentes', 'ultimo_facturas_id', 'INT DEFAULT NULL AFTER `enviar_correo`');
+CALL izzy_agregar_columna('facturas_recurrentes', 'last_run_at', 'DATETIME DEFAULT NULL AFTER `ultimo_facturas_id`');
+CALL izzy_agregar_columna('facturas_recurrentes', 'ultimo_error', 'TEXT DEFAULT NULL AFTER `last_run_at`');
+
+CREATE TABLE IF NOT EXISTS facturas_recurrentes_detalle (
+  rec_detalle_id INT NOT NULL AUTO_INCREMENT,
+  rec_id INT NOT NULL,
+  productos_id INT NOT NULL,
+  producto VARCHAR(255) NOT NULL,
+  cantidad DECIMAL(12,2) NOT NULL,
+  precio DECIMAL(12,4) NOT NULL,
+  descuento DECIMAL(12,4) NOT NULL DEFAULT 0,
+  isv_valor DECIMAL(12,4) NOT NULL DEFAULT 0,
+  isv_valor1 DECIMAL(12,4) NOT NULL DEFAULT 0,
+  medida VARCHAR(50) DEFAULT NULL,
+  almacen_id INT DEFAULT NULL,
+  precio_real DECIMAL(12,4) NOT NULL DEFAULT 0,
+  referencia_producto VARCHAR(255) DEFAULT NULL,
+  PRIMARY KEY (rec_detalle_id),
+  KEY idx_rec_detalle (rec_id),
+  CONSTRAINT fk_recurrente_detalle
+    FOREIGN KEY (rec_id) REFERENCES facturas_recurrentes(rec_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
+
+CALL izzy_agregar_columna('facturas_recurrentes_detalle', 'isv_valor1', 'DECIMAL(12,4) NOT NULL DEFAULT 0 AFTER `isv_valor`');
+CALL izzy_agregar_columna('facturas_recurrentes_detalle', 'precio_real', 'DECIMAL(12,4) NOT NULL DEFAULT 0 AFTER `almacen_id`');
+CALL izzy_agregar_columna('facturas_recurrentes_detalle', 'referencia_producto', 'VARCHAR(255) DEFAULT NULL AFTER `precio_real`');
+
+CREATE TABLE IF NOT EXISTS facturas_recurrentes_ejecuciones (
+  ejecucion_id BIGINT NOT NULL AUTO_INCREMENT,
+  rec_id INT NOT NULL,
+  empresa_id INT NOT NULL,
+  scheduled_at DATETIME NOT NULL,
+  facturas_id INT DEFAULT NULL,
+  estado TINYINT NOT NULL DEFAULT 0 COMMENT '0=Procesando, 1=Generada, 2=Error',
+  correo_estado TINYINT NOT NULL DEFAULT 0 COMMENT '0=Pendiente, 1=Enviado, 2=Error, 3=No solicitado',
+  mensaje TEXT DEFAULT NULL,
+  fecha_inicio DATETIME NOT NULL,
+  fecha_fin DATETIME DEFAULT NULL,
+  PRIMARY KEY (ejecucion_id),
+  UNIQUE KEY uq_rec_fecha (rec_id, scheduled_at),
+  KEY idx_ejecucion_factura (facturas_id),
+  CONSTRAINT fk_recurrente_ejecucion
+    FOREIGN KEY (rec_id) REFERENCES facturas_recurrentes(rec_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
+
+DROP PROCEDURE IF EXISTS izzy_agregar_columna;
+
+
+####11 de julio 2026####
+INSERT INTO `config` (`config_id`, `accion`, `activar`)
+VALUES (7, 'Convertir Proforma Credito a Factura', 2);
+
+ALTER TABLE `config`
+MODIFY COLUMN `activar` INT NOT NULL COMMENT '1. Si 2. No';
+
+####05 de julio 2026####
+CREATE TABLE inventario_ajustes (
+  inventario_ajustes_id INT AUTO_INCREMENT PRIMARY KEY,
+  productos_id INT NOT NULL,
+  almacen_id INT NOT NULL,
+  lote_id INT NULL,
+  saldo_sistema DECIMAL(15,2) NOT NULL DEFAULT 0,
+  conteo_fisico DECIMAL(15,2) NOT NULL DEFAULT 0,
+  diferencia DECIMAL(15,2) NOT NULL DEFAULT 0,
+  tipo_ajuste VARCHAR(20) NOT NULL,
+  movimientos_id INT NULL,
+  comentario VARCHAR(255) NULL,
+  empresa_id INT NOT NULL,
+  colaboradores_id INT NOT NULL,
+  fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  estado TINYINT NOT NULL DEFAULT 1
+);
+
 ####21 de junio 2026####
 CREATE TABLE `auditoria_admin_autorizaciones` (
   `auditoria_admin_id` int NOT NULL AUTO_INCREMENT,

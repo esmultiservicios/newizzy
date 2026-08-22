@@ -74,7 +74,12 @@ function proximaFechaRecurrente($fechaProgramada, $periodicidad, $diaMesOriginal
         ->format('Y-m-d H:i:s');
 }
 
-$conexion = mainModel::connection();
+$mainModelCron = new mainModel();
+$conexion = $mainModelCron->connection();
+if (!$conexion) {
+    fwrite(STDERR, "No se pudo establecer la conexión con la base de datos.\n");
+    exit(1);
+}
 $servicio = new FacturaRecurrenteServicio();
 $resumen = ['generadas' => 0, 'errores' => 0, 'correos' => 0, 'detalle' => []];
 

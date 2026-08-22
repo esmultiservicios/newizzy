@@ -12,7 +12,11 @@ function enviarCorreoFacturaRecurrente($facturasId, $empresaId)
         throw new Exception('Factura o empresa inválida para enviar el correo.');
     }
 
-    $cn = mainModel::connection();
+    $mainModelCorreo = new mainModel();
+    $cn = $mainModelCorreo->connection();
+    if (!$cn) {
+        throw new Exception('No se pudo establecer la conexión para enviar el correo recurrente.');
+    }
     $stmt = $cn->prepare(
         "SELECT c.nombre AS cliente, c.correo, f.number AS numero,
                 sf.relleno, sf.prefijo, e.nombre AS empresa

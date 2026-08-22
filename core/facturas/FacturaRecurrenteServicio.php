@@ -38,19 +38,18 @@ class FacturaRecurrenteServicio extends facturasControlador
             throw new Exception('El cliente de la recurrencia ya no está disponible en esta base de datos.');
         }
 
-        // Serializa la asignación del correlativo interno de facturas.
-        $resultadoUltimo = $conexion->query(
-            'SELECT facturas_id FROM facturas ORDER BY facturas_id DESC LIMIT 1 FOR UPDATE'
-        );
-        if ($resultadoUltimo === false) {
-            throw new Exception('No se pudo reservar el identificador interno de factura: '.$conexion->error);
-        }
-        $facturasId = 1;
-        if ($resultadoUltimo->num_rows > 0) {
-            $facturasId = ((int)$resultadoUltimo->fetch_assoc()['facturas_id']) + 1;
+        // Utiliza el mismo correlativo interno que la facturación normal.
+        // No se bloquea facturas desde la conexión de la recurrencia porque
+        // el modelo heredado guarda el encabezado mediante su propia conexión.
+        $facturasId = (int)$this->correlativo('facturas_id', 'facturas');
+        if ($facturasId <= 0) {
+            throw new Exception('No se pudo obtener el identificador interno de la factura.');
         }
 
-        $numeroFactura = $this->obtenerNumeroFactura($empresaId, $documentoId, $conexion);
+        // La lógica heredada de facturación utiliza sus propias conexiones.
+        // Reservar y confirmar la secuencia en su conexión local evita que la
+        // transacción de la recurrencia se bloquee a sí misma.
+        $numeroFactura = $this->obtenerNumeroFactura($empresaId, $documentoId);
         if (!empty($numeroFactura['error'])) {
             throw new Exception($numeroFactura['mensaje'] ?? 'No se pudo obtener la secuencia de facturación.');
         }

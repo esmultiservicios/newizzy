@@ -14,6 +14,32 @@ try {
 
     $empresaId = (int)($_SESSION['empresa_id_sd'] ?? 0);
     $cn = $mainModel->connection();
+
+    // Resumen real de la facturación recurrente de la empresa actual.
+    // Los importes se toman de las facturas que ya fueron generadas con éxito;
+    // una programación pendiente nunca incrementa el total facturado.
+    $stmtResumen = $cn->prepare(
+        "SELECT
+            (SELECT COUNT(*) FROM facturas_recurrentes fr1
+             WHERE fr1.empresa_id = ? AND fr1.estado = 1) AS activas,
+            (SELECT COUNT(*) FROM facturas_recurrentes_ejecuciones fre1
+             WHERE fre1.empresa_id = ? AND fre1.estado = 1) AS generadas,
+            (SELECT COUNT(*) FROM facturas_recurrentes_ejecuciones fre2
+             WHERE fre2.empresa_id = ? AND fre2.correo_estado = 1) AS correos_enviados,
+            (SELECT COUNT(*) FROM facturas_recurrentes_ejecuciones fre3
+             WHERE fre3.empresa_id = ? AND fre3.estado = 2) AS errores,
+            (SELECT COALESCE(SUM(f.importe), 0)
+             FROM facturas_recurrentes_ejecuciones fre4
+             INNER JOIN facturas f ON f.facturas_id = fre4.facturas_id
+             WHERE fre4.empresa_id = ? AND fre4.estado = 1) AS total_facturado,
+            (SELECT MIN(fr2.next_run_at) FROM facturas_recurrentes fr2
+             WHERE fr2.empresa_id = ? AND fr2.estado = 1) AS proxima_generacion"
+    );
+    $stmtResumen->bind_param('iiiiii', $empresaId, $empresaId, $empresaId, $empresaId, $empresaId, $empresaId);
+    $stmtResumen->execute();
+    $resultadoResumen = $stmtResumen->get_result();
+    $resumen = $resultadoResumen ? $resultadoResumen->fetch_assoc() : [];
+    $stmtResumen->close();
     $stmt = $cn->prepare(
         "SELECT fr.rec_id, c.nombre AS cliente,
                 IF(fr.tipo_documento = 1, 'Proforma', 'Factura normal') AS documento,
@@ -73,7 +99,7 @@ try {
     }
     unset($fila);
 
-    echo json_encode(['ok' => true, 'data' => $datos], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['ok' => true, 'data' => $datos, 'resumen' => $resumen], JSON_UNESCAPED_UNICODE);
 } catch (Throwable $e) {
     echo json_encode(['ok' => false, 'data' => [], 'msg' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
 }

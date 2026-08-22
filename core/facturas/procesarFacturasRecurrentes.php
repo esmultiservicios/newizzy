@@ -108,6 +108,8 @@ foreach ($ids as $recId) {
     $facturasId = 0;
     $empresaId = 0;
     $enviarCorreo = false;
+    $programada = null;
+    $correoInicial = 3;
 
     try {
         $conexion->begin_transaction();
@@ -130,23 +132,52 @@ foreach ($ids as $recId) {
         $programada = $recurrente['next_run_at'];
         $enviarCorreo = ((int)$recurrente['enviar_correo'] === 1);
 
-        $stmtEjecucion = $conexion->prepare(
-            "INSERT INTO facturas_recurrentes_ejecuciones
-                (rec_id, empresa_id, scheduled_at, estado, correo_estado, fecha_inicio)
-             VALUES (?, ?, ?, 0, ?, NOW())"
-        );
         $correoInicial = $enviarCorreo ? 0 : 3;
-        $stmtEjecucion->bind_param('iisi', $recId, $empresaId, $programada, $correoInicial);
-        if (!$stmtEjecucion->execute()) {
-            if ((int)$stmtEjecucion->errno === 1062) {
-                $stmtEjecucion->close();
+
+        $stmtBuscarEjecucion = $conexion->prepare(
+            'SELECT ejecucion_id, estado
+             FROM facturas_recurrentes_ejecuciones
+             WHERE rec_id = ? AND scheduled_at = ?
+             LIMIT 1 FOR UPDATE'
+        );
+        $stmtBuscarEjecucion->bind_param('is', $recId, $programada);
+        $stmtBuscarEjecucion->execute();
+        $ejecucionAnterior = $stmtBuscarEjecucion->get_result()->fetch_assoc();
+        $stmtBuscarEjecucion->close();
+
+        if ($ejecucionAnterior) {
+            // Generada o actualmente procesándose: no duplicar.
+            if (in_array((int)$ejecucionAnterior['estado'], [0, 1], true)) {
                 $conexion->rollback();
                 continue;
             }
-            throw new Exception('No se pudo registrar la ejecución: '.$stmtEjecucion->error);
+
+            // Estado 2: el intento anterior falló y se permite reintentarlo.
+            $ejecucionId = (int)$ejecucionAnterior['ejecucion_id'];
+            $stmtReintento = $conexion->prepare(
+                'UPDATE facturas_recurrentes_ejecuciones
+                 SET estado = 0, correo_estado = ?, facturas_id = NULL,
+                     mensaje = NULL, fecha_inicio = NOW(), fecha_fin = NULL
+                 WHERE ejecucion_id = ?'
+            );
+            $stmtReintento->bind_param('ii', $correoInicial, $ejecucionId);
+            if (!$stmtReintento->execute()) {
+                throw new Exception('No se pudo iniciar nuevamente la ejecución: '.$stmtReintento->error);
+            }
+            $stmtReintento->close();
+        } else {
+            $stmtEjecucion = $conexion->prepare(
+                "INSERT INTO facturas_recurrentes_ejecuciones
+                    (rec_id, empresa_id, scheduled_at, estado, correo_estado, fecha_inicio)
+                 VALUES (?, ?, ?, 0, ?, NOW())"
+            );
+            $stmtEjecucion->bind_param('iisi', $recId, $empresaId, $programada, $correoInicial);
+            if (!$stmtEjecucion->execute()) {
+                throw new Exception('No se pudo registrar la ejecución: '.$stmtEjecucion->error);
+            }
+            $ejecucionId = (int)$stmtEjecucion->insert_id;
+            $stmtEjecucion->close();
         }
-        $ejecucionId = (int)$stmtEjecucion->insert_id;
-        $stmtEjecucion->close();
 
         $stmtDetalle = $conexion->prepare(
             'SELECT * FROM facturas_recurrentes_detalle WHERE rec_id = ? ORDER BY rec_detalle_id ASC'
@@ -222,6 +253,24 @@ foreach ($ids as $recId) {
             $stmtErrorRec->bind_param('si', $error, $recId);
             $stmtErrorRec->execute();
             $stmtErrorRec->close();
+        }
+
+        // El intento debe permanecer visible aunque la transacción principal
+        // haya sido revertida. El mismo registro podrá reintentarse después.
+        if ($empresaId > 0 && $programada !== null) {
+            $stmtErrorEjecucion = $conexion->prepare(
+                "INSERT INTO facturas_recurrentes_ejecuciones
+                    (rec_id, empresa_id, scheduled_at, estado, correo_estado, mensaje, fecha_inicio, fecha_fin)
+                 VALUES (?, ?, ?, 2, ?, ?, NOW(), NOW())
+                 ON DUPLICATE KEY UPDATE
+                    estado = 2, correo_estado = VALUES(correo_estado),
+                    mensaje = VALUES(mensaje), fecha_fin = NOW()"
+            );
+            if ($stmtErrorEjecucion) {
+                $stmtErrorEjecucion->bind_param('iisis', $recId, $empresaId, $programada, $correoInicial, $error);
+                $stmtErrorEjecucion->execute();
+                $stmtErrorEjecucion->close();
+            }
         }
 
         $resumen['detalle'][] = ['rec_id' => $recId, 'ok' => false, 'error' => $error];

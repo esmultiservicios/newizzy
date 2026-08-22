@@ -352,3 +352,75 @@
     </div>
 </div>
 <!--FIN MODAL PARA EL INGRESO DE CORREOS-->
+
+<!--INICIO MODAL PARA REGISTRAR DESTINATARIOS DE NOTIFICACIONES-->
+<div class="modal fade" id="modalRegistrarDestinatarios" tabindex="-1" role="dialog" aria-labelledby="tituloModalDestinatarios" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title" id="tituloModalDestinatarios">
+                    <i class="fas fa-users mr-2"></i>Destinatarios de notificaciones
+                </h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Registre los correos internos que deben recibir notificaciones generadas por el sistema.
+                </div>
+
+                <form class="FormularioAjax" id="formDestinatarios" action="" method="POST" data-form="save" autocomplete="off">
+                    <input type="hidden" id="proceso_destinatarios" name="proceso_destinatarios" value="Registro Destinatarios">
+
+                    <div class="form-row align-items-end">
+                        <div class="col-lg-5 col-md-6 mb-3">
+                            <label for="nombre">
+                                <i class="fas fa-user mr-1"></i>Nombre <span class="priority">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="nombre" name="nombre" maxlength="100" required placeholder="Nombre del destinatario">
+                        </div>
+
+                        <div class="col-lg-5 col-md-6 mb-3">
+                            <label for="correo">
+                                <i class="fas fa-envelope mr-1"></i>Correo electrónico <span class="priority">*</span>
+                            </label>
+                            <input type="email" class="form-control" id="correo" name="correo" maxlength="150" required placeholder="correo@dominio.com">
+                        </div>
+
+                        <div class="col-lg-2 col-md-12 mb-3">
+                            <button type="submit" class="btn btn-success btn-block" id="reg_destinatarios">
+                                <i class="fas fa-save mr-1"></i>Registrar
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="RespuestaAjax"></div>
+                </form>
+
+                <hr>
+
+                <div class="table-responsive">
+                    <table id="DatatableDestinatarios" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>Correo</th>
+                                <th>Nombre</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i>Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!--FIN MODAL PARA REGISTRAR DESTINATARIOS DE NOTIFICACIONES-->

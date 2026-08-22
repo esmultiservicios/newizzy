@@ -7812,6 +7812,11 @@ function hayEncabezado(){
 
 /* Abrir modal de recurrencia */
 $(document).on('click', '#addRecurringBill', function(){
+  // Al abrir una nueva programación se habilita nuevamente el guardado.
+  $('#confirmRecurring')
+    .prop('disabled', false)
+    .html('<i class="fas fa-calendar-check mr-1"></i> Guardar recurrencia');
+
   // Las recurrencias siempre generan cuentas por cobrar al crédito.
   $('#rec_tipo_factura').val('2');
 
@@ -7955,6 +7960,7 @@ $(document).on('click', '#confirmRecurring', function(){
   // Spinner ON
   $('#rec_info').hide();
   $('#rec_spinner').show();
+  $('#confirmRecurring').prop('disabled', true);
 
   $.ajax({
     type: 'POST',
@@ -7964,12 +7970,19 @@ $(document).on('click', '#confirmRecurring', function(){
   })
   .done(function(res){
     if(res && (res.ok === true || res.success === true)){
-      $('#recurringBillModal').modal('hide');
+      // Mantener el modal abierto para que el usuario vea inmediatamente
+      // la recurrencia creada y evitar un segundo guardado accidental.
+      $('#rec_info').show();
+      $('#rec_spinner').hide();
+      $('#confirmRecurring')
+        .prop('disabled', true)
+        .html('<i class="fas fa-check-circle mr-1"></i> Recurrencia guardada');
       showNotify('success','Recurrencia creada','La factura recurrente ha sido guardada');
       listarFacturasRecurrentes();
     }else{
       $('#rec_info').show();
       $('#rec_spinner').hide();
+      $('#confirmRecurring').prop('disabled', false);
       var msg = (res && (res.msg || res.message)) ? (res.msg || res.message) : 'No se pudo guardar la recurrencia';
       showNotify('error','Error', msg);
     }
@@ -7977,6 +7990,7 @@ $(document).on('click', '#confirmRecurring', function(){
   .fail(function(xhr){
     $('#rec_info').show();
     $('#rec_spinner').hide();
+    $('#confirmRecurring').prop('disabled', false);
         showNotify('error','Error','Falló la petición al servidor');
   });
 });
@@ -8003,13 +8017,22 @@ function formatearFechaRecurrente(valor) {
 }
 
 var detallesFacturasRecurrentes = {};
+var solicitudListadoRecurrentes = null;
+var temporizadorListadoRecurrentes = null;
+var firmaListadoRecurrentes = '';
 
-function listarFacturasRecurrentes() {
+function listarFacturasRecurrentes(opciones) {
+  opciones = opciones || {};
+  var silencioso = opciones.silencioso === true;
   var $listado = $('#listaFacturasRecurrentes');
   if (!$listado.length) return;
+  if (solicitudListadoRecurrentes) return solicitudListadoRecurrentes;
 
-  $listado.html('<div class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin mr-1"></i>Cargando programaciones...</div>');
-  $.ajax({
+  if (!silencioso) {
+    $listado.html('<div class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin mr-1"></i>Cargando programaciones...</div>');
+  }
+
+  solicitudListadoRecurrentes = $.ajax({
     type: 'GET',
     url: '<?php echo SERVERURL;?>core/facturas/listarFacturasRecurrentes.php',
     dataType: 'json',
@@ -8017,15 +8040,24 @@ function listarFacturasRecurrentes() {
     timeout: 15000
   }).done(function(res) {
     if (!res || res.ok !== true) {
+      if (silencioso) return;
       var mensajeError = (res && res.msg) ? res.msg : 'El servidor no devolvió una respuesta válida.';
       $listado.html('<div class="alert alert-danger mb-0"><i class="fas fa-exclamation-triangle mr-1"></i>'+escaparTextoRecurrente(mensajeError)+'</div>');
       return;
     }
 
     if (!Array.isArray(res.data) || res.data.length === 0) {
+      if (silencioso && firmaListadoRecurrentes === '[]') return;
+      firmaListadoRecurrentes = '[]';
       $listado.html('<div class="text-center text-muted py-4"><i class="far fa-calendar-times fa-2x d-block mb-2"></i>No hay programaciones registradas.</div>');
       return;
     }
+
+    var nuevaFirma = JSON.stringify(res.data);
+    if (silencioso && nuevaFirma === firmaListadoRecurrentes) {
+      return;
+    }
+    firmaListadoRecurrentes = nuevaFirma;
 
     var html = '';
     detallesFacturasRecurrentes = {};
@@ -8056,12 +8088,44 @@ function listarFacturasRecurrentes() {
     });
     $listado.html(html);
   }).fail(function(xhr, estado) {
+    // Una actualización automática fallida no reemplaza un listado que ya
+    // estaba visible. El siguiente ciclo volverá a intentarlo.
+    if (silencioso) return;
     var detalle = estado === 'timeout'
       ? 'La consulta tardó demasiado. Verifique el PHP y la base de datos.'
       : 'No se pudieron cargar las programaciones (HTTP '+(xhr.status || 0)+').';
     $listado.html('<div class="alert alert-danger mb-0"><i class="fas fa-exclamation-triangle mr-1"></i>'+detalle+'</div>');
+  }).always(function() {
+    solicitudListadoRecurrentes = null;
   });
+
+  return solicitudListadoRecurrentes;
 }
+
+function detenerActualizacionRecurrentes() {
+  if (temporizadorListadoRecurrentes) {
+    clearInterval(temporizadorListadoRecurrentes);
+    temporizadorListadoRecurrentes = null;
+  }
+}
+
+function iniciarActualizacionRecurrentes() {
+  detenerActualizacionRecurrentes();
+  temporizadorListadoRecurrentes = setInterval(function() {
+    if ($('#recurringBillModal').hasClass('show')) {
+      listarFacturasRecurrentes({ silencioso: true });
+    }
+  }, 20000);
+}
+
+$('#recurringBillModal')
+  .off('shown.bs.modal.recurrentesAuto hidden.bs.modal.recurrentesAuto')
+  .on('shown.bs.modal.recurrentesAuto', function() {
+    iniciarActualizacionRecurrentes();
+  })
+  .on('hidden.bs.modal.recurrentesAuto', function() {
+    detenerActualizacionRecurrentes();
+  });
 
 $(document).on('click', '#recargarRecurrentes', function() {
   listarFacturasRecurrentes();

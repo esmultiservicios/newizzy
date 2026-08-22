@@ -9,6 +9,33 @@ if (PHP_SAPI !== 'cli') {
 
 date_default_timezone_set('America/Tegucigalpa');
 
+$appUrl = trim((string)getenv('APP_URL'));
+if ($appUrl === '') {
+    fwrite(STDERR, "Debe definir APP_URL para ejecutar las facturas recurrentes.\n");
+    exit(1);
+}
+
+$appUrlPartes = parse_url($appUrl);
+$appHost = (string)($appUrlPartes['host'] ?? '');
+if ($appHost === '') {
+    fwrite(STDERR, "APP_URL no contiene un dominio válido.\n");
+    exit(1);
+}
+
+// configGenerales.php también se utiliza desde navegador y espera estas
+// variables HTTP. En Cron/CLI se construyen a partir de APP_URL.
+$appScheme = strtolower((string)($appUrlPartes['scheme'] ?? 'https'));
+$appPath = rtrim((string)($appUrlPartes['path'] ?? ''), '/');
+$_SERVER['HTTP_HOST'] = $appHost;
+$_SERVER['SERVER_NAME'] = $appHost;
+$_SERVER['REQUEST_URI'] = ($appPath !== '' ? $appPath : '').'/';
+$_SERVER['REQUEST_SCHEME'] = $appScheme;
+$_SERVER['HTTPS'] = ($appScheme === 'https') ? 'on' : 'off';
+$_SERVER['SERVER_PORT'] = ($appScheme === 'https') ? '443' : '80';
+$_SERVER['REMOTE_ADDR'] = '127.0.0.1';
+$_SERVER['SCRIPT_NAME'] = '/core/facturas/procesarFacturasRecurrentes.php';
+$_SERVER['PHP_SELF'] = $_SERVER['SCRIPT_NAME'];
+
 $raiz = dirname(__DIR__, 2);
 chdir($raiz);
 $peticionAjax = false;

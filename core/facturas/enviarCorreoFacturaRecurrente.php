@@ -18,8 +18,8 @@ function enviarCorreoFacturaRecurrente($facturasId, $empresaId)
         throw new Exception('No se pudo establecer la conexión para enviar el correo recurrente.');
     }
     $stmt = $cn->prepare(
-        "SELECT c.nombre AS cliente, c.correo, c.rtn, f.number AS numero,
-                f.importe, f.fecha, f.tipo_factura,
+        "SELECT c.nombre AS cliente, c.correo, f.number AS numero,
+                f.importe,
                 sf.relleno, sf.prefijo, e.nombre AS empresa,
                 CASE WHEN fp.facturas_id IS NULL THEN 0 ELSE 1 END AS es_proforma
          FROM facturas f
@@ -119,13 +119,9 @@ function enviarCorreoFacturaRecurrente($facturasId, $empresaId)
     $cantidadInternos = count($destinatariosInternos);
     if ($cantidadInternos > 0) {
         $stmtDetalle = $cn->prepare(
-            "SELECT COALESCE(p.nombre, CONCAT('Producto #', fd.productos_id)) AS producto,
-                    fd.cantidad, fd.medida, fd.precio, fd.descuento,
-                    fd.isv_valor, fd.isv_valor1
-             FROM facturas_detalles fd
-             LEFT JOIN productos p ON p.productos_id = fd.productos_id
-             WHERE fd.facturas_id = ?
-             ORDER BY fd.facturas_detalle_id ASC"
+            "SELECT COUNT(*) AS cantidad_productos
+             FROM facturas_detalles
+             WHERE facturas_id = ?"
         );
         if (!$stmtDetalle) {
             throw new Exception('La factura fue enviada al cliente, pero no se pudo preparar su resumen interno: '.$cn->error);
@@ -133,48 +129,21 @@ function enviarCorreoFacturaRecurrente($facturasId, $empresaId)
         $stmtDetalle->bind_param('i', $facturasId);
         $stmtDetalle->execute();
         $resultadoDetalle = $stmtDetalle->get_result();
-        $filasDetalle = '';
-        $cantidadProductos = 0;
-        while ($producto = $resultadoDetalle->fetch_assoc()) {
-            $cantidadProductos++;
-            $cantidad = (float)$producto['cantidad'];
-            $precio = (float)$producto['precio'];
-            $descuento = (float)$producto['descuento'];
-            $impuesto15 = (float)$producto['isv_valor'];
-            $impuesto18 = (float)$producto['isv_valor1'];
-            $totalLinea = ($cantidad * $precio) - $descuento + $impuesto15 + $impuesto18;
-            $filasDetalle .= '<tr>'
-                .'<td style="padding:9px;border-bottom:1px solid #e2e8f0">'.htmlspecialchars((string)$producto['producto'], ENT_QUOTES, 'UTF-8').'</td>'
-                .'<td style="padding:9px;border-bottom:1px solid #e2e8f0;text-align:right">'.number_format($cantidad, 2).' '.htmlspecialchars((string)$producto['medida'], ENT_QUOTES, 'UTF-8').'</td>'
-                .'<td style="padding:9px;border-bottom:1px solid #e2e8f0;text-align:right">L. '.number_format($totalLinea, 2).'</td>'
-                .'</tr>';
-        }
+        $resumenDetalle = $resultadoDetalle ? $resultadoDetalle->fetch_assoc() : null;
+        $cantidadProductos = $resumenDetalle ? (int)$resumenDetalle['cantidad_productos'] : 0;
         $stmtDetalle->close();
 
-        if ($filasDetalle === '') {
-            $filasDetalle = '<tr><td colspan="3" style="padding:12px;text-align:center;color:#718096">Sin detalle disponible.</td></tr>';
-        }
-
         $tipoDocumento = ((int)$factura['es_proforma'] === 1) ? 'Factura proforma' : 'Factura normal';
-        $condicionPago = ((int)$factura['tipo_factura'] === 2) ? 'Crédito' : 'Contado';
-        $fechaDocumento = date('d/m/Y', strtotime((string)$factura['fecha']));
-        $rtnCliente = trim((string)$factura['rtn']);
         $mensajeInterno = '<div style="padding:20px;font-family:Arial,Helvetica,sans-serif;color:#2d3748">'
             .'<h2 style="margin:0 0 8px;color:#1a365d">Factura recurrente generada</h2>'
-            .'<p style="margin:0 0 20px;color:#4a5568">El proceso automático creó correctamente el siguiente documento.</p>'
+            .'<p style="margin:0 0 16px;color:#4a5568">El proceso automático creó correctamente el siguiente documento:</p>'
             .'<table style="width:100%;border-collapse:collapse;background:#f7fafc;border-radius:8px">'
-            .'<tr><td style="padding:8px"><b>Documento:</b></td><td style="padding:8px">'.$numeroHtml.'</td></tr>'
-            .'<tr><td style="padding:8px"><b>Tipo:</b></td><td style="padding:8px">'.htmlspecialchars($tipoDocumento, ENT_QUOTES, 'UTF-8').' / '.htmlspecialchars($condicionPago, ENT_QUOTES, 'UTF-8').'</td></tr>'
+            .'<tr><td style="padding:8px"><b>Factura:</b></td><td style="padding:8px">'.$numeroHtml.'</td></tr>'
             .'<tr><td style="padding:8px"><b>Cliente:</b></td><td style="padding:8px">'.$nombreCliente.'</td></tr>'
-            .'<tr><td style="padding:8px"><b>RTN:</b></td><td style="padding:8px">'.htmlspecialchars($rtnCliente !== '' ? $rtnCliente : 'No registrado', ENT_QUOTES, 'UTF-8').'</td></tr>'
-            .'<tr><td style="padding:8px"><b>Fecha:</b></td><td style="padding:8px">'.$fechaDocumento.'</td></tr>'
             .'<tr><td style="padding:8px"><b>Total:</b></td><td style="padding:8px"><b>L. '.number_format((float)$factura['importe'], 2).'</b></td></tr>'
+            .'<tr><td style="padding:8px"><b>Productos:</b></td><td style="padding:8px">'.$cantidadProductos.' producto(s)</td></tr>'
             .'</table>'
-            .'<h3 style="margin:22px 0 8px">Detalle ('.$cantidadProductos.' producto(s))</h3>'
-            .'<table style="width:100%;border-collapse:collapse">'
-            .'<thead><tr style="background:#edf2f7"><th style="padding:9px;text-align:left">Producto</th><th style="padding:9px;text-align:right">Cantidad</th><th style="padding:9px;text-align:right">Total</th></tr></thead>'
-            .'<tbody>'.$filasDetalle.'</tbody></table>'
-            .'<p style="margin-top:22px;color:#718096">Este es un aviso interno automático. El cliente recibió su correo por separado.</p>'
+            .'<p style="margin-top:16px;color:#718096">Aviso interno automático. El cliente recibió su factura por separado.</p>'
             .'</div>';
 
         $respuestaInterna = $sendEmail->enviarCorreo(

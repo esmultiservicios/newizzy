@@ -606,14 +606,17 @@ function getTipoCorreo() {
    MODAL DESTINATARIOS
    ========================================================= */
 function modalDestinatarios() {
-    listar_destinatarios();
+    if (!$('#modalRegistrarDestinatarios').length || !$('#formDestinatarios').length || !$('#DatatableDestinatarios').length) {
+        showNotify('error', 'Modal no disponible', 'No se encontró el formulario para administrar destinatarios.');
+        return;
+    }
 
     $('#formDestinatarios').attr({
         'data-form': 'save',
         'action': '<?php echo SERVERURL;?>ajax/addDestinatario.php'
     });
 
-    $('#formDestinatarios')[0].reset();
+    $('#formDestinatarios').get(0).reset();
     $('#reg_destinatarios').show();
 
     $('#formDestinatarios #correo').attr('readonly', false);
@@ -621,7 +624,13 @@ function modalDestinatarios() {
 
     $('#formDestinatarios #proceso_destinatarios').val("Registro Destinatarios");
 
-    $('#modalRegistrarDestinatarios').modal({
+    $('#modalRegistrarDestinatarios')
+    .off('shown.bs.modal.cargarDestinatarios')
+    .one('shown.bs.modal.cargarDestinatarios', function() {
+        listar_destinatarios();
+        $(this).find('#formDestinatarios #correo').trigger('focus');
+    })
+    .modal({
         show: true,
         keyboard: false,
         backdrop: 'static'

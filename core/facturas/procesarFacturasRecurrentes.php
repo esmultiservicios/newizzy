@@ -228,8 +228,22 @@ foreach ($ids as $recId) {
 
         if ($enviarCorreo) {
             try {
-                enviarCorreoFacturaRecurrente($facturasId, $empresaId);
-                $conexion->query('UPDATE facturas_recurrentes_ejecuciones SET correo_estado = 1 WHERE ejecucion_id = '.(int)$ejecucionId);
+                $resultadoCorreo = enviarCorreoFacturaRecurrente($facturasId, $empresaId);
+                $cantidadInternos = is_array($resultadoCorreo)
+                    ? (int)($resultadoCorreo['destinatarios_internos'] ?? 0)
+                    : 0;
+                $textoCorreoOk = ' Correo enviado al cliente.';
+                if ($cantidadInternos > 0) {
+                    $textoCorreoOk .= ' Resumen interno enviado a '.$cantidadInternos.' destinatario(s).';
+                } else {
+                    $textoCorreoOk .= ' No había destinatarios internos activos.';
+                }
+                $stmtCorreoOk = $conexion->prepare(
+                    'UPDATE facturas_recurrentes_ejecuciones SET correo_estado = 1, mensaje = CONCAT(IFNULL(mensaje,\'\'), ?) WHERE ejecucion_id = ?'
+                );
+                $stmtCorreoOk->bind_param('si', $textoCorreoOk, $ejecucionId);
+                $stmtCorreoOk->execute();
+                $stmtCorreoOk->close();
                 $resumen['correos']++;
             } catch (Throwable $correoError) {
                 $stmtCorreo = $conexion->prepare(

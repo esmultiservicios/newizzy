@@ -379,7 +379,10 @@ class pagoFacturaControlador extends pagoFacturaModelo {
             "message"=>$result['message'] ?? "Pago en efectivo registrado correctamente",
             "form"=>"formEfectivoBill",
             "funcion"=>$result['funcion'] ?? "listar_cuentas_por_cobrar_clientes();getCollaboradoresModalPagoFacturas();",
-            "closeAllModals"=>true
+            "closeAllModals"=>true,
+            "convertida_a_factura"=>$result['convertida_a_factura'] ?? false,
+            "numero_factura"=>$result['numero_factura'] ?? 0,
+            "factura_formateada"=>$result['factura_formateada'] ?? ""
         ]);
     }
 
@@ -415,7 +418,10 @@ class pagoFacturaControlador extends pagoFacturaModelo {
             "message"       => $result['message'] ?? "Pago con tarjeta registrado correctamente",
             "form"          => "formTarjetaBill",
             "funcion"       => $result['funcion'] ?? "listar_cuentas_por_cobrar_clientes();getCollaboradoresModalPagoFacturas();",
-            "closeAllModals"=> true
+            "closeAllModals"=> true,
+            "convertida_a_factura"=>$result['convertida_a_factura'] ?? false,
+            "numero_factura"=>$result['numero_factura'] ?? 0,
+            "factura_formateada"=>$result['factura_formateada'] ?? ""
         ]);
     }
 
@@ -448,7 +454,10 @@ class pagoFacturaControlador extends pagoFacturaModelo {
             "message"       => $result['message'] ?? "Transferencia registrada correctamente",
             "form"          => "formTransferenciaBill",
             "funcion"       => $result['funcion'] ?? "listar_cuentas_por_cobrar_clientes();getCollaboradoresModalPagoFacturas();",
-            "closeAllModals"=> true
+            "closeAllModals"=> true,
+            "convertida_a_factura"=>$result['convertida_a_factura'] ?? false,
+            "numero_factura"=>$result['numero_factura'] ?? 0,
+            "factura_formateada"=>$result['factura_formateada'] ?? ""
         ]);
     }
     
@@ -481,7 +490,10 @@ class pagoFacturaControlador extends pagoFacturaModelo {
             "message"       => $result['message'] ?? "Cheque registrado correctamente",
             "form"          => "formChequeBill",
             "funcion"       => $result['funcion'] ?? "listar_cuentas_por_cobrar_clientes();getCollaboradoresModalPagoFacturas();",
-            "closeAllModals"=> true
+            "closeAllModals"=> true,
+            "convertida_a_factura"=>$result['convertida_a_factura'] ?? false,
+            "numero_factura"=>$result['numero_factura'] ?? 0,
+            "factura_formateada"=>$result['factura_formateada'] ?? ""
         ]);
     }
 

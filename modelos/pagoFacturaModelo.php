@@ -438,6 +438,37 @@ class pagoFacturaModelo extends mainModel {
     }
 
     /**
+     * Configuración para convertir una proforma pagada en factura normal.
+     * Tabla config: activar = 1 (Sí), activar = 2 (No).
+     * Si el registro no existe, conserva el comportamiento actual: no convertir.
+     */
+    protected function convertir_proforma_pagada_activo($conexion = null) {
+        $conexion = $conexion ?: mainModel::connection();
+
+        $stmt = $conexion->prepare("SELECT activar FROM config WHERE config_id = 7 LIMIT 1");
+        if (!$stmt) {
+            throw new Exception("Error al consultar la configuración de conversión de proforma: " . $conexion->error);
+        }
+
+        if (!$stmt->execute()) {
+            $error = $stmt->error;
+            $stmt->close();
+            throw new Exception("Error al validar la configuración de conversión de proforma: " . $error);
+        }
+
+        $resultado = $stmt->get_result();
+        $activo = false;
+
+        if ($resultado && $resultado->num_rows > 0) {
+            $fila = $resultado->fetch_assoc();
+            $activo = ((int)$fila['activar'] === 1);
+        }
+
+        $stmt->close();
+        return $activo;
+    }
+
+    /**
      * Suma totales de la factura desde el detalle.
      * Soporta IZZY antiguo/nuevo:
      * - facturas_detalles con isv_valor + isv_valor1
@@ -487,50 +518,117 @@ class pagoFacturaModelo extends mainModel {
     /* ==========================================================
        CONVERSIÓN: PROFORMA → FACTURA NORMAL
        ========================================================== */
-    protected function convertir_proforma_a_factura($facturas_id) {
-        $conexion = mainModel::connection();
-        $conexion->begin_transaction();
-        try {
-            // Traer datos base de la factura proforma
-            $qf = "SELECT f.clientes_id, f.apertura_id, f.colaboradores_id, f.importe,
-                          f.notas, f.usuario, f.empresa_id, f.fecha_dolar
-                   FROM facturas f WHERE f.facturas_id = '$facturas_id'";
-            $rsF = $conexion->query($qf);
-            if(!$rsF || $rsF->num_rows === 0) { throw new Exception("No se encontró la factura proforma"); }
-            $factura = $rsF->fetch_assoc();
+    protected function convertir_proforma_a_factura($facturas_id, $conexion) {
+        $facturas_id = (int)$facturas_id;
 
-            // Obtener número/serie usando el método robusto (documento_id = 1 => factura)
-            $num = $this->obtenerNumeroFactura((int)$factura['empresa_id'], 1, $conexion);
-            if ($num['error']) {
-                throw new Exception($num['mensaje']);
-            }
-            $secuencia_id = (int)$num['data']['secuencia_facturacion_id'];
-            $numero       = (int)$num['data']['numero'];
+        if ($facturas_id <= 0) {
+            throw new Exception("El ID de la proforma no es válido");
+        }
 
-            // Actualizar factura con secuencia y number
-            $uf = "UPDATE facturas
-                   SET secuencia_facturacion_id = '".$secuencia_id."',
-                       number = '".$numero."',
-                       tipo_factura = 1,
-                       estado = 2
-                   WHERE facturas_id = '$facturas_id'";
-            if(!$conexion->query($uf)) { throw new Exception("Error al actualizar la factura"); }
+        /*
+         * Bloquea la factura antes de revisar el documento.
+         * Esto evita que dos pagos simultáneos consuman dos números normales.
+         */
+        $stmtFactura = $conexion->prepare(
+            "SELECT f.empresa_id, sf.documento_id
+             FROM facturas f
+             INNER JOIN secuencia_facturacion sf
+                ON sf.secuencia_facturacion_id = f.secuencia_facturacion_id
+             WHERE f.facturas_id = ?
+             LIMIT 1
+             FOR UPDATE"
+        );
 
-            // Marcar proforma como utilizada/cerrada
-            $up = "UPDATE facturas_proforma SET estado = 1 WHERE facturas_id = '$facturas_id'";
-            if(!$conexion->query($up)) { throw new Exception("Error al actualizar la proforma"); }
+        if (!$stmtFactura) {
+            throw new Exception("Error al preparar la conversión de proforma: " . $conexion->error);
+        }
 
-            $conexion->commit();
+        $stmtFactura->bind_param("i", $facturas_id);
 
+        if (!$stmtFactura->execute()) {
+            $error = $stmtFactura->error;
+            $stmtFactura->close();
+            throw new Exception("Error al consultar la proforma: " . $error);
+        }
+
+        $resultadoFactura = $stmtFactura->get_result();
+
+        if (!$resultadoFactura || $resultadoFactura->num_rows === 0) {
+            $stmtFactura->close();
+            throw new Exception("No se encontró la factura proforma");
+        }
+
+        $factura = $resultadoFactura->fetch_assoc();
+        $stmtFactura->close();
+
+        // Ya fue convertida por otro proceso: no consumir otra secuencia.
+        if ((int)$factura['documento_id'] !== 4) {
             return [
                 'success' => true,
-                'numero_factura' => $numero, // prefijo+relleno se obtienen al consultar/imprimir
-                'secuencia_facturacion_id' => $secuencia_id
+                'convertida' => false,
+                'numero_factura' => 0,
+                'secuencia_facturacion_id' => 0,
+                'factura_formateada' => ''
             ];
-        } catch (Exception $e) {
-            $conexion->rollback();
-            return ['success'=>false,'message'=>$e->getMessage()];
         }
+
+        // Documento 1 = factura normal. Usa la misma lógica robusta de Facturas.
+        $numeroFactura = $this->obtenerNumeroFactura((int)$factura['empresa_id'], 1, $conexion);
+
+        if (!empty($numeroFactura['error'])) {
+            throw new Exception($numeroFactura['mensaje']);
+        }
+
+        $secuenciaId = (int)$numeroFactura['data']['secuencia_facturacion_id'];
+        $numero = (int)$numeroFactura['data']['numero'];
+        $prefijo = isset($numeroFactura['data']['prefijo']) ? (string)$numeroFactura['data']['prefijo'] : '';
+        $relleno = isset($numeroFactura['data']['relleno']) ? (int)$numeroFactura['data']['relleno'] : 8;
+
+        $stmtActualizar = $conexion->prepare(
+            "UPDATE facturas
+             SET secuencia_facturacion_id = ?,
+                 number = ?,
+                 estado = 2
+             WHERE facturas_id = ?"
+        );
+
+        if (!$stmtActualizar) {
+            throw new Exception("Error al preparar la actualización de la factura: " . $conexion->error);
+        }
+
+        $stmtActualizar->bind_param("iii", $secuenciaId, $numero, $facturas_id);
+
+        if (!$stmtActualizar->execute()) {
+            $error = $stmtActualizar->error;
+            $stmtActualizar->close();
+            throw new Exception("Error al convertir la proforma en factura: " . $error);
+        }
+
+        $stmtActualizar->close();
+
+        // Conserva el registro histórico de la proforma y lo marca como completado.
+        $stmtProforma = $conexion->prepare("UPDATE facturas_proforma SET estado = 1 WHERE facturas_id = ?");
+        if (!$stmtProforma) {
+            throw new Exception("Error al preparar la actualización del histórico de proforma: " . $conexion->error);
+        }
+
+        $stmtProforma->bind_param("i", $facturas_id);
+
+        if (!$stmtProforma->execute()) {
+            $error = $stmtProforma->error;
+            $stmtProforma->close();
+            throw new Exception("Error al actualizar el histórico de la proforma: " . $error);
+        }
+
+        $stmtProforma->close();
+
+        return [
+            'success' => true,
+            'convertida' => true,
+            'numero_factura' => $numero,
+            'secuencia_facturacion_id' => $secuenciaId,
+            'factura_formateada' => $prefijo . str_pad((string)$numero, $relleno, '0', STR_PAD_LEFT)
+        ];
     }
 
     /* ==========================================================
@@ -595,6 +693,13 @@ class pagoFacturaModelo extends mainModel {
     }    
 
     protected function procesar_pago_contado_transaccion($conexion, $datos, $esProforma) {
+        $conversion = [
+            'convertida' => false,
+            'numero_factura' => 0,
+            'secuencia_facturacion_id' => 0,
+            'factura_formateada' => ''
+        ];
+
         // Insert pago
         $pagoId = $this->agregar_pago_factura_modelo($datos);
 
@@ -609,18 +714,21 @@ class pagoFacturaModelo extends mainModel {
             "descripcion3"=>$datos['referencia_pago3'],
         ]);
 
-        // NOTA: No asignamos secuencia aquí.
-        // - Proforma se convierte en el flujo contable (ver crédito y método convertir_proforma_a_factura)
-        // - Factura normal ya trae su número por el flujo de creación (obtenerNumeroFactura)
+        // La secuencia normal solo se asigna abajo cuando la proforma queda pagada
+        // y config_id = 7 está activado. Una factura normal ya trae su número.
 
         // Cerrar factura y CxC
         $this->update_status_factura($datos['facturas_id']);
         $this->update_status_factura_cuentas_por_cobrar($datos['facturas_id'], 2, 0);
 
         // Si es proforma, mantener el histórico y marcarla como pagada.
-        // No se elimina ni se convierte en factura normal.
+        // Solo se convierte cuando config_id = 7 tiene activar = 1.
         if ($esProforma) {
             $this->actualizar_estado_facturas_proforma_pago($datos['facturas_id'], 1);
+
+            if ($this->convertir_proforma_pagada_activo($conexion)) {
+                $conversion = $this->convertir_proforma_a_factura($datos['facturas_id'], $conexion);
+            }
         }
 
         // Contabilidad:
@@ -633,18 +741,36 @@ class pagoFacturaModelo extends mainModel {
             $this->marcar_pago_contabilizado($pagoId, $ingreso_id);
         }
 
-        $this->registrarHistorial("Se registró pago al contado");
+        $historial = "Se registró pago al contado";
+        if (!empty($conversion['convertida'])) {
+            $historial .= " y la proforma se convirtió en factura " . $conversion['factura_formateada'];
+        }
+        $this->registrarHistorial($historial);
+
+        $mensaje = !empty($conversion['convertida'])
+            ? "El pago se registró y la proforma se convirtió en la factura " . $conversion['factura_formateada']
+            : "El pago se registró correctamente";
 
         return [
             "status"=>true,
             "title"=>"Pago registrado",
-            "message"=>"El pago se registró correctamente",
+            "message"=>$mensaje,
             "funcion"=>"printBill(".$datos['facturas_id'].",".$datos['print_comprobante'].");listar_cuentas_por_cobrar_clientes();mailBill(".$datos['facturas_id'].");getCollaboradoresModalPagoFacturas();",
-            "closeAllModals"=>true
+            "closeAllModals"=>true,
+            "convertida_a_factura"=>!empty($conversion['convertida']),
+            "numero_factura"=>$conversion['numero_factura'],
+            "factura_formateada"=>$conversion['factura_formateada']
         ];
     }
 
     protected function procesar_pago_credito_transaccion($conexion, $datos, $esProforma) {
+        $conversion = [
+            'convertida' => false,
+            'numero_factura' => 0,
+            'secuencia_facturacion_id' => 0,
+            'factura_formateada' => ''
+        ];
+
         // Validar saldo
         $saldoRes = $this->consultar_factura_cuentas_por_cobrar($datos['facturas_id']);
         if ($saldoRes->num_rows == 0) { throw new Exception("No se encontró la cuenta por cobrar para esta factura"); }
@@ -676,17 +802,19 @@ class pagoFacturaModelo extends mainModel {
         ]);
 
         // Actualizar CxC y factura si queda saldada.
-        // IMPORTANTE:
-        // - Proforma crédito NO se convierte a factura normal.
-        // - Si queda saldada, solo se marca cerrada/pagada manteniendo su secuencia de proforma.
+        // Si queda saldada, se cierra. La conversión depende únicamente de config_id = 7.
         $this->update_status_factura_cuentas_por_cobrar($datos['facturas_id'], ($nuevoSaldo==0?2:1), $nuevoSaldo);
         if ($nuevoSaldo == 0) {
             $this->update_status_factura($datos['facturas_id']);
 
             // Si es proforma y quedó pagada, mantener el histórico y marcarla como pagada.
-            // No se elimina ni se convierte en factura normal.
+            // La conversión a factura normal depende de config_id = 7.
             if ($esProforma) {
                 $this->actualizar_estado_facturas_proforma_pago($datos['facturas_id'], 1);
+
+                if ($this->convertir_proforma_pagada_activo($conexion)) {
+                    $conversion = $this->convertir_proforma_a_factura($datos['facturas_id'], $conexion);
+                }
             }
         }
 
@@ -694,22 +822,36 @@ class pagoFacturaModelo extends mainModel {
         $ingreso_id = $this->registrar_contabilidad_pago($datos);
         $this->marcar_pago_contabilizado($pagoId, $ingreso_id);
 
-        $this->registrarHistorial("Se registró pago al crédito/abono");
+        $historial = "Se registró pago al crédito/abono";
+        if (!empty($conversion['convertida'])) {
+            $historial .= " y la proforma se convirtió en factura " . $conversion['factura_formateada'];
+        }
+        $this->registrarHistorial($historial);
 
         if ($nuevoSaldo > 0) {
             return [
                 "status"=>true,
                 "title"=>"Pago registrado",
                 "message"=>"Pago múltiple registrado correctamente",
-                "funcion"=>"pago(".$datos['facturas_id'].");saldoFactura(".$datos['facturas_id'].");"
+                "funcion"=>"pago(".$datos['facturas_id'].");saldoFactura(".$datos['facturas_id'].");",
+                "convertida_a_factura"=>false,
+                "numero_factura"=>0,
+                "factura_formateada"=>''
             ];
         } else {
+            $mensaje = !empty($conversion['convertida'])
+                ? "El pago se completó y la proforma se convirtió en la factura " . $conversion['factura_formateada']
+                : "El pago se completó correctamente";
+
             return [
                 "status"=>true,
                 "title"=>"Pago completado",
-                "message"=>"El pago se completó correctamente",
+                "message"=>$mensaje,
                 "funcion"=>"printBill(".$datos['facturas_id'].",1);listar_cuentas_por_cobrar_clientes();getCollaboradoresModalPagoFacturas();",
-                "closeAllModals"=>true
+                "closeAllModals"=>true,
+                "convertida_a_factura"=>!empty($conversion['convertida']),
+                "numero_factura"=>$conversion['numero_factura'],
+                "factura_formateada"=>$conversion['factura_formateada']
             ];
         }
     }

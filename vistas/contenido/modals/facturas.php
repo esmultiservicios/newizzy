@@ -539,8 +539,43 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
 <!--FIN MODAL BUSQUEDA FACTURAS CREDITO Y CONTADO-->
 
 <!-- Modal: Programar Factura Recurrente -->
+<style id="estilosFacturaRecurrente">
+  #recurringBillModal .modal-dialog{max-width:1380px!important;width:calc(100% - 24px);}
+  #recurringBillModal .modal-content{max-height:calc(100vh - 40px);}
+  #recurringBillModal .modal-body{overflow-y:auto;padding:1rem 1.25rem;}
+  #recurringBillModal .rec-panel{height:100%;padding:.25rem .75rem;}
+  #recurringBillModal .rec-panel-listado{border-left:1px solid #e4e9ef;}
+  #recurringBillModal .rec-listado-contenedor{max-height:510px;overflow:auto;padding:2px 5px 8px 2px;}
+  #recurringBillModal .rec-card{border:1px solid #dde5ed;border-radius:10px;background:#fff;margin-bottom:10px;box-shadow:0 2px 7px rgba(18,38,63,.06);overflow:hidden;}
+  #recurringBillModal .rec-card-main{padding:12px 14px;}
+  #recurringBillModal .rec-card-title{font-weight:700;color:#1f3142;font-size:.96rem;}
+  #recurringBillModal .rec-card-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px;}
+  #recurringBillModal .rec-chip{background:#f1f5f8;border:1px solid #e1e8ee;border-radius:20px;padding:3px 8px;font-size:.75rem;color:#526273;}
+  #recurringBillModal .rec-card-datos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px;}
+  #recurringBillModal .rec-dato{background:#f8fafc;border-radius:7px;padding:7px 9px;}
+  #recurringBillModal .rec-dato small{display:block;color:#788694;font-size:.68rem;text-transform:uppercase;font-weight:700;}
+  #recurringBillModal .rec-dato strong{display:block;color:#273849;font-size:.82rem;margin-top:2px;overflow-wrap:anywhere;}
+  #recurringBillModal .rec-card-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:10px;}
+  #recurringBillModal .rec-detalle{display:none;border-top:1px solid #e4eaf0;background:#f8fafc;padding:12px 14px;}
+  #recurringBillModal .rec-producto{display:grid;grid-template-columns:minmax(150px,1fr) 80px 105px 105px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #e2e8ee;font-size:.8rem;}
+  #recurringBillModal .rec-producto:last-child{border-bottom:0;}
+  #recurringBillModal .rec-producto strong{color:#263849;}
+  #recurringBillModal .rec-detalle-total{text-align:right;font-weight:700;color:#1d6f42;padding-top:9px;}
+  #recurringBillModal .rec-frecuencias{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+  #recurringBillModal .rec-frecuencia{border:1px solid #dce3ea;background:#fff;border-radius:8px;padding:9px 5px;text-align:center;cursor:pointer;font-size:.82rem;font-weight:600;color:#536273;}
+  #recurringBillModal .rec-frecuencia i{display:block;font-size:1rem;margin-bottom:4px;}
+  #recurringBillModal .rec-frecuencia.active{background:#3199df;border-color:#3199df;color:#fff;box-shadow:0 3px 8px rgba(49,153,223,.25);}
+  #recurringBillModal .rec-resumen{background:#f0f8ff;border:1px solid #b8ddf8;border-radius:9px;padding:11px 13px;color:#24445e;}
+  #recurringBillModal .rec-proximas{margin:7px 0 0;padding-left:20px;font-size:.83rem;}
+  @media (max-width:991.98px){
+    #recurringBillModal .modal-dialog{max-width:760px!important;}
+    #recurringBillModal .rec-panel-listado{border-left:0;border-top:1px solid #e4e9ef;margin-top:1rem;padding-top:1rem;}
+    #recurringBillModal .rec-card-datos{grid-template-columns:1fr;}
+    #recurringBillModal .rec-producto{grid-template-columns:1fr 1fr;}
+  }
+</style>
 <div class="modal fade" id="recurringBillModal" tabindex="-1" role="dialog" aria-labelledby="recurringBillModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered" role="document">
+  <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-header py-2">
         <h6 class="modal-title" id="recurringBillModalLabel">Programar Factura Recurrente</h6>
@@ -550,6 +585,8 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
       </div>
 
       <div class="modal-body">
+        <div class="row">
+        <div class="col-lg-5 rec-panel rec-panel-configuracion">
         <!-- Tipo de documento -->
         <div class="form-group">
           <label class="small mb-1 d-block">Tipo de documento</label>
@@ -560,50 +597,84 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
           <input type="hidden" id="rec_tipo_documento" value="0">
         </div>
 
-        <!-- Tipo de factura (contado/crédito) -->
+        <!-- Las facturas recurrentes siempre se generan al crédito. -->
+        <div class="alert alert-light border py-2">
+          <i class="fas fa-credit-card mr-1 text-primary"></i>
+          <strong>Condición de pago:</strong> Crédito
+        </div>
+        <input type="hidden" id="rec_tipo_factura" value="2">
+
+        <!-- Primera ejecución -->
         <div class="form-group">
-          <label class="small mb-1 d-block">Tipo de factura</label>
-          <div class="btn-group btn-group-sm" role="group" aria-label="Tipo de factura">
-            <button type="button" class="btn btn-primary" id="btn-rec-contado" data-tipo="1">Contado</button>
-            <button type="button" class="btn btn-outline-primary" id="btn-rec-credito" data-tipo="2">Crédito</button>
+          <label class="small mb-1 font-weight-bold">Primera generación</label>
+          <div class="form-row">
+            <div class="col-7"><input type="date" class="form-control" id="rec_fecha_inicio" required></div>
+            <div class="col-5"><input type="time" class="form-control" id="rec_hora_inicio" required></div>
           </div>
-          <input type="hidden" id="rec_tipo_factura" value="1">
+          <input type="hidden" id="rec_start_at">
+          <small class="text-muted">Selecciona la fecha y hora en que comenzará.</small>
         </div>
 
-        <!-- Fecha/hora de primera ejecución -->
-        <div class="form-group">
-          <label class="small mb-1">Fecha de generación</label>
-          <input type="datetime-local" class="form-control" id="rec_start_at" required>
-          <small class="text-muted">Cuándo quieres que se genere por primera vez.</small>
+        <div class="custom-control custom-switch mb-3">
+          <input type="checkbox" class="custom-control-input" id="rec_enviar_correo" checked>
+          <label class="custom-control-label" for="rec_enviar_correo">
+            Enviar correo al cliente cuando se genere
+          </label>
         </div>
 
         <!-- Periodicidad -->
         <div class="form-group">
-          <label class="small mb-1">Periodicidad</label>
-          <select id="rec_periodicidad" class="form-control">
-            <option value="once">Una vez</option>
-            <option value="daily">Diaria</option>
-            <option value="weekly">Semanal</option>
-            <option value="monthly" selected>Mensual</option>
-          </select>
+          <label class="small mb-1 font-weight-bold">Se repetirá</label>
+          <div class="rec-frecuencias" role="group" aria-label="Frecuencia de la factura">
+            <button type="button" class="rec-frecuencia" data-frecuencia="once"><i class="fas fa-calendar-check"></i>Una vez</button>
+            <button type="button" class="rec-frecuencia" data-frecuencia="daily"><i class="fas fa-calendar-day"></i>Diaria</button>
+            <button type="button" class="rec-frecuencia" data-frecuencia="weekly"><i class="fas fa-calendar-week"></i>Semanal</button>
+            <button type="button" class="rec-frecuencia active" data-frecuencia="monthly"><i class="fas fa-calendar-alt"></i>Mensual</button>
+          </div>
+          <input type="hidden" id="rec_periodicidad" value="monthly">
         </div>
 
         <!-- Vigencia (opcional) -->
-        <div class="form-group">
-          <label class="small mb-1">Hasta (opcional)</label>
-          <input type="date" class="form-control" id="rec_until">
-          <small class="text-muted">Si lo dejas vacío, se repite indefinidamente.</small>
+        <div class="form-group mb-2">
+          <div class="custom-control custom-switch mb-2">
+            <input type="checkbox" class="custom-control-input" id="rec_sin_fin" checked>
+            <label class="custom-control-label" for="rec_sin_fin">Repetir sin fecha final</label>
+          </div>
+          <div id="rec_fin_contenedor" style="display:none;">
+            <label class="small mb-1">Finalizar después de esta fecha</label>
+            <input type="date" class="form-control" id="rec_until">
+          </div>
         </div>
 
-        <div class="alert alert-info d-flex align-items-center" id="rec_info">
-          <i class="fas fa-info-circle mr-2"></i>
-          Se creará una factura con los datos actuales de esta vista en cada fecha programada.
+        <div class="rec-resumen" id="rec_info">
+          <div class="d-flex align-items-start">
+            <i class="fas fa-info-circle mr-2 mt-1"></i>
+            <div>
+              <strong id="rec_resumen_texto">Configura la fecha y la frecuencia.</strong>
+              <div class="small mt-1">Próximas generaciones:</div>
+              <ul class="rec-proximas" id="rec_proximas_fechas"></ul>
+            </div>
+          </div>
         </div>
 
         <!-- Spinner -->
         <div id="rec_spinner" class="text-center" style="display:none;">
           <i class="fas fa-spinner fa-spin fa-2x"></i>
           <div>Guardando recurrencia...</div>
+        </div>
+
+        </div>
+        <div class="col-lg-7 rec-panel rec-panel-listado">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <strong><i class="fas fa-history mr-1"></i> Programaciones existentes</strong>
+          <button type="button" class="btn btn-light btn-sm" id="recargarRecurrentes" title="Actualizar">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+        </div>
+        <div class="rec-listado-contenedor" id="listaFacturasRecurrentes">
+          <div class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin mr-1"></i>Cargando...</div>
+        </div>
+        </div>
         </div>
       </div>
 

@@ -5,7 +5,13 @@
 	
 	$insMainModel = new mainModel();
 	
-	$estado = isset($_POST['estado']) ? $_POST['estado'] : 1;
+	$estado = isset($_POST['estado']) ? trim((string)$_POST['estado']) : '';
+
+	// Si el select todavía no había cargado, el navegador podía enviar estado="".
+	// En ese caso se utiliza Activo (1), que es el filtro predeterminado de la vista.
+	if ($estado === '') {
+		$estado = 1;
+	}
 	$result = $insMainModel->getProveedores($estado);
 	
 	$arreglo = array();

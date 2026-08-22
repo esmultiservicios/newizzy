@@ -251,6 +251,8 @@
             "destroy": true,
             "processing": true,
             "deferRender": true,
+            "pageLength": 10,
+            "searchDelay": 350,
             "ajax": {
                 "method": "POST",
                 "url": "<?php echo SERVERURL;?>core/llenarDataTableProductosCompras.php",
@@ -1216,11 +1218,11 @@
                     `);
                     });
 
-                    // Seleccionar usuario del sistema
-                    const usuarioSistema = getuUuarioSistema().toString().trim();
-
-                    select.val(usuarioSistema);
-                    select.selectpicker('refresh');
+                    // Seleccionar usuario del sistema sin bloquear la interfaz.
+                    getuUuarioSistema().done(function (usuarioSistema) {
+                        select.val(String(usuarioSistema || '').trim());
+                        select.selectpicker('refresh');
+                    });
 
                 } else {
                     select.append('<option value="">No hay colaboradores disponibles</option>');
@@ -1237,23 +1239,23 @@
 
     function getuUuarioSistema() {
         var url = '<?php echo SERVERURL;?>core/editarUsarioSistema.php';
-        var UsuarioSistema = '';
-
-        $.ajax({
+        return $.ajax({
             type: 'POST',
-            url: url,
-            async: false,
-            success: function (valores) {
-                try {
-                    var datos = JSON.parse(valores);
-                    UsuarioSistema = datos[0];
-                } catch (e) {
-                    console.error("Error al parsear JSON del usuario del sistema:", valores);
-                }
-            }
-        });
+            url: url
+        }).then(function (valores) {
+            var UsuarioSistema = '';
 
-        return UsuarioSistema;
+            try {
+                var datos = JSON.parse(valores);
+                UsuarioSistema = datos[0];
+            } catch (e) {
+                console.error("Error al parsear JSON del usuario del sistema:", valores);
+            }
+
+            return UsuarioSistema;
+        }, function () {
+            return '';
+        });
     }
 
 
@@ -1296,7 +1298,7 @@
                 type: 'POST',
                 url: url,
                 data: 'barcode=' + barcodeValue,
-                async: false,
+                async: true,
                 success: function (registro) {
                     var valores = eval(registro);
 
@@ -1387,18 +1389,15 @@
     function facturarEnCeroAlmacen(almacen_id) {
 
         var url = '<?php echo SERVERURL; ?>core/getFacturarCeroAlmacen.php';
-        var estado = true;
-
-        $.ajax({
+        return $.ajax({
             type: 'POST',
             url: url,
-            data: 'almacen_id=' + almacen_id,
-            async: false,
-            success: function (res) {
-                estado = res;
-            }
+            data: 'almacen_id=' + almacen_id
+        }).then(function (res) {
+            return res;
+        }, function () {
+            return false;
         });
-        return estado;
     }
 
     function manejarPresionTeclaMasMenosCompras(codigoTecla, row_index) {

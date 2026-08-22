@@ -87,8 +87,9 @@ var row = 0;
 $(() => {
     getCajero();
     getConsumidorFinal();
-    getConsultarAperturaCaja();
-    validarAperturaCajaUsuario();
+    cargarEstadoCajaUsuario(false).always(function () {
+        validarAperturaCajaUsuario();
+    });
     getBanco();
     getTotalFacturasDisponibles();
     getReporteCotizacion();
@@ -109,22 +110,41 @@ $(() => {
    Devuelve solo el estado de la caja.
 ========================================================= */
 
-function getConsultarAperturaCaja() {
+var izzyCajaUsuarioCache = { cargado: false, estado: 2, apertura_id: 0, solicitud: null };
+
+function cargarEstadoCajaUsuario(forzar) {
     var url = '<?php echo SERVERURL;?>core/getAperturaCajaUsuario.php';
 
-    var estado_apertura;
+    if (izzyCajaUsuarioCache.solicitud && forzar !== true) {
+        return izzyCajaUsuarioCache.solicitud;
+    }
 
-    $.ajax({
+    izzyCajaUsuarioCache.solicitud = $.ajax({
         type: 'POST',
-        url: url,
-        async: false,
-        success: function(registro) {
-            var valores = eval(registro);
-            estado_apertura = valores[0];
+        url: url
+    }).done(function(registro) {
+        try {
+            var valores = (typeof registro === 'string') ? JSON.parse(registro) : registro;
+            izzyCajaUsuarioCache.estado = parseInt(valores[0] || 2, 10);
+            izzyCajaUsuarioCache.apertura_id = parseInt(valores[1] || 0, 10);
+            izzyCajaUsuarioCache.cargado = true;
+        } catch (e) {
+            izzyCajaUsuarioCache.estado = 2;
+            izzyCajaUsuarioCache.apertura_id = 0;
         }
+    }).always(function() {
+        izzyCajaUsuarioCache.solicitud = null;
     });
 
-    return estado_apertura;
+    return izzyCajaUsuarioCache.solicitud;
+}
+
+function getConsultarAperturaCaja() {
+    if (!izzyCajaUsuarioCache.cargado) {
+        cargarEstadoCajaUsuario(false);
+    }
+
+    return izzyCajaUsuarioCache.estado;
 }
 
 /* =========================================================
@@ -138,31 +158,11 @@ function getConsultarAperturaCaja() {
 ========================================================= */
 
 function getAperturaIdCajaUsuario() {
-    var url = '<?php echo SERVERURL;?>core/getAperturaCajaUsuario.php';
-
-    var apertura_id = 0;
-
-    $.ajax({
-        type: 'POST',
-        url: url,
-        async: false,
-        success: function(registro) {
-            var valores = eval(registro);
-
-            if (valores && valores[1] !== undefined && valores[1] !== null && valores[1] !== '') {
-                apertura_id = parseInt(valores[1] || 0);
-            }
-        },
-        error: function(xhr) {
-                        apertura_id = 0;
-        }
-    });
-
-    if (isNaN(apertura_id)) {
-        apertura_id = 0;
+    if (!izzyCajaUsuarioCache.cargado) {
+        cargarEstadoCajaUsuario(false);
     }
 
-    return apertura_id;
+    return isNaN(izzyCajaUsuarioCache.apertura_id) ? 0 : izzyCajaUsuarioCache.apertura_id;
 }
 
 /* =========================================================
@@ -184,6 +184,13 @@ $(document)
     });
 
 function abrirRetiroCajaDirectoDesdeFactura() {
+    if (!izzyCajaUsuarioCache.cargado) {
+        cargarEstadoCajaUsuario(false).done(function () {
+            abrirRetiroCajaDirectoDesdeFactura();
+        });
+        return;
+    }
+
     /*
       Validamos con tu función original.
       Si retorna 2, significa que no hay caja abierta.
@@ -3349,6 +3356,10 @@ $('#invoice-form #buscar_clientes').on('click', function(e) {
 var listar_clientes_factura_buscar = function() {
     var table_clientes_factura_buscar = $("#DatatableClientesBusquedaFactura").DataTable({
         "destroy": true,
+        "processing": true,
+        "deferRender": true,
+        "pageLength": 10,
+        "searchDelay": 350,
         "ajax": {
             "method": "POST",
             "url": "<?php echo SERVERURL; ?>core/llenarDataTableClientes.php"
@@ -3647,6 +3658,10 @@ $('#invoice-form #add_vendedor').on('click', function(e) {
 var listar_colaboradores_buscar_factura = function() {
     var table_colaboradores_buscar_factura = $("#DatatableColaboradoresBusquedaFactura").DataTable({
         "destroy": true,
+        "processing": true,
+        "deferRender": true,
+        "pageLength": 10,
+        "searchDelay": 350,
         "ajax": {
             "method": "POST",
             "url": "<?php echo SERVERURL; ?>core/llenarDataTableColaboradoresFacturas.php"
@@ -3795,6 +3810,8 @@ var listar_productos_factura_buscar = function() {
         destroy: true,
         processing: true,
         deferRender: true,
+        pageLength: 10,
+        searchDelay: 350,
         "ajax": {
             "method": "POST",
             "url": "<?php echo SERVERURL; ?>core/llenarDataTableProductosFacturas.php",
@@ -3943,7 +3960,7 @@ var view_productos_busqueda_factura_dataTable = function(tbody, table) {
 
       // ===== Validación de inventario (solo productos con bodega válida) =====
       if (!esServicio && almacenId > 0) {
-        var facturar_cero = !!facturarEnCeroAlmacen(almacenId); // tu método (sincrónico)
+        var facturar_cero = !!(await facturarEnCeroAlmacen(almacenId));
         if (existencia <= 0 && !facturar_cero) {
           showNotify('error', 'Error', 'No se puede facturar este producto con inventario en cero');
           return false;
@@ -4448,7 +4465,9 @@ function fetchISVPercentSync(isv_id) {
         return cacheISVFacturaEscritorio[isv_id];
     }
 
-    var porcentaje = 0;
+    // Valor seguro inmediato mientras la consulta se resuelve en segundo plano.
+    var porcentaje = (isv_id === 1 ? 15 : (isv_id === 2 ? 18 : 0));
+    cacheISVFacturaEscritorio[isv_id] = porcentaje;
 
     $.ajax({
         type: 'POST',
@@ -4457,7 +4476,6 @@ function fetchISVPercentSync(isv_id) {
             isv_id: isv_id
         },
         dataType: 'json',
-        async: false,
         success: function(response) {
             if (response && response.success === true && response.valor !== undefined) {
                 porcentaje = normalizarNumeroFactura(response.valor);
@@ -4468,13 +4486,14 @@ function fetchISVPercentSync(isv_id) {
             } else if (typeof response === 'number' || typeof response === 'string') {
                 porcentaje = normalizarNumeroFactura(response);
             }
+
+            cacheISVFacturaEscritorio[isv_id] = porcentaje;
+            actualizarLabelsISVFactura();
         },
         error: function(xhr) {
-                        porcentaje = 0;
+            // Conserva el valor seguro almacenado sin bloquear la UI.
         }
     });
-
-    cacheISVFacturaEscritorio[isv_id] = porcentaje;
 
     return porcentaje;
 }
@@ -4603,15 +4622,14 @@ function facturaActualEsProformaISV() {
 
 function consultarConfigISVProformaFactura(forzarRecarga) {
     if (window.IZZY_PROFORMA_APLICA_ISV_CARGADO === true && forzarRecarga !== true) {
-        return;
+        return $.Deferred().resolve().promise();
     }
 
-    $.ajax({
+    return $.ajax({
         type: 'GET',
         url: '<?php echo SERVERURL; ?>core/facturas/getIsvConfig.php',
         dataType: 'json',
         cache: false,
-        async: false,
         success: function (response) {
             var aplica = 0;
 
@@ -4654,9 +4672,9 @@ function documentoActualPermiteCalcularISV(forzarRecarga) {
 async function recalcularTodasLineasISVFactura(forzarRecargaConfig) {
     if (forzarRecargaConfig === true) {
         window.IZZY_PROFORMA_APLICA_ISV_CARGADO = false;
-        consultarConfigISVProformaFactura(true);
+        await consultarConfigISVProformaFactura(true);
     } else {
-        consultarConfigISVProformaFactura(false);
+        await consultarConfigISVProformaFactura(false);
     }
 
     var totalFilas = parseInt($('#bill_row').val() || 0, 10);
@@ -4882,7 +4900,7 @@ async function manejarPresionEnter(row_index) {
     type: 'POST',
     url: url,
     data: 'barcode=' + encodeURIComponent(barcodeValue),
-    async: false,
+    async: true,
     success: async function (registro) {
       getTotalFacturasDisponibles();
 
@@ -4922,7 +4940,7 @@ async function manejarPresionEnter(row_index) {
           return;
         }
 
-        const facturar_cero = facturarEnCeroAlmacen(producto.almacen_id);
+        const facturar_cero = await facturarEnCeroAlmacen(producto.almacen_id);
         if ((parseFloat(producto.saldo || 0) <= 0) && (facturar_cero == 'false' || facturar_cero === false)) {
           showNotify('error', 'Error', 'No se puede facturar este producto inventario en cero');
           return;
@@ -5446,24 +5464,16 @@ $('#editarPrecioModal').on('hidden.bs.modal.editarPrecioFacturaEscritorio', func
 
 function facturarEnCeroAlmacen(almacen_id) {
     var url = '<?php echo SERVERURL; ?>core/getFacturarCeroAlmacen.php';
-    var estado = false;
-
-    $.ajax({
+    return $.ajax({
         type: 'POST',
         url: url,
         data: {almacen_id: almacen_id},
-        async: false,
-        dataType: 'json', // Asegurar que esperamos JSON
-        success: function(response) {
-            if(response.success) {
-                estado = response.facturar_cero;
-            } else {
-                            }
-        },
-        error: function(xhr) {
-                    }
+        dataType: 'json'
+    }).then(function(response) {
+        return !!(response && response.success && response.facturar_cero);
+    }, function() {
+        return false;
     });
-    return estado;
 }
 
 // ======================================================
@@ -6107,6 +6117,9 @@ var listar_busqueda_cuentas_por_cobrar_clientes = function() {
         stateSave: true,
         bDestroy: true,
         pageLength: 10,
+        processing: true,
+        deferRender: true,
+        searchDelay: 350,
         lengthMenu: lengthMenu,
         language: idioma_español,
         dom: dom,
@@ -6459,7 +6472,6 @@ function convertirCotizacion(cotizacion_id) {
     $.ajax({
         type: 'POST',
         url: url,
-        async: false,
         data: 'cotizacion_id=' + cotizacion_id,
         success: function(data) {
             var valores = eval(data);
@@ -6868,23 +6880,46 @@ $("#BillReports").on("click", function(e) {
     });
 });
 
-function getTipoDocumento() {
+var izzyTipoDocumentoCache = null;
+var izzyTipoDocumentoSolicitud = null;
+
+function getTipoDocumento(callback) {
     var url = '<?php echo SERVERURL; ?>core/getTipoDocumento.php';
-	var Documento;
-    $.ajax({
+
+    if (izzyTipoDocumentoCache !== null) {
+        return izzyTipoDocumentoCache;
+    }
+
+    if (!izzyTipoDocumentoSolicitud) {
+    izzyTipoDocumentoSolicitud = $.ajax({
         type: 'POST',
         url: url,
-        async: false,
         success: function(response) {
-			var datos = eval(response);
-	
-			Documento = datos[0];				
+			var datos;
+            try {
+                datos = (typeof response === 'string') ? JSON.parse(response) : response;
+            } catch (e) {
+                datos = eval(response);
+            }
+			izzyTipoDocumentoCache = datos[0];
         },
         error: function(xhr, status, error) {
-                    }
+            izzyTipoDocumentoCache = 'Error en la solicitud';
+        },
+        complete: function() {
+            izzyTipoDocumentoSolicitud = null;
+            if (typeof callback === 'function') {
+                callback(izzyTipoDocumentoCache);
+            }
+        }
     });
-	
-	return Documento;
+    } else if (typeof callback === 'function') {
+        izzyTipoDocumentoSolicitud.always(function () {
+            callback(izzyTipoDocumentoCache);
+        });
+    }
+
+	return null;
 }
 
 /* =========================================================
@@ -6981,7 +7016,13 @@ var listar_busqueda_bill = function() {
     var fechaf = $("#formulario_bill #fechaf").val();
     var facturador = $("#formulario_bill #facturador").val();
     var vendedor = $("#formulario_bill #vendedor").val();
-    var factura = getTipoDocumento();
+    var factura = getTipoDocumento(function () {
+        listar_busqueda_bill();
+    });
+
+    if (factura === null) {
+        return;
+    }
 
     if (factura === "No hay datos que mostrar" || factura === "Error en la solicitud") {
         showNotify('error', 'Error', 'Lo sentimos, hubo un error al obtener la información de la factura.');
@@ -7673,6 +7714,74 @@ function _localISOString(dt){
          pad(dt.getMinutes());
 }
 
+function fechaLocalRecurrente() {
+  var fecha = $('#rec_fecha_inicio').val();
+  var hora = $('#rec_hora_inicio').val();
+  if (!fecha || !hora) return null;
+  var f = fecha.split('-').map(Number);
+  var h = hora.split(':').map(Number);
+  return new Date(f[0], f[1] - 1, f[2], h[0], h[1] || 0, 0, 0);
+}
+
+function sincronizarInicioRecurrente() {
+  var fecha = $('#rec_fecha_inicio').val();
+  var hora = $('#rec_hora_inicio').val();
+  $('#rec_start_at').val(fecha && hora ? fecha + 'T' + hora : '');
+}
+
+function formatearFechaRecurrente(fecha) {
+  return new Intl.DateTimeFormat('es-HN', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+    hour: 'numeric', minute: '2-digit'
+  }).format(fecha);
+}
+
+function siguienteFechaVistaRecurrente(actual, frecuencia, diaOriginal) {
+  var siguiente = new Date(actual.getTime());
+  if (frecuencia === 'daily') siguiente.setDate(siguiente.getDate() + 1);
+  if (frecuencia === 'weekly') siguiente.setDate(siguiente.getDate() + 7);
+  if (frecuencia === 'monthly') {
+    var hora = siguiente.getHours(), minuto = siguiente.getMinutes();
+    siguiente = new Date(siguiente.getFullYear(), siguiente.getMonth() + 1, 1, hora, minuto, 0, 0);
+    var ultimoDia = new Date(siguiente.getFullYear(), siguiente.getMonth() + 1, 0).getDate();
+    siguiente.setDate(Math.min(diaOriginal, ultimoDia));
+  }
+  return siguiente;
+}
+
+function actualizarResumenRecurrente() {
+  sincronizarInicioRecurrente();
+  var inicio = fechaLocalRecurrente();
+  var frecuencia = $('#rec_periodicidad').val() || 'monthly';
+  var $lista = $('#rec_proximas_fechas').empty();
+  if (!inicio || isNaN(inicio.getTime())) {
+    $('#rec_resumen_texto').text('Selecciona una fecha y una hora válidas.');
+    return;
+  }
+
+  var dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  var horaTexto = new Intl.DateTimeFormat('es-HN', {hour:'numeric', minute:'2-digit'}).format(inicio);
+  var texto = '';
+  if (frecuencia === 'once') texto = 'Se generará una sola vez: ' + formatearFechaRecurrente(inicio) + '.';
+  if (frecuencia === 'daily') texto = 'Se generará todos los días a las ' + horaTexto + ', comenzando el ' + formatearFechaRecurrente(inicio) + '.';
+  if (frecuencia === 'weekly') texto = 'Se generará cada ' + dias[inicio.getDay()] + ' a las ' + horaTexto + ', comenzando el ' + formatearFechaRecurrente(inicio) + '.';
+  if (frecuencia === 'monthly') texto = 'Se generará el día ' + inicio.getDate() + ' de cada mes a las ' + horaTexto + ', comenzando el ' + formatearFechaRecurrente(inicio) + '.';
+  if ($('#rec_sin_fin').is(':checked') && frecuencia !== 'once') texto += ' Continuará hasta que la canceles.';
+  if (!$('#rec_sin_fin').is(':checked') && $('#rec_until').val() && frecuencia !== 'once') texto += ' Finalizará el ' + $('#rec_until').val() + '.';
+  $('#rec_resumen_texto').text(texto);
+
+  var cantidad = frecuencia === 'once' ? 1 : 4;
+  var cursor = new Date(inicio.getTime());
+  var hasta = (!$('#rec_sin_fin').is(':checked') && $('#rec_until').val()) ? $('#rec_until').val() : null;
+  for (var i = 0; i < cantidad; i++) {
+    var fechaIso = cursor.getFullYear() + '-' + String(cursor.getMonth()+1).padStart(2,'0') + '-' + String(cursor.getDate()).padStart(2,'0');
+    if (hasta && fechaIso > hasta) break;
+    $lista.append('<li>'+escaparTextoRecurrente(formatearFechaRecurrente(cursor))+'</li>');
+    cursor = siguienteFechaVistaRecurrente(cursor, frecuencia, inicio.getDate());
+  }
+  if (!$lista.children().length) $lista.append('<li>La fecha final no permite ninguna generación.</li>');
+}
+
 function hayDetalleFactura(){
   const totalFilas = parseInt($('#bill_row').val(), 10) || 0;
   for (let i = 0; i <= totalFilas; i++){
@@ -7703,28 +7812,8 @@ function hayEncabezado(){
 
 /* Abrir modal de recurrencia */
 $(document).on('click', '#addRecurringBill', function(){
-  // Validar que la factura tenga encabezado y detalle
-  if(!hayEncabezado()){
-    showNotify('error','Faltan datos','Debe seleccionar cliente y vendedor antes de programar la recurrencia');
-    return;
-  }
-  if(!hayDetalleFactura()){
-    showNotify('error','Sin productos','Debe agregar al menos un producto para programar la recurrencia');
-    return;
-  }
-
-  // Tipo actual de la UI (1=contado, 0=crédito en tu front)
-  var tipoActual = $('#facturas_activo').val(); 
-  var tipoFacturaBack = (tipoActual === "1") ? "1" : "2"; // backend: 1=contado, 2=crédito
-  $('#rec_tipo_factura').val(tipoFacturaBack);
-
-  // Toggle botones de tipo factura
-  $('#btn-rec-contado')
-    .toggleClass('btn-primary', tipoFacturaBack === "1")
-    .toggleClass('btn-outline-primary', tipoFacturaBack !== "1");
-  $('#btn-rec-credito')
-    .toggleClass('btn-primary', tipoFacturaBack === "2")
-    .toggleClass('btn-outline-primary', tipoFacturaBack !== "2");
+  // Las recurrencias siempre generan cuentas por cobrar al crédito.
+  $('#rec_tipo_factura').val('2');
 
   // Documento por defecto: normal (0)
   $('#rec_tipo_documento').val('0');
@@ -7734,17 +7823,44 @@ $(document).on('click', '#addRecurringBill', function(){
   // Fecha inicio default: ahora + 10min
   var now = new Date();
   now.setMinutes(now.getMinutes()+10);
-  $('#rec_start_at').val(_localISOString(now));
+  var inicioLocal = _localISOString(now).split('T');
+  $('#rec_fecha_inicio').val(inicioLocal[0]);
+  $('#rec_hora_inicio').val(inicioLocal[1]);
+  sincronizarInicioRecurrente();
 
   // Periodicidad default
   $('#rec_periodicidad').val('monthly');
+  $('.rec-frecuencia').removeClass('active').filter('[data-frecuencia="monthly"]').addClass('active');
   $('#rec_until').val('');
+  $('#rec_sin_fin').prop('checked', true);
+  $('#rec_fin_contenedor').hide();
+  $('#rec_enviar_correo').prop('checked', true);
 
   // Reset spinner/info
   $('#rec_info').show();
   $('#rec_spinner').hide();
+  actualizarResumenRecurrente();
 
   $('#recurringBillModal').modal('show');
+  listarFacturasRecurrentes();
+});
+
+$(document).on('click', '.rec-frecuencia', function() {
+  var frecuencia = String($(this).data('frecuencia'));
+  $('#rec_periodicidad').val(frecuencia);
+  $('.rec-frecuencia').removeClass('active');
+  $(this).addClass('active');
+  var esUnaVez = frecuencia === 'once';
+  $('#rec_sin_fin').closest('.custom-control').toggle(!esUnaVez);
+  $('#rec_fin_contenedor').toggle(!esUnaVez && !$('#rec_sin_fin').is(':checked'));
+  actualizarResumenRecurrente();
+});
+
+$(document).on('change input', '#rec_fecha_inicio, #rec_hora_inicio, #rec_until', actualizarResumenRecurrente);
+$(document).on('change', '#rec_sin_fin', function() {
+  $('#rec_fin_contenedor').toggle(!this.checked && $('#rec_periodicidad').val() !== 'once');
+  if (this.checked) $('#rec_until').val('');
+  actualizarResumenRecurrente();
 });
 
 /* Toggle tipo documento (0 normal, 1 proforma) */
@@ -7759,33 +7875,32 @@ $(document).on('click', '#btn-rec-tipo-normal, #btn-rec-tipo-proforma', function
     .toggleClass('btn-outline-primary', tipo !== "1");
 });
 
-/* Toggle tipo factura (1 contado, 2 crédito) */
-$(document).on('click', '#btn-rec-contado, #btn-rec-credito', function(){
-  var tipo = String($(this).data('tipo')); // "1" o "2"
-  $('#rec_tipo_factura').val(tipo);
-  $('#btn-rec-contado')
-    .toggleClass('btn-primary', tipo === "1")
-    .toggleClass('btn-outline-primary', tipo !== "1");
-  $('#btn-rec-credito')
-    .toggleClass('btn-primary', tipo === "2")
-    .toggleClass('btn-outline-primary', tipo !== "2");
-});
-
 /* Guardar recurrencia */
 $(document).on('click', '#confirmRecurring', function(){
-  // Validación rápida
+  // El modal puede abrirse solo para consultar recurrencias, pero para guardar
+  // debe existir una factura preparada en la pantalla principal.
+  if(!hayEncabezado() && !hayDetalleFactura()){
+    showNotify('error','Factura sin preparar','No ha seleccionado los datos de la factura. Seleccione cliente, vendedor y agregue al menos un producto antes de guardar la recurrencia.');
+    return;
+  }
   if(!hayEncabezado()){
-    showNotify('error','Faltan datos','Debe seleccionar cliente y vendedor');
+    showNotify('error','Faltan datos','Seleccione el cliente y el vendedor de la factura antes de guardar la recurrencia.');
     return;
   }
   if(!hayDetalleFactura()){
-    showNotify('error','Sin productos','Debe agregar al menos un producto');
+    showNotify('error','Factura sin productos','Agregue al menos un producto a la factura antes de guardar la recurrencia.');
     return;
   }
 
+  sincronizarInicioRecurrente();
   var startAt = $('#rec_start_at').val();
   if(!startAt){
     showNotify('error','Error','Debes indicar la fecha de generación');
+    return;
+  }
+
+  if ($('#rec_periodicidad').val() !== 'once' && !$('#rec_sin_fin').is(':checked') && !$('#rec_until').val()) {
+    showNotify('error','Fecha final requerida','Selecciona hasta cuándo se repetirá o activa "Repetir sin fecha final".');
     return;
   }
 
@@ -7796,10 +7911,11 @@ $(document).on('click', '#confirmRecurring', function(){
     notas: $('#notesBill').val(),
     fecha_dolar: $('#fecha_dolar').val(),
     tipo_documento: $('#rec_tipo_documento').val(), // "0" normal, "1" proforma
-    tipo_factura: $('#rec_tipo_factura').val(),     // "1" contado, "2" crédito
+    tipo_factura: 2,                                // Recurrente: siempre al crédito
     start_at: startAt,                              // datetime-local
     periodicidad: $('#rec_periodicidad').val(),     // once/daily/weekly/monthly (según tu modal)
-    until: $('#rec_until').val() || null,
+    until: ($('#rec_periodicidad').val() === 'once' || $('#rec_sin_fin').is(':checked')) ? null : ($('#rec_until').val() || null),
+    enviar_correo: $('#rec_enviar_correo').is(':checked') ? 1 : 2,
     exoneracion_orden: $('#exoneracion_orden').val() || null,
     exoneracion_constancia: $('#exoneracion_constancia').val() || null,
     exoneracion_sag: $('#exoneracion_sag').val() || null,
@@ -7826,6 +7942,8 @@ $(document).on('click', '#confirmRecurring', function(){
       isv_valor1    : parseFloat($('#valor_isv1_'+i).val() || 0),
       medida       : $('#medida_'+i).val() || '',
       almacen_id   : $('#bodega_'+i).val() || ''
+      ,precio_real : parseFloat($('#precio_real_'+i).val() || price)
+      ,referencia_producto: $('#referenciaProducto_'+i).val() || ''
     });
   }
 
@@ -7848,6 +7966,7 @@ $(document).on('click', '#confirmRecurring', function(){
     if(res && (res.ok === true || res.success === true)){
       $('#recurringBillModal').modal('hide');
       showNotify('success','Recurrencia creada','La factura recurrente ha sido guardada');
+      listarFacturasRecurrentes();
     }else{
       $('#rec_info').show();
       $('#rec_spinner').hide();
@@ -7859,6 +7978,174 @@ $(document).on('click', '#confirmRecurring', function(){
     $('#rec_info').show();
     $('#rec_spinner').hide();
         showNotify('error','Error','Falló la petición al servidor');
+  });
+});
+
+function escaparTextoRecurrente(valor) {
+  return $('<div>').text(valor == null ? '' : String(valor)).html();
+}
+
+function etiquetaPeriodicidadRecurrente(valor) {
+  return ({ once:'Una vez', daily:'Diaria', weekly:'Semanal', monthly:'Mensual' })[valor] || valor;
+}
+
+function formatearMontoRecurrente(valor) {
+  var numero = parseFloat(valor || 0);
+  return 'L. ' + numero.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatearFechaRecurrente(valor) {
+  if (!valor) return 'Sin próxima fecha';
+  var partes = String(valor).match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/);
+  if (!partes) return String(valor);
+  var fecha = new Date(parseInt(partes[1],10), parseInt(partes[2],10)-1, parseInt(partes[3],10), parseInt(partes[4] || 0,10), parseInt(partes[5] || 0,10));
+  return fecha.toLocaleString('es-HN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+
+var detallesFacturasRecurrentes = {};
+
+function listarFacturasRecurrentes() {
+  var $listado = $('#listaFacturasRecurrentes');
+  if (!$listado.length) return;
+
+  $listado.html('<div class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin mr-1"></i>Cargando programaciones...</div>');
+  $.ajax({
+    type: 'GET',
+    url: '<?php echo SERVERURL;?>core/facturas/listarFacturasRecurrentes.php',
+    dataType: 'json',
+    cache: false,
+    timeout: 15000
+  }).done(function(res) {
+    if (!res || res.ok !== true) {
+      var mensajeError = (res && res.msg) ? res.msg : 'El servidor no devolvió una respuesta válida.';
+      $listado.html('<div class="alert alert-danger mb-0"><i class="fas fa-exclamation-triangle mr-1"></i>'+escaparTextoRecurrente(mensajeError)+'</div>');
+      return;
+    }
+
+    if (!Array.isArray(res.data) || res.data.length === 0) {
+      $listado.html('<div class="text-center text-muted py-4"><i class="far fa-calendar-times fa-2x d-block mb-2"></i>No hay programaciones registradas.</div>');
+      return;
+    }
+
+    var html = '';
+    detallesFacturasRecurrentes = {};
+    res.data.forEach(function(item) {
+      var estado = parseInt(item.estado, 10);
+      var estadoTexto = estado === 1 ? 'Activa' : (estado === 2 ? 'Cancelada' : 'Finalizada');
+      var estadoClase = estado === 1 ? 'success' : (estado === 2 ? 'danger' : 'secondary');
+      var recId = parseInt(item.rec_id, 10);
+      detallesFacturasRecurrentes[recId] = Array.isArray(item.detalle) ? item.detalle : [];
+      html += '<div class="rec-card">'
+        + '<div class="rec-card-main">'
+        + '<div class="d-flex justify-content-between align-items-start">'
+        + '<div class="rec-card-title"><i class="fas fa-user mr-1 text-primary"></i>'+escaparTextoRecurrente(item.cliente)+'</div>'
+        + '<span class="badge badge-'+estadoClase+'">'+estadoTexto+'</span></div>'
+        + '<div class="rec-card-meta">'
+        + '<span class="rec-chip"><i class="far fa-file-alt mr-1"></i>'+escaparTextoRecurrente(item.documento)+'</span>'
+        + '<span class="rec-chip"><i class="far fa-calendar-alt mr-1"></i>'+escaparTextoRecurrente(etiquetaPeriodicidadRecurrente(item.periodicidad))+'</span>'
+        + '<span class="rec-chip"><i class="fas fa-credit-card mr-1"></i>Crédito</span>'
+        + '<span class="rec-chip"><i class="fas fa-envelope mr-1"></i>Correo '+(parseInt(item.enviar_correo,10) === 1 ? 'activado' : 'desactivado')+'</span></div>'
+        + '<div class="rec-card-datos">'
+        + '<div class="rec-dato"><small>Próxima generación</small><strong>'+escaparTextoRecurrente(formatearFechaRecurrente(item.next_run_at))+'</strong></div>'
+        + '<div class="rec-dato"><small>Productos</small><strong>'+parseInt(item.cantidad_productos || 0,10)+' producto(s)</strong></div>'
+        + '<div class="rec-dato"><small>Total estimado</small><strong>'+escaparTextoRecurrente(formatearMontoRecurrente(item.total_estimado))+'</strong></div></div>'
+        + '<div class="rec-card-actions">'
+        + '<button type="button" class="btn btn-outline-primary btn-sm ver-detalle-recurrente" data-id="'+recId+'"><i class="fas fa-eye mr-1"></i>Ver detalle</button>'
+        + (estado === 1 ? '<button type="button" class="btn btn-outline-danger btn-sm cancelar-recurrente" data-id="'+recId+'"><i class="fas fa-ban mr-1"></i>Cancelar</button>' : '')
+        + '</div></div><div class="rec-detalle" id="rec-detalle-'+recId+'"></div></div>';
+    });
+    $listado.html(html);
+  }).fail(function(xhr, estado) {
+    var detalle = estado === 'timeout'
+      ? 'La consulta tardó demasiado. Verifique el PHP y la base de datos.'
+      : 'No se pudieron cargar las programaciones (HTTP '+(xhr.status || 0)+').';
+    $listado.html('<div class="alert alert-danger mb-0"><i class="fas fa-exclamation-triangle mr-1"></i>'+detalle+'</div>');
+  });
+}
+
+$(document).on('click', '#recargarRecurrentes', function() {
+  listarFacturasRecurrentes();
+});
+
+$(document).on('click', '.ver-detalle-recurrente', function() {
+  var $boton = $(this);
+  var recId = parseInt($boton.data('id'), 10);
+  var $detalle = $('#rec-detalle-' + recId);
+  if (!recId || !$detalle.length) return;
+
+  if ($detalle.is(':visible')) {
+    $detalle.slideUp(150);
+    $boton.html('<i class="fas fa-eye mr-1"></i>Ver detalle');
+    return;
+  }
+  $detalle.slideDown(150);
+  $boton.html('<i class="fas fa-eye-slash mr-1"></i>Ocultar detalle');
+  if ($detalle.data('cargado')) return;
+
+  var productos = detallesFacturasRecurrentes[recId] || [];
+  var totalDetalle = 0;
+  var html = '';
+    if (productos.length === 0) {
+      html += '<div class="text-muted">Esta programación no tiene productos guardados.</div>';
+    } else {
+      html += '<div class="rec-producto font-weight-bold text-muted"><span>Producto</span><span>Cantidad</span><span>Precio</span><span>Total</span></div>';
+      productos.forEach(function(producto) {
+        totalDetalle += parseFloat(producto.total_linea || 0);
+        html += '<div class="rec-producto"><strong>'+escaparTextoRecurrente(producto.producto)+'</strong>'
+          + '<span>'+escaparTextoRecurrente(producto.cantidad)+' '+escaparTextoRecurrente(producto.medida || '')+'</span>'
+          + '<span>'+escaparTextoRecurrente(formatearMontoRecurrente(producto.precio))+'</span>'
+          + '<span>'+escaparTextoRecurrente(formatearMontoRecurrente(producto.total_linea))+'</span></div>';
+      });
+      html += '<div class="rec-detalle-total">Total programado: '+escaparTextoRecurrente(formatearMontoRecurrente(totalDetalle))+'</div>';
+    }
+    $detalle.data('cargado', true).html(html);
+});
+
+$(document).on('click', '.cancelar-recurrente', function() {
+  var recId = parseInt($(this).data('id'), 10);
+  if (!recId) {
+    showNotify('error', 'Recurrencia inválida', 'No se pudo identificar la recurrencia que desea cancelar.');
+    return;
+  }
+
+  swal({
+    title: 'Cancelar factura recurrente',
+    text: '¿Está seguro de cancelar esta programación? Ya no se generarán nuevas facturas de esta recurrencia.',
+    icon: 'warning',
+    buttons: {
+      cancel: {
+        text: 'No, mantener activa',
+        visible: true,
+        closeModal: true
+      },
+      confirm: {
+        text: 'Sí, cancelar',
+        closeModal: false
+      }
+    },
+    dangerMode: true,
+    closeOnEsc: false,
+    closeOnClickOutside: false
+  }).then(function(confirmarCancelacion) {
+    if (confirmarCancelacion !== true) return;
+
+    $.ajax({
+      type: 'POST',
+      url: '<?php echo SERVERURL;?>core/facturas/cancelarFacturaRecurrente.php',
+      dataType: 'json',
+      data: { rec_id: recId }
+    }).done(function(res) {
+      swal.close();
+      if (res && res.ok === true) {
+        showNotify('success', 'Recurrencia cancelada', res.msg || 'La programación fue cancelada correctamente.');
+        listarFacturasRecurrentes();
+      } else {
+        showNotify('error', 'No se pudo cancelar', (res && res.msg) || 'No se pudo cancelar la recurrencia.');
+      }
+    }).fail(function() {
+      swal.close();
+      showNotify('error', 'Error de comunicación', 'No fue posible comunicarse con el servidor para cancelar la recurrencia.');
+    });
   });
 });
 

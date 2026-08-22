@@ -1,9 +1,74 @@
 <script>
-$(() => {
-    getEstadoProveedores();
+/* =========================================================
+   PERMISOS ASÍNCRONOS EXCLUSIVOS DEL DATATABLE PROVEEDORES
+   - No modifica permisos globales, navbar ni menús.
+   - Evita getPrivilegioTipoUsuario() síncrono en cada draw.
+   ========================================================= */
+var proveedoresPermisosDataTablePromise = null;
 
-    listar_proveedores();
+function proveedoresParseJsonSeguro(valor, respaldo) {
+    if (valor !== null && typeof valor === 'object') {
+        return valor;
+    }
+
+    try {
+        return JSON.parse(valor || '');
+    } catch (error) {
+        return respaldo;
+    }
+}
+
+function aplicarPermisosProveedoresDataTableAsync() {
+    if (!proveedoresPermisosDataTablePromise) {
+        proveedoresPermisosDataTablePromise = $.ajax({
+            type: 'POST',
+            url: '<?php echo SERVERURL;?>core/getPrivilegioUsuarioTipo.php',
+            timeout: 30000
+        }).then(function(respuestaTipoUsuario) {
+            var tipoUsuario = proveedoresParseJsonSeguro(respuestaTipoUsuario, []);
+
+            return $.ajax({
+                type: 'POST',
+                url: '<?php echo SERVERURL;?>core/getTipoUsuarioAccesos.php',
+                data: {
+                    permisos_tipo_user_id: tipoUsuario[0]
+                },
+                timeout: 30000
+            });
+        }).then(function(respuestaPermisos) {
+            return proveedoresParseJsonSeguro(respuestaPermisos, []);
+        }).catch(function(error) {
+            proveedoresPermisosDataTablePromise = null;
+            throw error;
+        });
+    }
+
+    return proveedoresPermisosDataTablePromise.then(function(permisos) {
+        permisos.forEach(function(permiso) {
+            var $controles = $('.table_' + permiso.tipo_permiso);
+            var habilitado = Number(permiso.estado) === 1;
+
+            $controles.toggle(habilitado).prop('disabled', !habilitado);
+        });
+    }).catch(function(error) {
+        console.error('No se pudieron aplicar los permisos de Proveedores.', error);
+    });
+}
+
+$(() => {
     getDepartamentoProveedores();
+
+    // Primero llena el filtro Estado y después carga la tabla.
+    // Evita enviar estado=null/estado= mientras el select aún está cargando.
+    getEstadoProveedores().always(function() {
+        var $estado = $('#form_main_proveedores #estado_proveedores');
+
+        if ($estado.val() === null || $estado.val() === undefined || $estado.val() === '') {
+            $estado.val('1').selectpicker('refresh');
+        }
+
+        listar_proveedores();
+    });
 
     // Evento para el botón de Buscar (submit)
     $('#form_main_proveedores #search').on("click", function(e) {
@@ -54,7 +119,12 @@ $('#form_main_proveedores #buscar_proveedores').on('click', function(e) {
 
 //INICIO ACCIONES FROMULARIO PROVEEDORES
 var listar_proveedores = function() {
-    var estado = $('#form_main_proveedores #estado_proveedores').val() === "" ? 1 : $('#form_main_proveedores #estado_proveedores').val();
+    var estadoSeleccionado = $('#form_main_proveedores #estado_proveedores').val();
+    var estado = (
+        estadoSeleccionado === null ||
+        estadoSeleccionado === undefined ||
+        estadoSeleccionado === ''
+    ) ? 1 : estadoSeleccionado;
 
     if ($.fn.DataTable.isDataTable("#dataTableProveedores")) {
         $("#dataTableProveedores").DataTable().clear().destroy();
@@ -64,13 +134,17 @@ var listar_proveedores = function() {
 
     var table_proveedores = $("#dataTableProveedores").DataTable({
         destroy: true,
+        processing: true,
+        deferRender: true,
+        searchDelay: 350,
 
         ajax: {
             method: "POST",
             url: "<?php echo SERVERURL;?>core/llenarDataTableProveedores.php",
             data: {
                 estado: estado
-            }
+            },
+            timeout: 30000
         },
 
         columns: [
@@ -160,6 +234,11 @@ var listar_proveedores = function() {
 
         lengthMenu: lengthMenu10,
         stateSave: true,
+        stateLoadParams: function(settings, data) {
+            if (data && data.search) {
+                data.search.search = "";
+            }
+        },
         bDestroy: true,
         language: idioma_español,
         dom: dom,
@@ -257,15 +336,13 @@ var listar_proveedores = function() {
         ],
 
         drawCallback: function(settings) {
-            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+            aplicarPermisosProveedoresDataTableAsync();
 
             if (typeof cerrarDropdownAcciones === "function") {
                 cerrarDropdownAcciones();
             }
         }
     });
-
-    table_proveedores.search("").draw();
 
     $("#buscar").focus();
 
@@ -401,8 +478,8 @@ var eliminar_proveedores_dataTable = function(tbody, table) {
                         
                         if(response.status === "success") {
                             showNotify("success", response.title, response.message);
-                            table.ajax.reload(null, false); // Recargar tabla sin resetear paginación
-                            table.search('').draw();                    
+                            table.search('');
+                            table.ajax.reload(null, false); // Recargar una sola vez sin resetear paginación
                         } else {
                             showNotify("error", response.title, response.message);
                         }
@@ -447,27 +524,31 @@ $('#editar_rtn_proveedores').on('click', function(e) {
 });
 
 function editRTNProvider(proveedores_id, rtn) {
-    swal({
-        title: "¿Estas seguro?",
-        text: "¿Desea editar el RTN para el proveedor: " + getNombreProveedor(proveedores_id) + "?",
-        icon: "warning",
-        buttons: {
-            cancel: {
-                text: "Cancelar",
-                visible: true,
-                closeModal: true
+    getNombreProveedor(proveedores_id).then(function(nombreProveedor) {
+        return swal({
+            title: "¿Estas seguro?",
+            text: "¿Desea editar el RTN para el proveedor: " + nombreProveedor + "?",
+            icon: "warning",
+            buttons: {
+                cancel: {
+                    text: "Cancelar",
+                    visible: true,
+                    closeModal: true
+                },
+                confirm: {
+                    text: "¡Sí, deseo editarlo!",
+                    className: "btn-primary"
+                }
             },
-            confirm: {
-                text: "¡Sí, deseo editarlo!",
-                className: "btn-primary"
-            }
-        },
-        closeOnClickOutside: false,
-        closeOnEsc: false
-    }).then((willConfirm) => {
+            closeOnClickOutside: false,
+            closeOnEsc: false
+        });
+    }).then(function(willConfirm) {
         if (willConfirm === true) {
             editRTNProveedor(proveedores_id, rtn);
         }
+    }).catch(function() {
+        showNotify('error', 'Error', 'No se pudo consultar la información del proveedor');
     });
 }
 
@@ -477,7 +558,6 @@ function editRTNProveedor(proveedores_id, rtn) {
     $.ajax({
         type: 'POST',
         url: url,
-        async: false,
         data: 'proveedores_id=' + proveedores_id + '&rtn=' + rtn,
         success: function(data) {
             if (data == 1) {
@@ -495,21 +575,16 @@ function editRTNProveedor(proveedores_id, rtn) {
 
 function getNombreProveedor(proveedores_id) {
     var url = '<?php echo SERVERURL; ?>core/getNombreProveedor.php';
-    var nombreProveedor = '';
 
-    $.ajax({
+    return $.ajax({
         type: 'POST',
         url: url,
-        async: false,
         data: 'proveedores_id=' + proveedores_id,
-        success: function(data) {
-            var datos = eval(data);
-            nombreProveedor = datos[0];
-        }
+        timeout: 30000
+    }).then(function(data) {
+        var datos = proveedoresParseJsonSeguro(data, []);
+        return datos[0] || '';
     });
-
-    return nombreProveedor;
-
 }
 //FIN EDITAR RTN PROVEEDORES
 //FIN ACCIONES FROMULARIO PROVEEDORES
@@ -535,13 +610,14 @@ $('#formProveedores .switch').change(function() {
 function getEstadoProveedores() {
     var url = '<?php echo SERVERURL;?>core/getEstado.php';
 
-    $.ajax({
+    return $.ajax({
         type: "POST",
         url: url,
         async: true,
         success: function(data) {
             $('#form_main_proveedores #estado_proveedores').html("");
             $('#form_main_proveedores #estado_proveedores').html(data);
+            $('#form_main_proveedores #estado_proveedores').val('1');
             $('#form_main_proveedores #estado_proveedores').selectpicker('refresh');
         }
     });

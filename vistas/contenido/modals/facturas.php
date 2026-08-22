@@ -574,7 +574,7 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
     #recurringBillModal .rec-producto{grid-template-columns:1fr 1fr;}
   }
 </style>
-<div class="modal fade" id="recurringBillModal" tabindex="-1" role="dialog" aria-labelledby="recurringBillModalLabel" aria-hidden="true">
+<div class="modal fade" id="recurringBillModal" tabindex="-1" role="dialog" aria-labelledby="recurringBillModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="true">
   <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-header py-2">

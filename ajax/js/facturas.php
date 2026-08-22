@@ -166,6 +166,54 @@ function getAperturaIdCajaUsuario() {
 }
 
 /* =========================================================
+   SINCRONIZAR UI DESPUÉS DE ABRIR/CERRAR CAJA
+   ---------------------------------------------------------
+   El estado de caja se mantiene en caché para no bloquear la UI.
+   Después de una apertura o cierre exitoso se debe invalidar ese
+   caché y consultar nuevamente antes de habilitar los botones.
+========================================================= */
+function sincronizarEstadoCajaFacturacion() {
+    izzyCajaUsuarioCache.cargado = false;
+
+    return cargarEstadoCajaUsuario(true).always(function () {
+        if (typeof validarAperturaCajaUsuario === 'function') {
+            validarAperturaCajaUsuario();
+        }
+
+        if (typeof getCajero === 'function') {
+            getCajero();
+        }
+
+        if (typeof getTotalFacturasDisponibles === 'function') {
+            getTotalFacturasDisponibles();
+        }
+    });
+}
+
+if (!window.__sincronizacionEstadoCajaFacturaRegistrada) {
+    window.__sincronizacionEstadoCajaFacturaRegistrada = true;
+
+    $(document)
+        .off('ajaxComplete.sincronizarCajaFactura')
+        .on('ajaxComplete.sincronizarCajaFactura', function (event, xhr, settings) {
+            var url = String((settings && settings.url) || '').toLowerCase();
+            var cambioEstadoCaja =
+                url.indexOf('addaperturacajaajax.php') !== -1 ||
+                url.indexOf('addcierrecajafacturasajax.php') !== -1;
+
+            if (!cambioEstadoCaja) {
+                return;
+            }
+
+            // El formulario general ya mostró la notificación. Aquí solamente
+            // sincronizamos el estado confirmado por el servidor y la interfaz.
+            setTimeout(function () {
+                sincronizarEstadoCajaFacturacion();
+            }, 150);
+        });
+}
+
+/* =========================================================
    INICIO - RETIRO DE CAJA DIRECTO DESDE FACTURACIÓN
    Botón: #btn_retiro_caja
 

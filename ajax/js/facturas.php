@@ -7812,6 +7812,11 @@ function hayEncabezado(){
 
 /* Abrir modal de recurrencia */
 $(document).on('click', '#addRecurringBill', function(){
+  // Cada vez que se abre el modal se muestran únicamente las programaciones
+  // pendientes/activas. Finalizadas y canceladas quedan disponibles mediante
+  // los filtros, pero no saturan el listado principal.
+  filtroEstadoRecurrente = '1';
+
   // Al abrir una nueva programación se habilita nuevamente el guardado.
   $('#confirmRecurring')
     .prop('disabled', false)
@@ -8020,6 +8025,52 @@ var detallesFacturasRecurrentes = {};
 var solicitudListadoRecurrentes = null;
 var temporizadorListadoRecurrentes = null;
 var firmaListadoRecurrentes = '';
+var filtroEstadoRecurrente = '1';
+
+function pintarResumenFacturasRecurrentes(resumen) {
+  resumen = resumen || {};
+  $('#rec_kpi_activas').text(parseInt(resumen.activas || 0, 10).toLocaleString('es-HN'));
+  $('#rec_kpi_generadas').text(parseInt(resumen.generadas || 0, 10).toLocaleString('es-HN'));
+  $('#rec_kpi_correos').text(parseInt(resumen.correos_enviados || 0, 10).toLocaleString('es-HN'));
+  $('#rec_kpi_errores').text(parseInt(resumen.errores || 0, 10).toLocaleString('es-HN'));
+  $('#rec_kpi_total').text(formatearMontoRecurrente(resumen.total_facturado || 0));
+  $('#rec_kpi_proxima').text(resumen.proxima_generacion ? formatearFechaRecurrente(resumen.proxima_generacion) : 'Sin programación');
+  $('#rec_kpi_actualizado').text('Resumen actualizado automáticamente');
+}
+
+function aplicarFiltroEstadoRecurrente() {
+  var $listado = $('#listaFacturasRecurrentes');
+  var $tarjetas = $listado.find('.rec-card');
+  var visibles = 0;
+
+  $tarjetas.each(function() {
+    var coincide = filtroEstadoRecurrente === 'todas' || String($(this).data('estado')) === filtroEstadoRecurrente;
+    $(this).toggle(coincide);
+    if (coincide) visibles++;
+  });
+
+  $listado.find('.rec-filtro-vacio').remove();
+  if ($tarjetas.length && visibles === 0) {
+    var nombres = { '1':'pendientes', '2':'canceladas', '3':'finalizadas' };
+    var texto = nombres[filtroEstadoRecurrente] || 'con este filtro';
+    $listado.append('<div class="rec-filtro-vacio" style="display:block"><i class="far fa-calendar-times fa-2x d-block mb-2"></i>No hay programaciones '+texto+'.</div>');
+  }
+
+  $('.rec-filtro-estado').removeClass('active')
+    .filter('[data-estado="'+filtroEstadoRecurrente+'"]').addClass('active');
+}
+
+function actualizarCantidadesFiltroRecurrente(datos) {
+  var cantidades = { '1':0, '2':0, '3':0 };
+  (datos || []).forEach(function(item) {
+    var estado = String(parseInt(item.estado, 10));
+    if (Object.prototype.hasOwnProperty.call(cantidades, estado)) cantidades[estado]++;
+  });
+  $('#rec_cantidad_pendientes').text(cantidades['1']);
+  $('#rec_cantidad_canceladas').text(cantidades['2']);
+  $('#rec_cantidad_finalizadas').text(cantidades['3']);
+  $('#rec_cantidad_todas').text((datos || []).length);
+}
 
 function listarFacturasRecurrentes(opciones) {
   opciones = opciones || {};
@@ -8046,9 +8097,12 @@ function listarFacturasRecurrentes(opciones) {
       return;
     }
 
+    pintarResumenFacturasRecurrentes(res.resumen);
+
     if (!Array.isArray(res.data) || res.data.length === 0) {
       if (silencioso && firmaListadoRecurrentes === '[]') return;
       firmaListadoRecurrentes = '[]';
+      actualizarCantidadesFiltroRecurrente([]);
       $listado.html('<div class="text-center text-muted py-4"><i class="far fa-calendar-times fa-2x d-block mb-2"></i>No hay programaciones registradas.</div>');
       return;
     }
@@ -8061,13 +8115,14 @@ function listarFacturasRecurrentes(opciones) {
 
     var html = '';
     detallesFacturasRecurrentes = {};
+    actualizarCantidadesFiltroRecurrente(res.data);
     res.data.forEach(function(item) {
       var estado = parseInt(item.estado, 10);
       var estadoTexto = estado === 1 ? 'Activa' : (estado === 2 ? 'Cancelada' : 'Finalizada');
       var estadoClase = estado === 1 ? 'success' : (estado === 2 ? 'danger' : 'secondary');
       var recId = parseInt(item.rec_id, 10);
       detallesFacturasRecurrentes[recId] = Array.isArray(item.detalle) ? item.detalle : [];
-      html += '<div class="rec-card">'
+      html += '<div class="rec-card" data-estado="'+estado+'">'
         + '<div class="rec-card-main">'
         + '<div class="d-flex justify-content-between align-items-start">'
         + '<div class="rec-card-title"><i class="fas fa-user mr-1 text-primary"></i>'+escaparTextoRecurrente(item.cliente)+'</div>'
@@ -8087,6 +8142,7 @@ function listarFacturasRecurrentes(opciones) {
         + '</div></div><div class="rec-detalle" id="rec-detalle-'+recId+'"></div></div>';
     });
     $listado.html(html);
+    aplicarFiltroEstadoRecurrente();
   }).fail(function(xhr, estado) {
     // Una actualización automática fallida no reemplaza un listado que ya
     // estaba visible. El siguiente ciclo volverá a intentarlo.
@@ -8101,6 +8157,11 @@ function listarFacturasRecurrentes(opciones) {
 
   return solicitudListadoRecurrentes;
 }
+
+$(document).on('click', '.rec-filtro-estado', function() {
+  filtroEstadoRecurrente = String($(this).data('estado') || '1');
+  aplicarFiltroEstadoRecurrente();
+});
 
 function detenerActualizacionRecurrentes() {
   if (temporizadorListadoRecurrentes) {

@@ -546,6 +546,23 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
   #recurringBillModal .rec-panel{height:100%;padding:.25rem .75rem;}
   #recurringBillModal .rec-panel-listado{border-left:1px solid #e4e9ef;}
   #recurringBillModal .rec-listado-contenedor{max-height:510px;overflow:auto;padding:2px 5px 8px 2px;}
+  #recurringBillModal .rec-dashboard{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 14px;}
+  #recurringBillModal .rec-kpi{position:relative;min-height:78px;padding:11px 12px 10px 44px;border:1px solid #e1e8ef;border-radius:9px;background:#f8fafc;overflow:hidden;}
+  #recurringBillModal .rec-kpi i{position:absolute;left:12px;top:13px;width:23px;height:23px;display:flex;align-items:center;justify-content:center;border-radius:7px;background:#e7f4fd;color:#248fd2;font-size:.82rem;}
+  #recurringBillModal .rec-kpi small{display:block;color:#788694;font-size:.65rem;font-weight:700;line-height:1.15;text-transform:uppercase;letter-spacing:.02em;}
+  #recurringBillModal .rec-kpi strong{display:block;margin-top:5px;color:#203345;font-size:1.05rem;line-height:1.15;overflow-wrap:anywhere;}
+  #recurringBillModal .rec-kpi.rec-kpi-error i{background:#fdebec;color:#d6424b;}
+  #recurringBillModal .rec-kpi.rec-kpi-total i{background:#e8f7ef;color:#238653;}
+  #recurringBillModal .rec-kpi.rec-kpi-total strong{color:#187443;}
+  #recurringBillModal .rec-kpi.rec-kpi-proxima strong{font-size:.76rem;line-height:1.3;}
+  #recurringBillModal .rec-dashboard-estado{grid-column:1/-1;margin-top:-5px;color:#788694;font-size:.72rem;text-align:right;}
+  #recurringBillModal .rec-filtros-estado{display:flex;align-items:center;gap:5px;margin:0 0 10px;padding:4px;border:1px solid #e0e7ee;border-radius:9px;background:#f6f8fa;overflow-x:auto;scrollbar-width:thin;}
+  #recurringBillModal .rec-filtro-estado{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:31px;padding:5px 9px;border:0;border-radius:7px;background:transparent;color:#637282;font-size:.73rem;font-weight:700;white-space:nowrap;cursor:pointer;transition:background .15s ease,color .15s ease,box-shadow .15s ease;}
+  #recurringBillModal .rec-filtro-estado:hover{background:#eaf2f8;color:#267fb8;}
+  #recurringBillModal .rec-filtro-estado.active{background:#3199df;color:#fff;box-shadow:0 2px 6px rgba(28,107,158,.22);}
+  #recurringBillModal .rec-filtro-cantidad{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;padding:0 5px;border-radius:9px;background:rgba(255,255,255,.85);color:#496173;font-size:.65rem;}
+  #recurringBillModal .rec-filtro-estado:not(.active) .rec-filtro-cantidad{background:#e5ebf0;}
+  #recurringBillModal .rec-filtro-vacio{display:none;text-align:center;color:#788694;padding:26px 12px;}
   #recurringBillModal .rec-card{border:1px solid #dde5ed;border-radius:10px;background:#fff;margin-bottom:10px;box-shadow:0 2px 7px rgba(18,38,63,.06);overflow:hidden;}
   #recurringBillModal .rec-card-main{padding:12px 14px;}
   #recurringBillModal .rec-card-title{font-weight:700;color:#1f3142;font-size:.96rem;}
@@ -572,7 +589,9 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
     #recurringBillModal .rec-panel-listado{border-left:0;border-top:1px solid #e4e9ef;margin-top:1rem;padding-top:1rem;}
     #recurringBillModal .rec-card-datos{grid-template-columns:1fr;}
     #recurringBillModal .rec-producto{grid-template-columns:1fr 1fr;}
+    #recurringBillModal .rec-dashboard{grid-template-columns:repeat(2,minmax(0,1fr));}
   }
+  @media (max-width:575.98px){#recurringBillModal .rec-dashboard{grid-template-columns:1fr;}}
 </style>
 <div class="modal fade" id="recurringBillModal" tabindex="-1" role="dialog" aria-labelledby="recurringBillModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="true">
   <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
@@ -670,6 +689,21 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
           <button type="button" class="btn btn-light btn-sm" id="recargarRecurrentes" title="Actualizar">
             <i class="fas fa-sync-alt"></i>
           </button>
+        </div>
+        <div class="rec-dashboard" id="resumenFacturasRecurrentes" aria-live="polite">
+          <div class="rec-kpi"><i class="fas fa-sync-alt"></i><small>Recurrencias activas</small><strong id="rec_kpi_activas">—</strong></div>
+          <div class="rec-kpi"><i class="fas fa-file-invoice"></i><small>Facturas generadas</small><strong id="rec_kpi_generadas">—</strong></div>
+          <div class="rec-kpi"><i class="fas fa-envelope"></i><small>Correos enviados</small><strong id="rec_kpi_correos">—</strong></div>
+          <div class="rec-kpi rec-kpi-error"><i class="fas fa-exclamation-triangle"></i><small>Ejecuciones con error</small><strong id="rec_kpi_errores">—</strong></div>
+          <div class="rec-kpi rec-kpi-total"><i class="fas fa-coins"></i><small>Total facturado</small><strong id="rec_kpi_total">—</strong></div>
+          <div class="rec-kpi rec-kpi-proxima"><i class="fas fa-calendar-alt"></i><small>Próxima generación</small><strong id="rec_kpi_proxima">—</strong></div>
+          <div class="rec-dashboard-estado" id="rec_kpi_actualizado"></div>
+        </div>
+        <div class="rec-filtros-estado" id="filtrosFacturasRecurrentes" role="group" aria-label="Filtrar programaciones por estado">
+          <button type="button" class="rec-filtro-estado active" data-estado="1"><i class="far fa-clock"></i>Pendientes <span class="rec-filtro-cantidad" id="rec_cantidad_pendientes">0</span></button>
+          <button type="button" class="rec-filtro-estado" data-estado="3"><i class="fas fa-check-circle"></i>Finalizadas <span class="rec-filtro-cantidad" id="rec_cantidad_finalizadas">0</span></button>
+          <button type="button" class="rec-filtro-estado" data-estado="2"><i class="fas fa-ban"></i>Canceladas <span class="rec-filtro-cantidad" id="rec_cantidad_canceladas">0</span></button>
+          <button type="button" class="rec-filtro-estado" data-estado="todas"><i class="fas fa-layer-group"></i>Todas <span class="rec-filtro-cantidad" id="rec_cantidad_todas">0</span></button>
         </div>
         <div class="rec-listado-contenedor" id="listaFacturasRecurrentes">
           <div class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin mr-1"></i>Cargando...</div>

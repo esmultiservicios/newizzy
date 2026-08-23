@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', function () {
   let clienteSeleccionado = { id: 0, nombre: 'CONSUMIDOR FINAL', identificacion: '' };
   let promocionesVigentes = {};
   var cajaAbierta = false;
+  let ultimoEstadoCajaConfirmado = null;
   var lastState = null;
   let servicioActual = 'mesa'; // 'mesa' | 'llevar'
   let PROMOS_VIGENTES = {};    // Mapa de promociones por producto
@@ -628,11 +629,33 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ====== Inicio ======
-  init();
+  // El salvavidas se programa ANTES de ejecutar init().
+  // Así ningún error de inicialización puede dejar el POS oculto.
+  const rsBootFailsafeTimer = window.setTimeout(function(){
+    finalizarCargaInicialRestaurante();
+  }, 6500);
+
+  Promise.resolve()
+    .then(function(){ return init(); })
+    .catch(function(error){
+      console.error('[Restaurante] Error durante la carga inicial:', error);
+      finalizarCargaInicialRestaurante();
+      if(typeof showNotify==='function'){
+        showNotify('error','Punto de venta','Una parte del módulo no respondió durante la carga. La pantalla fue liberada para evitar que quede bloqueada.');
+      }
+    });
 
   function finalizarCargaInicialRestaurante(){
     if (rsBootFinished) return;
     rsBootFinished = true;
+
+    try { window.clearTimeout(rsBootFailsafeTimer); } catch(_){}
+    try {
+      if (window.__RS_BOOT_EMERGENCY) {
+        window.clearTimeout(window.__RS_BOOT_EMERGENCY);
+        window.__RS_BOOT_EMERGENCY = null;
+      }
+    } catch(_){}
 
     const container = document.querySelector('.restaurante-container');
     if (container) container.classList.remove('rs-boot-pending');
@@ -655,9 +678,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     window.requestAnimationFrame(finalizarCargaInicialRestaurante);
   }
-
-  // Failsafe: jamás dejar la interfaz oculta si una petición externa tarda demasiado.
-  window.setTimeout(finalizarCargaInicialRestaurante, 5000);
 
   function resetVentaNuevaLocal(){
     facturaActual = null;
@@ -740,10 +760,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // Refresco periódico sin duplicar solicitudes ni solapar ciclos previos
+  // Refresco periódico estable: no repinta si el estado no cambió y
+  // no consulta mientras la pestaña está oculta.
   setInterval(function () {
-    verificarAperturaCaja();
-  }, 5000);
+    if (document.visibilityState === 'visible') verificarAperturaCaja();
+  }, 15000);
 
    function getServicioTipo(){
       try {
@@ -1397,22 +1418,13 @@ function initHotkeys(){
       }
     }
   });
-
-  // Abrir modal de ayuda con clic (friendly para táctil)
-  const btnHelp = document.getElementById('btn-help');
-  if (btnHelp){
-    btnHelp.addEventListener('click', ()=>{
-      const modal = document.getElementById('modal-help');
-      if (modal) modal.style.display = 'block';
-    });
-  }
-}   
+}
   // ===========================================================
   //  AJAX de backend
   // ===========================================================
 
   // 1) Consulta si la caja está abierta (1) o cerrada (2) SIN bloquear la interfaz
-  function getConsultarAperturaCaja() {
+  function getConsultarAperturaCaja(intentos = 0) {
     return $.ajax({
       type: 'POST',
       url: BASE + 'core/getAperturaCajaUsuario.php',
@@ -1420,12 +1432,20 @@ function initHotkeys(){
     }).then(function (r) {
       try {
         var data = (typeof r === 'string') ? JSON.parse(r) : r;
-        return Number(Array.isArray(data) ? data[0] : (data && (data.estado || data[0]))) || 2;
+        var estado = Number(Array.isArray(data) ? data[0] : (data && (data.estado ?? data[0])));
+        return (estado === 1 || estado === 2) ? estado : null;
       } catch (e) {
-        return 2;
+        return null;
       }
-    }, function () {
-      return 2;
+    }, async function () {
+      // Un fallo temporal de red jamás debe convertirse visualmente
+      // en "caja cerrada". Reintentamos una vez y, si falla, conservamos
+      // el último estado confirmado.
+      if (intentos < 1) {
+        await new Promise(function(resolve){ setTimeout(resolve, 350); });
+        return getConsultarAperturaCaja(intentos + 1);
+      }
+      return null;
     });
   }
 
@@ -1513,30 +1533,49 @@ function initHotkeys(){
 
   // ===== Verificación de estado de caja y bloqueo de UI =====
   async function verificarAperturaCaja() {
-    if (cajaCheckEnCurso) return;
+    if (cajaCheckEnCurso) return null;
     cajaCheckEnCurso = true;
     try {
-      var estado = Number(await getConsultarAperturaCaja());
-      cajaAbierta = (estado === 1);
+      const estado = await getConsultarAperturaCaja();
 
-      // Actualizar botón de apertura/cierre
-      var $btn = $('#btn-apertura-caja');
-      if ($btn.length) {
-        if (cajaAbierta) {
-          $btn.removeClass('btn-primary').addClass('btn-warning')
-            .html('<i class="fas fa-lock mr-1"></i> Cerrar Caja')
-            .data('mode', 'cerrar');
-        } else {
-          $btn.removeClass('btn-warning').addClass('btn-primary')
-            .html('<i class="fas fa-lock-open mr-1"></i> Aperturar Caja')
-            .data('mode', 'abrir');
-        }
+      // null = no hubo respuesta confiable. Conservamos exactamente
+      // el último estado visual; jamás mostramos "caja cerrada" por timeout.
+      if (estado !== 1 && estado !== 2) {
+        await getTotalFacturasDisponibles();
+        return ultimoEstadoCajaConfirmado;
       }
 
-      toggleUIForCajaAbierta(cajaAbierta);
+      const nuevoAbierta = (estado === 1);
+      const cambioReal = (ultimoEstadoCajaConfirmado === null || ultimoEstadoCajaConfirmado !== estado);
+
+      cajaAbierta = nuevoAbierta;
+
+      // Solo tocamos el DOM si el servidor confirmó un cambio real.
+      // Así desaparece el efecto Aperturar/Cerrar/No disponible durante polling.
+      if (cambioReal) {
+        ultimoEstadoCajaConfirmado = estado;
+
+        var $btn = $('#btn-apertura-caja');
+        if ($btn.length) {
+          if (cajaAbierta) {
+            $btn.removeClass('btn-primary').addClass('btn-warning')
+              .html('<i class="fas fa-lock mr-1"></i> Cerrar Caja')
+              .data('mode', 'cerrar');
+          } else {
+            $btn.removeClass('btn-warning').addClass('btn-primary')
+              .html('<i class="fas fa-lock-open mr-1"></i> Aperturar Caja')
+              .data('mode', 'abrir');
+          }
+        }
+
+        toggleUIForCajaAbierta(cajaAbierta);
+      }
+
       await getTotalFacturasDisponibles();
+      return estado;
     } catch (e) {
-      showErrorState();
+      // Mantener la interfaz estable ante errores transitorios.
+      return ultimoEstadoCajaConfirmado;
     } finally {
       cajaCheckEnCurso = false;
     }
@@ -2059,12 +2098,6 @@ function initHotkeys(){
       setTimeout(function() {
         $('#modal-combos').find('input, select, textarea').first().focus();
       }, 100);
-    });
-
-    // Modal de ayuda
-    $(document).on('click', '#btn-help', function() {
-      $('#modal-help').show();
-      // No es necesario enfocar en el modal de ayuda ya que es principalmente de lectura
     });
     // ===== Búsqueda productos =====
     if (buscarProductoInput) {
@@ -5828,6 +5861,475 @@ function cargarReglasCombo(comboId){
       renderReglasCategoria(cur);
     });
   }
+
+  // ===========================================================
+  //  CENTRO DE AYUDA DINÁMICO
+  //  Solo documentación/UI. No modifica lógica de negocio.
+  // ===========================================================
+  const RS_HELP_TOPICS = [
+    {
+      id:'inicio', category:'Primeros pasos', icon:'fa-play-circle',
+      title:'Cómo iniciar una venta',
+      keywords:['inicio','nueva venta','empezar','venta','pedido','flujo'],
+      short:'El flujo básico para comenzar una venta desde cero.',
+      body:()=>`
+        <ol class="rs-help-steps">
+          <li><b>Revise la caja:</b> si está cerrada, primero debe aperturarla.</li>
+          ${usaMesasOperacion()
+            ? '<li><b>Elija el servicio:</b> Para llevar o En mesa. Si es En mesa, seleccione una mesa disponible.</li>'
+            : '<li><b>Venta directa:</b> agregue los productos; este negocio no requiere selección de mesa.</li>'}
+          <li><b>Seleccione el cliente:</b> puede usar Consumidor final o cambiarlo antes de cobrar.</li>
+          <li><b>Agregue productos:</b> use tarjetas, búsqueda o escáner de código.</li>
+          ${usaComandasOperacion()
+            ? '<li><b>Preparación:</b> los artículos asignados a Cocina/Barra pueden enviarse a sus pantallas o ticket de orden.</li>'
+            : ''}
+          <li><b>Finalice:</b> cobre de inmediato o guarde la cuenta para continuarla más tarde.</li>
+        </ol>`
+    },
+    {
+      id:'cuenta-abierta', category:'Ventas y cuentas', icon:'fa-folder-open',
+      title:'¿Qué es una cuenta abierta?',
+      keywords:['cuenta','cuenta abierta','abierta','guardar cuenta','borrador','pendiente','recuperar'],
+      short:'Una venta guardada que todavía no ha sido cobrada ni finalizada.',
+      body:()=>`
+        <p>Una <b>cuenta abierta</b> conserva cliente, productos, cantidades, mesa cuando aplica y el avance de preparación, pero todavía no representa una venta final pagada.</p>
+        <div class="rs-help-callout"><i class="fas fa-lightbulb"></i><span>Úsela cuando el cliente seguirá pidiendo productos y desea cobrar todo al final.</span></div>
+        <ul>
+          <li><b>Guardar cuenta:</b> conserva la venta actual sin cobrarla.</li>
+          <li><b>Cuentas abiertas:</b> muestra únicamente cuentas que siguen activas.</li>
+          <li><b>Recuperar:</b> abre la misma factura; no crea una factura duplicada.</li>
+          <li><b>Cerrar cuenta:</b> permite cerrar una cuenta que ya no se utilizará, según las validaciones del sistema.</li>
+          <li>Las cuentas pagadas, canceladas o finalizadas <b>no deben volver a cargarse</b> como abiertas.</li>
+        </ul>`
+    },
+    {
+      id:'factura-vs-cuenta', category:'Ventas y cuentas', icon:'fa-file-invoice',
+      title:'Cuenta abierta, comanda y factura: diferencias',
+      keywords:['factura','comanda','cuenta abierta','diferencia','orden'],
+      short:'Cada concepto cumple una función diferente.',
+      body:()=>`
+        <div class="rs-help-compare">
+          <div><b>Cuenta abierta</b><span>Venta guardada que todavía puede modificarse y cobrarse después.</span></div>
+          <div><b>Comanda / orden</b><span>Información de preparación enviada a Cocina/Barra. No sustituye la factura fiscal.</span></div>
+          <div><b>Factura</b><span>Documento final generado por el proceso normal de facturación al completar el cobro.</span></div>
+        </div>`
+    },
+    {
+      id:'mesas', category:'Servicio', icon:'fa-chair',
+      title:'Mesas',
+      keywords:['mesa','mesas','ocupada','disponible','liberar','comer aqui','en mesa'],
+      short:'Cómo seleccionar, ocupar, recuperar y liberar mesas.',
+      visible:()=>usaMesasOperacion(),
+      body:()=>`
+        <ul>
+          <li>Una mesa <b>Disponible</b> puede iniciar una venta nueva.</li>
+          <li>Una mesa <b>Ocupada</b> normalmente está vinculada a una cuenta activa del día.</li>
+          <li>En móvil, si una mesa tiene una cuenta existente, el sistema le pide confirmación antes de recuperarla.</li>
+          <li>Las cuentas anteriores pueden conservarse para consulta sin mantener ocupada la mesa indefinidamente.</li>
+          <li>Al cobrar/cerrar correctamente la cuenta, la mesa debe quedar disponible según el flujo configurado.</li>
+        </ul>`
+    },
+    {
+      id:'para-llevar', category:'Servicio', icon:'fa-bag-shopping',
+      title:'Para llevar / venta directa',
+      keywords:['para llevar','llevar','venta directa','sin mesa'],
+      short:'Venta que no necesita una mesa.',
+      body:()=>`
+        <p><b>Para llevar</b> permite vender sin asignar mesa. Puede cambiar cliente, guardar una cuenta o cobrar normalmente.</p>
+        ${usaComandasOperacion()
+          ? '<p>Si contiene productos de preparación, esos productos pueden enviarse a Cocina/Barra aunque el pedido sea Para llevar.</p>'
+          : '<p>Si las comandas están desactivadas, la venta funciona sin enviar órdenes a pantallas de preparación.</p>'}`
+    },
+    {
+      id:'comandas', category:'Preparación', icon:'fa-clipboard-list',
+      title:'Comandas y preparación',
+      keywords:['comanda','cocina','barra','preparacion','enviar cocina','actualizar cocina','orden'],
+      short:'Qué se envía a preparación y cómo se actualiza.',
+      visible:()=>usaComandasOperacion(),
+      body:()=>`
+        <p>La <b>comanda</b> es la orden interna de preparación. Los productos se separan por su estación configurada.</p>
+        <ul>
+          <li><b>Enviar a cocina/preparación:</b> guarda la cuenta cuando corresponde y envía los productos pendientes.</li>
+          <li><b>Actualizar cocina:</b> aparece al recuperar una cuenta que ya había enviado productos anteriormente.</li>
+          <li>El envío es <b>incremental</b>: si ya se enviaron 1 papas y luego agrega otra, se envía únicamente la nueva cantidad.</li>
+          <li>Un artículo ya finalizado en cocina no debe reaparecer como nuevo salvo que se agregue otra unidad/pedido.</li>
+          <li>Los productos de Barra no deben aparecer en la pantalla de Cocina y viceversa.</li>
+        </ul>`
+    },
+    {
+      id:'estaciones', category:'Preparación', icon:'fa-fire-burner',
+      title:'Cocina, Barra y grupos de preparación',
+      keywords:['cocina','barra','grupo','estacion','estación','filtros'],
+      short:'Clasificación interna de productos para preparación.',
+      body:()=>`
+        <p>Cocina y Barra son los dos grupos internos usados para clasificar productos. Sus nombres visibles pueden configurarse cuando el módulo usa comandas.</p>
+        <p>Además existen las <b>categorías comerciales</b> (por ejemplo Bebidas, Entradas, Comida), que sirven para organizar el catálogo y son independientes de la estación de preparación.</p>`
+    },
+    {
+      id:'cocina-estados', category:'Preparación', icon:'fa-kitchen-set',
+      title:'Estados en la pantalla de Cocina',
+      keywords:['pendiente','urgente','preparacion','finalizar','cocina estado'],
+      short:'Cómo interpretar Pendiente, En preparación, Urgente y Finalizado.',
+      visible:()=>usaComandasOperacion(),
+      body:()=>`
+        <ul>
+          <li><b>Pendiente:</b> la orden llegó y espera atención.</li>
+          <li><b>En preparación:</b> cocina ya comenzó a trabajarla.</li>
+          <li><b>Urgente:</b> prioridad visual para llamar la atención; no debe duplicarse el indicador.</li>
+          <li><b>Finalizar:</b> marca la orden como completada y deja de aparecer entre pendientes.</li>
+        </ul>
+        <p>El flujo puede configurarse como paso a paso o finalización directa.</p>`
+    },
+    {
+      id:'tickets', category:'Documentos', icon:'fa-receipt',
+      title:'Ticket de comanda / ticket de venta',
+      keywords:['ticket','ticket comanda','ticket venta','imprimir','impresora','orden'],
+      short:'Comprobante interno de la orden, separado de la factura fiscal.',
+      body:()=>`
+        <p>El ticket de orden sirve para preparación o control interno. <b>No reemplaza la factura fiscal.</b></p>
+        <ul>
+          <li>En modo restaurante/comandas puede llamarse <b>Ticket de comanda</b>.</li>
+          <li>En venta directa puede mostrarse como <b>Ticket de venta</b>.</li>
+          <li>La salida de la comanda permite decidir si se usa pantalla, ticket o el comportamiento configurado.</li>
+          <li>La factura fiscal conserva su impresión normal desde el módulo de facturación.</li>
+        </ul>`
+    },
+    {
+      id:'clientes', category:'Clientes', icon:'fa-user',
+      title:'Clientes y RTN',
+      keywords:['cliente','rtn','consumidor final','cambiar cliente','crear cliente'],
+      short:'Seleccionar el cliente correcto antes de finalizar.',
+      body:()=>`
+        <ul>
+          <li><b>Consumidor final:</b> cliente genérico para ventas que no requieren datos específicos.</li>
+          <li><b>Cambiar:</b> permite seleccionar otro cliente mientras la venta no haya culminado.</li>
+          <li>Cuando el cliente tiene RTN, se muestra junto al nombre para poder identificarlo mejor.</li>
+          <li>La creación/edición administrativa de clientes está sujeta a permisos.</li>
+        </ul>`
+    },
+    {
+      id:'caja', category:'Caja y pago', icon:'fa-cash-register',
+      title:'Apertura, cierre de caja y cobro',
+      keywords:['caja','apertura','cerrar caja','cobrar','pago','efectivo','tarjeta','transferencia'],
+      short:'Estado de caja y proceso de cobro.',
+      body:()=>`
+        <p>El estado real de caja se consulta al servidor. La interfaz conserva visualmente el último estado confirmado durante consultas periódicas para evitar parpadeos por un timeout.</p>
+        <ul>
+          <li>Si la caja está cerrada debe <b>aperturarla</b> antes de vender.</li>
+          <li><b>Cobrar</b> utiliza el método de pago estándar del sistema.</li>
+          <li>Los medios disponibles dependen de la configuración normal de Facturas.</li>
+          <li>Un error temporal de red no debe cambiar visualmente una caja abierta a cerrada.</li>
+        </ul>`
+    },
+    {
+      id:'reservas', category:'Servicio', icon:'fa-calendar-check',
+      title:'Reservaciones de mesas',
+      keywords:['reserva','reservacion','reservación','reservar mesa','fecha','hora','personas'],
+      short:'Registrar una mesa para un cliente en una fecha y hora.',
+      visible:()=>usaMesasOperacion(),
+      body:()=>`
+        <p>La reserva relaciona una mesa con un cliente, fecha, hora, cantidad de personas y notas.</p>
+        <ul>
+          <li>Use el icono de reserva de la mesa.</li>
+          <li>Seleccione el cliente mediante el selector con búsqueda.</li>
+          <li>Complete fecha, hora, personas y notas cuando sea necesario.</li>
+          <li>Una reserva no es lo mismo que una cuenta abierta; la venta se inicia cuando el cliente es atendido.</li>
+        </ul>`
+    },
+    {
+      id:'productos', category:'Catálogo', icon:'fa-box',
+      title:'Productos',
+      keywords:['producto','productos','buscar','escanear','codigo','imagen','lupa','editar producto'],
+      short:'Buscar, escanear, visualizar y agregar productos.',
+      body:()=>`
+        <ul>
+          <li>Puede buscar por nombre o descripción.</li>
+          <li>El campo de código permite trabajar con lector/escáner.</li>
+          <li>La lupa abre la imagen en tamaño mayor sin agregar el producto.</li>
+          <li>El botón <b>Agregar</b> incorpora el artículo al pedido.</li>
+          <li>La edición de productos es una acción administrativa y depende de permisos/autenticación.</li>
+        </ul>`
+    },
+    {
+      id:'categorias', category:'Catálogo', icon:'fa-tags',
+      title:'Categorías y filtros',
+      keywords:['categoria','categoría','categorias','filtro','bebidas','comida'],
+      short:'Organizan los productos para encontrarlos rápidamente.',
+      body:()=>`
+        <p>Las categorías comerciales agrupan productos como Bebidas, Entradas o Comida. Al seleccionarlas se filtran las tarjetas visibles.</p>
+        <p>No confunda <b>categoría</b> con <b>estación de preparación</b>: son conceptos independientes.</p>`
+    },
+    {
+      id:'promociones', category:'Promociones', icon:'fa-percent',
+      title:'Promociones',
+      keywords:['promocion','promoción','descuento','vigencia','horario','dias','prioridad'],
+      short:'Crear descuentos con vigencia, horario y reglas de aplicación.',
+      body:()=>`
+        <ul>
+          <li>Puede definir descuento por <b>porcentaje</b> o <b>monto fijo</b>.</li>
+          <li>La promoción puede aplicar a productos, categorías o al alcance configurado.</li>
+          <li>Puede establecer fecha inicial/final, horario diario y días de la semana.</li>
+          <li>La prioridad ayuda a resolver reglas cuando existen varias promociones aplicables.</li>
+          <li>Las promociones se administran desde <b>Gestionar</b> cuando el usuario tiene permiso.</li>
+        </ul>`
+    },
+    {
+      id:'promo-productos', category:'Promociones', icon:'fa-boxes-stacked',
+      title:'Asignar productos o categorías a una promoción',
+      keywords:['asignar promocion','producto promocion','categoria promocion','regla promocion'],
+      short:'Define exactamente qué artículos participan en una promoción.',
+      body:()=>`
+        <p>Después de crear una promoción puede relacionarla con los productos o categorías correspondientes. El sistema utiliza esas asignaciones al evaluar la promoción durante la venta.</p>
+        <div class="rs-help-callout"><i class="fas fa-circle-info"></i><span>Si una promoción no tiene la asignación esperada, revise primero su tipo “Aplica a”, vigencia y reglas.</span></div>`
+    },
+    {
+      id:'combos', category:'Promociones', icon:'fa-boxes-packing',
+      title:'Combos',
+      keywords:['combo','combos','paquete','regla combo','producto combo'],
+      short:'Agrupa varios productos bajo una regla de venta.',
+      body:()=>`
+        <p>Los combos permiten definir un producto representativo y sus componentes/reglas. Se gestionan desde las opciones administrativas del módulo.</p>
+        <p>Al modificar un combo revise sus productos relacionados y reglas para que el precio y contenido correspondan a la configuración deseada.</p>`
+    },
+    {
+      id:'recurrentes', category:'Facturación', icon:'fa-calendar-days',
+      title:'Facturas recurrentes',
+      keywords:['recurrente','recurrentes','programar','diaria','semanal','mensual','proforma'],
+      short:'Programa futuras facturas utilizando los productos de la venta.',
+      body:()=>`
+        <ul>
+          <li>Puede consultar programaciones existentes sin tener productos cargados.</li>
+          <li>Para <b>guardar una nueva recurrencia</b> sí debe tener al menos un producto en la venta actual.</li>
+          <li>Permite documento normal o proforma, fecha/hora inicial y periodicidad disponible.</li>
+          <li>La condición de pago de las recurrentes utiliza el flujo configurado para este módulo.</li>
+          <li>Desde el panel puede revisar activas, generadas, errores, próximas ejecuciones y cancelar una programación.</li>
+        </ul>`
+    },
+    {
+      id:'configuracion', category:'Administración', icon:'fa-sliders',
+      title:'Configuración del módulo',
+      keywords:['configuracion','configuración','usar mesas','usar comandas','flujo','salida comanda','modo operacion'],
+      short:'Adapta el POS a restaurante o venta directa.',
+      body:()=>`
+        <div class="rs-help-compare">
+          <div><b>Usar mesas</b><span>Muestra mesas y permite trabajar Para llevar / En mesa.</span></div>
+          <div><b>Usar comandas</b><span>Habilita estaciones de preparación y envío a Cocina/Barra.</span></div>
+          <div><b>Ambas</b><span>Flujo completo de restaurante.</span></div>
+          <div><b>Ninguna</b><span>Venta directa genérica; no necesita mesas ni preparación.</span></div>
+        </div>
+        <p>Cuando las comandas están activas también puede configurar nombres visibles, destino de la orden, momento del ticket y flujo de preparación.</p>
+        <div class="rs-help-callout"><i class="fas fa-shield-halved"></i><span><b>Configuración del módulo siempre solicita credenciales administrativas</b>, incluso cuando la clave adicional para otras acciones de gestión está desactivada.</span></div>`
+    },
+    {
+      id:'gestionar', category:'Administración', icon:'fa-screwdriver-wrench',
+      title:'Botón Gestionar y permisos',
+      keywords:['gestionar','permiso','administrador','super administrador','seguridad','autenticacion'],
+      short:'Acciones sensibles disponibles únicamente para usuarios autorizados.',
+      body:()=>`
+        <p><b>Gestionar</b> concentra opciones administrativas como configuración, productos, categorías, promociones y combos.</p>
+        <p>Su visibilidad y las acciones internas dependen de los permisos/rol configurados.</p>
+        ${solicitarClaveGestionOperacion()
+          ? '<p>Además, esta empresa tiene activa la <b>validación con clave administrativa</b> para acciones de gestión.</p>'
+          : ''}`
+    },
+    {
+      id:'seguridad-clave', category:'Administración', icon:'fa-shield-halved',
+      title:'Validación con clave administrativa',
+      keywords:['clave','password','seguridad','validacion','validación','administrador','editar','crear cliente','gestionar'],
+      short:'Protección adicional para cambios administrativos del módulo.',
+      visible:()=>solicitarClaveGestionOperacion(),
+      body:()=>`
+        <p>Esta empresa tiene activa la opción <b>Solicitar clave para gestión</b>.</p>
+        <p>Por seguridad, acciones como crear o editar clientes, mesas, categorías, productos, promociones y combos solicitarán credenciales administrativas antes de continuar.</p>
+        <div class="rs-help-callout"><i class="fas fa-shield-halved"></i><span>La clave es una protección adicional. Los permisos del usuario siempre se siguen respetando.</span></div>
+        <p><b>Configuración del módulo siempre solicita credenciales administrativas</b>, aunque “Solicitar clave para gestión” esté desactivado.</p><p>Un usuario autorizado puede cambiar el comportamiento de las demás acciones desde <b>Gestionar → Configuración del módulo</b>.</p>`
+    },
+    {
+      id:'ayuda-movil', category:'Móvil', icon:'fa-mobile-screen-button',
+      title:'Asistente móvil',
+      keywords:['movil','móvil','celular','asistente','pasos','telefono'],
+      short:'Flujo simplificado para teléfonos sin alterar PC o tablet.',
+      body:()=>`
+        <p>En teléfonos el módulo se organiza en pasos para evitar una pantalla horizontal:</p>
+        <ol class="rs-help-steps">
+          <li>Servicio / Mesa</li>
+          <li>Productos</li>
+          <li>Pedido</li>
+          <li>Cliente / Caja</li>
+        </ol>
+        <p>PC y tablet conservan la distribución completa. El asistente móvil utiliza las mismas funciones de negocio; solo cambia la presentación.</p>`
+    },
+    {
+      id:'atajos', category:'Atajos', icon:'fa-keyboard',
+      title:'Atajos de teclado',
+      keywords:['atajo','atajos','teclado','ctrl','cmd','alt','enter'],
+      short:'Acciones rápidas disponibles desde teclado.',
+      body:()=>`
+        <div class="rs-help-shortcuts">
+          <div><span>Buscar producto</span><kbd>Ctrl/Cmd</kbd><kbd>Alt</kbd><kbd>F</kbd></div>
+          <div><span>Guardar cuenta</span><kbd>Ctrl/Cmd</kbd><kbd>Alt</kbd><kbd>S</kbd></div>
+          <div><span>Cuentas abiertas</span><kbd>Ctrl/Cmd</kbd><kbd>Alt</kbd><kbd>A</kbd></div>
+          <div><span>Cambiar cliente</span><kbd>Ctrl/Cmd</kbd><kbd>Alt</kbd><kbd>C</kbd></div>
+          ${usaMesasOperacion()?'<div><span>Nueva mesa</span><kbd>Ctrl/Cmd</kbd><kbd>M</kbd></div>':''}
+          <div><span>Confirmar escaneo/búsqueda</span><kbd>Enter</kbd></div>
+        </div>`
+    }
+  ];
+
+  let rsHelpCategory = 'Todos';
+  let rsHelpInitialized = false;
+
+  function rsHelpNormalize(value){
+    return String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g,'')
+      .toLowerCase()
+      .trim();
+  }
+
+  function rsHelpVisibleTopics(){
+    return RS_HELP_TOPICS.filter(function(topic){
+      return typeof topic.visible !== 'function' || topic.visible();
+    });
+  }
+
+  function rsHelpModeText(){
+    const mesas = usaMesasOperacion();
+    const comandas = usaComandasOperacion();
+    if (mesas && comandas) return '<i class="fas fa-utensils"></i><span><b>Modo restaurante</b><small>Mesas + preparación</small></span>';
+    if (mesas) return '<i class="fas fa-chair"></i><span><b>Modo mesas</b><small>Sin pantalla de preparación</small></span>';
+    if (comandas) return '<i class="fas fa-fire-burner"></i><span><b>Venta + preparación</b><small>Sin mesas</small></span>';
+    return '<i class="fas fa-cash-register"></i><span><b>Venta directa</b><small>Sin mesas ni comandas</small></span>';
+  }
+
+  function rsHelpRenderCategories(){
+    const host = document.getElementById('rs-help-categories');
+    if (!host) return;
+    const topics = rsHelpVisibleTopics();
+    const categories = ['Todos'].concat([...new Set(topics.map(t=>t.category))]);
+    if (!categories.includes(rsHelpCategory)) rsHelpCategory='Todos';
+    host.innerHTML = categories.map(function(cat){
+      const count = cat === 'Todos' ? topics.length : topics.filter(t=>t.category===cat).length;
+      return `<button type="button" class="rs-help-category ${cat===rsHelpCategory?'active':''}" data-help-category="${escapeHtml(cat)}">
+        <span>${escapeHtml(cat)}</span><small>${count}</small>
+      </button>`;
+    }).join('');
+  }
+
+  function rsHelpRender(){
+    const search = document.getElementById('rs-help-search');
+    const results = document.getElementById('rs-help-results');
+    const empty = document.getElementById('rs-help-empty');
+    const summary = document.getElementById('rs-help-summary');
+    const mode = document.getElementById('rs-help-mode');
+    if (!results || !empty || !summary) return;
+
+    if (mode) mode.innerHTML = rsHelpModeText();
+
+    const q = rsHelpNormalize(search ? search.value : '');
+    const topics = rsHelpVisibleTopics().filter(function(topic){
+      if (rsHelpCategory !== 'Todos' && topic.category !== rsHelpCategory) return false;
+      if (!q) return true;
+      const haystack = rsHelpNormalize([
+        topic.title, topic.short, topic.category,
+        ...(topic.keywords || [])
+      ].join(' '));
+      return q.split(/\s+/).every(word=>haystack.includes(word));
+    });
+
+    summary.innerHTML = q
+      ? `<i class="fas fa-filter"></i> ${topics.length} resultado(s) para <b>“${escapeHtml(search.value.trim())}”</b>`
+      : `<i class="fas fa-book-open"></i> ${topics.length} tema(s) disponibles`;
+
+    empty.style.display = topics.length ? 'none' : 'flex';
+
+    results.innerHTML = topics.map(function(topic,index){
+      return `<article class="rs-help-topic" data-help-topic="${escapeHtml(topic.id)}">
+        <button type="button" class="rs-help-topic-head" aria-expanded="false">
+          <span class="rs-help-topic-icon"><i class="fas ${escapeHtml(topic.icon)}"></i></span>
+          <span class="rs-help-topic-copy">
+            <strong>${escapeHtml(topic.title)}</strong>
+            <small>${escapeHtml(topic.short)}</small>
+          </span>
+          <span class="rs-help-topic-category">${escapeHtml(topic.category)}</span>
+          <i class="fas fa-chevron-down rs-help-chevron"></i>
+        </button>
+        <div class="rs-help-topic-body" hidden>${topic.body()}</div>
+      </article>`;
+    }).join('');
+
+    // Si hay una búsqueda exacta o un único resultado, abrirlo automáticamente.
+    if (topics.length === 1 || (q && topics.length <= 3)) {
+      results.querySelectorAll('.rs-help-topic').forEach(function(card){
+        const head=card.querySelector('.rs-help-topic-head');
+        const body=card.querySelector('.rs-help-topic-body');
+        if(head&&body){ head.setAttribute('aria-expanded','true'); body.hidden=false; card.classList.add('open'); }
+      });
+    }
+  }
+
+  function rsHelpOpen(){
+    const modal = document.getElementById('modal-help');
+    if (!modal) return;
+
+    rsHelpRenderCategories();
+    rsHelpRender();
+    modal.style.display='block';
+
+    window.setTimeout(function(){
+      const search=document.getElementById('rs-help-search');
+      if(search) search.focus();
+    },80);
+  }
+
+  function rsHelpInit(){
+    if (rsHelpInitialized) return;
+    rsHelpInitialized=true;
+
+    document.addEventListener('click', function(e){
+      const helpBtn=e.target.closest && e.target.closest('#btn-help');
+      if(helpBtn){
+        e.preventDefault();
+        rsHelpOpen();
+        return;
+      }
+
+      const category=e.target.closest && e.target.closest('[data-help-category]');
+      if(category){
+        rsHelpCategory=category.getAttribute('data-help-category') || 'Todos';
+        rsHelpRenderCategories();
+        rsHelpRender();
+        return;
+      }
+
+      const head=e.target.closest && e.target.closest('.rs-help-topic-head');
+      if(head){
+        const card=head.closest('.rs-help-topic');
+        const body=card && card.querySelector('.rs-help-topic-body');
+        if(!card||!body) return;
+        const open=head.getAttribute('aria-expanded')==='true';
+        head.setAttribute('aria-expanded', open?'false':'true');
+        body.hidden=open;
+        card.classList.toggle('open',!open);
+        return;
+      }
+
+      const clear=e.target.closest && e.target.closest('#rs-help-clear');
+      if(clear){
+        const input=document.getElementById('rs-help-search');
+        if(input){ input.value=''; input.focus(); }
+        rsHelpRender();
+      }
+    });
+
+    document.addEventListener('input',function(e){
+      if(e.target && e.target.id==='rs-help-search') rsHelpRender();
+    });
+  }
+
+  rsHelpInit();
+
+
 })();
 
 // Validaciones adicionales
@@ -6718,7 +7220,7 @@ function initSelect2ForComboRow(row){
   /* ================================================================
      CIERRE FUNCIONAL RESTAURANTE - CONFIG / CUENTAS / TICKET / AUTH
      ================================================================ */
-  window.REST_CONFIG = window.REST_CONFIG || {usar_mesas:1, usar_comandas:1, etiqueta_cocina:'Cocina', etiqueta_barra:'Barra', destino_comanda:'pantalla', momento_ticket:'enviar', flujo_cocina:'pasos'};
+  window.REST_CONFIG = window.REST_CONFIG || {usar_mesas:1, usar_comandas:1, etiqueta_cocina:'Cocina', etiqueta_barra:'Barra', destino_comanda:'pantalla', momento_ticket:'enviar', flujo_cocina:'pasos', solicitar_clave_gestion:1};
   let REST_TIPO_USUARIO = 0;
   let REST_PERMISOS = {};
   let REST_AUTH_BYPASS = false;
@@ -6792,8 +7294,16 @@ function initSelect2ForComboRow(row){
     const ec=document.getElementById('btn-editar-cliente-seleccionado'); if(ec) ec.style.display=tienePermisoRestaurante('restaurante_clientes')?'':'none';
   }
 
+  function solicitarClaveGestionOperacion(){
+    return Number(window.REST_CONFIG && window.REST_CONFIG.solicitar_clave_gestion) !== 0;
+  }
+
   function autorizarGestionRestaurante(accion, callback, referencia){
     if(typeof callback!=='function') return;
+    if(!solicitarClaveGestionOperacion()){
+      callback();
+      return;
+    }
     if(typeof window.validarAdminSistema!=='function'){
       showAlert('error','Validación administrativa','No está disponible la validación administrativa del sistema.');
       return;
@@ -6804,6 +7314,32 @@ function initSelect2ForComboRow(row){
     });
   }
   window.autorizarGestionRestaurante=autorizarGestionRestaurante;
+
+  // Configuración del módulo SIEMPRE requiere validación administrativa.
+  // NO depende del switch "Solicitar clave para gestión".
+  function autorizarConfiguracionRestaurante(callback){
+    if(typeof callback!=='function') return;
+
+    if(typeof window.validarAdminSistema!=='function'){
+      showAlert(
+        'error',
+        'Validación administrativa',
+        'No está disponible la validación administrativa del sistema.'
+      );
+      return;
+    }
+
+    window.validarAdminSistema(function(ok){
+      if(ok) callback();
+    },{
+      modulo:'Restaurante',
+      accion:'Configuración del módulo',
+      referencia_id:'',
+      referencia_texto:'Configuración del módulo',
+      mensaje:'La configuración del módulo siempre requiere credenciales de administrador para continuar.'
+    });
+  }
+  window.autorizarConfiguracionRestaurante=autorizarConfiguracionRestaurante;
 
   // Protege accesos de creación/gestión antes de que disparen sus listeners originales.
   document.addEventListener('click', function(ev){
@@ -6993,6 +7529,33 @@ function initSelect2ForComboRow(row){
     });
   }
 
+  function cuentaOperativamenteAbierta(cuenta){
+    if (!cuenta || typeof cuenta !== 'object') return false;
+
+    // Si el backend expone cualquier estado, debe indicar explícitamente abierto.
+    const rcEstado = String(
+      cuenta.cuenta_estado ??
+      cuenta.estado_cuenta ??
+      cuenta.contexto_estado ??
+      ''
+    ).toLowerCase().trim();
+
+    if (rcEstado && !['abierta','abierto','1','activa','activo'].includes(rcEstado)) return false;
+
+    const facturaEstadoRaw =
+      cuenta.factura_estado ??
+      cuenta.estado_factura ??
+      cuenta.estado;
+
+    if (facturaEstadoRaw !== undefined && facturaEstadoRaw !== null && facturaEstadoRaw !== '') {
+      const fe = String(facturaEstadoRaw).toLowerCase().trim();
+      // En IZZY la factura operativa abierta usa estado 1.
+      if (!['1','abierta','abierto','activa','activo','borrador'].includes(fe)) return false;
+    }
+
+    return true;
+  }
+
   function calcularTotalCuentaAbierta(cuenta){
     const items = Array.isArray(cuenta && cuenta.items) ? cuenta.items : [];
     if (!items.length) {
@@ -7031,29 +7594,33 @@ function initSelect2ForComboRow(row){
 
   async function hidratarTotalesCuentasAbiertas(cuentas){
     const lista = Array.isArray(cuentas) ? cuentas : [];
-    if (!lista.length) return lista;
+    if (!lista.length) return [];
 
     const resultados = await Promise.allSettled(lista.map(async function(cuenta){
       const fid = Number(cuenta && cuenta.facturas_id || 0);
-      if (!fid) return cuenta;
+      if (!fid || !cuentaOperativamenteAbierta(cuenta)) return null;
 
       try{
+        // Segunda validación contra el servidor.
+        // Si ya fue pagada/cancelada/cerrada, loadCuentaAbierta debe rechazarla.
         const detalle = await restPost('loadCuentaAbierta',{factura_id:String(fid)});
-        if (detalle && detalle.status && detalle.cuenta) {
-          cuenta.items = Array.isArray(detalle.cuenta.items) ? detalle.cuenta.items : [];
-          cuenta.total_mostrar = calcularTotalCuentaAbierta(cuenta);
-        } else {
-          cuenta.total_mostrar = calcularTotalCuentaAbierta(cuenta);
-        }
-      }catch(_){
+        if (!detalle || !detalle.status || !detalle.cuenta) return null;
+
+        const cuentaServidor = detalle.cuenta;
+        if (!cuentaOperativamenteAbierta(cuentaServidor)) return null;
+
+        cuenta.items = Array.isArray(cuentaServidor.items) ? cuentaServidor.items : [];
         cuenta.total_mostrar = calcularTotalCuentaAbierta(cuenta);
+        return cuenta;
+      }catch(_){
+        // Ante duda no mostramos una cuenta que no pudimos confirmar abierta.
+        return null;
       }
-      return cuenta;
     }));
 
-    return resultados.map(function(r,i){
-      return r.status === 'fulfilled' ? r.value : lista[i];
-    });
+    return resultados
+      .filter(function(r){ return r.status === 'fulfilled' && r.value; })
+      .map(function(r){ return r.value; });
   }
 
   async function cargarCuentasAbiertasUI(){
@@ -7075,7 +7642,9 @@ function initSelect2ForComboRow(row){
   function renderCuentasAbiertas(cuentas,term=''){
     const list=document.getElementById('cuentas-abiertas-listado'); if(!list) return;
     const t=String(term||'').toLowerCase().trim();
-    const arr=(cuentas||[]).filter(c=>!t || [c.facturas_id,c.cliente_nombre,c.cliente_rtn,c.mesa_numero,c.servicio_tipo].join(' ').toLowerCase().includes(t));
+    const arr=(cuentas||[])
+      .filter(c=>cuentaOperativamenteAbierta(c))
+      .filter(c=>!t || [c.facturas_id,c.cliente_nombre,c.cliente_rtn,c.mesa_numero,c.servicio_tipo].join(' ').toLowerCase().includes(t));
     if(!arr.length){ list.innerHTML='<div class="rs-empty-state"><i class="fas fa-folder-open"></i><span>No hay cuentas abiertas.</span></div>'; return; }
     list.innerHTML=arr.map(c=>{
       const esAnterior=Number(c.es_anterior||0)===1;
@@ -7152,7 +7721,12 @@ function initSelect2ForComboRow(row){
   async function abrirCuentaAbierta(facturaId){
     try{
       const d=await restPost('loadCuentaAbierta',{factura_id:String(facturaId)});
-      if(!d||!d.status||!d.cuenta) throw new Error(d&&d.message?d.message:'Cuenta no disponible');
+      if(!d||!d.status||!d.cuenta || !cuentaOperativamenteAbierta(d.cuenta)) {
+        window.__REST_CUENTAS_ABIERTAS = (window.__REST_CUENTAS_ABIERTAS || [])
+          .filter(c => Number(c.facturas_id) !== Number(facturaId));
+        renderCuentasAbiertas(window.__REST_CUENTAS_ABIERTAS || []);
+        throw new Error('Esta cuenta ya fue cerrada, pagada o cancelada y no puede volver a cargarse.');
+      }
       const c=d.cuenta;
       facturaActual={id:Number(c.facturas_id),factura_id:Number(c.facturas_id),facturas_id:Number(c.facturas_id),notas:c.notas||''};
       clienteSeleccionado={id:Number(c.clientes_id||1),nombre:c.cliente_nombre||'Consumidor Final',identificacion:c.cliente_rtn||''};
@@ -7180,9 +7754,10 @@ function initSelect2ForComboRow(row){
         etiqueta_barra:String(d.config.etiqueta_barra||'Barra'),
         destino_comanda:String(d.config.destino_comanda||'pantalla'),
         momento_ticket:String(d.config.momento_ticket||'enviar'),
-        flujo_cocina:String(d.config.flujo_cocina||'pasos')
+        flujo_cocina:String(d.config.flujo_cocina||'pasos'),
+        solicitar_clave_gestion:Number(d.config.solicitar_clave_gestion)!==0?1:0
       };
-    }catch(_){ window.REST_CONFIG={usar_mesas:1,usar_comandas:1,etiqueta_cocina:'Cocina',etiqueta_barra:'Barra',destino_comanda:'pantalla',momento_ticket:'enviar',flujo_cocina:'pasos'}; }
+    }catch(_){ window.REST_CONFIG={usar_mesas:1,usar_comandas:1,etiqueta_cocina:'Cocina',etiqueta_barra:'Barra',destino_comanda:'pantalla',momento_ticket:'enviar',flujo_cocina:'pasos',solicitar_clave_gestion:1}; }
     aplicarConfiguracionOperacion();
   }
 
@@ -7211,6 +7786,15 @@ function initSelect2ForComboRow(row){
     const destino=document.getElementById('config-destino-comanda'); if(destino) destino.value=destinoComandaOperacion();
     const momento=document.getElementById('config-momento-ticket'); if(momento) momento.value=momentoTicketOperacion();
     const flujo=document.getElementById('config-flujo-cocina'); if(flujo) flujo.value=String(window.REST_CONFIG.flujo_cocina||'pasos');
+    const claveGestion=document.getElementById('config-solicitar-clave-gestion');
+    if(claveGestion) claveGestion.checked=solicitarClaveGestionOperacion();
+    const seguridadEstado=document.getElementById('config-seguridad-estado');
+    if(seguridadEstado){
+      seguridadEstado.innerHTML=solicitarClaveGestionOperacion()
+        ? '<i class="fas fa-shield-halved"></i> Protección activa'
+        : '<i class="fas fa-unlock"></i> Sin clave adicional';
+      seguridadEstado.classList.toggle('is-off',!solicitarClaveGestionOperacion());
+    }
     sincronizarTodosBotonesConfiguracion();
     aplicarEtiquetasOperacion();
     renderizarCategorias();
@@ -7260,7 +7844,8 @@ function initSelect2ForComboRow(row){
         etiqueta_barra:String(document.getElementById('config-etiqueta-barra').value||'Barra').trim(),
         destino_comanda:String((document.getElementById('config-destino-comanda')||{}).value||'pantalla'),
         momento_ticket:String((document.getElementById('config-momento-ticket')||{}).value||'enviar'),
-        flujo_cocina:String((document.getElementById('config-flujo-cocina')||{}).value||'pasos')
+        flujo_cocina:String((document.getElementById('config-flujo-cocina')||{}).value||'pasos'),
+        solicitar_clave_gestion:(document.getElementById('config-solicitar-clave-gestion')||{}).checked?'1':'0'
       });
       if(!d||!d.status) throw new Error(d&&d.message?d.message:'No se pudo guardar');
       window.REST_CONFIG=d.config||window.REST_CONFIG; aplicarConfiguracionOperacion();
@@ -7300,9 +7885,12 @@ function initSelect2ForComboRow(row){
     $('#btn-imprimir-ticket-comanda').off('click.restTicket').on('click.restTicket',imprimirTicketComanda);
   $('#btn-configuracion-restaurante').off('click.restCfg').on('click.restCfg',function(e){
     e.preventDefault();e.stopPropagation();
-    autorizarGestionRestaurante('Configuración del módulo',()=>{
+
+    // SIEMPRE autenticación administrativa para entrar a Configuración.
+    autorizarConfiguracionRestaurante(()=>{
       aplicarConfiguracionOperacion();
-      document.getElementById('modal-configuracion-restaurante').style.display='block';
+      const modalConfig = document.getElementById('modal-configuracion-restaurante');
+      if(modalConfig) modalConfig.style.display='block';
       setTimeout(reinitSelect2Restaurante,80);
     });
   });
@@ -7313,6 +7901,16 @@ function initSelect2ForComboRow(row){
     const salida=document.getElementById('config-salida-comanda');
     if(wrap) wrap.style.display=this.checked?'':'none';
     if(salida) salida.style.display=this.checked?'':'none';
+  });
+
+  $('#config-solicitar-clave-gestion').off('change.restCfgClave').on('change.restCfgClave',function(){
+    const estado=document.getElementById('config-seguridad-estado');
+    if(estado){
+      estado.innerHTML=this.checked
+        ? '<i class="fas fa-shield-halved"></i> Protección activa'
+        : '<i class="fas fa-unlock"></i> Sin clave adicional';
+      estado.classList.toggle('is-off',!this.checked);
+    }
   });
 
   // Captura única y robusta para el ticket actual. Evita que handlers heredados del antiguo botón Imprimir lo bloqueen.

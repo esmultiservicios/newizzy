@@ -99,41 +99,116 @@
    ISV: lógica de exclusión y habilitado
    ========================= */
 function initISVSwitches() {
-  const $isvFactura = $('#formProductos #producto_isv_factura');
-  const $isv1 = $('#formProductos #producto_isv1');
-  const $isv2 = $('#formProductos #producto_isv2');
+  const $form = $('#formProductos');
+  const $isvFactura = $form.find('#producto_isv_factura');
+  const $isv1 = $form.find('#producto_isv1');
+  const $isv2 = $form.find('#producto_isv2');
 
-  $isv1.off('change.isv');
-  $isv2.off('change.isv');
-  $isvFactura.off('change.isvmain');
+  if (!$form.length || !$isvFactura.length || !$isv1.length || !$isv2.length) return;
 
-  $isv1.on('change.isv', function() {
-    if (this.checked) {
-      $isv2.prop('checked', false);
+  function asegurarCampoOculto(nombre) {
+    let $campo = $form.find('input[name="' + nombre + '"]');
+    if (!$campo.length) {
+      $campo = $('<input>', { type: 'hidden', name: nombre }).appendTo($form);
     }
-  });
+    return $campo;
+  }
 
-  $isv2.on('change.isv', function() {
-    if (this.checked) {
-      $isv1.prop('checked', false);
-    }
-  });
+  function textoLabel(selector, fallback) {
+    const texto = $.trim($(selector).first().text() || '');
+    return texto || fallback;
+  }
 
-  function applyIsvMainState() {
+  function sincronizarTextosISV() {
+    asegurarCampoOculto('producto_isv1_texto').val(
+      textoLabel('#formProductos label[for="producto_isv1"], #formProductos #label_producto_isv1', 'ISV 1')
+    );
+    asegurarCampoOculto('producto_isv2_texto').val(
+      textoLabel('#formProductos label[for="producto_isv2"], #formProductos #label_producto_isv2', 'ISV 2')
+    );
+  }
+
+  function normalizarSeleccion(preferido) {
     const enabled = $isvFactura.is(':checked');
 
     if (!enabled) {
-      $isv1.prop('checked', false);
-      $isv2.prop('checked', false);
+      $isv1.prop('checked', false).prop('disabled', true);
+      $isv2.prop('checked', false).prop('disabled', true);
+      sincronizarTextosISV();
+      return;
     }
 
-    $isv1.prop('disabled', !enabled);
-    $isv2.prop('disabled', !enabled);
+    $isv1.prop('disabled', false);
+    $isv2.prop('disabled', false);
+
+    // Si por HTML, reset o datos antiguos vienen ambos activos, conservar solo uno.
+    if ($isv1.is(':checked') && $isv2.is(':checked')) {
+      if (preferido === 2) $isv1.prop('checked', false);
+      else $isv2.prop('checked', false);
+    }
+
+    // Con "Calcular ISV en Factura" activo SIEMPRE debe existir un tipo.
+    // Por defecto se selecciona el ISV 1 (normalmente 15%).
+    if (!$isv1.is(':checked') && !$isv2.is(':checked')) {
+      $isv1.prop('checked', true);
+    }
+
+    sincronizarTextosISV();
   }
 
-  $isvFactura.on('change.isvmain', applyIsvMainState);
-  applyIsvMainState();
+  $isv1.off('.productosISV').on('change.productosISV', function() {
+    if (this.checked) {
+      $isv2.prop('checked', false);
+      normalizarSeleccion(1);
+    } else {
+      normalizarSeleccion(2);
+    }
+  });
+
+  $isv2.off('.productosISV').on('change.productosISV', function() {
+    if (this.checked) {
+      $isv1.prop('checked', false);
+      normalizarSeleccion(2);
+    } else {
+      normalizarSeleccion(1);
+    }
+  });
+
+  $isvFactura.off('.productosISV').on('change.productosISV', function() {
+    normalizarSeleccion(1);
+  });
+
+  $form.off('reset.productosISV').on('reset.productosISV', function() {
+    setTimeout(function() {
+      normalizarSeleccion(1);
+    }, 0);
+  });
+
+  // Última protección antes de que el manejador AJAX general construya el FormData.
+  $form.off('submit.productosISV').on('submit.productosISV', function() {
+    normalizarSeleccion($isv2.is(':checked') ? 2 : 1);
+    sincronizarTextosISV();
+  });
+
+  // Si la imagen proviene de pegar/arrastrar y el navegador perdió la asociación
+  // con el input, se vuelve a anexar al FormData sin cambiar el flujo AJAX general.
+  const formEl = $form.get(0);
+  if (formEl && !formEl.dataset.productosFormDataHook) {
+    formEl.dataset.productosFormDataHook = '1';
+    formEl.addEventListener('formdata', function(e) {
+      const file = window.__productoImagenFile;
+      const input = document.getElementById('imagen_producto');
+      const yaIncluida = input && input.files && input.files.length > 0;
+      if (file && !yaIncluida && e.formData) {
+        e.formData.set('imagen_producto', file, file.name || 'producto.jpg');
+      }
+      sincronizarTextosISV();
+    });
+  }
+
+  normalizarSeleccion($isv2.is(':checked') ? 2 : 1);
 }
+
 
 
 /* =========================================================
@@ -429,6 +504,17 @@ function actualizarLabelsISVProductos() {
 
   if (isv2 !== '') {
     $('#formProductos label[for="producto_isv2"], #formProductos #label_producto_isv2').html('ISV ' + isv2 + '%');
+  }
+
+  // Mantener sincronizado el texto real que el controlador usará en sus mensajes.
+  const $form = $('#formProductos');
+  if ($form.length) {
+    let $t1 = $form.find('input[name="producto_isv1_texto"]');
+    let $t2 = $form.find('input[name="producto_isv2_texto"]');
+    if (!$t1.length) $t1 = $('<input>', {type:'hidden', name:'producto_isv1_texto'}).appendTo($form);
+    if (!$t2.length) $t2 = $('<input>', {type:'hidden', name:'producto_isv2_texto'}).appendTo($form);
+    $t1.val($.trim($('#formProductos label[for="producto_isv1"], #formProductos #label_producto_isv1').first().text()) || 'ISV 1');
+    $t2.val($.trim($('#formProductos label[for="producto_isv2"], #formProductos #label_producto_isv2').first().text()) || 'ISV 2');
   }
 }
 

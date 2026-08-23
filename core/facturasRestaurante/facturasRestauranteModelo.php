@@ -71,7 +71,8 @@ class facturasRestauranteModelo extends mainModel {
                 "SELECT DISTINCT rc.mesa_id
                  FROM factura_restaurante_cuentas rc
                  INNER JOIN facturas f ON f.facturas_id=rc.factura_id
-                 WHERE rc.empresa_id=? AND rc.estado='abierta' AND rc.mesa_id>0 AND f.estado=1",
+                 WHERE rc.empresa_id=? AND rc.estado='abierta' AND rc.mesa_id>0 AND f.estado=1
+                   AND DATE(COALESCE(rc.fecha_actualizacion, rc.fecha_registro)) = CURDATE()",
                 "i", [$empresaId]
             );
             if ($qa) while($a=$qa->fetch_assoc()) $abiertas[(int)$a['mesa_id']] = true;
@@ -1484,20 +1485,20 @@ class facturasRestauranteModelo extends mainModel {
     public function marcarComandaPreparada($factura_id){
         $factura_id=intval($factura_id);
         $ok1 = $this->ejecutar_consulta_simple_preparada("UPDATE factura_comanda SET estado='preparada' WHERE factura_id=?","i",[$factura_id]);
-        $ok2 = $this->ejecutar_consulta_simple_preparada("UPDATE factura_comanda_items SET estado='preparada' WHERE factura_id=? AND estado IN ('pendiente','en_preparacion','urgente')","i",[$factura_id]);
+        $ok2 = $this->ejecutar_consulta_simple_preparada("UPDATE factura_comanda_items SET estado='preparada' WHERE factura_id=? AND DATE(fecha_registro)=CURDATE() AND estado IN ('pendiente','en_preparacion','urgente')","i",[$factura_id]);
         return ($ok1 && $ok2) ? ['status'=>true] : ['status'=>false,'message'=>'No se pudo actualizar'];
     }
     public function marcarComandaUrgente($factura_id,$urgente){
         $factura_id=intval($factura_id);
         $estado = $urgente ? 'urgente' : 'pendiente';
         $ok1 = $this->ejecutar_consulta_simple_preparada("UPDATE factura_comanda SET estado=? WHERE factura_id=?","si",[$estado,$factura_id]);
-        $ok2 = $this->ejecutar_consulta_simple_preparada("UPDATE factura_comanda_items SET estado=? WHERE factura_id=? AND estado IN ('pendiente','en_preparacion','urgente')","si",[$estado,$factura_id]);
+        $ok2 = $this->ejecutar_consulta_simple_preparada("UPDATE factura_comanda_items SET estado=? WHERE factura_id=? AND DATE(fecha_registro)=CURDATE() AND estado IN ('pendiente','en_preparacion','urgente')","si",[$estado,$factura_id]);
         return ($ok1 && $ok2) ? ['status'=>true] : ['status'=>false,'message'=>'No se pudo actualizar'];
     }
     public function marcarComandaEnPreparacion($factura_id){
         $factura_id=intval($factura_id);
         $ok1 = $this->ejecutar_consulta_simple_preparada("UPDATE factura_comanda SET estado='en_preparacion' WHERE factura_id=?","i",[$factura_id]);
-        $ok2 = $this->ejecutar_consulta_simple_preparada("UPDATE factura_comanda_items SET estado='en_preparacion' WHERE factura_id=? AND estado IN ('pendiente','urgente')","i",[$factura_id]);
+        $ok2 = $this->ejecutar_consulta_simple_preparada("UPDATE factura_comanda_items SET estado='en_preparacion' WHERE factura_id=? AND DATE(fecha_registro)=CURDATE() AND estado IN ('pendiente','urgente')","i",[$factura_id]);
         return ($ok1 && $ok2) ? ['status'=>true] : ['status'=>false,'message'=>'No se pudo actualizar'];
     }
 
@@ -1512,6 +1513,7 @@ class facturasRestauranteModelo extends mainModel {
                     fc.factura_id,
                     fc.mesa_id,
                     fci.estado AS estado,
+                    MIN(fci.fecha_registro) AS fecha_envio,
                     fc.fecha_registro,
                     fc.comentarios_cocina,
                     f.notas,
@@ -1528,6 +1530,7 @@ class facturasRestauranteModelo extends mainModel {
                 INNER JOIN productos p ON p.productos_id=fci.productos_id
                 WHERE f.empresa_id=?
                   AND fci.estacion=?
+                  AND DATE(fci.fecha_registro)=CURDATE()
                   AND fci.estado IN ('pendiente','en_preparacion','urgente')
                 GROUP BY fc.id,fc.factura_id,fc.mesa_id,fci.estado,fc.fecha_registro,
                          fc.comentarios_cocina,f.notas,cli.nombre,m.numero,
@@ -1545,7 +1548,8 @@ class facturasRestauranteModelo extends mainModel {
                     'comanda_id'=>(int)$r['comanda_id'],
                     'mesa'=>$r['mesa_numero']!==''?$r['mesa_numero']:null,
                     'cliente_nombre'=>$r['cliente_nombre']??'Consumidor Final',
-                    'hora'=>$r['fecha_registro']?date('H:i',strtotime($r['fecha_registro'])):'',
+                    'fecha'=>$r['fecha_envio']?date('d/m/Y',strtotime($r['fecha_envio'])):'',
+                    'hora'=>$r['fecha_envio']?date('H:i',strtotime($r['fecha_envio'])):'',
                     'estado'=>$r['estado']??'pendiente',
                     'urgente'=>($r['estado']==='urgente')?1:0,
                     'observaciones'=>$r['notas']??'',
@@ -2723,6 +2727,35 @@ class facturasRestauranteModelo extends mainModel {
         return $ok ? ['status'=>true,'message'=>$ocupada?'Mesa ocupada':'Mesa liberada'] : ['status'=>false,'message'=>'No se pudo actualizar la mesa'];
     }
 
+    /** Libera la mesa sin borrar la cuenta abierta. */
+    public function liberarMesaConservandoCuenta(int $mesa_id): array {
+        $mesa_id=(int)$mesa_id;
+        if($mesa_id<=0) return ['status'=>false,'message'=>'Mesa inválida'];
+        $empresa=$this->empresaId();
+        $rs=$this->ejecutar_consulta_simple_preparada(
+            "SELECT rc.factura_id FROM factura_restaurante_cuentas rc
+             INNER JOIN facturas f ON f.facturas_id=rc.factura_id AND f.empresa_id=rc.empresa_id
+             WHERE rc.empresa_id=? AND rc.mesa_id=? AND rc.estado='abierta' AND f.estado=1
+             ORDER BY COALESCE(rc.fecha_actualizacion,rc.fecha_registro) DESC,rc.factura_id DESC LIMIT 1",
+            "ii",[$empresa,$mesa_id]
+        );
+        $facturaId=0;
+        if($rs && $rs->num_rows){
+            $facturaId=(int)$rs->fetch_assoc()['factura_id'];
+            $ok=$this->ejecutar_consulta_simple_preparada(
+                "UPDATE factura_restaurante_cuentas SET mesa_id=0,servicio_tipo='llevar',fecha_actualizacion=NOW() WHERE factura_id=? AND empresa_id=? AND estado='abierta'",
+                "ii",[$facturaId,$empresa]
+            );
+            if(!$ok) return ['status'=>false,'message'=>'No se pudo desvincular la cuenta de la mesa'];
+        }
+        $okMesa=$this->ejecutar_consulta_simple_preparada(
+            "UPDATE mesas SET estado='disponible' WHERE mesa_id=? AND empresa_id=?",
+            "ii",[$mesa_id,$empresa]
+        );
+        if(!$okMesa) return ['status'=>false,'message'=>'No se pudo liberar la mesa'];
+        return ['status'=>true,'message'=>$facturaId>0?'Mesa liberada; la cuenta continúa abierta':'Mesa liberada','cuenta_conservada'=>$facturaId>0,'factura_id'=>$facturaId];
+    }
+
     /** Traer última factura ABIERTA (estado=1) por mesa + su detalle – sin $db externo */
     public function getFacturaAbiertaPorMesa($mesa_id){
         $mesa_id = intval($mesa_id);
@@ -2734,6 +2767,7 @@ class facturasRestauranteModelo extends mainModel {
                 INNER JOIN factura_restaurante_cuentas rc
                   ON rc.factura_id=f.facturas_id AND rc.empresa_id=f.empresa_id AND rc.estado='abierta'
                 WHERE rc.mesa_id = ? AND rc.servicio_tipo='mesa' AND f.estado = 1
+                  AND DATE(COALESCE(rc.fecha_actualizacion, rc.fecha_registro)) = CURDATE()
                 ORDER BY f.facturas_id DESC
                 LIMIT 1";
         $rs = $this->ejecutar_consulta_simple_preparada($sql, "i", [$mesa_id]);
@@ -3491,6 +3525,7 @@ public function crearPagoContado(array $data){
                     COALESCE(c.rtn,'') cliente_rtn,
                     COALESCE(rc.mesa_id,0) mesa_id,
                     COALESCE(rc.servicio_tipo,'llevar') servicio_tipo,
+                    CASE WHEN DATE(COALESCE(rc.fecha_actualizacion,rc.fecha_registro)) < CURDATE() THEN 1 ELSE 0 END es_anterior,
                     COALESCE(m.numero,'') mesa_numero,
                     COUNT(fd.facturas_detalle_id) lineas,
                     COALESCE(SUM(fd.cantidad),0) unidades,
@@ -3503,7 +3538,7 @@ public function crearPagoContado(array $data){
              LEFT JOIN facturas_detalles fd ON fd.facturas_id=f.facturas_id
              WHERE f.empresa_id=? AND f.estado=1
              GROUP BY f.facturas_id,f.clientes_id,f.importe,f.notas,f.fecha,f.fecha_registro,
-                      c.nombre,c.rtn,rc.mesa_id,rc.servicio_tipo,m.numero
+                      c.nombre,c.rtn,rc.mesa_id,rc.servicio_tipo,rc.fecha_actualizacion,rc.fecha_registro,m.numero
              ORDER BY COALESCE(rc.fecha_actualizacion,rc.fecha_registro) DESC, f.facturas_id DESC";
         $rs=$this->ejecutar_consulta_simple_preparada($sql,'i',[$empresa]);
         $out=[];
@@ -3520,6 +3555,7 @@ public function crearPagoContado(array $data){
                 'mesa_id'=>(int)$r['mesa_id'],
                 'mesa_numero'=>$r['mesa_numero']??'',
                 'servicio_tipo'=>$r['servicio_tipo']==='mesa'?'mesa':'llevar',
+                'es_anterior'=>(int)($r['es_anterior']??0),
                 'lineas'=>(int)$r['lineas'],
                 'unidades'=>(float)$r['unidades'],
                 'enviadas_preparacion'=>(float)$r['enviadas_preparacion']
@@ -3537,6 +3573,7 @@ public function crearPagoContado(array $data){
                     COALESCE(c.rtn,'') cliente_rtn,
                     COALESCE(rc.mesa_id,0) mesa_id,
                     COALESCE(rc.servicio_tipo,'llevar') servicio_tipo,
+                    CASE WHEN DATE(COALESCE(rc.fecha_actualizacion,rc.fecha_registro)) < CURDATE() THEN 1 ELSE 0 END es_anterior,
                     COALESCE(m.numero,'') mesa_numero
              FROM facturas f
              LEFT JOIN clientes c ON c.clientes_id=f.clientes_id

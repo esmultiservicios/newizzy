@@ -8,6 +8,195 @@ if ($peticionAjax) {
 
 class productosControlador extends productosModelo
 {
+    private function textoISVPost($campo, $fallback)
+    {
+        $texto = isset($_POST[$campo]) ? trim(strip_tags((string)$_POST[$campo])) : '';
+        return $texto !== '' ? $texto : $fallback;
+    }
+
+    private function normalizarISVProducto(&$isv1, &$isv2)
+    {
+        $calcular = isset($_POST['producto_isv_factura']);
+
+        if (!$calcular) {
+            $isv1 = 0;
+            $isv2 = 0;
+            return null;
+        }
+
+        // Si el formulario llega sin tipo por un navegador/cache antiguo,
+        // se conserva el comportamiento solicitado: ISV 1 por defecto.
+        if ($isv1 === 0 && $isv2 === 0) {
+            $isv1 = 1;
+        }
+
+        if ($isv1 === 1 && $isv2 === 1) {
+            $texto1 = $this->textoISVPost('producto_isv1_texto', 'ISV 1');
+            $texto2 = $this->textoISVPost('producto_isv2_texto', 'ISV 2');
+            return mainModel::showNotification([
+                "title" => "Error en ISV",
+                "text"  => "Solo puede seleccionar un tipo de ISV ({$texto1} o {$texto2})",
+                "type"  => "error"
+            ]);
+        }
+
+        return null;
+    }
+
+    private function procesarImagenProducto($campo = 'imagen_producto', $imagenActual = 'image_preview.png')
+    {
+        if (!isset($_FILES[$campo]) || empty($_FILES[$campo]['name'])) {
+            return [
+                'ok' => true,
+                'archivo' => $imagenActual,
+                'subio' => false,
+                'respuesta' => null
+            ];
+        }
+
+        $upload = $_FILES[$campo];
+        $error = isset($upload['error']) ? (int)$upload['error'] : UPLOAD_ERR_NO_FILE;
+        if ($error !== UPLOAD_ERR_OK) {
+            $mensajes = [
+                UPLOAD_ERR_INI_SIZE => 'La imagen supera el tamaño permitido por el servidor',
+                UPLOAD_ERR_FORM_SIZE => 'La imagen supera el tamaño permitido por el formulario',
+                UPLOAD_ERR_PARTIAL => 'La imagen se cargó de forma incompleta',
+                UPLOAD_ERR_NO_FILE => 'No se recibió la imagen seleccionada',
+                UPLOAD_ERR_NO_TMP_DIR => 'El servidor no tiene disponible la carpeta temporal de carga',
+                UPLOAD_ERR_CANT_WRITE => 'El servidor no pudo escribir la imagen en disco',
+                UPLOAD_ERR_EXTENSION => 'Una extensión del servidor detuvo la carga de la imagen'
+            ];
+            return [
+                'ok' => false,
+                'archivo' => $imagenActual,
+                'subio' => false,
+                'respuesta' => mainModel::showNotification([
+                    'title' => 'Error en imagen',
+                    'text' => $mensajes[$error] ?? 'No se pudo procesar la imagen seleccionada',
+                    'type' => 'error'
+                ])
+            ];
+        }
+
+        $tmp = $upload['tmp_name'] ?? '';
+        $size = isset($upload['size']) ? (int)$upload['size'] : 0;
+        if ($tmp === '' || !is_uploaded_file($tmp)) {
+            return [
+                'ok' => false,
+                'archivo' => $imagenActual,
+                'subio' => false,
+                'respuesta' => mainModel::showNotification([
+                    'title' => 'Error en imagen',
+                    'text' => 'La imagen recibida no es un archivo de carga válido',
+                    'type' => 'error'
+                ])
+            ];
+        }
+
+        if ($size <= 0 || $size > 2 * 1024 * 1024) {
+            return [
+                'ok' => false,
+                'archivo' => $imagenActual,
+                'subio' => false,
+                'respuesta' => mainModel::showNotification([
+                    'title' => 'Error en imagen',
+                    'text' => 'La imagen debe tener contenido y no exceder 2MB',
+                    'type' => 'error'
+                ])
+            ];
+        }
+
+        $mime = '';
+        if (function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo) {
+                $mime = (string)finfo_file($finfo, $tmp);
+                finfo_close($finfo);
+            }
+        }
+        if ($mime === '' && function_exists('mime_content_type')) {
+            $mime = (string)mime_content_type($tmp);
+        }
+        if ($mime === '') {
+            $mime = (string)($upload['type'] ?? '');
+        }
+
+        $tipos = [
+            'image/jpeg' => 'jpg',
+            'image/png'  => 'png',
+            'image/gif'  => 'gif',
+            'image/webp' => 'webp'
+        ];
+        if (!isset($tipos[$mime])) {
+            return [
+                'ok' => false,
+                'archivo' => $imagenActual,
+                'subio' => false,
+                'respuesta' => mainModel::showNotification([
+                    'title' => 'Error en imagen',
+                    'text' => 'Solo se permiten imágenes JPG, PNG, GIF o WEBP',
+                    'type' => 'error'
+                ])
+            ];
+        }
+
+        $destinoBase = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') . DIRECTORY_SEPARATOR . trim(PRODUCT_PATH, '/\\') . DIRECTORY_SEPARATOR;
+        if (!is_dir($destinoBase) && !@mkdir($destinoBase, 0775, true)) {
+            return [
+                'ok' => false,
+                'archivo' => $imagenActual,
+                'subio' => false,
+                'respuesta' => mainModel::showNotification([
+                    'title' => 'Error en imagen',
+                    'text' => 'No se pudo crear el directorio de imágenes de productos',
+                    'type' => 'error'
+                ])
+            ];
+        }
+        if (!is_writable($destinoBase)) {
+            return [
+                'ok' => false,
+                'archivo' => $imagenActual,
+                'subio' => false,
+                'respuesta' => mainModel::showNotification([
+                    'title' => 'Error en imagen',
+                    'text' => 'El directorio de imágenes de productos no tiene permisos de escritura',
+                    'type' => 'error'
+                ])
+            ];
+        }
+
+        do {
+            try {
+                $idcorto = substr(bin2hex(random_bytes(6)), 0, 10);
+            } catch (Exception $e) {
+                $idcorto = uniqid('', true);
+                $idcorto = preg_replace('/[^a-zA-Z0-9]/', '', $idcorto);
+            }
+            $archivo = 'prod_' . $idcorto . '.' . $tipos[$mime];
+            $destino = $destinoBase . $archivo;
+        } while (file_exists($destino));
+
+        if (!move_uploaded_file($tmp, $destino)) {
+            return [
+                'ok' => false,
+                'archivo' => $imagenActual,
+                'subio' => false,
+                'respuesta' => mainModel::showNotification([
+                    'title' => 'Error en imagen',
+                    'text' => 'No se pudo guardar la imagen en el directorio de productos',
+                    'type' => 'error'
+                ])
+            ];
+        }
+
+        return [
+            'ok' => true,
+            'archivo' => $archivo,
+            'subio' => true,
+            'respuesta' => null
+        ];
+    }
     /* =========================
        AGREGAR PRODUCTO
        ========================= */
@@ -45,13 +234,10 @@ class productosControlador extends productosModelo
         $isv1        = isset($_POST['producto_isv1']) ? 1 : 0;
         $isv2        = isset($_POST['producto_isv2']) ? 1 : 0;
 
-        // Validar que solo un ISV esté seleccionado
-        if ($isv1 == 1 && $isv2 == 1) {
-            return mainModel::showNotification([
-                "title" => "Error en ISV",
-                "text"  => "Solo puede seleccionar un tipo de ISV (15% o 16%)",
-                "type"  => "error"
-            ]);
+        // Normalizar ISV: con cálculo activo debe existir exactamente un tipo.
+        $respuestaISV = $this->normalizarISVProducto($isv1, $isv2);
+        if ($respuestaISV !== null) {
+            return $respuestaISV;
         }
 
         // Requeridos
@@ -114,52 +300,13 @@ class productosControlador extends productosModelo
         }
 
         /* =========================
-           IMAGEN (nombre único)
+           IMAGEN
            ========================= */
-        $file = 'image_preview.png';
-        if (!empty($_FILES['imagen_producto']['name'])) {
-            $allowed_types = ['image/jpeg','image/jpg','image/png','image/gif','image/pjpeg'];
-            $file_type     = $_FILES['imagen_producto']['type'] ?? '';
-            $file_size     = $_FILES['imagen_producto']['size'] ?? 0;
-
-            if (!in_array($file_type, $allowed_types)) {
-                return mainModel::showNotification([
-                    "title" => "Error en imagen",
-                    "text"  => "Solo se permiten archivos de imagen (JPG, PNG, GIF)",
-                    "type"  => "error"
-                ]);
-            }
-            if ($file_size > 2 * 1024 * 1024) {
-                return mainModel::showNotification([
-                    "title" => "Error en imagen",
-                    "text"  => "El tamaño de la imagen no debe exceder 2MB",
-                    "type"  => "error"
-                ]);
-            }
-
-            $destinoBase = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/' . trim(PRODUCT_PATH, '/') . '/';
-            if (!is_dir($destinoBase)) { @mkdir($destinoBase, 0775, true); }
-
-            $ext = pathinfo($_FILES['imagen_producto']['name'], PATHINFO_EXTENSION);
-            if ($ext === '') {
-                $map = ['image/jpeg'=>'jpg','image/jpg'=>'jpg','image/png'=>'png','image/gif'=>'gif','image/pjpeg'=>'jpg'];
-                $ext = $map[$file_type] ?? 'jpg';
-            }
-            $ext = strtolower($ext);
-
-            do {
-                $idcorto = substr(bin2hex(random_bytes(4)), 0, 6);
-                $file = "prod_{$idcorto}.{$ext}";
-            } while (file_exists($destinoBase . $file));
-
-            if (!move_uploaded_file($_FILES['imagen_producto']['tmp_name'], $destinoBase . $file)) {
-                return mainModel::showNotification([
-                    "title" => "Error en imagen",
-                    "text"  => "No se pudo subir la imagen del producto",
-                    "type"  => "error"
-                ]);
-            }
+        $imagenProcesada = $this->procesarImagenProducto('imagen_producto', 'image_preview.png');
+        if (!$imagenProcesada['ok']) {
+            return $imagenProcesada['respuesta'];
         }
+        $file = $imagenProcesada['archivo'];
 
         // Duplicados
         $result = productosModelo::valid_bar_code_productos_modelo($bar_code_product, $empresa);
@@ -214,8 +361,8 @@ class productosControlador extends productosModelo
         $colaborador_id = $_SESSION['colaborador_id_sd'];
         $fecha_registro = date('Y-m-d H:i:s');
         $estado         = 1; // activo
-        $isv_venta      = isset($_POST['producto_isv_factura']) ? $_POST['producto_isv_factura'] : 2;
-        $isv_compra     = isset($_POST['producto_isv_compra'])  ? $_POST['producto_isv_compra']  : 2;
+        $isv_venta      = isset($_POST['producto_isv_factura']) ? 1 : 2;
+        $isv_compra     = isset($_POST['producto_isv_compra'])  ? 1 : 2;
 
         // IMPORTANTE: mantenemos las claves que tu modelo espera
         $datos = [
@@ -348,6 +495,7 @@ class productosControlador extends productosModelo
         $porcentaje_venta = (float)mainModel::cleanString($_POST['porcentaje_venta'] ?? 0);
         $precio_venta     = (float)mainModel::cleanString($_POST['precio_venta']);
         $precio_mayoreo   = (float)mainModel::cleanString($_POST['precio_mayoreo'] ?? 0);
+        $cantidad_mayoreo = (float)mainModel::cleanString($_POST['cantidad_mayoreo'] ?? 0);
         $cantidad_minima  = (int)mainModel::cleanString($_POST['cantidad_minima'] ?? 0);
         $cantidad_maxima  = (int)mainModel::cleanString($_POST['cantidad_maxima'] ?? 0);
 
@@ -355,13 +503,10 @@ class productosControlador extends productosModelo
         $isv1        = isset($_POST['producto_isv1']) ? 1 : 0;
         $isv2        = isset($_POST['producto_isv2']) ? 1 : 0;
 
-        // Validar que solo un ISV esté seleccionado
-        if ($isv1 == 1 && $isv2 == 1) {
-            return mainModel::showNotification([
-                "title" => "Error en ISV",
-                "text"  => "Solo puede seleccionar un tipo de ISV (15% o 16%)",
-                "type"  => "error"
-            ]);
+        // Normalizar ISV: con cálculo activo debe existir exactamente un tipo.
+        $respuestaISV = $this->normalizarISVProducto($isv1, $isv2);
+        if ($respuestaISV !== null) {
+            return $respuestaISV;
         }
 
         if ($precio_compra < 0 || $precio_venta < 0) {
@@ -381,54 +526,13 @@ class productosControlador extends productosModelo
             if (!empty($row['file'])) $imagenActual = $row['file'];
         }
 
-        // Subida opcional
-        $subioNueva = false;
-        $file       = $imagenActual;
-
-        if (!empty($_FILES['imagen_producto']['name'])) {
-            $allowed_types = ['image/jpeg','image/jpg','image/png','image/gif','image/pjpeg'];
-            $file_type     = $_FILES['imagen_producto']['type'] ?? '';
-            $file_size     = $_FILES['imagen_producto']['size'] ?? 0;
-
-            if (!in_array($file_type, $allowed_types)) {
-                return mainModel::showNotification([
-                    "title" => "Error en imagen",
-                    "text"  => "Solo se permiten archivos de imagen (JPG, PNG, GIF)",
-                    "type"  => "error"
-                ]);
-            }
-            if ($file_size > 2 * 1024 * 1024) {
-                return mainModel::showNotification([
-                    "title" => "Error en imagen",
-                    "text"  => "El tamaño de la imagen no debe exceder 2MB",
-                    "type"  => "error"
-                ]);
-            }
-
-            $destinoBase = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/' . trim(PRODUCT_PATH, '/') . '/';
-            if (!is_dir($destinoBase)) { @mkdir($destinoBase, 0775, true); }
-
-            $ext = pathinfo($_FILES['imagen_producto']['name'], PATHINFO_EXTENSION);
-            if ($ext === '') {
-                $map = ['image/jpeg'=>'jpg','image/jpg'=>'jpg','image/png'=>'png','image/gif'=>'gif','image/pjpeg'=>'jpg'];
-                $ext = $map[$file_type] ?? 'jpg';
-            }
-            $ext = strtolower($ext);
-
-            do {
-                $idcorto = substr(bin2hex(random_bytes(4)), 0, 6);
-                $file = "prod_{$idcorto}.{$ext}";
-            } while (file_exists($destinoBase . $file));
-
-            if (!move_uploaded_file($_FILES['imagen_producto']['tmp_name'], $destinoBase . $file)) {
-                return mainModel::showNotification([
-                    "title" => "Error en imagen",
-                    "text"  => "No se pudo subir la imagen del producto",
-                    "type"  => "error"
-                ]);
-            }
-            $subioNueva = true;
+        // Subida opcional de imagen, conservando la actual si no se seleccionó otra.
+        $imagenProcesada = $this->procesarImagenProducto('imagen_producto', $imagenActual);
+        if (!$imagenProcesada['ok']) {
+            return $imagenProcesada['respuesta'];
         }
+        $file = $imagenProcesada['archivo'];
+        $subioNueva = (bool)$imagenProcesada['subio'];
 
         // Nombre duplicado (excluyendo el actual)
         $nombreExistente = productosModelo::valid_nombre_producto_modelo($nombre, $_SESSION['empresa_id_sd']);
@@ -448,9 +552,9 @@ class productosControlador extends productosModelo
         }
 
         // Estados según tu schema (1=activo, 2=inactivo)
-        $estado     = (isset($_POST['producto_activo']) && $_POST['producto_activo'] == 'on') ? 1 : 2;
-        $isv_venta  = isset($_POST['producto_isv_factura']) ? (int)$_POST['producto_isv_factura'] : 2;
-        $isv_compra = isset($_POST['producto_isv_compra'])  ? (int)$_POST['producto_isv_compra']  : 2;
+        $estado     = isset($_POST['producto_activo']) ? 1 : 2;
+        $isv_venta  = isset($_POST['producto_isv_factura']) ? 1 : 2;
+        $isv_compra = isset($_POST['producto_isv_compra'])  ? 1 : 2;
 
         // Mantengo claves esperadas por tu modelo
         $datos = [
@@ -461,6 +565,7 @@ class productosControlador extends productosModelo
             'porcentaje_venta' => $porcentaje_venta,
             'precio_venta'     => $precio_venta,
             'precio_mayoreo'   => $precio_mayoreo,
+            'cantidad_mayoreo'  => $cantidad_mayoreo,
             'cantidad_minima'  => $cantidad_minima,
             'cantidad_maxima'  => $cantidad_maxima,
             'estado'           => $estado,

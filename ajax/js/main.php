@@ -1102,7 +1102,7 @@ function modal_registrar_productos() {
     $('#formProductos #precio_mayoreo').attr("readonly", false);
     $('#formProductos #porcentaje_venta').attr("readonly", false);
     $('#formProductos #cantidad_mayoreo').attr("readonly", false);
-    $('#formProductos #producto_isv_compra').attr('checked', false);
+    $('#formProductos #producto_isv_compra').prop('checked', false);
     $('#formProductos #cantidad').attr("disabled", false);
     $('#formProductos #producto_superior').attr("disabled", false);
 
@@ -1124,21 +1124,23 @@ function modal_registrar_productos() {
     $('#formProductos #medida').val(1);
     $('#formProductos #medida').selectpicker('refresh');
 
-    $('#formProductos #producto_activo').attr('checked', true);
+    $('#formProductos #producto_activo').prop('checked', true);
     $('#formProductos #estado_producto').hide();
     $('#formProductos #grupo_editar_bacode').hide();
 
     if (validarISV("Facturas") == 1) {
-        $('#formProductos #producto_isv_factura').attr('checked', true);
+        $('#formProductos #producto_isv_factura').prop('checked', true);
     } else {
-        $('#formProductos #producto_isv_factura').attr('checked', false);
+        $('#formProductos #producto_isv_factura').prop('checked', false);
     }
 
     if (validarISV("Compras") == 1) {
-        $('#formProductos #producto_isv_compra').attr('checked', true);
+        $('#formProductos #producto_isv_compra').prop('checked', true);
     } else {
-        $('#formProductos #producto_isv_compra').attr('checked', false);
+        $('#formProductos #producto_isv_compra').prop('checked', false);
     }
+
+    cargarConfiguracionISV();
 
     $("#formProductos #preview").attr("src", "<?php echo SERVERURLLOGO;?>/image_preview.png");
 
@@ -1411,91 +1413,124 @@ function getDepartamentoClientes() {
 /*FIN FORMULARIO CLIENTES*/
 //FIN CLIENTES
 
-// Función para cargar la configuración ISV (VERSIÓN CORREGIDA)
+// Configuración ISV para productos.
+// La configuración general indica qué tasas están DISPONIBLES; no significa
+// que un producto nuevo deba marcar todas las tasas activas.
 function cargarConfiguracionISV() {
     $.ajax({
         url: '<?php echo SERVERURL;?>core/productos/getIsvConfig.php',
         type: 'POST',
         dataType: 'json',
         success: function(response) {
-            if (response.success) {                
-                // Procesar ISV tipo 1
-                $('#producto_isv1').closest('.col-md-6').show();
-                $('#producto_isv1').prop('checked', response.isv1.activar === 1);
-                
-                // Actualizar etiqueta con el porcentaje real desde la BD
-                $('#producto_isv1').next('.custom-control-label').html(
-                    '<i class="fas fa-percentage mr-1"></i>Aplica ISV ' + response.isv1.valor + '%'
-                );
-                
-                // Procesar ISV tipo 2
-                $('#producto_isv2').closest('.col-md-6').show();
-                $('#producto_isv2').prop('checked', response.isv2.activar === 1);
-                
-                // Actualizar etiqueta con el porcentaje real desde la BD
-                $('#producto_isv2').next('.custom-control-label').html(
-                    '<i class="fas fa-percentage mr-1"></i>Aplica ISV ' + response.isv2.valor + '%'
-                );
-                
-                // Guardar los valores en data attributes para uso posterior
-                $('#producto_isv1').data('valor', response.isv1.valor / 100);
-                $('#producto_isv2').data('valor', response.isv2.valor / 100);
-                
-                // Aplicar lógica de selección exclusiva automática
+            if (!response || !response.success) {
                 aplicarSeleccionExclusivaISV();
-            } else {
-                // Mostrar ambos con valores por defecto en caso de error
-                $('#producto_isv1').closest('.col-md-6').show();
-                $('#producto_isv2').closest('.col-md-6').show();
-                aplicarSeleccionExclusivaISV();
+                normalizarISVProductoNuevo();
+                return;
             }
-        },
-        error: function(xhr, status, error) {
-            showNotify('warning', 'Aviso', 'No se pudo completar la acción solicitada.');
-            // Mostrar ambos con valores por defecto en caso de error
-            $('#producto_isv1').closest('.col-md-6').show();
-            $('#producto_isv2').closest('.col-md-6').show();
+
+            var isv1Activo = Number(response.isv1 && response.isv1.activar) === 1;
+            var isv2Activo = Number(response.isv2 && response.isv2.activar) === 1;
+            var valor1 = response.isv1 ? response.isv1.valor : '';
+            var valor2 = response.isv2 ? response.isv2.valor : '';
+
+            $('#producto_isv1').closest('.col-md-6').toggle(isv1Activo);
+            $('#producto_isv2').closest('.col-md-6').toggle(isv2Activo);
+
+            $('#producto_isv1').next('.custom-control-label').html(
+                '<i class="fas fa-percentage mr-1"></i>Aplica ISV ' + valor1 + '%'
+            );
+            $('#producto_isv2').next('.custom-control-label').html(
+                '<i class="fas fa-percentage mr-1"></i>Aplica ISV ' + valor2 + '%'
+            );
+
+            $('#producto_isv1').data('valor', parseFloat(valor1 || 0) / 100).data('activo', isv1Activo ? 1 : 0);
+            $('#producto_isv2').data('valor', parseFloat(valor2 || 0) / 100).data('activo', isv2Activo ? 1 : 0);
+
             aplicarSeleccionExclusivaISV();
+            normalizarISVProductoNuevo();
+        },
+        error: function() {
+            showNotify('warning', 'Aviso', 'No se pudo cargar la configuración de ISV.');
+            aplicarSeleccionExclusivaISV();
+            normalizarISVProductoNuevo();
         }
     });
 }
 
-// Función para selección exclusiva automática de ISV
+function normalizarISVProductoNuevo() {
+    var $form = $('#formProductos');
+    var esNuevo = String($form.attr('data-form') || '').toLowerCase() === 'save';
+    if (!esNuevo) return;
+
+    var calcular = $('#producto_isv_factura').is(':checked');
+    var isv1Disponible = Number($('#producto_isv1').data('activo')) === 1 || $('#producto_isv1').closest('.col-md-6').is(':visible');
+    var isv2Disponible = Number($('#producto_isv2').data('activo')) === 1 || $('#producto_isv2').closest('.col-md-6').is(':visible');
+
+    if (!calcular) {
+        $('#producto_isv1, #producto_isv2').prop('checked', false);
+        return;
+    }
+
+    // Para producto NUEVO se prefiere ISV 1. Solo si no está disponible se usa ISV 2.
+    $('#producto_isv1').prop('checked', !!isv1Disponible);
+    $('#producto_isv2').prop('checked', !isv1Disponible && !!isv2Disponible);
+}
+
+function textoTiposISVDisponibles() {
+    var textos = [];
+    var t1 = $.trim($('#producto_isv1').next('.custom-control-label').text().replace(/^Aplica\s*/i, ''));
+    var t2 = $.trim($('#producto_isv2').next('.custom-control-label').text().replace(/^Aplica\s*/i, ''));
+    if ($('#producto_isv1').closest('.col-md-6').is(':visible') && t1) textos.push(t1);
+    if ($('#producto_isv2').closest('.col-md-6').is(':visible') && t2) textos.push(t2);
+    return textos.join(' o ') || 'un tipo de ISV';
+}
+
 function aplicarSeleccionExclusivaISV() {
-    // Cuando se selecciona ISV 1, desmarcar ISV 2 automáticamente
-    $('#producto_isv1').change(function() {
+    // Evita acumular listeners cada vez que se abre el modal.
+    $('#producto_isv1').off('change.izzyIsv').on('change.izzyIsv', function() {
         if ($(this).is(':checked')) {
             $('#producto_isv2').prop('checked', false);
+        } else if ($('#producto_isv_factura').is(':checked') && !$('#producto_isv2').is(':checked')) {
+            $(this).prop('checked', true);
         }
     });
-    
-    // Cuando se selecciona ISV 2, desmarcar ISV 1 automáticamente
-    $('#producto_isv2').change(function() {
+
+    $('#producto_isv2').off('change.izzyIsv').on('change.izzyIsv', function() {
         if ($(this).is(':checked')) {
             $('#producto_isv1').prop('checked', false);
+        } else if ($('#producto_isv_factura').is(':checked') && !$('#producto_isv1').is(':checked')) {
+            $(this).prop('checked', true);
         }
     });
-    
-    // Validar que al menos uno esté seleccionado al enviar el formulario, SOLO si producto_isv_factura está activo
-    $('#formProductos').submit(function(e) {
-        // Verificar si el checkbox de "Calcular ISV en Factura" está activado
+
+    $('#producto_isv_factura').off('change.izzyIsv').on('change.izzyIsv', function() {
+        if ($(this).is(':checked')) {
+            // En alta nueva aplica el valor por defecto; en edición no pisa el dato cargado.
+            if (String($('#formProductos').attr('data-form') || '').toLowerCase() === 'save') {
+                normalizarISVProductoNuevo();
+            }
+        } else {
+            $('#producto_isv1, #producto_isv2').prop('checked', false);
+        }
+    });
+
+    $('#formProductos').off('submit.izzyIsv').on('submit.izzyIsv', function(e) {
         var calcularISVFactura = $('#producto_isv_factura').is(':checked');
-        
-        // Solo validar los ISV si el checkbox de factura está activado
-        if (calcularISVFactura && !$('#producto_isv1').is(':checked') && !$('#producto_isv2').is(':checked')) {
+        var isv1 = $('#producto_isv1').is(':checked');
+        var isv2 = $('#producto_isv2').is(':checked');
+
+        if (calcularISVFactura && (!isv1 && !isv2)) {
             e.preventDefault();
-            
-            // Obtener los porcentajes actuales de las etiquetas
-            var porcentaje1 = $('#producto_isv1').next('.custom-control-label').text().match(/\d+/);
-            var porcentaje2 = $('#producto_isv2').next('.custom-control-label').text().match(/\d+/);
-            
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Debe seleccionar al menos un tipo de ISV (' + (porcentaje1 ? porcentaje1[0] : '15') + '% o ' + (porcentaje2 ? porcentaje2[0] : '16') + '%)',
-            });
+            showNotify('error', 'Error en ISV', 'Debe seleccionar ' + textoTiposISVDisponibles() + '.');
             return false;
         }
+
+        if (calcularISVFactura && isv1 && isv2) {
+            e.preventDefault();
+            showNotify('error', 'Error en ISV', 'Solo puede seleccionar un tipo de ISV (' + textoTiposISVDisponibles() + ').');
+            return false;
+        }
+
         return true;
     });
 }
@@ -1575,8 +1610,6 @@ function modal_productos() {
     //MOSTRAR OBJETOS
     $('#formProductos #cantidad').show();
     $('#div_cantidad_editar_producto').show();
-
-    cargarConfiguracionISV();
 
     //HABILITAR OBJETOS
     $('#formProductos #producto').attr("readonly", false);

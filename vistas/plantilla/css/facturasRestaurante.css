@@ -2270,3 +2270,19 @@ body[data-servicio="mesa"] #btn-guardar.btn-warning:focus {
     padding:13px;
   }
 }
+
+
+/* ===== Mesas: escalabilidad y operación segura ===== */
+.vista-facturacion-restaurante .mesas-sidebar{overflow:hidden;}
+.vista-facturacion-restaurante .mesas-toolbar{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border-color);background:#fff;flex:0 0 auto;}
+.vista-facturacion-restaurante .mesas-search{flex:1;min-width:0;display:flex;align-items:center;gap:7px;height:34px;padding:0 10px;border:1px solid #d7e1ea;border-radius:9px;background:#f8fafc;}
+.vista-facturacion-restaurante .mesas-search i{color:#7a8b9a;font-size:12px;}
+.vista-facturacion-restaurante .mesas-search input{width:100%;min-width:0;border:0!important;outline:0!important;box-shadow:none!important;background:transparent!important;padding:0!important;font-size:12px;color:#2c3e50;}
+.vista-facturacion-restaurante .mesas-count{min-width:34px;height:28px;padding:0 8px;border-radius:14px;display:inline-flex;align-items:center;justify-content:center;background:#eef5fb;border:1px solid #d7e8f5;color:#2c6f9e;font-size:11px;font-weight:800;}
+.vista-facturacion-restaurante .mesas-list{min-height:0;overflow-y:auto;overflow-x:hidden;align-content:start;overscroll-behavior:contain;scrollbar-gutter:stable;}
+.vista-facturacion-restaurante .mesa-empty-state{min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;color:#7a8b9a;border:1px dashed #d7e1ea;border-radius:10px;background:#fafcfd;padding:18px;}
+.vista-facturacion-restaurante .mesa-empty-state i{font-size:24px;color:#91a7b8;}
+.vista-facturacion-restaurante .mesa-empty-state strong{color:#34495e;font-size:13px;}
+.vista-facturacion-restaurante .mesa-empty-state span{font-size:11px;}
+.vista-facturacion-restaurante .rs-open-account-card--previous{border-style:dashed;background:#fbfcfd;}
+@media(max-width:760px){.vista-facturacion-restaurante .mesas-toolbar{padding:7px 8px;}}

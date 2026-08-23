@@ -3078,119 +3078,34 @@ body[data-servicio="mesa"] #btn-guardar.btn-warning:focus {
 
 
 /* ================================================================
-   FIX FINAL — ORDEN DE CARGA + CABECERA MÓVIL COMPACTA
-   Evita FOUC del escritorio antes de activar el asistente.
-   Solo afecta teléfonos <= 599px.
+   AJUSTE FINAL — CABECERA MÓVIL COMPACTA
+   El loader inicial ahora vive en la vista para actuar desde el primer paint.
    ================================================================ */
 @media (max-width:599px){
-
-  /* Antes de que el JS móvil termine:
-     oculta el POS de escritorio y muestra una espera limpia. */
-  body.vista-facturacion-restaurante.rs-mobile-booting{
-    overflow:hidden !important;
-    background:#f5f7fa !important;
-  }
-
-  body.vista-facturacion-restaurante.rs-mobile-booting .restaurante-content{
-    visibility:hidden !important;
-    opacity:0 !important;
-    pointer-events:none !important;
-  }
-
-  body.vista-facturacion-restaurante.rs-mobile-booting::before{
-    content:"Preparando punto de venta…";
-    position:fixed;
-    left:50%;
-    top:50%;
-    transform:translate(-50%,-50%);
-    z-index:12000;
-    min-width:210px;
-    max-width:calc(100vw - 40px);
-    padding:48px 20px 18px;
-    border:1px solid #dce5ec;
-    border-radius:14px;
-    background:#fff;
-    color:#34495e;
-    box-shadow:0 10px 30px rgba(15,23,42,.12);
-    text-align:center;
-    font-size:12px;
-    font-weight:700;
-  }
-
-  body.vista-facturacion-restaurante.rs-mobile-booting::after{
-    content:"";
-    position:fixed;
-    left:50%;
-    top:calc(50% - 22px);
-    transform:translate(-50%,-50%);
-    z-index:12001;
-    width:25px;
-    height:25px;
-    border:3px solid #dbeaf4;
-    border-top-color:#3498db;
-    border-radius:50%;
-    animation:rsMobileBootSpin .75s linear infinite;
-  }
-
-  body.vista-facturacion-restaurante.rs-mobile-ready .restaurante-content{
-    visibility:visible !important;
-    opacity:1 !important;
-    transition:opacity .14s ease !important;
-  }
-
-  /* Cabecera del asistente más compacta */
   .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-progress{
-    padding:5px 8px 3px !important;
-    gap:2px !important;
+    padding:5px 8px 3px !important;gap:2px !important;
   }
-
   .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-progress-step{
-    gap:2px !important;
-    font-size:8px !important;
+    gap:2px !important;font-size:8px !important;
   }
-
   .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-step-number{
-    width:22px !important;
-    height:22px !important;
-    font-size:9px !important;
+    width:22px !important;height:22px !important;font-size:9px !important;
   }
-
   .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-context{
-    padding:4px 9px !important;
-    min-height:28px !important;
-    font-size:9.5px !important;
+    padding:4px 9px !important;min-height:28px !important;font-size:9.5px !important;
   }
-
   .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-quick-actions{
-    padding:0 9px 5px !important;
-    gap:5px !important;
+    padding:0 9px 5px !important;gap:5px !important;
   }
-
   .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-quick-actions button{
-    min-height:29px !important;
-    padding:4px 5px !important;
-    font-size:9px !important;
-    border-radius:8px !important;
+    min-height:29px !important;padding:4px 5px !important;font-size:9px !important;border-radius:8px !important;
   }
-
-  /* Recupera espacio vertical en Servicio / Mesas */
   .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="servicio"] .factura-header{
     padding:5px 9px !important;
   }
-
   .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="servicio"] #servicio-switch .segmented-control label{
     padding:7px 8px !important;
   }
-
-  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .sidebar-header{
-    padding:6px 10px !important;
-  }
-
-  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .mesas-toolbar{
-    padding:5px 9px !important;
-  }
-}
-
-@keyframes rsMobileBootSpin{
-  to{transform:translate(-50%,-50%) rotate(360deg)}
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .sidebar-header{padding:6px 10px !important;}
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .mesas-toolbar{padding:5px 9px !important;}
 }

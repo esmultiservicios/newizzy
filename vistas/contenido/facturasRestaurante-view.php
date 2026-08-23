@@ -10,11 +10,15 @@
   <link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/facturasRestaurante.css">
   <!-- Select2 CSS -->
   <link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/select2.min.css">
-  <!-- Evita mostrar el módulo a medio inicializar mientras llegan mesas/productos/configuración -->
+  <!--
+    Bloqueo de primer render:
+    el contenedor nace oculto desde el propio HTML, sin depender de clases
+    agregadas posteriormente por JavaScript al <body>.
+  -->
   <style id="rs-boot-critical">
-    body.vista-facturacion-restaurante.rs-booting .restaurante-container{visibility:hidden;}
-    #rs-boot-screen{display:none;position:fixed;inset:0;z-index:2147483000;align-items:center;justify-content:center;background:#f5f7fa;}
-    body.vista-facturacion-restaurante.rs-booting #rs-boot-screen{display:flex;}
+    .restaurante-container.rs-boot-pending{visibility:hidden!important;}
+    #rs-boot-screen{display:flex;position:fixed;inset:0;z-index:2147483000;align-items:center;justify-content:center;background:#f5f7fa;}
+    #rs-boot-screen.rs-boot-done{display:none!important;}
     #rs-boot-screen .rs-boot-card{display:flex;align-items:center;gap:12px;padding:14px 18px;border:1px solid #dbe4ee;border-radius:12px;background:#fff;box-shadow:0 10px 30px rgba(15,23,42,.10);font:600 14px/1.25 Arial,sans-serif;color:#334155;}
     #rs-boot-screen .rs-boot-spinner{width:22px;height:22px;border:3px solid #d9e8f5;border-top-color:#2997d6;border-radius:50%;animation:rsBootSpin .75s linear infinite;}
     @keyframes rsBootSpin{to{transform:rotate(360deg)}}
@@ -26,7 +30,7 @@
     <div class="rs-boot-card"><span class="rs-boot-spinner" aria-hidden="true"></span><span>Preparando punto de venta…</span></div>
   </div>
 
-  <div class="restaurante-container">
+  <div class="restaurante-container rs-boot-pending">
     <!-- Barra superior de control -->
     <div class="control-bar">
       <div class="control-user">

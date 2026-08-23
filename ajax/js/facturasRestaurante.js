@@ -610,32 +610,53 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
   // ===========================================================
-  //  PRE-CARGA VISUAL MÓVIL
-  //  Evita mostrar por milisegundos el layout de escritorio.
-  //  No ejecuta lógica de negocio ni AJAX.
+  //  CONTROL ÚNICO DEL PRIMER RENDER
+  //  Escritorio: libera al terminar la carga base.
+  //  Móvil: libera cuando carga base + asistente responsive están listos.
   // ===========================================================
-  function rsMarkMobileBoot(){
-    try{
-      if(window.matchMedia && window.matchMedia('(max-width: 599px)').matches){
-        document.body.classList.add('rs-mobile-booting');
-      }
-    }catch(_){}
-  }
+  let rsBaseInitReady = false;
+  let rsMobileInitReady = false;
+  let rsBootFinished = false;
 
-  rsMarkMobileBoot();
+  function rsEsTelefono(){
+    try{
+      return !!(window.matchMedia && window.matchMedia('(max-width: 599px)').matches);
+    }catch(_){
+      return window.innerWidth <= 599;
+    }
+  }
 
   // ====== Inicio ======
   init();
 
   function finalizarCargaInicialRestaurante(){
-    document.body.classList.remove('rs-booting');
+    if (rsBootFinished) return;
+    rsBootFinished = true;
+
+    const container = document.querySelector('.restaurante-container');
+    if (container) container.classList.remove('rs-boot-pending');
+
+    document.body.classList.remove('rs-booting','rs-mobile-booting');
     document.body.classList.add('rs-ready');
+
     const boot = document.getElementById('rs-boot-screen');
-    if (boot) boot.setAttribute('aria-hidden','true');
+    if (boot){
+      boot.setAttribute('aria-hidden','true');
+      boot.classList.add('rs-boot-done');
+    }
+  }
+
+  function intentarFinalizarCargaInicial(){
+    if (!rsBaseInitReady) return;
+
+    // En teléfono esperamos también a que el asistente esté construido.
+    if (rsEsTelefono() && !rsMobileInitReady) return;
+
+    window.requestAnimationFrame(finalizarCargaInicialRestaurante);
   }
 
   // Failsafe: jamás dejar la interfaz oculta si una petición externa tarda demasiado.
-  window.setTimeout(finalizarCargaInicialRestaurante, 4500);
+  window.setTimeout(finalizarCargaInicialRestaurante, 5000);
 
   async function init() {
     setupEventListeners();
@@ -659,8 +680,10 @@ document.addEventListener('DOMContentLoaded', function () {
         Promise.resolve(getCajero())
       ]);
     } finally {
-      // Revelar de una sola vez evita el efecto de controles sin terminar de cargar.
-      window.requestAnimationFrame(finalizarCargaInicialRestaurante);
+      // La carga base ya terminó. Escritorio puede mostrarse;
+      // teléfono espera también al asistente responsive.
+      rsBaseInitReady = true;
+      intentarFinalizarCargaInicial();
     }
 
     verificarAperturaCaja();
@@ -7150,7 +7173,13 @@ function initSelect2ForComboRow(row){
     ]);
     reinitSelect2Restaurante();
     updateAccionPrincipalUI();
-    initMobileAssistant();
+
+    if (rsEsTelefono()) {
+      initMobileAssistant();
+    }
+
+    rsMobileInitReady = true;
+    intentarFinalizarCargaInicial();
   },120);
 
 });

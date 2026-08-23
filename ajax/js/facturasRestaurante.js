@@ -184,6 +184,425 @@ document.addEventListener('DOMContentLoaded', function () {
   const PRODUCT_TILE_SELECTOR = '[data-producto-id]';
   const MESA_TILE_SELECTOR = '[data-mesa-id]';  
 
+
+  // ===========================================================
+  //  ASISTENTE MÓVIL RESTAURANTE / POS
+  //  SOLO TELÉFONOS. Reutiliza la lógica y botones existentes.
+  // ===========================================================
+  const RS_MOBILE_QUERY = '(max-width: 599px)';
+  let rsMobileMedia = null;
+  let rsMobileStep = 'servicio';
+  let rsMobileObserver = null;
+
+  function isMobileAssistantActive(){
+    return !!(rsMobileMedia && rsMobileMedia.matches);
+  }
+
+  function rsMobileMesasEnabled(){
+    return !(window.REST_CONFIG && Number(window.REST_CONFIG.usar_mesas) === 0);
+  }
+
+  function rsMobileServicio(){
+    return getServicioTipo() === 'mesa' ? 'mesa' : 'llevar';
+  }
+
+  function rsMobileItemCount(){
+    return (Array.isArray(comandaItems) ? comandaItems : [])
+      .reduce((sum,item)=>sum + Number(item && item.cantidad ? item.cantidad : 0), 0);
+  }
+
+  function rsMobileTotal(){
+    const el = totalElement || document.getElementById('total');
+    if(!el) return 0;
+    const raw = String(el.textContent || '')
+      .replace(/[^\d.,-]/g,'')
+      .replace(/,/g,'');
+    return Number.parseFloat(raw) || 0;
+  }
+
+  function rsMobileCliente(){
+    const nombre = document.querySelector('#cliente-info .cli-nombre');
+    return String(
+      (nombre && nombre.textContent) ||
+      (clienteSeleccionado && clienteSeleccionado.nombre) ||
+      'Consumidor final'
+    ).trim();
+  }
+
+  function rsMobileRtn(){
+    const rtn = document.querySelector('#cliente-info .cli-rtn');
+    if(rtn && String(rtn.textContent || '').trim()) return String(rtn.textContent).trim();
+    return String((clienteSeleccionado && clienteSeleccionado.identificacion) || '').trim();
+  }
+
+  function rsMobileMesa(){
+    if(rsMobileServicio() !== 'mesa') return 'Para llevar';
+    if(mesaSeleccionada){
+      const numero = mesaSeleccionada.numero || mesaSeleccionada.Numero || mesaSeleccionada.mesa_numero || '';
+      return numero ? ('Mesa ' + String(numero).replace(/^Mesa\s*/i,'')) : 'Mesa seleccionada';
+    }
+    return 'Mesa no seleccionada';
+  }
+
+  function rsMobileOriginalAllowed(el){
+    if(!el) return false;
+    if(el.hidden) return false;
+    if(String(el.style && el.style.display || '').toLowerCase() === 'none') return false;
+    return true;
+  }
+
+  function rsMobileProxyClick(selector){
+    const target = document.querySelector(selector);
+    if(target && !target.disabled) target.click();
+  }
+
+  function rsMobileCreate(){
+    if(document.getElementById('rs-mobile-assistant')) return;
+
+    const main = document.querySelector('.main-content');
+    if(!main) return;
+
+    const assistant = document.createElement('section');
+    assistant.id = 'rs-mobile-assistant';
+    assistant.className = 'rs-mobile-assistant';
+    assistant.setAttribute('aria-label','Asistente de venta');
+    assistant.innerHTML = `
+      <div class="rs-mobile-progress">
+        <button type="button" class="rs-mobile-progress-step" data-rs-step="servicio">
+          <span class="rs-mobile-step-number">1</span><span>Servicio</span>
+        </button>
+        <button type="button" class="rs-mobile-progress-step" data-rs-step="productos">
+          <span class="rs-mobile-step-number">2</span><span>Productos</span>
+        </button>
+        <button type="button" class="rs-mobile-progress-step" data-rs-step="pedido">
+          <span class="rs-mobile-step-number">3</span><span>Pedido</span>
+        </button>
+        <button type="button" class="rs-mobile-progress-step" data-rs-step="caja">
+          <span class="rs-mobile-step-number">4</span><span>Cliente / Caja</span>
+        </button>
+      </div>
+
+      <div class="rs-mobile-context">
+        <span><i class="fas fa-concierge-bell"></i><b id="rs-mobile-context-service">Para llevar</b></span>
+        <span><i class="fas fa-user"></i><b id="rs-mobile-context-client">Consumidor final</b></span>
+      </div>
+
+      <div class="rs-mobile-quick-actions">
+        <button type="button" data-rs-proxy="#btn-cuentas-abiertas"><i class="fas fa-folder-open"></i><span>Cuentas</span></button>
+        <button type="button" data-rs-proxy="#btn-factura-recurrente"><i class="fas fa-calendar-alt"></i><span>Recurrente</span></button>
+        <button type="button" id="rs-mobile-manage" data-rs-proxy="#btn-gestionar-acciones"><i class="fas fa-tools"></i><span>Gestionar</span></button>
+      </div>
+    `;
+    main.insertBefore(assistant, main.firstChild);
+
+    const cajaCard = document.createElement('section');
+    cajaCard.id = 'rs-mobile-caja-card';
+    cajaCard.className = 'rs-mobile-caja-card';
+    cajaCard.innerHTML = `
+      <div class="rs-mobile-caja-title"><i class="fas fa-user-check"></i><span>Cliente de la venta</span></div>
+      <div class="rs-mobile-caja-client">
+        <strong id="rs-mobile-caja-client-name">Consumidor final</strong>
+        <span id="rs-mobile-caja-client-rtn" style="display:none"></span>
+      </div>
+      <button type="button" id="rs-mobile-change-client"><i class="fas fa-exchange-alt"></i> Cambiar cliente</button>
+      <div class="rs-mobile-caja-note">Puedes cambiar el cliente antes de finalizar el cobro.</div>
+    `;
+
+    const panelComandaLocal = document.getElementById('panel-comanda');
+    if(panelComandaLocal && panelComandaLocal.parentNode){
+      panelComandaLocal.parentNode.insertBefore(cajaCard, panelComandaLocal);
+    }
+
+    const bottom = document.createElement('nav');
+    bottom.id = 'rs-mobile-bottom';
+    bottom.className = 'rs-mobile-bottom';
+    bottom.setAttribute('aria-label','Acciones del asistente');
+    bottom.innerHTML = `
+      <button type="button" id="rs-mobile-back" class="rs-mobile-action rs-mobile-action-back">
+        <i class="fas fa-arrow-left"></i><span>Atrás</span>
+      </button>
+      <div class="rs-mobile-sale-summary">
+        <small id="rs-mobile-count">0 productos</small>
+        <strong id="rs-mobile-total">L 0.00</strong>
+      </div>
+      <button type="button" id="rs-mobile-secondary" class="rs-mobile-action rs-mobile-action-secondary" style="display:none"></button>
+      <button type="button" id="rs-mobile-next" class="rs-mobile-action rs-mobile-action-next">
+        <span>Continuar</span><i class="fas fa-arrow-right"></i>
+      </button>
+    `;
+    document.body.appendChild(bottom);
+
+    assistant.addEventListener('click',function(e){
+      const proxy = e.target.closest('[data-rs-proxy]');
+      if(proxy){
+        e.preventDefault();
+        rsMobileProxyClick(proxy.getAttribute('data-rs-proxy'));
+        return;
+      }
+      const step = e.target.closest('[data-rs-step]');
+      if(step){
+        e.preventDefault();
+        rsMobileSetStep(step.getAttribute('data-rs-step'));
+      }
+    });
+
+    document.getElementById('rs-mobile-back')?.addEventListener('click',rsMobileBack);
+    document.getElementById('rs-mobile-next')?.addEventListener('click',rsMobileNext);
+    document.getElementById('rs-mobile-secondary')?.addEventListener('click',rsMobileSecondary);
+    document.getElementById('rs-mobile-change-client')?.addEventListener('click',function(){
+      rsMobileProxyClick('#btn-cambiar-cliente');
+    });
+
+    rsMobileObserver = new MutationObserver(function(){
+      if(isMobileAssistantActive()) rsMobileUpdate();
+    });
+
+    [
+      comandaItemsContainer,
+      totalElement,
+      clienteInfoElement,
+      mesaSeleccionadaElement,
+      document.querySelector('.factura-actions'),
+      document.getElementById('gestion-fija')
+    ].filter(Boolean).forEach(function(el){
+      rsMobileObserver.observe(el,{childList:true,subtree:true,attributes:true,characterData:true});
+    });
+  }
+
+  function rsMobileSetStep(step){
+    if(!isMobileAssistantActive()) return;
+
+    const valid = ['servicio','productos','pedido','caja'];
+    if(!valid.includes(step)) step = rsMobileMesasEnabled() ? 'servicio' : 'productos';
+    if(!rsMobileMesasEnabled() && step === 'servicio') step = 'productos';
+
+    rsMobileStep = step;
+    document.body.setAttribute('data-rs-mobile-step',step);
+
+    document.querySelectorAll('#rs-mobile-assistant [data-rs-step]').forEach(function(btn){
+      const active = btn.getAttribute('data-rs-step') === step;
+      btn.classList.toggle('is-active',active);
+      btn.setAttribute('aria-current',active ? 'step' : 'false');
+    });
+
+    if(step === 'productos' && buscarProductoInput){
+      window.setTimeout(function(){
+        try{ buscarProductoInput.focus({preventScroll:true}); }catch(_){}
+      },100);
+    }
+
+    rsMobileUpdate();
+  }
+
+  function rsMobileBack(){
+    if(rsMobileStep === 'caja') return rsMobileSetStep('pedido');
+    if(rsMobileStep === 'pedido') return rsMobileSetStep('productos');
+    if(rsMobileStep === 'productos' && rsMobileMesasEnabled()) return rsMobileSetStep('servicio');
+  }
+
+  function rsMobileNext(){
+    const count = rsMobileItemCount();
+
+    if(rsMobileStep === 'servicio'){
+      if(rsMobileServicio() === 'mesa' && !mesaIdActual()){
+        showAlert('warning','Mesa requerida','Seleccione una mesa disponible antes de continuar.');
+        return;
+      }
+      rsMobileSetStep('productos');
+      return;
+    }
+
+    if(rsMobileStep === 'productos'){
+      if(count <= 0){
+        showAlert('warning','Sin productos','Agregue al menos un producto para continuar.');
+        return;
+      }
+      rsMobileSetStep('pedido');
+      return;
+    }
+
+    if(rsMobileStep === 'pedido'){
+      if(count <= 0){
+        showAlert('warning','Pedido vacío','Agregue productos antes de continuar.');
+        rsMobileSetStep('productos');
+        return;
+      }
+
+      // En mesa con comandas se conserva exactamente la acción actual:
+      // Enviar a cocina / Actualizar cocina.
+      if(rsMobileServicio() === 'mesa' && usaComandasOperacion()){
+        const principal = document.getElementById('btn-guardar');
+        if(principal && !principal.disabled){
+          principal.click();
+          return;
+        }
+      }
+
+      rsMobileSetStep('caja');
+      return;
+    }
+
+    if(rsMobileStep === 'caja'){
+      if(count <= 0){
+        showAlert('warning','Pedido vacío','Agregue productos antes de cobrar.');
+        return;
+      }
+
+      if(rsMobileServicio() === 'mesa'){
+        const cobrarMesa = document.getElementById('btn-cobrar-mesa');
+        if(cobrarMesa && !cobrarMesa.disabled && rsMobileOriginalAllowed(cobrarMesa)){
+          cobrarMesa.click();
+          return;
+        }
+      }
+
+      const principal = document.getElementById('btn-guardar');
+      if(principal && !principal.disabled) principal.click();
+    }
+  }
+
+  function rsMobileSecondary(){
+    if(rsMobileStep === 'pedido'){
+      const guardarCuenta = document.getElementById('btn-guardar-cuenta');
+      if(guardarCuenta && !guardarCuenta.disabled && rsMobileOriginalAllowed(guardarCuenta)){
+        guardarCuenta.click();
+      }
+      return;
+    }
+
+    if(rsMobileStep === 'caja'){
+      rsMobileProxyClick('#btn-cambiar-cliente');
+    }
+  }
+
+  function rsMobileUpdate(){
+    const assistant = document.getElementById('rs-mobile-assistant');
+    if(!assistant) return;
+
+    const active = isMobileAssistantActive();
+    document.body.classList.toggle('rs-mobile-assistant-enabled',active);
+
+    if(!active){
+      document.body.removeAttribute('data-rs-mobile-step');
+      if(panelProductos) panelProductos.style.display = '';
+      if(panelComanda) panelComanda.style.display = '';
+      return;
+    }
+
+    if(!rsMobileMesasEnabled() && rsMobileStep === 'servicio') rsMobileStep = 'productos';
+    document.body.setAttribute('data-rs-mobile-step',rsMobileStep);
+
+    const serviceStep = assistant.querySelector('[data-rs-step="servicio"]');
+    if(serviceStep) serviceStep.style.display = rsMobileMesasEnabled() ? '' : 'none';
+
+    assistant.querySelectorAll('[data-rs-step]').forEach(function(btn){
+      btn.classList.toggle('is-active',btn.getAttribute('data-rs-step') === rsMobileStep);
+    });
+
+    const count = rsMobileItemCount();
+    const total = rsMobileTotal();
+    const nombre = rsMobileCliente();
+    const rtn = rsMobileRtn();
+
+    const ctxService = document.getElementById('rs-mobile-context-service');
+    const ctxClient = document.getElementById('rs-mobile-context-client');
+    const countEl = document.getElementById('rs-mobile-count');
+    const totalEl = document.getElementById('rs-mobile-total');
+    const cajaName = document.getElementById('rs-mobile-caja-client-name');
+    const cajaRtn = document.getElementById('rs-mobile-caja-client-rtn');
+
+    if(ctxService) ctxService.textContent = rsMobileMesa();
+    if(ctxClient) ctxClient.textContent = nombre;
+    if(countEl) countEl.textContent = count + (count === 1 ? ' producto' : ' productos');
+    if(totalEl) totalEl.textContent = 'L ' + total.toLocaleString('es-HN',{minimumFractionDigits:2,maximumFractionDigits:2});
+    if(cajaName) cajaName.textContent = nombre;
+    if(cajaRtn){
+      cajaRtn.textContent = rtn ? ('RTN ' + rtn.replace(/^RTN\s*/i,'')) : '';
+      cajaRtn.style.display = rtn ? '' : 'none';
+    }
+
+    const gestionarProxy = document.getElementById('rs-mobile-manage');
+    const gestionReal = document.getElementById('gestion-fija');
+    if(gestionarProxy){
+      gestionarProxy.style.display = (gestionReal && String(gestionReal.style.display || '') !== 'none') ? '' : 'none';
+    }
+
+    const recurrentProxy = assistant.querySelector('[data-rs-proxy="#btn-factura-recurrente"]');
+    const recurrentReal = document.getElementById('btn-factura-recurrente');
+    if(recurrentProxy) recurrentProxy.style.display = rsMobileOriginalAllowed(recurrentReal) ? '' : 'none';
+
+    const back = document.getElementById('rs-mobile-back');
+    const next = document.getElementById('rs-mobile-next');
+    const secondary = document.getElementById('rs-mobile-secondary');
+    if(!back || !next || !secondary) return;
+
+    back.style.display = (rsMobileStep === 'servicio' || (rsMobileStep === 'productos' && !rsMobileMesasEnabled())) ? 'none' : '';
+    secondary.style.display = 'none';
+    secondary.innerHTML = '';
+
+    if(rsMobileStep === 'servicio'){
+      next.innerHTML = '<span>Elegir productos</span><i class="fas fa-arrow-right"></i>';
+    }else if(rsMobileStep === 'productos'){
+      next.innerHTML = '<span>Ver pedido' + (count ? ' ('+count+')' : '') + '</span><i class="fas fa-arrow-right"></i>';
+    }else if(rsMobileStep === 'pedido'){
+      const guardarCuenta = document.getElementById('btn-guardar-cuenta');
+      if(guardarCuenta && count > 0 && rsMobileOriginalAllowed(guardarCuenta)){
+        secondary.style.display = '';
+        secondary.innerHTML = '<i class="fas fa-bookmark"></i><span>Guardar</span>';
+      }
+
+      if(rsMobileServicio() === 'mesa' && usaComandasOperacion()){
+        const tieneFactura = !!facturaIdActual();
+        next.innerHTML = tieneFactura
+          ? '<i class="fas fa-sync-alt"></i><span>Actualizar cocina</span>'
+          : '<i class="fas fa-fire"></i><span>Enviar a cocina</span>';
+      }else{
+        next.innerHTML = '<span>Cliente / Caja</span><i class="fas fa-arrow-right"></i>';
+      }
+    }else{
+      secondary.style.display = '';
+      secondary.innerHTML = '<i class="fas fa-user-edit"></i><span>Cliente</span>';
+      next.innerHTML = '<i class="fas fa-cash-register"></i><span>Cobrar</span>';
+    }
+  }
+
+  function initMobileAssistant(){
+    if(rsMobileMedia) {
+      rsMobileUpdate();
+      return;
+    }
+
+    rsMobileMedia = window.matchMedia(RS_MOBILE_QUERY);
+    rsMobileCreate();
+
+    const apply = function(){
+      if(rsMobileMedia.matches){
+        document.body.classList.add('rs-mobile-assistant-enabled');
+        if(!rsMobileMesasEnabled()) rsMobileStep = 'productos';
+        rsMobileSetStep(rsMobileStep);
+      }else{
+        document.body.classList.remove('rs-mobile-assistant-enabled');
+        document.body.removeAttribute('data-rs-mobile-step');
+        if(panelProductos) panelProductos.style.display = '';
+        if(panelComanda) panelComanda.style.display = '';
+      }
+      rsMobileUpdate();
+    };
+
+    if(typeof rsMobileMedia.addEventListener === 'function'){
+      rsMobileMedia.addEventListener('change',apply);
+    }else if(typeof rsMobileMedia.addListener === 'function'){
+      rsMobileMedia.addListener(apply);
+    }
+
+    window.addEventListener('orientationchange',function(){
+      window.setTimeout(apply,120);
+    });
+
+    apply();
+  }
+
+
   // ====== Inicio ======
   init();
 
@@ -2279,6 +2698,10 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
   }
 
   function mostrarVista(que) {
+    if (isMobileAssistantActive()) {
+      rsMobileSetStep(que === 'productos' ? 'productos' : 'pedido');
+      return;
+    }
     if (que === 'productos') {
       if (panelProductos) panelProductos.style.display = '';
       if (panelComanda) panelComanda.style.display = 'none';
@@ -3507,7 +3930,11 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
       comandaItems.push({ producto, cantidad: 1, precio: producto.precio, total: producto.precio });
     }
     actualizarComandaUI();
-    if (window.innerWidth <= 768) mostrarVista('comanda');
+    if (window.innerWidth <= 768 && !isMobileAssistantActive()) {
+      mostrarVista('comanda');
+    } else if (isMobileAssistantActive()) {
+      rsMobileUpdate();
+    }
   }
 
   function actualizarComandaUI() {
@@ -6570,6 +6997,7 @@ function initSelect2ForComboRow(row){
     renderizarCategorias();
     filtrarProductos(buscarProductoInput ? buscarProductoInput.value : '');
     updateAccionPrincipalUI();
+    if (isMobileAssistantActive()) rsMobileUpdate();
   }
 
   function sincronizarBotonesConfiguracion(targetId){
@@ -6694,11 +7122,14 @@ function initSelect2ForComboRow(row){
   const restPermObserver = new MutationObserver(function(){ aplicarPermisosRestauranteUI(); });
   ['mesas-container','productos-container','categorias-tabs'].forEach(function(id){ const el=document.getElementById(id); if(el) restPermObserver.observe(el,{childList:true,subtree:true}); });
 
-  setTimeout(function(){
-    cargarConfiguracionOperacion();
-    cargarPermisosRestaurante();
+  setTimeout(async function(){
+    await Promise.allSettled([
+      cargarConfiguracionOperacion(),
+      cargarPermisosRestaurante()
+    ]);
     reinitSelect2Restaurante();
     updateAccionPrincipalUI();
+    initMobileAssistant();
   },120);
 
 });

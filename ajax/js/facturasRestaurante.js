@@ -580,7 +580,12 @@ document.addEventListener('DOMContentLoaded', function () {
         document.body.classList.add('rs-mobile-assistant-enabled');
         if(!rsMobileMesasEnabled()) rsMobileStep = 'productos';
         rsMobileSetStep(rsMobileStep);
+        window.requestAnimationFrame(function(){
+          document.body.classList.remove('rs-mobile-booting');
+          document.body.classList.add('rs-mobile-ready');
+        });
       }else{
+        document.body.classList.remove('rs-mobile-booting','rs-mobile-ready');
         document.body.classList.remove('rs-mobile-assistant-enabled');
         document.body.removeAttribute('data-rs-mobile-step');
         if(panelProductos) panelProductos.style.display = '';
@@ -602,6 +607,22 @@ document.addEventListener('DOMContentLoaded', function () {
     apply();
   }
 
+
+
+  // ===========================================================
+  //  PRE-CARGA VISUAL MÓVIL
+  //  Evita mostrar por milisegundos el layout de escritorio.
+  //  No ejecuta lógica de negocio ni AJAX.
+  // ===========================================================
+  function rsMarkMobileBoot(){
+    try{
+      if(window.matchMedia && window.matchMedia('(max-width: 599px)').matches){
+        document.body.classList.add('rs-mobile-booting');
+      }
+    }catch(_){}
+  }
+
+  rsMarkMobileBoot();
 
   // ====== Inicio ======
   init();

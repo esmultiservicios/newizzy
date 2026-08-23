@@ -2978,37 +2978,97 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
   }  
 
   function seleccionarMesa(mesa){
-    // Cambiamos a modalidad mesa, pero SIN limpiar la comanda
+    const mesaId = Number(mesa && (mesa.id || mesa.mesa_id) || 0);
+    if (!mesaId) return;
+
+    // En móvil NO recuperar automáticamente una cuenta existente.
+    // El usuario decide expresamente si quiere continuarla.
+    const tieneCuentaAbierta =
+      Number(mesa && mesa.tiene_cuenta_abierta || 0) === 1 ||
+      String(mesa && mesa.estado || '').toLowerCase() === 'ocupada';
+
+    if (isMobileAssistantActive() && tieneCuentaAbierta) {
+      if (typeof swal === 'undefined') {
+        showAlert('warning','Cuenta abierta','Esta mesa tiene una cuenta abierta. Puede recuperarla desde “Cuentas”.');
+        return;
+      }
+
+      swal({
+        title: 'Cuenta abierta en esta mesa',
+        text: `La Mesa ${mesa.numero || ''} ya tiene una cuenta activa. ¿Desea recuperarla y continuar ese pedido?`,
+        icon: 'info',
+        buttons: {
+          cancel: {
+            text: 'No, elegir otra',
+            value: null,
+            visible: true,
+            closeModal: true
+          },
+          confirm: {
+            text: 'Abrir cuenta',
+            value: true,
+            visible: true,
+            closeModal: true
+          }
+        },
+        dangerMode: false,
+        closeOnEsc: true,
+        closeOnClickOutside: false
+      }).then((abrir)=>{
+        if (!abrir) {
+          mesaSeleccionada = null;
+          setMesaSeleccionadaUI(null);
+          highlightMesaSeleccionada();
+          rsMobileUpdate();
+          return;
+        }
+
+        setServicioTipo('mesa');
+        mesaSeleccionada = {
+          id: mesaId,
+          numero: mesa.numero,
+          capacidad: mesa.capacidad,
+          ubicacion: mesa.ubicacion,
+          estado: mesa.estado
+        };
+
+        setMesaSeleccionadaUI(mesaSeleccionada.numero);
+        if (btnImprimir) btnImprimir.disabled = true;
+        highlightMesaSeleccionada();
+
+        // Se carga únicamente cuando el usuario lo confirma.
+        cargarFacturaMesa(mesaId, []);
+      });
+      return;
+    }
+
+    // Flujo original para mesa disponible o escritorio/tablet.
     setServicioTipo('mesa');
-  
-    // Copiamos lo que el cajero ya tenía seleccionado (si venía de “para llevar”)
+
     const pendientes = Array.isArray(comandaItems) ? comandaItems.map(i => ({
       producto: i.producto, cantidad: i.cantidad, precio: i.precio, total: i.total
     })) : [];
-  
-    // Guardar mesa seleccionada y refrescar header
+
     mesaSeleccionada = {
-      id: mesa.id || mesa.mesa_id,
+      id: mesaId,
       numero: mesa.numero,
       capacidad: mesa.capacidad,
       ubicacion: mesa.ubicacion,
       estado: mesa.estado
     };
-  
+
     setMesaSeleccionadaUI(mesaSeleccionada.numero);
     if (btnImprimir) btnImprimir.disabled = true;
     highlightMesaSeleccionada();
-  
-    // Cargar factura de la mesa y FUSIONAR con lo que ya llevaba el cajero
+
     if (mesaSeleccionada.id) {
       cargarFacturaMesa(mesaSeleccionada.id, pendientes);
     } else {
-      // Si por alguna razón no hay id, al menos no borres lo que tenía
       comandaItems = pendientes;
       actualizarComandaUI();
       if (typeof updateProductBadges === 'function') updateProductBadges();
     }
-  }   
+  }
 
   function abrirEdicionMesa(mesa){
     const n  = document.getElementById('numero-mesa');

@@ -159,7 +159,26 @@ try {
             $numero    = (string) AjaxHelper::in('numero', '');
             $capacidad = (int) AjaxHelper::in('capacidad', 4);
             $ubicacion = (string) AjaxHelper::in('ubicacion', 'Interior');
-            AjaxHelper::json($m->actualizarMesa($mesa_id, $numero, $capacidad, $ubicacion));
+            $estado = (string) AjaxHelper::in('estado', '');
+            AjaxHelper::json($m->actualizarMesa($mesa_id, $numero, $capacidad, $ubicacion, $estado));
+            break;
+        }
+
+        case 'reservarMesa': {
+            $data = [
+                'mesa_id'       => (int) AjaxHelper::in('mesa_id',0),
+                'clientes_id'   => (int) AjaxHelper::in('clientes_id',0),
+                'fecha_reserva' => (string) AjaxHelper::in('fecha_reserva', date('Y-m-d')),
+                'hora_reserva'  => (string) AjaxHelper::in('hora_reserva', date('H:i:s')),
+                'personas'      => (int) AjaxHelper::in('personas',1),
+                'notas'         => (string) AjaxHelper::in('notas',''),
+            ];
+            AjaxHelper::json($m->reservarMesa($data));
+            break;
+        }
+
+        case 'cancelarReservaMesa': {
+            AjaxHelper::json($m->cancelarReservaMesa((int)AjaxHelper::in('mesa_id',0)));
             break;
         }
 
@@ -226,6 +245,7 @@ try {
                     'isv1'         => (int) AjaxHelper::in('isv1',0),
                     'isv2'         => (int) AjaxHelper::in('isv2',0),
                     'restaurante'  => (int) AjaxHelper::in('restaurante',1),
+                    'estacion'     => (string) AjaxHelper::in('estacion',''),
                 ];
             }
             AjaxHelper::json($m->guardarProductoBasico($payload));
@@ -244,6 +264,7 @@ try {
                     'isv1'         => (int) AjaxHelper::in('isv1',0),
                     'isv2'         => (int) AjaxHelper::in('isv2',0),
                     'restaurante'  => (int) AjaxHelper::in('restaurante',1),
+                    'estacion'     => (string) AjaxHelper::in('estacion',''),
                 ];
             }
             AjaxHelper::json($m->actualizarProductoBasico($payload));
@@ -301,6 +322,10 @@ try {
         /* ============================================================
          * ====================  PROMOCIONES  =========================
          * ============================================================ */
+        case 'loadPromociones':
+            AjaxHelper::json(['status'=>true,'promociones'=>$m->obtenerPromociones()]);
+            break;
+
         case 'loadPromocionesMin':
             AjaxHelper::json(['status'=>true,'promociones'=>$m->obtenerPromocionesMin()]);
             break;
@@ -454,6 +479,49 @@ try {
             break;
         }
 
+        case 'loadConfiguracionOperacion':
+            AjaxHelper::json(['status'=>true,'config'=>$m->obtenerConfiguracionOperacion()]);
+            break;
+
+        case 'saveConfiguracionOperacion': {
+            $usarMesas = AjaxHelper::toBool(AjaxHelper::in('usar_mesas',1),1);
+            $usarComandas = AjaxHelper::toBool(AjaxHelper::in('usar_comandas',1),1);
+            $etiquetaCocina = trim((string)AjaxHelper::in('etiqueta_cocina','Cocina'));
+            $etiquetaBarra = trim((string)AjaxHelper::in('etiqueta_barra','Barra'));
+            $destinoComanda = strtolower(trim((string)AjaxHelper::in('destino_comanda','pantalla')));
+            $momentoTicket = strtolower(trim((string)AjaxHelper::in('momento_ticket','enviar')));
+            $flujoCocina = strtolower(trim((string)AjaxHelper::in('flujo_cocina','pasos')));
+            AjaxHelper::json($m->guardarConfiguracionOperacion(
+                $usarMesas,
+                $usarComandas,
+                $etiquetaCocina,
+                $etiquetaBarra,
+                $destinoComanda,
+                $momentoTicket,
+                $flujoCocina
+            ));
+            break;
+        }
+
+        case 'loadCuentasAbiertas':
+            AjaxHelper::json(['status'=>true,'cuentas'=>$m->obtenerCuentasAbiertas()]);
+            break;
+
+        case 'loadCuentaAbierta': {
+            $factura_id=(int)AjaxHelper::in('factura_id',0);
+            $cuenta=$m->obtenerCuentaAbiertaPorId($factura_id);
+            if(!$cuenta){ AjaxHelper::json(['status'=>false,'message'=>'La cuenta ya no está abierta o no existe']); break; }
+            AjaxHelper::json(['status'=>true,'cuenta'=>$cuenta]);
+            break;
+        }
+
+        case 'cerrarCuentaOperativa': {
+            $factura_id=(int)AjaxHelper::in('factura_id',0);
+            if($factura_id<=0){ AjaxHelper::json(['status'=>false,'message'=>'Cuenta inválida']); break; }
+            AjaxHelper::json(['status'=>$m->cerrarContextoCuenta($factura_id)]);
+            break;
+        }
+
         /* ============================================================
          * ======= FACTURA / COMANDA =================================
          * ============================================================ */
@@ -515,7 +583,8 @@ try {
         case 'loadComandasCocina': {
             try {
                 $comandas = $m->getComandasPorEstacion('cocina'); // <- SOLO cocina
-                AjaxHelper::json(['status'=>true, 'comandas'=>$comandas]);
+                $config = $m->obtenerConfiguracionOperacion();
+                AjaxHelper::json(['status'=>true, 'comandas'=>$comandas, 'config'=>$config]);
             } catch (Throwable $e) {
                 AjaxHelper::json(['status'=>false, 'message'=>$e->getMessage()]);
             }
@@ -687,8 +756,8 @@ try {
         case 'liberarMesa': {
             $mesa_id = (int) AjaxHelper::in('mesa_id', 0);
             if ($mesa_id <= 0) throw new Exception('Mesa inválida');
-            $m->setMesaEstado($mesa_id, false);
-            AjaxHelper::json(['ok' => true]);
+            $res = $m->setMesaEstado($mesa_id, false);
+            AjaxHelper::json(['ok' => !empty($res['status']), 'status'=>!empty($res['status']), 'message'=>$res['message'] ?? '']);
             break;
         }
 
@@ -710,7 +779,8 @@ try {
                 break;
             }
         
-            $res = $m->registrarComandaCocina($factura_id, $mesa_id, $comentarios);
+            $servicio = ((string) AjaxHelper::in('servicio', $mesa_id > 0 ? 'mesa' : 'llevar')) === 'mesa' ? 'mesa' : 'llevar';
+            $res = $m->registrarNuevosItemsComanda($factura_id, $mesa_id, $comentarios, $servicio);
         
             if (!is_array($res) || empty($res['status'])) {
                 AjaxHelper::json([
@@ -729,10 +799,12 @@ try {
         case 'guardarFacturaRestaurante': {
             $servicio      = ((string) AjaxHelper::in('servicio', 'mesa')) === 'llevar' ? 'llevar' : 'mesa';
             $mesa_id       = (int) AjaxHelper::in('mesa_id', 0);
+            $factura_id    = (int) AjaxHelper::in('factura_id', 0);
             $clientes_id   = (int) AjaxHelper::in('clientes_id', 0);
             $observaciones = trim((string) AjaxHelper::in('observaciones', ''));
             $detalle       = json_decode((string) AjaxHelper::in('detalle', '[]'), true);
-        
+            $enviarComanda = AjaxHelper::toBool(AjaxHelper::in('enviar_comanda', 1), 1);
+
             if (!is_array($detalle) || !count($detalle)) {
                 AjaxHelper::json(['ok'=>false,'msg'=>'Detalle vacío']);
                 break;
@@ -741,24 +813,54 @@ try {
                 AjaxHelper::json(['ok'=>false,'msg'=>'Debe seleccionar una mesa antes de enviar a cocina']);
                 break;
             }
-        
+
+            // Si ya existe una cuenta abierta, actualizarla en lugar de crear otra factura.
+            if ($factura_id > 0) {
+                $resActualizar = $m->actualizarCuentaBorrador([
+                    'factura_id'    => $factura_id,
+                    'cliente_id'    => $clientes_id,
+                    'items'         => $detalle,
+                    'observaciones' => $observaciones,
+                    'mesa_id'       => $mesa_id,
+                    'servicio_tipo' => $servicio
+                ], $mesa_id, $servicio);
+                if (!is_array($resActualizar) || empty($resActualizar['status'])) {
+                    AjaxHelper::json(['ok'=>false,'msg'=>$resActualizar['message'] ?? 'No se pudo actualizar la cuenta']);
+                    break;
+                }
+                if ($mesa_id > 0) $m->consumirReservaMesa($mesa_id);
+                // Guardar cuenta y enviar a preparación son procesos separados.
+                // Si se solicita comanda, solo se registran las cantidades NUEVAS aún no enviadas.
+                $nuevos = 0;
+                if ($enviarComanda) {
+                    $rc = $m->registrarNuevosItemsComanda($factura_id, $mesa_id, $observaciones, $servicio);
+                    if (!is_array($rc) || empty($rc['status'])) {
+                        AjaxHelper::json(['ok'=>false,'msg'=>$rc['message'] ?? 'La cuenta se actualizó, pero no se pudo enviar la comanda']);
+                        break;
+                    }
+                    $nuevos = (int)($rc['nuevos'] ?? 0);
+                }
+                AjaxHelper::json(['ok'=>true,'factura_id'=>$factura_id,'updated'=>true,'nuevos_comanda'=>$nuevos]);
+                break;
+            }
+
             $importe = 0.0;
             foreach ($detalle as $d) {
                 $cant   = (int)($d['cantidad'] ?? 1);
                 $precio = (float)($d['precio'] ?? 0);
                 $importe += $cant * $precio;
             }
-        
-            $empresa_id     = (int)($_SESSION['empresa_id'] ?? 1);
-            $usuario_id     = (int)($_SESSION['usuario'] ?? 1);
-            $colaborador_id = (int)($_SESSION['colaboradores_id'] ?? $_SESSION['colaborador_id'] ?? 1);
-        
+
+            $empresa_id     = (int)($_SESSION['empresa_id_sd'] ?? $_SESSION['empresa_id'] ?? 1);
+            $usuario_id     = (int)($_SESSION['users_id_sd'] ?? $_SESSION['usuario'] ?? 1);
+            $colaborador_id = (int)($_SESSION['colaborador_id_sd'] ?? $_SESSION['colaboradores_id'] ?? $_SESSION['colaborador_id'] ?? 1);
+
             $apertura_id = 1;
             if (method_exists($m, 'obtenerAperturaCajaActiva')) {
                 $tmp = (int)$m->obtenerAperturaCajaActiva($colaborador_id, $empresa_id);
                 if ($tmp > 0) $apertura_id = $tmp;
             }
-        
+
             $params = [
                 'clientes_id'              => $clientes_id,
                 'secuencia_facturacion_id' => 1,
@@ -766,43 +868,47 @@ try {
                 'number'                   => 0,
                 'tipo_factura'             => 1,
                 'colaboradores_id'         => $colaborador_id,
-                'importe'                  => $importe,
                 'notas'                    => $observaciones,
                 'usuario'                  => $usuario_id,
                 'empresa_id'               => $empresa_id,
                 'detalle'                  => $detalle
             ];
-        
-            // 🚑 OJO: crearFacturaBorrador devuelve un ARRAY
+
             $resCrear = $m->crearFacturaBorrador($params);
-        
             if (!is_array($resCrear) || empty($resCrear['status'])) {
                 AjaxHelper::json(['ok'=>false,'msg'=>($resCrear['message'] ?? 'No se pudo crear la factura')]);
                 break;
             }
-        
+
             $factura_id = (int)($resCrear['factura_id'] ?? 0);
             if ($factura_id <= 0) {
                 AjaxHelper::json(['ok'=>false,'msg'=>'No se obtuvo el ID de la factura']);
                 break;
             }
-        
-            if ($servicio === 'mesa' && $mesa_id) {
-                // marca mesa ocupada (si aplica) y registra comanda
-                if (method_exists($m, 'setMesaEstado')) {
-                    $m->setMesaEstado($mesa_id, true);
-                }
-                $resComanda = $m->registrarComandaCocina($factura_id, $mesa_id, $observaciones, 'mesa');
-                // No rompas el flujo si falla la comanda; solo informa
-                if (is_array($resComanda) && empty($resComanda['status'])) {
-                    // Opcional: log interno
-                    // error_log('Comanda no registrada: '.($resComanda['message'] ?? ''));
-                }
+
+            $ctxCuenta = $m->guardarContextoCuenta($factura_id, $mesa_id, $servicio);
+            if (!is_array($ctxCuenta) || empty($ctxCuenta['status'])) {
+                AjaxHelper::json(['ok'=>false,'msg'=>$ctxCuenta['message'] ?? 'No se pudo registrar la cuenta abierta']);
+                break;
             }
-        
-            // ✅ Respuesta limpia y solo JSON
-            AjaxHelper::json(['ok' => true, 'factura_id' => $factura_id]);
-            break;                
+
+            if ($servicio === 'mesa' && $mesa_id) {
+                $m->setMesaEstado($mesa_id, true);
+                $m->consumirReservaMesa($mesa_id);
+            }
+
+            $nuevos = 0;
+            if ($enviarComanda) {
+                $rc = $m->registrarNuevosItemsComanda($factura_id, $mesa_id, $observaciones, $servicio);
+                if (!is_array($rc) || empty($rc['status'])) {
+                    AjaxHelper::json(['ok'=>false,'msg'=>$rc['message'] ?? 'La cuenta se guardó, pero no se pudo enviar la comanda']);
+                    break;
+                }
+                $nuevos = (int)($rc['nuevos'] ?? 0);
+            }
+
+            AjaxHelper::json(['ok' => true, 'factura_id' => $factura_id, 'updated'=>false,'nuevos_comanda'=>$nuevos]);
+            break;
         }
 
         case 'finalizarParaLlevar': {
@@ -837,7 +943,6 @@ try {
                 'number'                   => 0,
                 'tipo_factura'             => 1, // contado
                 'colaboradores_id'         => $colaborador_id,
-                'importe'                  => $importe,
                 'notas'                    => $observaciones,
                 'usuario'                  => $usuario_id,
                 'empresa_id'               => $empresa_id,
@@ -853,9 +958,13 @@ try {
                 break;
             }
 
-            // Pagada
-            $m->marcarFacturaEstado($factura_id, 2);
+            // Tomar el importe calculado por el modelo (incluye ISV configurado por producto).
+            $rsTotal = $m->ejecutar_consulta_simple_preparada(
+                "SELECT importe FROM facturas WHERE facturas_id=?", "i", [$factura_id]
+            );
+            $importe = ($rsTotal && $rsTotal->num_rows) ? (float)$rsTotal->fetch_assoc()['importe'] : 0.0;
 
+            // Registrar pago primero; solo marcar pagada si el pago fue exitoso
             // Pago contado
             $tipo_pago    = (int) AjaxHelper::in('tipo_pago', 1);
             $efectivo     = (float) AjaxHelper::in('efectivo', 0);
@@ -863,6 +972,7 @@ try {
             $cambio       = (float) AjaxHelper::in('cambio', 0);
             $tipo_pago_id = (int) AjaxHelper::in('tipo_pago_id', 1);
             $banco_id     = (int) AjaxHelper::in('banco_id', 0);
+            $referencia    = trim((string) AjaxHelper::in('referencia', ''));
 
             $resP = $m->crearPagoContado([
                 'facturas_id' => $factura_id,
@@ -874,7 +984,8 @@ try {
                 'usuario'     => $usuario_id,
                 'empresa_id'  => $empresa_id,
                 'tipo_pago_id'=> $tipo_pago_id,
-                'banco_id'    => $banco_id
+                'banco_id'    => $banco_id,
+                'referencia'   => $referencia
             ]);
 
             if (!$resP || (is_array($resP) && empty($resP['status']))) {
@@ -882,6 +993,8 @@ try {
                 AjaxHelper::json(['ok'=>false,'msg'=>$msg]);
                 break;
             }
+
+            $m->marcarFacturaEstado($factura_id, 2);
 
             // Comanda opcional
             $forzar_cocina = ((string) AjaxHelper::in('forzar_cocina','0') === '1');
@@ -894,14 +1007,16 @@ try {
         }
 
         case 'cobrarFacturaMesa': {
-            $mesa_id     = (int) AjaxHelper::in('mesa_id', 0);
-            $factura_id  = (int) AjaxHelper::in('factura_id', 0);
-            $tipo_pago   = (int) AjaxHelper::in('tipo_pago', 1);
-            $efectivo    = (float) AjaxHelper::in('efectivo', 0);
-            $tarjeta     = (float) AjaxHelper::in('tarjeta', 0);
-            $cambio      = (float) AjaxHelper::in('cambio', 0);
-            $tipo_pago_id= (int) AjaxHelper::in('tipo_pago_id', 1);
-            $banco_id    = (int) AjaxHelper::in('banco_id', 0);
+            $mesa_id       = (int) AjaxHelper::in('mesa_id', 0);
+            $factura_id    = (int) AjaxHelper::in('factura_id', 0);
+            $tipo_pago     = (int) AjaxHelper::in('tipo_pago', 1);
+            $efectivo      = (float) AjaxHelper::in('efectivo', 0);
+            $tarjeta       = (float) AjaxHelper::in('tarjeta', 0);
+            $cambio        = (float) AjaxHelper::in('cambio', 0);
+            $tipo_pago_id  = (int) AjaxHelper::in('tipo_pago_id', 1);
+            $banco_id      = (int) AjaxHelper::in('banco_id', 0);
+            $referencia    = trim((string) AjaxHelper::in('referencia', ''));
+            $liberar_mesa  = AjaxHelper::toBool(AjaxHelper::in('liberar_mesa', 1), 1);
 
             if ($factura_id <= 0) {
                 $row = $m->getFacturaMesaAbierta($mesa_id);
@@ -915,13 +1030,19 @@ try {
             }
 
             $rsImp = $m->ejecutar_consulta_simple_preparada(
-                "SELECT importe FROM facturas WHERE facturas_id=?",
-                "i",
-                [$factura_id]
+                "SELECT importe, estado FROM facturas WHERE facturas_id=?",
+                "i", [$factura_id]
             );
-            $importe = ($rsImp && $rsImp->num_rows) ? (float) $rsImp->fetch_assoc()['importe'] : 0.0;
-
-            $m->marcarFacturaEstado($factura_id, 2);
+            if (!$rsImp || !$rsImp->num_rows) {
+                AjaxHelper::json(['ok'=>false,'msg'=>'Factura no encontrada']);
+                break;
+            }
+            $fact = $rsImp->fetch_assoc();
+            if ((int)$fact['estado'] !== 1) {
+                AjaxHelper::json(['ok'=>false,'msg'=>'La factura ya no está abierta para cobro']);
+                break;
+            }
+            $importe = (float)$fact['importe'];
 
             $resP = $m->crearPagoContado([
                 'facturas_id' => $factura_id,
@@ -931,7 +1052,8 @@ try {
                 'cambio'      => $cambio,
                 'tarjeta'     => $tarjeta,
                 'tipo_pago_id'=> $tipo_pago_id,
-                'banco_id'    => $banco_id
+                'banco_id'    => $banco_id,
+                'referencia'  => $referencia
             ]);
 
             if (!$resP || (is_array($resP) && empty($resP['status']))) {
@@ -940,7 +1062,16 @@ try {
                 break;
             }
 
-            AjaxHelper::json(['ok'=>true,'factura_id'=>$factura_id]);
+            $m->marcarFacturaEstado($factura_id, 2);
+            if ($mesa_id > 0 && $liberar_mesa) {
+                $m->setMesaEstado($mesa_id, false);
+            }
+
+            AjaxHelper::json([
+                'ok'=>true,
+                'factura_id'=>$factura_id,
+                'mesa_liberada'=>(bool)$liberar_mesa
+            ]);
             break;
         }
 

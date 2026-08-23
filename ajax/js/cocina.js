@@ -1,263 +1,342 @@
-// Definir SERVERURL si no está definido
+// Pantalla de Cocina - IZZY
+// Mantiene la vista sincronizada sin parpadeos ni recargas completas.
+
 if (typeof SERVERURL === 'undefined') {
-    console.error('SERVERURL no está definido. Asegúrate de definirlo en el HTML.');
+    console.error('SERVERURL no está definido. Asegúrate de definirlo antes de cocina.js.');
     var SERVERURL = window.location.origin + '/';
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Ocultar navbar-top y navbar-lateral
-    const navbarTop = document.querySelector(".sb-topnav");
-    const navbarLateral = document.querySelector(".sb-sidenav");
-    
-    if (navbarTop) navbarTop.style.display = "none";
-    if (navbarLateral) navbarLateral.style.display = "none";
-    
-    // Agregar clase al body
+document.addEventListener('DOMContentLoaded', function () {
+    const navbarTop = document.querySelector('.sb-topnav');
+    const navbarLateral = document.querySelector('.sb-sidenav');
+    const container = document.getElementById('comandas-container');
+    const refreshBtn = document.getElementById('btn-refresh');
+
+    if (navbarTop) navbarTop.style.display = 'none';
+    if (navbarLateral) navbarLateral.style.display = 'none';
     document.body.classList.add('vista-cocina-active');
-    
-    // Restaurar al salir
-    window.addEventListener("beforeunload", function() {
-        if (navbarTop) navbarTop.style.display = "";
-        if (navbarLateral) navbarLateral.style.display = "";
+
+    window.addEventListener('beforeunload', function () {
+        if (navbarTop) navbarTop.style.display = '';
+        if (navbarLateral) navbarLateral.style.display = '';
         document.body.classList.remove('vista-cocina-active');
     });
 
-    // Actualizar la hora actual
+    function notificar(tipo, titulo, mensaje) {
+        if (typeof showNotify === 'function') {
+            showNotify(tipo, titulo, mensaje);
+        }
+    }
+
+    function escapeHtml(valor) {
+        return String(valor == null ? '' : valor)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function normalizarCantidad(valor) {
+        const n = Number(valor);
+        if (!Number.isFinite(n)) return '1';
+        return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+    }
+
     function actualizarHora() {
         const ahora = new Date();
         const hora = ahora.getHours().toString().padStart(2, '0');
         const minutos = ahora.getMinutes().toString().padStart(2, '0');
         const segundos = ahora.getSeconds().toString().padStart(2, '0');
-        var el = document.getElementById('hora-actual');
+        const el = document.getElementById('hora-actual');
         if (el) el.textContent = `${hora}:${minutos}:${segundos}`;
     }
-    
-    setInterval(actualizarHora, 1000);
-    actualizarHora();
 
-    // Cargar comandas pendientes (SOLO COCINA)
-    function cargarComandas() {
-        fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'action=loadComandasCocina'
-        })
-        .then(response => {
+    actualizarHora();
+    window.setInterval(actualizarHora, 1000);
+
+    let cargaComandasEnCurso = false;
+    let ultimaFirmaComandas = null;
+    let controladorCarga = null;
+    let flujoCocina = 'pasos';
+
+    function firmaComandas(comandas) {
+        const lista = Array.isArray(comandas) ? comandas : [];
+        return JSON.stringify({ flujo: flujoCocina, comandas: lista.map(comanda => ({
+            comanda_id: comanda.comanda_id || comanda.id || '',
+            factura_id: comanda.factura_id || '',
+            mesa: comanda.mesa || '',
+            servicio_tipo: comanda.servicio_tipo || '',
+            cliente_nombre: comanda.cliente_nombre || '',
+            estado: comanda.estado || '',
+            urgente: !!comanda.urgente,
+            hora: comanda.hora || '',
+            observaciones: comanda.observaciones || '',
+            comentarios_cocina: comanda.comentarios_cocina || '',
+            items: (Array.isArray(comanda.items) ? comanda.items : []).map(item => ({
+                id: item.productos_id || item.id || '',
+                nombre: item.nombre || '',
+                cantidad: item.cantidad || 0
+            }))
+        })) });
+    }
+
+    async function cargarComandas(opciones = {}) {
+        const { forzar = false, silencioso = true } = opciones;
+
+        if (cargaComandasEnCurso) return;
+        cargaComandasEnCurso = true;
+
+        if (refreshBtn) refreshBtn.classList.add('is-loading');
+
+        try {
+            controladorCarga = new AbortController();
+            const timeoutId = window.setTimeout(() => controladorCarga.abort(), 15000);
+
+            const response = await fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body: 'action=loadComandasCocina',
+                signal: controladorCarga.signal,
+                cache: 'no-store'
+            });
+
+            window.clearTimeout(timeoutId);
+
+            let data;
+            try {
+                data = await response.json();
+            } catch (e) {
+                throw new Error('El servidor devolvió una respuesta inválida.');
+            }
+
             if (!response.ok) {
-                return response.json().then(errData => {
-                    showNotify && showNotify('error', 'Error', 'Error al cargar las comandas');
-                    throw new Error(errData.message || 'Error en el servidor');
-                }).catch(() => {
-                    showNotify && showNotify('error', 'Error', 'Error al conectar con el servidor');
-                    throw new Error('Error al procesar la respuesta');
-                });
+                throw new Error(data && data.message ? data.message : 'Error al cargar las comandas.');
             }
-            return response.json();
-        })
-        .then(data => {
-            if (data.status) {
-                renderizarComandas(data.comandas);
+
+            if (!data || !data.status) {
+                throw new Error(data && data.message ? data.message : 'No fue posible cargar las comandas.');
+            }
+
+            const comandas = Array.isArray(data.comandas) ? data.comandas : [];
+            const flujoRecibido = String((data.config && data.config.flujo_cocina) || 'pasos').toLowerCase();
+            flujoCocina = flujoRecibido === 'directo' ? 'directo' : 'pasos';
+            const nuevaFirma = firmaComandas(comandas);
+
+            // Evita el efecto de quitar y volver a poner las tarjetas cada 5 segundos.
+            if (forzar || nuevaFirma !== ultimaFirmaComandas) {
+                renderizarComandas(comandas);
+                ultimaFirmaComandas = nuevaFirma;
+            }
+        } catch (error) {
+            if (error && error.name === 'AbortError') {
+                if (!silencioso) notificar('warning', 'Tiempo agotado', 'La actualización de Cocina tardó demasiado.');
             } else {
-                showNotify && showNotify('error', 'Error', data.message || 'Error desconocido al cargar comandas');
+                console.error('Error al cargar comandas:', error);
+                if (!silencioso) notificar('error', 'Error', error.message || 'Error al conectar con el servidor.');
             }
-        })
-        .catch(error => {
-            console.error('Error al cargar comandas:', error);
-            showNotify && showNotify('error', 'Error', 'Error al conectar con el servidor');
-        });
+        } finally {
+            cargaComandasEnCurso = false;
+            controladorCarga = null;
+            if (refreshBtn) refreshBtn.classList.remove('is-loading');
+        }
     }
 
     function renderizarComandas(comandas) {
-        const container = document.getElementById('comandas-container');
-        
         if (!container) return;
 
-        if (!comandas || comandas.length === 0) {
+        if (!Array.isArray(comandas) || comandas.length === 0) {
             container.innerHTML = `
-                <div class="no-comandas">
-                    <i class="fas fa-info-circle"></i>
-                    <p>No hay comandas pendientes</p>
+                <div class="no-comandas" role="status">
+                    <div class="no-comandas-icon"><i class="fas fa-clipboard-check"></i></div>
+                    <strong>Sin comandas pendientes</strong>
+                    <p>Las nuevas órdenes de Cocina aparecerán aquí automáticamente.</p>
                 </div>
             `;
             return;
         }
-        
-        container.innerHTML = '';
-        
-        comandas.forEach(comanda => {
-            const comandaElement = document.createElement('div');
-            comandaElement.className = `comanda-card ${comanda.urgente ? 'comanda-urgente' : ''} fade-in`;
-            comandaElement.dataset.estado = comanda.estado;
-            
+
+        const fragment = document.createDocumentFragment();
+
+        comandas.forEach((comanda, index) => {
+            const comandaId = comanda.comanda_id || comanda.id || '';
+            const facturaId = comanda.factura_id || '';
+            const estado = String(comanda.estado || 'pendiente').toLowerCase();
+            const urgente = !!comanda.urgente || estado === 'urgente';
             const items = Array.isArray(comanda.items) ? comanda.items : [];
-            
-            const itemsHTML = items.map(item => `
-                <div class="comanda-item">
-                    <span class="item-nombre">${item.nombre || 'Producto sin nombre'}</span>
-                    <span class="item-cantidad">${item.cantidad || 1}</span>
-                </div>
-            `).join('');
-            
-            const mesaInfo = comanda.mesa ? `Mesa ${comanda.mesa}` : 'Sin mesa asignada';
-            const ordenNum = comanda.factura_id || comanda.id || '';
 
-            comandaElement.innerHTML = `
-                <div class="comanda-header">
-                    <div class="comanda-mesa">
-                        ${mesaInfo}
-                        ${comanda.urgente ? '<span class="badge-urgente">URGENTE</span>' : ''}
-                        <span class="badge-estado ${comanda.estado}">${(comanda.estado || '').toUpperCase()}</span>
+            const card = document.createElement('article');
+            card.className = `comanda-card${urgente ? ' comanda-urgente' : ''}`;
+            card.dataset.estado = estado;
+            card.dataset.comandaId = comandaId;
+            card.style.setProperty('--card-delay', `${Math.min(index * 35, 175)}ms`);
+
+            const servicio = String(comanda.servicio_tipo || '').toLowerCase();
+            const mesaTexto = comanda.mesa
+                ? `Mesa ${escapeHtml(comanda.mesa)}`
+                : (servicio === 'llevar' ? 'Para llevar' : 'Sin mesa asignada');
+
+            const itemsHTML = items.length
+                ? items.map(item => `
+                    <div class="comanda-item">
+                        <span class="item-nombre">${escapeHtml(item.nombre || 'Producto sin nombre')}</span>
+                        <span class="item-cantidad" aria-label="Cantidad ${escapeHtml(normalizarCantidad(item.cantidad))}">${escapeHtml(normalizarCantidad(item.cantidad))}</span>
                     </div>
-                    <div class="comanda-hora">${comanda.hora || ''}</div>
-                </div>
-                
+                `).join('')
+                : '<div class="comanda-item comanda-item-vacio">Sin productos de Cocina.</div>';
+
+            const estadoLabel = estado.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            const observaciones = comanda.observaciones ? `<p><strong>Notas:</strong> ${escapeHtml(comanda.observaciones)}</p>` : '';
+            const comentarios = comanda.comentarios_cocina ? `<p><strong>Cocina:</strong> ${escapeHtml(comanda.comentarios_cocina)}</p>` : '';
+
+            card.innerHTML = `
+                <header class="comanda-header">
+                    <div class="comanda-header-main">
+                        <span class="comanda-mesa"><i class="fas fa-${comanda.mesa ? 'chair' : 'shopping-bag'}"></i>${mesaTexto}</span>
+                        <div class="comanda-badges">
+                            ${urgente ? '<span class="badge-urgente">Urgente</span>' : ''}
+                            ${estado !== 'urgente' ? `<span class="badge-estado ${escapeHtml(estado)}">${escapeHtml(estadoLabel)}</span>` : ''}
+                        </div>
+                    </div>
+                    <span class="comanda-hora"><i class="far fa-clock"></i>${escapeHtml(comanda.hora || '')}</span>
+                </header>
+
                 <div class="comanda-info">
-                    <div class="comanda-cliente">
-                        <strong>Cliente:</strong> ${comanda.cliente_nombre || 'Consumidor Final'}
-                    </div>
-                    <div class="comanda-id">
-                        <strong>Orden #:</strong> ${ordenNum}
-                    </div>
+                    <div class="comanda-cliente"><i class="far fa-user"></i><span><strong>Cliente</strong>${escapeHtml(comanda.cliente_nombre || 'Consumidor Final')}</span></div>
+                    <div class="comanda-id"><i class="fas fa-receipt"></i><span><strong>Orden</strong>#${escapeHtml(facturaId || comandaId || '—')}</span></div>
                 </div>
-                
-                <div class="comanda-items">
-                    ${itemsHTML}
-                </div>
-                
-                ${(comanda.observaciones || comanda.comentarios_cocina) ? `
-                <div class="comanda-observaciones">
-                    ${comanda.observaciones ? `<p><strong>Notas:</strong> ${comanda.observaciones}</p>` : ''}
-                    ${comanda.comentarios_cocina ? `<p><strong>Cocina:</strong> ${comanda.comentarios_cocina}</p>` : ''}
-                </div>
-                ` : ''}
-                
-                <div class="comanda-actions">
-                    ${(comanda.estado === 'pendiente' || comanda.estado === 'urgente') ? `
-                    <button class="btn btn-primary btn-preparacion" 
-                            data-factura-id="${comanda.factura_id || ''}" 
-                            data-comanda-id="${comanda.id || ''}">
-                        <i class="fas fa-utensils"></i> En Preparación
-                    </button>
+
+                <div class="comanda-items">${itemsHTML}</div>
+
+                ${(observaciones || comentarios) ? `<div class="comanda-observaciones">${observaciones}${comentarios}</div>` : ''}
+
+                <footer class="comanda-actions">
+                    ${(flujoCocina === 'pasos' && (estado === 'pendiente' || estado === 'urgente')) ? `
+                        <button type="button" class="btn btn-primary btn-preparacion"
+                                data-factura-id="${escapeHtml(facturaId)}"
+                                data-comanda-id="${escapeHtml(comandaId)}">
+                            <i class="fas fa-fire-burner"></i><span>En preparación</span>
+                        </button>
                     ` : ''}
-                    
-                    ${comanda.estado === 'en_preparacion' ? `
-                    <button class="btn btn-success btn-completar" 
-                            data-comanda-id="${comanda.id || ''}">
-                        <i class="fas fa-check"></i> Completado
-                    </button>
+
+                    ${((flujoCocina === 'pasos' && estado === 'en_preparacion') || (flujoCocina === 'directo' && ['pendiente','urgente','en_preparacion'].includes(estado))) ? `
+                        <button type="button" class="btn btn-success btn-completar"
+                                data-comanda-id="${escapeHtml(comandaId)}">
+                            <i class="fas fa-check-circle"></i><span>Finalizar</span>
+                        </button>
                     ` : ''}
-                    
-                    <button class="btn btn-warning btn-urgente" 
-                            data-factura-id="${comanda.factura_id || ''}" 
-                            data-urgente="${comanda.urgente ? 'true' : 'false'}">
-                        <i class="fas fa-exclamation"></i> ${comanda.urgente ? 'Quitar Urgente' : 'Marcar como Urgente'}
+
+                    <button type="button" class="btn btn-warning btn-urgente"
+                            data-factura-id="${escapeHtml(facturaId)}"
+                            data-urgente="${urgente ? 'true' : 'false'}">
+                        <i class="fas fa-exclamation-triangle"></i><span>${urgente ? 'Quitar urgente' : 'Marcar urgente'}</span>
                     </button>
-                </div>
+                </footer>
             `;
-            
-            container.appendChild(comandaElement);
+
+            fragment.appendChild(card);
         });
 
-        // Agregar event listeners a los botones
-        document.querySelectorAll('.btn-preparacion').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const facturaId = this.getAttribute('data-factura-id');
-                if (!facturaId) return;
-                marcarComandaEnPreparacion(facturaId);
+        container.replaceChildren(fragment);
+    }
+
+    async function ejecutarAccion(boton, body, mensajes) {
+        if (!boton || boton.disabled) return;
+
+        const htmlOriginal = boton.innerHTML;
+        boton.disabled = true;
+        boton.classList.add('is-processing');
+        boton.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Procesando…</span>';
+
+        try {
+            const response = await fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body,
+                cache: 'no-store'
             });
-        });
 
-        document.querySelectorAll('.btn-completar').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const comandaId = this.getAttribute('data-comanda-id');
+            const data = await response.json();
+            if (!response.ok || !data.status) {
+                throw new Error((data && data.message) || mensajes.error);
+            }
+
+            notificar('success', 'Éxito', mensajes.exito);
+            // Forzamos una única actualización después de una acción del usuario.
+            await cargarComandas({ forzar: true, silencioso: true });
+        } catch (error) {
+            console.error(mensajes.error, error);
+            notificar('error', 'Error', error.message || mensajes.error);
+        } finally {
+            boton.disabled = false;
+            boton.classList.remove('is-processing');
+            boton.innerHTML = htmlOriginal;
+        }
+    }
+
+    if (container) {
+        // Delegación: no recreamos listeners en cada refresco.
+        container.addEventListener('click', function (event) {
+            const btnPreparacion = event.target.closest('.btn-preparacion');
+            if (btnPreparacion) {
+                const facturaId = btnPreparacion.dataset.facturaId;
+                if (!facturaId) return;
+                ejecutarAccion(
+                    btnPreparacion,
+                    `action=marcarComandaEnPreparacion&factura_id=${encodeURIComponent(facturaId)}`,
+                    { exito: 'Comanda marcada como en preparación', error: 'No se pudo cambiar el estado de la comanda.' }
+                );
+                return;
+            }
+
+            const btnCompletar = event.target.closest('.btn-completar');
+            if (btnCompletar) {
+                const comandaId = btnCompletar.dataset.comandaId;
                 if (!comandaId) return;
-                marcarComandaCompleta(comandaId);
-            });
-        });
+                ejecutarAccion(
+                    btnCompletar,
+                    `action=marcarComandaPreparada&comanda_id=${encodeURIComponent(comandaId)}`,
+                    { exito: 'Comanda marcada como completada', error: 'No se pudo completar la comanda.' }
+                );
+                return;
+            }
 
-        document.querySelectorAll('.btn-urgente').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const esUrgente = this.getAttribute('data-urgente') === 'true';
-                const facturaId = this.getAttribute('data-factura-id');
+            const btnUrgente = event.target.closest('.btn-urgente');
+            if (btnUrgente) {
+                const facturaId = btnUrgente.dataset.facturaId;
+                const esUrgente = btnUrgente.dataset.urgente === 'true';
                 if (!facturaId) return;
-                marcarComandaUrgente(facturaId, !esUrgente);
-            });
-        });
-    }
-
-    function marcarComandaEnPreparacion(facturaId) {
-        fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `action=marcarComandaEnPreparacion&factura_id=${encodeURIComponent(facturaId)}`
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.status) {
-                cargarComandas();
-                showNotify && showNotify('success', 'Éxito', 'Comanda marcada como en preparación');
-            } else {
-                showNotify && showNotify('error', 'Error', data.message || 'Error al cambiar estado de comanda');
+                ejecutarAccion(
+                    btnUrgente,
+                    `action=marcarComandaUrgente&factura_id=${encodeURIComponent(facturaId)}&urgente=${esUrgente ? 0 : 1}`,
+                    {
+                        exito: esUrgente ? 'Comanda marcada como normal' : 'Comanda marcada como urgente',
+                        error: 'No se pudo cambiar la prioridad de la comanda.'
+                    }
+                );
             }
-        })
-        .catch(err => {
-            console.error('Error al cambiar estado de comanda:', err);
-            showNotify && showNotify('error', 'Error', 'Error al conectar con el servidor');
         });
     }
 
-    function marcarComandaCompleta(comandaId) {
-        fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `action=marcarComandaPreparada&comanda_id=${encodeURIComponent(comandaId)}`
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.status) {
-                cargarComandas();
-                showNotify && showNotify('success', 'Éxito', 'Comanda marcada como completada');
-            } else {
-                showNotify && showNotify('error', 'Error', data.message || 'Error al completar comanda');
-            }
-        })
-        .catch(err => {
-            console.error('Error al completar comanda:', err);
-            showNotify && showNotify('error', 'Error', 'Error al conectar con el servidor');
-        });
-    }
-
-    function marcarComandaUrgente(facturaId, urgente) {
-        fetch(`${SERVERURL}core/facturasRestaurante/facturasRestauranteAjax.php`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `action=marcarComandaUrgente&factura_id=${encodeURIComponent(facturaId)}&urgente=${urgente ? 1 : 0}`
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.status) {
-                cargarComandas();
-                showNotify && showNotify('success', 'Éxito', urgente ? 'Comanda marcada como urgente' : 'Comanda marcada como normal');
-            } else {
-                showNotify && showNotify('error', 'Error', data.message || 'Error al cambiar estado de urgencia');
-            }
-        })
-        .catch(err => {
-            console.error('Error al cambiar estado de urgencia:', err);
-            showNotify && showNotify('error', 'Error', 'Error al conectar con el servidor');
-        });
-    }
-
-    // Botón de refrescar
-    var refreshBtn = document.getElementById('btn-refresh');
     if (refreshBtn) {
-        refreshBtn.addEventListener('click', function() {
-            cargarComandas();
-            showNotify && showNotify('info', 'Actualizando', 'Cargando comandas...');
+        refreshBtn.setAttribute('role', 'button');
+        refreshBtn.setAttribute('tabindex', '0');
+        refreshBtn.setAttribute('aria-label', 'Actualizar comandas');
+
+        const refrescarManual = function () {
+            cargarComandas({ forzar: true, silencioso: false });
+        };
+
+        refreshBtn.addEventListener('click', refrescarManual);
+        refreshBtn.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                refrescarManual();
+            }
         });
     }
 
-    // Cargar comandas inicialmente y cada 30s
-    cargarComandas();
-    setInterval(cargarComandas, 30000);
+    // Primera carga y actualización silenciosa. Si no hay cambios, el DOM NO se toca.
+    cargarComandas({ forzar: true, silencioso: false });
+    window.setInterval(() => cargarComandas({ silencioso: true }), 5000);
 });

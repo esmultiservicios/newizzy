@@ -1,531 +1,670 @@
-/* ==================== */
-/* VARIABLES Y ESTILOS BASE */
-/* ==================== */
+/* =========================================================
+   IZZY - PANTALLA DE COCINA
+   UI compacta, responsive y sin degradados
+   ========================================================= */
+
 :root {
-    --primary-color: #2c3e50;
-    --secondary-color: #3498db;
-    --success-color: #27ae60;
-    --danger-color: #e74c3c;
-    --warning-color: #f39c12;
-    --info-color: #2980b9;
-    --light-color: #ecf0f1;
-    --dark-color: #34495e;
-    --text-color: #333;
-    --border-color: #ddd;
-    --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    --shadow-hover: 0 5px 15px rgba(0, 0, 0, 0.2);
+    --kitchen-navy: #2f465b;
+    --kitchen-blue: #2f95cc;
+    --kitchen-blue-dark: #247aa8;
+    --kitchen-green: #249b63;
+    --kitchen-orange: #f39c12;
+    --kitchen-red: #df5148;
+    --kitchen-bg: #eef2f5;
+    --kitchen-surface: #ffffff;
+    --kitchen-soft: #f7f9fb;
+    --kitchen-border: #dce4ea;
+    --kitchen-text: #263746;
+    --kitchen-muted: #6d7d8c;
+    --kitchen-shadow: 0 5px 18px rgba(28, 46, 61, 0.10);
+    --kitchen-shadow-hover: 0 9px 24px rgba(28, 46, 61, 0.14);
 }
 
-* {
-    margin: 0;
-    padding: 0;
+.vista-cocina-active,
+.vista-cocina-active * {
     box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-body {
-    background-color: #f5f5f5;
-    color: var(--text-color);
+.vista-cocina-active {
+    margin: 0;
+    background: var(--kitchen-bg);
+    color: var(--kitchen-text);
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* ==================== */
-/* ESTRUCTURA PRINCIPAL */
-/* ==================== */
 .vista-cocina-container {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
+    z-index: 1050;
     display: flex;
     flex-direction: column;
-    background-color: var(--light-color);
-    z-index: 1050;
+    min-width: 0;
+    min-height: 0;
     overflow: hidden;
+    background: var(--kitchen-bg);
 }
 
-/* Ocultar elementos del layout principal */
-.sb-topnav,
-.sb-sidenav {
+.vista-cocina-active .sb-topnav,
+.vista-cocina-active .sb-sidenav {
     display: none !important;
 }
 
-/* ==================== */
-/* HEADER */
-/* ==================== */
+/* Header */
 .header-cocina {
-    background: linear-gradient(135deg, var(--primary-color), var(--dark-color));
-    color: white;
-    padding: 1rem;
+    flex: 0 0 auto;
+    min-height: 104px;
+    padding: 20px 24px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     text-align: center;
-    box-shadow: var(--shadow);
-    position: relative;
-    z-index: 10;
+    background: var(--kitchen-navy);
+    color: #fff;
+    border-bottom: 3px solid var(--kitchen-blue);
+    box-shadow: 0 2px 10px rgba(20, 37, 50, 0.12);
 }
 
 .header-cocina h1 {
     margin: 0;
-    font-size: 1.8rem;
-    font-weight: 600;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 10px;
+    font-size: clamp(1.4rem, 2vw, 1.8rem);
+    line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: -0.02em;
 }
 
 .header-cocina h1 i {
-    font-size: 1.5rem;
+    font-size: 0.95em;
 }
 
 #hora-actual {
-    margin-top: 0.5rem;
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.85);
+    margin: 7px 0 0;
+    font-size: 0.88rem;
+    line-height: 1;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.82);
 }
 
-/* ==================== */
-/* CONTENEDOR DE COMANDAS */
-/* ==================== */
+/* Grid: las tarjetas NO crecen para llenar toda la pantalla */
 .comandas-container {
-    flex: 1;
-    padding: 1.5rem;
-    overflow-y: auto;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    padding: 22px;
+    overflow: auto;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-    gap: 1.5rem;
-    background-color: #f1f3f5;
+    grid-template-columns: repeat(auto-fill, minmax(310px, 360px));
+    grid-auto-rows: max-content;
+    align-content: start;
+    align-items: start;
+    justify-content: start;
+    gap: 18px;
+    background: var(--kitchen-bg);
+    scrollbar-gutter: stable;
 }
 
-/* ==================== */
-/* TARJETAS DE COMANDAS */
-/* ==================== */
+/* Tarjeta */
 .comanda-card {
-    background-color: white;
-    border-radius: 10px;
-    box-shadow: var(--shadow);
+    width: 100%;
+    min-width: 0;
+    max-width: 360px;
+    height: auto;
+    max-height: none;
+    align-self: start;
     overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    border-left: 6px solid var(--warning-color);
     display: flex;
     flex-direction: column;
+    background: var(--kitchen-surface);
+    border: 1px solid var(--kitchen-border);
+    border-left: 5px solid var(--kitchen-orange);
+    border-radius: 12px;
+    box-shadow: var(--kitchen-shadow);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    animation: kitchenCardIn 0.22s ease both;
+    animation-delay: var(--card-delay, 0ms);
 }
 
 .comanda-card:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--shadow-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--kitchen-shadow-hover);
+}
+
+/* Estados: cada fase debe distinguirse de inmediato */
+.comanda-card.comanda-estado-pendiente {
+    border-left-color: var(--kitchen-orange);
+}
+
+.comanda-card.comanda-estado-en_preparacion {
+    border-left-color: var(--kitchen-blue);
+    box-shadow: 0 6px 20px rgba(47, 149, 204, 0.14);
+}
+
+.comanda-card.comanda-estado-preparada {
+    border-left-color: var(--kitchen-green);
+    box-shadow: 0 6px 20px rgba(36, 155, 99, 0.12);
 }
 
 .comanda-card.comanda-urgente {
-    border-left-color: var(--danger-color);
-    animation: pulse 1.5s infinite;
+    border-left-color: var(--kitchen-red);
+    box-shadow: 0 7px 22px rgba(223, 81, 72, 0.18);
 }
 
-/* Header de comanda */
 .comanda-header {
-    background: linear-gradient(to right, var(--secondary-color), var(--info-color));
-    color: white;
-    padding: 0.8rem 1.2rem;
+    min-width: 0;
+    padding: 12px 14px;
     display: flex;
+    align-items: flex-start;
     justify-content: space-between;
-    align-items: center;
+    gap: 10px;
+    background: var(--kitchen-blue);
+    color: #fff;
+}
+
+.comanda-estado-pendiente .comanda-header {
+    background: #d98908;
+}
+
+.comanda-estado-en_preparacion .comanda-header {
+    background: var(--kitchen-blue-dark);
+}
+
+.comanda-estado-preparada .comanda-header {
+    background: var(--kitchen-green);
+}
+
+/* Urgente tiene prioridad visual sobre el color del estado, pero conserva su badge de estado. */
+.comanda-urgente .comanda-header {
+    background: var(--kitchen-red);
+}
+
+.comanda-header-main {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
 }
 
 .comanda-mesa {
-    font-weight: 600;
-    font-size: 1.1rem;
+    min-width: 0;
     display: flex;
     align-items: center;
-    gap: 0.8rem;
+    gap: 7px;
+    font-size: 1rem;
+    line-height: 1.25;
+    font-weight: 750;
+    overflow-wrap: anywhere;
+}
+
+.comanda-mesa i {
+    flex: 0 0 auto;
+    font-size: 0.9rem;
+}
+
+.comanda-badges {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.badge-estado,
+.badge-urgente {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 0.66rem;
+    line-height: 1;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+}
+
+.badge-estado {
+    border: 1px solid rgba(255,255,255,.65);
+    background: rgba(255, 255, 255, 0.96);
+    color: var(--kitchen-text);
+}
+
+.badge-estado.pendiente {
+    color: #8d5900;
+    background: #fff7e8;
+    border-color: #ffd58f;
+}
+
+.badge-estado.en_preparacion {
+    color: #0f5f8e;
+    background: #eef8ff;
+    border-color: #b9def3;
+}
+
+.badge-estado.preparada {
+    color: #11663f;
+    background: #edf9f3;
+    border-color: #b8e3cc;
 }
 
 .badge-urgente {
-    background-color: var(--danger-color);
-    color: white;
-    padding: 0.2rem 0.6rem;
-    border-radius: 1rem;
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
+    gap: 5px;
+    background: #fff;
+    color: #b12f29;
+    border: 1px solid rgba(177,47,41,.18);
 }
 
 .comanda-hora {
-    font-size: 0.85rem;
-    background-color: rgba(0, 0, 0, 0.15);
-    padding: 0.2rem 0.6rem;
-    border-radius: 1rem;
-    font-weight: 500;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
+    border-radius: 999px;
+    background: rgba(25, 54, 76, 0.28);
+    color: #fff;
+    font-size: 0.75rem;
+    line-height: 1;
+    font-weight: 700;
+    white-space: nowrap;
 }
 
-/* Items de comanda */
+/* Datos de orden */
+.comanda-info {
+    padding: 11px 14px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    background: var(--kitchen-soft);
+    border-bottom: 1px solid var(--kitchen-border);
+}
+
+.comanda-info > div {
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    color: var(--kitchen-muted);
+    font-size: 0.78rem;
+}
+
+.comanda-info i {
+    flex: 0 0 auto;
+    margin-top: 2px;
+    color: var(--kitchen-blue-dark);
+}
+
+.comanda-info span {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow-wrap: anywhere;
+}
+
+.comanda-info strong {
+    color: var(--kitchen-text);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.035em;
+}
+
+.comanda-estado-pendiente .comanda-info { background: #fffaf1; }
+.comanda-estado-en_preparacion .comanda-info { background: #f2f9fd; }
+.comanda-estado-preparada .comanda-info { background: #f2faf6; }
+.comanda-urgente .comanda-info { background: #fff5f4; }
+
+/* Productos */
 .comanda-items {
-    padding: 1rem 1.2rem;
-    flex: 1;
+    min-width: 0;
+    padding: 7px 14px;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
 }
 
 .comanda-item {
+    min-width: 0;
+    padding: 10px 0;
     display: flex;
-    justify-content: space-between;
-    padding: 0.6rem 0;
-    border-bottom: 1px dashed var(--border-color);
     align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px dashed #d8e0e6;
 }
 
 .comanda-item:last-child {
-    border-bottom: none;
+    border-bottom: 0;
 }
 
 .item-nombre {
-    font-weight: 500;
-    flex: 1;
-    font-size: 0.95rem;
-    color: var(--text-color);
+    min-width: 0;
+    flex: 1 1 auto;
+    color: var(--kitchen-text);
+    font-size: 0.9rem;
+    line-height: 1.3;
+    font-weight: 650;
+    overflow-wrap: anywhere;
 }
 
 .item-cantidad {
-    background-color: var(--primary-color);
-    color: white;
-    padding: 0.2rem 0.8rem;
-    border-radius: 1rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-    min-width: 2rem;
-    text-align: center;
+    flex: 0 0 auto;
+    min-width: 30px;
+    min-height: 26px;
+    padding: 4px 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: var(--kitchen-navy);
+    color: #fff;
+    font-size: 0.78rem;
+    line-height: 1;
+    font-weight: 800;
+}
+
+.comanda-item-vacio {
+    color: var(--kitchen-muted);
+    font-size: 0.82rem;
+    font-weight: 500;
 }
 
 /* Observaciones */
 .comanda-observaciones {
-    padding: 0.8rem 1.2rem;
-    background-color: var(--light-color);
-    font-size: 0.9rem;
-    color: var(--text-color);
-    border-top: 1px solid var(--border-color);
-    margin-top: auto;
+    padding: 10px 14px;
+    background: #fff8e9;
+    border-top: 1px solid #f3dfb0;
+    color: #5f5542;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.comanda-observaciones p {
+    margin: 0 0 4px;
+}
+
+.comanda-observaciones p:last-child {
+    margin-bottom: 0;
 }
 
 .comanda-observaciones strong {
-    color: var(--primary-color);
-    font-weight: 600;
+    color: #3f382b;
 }
 
-/* ==================== */
-/* BOTONES Y ACCIONES */
-/* ==================== */
+/* Acciones */
 .comanda-actions {
-    padding: 0.8rem 1.2rem;
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.8rem;
-    border-top: 1px solid var(--border-color);
-    background-color: var(--light-color);
+    padding: 11px 12px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    border-top: 1px solid var(--kitchen-border);
+    background: var(--kitchen-soft);
 }
 
-.btn {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.85rem;
-    font-weight: 500;
+.comanda-actions .btn {
+    min-width: 0;
+    min-height: 38px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 8px;
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    transition: all 0.2s ease;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    justify-content: center;
+    gap: 7px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    line-height: 1.15;
+    font-weight: 750;
+    text-transform: none;
+    letter-spacing: 0;
+    white-space: normal;
+    text-align: center;
+    transition: transform 0.15s ease, filter 0.15s ease, opacity 0.15s ease;
 }
 
-.btn i {
-    font-size: 0.9rem;
-}
-
-.btn-success {
-    background-color: var(--success-color);
-    color: white;
-}
-
-.btn-success:hover {
-    background-color: #219653;
+.comanda-actions .btn:hover:not(:disabled) {
     transform: translateY(-1px);
+    filter: brightness(0.96);
 }
 
-.btn-warning {
-    background-color: var(--warning-color);
-    color: white;
+.comanda-actions .btn:focus-visible {
+    outline: 3px solid rgba(47, 149, 204, 0.22);
+    outline-offset: 2px;
 }
 
-.btn-warning:hover {
-    background-color: #e67e22;
-    transform: translateY(-1px);
+.comanda-actions .btn:disabled,
+.comanda-actions .btn.is-processing {
+    cursor: wait;
+    opacity: 0.68;
+    transform: none;
 }
 
-/* ==================== */
-/* ESTADO SIN COMANDAS */
-/* ==================== */
+.comanda-actions .btn-primary {
+    background: var(--kitchen-blue);
+    color: #fff;
+}
+
+.comanda-actions .btn-success {
+    background: var(--kitchen-green);
+    color: #fff;
+}
+
+.comanda-actions .btn-warning {
+    background: var(--kitchen-orange);
+    color: #fff;
+}
+
+/* Si queda un solo botón principal, usa todo el ancho disponible */
+.comanda-actions .btn:only-child {
+    grid-column: 1 / -1;
+}
+
+/* Estado vacío compacto y centrado */
 .no-comandas {
     grid-column: 1 / -1;
-    text-align: center;
-    padding: 3rem;
-    color: #6c757d;
-    background-color: white;
-    border-radius: 12px;
-    box-shadow: var(--shadow);
+    width: min(520px, 100%);
+    min-height: 220px;
+    margin: 36px auto 0;
+    padding: 34px 24px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 60vh;
+    gap: 8px;
+    text-align: center;
+    background: var(--kitchen-surface);
+    border: 1px dashed #cfd8df;
+    border-radius: 14px;
+    color: var(--kitchen-muted);
+    box-shadow: 0 3px 12px rgba(28, 46, 61, 0.06);
 }
 
-.no-comandas i {
-    font-size: 3rem;
-    color: #adb5bd;
-    margin-bottom: 1.5rem;
-    opacity: 0.7;
+.no-comandas-icon {
+    width: 52px;
+    height: 52px;
+    margin-bottom: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #edf5fa;
+    color: var(--kitchen-blue-dark);
+    font-size: 1.4rem;
+}
+
+.no-comandas strong {
+    color: var(--kitchen-text);
+    font-size: 1rem;
 }
 
 .no-comandas p {
-    font-size: 1.1rem;
-    color: var(--text-color);
-    font-weight: 400;
-    max-width: 400px;
-    margin: 0 auto;
+    margin: 0;
+    max-width: 360px;
+    font-size: 0.84rem;
+    line-height: 1.45;
 }
 
-/* ==================== */
-/* BOTÓN DE REFRESCAR */
-/* ==================== */
+/* Botón refrescar */
 .refresh-button {
     position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    background-color: var(--primary-color);
-    color: white;
-    width: 3.5rem;
-    height: 3.5rem;
-    border-radius: 50%;
+    right: 22px;
+    bottom: 22px;
+    z-index: 1100;
+    width: 46px;
+    height: 46px;
     display: flex;
     align-items: center;
     justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    border-radius: 50%;
+    background: var(--kitchen-navy);
+    color: #fff;
     cursor: pointer;
-    box-shadow: var(--shadow-hover);
-    z-index: 100;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border: none;
+    box-shadow: 0 5px 16px rgba(28, 46, 61, 0.20);
+    transition: transform 0.18s ease, background 0.18s ease;
 }
 
 .refresh-button:hover {
-    background-color: var(--dark-color);
-    transform: rotate(180deg) scale(1.05);
+    transform: translateY(-2px);
+    background: #253b4d;
+}
+
+.refresh-button.is-loading i {
+    animation: kitchenSpin 0.8s linear infinite;
 }
 
 .refresh-button i {
-    font-size: 1.3rem;
+    font-size: 1rem;
 }
 
-/* ==================== */
-/* ANIMACIONES */
-/* ==================== */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
+@keyframes kitchenSpin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes kitchenCardIn {
+    from { opacity: 0; transform: translateY(6px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
-    70% { box-shadow: 0 0 0 12px rgba(231, 76, 60, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
-}
-
-.fade-in {
-    animation: fadeIn 0.4s ease-out forwards;
-}
-
-/* ==================== */
-/* RESPONSIVE */
-/* ==================== */
-@media (max-width: 992px) {
+/* Tablet */
+@media (max-width: 1100px) {
     .comandas-container {
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+        justify-content: stretch;
+    }
+
+    .comanda-card {
+        max-width: none;
     }
 }
 
 @media (max-width: 768px) {
-    .header-cocina h1 {
-        font-size: 1.5rem;
-    }
-    
-    .comandas-container {
-        grid-template-columns: 1fr;
-        padding: 1rem;
-        gap: 1rem;
-    }
-    
-    .refresh-button {
-        width: 3rem;
-        height: 3rem;
-        bottom: 1.5rem;
-        right: 1.5rem;
-    }
-    
-    .refresh-button i {
-        font-size: 1.1rem;
-    }
-}
-
-@media (max-width: 576px) {
     .header-cocina {
-        padding: 0.8rem 1rem;
+        min-height: 88px;
+        padding: 15px 16px 13px;
     }
-    
+
+    .comandas-container {
+        padding: 14px;
+        grid-template-columns: 1fr;
+        gap: 13px;
+    }
+
+    .comanda-card {
+        max-width: 100%;
+    }
+
+    .comanda-info {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .refresh-button {
+        right: 14px;
+        bottom: 14px;
+        width: 42px;
+        height: 42px;
+    }
+}
+
+@media (max-width: 520px) {
     .header-cocina h1 {
-        font-size: 1.3rem;
-        gap: 8px;
+        font-size: 1.25rem;
     }
-    
+
+    .comanda-header {
+        padding: 11px 12px;
+    }
+
+    .comanda-info {
+        grid-template-columns: 1fr;
+        gap: 7px;
+    }
+
     .comanda-actions {
-        flex-direction: column;
-        gap: 0.5rem;
+        grid-template-columns: 1fr;
     }
-    
-    .btn {
+
+    .comanda-actions .btn {
         width: 100%;
-        justify-content: center;
+    }
+
+    .no-comandas {
+        min-height: 190px;
+        margin-top: 18px;
     }
 }
 
-/* ==================== */
-/* NUEVOS ESTILOS PARA COCINA */
-/* ==================== */
-
-.comanda-info {
-    padding: 0.8rem 1.2rem;
-    background-color: #f8f9fa;
-    border-bottom: 1px solid var(--border-color);
-    font-size: 0.9rem;
+@media (prefers-reduced-motion: reduce) {
+    .comanda-card,
+    .comanda-actions .btn,
+    .refresh-button,
+    .refresh-button.is-loading i {
+        animation: none !important;
+        transition: none !important;
+    }
 }
 
-.comanda-info div {
-    margin-bottom: 0.3rem;
+/* ==========================================================
+   ESTADO VACÍO: CENTRADO REAL HORIZONTAL Y VERTICAL
+   ========================================================== */
+.comandas-container:has(> .no-comandas) {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+    align-content: stretch;
+    align-items: center;
+    justify-items: center;
 }
 
-.comanda-info strong {
-    color: var(--primary-color);
-    font-weight: 600;
+.comandas-container:has(> .no-comandas) > .no-comandas {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+    justify-self: center;
+    margin: 0;
 }
 
-.comanda-observaciones p {
-    margin-top: 0.5rem;
-    margin-bottom: 0;
+
+/* ===== Estado vacío perfectamente centrado ===== */
+.vista-cocina-container .comandas-container:has(.no-comandas){
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+.vista-cocina-container .no-comandas{
+  margin:auto !important;
 }
 
-.comanda-observaciones strong {
-    color: var(--dark-color);
+/* ===== Acción Finalizar: compacta y claramente diferenciada ===== */
+.vista-cocina-container .btn-completar{
+  background:#1f9d63 !important;
+  color:#fff !important;
+  border:1px solid #168653 !important;
+  box-shadow:0 4px 10px rgba(31,157,99,.16) !important;
 }
-
-/* Estilo para comandas urgentes */
-.comanda-urgente {
-    border-left: 6px solid var(--danger-color);
-    animation: pulse 1.5s infinite;
-}
-
-.comanda-urgente .comanda-header {
-    background: linear-gradient(to right, var(--danger-color), #c0392b);
-}
-
-/* ==================== */
-/* ANIMACIONES */
-/* ==================== */
-@keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
-    70% { box-shadow: 0 0 0 12px rgba(231, 76, 60, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
-}
-
-/* Estilos para los estados de las comandas */
-.badge-estado {
-    padding: 0.3rem 0.6rem;
-    border-radius: 1rem;
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    margin-left: 0.5rem;
-}
-
-.badge-estado.pendiente {
-    background-color: #f39c12;
-    color: white;
-}
-
-.badge-estado.en_preparacion {
-    background-color: #3498db;
-    color: white;
-}
-
-.badge-estado.preparada {
-    background-color: #27ae60;
-    color: white;
-}
-
-.badge-estado.urgente {
-    background-color: #e74c3c;
-    color: white;
-}
-
-/* Estilos para los botones de acción */
-.btn-primary {
-    background-color: #3498db;
-    color: white;
-}
-
-.btn-primary:hover {
-    background-color: #2980b9;
-}
-
-/* Animación para las comandas */
-.fade-in {
-    animation: fadeIn 0.5s ease-in;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* Estilo para comandas urgentes */
-.comanda-urgente {
-    border-left: 6px solid #e74c3c;
-    animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
-    70% { box-shadow: 0 0 0 12px rgba(231, 76, 60, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
-}
-
-/* Estilos para la información de cliente y orden */
-.comanda-info {
-    padding: 0.8rem 1.2rem;
-    background-color: #f8f9fa;
-    border-bottom: 1px solid #ddd;
-    font-size: 0.9rem;
-}
-
-.comanda-info div {
-    margin-bottom: 0.3rem;
-}
-
-.comanda-info strong {
-    color: #2c3e50;
-    font-weight: 600;
-}
-
-/* Estilos para las observaciones */
-.comanda-observaciones p {
-    margin-top: 0.5rem;
-    margin-bottom: 0;
-}
-
-.comanda-observaciones strong {
-    color: #34495e;
+.vista-cocina-container .btn-completar:hover{
+  background:#188752 !important;
 }

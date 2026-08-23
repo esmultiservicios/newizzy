@@ -1485,20 +1485,20 @@ class facturasRestauranteModelo extends mainModel {
     public function marcarComandaPreparada($factura_id){
         $factura_id=intval($factura_id);
         $ok1 = $this->ejecutar_consulta_simple_preparada("UPDATE factura_comanda SET estado='preparada' WHERE factura_id=?","i",[$factura_id]);
-        $ok2 = $this->ejecutar_consulta_simple_preparada("UPDATE factura_comanda_items SET estado='preparada' WHERE factura_id=? AND DATE(fecha_registro)=CURDATE() AND estado IN ('pendiente','en_preparacion','urgente')","i",[$factura_id]);
+        $ok2 = $this->ejecutar_consulta_simple_preparada("UPDATE factura_comanda_items SET estado='preparada' WHERE factura_id=? AND estado IN ('pendiente','en_preparacion','urgente')","i",[$factura_id]);
         return ($ok1 && $ok2) ? ['status'=>true] : ['status'=>false,'message'=>'No se pudo actualizar'];
     }
     public function marcarComandaUrgente($factura_id,$urgente){
         $factura_id=intval($factura_id);
         $estado = $urgente ? 'urgente' : 'pendiente';
         $ok1 = $this->ejecutar_consulta_simple_preparada("UPDATE factura_comanda SET estado=? WHERE factura_id=?","si",[$estado,$factura_id]);
-        $ok2 = $this->ejecutar_consulta_simple_preparada("UPDATE factura_comanda_items SET estado=? WHERE factura_id=? AND DATE(fecha_registro)=CURDATE() AND estado IN ('pendiente','en_preparacion','urgente')","si",[$estado,$factura_id]);
+        $ok2 = $this->ejecutar_consulta_simple_preparada("UPDATE factura_comanda_items SET estado=? WHERE factura_id=? AND estado IN ('pendiente','en_preparacion','urgente')","si",[$estado,$factura_id]);
         return ($ok1 && $ok2) ? ['status'=>true] : ['status'=>false,'message'=>'No se pudo actualizar'];
     }
     public function marcarComandaEnPreparacion($factura_id){
         $factura_id=intval($factura_id);
         $ok1 = $this->ejecutar_consulta_simple_preparada("UPDATE factura_comanda SET estado='en_preparacion' WHERE factura_id=?","i",[$factura_id]);
-        $ok2 = $this->ejecutar_consulta_simple_preparada("UPDATE factura_comanda_items SET estado='en_preparacion' WHERE factura_id=? AND DATE(fecha_registro)=CURDATE() AND estado IN ('pendiente','urgente')","i",[$factura_id]);
+        $ok2 = $this->ejecutar_consulta_simple_preparada("UPDATE factura_comanda_items SET estado='en_preparacion' WHERE factura_id=? AND estado IN ('pendiente','urgente')","i",[$factura_id]);
         return ($ok1 && $ok2) ? ['status'=>true] : ['status'=>false,'message'=>'No se pudo actualizar'];
     }
 
@@ -1513,7 +1513,6 @@ class facturasRestauranteModelo extends mainModel {
                     fc.factura_id,
                     fc.mesa_id,
                     fci.estado AS estado,
-                    MIN(fci.fecha_registro) AS fecha_envio,
                     fc.fecha_registro,
                     fc.comentarios_cocina,
                     f.notas,
@@ -1530,7 +1529,6 @@ class facturasRestauranteModelo extends mainModel {
                 INNER JOIN productos p ON p.productos_id=fci.productos_id
                 WHERE f.empresa_id=?
                   AND fci.estacion=?
-                  AND DATE(fci.fecha_registro)=CURDATE()
                   AND fci.estado IN ('pendiente','en_preparacion','urgente')
                 GROUP BY fc.id,fc.factura_id,fc.mesa_id,fci.estado,fc.fecha_registro,
                          fc.comentarios_cocina,f.notas,cli.nombre,m.numero,
@@ -1548,8 +1546,7 @@ class facturasRestauranteModelo extends mainModel {
                     'comanda_id'=>(int)$r['comanda_id'],
                     'mesa'=>$r['mesa_numero']!==''?$r['mesa_numero']:null,
                     'cliente_nombre'=>$r['cliente_nombre']??'Consumidor Final',
-                    'fecha'=>$r['fecha_envio']?date('d/m/Y',strtotime($r['fecha_envio'])):'',
-                    'hora'=>$r['fecha_envio']?date('H:i',strtotime($r['fecha_envio'])):'',
+                    'hora'=>$r['fecha_registro']?date('H:i',strtotime($r['fecha_registro'])):'',
                     'estado'=>$r['estado']??'pendiente',
                     'urgente'=>($r['estado']==='urgente')?1:0,
                     'observaciones'=>$r['notas']??'',
@@ -3179,7 +3176,8 @@ public function crearPagoContado(array $data){
             'etiqueta_barra'=>'Barra',
             'destino_comanda'=>'pantalla',
             'momento_ticket'=>'enviar',
-            'flujo_cocina'=>'pasos'
+            'flujo_cocina'=>'pasos',
+            'solicitar_clave_gestion'=>1
         ];
         if (!$this->hasTable('restaurante_configuracion')) return $cfg;
 
@@ -3188,13 +3186,15 @@ public function crearPagoContado(array $data){
         $hasDC=$this->hasColumn('restaurante_configuracion','destino_comanda');
         $hasMT=$this->hasColumn('restaurante_configuracion','momento_ticket');
         $hasFC=$this->hasColumn('restaurante_configuracion','flujo_cocina');
+        $hasSCG=$this->hasColumn('restaurante_configuracion','solicitar_clave_gestion');
 
         $cols='usar_mesas, usar_comandas'
             .($hasEC?', etiqueta_cocina':'')
             .($hasEB?', etiqueta_barra':'')
             .($hasDC?', destino_comanda':'')
             .($hasMT?', momento_ticket':'')
-            .($hasFC?', flujo_cocina':'');
+            .($hasFC?', flujo_cocina':'')
+            .($hasSCG?', solicitar_clave_gestion':'');
 
         $rs = $this->ejecutar_consulta_simple_preparada(
             "SELECT {$cols} FROM restaurante_configuracion WHERE empresa_id=? LIMIT 1",
@@ -3225,6 +3225,9 @@ public function crearPagoContado(array $data){
                 $flujo=strtolower(trim((string)($r['flujo_cocina']??'pasos')));
                 if(in_array($flujo,['pasos','directo'],true)) $cfg['flujo_cocina']=$flujo;
             }
+            if($hasSCG){
+                $cfg['solicitar_clave_gestion']=(int)($r['solicitar_clave_gestion']??1)===0?0:1;
+            }
         }
         return $cfg;
     }
@@ -3236,7 +3239,8 @@ public function crearPagoContado(array $data){
         string $etiquetaBarra='Barra',
         string $destinoComanda='pantalla',
         string $momentoTicket='enviar',
-        string $flujoCocina='pasos'
+        string $flujoCocina='pasos',
+        int $solicitarClaveGestion=1
     ): array {
         if (!$this->hasTable('restaurante_configuracion')) {
             return ['status'=>false,'message'=>'Falta ejecutar el SQL de configuración incluido en esta entrega.'];
@@ -3257,12 +3261,14 @@ public function crearPagoContado(array $data){
 
         $flujoCocina=strtolower(trim($flujoCocina));
         if(!in_array($flujoCocina,['pasos','directo'],true)) $flujoCocina='pasos';
+        $solicitarClaveGestion=$solicitarClaveGestion?1:0;
 
         $hasEC=$this->hasColumn('restaurante_configuracion','etiqueta_cocina');
         $hasEB=$this->hasColumn('restaurante_configuracion','etiqueta_barra');
         $hasDC=$this->hasColumn('restaurante_configuracion','destino_comanda');
         $hasMT=$this->hasColumn('restaurante_configuracion','momento_ticket');
         $hasFC=$this->hasColumn('restaurante_configuracion','flujo_cocina');
+        $hasSCG=$this->hasColumn('restaurante_configuracion','solicitar_clave_gestion');
 
         $ex=$this->ejecutar_consulta_simple_preparada(
             "SELECT empresa_id FROM restaurante_configuracion WHERE empresa_id=? LIMIT 1",
@@ -3271,36 +3277,54 @@ public function crearPagoContado(array $data){
 
         if($ex && $ex->num_rows){
             if($hasEC && $hasEB && $hasDC && $hasMT && $hasFC){
-                $ok=$this->ejecutar_consulta_simple_preparada(
-                    "UPDATE restaurante_configuracion
-                     SET usar_mesas=?, usar_comandas=?, etiqueta_cocina=?, etiqueta_barra=?,
-                         destino_comanda=?, momento_ticket=?, flujo_cocina=?, usuario_id=?, fecha_actualizacion=NOW()
-                     WHERE empresa_id=?",
-                    "iisssssii",
-                    [$usarMesas,$usarComandas,$etiquetaCocina,$etiquetaBarra,$destinoComanda,$momentoTicket,$flujoCocina,$usuario,$empresa]
-                );
+                if($hasSCG){
+                    $ok=$this->ejecutar_consulta_simple_preparada(
+                        "UPDATE restaurante_configuracion
+                         SET usar_mesas=?, usar_comandas=?, etiqueta_cocina=?, etiqueta_barra=?,
+                             destino_comanda=?, momento_ticket=?, flujo_cocina=?, solicitar_clave_gestion=?,
+                             usuario_id=?, fecha_actualizacion=NOW()
+                         WHERE empresa_id=?",
+                        "iisssssiii",
+                        [$usarMesas,$usarComandas,$etiquetaCocina,$etiquetaBarra,$destinoComanda,$momentoTicket,$flujoCocina,$solicitarClaveGestion,$usuario,$empresa]
+                    );
+                } else {
+                    $ok=$this->ejecutar_consulta_simple_preparada(
+                        "UPDATE restaurante_configuracion
+                         SET usar_mesas=?, usar_comandas=?, etiqueta_cocina=?, etiqueta_barra=?,
+                             destino_comanda=?, momento_ticket=?, flujo_cocina=?, usuario_id=?, fecha_actualizacion=NOW()
+                         WHERE empresa_id=?",
+                        "iisssssii",
+                        [$usarMesas,$usarComandas,$etiquetaCocina,$etiquetaBarra,$destinoComanda,$momentoTicket,$flujoCocina,$usuario,$empresa]
+                    );
+                }
             } else {
                 $ok=$this->ejecutar_consulta_simple_preparada(
-                    "UPDATE restaurante_configuracion
-                     SET usar_mesas=?, usar_comandas=?, usuario_id=?, fecha_actualizacion=NOW()
-                     WHERE empresa_id=?",
+                    "UPDATE restaurante_configuracion SET usar_mesas=?, usar_comandas=?, usuario_id=?, fecha_actualizacion=NOW() WHERE empresa_id=?",
                     "iiii",[$usarMesas,$usarComandas,$usuario,$empresa]
                 );
             }
         } else {
             if($hasEC && $hasEB && $hasDC && $hasMT && $hasFC){
-                $ok=$this->ejecutar_consulta_simple_preparada(
-                    "INSERT INTO restaurante_configuracion
-                     (empresa_id,usar_mesas,usar_comandas,etiqueta_cocina,etiqueta_barra,destino_comanda,momento_ticket,flujo_cocina,usuario_id,fecha_registro,fecha_actualizacion)
-                     VALUES(?,?,?,?,?,?,?,?,?,NOW(),NOW())",
-                    "iiisssssi",
-                    [$empresa,$usarMesas,$usarComandas,$etiquetaCocina,$etiquetaBarra,$destinoComanda,$momentoTicket,$flujoCocina,$usuario]
-                );
+                if($hasSCG){
+                    $ok=$this->ejecutar_consulta_simple_preparada(
+                        "INSERT INTO restaurante_configuracion
+                         (empresa_id,usar_mesas,usar_comandas,etiqueta_cocina,etiqueta_barra,destino_comanda,momento_ticket,flujo_cocina,solicitar_clave_gestion,usuario_id,fecha_registro,fecha_actualizacion)
+                         VALUES(?,?,?,?,?,?,?,?,?,?,NOW(),NOW())",
+                        "iiisssssii",
+                        [$empresa,$usarMesas,$usarComandas,$etiquetaCocina,$etiquetaBarra,$destinoComanda,$momentoTicket,$flujoCocina,$solicitarClaveGestion,$usuario]
+                    );
+                } else {
+                    $ok=$this->ejecutar_consulta_simple_preparada(
+                        "INSERT INTO restaurante_configuracion
+                         (empresa_id,usar_mesas,usar_comandas,etiqueta_cocina,etiqueta_barra,destino_comanda,momento_ticket,flujo_cocina,usuario_id,fecha_registro,fecha_actualizacion)
+                         VALUES(?,?,?,?,?,?,?,?,?,NOW(),NOW())",
+                        "iiisssssi",
+                        [$empresa,$usarMesas,$usarComandas,$etiquetaCocina,$etiquetaBarra,$destinoComanda,$momentoTicket,$flujoCocina,$usuario]
+                    );
+                }
             } else {
                 $ok=$this->ejecutar_consulta_simple_preparada(
-                    "INSERT INTO restaurante_configuracion
-                     (empresa_id,usar_mesas,usar_comandas,usuario_id,fecha_registro,fecha_actualizacion)
-                     VALUES(?,?,?,?,NOW(),NOW())",
+                    "INSERT INTO restaurante_configuracion (empresa_id,usar_mesas,usar_comandas,usuario_id,fecha_registro,fecha_actualizacion) VALUES(?,?,?,?,NOW(),NOW())",
                     "iiii",[$empresa,$usarMesas,$usarComandas,$usuario]
                 );
             }

@@ -1,5 +1,46 @@
 ####22 de agost 2026####
 -- ============================================================
+-- IZZY RESTAURANTE / POS
+-- Seguridad configurable para acciones administrativas
+-- Ejecutar UNA vez. No borra ni modifica ventas existentes.
+-- ============================================================
+
+SET @db_actual := DATABASE();
+
+SET @existe_col := (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = @db_actual
+      AND TABLE_NAME = 'restaurante_configuracion'
+      AND COLUMN_NAME = 'solicitar_clave_gestion'
+);
+
+SET @sql := IF(
+    @existe_col = 0,
+    "ALTER TABLE restaurante_configuracion ADD COLUMN solicitar_clave_gestion TINYINT(1) NOT NULL DEFAULT 1 AFTER flujo_cocina",
+    "SELECT 'solicitar_clave_gestion ya existe' AS info"
+);
+
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- Seguridad activa por defecto para registros existentes.
+UPDATE restaurante_configuracion
+SET solicitar_clave_gestion = 1
+WHERE solicitar_clave_gestion IS NULL;
+
+-- Verificación.
+SELECT
+    empresa_id,
+    usar_mesas,
+    usar_comandas,
+    solicitar_clave_gestion,
+    fecha_actualizacion
+FROM restaurante_configuracion
+ORDER BY empresa_id;
+
+-- ============================================================
 -- IZZY RESTAURANTE / PUNTO DE VENTA
 -- CONFIGURACIÓN COMPLETA Y ORDENADA
 -- ============================================================

@@ -491,6 +491,7 @@ try {
             $destinoComanda = strtolower(trim((string)AjaxHelper::in('destino_comanda','pantalla')));
             $momentoTicket = strtolower(trim((string)AjaxHelper::in('momento_ticket','enviar')));
             $flujoCocina = strtolower(trim((string)AjaxHelper::in('flujo_cocina','pasos')));
+            $solicitarClaveGestion = AjaxHelper::toBool(AjaxHelper::in('solicitar_clave_gestion',1),1);
             AjaxHelper::json($m->guardarConfiguracionOperacion(
                 $usarMesas,
                 $usarComandas,
@@ -498,7 +499,8 @@ try {
                 $etiquetaBarra,
                 $destinoComanda,
                 $momentoTicket,
-                $flujoCocina
+                $flujoCocina,
+                $solicitarClaveGestion
             ));
             break;
         }

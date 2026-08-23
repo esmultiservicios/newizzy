@@ -1336,6 +1336,27 @@
           </label>
         </div>
 
+        <section class="rs-config-security" aria-labelledby="rs-config-security-title">
+          <div class="rs-config-security-main">
+            <span class="rs-config-security-icon"><i class="fas fa-shield-halved"></i></span>
+            <div class="rs-config-security-copy">
+              <strong id="rs-config-security-title">Seguridad de gestión</strong>
+              <small>Decide si las acciones administrativas del módulo deben solicitar una clave adicional.</small>
+            </div>
+            <span id="config-seguridad-estado" class="rs-config-security-status"><i class="fas fa-shield-halved"></i> Protección activa</span>
+          </div>
+          <label class="rs-config-security-toggle" for="config-solicitar-clave-gestion">
+            <span>
+              <b>Solicitar clave para gestión</b>
+              <small>Si está activa, crear o editar clientes, mesas, categorías, productos, promociones y combos solicitará validación administrativa. Configuración del módulo siempre solicita clave, aunque esta opción esté desactivada. Los permisos del usuario siempre se mantienen.</small>
+            </span>
+            <span class="rs-switch">
+              <input type="checkbox" id="config-solicitar-clave-gestion" checked>
+              <span class="rs-switch-track"><span class="rs-switch-thumb"></span></span>
+            </span>
+          </label>
+        </section>
+
         <div class="rs-config-stations" id="config-grupos-operacion">
           <div class="rs-config-section-title">
             <i class="fas fa-tags"></i>
@@ -1452,142 +1473,63 @@
     </div>
   </div>
 
-  <!-- =================== MODAL: AYUDA =================== -->
+  <!-- =================== MODAL: CENTRO DE AYUDA =================== -->
   <div id="modal-help" class="modal rs-modal modal--help modal--xl" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-help" style="display:none;">
-    <div class="modal-content">
+    <div class="modal-content rs-help-modal">
       <div class="modal-header">
         <h3 id="titulo-modal-help">
-          <i class="fas fa-circle-question"></i> Ayuda & Atajos
+          <i class="fas fa-circle-question"></i> Centro de ayuda
         </h3>
         <span class="close" data-close="#modal-help" title="Cerrar">&times;</span>
       </div>
 
-      <div class="modal-body help-body">
-        <!-- Hero -->
-        <div class="help-hero">
-          <div class="help-hero-icon">
-            <i class="fas fa-keyboard"></i>
+      <div class="modal-body rs-help-body">
+        <section class="rs-help-intro">
+          <div class="rs-help-intro-icon"><i class="fas fa-compass"></i></div>
+          <div class="rs-help-intro-copy">
+            <h4>¿Qué necesita hacer?</h4>
+            <p>Busque una palabra o seleccione un tema. La ayuda se adapta a la configuración actual del punto de venta.</p>
           </div>
-          <div class="help-hero-text">
-            <h4>Atajos de teclado</h4>
-            <p>Acelera tu flujo: todos los atajos usan <strong>Ctrl</strong> (Win/Linux) o <strong>Cmd ⌘</strong> (Mac). Algunos combinan con <strong>Alt</strong>.</p>
-            <ul class="help-bullets">
-              <li>Windows/Linux: <span class="kbd">Ctrl</span> • Mac: <span class="kbd">Cmd</span></li>
-              <li>Para evitar conflictos con el navegador, usamos <span class="kbd">Alt</span> en varios atajos.</li>
-            </ul>
-          </div>
+          <div class="rs-help-mode" id="rs-help-mode" aria-live="polite"></div>
+        </section>
+
+        <div class="rs-help-search-wrap">
+          <i class="fas fa-search"></i>
+          <input
+            id="rs-help-search"
+            type="search"
+            autocomplete="off"
+            placeholder="Buscar: cuenta abierta, comanda, reserva, promoción, recurrente..."
+            aria-label="Buscar en la ayuda">
+          <button type="button" id="rs-help-clear" class="rs-help-clear" title="Limpiar búsqueda" aria-label="Limpiar búsqueda">
+            <i class="fas fa-times"></i>
+          </button>
         </div>
 
-        <!-- Grilla de tarjetas -->
-        <div class="help-grid">
-          <!-- Comanda -->
-          <div class="help-card">
-            <div class="help-card-title" id="help-titulo-operacion"><i class="fas fa-receipt"></i> Comanda</div>
-            <ul class="help-keys">
-              <li>
-                <div id="help-accion-principal">Cobrar / enviar a cocina</div>
-                <div class="keys"><span class="kbd">Ctrl/Cmd</span><span class="kbd">G</span></div>
-              </li>
-              <li>
-                <div id="help-ticket-label">Ticket de orden</div>
-                <div class="keys"><span class="kbd">Ctrl/Cmd</span><span class="kbd">I</span></div>
-              </li>
-              <li>
-                <div id="help-limpiar-label">Limpiar comanda</div>
-                <div class="keys"><span class="kbd">Ctrl/Cmd</span><span class="kbd">Alt</span><span class="kbd">L</span></div>
-              </li>
-              <li>
-                <div>Cancelar cuenta abierta</div>
-                <div class="keys"><span class="kbd">Ctrl/Cmd</span><span class="kbd">Alt</span><span class="kbd">X</span></div>
-              </li>
-              <li>
-                <div>Guardar cuenta abierta</div>
-                <div class="keys"><span class="kbd">Ctrl/Cmd</span><span class="kbd">Alt</span><span class="kbd">S</span></div>
-              </li>
-              <li>
-                <div>Abrir cuentas guardadas</div>
-                <div class="keys"><span class="kbd">Ctrl/Cmd</span><span class="kbd">Alt</span><span class="kbd">A</span></div>
-              </li>
-              <li>
-                <div id="help-ver-panel-label">Ver Productos/Comanda</div>
-                <div class="keys"><span class="kbd">Ctrl/Cmd</span><span class="kbd">Alt</span><span class="kbd">V</span></div>
-              </li>
-              <li>
-                <div>Buscar producto</div>
-                <div class="keys"><span class="kbd">Ctrl/Cmd</span><span class="kbd">Alt</span><span class="kbd">F</span></div>
-              </li>
-            </ul>
-          </div>
+        <div class="rs-help-layout">
+          <aside class="rs-help-sidebar" aria-label="Categorías de ayuda">
+            <div class="rs-help-sidebar-title"><i class="fas fa-layer-group"></i> Temas</div>
+            <div id="rs-help-categories" class="rs-help-categories"></div>
+          </aside>
 
-          <div class="help-card" id="help-flujo-operacion">
-            <div class="help-card-title"><i class="fas fa-route"></i> Flujo recomendado</div>
-            <ul class="help-bullets">
-              <li><b>Para llevar:</b> puede cobrar de inmediato o usar <b>Guardar cuenta</b> para continuarla más tarde.</li>
-              <li><b>En mesa:</b> seleccione la mesa, envíe a preparación y vuelva a abrirla desde la tarjeta de mesa o desde <b>Cuentas abiertas</b>.</li>
-              <li>Los productos de <b>Cocina</b> y <b>Barra</b> se separan por su estación; una bebida de Barra no aparece en Cocina.</li>
-              <li>La factura fiscal se muestra después de completar el pago. <b>Ticket de orden</b> es un comprobante interno para cocina/cliente.</li>
-            </ul>
-          </div>
+          <main class="rs-help-content">
+            <div id="rs-help-summary" class="rs-help-summary" aria-live="polite"></div>
+            <div id="rs-help-results" class="rs-help-results" aria-live="polite"></div>
 
-          <!-- Gestión rápida -->
-          <div class="help-card">
-            <div class="help-card-title"><i class="fas fa-bolt"></i> Gestión rápida</div>
-            <ul class="help-keys">
-              <li>
-                <div>Nueva mesa</div>
-                <div class="keys"><span class="kbd">Ctrl/Cmd</span><span class="kbd">M</span></div>
-              </li>
-              <li>
-                <div>Cambiar cliente</div>
-                <div class="keys"><span class="kbd">Ctrl/Cmd</span><span class="kbd">Alt</span><span class="kbd">C</span></div>
-              </li>
-              <li>
-                <div>Nuevo cliente</div>
-                <div class="keys"><span class="kbd">Ctrl/Cmd</span><span class="kbd">Alt</span><span class="kbd">R</span></div>
-              </li>
-              <li>
-                <div>Nuevo producto</div>
-                <div class="keys"><span class="kbd">Ctrl/Cmd</span><span class="kbd">Alt</span><span class="kbd">P</span></div>
-              </li>
-              <li>
-                <div>Nueva categoría</div>
-                <div class="keys"><span class="kbd">Ctrl/Cmd</span><span class="kbd">Alt</span><span class="kbd">K</span></div>
-              </li>
-              <li>
-                <div>Gestionar combos</div>
-                <div class="keys"><span class="kbd">Ctrl/Cmd</span><span class="kbd">Alt</span><span class="kbd">B</span></div>
-              </li>
-            </ul>
-
-            <div class="help-split"></div>
-            <div class="help-subtitle"><i class="fas fa-lightbulb"></i> Consejos</div>
-            <ul class="help-keys">
-              <li>
-                <div>Escanear / código rápido</div>
-                <div class="keys"><span class="kbd">Enter</span></div>
-              </li>
-              <li>
-                <div>En móvil, al agregar producto salta a Comanda</div>
-                <div class="keys"><span class="kbd">Auto</span></div>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- Conceptos -->
-        <div class="help-concepts">
-          <div class="concept">
-            <span class="badge">Para llevar</span>
-            No exige mesa y <strong>conserva el cliente</strong> que tengas seleccionado.
-          </div>
-          <div class="concept">
-            <span class="badge">Mesa</span>
-            Al seleccionar mesa, el modo cambia automáticamente a <strong>Mesa</strong>.
-          </div>
+            <div id="rs-help-empty" class="rs-help-empty" style="display:none;">
+              <i class="fas fa-search"></i>
+              <strong>No encontramos ese tema</strong>
+              <span>Pruebe con otra palabra como “mesa”, “cocina”, “ticket”, “cliente”, “promoción” o “caja”.</span>
+            </div>
+          </main>
         </div>
       </div>
 
-      <div class="modal-footer">
+      <div class="modal-footer rs-help-footer">
+        <div class="rs-help-footer-note">
+          <i class="fas fa-info-circle"></i>
+          La ayuda explica el funcionamiento; no modifica datos ni ejecuta acciones.
+        </div>
         <button class="btn btn-danger" data-close="#modal-help" type="button">
           <i class="fas fa-times"></i> Cerrar
         </button>

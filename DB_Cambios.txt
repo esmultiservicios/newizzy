@@ -1,47 +1,23 @@
 ####22 de agost 2026####
--- IZZY Restaurante / Cocina
--- Agrega el modo de flujo de preparación.
--- Valores: pasos (predeterminado) | directo.
-
-SET @db_actual := DATABASE();
-SET @existe_col := (
-  SELECT COUNT(*)
-  FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA=@db_actual
-    AND TABLE_NAME='restaurante_configuracion'
-    AND COLUMN_NAME='flujo_cocina'
-);
-
-SET @sql := IF(
-  @existe_col=0,
-  "ALTER TABLE restaurante_configuracion ADD COLUMN flujo_cocina VARCHAR(20) NOT NULL DEFAULT 'pasos' AFTER momento_ticket",
-  "SELECT 'flujo_cocina ya existe' AS info"
-);
-
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
-UPDATE restaurante_configuracion
-SET flujo_cocina = CASE
-  WHEN LOWER(TRIM(flujo_cocina)) IN ('pasos','directo') THEN LOWER(TRIM(flujo_cocina))
-  ELSE 'pasos'
-END;
-
-SELECT empresa_id, usar_comandas, flujo_cocina
-FROM restaurante_configuracion
-ORDER BY empresa_id;
-
-
 -- ============================================================
 -- IZZY RESTAURANTE / PUNTO DE VENTA
--- CONFIGURACIÓN COMPLETA CORREGIDA
--- Mesas + comandas + cuentas abiertas + comandas incrementales
+-- CONFIGURACIÓN COMPLETA Y ORDENADA
 -- ============================================================
+-- IMPORTANTE:
+-- 1) Ejecutar TODO este script de arriba hacia abajo.
+-- 2) Es seguro para instalaciones nuevas y para instalaciones donde
+--    algunas tablas/columnas ya existen.
+-- 3) No borra facturas, pagos, productos, comandas ni cuentas.
+-- ============================================================
+
+SET @db_actual := DATABASE();
+
 
 -- ============================================================
 -- 1. CONFIGURACIÓN OPERATIVA DEL MÓDULO
 -- ============================================================
+-- PRIMERO se crea la tabla. Esto evita el error:
+-- #1146 - restaurante_configuracion doesn't exist
 CREATE TABLE IF NOT EXISTS restaurante_configuracion (
     empresa_id INT NOT NULL,
     usar_mesas TINYINT(1) NOT NULL DEFAULT 1,
@@ -50,6 +26,7 @@ CREATE TABLE IF NOT EXISTS restaurante_configuracion (
     etiqueta_barra VARCHAR(30) NOT NULL DEFAULT 'Barra',
     destino_comanda VARCHAR(20) NOT NULL DEFAULT 'pantalla',
     momento_ticket VARCHAR(20) NOT NULL DEFAULT 'enviar',
+    flujo_cocina VARCHAR(20) NOT NULL DEFAULT 'pasos',
     usuario_id INT NOT NULL DEFAULT 0,
     fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion DATETIME NULL DEFAULT NULL,
@@ -58,40 +35,12 @@ CREATE TABLE IF NOT EXISTS restaurante_configuracion (
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_general_ci;
 
--- Mantiene por defecto el comportamiento restaurante para empresas existentes.
-INSERT INTO restaurante_configuracion (
-    empresa_id,
-    usar_mesas,
-    usar_comandas,
-    etiqueta_cocina,
-    etiqueta_barra,
-    destino_comanda,
-    momento_ticket,
-    usuario_id,
-    fecha_registro,
-    fecha_actualizacion
-)
-SELECT DISTINCT
-    empresa_id,
-    1,
-    1,
-    'Cocina',
-    'Barra',
-    'pantalla',
-    'enviar',
-    0,
-    NOW(),
-    NOW()
-FROM mesas
-WHERE empresa_id IS NOT NULL
-ON DUPLICATE KEY UPDATE
-    empresa_id = VALUES(empresa_id);
-
 
 -- ============================================================
--- 2. COMPLETAR COLUMNAS DE CONFIGURACIÓN EN INSTALACIONES VIEJAS
+-- 2. COMPLETAR COLUMNAS EN INSTALACIONES ANTERIORES
 -- ============================================================
-SET @db_actual := DATABASE();
+-- Aunque la tabla ya existiera de una versión anterior,
+-- garantizamos una por una las columnas nuevas.
 
 -- etiqueta_cocina
 SET @existe_col := (
@@ -161,7 +110,62 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- Normalizar valores de configuración.
+-- flujo_cocina
+-- Se agrega DESPUÉS de asegurar que momento_ticket exista.
+SET @existe_col := (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = @db_actual
+      AND TABLE_NAME = 'restaurante_configuracion'
+      AND COLUMN_NAME = 'flujo_cocina'
+);
+SET @sql := IF(
+    @existe_col = 0,
+    "ALTER TABLE restaurante_configuracion ADD COLUMN flujo_cocina VARCHAR(20) NOT NULL DEFAULT 'pasos' AFTER momento_ticket",
+    "SELECT 'flujo_cocina ya existe' AS info"
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+-- ============================================================
+-- 3. CREAR CONFIGURACIÓN POR EMPRESA
+-- ============================================================
+-- Mantiene por defecto el comportamiento de restaurante
+-- para empresas que ya tienen mesas.
+INSERT INTO restaurante_configuracion (
+    empresa_id,
+    usar_mesas,
+    usar_comandas,
+    etiqueta_cocina,
+    etiqueta_barra,
+    destino_comanda,
+    momento_ticket,
+    flujo_cocina,
+    usuario_id,
+    fecha_registro,
+    fecha_actualizacion
+)
+SELECT DISTINCT
+    empresa_id,
+    1,
+    1,
+    'Cocina',
+    'Barra',
+    'pantalla',
+    'enviar',
+    'pasos',
+    0,
+    NOW(),
+    NOW()
+FROM mesas
+WHERE empresa_id IS NOT NULL
+ON DUPLICATE KEY UPDATE
+    empresa_id = VALUES(empresa_id);
+
+
+-- Normalizar valores.
 UPDATE restaurante_configuracion
 SET
     etiqueta_cocina = COALESCE(NULLIF(TRIM(etiqueta_cocina), ''), 'Cocina'),
@@ -175,11 +179,16 @@ SET
         WHEN LOWER(TRIM(momento_ticket)) IN ('enviar', 'cobrar')
             THEN LOWER(TRIM(momento_ticket))
         ELSE 'enviar'
+    END,
+    flujo_cocina = CASE
+        WHEN LOWER(TRIM(flujo_cocina)) IN ('pasos', 'directo')
+            THEN LOWER(TRIM(flujo_cocina))
+        ELSE 'pasos'
     END;
 
 
 -- ============================================================
--- 3. ESTACIÓN INDIVIDUAL POR PRODUCTO
+-- 4. ESTACIÓN INDIVIDUAL POR PRODUCTO
 -- ============================================================
 SET @existe_estacion_producto := (
     SELECT COUNT(*)
@@ -198,7 +207,8 @@ PREPARE stmt_estacion_producto FROM @sql_estacion_producto;
 EXECUTE stmt_estacion_producto;
 DEALLOCATE PREPARE stmt_estacion_producto;
 
--- Solo completa productos viejos sin estación. No pisa valores ya guardados.
+-- Solo completa productos antiguos SIN estación.
+-- No pisa cocina/barra ya guardado directamente en productos.
 UPDATE productos p
 INNER JOIN categoria c
     ON c.categoria_id = p.categoria_id
@@ -209,10 +219,9 @@ WHERE p.restaurante = 1
 
 
 -- ============================================================
--- 4. PREPARAR factura_comanda PARA MESA Y PARA LLEVAR
+-- 5. PREPARAR factura_comanda PARA MESA Y PARA LLEVAR
 -- ============================================================
--- Para llevar NO tiene una mesa real. Por eso mesa_id debe aceptar NULL.
--- Se conserva la FK a mesas: NULL es válido y no rompe integridad referencial.
+-- Para llevar no tiene mesa real: mesa_id debe aceptar NULL.
 SET @existe_factura_comanda := (
     SELECT COUNT(*)
     FROM information_schema.TABLES
@@ -254,7 +263,7 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- Hacer mesa_id nullable conservando exactamente su tipo actual (INT, INT UNSIGNED, etc.).
+-- Hacer mesa_id nullable conservando el tipo real actual.
 SET @tipo_mesa_factura_comanda := (
     SELECT COLUMN_TYPE
     FROM information_schema.COLUMNS
@@ -265,14 +274,18 @@ SET @tipo_mesa_factura_comanda := (
 );
 SET @sql := IF(
     @tipo_mesa_factura_comanda IS NOT NULL,
-    CONCAT('ALTER TABLE factura_comanda MODIFY COLUMN mesa_id ', @tipo_mesa_factura_comanda, ' NULL DEFAULT NULL'),
+    CONCAT(
+        'ALTER TABLE factura_comanda MODIFY COLUMN mesa_id ',
+        @tipo_mesa_factura_comanda,
+        ' NULL DEFAULT NULL'
+    ),
     "SELECT 'factura_comanda.mesa_id no existe' AS info"
 );
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- Si existiera algún valor legado 0 sin FK, convertirlo a NULL.
+-- Convertir legado 0 -> NULL si aplica.
 SET @sql := IF(
     @existe_factura_comanda > 0,
     "UPDATE factura_comanda SET mesa_id=NULL WHERE mesa_id=0",
@@ -282,10 +295,15 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- Normalizar tipo de servicio de comandas existentes.
+-- Normalizar mesa/llevar.
 SET @sql := IF(
     @existe_factura_comanda > 0,
-    "UPDATE factura_comanda SET servicio_tipo=CASE WHEN mesa_id IS NULL THEN 'llevar' ELSE 'mesa' END WHERE servicio_tipo IS NULL OR TRIM(servicio_tipo)='' OR servicio_tipo NOT IN ('mesa','llevar')",
+    "UPDATE factura_comanda
+     SET servicio_tipo =
+         CASE WHEN mesa_id IS NULL THEN 'llevar' ELSE 'mesa' END
+     WHERE servicio_tipo IS NULL
+        OR TRIM(servicio_tipo)=''
+        OR servicio_tipo NOT IN ('mesa','llevar')",
     "SELECT 'factura_comanda no existe' AS info"
 );
 PREPARE stmt FROM @sql;
@@ -294,7 +312,7 @@ DEALLOCATE PREPARE stmt;
 
 
 -- ============================================================
--- 5. RESERVAS DE MESAS
+-- 6. RESERVAS DE MESAS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS mesas_reservas (
     mesa_reserva_id INT NOT NULL AUTO_INCREMENT,
@@ -318,7 +336,6 @@ CREATE TABLE IF NOT EXISTS mesas_reservas (
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_unicode_ci;
 
--- Si la tabla ya existía sin AUTO_INCREMENT, dejarla preparada.
 SET @existe_ai := (
     SELECT COUNT(*)
     FROM information_schema.COLUMNS
@@ -338,9 +355,8 @@ DEALLOCATE PREPARE stmt;
 
 
 -- ============================================================
--- 6. CUENTAS ABIERTAS
+-- 7. CUENTAS ABIERTAS
 -- ============================================================
--- Separa la cuenta pendiente de la comanda de preparación.
 CREATE TABLE IF NOT EXISTS factura_restaurante_cuentas (
     factura_id INT NOT NULL,
     mesa_id INT NOT NULL DEFAULT 0,
@@ -357,49 +373,44 @@ CREATE TABLE IF NOT EXISTS factura_restaurante_cuentas (
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_general_ci;
 
--- Migrar facturas que ya tenían una comanda asociada.
-INSERT INTO factura_restaurante_cuentas (
-    factura_id,
-    mesa_id,
-    servicio_tipo,
-    estado,
-    usuario_id,
-    empresa_id,
-    fecha_registro,
-    fecha_actualizacion
-)
-SELECT
-    f.facturas_id,
-    COALESCE(fc.mesa_id, 0),
-    CASE
-        WHEN COALESCE(fc.servicio_tipo, '') = 'mesa' OR fc.mesa_id IS NOT NULL
-            THEN 'mesa'
-        ELSE 'llevar'
-    END,
-    CASE WHEN f.estado = 1 THEN 'abierta' ELSE 'cerrada' END,
-    COALESCE(f.usuario, 0),
-    f.empresa_id,
-    COALESCE(f.fecha_registro, NOW()),
-    NOW()
-FROM factura_comanda fc
-INNER JOIN facturas f
-    ON f.facturas_id = fc.factura_id
-ON DUPLICATE KEY UPDATE
-    mesa_id = VALUES(mesa_id),
-    servicio_tipo = VALUES(servicio_tipo),
-    estado = CASE
-        WHEN VALUES(estado) = 'abierta' THEN 'abierta'
-        ELSE factura_restaurante_cuentas.estado
-    END,
-    usuario_id = VALUES(usuario_id),
-    fecha_actualizacion = NOW();
+-- Migrar únicamente si factura_comanda existe.
+SET @sql := IF(
+    @existe_factura_comanda > 0,
+    "INSERT INTO factura_restaurante_cuentas
+        (factura_id, mesa_id, servicio_tipo, estado, usuario_id, empresa_id, fecha_registro, fecha_actualizacion)
+     SELECT
+        f.facturas_id,
+        COALESCE(fc.mesa_id,0),
+        CASE
+            WHEN fc.servicio_tipo='mesa' OR fc.mesa_id IS NOT NULL THEN 'mesa'
+            ELSE 'llevar'
+        END,
+        CASE WHEN f.estado=1 THEN 'abierta' ELSE 'cerrada' END,
+        COALESCE(f.usuario,0),
+        f.empresa_id,
+        COALESCE(f.fecha_registro,NOW()),
+        NOW()
+     FROM factura_comanda fc
+     INNER JOIN facturas f ON f.facturas_id=fc.factura_id
+     ON DUPLICATE KEY UPDATE
+        mesa_id=VALUES(mesa_id),
+        servicio_tipo=VALUES(servicio_tipo),
+        estado=CASE
+            WHEN VALUES(estado)='abierta' THEN 'abierta'
+            ELSE factura_restaurante_cuentas.estado
+        END,
+        usuario_id=VALUES(usuario_id),
+        fecha_actualizacion=NOW()",
+    "SELECT 'factura_comanda no existe; no hay datos antiguos que migrar' AS info"
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 
 -- ============================================================
--- 7. COMANDAS INCREMENTALES
+-- 8. COMANDAS INCREMENTALES
 -- ============================================================
--- Guarda CUÁNTO de cada producto ya fue enviado a preparación.
--- Esto permite que una segunda orden mande únicamente lo nuevo.
 CREATE TABLE IF NOT EXISTS factura_comanda_items (
     comanda_item_id INT NOT NULL AUTO_INCREMENT,
     factura_id INT NOT NULL,
@@ -417,7 +428,6 @@ CREATE TABLE IF NOT EXISTS factura_comanda_items (
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_general_ci;
 
--- Si ya existía sin AUTO_INCREMENT, dejar la llave preparada.
 SET @existe_ai := (
     SELECT COUNT(*)
     FROM information_schema.COLUMNS
@@ -435,62 +445,62 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- Migrar cantidades que ya estaban en comandas anteriores.
--- Solo migra productos que todavía NO tienen historial incremental.
-INSERT INTO factura_comanda_items (
-    factura_id,
-    productos_id,
-    cantidad,
-    estacion,
-    estado,
-    fecha_registro,
-    fecha_actualizacion
-)
-SELECT
-    q.factura_id,
-    q.productos_id,
-    q.cantidad,
-    q.estacion,
-    q.estado,
-    q.fecha_registro,
-    NOW()
-FROM (
-    SELECT
-        fc.factura_id,
-        fd.productos_id,
-        SUM(fd.cantidad) AS cantidad,
-        LOWER(TRIM(COALESCE(NULLIF(p.estacion, ''), NULLIF(c.estacion, ''), 'cocina'))) AS estacion,
-        CASE
-            WHEN fc.estado IN ('pendiente', 'en_preparacion', 'urgente', 'preparada')
-                THEN fc.estado
-            ELSE 'preparada'
-        END AS estado,
-        COALESCE(fc.fecha_registro, NOW()) AS fecha_registro
-    FROM factura_comanda fc
-    INNER JOIN facturas_detalles fd
-        ON fd.facturas_id = fc.factura_id
-    INNER JOIN productos p
-        ON p.productos_id = fd.productos_id
-    LEFT JOIN categoria c
-        ON c.categoria_id = p.categoria_id
-    LEFT JOIN factura_comanda_items existente
-        ON existente.factura_id = fc.factura_id
-       AND existente.productos_id = fd.productos_id
-    WHERE existente.comanda_item_id IS NULL
-    GROUP BY
-        fc.factura_id,
-        fd.productos_id,
-        estacion,
-        estado,
-        fc.fecha_registro
-) q;
+-- Migración de comandas antiguas:
+-- solo si factura_comanda existe.
+SET @sql := IF(
+    @existe_factura_comanda > 0,
+    "INSERT INTO factura_comanda_items
+        (factura_id, productos_id, cantidad, estacion, estado, fecha_registro, fecha_actualizacion)
+     SELECT
+        q.factura_id,
+        q.productos_id,
+        q.cantidad,
+        q.estacion,
+        q.estado,
+        q.fecha_registro,
+        NOW()
+     FROM (
+        SELECT
+            fc.factura_id,
+            fd.productos_id,
+            SUM(fd.cantidad) AS cantidad,
+            LOWER(TRIM(COALESCE(NULLIF(p.estacion,''),NULLIF(c.estacion,''),'cocina'))) AS estacion,
+            CASE
+                WHEN fc.estado IN ('pendiente','en_preparacion','urgente','preparada')
+                    THEN fc.estado
+                ELSE 'preparada'
+            END AS estado,
+            COALESCE(fc.fecha_registro,NOW()) AS fecha_registro
+        FROM factura_comanda fc
+        INNER JOIN facturas_detalles fd
+            ON fd.facturas_id=fc.factura_id
+        INNER JOIN productos p
+            ON p.productos_id=fd.productos_id
+        LEFT JOIN categoria c
+            ON c.categoria_id=p.categoria_id
+        LEFT JOIN factura_comanda_items existente
+            ON existente.factura_id=fc.factura_id
+           AND existente.productos_id=fd.productos_id
+        WHERE existente.comanda_item_id IS NULL
+        GROUP BY
+            fc.factura_id,
+            fd.productos_id,
+            estacion,
+            estado,
+            fc.fecha_registro
+     ) q",
+    "SELECT 'factura_comanda no existe; no hay comandas antiguas que migrar' AS info"
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 
 -- ============================================================
--- 8. VERIFICACIONES
+-- 9. VERIFICACIÓN FINAL
 -- ============================================================
 
--- Configuración por empresa.
+-- Configuración.
 SELECT
     empresa_id,
     usar_mesas,
@@ -499,11 +509,12 @@ SELECT
     etiqueta_barra,
     destino_comanda,
     momento_ticket,
+    flujo_cocina,
     fecha_actualizacion
 FROM restaurante_configuracion
 ORDER BY empresa_id;
 
--- Productos y estación real.
+-- Productos restaurante y estación.
 SELECT
     p.productos_id,
     p.nombre,
@@ -527,7 +538,7 @@ INNER JOIN facturas f
 WHERE rc.estado = 'abierta'
 ORDER BY rc.factura_id DESC;
 
--- Historial incremental enviado a preparación.
+-- Historial incremental.
 SELECT
     fci.comanda_item_id,
     fci.factura_id,
@@ -542,7 +553,7 @@ INNER JOIN productos p
     ON p.productos_id = fci.productos_id
 ORDER BY fci.comanda_item_id DESC;
 
--- Exactamente lo que la pantalla de Cocina debería poder mostrar.
+-- Lo que Cocina puede mostrar actualmente.
 SELECT
     fc.id AS factura_comanda_id,
     fc.factura_id,
@@ -569,6 +580,7 @@ LEFT JOIN mesas m
 WHERE fci.estacion = 'cocina'
   AND fci.estado IN ('pendiente', 'en_preparacion', 'urgente')
 ORDER BY fci.fecha_registro DESC, fci.comanda_item_id DESC;
+
 
 
 ####21 de agost 2026####

@@ -3247,3 +3247,53 @@ body[data-servicio="mesa"] #btn-guardar.btn-warning:focus {
     padding-bottom:64px !important;
   }
 }
+
+
+/* ================================================================
+   FIX FINAL TABLET — CARD DE PRODUCTO SIN SUPERPOSICIONES
+   Evita que el precio invada el botón Agregar.
+   ================================================================ */
+@media (hover:none) and (pointer:coarse) and (orientation:landscape) and (min-width:600px) and (max-width:1368px){
+  .vista-facturacion-restaurante .producto-item{
+    height:208px !important;
+    min-height:208px !important;
+  }
+
+  .vista-facturacion-restaurante .producto-imagen-container{
+    height:78px !important;
+    flex:0 0 78px !important;
+  }
+
+  .vista-facturacion-restaurante .producto-contenido{
+    flex:1 1 auto !important;
+    min-height:0 !important;
+    padding:7px 8px 4px !important;
+    overflow:hidden !important;
+  }
+
+  .vista-facturacion-restaurante .producto-precios{
+    margin-top:auto !important;
+    padding:3px 0 5px !important;
+    min-height:28px !important;
+    flex:0 0 auto !important;
+  }
+
+  .vista-facturacion-restaurante .precio-regular{
+    margin-bottom:0 !important;
+    line-height:1.15 !important;
+  }
+
+  .vista-facturacion-restaurante .precio-valor{
+    display:block !important;
+    line-height:1.15 !important;
+  }
+
+  .vista-facturacion-restaurante .btn-agregar{
+    position:relative !important;
+    flex:0 0 31px !important;
+    height:31px !important;
+    min-height:31px !important;
+    margin-top:0 !important;
+    z-index:2 !important;
+  }
+}

@@ -579,6 +579,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if(rsMobileMedia.matches){
         document.body.classList.add('rs-mobile-assistant-enabled');
         if(!rsMobileMesasEnabled()) rsMobileStep = 'productos';
+        else if (!facturaActual && !mesaSeleccionada && (!Array.isArray(comandaItems) || !comandaItems.length)) rsMobileStep = 'servicio';
         rsMobileSetStep(rsMobileStep);
         window.requestAnimationFrame(function(){
           document.body.classList.remove('rs-mobile-booting');
@@ -658,7 +659,37 @@ document.addEventListener('DOMContentLoaded', function () {
   // Failsafe: jamás dejar la interfaz oculta si una petición externa tarda demasiado.
   window.setTimeout(finalizarCargaInicialRestaurante, 5000);
 
+  function resetVentaNuevaLocal(){
+    facturaActual = null;
+    mesaSeleccionada = null;
+    comandaItems = [];
+    clienteSeleccionado = { id: 1, nombre: 'CONSUMIDOR FINAL', identificacion: '' };
+    servicioActual = 'llevar';
+
+    try { setServicioTipo('llevar'); } catch(_){}
+    try { setMesaSeleccionadaUI(null); } catch(_){}
+    try { setClienteInfoUI({ nombre:'Consumidor final', rtn:'' }); } catch(_){}
+    try { pintarClienteInfoHeader(); } catch(_){}
+    try {
+      if (observacionesTextarea) observacionesTextarea.value = '';
+    } catch(_){}
+    try { actualizarComandaUI(); } catch(_){}
+    try { updateProductBadges(); } catch(_){}
+    try {
+      if (facturaTitle) {
+        facturaTitle.innerHTML = usaComandasOperacion()
+          ? '<i class="fas fa-receipt"></i> Nueva Comanda'
+          : '<i class="fas fa-cash-register"></i> Nueva venta';
+      }
+    } catch(_){}
+    try {
+      if (typeof rsMobileStep !== 'undefined') rsMobileStep = 'servicio';
+      if (isMobileAssistantActive()) rsMobileUpdate();
+    } catch(_){}
+  }
+
   async function init() {
+    resetVentaNuevaLocal();
     setupEventListeners();
     bloquearCierrePorFondoYEsc();
     initProductoImageUpload();
@@ -679,15 +710,35 @@ document.addEventListener('DOMContentLoaded', function () {
         cargarClientes(),
         Promise.resolve(getCajero())
       ]);
+
+      // El estado real de caja y el contador SAR forman parte
+      // de la carga inicial. La UI no se revela antes de esto.
+      await verificarAperturaCaja();
     } finally {
       // La carga base ya terminó. Escritorio puede mostrarse;
       // teléfono espera también al asistente responsive.
       rsBaseInitReady = true;
       intentarFinalizarCargaInicial();
     }
-
-    verificarAperturaCaja();
   }
+
+  window.addEventListener('pageshow', function(event){
+    if (!event || !event.persisted) return;
+
+    // El navegador restauró una página anterior desde memoria.
+    // Nunca reutilizamos la venta anterior de forma automática.
+    resetVentaNuevaLocal();
+
+    Promise.allSettled([
+      cargarMesas(),
+      cargarProductos(),
+      cargarCategorias(),
+      cargarClientes(),
+      verificarAperturaCaja()
+    ]).then(function(){
+      try { if (isMobileAssistantActive()) rsMobileSetStep('servicio'); } catch(_){}
+    });
+  });
 
   // Refresco periódico sin duplicar solicitudes ni solapar ciclos previos
   setInterval(function () {
@@ -6942,6 +6993,69 @@ function initSelect2ForComboRow(row){
     });
   }
 
+  function calcularTotalCuentaAbierta(cuenta){
+    const items = Array.isArray(cuenta && cuenta.items) ? cuenta.items : [];
+    if (!items.length) {
+      // Compatibilidad: si el backend ya trae total final, úsalo.
+      const totalBackend = Number(
+        cuenta && (
+          cuenta.total_con_isv ??
+          cuenta.total_final ??
+          cuenta.total ??
+          cuenta.importe_total
+        )
+      );
+      return Number.isFinite(totalBackend) && totalBackend > 0
+        ? totalBackend
+        : Number(cuenta && cuenta.importe || 0);
+    }
+
+    const r1 = Number(isvRates[1] || 0) / 100;
+    const r2 = Number(isvRates[2] || 0) / 100;
+    let subtotal = 0;
+    let imp1 = 0;
+    let imp2 = 0;
+
+    items.forEach(function(item){
+      const cantidad = Number(item.cantidad || 0);
+      const precio = Number(item.precio || 0);
+      const base = cantidad * precio;
+
+      subtotal += base;
+      if (Number(item.isv1 || 0) === 1) imp1 += base * r1;
+      if (Number(item.isv2 || 0) === 1) imp2 += base * r2;
+    });
+
+    return subtotal + imp1 + imp2;
+  }
+
+  async function hidratarTotalesCuentasAbiertas(cuentas){
+    const lista = Array.isArray(cuentas) ? cuentas : [];
+    if (!lista.length) return lista;
+
+    const resultados = await Promise.allSettled(lista.map(async function(cuenta){
+      const fid = Number(cuenta && cuenta.facturas_id || 0);
+      if (!fid) return cuenta;
+
+      try{
+        const detalle = await restPost('loadCuentaAbierta',{factura_id:String(fid)});
+        if (detalle && detalle.status && detalle.cuenta) {
+          cuenta.items = Array.isArray(detalle.cuenta.items) ? detalle.cuenta.items : [];
+          cuenta.total_mostrar = calcularTotalCuentaAbierta(cuenta);
+        } else {
+          cuenta.total_mostrar = calcularTotalCuentaAbierta(cuenta);
+        }
+      }catch(_){
+        cuenta.total_mostrar = calcularTotalCuentaAbierta(cuenta);
+      }
+      return cuenta;
+    }));
+
+    return resultados.map(function(r,i){
+      return r.status === 'fulfilled' ? r.value : lista[i];
+    });
+  }
+
   async function cargarCuentasAbiertasUI(){
     const modal=document.getElementById('modal-cuentas-abiertas');
     const list=document.getElementById('cuentas-abiertas-listado');
@@ -6951,7 +7065,8 @@ function initSelect2ForComboRow(row){
     try{
       const d=await restPost('loadCuentasAbiertas');
       if(!d||!d.status) throw new Error(d&&d.message?d.message:'No se pudieron cargar las cuentas');
-      const cuentas=Array.isArray(d.cuentas)?d.cuentas:[];
+      const cuentasBase=Array.isArray(d.cuentas)?d.cuentas:[];
+      const cuentas=await hidratarTotalesCuentasAbiertas(cuentasBase);
       window.__REST_CUENTAS_ABIERTAS=cuentas;
       renderCuentasAbiertas(cuentas);
     }catch(e){ list.innerHTML=`<div class="rs-empty-state"><i class="fas fa-exclamation-circle"></i><span>${escapeHtml(e.message||'Error')}</span></div>`; }
@@ -6983,7 +7098,7 @@ function initSelect2ForComboRow(row){
             <small><i class="fas fa-map-marker-alt"></i> ${ubicacion} · ${unidades} unidad(es)</small>
             ${estadoPrep}
           </span>
-          <span class="rs-open-account-total"><small>Cuenta #${fid}</small><strong>L ${fmtHNL(Number(c.importe||0))}</strong></span>
+          <span class="rs-open-account-total"><small>Cuenta #${fid}</small><strong>L ${fmtHNL(Number(c.total_mostrar ?? c.importe ?? 0))}</strong></span>
           <span class="rs-open-account-open"><i class="fas fa-arrow-right"></i></span>
         </button>
         <button type="button" class="rs-open-account-close" data-fid="${fid}" title="Cerrar esta cuenta sin abrirla">

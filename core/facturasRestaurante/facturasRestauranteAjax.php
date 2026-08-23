@@ -756,8 +756,8 @@ try {
         case 'liberarMesa': {
             $mesa_id = (int) AjaxHelper::in('mesa_id', 0);
             if ($mesa_id <= 0) throw new Exception('Mesa inválida');
-            $res = $m->setMesaEstado($mesa_id, false);
-            AjaxHelper::json(['ok' => !empty($res['status']), 'status'=>!empty($res['status']), 'message'=>$res['message'] ?? '']);
+            $res = $m->liberarMesaConservandoCuenta($mesa_id);
+            AjaxHelper::json(['ok'=>!empty($res['status']),'status'=>!empty($res['status']),'message'=>$res['message']??'','cuenta_conservada'=>!empty($res['cuenta_conservada']),'factura_id'=>(int)($res['factura_id']??0)]);
             break;
         }
 

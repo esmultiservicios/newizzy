@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded', function () {
             cliente_nombre: comanda.cliente_nombre || '',
             estado: comanda.estado || '',
             urgente: !!comanda.urgente,
+            fecha: comanda.fecha || '',
             hora: comanda.hora || '',
             observaciones: comanda.observaciones || '',
             comentarios_cocina: comanda.comentarios_cocina || '',
@@ -198,7 +199,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             ${estado !== 'urgente' ? `<span class="badge-estado ${escapeHtml(estado)}">${escapeHtml(estadoLabel)}</span>` : ''}
                         </div>
                     </div>
-                    <span class="comanda-hora"><i class="far fa-clock"></i>${escapeHtml(comanda.hora || '')}</span>
+                    <span class="comanda-hora"><i class="far fa-calendar-alt"></i>${escapeHtml(comanda.fecha || '')}${comanda.fecha && comanda.hora ? ' · ' : ''}<i class="far fa-clock"></i>${escapeHtml(comanda.hora || '')}</span>
                 </header>
 
                 <div class="comanda-info">

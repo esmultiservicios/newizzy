@@ -124,6 +124,9 @@ document.addEventListener('DOMContentLoaded', function () {
   const srvLlevar = document.getElementById('srv-llevar');
   const srvMesa   = document.getElementById('srv-mesa');
   const mesasContainer = document.getElementById('mesas-container');
+  const buscarMesaRapido = document.getElementById('buscar-mesa-rapido');
+  const mesasCount = document.getElementById('mesas-count');
+  let filtroMesaRapido = '';
   const productosContainer = document.getElementById('productos-container');
   const categoriasTabs = document.getElementById('categorias-tabs') || document.querySelector('.categorias-tabs');
   const comandaItemsContainer = document.getElementById('comanda-items');
@@ -183,23 +186,43 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ====== Inicio ======
   init();
-  function init() {
-    cargarISV().then(actualizarEtiquetasISVCabecera);
-    cargarMesas();
-    cargarCategorias();
-    cargarProductos().then(()=>{ /* productos listos para editor de combo */ });
-    cargarClientes();
+
+  function finalizarCargaInicialRestaurante(){
+    document.body.classList.remove('rs-booting');
+    document.body.classList.add('rs-ready');
+    const boot = document.getElementById('rs-boot-screen');
+    if (boot) boot.setAttribute('aria-hidden','true');
+  }
+
+  // Failsafe: jamás dejar la interfaz oculta si una petición externa tarda demasiado.
+  window.setTimeout(finalizarCargaInicialRestaurante, 4500);
+
+  async function init() {
     setupEventListeners();
     bloquearCierrePorFondoYEsc();
     initProductoImageUpload();
     initSelect2All();
     initHotkeys();
+    initSelectsPromos();
+
     // Estado inicial de cabecera
     setMesaSeleccionadaUI(null);
     setClienteInfoUI({ nombre:'Consumidor final', rtn:'' });
-    initSelectsPromos();
 
-    getCajero();
+    try {
+      await Promise.allSettled([
+        cargarISV().then(actualizarEtiquetasISVCabecera),
+        cargarMesas(),
+        cargarCategorias(),
+        cargarProductos(),
+        cargarClientes(),
+        Promise.resolve(getCajero())
+      ]);
+    } finally {
+      // Revelar de una sola vez evita el efecto de controles sin terminar de cargar.
+      window.requestAnimationFrame(finalizarCargaInicialRestaurante);
+    }
+
     verificarAperturaCaja();
   }
 
@@ -466,6 +489,8 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // --- Helper para abrir modales con BS4 (jQuery) y BS5 (todas las versiones)
+  var cajeroActualId = 0;
+
   function getCajero() {
     var url = BASE + 'core/getCajero.php';
 
@@ -479,6 +504,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var id  = Array.isArray(datos) ? datos[0] : (datos.colaboradores_id || '');
       var nom = Array.isArray(datos) ? datos[1] : (datos.colaborador || '');
       if (!id || !nom) return;
+      cajeroActualId = parseInt(id, 10) || 0;
       // Apertura de caja (como ya lo tenías)
       $('#formAperturaCaja #colaboradores_id_apertura').val(id);
       $('#formAperturaCaja #usuario_apertura').val(nom);
@@ -1160,6 +1186,10 @@ function initHotkeys(){
   }
 
   function setupEventListeners() {
+    if (buscarMesaRapido) {
+      buscarMesaRapido.addEventListener('input', function(){ filtroMesaRapido=this.value||''; renderizarMesas(); });
+      buscarMesaRapido.addEventListener('keydown', function(e){ if(e.key==='Escape'){ this.value=''; filtroMesaRapido=''; renderizarMesas(); } });
+    }
     // Delegación: selección/deselección de mesa sin ocuparla por el simple clic
     document.addEventListener('click', function(e){
       const tile = e.target.closest(MESA_TILE_SELECTOR);
@@ -1213,13 +1243,20 @@ function initHotkeys(){
     });
 
     // Click del botón único (abre el modal correcto)
-    $(document).on('click', '#btn-apertura-caja', function () {
+    $(document).on('click', '#btn-apertura-caja', async function () {
       var mode = $(this).data('mode');
-      if (mode === 'abrir') {
-        formAperturaBill();
-      } else {
-        formCierreBill();
-      }
+      if (mode === 'abrir') { formAperturaBill(); return; }
+      try {
+        const d = await restPost('loadCuentasAbiertas');
+        const cuentas = (d && d.status && Array.isArray(d.cuentas)) ? d.cuentas : [];
+        const mesasAbiertas = cuentas.filter(c => Number(c.mesa_id || 0) > 0 && Number(c.es_anterior || 0) === 0);
+        if (mesasAbiertas.length) {
+          showAlert('warning','Cuentas de mesa abiertas',`Hay ${mesasAbiertas.length} cuenta(s) de mesa todavía abierta(s). Revísalas, cóbralas o libera la mesa antes de cerrar caja.`);
+          await cargarCuentasAbiertasUI();
+          return;
+        }
+      } catch (_) {}
+      formCierreBill();
     });
   
       // Dropdown Gestionar
@@ -2361,11 +2398,19 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
   function renderizarMesas() {
     if (!mesasContainer) return;
     mesasContainer.innerHTML = '';
-    if (!Array.isArray(mesas) || !mesas.length) {
-      mesasContainer.innerHTML = `<div class="mesa-item" style="opacity:.8;">
-        <div class="mesa-header"><span class="mesa-numero">Sin mesas</span></div>
-        <div class="mesa-info"><span class="mesa-ubicacion">Crea una con "Nueva".</span></div>
-      </div>`;
+    const todasMesas = Array.isArray(mesas) ? mesas : [];
+    const termino = String(filtroMesaRapido || '').toLowerCase().trim();
+    const mesasVisibles = !termino ? todasMesas : todasMesas.filter(m => {
+      const texto = [m.numero,m.ubicacion,m.estado,m.reserva && m.reserva.cliente_nombre].filter(Boolean).join(' ').toLowerCase();
+      return texto.includes(termino);
+    });
+    if (mesasCount) mesasCount.textContent = termino ? `${mesasVisibles.length}/${todasMesas.length}` : String(todasMesas.length);
+    if (!todasMesas.length) {
+      mesasContainer.innerHTML = `<div class="mesa-empty-state"><i class="fas fa-chair"></i><strong>Sin mesas</strong><span>Crea una con “Nueva”.</span></div>`;
+      return;
+    }
+    if (!mesasVisibles.length) {
+      mesasContainer.innerHTML = `<div class="mesa-empty-state"><i class="fas fa-search"></i><strong>Sin coincidencias</strong><span>No hay mesas que coincidan con la búsqueda.</span></div>`;
       return;
     }
 
@@ -2378,7 +2423,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
       }
     };
 
-    mesas.forEach(mesa => {
+    mesasVisibles.forEach(mesa => {
       const id       = mesa.id || mesa.mesa_id;
       const numero   = mesa.numero;
       const cap      = mesa.capacidad || 4;
@@ -2437,23 +2482,25 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
   function liberarMesaManual(mesa, boton){
     const mesaId = Number(mesa && (mesa.id || mesa.mesa_id) || 0);
     if (!mesaId) return;
-    showConfirm('Liberar mesa', `¿Desea liberar la Mesa ${mesa.numero}? Solo será posible si no tiene una cuenta abierta.`, async ()=>{
+    const tieneCuenta = Number(mesa && mesa.tiene_cuenta_abierta || 0) === 1;
+    const texto = tieneCuenta
+      ? `¿Desea liberar la Mesa ${mesa.numero}? La cuenta abierta NO se eliminará: seguirá disponible en “Cuentas abiertas” para cobrarla o continuarla después.`
+      : `¿Desea liberar la Mesa ${mesa.numero}? La mesa quedará disponible inmediatamente.`;
+    showConfirm('Liberar mesa', texto, async ()=>{
       try{
         setButtonBusy(boton, true, '');
-        const r = await fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
-          method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
-          body:`action=liberarMesa&mesa_id=${encodeURIComponent(mesaId)}`
-        });
+        const r = await fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`action=liberarMesa&mesa_id=${encodeURIComponent(mesaId)}`});
         const d = await r.json();
         if (!d || !(d.ok || d.status)) throw new Error((d && (d.message || d.msg)) || 'No se pudo liberar la mesa');
-        if (mesaSeleccionada && Number(mesaSeleccionada.id||0) === mesaId) {
-          mesaSeleccionada = null; facturaActual = null; setServicioTipo('llevar'); setMesaSeleccionadaUI(null);
+        const actualId = Number((mesaSeleccionada && (mesaSeleccionada.id || mesaSeleccionada.mesa_id)) || mesaSeleccionada || 0);
+        if (actualId === mesaId) {
+          mesaSeleccionada=null; facturaActual=null; comandaItems=[]; actualizarComandaUI(); setServicioTipo('llevar'); setMesaSeleccionadaUI(null);
         }
-        showAlert('success','Mesa disponible','La mesa fue liberada correctamente.');
+        showAlert('success','Mesa disponible',d.cuenta_conservada?`Mesa liberada. La cuenta #${d.factura_id} continúa abierta en “Cuentas abiertas”.`:'La mesa fue liberada correctamente.');
         await cargarMesas();
       }catch(e){ showAlert('error','No se puede liberar',e.message || 'No se pudo liberar la mesa'); }
       finally { setButtonBusy(boton, false); }
-    });
+    }, {danger:false});
   }
 
   function highlightMesaSeleccionada(){
@@ -5543,6 +5590,313 @@ function initSelect2ForComboRow(row){
   window.abrirEdicionCliente = abrirEdicionCliente;
   window.abrirEdicionMesa = abrirEdicionMesa;
 
+  // ==========================================================
+  // FACTURAS RECURRENTES - reutiliza el módulo público existente
+  // ==========================================================
+  var detallesFacturasRecurrentesRest = {};
+  var solicitudListadoRecurrentesRest = null;
+  var temporizadorListadoRecurrentesRest = null;
+  var firmaListadoRecurrentesRest = '';
+  var filtroEstadoRecurrenteRest = '1';
+
+  function recurrenteModalDisponibleRest(){
+    return !!document.getElementById('recurringBillModal');
+  }
+
+  function recurrenteTieneProductosRest(){
+    return Array.isArray(comandaItems) && comandaItems.length > 0;
+  }
+
+  function recurrenteClienteIdRest(){
+    return parseInt(clienteSeleccionado && clienteSeleccionado.id, 10) || 0;
+  }
+
+  function recurrenteColaboradorIdRest(){
+    if (cajeroActualId > 0) return cajeroActualId;
+    var desdeCaja = parseInt($('#formAperturaCaja #colaboradores_id_apertura').val(), 10) || 0;
+    return desdeCaja;
+  }
+
+  function recurrenteNumeroRest(v){
+    var n = parseFloat(v || 0);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function recurrenteDetalleRest(){
+    return (Array.isArray(comandaItems) ? comandaItems : []).map(function(item){
+      var p = item && item.producto ? item.producto : {};
+      var precio = recurrenteNumeroRest(item.precio != null ? item.precio : p.precio);
+      var cantidad = recurrenteNumeroRest(item.cantidad);
+      var tasa1 = p.isv1 ? recurrenteNumeroRest(isvRates[1]) : 0;
+      var tasa2 = p.isv2 ? recurrenteNumeroRest(isvRates[2]) : 0;
+      return {
+        productos_id: parseInt(p.id || item.productos_id || item.producto_id, 10) || 0,
+        producto: String(p.nombre || item.nombre || 'Producto'),
+        cantidad: cantidad,
+        precio: precio,
+        descuento: 0,
+        isv_valor: tasa1,
+        isv_valor1: tasa2,
+        medida: String(p.medida || item.medida || 'Und'),
+        almacen_id: parseInt(p.almacen_id || item.almacen_id, 10) || 0,
+        precio_real: precio,
+        referencia_producto: String(p.barCode || item.barCode || '')
+      };
+    }).filter(function(x){ return x.productos_id > 0 && x.cantidad > 0; });
+  }
+
+  function recurrenteLocalISOStringRest(dt){
+    var pad = function(n){ return String(n).padStart(2,'0'); };
+    return dt.getFullYear()+'-'+pad(dt.getMonth()+1)+'-'+pad(dt.getDate())+'T'+pad(dt.getHours())+':'+pad(dt.getMinutes());
+  }
+
+  function recurrenteSincronizarInicioRest(){
+    var fecha = $('#rec_fecha_inicio').val();
+    var hora = $('#rec_hora_inicio').val();
+    $('#rec_start_at').val(fecha && hora ? fecha + 'T' + hora : '');
+  }
+
+  function recurrenteFechaLocalRest(){
+    var fecha = $('#rec_fecha_inicio').val();
+    var hora = $('#rec_hora_inicio').val();
+    if (!fecha || !hora) return null;
+    var f = fecha.split('-').map(Number), h = hora.split(':').map(Number);
+    return new Date(f[0], f[1]-1, f[2], h[0], h[1] || 0, 0, 0);
+  }
+
+  function recurrenteFormatearFechaVistaRest(fecha){
+    return new Intl.DateTimeFormat('es-HN', {weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'numeric',minute:'2-digit'}).format(fecha);
+  }
+
+  function recurrenteSiguienteFechaRest(actual, frecuencia, diaOriginal){
+    var siguiente = new Date(actual.getTime());
+    if (frecuencia === 'daily') siguiente.setDate(siguiente.getDate()+1);
+    if (frecuencia === 'weekly') siguiente.setDate(siguiente.getDate()+7);
+    if (frecuencia === 'monthly') {
+      var hora=siguiente.getHours(), minuto=siguiente.getMinutes();
+      siguiente=new Date(siguiente.getFullYear(), siguiente.getMonth()+1, 1, hora, minuto, 0, 0);
+      var ultimoDia=new Date(siguiente.getFullYear(), siguiente.getMonth()+1, 0).getDate();
+      siguiente.setDate(Math.min(diaOriginal, ultimoDia));
+    }
+    return siguiente;
+  }
+
+  function recurrenteActualizarResumenRest(){
+    recurrenteSincronizarInicioRest();
+    var inicio = recurrenteFechaLocalRest();
+    var frecuencia = $('#rec_periodicidad').val() || 'monthly';
+    var $lista = $('#rec_proximas_fechas').empty();
+    if (!inicio || isNaN(inicio.getTime())) {
+      $('#rec_resumen_texto').text('Selecciona una fecha y una hora válidas.');
+      return;
+    }
+    var dias=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    var horaTexto=new Intl.DateTimeFormat('es-HN',{hour:'numeric',minute:'2-digit'}).format(inicio);
+    var texto='';
+    if(frecuencia==='once') texto='Se generará una sola vez: '+recurrenteFormatearFechaVistaRest(inicio)+'.';
+    if(frecuencia==='daily') texto='Se generará todos los días a las '+horaTexto+', comenzando el '+recurrenteFormatearFechaVistaRest(inicio)+'.';
+    if(frecuencia==='weekly') texto='Se generará cada '+dias[inicio.getDay()]+' a las '+horaTexto+', comenzando el '+recurrenteFormatearFechaVistaRest(inicio)+'.';
+    if(frecuencia==='monthly') texto='Se generará el día '+inicio.getDate()+' de cada mes a las '+horaTexto+', comenzando el '+recurrenteFormatearFechaVistaRest(inicio)+'.';
+    if ($('#rec_sin_fin').is(':checked') && frecuencia!=='once') texto += ' Continuará hasta que la canceles.';
+    if (!$('#rec_sin_fin').is(':checked') && $('#rec_until').val() && frecuencia!=='once') texto += ' Finalizará el '+$('#rec_until').val()+'.';
+    $('#rec_resumen_texto').text(texto);
+    var cantidad=frecuencia==='once'?1:4, cursor=new Date(inicio.getTime());
+    var hasta=(!$('#rec_sin_fin').is(':checked') && $('#rec_until').val())?$('#rec_until').val():null;
+    for(var i=0;i<cantidad;i++){
+      var iso=cursor.getFullYear()+'-'+String(cursor.getMonth()+1).padStart(2,'0')+'-'+String(cursor.getDate()).padStart(2,'0');
+      if(hasta && iso>hasta) break;
+      $lista.append('<li>'+escapeHtml(recurrenteFormatearFechaVistaRest(cursor))+'</li>');
+      cursor=recurrenteSiguienteFechaRest(cursor,frecuencia,inicio.getDate());
+    }
+    if(!$lista.children().length) $lista.append('<li>La fecha final no permite ninguna generación.</li>');
+  }
+
+  function abrirFacturaRecurrenteRest(){
+    if (!recurrenteModalDisponibleRest()) {
+      showNotify('error','Modal no disponible','El modal público de Factura Recurrente no está cargado en esta plantilla.');
+      return;
+    }
+
+    // Consultar recurrencias NO exige tener una venta preparada.
+    // Cliente/productos/cajero se validan únicamente al guardar una NUEVA recurrencia.
+    filtroEstadoRecurrenteRest='1';
+    $('#confirmRecurring').prop('disabled',false).html('<i class="fas fa-calendar-check mr-1"></i> Guardar recurrencia');
+    $('#rec_tipo_factura').val('2');
+    $('#rec_tipo_documento').val('0');
+    $('#btn-rec-tipo-normal').addClass('btn-primary').removeClass('btn-outline-primary');
+    $('#btn-rec-tipo-proforma').addClass('btn-outline-primary').removeClass('btn-primary');
+    var now=new Date(); now.setMinutes(now.getMinutes()+10);
+    var inicio=recurrenteLocalISOStringRest(now).split('T');
+    $('#rec_fecha_inicio').val(inicio[0]);
+    $('#rec_hora_inicio').val(inicio[1]);
+    recurrenteSincronizarInicioRest();
+    $('#rec_periodicidad').val('monthly');
+    $('.rec-frecuencia').removeClass('active').filter('[data-frecuencia="monthly"]').addClass('active');
+    $('#rec_until').val('');
+    $('#rec_sin_fin').prop('checked',true);
+    $('#rec_fin_contenedor').hide();
+    $('#rec_enviar_correo').prop('checked',true);
+    $('#rec_info').show(); $('#rec_spinner').hide();
+    recurrenteActualizarResumenRest();
+    $('#recurringBillModal').modal('show');
+    listarFacturasRecurrentesRest();
+  }
+
+  $(document).off('click.recurrenteRest','#btn-factura-recurrente').on('click.recurrenteRest','#btn-factura-recurrente',function(e){
+    e.preventDefault();
+    abrirFacturaRecurrenteRest();
+  });
+
+  $(document).off('click.recurrenteRest','.rec-frecuencia').on('click.recurrenteRest','.rec-frecuencia',function(){
+    var frecuencia=String($(this).data('frecuencia'));
+    $('#rec_periodicidad').val(frecuencia);
+    $('.rec-frecuencia').removeClass('active'); $(this).addClass('active');
+    var una=frecuencia==='once';
+    $('#rec_sin_fin').closest('.custom-control').toggle(!una);
+    $('#rec_fin_contenedor').toggle(!una && !$('#rec_sin_fin').is(':checked'));
+    recurrenteActualizarResumenRest();
+  });
+  $(document).off('change.recurrenteRest input.recurrenteRest','#rec_fecha_inicio, #rec_hora_inicio, #rec_until')
+    .on('change.recurrenteRest input.recurrenteRest','#rec_fecha_inicio, #rec_hora_inicio, #rec_until',recurrenteActualizarResumenRest);
+  $(document).off('change.recurrenteRest','#rec_sin_fin').on('change.recurrenteRest','#rec_sin_fin',function(){
+    $('#rec_fin_contenedor').toggle(!this.checked && $('#rec_periodicidad').val()!=='once');
+    if(this.checked) $('#rec_until').val('');
+    recurrenteActualizarResumenRest();
+  });
+  $(document).off('click.recurrenteRest','#btn-rec-tipo-normal, #btn-rec-tipo-proforma').on('click.recurrenteRest','#btn-rec-tipo-normal, #btn-rec-tipo-proforma',function(){
+    var tipo=String($(this).data('tipo'));
+    $('#rec_tipo_documento').val(tipo);
+    $('#btn-rec-tipo-normal').toggleClass('btn-primary',tipo==='0').toggleClass('btn-outline-primary',tipo!=='0');
+    $('#btn-rec-tipo-proforma').toggleClass('btn-primary',tipo==='1').toggleClass('btn-outline-primary',tipo!=='1');
+  });
+
+  $(document).off('click.recurrenteRest','#confirmRecurring').on('click.recurrenteRest','#confirmRecurring',function(){
+    var clienteId=recurrenteClienteIdRest(), colaboradorId=recurrenteColaboradorIdRest(), detalle=recurrenteDetalleRest();
+    if(clienteId<=0){ showNotify('warning','Cliente requerido','Seleccione un cliente antes de guardar la recurrencia.'); return; }
+    if(colaboradorId<=0){ showNotify('error','Cajero no identificado','No se pudo identificar el colaborador actual.'); return; }
+    if(!detalle.length){ showNotify('warning','Factura sin productos','Agregue al menos un producto antes de guardar la recurrencia.'); return; }
+    recurrenteSincronizarInicioRest();
+    var startAt=$('#rec_start_at').val();
+    if(!startAt){ showNotify('warning','Fecha requerida','Debe indicar la fecha y hora de inicio.'); return; }
+    if($('#rec_periodicidad').val()!=='once' && !$('#rec_sin_fin').is(':checked') && !$('#rec_until').val()){
+      showNotify('warning','Fecha final requerida','Seleccione hasta cuándo se repetirá o active “Repetir sin fecha final”.'); return;
+    }
+    var payload={
+      clientes_id:clienteId,
+      colaboradores_id:colaboradorId,
+      notas:observacionesTextarea ? String(observacionesTextarea.value || '') : '',
+      fecha_dolar:new Date().toISOString().slice(0,10),
+      tipo_documento:$('#rec_tipo_documento').val() || '0',
+      tipo_factura:2,
+      start_at:startAt,
+      periodicidad:$('#rec_periodicidad').val() || 'monthly',
+      until:($('#rec_periodicidad').val()==='once'||$('#rec_sin_fin').is(':checked'))?null:($('#rec_until').val()||null),
+      enviar_correo:$('#rec_enviar_correo').is(':checked')?1:2,
+      exoneracion_orden:null,
+      exoneracion_constancia:null,
+      exoneracion_sag:null,
+      exoneracion_orden_interno:null,
+      detalle:detalle
+    };
+    var $btn=$('#confirmRecurring');
+    $('#rec_info').hide(); $('#rec_spinner').show(); $btn.prop('disabled',true);
+    $.ajax({type:'POST',url:BASE+'core/facturas/agregarFacturaRecurrente.php',data:{data:JSON.stringify(payload)},dataType:'json',timeout:15000})
+      .done(function(res){
+        if(res && (res.ok===true || res.success===true)){
+          $('#rec_info').show(); $('#rec_spinner').hide();
+          $btn.prop('disabled',true).html('<i class="fas fa-check-circle mr-1"></i> Recurrencia guardada');
+          showNotify('success','Recurrencia creada',res.msg || 'La factura recurrente ha sido guardada.');
+          listarFacturasRecurrentesRest();
+        }else{
+          $('#rec_info').show(); $('#rec_spinner').hide(); $btn.prop('disabled',false);
+          showNotify('error','No se pudo guardar',(res && (res.msg||res.message)) || 'No se pudo guardar la recurrencia.');
+        }
+      }).fail(function(xhr,status){
+        $('#rec_info').show(); $('#rec_spinner').hide(); $btn.prop('disabled',false);
+        showNotify('error','Error de comunicación',status==='timeout'?'La solicitud tardó demasiado.':'No fue posible guardar la recurrencia.');
+      });
+  });
+
+  function escaparRecurrenteRest(v){ return $('<div>').text(v==null?'':String(v)).html(); }
+  function etiquetaPeriodicidadRest(v){ return ({once:'Una vez',daily:'Diaria',weekly:'Semanal',monthly:'Mensual'})[v] || v; }
+  function monedaRecurrenteRest(v){ var n=parseFloat(v||0); return 'L. '+n.toLocaleString('es-HN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function fechaRecurrenteRest(v){
+    if(!v) return 'Sin próxima fecha';
+    var m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/);
+    if(!m) return String(v);
+    var f=new Date(+m[1],+m[2]-1,+m[3],+(m[4]||0),+(m[5]||0));
+    return f.toLocaleString('es-HN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  }
+  function actualizarCantidadesRecurrentesRest(datos){
+    var c={'1':0,'2':0,'3':0};
+    (datos||[]).forEach(function(i){var e=String(parseInt(i.estado,10)); if(c[e]!=null)c[e]++;});
+    $('#rec_cantidad_pendientes').text(c['1']); $('#rec_cantidad_canceladas').text(c['2']); $('#rec_cantidad_finalizadas').text(c['3']); $('#rec_cantidad_todas').text((datos||[]).length);
+  }
+  function pintarResumenRecurrentesRest(resumen){
+    resumen = resumen || {};
+    $('#rec_kpi_activas').text((parseInt(resumen.activas || 0, 10) || 0).toLocaleString('es-HN'));
+    $('#rec_kpi_generadas').text((parseInt(resumen.generadas || 0, 10) || 0).toLocaleString('es-HN'));
+    $('#rec_kpi_correos').text((parseInt(resumen.correos_enviados || 0, 10) || 0).toLocaleString('es-HN'));
+    $('#rec_kpi_errores').text((parseInt(resumen.errores || 0, 10) || 0).toLocaleString('es-HN'));
+    $('#rec_kpi_total').text(monedaRecurrenteRest(resumen.total_facturado || 0));
+    $('#rec_kpi_proxima').text(resumen.proxima_generacion ? fechaRecurrenteRest(resumen.proxima_generacion) : 'Sin programación');
+    $('#rec_kpi_actualizado').text('Resumen actualizado automáticamente');
+  }
+  function aplicarFiltroRecurrenteRest(){
+    var visibles=0;
+    $('#listaFacturasRecurrentes .rec-card').each(function(){var ok=filtroEstadoRecurrenteRest==='todas'||String($(this).data('estado'))===filtroEstadoRecurrenteRest; $(this).toggle(ok); if(ok)visibles++;});
+    $('#rec_filtro_sin_resultados').remove();
+    if(!visibles && $('#listaFacturasRecurrentes .rec-card').length){ $('#listaFacturasRecurrentes').append('<div id="rec_filtro_sin_resultados" class="text-center text-muted py-4">No hay programaciones con este filtro.</div>'); }
+    $('.rec-filtro-estado').removeClass('active').filter('[data-estado="'+filtroEstadoRecurrenteRest+'"]').addClass('active');
+  }
+  function listarFacturasRecurrentesRest(opciones){
+    opciones=opciones||{}; var silencioso=opciones.silencioso===true, $l=$('#listaFacturasRecurrentes');
+    if(!$l.length) return; if(solicitudListadoRecurrentesRest) return solicitudListadoRecurrentesRest;
+    if(!silencioso)$l.html('<div class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin mr-1"></i>Cargando programaciones...</div>');
+    solicitudListadoRecurrentesRest=$.ajax({type:'GET',url:BASE+'core/facturas/listarFacturasRecurrentes.php',dataType:'json',cache:false,timeout:15000})
+      .done(function(res){
+        if(!res||res.ok!==true){if(!silencioso)$l.html('<div class="alert alert-danger mb-0">'+escaparRecurrenteRest((res&&res.msg)||'No se pudo cargar el listado.')+'</div>');return;}
+
+        // El mismo endpoint de Facturas devuelve también el resumen/KPIs.
+        // Se pinta SIEMPRE, incluso cuando la lista no cambió o está vacía.
+        pintarResumenRecurrentesRest(res.resumen);
+
+        if(!Array.isArray(res.data)||!res.data.length){firmaListadoRecurrentesRest='[]';actualizarCantidadesRecurrentesRest([]);$l.html('<div class="text-center text-muted py-4"><i class="far fa-calendar-times fa-2x d-block mb-2"></i>No hay programaciones registradas.</div>');return;}
+        var firma=JSON.stringify(res.data); if(silencioso&&firma===firmaListadoRecurrentesRest)return; firmaListadoRecurrentesRest=firma;
+        detallesFacturasRecurrentesRest={}; actualizarCantidadesRecurrentesRest(res.data); var html='';
+        res.data.forEach(function(item){
+          var estado=parseInt(item.estado,10), txt=estado===1?'Activa':(estado===2?'Cancelada':'Finalizada'), cls=estado===1?'success':(estado===2?'danger':'secondary'), id=parseInt(item.rec_id,10);
+          detallesFacturasRecurrentesRest[id]=Array.isArray(item.detalle)?item.detalle:[];
+          html+='<div class="rec-card" data-estado="'+estado+'"><div class="rec-card-main"><div class="d-flex justify-content-between align-items-start"><div class="rec-card-title"><i class="fas fa-user mr-1 text-primary"></i>'+escaparRecurrenteRest(item.cliente)+'</div><span class="badge badge-'+cls+'">'+txt+'</span></div><div class="rec-card-meta"><span class="rec-chip"><i class="far fa-file-alt mr-1"></i>'+escaparRecurrenteRest(item.documento)+'</span><span class="rec-chip"><i class="far fa-calendar-alt mr-1"></i>'+escaparRecurrenteRest(etiquetaPeriodicidadRest(item.periodicidad))+'</span><span class="rec-chip"><i class="fas fa-credit-card mr-1"></i>Crédito</span></div><div class="rec-card-datos"><div class="rec-dato"><small>Próxima generación</small><strong>'+escaparRecurrenteRest(fechaRecurrenteRest(item.next_run_at))+'</strong></div><div class="rec-dato"><small>Productos</small><strong>'+parseInt(item.cantidad_productos||0,10)+' producto(s)</strong></div><div class="rec-dato"><small>Total estimado</small><strong>'+escaparRecurrenteRest(monedaRecurrenteRest(item.total_estimado))+'</strong></div></div><div class="rec-card-actions"><button type="button" class="btn btn-outline-primary btn-sm ver-detalle-recurrente" data-id="'+id+'"><i class="fas fa-eye mr-1"></i>Ver detalle</button>'+(estado===1?'<button type="button" class="btn btn-outline-danger btn-sm cancelar-recurrente" data-id="'+id+'"><i class="fas fa-ban mr-1"></i>Cancelar</button>':'')+'</div></div><div class="rec-detalle" id="rec-detalle-'+id+'"></div></div>';
+        });
+        $l.html(html); aplicarFiltroRecurrenteRest();
+      }).fail(function(xhr,status){if(!silencioso)$l.html('<div class="alert alert-danger mb-0">'+(status==='timeout'?'La consulta tardó demasiado.':'No se pudieron cargar las programaciones.')+'</div>');})
+      .always(function(){solicitudListadoRecurrentesRest=null;});
+    return solicitudListadoRecurrentesRest;
+  }
+  $(document).off('click.recurrenteRest','.rec-filtro-estado').on('click.recurrenteRest','.rec-filtro-estado',function(){filtroEstadoRecurrenteRest=String($(this).data('estado')||'1');aplicarFiltroRecurrenteRest();});
+  $(document).off('click.recurrenteRest','#recargarRecurrentes').on('click.recurrenteRest','#recargarRecurrentes',function(){listarFacturasRecurrentesRest();});
+  $(document).off('click.recurrenteRest','.ver-detalle-recurrente').on('click.recurrenteRest','.ver-detalle-recurrente',function(){
+    var id=parseInt($(this).data('id'),10), $d=$('#rec-detalle-'+id); if(!id||!$d.length)return;
+    if($d.is(':visible')){$d.slideUp(150);$(this).html('<i class="fas fa-eye mr-1"></i>Ver detalle');return;}
+    $d.slideDown(150);$(this).html('<i class="fas fa-eye-slash mr-1"></i>Ocultar detalle'); if($d.data('cargado'))return;
+    var ps=detallesFacturasRecurrentesRest[id]||[], total=0, html='';
+    if(!ps.length)html='<div class="text-muted">Esta programación no tiene productos guardados.</div>'; else {html='<div class="rec-producto font-weight-bold text-muted"><span>Producto</span><span>Cantidad</span><span>Precio</span><span>Total</span></div>';ps.forEach(function(p){total+=parseFloat(p.total_linea||0);html+='<div class="rec-producto"><strong>'+escaparRecurrenteRest(p.producto)+'</strong><span>'+escaparRecurrenteRest(p.cantidad)+' '+escaparRecurrenteRest(p.medida||'')+'</span><span>'+escaparRecurrenteRest(monedaRecurrenteRest(p.precio))+'</span><span>'+escaparRecurrenteRest(monedaRecurrenteRest(p.total_linea))+'</span></div>';});html+='<div class="rec-detalle-total">Total programado: '+escaparRecurrenteRest(monedaRecurrenteRest(total))+'</div>';}
+    $d.data('cargado',true).html(html);
+  });
+  $(document).off('click.recurrenteRest','.cancelar-recurrente').on('click.recurrenteRest','.cancelar-recurrente',function(){
+    var id=parseInt($(this).data('id'),10); if(!id)return;
+    swal({title:'Cancelar factura recurrente',text:'¿Está seguro de cancelar esta programación?',icon:'warning',buttons:{cancel:{text:'No, mantener activa',visible:true},confirm:{text:'Sí, cancelar',closeModal:false}},dangerMode:true,closeOnEsc:false,closeOnClickOutside:false}).then(function(ok){
+      if(ok!==true)return;
+      $.ajax({type:'POST',url:BASE+'core/facturas/cancelarFacturaRecurrente.php',dataType:'json',data:{rec_id:id},timeout:15000}).done(function(res){swal.close();if(res&&res.ok===true){showNotify('success','Recurrencia cancelada',res.msg||'La programación fue cancelada.');listarFacturasRecurrentesRest();}else showNotify('error','No se pudo cancelar',(res&&res.msg)||'No se pudo cancelar la recurrencia.');}).fail(function(){swal.close();showNotify('error','Error de comunicación','No fue posible cancelar la recurrencia.');});
+    });
+  });
+  $('#recurringBillModal').off('shown.bs.modal.recurrenteRest hidden.bs.modal.recurrenteRest').on('shown.bs.modal.recurrenteRest',function(){
+    if(temporizadorListadoRecurrentesRest)clearInterval(temporizadorListadoRecurrentesRest);
+    temporizadorListadoRecurrentesRest=setInterval(function(){if($('#recurringBillModal').hasClass('show'))listarFacturasRecurrentesRest({silencioso:true});},20000);
+  }).on('hidden.bs.modal.recurrenteRest',function(){if(temporizadorListadoRecurrentesRest){clearInterval(temporizadorListadoRecurrentesRest);temporizadorListadoRecurrentesRest=null;}});
+
+
   // ======= SweetAlert Helpers =======
   function showAlert(icon, title, text) {
     if (typeof showNotify === 'function') {
@@ -5554,7 +5908,7 @@ function initSelect2ForComboRow(row){
 
   function showConfirm(title, text, callback, options) {
     options = options || {};
-    const danger = options.danger === true || /eliminar|cancelar|cerrar factura|liberar mesa/i.test(String(title||''));
+    const danger = options.danger === true || /eliminar|anular|cancelar cuenta|borrar/i.test(String(title||''));
     if (typeof swal !== 'undefined') {
       swal({
         title: title,
@@ -6078,25 +6432,75 @@ function initSelect2ForComboRow(row){
     const arr=(cuentas||[]).filter(c=>!t || [c.facturas_id,c.cliente_nombre,c.cliente_rtn,c.mesa_numero,c.servicio_tipo].join(' ').toLowerCase().includes(t));
     if(!arr.length){ list.innerHTML='<div class="rs-empty-state"><i class="fas fa-folder-open"></i><span>No hay cuentas abiertas.</span></div>'; return; }
     list.innerHTML=arr.map(c=>{
-      const ubicacion=c.servicio_tipo==='mesa'?'Mesa '+escapeHtml(c.mesa_numero||''):'Para llevar / venta directa';
+      const esAnterior=Number(c.es_anterior||0)===1;
+      const ubicacion=c.servicio_tipo==='mesa'
+        ? (esAnterior?`Cuenta anterior · Mesa ${escapeHtml(c.mesa_numero||'')} (mesa liberada)`:'Mesa '+escapeHtml(c.mesa_numero||''))
+        :'Para llevar / venta directa';
       const rtn=String(c.cliente_rtn||'').trim();
       const enviadas=Number(c.enviadas_preparacion||0);
       const unidades=Number(c.unidades||0);
       const estadoPrep=usaComandasOperacion()
         ? `<small class="rs-open-account-prep"><i class="fas fa-fire"></i> ${enviadas>0?`${enviadas} unidad(es) ya enviadas a preparación`:'Aún no enviada a preparación'}</small>`
         : '';
-      return `<button type="button" class="rs-open-account-card" data-fid="${Number(c.facturas_id)}">
-        <span class="rs-open-account-icon"><i class="fas ${c.servicio_tipo==='mesa'?'fa-chair':'fa-shopping-bag'}"></i></span>
-        <span class="rs-open-account-main">
-          <strong>${escapeHtml(c.cliente_nombre||'Consumidor Final')}</strong>
-          ${rtn?`<small class="rs-open-account-rtn"><i class="fas fa-id-card"></i> RTN ${escapeHtml(rtn)}</small>`:''}
-          <small><i class="fas fa-map-marker-alt"></i> ${ubicacion} · ${unidades} unidad(es)</small>
-          ${estadoPrep}
-        </span>
-        <span class="rs-open-account-total"><small>Cuenta #${Number(c.facturas_id)}</small><strong>L ${fmtHNL(Number(c.importe||0))}</strong></span>
-        <span class="rs-open-account-open"><i class="fas fa-arrow-right"></i></span>
-      </button>`;
+      const fid=Number(c.facturas_id);
+      return `<div class="rs-open-account-card${esAnterior?' rs-open-account-card--previous':''}" data-fid="${fid}">
+        <button type="button" class="rs-open-account-load" data-fid="${fid}" title="Abrir cuenta #${fid}">
+          <span class="rs-open-account-icon"><i class="fas ${c.servicio_tipo==='mesa'?'fa-chair':'fa-shopping-bag'}"></i></span>
+          <span class="rs-open-account-main">
+            <strong>${escapeHtml(c.cliente_nombre||'Consumidor Final')}</strong>
+            ${rtn?`<small class="rs-open-account-rtn"><i class="fas fa-id-card"></i> RTN ${escapeHtml(rtn)}</small>`:''}
+            <small><i class="fas fa-map-marker-alt"></i> ${ubicacion} · ${unidades} unidad(es)</small>
+            ${estadoPrep}
+          </span>
+          <span class="rs-open-account-total"><small>Cuenta #${fid}</small><strong>L ${fmtHNL(Number(c.importe||0))}</strong></span>
+          <span class="rs-open-account-open"><i class="fas fa-arrow-right"></i></span>
+        </button>
+        <button type="button" class="rs-open-account-close" data-fid="${fid}" title="Cerrar esta cuenta sin abrirla">
+          <i class="fas fa-times-circle"></i><span>Cerrar cuenta</span>
+        </button>
+      </div>`;
     }).join('');
+  }
+
+  async function cerrarCuentaDesdeListado(facturaId){
+    const fid=Number(facturaId||0);
+    if(!fid) return;
+    showConfirm(
+      'Cerrar cuenta',
+      `¿Desea cerrar la cuenta #${fid} sin abrirla? La cuenta quedará cancelada, desaparecerá de Cuentas abiertas y cualquier mesa asociada quedará disponible.`,
+      async ()=>{
+        const btn=document.querySelector(`.rs-open-account-close[data-fid="${fid}"]`);
+        setButtonBusy(btn,true,'Cerrando…');
+        try{
+          const d=await restPost('closeFactura',{factura_id:String(fid)});
+          if(!d||!d.status) throw new Error(d&&d.message?d.message:'No se pudo cerrar la cuenta');
+
+          // Si por alguna razón la misma cuenta estaba cargada en pantalla,
+          // limpiamos el contexto local para no dejar una factura cancelada editable.
+          if(Number(facturaIdActual()||0)===fid){
+            facturaActual=null;
+            comandaItems=[];
+            actualizarComandaUI();
+            updateProductBadges();
+            setServicioTipo('llevar');
+            setMesaSeleccionadaUI(null);
+            if(facturaTitle) facturaTitle.innerHTML=usaComandasOperacion()?'<i class="fas fa-receipt"></i> Nueva Comanda':'<i class="fas fa-cash-register"></i> Nueva venta';
+            updateAccionPrincipalUI();
+          }
+
+          showAlert('success','Cuenta cerrada',`La cuenta #${fid} fue cerrada correctamente.`);
+          await cargarMesas();
+          await cargarCuentasAbiertasUI();
+          const buscador=document.getElementById('buscar-cuenta-abierta');
+          if(buscador && buscador.value) renderCuentasAbiertas(window.__REST_CUENTAS_ABIERTAS||[],buscador.value);
+        }catch(e){
+          showAlert('error','Error',e.message||'No se pudo cerrar la cuenta');
+        }finally{
+          setButtonBusy(btn,false);
+        }
+      },
+      {danger:true}
+    );
   }
 
   async function abrirCuentaAbierta(facturaId){
@@ -6243,7 +6647,8 @@ function initSelect2ForComboRow(row){
   $('#btn-guardar-cuenta').off('click.restSaveAccount').on('click.restSaveAccount',guardarCuentaAbiertaGeneral);
   $('#btn-cuentas-abiertas').off('click.restOpenAccounts').on('click.restOpenAccounts',cargarCuentasAbiertasUI);
   $('#buscar-cuenta-abierta').off('input.restOpenAccounts').on('input.restOpenAccounts',function(){renderCuentasAbiertas(window.__REST_CUENTAS_ABIERTAS||[],this.value);});
-  $(document).off('click.restOpenAccount','.rs-open-account-card').on('click.restOpenAccount','.rs-open-account-card',function(){abrirCuentaAbierta(Number($(this).data('fid')));});
+  $(document).off('click.restOpenAccount','.rs-open-account-load').on('click.restOpenAccount','.rs-open-account-load',function(e){e.preventDefault();e.stopPropagation();abrirCuentaAbierta(Number($(this).data('fid')));});
+  $(document).off('click.restCloseAccount','.rs-open-account-close').on('click.restCloseAccount','.rs-open-account-close',function(e){e.preventDefault();e.stopPropagation();cerrarCuentaDesdeListado(Number($(this).data('fid')));});
   $('#btn-imprimir').off('click.restTicketOpen').on('click.restTicketOpen',function(e){e.preventDefault();e.stopPropagation();abrirTicketComanda();});
     $('#btn-imprimir-ticket-comanda').off('click.restTicket').on('click.restTicket',imprimirTicketComanda);
   $('#btn-configuracion-restaurante').off('click.restCfg').on('click.restCfg',function(e){

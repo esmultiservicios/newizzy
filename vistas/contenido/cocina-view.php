@@ -4,37 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pantalla de Cocina</title>
-    <!-- FontAwesome (iconos) -->
-    <link rel="stylesheet" href="<?php echo SERVERURL; ?>fontawesome/css/all.min.css">       
-    <!-- Estilos -->
+    <link rel="stylesheet" href="<?php echo SERVERURL; ?>fontawesome/css/all.min.css">
     <link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/cocina.css">
 </head>
 <body>
     <script>
-        // Definir SERVERURL antes de cargar cualquier script
         var SERVERURL = '<?php echo SERVERURL; ?>';
     </script>
 
-    <!-- Contenedor principal con clase específica -->
     <div class="vista-cocina-container">
-        <div class="header-cocina">
+        <header class="header-cocina">
             <h1><i class="fas fa-utensils"></i> Pantalla de Cocina</h1>
-            <p id="hora-actual"></p>
-        </div>
-        
-        <div class="comandas-container" id="comandas-container">
-            <div class="no-comandas">
-                <i class="fas fa-info-circle"></i>
-                <p>No hay comandas pendientes</p>
-            </div>
-        </div>
+            <p id="hora-actual" aria-live="off"></p>
+        </header>
 
-        <div class="refresh-button" id="btn-refresh">
+        <main class="comandas-container" id="comandas-container" aria-live="polite" aria-busy="false">
+            <div class="no-comandas" role="status">
+                <div class="no-comandas-icon"><i class="fas fa-clipboard-check"></i></div>
+                <strong>Sin comandas pendientes</strong>
+                <p>Las nuevas órdenes de Cocina aparecerán aquí automáticamente.</p>
+            </div>
+        </main>
+
+        <div class="refresh-button" id="btn-refresh" title="Actualizar comandas">
             <i class="fas fa-sync-alt"></i>
         </div>
     </div>
 
-    <!-- JS específico para la vista de cocina -->
     <script src="<?php echo SERVERURL; ?>ajax/js/cocina.js"></script>
 </body>
 </html>

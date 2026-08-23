@@ -993,3 +993,1280 @@ body[data-servicio="mesa"] #btn-guardar.btn-warning:focus {
 }
 .producto-contenido { min-height: 0; } /* permite recortar sin empujar */
 .producto-precios { margin-top:auto; }  /* asegura que el precio quede abajo */
+
+
+/* ================================================================
+   LISTADOS RESPONSIVE - PROMOCIONES / ASIGNACIONES
+   ================================================================ */
+.responsive-record-list{display:flex;flex-direction:column;gap:10px;width:100%}
+.rs-list-state{min-height:72px;display:flex;align-items:center;justify-content:center;gap:9px;padding:16px;border:1px dashed #cbd5e1;border-radius:10px;background:#f8fafc;color:#64748b;text-align:center}
+.rs-list-state-error{border-color:#fecaca;background:#fff7f7;color:#b91c1c}
+.promo-list-item{display:grid;grid-template-columns:minmax(190px,1.5fr) minmax(110px,.7fr) minmax(200px,1.15fr) minmax(100px,.65fr) minmax(80px,.45fr) minmax(90px,.55fr) auto;gap:12px;align-items:center;padding:12px 14px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.06)}
+.promo-list-main,.promo-list-field{min-width:0}
+.promo-list-title{font-weight:700;color:#1f2937;overflow-wrap:anywhere}
+.promo-list-desc{font-size:12px;color:#64748b;margin-top:2px;overflow-wrap:anywhere}
+.promo-list-field{display:flex;flex-direction:column;gap:1px}
+.promo-list-field>span{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;font-weight:700}
+.promo-list-field strong{font-size:13px;color:#334155;overflow-wrap:anywhere}
+.promo-list-field small{font-size:11px;color:#64748b}
+.promo-state{display:inline-flex;width:max-content;padding:3px 8px;border-radius:999px}
+.promo-state.is-active{background:#ecfdf5;color:#047857}
+.promo-state.is-inactive{background:#f1f5f9;color:#64748b}
+.promo-list-actions{display:flex;justify-content:flex-end}
+.assignment-list-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid #e2e8f0;border-radius:9px;background:#fff}
+.assignment-main{display:flex;flex-direction:column;min-width:0}
+.assignment-main strong{font-size:13px;color:#334155;overflow-wrap:anywhere}
+.assignment-main small{font-size:11px;color:#64748b;overflow-wrap:anywhere}
+.assignment-list-item .btn{flex:0 0 auto}
+@media (max-width:1100px){
+  .promo-list-item{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .promo-list-main{grid-column:1/-1}
+  .promo-list-actions{grid-column:1/-1;justify-content:flex-end}
+}
+@media (max-width:680px){
+  .promo-list-item{grid-template-columns:1fr;padding:12px}
+  .promo-list-main,.promo-list-actions{grid-column:auto}
+  .promo-list-field{display:grid;grid-template-columns:90px minmax(0,1fr);align-items:start;column-gap:8px}
+  .promo-list-field small{grid-column:2}
+  .promo-list-actions{justify-content:stretch}
+  .promo-list-actions .btn{width:100%}
+  .assignment-list-item{align-items:flex-start}
+}
+
+/* ================================================================
+   FASE RESTAURANTE - COBRO / RESERVAS / MODALES COMPACTOS
+   ================================================================ */
+#modal-reserva-mesa .modal-content,
+#modal-promocion .modal-content{
+  width:min(92vw,860px);
+  max-height:min(86vh,760px);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+#modal-reserva-mesa .modal-content{width:min(92vw,760px)}
+#modal-reserva-mesa .modal-body,
+#modal-promocion .modal-body{
+  overflow-y:auto;
+  padding:18px 20px;
+}
+#modal-reserva-mesa .modal-footer,
+#modal-promocion .modal-footer{
+  flex:0 0 auto;
+  background:#fff;
+  border-top:1px solid #e5e7eb;
+}
+
+.reserva-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.reserva-cliente-field,.reserva-notas-field{grid-column:1/-1}
+
+.mesa-reserva-info{
+  margin-top:8px;padding:7px 9px;border-radius:8px;background:#fff7e6;border:1px solid rgba(243,156,18,.22);font-size:11px;color:#6f4a0a
+}
+.mesa-reserva-info strong{display:block;font-size:12px;color:#7a4a00}
+.mesa-actions{align-items:center}
+.btn-reservar-mesa,.btn-cancelar-reserva{border:0;background:#fff;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 5px rgba(0,0,0,.12)}
+.btn-reservar-mesa{color:#a66900}.btn-cancelar-reserva{color:var(--danger-color)}
+
+/* Promoción: compacta el formulario sin cambiar su identidad visual */
+#modal-promocion #form-promocion{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;align-items:start}
+#modal-promocion #form-promocion>input[type="hidden"]{display:none}
+#modal-promocion #form-promocion>.form-group{margin-bottom:0}
+#modal-promocion #form-promocion>.form-group:nth-of-type(1),
+#modal-promocion #form-promocion>.form-group:nth-of-type(2),
+#modal-promocion #form-promocion>.form-group:nth-of-type(6),
+#modal-promocion #form-promocion>.form-group:nth-of-type(7),
+#modal-promocion #form-promocion>.form-group:nth-of-type(9){grid-column:1/-1}
+#modal-promocion .radio-container{min-height:auto}
+
+@media (max-width:720px){
+  #modal-reserva-mesa .modal-content,
+  #modal-promocion .modal-content{width:96vw;max-height:92dvh}
+  .reserva-grid,#modal-promocion #form-promocion{grid-template-columns:1fr}
+  .reserva-cliente-field,.reserva-notas-field,
+  #modal-promocion #form-promocion>.form-group{grid-column:1!important}
+  #modal-reserva-mesa .modal-footer,
+  #modal-promocion .modal-footer{display:flex;gap:8px}
+  #modal-reserva-mesa .modal-footer .btn,
+  #modal-promocion .modal-footer .btn{flex:1;white-space:nowrap}
+}
+
+/* ================================================================
+   FASE 4 - UX RESTAURANTE: MODALES / PROMOS / ESTACIONES / MESAS
+   ================================================================ */
+
+/* No permitir que ningún modal nuevo genere scroll horizontal */
+.rs-modal .modal-content,
+.rs-modal .modal-body,
+.rs-modal form{min-width:0;max-width:100%}
+.rs-modal .modal-body{overflow-x:hidden}
+
+/* ---------- Promoción compacta y ordenada ---------- */
+#modal-promocion{padding:18px}
+#modal-promocion .modal-content--promo{
+  width:min(920px,96vw);max-width:920px;max-height:92dvh;margin:0 auto;display:flex;flex-direction:column;overflow:hidden
+}
+#modal-promocion .modal-body{padding:14px 16px;overflow-y:auto;overflow-x:hidden;background:#f7f9fb}
+#modal-promocion .promo-form{display:flex!important;flex-direction:column!important;gap:10px!important;width:100%;min-width:0}
+#modal-promocion .promo-section{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;min-width:0}
+#modal-promocion .promo-section-title{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:#2c3e50;margin-bottom:10px}
+#modal-promocion .promo-section-title i{width:20px;text-align:center;color:#2980b9}
+#modal-promocion .promo-grid{display:grid;gap:10px;min-width:0}
+#modal-promocion .promo-grid--2{grid-template-columns:repeat(2,minmax(0,1fr))}
+#modal-promocion .promo-grid--4{grid-template-columns:repeat(4,minmax(0,1fr))}
+#modal-promocion .form-group{margin:0;min-width:0}
+#modal-promocion label{display:block;margin-bottom:5px;font-size:12px;font-weight:700;color:#34495e}
+#modal-promocion .form-control,#modal-promocion .select2-container{width:100%!important;min-width:0}
+#modal-promocion .required-mark{color:#e74c3c;margin-left:3px}
+#modal-promocion .promo-schedule-row{display:grid;grid-template-columns:minmax(230px,.8fr) minmax(0,1.2fr);gap:12px;align-items:stretch}
+#modal-promocion .promo-switch-card{display:flex;align-items:center;gap:10px;margin:0;padding:10px;border:1px solid #d9e2ec;border-radius:9px;background:#f8fafc;cursor:pointer}
+#modal-promocion .promo-switch-card input{width:17px;height:17px;flex:0 0 auto}
+#modal-promocion .promo-switch-card .promo-switch-icon{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;background:#eaf4fb;color:#2980b9;flex:0 0 auto}
+#modal-promocion .promo-switch-card strong{display:block;font-size:12px;color:#2c3e50}
+#modal-promocion .promo-switch-card small{display:block;font-size:11px;color:#6b7280;line-height:1.35;margin-top:2px}
+#modal-promocion .promo-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}
+#modal-promocion .promo-days label{margin:0;cursor:pointer}
+#modal-promocion .promo-days input{position:absolute;opacity:0;pointer-events:none}
+#modal-promocion .promo-days span{display:flex;align-items:center;justify-content:center;min-height:34px;border:1px solid #d8e0e8;border-radius:8px;background:#f8fafc;font-size:12px;font-weight:600;transition:.15s ease}
+#modal-promocion .promo-days input:checked+span{background:#eaf4fb;border-color:#3498db;color:#1f6fa8;box-shadow:0 0 0 1px rgba(52,152,219,.08)}
+#modal-promocion .promo-options-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#modal-promocion .promo-option-card{margin:0;cursor:pointer}
+#modal-promocion .promo-option-card>input{position:absolute;opacity:0;pointer-events:none}
+#modal-promocion .promo-option-card>span{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid #d8e0e8;border-radius:9px;background:#fff;color:#34495e}
+#modal-promocion .promo-option-card>input:checked+span{background:#eef9f2;border-color:#a9dfbf;color:#1e8449}
+#modal-promocion .modal-footer{padding:10px 16px;background:#fff;border-top:1px solid #e2e8f0;flex:0 0 auto}
+
+/* ---------- Asignadores visuales de promociones ---------- */
+#modal-promo-productos .modal-content,#modal-promo-categorias .modal-content{width:min(900px,96vw);max-width:900px;max-height:90dvh;display:flex;flex-direction:column;overflow:hidden}
+#modal-promo-productos .modal-body,#modal-promo-categorias .modal-body{overflow-y:auto;padding:16px;background:#f8fafc}
+#modal-promo-productos .promo-picker-field,#modal-promo-categorias .promo-picker-field{margin-top:12px}
+.promo-hidden-select{position:absolute!important;left:-99999px!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important}
+.promo-picker-toolbar{display:flex;align-items:center;gap:10px;margin:7px 0 10px}
+.promo-picker-search{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #d5dde5;border-radius:9px;padding:0 10px}
+.promo-picker-search:focus-within{border-color:#3498db;box-shadow:0 0 0 2px rgba(52,152,219,.10)}
+.promo-picker-search i{color:#7b8794}
+.promo-picker-search input{width:100%;height:38px;border:0;outline:0;background:transparent;font-size:13px;color:#2c3e50}
+.promo-picker-count{flex:0 0 auto;background:#eaf4fb;color:#2471a3;border:1px solid #cce4f5;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:700;white-space:nowrap}
+.promo-picker-grid{display:grid;gap:9px;max-height:320px;overflow-y:auto;overflow-x:hidden;padding:2px 3px 3px 1px}
+.promo-product-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+.promo-category-grid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
+.promo-product-card,.promo-category-card{position:relative;width:100%;border:1px solid #dfe6ec;background:#fff;border-radius:10px;cursor:pointer;text-align:left;color:#2c3e50;transition:.15s ease;overflow:hidden}
+.promo-product-card:hover,.promo-category-card:hover{border-color:#9bc9e8;box-shadow:0 3px 10px rgba(0,0,0,.06);transform:translateY(-1px)}
+.promo-product-card.selected,.promo-category-card.selected{border-color:#27ae60;background:#f3fbf6;box-shadow:0 0 0 1px rgba(39,174,96,.12)}
+.promo-card-check{position:absolute;top:7px;right:7px;width:23px;height:23px;border-radius:50%;display:grid;place-items:center;background:#fff;border:1px solid #d7dee5;color:transparent;z-index:2}
+.selected>.promo-card-check{background:#27ae60;border-color:#27ae60;color:#fff}
+.promo-product-card{display:grid;grid-template-columns:72px minmax(0,1fr);min-height:82px;padding:8px;gap:9px;align-items:center}
+.promo-product-image{width:72px;height:64px;border-radius:8px;background:#f5f7f9;display:grid;place-items:center;overflow:hidden}
+.promo-product-image img{width:100%;height:100%;object-fit:contain}
+.promo-product-info{min-width:0;padding-right:20px}
+.promo-product-info strong{display:block;font-size:12px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.promo-product-info small{display:block;color:#7b8794;font-size:10px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.promo-product-info em{display:inline-flex;align-items:center;gap:4px;margin-top:6px;font-style:normal;font-size:10px;font-weight:700;color:#536270}
+.promo-category-card{display:flex;align-items:center;gap:10px;padding:12px 38px 12px 12px;min-height:62px}
+.promo-category-icon{width:38px;height:38px;border-radius:9px;background:#edf5fb;color:#2980b9;display:grid;place-items:center;flex:0 0 auto}
+.promo-category-card strong{display:block;font-size:12px}
+.promo-category-card small{display:block;font-size:10px;color:#7b8794;margin-top:3px}
+.promo-picker-empty{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:28px;color:#7b8794;border:1px dashed #d7dee5;border-radius:10px;background:#fff}
+
+/* Producto: mostrar estación de forma inequívoca en cada tarjeta */
+.producto-estacion-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;padding:3px 7px;border-radius:999px;margin:0 0 6px}
+.producto-estacion-cocina{background:#fff4e6;color:#a85b00;border:1px solid #f5d4ad}
+.producto-estacion-barra{background:#eef5ff;color:#245d9b;border:1px solid #c9ddf3}
+
+/* Acciones de mesa */
+.btn-reservar-mesa,.btn-cancelar-reserva,.btn-liberar-mesa{width:28px;height:28px;border-radius:50%;border:0;display:inline-grid;place-items:center;cursor:pointer;background:#fff;box-shadow:0 1px 5px rgba(0,0,0,.12);font-size:12px}
+.btn-reservar-mesa{color:#2980b9}.btn-cancelar-reserva{color:#d68910}.btn-liberar-mesa{color:#27ae60}
+.btn-liberar-mesa:disabled,.btn-reservar-mesa:disabled,.btn-cancelar-reserva:disabled{opacity:.55;cursor:wait}
+
+/* Evitar controles de estado confusos en edición de mesa: el estado operativo se gestiona por cuenta/reserva */
+#modal-mesa #estado-mesa{pointer-events:none;opacity:.75}
+
+@media (max-width:900px){
+  #modal-promocion .promo-grid--4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #modal-promocion .promo-days{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media (max-width:620px){
+  #modal-promocion{padding:8px}
+  #modal-promocion .modal-content--promo{width:100%;max-height:95dvh}
+  #modal-promocion .promo-grid--2,#modal-promocion .promo-grid--4,#modal-promocion .promo-schedule-row,#modal-promocion .promo-options-row{grid-template-columns:1fr}
+  #modal-promocion .promo-days{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #modal-promocion .modal-body{padding:10px}
+  .promo-picker-toolbar{align-items:stretch;flex-direction:column}
+  .promo-picker-count{align-self:flex-start}
+  .promo-product-grid,.promo-category-grid{grid-template-columns:1fr;max-height:300px}
+  #modal-promo-productos .modal-content,#modal-promo-categorias .modal-content{width:96vw}
+}
+
+/* ================================================================
+   FASE 5 - AJUSTES DE CONSISTENCIA VISUAL Y EDICIÓN
+   ================================================================ */
+
+/* ---------- Mesas: capacidad y acciones nunca se superponen ---------- */
+.mesa-header.mesa-header--clean{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:8px!important;
+  padding-right:0!important;
+  margin-bottom:8px!important;
+}
+.mesa-header-tools{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:7px;
+  flex:0 0 auto;
+  min-width:0;
+}
+.mesa-actions.mesa-actions--inline{
+  position:static!important;
+  top:auto!important;
+  right:auto!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:5px!important;
+  z-index:auto!important;
+}
+.mesa-actions--inline .btn-icon,
+.mesa-actions--inline .btn-reservar-mesa,
+.mesa-actions--inline .btn-cancelar-reserva,
+.mesa-actions--inline .btn-liberar-mesa{
+  width:27px!important;
+  height:27px!important;
+  min-width:27px!important;
+  flex:0 0 27px!important;
+}
+.mesa-capacidad{flex:0 0 auto;white-space:nowrap}
+@media(max-width:520px){
+  .mesa-header.mesa-header--clean{align-items:flex-start!important}
+  .mesa-header-tools{gap:5px}
+  .mesa-actions--inline .btn-icon,
+  .mesa-actions--inline .btn-reservar-mesa,
+  .mesa-actions--inline .btn-cancelar-reserva,
+  .mesa-actions--inline .btn-liberar-mesa{width:25px!important;height:25px!important;min-width:25px!important;flex-basis:25px!important}
+}
+
+/* ---------- Tarjetas de producto: nombre + estación + precio siempre visibles ---------- */
+.producto-item{height:260px!important}
+.producto-contenido{padding:9px 10px!important;overflow:visible!important}
+.producto-nombre{
+  display:block!important;
+  min-height:18px!important;
+  margin:0 0 5px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  text-align:center!important;
+  font-size:13px!important;
+  line-height:1.3!important;
+}
+.producto-meta-line{display:flex;align-items:center;justify-content:center;min-height:23px;margin-bottom:3px}
+.producto-estacion-badge{margin:0!important;padding:3px 8px!important;font-size:10px!important}
+.producto-desc{min-height:0!important;max-height:30px!important;margin:1px 0 4px!important}
+.producto-precios{margin-top:auto!important;padding-top:7px!important}
+
+/* ---------- Promociones: 12 columnas reales, sin huecos ni anchos pequeños ---------- */
+#modal-promocion .modal-content--promo{
+  width:min(1040px,96vw)!important;
+  max-width:1040px!important;
+}
+#modal-promocion .promo-form{
+  width:100%!important;
+  max-width:none!important;
+  align-items:stretch!important;
+}
+#modal-promocion .promo-section,
+#modal-promocion .promo-section--identity,
+#modal-promocion .promo-options-row{
+  width:100%!important;
+  max-width:none!important;
+  flex:0 0 auto!important;
+  box-sizing:border-box!important;
+}
+#modal-promocion .promo-grid,
+#modal-promocion .promo-grid--2,
+#modal-promocion .promo-grid--4{
+  width:100%!important;
+}
+#modal-promocion .promo-grid--2{grid-template-columns:repeat(2,minmax(0,6fr))!important}
+#modal-promocion .promo-grid--4{grid-template-columns:repeat(4,minmax(0,3fr))!important}
+#modal-promocion .form-group,
+#modal-promocion .form-control,
+#modal-promocion .select2,
+#modal-promocion .select2-container,
+#modal-promocion input,
+#modal-promocion select{
+  width:100%!important;
+  max-width:none!important;
+  box-sizing:border-box!important;
+}
+#modal-promocion .required-mark{display:none!important}
+#modal-promocion .promo-schedule-row{
+  width:100%!important;
+  grid-template-columns:minmax(250px,4fr) minmax(0,8fr)!important;
+}
+#modal-promocion .promo-hours{grid-template-columns:repeat(2,minmax(0,6fr))!important}
+#modal-promocion .promo-days{width:100%!important;grid-template-columns:repeat(7,minmax(0,1fr))!important}
+#modal-promocion .promo-options-row{grid-template-columns:repeat(2,minmax(0,6fr))!important}
+@media(max-width:900px){
+  #modal-promocion .promo-grid--4{grid-template-columns:repeat(2,minmax(0,6fr))!important}
+  #modal-promocion .promo-schedule-row{grid-template-columns:1fr!important}
+}
+@media(max-width:620px){
+  #modal-promocion .promo-grid--2,
+  #modal-promocion .promo-grid--4,
+  #modal-promocion .promo-hours,
+  #modal-promocion .promo-options-row{grid-template-columns:1fr!important}
+  #modal-promocion .promo-days{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
+
+/* ---------- Editor de combo: visual, compacto y guiado ---------- */
+#modal-combo-editor{padding:12px}
+#modal-combo-editor .modal-content--combo-editor{
+  width:min(1120px,97vw)!important;
+  max-width:1120px!important;
+  max-height:94dvh!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+}
+#modal-combo-editor .modal-body{
+  padding:16px!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  background:#f6f8fb!important;
+}
+#modal-combo-editor #form-combo-editor{display:flex;flex-direction:column;gap:14px}
+#modal-combo-editor hr{display:none}
+#modal-combo-editor h4{
+  margin:2px 0 0!important;
+  color:#2c3e50!important;
+  font-size:17px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+}
+#modal-combo-editor h4:first-of-type::before{content:'\f1b3';font-family:'Font Awesome 5 Free';font-weight:900;color:#2980b9}
+#modal-combo-editor h4:nth-of-type(2)::before{content:'\f1de';font-family:'Font Awesome 5 Free';font-weight:900;color:#2980b9}
+#modal-combo-editor .help-text{margin:0!important;color:#6b7280!important;font-size:12px!important}
+.combo-master-card,
+#combo-producto-display,
+#combo-activo-container{
+  background:#fff!important;
+  border:1px solid #dfe6ec!important;
+  border-radius:11px!important;
+  padding:12px!important;
+  box-sizing:border-box!important;
+}
+.combo-master-card>label{display:block;font-weight:700;color:#34495e;margin-bottom:7px}
+.combo-master-row{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:8px!important;align-items:stretch!important}
+.combo-master-row .btn{white-space:nowrap!important}
+#combo-activo-container{display:flex!important;align-items:center!important;gap:10px!important}
+#combo-items-container{display:flex;flex-direction:column;gap:12px}
+#modal-combo-editor .component-row.card{
+  border:1px solid #dfe6ec!important;
+  border-radius:12px!important;
+  box-shadow:none!important;
+  margin:0!important;
+  overflow:hidden!important;
+}
+#modal-combo-editor .component-header{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:10px!important;
+  padding:10px 12px!important;
+  background:#eef4f8!important;
+  border-bottom:1px solid #dfe6ec!important;
+}
+#modal-combo-editor .component-header h5{margin:0!important;font-size:14px!important;color:#2c3e50!important}
+#modal-combo-editor .component-body{
+  display:grid!important;
+  grid-template-columns:repeat(12,minmax(0,1fr))!important;
+  gap:12px!important;
+  padding:12px!important;
+  background:#fff!important;
+}
+#modal-combo-editor .component-body>.form-group{margin:0!important;min-width:0!important;grid-column:span 3}
+#modal-combo-editor .component-body>.form-group:first-child{grid-column:span 5}
+#modal-combo-editor .component-body>.form-group:nth-child(2){grid-column:span 2}
+#modal-combo-editor .component-body>.form-group:nth-child(3){grid-column:span 2}
+#modal-combo-editor .component-body>.form-group:nth-child(4){grid-column:span 3}
+#modal-combo-editor .component-body>.form-group:nth-child(5){grid-column:span 4}
+#modal-combo-editor .component-body>.form-group:nth-child(6){grid-column:span 4}
+#modal-combo-editor .component-body>.form-group:nth-child(7){grid-column:span 4}
+#modal-combo-editor .component-body label{font-size:12px!important;font-weight:700!important;color:#34495e!important}
+#modal-combo-editor .help-inline{display:block!important;margin-top:3px!important;font-size:10px!important;font-weight:400!important;line-height:1.3!important;color:#7b8794!important}
+#modal-combo-editor .form-control,
+#modal-combo-editor .select2-container{width:100%!important;max-width:none!important}
+.combo-rules-panel{background:#fff;border:1px solid #dfe6ec;border-radius:11px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.combo-rules-list{display:flex;flex-direction:column;gap:8px}
+.combo-rules-empty{display:flex;align-items:center;gap:10px;padding:14px;border:1px dashed #cbd5df;border-radius:9px;background:#f8fafc;color:#667788}
+.combo-rules-empty>i{width:34px;height:34px;border-radius:8px;background:#eaf4fb;color:#2980b9;display:grid;place-items:center;flex:0 0 34px}
+.combo-rules-empty strong,.combo-rules-empty small{display:block}
+.combo-rules-empty small{font-size:11px;margin-top:2px}
+.combo-rule-row{display:grid;grid-template-columns:34px minmax(0,1fr) 180px 42px;gap:9px;align-items:end;padding:9px;border:1px solid #e1e7ed;border-radius:9px;background:#fff}
+.combo-rule-number{width:30px;height:30px;border-radius:8px;background:#edf5fb;color:#2471a3;display:grid;place-items:center;font-weight:700;align-self:center}
+.combo-rule-row .form-group{margin:0!important}
+.combo-rule-remove{width:38px;height:38px;display:grid!important;place-items:center!important}
+#modal-combo-editor .modal-footer{background:#fff!important;border-top:1px solid #dfe6ec!important;padding:10px 16px!important}
+@media(max-width:850px){
+  #modal-combo-editor .component-body>.form-group{grid-column:span 6!important}
+  #modal-combo-editor .component-body>.form-group:first-child{grid-column:1/-1!important}
+  .combo-rule-row{grid-template-columns:30px minmax(0,1fr) 130px 40px}
+}
+@media(max-width:580px){
+  #modal-combo-editor{padding:6px}
+  .combo-master-row{grid-template-columns:1fr!important}
+  #modal-combo-editor .component-body>.form-group{grid-column:1/-1!important}
+  .combo-rule-row{grid-template-columns:30px minmax(0,1fr) 40px}
+  .combo-rule-max{grid-column:2/3}
+  .combo-rule-remove{grid-column:3/4;grid-row:1/3;align-self:center}
+}
+
+/* ---------- Combo: guía y precio ---------- */
+.combo-guide{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.combo-guide-step{display:flex;align-items:flex-start;gap:9px;padding:10px 11px;border:1px solid #dfe6ec;border-radius:10px;background:#fff}
+.combo-guide-step>span{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex:0 0 30px;background:#eaf4fb;color:#2471a3;font-weight:800}
+.combo-guide-step strong,.combo-guide-step small{display:block}
+.combo-guide-step strong{font-size:12px;color:#2c3e50}
+.combo-guide-step small{font-size:10px;color:#74808c;line-height:1.35;margin-top:2px}
+.combo-guide--edit{grid-template-columns:1fr}
+.combo-price-card{background:#fff;border:1px solid #dfe6ec;border-radius:11px;padding:12px}
+.combo-price-header{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.combo-price-icon{width:34px;height:34px;border-radius:8px;display:grid;place-items:center;background:#eef8f2;color:#239b56;flex:0 0 34px}
+.combo-price-header strong,.combo-price-header small{display:block}
+.combo-price-header strong{font-size:13px;color:#2c3e50}
+.combo-price-header small{font-size:10px;color:#7b8794;margin-top:2px}
+.combo-price-options{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:9px;align-items:stretch}
+.combo-price-option{grid-column:span 4;cursor:pointer;margin:0!important;position:relative}
+.combo-price-option>input{position:absolute;opacity:0;pointer-events:none}
+.combo-price-option>span{height:100%;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px;border:1px solid #dbe2e8;border-radius:9px;background:#fafbfd}
+.combo-price-option>span>i{margin-bottom:3px;color:#637381}
+.combo-price-option strong{font-size:11px;color:#2c3e50}
+.combo-price-option small{font-size:9px;line-height:1.3;color:#7b8794}
+.combo-price-option>input:checked+span{border-color:#3498db;background:#edf6fc;box-shadow:0 0 0 1px rgba(52,152,219,.08)}
+.combo-price-option>input:checked+span>i{color:#2471a3}
+.combo-price-input{grid-column:span 4;display:flex;flex-direction:column;justify-content:flex-end}
+.combo-price-input label{font-size:11px!important;font-weight:700!important;color:#34495e!important;margin-bottom:5px!important}
+@media(max-width:720px){
+  .combo-guide{grid-template-columns:1fr}
+  .combo-price-option,.combo-price-input{grid-column:1/-1}
+}
+
+
+/* =====================================================================
+   PAGO UNIFICADO
+   IMPORTANTE: Restaurante NO redefine el modal oficial de pagos.
+   Su diseño y comportamiento visual pertenecen a los estilos globales de IZZY.
+   ===================================================================== */
+#modal_pagos_unificado .rest-release-option{
+  border-left:3px solid #29a56c;
+  padding-left:12px;
+}
+
+/* Visor modal de factura */
+.rs-report-modal{position:fixed; inset:0; z-index:13000; display:none; align-items:center; justify-content:center; padding:16px; background:rgba(13,25,37,.76);}
+.rs-report-modal.show{display:flex;}
+.rs-report-dialog{width:min(1180px,98vw); height:min(92vh,920px); display:flex; flex-direction:column; overflow:hidden; border-radius:16px; background:#fff; box-shadow:0 28px 80px rgba(0,0,0,.30);}
+.rs-report-header{flex:0 0 auto; min-height:58px; padding:12px 16px 12px 20px; display:flex; align-items:center; justify-content:space-between; gap:14px; background:#203448; color:#fff;}
+.rs-report-header>div{display:flex; align-items:center; gap:9px; min-width:0;}
+.rs-report-header strong{font-size:1.05rem;}
+#rs-report-subtitle{font-size:.82rem; opacity:.78; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.rs-report-close{width:38px; height:38px; border:0; border-radius:50%; background:#172a3b; color:#fff; cursor:pointer;}
+.rs-report-body{position:relative; flex:1 1 auto; min-height:0; background:#eef2f5;}
+.rs-report-body iframe{width:100%; height:100%; border:0; background:#fff;}
+.rs-report-loading{position:absolute; inset:0; z-index:2; display:flex; align-items:center; justify-content:center; gap:10px; background:#f7f9fb; color:#40566b; font-weight:700;}
+
+@media (max-width:760px){
+  .rs-report-modal{padding:6px;}
+  .rs-report-dialog{width:100%; height:96vh; border-radius:12px;}
+}
+
+/* =====================================================================
+   RESTAURANTE - CIERRE FUNCIONAL / UI FINAL
+   No modifica el modal global #modal_pagos_unificado.
+   ===================================================================== */
+
+/* Contador de facturas: premium, limpio, sin degradados */
+.vista-facturacion-restaurante #factura-counter{
+  min-width:190px;
+  min-height:44px;
+  padding:8px 18px !important;
+  border:1px solid rgba(255,255,255,.22) !important;
+  border-radius:12px !important;
+  background:#174d70 !important;
+  box-shadow:0 6px 18px rgba(15,35,55,.16) !important;
+  display:inline-flex !important;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  font-weight:700;
+  letter-spacing:.01em;
+}
+.vista-facturacion-restaurante #factura-counter .fas{font-size:15px;opacity:.92}
+.vista-facturacion-restaurante #factura-counter .counter-value{font-size:14px;white-space:nowrap}
+.vista-facturacion-restaurante #factura-counter.counter-warning{background:#9a6500 !important}
+.vista-facturacion-restaurante #factura-counter.counter-danger{background:#9d2f2f !important}
+
+/* Buscador / escáner: ayuda visual más limpia */
+.vista-facturacion-restaurante .search-group{position:relative;padding-bottom:22px}
+.vista-facturacion-restaurante .search-group .help-under{
+  position:absolute;
+  left:2px;
+  bottom:2px;
+  display:flex;
+  align-items:center;
+  gap:4px;
+  color:#667789;
+  font-size:11px;
+  line-height:1.15;
+  letter-spacing:.005em;
+}
+.vista-facturacion-restaurante .search-group .help-under::before{
+  content:"\f05a";
+  font-family:"Font Awesome 5 Free";
+  font-weight:900;
+  color:#2f91cf;
+  font-size:10px;
+}
+
+/* Acciones maestras de producto: zoom separado de editar */
+.vista-facturacion-restaurante .producto-item .card-actions{
+  display:flex !important;
+  align-items:center;
+  gap:5px;
+  top:7px !important;
+  right:7px !important;
+  z-index:5;
+}
+.vista-facturacion-restaurante .producto-item .btn-zoom-producto{
+  background:#fff !important;
+  color:#247db4 !important;
+  border:1px solid #cfe0ec !important;
+}
+.vista-facturacion-restaurante .producto-item .btn-edit-producto-admin{
+  background:#fff !important;
+  color:#3e4d5c !important;
+  border:1px solid #d7e0e7 !important;
+}
+.vista-facturacion-restaurante .producto-item[data-selected="1"]::after{
+  max-width:88px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+/* Modal de foto */
+.vista-facturacion-restaurante .rs-photo-modal{max-width:760px !important}
+.vista-facturacion-restaurante .rs-photo-body{
+  min-height:420px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px !important;
+  background:#f6f8fa;
+}
+.vista-facturacion-restaurante .rs-photo-body img{
+  display:block;
+  max-width:100%;
+  max-height:68vh;
+  object-fit:contain;
+  border-radius:14px;
+  box-shadow:0 8px 28px rgba(23,45,68,.14);
+  background:#fff;
+}
+
+/* Reserva: más aire, textarea real y Select2 ancho completo */
+.vista-facturacion-restaurante .modal-content--reserva{max-width:860px !important}
+.vista-facturacion-restaurante .modal-content--reserva .reserva-grid{
+  display:grid;
+  grid-template-columns:repeat(12,minmax(0,1fr));
+  gap:14px 16px;
+}
+.vista-facturacion-restaurante .modal-content--reserva .reserva-cliente-field{grid-column:span 8}
+.vista-facturacion-restaurante .modal-content--reserva .reserva-cliente-field + .form-group{grid-column:span 4}
+.vista-facturacion-restaurante .modal-content--reserva .form-group:nth-of-type(3),
+.vista-facturacion-restaurante .modal-content--reserva .form-group:nth-of-type(4){grid-column:span 6}
+.vista-facturacion-restaurante .modal-content--reserva .reserva-notas-field{grid-column:1/-1}
+.vista-facturacion-restaurante .modal-content--reserva textarea{min-height:92px !important;resize:vertical}
+.vista-facturacion-restaurante .modal-content--reserva .select2-container{width:100% !important}
+
+/* Cuentas abiertas */
+.vista-facturacion-restaurante .rs-open-accounts-modal{max-width:1020px !important}
+.vista-facturacion-restaurante .rs-open-accounts-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  margin-bottom:16px;
+  padding:14px 16px;
+  border:1px solid #dbe5ed;
+  border-radius:12px;
+  background:#f8fafc;
+}
+.vista-facturacion-restaurante .rs-open-accounts-toolbar>div:first-child{display:flex;flex-direction:column;gap:3px}
+.vista-facturacion-restaurante .rs-open-accounts-toolbar small{color:#6c7a87}
+.vista-facturacion-restaurante .rs-open-accounts-search{
+  min-width:320px;
+  position:relative;
+}
+.vista-facturacion-restaurante .rs-open-accounts-search i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#6d7d8b}
+.vista-facturacion-restaurante .rs-open-accounts-search input{
+  width:100%;
+  min-height:40px;
+  padding:8px 12px 8px 36px !important;
+  border:1px solid #cfdbe5;
+  border-radius:9px;
+  background:#fff;
+}
+.vista-facturacion-restaurante .rs-open-accounts-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.vista-facturacion-restaurante .rs-open-account-card{
+  width:100%;
+  border:1px solid #dbe4eb;
+  border-radius:12px;
+  background:#fff;
+  padding:14px;
+  display:grid;
+  grid-template-columns:44px minmax(0,1fr) auto 28px;
+  align-items:center;
+  gap:12px;
+  text-align:left;
+  cursor:pointer;
+  transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease;
+}
+.vista-facturacion-restaurante .rs-open-account-card:hover{transform:translateY(-1px);border-color:#86bfe0;box-shadow:0 6px 18px rgba(29,70,100,.09)}
+.vista-facturacion-restaurante .rs-open-account-icon{width:44px;height:44px;border-radius:11px;background:#edf6fc;color:#2589c8;display:flex;align-items:center;justify-content:center;font-size:18px}
+.vista-facturacion-restaurante .rs-open-account-main{min-width:0;display:flex;flex-direction:column;gap:4px}
+.vista-facturacion-restaurante .rs-open-account-main strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#26394b}
+.vista-facturacion-restaurante .rs-open-account-main small{color:#6b7b89}
+.vista-facturacion-restaurante .rs-open-account-total{font-weight:800;color:#15914d;white-space:nowrap}
+.vista-facturacion-restaurante .rs-open-account-open{color:#2c8ec8}
+.vista-facturacion-restaurante .rs-empty-state{grid-column:1/-1;min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#748391;border:1px dashed #d5dfe6;border-radius:12px;background:#fafbfc}
+.vista-facturacion-restaurante .rs-empty-state i{font-size:24px}
+
+/* Ticket de orden */
+.vista-facturacion-restaurante .rs-ticket-modal{max-width:500px !important}
+.vista-facturacion-restaurante .rs-ticket-modal .modal-body{background:#eef2f5;padding:22px !important}
+.vista-facturacion-restaurante .rs-ticket-paper{width:80mm;max-width:100%;margin:auto;background:#fff;color:#15202a;padding:16px;box-shadow:0 7px 24px rgba(24,44,62,.12);font-family:Arial,sans-serif;font-size:12px}
+.vista-facturacion-restaurante .rs-ticket-brand{text-align:center;padding-bottom:9px;border-bottom:1px dashed #7f8a93;display:flex;flex-direction:column;gap:3px}
+.vista-facturacion-restaurante .rs-ticket-brand strong{font-size:15px;letter-spacing:.04em}
+.vista-facturacion-restaurante .rs-ticket-meta{padding:9px 0;border-bottom:1px dashed #aab2b9;display:flex;justify-content:space-between;gap:10px;font-size:10px}
+.vista-facturacion-restaurante .rs-ticket-row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px dotted #c9ced2}
+.vista-facturacion-restaurante .rs-ticket-row strong{max-width:68%}
+.vista-facturacion-restaurante .rs-ticket-notes{display:flex;flex-direction:column;gap:4px;padding:10px 0}
+.vista-facturacion-restaurante .rs-ticket-total{display:flex;justify-content:space-between;border-top:1px solid #1e252b;padding-top:9px;margin-top:4px;font-size:14px}
+.vista-facturacion-restaurante .rs-ticket-foot{display:block;text-align:center;color:#6e777e;margin-top:12px}
+
+/* Configuración del modo de operación */
+.vista-facturacion-restaurante .rs-config-modal{max-width:760px !important}
+.vista-facturacion-restaurante .rs-config-intro{display:flex;gap:14px;align-items:center;padding:15px;border:1px solid #dce6ed;border-radius:12px;background:#f8fafc;margin-bottom:16px}
+.vista-facturacion-restaurante .rs-config-intro>i{font-size:25px;color:#2a8fc9}
+.vista-facturacion-restaurante .rs-config-intro>div{display:flex;flex-direction:column;gap:3px}
+.vista-facturacion-restaurante .rs-config-intro small{color:#697987}
+.vista-facturacion-restaurante .rs-config-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.vista-facturacion-restaurante .rs-config-card{position:relative;display:flex;align-items:center;gap:12px;padding:16px;border:1px solid #d9e4eb;border-radius:12px;background:#fff;cursor:pointer}
+.vista-facturacion-restaurante .rs-config-card input{position:absolute;top:14px;right:14px;width:18px;height:18px}
+.vista-facturacion-restaurante .rs-config-card-icon{width:46px;height:46px;border-radius:11px;background:#eef7fc;color:#298bc4;display:flex;align-items:center;justify-content:center;font-size:19px}
+.vista-facturacion-restaurante .rs-config-card>span:last-child{display:flex;flex-direction:column;gap:4px;padding-right:24px}
+.vista-facturacion-restaurante .rs-config-card small{color:#6e7c88;line-height:1.35}
+
+/* Venta directa / supermercado: sin mesas ni selector de consumo */
+.vista-facturacion-restaurante.rs-modo-venta-directa .restaurante-content{grid-template-columns:minmax(0,1fr) !important}
+.vista-facturacion-restaurante.rs-modo-venta-directa .main-content{width:100% !important;max-width:none !important}
+.vista-facturacion-restaurante.rs-modo-venta-directa .fh-row-bottom{padding-left:14px}
+
+/* Botones contextuales: no mostrar acciones sin sentido */
+.vista-facturacion-restaurante #btn-guardar-cuenta,
+.vista-facturacion-restaurante #btn-cuentas-abiertas,
+.vista-facturacion-restaurante #btn-imprimir,
+.vista-facturacion-restaurante #btn-cerrar{white-space:nowrap}
+
+/* Todos los Select2 del módulo: consistentes y buscables */
+.vista-facturacion-restaurante .rs-modal .select2-container{width:100% !important}
+.vista-facturacion-restaurante .rs-modal .select2-selection--single{min-height:40px !important;border:1px solid #ced8e0 !important;border-radius:8px !important;background:#fff !important}
+.vista-facturacion-restaurante .rs-modal .select2-selection__rendered{line-height:38px !important;padding-left:12px !important}
+.vista-facturacion-restaurante .rs-modal .select2-selection__arrow{height:38px !important}
+
+@media (max-width: 820px){
+  .vista-facturacion-restaurante .modal-content--reserva .reserva-grid,
+  .vista-facturacion-restaurante .rs-config-options,
+  .vista-facturacion-restaurante .rs-open-accounts-grid{grid-template-columns:1fr}
+  .vista-facturacion-restaurante .modal-content--reserva .form-group,
+  .vista-facturacion-restaurante .modal-content--reserva .reserva-cliente-field,
+  .vista-facturacion-restaurante .modal-content--reserva .reserva-cliente-field + .form-group,
+  .vista-facturacion-restaurante .modal-content--reserva .form-group:nth-of-type(3),
+  .vista-facturacion-restaurante .modal-content--reserva .form-group:nth-of-type(4),
+  .vista-facturacion-restaurante .modal-content--reserva .reserva-notas-field{grid-column:1/-1}
+  .vista-facturacion-restaurante .rs-open-accounts-toolbar{align-items:stretch;flex-direction:column}
+  .vista-facturacion-restaurante .rs-open-accounts-search{min-width:0;width:100%}
+  .vista-facturacion-restaurante .rs-open-account-card{grid-template-columns:40px minmax(0,1fr) auto}
+  .vista-facturacion-restaurante .rs-open-account-open{display:none}
+}
+
+/* =========================================================
+   MODO GENÉRICO / CONFIGURACIÓN DE AGRUPACIONES
+   ========================================================= */
+.vista-facturacion-restaurante .rs-config-stations{
+  margin-top:16px;
+  padding:16px;
+  border:1px solid #dbe5ef;
+  border-radius:12px;
+  background:#fff;
+}
+.vista-facturacion-restaurante .rs-config-section-title{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:14px;
+}
+.vista-facturacion-restaurante .rs-config-section-title>i{
+  width:34px;height:34px;border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  background:#eef7ff;color:#258bd2;flex:0 0 34px;
+}
+.vista-facturacion-restaurante .rs-config-section-title div{display:flex;flex-direction:column;gap:3px;}
+.vista-facturacion-restaurante .rs-config-section-title small,
+.vista-facturacion-restaurante .rs-config-note{color:#687789;line-height:1.4;}
+.vista-facturacion-restaurante .rs-config-station-grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;
+}
+.vista-facturacion-restaurante .rs-config-station-grid .form-group{margin:0;min-width:0;}
+.vista-facturacion-restaurante .rs-config-note{display:block;margin-top:10px;font-size:.82rem;}
+.vista-facturacion-restaurante.rs-modo-venta-directa .main-content{width:100%;}
+@media (max-width:700px){
+  .vista-facturacion-restaurante .rs-config-station-grid{grid-template-columns:1fr;}
+}
+
+
+/* ===== AJUSTE FINAL: modo genérico + identificación de cliente ===== */
+.vista-facturacion-restaurante .cliente-info .cli-datos{
+  display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap;
+}
+.vista-facturacion-restaurante .cliente-info .cli-nombre-wrap,
+.vista-facturacion-restaurante .cliente-info .cli-rtn-wrap{
+  display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:4px 9px;border-radius:999px;
+}
+.vista-facturacion-restaurante .cliente-info .cli-nombre-wrap{
+  color:#34495e;background:#f3f6f8;border:1px solid #e0e7ec;font-weight:600;
+}
+.vista-facturacion-restaurante .cliente-info .cli-nombre-wrap i{color:#607d8b}
+.vista-facturacion-restaurante .cliente-info .cli-rtn-wrap{
+  color:#235b7b;background:#eef8fd;border:1px solid #cfeaf7;font-size:12px;font-weight:600;
+}
+.vista-facturacion-restaurante .cliente-info .cli-rtn-wrap i{color:#258fca}
+.vista-facturacion-restaurante .cliente-info .cli-rtn-label{font-weight:700;letter-spacing:.02em}
+.vista-facturacion-restaurante .cliente-info .cli-rtn-wrap.is-hidden{display:none !important}
+
+/* Si no hay comandas, las estaciones quedan fuera de la UI. Las categorías siguen visibles. */
+.vista-facturacion-restaurante.rs-sin-comandas #filtro-estacion,
+.vista-facturacion-restaurante.rs-sin-comandas .producto-estacion-badge{display:none !important}
+
+/* El ticket actual siempre debe quedar por encima del POS cuando se abre. */
+.vista-facturacion-restaurante #modal-ticket-comanda{z-index:10080 !important}
+.vista-facturacion-restaurante #modal-ticket-comanda .modal-content{z-index:10081 !important}
+
+/* ===== Salida de comanda / ticket de caja ===== */
+.vista-facturacion-restaurante .rs-config-print-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+}
+.vista-facturacion-restaurante .rs-config-print-grid .form-group{margin:0;min-width:0}
+.vista-facturacion-restaurante .rs-config-print-grid label{font-weight:700;color:#30465a;margin-bottom:7px}
+.vista-facturacion-restaurante .rs-config-print-grid .form-text{font-size:.79rem;line-height:1.35;margin-top:6px}
+.vista-facturacion-restaurante .rs-config-print-help{
+  display:flex;align-items:flex-start;gap:8px;margin-top:12px;padding:10px 12px;
+  border:1px solid #dce7ee;border-radius:10px;background:#f8fafc;color:#5c6f80;font-size:.82rem;line-height:1.4
+}
+.vista-facturacion-restaurante .rs-config-print-help i{color:#2a8fc9;margin-top:2px}
+@media(max-width:700px){
+  .vista-facturacion-restaurante .rs-config-print-grid{grid-template-columns:1fr}
+}
+
+
+/* ===== Cuentas abiertas: contexto claro de cliente / mesa / preparación ===== */
+.rs-open-account-main .rs-open-account-rtn,
+.rs-open-account-main .rs-open-account-prep{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-top:4px;
+}
+.rs-open-account-main .rs-open-account-rtn{color:#52667a;}
+.rs-open-account-main .rs-open-account-prep{color:#b56a00;}
+.rs-open-account-total{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:3px;
+}
+.rs-open-account-total small{
+  font-size:11px;
+  color:#7a8794;
+  font-weight:600;
+}
+.rs-open-account-total strong{
+  font-size:15px;
+  color:#12824c;
+}
+
+/* ===== Ajuste final: Configuración operativa compacta ===== */
+.vista-facturacion-restaurante .rs-config-modal{width:min(1040px,calc(100vw - 40px)) !important;max-width:1040px !important;}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .modal-body{padding:18px 22px !important;max-height:calc(100vh - 180px) !important;overflow-y:auto !important;overflow-x:hidden !important;}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-intro{margin-bottom:12px !important;padding:12px 14px !important;}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-options{grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:14px !important;}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-card{padding:13px 15px !important;min-height:92px !important;}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-stations{margin-top:14px !important;padding:15px 16px !important;}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-print-grid,.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-station-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:16px !important;}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .select2-container{width:100% !important;}
+@media(max-width:760px){.vista-facturacion-restaurante .rs-config-modal{width:calc(100vw - 18px) !important;}.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-options,.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-print-grid,.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-station-grid{grid-template-columns:1fr !important;}}
+
+
+/* ===== Configuración operativa: modal ancho y compacto ===== */
+.vista-facturacion-restaurante .rs-config-modal{
+  width:min(1180px,calc(100vw - 34px)) !important;
+  max-width:1180px !important;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .modal-body{
+  display:grid !important;
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  gap:14px !important;
+  padding:16px 20px !important;
+  max-height:calc(100vh - 170px) !important;
+  overflow:auto !important;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-intro,
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-options{
+  grid-column:1 / -1 !important;
+  margin:0 !important;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-stations{
+  margin:0 !important;
+  padding:15px 16px !important;
+  min-width:0 !important;
+  align-self:start !important;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-print-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  gap:12px !important;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-station-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  gap:12px !important;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-print-help{
+  margin-top:12px !important;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .select2-container{
+  width:100% !important;
+}
+@media (max-width:980px){
+  .vista-facturacion-restaurante #modal-configuracion-restaurante .modal-body{
+    grid-template-columns:1fr !important;
+  }
+  .vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-intro,
+  .vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-options{
+    grid-column:auto !important;
+  }
+  .vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-print-grid{
+    grid-template-columns:1fr !important;
+  }
+}
+@media (max-width:760px){
+  .vista-facturacion-restaurante .rs-config-modal{
+    width:calc(100vw - 16px) !important;
+  }
+  .vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-options,
+  .vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-station-grid{
+    grid-template-columns:1fr !important;
+  }
+}
+
+/* =========================================================
+   AJUSTE UI FINAL - CONFIGURACION / VIGENCIA PROMOCIONES
+   ========================================================= */
+
+/* Salida de comanda ocupa el ancho completo: los 3 pasos deben poder leerse. */
+.vista-facturacion-restaurante #modal-configuracion-restaurante #config-salida-comanda{
+  grid-column:1 / -1 !important;
+  width:100% !important;
+}
+
+.vista-facturacion-restaurante #modal-configuracion-restaurante #config-salida-comanda .rs-config-print-grid{
+  display:grid !important;
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  gap:0 !important;
+  align-items:stretch !important;
+  padding:0 !important;
+  border:1px solid #dbe5ef !important;
+  border-radius:12px !important;
+  background:#f8fafc !important;
+  overflow:visible !important;
+}
+
+.vista-facturacion-restaurante #modal-configuracion-restaurante #config-salida-comanda .rs-config-print-grid>.form-group{
+  position:relative !important;
+  min-width:0 !important;
+  margin:0 !important;
+  padding:14px 18px 13px !important;
+  background:#fff !important;
+}
+
+.vista-facturacion-restaurante #modal-configuracion-restaurante #config-salida-comanda .rs-config-print-grid>.form-group:first-child{
+  border-radius:11px 0 0 11px !important;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante #config-salida-comanda .rs-config-print-grid>.form-group:last-child{
+  border-radius:0 11px 11px 0 !important;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante #config-salida-comanda .rs-config-print-grid>.form-group+ .form-group{
+  border-left:1px solid #e1e8ee !important;
+}
+
+/* Numeración visual del flujo sin tocar el HTML. */
+.vista-facturacion-restaurante #modal-configuracion-restaurante #config-salida-comanda .rs-config-print-grid>.form-group>label{
+  display:flex !important;
+  align-items:center !important;
+  gap:8px !important;
+  min-height:25px !important;
+  margin:0 0 9px !important;
+  color:#263d52 !important;
+  font-size:.91rem !important;
+  line-height:1.2 !important;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante #config-salida-comanda .rs-config-print-grid>.form-group>label::before{
+  content:'1' !important;
+  display:inline-grid !important;
+  place-items:center !important;
+  width:24px !important;
+  height:24px !important;
+  flex:0 0 24px !important;
+  border-radius:50% !important;
+  background:#eaf5fc !important;
+  color:#2388c5 !important;
+  font-size:.76rem !important;
+  font-weight:800 !important;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante #config-salida-comanda .rs-config-print-grid>.form-group:nth-child(2)>label::before{content:'2' !important;}
+.vista-facturacion-restaurante #modal-configuracion-restaurante #config-salida-comanda .rs-config-print-grid>.form-group:nth-child(3)>label::before{content:'3' !important;}
+
+/* Select2 limpio, alto uniforme y texto completo dentro del flujo. */
+.vista-facturacion-restaurante #modal-configuracion-restaurante #config-salida-comanda .select2-container{
+  width:100% !important;
+  max-width:100% !important;
+  display:block !important;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante #config-salida-comanda .select2-selection--single{
+  height:44px !important;
+  min-height:44px !important;
+  border:1px solid #cbd8e2 !important;
+  border-radius:9px !important;
+  background:#fff !important;
+  box-shadow:0 1px 2px rgba(31,55,75,.04) !important;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante #config-salida-comanda .select2-selection__rendered{
+  height:42px !important;
+  line-height:42px !important;
+  padding-left:12px !important;
+  padding-right:34px !important;
+  color:#34495e !important;
+  font-size:.88rem !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante #config-salida-comanda .select2-selection__arrow{
+  height:42px !important;
+  right:6px !important;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante #config-salida-comanda .form-text{
+  display:block !important;
+  min-height:34px !important;
+  margin:8px 0 0 !important;
+  color:#718090 !important;
+  font-size:.78rem !important;
+  line-height:1.35 !important;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante #config-salida-comanda .rs-config-print-help{
+  margin-top:12px !important;
+  padding:11px 13px !important;
+  border-radius:9px !important;
+}
+
+/* PROMOCIONES / VIGENCIA: el checkbox nunca debe heredar width:100%. */
+.vista-facturacion-restaurante #modal-promocion #promo-usa-horario{
+  position:relative !important;
+  width:18px !important;
+  min-width:18px !important;
+  max-width:18px !important;
+  height:18px !important;
+  min-height:18px !important;
+  flex:0 0 18px !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+
+.vista-facturacion-restaurante #modal-promocion .promo-schedule-row{
+  display:grid !important;
+  grid-template-columns:minmax(260px,4fr) minmax(0,8fr) !important;
+  gap:12px !important;
+  align-items:stretch !important;
+  width:100% !important;
+  margin-top:10px !important;
+}
+.vista-facturacion-restaurante #modal-promocion .promo-switch-card{
+  display:grid !important;
+  grid-template-columns:18px 34px minmax(0,1fr) !important;
+  align-items:center !important;
+  gap:10px !important;
+  width:100% !important;
+  min-height:76px !important;
+  padding:11px 13px !important;
+  margin:0 !important;
+  overflow:hidden !important;
+}
+.vista-facturacion-restaurante #modal-promocion .promo-switch-card>.promo-switch-icon{
+  width:34px !important;
+  height:34px !important;
+  min-width:34px !important;
+  flex:none !important;
+}
+.vista-facturacion-restaurante #modal-promocion .promo-switch-card>span:last-child{
+  display:block !important;
+  min-width:0 !important;
+  width:auto !important;
+}
+.vista-facturacion-restaurante #modal-promocion .promo-switch-card strong,
+.vista-facturacion-restaurante #modal-promocion .promo-switch-card small{
+  width:auto !important;
+  max-width:100% !important;
+  overflow-wrap:normal !important;
+  word-break:normal !important;
+}
+.vista-facturacion-restaurante #modal-promocion .promo-switch-card strong{
+  margin:0 !important;
+  font-size:.82rem !important;
+  line-height:1.25 !important;
+}
+.vista-facturacion-restaurante #modal-promocion .promo-switch-card small{
+  margin-top:3px !important;
+  font-size:.74rem !important;
+  line-height:1.35 !important;
+}
+
+.vista-facturacion-restaurante #modal-promocion .promo-hours{
+  display:grid !important;
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  gap:12px !important;
+  align-items:end !important;
+  width:100% !important;
+}
+.vista-facturacion-restaurante #modal-promocion .promo-hours .form-group{
+  width:100% !important;
+  min-width:0 !important;
+}
+.vista-facturacion-restaurante #modal-promocion .promo-hours input[type='time']{
+  width:100% !important;
+  min-width:0 !important;
+  height:42px !important;
+}
+
+@media(max-width:900px){
+  .vista-facturacion-restaurante #modal-configuracion-restaurante #config-salida-comanda .rs-config-print-grid{
+    grid-template-columns:1fr !important;
+  }
+  .vista-facturacion-restaurante #modal-configuracion-restaurante #config-salida-comanda .rs-config-print-grid>.form-group{
+    border-radius:0 !important;
+  }
+  .vista-facturacion-restaurante #modal-configuracion-restaurante #config-salida-comanda .rs-config-print-grid>.form-group:first-child{
+    border-radius:11px 11px 0 0 !important;
+  }
+  .vista-facturacion-restaurante #modal-configuracion-restaurante #config-salida-comanda .rs-config-print-grid>.form-group:last-child{
+    border-radius:0 0 11px 11px !important;
+  }
+  .vista-facturacion-restaurante #modal-configuracion-restaurante #config-salida-comanda .rs-config-print-grid>.form-group+ .form-group{
+    border-left:0 !important;
+    border-top:1px solid #e1e8ee !important;
+  }
+}
+
+@media(max-width:760px){
+  .vista-facturacion-restaurante #modal-promocion .promo-schedule-row,
+  .vista-facturacion-restaurante #modal-promocion .promo-hours{
+    grid-template-columns:1fr !important;
+  }
+  .vista-facturacion-restaurante #modal-promocion .promo-switch-card{
+    min-height:70px !important;
+  }
+}
+
+/* ================================================================
+   Configuración operativa - selector visual por botones
+   Mantiene valores internos del sistema; solo mejora la interacción.
+   ================================================================ */
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-flow-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:0;
+  margin-top:14px;
+  border:1px solid #d7e2ec;
+  border-radius:14px;
+  overflow:hidden;
+  background:#fff;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-flow-stage{
+  min-width:0;
+  padding:16px;
+  background:#fff;
+  position:relative;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-flow-stage + .rs-config-flow-stage{
+  border-left:1px solid #d7e2ec;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-flow-heading{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:46px;
+  margin-bottom:12px;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-flow-number{
+  width:30px;
+  height:30px;
+  flex:0 0 30px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:50%;
+  background:#eaf6fd;
+  color:#1686c7;
+  font-weight:800;
+  font-size:13px;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-flow-heading strong{
+  display:block;
+  color:#263b50;
+  font-size:14px;
+  line-height:1.2;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-flow-heading small{
+  display:block;
+  color:#74869a;
+  font-size:11px;
+  line-height:1.35;
+  margin-top:3px;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-choice-list{
+  display:grid;
+  gap:8px;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-choice{
+  width:100%;
+  min-width:0;
+  min-height:66px;
+  border:1px solid #dce5ed;
+  border-radius:11px;
+  background:#fff;
+  display:grid;
+  grid-template-columns:36px minmax(0,1fr) 22px;
+  align-items:center;
+  gap:10px;
+  padding:10px 11px;
+  text-align:left;
+  color:#34495e;
+  cursor:pointer;
+  transition:border-color .16s ease,box-shadow .16s ease,background-color .16s ease,transform .16s ease;
+  box-shadow:none;
+  overflow:hidden;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-choice:hover{
+  border-color:#9fcfe9;
+  background:#f9fcfe;
+  transform:translateY(-1px);
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-choice:focus-visible{
+  outline:2px solid #37a8e6;
+  outline-offset:2px;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-choice.is-active{
+  border-color:#31a5df;
+  background:#f2faff;
+  box-shadow:0 0 0 2px rgba(49,165,223,.12);
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-choice-icon{
+  width:36px;
+  height:36px;
+  border-radius:10px;
+  background:#eef5f9;
+  color:#4b7089;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:15px;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-choice.is-active .rs-config-choice-icon{
+  background:#dff3ff;
+  color:#1686c7;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-choice-copy{
+  min-width:0;
+  display:block;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-choice-copy b{
+  display:block;
+  color:#2d4357;
+  font-size:12px;
+  line-height:1.25;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-choice-copy small{
+  display:block;
+  margin-top:3px;
+  color:#74869a;
+  font-size:10px;
+  line-height:1.3;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-choice-check{
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  border:1px solid #cad6df;
+  color:transparent;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:9px;
+  background:#fff;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-choice.is-active .rs-config-choice-check{
+  border-color:#24a36a;
+  background:#24a36a;
+  color:#fff;
+}
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-print-help{
+  margin-top:12px;
+}
+@media(max-width:980px){
+  .vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-flow-grid{
+    grid-template-columns:1fr;
+    overflow:visible;
+  }
+  .vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-flow-stage + .rs-config-flow-stage{
+    border-left:0;
+    border-top:1px solid #d7e2ec;
+  }
+  .vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-choice-list{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+@media(max-width:620px){
+  .vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-choice-list{
+    grid-template-columns:1fr;
+  }
+  .vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-flow-stage{
+    padding:13px;
+  }
+}

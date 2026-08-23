@@ -49,6 +49,66 @@ document.addEventListener('DOMContentLoaded', function () {
   let PROMOS_VIGENTES = {};    // Mapa de promociones por producto
   let PROMOS_TICKER = null;    // Interval ID para el contador
 
+  // Control de solicitudes para evitar bloqueos, solapamientos y dobles envíos
+  let cajaCheckEnCurso = false;
+  let contadorSarEnCurso = false;
+  let guardandoFactura = false;
+  const REQUEST_TIMEOUT_MS = 15000;
+
+  function setButtonBusy(button, busy, busyText) {
+    if (!button) return;
+    if (busy) {
+      if (!button.dataset.originalHtml) button.dataset.originalHtml = button.innerHTML;
+      button.disabled = true;
+      button.setAttribute('aria-busy', 'true');
+      if (busyText) button.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${busyText}`;
+    } else {
+      button.disabled = false;
+      button.removeAttribute('aria-busy');
+      if (button.dataset.originalHtml) {
+        button.innerHTML = button.dataset.originalHtml;
+        delete button.dataset.originalHtml;
+      }
+    }
+  }
+
+  async function fetchWithTimeout(url, options, timeoutMs) {
+    const opts = Object.assign({}, options || {});
+    const timeout = Number(timeoutMs || REQUEST_TIMEOUT_MS);
+    const controller = (typeof AbortController !== 'undefined' && !opts.signal) ? new AbortController() : null;
+    if (controller) opts.signal = controller.signal;
+    const timer = controller ? setTimeout(() => controller.abort(), timeout) : null;
+    try {
+      const response = await window.fetch(url, opts);
+      if (response.status === 401) {
+        try {
+          const authData = await response.clone().json();
+          if (authData && authData.redirect) window.location.href = authData.redirect;
+        } catch (_) {}
+      }
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response;
+    } catch (error) {
+      if (error && error.name === 'AbortError') {
+        const timeoutError = new Error('La solicitud tardó demasiado tiempo. Intente nuevamente.');
+        timeoutError.name = 'TimeoutError';
+        throw timeoutError;
+      }
+      throw error;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  // Timeout por defecto para llamadas jQuery/$.post sin alterar las que ya definan uno propio.
+  if (window.jQuery && typeof $.ajaxPrefilter === 'function') {
+    $.ajaxPrefilter(function(options) {
+      if (!options.timeout) options.timeout = REQUEST_TIMEOUT_MS;
+    });
+  }
+
   // Edición
   let editContext = {
     productoId: null,
@@ -76,6 +136,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const btnNuevaMesa = document.getElementById('btn-nueva-mesa');
   const btnGuardar   = document.getElementById('btn-guardar');
+  const btnCobrarMesa = document.getElementById('btn-cobrar-mesa');
   const btnImprimir  = document.getElementById('btn-imprimir');
   const btnCerrar    = document.getElementById('btn-cerrar');
   const btnLimpiar   = document.getElementById('btn-limpiar');
@@ -140,13 +201,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     getCajero();
     verificarAperturaCaja();
-    getTotalFacturasDisponibles();
   }
 
-  // refresca cada 5s (seguro)
+  // Refresco periódico sin duplicar solicitudes ni solapar ciclos previos
   setInterval(function () {
     verificarAperturaCaja();
-    getTotalFacturasDisponibles();
   }, 5000);
 
    function getServicioTipo(){
@@ -183,16 +242,11 @@ document.addEventListener('DOMContentLoaded', function () {
     var d = (payload && payload.responseJSON) || toJson(payload) || {};
     var msg = d.msg || d.message || (payload && payload.responseText) || (typeof payload === 'string' ? payload : 'No se pudo procesar');
     if (typeof showNotify === 'function') showNotify('error', title || 'Error', String(msg));
-    else alert(String(msg));
+    else console.error(title || 'Error', String(msg));
   }  
 
   function isProductoDeCocina(prod) {
-    // Busca su categoría y normaliza estación (tu helper ya existe)
-    const cat = categorias.find(c => String(c.id) === String(prod.categorias_id || prod.categoria_id));
-    if (!cat) return false;
-    const est = (cat.estacion || cat.station || cat.ruta || cat.tipo || '').toString().trim().toLowerCase();
-    if (est === 'kitchen' || est === 'cuisine') return true;
-    return est === 'cocina';
+    return normalizeEstacion(prod) === 'cocina';
   }
   
   function getComandaProductIdsSet() {
@@ -222,22 +276,132 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   
   // ===== Botón contextual Guardar/Cobrar según servicio =====
+  function etiquetaEstacion(clave){
+    const cfg=window.REST_CONFIG||{};
+    if(clave==='barra') return String(cfg.etiqueta_barra||'Barra').trim()||'Barra';
+    return String(cfg.etiqueta_cocina||'Cocina').trim()||'Cocina';
+  }
+
+  function usaComandasOperacion(){
+    return !(window.REST_CONFIG && Number(window.REST_CONFIG.usar_comandas)===0);
+  }
+
+  function destinoComandaOperacion(){
+    if(!usaComandasOperacion()) return 'ninguna';
+    const v=String((window.REST_CONFIG&&window.REST_CONFIG.destino_comanda)||'pantalla').toLowerCase().trim();
+    return ['pantalla','ticket','ambos'].includes(v)?v:'pantalla';
+  }
+
+  function momentoTicketOperacion(){
+    const v=String((window.REST_CONFIG&&window.REST_CONFIG.momento_ticket)||'enviar').toLowerCase().trim();
+    return v==='cobrar'?'cobrar':'enviar';
+  }
+
+  function debeEnviarPantallaComanda(){
+    const d=destinoComandaOperacion();
+    return usaComandasOperacion() && (d==='pantalla' || d==='ambos');
+  }
+
+  function debeImprimirTicketComanda(){
+    const d=destinoComandaOperacion();
+    return usaComandasOperacion() && (d==='ticket' || d==='ambos');
+  }
+
+  function aplicarEtiquetasOperacion(){
+    const usaComandas=usaComandasOperacion();
+    const e1=etiquetaEstacion('cocina');
+    const e2=etiquetaEstacion('barra');
+    const setText=(id,text)=>{ const el=document.getElementById(id); if(el) el.textContent=text; };
+
+    setText('label-fil-est-cocina',e1); setText('label-fil-est-barra',e2);
+    setText('label-cat-est-cocina',e1); setText('label-cat-est-barra',e2);
+    setText('label-prod-est-cocina',e1); setText('label-prod-est-barra',e2);
+
+    // Los grupos/estaciones son exclusivos del flujo de comandas.
+    const filtroEstacion=document.getElementById('filtro-estacion');
+    if(filtroEstacion) filtroEstacion.style.display=usaComandas?'':'none';
+    const catEstWrap=document.getElementById('cat-estacion-wrap');
+    if(catEstWrap) catEstWrap.style.display=usaComandas?'':'none';
+    const prodEstWrap=document.getElementById('prod-estacion-wrap');
+    if(prodEstWrap) prodEstWrap.style.display=usaComandas?'':'none';
+    const configStations=document.getElementById('config-grupos-operacion');
+    if(configStations) configStations.style.display=usaComandas?'':'none';
+    setText('texto-btn-mostrar-comanda',usaComandas?'Ver Comanda':'Ver detalle');
+    setText('texto-btn-ticket',usaComandas?'Ticket comanda':'Ticket de venta');
+    setText('titulo-ticket-operacion',usaComandas?'Ticket de comanda':'Ticket de venta');
+
+    const titulo=document.getElementById('titulo-panel-comanda');
+    if(titulo) titulo.innerHTML=usaComandas
+      ? '<i class="fas fa-clipboard-list"></i> Comanda'
+      : '<i class="fas fa-file-invoice"></i> Detalle de venta';
+
+    const btnMob=document.getElementById('btn-mostrar-comanda');
+    if(btnMob) btnMob.title=usaComandas?'Ver comanda':'Ver detalle de la venta';
+    if(btnImprimir) btnImprimir.title=usaComandas?'Vista e impresión del ticket de comanda':'Vista e impresión del ticket de venta';
+
+    const helpTitulo=document.getElementById('help-titulo-operacion');
+    if(helpTitulo) helpTitulo.innerHTML=usaComandas?'<i class="fas fa-receipt"></i> Comanda':'<i class="fas fa-file-invoice"></i> Venta';
+    setText('help-accion-principal',usaComandas?'Cobrar / enviar a preparación':'Cobrar venta');
+    setText('help-ticket-label',usaComandas?'Ticket de comanda':'Ticket de venta');
+    setText('help-limpiar-label',usaComandas?'Limpiar comanda':'Limpiar detalle');
+    setText('help-ver-panel-label',usaComandas?'Ver Productos/Comanda':'Ver Productos/Detalle');
+    const flujo=document.getElementById('help-flujo-operacion');
+    if(flujo){
+      const ul=flujo.querySelector('.help-bullets');
+      if(ul) ul.innerHTML=usaComandas
+        ? `<li><b>Para llevar:</b> puede cobrar de inmediato o usar <b>Guardar cuenta</b> para continuarla más tarde.</li><li><b>En mesa:</b> seleccione la mesa, envíe a preparación y vuelva a abrirla desde la tarjeta de mesa o desde <b>Cuentas abiertas</b>.</li><li>Los productos de <b>${escapeHtml(e1)}</b> y <b>${escapeHtml(e2)}</b> se separan por su grupo/ruta.</li><li>La factura fiscal se muestra después del pago. <b>Ticket de comanda</b> es un documento interno.</li>`
+        : `<li><b>Venta directa:</b> agregue productos y cobre de inmediato o use <b>Guardar cuenta</b> para continuarla más tarde.</li><li><b>Cuentas abiertas</b> permite recuperar una venta pendiente sin crear otra factura.</li><li>Use las <b>categorías</b> para organizar y filtrar el catálogo. Los grupos de preparación no se muestran en este modo.</li><li>La factura fiscal se muestra después del pago. <b>Ticket de venta</b> es un documento interno y no sustituye la factura.</li>`;
+    }
+  }
+
   function updateAccionPrincipalUI(){
     const el = document.getElementById('btn-guardar');
     if (!el) return;
+    const btnGuardarCuenta = document.getElementById('btn-guardar-cuenta');
+    const btnCuentas = document.getElementById('btn-cuentas-abiertas');
+    const tieneItems = Array.isArray(comandaItems) && comandaItems.length > 0;
+    const tieneFactura = !!(facturaActual && (facturaActual.id || facturaActual.factura_id || facturaActual.facturas_id));
+    const usarMesas = !(window.REST_CONFIG && Number(window.REST_CONFIG.usar_mesas) === 0);
+    const usarComandas = usaComandasOperacion();
 
-    // Limpia clases de estado
     el.classList.remove('btn-success','btn-warning','btn-danger');
 
-    if (servicioActual === 'llevar') {
+    if (!usarMesas || servicioActual === 'llevar') {
       el.innerHTML = '<i class="fas fa-cash-register"></i> Cobrar';
-      el.classList.add('btn-success');     // verde
-      el.title = 'Cobrar ahora y enviar a cocina';
+      el.classList.add('btn-success');
+      el.title = 'Facturar y abrir el método de pago';
+      if (btnCobrarMesa) btnCobrarMesa.style.display = 'none';
+      if (btnGuardarCuenta) {
+        btnGuardarCuenta.style.display = tieneItems ? '' : 'none';
+        btnGuardarCuenta.innerHTML = tieneFactura ? '<i class="fas fa-save"></i> Actualizar cuenta' : '<i class="fas fa-bookmark"></i> Guardar cuenta';
+      }
     } else {
-      el.innerHTML = '<i class="fas fa-fire"></i> Enviar a cocina';
-      el.classList.add('btn-warning');     // naranja
-      el.title = 'Guardar en borrador y enviar a cocina';
+      if (usarComandas) {
+        el.innerHTML = tieneFactura
+          ? '<i class="fas fa-sync-alt"></i> Actualizar cocina'
+          : '<i class="fas fa-fire"></i> Enviar a cocina';
+        el.title = tieneFactura ? 'Guardar cambios de la cuenta abierta y actualizar la comanda' : 'Guardar la cuenta y enviarla a preparación';
+      } else {
+        el.innerHTML = tieneFactura
+          ? '<i class="fas fa-save"></i> Actualizar cuenta'
+          : '<i class="fas fa-bookmark"></i> Guardar cuenta';
+        el.title = tieneFactura ? 'Actualizar la cuenta abierta de esta mesa' : 'Guardar la cuenta abierta de esta mesa';
+      }
+      el.classList.add('btn-warning');
+      if (btnCobrarMesa) btnCobrarMesa.style.display = (mesaSeleccionada && tieneItems) ? '' : 'none';
+      if (btnGuardarCuenta) {
+        btnGuardarCuenta.style.display = tieneItems ? '' : 'none';
+        btnGuardarCuenta.innerHTML = tieneFactura ? '<i class="fas fa-save"></i> Guardar cambios' : '<i class="fas fa-bookmark"></i> Guardar cuenta';
+        btnGuardarCuenta.title = 'Guardar la cuenta sin reenviar productos a preparación';
+      }
     }
+
+    if (btnImprimir) {
+      btnImprimir.style.display = tieneItems ? '' : 'none';
+      btnImprimir.disabled = !tieneItems;
+    }
+    if (btnCerrar) btnCerrar.style.display = tieneFactura ? '' : 'none';
+    if (btnCuentas) btnCuentas.style.display = '';
   }
 
   // Click único del botón
@@ -392,12 +556,12 @@ function initSelect2All(){
   // Selects del modal de Mesa
   initSelect2WithModal('#ubicacion-mesa', '#modal-mesa', {
       ...baseConfig,
-      minimumResultsForSearch: -1
+      minimumResultsForSearch: 0
   });
   
   initSelect2WithModal('#estado-mesa', '#modal-mesa', {
       ...baseConfig,
-      minimumResultsForSearch: -1
+      minimumResultsForSearch: 0
   });
   
   // Select de categoría del Producto
@@ -472,6 +636,8 @@ function initSelect2All(){
   }  
 
   function estacionSeleccionadaUI(){
+    // En modo genérico los grupos Cocina/Barra no forman parte de la experiencia.
+    if (!usaComandasOperacion()) return 'todas';
     const r = document.querySelector('#filtro-estacion input[name="filEst"]:checked');
     return r ? r.value : 'todas';
   }
@@ -484,36 +650,22 @@ function initSelect2All(){
 
   function fillProdCategoriaOptionsByEstacion(preselectId){
     const { selCat } = getProdControls();
-    if (!selCat) return;
-  
-    // Si aún no hay categorías, espera y vuelve a intentarlo
+    if (!selCat) return Promise.resolve();
+
     if (!Array.isArray(categorias) || !categorias.length){
-      ensureCategoriasReady().then(()=> fillProdCategoriaOptionsByEstacion(preselectId));
-      return;
+      return ensureCategoriasReady().then(()=> fillProdCategoriaOptionsByEstacion(preselectId));
     }
-  
-    const est = prodEstacionSeleccionadaUI(); // 'cocina' | 'barra'
-    let list = categorias.filter(c => normalizeEstacion(c) === est);
-  
-    // Fallback: si no hay por estación, muestra todas (para no dejar vacío)
-    if (!list.length && categorias.length){
-      list = categorias.slice();
-    }
-  
-    if (!list.length){
-      selCat.innerHTML = '<option value="">(No hay categorías)</option>';
-    } else {
-      selCat.innerHTML = list.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
-      // Seleccionar algo para activar el badge
-      if (preselectId){
-        selCat.value = String(preselectId);
-      } else if (!selCat.value && list.length){
-        selCat.value = String(list[0].id);
-      }
-    }
-  
+
+    // La estación es una propiedad operativa del PRODUCTO. La categoría organiza el catálogo,
+    // pero no obliga al producto a cocinarse en la misma estación.
+    const list = categorias.slice().sort((a,b)=>String(a.nombre||'').localeCompare(String(b.nombre||''),'es'));
+    selCat.innerHTML = '<option value="">Seleccione una categoría…</option>' +
+      list.map(c => `<option value="${c.id}" data-estacion="${normalizeEstacion(c)}">${escapeHtml(c.nombre)}</option>`).join('');
+
+    if (preselectId) selCat.value = String(preselectId);
     reinitSelect2ProdCategoria();
     actualizarProdEstacionInfo();
+    return Promise.resolve();
   }  
 
   function actualizarProdEstacionInfo(){
@@ -526,7 +678,8 @@ function initSelect2All(){
     if (cat){
       wrap.style.display = 'block';
       const est = normalizeEstacion(cat);
-      val.textContent = est.charAt(0).toUpperCase() + est.slice(1);
+      val.textContent = est === 'ninguna' ? 'Sin estación definida' : (est.charAt(0).toUpperCase() + est.slice(1));
+      wrap.title = 'La categoría puede tener una estación sugerida, pero la estación del producto se guarda de forma independiente.';
     } else {
       wrap.style.display = 'none';
       val.textContent = '—';
@@ -555,13 +708,9 @@ function initSelect2All(){
     if (!datos) {
       clienteInfoElement.innerHTML = `
         <input type="hidden" class="cli-id" id="clientes_id" name="clientes_id" value="0">
-        <i class="fas fa-user"></i>
         <span class="cli-datos">
-          <span class="cli-nombre"></span>
-          <small class="cli-rtn-wrap is-hidden">
-            <i class="fas fa-id-card"></i>
-            <span class="cli-rtn"></span>
-          </small>
+          <span class="cli-nombre-wrap"><i class="fas fa-user"></i><span class="cli-nombre"></span></span>
+          <small class="cli-rtn-wrap is-hidden"><i class="fas fa-id-card"></i><span class="cli-rtn-label">RTN</span><span class="cli-rtn"></span></small>
         </span>
       `;
       datos = clienteInfoElement.querySelector('.cli-datos');
@@ -598,7 +747,6 @@ function initSelect2All(){
 
     // Bloquear botones principales
     $('#btn-guardar').prop('disabled', disable);
-    $('#btn-imprimir').prop('disabled', disable);
     $('#btn-cerrar').prop('disabled', disable);
     
     // Bloquear otros elementos de la UI (manteniendo tu código original)
@@ -723,32 +871,34 @@ function initHotkeys(){
   //  AJAX de backend
   // ===========================================================
 
-  // 1) Consulta si la caja está abierta (1) o cerrada (2)
+  // 1) Consulta si la caja está abierta (1) o cerrada (2) SIN bloquear la interfaz
   function getConsultarAperturaCaja() {
-    var estado_apertura = 2; // default cerrada
-    $.ajax({
+    return $.ajax({
       type: 'POST',
       url: BASE + 'core/getAperturaCajaUsuario.php',
-      async: false
-    }).done(function (r) {
+      timeout: REQUEST_TIMEOUT_MS
+    }).then(function (r) {
       try {
-        var data = JSON.parse(r);
-        estado_apertura = Number(data[0]) || 2;
+        var data = (typeof r === 'string') ? JSON.parse(r) : r;
+        return Number(Array.isArray(data) ? data[0] : (data && (data.estado || data[0]))) || 2;
       } catch (e) {
-
+        return 2;
       }
-    }).fail(function () {
-
+    }, function () {
+      return 2;
     });
-    return estado_apertura;
   }
 
-  // 2) Contador SAR
+  // 2) Contador SAR, protegido contra solicitudes solapadas
   function getTotalFacturasDisponibles() {
-    $.ajax({
+    if (contadorSarEnCurso) return Promise.resolve(null);
+    contadorSarEnCurso = true;
+
+    return $.ajax({
       type: 'POST',
       url: BASE + 'core/getTotalFacturasDisponibles.php?_=' + Date.now(),
-      dataType: 'json'
+      dataType: 'json',
+      timeout: REQUEST_TIMEOUT_MS
     })
       .done(function (datos) {
         if (!datos || typeof datos.facturasPendientes === 'undefined') {
@@ -758,8 +908,11 @@ function initHotkeys(){
         facturasDisponibles = Number(datos.facturasPendientes) || 0;
         renderCounter(datos);
       })
-      .fail(function (jqXHR, textStatus, errorThrown) {
+      .fail(function () {
         showErrorState();
+      })
+      .always(function () {
+        contadorSarEnCurso = false;
       });
   }
 
@@ -819,29 +972,34 @@ function initHotkeys(){
   }
 
   // ===== Verificación de estado de caja y bloqueo de UI =====
-  function verificarAperturaCaja() {
-    var estado = Number(getConsultarAperturaCaja());
-    cajaAbierta = (estado === 1);
+  async function verificarAperturaCaja() {
+    if (cajaCheckEnCurso) return;
+    cajaCheckEnCurso = true;
+    try {
+      var estado = Number(await getConsultarAperturaCaja());
+      cajaAbierta = (estado === 1);
 
-    // Actualizar botón de apertura/cierre
-    var $btn = $('#btn-apertura-caja');
-    if ($btn.length) {
-      if (cajaAbierta) {
-        $btn.removeClass('btn-primary').addClass('btn-warning')
-          .html('<i class="fas fa-lock mr-1"></i> Cerrar Caja')
-          .data('mode', 'cerrar');
-      } else {
-        $btn.removeClass('btn-warning').addClass('btn-primary')
-          .html('<i class="fas fa-lock-open mr-1"></i> Aperturar Caja')
-          .data('mode', 'abrir');
+      // Actualizar botón de apertura/cierre
+      var $btn = $('#btn-apertura-caja');
+      if ($btn.length) {
+        if (cajaAbierta) {
+          $btn.removeClass('btn-primary').addClass('btn-warning')
+            .html('<i class="fas fa-lock mr-1"></i> Cerrar Caja')
+            .data('mode', 'cerrar');
+        } else {
+          $btn.removeClass('btn-warning').addClass('btn-primary')
+            .html('<i class="fas fa-lock-open mr-1"></i> Aperturar Caja')
+            .data('mode', 'abrir');
+        }
       }
+
+      toggleUIForCajaAbierta(cajaAbierta);
+      await getTotalFacturasDisponibles();
+    } catch (e) {
+      showErrorState();
+    } finally {
+      cajaCheckEnCurso = false;
     }
-
-    // Habilitar/Deshabilitar UI
-    toggleUIForCajaAbierta(cajaAbierta);
-
-    // Actualizar contador SAR
-    getTotalFacturasDisponibles();
   }
 
   // Si el modal se cierra, revalida
@@ -985,69 +1143,73 @@ function initHotkeys(){
     var vencido = daysLeft < 0;
     var sarOK = (count > 0) && !!fechaLimite && String(fechaLimite).trim() !== 'Sin definir' && !vencido;
 
-    // ejemplo: imprimir bloqueado si no hay caja o SAR invalidado
-    $('#btn-imprimir').prop('disabled', !(sarOK && cajaAbierta));
+    // El ticket operativo no depende de SAR ni de la apertura de caja.
+    updateAccionPrincipalUI();
   }
 
   function initSelectsPromos(){
     try{
-      $('#promo-tipo').select2({width:'100%'});
-      $('#promo-aplica-a').select2({width:'100%'});
-      $('#pp-promocion').select2({width:'100%'});
-      $('#pp-productos').select2({width:'100%'});
-      $('#pc-promocion').select2({width:'100%'});
-      $('#pc-categorias').select2({width:'100%'});
+      $('#promo-tipo').select2({width:'100%', dropdownParent:$('#modal-promocion')});
+      $('#promo-aplica-a').select2({width:'100%', dropdownParent:$('#modal-promocion')});
+      $('#pp-promocion').select2({width:'100%', dropdownParent:$('#modal-promo-productos')});
+      $('#pc-promocion').select2({width:'100%', dropdownParent:$('#modal-promo-categorias')});
+      // Los multiselect conservan su valor para el backend, pero su UI visible son tarjetas.
+      try { $('#pp-productos').select2('destroy'); } catch(_) {}
+      try { $('#pc-categorias').select2('destroy'); } catch(_) {}
     }catch(e){}
   }
 
   function setupEventListeners() {
-    // Delegación: clic en una mesa
+    // Delegación: selección/deselección de mesa sin ocuparla por el simple clic
     document.addEventListener('click', function(e){
       const tile = e.target.closest(MESA_TILE_SELECTOR);
       if (!tile) return;
+      if (e.target.closest('.mesa-actions')) return;
 
       const mesaId = parseInt(tile.getAttribute('data-mesa-id'), 10);
-      const mesaNombre = tile.getAttribute('data-nombre') || ('Mesa ' + mesaId);
-      servicioActual = 'mesa';
+      const mesa = mesas.find(m => Number(m.id || m.mesa_id) === mesaId);
+      if (!mesa) return;
 
-      // Marca selección en UI
-      mesaSeleccionada = mesaId;
-      setMesaSeleccionadaUI(mesaNombre);
-
-      // Si está ocupada, traemos la factura abierta y su detalle para cargar comanda
-      if (tile.classList.contains('ocupada') || tile.getAttribute('data-ocupada') === '1') {
-        $.post(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', { accion: 'getFacturaMesaAbierta', mesa_id: mesaId }, function(r){
-          try {
-            const data = JSON.parse(r);
-            if (data && data.ok && data.factura && Array.isArray(data.detalle)) {
-              facturaActual = data.factura;
-              comandaItems = data.detalle.map(d => ({
-                productos_id: d.productos_id,
-                cantidad: parseInt(d.cantidad,10) || 1,
-                precio: parseFloat(d.precio) || 0,
-                // agrega otros campos que ya uses internamente
-              }));
-              // Re-renderiza comanda y badges
-              if (typeof renderComanda === 'function') renderComanda();
-              updateProductBadges();
-            }
-          } catch(err){  }
-        });
-      } else {
-        // Si estaba libre, la marcamos ocupada en backend (y en UI)
-        $.post(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', { accion: 'ocuparMesa', mesa_id: mesaId }, function(r){
-          try {
-            const data = JSON.parse(r);
-            if (data && data.ok) {
-              tile.classList.add('ocupada');
-              tile.setAttribute('data-ocupada', '1');
-              // opcional: poner un chip de estado
-              const estado = tile.querySelector('.estado');
-              if (estado) estado.textContent = 'Ocupada';
-            }
-          } catch(err){ }
-        });
+      const estado = String(mesa.estado || tile.getAttribute('data-estado') || 'disponible').toLowerCase();
+      if (estado === 'mantenimiento') {
+        showAlert('warning','Mesa no disponible','La mesa se encuentra en mantenimiento.');
+        return;
       }
+
+      const actualId = mesaSeleccionada && Number(mesaSeleccionada.id || mesaSeleccionada.mesa_id || mesaSeleccionada || 0);
+      if (actualId === mesaId) {
+        // Quitar selección NO libera ni cancela la cuenta guardada; solo limpia la sesión visual.
+        const teniaCuenta = !!(facturaActual && (facturaActual.id || facturaActual.factura_id || facturaActual.facturas_id));
+        mesaSeleccionada = null;
+        facturaActual = null;
+        if (teniaCuenta) {
+          comandaItems = [];
+          actualizarComandaUI();
+          clienteSeleccionado = { id: 1, nombre: 'CONSUMIDOR FINAL', identificacion: '' };
+          pintarClienteInfoHeader();
+          if (observacionesTextarea) observacionesTextarea.value = '';
+        }
+        setServicioTipo('llevar');
+        setMesaSeleccionadaUI(null);
+        highlightMesaSeleccionada();
+        if (facturaTitle) facturaTitle.innerHTML = usaComandasOperacion()?'<i class="fas fa-receipt"></i> Nueva Comanda':'<i class="fas fa-cash-register"></i> Nueva venta';
+        if (btnImprimir) btnImprimir.disabled = true;
+        updateAccionPrincipalUI();
+        return;
+      }
+
+      // Si es reserva, precargar el cliente reservado; la mesa se vuelve ocupada hasta guardar la cuenta.
+      if (estado === 'reservada' && mesa.reserva && mesa.reserva.clientes_id) {
+        clienteSeleccionado = {
+          id: Number(mesa.reserva.clientes_id),
+          nombre: mesa.reserva.cliente_nombre || 'Cliente reservado',
+          identificacion: mesa.reserva.cliente_rtn || ''
+        };
+        pintarClienteInfoHeader();
+      }
+
+      seleccionarMesa(mesa);
+      updateAccionPrincipalUI();
     });
 
     // Click del botón único (abre el modal correcto)
@@ -1060,28 +1222,22 @@ function initHotkeys(){
       }
     });
   
-    // Cuando se cierra el modal de apertura/cierre
-    $('#modal_apertura_caja').on('hidden.bs.modal', function () {
-      verificarAperturaCaja();
-    });
-
       // Dropdown Gestionar
     $(document).on('click','#btn-gestionar-acciones',function(e){
       e.stopPropagation();
       $('#gestionar-menu').toggleClass('show');
     });
     $(document).on('click',function(){ $('#gestionar-menu').removeClass('show'); });
-    $(document).on('click','#gestionar-menu button',function(){
+    $(document).on('click','#gestionar-menu button',function(e){
       var t = $(this).data('target');
-      if(t){ $(t).trigger('click'); }
       $('#gestionar-menu').removeClass('show');
-    });
-
-    // Dispara los botones ocultos originales
-    $(document).on('click','#gestionar-menu button',function(){
-      var t = $(this).data('target');
-      if(t){ try{ $(t).trigger('click'); }catch(e){} }
-      $('#gestionar-menu').removeClass('show');
+      if(!t) return; // configuración tiene su propio listener protegido
+      e.preventDefault(); e.stopPropagation();
+      var label = ($(this).text() || 'Administrar').trim();
+      autorizarGestionRestaurante(label, function(){
+        REST_AUTH_BYPASS = true;
+        try { $(t).trigger('click'); } finally { setTimeout(function(){ REST_AUTH_BYPASS=false; },0); }
+      });
     });
 
     // ====== Apertura y cierre genérico de modales .rs-modal
@@ -1090,13 +1246,12 @@ function initHotkeys(){
     });
 
     // ====== Promos: abrir modales
-    $('#btn-gestionar-promos').on('click', function(){
+    $('#btn-gestionar-promos').on('click', async function(){
       $('#modal-promociones-list').show();
-      // Enfocar el primer elemento del modal después de mostrarlo
+      await cargarPromocionesListado();
       setTimeout(function() {
-        $('#modal-promociones-list').find('input, select, textarea').first().focus();
-      }, 100);
-      // TODO: cargar listado por AJAX
+        $('#modal-promociones-list').find('input, select, textarea, button').filter(':visible').first().focus();
+      }, 50);
     });
 
     $('#btn-nueva-promocion, #btn-abrir-nueva-promocion').on('click', function(){
@@ -1118,24 +1273,30 @@ function initHotkeys(){
       }, 0);
     });
 
-    $('#btn-asignar-promo-productos').on('click', function(){
+    $('#btn-asignar-promo-productos').on('click', async function(){
       $('#modal-promo-productos').show();
-      setTimeout(function() {
+      renderListLoading($('#pp-listado'), 'Cargando productos asignados…');
+      try {
         initSelectsPromos();
-        // Enfocar el primer select después de inicializar
-        $('#pp-promocion').select2('focus');
-      }, 0);
-      // TODO: cargar promos, productos y asignados por AJAX
+        await llenarSelectsPromoProductos();
+        setTimeout(function() { try { $('#pp-promocion').select2('focus'); } catch(_) {} }, 0);
+      } catch (e) {
+        renderListError($('#pp-listado'), e.message || 'No se pudo cargar la información');
+        showAlert('error','Error', e.message || 'No se pudo cargar la información de promociones');
+      }
     });
 
-    $('#btn-asignar-promo-categorias').on('click', function(){
+    $('#btn-asignar-promo-categorias').on('click', async function(){
       $('#modal-promo-categorias').show();
-      setTimeout(function() {
+      renderListLoading($('#pc-listado'), 'Cargando categorías asignadas…');
+      try {
         initSelectsPromos();
-        // Enfocar el primer select después de inicializar
-        $('#pc-promocion').select2('focus');
-      }, 0);
-      // TODO: cargar promos, categorías y asignados por AJAX
+        await llenarSelectsPromoCategorias();
+        setTimeout(function() { try { $('#pc-promocion').select2('focus'); } catch(_) {} }, 0);
+      } catch (e) {
+        renderListError($('#pc-listado'), e.message || 'No se pudo cargar la información');
+        showAlert('error','Error', e.message || 'No se pudo cargar la información de promociones');
+      }
     });
 
     /* ============================================================
@@ -1144,27 +1305,34 @@ function initHotkeys(){
 
     // Guardar promoción (Crear/Actualizar)
     $(document).on('click', '#btn-guardar-promocion', async function(){
+      const btn = this;
+      if (btn.disabled) return;
       try{
-        if (!validateForm('form-promocion')) { // Asumiendo que tu formulario tiene id="form-producto"
-          return;
-        }   
-        
-        const data = recogerFormPromocion(); // arma el payload
-        const accion = data.promo_id ? 'updatePromocion' : 'savePromocion';     
+        if (!validateForm('form-promocion')) return;
+        const data = recogerFormPromocion();
+        const accion = data.promo_id ? 'updatePromocion' : 'savePromocion';
+        setButtonBusy(btn, true, data.promo_id ? 'Actualizando…' : 'Guardando…');
 
         const res = await apiPromos(accion, data);
         if(!res || !res.status){ throw new Error(res && res.message ? res.message : 'No se pudo guardar'); }
         showAlert('success','Éxito', data.promo_id ? 'Promoción actualizada' : 'Promoción creada');
         $('#modal-promocion').hide();
 
-        // Refrescar selects de otros modales (productos/categorías)
-        await Promise.all([
+        await Promise.allSettled([
           llenarPromosSelect($('#pp-promocion')),
           llenarPromosSelect($('#pc-promocion')),
+          cargarPromocionesListado()
         ]);
       }catch(e){
         showAlert('error','Error', e.message || 'Error al guardar la promoción');
+      } finally {
+        setButtonBusy(btn, false);
       }
+    });
+
+    $(document).on('click', '.promo-edit', function(){
+      const id = parseInt($(this).data('id'), 10);
+      if (id) abrirEdicionPromocion(id);
     });
 
     if (srvMesa) {
@@ -1180,22 +1348,29 @@ function initHotkeys(){
       const pid = $(this).val();
       $('#pp-listado').html('');
       if (pid) await cargarAsignadosProductos(pid);
+      else { $('#pp-productos').val(null).trigger('change'); renderPromoProductosPicker(window.__promoProductosPicker || []); syncPromoPickerCount('producto'); }
     });
 
     // Guardar asignación productos -> promo
     $(document).on('click', '#btn-guardar-promo-productos', async function(){
+      const btn = this;
+      if (btn.disabled) return;
       const promo_id = $('#pp-promocion').val();
       const productos_ids = ($('#pp-productos').val() || []).map(v => parseInt(v,10)).filter(Boolean);
       if(!promo_id){ showAlert('warning','Atención','Seleccione una promoción'); return; }
       if(!productos_ids.length){ showAlert('warning','Atención','Seleccione al menos un producto'); return; }
       try{
+        setButtonBusy(btn, true, 'Guardando…');
         const res = await apiPromos('assignPromoProductos', { promo_id, productos_ids });
         if(!res || !res.status){ throw new Error(res && res.message ? res.message : 'No se pudo asignar'); }
         showAlert('success','Éxito','Productos asignados');
         $('#pp-productos').val(null).trigger('change');
+        renderPromoProductosPicker(window.__promoProductosPicker || []); syncPromoPickerCount('producto');
         await cargarAsignadosProductos(promo_id);
       }catch(e){
         showAlert('error','Error', e.message || 'Error al asignar productos');
+      } finally {
+        setButtonBusy(btn, false);
       }
     });
 
@@ -1220,22 +1395,29 @@ function initHotkeys(){
       const pid = $(this).val();
       $('#pc-listado').html('');
       if (pid) await cargarAsignadosCategorias(pid);
+      else { $('#pc-categorias').val(null).trigger('change'); renderPromoCategoriasPicker(window.__promoCategoriasPicker || []); syncPromoPickerCount('categoria'); }
     });
 
     // Guardar asignación categorías -> promo
     $(document).on('click', '#btn-guardar-promo-categorias', async function(){
+      const btn = this;
+      if (btn.disabled) return;
       const promo_id = $('#pc-promocion').val();
       const categorias_ids = ($('#pc-categorias').val() || []).map(v => parseInt(v,10)).filter(Boolean);
       if(!promo_id){ showAlert('warning','Atención','Seleccione una promoción'); return; }
       if(!categorias_ids.length){ showAlert('warning','Atención','Seleccione al menos una categoría'); return; }
       try{
+        setButtonBusy(btn, true, 'Guardando…');
         const res = await apiPromos('assignPromoCategorias', { promo_id, categorias_ids });
         if(!res || !res.status){ throw new Error(res && res.message ? res.message : 'No se pudo asignar'); }
         showAlert('success','Éxito','Categorías asignadas');
         $('#pc-categorias').val(null).trigger('change');
+        renderPromoCategoriasPicker(window.__promoCategoriasPicker || []); syncPromoPickerCount('categoria');
         await cargarAsignadosCategorias(promo_id);
       }catch(e){
         showAlert('error','Error', e.message || 'Error al asignar categorías');
+      } finally {
+        setButtonBusy(btn, false);
       }
     });
 
@@ -1254,6 +1436,9 @@ function initHotkeys(){
         }
       });
     });
+
+    $(document).off('input.promoPickerProductos','#pp-buscar-producto').on('input.promoPickerProductos','#pp-buscar-producto',function(){ renderPromoProductosPicker(window.__promoProductosPicker || [], this.value); });
+    $(document).off('input.promoPickerCategorias','#pc-buscar-categoria').on('input.promoPickerCategorias','#pc-buscar-categoria',function(){ renderPromoCategoriasPicker(window.__promoCategoriasPicker || [], this.value); });
 
     // ====== Función genérica para enfocar el primer input en modales
     $(document).on('shown', '.rs-modal', function() {
@@ -1415,12 +1600,10 @@ function initHotkeys(){
     // Guardar factura
     if (btnGuardar) btnGuardar.addEventListener('click', onAccionPrincipalClick);
 
-    // Imprimir
+    // Ticket de comanda (la factura fiscal se imprime al finalizar el pago oficial)
     if (btnImprimir) {
       btnImprimir.addEventListener('click', function () {
-        const id = (facturaActual && (facturaActual.factura_id || facturaActual.id)) ? (facturaActual.factura_id || facturaActual.id) : null;
-        if (!id) { showAlert('warning', 'Sin factura', 'No hay una factura cargada para imprimir'); return; }
-        if (typeof printBill === 'function') printBill(id); else window.print();
+        abrirTicketComanda();
       });
     }
 
@@ -1458,7 +1641,7 @@ function initHotkeys(){
     const btnSeleccionar = document.getElementById('btn-seleccionar-cliente');
     if (btnEditarSel) btnEditarSel.addEventListener('click', ()=> {
       if (selectedClienteForModal && selectedClienteForModal.id !== 0) {
-        abrirEdicionCliente(mapearClienteObjeto(selectedClienteForModal));
+        autorizarGestionRestaurante('Editar cliente', ()=>abrirEdicionCliente(mapearClienteObjeto(selectedClienteForModal)), selectedClienteForModal && (selectedClienteForModal.clientes_id || selectedClienteForModal.id || ''));
       }
     });
     if (btnSeleccionar) btnSeleccionar.addEventListener('click', confirmarSeleccionCliente);
@@ -1475,14 +1658,21 @@ function initHotkeys(){
     if (btnMostrarProductos) btnMostrarProductos.addEventListener('click', () => mostrarVista('productos'));
     if (btnMostrarComanda)   btnMostrarComanda.addEventListener('click', () => mostrarVista('comanda'));
 
-    // Filtro Estación (Todas/Cocina/Barra) — refresca pestañas
+    // Filtro Estación (Todas/Cocina/Barra) — refresca categorías Y productos
     document.querySelectorAll('#filtro-estacion input[name="filEst"]').forEach(radio=>{
-      radio.addEventListener('change', ()=> renderizarCategorias());
+      radio.addEventListener('change', ()=> {
+        renderizarCategorias();
+        filtrarProductos(buscarProductoInput ? buscarProductoInput.value : '');
+      });
     });
 
-    // Segmentado estación del modal de Producto -> filtra categorías del select
+    // Segmentado estación del modal de Producto.
+    // La estación pertenece al PRODUCTO; cambiar Cocina/Barra NO debe borrar la categoría.
     document.querySelectorAll('#prod-estacion input[name="prodEstacion"]').forEach(radio=>{
-      radio.addEventListener('change', ()=> fillProdCategoriaOptionsByEstacion());
+      radio.addEventListener('change', ()=> {
+        const actual = (document.getElementById('prod-categoria') || {}).value || '';
+        fillProdCategoriaOptionsByEstacion(actual);
+      });
     });
 
     // Categoría / Producto
@@ -1611,7 +1801,7 @@ function initHotkeys(){
 
   // Post JSON con manejo de error
   async function apiPromos(action, data){
-    const r = await fetch(AJAX_PROMOS, {
+    const r = await fetchWithTimeout(AJAX_PROMOS, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ action, data })
@@ -1628,7 +1818,7 @@ function initHotkeys(){
    * Carga las promociones vigentes desde el servidor
    */
   function fetchPromosVigentesProductos() {
-    return fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
+    return fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: 'action=loadPromocionesVigentesProductos'
@@ -1780,6 +1970,89 @@ function initHotkeys(){
     };
   }
 
+  let promocionesListado = [];
+
+  function renderListLoading($container, text){
+    if (!$container || !$container.length) return;
+    $container.html(`<div class="rs-list-state"><i class="fas fa-spinner fa-spin"></i><span>${escapeHtml(text || 'Cargando…')}</span></div>`);
+  }
+
+  function renderListError($container, text){
+    if (!$container || !$container.length) return;
+    $container.html(`<div class="rs-list-state rs-list-state-error"><i class="fas fa-exclamation-circle"></i><span>${escapeHtml(text || 'No se pudo cargar')}</span></div>`);
+  }
+
+  function fmtPromoValor(p){
+    return String(p.tipo_descuento || '').toUpperCase() === 'PORC'
+      ? `${Number(p.valor || 0).toFixed(2)}%`
+      : `L ${fmtHNL(p.valor || 0)}`;
+  }
+
+  async function cargarPromocionesListado(){
+    const $list = $('#promos-rows');
+    if (!$list.length) return;
+    renderListLoading($list, 'Cargando promociones…');
+    try {
+      const res = await apiPromos('loadPromociones', {});
+      if (!res || !res.status) throw new Error((res && res.message) || 'No se pudieron cargar las promociones');
+      promocionesListado = Array.isArray(res.promociones) ? res.promociones : [];
+      $list.empty();
+      if (!promocionesListado.length) {
+        $list.html('<div class="rs-list-state"><i class="fas fa-tags"></i><span>No hay promociones registradas</span></div>');
+        return;
+      }
+      promocionesListado.forEach(p => {
+        const horario = (p.hora_inicio || p.hora_fin) ? `${escapeHtml(p.hora_inicio || '00:00')} - ${escapeHtml(p.hora_fin || '23:59')}` : 'Todo el día';
+        const estado = Number(p.estado) === 1 ? 'Activa' : 'Inactiva';
+        const estadoClass = Number(p.estado) === 1 ? 'is-active' : 'is-inactive';
+        $list.append(`
+          <div class="promo-list-item" data-promo-id="${Number(p.promo_id)}">
+            <div class="promo-list-main">
+              <div class="promo-list-title">${escapeHtml(p.nombre || '')}</div>
+              <div class="promo-list-desc">${escapeHtml(p.descripcion || 'Sin descripción')}</div>
+            </div>
+            <div class="promo-list-field"><span>Descuento</span><strong>${escapeHtml(fmtPromoValor(p))}</strong></div>
+            <div class="promo-list-field"><span>Vigencia</span><strong>${escapeHtml(p.fecha_inicio || '')} → ${escapeHtml(p.fecha_fin || '')}</strong><small>${horario}</small></div>
+            <div class="promo-list-field"><span>Aplica a</span><strong>${escapeHtml(p.aplica_a || '')}</strong></div>
+            <div class="promo-list-field"><span>Prioridad</span><strong>${Number(p.prioridad || 0)}</strong></div>
+            <div class="promo-list-field"><span>Estado</span><strong class="promo-state ${estadoClass}">${estado}</strong></div>
+            <div class="promo-list-actions">
+              <button type="button" class="btn btn-sm btn-primary promo-edit" data-id="${Number(p.promo_id)}"><i class="fas fa-edit"></i> Editar</button>
+            </div>
+          </div>`);
+      });
+    } catch (e) {
+      renderListError($list, e.message || 'No se pudieron cargar las promociones');
+    }
+  }
+
+  function abrirEdicionPromocion(id){
+    const p = promocionesListado.find(x => Number(x.promo_id) === Number(id));
+    if (!p) { showAlert('warning','Atención','No se encontró la promoción seleccionada'); return; }
+    const form = document.getElementById('form-promocion');
+    if (form) form.classList.remove('was-validated');
+    $('#promo-id').val(p.promo_id || '');
+    $('#promo-nombre').val(p.nombre || '');
+    $('#promo-descripcion').val(p.descripcion || '');
+    $('#promo-tipo').val(p.tipo_descuento || 'PORC').trigger('change');
+    $('#promo-valor').val(Number(p.valor || 0).toFixed(2));
+    $('#promo-fecha-inicio').val(p.fecha_inicio || '');
+    $('#promo-fecha-fin').val(p.fecha_fin || '');
+    const usaHorario = !!(p.hora_inicio || p.hora_fin);
+    $('#promo-usa-horario').prop('checked', usaHorario).trigger('change');
+    $('#promo-hora-inicio').val((p.hora_inicio || '').substring(0,5));
+    $('#promo-hora-fin').val((p.hora_fin || '').substring(0,5));
+    $('.promo-dia').prop('checked', false);
+    String(p.dias_semana || '').split(',').filter(Boolean).forEach(d => $(`.promo-dia[value="${d}"]`).prop('checked', true));
+    $('#promo-prioridad').val(Number(p.prioridad || 0));
+    $('#promo-aplica-a').val(p.aplica_a || 'PRODUCTO').trigger('change');
+    $('#promo-acumula').prop('checked', Number(p.acumula_con_mayoreo) === 1);
+    $('#promo-estado').prop('checked', Number(p.estado) === 1);
+    $('#titulo-modal-promocion').text('Editar promoción');
+    $('#modal-promocion').show();
+    setTimeout(() => $('#promo-nombre').trigger('focus'), 0);
+  }
+
   /* ---------- SELECTS (llenado) ---------- */
   async function llenarPromosSelect($sel){
     const res = await apiPromos('loadPromocionesMin', {});
@@ -1793,28 +2066,78 @@ function initHotkeys(){
     $sel.trigger('change');
   }
 
+  function syncPromoPickerCount(kind){
+    const sel = document.getElementById(kind === 'producto' ? 'pp-productos' : 'pc-categorias');
+    const count = sel ? Array.from(sel.selectedOptions || []).length : 0;
+    const out = document.getElementById(kind === 'producto' ? 'pp-seleccion-count' : 'pc-seleccion-count');
+    if (out) out.textContent = `${count} ${kind === 'producto' ? (count===1?'seleccionado':'seleccionados') : (count===1?'seleccionada':'seleccionadas')}`;
+  }
+
+  function togglePromoPickerSelection(selectId, value, card, kind){
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    const opt = Array.from(sel.options).find(o => String(o.value) === String(value));
+    if (!opt) return;
+    opt.selected = !opt.selected;
+    card.classList.toggle('selected', opt.selected);
+    card.setAttribute('aria-pressed', opt.selected ? 'true' : 'false');
+    $(sel).trigger('change');
+    syncPromoPickerCount(kind);
+  }
+
+  function renderPromoProductosPicker(list, query=''){
+    const grid = document.getElementById('pp-productos-grid');
+    if (!grid) return;
+    const q = String(query||'').trim().toLowerCase();
+    const sel = document.getElementById('pp-productos');
+    const selected = new Set(sel ? Array.from(sel.selectedOptions).map(o=>String(o.value)) : []);
+    const items = (list||[]).filter(p => !q || String(p.nombre||'').toLowerCase().includes(q) || String(p.barCode||'').toLowerCase().includes(q));
+    if (!items.length){ grid.innerHTML='<div class="promo-picker-empty"><i class="fas fa-search"></i><span>No encontramos productos con ese filtro.</span></div>'; return; }
+    grid.innerHTML = items.map(p=>{
+      const id=String(p.productos_id); const isSel=selected.has(id);
+      const img=p.file_name ? `${SERVERURL}vistas/plantilla/img/products/${encodeURIComponent(p.file_name)}` : `${SERVERURL}vistas/plantilla/img/products/image_preview.png`;
+      const est=normalizeEstacion(p);
+      return `<button type="button" class="promo-product-card ${isSel?'selected':''}" data-picker-product="${id}" aria-pressed="${isSel?'true':'false'}">
+        <span class="promo-card-check"><i class="fas fa-check"></i></span>
+        <span class="promo-product-image"><img src="${img}" alt="${escapeHtml(p.nombre||'Producto')}" loading="lazy"></span>
+        <span class="promo-product-info"><strong>${escapeHtml(p.nombre||'')}</strong><small>${escapeHtml(p.barCode||'Sin código')}</small>${usaComandasOperacion()?`<em><i class="${est==='barra'?'fas fa-glass-martini-alt':'fas fa-utensils'}"></i> ${escapeHtml(etiquetaEstacion(est==='barra'?'barra':'cocina'))}</em>`:''}</span>
+      </button>`;
+    }).join('');
+    grid.querySelectorAll('[data-picker-product]').forEach(card=> card.addEventListener('click', ()=>togglePromoPickerSelection('pp-productos',card.dataset.pickerProduct,card,'producto')));
+  }
+
+  function renderPromoCategoriasPicker(list, query=''){
+    const grid = document.getElementById('pc-categorias-grid');
+    if (!grid) return;
+    const q=String(query||'').trim().toLowerCase();
+    const sel=document.getElementById('pc-categorias');
+    const selected=new Set(sel ? Array.from(sel.selectedOptions).map(o=>String(o.value)) : []);
+    const items=(list||[]).filter(c=>!q || String(c.nombre||'').toLowerCase().includes(q));
+    if(!items.length){ grid.innerHTML='<div class="promo-picker-empty"><i class="fas fa-search"></i><span>No encontramos categorías con ese filtro.</span></div>'; return; }
+    grid.innerHTML=items.map(c=>{ const id=String(c.id||c.categoria_id); const on=selected.has(id); const est=normalizeEstacion(c); const sub=usaComandasOperacion()?`<small>${est==='ninguna'?'Sin estación sugerida':escapeHtml(etiquetaEstacion(est==='barra'?'barra':'cocina'))}</small>`:''; return `<button type="button" class="promo-category-card ${on?'selected':''}" data-picker-category="${id}" aria-pressed="${on?'true':'false'}"><span class="promo-card-check"><i class="fas fa-check"></i></span><span class="promo-category-icon"><i class="fas fa-layer-group"></i></span><span><strong>${escapeHtml(c.nombre||'')}</strong>${sub}</span></button>`; }).join('');
+    grid.querySelectorAll('[data-picker-category]').forEach(card=>card.addEventListener('click',()=>togglePromoPickerSelection('pc-categorias',card.dataset.pickerCategory,card,'categoria')));
+  }
+
   async function llenarProductosSelect($sel){
-    // Si ya tienes productos cargados globalmente, puedes usarlos.
-    // Para ser autónomos, pedimos al backend:
     const res = await apiPromos('loadProductos', {});
     const list = (res && res.productos) ? res.productos : [];
+    window.__promoProductosPicker = list;
     $sel.empty();
-    list.forEach(p=>{
-      const opt = new Option(`${p.nombre} (${p.barCode||''})`, p.productos_id, false, false);
-      $sel.append(opt);
-    });
+    list.forEach(p=>$sel.append(new Option(p.nombre || `Producto ${p.productos_id}`, p.productos_id, false, false)));
     $sel.trigger('change');
+    renderPromoProductosPicker(list, (document.getElementById('pp-buscar-producto')||{}).value || '');
+    syncPromoPickerCount('producto');
   }
 
   async function llenarCategoriasSelect($sel){
     const res = await apiPromos('loadCategorias', { estacion:'todas' });
     const list = (res && res.categorias) ? res.categorias : [];
+    window.__promoCategoriasPicker = list;
     $sel.empty();
-    list.forEach(c=>{
-      const opt = new Option(`${c.nombre}`, c.id, false, false);
-      $sel.append(opt);
-    });
+    list.forEach(c=>$sel.append(new Option(c.nombre || `Categoría ${c.id}`, c.id, false, false)));
     $sel.trigger('change');
+    renderPromoCategoriasPicker(list, (document.getElementById('pc-buscar-categoria')||{}).value || '');
+    syncPromoPickerCount('categoria');
   }
 
   // Helpers para apertura de modales de asignación
@@ -1839,62 +2162,83 @@ function initHotkeys(){
 
   /* ---------- Listados asignados + render ---------- */
   async function cargarAsignadosProductos(promo_id){
-    const res = await apiPromos('loadPromoProductos', { promo_id });
-    const items = (res && res.items) ? res.items : [];
-    const tbody = $('#pp-listado');
-    tbody.html('');
-    if(!items.length){
-      tbody.append('<tr><td colspan="3" class="text-center muted">Sin productos asignados</td></tr>');
-      return;
+    const $list = $('#pp-listado');
+    renderListLoading($list, 'Cargando productos asignados…');
+    try {
+      const res = await apiPromos('loadPromoProductos', { promo_id });
+      if (!res || !res.status) throw new Error((res && res.message) || 'No se pudieron cargar los productos');
+      const items = Array.isArray(res.items) ? res.items : [];
+      const selectedIds = items.map(x=>String(x.producto_id || x.productos_id || '')).filter(Boolean);
+      $('#pp-productos').val(selectedIds).trigger('change');
+      renderPromoProductosPicker(window.__promoProductosPicker || [], (document.getElementById('pp-buscar-producto')||{}).value || '');
+      syncPromoPickerCount('producto');
+      $list.empty();
+      if(!items.length){
+        $list.html('<div class="rs-list-state"><i class="fas fa-box-open"></i><span>Sin productos asignados</span></div>');
+        return;
+      }
+      items.forEach(row=>{
+        $list.append(`
+          <div class="assignment-list-item">
+            <div class="assignment-main"><strong>${escapeHtml(row.nombre || '')}</strong><small>${escapeHtml(row.barCode || 'Sin código')}</small></div>
+            <button type="button" class="btn btn-sm btn-danger pp-del" data-promo="${Number(promo_id)}" data-pid="${Number(row.producto_id)}" title="Quitar producto"><i class="fas fa-trash"></i></button>
+          </div>`);
+      });
+    } catch (e) {
+      renderListError($list, e.message || 'No se pudieron cargar los productos');
     }
-    items.forEach(row=>{
-      const tr = `
-        <tr>
-          <td>${escapeHtml(row.nombre || '')}</td>
-          <td>${escapeHtml(row.barCode || '')}</td>
-          <td class="text-right">
-            <button type="button" class="btn btn-sm btn-danger pp-del" data-promo="${promo_id}" data-pid="${row.producto_id}">
-              <i class="fas fa-trash"></i>
-            </button>
-          </td>
-        </tr>`;
-      tbody.append(tr);
-    });
   }
 
   async function cargarAsignadosCategorias(promo_id){
-    const res = await apiPromos('loadPromoCategorias', { promo_id });
-    const items = (res && res.items) ? res.items : [];
-    const tbody = $('#pc-listado');
-    tbody.html('');
-    if(!items.length){
-      tbody.append('<tr><td colspan="2" class="text-center muted">Sin categorías asignadas</td></tr>');
-      return;
+    const $list = $('#pc-listado');
+    renderListLoading($list, 'Cargando categorías asignadas…');
+    try {
+      const res = await apiPromos('loadPromoCategorias', { promo_id });
+      if (!res || !res.status) throw new Error((res && res.message) || 'No se pudieron cargar las categorías');
+      const items = Array.isArray(res.items) ? res.items : [];
+      const selectedIds = items.map(x=>String(x.categoria_id || '')).filter(Boolean);
+      $('#pc-categorias').val(selectedIds).trigger('change');
+      renderPromoCategoriasPicker(window.__promoCategoriasPicker || [], (document.getElementById('pc-buscar-categoria')||{}).value || '');
+      syncPromoPickerCount('categoria');
+      $list.empty();
+      if(!items.length){
+        $list.html('<div class="rs-list-state"><i class="fas fa-layer-group"></i><span>Sin categorías asignadas</span></div>');
+        return;
+      }
+      items.forEach(row=>{
+        $list.append(`
+          <div class="assignment-list-item">
+            <div class="assignment-main"><strong>${escapeHtml(row.nombre || '')}</strong></div>
+            <button type="button" class="btn btn-sm btn-danger pc-del" data-promo="${Number(promo_id)}" data-cid="${Number(row.categoria_id)}" title="Quitar categoría"><i class="fas fa-trash"></i></button>
+          </div>`);
+      });
+    } catch (e) {
+      renderListError($list, e.message || 'No se pudieron cargar las categorías');
     }
-    items.forEach(row=>{
-      const tr = `
-        <tr>
-          <td>${escapeHtml(row.nombre || '')}</td>
-          <td class="text-right">
-            <button type="button" class="btn btn-sm btn-danger pc-del" data-promo="${promo_id}" data-cid="${row.categoria_id}">
-              <i class="fas fa-trash"></i>
-            </button>
-          </td>
-        </tr>`;
-      tbody.append(tr);
-    });
   }
 
 // Utilidad: escapar HTML (si ya tienes escapeHtml, esta usa la tuya)
 function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
 
-  // Evitar cerrar modales por fondo/ESC
+  // Mantener cierre por fondo bloqueado, pero permitir cerrar con ESC cuando corresponda
   function bloquearCierrePorFondoYEsc(){
     [modalMesa, modalCliente, modalCategoria, modalProducto, modalNuevoCliente, modalCombos, modalComboEditor].forEach(m => {
       if (!m) return;
       m.addEventListener('click', (ev)=>{ if (ev.target === m) { ev.stopPropagation(); ev.preventDefault(); } });
     });
-    window.addEventListener('keydown', (ev)=>{ if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); } }, true);
+
+    window.addEventListener('keydown', (ev)=>{
+      if (ev.key !== 'Escape') return;
+      const visibles = Array.from(document.querySelectorAll('.rs-modal')).filter(m => {
+        const cs = window.getComputedStyle(m);
+        return cs.display !== 'none' && cs.visibility !== 'hidden';
+      });
+      const modal = visibles.length ? visibles[visibles.length - 1] : null;
+      if (!modal) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      modal.style.display = 'none';
+    }, true);
   }
 
   function mostrarVista(que) {
@@ -1913,7 +2257,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
 
     // ===== cargarReglasCombo =====
   function cargarReglasCombo(comboId){
-    return fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
+    return fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
       method:'POST',
       headers:{'Content-Type':'application/x-www-form-urlencoded'},
       body:`action=loadComboCategoriaReglas&combo_id=${comboId}`
@@ -1925,7 +2269,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
   
   // ===== ISV (para totales de la comanda) =====
   function cargarISV() {
-    return fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
+    return fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: 'action=loadISV'
@@ -1946,7 +2290,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
 
   // ===== Mesas =====
   function cargarMesas() {
-    return fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
+    return fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: 'action=loadMesas'
@@ -2024,7 +2368,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
       </div>`;
       return;
     }
-  
+
     const iconFor = (estado) => {
       switch ((estado || 'disponible').toLowerCase()) {
         case 'ocupada':       return 'fas fa-times-circle';
@@ -2033,51 +2377,85 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
         default:              return 'fas fa-check-circle';
       }
     };
-  
+
     mesas.forEach(mesa => {
       const id       = mesa.id || mesa.mesa_id;
       const numero   = mesa.numero;
       const cap      = mesa.capacidad || 4;
       const ubic     = mesa.ubicacion || 'Interior';
       const estado   = (mesa.estado || 'disponible').toLowerCase();
-  
+      const reserva  = mesa.reserva || null;
+
       const mesaElement = document.createElement('div');
       mesaElement.className = `mesa-item ${estado}`;
-      // ⬇️ Lo importante: atributos que usa TODO el resto del sistema
       mesaElement.setAttribute('data-mesa-id', String(id));
       mesaElement.setAttribute('data-estado', estado);
+      mesaElement.setAttribute('data-ocupada', estado === 'ocupada' ? '1' : '0');
       mesaElement.setAttribute('data-nombre', numero);
-  
+
+      const reservaHtml = reserva ? `
+        <div class="mesa-reserva-info">
+          <strong><i class="fas fa-user-clock"></i> ${escapeHtml(reserva.cliente_nombre || 'Cliente reservado')}</strong>
+          <span>${escapeHtml(reserva.fecha_reserva || '')}${reserva.hora_reserva ? ' · '+escapeHtml(String(reserva.hora_reserva).slice(0,5)) : ''}${reserva.personas ? ' · '+reserva.personas+' pers.' : ''}</span>
+        </div>` : '';
+
       mesaElement.innerHTML = `
-        <div class="mesa-header">
-          <span class="mesa-numero">Mesa: ${numero}</span>
-          <span class="mesa-capacidad">${cap} <i class="fas fa-user"></i></span>
+        <div class="mesa-header mesa-header--clean">
+          <span class="mesa-numero">Mesa: ${escapeHtml(numero)}</span>
+          <div class="mesa-header-tools">
+            <span class="mesa-capacidad" title="Capacidad">${cap} <i class="fas fa-user"></i></span>
+            <div class="mesa-actions mesa-actions--inline">
+              ${estado === 'disponible' ? '<button class="btn-reservar-mesa" title="Reservar mesa" type="button" aria-label="Reservar mesa"><i class="fas fa-calendar-plus"></i></button>' : ''}
+              ${estado === 'reservada' ? '<button class="btn-cancelar-reserva" title="Cancelar reserva" type="button" aria-label="Cancelar reserva"><i class="fas fa-calendar-times"></i></button>' : ''}
+              ${estado === 'ocupada' ? '<button class="btn-liberar-mesa" title="Liberar mesa" type="button" aria-label="Liberar mesa"><i class="fas fa-door-open"></i></button>' : ''}
+              <button class="btn-icon btn-icon--sm btn-edit-mesa" title="Editar mesa" type="button" aria-label="Editar mesa"><i class="fas fa-pen"></i></button>
+            </div>
+          </div>
         </div>
         <div class="mesa-info">
-          <span class="mesa-ubicacion"><i class="fas fa-map-marker-alt"></i> ${ubic}</span>
-          <span class="mesa-estado estado ${estado}">
-            <i class="${iconFor(estado)}"></i> ${estado.toUpperCase()}
-          </span>
+          <span class="mesa-ubicacion"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(ubic)}</span>
+          <span class="mesa-estado estado ${estado}"><i class="${iconFor(estado)}"></i> ${estado.toUpperCase()}</span>
         </div>
-        <div class="mesa-actions">
-          <button class="btn-icon btn-icon--sm btn-edit-mesa" title="Editar" type="button">
-            <i class="fas fa-pen"></i>
-          </button>
-        </div>
-      `;
-  
-      // solo el botón "editar" tiene click directo aquí
-      mesaElement.querySelector('.btn-edit-mesa').addEventListener('click', (e)=>{
-        e.stopPropagation();
-        abrirEdicionMesa(mesa);
-      });
-  
+        ${reservaHtml}`;
+
+      const edit = mesaElement.querySelector('.btn-edit-mesa');
+      if (edit) edit.addEventListener('click', (e)=>{ e.stopPropagation(); autorizarGestionRestaurante('Editar mesa', ()=>abrirEdicionMesa(mesa), mesa.id || mesa.mesa_id || ''); });
+      const reserve = mesaElement.querySelector('.btn-reservar-mesa');
+      if (reserve) reserve.addEventListener('click', (e)=>{ e.stopPropagation(); abrirReservaMesa(mesa); });
+      const cancel = mesaElement.querySelector('.btn-cancelar-reserva');
+      if (cancel) cancel.addEventListener('click', (e)=>{ e.stopPropagation(); cancelarReservaMesaUI(mesa); });
+      const liberar = mesaElement.querySelector('.btn-liberar-mesa');
+      if (liberar) liberar.addEventListener('click', (e)=>{ e.stopPropagation(); liberarMesaManual(mesa, liberar); });
+
       mesasContainer.appendChild(mesaElement);
     });
-  
+
     highlightMesaSeleccionada();
+    updateAccionPrincipalUI();
   }
-   
+
+  function liberarMesaManual(mesa, boton){
+    const mesaId = Number(mesa && (mesa.id || mesa.mesa_id) || 0);
+    if (!mesaId) return;
+    showConfirm('Liberar mesa', `¿Desea liberar la Mesa ${mesa.numero}? Solo será posible si no tiene una cuenta abierta.`, async ()=>{
+      try{
+        setButtonBusy(boton, true, '');
+        const r = await fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
+          method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
+          body:`action=liberarMesa&mesa_id=${encodeURIComponent(mesaId)}`
+        });
+        const d = await r.json();
+        if (!d || !(d.ok || d.status)) throw new Error((d && (d.message || d.msg)) || 'No se pudo liberar la mesa');
+        if (mesaSeleccionada && Number(mesaSeleccionada.id||0) === mesaId) {
+          mesaSeleccionada = null; facturaActual = null; setServicioTipo('llevar'); setMesaSeleccionadaUI(null);
+        }
+        showAlert('success','Mesa disponible','La mesa fue liberada correctamente.');
+        await cargarMesas();
+      }catch(e){ showAlert('error','No se puede liberar',e.message || 'No se pudo liberar la mesa'); }
+      finally { setButtonBusy(boton, false); }
+    });
+  }
+
   function highlightMesaSeleccionada(){
     document.querySelectorAll('.mesa-item').forEach(el => el.classList.remove('seleccionada'));
     if (!mesaSeleccionada || !mesaSeleccionada.id) return;
@@ -2124,16 +2502,19 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     const u  = document.getElementById('ubicacion-mesa');
     const id = document.getElementById('mesa-id');
     const t  = document.getElementById('titulo-modal-mesa');
+    const eSel = document.getElementById('estado-mesa');
 
     if (t) t.textContent = 'Editar Mesa';
     if (id) id.value = mesa.id || mesa.mesa_id || '';
     if (n) n.value  = mesa.numero || '';
     if (c) c.value  = mesa.capacidad || 4;
     if (u) u.value  = mesa.ubicacion || 'Interior';
+    if (eSel) eSel.value = String(mesa.estado || 'disponible').toLowerCase()==='mantenimiento' ? 'mantenimiento' : 'disponible';
 
     limpiarValidacionFormulario('form-mesa');
 
     if (modalMesa) modalMesa.style.display = 'block';
+    reinitSelect2InModal('#modal-mesa');
     setTimeout(()=> n && n.focus(), 10);
   }
 
@@ -2149,6 +2530,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     if (n) n.value = '';
     if (c) c.value = '4';
     if (u) u.value = 'Interior';
+    const eSel = document.getElementById('estado-mesa'); if (eSel) eSel.value = 'disponible';
     if (modalMesa) modalMesa.style.display = 'block';
     
      // LIMPIAR VALIDACIÓN ANTES DE MOSTRAR
@@ -2182,7 +2564,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
       fd.append('ubicacion', ubicacion);
       fd.append('estado', estado); // ⬅️ importante
   
-      fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', { method: 'POST', body: fd })
+      fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', { method: 'POST', body: fd })
         .then(r => r.json())
         .then(data => {
           if (data.status) {
@@ -2200,7 +2582,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
 
   // ===== Categorías / Productos =====
   function cargarCategorias() {
-    return fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
+    return fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: 'action=loadCategorias'
@@ -2223,8 +2605,15 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     categoriasTabs.innerHTML = '';
 
     const estSel = estacionSeleccionadaUI();
-    const catsFiltradas = (estSel === 'todas') ? categorias
-      : categorias.filter(c => normalizeEstacion(c) === estSel);
+    // Las pestañas de categoría siguen a los PRODUCTOS visibles de la estación.
+    // Así una categoría puede contener productos de Cocina y Barra sin desaparecer del filtro correcto.
+    let catsFiltradas = categorias;
+    if (usaComandasOperacion() && estSel !== 'todas') {
+      const idsVisibles = new Set((productos || [])
+        .filter(p => normalizeEstacion(p) === estSel)
+        .map(p => String(p.categoria_id)));
+      catsFiltradas = categorias.filter(c => idsVisibles.has(String(c.id)));
+    }
 
     const todasCategoria = document.createElement('div');
     todasCategoria.className = 'categoria-tab active';
@@ -2252,7 +2641,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
       btnEditCat.innerHTML = '<i class="fas fa-pen"></i>';
       btnEditCat.addEventListener('click', (e) => {
         e.stopPropagation();
-        abrirEdicionCategoria(categoria);
+        autorizarGestionRestaurante('Editar categoría', ()=>abrirEdicionCategoria(categoria), categoria.id || '');
       });
       categoriaElement.appendChild(btnEditCat);
 
@@ -2266,7 +2655,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
   }
 
   function cargarProductos() {
-    return fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
+    return fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: 'action=loadProductos'
@@ -2341,14 +2730,26 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
       // Acciones (editar)
       const actions = document.createElement('div');
       actions.className = 'card-actions';
+      const btnZoom = document.createElement('button');
+      btnZoom.type = 'button';
+      btnZoom.className = 'btn-icon btn-icon--sm btn-zoom-producto';
+      btnZoom.title = 'Ver imagen';
+      btnZoom.setAttribute('aria-label','Ver imagen de '+(producto.nombre||'producto'));
+      btnZoom.innerHTML = '<i class="fas fa-search-plus"></i>';
+      btnZoom.addEventListener('click', (e) => {
+        e.stopPropagation();
+        abrirFotoProducto(producto);
+      });
+      actions.appendChild(btnZoom);
+
       const btnEditar = document.createElement('button');
       btnEditar.type = 'button';
-      btnEditar.className = 'btn-icon btn-icon--sm';
+      btnEditar.className = 'btn-icon btn-icon--sm btn-edit-producto-admin';
       btnEditar.title = 'Editar';
       btnEditar.innerHTML = '<i class="fas fa-pen"></i>';
       btnEditar.addEventListener('click', (e) => {
         e.stopPropagation();
-        abrirEdicionProducto(producto);
+        autorizarGestionRestaurante('Editar producto', ()=>abrirEdicionProducto(producto), producto.productos_id || '');
       });
       actions.appendChild(btnEditar);
       productoElement.appendChild(actions);
@@ -2413,9 +2814,17 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
           </div>`;
       }
   
+      const estacionHtml = usaComandasOperacion() ? `
+        <div class="producto-meta-line">
+          <span class="producto-estacion-badge producto-estacion-${normalizeEstacion(producto)}">
+            <i class="${normalizeEstacion(producto)==='barra'?'fas fa-glass-martini-alt':'fas fa-utensils'}"></i>
+            ${escapeHtml(etiquetaEstacion(normalizeEstacion(producto)==='barra'?'barra':'cocina'))}
+          </span>
+        </div>` : '';
       contenidoDiv.innerHTML = `
         ${comboBadge}
         ${nombreHtml}
+        ${estacionHtml}
         ${descHtml}
         ${preciosHtml}
       `;
@@ -2437,8 +2846,12 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
         categoria_id: producto.categoria_id,
         isv1: parseInt(producto.isv1 || 0) === 1,
         isv2: parseInt(producto.isv2 || 0) === 1,
-        para_cocina: 0,
-        barCode: producto.barCode || ''
+        para_cocina: normalizeEstacion(producto) === 'cocina' ? 1 : 0,
+        estacion: normalizeEstacion(producto),
+        barCode: producto.barCode || '',
+        almacen_id: Number(producto.almacen_id || 0),
+        medida_id: Number(producto.medida_id || 0),
+        medida: producto.medida || 'Und'
       };
   
       btnAgregar.addEventListener('click', (e) => { e.stopPropagation(); agregarProductoComanda(datosProducto); });
@@ -2449,15 +2862,29 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
   }  
 
   function filtrarProductos(termino, categoriaId = null) {
-    let productosFiltrados = productos;
+    let productosFiltrados = Array.isArray(productos) ? productos.slice() : [];
+
+    // La estación operativa viene del PRODUCTO; la categoría solo organiza el catálogo.
+    // El filtro superior debe afectar tanto las pestañas como las tarjetas.
+    const estacion = estacionSeleccionadaUI();
+    if (usaComandasOperacion() && (estacion === 'cocina' || estacion === 'barra')) {
+      productosFiltrados = productosFiltrados.filter(p => normalizeEstacion(p) === estacion);
+    }
+
     if (termino) {
-      const t = termino.toLowerCase();
+      const t = String(termino).toLowerCase().trim();
       productosFiltrados = productosFiltrados.filter(p =>
-        (p.nombre && p.nombre.toLowerCase().includes(t)) ||
-        (p.descripcion && p.descripcion.toLowerCase().includes(t))
+        (p.nombre && String(p.nombre).toLowerCase().includes(t)) ||
+        (p.descripcion && String(p.descripcion).toLowerCase().includes(t))
       );
     }
-    if (categoriaId) productosFiltrados = productosFiltrados.filter(p => parseInt(p.categoria_id) === parseInt(categoriaId));
+
+    if (categoriaId) {
+      productosFiltrados = productosFiltrados.filter(p =>
+        parseInt(p.categoria_id, 10) === parseInt(categoriaId, 10)
+      );
+    }
+
     renderizarProductos(productosFiltrados);
   }
 
@@ -2476,7 +2903,8 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
       categoria_id: prod.categoria_id,
       isv1: parseInt(prod.isv1 || 0) === 1,
       isv2: parseInt(prod.isv2 || 0) === 1,
-      para_cocina: 0,
+      para_cocina: normalizeEstacion(prod) === 'cocina' ? 1 : 0,
+      estacion: normalizeEstacion(prod),
       barCode: prod.barCode || ''
     };
     agregarProductoComanda(datosProducto);
@@ -2513,7 +2941,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
       };
       const action = esEdicion ? 'updateClienteBasico' : 'saveClienteBasico';
 
-      fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
+      fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ action, data: payload })
@@ -2570,7 +2998,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
 
     if (!validateForm('form-categoria')) return;
     if (!['cocina','barra'].includes(estacion)){
-      showAlert('warning','Falta estación','Selecciona Cocina o Barra'); return;
+      showAlert('warning','Falta grupo','Selecciona '+etiquetaEstacion('cocina')+' o '+etiquetaEstacion('barra')+'.'); return;
     }
 
     const esEdicion   = !!idCat;
@@ -2587,7 +3015,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
       if (esEdicion){ fd.append('action','updateCategoria'); fd.append('categoria_id', idCat); }
       else          { fd.append('action','saveCategoria'); }
 
-      fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', { method:'POST', body: fd })
+      fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', { method:'POST', body: fd })
         .then(r=>r.json())
         .then(d=>{
           if (!d || !d.status){
@@ -2639,7 +3067,10 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     const prevFocusEl = document.activeElement;
 
     showConfirm(titulo, mensaje, async () => {
+      const saveBtn = document.getElementById('btn-guardar-producto');
+      if (saveBtn && saveBtn.disabled) return;
       try{
+        setButtonBusy(saveBtn, true, esEdicion ? 'Actualizando…' : 'Guardando…');
         const fd = new FormData();
         fd.append('action', esEdicion ? 'updateProductoBasico' : 'saveProductoBasico');
         if (esEdicion) fd.append('productos_id', String(parseInt(id,10)));
@@ -2654,7 +3085,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
         const file = (typeof getProductoImagenFile === 'function') ? getProductoImagenFile() : null;
         if (file) fd.append('imagen_producto', file);
 
-        const resp = await fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', { method:'POST', body: fd });
+        const resp = await fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', { method:'POST', body: fd });
         let d = null; try { d = await resp.json(); } catch(_) {}
         if (!d || !d.status){
           showAlert('error','Error', (d && (d.message||d.msg)) || 'No se pudo guardar'); return;
@@ -2713,18 +3144,34 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
           }
         }
 
-        // refrescar grillas externas si aplica
-        if (typeof cargarProductos === 'function') cargarProductos();
+        // Refrescar catálogos usando SIEMPRE la respuesta real del servidor.
+        if (typeof cargarCategorias === 'function') await cargarCategorias();
+        if (typeof cargarProductos === 'function') await cargarProductos();
+
+        // Verificación de consistencia: después de guardar, el producto debe regresar
+        // desde loadProductos con la misma estación seleccionada.
+        const productoGuardadoId = esEdicion ? parseInt(id, 10) : parseInt(d.producto_id || 0, 10);
+        if (productoGuardadoId > 0) {
+          const productoServidor = productos.find(p => parseInt(p.productos_id, 10) === productoGuardadoId);
+          if (productoServidor && normalizeEstacion(productoServidor) !== lastEstacion) {
+            throw new Error(`El servidor no confirmó la estación ${etiquetaEstacion(lastEstacion === 'barra' ? 'barra' : 'cocina')} del producto. Revise productos.estacion.`);
+          }
+        }
+
+        renderizarCategorias();
+        filtrarProductos(buscarProductoInput ? buscarProductoInput.value : '');
 
       } catch(err){
-        showAlert('error','Error','No se pudo guardar el producto');
+        showAlert('error','Error', (err && err.message) ? err.message : 'No se pudo guardar el producto');
+      } finally {
+        setButtonBusy(saveBtn, false);
       }
     });
   }
   
   // ===== Clientes =====
   function cargarClientes() {
-    return fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
+    return fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: 'action=loadClientes'
@@ -2786,7 +3233,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
       `;
       el.querySelector('.btn-edit-cli').addEventListener('click', (e)=>{
         e.stopPropagation();
-        abrirEdicionCliente(c);
+        autorizarGestionRestaurante('Editar cliente', ()=>abrirEdicionCliente(c), c.clientes_id || c.id || '');
       });
       el.addEventListener('click', () => {
         marcarSeleccionClienteItem(el);
@@ -2820,7 +3267,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     clienteSeleccionado = {
       id: Number(selectedClienteForModal.id || selectedClienteForModal.clientes_id || 0),
       nombre: selectedClienteForModal.nombre,
-      identificacion: (selectedClienteForModal.identificacion || '').trim()
+      identificacion: (selectedClienteForModal.identificacion || selectedClienteForModal.rtn || '').trim()
     };
   
     pintarClienteInfoHeader();
@@ -2910,7 +3357,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
   // ===== FACTURAS =====
   // itemsToMerge = items que ya venía armando el cajero antes de tocar la mesa
   function cargarFacturaMesa(mesaId, itemsToMerge = []){
-    fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
+    fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: `action=loadFacturaMesa&mesa_id=${encodeURIComponent(mesaId)}`
@@ -2924,13 +3371,23 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
         facturaActual    = data.factura || null;
         mesaSeleccionada = data.mesa    || mesaSeleccionada;
 
+        if (facturaActual && (facturaActual.cliente_id || facturaActual.clientes_id)) {
+          clienteSeleccionado = {
+            id: Number(facturaActual.cliente_id || facturaActual.clientes_id),
+            nombre: facturaActual.cliente_nombre || 'Cliente',
+            identificacion: facturaActual.cliente_identificacion || ''
+          };
+          pintarClienteInfoHeader();
+        }
+
         const itemsMesa = (Array.isArray(data.items) ? data.items : []).map(item => ({
           producto: {
             id: item.productos_id,
             nombre: item.nombre_producto,
             precio: parseFloat(item.precio),
             descripcion: item.descripcion_producto || '',
-            isv1: false, isv2: false, para_cocina: 0
+            isv1: Number(item.isv1 || 0) === 1, isv2: Number(item.isv2 || 0) === 1, para_cocina: 0,
+            medida: item.medida || 'Und'
           },
           cantidad: parseFloat(item.cantidad),
           precio:   parseFloat(item.precio),
@@ -2961,6 +3418,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
         actualizarComandaUI();
         if (typeof updateProductBadges === 'function') updateProductBadges();
         highlightMesaSeleccionada();
+        updateAccionPrincipalUI();
 
       } else {
         // ❗ La mesa no tiene factura abierta: mantenemos lo que el cajero traía
@@ -2976,7 +3434,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
         if (typeof updateProductBadges === 'function') updateProductBadges();
 
         if (facturaTitle) {
-          facturaTitle.innerHTML = `<i class="fas fa-receipt"></i> Nueva Comanda`;
+          facturaTitle.innerHTML = usaComandasOperacion()?'<i class="fas fa-receipt"></i> Nueva Comanda':'<i class="fas fa-cash-register"></i> Nueva venta';
         }
         if (btnImprimir) btnImprimir.disabled = true;
 
@@ -2985,6 +3443,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
           : null;
         setMesaSeleccionadaUI(nomMesa);
         highlightMesaSeleccionada();
+        updateAccionPrincipalUI();
       }
     })
     .catch(() => {
@@ -3142,234 +3601,519 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     if (impuesto1Element) impuesto1Element.textContent = `L ${fmt(imp1)}`;
     if (impuesto2Element) impuesto2Element.textContent = `L ${fmt(imp2)}`;
     if (totalElement) totalElement.textContent = `L ${fmt(total)}`;
+    updateAccionPrincipalUI();
   }
 
-  function guardarFactura(){
-    // --- Validación básica ---
-    if (!Array.isArray(comandaItems) || comandaItems.length === 0) {
-      if (typeof showNotify === 'function') showNotify('warning','Sin productos','Agrega productos a la comanda');
-      else alert('Agrega productos a la comanda');
-      return false;
-    }
-  
-    // --- Contexto ---
-    var esLlevar = (typeof getServicioTipo === 'function')
-      ? (getServicioTipo() === 'llevar')
-      : (typeof servicioActual !== 'undefined' ? servicioActual === 'llevar' : false);
-  
-    // === Resolver mesaId de forma robusta (obligatoria si es "En mesa") ===
-    var mesaId = 0;
-    if (!esLlevar) {
-      if (typeof mesaSeleccionada !== 'undefined' && mesaSeleccionada) {
-        mesaId = Number(mesaSeleccionada.id || mesaSeleccionada.mesa_id || mesaSeleccionada || 0);
-      }
-      if (!mesaId) {
-        var el = document.querySelector('#mesa_id, [name="mesa_id"]');
-        if (el) mesaId = Number(el.value || 0);
-      }
-    }
-  
-    var observaciones = (document.getElementById('observaciones') && document.getElementById('observaciones').value || '').trim();
-  
-    // ⚠️ Validación de mesa ANTES de cualquier confirm
-    if (!esLlevar && (!mesaId || mesaId <= 0)) {
-      if (typeof showNotify === 'function') showNotify('warning','Mesa requerida','Debe seleccionar una mesa antes de enviar a cocina.');
-      else alert('Debe seleccionar una mesa antes de enviar a cocina.');
-      try { (document.querySelector('#mesa_id, [name="mesa_id"]')||{}).focus(); } catch(_){}
-      return false;
-    }
-  
-    // 🚫 Si la mesa está reservada/mantenimiento, bloquear
-    if (!esLlevar && mesaId) {
-      var sel  = (typeof MESA_TILE_SELECTOR !== 'undefined' ? MESA_TILE_SELECTOR : '[data-mesa-id]');
-      var tile = document.querySelector ? document.querySelector(sel + '[data-mesa-id="'+mesaId+'"]') : null;
-      var estadoMesa = 'disponible';
-      if (tile) {
-        estadoMesa = (tile.getAttribute('data-estado') || '').toLowerCase().trim() || estadoMesa;
-        if (!estadoMesa || estadoMesa === 'disponible') {
-          if (tile.classList.contains('mantenimiento')) estadoMesa = 'mantenimiento';
-          else if (tile.classList.contains('reservada')) estadoMesa = 'reservada';
-          else if (tile.classList.contains('ocupada')) estadoMesa = 'ocupada';
-        }
-      }
-      if (estadoMesa === 'reservada' || estadoMesa === 'mantenimiento') {
-        var msgBloq = (estadoMesa === 'reservada')
-          ? 'La mesa está reservada. Cambie su estado a "ocupada" o elija otra mesa.'
-          : 'La mesa está en mantenimiento. Elija otra mesa.';
-        if (typeof showNotify === 'function') showNotify('warning', 'Mesa no disponible', msgBloq);
-        else alert(msgBloq);
-        return false;
-      }
-    }
-  
-    // Obtener el clientes_id del input hidden
-    var clientes_id = 1;
-    var clientesIdInput = document.getElementById('clientes_id');
-    if (clientesIdInput) {
-      clientes_id = Number(clientesIdInput.value || 0);
-    }
-  
-    // Detectar si hay productos de cocina
-    var hayCocina = true;
-    if (typeof isProductoDeCocina === 'function' && Array.isArray(productos)) {
-      hayCocina = comandaItems.some(function(it){
-        var pid  = String(it.productos_id || it.producto_id || (it.producto && it.producto.id) || '');
-        var prod = productos.find(function(p){ return String(p.productos_id) === pid; });
-        return prod ? isProductoDeCocina(prod) : false;
-      });
-    }
-  
-    // Normalizar detalle
-    var detalle = JSON.stringify(comandaItems.map(function(it){
-      return {
-        productos_id: (it.productos_id || it.producto_id || (it.producto && it.producto.id)),
-        cantidad: Number(it.cantidad || 1),
-        precio: Number(it.precio || (it.producto && it.producto.precio) || 0),
-        isv_valor: Number(it.isv_valor || 0),
-        descuento: Number(it.descuento || 0),
-        medida: (it.medida || '')
-      };
-    }));
-  
-    // --- Textos de confirmación ---
-    var titulo = esLlevar ? 'Cobrar y Enviar' : 'Enviar a Cocina';
-    var texto  = esLlevar ? '¿Está seguro que desea cobrar esta venta y enviar a cocina?' : '¿Está seguro que desea enviar esta comanda a cocina como borrador?';
-  
-    var doAction = function(){
-      // =================== PARA LLEVAR ===================
-      if (esLlevar) {
-        var total = comandaItems.reduce(function(acc, it){
-          return acc + (Number(it.precio)||0) * (Number(it.cantidad)||1);
-        }, 0);
-  
-        var payload = {
-          action: 'finalizarParaLlevar',
-          mesa_id: 0,
-          clientes_id: clientes_id,
-          observaciones: observaciones,
-          detalle: detalle,
-          tipo_pago: 1,
-          efectivo: Number(((document.querySelector && document.querySelector('#pago-efectivo')) || {}).value || 0),
-          tarjeta:  Number(((document.querySelector && document.querySelector('#pago-tarjeta'))  || {}).value || 0),
-          cambio:   0,
-          banco_id: Number(((document.querySelector && document.querySelector('#pago-banco'))    || {}).value || 0),
-          tipo_pago_id: Number(((document.querySelector && document.querySelector('input[name="metodo_pago"]:checked')) || {}).value || 1),
-          forzar_cocina: hayCocina ? 1 : 0
-        };
-        if (!payload.efectivo && !payload.tarjeta) payload.efectivo = total;
-  
-        $.post(
-          BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php',
-          payload,
-          function(data){
-            if (!data || !data.ok) {
-              var msg = (data && (data.msg || data.message)) || 'No se pudo procesar';
-              if (typeof showNotify === 'function') showNotify('error','Error', msg);
-              else alert(msg);
-              return;
-            }
-  
-            facturaActual = { id: data.factura_id, factura_id: data.factura_id };
-  
-            // Limpiar comanda + UI
-            comandaItems = [];
-            if (typeof renderComanda === 'function') renderComanda();
-            if (typeof updateProductBadges === 'function') updateProductBadges();
-            if (observaciones && document.getElementById('observaciones')) document.getElementById('observaciones').value = '';
-  
-            if (typeof showNotify === 'function') showNotify('success','Cobrado','Factura pagada y enviada a cocina.');
-            else alert('Factura pagada y enviada a cocina.');
-          },
-          'json'
-        ).fail(function(xhr){
-          var msg = (xhr && (xhr.responseJSON && (xhr.responseJSON.msg || xhr.responseJSON.message))) || xhr.responseText || 'No se pudo procesar';
-          if (typeof showNotify === 'function') showNotify('error','Error', msg);
-          else alert(msg);
+  function hoyLocalISO(){
+    const d = new Date();
+    const off = d.getTimezoneOffset();
+    return new Date(d.getTime() - off * 60000).toISOString().slice(0,10);
+  }
+
+  function horaLocalHHMM(){
+    const d = new Date();
+    return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  }
+
+  function abrirReservaMesa(mesa){
+    const modal = document.getElementById('modal-reserva-mesa');
+    const sel = document.getElementById('reserva-cliente');
+    if (!modal || !sel) return;
+    document.getElementById('reserva-mesa-id').value = mesa.id || mesa.mesa_id || '';
+    sel.innerHTML = '<option value="">Seleccione un cliente…</option>';
+    (clientes || []).forEach(c => {
+      const id = c.clientes_id || c.id;
+      if (!id) return;
+      const op = document.createElement('option');
+      op.value = id;
+      op.textContent = c.nombre + ((c.identificacion || c.rtn) ? ' · ' + (c.identificacion || c.rtn) : '');
+      sel.appendChild(op);
+    });
+    if (clienteSeleccionado && Number(clienteSeleccionado.id || 0) > 1) sel.value = String(clienteSeleccionado.id);
+    document.getElementById('reserva-fecha').value = hoyLocalISO();
+    document.getElementById('reserva-hora').value = horaLocalHHMM();
+    document.getElementById('reserva-personas').value = Math.min(Number(mesa.capacidad || 2), 2) || 2;
+    document.getElementById('reserva-notas').value = '';
+    modal.style.display = 'block';
+    reinitSelect2InModal('#modal-reserva-mesa');
+    setTimeout(()=>{ try { $('#reserva-cliente').select2('open'); } catch(_){} },60);
+  }
+
+  function cancelarReservaMesaUI(mesa){
+    showConfirm('Cancelar reserva', `¿Desea cancelar la reserva de la Mesa ${mesa.numero}?`, async ()=>{
+      try{
+        const body = new URLSearchParams({action:'cancelarReservaMesa', mesa_id:String(mesa.id || mesa.mesa_id || 0)});
+        const r = await fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
+          method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString()
         });
-  
-        return;
-      }
-  
-      // =================== EN MESA ===================
-  
-      // 1) Guardar borrador en backend
-      $.post(
-        BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php',
-        {
-          action: 'guardarFacturaRestaurante',
-          servicio: 'mesa',
-          mesa_id: mesaId,
-          clientes_id: clientes_id,
-          observaciones: observaciones,
-          detalle: detalle
-        },
-        function(data){
-          if (!data || !data.ok) {
-            var msg = (data && (data.msg || data.message)) || 'No se pudo procesar';
-            if (typeof showNotify === 'function') showNotify('error','Error', msg);
-            else alert(msg);
-            return;
+        const d = await r.json();
+        if (!d || !d.status) throw new Error((d && d.message) || 'No se pudo cancelar la reserva');
+        showAlert('success','Reserva',d.message || 'Reserva cancelada');
+        await cargarMesas();
+      }catch(e){ showAlert('error','Error',e.message || 'No se pudo cancelar la reserva'); }
+    });
+  }
+
+  $(document).off('click.restReserva','#btn-guardar-reserva-mesa').on('click.restReserva','#btn-guardar-reserva-mesa', async function(){
+    const btn=this;
+    const mesa_id=Number($('#reserva-mesa-id').val() || 0);
+    const clientes_id=Number($('#reserva-cliente').val() || 0);
+    const fecha_reserva=$('#reserva-fecha').val();
+    const hora_reserva=$('#reserva-hora').val();
+    const personas=Number($('#reserva-personas').val() || 0);
+    const notas=String($('#reserva-notas').val() || '').trim();
+    if (!mesa_id || !clientes_id || !fecha_reserva || !hora_reserva || personas <= 0){
+      showAlert('warning','Datos incompletos','Seleccione cliente, fecha, hora y cantidad de personas.'); return;
+    }
+    setButtonBusy(btn,true,'Guardando…');
+    try{
+      const body=new URLSearchParams({action:'reservarMesa',mesa_id:String(mesa_id),clientes_id:String(clientes_id),fecha_reserva,hora_reserva,personas:String(personas),notas});
+      const r=await fetchWithTimeout(BASE+'core/facturasRestaurante/facturasRestauranteAjax.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString()});
+      const d=await r.json();
+      if(!d || !d.status) throw new Error((d&&d.message)||'No se pudo reservar la mesa');
+      $('#modal-reserva-mesa').hide();
+      showAlert('success','Reserva',d.message || 'Mesa reservada correctamente');
+      await cargarMesas();
+    }catch(e){showAlert('error','Error',e.message||'No se pudo reservar la mesa');}
+    finally{setButtonBusy(btn,false);}
+  });
+
+  function obtenerTotalComanda(){
+    const txt = totalElement ? String(totalElement.textContent || '') : '';
+    const n = Number(txt.replace(/[^0-9.,-]/g,'').replace(/,/g,''));
+    if (Number.isFinite(n) && n > 0) return n;
+    return (comandaItems || []).reduce((a,it)=>a+(Number(it.precio||it.producto?.precio||0)*Number(it.cantidad||1)),0);
+  }
+
+  function prepararDetalleRestaurante(){
+    return JSON.stringify((comandaItems || []).map(it=>({
+      productos_id:(it.productos_id || it.producto_id || (it.producto && it.producto.id)),
+      cantidad:Number(it.cantidad || 1),
+      precio:Number(it.precio || (it.producto && it.producto.precio) || 0),
+      isv_valor:Number(it.isv_valor || 0),
+      descuento:Number(it.descuento || 0),
+      medida:(it.medida || '')
+    })));
+  }
+
+  function clienteIdActual(){
+    const el=document.getElementById('clientes_id');
+    return Number((el && el.value) || (clienteSeleccionado && clienteSeleccionado.id) || 1) || 1;
+  }
+
+  function mesaIdActual(){
+    return Number(mesaSeleccionada && (mesaSeleccionada.id || mesaSeleccionada.mesa_id || mesaSeleccionada) || 0);
+  }
+
+  function facturaIdActual(){
+    return Number(facturaActual && (facturaActual.facturas_id || facturaActual.factura_id || facturaActual.id) || 0);
+  }
+
+  function hayProductoCocinaActual(){
+    return (comandaItems || []).some(it=>{
+      const pid=String(it.productos_id || it.producto_id || (it.producto && it.producto.id) || '');
+      const prod=(productos || []).find(p=>String(p.productos_id || p.id)===pid);
+      return prod ? isProductoDeCocina(prod) : false;
+    });
+  }
+
+  function guardarCuentaMesa({silencioso=false,imprimirAlEnviar=false,enviarComanda=false}={}){
+    const mesa_id=mesaIdActual();
+    if(!mesa_id) return Promise.reject(new Error('Debe seleccionar una mesa'));
+    if(!Array.isArray(comandaItems)||!comandaItems.length) return Promise.reject(new Error('Agregue productos a la comanda'));
+    const payload={
+      action:'guardarFacturaRestaurante', servicio:'mesa', mesa_id,
+      factura_id:facturaIdActual(), clientes_id:clienteIdActual(),
+      observaciones:String((observacionesTextarea&&observacionesTextarea.value)||'').trim(),
+      detalle:prepararDetalleRestaurante(), enviar_comanda:(enviarComanda&&debeEnviarPantallaComanda())?1:0
+    };
+    return new Promise((resolve,reject)=>{
+      $.ajax({type:'POST',url:BASE+'core/facturasRestaurante/facturasRestauranteAjax.php',data:payload,dataType:'json'})
+        .done(async d=>{
+          if(!d||!d.ok){reject(new Error((d&&(d.msg||d.message))||'No se pudo guardar la cuenta'));return;}
+          facturaActual={id:Number(d.factura_id),factura_id:Number(d.factura_id),facturas_id:Number(d.factura_id)};
+          if(facturaTitle) facturaTitle.innerHTML='<i class="fas fa-receipt"></i> Cuenta abierta #'+d.factura_id;
+          if(btnImprimir) btnImprimir.disabled=false;
+          const tile=document.querySelector(`${MESA_TILE_SELECTOR}[data-mesa-id="${mesa_id}"]`);
+          if(tile){tile.classList.remove('disponible','reservada');tile.classList.add('ocupada');tile.setAttribute('data-estado','ocupada');tile.setAttribute('data-ocupada','1');}
+          updateAccionPrincipalUI();
+          cargarMesas();
+          if(imprimirAlEnviar && debeImprimirTicketComanda() && momentoTicketOperacion()==='enviar'){
+            const snap=crearSnapshotTicket({factura_id:Number(d.factura_id||facturaIdActual()||0)});
+            setTimeout(()=>imprimirTicketAutomatico(snap),120);
           }
-  
-          facturaActual = { id: data.factura_id, factura_id: data.factura_id };
-  
-          // 2) Registrar comanda a cocina (si aplica)
-          if (hayCocina) {
-            $.post(
-              BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php',
-              {
-                action: 'registrarComandaCocina',
-                factura_id: data.factura_id,
-                mesa_id: mesaId,
-                comentarios: observaciones
-              },
-              function(d2){
-                if (!d2 || !d2.ok) {
-                  if (typeof showNotify === 'function') showNotify('warning','Aviso','Factura guardada, pero no se pudo notificar a cocina.');
-                }
-              },
-              'json'
-            ).fail(function(xhr2){
-              var msg2 = (xhr2 && (xhr2.responseJSON && (xhr2.responseJSON.msg || xhr2.responseJSON.message))) || xhr2.responseText || '';
-              if (typeof showNotify === 'function') showNotify('warning','Aviso','Factura guardada, pero no se pudo notificar a cocina ('+ msg2 +').');
-            });
-          }
-  
-          // 3) Marcar mesa ocupada en UI
-          if (mesaId) {
-            var sel = ((typeof MESA_TILE_SELECTOR !== 'undefined' ? MESA_TILE_SELECTOR : '[data-mesa-id]') + '[data-mesa-id="'+mesaId+'"]');
-            var tile = document.querySelector ? document.querySelector(sel) : null;
-            if (tile) { 
-              tile.classList.remove('disponible','reservada','mantenimiento');
-              tile.classList.add('ocupada'); 
-              tile.setAttribute('data-estado','ocupada');
-              tile.setAttribute('data-ocupada','1');
-              var estadoChip = tile.querySelector('.mesa-estado.estado');
-              if (estadoChip) estadoChip.innerHTML = '<i class="fas fa-times-circle"></i> OCUPADA';
+          if(!silencioso){
+            if(enviarComanda && usaComandasOperacion()){
+              const nuevos=Number(d.nuevos_comanda||0);
+              showAlert('success','Comanda',nuevos>0 ? `Cuenta actualizada y ${nuevos} producto(s) nuevo(s) enviados a preparación.` : 'Cuenta actualizada. No había productos nuevos por enviar.');
+            }else{
+              showAlert('success','Cuenta',d.updated ? 'Cuenta actualizada correctamente.' : 'Cuenta guardada correctamente.');
             }
           }
-  
-          // 4) Limpiar comanda + UI
-          comandaItems = [];
-          if (typeof renderComanda === 'function') renderComanda();
-          if (typeof updateProductBadges === 'function') updateProductBadges();
-          if (observaciones && document.getElementById('observaciones')) document.getElementById('observaciones').value = '';
-  
-          if (typeof showNotify === 'function') showNotify('success','Cocina','Pase enviado a cocina.');
-          else alert('Pase enviado a cocina.');
-        },
-        'json'
-      ).fail(function(xhr){
-        var msg = (xhr && (xhr.responseJSON && (xhr.responseJSON.msg || xhr.responseJSON.message))) || xhr.responseText || 'No se pudo procesar';
-        if (typeof showNotify === 'function') showNotify('error','Error', msg);
-        else alert(msg);
+          resolve(d);
+        }).fail(xhr=>reject(new Error((xhr.responseJSON&&(xhr.responseJSON.msg||xhr.responseJSON.message))||xhr.responseText||'Error de comunicación')));
+    });
+  }
+
+  // ============================================================
+  // COBRO RESTAURANTE -> FLUJO OFICIAL DE FACTURACIÓN IZZY
+  // ============================================================
+  // No crea pagos ni números de factura dentro de Restaurante.
+  // addFacturaAjax.php/facturasControlador asigna el número real y su
+  // respuesta abre pago() del modal unificado oficial.
+  let contextoPagoRestaurante = null;
+  let facturandoRestaurante = false;
+
+  function clienteNombreActual(){
+    return String((clienteSeleccionado && clienteSeleccionado.nombre) || 'CONSUMIDOR FINAL').trim() || 'CONSUMIDOR FINAL';
+  }
+
+  function productoMaestroPorId(pid){
+    return (productos || []).find(p=>Number(p.productos_id || p.id || 0)===Number(pid||0)) || null;
+  }
+
+  function construirPayloadFacturaNormal(facturaId){
+    const params = new URLSearchParams();
+    const clienteId = clienteIdActual();
+    const clienteNombre = clienteNombreActual();
+    const colaboradorId = Number(window.REST_COLABORADOR_ID || 0);
+    const cajeroNombre = String($('#cajero-nombre').text() || '').replace(/^Cajero:\s*/i,'').trim() || 'Cajero';
+    const fecha = String(window.REST_FECHA_SERVIDOR || new Date().toISOString().slice(0,10));
+
+    params.set('cliente_id', String(clienteId));
+    params.set('cliente', clienteNombre);
+    params.set('colaborador_id', String(colaboradorId));
+    params.set('colaborador', cajeroNombre);
+    params.set('fecha', fecha);
+    params.set('fecha_dolar', fecha);
+    params.set('notesBill', String((observacionesTextarea && observacionesTextarea.value) || '').trim());
+    params.set('facturas_activo', '1');          // contado
+    params.set('facturas_proforma', '0');        // factura fiscal normal
+    params.set('tipo_factura', '1');
+    if (facturaId) params.set('facturas_id', String(facturaId));
+
+    (comandaItems || []).forEach((it, idx)=>{
+      const pid = Number(it.productos_id || it.producto_id || (it.producto && it.producto.id) || 0);
+      const master = productoMaestroPorId(pid) || {};
+      const prod = it.producto || master || {};
+      const nombre = String(prod.nombre || master.nombre || ('Producto '+pid));
+      const cantidad = Number(it.cantidad || 1);
+      const precio = Number(it.precio != null ? it.precio : (prod.precio != null ? prod.precio : master.precio_venta || 0));
+      const descuento = Number(it.descuento || 0);
+      const medida = String(prod.medida || it.medida || master.medida || 'Und');
+      const almacen = Number(prod.almacen_id || master.almacen_id || 0);
+      const barcode = String(prod.barCode || master.barCode || '');
+
+      params.append('productos_id[]', String(pid));
+      params.append('productName[]', nombre);
+      params.append('quantity[]', String(cantidad));
+      params.append('price[]', String(precio));
+      params.append('discount[]', String(descuento));
+      params.append('medida[]', medida);
+      params.append('bodega[]', String(almacen));
+      params.append('referenciaProducto[]', barcode);
+      params.append('precio_real[]', String(precio));
+      // El controlador normal vuelve a calcular el ISV desde productos.
+      params.append('valor_isv[]', '0');
+      params.append('valor_isv1[]', '0');
+    });
+    return params;
+  }
+
+  function limpiarTextoRespuestaFactura(html){
+    const tmp=document.createElement('div');
+    tmp.innerHTML=String(html||'');
+    return String(tmp.textContent||tmp.innerText||'').replace(/\s+/g,' ').trim();
+  }
+
+  function extraerFacturaIdDeRespuesta(html){
+    const raw=String(html||'');
+    // La respuesta oficial de Facturas incluye pago(<facturas_id>, ...).
+    // Solo extraemos el ID: NO ejecutamos el script completo porque contiene
+    // instrucciones propias de la pantalla Facturas (por ejemplo reset del
+    // formulario #formulario_facturacion), elementos que no existen aquí.
+    const patrones=[
+      /\bpago\s*\(\s*["']?(\d+)["']?/i,
+      /facturas?_id[^0-9]{0,20}(\d+)/i
+    ];
+    for(const re of patrones){
+      const m=raw.match(re);
+      if(m && Number(m[1])>0) return Number(m[1]);
+    }
+    return 0;
+  }
+
+  function validarRespuestaFacturaNormal(html){
+    const raw=String(html||'').trim();
+    if(!raw) throw new Error('El servidor no devolvió una respuesta de facturación.');
+    const facturaId=extraerFacturaIdDeRespuesta(raw);
+    if(facturaId>0) return facturaId;
+
+    const texto=limpiarTextoRespuestaFactura(raw);
+    const msgMatch=raw.match(/(?:showNotify|swal)\s*\([^)]*?["']([^"']{4,220})["']/i);
+    const msg=(msgMatch && msgMatch[1]) ? msgMatch[1] : texto;
+    throw new Error(msg || 'El sistema no devolvió el identificador de la factura generada.');
+  }
+
+  async function registrarComandaPostPago(contexto){
+    if(!contexto || !contexto.factura_id) return true;
+    if(contexto.comanda_enviada===true) return true;
+    if(!debeEnviarPantallaComanda()) return true;
+    if(contexto.servicio!=='llevar') return true;
+    try{
+      const r=await $.ajax({
+        type:'POST',
+        url:BASE+'core/facturasRestaurante/facturasRestauranteAjax.php',
+        dataType:'json',
+        data:{action:'registrarComandaCocina',factura_id:contexto.factura_id,mesa_id:0,servicio:'llevar',comentarios:contexto.observaciones||''},
+        timeout:15000
       });
-    };
-  
-    // Confirmación
-    showConfirm(titulo, texto, doAction);
+      if(!r || !r.ok){
+        throw new Error((r&&(r.msg||r.message))||'No se pudo registrar la comanda');
+      }
+      contexto.comanda_enviada=true;
+      return true;
+    }catch(e){
+      showAlert('warning','Factura pagada','La factura se pagó correctamente, pero no se pudo enviar la orden a preparación: '+(e.message||'Error desconocido'));
+      return false;
+    }
+  }
+
+  async function finalizarUITrasPagoRestaurante(contexto){
+    if(!contexto || contexto.finalizado) return;
+    contexto.finalizado=true;
+    // Para llevar se envía a preparación DESPUÉS de confirmar el pago.
+    // Así no aparece una orden en Cocina si el cliente abandona/cancela el pago.
+    await registrarComandaPostPago(contexto);
+    const imprimirPorCobro = debeImprimirTicketComanda() && (
+      momentoTicketOperacion()==='cobrar' ||
+      (contexto.servicio==='llevar' && momentoTicketOperacion()==='enviar')
+    );
+    if(imprimirPorCobro && contexto.ticket_snapshot){
+      setTimeout(()=>imprimirTicketAutomatico(contexto.ticket_snapshot),250);
+    }
+
+    // Una vez pagada, ya no debe seguir apareciendo en Cuentas abiertas.
+    try{
+      await $.ajax({
+        type:'POST',
+        url:BASE+'core/facturasRestaurante/facturasRestauranteAjax.php',
+        dataType:'json',
+        data:{action:'cerrarCuentaOperativa',factura_id:contexto.factura_id}
+      });
+    }catch(_){}
+
+    if(contexto.servicio==='mesa' && contexto.liberar_mesa && contexto.mesa_id){
+      try{
+        const r=await $.ajax({type:'POST',url:BASE+'core/facturasRestaurante/facturasRestauranteAjax.php',dataType:'json',data:{action:'liberarMesa',mesa_id:contexto.mesa_id}});
+        if(!r || !(r.ok || r.status)) showAlert('warning','Mesa','La factura se pagó, pero no se pudo liberar la mesa automáticamente.');
+      }catch(e){
+        showAlert('warning','Mesa','La factura se pagó, pero no se pudo liberar la mesa automáticamente.');
+      }
+    }
+
+    facturaActual=null;
+    comandaItems=[];
+    actualizarComandaUI();
+    updateProductBadges();
+    if(observacionesTextarea) observacionesTextarea.value='';
+    clienteSeleccionado={id:1,nombre:'CONSUMIDOR FINAL',identificacion:''};
+    pintarClienteInfoHeader();
+    mesaSeleccionada=null;
+    setServicioTipo('llevar');
+    setMesaSeleccionadaUI(null);
+    if(facturaTitle) facturaTitle.innerHTML=usaComandasOperacion()?'<i class="fas fa-receipt"></i> Nueva Comanda':'<i class="fas fa-cash-register"></i> Nueva venta';
+    if(btnImprimir) btnImprimir.disabled=true;
+    updateAccionPrincipalUI();
+    await cargarMesas();
+    contextoPagoRestaurante=null;
+  }
+
+  function instalarHookPagoRestaurante(){
+    if(window.__REST_PAGO_HOOK_INSTALLED__) return;
+    window.__REST_PAGO_HOOK_INSTALLED__=true;
+
+    // 1) Compatibilidad: si main.php expone handleServerResponse, envolverlo.
+    //    contexto.finalizado evita ejecutar dos veces el cierre de Restaurante.
+    if(typeof window.handleServerResponse === 'function'){
+      const original=window.handleServerResponse;
+      window.handleServerResponse=function(resp){
+        const ctx=contextoPagoRestaurante;
+        const salida=original.apply(this,arguments);
+        if(ctx && resp && resp.status===true && !ctx.finalizado){
+          setTimeout(()=>finalizarUITrasPagoRestaurante(ctx),0);
+        }
+        return salida;
+      };
+    }
+
+    // 2) Observador robusto del AJAX real de pagos.
+    //    El flujo oficial de main.php usa $.ajax() sobre estos endpoints. No
+    //    modificamos main.php: solo escuchamos una respuesta exitosa y, si
+    //    pertenece a una venta de Restaurante actualmente en cobro, enviamos
+    //    la comanda incremental y cerramos la cuenta operativa.
+    $(document).off('ajaxSuccess.restPago').on('ajaxSuccess.restPago',function(_evt,xhr,settings,data){
+      const ctx=contextoPagoRestaurante;
+      if(!ctx || ctx.finalizado) return;
+
+      const url=String((settings&&settings.url)||'').toLowerCase();
+      const esPagoFactura = /addpagofacturas(?:efectivo|tarjeta|transferencia|cheque|puntos)ajax\.php/.test(url);
+      if(!esPagoFactura) return;
+
+      let resp=data;
+      if(!resp || typeof resp!=='object'){
+        resp=(xhr&&xhr.responseJSON)||null;
+      }
+      if((!resp || typeof resp!=='object') && xhr && xhr.responseText){
+        try{resp=JSON.parse(xhr.responseText);}catch(_){resp=null;}
+      }
+
+      if(resp && resp.status===true){
+        setTimeout(()=>finalizarUITrasPagoRestaurante(ctx),0);
+      }
+    });
+  }
+
+  function inyectarOpcionLiberarMesaPago(){
+    const bar=document.getElementById('global_options_bar');
+    if(!bar || document.getElementById('rest-liberar-mesa-option')) return;
+    const wrap=document.createElement('div');
+    wrap.className='option-item rest-release-option';
+    wrap.id='rest-liberar-mesa-option';
+    wrap.style.display='none';
+    wrap.innerHTML=`<label class="payment-switch mb-0"><span class="switch-label">Liberar mesa al pagar</span><input type="checkbox" id="rest-liberar-mesa-switch" checked><span class="payment-slider round"></span></label><span class="question mb-0 ml-2">Sí</span>`;
+    bar.appendChild(wrap);
+    $(document).off('change.restRelease','#rest-liberar-mesa-switch').on('change.restRelease','#rest-liberar-mesa-switch',function(){
+      const on=$(this).is(':checked');
+      $('#rest-liberar-mesa-option .question').text(on?'Sí':'No');
+      if(contextoPagoRestaurante) contextoPagoRestaurante.liberar_mesa=on;
+    });
+  }
+
+  function prepararModalPagoContextual(contexto){
+    inyectarOpcionLiberarMesaPago();
+    const mesa=contexto && contexto.servicio==='mesa';
+    $('#rest-liberar-mesa-option').toggle(!!mesa);
+    $('#rest-liberar-mesa-switch').prop('checked',true).trigger('change.restRelease');
+  }
+
+  async function facturarConFlujoNormal(servicio){
+    if(facturandoRestaurante) return;
+    if(!Array.isArray(comandaItems)||!comandaItems.length){showAlert('warning','Sin productos','Agregue productos antes de cobrar.');return;}
+    servicio = servicio==='mesa' ? 'mesa' : 'llevar';
+    if(servicio==='mesa' && !mesaIdActual()){showAlert('warning','Mesa requerida','Seleccione una mesa antes de cobrar.');return;}
+    if(Number(window.REST_COLABORADOR_ID||0)<=0){showAlert('error','Cajero no identificado','No se pudo identificar el colaborador de la sesión.');return;}
+
+    facturandoRestaurante=true;
+    const cobrarBtn = servicio==='mesa' ? document.getElementById('btn-cobrar-mesa') : document.getElementById('btn-guardar');
+    setButtonBusy(cobrarBtn,true,'Preparando factura…');
+    try{
+      let facturaId = facturaIdActual();
+      if(servicio==='mesa'){
+        const saved=await guardarCuentaMesa({silencioso:true,imprimirAlEnviar:false,enviarComanda:false});
+        facturaId=Number(saved.factura_id||facturaId||0);
+      }
+
+      contextoPagoRestaurante={
+        servicio,
+        factura_id:facturaId,
+        mesa_id:servicio==='mesa'?mesaIdActual():0,
+        liberar_mesa:servicio==='mesa',
+        observaciones:String((observacionesTextarea&&observacionesTextarea.value)||'').trim(),
+        ticket_snapshot:crearSnapshotTicket({factura_id:facturaId}),
+        finalizado:false
+      };
+      prepararModalPagoContextual(contextoPagoRestaurante);
+
+      const response=await $.ajax({
+        type:'POST',
+        url:BASE+'ajax/addFacturaAjax.php',
+        data:construirPayloadFacturaNormal(facturaId).toString(),
+        contentType:'application/x-www-form-urlencoded; charset=UTF-8',
+        dataType:'text',
+        timeout:20000
+      });
+
+      const realId=validarRespuestaFacturaNormal(response);
+      contextoPagoRestaurante.factura_id=realId;
+      if(contextoPagoRestaurante.ticket_snapshot) contextoPagoRestaurante.ticket_snapshot.factura_id=realId;
+      facturaActual={id:realId,factura_id:realId,facturas_id:realId};
+
+      // Para llevar: una vez que el controlador oficial ya creó la factura real,
+      // registrar inmediatamente la orden de preparación. No dependemos del
+      // callback posterior del modal de pago para que Cocina reciba la orden.
+      if(servicio==='llevar' && debeEnviarPantallaComanda()){
+        const envio=await $.ajax({
+          type:'POST',
+          url:BASE+'core/facturasRestaurante/facturasRestauranteAjax.php',
+          dataType:'json',
+          timeout:15000,
+          data:{
+            action:'registrarComandaCocina',
+            factura_id:realId,
+            mesa_id:0,
+            servicio:'llevar',
+            comentarios:contextoPagoRestaurante.observaciones||''
+          }
+        });
+        if(!envio || !envio.ok){
+          throw new Error((envio&&(envio.msg||envio.message))||'La factura se creó, pero no se pudo enviar la orden a Cocina/Barra.');
+        }
+        contextoPagoRestaurante.comanda_enviada=true;
+      }
+
+      // IMPORTANTE: no ejecutar con eval() el script devuelto por addFacturaAjax.
+      // Ese script pertenece a la vista normal de Facturas y puede intentar
+      // resetear #formulario_facturacion, que no existe en Restaurante.
+      // El backend oficial YA hizo la factura/numeración; desde aquí abrimos
+      // solamente el flujo oficial de pago con el ID real generado.
+      instalarHookPagoRestaurante();
+      if(typeof pago !== 'function'){
+        throw new Error('No está disponible el flujo oficial de pagos.');
+      }
+      pago(realId, 1, 'factura');
+    }catch(e){
+      contextoPagoRestaurante=null;
+      showAlert('error','No se pudo facturar',e && e.message ? e.message : 'Ocurrió un error al registrar la factura.');
+    }finally{
+      facturandoRestaurante=false;
+      setButtonBusy(cobrarBtn,false);
+      updateAccionPrincipalUI();
+    }
+  }
+
+  $(document).off('click.restCobrarMesa','#btn-cobrar-mesa').on('click.restCobrarMesa','#btn-cobrar-mesa',function(){
+    facturarConFlujoNormal('mesa');
+  });
+
+  function guardarFactura(){
+    if (!Array.isArray(comandaItems) || !comandaItems.length) {
+      showAlert('warning','Sin productos','Agregue productos a la comanda.');
+      return false;
+    }
+    const esLlevar=getServicioTipo()==='llevar';
+    if(esLlevar){
+      facturarConFlujoNormal('llevar');
+      return false;
+    }
+    const mesa_id=mesaIdActual();
+    if(!mesa_id){showAlert('warning','Mesa requerida','Debe seleccionar una mesa.');return false;}
+    const tile=document.querySelector(`${MESA_TILE_SELECTOR}[data-mesa-id="${mesa_id}"]`);
+    const estado=String((tile&&tile.getAttribute('data-estado'))||'disponible').toLowerCase();
+    if(estado==='mantenimiento'){showAlert('warning','Mesa no disponible','La mesa se encuentra en mantenimiento.');return false;}
+
+    showConfirm(facturaIdActual()?'Actualizar cuenta':'Enviar a cocina',
+      facturaIdActual()?'¿Desea guardar los cambios de esta cuenta y actualizar la comanda?':'¿Desea guardar esta cuenta y enviarla a cocina?',
+      ()=>{
+        if(guardandoFactura) return;
+        guardandoFactura=true;
+        setButtonBusy(btnGuardar,true,facturaIdActual()?'Actualizando…':'Enviando…');
+        guardarCuentaMesa({silencioso:false,imprimirAlEnviar:true,enviarComanda:true})
+          .catch(e=>showAlert('error','Error',e.message||'No se pudo guardar la cuenta'))
+          .finally(()=>{guardandoFactura=false;setButtonBusy(btnGuardar,false);updateAccionPrincipalUI();});
+      });
     return false;
-  }  
+  }
 
   function cerrarFactura() {
     if (!facturaActual || !(facturaActual.id || facturaActual.factura_id)) {
@@ -3378,8 +4122,8 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     }
     const fid = facturaActual.id || facturaActual.factura_id;
   
-    showConfirm('Cerrar Factura', '¿Está seguro que desea cerrar esta factura?', () => {
-      fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
+    showConfirm('Cancelar cuenta', '¿Desea cancelar esta cuenta abierta? Se retirará de Cuentas abiertas y, si tenía mesa, la mesa quedará disponible. La cuenta no se elimina físicamente: queda marcada como cancelada para conservar trazabilidad.', () => {
+      fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `action=closeFactura&factura_id=${encodeURIComponent(fid)}`
@@ -3388,7 +4132,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
         .then(data => {
           if (!data.status) { showAlert('error','Error', data.message || 'Error al cerrar la factura'); return; }
   
-          showAlert('success','Cerrada','La factura fue cerrada');
+          showAlert('success','Cuenta cancelada','La cuenta fue cancelada correctamente.');
           facturaActual = null;
           comandaItems = [];
           actualizarComandaUI();
@@ -3396,7 +4140,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
           // UI neutral
           setServicioTipo('llevar');      
           setMesaSeleccionadaUI(null);    
-          if (facturaTitle) facturaTitle.innerHTML = `<i class="fas fa-receipt"></i> Nueva Comanda`;
+          if (facturaTitle) facturaTitle.innerHTML = usaComandasOperacion()?'<i class="fas fa-receipt"></i> Nueva Comanda':'<i class="fas fa-cash-register"></i> Nueva venta';
           if (btnImprimir) btnImprimir.disabled = true;
   
           cargarMesas();
@@ -3408,55 +4152,57 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
   function limpiarComanda() { comandaItems = []; actualizarComandaUI(); }
 
   // ======= ISV del modal de Producto =======
-  function prepararModalProductoISV(){
+  function prepararModalProductoISV(valoresEdicion = null){
     const chk1 = document.getElementById('prod-isv1');
     const chk2 = document.getElementById('prod-isv2');
 
-    if (chk1) chk1.checked = false;
-    if (chk2) chk2.checked = false;
+    const tieneEdicion = valoresEdicion && typeof valoresEdicion === 'object';
+    const editISV1 = tieneEdicion ? (parseInt(valoresEdicion.isv1 || 0, 10) === 1) : null;
+    const editISV2 = tieneEdicion ? (parseInt(valoresEdicion.isv2 || 0, 10) === 1) : null;
 
     function setIsvLabelSingleLine(chk, rate){
       if (!chk) return;
       const label = chk.closest('label');
       if (!label) return;
-
       const cb = chk;
       label.innerHTML = '';
       label.appendChild(cb);
-
       const span = document.createElement('span');
       span.className = 'isv-inline';
       span.textContent = ` ISV ${Number(rate)}%`;
       span.style.marginLeft = '8px';
       label.appendChild(span);
-
       cb.setAttribute('data-valor', (Number(rate) || 0) / 100);
     }
 
-    fetch(`${SERVERURL}core/productos/getIsvConfig.php`, {
+    return fetchWithTimeout(`${SERVERURL}core/productos/getIsvConfig.php`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     })
     .then(r=>r.json())
     .then(res=>{
       if (!res || !res.success) throw new Error('Respuesta inválida');
-
       if (chk1){
-        chk1.checked = Number(res.isv1.activar) === 1;
+        chk1.checked = tieneEdicion ? editISV1 : (Number(res.isv1.activar) === 1);
         setIsvLabelSingleLine(chk1, res.isv1.valor);
       }
       if (chk2){
-        chk2.checked = Number(res.isv2.activar) === 1;
+        chk2.checked = tieneEdicion ? (editISV2 && !editISV1) : (Number(res.isv2.activar) === 1);
         setIsvLabelSingleLine(chk2, res.isv2.valor);
       }
-
       aplicarSeleccionExclusivaISVProducto();
       if (chk1 && chk2 && chk1.checked && chk2.checked){ chk2.checked = false; }
+      return true;
     })
     .catch(()=>{
       setIsvLabelSingleLine(chk1, isvRates[1] || 0);
       setIsvLabelSingleLine(chk2, isvRates[2] || 0);
+      if (tieneEdicion) {
+        if (chk1) chk1.checked = editISV1;
+        if (chk2) chk2.checked = editISV2 && !editISV1;
+      }
       aplicarSeleccionExclusivaISVProducto();
+      return false;
     });
   }
 
@@ -3497,49 +4243,27 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     const ttl = document.getElementById('titulo-modal-producto');
     if (ttl) ttl.textContent = 'Editar Producto';
 
-    // Estación según la categoría actual del producto (si la tienes en memoria)
-    try {
-      const catActual = (typeof categorias !== 'undefined' && Array.isArray(categorias))
-        ? categorias.find(c => String(c.id) === String(prod?.categoria_id))
-        : null;
+    // Estación real del producto. La categoría es independiente.
+    const est = normalizeEstacion(prod);
+    const realEst = (est === 'barra') ? 'barra' : 'cocina';
+    const radio = document.querySelector(`#prod-estacion input[value="${realEst}"]`);
+    if (radio) radio.checked = true;
 
-      if (catActual){
-        const est = normalizeEstacion(catActual); // debe devolver 'cocina' | 'barra'
-        const radio = document.querySelector(`#prod-estacion input[value="${est}"]`);
-        if (radio){
-          radio.checked = true;
-          // por si tu lógica escucha el change
-          radio.dispatchEvent(new Event('change', { bubbles:true }));
-        }
-      }
-    } catch(_) {}
-
-    // Llenar opciones de categoría para la estación activa y seleccionar la del producto
-    // Soporta función async o sync
+    const categoriaIdEdicion = String(prod?.categoria_id ?? '');
     const setCategoriaSeleccionada = () => {
-      const valor = String(prod?.categoria_id ?? '');
-      if (!valor) return;
-
-      if (window.jQuery && selCat){
-        const $sel = window.jQuery(selCat);
-        $sel.val(valor).trigger('change');
-      } else if (selCat) {
-        selCat.value = valor;
+      if (!selCat || !categoriaIdEdicion) return;
+      selCat.value = categoriaIdEdicion;
+      if (window.jQuery) {
+        window.jQuery(selCat).val(categoriaIdEdicion).trigger('change');
+      } else {
         selCat.dispatchEvent(new Event('change', { bubbles:true }));
       }
     };
 
-    try {
-      const maybe = fillProdCategoriaOptionsByEstacion(prod?.categoria_id);
-      if (maybe && typeof maybe.then === 'function'){
-        maybe.then(() => { setTimeout(setCategoriaSeleccionada, 0); });
-      } else {
-        // pequeño delay por si la función pobló opciones de forma diferida
-        setTimeout(setCategoriaSeleccionada, 30);
-      }
-    } catch(_) {
-      setTimeout(setCategoriaSeleccionada, 30);
-    }
+    ensureCategoriasReady()
+      .then(()=>fillProdCategoriaOptionsByEstacion(categoriaIdEdicion))
+      .then(()=>setCategoriaSeleccionada())
+      .catch(()=>setCategoriaSeleccionada());
 
     // Imagen (preview si existe)
     try {
@@ -3574,7 +4298,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     } catch(_) {}
 
     // Preparar toggles/ISV y uploader si aplica
-    try { if (typeof prepararModalProductoISV === 'function') prepararModalProductoISV(); } catch(_) {}
+    try { if (typeof prepararModalProductoISV === 'function') prepararModalProductoISV(prod); } catch(_) {}
     try { if (typeof initProductoImageUpload   === 'function') initProductoImageUpload();   } catch(_) {}
 
     // Mostrar modal
@@ -3748,7 +4472,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     const fd = new FormData();
     fd.append('producto_id', productoId);
     fd.append('imagen_producto', file);
-    return fetch(`${SERVERURL}core/productos/uploadImagenProducto.php`, {
+    return fetchWithTimeout(`${SERVERURL}core/productos/uploadImagenProducto.php`, {
       method: 'POST',
       body: fd
     }).then(r=>r.json())
@@ -3771,7 +4495,7 @@ function abrirModalCombos(){
 
 // Lista combos (grid)
 function cargarCombos(){
-  return fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
+  return fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
     method:'POST',
     headers:{'Content-Type':'application/x-www-form-urlencoded'},
     body: 'action=loadCombos'
@@ -3883,18 +4607,13 @@ function abrirEditorComboNuevo() {
   const help = document.getElementById('combo-help-message');
   if (help){
     help.innerHTML = `
-      <div class="help-message">
-        <h5>¿Cómo configurar un combo?</h5>
-        <p><strong>Producto que representa el combo:</strong> el artículo padre que vendes (ticket).</p>
-        <p><strong>Componentes:</strong> insumos o artículos hijos que se descuentan del inventario.</p>
-        <p><strong>Cantidad por porción:</strong> cuánto consume el combo de este insumo por unidad vendida.</p>
-        <p><strong>Unidad:</strong> g, ml, und u otra unidad compatible con tu inventario.</p>
-        <p><strong>Merma (%):</strong> pérdida prevista. <em>Ej. 10 = suma 10% al consumo</em> para evitar quedarte corto.</p>
-        <p><strong>Componente obligatorio:</strong> si está marcado, siempre se incluye y descuenta. Si no, es opcional.</p>
-        <p><strong>Precio extra:</strong> si el componente es opcional y el cliente lo elige, se suma este monto.</p>
-        <p><strong>Orden:</strong> posición de visualización en la lista del combo.</p>
+      <div class="combo-guide">
+        <div class="combo-guide-step"><span>1</span><div><strong>Elige el producto combo</strong><small>Es el producto que verá y cobrará el cajero.</small></div></div>
+        <div class="combo-guide-step"><span>2</span><div><strong>Agrega sus componentes</strong><small>Define productos, cantidades, unidad y merma.</small></div></div>
+        <div class="combo-guide-step"><span>3</span><div><strong>Configura opciones</strong><small>Solo si el cliente puede elegir entre categorías.</small></div></div>
       </div>`;
   }
+  renderReglasCategoria([]);
 
   modalComboEditor.style.display = 'block';
   
@@ -3930,7 +4649,7 @@ function abrirEditorComboExistente(comboId){
   const precioCombo = (combo && combo.hasOwnProperty('precio_venta')) ? combo.precio_venta : null;
 
   // Carga el detalle de componentes
-  fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php',{
+  fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php',{
     method:'POST',
     headers:{'Content-Type':'application/x-www-form-urlencoded'},
     body: `action=loadComboDetalle&combo_id=${encodeURIComponent(comboId)}`
@@ -3973,6 +4692,14 @@ function abrirEditorComboExistente(comboId){
 
      // 🔹 Cargar y pintar reglas por categoría
     cargarReglasCombo(comboId).then(reglas => renderReglasCategoria(reglas));
+
+    const help = document.getElementById('combo-help-message');
+    if (help){
+      help.innerHTML = `
+        <div class="combo-guide combo-guide--edit">
+          <div class="combo-guide-step"><span><i class="fas fa-edit"></i></span><div><strong>Editando combo</strong><small>Actualiza componentes, precio u opciones sin cambiar el producto maestro.</small></div></div>
+        </div>`;
+    }
 
     // Muestra modal
     if (modalComboEditor) modalComboEditor.style.display = 'block';
@@ -4039,18 +4766,25 @@ function setPrecioComboUI(precio){
   const wrap = document.getElementById('combo-precio-wrap');
   if (!wrap) return;
 
+  const propio = (precio !== null && precio !== undefined && precio !== '');
   wrap.innerHTML = `
-    <div class="form-group" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-      <label style="margin-right:8px;">Precio del combo</label>
-      <label class="radio-container">
-        <input type="radio" name="comboPrecioModo" value="heredar" ${ (precio===null || precio===undefined) ? 'checked':'' }>
-        <span style="margin-left:6px;">Heredar del producto maestro</span>
+    <div class="combo-price-header">
+      <span class="combo-price-icon"><i class="fas fa-tags"></i></span>
+      <div><strong>Precio del combo</strong><small>Usa el precio del producto maestro o define uno especial.</small></div>
+    </div>
+    <div class="combo-price-options">
+      <label class="combo-price-option">
+        <input type="radio" name="comboPrecioModo" value="heredar" ${!propio ? 'checked':''}>
+        <span><i class="fas fa-link"></i><strong>Heredar precio</strong><small>Usar el precio actual del producto maestro.</small></span>
       </label>
-      <label class="radio-container">
-        <input type="radio" name="comboPrecioModo" value="propio" ${ (precio!==null && precio!==undefined) ? 'checked':'' }>
-        <span style="margin-left:6px;">Fijar precio propio</span>
+      <label class="combo-price-option">
+        <input type="radio" name="comboPrecioModo" value="propio" ${propio ? 'checked':''}>
+        <span><i class="fas fa-dollar-sign"></i><strong>Precio propio</strong><small>Definir un precio exclusivo para este combo.</small></span>
       </label>
-      <input type="number" class="form-control" id="combo-precio-valor" min="0" step="0.01" placeholder="L 0.00" style="max-width:160px;" ${ (precio===null || precio===undefined) ? 'disabled':'' } value="${ (precio!==null && precio!==undefined) ? Number(precio).toFixed(2) : '' }">
+      <div class="combo-price-input">
+        <label for="combo-precio-valor">Precio especial</label>
+        <input type="number" class="form-control" id="combo-precio-valor" min="0" step="0.01" placeholder="0.00" ${!propio ? 'disabled':''} value="${propio ? Number(precio).toFixed(2) : ''}">
+      </div>
     </div>
   `;
 
@@ -4058,13 +4792,15 @@ function setPrecioComboUI(precio){
   const inputPrecio = document.getElementById('combo-precio-valor');
   radios.forEach(r=>{
     r.addEventListener('change', ()=>{
-      if (r.value==='propio'){
-        inputPrecio.disabled = false;
+      const esPropio = r.checked && r.value === 'propio';
+      if (!r.checked) return;
+      inputPrecio.disabled = !esPropio;
+      if (esPropio){
         if (!inputPrecio.value) inputPrecio.value = '0.00';
         inputPrecio.focus();
+        inputPrecio.select?.();
       } else {
         inputPrecio.value = '';
-        inputPrecio.disabled = true;
       }
     });
   });
@@ -4168,7 +4904,7 @@ function calcularDisponibilidadComboUI(comboId, cantidad=1){
   fd.append('combo_id', String(comboId));
   fd.append('cantidad', String(cantidad));
 
-  fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', { method:'POST', body: fd })
+  fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', { method:'POST', body: fd })
     .then(r=>r.json())
     .then(res=>{
       if(!res || !res.status){ showAlert('error','Error',res?.message||'No se pudo calcular'); return; }
@@ -4308,7 +5044,7 @@ function addComboItemRow(data){
       ['.combo-item-cantidad',      'Consumo por 1 combo. Debe ser > 0.'],
       ['.combo-item-unidad',        'Unidad compatible con tu inventario (g, ml, und, etc.).'],
       ['.combo-item-merma',         'Pérdida prevista. 10 = +10% al consumo para cubrir desperdicio.'],
-      ['.combo-item-precio-extra',  'Si el componente es opcional y se elige, suma este monto.'],
+      ['.combo-item-extra',         'Si el componente es opcional y se elige, suma este monto.'],
       ['.combo-item-obligatorio',   'Si está marcado, siempre se incluye y descuenta.'],
       ['.combo-item-orden',         'Posición de visualización del componente.']
     ];
@@ -4377,59 +5113,72 @@ function renderReglasCategoria(reglas = []) {
   const body = document.getElementById('combo-reglas-rows');
   if (!body) return;
 
-  // 'categorias' debe estar cargado (ya lo usas en otros lados)
   const opts = (Array.isArray(categorias) ? categorias : []).map(c => {
     const id = c.id || c.categoria_id || c.categoriaId || '';
     const nombre = c.nombre || c.text || '';
-    return `<option value="${id}">${nombre}</option>`;
+    return `<option value="${id}">${escapeHtml(nombre)}</option>`;
   }).join('');
 
   body.innerHTML = '';
 
-  (reglas || []).forEach(r => {
-    const row = document.createElement('tr');
+  if (!reglas || !reglas.length) {
+    body.innerHTML = `
+      <div class="combo-rules-empty">
+        <i class="fas fa-sliders-h"></i>
+        <div>
+          <strong>Sin reglas especiales</strong>
+          <small>Agrega una regla solo si deseas limitar cuántos productos puede elegir el cliente de una categoría.</small>
+        </div>
+      </div>`;
+    return;
+  }
+
+  (reglas || []).forEach((r, index) => {
+    const row = document.createElement('div');
+    row.className = 'combo-rule-row';
     row.innerHTML = `
-      <td>
+      <div class="combo-rule-number">${index + 1}</div>
+      <div class="form-group">
+        <label>Categoría</label>
         <select class="form-control regla-categoria">
-          <option value=""></option>
+          <option value="">Seleccione una categoría…</option>
           ${opts}
         </select>
-      </td>
-      <td>
+      </div>
+      <div class="form-group combo-rule-max">
+        <label>Máx. selección</label>
         <input type="number" class="form-control regla-max" min="1" value="${parseInt(r.max_seleccion||1,10)}">
-      </td>
-      <td class="text-right">
-        <button type="button" class="btn btn-danger btn-sm" data-remove-regla="1">
-          <i class="fas fa-trash"></i>
-        </button>
-      </td>
+      </div>
+      <button type="button" class="btn btn-danger btn-sm combo-rule-remove" data-remove-regla="1" title="Quitar regla">
+        <i class="fas fa-trash"></i>
+      </button>
     `;
     body.appendChild(row);
     const sel = row.querySelector('.regla-categoria');
     if (sel) sel.value = String(r.categoria_id || '');
   });
 
-  // Delegación para quitar
   body.onclick = (e)=>{
     const btn = e.target.closest('button[data-remove-regla="1"]');
     if (!btn) return;
-    const tr = btn.closest('tr');
-    if (tr && tr.parentNode) tr.parentNode.removeChild(tr);
+    const row = btn.closest('.combo-rule-row');
+    if (row) row.remove();
+    if (!body.querySelector('.combo-rule-row')) renderReglasCategoria([]);
   };
 }
 
 function collectReglasCategoria(){
-  const rows = Array.from(document.querySelectorAll('#combo-reglas-rows tr'));
-  return rows.map(tr => {
-    const cat = tr.querySelector('.regla-categoria')?.value || '';
-    const max = parseInt(tr.querySelector('.regla-max')?.value || '1', 10);
+  const rows = Array.from(document.querySelectorAll('#combo-reglas-rows .combo-rule-row'));
+  return rows.map(row => {
+    const cat = row.querySelector('.regla-categoria')?.value || '';
+    const max = parseInt(row.querySelector('.regla-max')?.value || '1', 10);
     if (!cat) return null;
     return { categoria_id: parseInt(cat,10), max_seleccion: isNaN(max) ? 1 : Math.max(1, max) };
   }).filter(Boolean);
 }
 
 function cargarReglasCombo(comboId){
-  return fetch(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
+  return fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
     method:'POST',
     headers:{'Content-Type':'application/x-www-form-urlencoded'},
     body:`action=loadComboCategoriaReglas&combo_id=${encodeURIComponent(comboId)}`
@@ -4521,11 +5270,14 @@ function guardarCombo(){
   const accion = comboId ? 'editar' : 'guardar';
   const mensaje = comboId ? '¿Desea actualizar este combo?' : '¿Desea guardar este combo?';
 
-  showConfirm(accion==='editar' ? 'Editar Combo' : 'Nuevo Combo', mensaje, () => {
+  showConfirm(accion==='editar' ? 'Editar Combo' : 'Nuevo Combo', mensaje, async () => {
+    const btn = document.getElementById('btn-guardar-combo');
+    if (btn && btn.disabled) return;
+
     const payload = {
       productos_id: parseInt(productos_id,10),
       activo,
-      precio_venta, // null -> back debe interpretar como "usar precio del producto maestro"
+      precio_venta,
       items,
       reglas: collectReglasCategoria()
     };
@@ -4535,24 +5287,25 @@ function guardarCombo(){
       payload.combo_id = parseInt(comboId,10);
     }
 
-    fetch(BASE + ' core/facturasRestaurante/facturasRestauranteAjax.php',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ action, data: payload })
-    })
-    .then(r=>r.json())
-    .then(d=>{
+    try{
+      setButtonBusy(btn, true, comboId ? 'Actualizando…' : 'Guardando…');
+      const r = await fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ action, data: payload })
+      });
+      const d = await r.json();
       if (!d || !d.status){
-        showAlert('error','Error', d && d.message ? d.message : 'No se pudo guardar el combo');
-        return;
+        throw new Error(d && d.message ? d.message : 'No se pudo guardar el combo');
       }
       showAlert('success','Éxito', comboId ? 'Combo actualizado' : 'Combo creado');
       if (modalComboEditor) modalComboEditor.style.display = 'none';
-      if (modalCombos && modalCombos.style.display==='block'){
-        cargarCombos();
-      }
-    })
-    .catch(()=> showAlert('error','Error','Error al guardar combo'));
+      if (modalCombos && modalCombos.style.display==='block') await cargarCombos();
+    }catch(e){
+      showAlert('error','Error', e.message || 'Error al guardar combo');
+    }finally{
+      setButtonBusy(btn, false);
+    }
   });
 }
 
@@ -4561,7 +5314,7 @@ function eliminarCombo(comboId){
     const fd = new FormData();
     fd.append('action','deleteCombo');
     fd.append('combo_id', String(comboId));
-    fetch(BASE + ' core/facturasRestaurante/facturasRestauranteAjax.php',{
+    fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php',{
       method:'POST',
       body: fd
     })
@@ -4592,7 +5345,7 @@ function pintarClienteInfoHeader(){
   // Usa el estado global que ya manejas
   const clientes_id = (clienteSeleccionado && clienteSeleccionado.id) ? clienteSeleccionado.id : '1';
   const nombre = (clienteSeleccionado && clienteSeleccionado.nombre) ? clienteSeleccionado.nombre : 'Consumidor final';
-  const rtn    = (clienteSeleccionado && clienteSeleccionado.identificacion) ? String(clienteSeleccionado.identificacion).trim() : '';
+  const rtn    = (clienteSeleccionado && (clienteSeleccionado.identificacion || clienteSeleccionado.rtn)) ? String(clienteSeleccionado.identificacion || clienteSeleccionado.rtn).trim() : '';
 
   // Pinta: nombre arriba, RTN (si hay) abajo en pequeño
   setClienteInfoUI({ clientes_id, nombre, rtn });
@@ -4634,35 +5387,23 @@ function validarComponentesCombo(items, maestroId){
 }
 
 // === CATEGORÍA: estación (Cocina/Barra) ===
-function setProdEstacion(value = 'cocina') {
+function setProdEstacion(value = 'cocina', dispararCambio = true) {
   const wrap = document.getElementById('prod-estacion');
   if (!wrap) return;
-
   const inputs = wrap.querySelectorAll('input[name="prodEstacion"]');
   inputs.forEach(inp => {
     const active = (inp.value === value);
     inp.checked = active;
-
-    // Mantén sincronizado el aspecto visual (label .active si usas estilos tipo btn-group)
-    const btn = inp.closest('label') || inp.closest('.btn');
-    if (btn) {
-      btn.classList.toggle('active', active);
-    }
+    const label = inp.nextElementSibling || inp.closest('label');
+    if (label && label.classList) label.classList.toggle('active', active);
   });
-
-  // Dispara change en el que quedó seleccionado para refrescar categorías
   const checked = wrap.querySelector('input[name="prodEstacion"]:checked');
-  if (checked) checked.dispatchEvent(new Event('change', { bubbles: true }));
+  if (checked && dispararCambio) checked.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 function setCatEstacion(value='cocina'){
   const radio = document.querySelector(`#cat-estacion input[value="${value}"]`);
   if (radio) radio.checked = true;
-}
-
-function setProdEstacion(value='cocina'){
-  const r = document.querySelector(`#prod-estacion input[name="prodEstacion"][value="${value}"]`);
-  if (r) r.checked = true;
 }
 
 // Asegura que 'categorias' esté cargado antes de usarlo
@@ -4770,7 +5511,7 @@ function reinitSelect2InModal(modalSelector) {
               config.allowClear = true;
               config.placeholder = $select.data('placeholder') || '';
           } else {
-              config.minimumResultsForSearch = -1;
+              config.minimumResultsForSearch = 0;
           }
           
           try {
@@ -4804,28 +5545,149 @@ function initSelect2ForComboRow(row){
 
   // ======= SweetAlert Helpers =======
   function showAlert(icon, title, text) {
-    showNotify(icon, title, text);
+    if (typeof showNotify === 'function') {
+      showNotify(icon, title, text);
+    } else {
+      console[(icon === 'error') ? 'error' : 'log'](title || '', text || '');
+    }
   }
 
-  function showConfirm(title, text, callback) {
+  function showConfirm(title, text, callback, options) {
+    options = options || {};
+    const danger = options.danger === true || /eliminar|cancelar|cerrar factura|liberar mesa/i.test(String(title||''));
     if (typeof swal !== 'undefined') {
       swal({
         title: title,
         text: text,
-        icon: "warning",
+        icon: danger ? "warning" : "info",
         buttons: true,
-        dangerMode: true,
+        dangerMode: danger,
+        closeOnEsc: true,
+        closeOnClickOutside: false
       }).then((willConfirm) => {
-        if (willConfirm) {
-          callback();
-        }
+        if (willConfirm) callback();
       });
-    } else {
-      if (confirm(`${title}: ${text}`)) {
-        callback();
-      }
+      return;
     }
+    showAlert('error', 'SweetAlert no disponible', 'No se puede confirmar la operación de forma segura.');
   }
+
+
+  // ===== Integración con componentes oficiales de Facturación =====
+  function normalizarOpcionesSelect(data, valueKeys, labelKeys){
+    if (typeof data === 'string') {
+      const raw=data.trim();
+      if (!raw) return '';
+      if (raw[0] !== '{' && raw[0] !== '[') return data;
+      try { data=JSON.parse(raw); } catch (_) { return data; }
+    }
+    let rows=[];
+    if (Array.isArray(data)) rows=data;
+    else if (data && Array.isArray(data.data)) rows=data.data;
+    if (!rows.length) return '';
+    return rows.map(function(x){
+      let value=''; let label='';
+      for (const k of valueKeys){ if(x && x[k] != null){ value=x[k]; break; } }
+      for (const k of labelKeys){ if(x && x[k] != null){ label=x[k]; break; } }
+      const sub=(x && (x.cuenta || x.identidad || x.descripcion)) ? String(x.cuenta || x.identidad || x.descripcion) : '';
+      return `<option value="${escapeHtml(value)}"${sub?` data-subtext="${escapeHtml(sub)}"`:''}>${escapeHtml(label || value)}</option>`;
+    }).join('');
+  }
+
+  window.getBanco = window.getBanco || function(){
+    return $.ajax({type:'POST',url:BASE+'core/getBanco.php',timeout:15000})
+      .done(function(data){
+        const opts=normalizarOpcionesSelect(data,['bancos_id','banco_id','id'],['nombre','banco']);
+        const sels=$('#formTransferenciaBill #bk_nm,#formChequeBill #bk_nm_chk');
+        if(opts) sels.html(opts);
+        try{sels.selectpicker('refresh');}catch(_){}
+      })
+      .fail(function(){showAlert('error','Error','No se pudieron cargar los bancos.');});
+  };
+
+  window.getCollaboradoresModalPagoFacturas = window.getCollaboradoresModalPagoFacturas || function(){
+    const sels=$('#formEfectivoBill #usuario_efectivo,#formTarjetaBill #usuario_tarjeta,#formTransferenciaBill #usuario_transferencia,#formChequeBill #usuario_cheque,#formPuntosBill #usuario_puntos');
+    const aplicar=function(data){
+      const opts=normalizarOpcionesSelect(data,['colaboradores_id','colaborador_id','id'],['nombre','colaborador']);
+      if(opts) sels.html(opts);
+      try{sels.selectpicker('refresh');}catch(_){}
+    };
+    // En instalaciones históricas de IZZY existe con ambas grafías; se intenta sin duplicar la carga.
+    return $.ajax({type:'POST',url:BASE+'core/getColaboradores.php',timeout:15000})
+      .done(aplicar)
+      .fail(function(){
+        return $.ajax({type:'POST',url:BASE+'core/getCollaboradores.php',timeout:15000})
+          .done(aplicar)
+          .fail(function(){showAlert('error','Error','No se pudieron cargar los colaboradores del pago.');});
+      });
+  };
+
+  window.printBill = window.printBill || function(facturas_id, print_comprobante){
+    const fid=Number(facturas_id||0);
+    if(!fid){showAlert('error','Factura inválida','No se recibió la factura a mostrar.');return false;}
+
+    const abrirFallback=function(){
+      abrirFacturaEnModal(BASE+'php/facturacion/generaFactura.php?facturas_id='+encodeURIComponent(fid),'Factura #'+fid);
+    };
+
+    $.ajax({type:'POST',url:BASE+'core/getImpresoraComprobante.php',data:{formato:'Factura'},dataType:'text',timeout:12000})
+      .done(function(data){
+        let parsed=data;
+        try { if(typeof data==='string') parsed=JSON.parse(data); } catch (_) {}
+        const impresora=Array.isArray(parsed) ? parsed[0] : parsed;
+        if(!impresora || typeof impresora!=='object') { abrirFallback(); return; }
+
+        const estado=String(impresora.estado == null ? '' : impresora.estado);
+        const formato=String(impresora.formato || '').trim();
+        const reportServer=String(window.REST_REPORT_SERVER||'').trim();
+        if(estado !== '1' || !reportServer){ abrirFallback(); return; }
+
+        let reportType='';
+        if(formato==='Carta') reportType='Factura_carta_izzy';
+        else if(formato==='Media Carta') reportType='Factura_media_izzy';
+        else if(formato==='Ticket') reportType='Factura_ticket_izzy';
+        else { abrirFallback(); return; }
+
+        const params={
+          id:fid,
+          type:reportType,
+          db:String(window.REST_DB||''),
+          demo_sistema:String(window.REST_SISTEMA_PRUEBA||0)
+        };
+        const sep=reportServer.indexOf('?')===-1?'?':'&';
+        abrirFacturaEnModal(reportServer+sep+new URLSearchParams(params).toString(),'Factura #'+fid);
+      })
+      .fail(abrirFallback);
+    return false;
+  };
+
+  window.mailBill = window.mailBill || function(){ return false; };
+  window.listar_cuentas_por_cobrar_clientes = window.listar_cuentas_por_cobrar_clientes || function(){};
+  window.getTotalFacturasDisponibles = window.getTotalFacturasDisponibles || function(){ return Promise.resolve(); };
+
+  function abrirFacturaEnModal(url,titulo){
+    const modal=document.getElementById('modal-factura-restaurante');
+    const iframe=document.getElementById('iframe-factura-restaurante');
+    const loading=document.getElementById('rs-report-loading');
+    const subtitle=document.getElementById('rs-report-subtitle');
+    if(!modal||!iframe){window.open(url,'_blank');return;}
+    if(subtitle) subtitle.textContent=titulo||'';
+    if(loading) loading.style.display='flex';
+    iframe.src='about:blank';
+    modal.classList.add('show');
+    modal.setAttribute('aria-hidden','false');
+    const onload=function(){ if(iframe.src && iframe.src!=='about:blank' && loading) loading.style.display='none'; };
+    iframe.onload=onload;
+    setTimeout(()=>{iframe.src=url;},80);
+  }
+
+  $(document).off('click.restReportClose','#btn-cerrar-factura-preview').on('click.restReportClose','#btn-cerrar-factura-preview',function(){
+    $('#modal-factura-restaurante').removeClass('show').attr('aria-hidden','true');
+    const iframe=document.getElementById('iframe-factura-restaurante'); if(iframe) iframe.src='about:blank';
+  });
+
+  // El pago unificado está integrado en este mismo archivo para respetar la arquitectura original del módulo.
+  instalarHookPagoRestaurante();
 
   // ======= FIN JS =======
 
@@ -4916,4 +5778,522 @@ function initSelect2ForComboRow(row){
       });
     }
   }
+
+  /* ================================================================
+     CIERRE FUNCIONAL RESTAURANTE - CONFIG / CUENTAS / TICKET / AUTH
+     ================================================================ */
+  window.REST_CONFIG = window.REST_CONFIG || {usar_mesas:1, usar_comandas:1, etiqueta_cocina:'Cocina', etiqueta_barra:'Barra', destino_comanda:'pantalla', momento_ticket:'enviar', flujo_cocina:'pasos'};
+  let REST_TIPO_USUARIO = 0;
+  let REST_PERMISOS = {};
+  let REST_AUTH_BYPASS = false;
+
+  function restJsonSeguro(v, fallback){
+    if (v && typeof v === 'object') return v;
+    try { return JSON.parse(String(v||'')); } catch(_) { return fallback; }
+  }
+
+  function restPost(action, data={}){
+    return fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
+      method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:new URLSearchParams(Object.assign({action},data)).toString()
+    }).then(async r=>{
+      let d=null; try{ d=await r.json(); }catch(_){ throw new Error('Respuesta inválida del servidor'); }
+      if(r.status===401 && d.redirect){ window.location.href=d.redirect; throw new Error(d.message||'Sesión expirada'); }
+      return d;
+    });
+  }
+
+  async function cargarPermisosRestaurante(){
+    try{
+      const tipoRaw = await $.ajax({type:'POST',url:BASE+'core/getPrivilegioUsuarioTipo.php',timeout:15000});
+      const tipoData = restJsonSeguro(tipoRaw, []);
+      REST_TIPO_USUARIO = Number(Array.isArray(tipoData) ? tipoData[0] : (tipoData.tipo_user_id || tipoData.id || 0));
+      let rows=[];
+      if(REST_TIPO_USUARIO>0){
+        const pRaw=await $.ajax({type:'POST',url:BASE+'core/getTipoUsuarioAccesos.php',data:{permisos_tipo_user_id:REST_TIPO_USUARIO},timeout:15000});
+        rows=restJsonSeguro(pRaw,[]) || [];
+      }
+      REST_PERMISOS={};
+      (Array.isArray(rows)?rows:[]).forEach(r=>{ if(r && r.tipo_permiso) REST_PERMISOS[String(r.tipo_permiso).toLowerCase()]=Number(r.estado)===1; });
+    }catch(_){ REST_TIPO_USUARIO=0; REST_PERMISOS={}; }
+    aplicarPermisosRestauranteUI();
+  }
+
+  function tienePermisoRestaurante(nombre){
+    if(REST_TIPO_USUARIO===1 || REST_TIPO_USUARIO===2) return true;
+    return REST_PERMISOS[String(nombre||'').toLowerCase()]===true || REST_PERMISOS.restaurante_gestionar===true;
+  }
+
+  function aplicarPermisosRestauranteUI(){
+    const gestionar=document.getElementById('gestion-fija');
+    const mapa=[
+      ['#btn-nuevo-cliente-rapido','restaurante_clientes'],
+      ['#btn-nuevo-cliente','restaurante_clientes'],
+      ['#btn-editar-cliente-seleccionado','restaurante_clientes'],
+      ['#btn-nueva-mesa','restaurante_mesas'],
+      ['#btn-nueva-categoria','restaurante_categorias'],
+      ['#btn-nuevo-producto','restaurante_productos'],
+      ['#btn-gestionar-combos','restaurante_combos'],
+      ['#btn-gestionar-promos','restaurante_promociones'],
+      ['#btn-nueva-promocion','restaurante_promociones'],
+      ['#btn-asignar-promo-productos','restaurante_promociones'],
+      ['#btn-asignar-promo-categorias','restaurante_promociones']
+    ];
+    const puedeGestionar = REST_TIPO_USUARIO===1 || REST_TIPO_USUARIO===2 || Object.keys(REST_PERMISOS).some(k=>k.indexOf('restaurante_')===0 && REST_PERMISOS[k]);
+    if(gestionar) gestionar.style.display=puedeGestionar?'inline-block':'none';
+    mapa.forEach(([sel,perm])=>{
+      const trigger=document.querySelector(sel);
+      const item=trigger ? document.querySelector(`#gestionar-menu [data-target="${sel}"]`) : null;
+      if(item) item.style.display=tienePermisoRestaurante(perm)?'':'none';
+    });
+    const cfg=document.getElementById('btn-configuracion-restaurante');
+    if(cfg) cfg.style.display=tienePermisoRestaurante('restaurante_configuracion')?'':'none';
+    document.querySelectorAll('.btn-edit-mesa').forEach(x=>x.style.display=tienePermisoRestaurante('restaurante_mesas')?'':'none');
+    document.querySelectorAll('.edit-cat-btn').forEach(x=>x.style.display=tienePermisoRestaurante('restaurante_categorias')?'':'none');
+    document.querySelectorAll('.btn-edit-producto-admin').forEach(x=>x.style.display=tienePermisoRestaurante('restaurante_productos')?'':'none');
+    const nm=document.getElementById('btn-nueva-mesa'); if(nm) nm.style.display=tienePermisoRestaurante('restaurante_mesas')?'':'none';
+    const nc=document.getElementById('btn-nuevo-cliente'); if(nc) nc.style.display=tienePermisoRestaurante('restaurante_clientes')?'':'none';
+    const ec=document.getElementById('btn-editar-cliente-seleccionado'); if(ec) ec.style.display=tienePermisoRestaurante('restaurante_clientes')?'':'none';
+  }
+
+  function autorizarGestionRestaurante(accion, callback, referencia){
+    if(typeof callback!=='function') return;
+    if(typeof window.validarAdminSistema!=='function'){
+      showAlert('error','Validación administrativa','No está disponible la validación administrativa del sistema.');
+      return;
+    }
+    window.validarAdminSistema(function(ok){ if(ok) callback(); },{
+      modulo:'Restaurante', accion:accion||'Gestión de restaurante', referencia_id:String(referencia||''),
+      referencia_texto:String(accion||''), mensaje:'Esta acción modifica configuración o datos maestros. Ingrese credenciales de administrador para continuar.'
+    });
+  }
+  window.autorizarGestionRestaurante=autorizarGestionRestaurante;
+
+  // Protege accesos de creación/gestión antes de que disparen sus listeners originales.
+  document.addEventListener('click', function(ev){
+    const target=ev.target && ev.target.closest ? ev.target.closest('#btn-nuevo-cliente-rapido,#btn-nuevo-cliente,#btn-editar-cliente-seleccionado,#btn-nueva-mesa,#btn-nueva-categoria,#btn-nuevo-producto,#btn-gestionar-combos,#btn-gestionar-promos,#btn-nueva-promocion,#btn-asignar-promo-productos,#btn-asignar-promo-categorias') : null;
+    if(!target || REST_AUTH_BYPASS) return;
+    ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation();
+    const label=(target.textContent||target.title||'Administrar').trim();
+    autorizarGestionRestaurante(label, function(){ REST_AUTH_BYPASS=true; try{ target.click(); } finally{ setTimeout(()=>{REST_AUTH_BYPASS=false;},0); } });
+  }, true);
+
+  function abrirFotoProducto(producto){
+    const modal=document.getElementById('modal-foto-producto');
+    const img=document.getElementById('foto-producto-grande');
+    const title=document.getElementById('foto-producto-titulo');
+    if(!modal||!img) return;
+    const nombre=String((producto&&producto.nombre)||'Producto');
+    if(title) title.textContent=nombre;
+    img.src=(producto&&producto.file_name) ? `${SERVERURL}vistas/plantilla/img/products/${producto.file_name}` : '';
+    img.alt=nombre;
+    modal.style.display='block';
+  }
+
+  function formatoMonedaTicket(valor){
+    return new Intl.NumberFormat('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      .format(Number(valor || 0));
+  }
+
+  function crearSnapshotTicket(extra={}){
+    const items=(comandaItems||[]).map(it=>{
+      const p=it.producto||productoMaestroPorId(it.productos_id||it.producto_id)||{};
+      return {
+        nombre:String(p.nombre||it.nombre_producto||'Producto'),
+        cantidad:Number(it.cantidad||1),
+        precio:Number(it.precio||p.precio||0),
+        estacion:normalizeEstacion(p)
+      };
+    });
+    const nombreCliente=String((clienteSeleccionado&&clienteSeleccionado.nombre)||'Consumidor Final');
+    const rtnCliente=String((clienteSeleccionado&&(clienteSeleccionado.identificacion||clienteSeleccionado.rtn))||'').trim();
+    const mesa=(mesaSeleccionada&&(mesaSeleccionada.numero||mesaSeleccionada.nombre))
+      ? 'Mesa '+(mesaSeleccionada.numero||mesaSeleccionada.nombre)
+      : 'Venta directa / Para llevar';
+    const obs=String((observacionesTextarea&&observacionesTextarea.value)||'').trim();
+    const subtotal=items.reduce((sum,it)=>sum+(it.precio*it.cantidad),0);
+    const totalPantalla=Number(String((totalElement&&totalElement.textContent)||'').replace(/[^0-9.-]/g,''));
+    const total=Number.isFinite(totalPantalla)&&totalPantalla>0?totalPantalla:subtotal;
+    return {
+      items,
+      cliente:nombreCliente,
+      rtn:rtnCliente,
+      contexto:mesa,
+      observaciones:obs,
+      total:Number(extra.total!=null?extra.total:total),
+      fecha:extra.fecha||new Date().toISOString(),
+      factura_id:Number(extra.factura_id||facturaIdActual()||0),
+      modo_comanda:usaComandasOperacion()
+    };
+  }
+
+  function construirTicketComandaHtml(snapshot=null){
+    const snap=snapshot||crearSnapshotTicket();
+    const rows=(snap.items||[]).map(it=>{
+      const n=escapeHtml(it.nombre||'Producto');
+      const q=Number(it.cantidad||1);
+      return `<div class="rs-ticket-row"><strong>${q} × ${n}</strong><span>L ${formatoMonedaTicket(Number(it.precio||0)*q)}</span></div>`;
+    }).join('');
+    const tipoTicket=snap.modo_comanda!==false?'ORDEN / COMANDA':'TICKET DE VENTA';
+    const fecha=new Date(snap.fecha||Date.now());
+    const numero=snap.factura_id>0?`<span>Cuenta/Factura #${snap.factura_id}</span>`:'';
+    const rtn=snap.rtn?`<span>RTN ${escapeHtml(snap.rtn)}</span>`:'';
+    return `<div class="rs-ticket-brand"><strong>${tipoTicket}</strong><span>${escapeHtml(snap.contexto||'Venta')}</span>${numero}</div>
+      <div class="rs-ticket-meta"><span>${escapeHtml(snap.cliente||'Consumidor Final')}${rtn?'<br>'+rtn:''}</span><span>${fecha.toLocaleString('es-HN')}</span></div>
+      <div class="rs-ticket-items">${rows}</div>
+      ${snap.observaciones?`<div class="rs-ticket-notes"><strong>Observaciones</strong><span>${escapeHtml(snap.observaciones)}</span></div>`:''}
+      <div class="rs-ticket-total"><span>Total referencial</span><strong>L ${formatoMonedaTicket(Number(snap.total||0))}</strong></div>
+      <small class="rs-ticket-foot">${snap.modo_comanda!==false?'Documento interno de orden/comanda.':'Ticket interno de venta.'} No sustituye la factura fiscal.</small>`;
+  }
+
+  function abrirTicketComanda(snapshot=null){
+    const snap=snapshot||crearSnapshotTicket();
+    if(!Array.isArray(snap.items)||!snap.items.length){ showAlert('warning','Sin productos','Agregue productos antes de generar el ticket.'); return; }
+    const preview=document.getElementById('ticket-comanda-preview');
+    if(preview) preview.innerHTML=construirTicketComandaHtml(snap);
+    const modal=document.getElementById('modal-ticket-comanda');
+    if(!modal){ showAlert('error','Ticket','No se encontró la vista previa del ticket.'); return; }
+    modal.dataset.ticketSnapshot=encodeURIComponent(JSON.stringify(snap));
+    modal.style.setProperty('display','block','important');
+    modal.setAttribute('aria-hidden','false');
+    const paper=modal.querySelector('.rs-ticket-paper');
+    if(paper) paper.scrollTop=0;
+  }
+
+  function documentoTicketImpresion(snapshot){
+    const snap=snapshot||crearSnapshotTicket();
+    const html=construirTicketComandaHtml(snap);
+    const titulo=snap.modo_comanda!==false?'Ticket de comanda':'Ticket de venta';
+    return `<!doctype html><html><head><meta charset="utf-8"><title>${titulo}</title><style>
+      body{font-family:Arial,sans-serif;width:72mm;margin:0 auto;padding:5mm;color:#111;font-size:12px}
+      .rs-ticket-brand{text-align:center;border-bottom:1px dashed #777;padding-bottom:8px;display:flex;flex-direction:column;gap:3px}
+      .rs-ticket-meta{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px dashed #aaa;font-size:10px}
+      .rs-ticket-row{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px dotted #ccc}
+      .rs-ticket-notes{padding:8px 0;display:flex;flex-direction:column;gap:4px}
+      .rs-ticket-total{border-top:1px solid #111;margin-top:6px;padding-top:8px;display:flex;justify-content:space-between;font-size:14px}
+      .rs-ticket-foot{display:block;text-align:center;margin-top:12px}
+      @page{size:80mm auto;margin:3mm}@media print{body{width:auto}}
+    </style></head><body>${html}</body></html>`;
+  }
+
+  function imprimirTicketAutomatico(snapshot){
+    const snap=snapshot||crearSnapshotTicket();
+    if(!snap.items||!snap.items.length) return false;
+    try{
+      const iframe=document.createElement('iframe');
+      iframe.setAttribute('aria-hidden','true');
+      iframe.style.position='fixed';
+      iframe.style.right='0';
+      iframe.style.bottom='0';
+      iframe.style.width='1px';
+      iframe.style.height='1px';
+      iframe.style.opacity='0';
+      iframe.style.pointerEvents='none';
+      iframe.srcdoc=documentoTicketImpresion(snap);
+      iframe.onload=function(){
+        setTimeout(()=>{
+          try{
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+          }catch(e){
+            showAlert('warning','Impresión de comanda','No se pudo abrir la impresión automática. Use “Ticket comanda” para imprimir manualmente.');
+          }
+          setTimeout(()=>iframe.remove(),1500);
+        },120);
+      };
+      document.body.appendChild(iframe);
+      return true;
+    }catch(e){
+      showAlert('warning','Impresión de comanda','No se pudo preparar el ticket automático.');
+      return false;
+    }
+  }
+
+  function imprimirTicketComanda(){
+    const modal=document.getElementById('modal-ticket-comanda');
+    let snap=null;
+    if(modal&&modal.dataset.ticketSnapshot){
+      try{ snap=JSON.parse(decodeURIComponent(modal.dataset.ticketSnapshot)); }catch(_){}
+    }
+    snap=snap||crearSnapshotTicket();
+    const w=window.open('','_blank','width=420,height=700');
+    if(!w){ showAlert('warning','Ventana bloqueada','Permita ventanas emergentes para imprimir el ticket.'); return; }
+    w.document.open();
+    w.document.write(documentoTicketImpresion(snap).replace('</body>','<script>window.onload=function(){window.print();setTimeout(function(){window.close();},500)}<\\/script></body>'));
+    w.document.close();
+  }
+
+  async function guardarCuentaAbiertaGeneral(){
+    if(!Array.isArray(comandaItems)||!comandaItems.length){ showAlert('warning','Sin productos','Agregue productos a la cuenta.'); return; }
+    const btn=document.getElementById('btn-guardar-cuenta');
+    setButtonBusy(btn,true,'Guardando…');
+    try{
+      if(getServicioTipo()==='mesa' && window.REST_CONFIG.usar_mesas){
+        await guardarCuentaMesa({silencioso:true,imprimirAlEnviar:false,enviarComanda:false});
+      } else {
+        const d=await $.ajax({type:'POST',url:BASE+'core/facturasRestaurante/facturasRestauranteAjax.php',dataType:'json',data:{
+          action:'guardarFacturaRestaurante',servicio:'llevar',mesa_id:0,factura_id:facturaIdActual(),clientes_id:clienteIdActual(),
+          observaciones:String((observacionesTextarea&&observacionesTextarea.value)||'').trim(),detalle:prepararDetalleRestaurante(),
+          enviar_comanda:0
+        }});
+        if(!d||!d.ok) throw new Error((d&&(d.msg||d.message))||'No se pudo guardar la cuenta');
+        facturaActual={id:Number(d.factura_id),factura_id:Number(d.factura_id),facturas_id:Number(d.factura_id)};
+        if(debeImprimirTicketComanda() && momentoTicketOperacion()==='enviar'){
+          const snap=crearSnapshotTicket({factura_id:Number(d.factura_id||0)});
+          setTimeout(()=>imprimirTicketAutomatico(snap),120);
+        }
+        if(facturaTitle) facturaTitle.innerHTML='<i class="fas fa-bookmark"></i> Cuenta abierta #'+d.factura_id;
+      }
+      showAlert('success','Cuenta abierta','La cuenta quedó guardada. Puede recuperarla desde “Cuentas abiertas”.');
+      updateAccionPrincipalUI();
+    }catch(e){ showAlert('error','Error',e.message||'No se pudo guardar la cuenta'); }
+    finally{ setButtonBusy(btn,false); updateAccionPrincipalUI(); }
+  }
+
+  function mapCuentaItems(items){
+    return (Array.isArray(items)?items:[]).map(item=>{
+      const master=productoMaestroPorId(item.productos_id)||{};
+      return {producto:{id:item.productos_id,nombre:item.nombre_producto||master.nombre||'Producto',precio:Number(item.precio||0),descripcion:item.descripcion_producto||'',isv1:Number(item.isv1||0)===1,isv2:Number(item.isv2||0)===1,estacion:normalizeEstacion(master),medida:item.medida||master.medida||'Und',file_name:master.file_name||''},cantidad:Number(item.cantidad||1),precio:Number(item.precio||0),total:Number(item.precio||0)*Number(item.cantidad||1),descuento:Number(item.descuento||0)};
+    });
+  }
+
+  async function cargarCuentasAbiertasUI(){
+    const modal=document.getElementById('modal-cuentas-abiertas');
+    const list=document.getElementById('cuentas-abiertas-listado');
+    if(!modal||!list) return;
+    modal.style.display='block';
+    list.innerHTML='<div class="rs-empty-state"><i class="fas fa-spinner fa-spin"></i><span>Cargando cuentas…</span></div>';
+    try{
+      const d=await restPost('loadCuentasAbiertas');
+      if(!d||!d.status) throw new Error(d&&d.message?d.message:'No se pudieron cargar las cuentas');
+      const cuentas=Array.isArray(d.cuentas)?d.cuentas:[];
+      window.__REST_CUENTAS_ABIERTAS=cuentas;
+      renderCuentasAbiertas(cuentas);
+    }catch(e){ list.innerHTML=`<div class="rs-empty-state"><i class="fas fa-exclamation-circle"></i><span>${escapeHtml(e.message||'Error')}</span></div>`; }
+  }
+
+  function renderCuentasAbiertas(cuentas,term=''){
+    const list=document.getElementById('cuentas-abiertas-listado'); if(!list) return;
+    const t=String(term||'').toLowerCase().trim();
+    const arr=(cuentas||[]).filter(c=>!t || [c.facturas_id,c.cliente_nombre,c.cliente_rtn,c.mesa_numero,c.servicio_tipo].join(' ').toLowerCase().includes(t));
+    if(!arr.length){ list.innerHTML='<div class="rs-empty-state"><i class="fas fa-folder-open"></i><span>No hay cuentas abiertas.</span></div>'; return; }
+    list.innerHTML=arr.map(c=>{
+      const ubicacion=c.servicio_tipo==='mesa'?'Mesa '+escapeHtml(c.mesa_numero||''):'Para llevar / venta directa';
+      const rtn=String(c.cliente_rtn||'').trim();
+      const enviadas=Number(c.enviadas_preparacion||0);
+      const unidades=Number(c.unidades||0);
+      const estadoPrep=usaComandasOperacion()
+        ? `<small class="rs-open-account-prep"><i class="fas fa-fire"></i> ${enviadas>0?`${enviadas} unidad(es) ya enviadas a preparación`:'Aún no enviada a preparación'}</small>`
+        : '';
+      return `<button type="button" class="rs-open-account-card" data-fid="${Number(c.facturas_id)}">
+        <span class="rs-open-account-icon"><i class="fas ${c.servicio_tipo==='mesa'?'fa-chair':'fa-shopping-bag'}"></i></span>
+        <span class="rs-open-account-main">
+          <strong>${escapeHtml(c.cliente_nombre||'Consumidor Final')}</strong>
+          ${rtn?`<small class="rs-open-account-rtn"><i class="fas fa-id-card"></i> RTN ${escapeHtml(rtn)}</small>`:''}
+          <small><i class="fas fa-map-marker-alt"></i> ${ubicacion} · ${unidades} unidad(es)</small>
+          ${estadoPrep}
+        </span>
+        <span class="rs-open-account-total"><small>Cuenta #${Number(c.facturas_id)}</small><strong>L ${fmtHNL(Number(c.importe||0))}</strong></span>
+        <span class="rs-open-account-open"><i class="fas fa-arrow-right"></i></span>
+      </button>`;
+    }).join('');
+  }
+
+  async function abrirCuentaAbierta(facturaId){
+    try{
+      const d=await restPost('loadCuentaAbierta',{factura_id:String(facturaId)});
+      if(!d||!d.status||!d.cuenta) throw new Error(d&&d.message?d.message:'Cuenta no disponible');
+      const c=d.cuenta;
+      facturaActual={id:Number(c.facturas_id),factura_id:Number(c.facturas_id),facturas_id:Number(c.facturas_id),notas:c.notas||''};
+      clienteSeleccionado={id:Number(c.clientes_id||1),nombre:c.cliente_nombre||'Consumidor Final',identificacion:c.cliente_rtn||''};
+      pintarClienteInfoHeader();
+      comandaItems=mapCuentaItems(c.items);
+      if(observacionesTextarea) observacionesTextarea.value=c.notas||'';
+      if(window.REST_CONFIG.usar_mesas && c.servicio_tipo==='mesa' && Number(c.mesa_id)>0){
+        mesaSeleccionada=(mesas||[]).find(m=>Number(m.id||m.mesa_id)===Number(c.mesa_id)) || {id:Number(c.mesa_id),numero:c.mesa_numero||''};
+        setServicioTipo('mesa'); setMesaSeleccionadaUI(c.mesa_numero||''); highlightMesaSeleccionada();
+      }else{ mesaSeleccionada=null; setServicioTipo('llevar'); setMesaSeleccionadaUI(null); }
+      if(facturaTitle) facturaTitle.innerHTML='<i class="fas fa-bookmark"></i> Cuenta abierta #'+c.facturas_id;
+      actualizarComandaUI(); updateProductBadges(); updateAccionPrincipalUI();
+      const modal=document.getElementById('modal-cuentas-abiertas'); if(modal) modal.style.display='none';
+      showAlert('success','Cuenta recuperada','Puede seguir agregando productos o cobrarla cuando corresponda.');
+    }catch(e){ showAlert('error','Error',e.message||'No se pudo abrir la cuenta'); }
+  }
+
+  async function cargarConfiguracionOperacion(){
+    try{
+      const d=await restPost('loadConfiguracionOperacion');
+      if(d&&d.status&&d.config) window.REST_CONFIG={
+        usar_mesas:Number(d.config.usar_mesas)!==0?1:0,
+        usar_comandas:Number(d.config.usar_comandas)!==0?1:0,
+        etiqueta_cocina:String(d.config.etiqueta_cocina||'Cocina'),
+        etiqueta_barra:String(d.config.etiqueta_barra||'Barra'),
+        destino_comanda:String(d.config.destino_comanda||'pantalla'),
+        momento_ticket:String(d.config.momento_ticket||'enviar'),
+        flujo_cocina:String(d.config.flujo_cocina||'pasos')
+      };
+    }catch(_){ window.REST_CONFIG={usar_mesas:1,usar_comandas:1,etiqueta_cocina:'Cocina',etiqueta_barra:'Barra',destino_comanda:'pantalla',momento_ticket:'enviar',flujo_cocina:'pasos'}; }
+    aplicarConfiguracionOperacion();
+  }
+
+  function aplicarConfiguracionOperacion(){
+    const usar=Number(window.REST_CONFIG.usar_mesas)!==0;
+    const usarComandasCfg=Number(window.REST_CONFIG.usar_comandas)!==0;
+    document.body.classList.toggle('rs-modo-venta-directa',!usar);
+    document.body.classList.toggle('rs-sin-comandas',!usarComandasCfg);
+    const sidebar=document.querySelector('.mesas-sidebar'); if(sidebar) sidebar.style.display=usar?'':'none';
+    const sw=document.getElementById('servicio-switch'); if(sw) sw.style.display=usar?'':'none';
+    const mesaMeta=document.getElementById('mesa-seleccionada'); if(mesaMeta) mesaMeta.style.display=usar?'':'none';
+    if(!usar){
+      mesaSeleccionada=null; setServicioTipo('llevar'); setMesaSeleccionadaUI(null);
+      if(!facturaIdActual() && facturaTitle) facturaTitle.innerHTML='<i class="fas fa-cash-register"></i> Nueva venta';
+    } else if(!facturaIdActual() && facturaTitle) {
+      facturaTitle.innerHTML=usaComandasOperacion()?'<i class="fas fa-receipt"></i> Nueva Comanda':'<i class="fas fa-cash-register"></i> Nueva venta';
+    }
+    const c1=document.getElementById('config-usar-mesas'); if(c1)c1.checked=usar;
+    const c2=document.getElementById('config-usar-comandas'); if(c2)c2.checked=Number(window.REST_CONFIG.usar_comandas)!==0;
+    const usaComandas=usaComandasOperacion();
+    const configGrupos=document.getElementById('config-grupos-operacion'); if(configGrupos) configGrupos.style.display=usaComandas?'':'none';
+    const filtroEst=document.getElementById('filtro-estacion'); if(filtroEst) filtroEst.style.display=usaComandas?'':'none';
+    const ec=document.getElementById('config-etiqueta-cocina'); if(ec)ec.value=etiquetaEstacion('cocina');
+    const eb=document.getElementById('config-etiqueta-barra'); if(eb)eb.value=etiquetaEstacion('barra');
+    const salidaWrap=document.getElementById('config-salida-comanda'); if(salidaWrap) salidaWrap.style.display=usaComandas?'':'none';
+    const destino=document.getElementById('config-destino-comanda'); if(destino) destino.value=destinoComandaOperacion();
+    const momento=document.getElementById('config-momento-ticket'); if(momento) momento.value=momentoTicketOperacion();
+    const flujo=document.getElementById('config-flujo-cocina'); if(flujo) flujo.value=String(window.REST_CONFIG.flujo_cocina||'pasos');
+    sincronizarTodosBotonesConfiguracion();
+    aplicarEtiquetasOperacion();
+    renderizarCategorias();
+    filtrarProductos(buscarProductoInput ? buscarProductoInput.value : '');
+    updateAccionPrincipalUI();
+  }
+
+  function sincronizarBotonesConfiguracion(targetId){
+    const input=document.getElementById(targetId);
+    if(!input) return;
+    const value=String(input.value||'');
+    document.querySelectorAll(`.rs-config-choice-list[data-choice-target="${targetId}"] .rs-config-choice`).forEach(btn=>{
+      const active=String(btn.dataset.value||'')===value;
+      btn.classList.toggle('is-active',active);
+      btn.setAttribute('aria-pressed',active?'true':'false');
+      btn.tabIndex=active?0:-1;
+    });
+  }
+
+  function sincronizarTodosBotonesConfiguracion(){
+    ['config-destino-comanda','config-momento-ticket','config-flujo-cocina'].forEach(sincronizarBotonesConfiguracion);
+  }
+
+  document.addEventListener('click',function(ev){
+    const btn=ev.target&&ev.target.closest?ev.target.closest('.rs-config-choice'):null;
+    if(!btn) return;
+    const list=btn.closest('.rs-config-choice-list');
+    if(!list) return;
+    const targetId=String(list.dataset.choiceTarget||'');
+    const input=document.getElementById(targetId);
+    if(!input) return;
+    ev.preventDefault();
+    input.value=String(btn.dataset.value||'');
+    input.dispatchEvent(new Event('change',{bubbles:true}));
+    sincronizarBotonesConfiguracion(targetId);
+  });
+
+  async function guardarConfiguracionOperacionUI(){
+    const btn=document.getElementById('btn-guardar-configuracion-restaurante');
+    setButtonBusy(btn,true,'Guardando…');
+    try{
+      const d=await restPost('saveConfiguracionOperacion',{
+        usar_mesas:document.getElementById('config-usar-mesas').checked?'1':'0',
+        usar_comandas:document.getElementById('config-usar-comandas').checked?'1':'0',
+        etiqueta_cocina:String(document.getElementById('config-etiqueta-cocina').value||'Cocina').trim(),
+        etiqueta_barra:String(document.getElementById('config-etiqueta-barra').value||'Barra').trim(),
+        destino_comanda:String((document.getElementById('config-destino-comanda')||{}).value||'pantalla'),
+        momento_ticket:String((document.getElementById('config-momento-ticket')||{}).value||'enviar'),
+        flujo_cocina:String((document.getElementById('config-flujo-cocina')||{}).value||'pasos')
+      });
+      if(!d||!d.status) throw new Error(d&&d.message?d.message:'No se pudo guardar');
+      window.REST_CONFIG=d.config||window.REST_CONFIG; aplicarConfiguracionOperacion();
+      document.getElementById('modal-configuracion-restaurante').style.display='none';
+      showAlert('success','Configuración','La configuración del módulo fue actualizada.');
+    }catch(e){showAlert('error','Error',e.message||'No se pudo guardar');}
+    finally{setButtonBusy(btn,false);}
+  }
+
+  function reinitSelect2Restaurante(){
+    if(!(window.jQuery&&$.fn&&$.fn.select2)) return;
+    const $selects=$('.rs-modal select.select2, .rs-modal select.form-control');
+    $selects.each(function(){
+      const $sel=$(this);
+      const $modal=$sel.closest('.rs-modal');
+      try{ if($sel.hasClass('select2-hidden-accessible') || $sel.data('select2')) $sel.select2('destroy'); }catch(_){}
+      $sel.select2({
+        width:'100%',
+        dropdownParent:$modal.length?$modal:$(document.body),
+        minimumResultsForSearch:0,
+        allowClear:false,
+        placeholder:$sel.data('placeholder')||$sel.find('option[value=""]').first().text()||'Seleccione…'
+      });
+    });
+  }
+
+  // Mejora visual/funcional de modales al abrirlos.
+  $(document).off('click.restSelect2Open','[data-close]').on('click.restSelect2Open','[data-close]',function(){ const target=$(this).data('close'); if(target) $(target).hide(); });
+  $(document).on('click.restOpenSelect2','#btn-cambiar-cliente,#btn-nueva-mesa,#btn-nuevo-cliente,#btn-nueva-categoria,#btn-nuevo-producto,#btn-gestionar-combos,#btn-gestionar-promos,#btn-nueva-promocion,#btn-asignar-promo-productos,#btn-asignar-promo-categorias,.btn-reservar-mesa',function(){ setTimeout(reinitSelect2Restaurante,80); });
+
+  $('#btn-guardar-cuenta').off('click.restSaveAccount').on('click.restSaveAccount',guardarCuentaAbiertaGeneral);
+  $('#btn-cuentas-abiertas').off('click.restOpenAccounts').on('click.restOpenAccounts',cargarCuentasAbiertasUI);
+  $('#buscar-cuenta-abierta').off('input.restOpenAccounts').on('input.restOpenAccounts',function(){renderCuentasAbiertas(window.__REST_CUENTAS_ABIERTAS||[],this.value);});
+  $(document).off('click.restOpenAccount','.rs-open-account-card').on('click.restOpenAccount','.rs-open-account-card',function(){abrirCuentaAbierta(Number($(this).data('fid')));});
+  $('#btn-imprimir').off('click.restTicketOpen').on('click.restTicketOpen',function(e){e.preventDefault();e.stopPropagation();abrirTicketComanda();});
+    $('#btn-imprimir-ticket-comanda').off('click.restTicket').on('click.restTicket',imprimirTicketComanda);
+  $('#btn-configuracion-restaurante').off('click.restCfg').on('click.restCfg',function(e){
+    e.preventDefault();e.stopPropagation();
+    autorizarGestionRestaurante('Configuración del módulo',()=>{
+      aplicarConfiguracionOperacion();
+      document.getElementById('modal-configuracion-restaurante').style.display='block';
+      setTimeout(reinitSelect2Restaurante,80);
+    });
+  });
+  $('#btn-guardar-configuracion-restaurante').off('click.restCfgSave').on('click.restCfgSave',guardarConfiguracionOperacionUI);
+
+  $('#config-usar-comandas').off('change.restCfgComandas').on('change.restCfgComandas',function(){
+    const wrap=document.getElementById('config-grupos-operacion');
+    const salida=document.getElementById('config-salida-comanda');
+    if(wrap) wrap.style.display=this.checked?'':'none';
+    if(salida) salida.style.display=this.checked?'':'none';
+  });
+
+  // Captura única y robusta para el ticket actual. Evita que handlers heredados del antiguo botón Imprimir lo bloqueen.
+  if(!window.__REST_TICKET_CAPTURE_BOUND){
+    window.__REST_TICKET_CAPTURE_BOUND=true;
+    document.addEventListener('click',function(e){
+      const btn=e.target&&e.target.closest?e.target.closest('#btn-imprimir'):null;
+      if(!btn) return;
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+      abrirTicketComanda();
+    },true);
+  }
+
+  // Atajos adicionales; mantiene los existentes y agrega los que realmente existen en esta versión.
+  document.addEventListener('keydown',function(e){
+    const mod=e.ctrlKey||e.metaKey; if(!mod||!e.altKey) return;
+    const k=String(e.key||'').toLowerCase();
+    if(k==='s'){e.preventDefault();document.getElementById('btn-guardar-cuenta')?.click();}
+    if(k==='a'){e.preventDefault();document.getElementById('btn-cuentas-abiertas')?.click();}
+  });
+
+  // Estado dinámico de acciones cada vez que cambia la comanda.
+  const _actualizarComandaUIOriginal=actualizarComandaUI;
+  actualizarComandaUI=function(){ const r=_actualizarComandaUIOriginal.apply(this,arguments); updateAccionPrincipalUI(); return r; };
+
+  const restPermObserver = new MutationObserver(function(){ aplicarPermisosRestauranteUI(); });
+  ['mesas-container','productos-container','categorias-tabs'].forEach(function(id){ const el=document.getElementById(id); if(el) restPermObserver.observe(el,{childList:true,subtree:true}); });
+
+  setTimeout(function(){
+    cargarConfiguracionOperacion();
+    cargarPermisosRestaurante();
+    reinitSelect2Restaurante();
+    updateAccionPrincipalUI();
+  },120);
+
 });

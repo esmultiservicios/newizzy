@@ -8481,67 +8481,184 @@ $(document).on('click', '.cancelar-recurrente', function() {
   });
 });
 
-/* ===== Ayuda (lógica) ===== */
+/* ===== CENTRO DE AYUDA DINÁMICO ===== */
 (function(){
-  // Filtro por texto
-  function filterRows(term){
-    term = (term || '').toLowerCase();
-    $('#tableShortcuts tbody tr').each(function(){
-      const txt = $(this).text().toLowerCase();
-      $(this).toggle(txt.indexOf(term) > -1);
+  var helpCategory = 'all';
+
+  function normalizarAyuda(valor){
+    return String(valor || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+  }
+
+  function obtenerItemsAyuda(){
+    return $('#tableShortcuts .help-shortcut-item');
+  }
+
+  function aplicarFiltrosAyuda(){
+    var term = normalizarAyuda($('#helpSearch').val());
+    var visibles = 0;
+    var total = 0;
+
+    obtenerItemsAyuda().each(function(){
+      total++;
+      var $item = $(this);
+      var categoria = String($item.data('help-cat') || 'general');
+      var texto = normalizarAyuda($item.text() + ' ' + ($item.data('help-key') || ''));
+      var coincideCategoria = helpCategory === 'all' || categoria === helpCategory;
+      var coincideTexto = !term || texto.indexOf(term) !== -1;
+      var mostrar = coincideCategoria && coincideTexto;
+
+      $item.toggle(mostrar);
+      if (mostrar) visibles++;
+    });
+
+    $('#helpResultCount').text(visibles + (visibles === 1 ? ' resultado' : ' resultados'));
+    $('#helpEmptyState').prop('hidden', visibles !== 0);
+
+    var $active = $('#helpCategoryNav .help-category-btn.active');
+    var catLabel = $.trim($active.find('span').text()) || 'Todo';
+    var descripcion = helpCategory === 'all' ? 'Mostrando todas las opciones.' : 'Categoría: ' + catLabel + '.';
+    if (term) descripcion += ' Búsqueda: “' + $.trim($('#helpSearch').val()) + '”.';
+    $('#helpCurrentFilter').text(descripcion);
+
+    $('#helpClearSearch').toggleClass('is-visible', !!term);
+  }
+
+  function resetearAyuda(enfocar){
+    helpCategory = 'all';
+    $('#helpSearch').val('');
+    $('#helpCategoryNav .help-category-btn').removeClass('active').attr('aria-pressed','false');
+    $('#helpCategoryNav .help-category-btn[data-help-category="all"]').addClass('active').attr('aria-pressed','true');
+    aplicarFiltrosAyuda();
+    if (enfocar) $('#helpSearch').trigger('focus');
+  }
+
+  function textoAyudaVisible(){
+    var lineas = ['CENTRO DE AYUDA DE FACTURACIÓN', ''];
+    obtenerItemsAyuda().filter(':visible').each(function(){
+      var $item = $(this);
+      var tecla = $.trim($item.find('.help-key').text().replace(/\s+/g,' '));
+      var titulo = $.trim($item.find('.help-item-copy strong').first().text());
+      var detalle = $.trim($item.find('.help-item-copy p').first().text().replace(/\s+/g,' '));
+      lineas.push(tecla + ' — ' + titulo + ' — ' + detalle);
+    });
+    return lineas.join('\n');
+  }
+
+  function copiarTextoAyuda(texto){
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(texto);
+    }
+
+    return new Promise(function(resolve, reject){
+      try{
+        var area = document.createElement('textarea');
+        area.value = texto;
+        area.setAttribute('readonly','readonly');
+        area.style.position = 'fixed';
+        area.style.opacity = '0';
+        document.body.appendChild(area);
+        area.select();
+        var ok = document.execCommand('copy');
+        document.body.removeChild(area);
+        ok ? resolve() : reject(new Error('No se pudo copiar'));
+      }catch(e){ reject(e); }
     });
   }
 
-  // Al abrir: limpiar y enfocar el buscador
-  $('#modalAyuda').on('shown.bs.modal', function(){
-    $('#helpSearch').val('').trigger('focus');
-  });
-
-  // Buscar mientras escribe
-  $(document).on('input', '#helpSearch', function(){
-    filterRows(this.value);
-  });
-
-  // Copiar a portapapeles
-  $('#helpCopy').on('click', function(){
-    const rows = [];
-    $('#tableShortcuts tbody tr:visible').each(function(){
-      const tds = $(this).find('td');
-      rows.push(
-        `${$(tds[0]).text()} — ${$(tds[1]).text()} — ${$(tds[2]).text()}`
-      );
-    });
-    const text = rows.join('\n');
-    navigator.clipboard.writeText(text).then(function(){
-      if (typeof showNotify === 'function') {
-        showNotify('success','Copiado','Atajos copiados al portapapeles');
+  $(document)
+    .off('shown.bs.modal.helpCenter', '#modalAyuda')
+    .on('shown.bs.modal.helpCenter', '#modalAyuda', function(){
+      resetearAyuda(false);
+      window.setTimeout(function(){ $('#helpSearch').trigger('focus'); }, 80);
+    })
+    .off('input.helpCenter', '#helpSearch')
+    .on('input.helpCenter', '#helpSearch', aplicarFiltrosAyuda)
+    .off('click.helpCenterCategory', '#helpCategoryNav .help-category-btn')
+    .on('click.helpCenterCategory', '#helpCategoryNav .help-category-btn', function(){
+      helpCategory = String($(this).data('help-category') || 'all');
+      $('#helpCategoryNav .help-category-btn').removeClass('active').attr('aria-pressed','false');
+      $(this).addClass('active').attr('aria-pressed','true');
+      aplicarFiltrosAyuda();
+    })
+    .off('click.helpCenterClear', '#helpClearSearch')
+    .on('click.helpCenterClear', '#helpClearSearch', function(){
+      $('#helpSearch').val('').trigger('focus');
+      aplicarFiltrosAyuda();
+    })
+    .off('click.helpCenterReset', '#helpResetFilters')
+    .on('click.helpCenterReset', '#helpResetFilters', function(){ resetearAyuda(true); })
+    .off('click.helpCenterQuick', '#helpQuickGrid .help-quick-btn')
+    .on('click.helpCenterQuick', '#helpQuickGrid .help-quick-btn', function(){
+      var key = String($(this).data('help-jump') || '');
+      helpCategory = 'all';
+      $('#helpCategoryNav .help-category-btn').removeClass('active').attr('aria-pressed','false');
+      $('#helpCategoryNav .help-category-btn[data-help-category="all"]').addClass('active').attr('aria-pressed','true');
+      $('#helpSearch').val(key);
+      aplicarFiltrosAyuda();
+      var $first = obtenerItemsAyuda().filter(':visible').first();
+      if ($first.length) {
+        $first.addClass('help-item-highlight');
+        var container = document.querySelector('.help-shortcuts-panel');
+        if (container && $first[0]) {
+          var top = $first[0].offsetTop - 12;
+          if (typeof container.scrollTo === 'function') container.scrollTo({top: top, behavior: 'smooth'});
+          else container.scrollTop = top;
+        }
+        window.setTimeout(function(){ $first.removeClass('help-item-highlight'); }, 1200);
       }
-    }).catch(function(){ /* silencioso */ });
+    });
+
+  $('#helpCopy').off('click.helpCenter').on('click.helpCenter', function(){
+    var texto = textoAyudaVisible();
+    if (!texto || obtenerItemsAyuda().filter(':visible').length === 0) {
+      if (typeof showNotify === 'function') showNotify('warning','Sin resultados','No hay elementos visibles para copiar.');
+      return;
+    }
+    copiarTextoAyuda(texto).then(function(){
+      if (typeof showNotify === 'function') showNotify('success','Copiado','La ayuda visible fue copiada al portapapeles.');
+    }).catch(function(){
+      if (typeof showNotify === 'function') showNotify('error','No se pudo copiar','Seleccione y copie la información manualmente.');
+    });
   });
 
-  // Imprimir
-  $('#helpPrint').on('click', function(){
-    const htmlTable = document.querySelector('#tableShortcuts').outerHTML;
-    const w = window.open('', '_blank');
-    w.document.write(`
-      <html>
-        <head>
-          <title>Ayuda - Atajos</title>
-          <style>
-            body{font:14px/1.4 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:24px}
-            h2{margin:0 0 12px}
-            table{width:100%; border-collapse:collapse}
-            th,td{padding:8px 10px; border-bottom:1px solid #eee; text-align:left}
-            kbd{background:#111;color:#fff;padding:2px 6px;border-radius:4px}
-          </style>
-        </head>
-        <body>
-          <h2>Atajos de teclado</h2>
-          ${htmlTable}
-        </body>
-      </html>
-    `);
-    w.document.close(); w.focus(); w.print();
+  $('#helpPrint').off('click.helpCenter').on('click.helpCenter', function(){
+    var items = [];
+    obtenerItemsAyuda().filter(':visible').each(function(){
+      var $item = $(this);
+      items.push({
+        key: $.trim($item.find('.help-key').text().replace(/\s+/g,' ')),
+        title: $.trim($item.find('.help-item-copy strong').first().text()),
+        desc: $.trim($item.find('.help-item-copy p').first().text().replace(/\s+/g,' '))
+      });
+    });
+
+    if (!items.length) {
+      if (typeof showNotify === 'function') showNotify('warning','Sin resultados','No hay elementos visibles para imprimir.');
+      return;
+    }
+
+    var rows = items.map(function(it){
+      return '<tr><td><kbd>' + $('<div>').text(it.key).html() + '</kbd></td><td><strong>' + $('<div>').text(it.title).html() + '</strong></td><td>' + $('<div>').text(it.desc).html() + '</td></tr>';
+    }).join('');
+
+    var w = window.open('', '_blank');
+    if (!w) {
+      if (typeof showNotify === 'function') showNotify('error','Impresión bloqueada','Permita ventanas emergentes para imprimir la ayuda.');
+      return;
+    }
+    w.document.write('<html><head><title>Centro de Ayuda - Facturación</title><style>'+
+      'body{font:14px/1.45 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:28px;color:#23384c}'+
+      'h1{font-size:22px;margin:0 0 6px}p{color:#68798a;margin:0 0 20px}'+
+      'table{width:100%;border-collapse:collapse}th,td{padding:10px 12px;border-bottom:1px solid #dfe7ee;text-align:left;vertical-align:top}'+
+      'th{background:#f5f8fa}kbd{display:inline-block;background:#243b53;color:#fff;padding:3px 7px;border-radius:5px;white-space:nowrap}'+
+      '</style></head><body><h1>Centro de Ayuda de Facturación</h1><p>Atajos y operaciones visibles según los filtros seleccionados.</p><table><thead><tr><th>Tecla</th><th>Acción</th><th>Descripción</th></tr></thead><tbody>'+rows+'</tbody></table></body></html>');
+    w.document.close();
+    w.focus();
+    window.setTimeout(function(){ w.print(); }, 120);
   });
 })();
 
@@ -9267,4 +9384,355 @@ $(document)
 
         $item.find('.config-factura-explicacion').text(texto || '');
     });
+
+/* =========================================================
+   CENTRO DE CONFIGURACIÓN DE FACTURACIÓN - UI INTELIGENTE
+   ---------------------------------------------------------
+   Esta capa reorganiza únicamente la presentación del modal.
+   Conserva los endpoints, IDs, switches y guardado existentes.
+========================================================= */
+var IZZY_CONFIG_FACTURA_ESTADO_ORIGINAL = {};
+var IZZY_CONFIG_FACTURA_CATEGORIA = 'todas';
+
+var IZZY_CONFIG_FACTURA_CATEGORIAS = {
+    todas: {
+        titulo: 'Resumen general',
+        descripcion: 'Consulte y ajuste todas las opciones disponibles.'
+    },
+    caja: {
+        titulo: 'Caja',
+        descripcion: 'Opciones relacionadas con apertura, operación y detalle de caja.'
+    },
+    proformas: {
+        titulo: 'Proformas',
+        descripcion: 'Controle emisión, inventario, cobro, ISV y conversión de proformas.'
+    },
+    seguridad: {
+        titulo: 'Seguridad',
+        descripcion: 'Proteja descuentos y modificaciones de precio con validación administrativa.'
+    }
+};
+
+function normalizarCategoriaConfigFactura(categoria) {
+    var valor = String(categoria || '').toLowerCase().trim();
+    if (valor === 'caja') return 'caja';
+    if (valor === 'proformas' || valor === 'proforma') return 'proformas';
+    if (valor === 'seguridad') return 'seguridad';
+    return 'todas';
+}
+
+function textoBusquedaConfigFactura(item) {
+    return [
+        item.titulo || '',
+        item.categoria || '',
+        item.descripcion || '',
+        item.activo_texto || '',
+        item.inactivo_texto || '',
+        'ID ' + (item.config_id || '')
+    ].join(' ').toLowerCase();
+}
+
+/* Sobrescribe solo el render visual. La carga y persistencia permanecen iguales. */
+function renderConfigFactura(items) {
+    if (!items || items.length === 0) {
+        IZZY_CONFIG_FACTURA_ESTADO_ORIGINAL = {};
+        $('#config_factura_contenido').html(
+            '<div class="config-factura-loading">No hay configuraciones disponibles.</div>'
+        );
+        actualizarCentroConfigFactura();
+        return;
+    }
+
+    IZZY_CONFIG_FACTURA_ESTADO_ORIGINAL = {};
+    var html = '';
+
+    items.forEach(function (item) {
+        var activo = parseInt(item.activar || 2, 10) === 1;
+        var checked = activo ? 'checked' : '';
+        var estadoTexto = activo ? 'Activo' : 'Inactivo';
+        var badgeClass = activo ? 'is-active' : 'is-inactive';
+        var textoEstado = activo ? item.activo_texto : item.inactivo_texto;
+        var categoriaKey = normalizarCategoriaConfigFactura(item.categoria);
+
+        IZZY_CONFIG_FACTURA_ESTADO_ORIGINAL[parseInt(item.config_id, 10)] = activo ? 1 : 2;
+
+        var icono = 'fa-cog';
+        if (categoriaKey === 'caja') icono = 'fa-cash-register';
+        else if (categoriaKey === 'proformas') icono = 'fa-file-invoice';
+        else if (categoriaKey === 'seguridad') icono = 'fa-shield-alt';
+
+        html += ''
+            + '<div class="config-factura-item"'
+            + ' data-config-id="' + item.config_id + '"'
+            + ' data-config-categoria="' + categoriaKey + '"'
+            + ' data-config-search="' + escaparAtributoConfigFactura(textoBusquedaConfigFactura(item)) + '">'
+
+            + '  <div class="config-factura-item-header">'
+            + '    <div class="config-factura-item-title">'
+            + '      <div class="config-factura-icon"><i class="fas ' + icono + '"></i></div>'
+            + '      <div>'
+            + '        <h6>' + escaparHtmlConfigFactura(item.titulo) + '</h6>'
+            + '        <span class="config-factura-meta">' + escaparHtmlConfigFactura(item.categoria) + '</span>'
+            + '      </div>'
+            + '    </div>'
+            + '    <span class="config-factura-badge ' + badgeClass + ' config-factura-estado">' + estadoTexto + '</span>'
+            + '  </div>'
+
+            + '  <div class="config-factura-descripcion">' + escaparHtmlConfigFactura(item.descripcion) + '</div>'
+            + '  <div class="config-factura-explicacion">' + escaparHtmlConfigFactura(textoEstado) + '</div>'
+
+            + '  <div class="config-factura-switch-row">'
+            + '    <div class="config-factura-switch-text">'
+            + '      <label class="config-factura-switch-label" for="config_factura_' + item.config_id + '">Activar / Desactivar</label>'
+            + '      <span class="config-factura-switch-ayuda">El cambio se aplica al guardar la configuración.</span>'
+            + '    </div>'
+            + '    <label class="config-factura-switch-control" for="config_factura_' + item.config_id + '">'
+            + '      <input type="checkbox" class="config-factura-switch"'
+            + '        id="config_factura_' + item.config_id + '"'
+            + '        data-config-id="' + item.config_id + '"'
+            + '        data-activo-texto="' + escaparAtributoConfigFactura(item.activo_texto) + '"'
+            + '        data-inactivo-texto="' + escaparAtributoConfigFactura(item.inactivo_texto) + '" '
+            + checked + '>'
+            + '      <span class="config-factura-slider"></span>'
+            + '    </label>'
+            + '  </div>'
+            + '</div>';
+    });
+
+    $('#config_factura_contenido').html(html);
+
+    var categoriaGuardada = '';
+    try {
+        categoriaGuardada = sessionStorage.getItem('izzy_config_factura_categoria') || '';
+    } catch (e) {}
+
+    if (categoriaGuardada && IZZY_CONFIG_FACTURA_CATEGORIAS[categoriaGuardada]) {
+        IZZY_CONFIG_FACTURA_CATEGORIA = categoriaGuardada;
+    } else {
+        IZZY_CONFIG_FACTURA_CATEGORIA = 'todas';
+    }
+
+    $('#config_factura_buscar').val('');
+    $('#btn_limpiar_busqueda_config_factura').hide();
+
+    actualizarContadoresCategoriasConfigFactura();
+    activarCategoriaConfigFactura(IZZY_CONFIG_FACTURA_CATEGORIA, false);
+    actualizarEstadoCambiosConfigFactura();
+    actualizarDependenciasConfigFactura();
+}
+
+function obtenerCambiosConfigFactura() {
+    var cambios = [];
+    $('.config-factura-switch').each(function () {
+        var config_id = parseInt($(this).data('config-id') || 0, 10);
+        if (config_id > 0) {
+            cambios.push({
+                config_id: config_id,
+                activar: $(this).is(':checked') ? 1 : 2
+            });
+        }
+    });
+    return cambios;
+}
+
+function actualizarContadoresCategoriasConfigFactura() {
+    var total = $('.config-factura-item').length;
+    var caja = $('.config-factura-item[data-config-categoria="caja"]').length;
+    var proformas = $('.config-factura-item[data-config-categoria="proformas"]').length;
+    var seguridad = $('.config-factura-item[data-config-categoria="seguridad"]').length;
+
+    $('[data-config-count="todas"]').text(total);
+    $('[data-config-count="caja"]').text(caja);
+    $('[data-config-count="proformas"]').text(proformas);
+    $('[data-config-count="seguridad"]').text(seguridad);
+}
+
+function activarCategoriaConfigFactura(categoria, guardarPreferencia) {
+    categoria = IZZY_CONFIG_FACTURA_CATEGORIAS[categoria] ? categoria : 'todas';
+    IZZY_CONFIG_FACTURA_CATEGORIA = categoria;
+
+    $('.config-factura-nav-item')
+        .removeClass('is-active')
+        .filter('[data-config-categoria="' + categoria + '"]')
+        .addClass('is-active');
+
+    var meta = IZZY_CONFIG_FACTURA_CATEGORIAS[categoria];
+    $('#config_factura_categoria_titulo').text(meta.titulo);
+    $('#config_factura_categoria_descripcion').text(meta.descripcion);
+
+    if (guardarPreferencia !== false) {
+        try {
+            sessionStorage.setItem('izzy_config_factura_categoria', categoria);
+        } catch (e) {}
+    }
+
+    filtrarCentroConfigFactura();
+}
+
+function filtrarCentroConfigFactura() {
+    var categoria = IZZY_CONFIG_FACTURA_CATEGORIA || 'todas';
+    var termino = String($('#config_factura_buscar').val() || '').toLowerCase().trim();
+    var visibles = 0;
+
+    $('.config-factura-item').each(function () {
+        var $item = $(this);
+        var itemCategoria = String($item.data('config-categoria') || 'todas');
+        var texto = String($item.attr('data-config-search') || '').toLowerCase();
+        var cumpleCategoria = categoria === 'todas' || itemCategoria === categoria;
+        var cumpleBusqueda = !termino || texto.indexOf(termino) !== -1;
+        var mostrar = cumpleCategoria && cumpleBusqueda;
+
+        $item.toggle(mostrar);
+        if (mostrar) visibles++;
+    });
+
+    $('#config_factura_sin_resultados').toggle(visibles === 0 && $('.config-factura-item').length > 0);
+    $('#btn_limpiar_busqueda_config_factura').css('display', termino ? 'flex' : 'none');
+
+    actualizarResumenConfigFactura();
+    actualizarDependenciasConfigFactura();
+}
+
+function actualizarResumenConfigFactura() {
+    var $visibles = $('.config-factura-item:visible');
+    var total = $visibles.length;
+    var activas = $visibles.find('.config-factura-switch:checked').length;
+
+    $('#config_factura_total').text(total);
+    $('#config_factura_activas').text(activas);
+    $('#config_factura_inactivas').text(Math.max(0, total - activas));
+}
+
+function contarCambiosConfigFactura() {
+    var cantidad = 0;
+
+    $('.config-factura-switch').each(function () {
+        var id = parseInt($(this).data('config-id') || 0, 10);
+        var actual = $(this).is(':checked') ? 1 : 2;
+        var original = parseInt(IZZY_CONFIG_FACTURA_ESTADO_ORIGINAL[id] || 2, 10);
+        var cambio = actual !== original;
+
+        $(this).closest('.config-factura-item').toggleClass('is-changed', cambio);
+        if (cambio) cantidad++;
+    });
+
+    return cantidad;
+}
+
+function actualizarEstadoCambiosConfigFactura() {
+    var cantidad = contarCambiosConfigFactura();
+    var $estado = $('.config-factura-footer-status');
+
+    if (cantidad > 0) {
+        $estado.addClass('has-changes');
+        $estado.find('i').attr('class', 'fas fa-exclamation-circle');
+        $('#config_factura_cambios_estado').text(
+            cantidad === 1 ? '1 cambio pendiente' : cantidad + ' cambios pendientes'
+        );
+    } else {
+        $estado.removeClass('has-changes');
+        $estado.find('i').attr('class', 'fas fa-check-circle');
+        $('#config_factura_cambios_estado').text('Sin cambios pendientes');
+    }
+
+    $('#btn_guardar_config_factura').prop('disabled', cantidad === 0);
+    actualizarResumenConfigFactura();
+}
+
+function actualizarDependenciasConfigFactura() {
+    var $aviso = $('#config_factura_dependencia');
+    var mostrarCategoria = IZZY_CONFIG_FACTURA_CATEGORIA === 'todas' || IZZY_CONFIG_FACTURA_CATEGORIA === 'proformas';
+    var proformasActivas = $('#config_factura_3').is(':checked');
+
+    if (mostrarCategoria && $('#config_factura_3').length && !proformasActivas) {
+        $aviso.find('span').text(
+            'Proformas está desactivado. Las opciones de inventario, cobro, ISV y conversión se conservan, pero no tendrán efecto mientras Proformas continúe inactivo.'
+        );
+        $aviso.show();
+    } else {
+        $aviso.hide();
+    }
+}
+
+function deshacerCambiosCategoriaConfigFactura() {
+    var categoria = IZZY_CONFIG_FACTURA_CATEGORIA || 'todas';
+
+    $('.config-factura-item').each(function () {
+        var $item = $(this);
+        var itemCategoria = String($item.data('config-categoria') || '');
+        if (categoria !== 'todas' && itemCategoria !== categoria) return;
+
+        var $switch = $item.find('.config-factura-switch');
+        var id = parseInt($switch.data('config-id') || 0, 10);
+        var original = parseInt(IZZY_CONFIG_FACTURA_ESTADO_ORIGINAL[id] || 2, 10) === 1;
+
+        if ($switch.is(':checked') !== original) {
+            $switch.prop('checked', original).trigger('change');
+        }
+    });
+
+    actualizarEstadoCambiosConfigFactura();
+    actualizarDependenciasConfigFactura();
+}
+
+function actualizarCentroConfigFactura() {
+    actualizarContadoresCategoriasConfigFactura();
+    filtrarCentroConfigFactura();
+    actualizarEstadoCambiosConfigFactura();
+    actualizarDependenciasConfigFactura();
+}
+
+/* Eventos del nuevo Centro de configuración. */
+$(document)
+    .off('click.configFacturaCentroCategoria', '#modalConfigFactura .config-factura-nav-item')
+    .on('click.configFacturaCentroCategoria', '#modalConfigFactura .config-factura-nav-item', function () {
+        activarCategoriaConfigFactura(String($(this).data('config-categoria') || 'todas'), true);
+    });
+
+$(document)
+    .off('input.configFacturaCentroBuscar', '#config_factura_buscar')
+    .on('input.configFacturaCentroBuscar', '#config_factura_buscar', function () {
+        filtrarCentroConfigFactura();
+    });
+
+$(document)
+    .off('click.configFacturaCentroLimpiar', '#btn_limpiar_busqueda_config_factura')
+    .on('click.configFacturaCentroLimpiar', '#btn_limpiar_busqueda_config_factura', function () {
+        $('#config_factura_buscar').val('').focus();
+        filtrarCentroConfigFactura();
+    });
+
+$(document)
+    .off('click.configFacturaCentroDeshacer', '#btn_deshacer_categoria_config_factura')
+    .on('click.configFacturaCentroDeshacer', '#btn_deshacer_categoria_config_factura', function () {
+        deshacerCambiosCategoriaConfigFactura();
+    });
+
+/* Reemplaza el listener visual anterior sin cambiar la lógica del switch. */
+$(document)
+    .off('change.configFacturaSwitch', '.config-factura-switch')
+    .on('change.configFacturaSwitch', '.config-factura-switch', function () {
+        var $switch = $(this);
+        var $item = $switch.closest('.config-factura-item');
+        var activo = $switch.is(':checked');
+        var texto = activo ? $switch.data('activo-texto') : $switch.data('inactivo-texto');
+
+        $item.find('.config-factura-estado')
+            .removeClass('is-active is-inactive')
+            .addClass(activo ? 'is-active' : 'is-inactive')
+            .text(activo ? 'Activo' : 'Inactivo');
+
+        $item.find('.config-factura-explicacion').text(texto || '');
+
+        actualizarEstadoCambiosConfigFactura();
+        actualizarDependenciasConfigFactura();
+    });
+
+$('#modalConfigFactura')
+    .off('shown.bs.modal.configFacturaCentro')
+    .on('shown.bs.modal.configFacturaCentro', function () {
+        $('#config_factura_buscar').trigger('focus');
+        actualizarCentroConfigFactura();
+    });
+
 </script>

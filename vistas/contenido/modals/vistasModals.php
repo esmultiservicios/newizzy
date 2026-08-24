@@ -5991,24 +5991,21 @@
 <!-- FIN MODAL PÚBLICO -->
 
 <!-- =========================================================
-     MODAL CONFIGURACIÓN DE FACTURACIÓN
-     Caja / Proformas / Cobros / ISV
+     MODAL CENTRO DE CONFIGURACIÓN DE FACTURACIÓN
+     Caja / Proformas / Seguridad
 ========================================================= -->
 <div class="modal fade" id="modalConfigFactura" tabindex="-1" role="dialog" aria-labelledby="modalConfigFacturaLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable config-factura-dialog" role="document">
         <div class="modal-content modal-config-factura">
 
             <div class="modal-header config-factura-header">
                 <div class="config-factura-header-title">
                     <div class="config-factura-header-icon">
-                        <i class="fas fa-cogs"></i>
+                        <i class="fas fa-sliders-h"></i>
                     </div>
-
-                    <div>
-                        <h5 class="modal-title" id="modalConfigFacturaLabel">
-                            Configuración de facturación
-                        </h5>
-                        <small>Caja, proformas, cobros e ISV</small>
+                    <div class="config-factura-header-copy">
+                        <h4 class="modal-title" id="modalConfigFacturaLabel">Centro de configuración de facturación</h4>
+                        <small>Administre Caja, Proformas y Seguridad desde un solo lugar.</small>
                     </div>
                 </div>
 
@@ -6018,40 +6015,136 @@
             </div>
 
             <div class="modal-body config-factura-body">
-
-                <div class="config-factura-alerta">
-                    <div class="config-factura-alerta-icon">
-                        <i class="fas fa-exclamation-triangle"></i>
+                <div class="config-factura-topbar">
+                    <div class="config-factura-search-wrap">
+                        <i class="fas fa-search"></i>
+                        <input
+                            type="search"
+                            id="config_factura_buscar"
+                            class="form-control"
+                            placeholder="Buscar configuración: caja, proforma, ISV, seguridad..."
+                            autocomplete="off"
+                            aria-label="Buscar configuración">
+                        <button type="button" id="btn_limpiar_busqueda_config_factura" class="config-factura-search-clear" title="Limpiar búsqueda" aria-label="Limpiar búsqueda">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
 
-                    <div>
-                        <strong>Importante</strong>
-                        <p>
-                            Estos cambios afectan el comportamiento de facturación, caja y proformas.
-                            Revise cada opción antes de guardar.
-                        </p>
+                    <div class="config-factura-context">
+                        <span class="config-factura-context-icon"><i class="fas fa-file-invoice-dollar"></i></span>
+                        <span>
+                            <strong>Facturación / Escritorio</strong>
+                            <small>Configure solo lo necesario sin recorrer una ventana extensa.</small>
+                        </span>
                     </div>
                 </div>
 
-                <div id="config_factura_contenido" class="config-factura-grid">
-                    <div class="config-factura-loading">
-                        <i class="fas fa-spinner fa-spin"></i> Cargando configuración...
-                    </div>
-                </div>
+                <div class="config-factura-layout">
+                    <aside class="config-factura-nav" aria-label="Categorías de configuración">
+                        <button type="button" class="config-factura-nav-item is-active" data-config-categoria="todas">
+                            <span class="config-factura-nav-icon"><i class="fas fa-th-large"></i></span>
+                            <span class="config-factura-nav-copy">
+                                <strong>Resumen</strong>
+                                <small>Todas las opciones</small>
+                            </span>
+                            <span class="config-factura-nav-count" data-config-count="todas">0</span>
+                        </button>
 
+                        <button type="button" class="config-factura-nav-item" data-config-categoria="caja">
+                            <span class="config-factura-nav-icon"><i class="fas fa-cash-register"></i></span>
+                            <span class="config-factura-nav-copy">
+                                <strong>Caja</strong>
+                                <small>Apertura y detalle</small>
+                            </span>
+                            <span class="config-factura-nav-count" data-config-count="caja">0</span>
+                        </button>
+
+                        <button type="button" class="config-factura-nav-item" data-config-categoria="proformas">
+                            <span class="config-factura-nav-icon"><i class="fas fa-file-invoice"></i></span>
+                            <span class="config-factura-nav-copy">
+                                <strong>Proformas</strong>
+                                <small>Emisión, cobro e ISV</small>
+                            </span>
+                            <span class="config-factura-nav-count" data-config-count="proformas">0</span>
+                        </button>
+
+                        <button type="button" class="config-factura-nav-item" data-config-categoria="seguridad">
+                            <span class="config-factura-nav-icon"><i class="fas fa-shield-alt"></i></span>
+                            <span class="config-factura-nav-copy">
+                                <strong>Seguridad</strong>
+                                <small>Descuentos y precios</small>
+                            </span>
+                            <span class="config-factura-nav-count" data-config-count="seguridad">0</span>
+                        </button>
+                    </aside>
+
+                    <main class="config-factura-content">
+                        <div class="config-factura-section-head">
+                            <div>
+                                <span class="config-factura-section-kicker">Configuración</span>
+                                <h5 id="config_factura_categoria_titulo">Resumen general</h5>
+                                <p id="config_factura_categoria_descripcion">Consulte y ajuste todas las opciones disponibles.</p>
+                            </div>
+
+                            <div class="config-factura-section-actions">
+                                <button type="button" class="btn btn-light btn-sm" id="btn_deshacer_categoria_config_factura" title="Deshacer cambios no guardados de esta categoría">
+                                    <i class="fas fa-undo-alt"></i> Deshacer cambios
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="config-factura-summary" id="config_factura_resumen">
+                            <div class="config-factura-summary-item">
+                                <span class="config-factura-summary-icon is-total"><i class="fas fa-sliders-h"></i></span>
+                                <span><small>Opciones</small><strong id="config_factura_total">0</strong></span>
+                            </div>
+                            <div class="config-factura-summary-item">
+                                <span class="config-factura-summary-icon is-active"><i class="fas fa-check"></i></span>
+                                <span><small>Activas</small><strong id="config_factura_activas">0</strong></span>
+                            </div>
+                            <div class="config-factura-summary-item">
+                                <span class="config-factura-summary-icon is-inactive"><i class="fas fa-power-off"></i></span>
+                                <span><small>Inactivas</small><strong id="config_factura_inactivas">0</strong></span>
+                            </div>
+                        </div>
+
+                        <div id="config_factura_dependencia" class="config-factura-dependency" style="display:none;">
+                            <i class="fas fa-info-circle"></i>
+                            <span></span>
+                        </div>
+
+                        <div id="config_factura_contenido" class="config-factura-grid">
+                            <div class="config-factura-loading">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <span>Cargando configuración...</span>
+                            </div>
+                        </div>
+
+                        <div id="config_factura_sin_resultados" class="config-factura-empty" style="display:none;">
+                            <span class="config-factura-empty-icon"><i class="fas fa-search"></i></span>
+                            <strong>No encontramos configuraciones</strong>
+                            <small>Pruebe con otra palabra o limpie la búsqueda.</small>
+                        </div>
+                    </main>
+                </div>
             </div>
 
             <div class="modal-footer config-factura-footer">
+                <div class="config-factura-footer-status mr-auto">
+                    <i class="fas fa-check-circle"></i>
+                    <span id="config_factura_cambios_estado">Sin cambios pendientes</span>
+                </div>
+
                 <button type="button" class="btn btn-secondary" id="btn_recargar_config_factura">
                     <i class="fas fa-sync-alt"></i> Recargar
                 </button>
 
-                <button type="button" class="btn btn-success" id="btn_guardar_config_factura">
-                    <i class="far fa-save"></i> Guardar cambios
+                <button type="button" class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times"></i> Cerrar
                 </button>
 
-                <button type="button" class="btn btn-primary" data-dismiss="modal">
-                    <i class="fas fa-times"></i> Cerrar
+                <button type="button" class="btn btn-success" id="btn_guardar_config_factura">
+                    <i class="far fa-save"></i> Guardar cambios
                 </button>
             </div>
 
@@ -6059,7 +6152,7 @@
     </div>
 </div>
 <!-- =========================================================
-     FIN MODAL CONFIGURACIÓN DE FACTURACIÓN
+     FIN MODAL CENTRO DE CONFIGURACIÓN DE FACTURACIÓN
 ========================================================= -->
 
 <!-- =========================================================

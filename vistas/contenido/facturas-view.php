@@ -165,7 +165,7 @@
                                         data-toggle="tooltip"
                                         data-placement="top"
                                         data-html="true"
-                                        title="<strong>Configuración de facturación</strong><br>Permite activar o desactivar opciones de caja y proformas.<br>Requiere validación de administrador.">
+                                        title="<strong>Configuración de facturación</strong><br>Administra caja, proformas, ISV, conversión de proformas y seguridad de descuentos/precios.<br><strong>Siempre requiere validación de administrador.</strong>">
                                         <i class="fas fa-cogs fa-lg"></i> Config
                                     </button>                                    
 

@@ -90,9 +90,9 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
                 <tbody>
                   <tr><td><kbd>F2</kbd></td><td>Guardar</td><td>Guarda la factura como <u>borrador</u> para continuar después. No emite documento fiscal; podrás editar/eliminar sin afectar SAR.</td></tr>
                   <tr><td><kbd>F3</kbd></td><td>Búsqueda de productos</td><td>Abre el buscador; permite crear productos. Usa “Actualizar” para refrescar tras un alta.</td></tr>
-                  <tr><td><kbd>F4</kbd></td><td>Descuentos</td><td>Aplica descuentos a productos. Puede requerir autorización de supervisor/administrador.</td></tr>
+                  <tr><td><kbd>F4</kbd></td><td>Descuentos</td><td>Aplica descuentos a productos. Si está activa la opción <b>Solicitar clave para descuentos y precios</b>, pedirá validación administrativa antes de abrir.</td></tr>
                   <tr><td><kbd>F5</kbd></td><td>Actualizar</td><td>Recarga la página. <u>Precaución</u>: perderás lo no guardado.</td></tr>
-                  <tr><td><kbd>F6</kbd></td><td>Modificar precio</td><td>Ajusta el precio cuando exista soporte (compra/cotización).</td></tr>
+                  <tr><td><kbd>F6</kbd></td><td>Modificar precio</td><td>Ajusta el precio del producto. Si está activa la opción <b>Solicitar clave para descuentos y precios</b>, pedirá validación administrativa antes de abrir.</td></tr>
                   <tr><td><kbd>F7</kbd></td><td>Registrar / Cobrar</td><td>Emite la factura fiscal. Acción <u>definitiva</u>: no editable (solo anulación o nota de crédito).</td></tr>
                   <tr><td><kbd>F8</kbd></td><td>Clientes</td><td>Busca o crea clientes. Usa “Actualizar” para refrescar la lista.</td></tr>
                   <tr><td><kbd>F9</kbd></td><td>Vendedores</td><td>Busca o crea colaboradores/vendedores.</td></tr>

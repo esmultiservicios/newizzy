@@ -1,5 +1,41 @@
 ####22 de agost 2026####
 -- ============================================================
+-- IZZY - FACTURACIÓN NORMAL
+-- Seguridad configurable para descuentos y modificación precio
+--
+-- activar = 1 -> Solicitar clave administrativa
+-- activar = 2 -> No solicitar clave (DEFAULT)
+--
+-- NO modifica las configuraciones 1 a 7.
+-- ============================================================
+
+INSERT INTO config (
+    config_id,
+    accion,
+    activar
+)
+SELECT
+    8,
+    'Clave Descuento y Precio',
+    2
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM config
+    WHERE config_id = 8
+);
+
+-- ============================================================
+-- COMPROBACIÓN
+-- ============================================================
+
+SELECT
+    config_id,
+    accion,
+    activar
+FROM config
+WHERE config_id BETWEEN 1 AND 8
+ORDER BY config_id;
+-- ============================================================
 -- IZZY RESTAURANTE / POS
 -- Seguridad configurable para acciones administrativas
 -- Ejecutar UNA vez. No borra ni modifica ventas existentes.

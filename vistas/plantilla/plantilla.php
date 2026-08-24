@@ -2,6 +2,45 @@
 if(!isset($_SESSION)){ 
     session_start(['name'=>'SD']); 
 }
+
+/* ============================================================
+   PROTECCIÓN GLOBAL DE RUTAS PRIVADAS
+   ------------------------------------------------------------
+   Evita que una URL interna cargue una pantalla en blanco cuando
+   no existe una sesión válida. Si el usuario intenta entrar a una
+   ruta privada directamente, se redirige al login antes de emitir
+   cualquier HTML.
+
+   La Pantalla de Cocina independiente no pasa por esta plantilla,
+   por lo que /cocina/ conserva su acceso independiente.
+   ============================================================ */
+$rutaSolicitada = '';
+
+if (isset($_GET['views'])) {
+    $rutaSolicitada = trim((string)$_GET['views'], '/');
+}
+
+$partesRuta = $rutaSolicitada !== ''
+    ? explode('/', $rutaSolicitada)
+    : [];
+
+$vistaSolicitada = $partesRuta[0] ?? '';
+
+$esRutaPublicaInicial =
+    $vistaSolicitada === '' ||
+    $vistaSolicitada === 'login' ||
+    $vistaSolicitada === 'index';
+
+$sesionValida =
+    isset($_SESSION['token_sd']) &&
+    isset($_SESSION['user_sd']) &&
+    $_SESSION['user_sd'] !== null &&
+    $_SESSION['user_sd'] !== '';
+
+if (!$esRutaPublicaInicial && !$sesionValida) {
+    header('Location: ' . SERVERURL . 'login/');
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">

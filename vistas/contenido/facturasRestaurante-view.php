@@ -1680,6 +1680,32 @@ try {
           <div class="rs-help-mode" id="rs-help-mode" aria-live="polite"></div>
         </section>
 
+        <section class="rs-help-quick-grid" aria-label="Consejos y soporte">
+          <div class="rs-help-quick-card rs-help-tips-card">
+            <div class="rs-help-quick-icon"><i class="fas fa-lightbulb"></i></div>
+            <div class="rs-help-quick-copy">
+              <strong>Consejos rápidos</strong>
+              <span>Guarde una cuenta si el cliente seguirá pidiendo, revise la mesa antes de cobrar y use el buscador para encontrar cualquier función.</span>
+            </div>
+          </div>
+
+          <div class="rs-help-quick-card rs-help-support-card">
+            <div class="rs-help-quick-icon"><i class="fab fa-whatsapp"></i></div>
+            <div class="rs-help-quick-copy">
+              <strong>¿Necesita más ayuda?</strong>
+              <span>Contacte al administrador del sistema: <b>+504 8913-6844</b></span>
+            </div>
+            <a
+              class="rs-help-whatsapp"
+              href="https://wa.me/50489136844?text=Hola%20ES%20MULTISERVICIOS%2C%20necesito%20ayuda%20con%20el%20m%C3%B3dulo%20Restaurante%20de%20IZZY."
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Contactar soporte por WhatsApp">
+              <i class="fab fa-whatsapp"></i><span>WhatsApp</span>
+            </a>
+          </div>
+        </section>
+
         <div class="rs-help-search-wrap">
           <i class="fas fa-search"></i>
           <input

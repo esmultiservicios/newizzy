@@ -66,6 +66,14 @@ try {
         <button id="btn-volver-dashboard" class="btn btn-light">
           <i class="fas fa-arrow-left"></i> Volver
         </button>
+        <button id="btn-fullscreen-restaurante"
+                class="btn btn-light rs-btn-fullscreen"
+                type="button"
+                title="Pantalla completa"
+                aria-label="Activar pantalla completa"
+                aria-pressed="false">
+          <i class="fas fa-expand"></i><span>Pantalla completa</span>
+        </button>
         <button id="btn-help" class="btn btn-info">
           <i class="fas fa-circle-question"></i> Ayuda
         </button>

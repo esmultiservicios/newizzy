@@ -31,6 +31,99 @@ document.addEventListener('DOMContentLoaded', function () {
   if (navbarLateral) navbarLateral.style.display = "none";
   document.body.classList.add('vista-facturacion-restaurante');
 
+  // ===========================================================
+  // PANTALLA COMPLETA — RESTAURANTE / POS
+  // ===========================================================
+  const btnFullscreenRestaurante = document.getElementById('btn-fullscreen-restaurante');
+
+  function rsFullscreenElementActual(){
+    return document.fullscreenElement
+      || document.webkitFullscreenElement
+      || document.msFullscreenElement
+      || null;
+  }
+
+  function rsActualizarBotonFullscreen(){
+    if(!btnFullscreenRestaurante) return;
+
+    const activo = !!rsFullscreenElementActual();
+
+    btnFullscreenRestaurante.setAttribute('aria-pressed', activo ? 'true' : 'false');
+    btnFullscreenRestaurante.setAttribute(
+      'aria-label',
+      activo ? 'Salir de pantalla completa' : 'Activar pantalla completa'
+    );
+    btnFullscreenRestaurante.title = activo ? 'Salir de pantalla completa' : 'Pantalla completa';
+
+    const icono = btnFullscreenRestaurante.querySelector('i');
+    const texto = btnFullscreenRestaurante.querySelector('span');
+
+    if(icono){
+      icono.className = activo ? 'fas fa-compress' : 'fas fa-expand';
+    }
+    if(texto){
+      texto.textContent = activo ? 'Salir de pantalla completa' : 'Pantalla completa';
+    }
+
+    btnFullscreenRestaurante.classList.toggle('is-active', activo);
+    document.body.classList.toggle('rs-fullscreen-activo', activo);
+  }
+
+  async function rsAlternarPantallaCompleta(){
+    try{
+      if(rsFullscreenElementActual()){
+        if(document.exitFullscreen){
+          await document.exitFullscreen();
+        }else if(document.webkitExitFullscreen){
+          document.webkitExitFullscreen();
+        }else if(document.msExitFullscreen){
+          document.msExitFullscreen();
+        }
+        return;
+      }
+
+      const objetivo = document.documentElement;
+
+      if(objetivo.requestFullscreen){
+        await objetivo.requestFullscreen();
+      }else if(objetivo.webkitRequestFullscreen){
+        objetivo.webkitRequestFullscreen();
+      }else if(objetivo.msRequestFullscreen){
+        objetivo.msRequestFullscreen();
+      }else if(typeof showNotify === 'function'){
+        showNotify(
+          'info',
+          'Pantalla completa',
+          'Este navegador no permite activar pantalla completa desde la página.'
+        );
+      }
+    }catch(error){
+      console.warn('[Restaurante] Pantalla completa:', error);
+
+      if(typeof showNotify === 'function'){
+        showNotify(
+          'info',
+          'Pantalla completa',
+          'El navegador bloqueó el cambio de pantalla completa.'
+        );
+      }
+    }finally{
+      window.setTimeout(rsActualizarBotonFullscreen, 50);
+    }
+  }
+
+  if(btnFullscreenRestaurante){
+    btnFullscreenRestaurante.addEventListener('click', function(event){
+      event.preventDefault();
+      rsAlternarPantallaCompleta();
+    });
+    rsActualizarBotonFullscreen();
+  }
+
+  document.addEventListener('fullscreenchange', rsActualizarBotonFullscreen);
+  document.addEventListener('webkitfullscreenchange', rsActualizarBotonFullscreen);
+  document.addEventListener('MSFullscreenChange', rsActualizarBotonFullscreen);
+
   // ===== Estado =====
   let mesaSeleccionada = null;
   let facturaActual = null;

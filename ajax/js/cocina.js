@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const pairStatusEl = document.getElementById('cocina-pair-status');
     const pairExpireEl = document.getElementById('cocina-pair-expire');
     const newCodeBtn = document.getElementById('btn-nuevo-codigo-cocina');
+    const fullscreenBtn = document.getElementById('btn-fullscreen-cocina');
     document.body.classList.add('vista-cocina-active');
 
     const TOKEN_KEY = 'izzy_cocina_token_v1';
@@ -308,6 +309,16 @@ document.addEventListener('DOMContentLoaded', function () {
         refreshBtn.addEventListener('keydown',function(event){ if(event.key==='Enter'||event.key===' '){event.preventDefault();refrescarManual();} });
     }
     if(newCodeBtn) newCodeBtn.addEventListener('click',crearCodigoVinculacion);
+
+
+    if(fullscreenBtn){
+        fullscreenBtn.addEventListener('click',alternarPantallaCompleta);
+        actualizarBotonFullscreen();
+    }
+
+    document.addEventListener('fullscreenchange',actualizarBotonFullscreen);
+    document.addEventListener('webkitfullscreenchange',actualizarBotonFullscreen);
+    document.addEventListener('MSFullscreenChange',actualizarBotonFullscreen);
 
     const urlToken=String(window.COCINA_URL_TOKEN||'').toLowerCase();
     if(/^[a-f0-9]{64}$/.test(urlToken)){

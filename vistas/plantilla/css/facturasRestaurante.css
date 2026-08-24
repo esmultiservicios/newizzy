@@ -4555,3 +4555,119 @@ body[data-servicio="mesa"] #btn-guardar.btn-warning:focus {
   .vista-facturacion-restaurante .rs-help-topic-body{font-size:11px!important;padding:6px 10px 11px!important}
   .vista-facturacion-restaurante .rs-help-layout{min-height:300px}
 }
+
+
+/* ================================================================
+   FULLSCREEN RESTAURANTE / POS
+   APÉNDICE AISLADO — NO MODIFICA LOS ESTILOS EXISTENTES
+   ================================================================ */
+
+/* Desktop / Tablet: el nuevo botón hereda el aspecto de btn-light. */
+.vista-facturacion-restaurante #btn-fullscreen-restaurante{
+  white-space:nowrap;
+}
+
+.vista-facturacion-restaurante #btn-fullscreen-restaurante.is-active{
+  background:#dfe6e9;
+  color:#243447;
+}
+
+/* ================================================================
+   CABECERA MÓVIL — SOLO <= 599px
+   Los 4 botones superiores quedan únicamente con icono.
+   ================================================================ */
+@media (max-width:599px){
+
+  /* El CSS existente ocultaba Volver; aquí solo revertimos eso
+     para que los cuatro accesos sigan disponibles en teléfono. */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-volver-dashboard,
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-help{
+    display:inline-flex !important;
+  }
+
+  /* Evita que el grupo de acciones crezca y se monte sobre contador/cajero. */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .control-buttons{
+    display:flex !important;
+    align-items:center !important;
+    justify-content:flex-end !important;
+    gap:4px !important;
+    flex:0 0 auto !important;
+    min-width:0 !important;
+  }
+
+  /* Volver / Fullscreen / Ayuda / Salir:
+     exactamente el mismo tamaño y SOLO icono. */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-volver-dashboard,
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-fullscreen-restaurante,
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-help,
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .control-buttons .btn-exit-system{
+    width:32px !important;
+    min-width:32px !important;
+    max-width:32px !important;
+    height:32px !important;
+    min-height:32px !important;
+    padding:0 !important;
+    margin:0 !important;
+    border-radius:9px !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:0 !important;
+    overflow:hidden !important;
+    white-space:nowrap !important;
+    font-size:0 !important;
+    line-height:1 !important;
+    flex:0 0 32px !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-volver-dashboard i,
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-fullscreen-restaurante i,
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-help i,
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .control-buttons .btn-exit-system i{
+    margin:0 !important;
+    font-size:13px !important;
+    line-height:1 !important;
+  }
+
+  /* El texto de fullscreen tiene span propio; desaparece por completo. */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-fullscreen-restaurante span{
+    display:none !important;
+  }
+
+  /* El nombre del cajero puede ser largo: no dejamos que invada los botones. */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .control-user{
+    min-width:0 !important;
+    max-width:128px !important;
+    padding-left:6px !important;
+    padding-right:7px !important;
+    overflow:hidden !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #cajero-actual{
+    min-width:0 !important;
+    max-width:100% !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+    white-space:nowrap !important;
+  }
+
+  /* El contador debe poder encogerse en teléfono. */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .control-center{
+    min-width:0 !important;
+    flex:1 1 auto !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .control-counter{
+    min-width:0 !important;
+    max-width:92px !important;
+    padding-left:7px !important;
+    padding-right:7px !important;
+    overflow:hidden !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .control-counter .counter-value{
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+    white-space:nowrap !important;
+  }
+}

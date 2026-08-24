@@ -9,6 +9,74 @@
     <link rel="stylesheet" href="<?php echo SERVERURL; ?>fontawesome/css/all.min.css">
     <?php $cocinaCssVersion = @filemtime(dirname(__DIR__) . '/plantilla/css/cocina.css') ?: time(); ?>
     <link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/cocina.css?v=<?php echo (int)$cocinaCssVersion; ?>">
+
+    <style>
+        .header-cocina{
+            position:relative;
+        }
+        .header-cocina-main{
+            text-align:center;
+        }
+        .cocina-fullscreen-btn{
+            position:absolute;
+            top:50%;
+            right:18px;
+            transform:translateY(-50%);
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            gap:8px;
+            min-height:38px;
+            padding:8px 13px;
+            border:1px solid rgba(255,255,255,.22);
+            border-radius:10px;
+            background:rgba(255,255,255,.10);
+            color:#fff;
+            font:inherit;
+            font-size:13px;
+            font-weight:700;
+            line-height:1;
+            cursor:pointer;
+            transition:background .18s ease,border-color .18s ease,transform .18s ease;
+            z-index:5;
+        }
+        .cocina-fullscreen-btn:hover,
+        .cocina-fullscreen-btn:focus-visible{
+            background:rgba(255,255,255,.18);
+            border-color:rgba(255,255,255,.38);
+            outline:none;
+        }
+        .cocina-fullscreen-btn:active{
+            transform:translateY(-50%) scale(.98);
+        }
+        .cocina-fullscreen-btn i{
+            font-size:14px;
+        }
+
+        body.cocina-fullscreen-activo .header-cocina{
+            min-height:58px;
+            padding-top:8px;
+            padding-bottom:8px;
+        }
+
+        @media (max-width:700px){
+            .header-cocina{
+                padding-right:58px;
+            }
+            .cocina-fullscreen-btn{
+                right:10px;
+                width:38px;
+                min-width:38px;
+                height:38px;
+                padding:0;
+                border-radius:9px;
+            }
+            .cocina-fullscreen-btn span{
+                display:none;
+            }
+        }
+    </style>
+
 </head>
 <body>
     <script>
@@ -18,8 +86,20 @@
 
     <div class="vista-cocina-container">
         <header class="header-cocina">
-            <h1><i class="fas fa-utensils"></i> Pantalla de Cocina</h1>
-            <p id="hora-actual" aria-live="off"></p>
+            <div class="header-cocina-main">
+                <h1><i class="fas fa-utensils"></i> Pantalla de Cocina</h1>
+                <p id="hora-actual" aria-live="off"></p>
+            </div>
+
+            <button type="button"
+                    id="btn-fullscreen-cocina"
+                    class="cocina-fullscreen-btn"
+                    aria-label="Activar pantalla completa"
+                    aria-pressed="false"
+                    title="Pantalla completa">
+                <i class="fas fa-expand"></i>
+                <span>Pantalla completa</span>
+            </button>
         </header>
 
         <section id="cocina-pairing" class="cocina-pairing" hidden>

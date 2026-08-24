@@ -5211,39 +5211,54 @@ $(() => {
     }
 
     if (e.which === 115) { // F4 -> descuento por producto
-      var row_index = obtenerRowIndexFacturaDesdeElemento(this);
-      var col_index = $(this).closest("td").index();
-
-      $('#formDescuentoFacturacion #row_index').val(row_index);
-      $('#formDescuentoFacturacion #col_index').val(col_index);
-
-      if ($("#invoice-form #invoiceItem #productos_id_" + row_index).val() != "") {
-        $('#formDescuentoFacturacion')[0].reset();
-        var productos_id = $("#invoice-form #invoiceItem #productos_id_" + row_index).val();
-        var producto     = $("#invoice-form #invoiceItem #productName_" + row_index).val();
-        var precio       = $("#invoice-form #invoiceItem #price_" + row_index).val();
-
-        $('#formDescuentoFacturacion #descuento_productos_id').val(productos_id);
-        $('#formDescuentoFacturacion #producto_descuento_fact').val(producto);
-        $('#formDescuentoFacturacion #precio_descuento_fact').val(precio);
-
-        $('#formDescuentoFacturacion #pro_descuento_fact').val("Registrar");
-
-        getPermisosTipoUsuarioAccesosForms(getPrivilegioTipoUsuario());
-
-        $('#modalDescuentoFacturacion').modal({
-          show: true,
-          keyboard: false,
-          backdrop: 'static'
-        });
-      }
       e.preventDefault();
+      var elementoF4 = this;
+
+      autorizarAccionEspecialFactura(
+        'Aplicar descuento',
+        'Descuento de producto en factura',
+        function () {
+                var row_index = obtenerRowIndexFacturaDesdeElemento(this);
+                var col_index = $(this).closest("td").index();
+
+                $('#formDescuentoFacturacion #row_index').val(row_index);
+                $('#formDescuentoFacturacion #col_index').val(col_index);
+
+                if ($("#invoice-form #invoiceItem #productos_id_" + row_index).val() != "") {
+                  $('#formDescuentoFacturacion')[0].reset();
+                  var productos_id = $("#invoice-form #invoiceItem #productos_id_" + row_index).val();
+                  var producto     = $("#invoice-form #invoiceItem #productName_" + row_index).val();
+                  var precio       = $("#invoice-form #invoiceItem #price_" + row_index).val();
+
+                  $('#formDescuentoFacturacion #descuento_productos_id').val(productos_id);
+                  $('#formDescuentoFacturacion #producto_descuento_fact').val(producto);
+                  $('#formDescuentoFacturacion #precio_descuento_fact').val(precio);
+
+                  $('#formDescuentoFacturacion #pro_descuento_fact').val("Registrar");
+
+                  getPermisosTipoUsuarioAccesosForms(getPrivilegioTipoUsuario());
+
+                  $('#modalDescuentoFacturacion').modal({
+                    show: true,
+                    keyboard: false,
+                    backdrop: 'static'
+                  });
+                }
+        }
+      );
     }
 
     if (e.which === 117) { // F6 -> modificar precio
       var row_index = obtenerRowIndexFacturaDesdeElemento(this);
-      abrirEditarPrecioFacturaEscritorio(row_index);
       e.preventDefault();
+
+      autorizarAccionEspecialFactura(
+        'Modificar precio',
+        'Modificación de precio en factura',
+        function () {
+          abrirEditarPrecioFacturaEscritorio(row_index);
+        }
+      );
     }
   });
 });
@@ -7495,6 +7510,131 @@ $('#formulario_bill #search').on("click", function(e) {
     listar_busqueda_bill();
 });
 
+
+/* =========================================================
+   SEGURIDAD CONFIGURABLE - DESCUENTOS / MODIFICACIÓN DE PRECIO
+   ---------------------------------------------------------
+   config_id = 8
+   activar = 1 -> solicita clave administrativa.
+   activar = 2 -> NO solicita clave (valor por defecto).
+
+   IMPORTANTE:
+   - Configuración de facturación SIEMPRE solicita clave.
+   - Esta opción SOLO controla Descuento y Modificar precio.
+   - Los permisos existentes no se eliminan ni se reemplazan.
+========================================================= */
+window.IZZY_SEGURIDAD_DESCUENTO_PRECIO = {
+    cargado: false,
+    activar: 2,
+    solicitud: null
+};
+
+function cargarSeguridadDescuentoPrecioFactura(forzar) {
+    if (
+        window.IZZY_SEGURIDAD_DESCUENTO_PRECIO.cargado === true &&
+        forzar !== true
+    ) {
+        return $.Deferred().resolve({
+            success: true,
+            activar: window.IZZY_SEGURIDAD_DESCUENTO_PRECIO.activar
+        }).promise();
+    }
+
+    if (
+        window.IZZY_SEGURIDAD_DESCUENTO_PRECIO.solicitud &&
+        forzar !== true
+    ) {
+        return window.IZZY_SEGURIDAD_DESCUENTO_PRECIO.solicitud;
+    }
+
+    window.IZZY_SEGURIDAD_DESCUENTO_PRECIO.solicitud = $.ajax({
+        type: 'GET',
+        url: '<?php echo SERVERURL;?>core/facturas/getConfigFacturaExtras.php',
+        dataType: 'json',
+        cache: false,
+        timeout: 10000
+    }).done(function (response) {
+        var activar = 2;
+
+        if (response && response.success === true) {
+            if (response.seguridad_descuento_precio !== undefined) {
+                activar = parseInt(response.seguridad_descuento_precio || 2, 10);
+            } else if (response.config && response.config['8'] !== undefined) {
+                activar = parseInt(response.config['8'] || 2, 10);
+            }
+        }
+
+        window.IZZY_SEGURIDAD_DESCUENTO_PRECIO.activar = activar === 1 ? 1 : 2;
+        window.IZZY_SEGURIDAD_DESCUENTO_PRECIO.cargado = true;
+    }).fail(function () {
+        // Falla segura para operación: la opción es desactivada por defecto.
+        // No bloqueamos facturación si la consulta auxiliar falla.
+        window.IZZY_SEGURIDAD_DESCUENTO_PRECIO.activar = 2;
+        window.IZZY_SEGURIDAD_DESCUENTO_PRECIO.cargado = true;
+    }).always(function () {
+        window.IZZY_SEGURIDAD_DESCUENTO_PRECIO.solicitud = null;
+    });
+
+    return window.IZZY_SEGURIDAD_DESCUENTO_PRECIO.solicitud;
+}
+
+function requiereClaveDescuentoPrecioFactura() {
+    return parseInt(
+        (window.IZZY_SEGURIDAD_DESCUENTO_PRECIO || {}).activar || 2,
+        10
+    ) === 1;
+}
+
+function autorizarAccionEspecialFactura(accion, referenciaTexto, callback) {
+    if (typeof callback !== 'function') {
+        return;
+    }
+
+    function ejecutarSegunConfiguracion() {
+        if (!requiereClaveDescuentoPrecioFactura()) {
+            callback();
+            return;
+        }
+
+        if (typeof validarAdminSistema !== 'function') {
+            showNotify(
+                'error',
+                'Validación no disponible',
+                'No está cargado el componente de autenticación administrativa.'
+            );
+            return;
+        }
+
+        validarAdminSistema(function (permitido) {
+            if (permitido === true) {
+                callback();
+            }
+        }, {
+            mensaje: 'Esta acción requiere validación administrativa porque la seguridad de descuentos y precios está activa.',
+            modulo: 'Facturación',
+            accion: accion || 'Acción especial de facturación',
+            referencia_id: '',
+            referencia_texto: referenciaTexto || '',
+            motivo: 'Seguridad configurable para descuentos y modificación de precio'
+        });
+    }
+
+    if (window.IZZY_SEGURIDAD_DESCUENTO_PRECIO.cargado === true) {
+        ejecutarSegunConfiguracion();
+        return;
+    }
+
+    cargarSeguridadDescuentoPrecioFactura(false).always(function () {
+        ejecutarSegunConfiguracion();
+    });
+}
+
+// Precarga sin bloquear la interfaz.
+$(() => {
+    cargarSeguridadDescuentoPrecioFactura(false);
+});
+
+
 //INICIO DESCUENTO PRODUCTO EN FACTURACION
 $(() => {
     $(() => {
@@ -7502,8 +7642,21 @@ $(() => {
         $("#invoice-form #invoiceItem").on('click.descuentoFacturaEscritorio', '.aplicar_descuento', function(e) {
             e.preventDefault();
 
+            var elementoDescuento = this;
+
+            autorizarAccionEspecialFactura(
+                'Aplicar descuento',
+                'Descuento de producto en factura',
+                function () {
+                    abrirDescuentoFacturaEscritorio(elementoDescuento);
+                }
+            );
+        });
+    });
+
+    function abrirDescuentoFacturaEscritorio(elementoDescuento) {
             // Obtener la fila actual
-            var row_index = obtenerRowIndexFacturaDesdeElemento(this);
+            var row_index = obtenerRowIndexFacturaDesdeElemento(elementoDescuento);
             
             // Validar si es una fila válida
             if (row_index === undefined || row_index === null || row_index < 0) {
@@ -7535,7 +7688,7 @@ $(() => {
             $('#formDescuentoFacturacion')[0].reset();
 
             $('#formDescuentoFacturacion #row_index').val(row_index);
-            $('#formDescuentoFacturacion #col_index').val($(this).closest("td").index());
+            $('#formDescuentoFacturacion #col_index').val($(elementoDescuento).closest("td").index());
             $('#formDescuentoFacturacion #descuento_productos_id').val(productos_id);
             $('#formDescuentoFacturacion #producto_descuento_fact').val(producto);
             $('#formDescuentoFacturacion #precio_descuento_fact').val(total.toFixed(2));
@@ -7557,8 +7710,7 @@ $(() => {
                 keyboard: false,
                 backdrop: 'static'
             });
-        });
-    });
+    }
 
     $("#formDescuentoFacturacion #porcentaje_descuento_fact").off("keyup.descuentoFacturaEscritorio change.descuentoFacturaEscritorio");
     $("#formDescuentoFacturacion #porcentaje_descuento_fact").on("keyup.descuentoFacturaEscritorio change.descuentoFacturaEscritorio", function() {
@@ -7631,7 +7783,14 @@ $(() => {
     $("#invoice-form #invoiceItem").on('click.editarPrecioFacturaEscritorio', '.aplicar_precio', function(e) {
         e.preventDefault();
         var row_index = obtenerRowIndexFacturaDesdeElemento(this);
-        abrirEditarPrecioFacturaEscritorio(row_index);
+
+        autorizarAccionEspecialFactura(
+            'Modificar precio',
+            'Modificación de precio en factura',
+            function () {
+                abrirEditarPrecioFacturaEscritorio(row_index);
+            }
+        );
     });
 });
 //FIN MODIFICAR PRECIO EN PRODUCTO FACTURACION
@@ -8450,6 +8609,147 @@ function abrirModalConfigFactura() {
     cargarConfigFactura();
 }
 
+
+var IZZY_CONFIG_FACTURA_META = {
+    1: {
+        titulo: 'Mostrar detalle de facturas en caja',
+        categoria: 'Caja',
+        descripcion: 'Controla si el módulo de caja puede mostrar el detalle de facturas relacionado con ventas y movimientos.',
+        activo_texto: 'Activo: el usuario puede ver el detalle de facturas dentro de caja.',
+        inactivo_texto: 'Inactivo: el detalle de facturas no se muestra dentro de caja.',
+        activar_default: 1
+    },
+    2: {
+        titulo: 'Validar apertura de caja',
+        categoria: 'Caja',
+        descripcion: 'Controla si el sistema exige una caja abierta antes de facturar o cobrar.',
+        activo_texto: 'Activo: el usuario debe tener caja abierta para operar ventas y cobros.',
+        inactivo_texto: 'Inactivo: la facturación no exige una apertura de caja previa.',
+        activar_default: 1
+    },
+    3: {
+        titulo: 'Activar proformas',
+        categoria: 'Proformas',
+        descripcion: 'Controla si la vista de facturación permite generar documentos tipo proforma.',
+        activo_texto: 'Activo: se permite generar facturas proforma.',
+        inactivo_texto: 'Inactivo: se oculta o bloquea la generación de proformas.',
+        activar_default: 2
+    },
+    4: {
+        titulo: 'Rebajar inventario en proforma',
+        categoria: 'Proformas',
+        descripcion: 'Controla si una proforma puede descontar inventario cuando el usuario lo indique.',
+        activo_texto: 'Activo: la proforma puede rebajar inventario según la opción seleccionada.',
+        inactivo_texto: 'Inactivo: la proforma no rebaja inventario aunque el usuario lo intente.',
+        activar_default: 2
+    },
+    5: {
+        titulo: 'Cobrar proformas',
+        categoria: 'Proformas',
+        descripcion: 'Controla si una proforma de contado puede abrir el modal de pago.',
+        activo_texto: 'Activo: las proformas habilitadas pueden pasar por el flujo de cobro.',
+        inactivo_texto: 'Inactivo: la proforma solo se imprime o registra sin cobro directo.',
+        activar_default: 2
+    },
+    6: {
+        titulo: 'Calcular ISV en proformas',
+        categoria: 'Proformas',
+        descripcion: 'Controla si las proformas calculan ISV cuando el producto tiene ISV activo.',
+        activo_texto: 'Activo: la proforma calcula ISV según isv_venta, isv1 e isv2 del producto.',
+        inactivo_texto: 'Inactivo: la proforma se genera sin cálculo de ISV.',
+        activar_default: 1
+    },
+    7: {
+        titulo: 'Convertir proforma pagada a factura',
+        categoria: 'Proformas',
+        descripcion: 'Controla si al completar el pago de una proforma el sistema continúa con la conversión a factura normal.',
+        activo_texto: 'Activo: una proforma que completa su pago puede convertirse a factura normal según el flujo existente.',
+        inactivo_texto: 'Inactivo: completar el pago no ejecuta la conversión automática a factura normal.',
+        activar_default: 1
+    },
+    8: {
+        titulo: 'Solicitar clave para descuentos y precios',
+        categoria: 'Seguridad',
+        descripcion: 'Agrega una validación administrativa antes de aplicar descuentos o modificar el precio de un producto en Facturación.',
+        activo_texto: 'Activo: F4/Descuento y F6/Modificar precio solicitan credenciales administrativas antes de abrir.',
+        inactivo_texto: 'Inactivo: descuentos y modificaciones de precio funcionan sin clave adicional. Esta es la opción predeterminada.',
+        activar_default: 2
+    }
+};
+
+function normalizarConfigFacturaCompleta(items, extras) {
+    var porId = {};
+    var entrada = Array.isArray(items) ? items : [];
+
+    entrada.forEach(function (item) {
+        var id = parseInt(item.config_id || 0, 10);
+        if (id > 0) {
+            porId[id] = $.extend({}, item);
+        }
+    });
+
+    extras = extras || {};
+    Object.keys(extras).forEach(function (key) {
+        var id = parseInt(key || 0, 10);
+        if (id > 0) {
+            porId[id] = porId[id] || { config_id: id };
+            porId[id].activar = parseInt(extras[key] || 2, 10);
+        }
+    });
+
+    Object.keys(IZZY_CONFIG_FACTURA_META).forEach(function (key) {
+        var id = parseInt(key, 10);
+        var meta = IZZY_CONFIG_FACTURA_META[id];
+        var item = porId[id] || { config_id: id };
+
+        item.config_id = id;
+        item.accion = item.accion || meta.titulo;
+        item.titulo = item.titulo || meta.titulo;
+        item.categoria = item.categoria || meta.categoria;
+        item.descripcion = item.descripcion || meta.descripcion;
+        item.activo_texto = item.activo_texto || meta.activo_texto;
+        item.inactivo_texto = item.inactivo_texto || meta.inactivo_texto;
+
+        var valor = parseInt(item.activar || meta.activar_default || 2, 10);
+        item.activar = valor === 1 ? 1 : 2;
+
+        porId[id] = item;
+    });
+
+    return Object.keys(porId)
+        .map(function (key) { return porId[key]; })
+        .filter(function (item) {
+            var id = parseInt(item.config_id || 0, 10);
+            return id >= 1 && id <= 8;
+        })
+        .sort(function (a, b) {
+            return parseInt(a.config_id, 10) - parseInt(b.config_id, 10);
+        });
+}
+
+function obtenerConfigFacturaExtras() {
+    return $.ajax({
+        type: 'GET',
+        url: '<?php echo SERVERURL;?>core/facturas/getConfigFacturaExtras.php',
+        dataType: 'json',
+        cache: false,
+        timeout: 10000,
+        data: {
+            _t: Date.now()
+        }
+    }).then(function (response) {
+        if (!response || response.success !== true || !response.config) {
+            return $.Deferred().reject().promise();
+        }
+
+        return {
+            7: parseInt(response.config['7'] || 1, 10) === 1 ? 1 : 2,
+            8: parseInt(response.config['8'] || 2, 10) === 1 ? 1 : 2
+        };
+    });
+}
+
+
 function cargarConfigFactura() {
     if (!AUTH_ADMIN_SISTEMA_TOKEN || AUTH_ADMIN_SISTEMA_TOKEN === '') {
         showNotify('error', 'Validación requerida', 'Debe validar un administrador antes de cargar la configuración.');
@@ -8479,7 +8779,25 @@ function cargarConfigFactura() {
                 return;
             }
 
-            renderConfigFactura(response.config || []);
+            obtenerConfigFacturaExtras().then(function (extras) {
+                extras = extras && typeof extras === 'object' ? extras : {};
+
+                renderConfigFactura(
+                    normalizarConfigFacturaCompleta(response.config || [], extras)
+                );
+            }, function () {
+                // Si el auxiliar falla, no inventamos un valor para ID 8.
+                // Conservamos lo devuelto por el endpoint principal y avisamos.
+                renderConfigFactura(
+                    normalizarConfigFacturaCompleta(response.config || [], {})
+                );
+
+                showNotify(
+                    'warning',
+                    'Seguridad no verificada',
+                    'No fue posible consultar el estado de seguridad adicional. Recargue la configuración antes de modificarla.'
+                );
+            });
         },
         error: function (xhr) {
                         showNotify('error', 'Error', 'Error de comunicación al cargar configuración.');
@@ -8511,6 +8829,8 @@ function renderConfigFactura(items) {
             icono = 'fa-cash-register';
         } else if (categoria === 'proformas') {
             icono = 'fa-file-invoice';
+        } else if (categoria === 'seguridad') {
+            icono = 'fa-shield-alt';
         }
 
         html += ''
@@ -8642,6 +8962,7 @@ function aplicarConfigFacturaEnVistaActual(cambios) {
     var valorProforma = obtenerValorCambioConfigFactura(cambios, 3, null);
     var valorRebajarInventario = obtenerValorCambioConfigFactura(cambios, 4, null);
     var valorISVProforma = obtenerValorCambioConfigFactura(cambios, 6, null);
+    var valorSeguridadDescuentoPrecio = obtenerValorCambioConfigFactura(cambios, 8, null);
 
     var proformaActiva = valorProforma === 1;
     var rebajarInventarioActivo = valorRebajarInventario === 1;
@@ -8701,10 +9022,20 @@ function aplicarConfigFacturaEnVistaActual(cambios) {
         }
     }
 
+    if (valorSeguridadDescuentoPrecio !== null) {
+        window.IZZY_SEGURIDAD_DESCUENTO_PRECIO.activar =
+            parseInt(valorSeguridadDescuentoPrecio || 2, 10) === 1 ? 1 : 2;
+        window.IZZY_SEGURIDAD_DESCUENTO_PRECIO.cargado = true;
+    }
+
     $(document).trigger('configFacturaAplicadaEnVista', [{
         proforma_activa: proformaActiva ? 1 : 0,
         proforma_rebajar_inventario: rebajarInventarioActivo ? 1 : 0,
         proforma_aplica_isv: isvProformaActivo ? 1 : 0,
+        solicitar_clave_descuento_precio:
+            valorSeguridadDescuentoPrecio === null
+                ? (requiereClaveDescuentoPrecioFactura() ? 1 : 0)
+                : (parseInt(valorSeguridadDescuentoPrecio || 2, 10) === 1 ? 1 : 0),
         cambios: cambios
     }]);
 }
@@ -8722,40 +9053,159 @@ function guardarConfigFactura() {
         return;
     }
 
-    $('#btn_guardar_config_factura')
+    var cambiosBase = cambios.filter(function (item) {
+        var id = parseInt(item.config_id || 0, 10);
+        return id >= 1 && id <= 7;
+    });
+
+    var cambioSeguridad = cambios.find(function (item) {
+        return parseInt(item.config_id || 0, 10) === 8;
+    }) || null;
+
+    var $btnGuardar = $('#btn_guardar_config_factura');
+
+    $btnGuardar
         .prop('disabled', true)
         .html('<i class="fas fa-spinner fa-spin"></i> Guardando...');
 
-    $.ajax({
-        type: 'POST',
-        url: '<?php echo SERVERURL;?>core/facturas/updateConfigFactura.php',
-        dataType: 'json',
-        data: {
-            token: AUTH_ADMIN_SISTEMA_TOKEN,
-            configs: JSON.stringify(cambios)
-        },
-        success: function (response) {
-            $('#btn_guardar_config_factura')
-                .prop('disabled', false)
-                .html('<i class="far fa-save"></i> Guardar cambios');
+    function restaurarBotonGuardar() {
+        $btnGuardar
+            .prop('disabled', false)
+            .html('<i class="far fa-save"></i> Guardar cambios');
+    }
 
-            if (!response || response.success !== true) {
-                showNotify(
-                    'error',
-                    'Error',
-                    response && response.message ? response.message : 'No se pudo guardar la configuración.'
-                );
-                return;
+    function guardarConfiguracionBase() {
+        if (cambiosBase.length === 0) {
+            return $.Deferred().resolve({
+                success: true,
+                message: 'Configuración base sin cambios.'
+            }).promise();
+        }
+
+        return $.ajax({
+            type: 'POST',
+            url: '<?php echo SERVERURL;?>core/facturas/updateConfigFactura.php',
+            dataType: 'json',
+            timeout: 15000,
+            data: {
+                token: AUTH_ADMIN_SISTEMA_TOKEN,
+                configs: JSON.stringify(cambiosBase)
             }
+        }).then(function (response) {
+            if (!response || response.success !== true) {
+                return $.Deferred().reject({
+                    tipo: 'base',
+                    message: response && response.message
+                        ? response.message
+                        : 'No se pudo guardar la configuración de facturación.'
+                }).promise();
+            }
+
+            return response;
+        });
+    }
+
+    function guardarConfiguracionSeguridad() {
+        if (!cambioSeguridad) {
+            return $.Deferred().resolve({
+                success: true,
+                activar: requiereClaveDescuentoPrecioFactura() ? 1 : 2
+            }).promise();
+        }
+
+        return $.ajax({
+            type: 'POST',
+            url: '<?php echo SERVERURL;?>core/facturas/updateConfigFacturaExtras.php',
+            dataType: 'json',
+            timeout: 15000,
+            data: {
+                token: AUTH_ADMIN_SISTEMA_TOKEN,
+                config_id: 8,
+                activar: parseInt(cambioSeguridad.activar || 2, 10) === 1 ? 1 : 2
+            }
+        }).then(function (response) {
+            if (!response || response.success !== true) {
+                return $.Deferred().reject({
+                    tipo: 'seguridad',
+                    message: response && response.message
+                        ? response.message
+                        : 'No se pudo guardar la seguridad de descuentos y precios.'
+                }).promise();
+            }
+
+            return response;
+        });
+    }
+
+    function verificarConfiguracionSeguridad() {
+        if (!cambioSeguridad) {
+            return $.Deferred().resolve(true).promise();
+        }
+
+        var esperado = parseInt(cambioSeguridad.activar || 2, 10) === 1 ? 1 : 2;
+
+        return $.ajax({
+            type: 'GET',
+            url: '<?php echo SERVERURL;?>core/facturas/getConfigFacturaExtras.php',
+            dataType: 'json',
+            cache: false,
+            timeout: 10000,
+            data: {
+                _t: Date.now()
+            }
+        }).then(function (response) {
+            var actual = 2;
+
+            if (response && response.success === true) {
+                if (response.seguridad_descuento_precio !== undefined) {
+                    actual = parseInt(response.seguridad_descuento_precio || 2, 10);
+                } else if (response.config && response.config['8'] !== undefined) {
+                    actual = parseInt(response.config['8'] || 2, 10);
+                }
+            } else {
+                return $.Deferred().reject({
+                    tipo: 'verificacion',
+                    message: 'La configuración se envió, pero no fue posible comprobar su valor en la base de datos.'
+                }).promise();
+            }
+
+            actual = actual === 1 ? 1 : 2;
+
+            if (actual !== esperado) {
+                return $.Deferred().reject({
+                    tipo: 'verificacion',
+                    message: 'La seguridad no quedó persistida con el valor seleccionado. No se aplicará un estado falso en pantalla.'
+                }).promise();
+            }
+
+            window.IZZY_SEGURIDAD_DESCUENTO_PRECIO.activar = actual;
+            window.IZZY_SEGURIDAD_DESCUENTO_PRECIO.cargado = true;
+
+            return true;
+        });
+    }
+
+    guardarConfiguracionBase()
+        .then(function () {
+            return guardarConfiguracionSeguridad();
+        })
+        .then(function () {
+            return verificarConfiguracionSeguridad();
+        })
+        .then(function () {
+            restaurarBotonGuardar();
+
+            // Aplicar solo después de confirmar que BD realmente guardó.
+            aplicarConfigFacturaEnVistaActual(cambios);
 
             showNotify(
                 'success',
                 'Configuración actualizada',
-                response.message || 'Configuración actualizada correctamente.'
+                'Los cambios fueron guardados y verificados correctamente.'
             );
 
-            aplicarConfigFacturaEnVistaActual(cambios);
-
+            // Volver a leer todo desde servidor; no dejar el switch basado
+            // únicamente en el estado local del navegador.
             cargarConfigFactura();
 
             if (typeof consultarConfigISVProformaFactura === 'function') {
@@ -8766,24 +9216,22 @@ function guardarConfigFactura() {
             if (typeof aplicarConfiguracionProformaDesdeServidor === 'function') {
                 aplicarConfiguracionProformaDesdeServidor();
             }
+        })
+        .fail(function (error) {
+            restaurarBotonGuardar();
 
-            setTimeout(function () {
-                aplicarConfigFacturaEnVistaActual(cambios);
-            }, 150);
+            var mensaje = error && error.message
+                ? error.message
+                : 'No se pudo guardar la configuración. Revise la conexión e intente nuevamente.';
 
-            setTimeout(function () {
-                aplicarConfigFacturaEnVistaActual(cambios);
-            }, 600);
-        },
-        error: function (xhr) {
-            
-            $('#btn_guardar_config_factura')
-                .prop('disabled', false)
-                .html('<i class="far fa-save"></i> Guardar cambios');
+            showNotify('error', 'Configuración no guardada', mensaje);
 
-            showNotify('error', 'Error', 'Error de comunicación al guardar configuración.');
-        }
-    });
+            // Ante fallo, recargamos desde BD para que el modal muestre
+            // únicamente el estado realmente persistido.
+            window.IZZY_SEGURIDAD_DESCUENTO_PRECIO.cargado = false;
+            cargarConfigFactura();
+            cargarSeguridadDescuentoPrecioFactura(true);
+        });
 }
 
 $(document)

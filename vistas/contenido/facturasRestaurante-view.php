@@ -54,10 +54,10 @@
         <button id="btn-help" class="btn btn-info">
           <i class="fas fa-circle-question"></i> Ayuda
         </button>
-        <button id="btn-cerrar-sesion" class="btn btn-danger"
-                data-token="<?php echo $lc->encryption($_SESSION['token_sd']); ?>">
+        <a class="btn btn-danger btn-exit-system"
+           href="<?php echo $lc->encryption($_SESSION['token_sd']); ?>">
           <i class="fas fa-sign-out-alt"></i> Salir
-        </button>
+        </a>
       </div>
     </div>
 

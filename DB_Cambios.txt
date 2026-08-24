@@ -1,9 +1,33 @@
 ####23 de agosto 2026####
 -- ============================================================
--- IZZY - Centro de Configuración Restaurante
--- Tablas auxiliares para historial y prueba de Pantalla Cocina
--- EJECUTAR UNA SOLA VEZ EN DB_MAIN.
--- El código también usa CREATE TABLE IF NOT EXISTS como respaldo.
+-- IZZY RESTAURANTE / POS
+-- SCRIPT DE CONFIGURACION RESTAURANTE
+-- ============================================================
+--
+-- IMPORTANTE:
+--
+-- SECCION 1:
+-- Ejecutar UNICAMENTE en DB_MAIN.
+--
+-- SECCION 2:
+-- Ejecutar en CADA BASE DE DATOS DEL CLIENTE.
+--
+-- Los scripts están preparados para poder ejecutarse
+-- más de una vez sin crear columnas o tablas duplicadas.
+--
+-- ============================================================
+
+
+-- ============================================================
+-- ============================================================
+-- SECCION 1
+-- EJECUTAR UNICAMENTE EN DB_MAIN
+-- ============================================================
+-- ============================================================
+
+
+-- ============================================================
+-- 1. HISTORIAL DE CONFIGURACION RESTAURANTE
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS restaurante_configuracion_historial (
@@ -16,9 +40,23 @@ CREATE TABLE IF NOT EXISTS restaurante_configuracion_historial (
     resumen VARCHAR(255) NOT NULL DEFAULT '',
     cambios_json LONGTEXT NULL,
     fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
     PRIMARY KEY (historial_id),
-    KEY idx_rest_cfg_hist_empresa (server_customers_id, empresa_id, fecha_registro)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+    KEY idx_rest_cfg_hist_empresa (
+        server_customers_id,
+        empresa_id,
+        fecha_registro
+    )
+)
+ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_general_ci;
+
+
+-- ============================================================
+-- 2. PRUEBAS DE CONEXION DE PANTALLA COCINA
+-- ============================================================
 
 CREATE TABLE IF NOT EXISTS restaurante_pantalla_pruebas (
     prueba_id BIGINT NOT NULL AUTO_INCREMENT,
@@ -26,51 +64,162 @@ CREATE TABLE IF NOT EXISTS restaurante_pantalla_pruebas (
     mensaje VARCHAR(160) NOT NULL DEFAULT 'Prueba de conexión IZZY',
     fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_expira DATETIME NOT NULL,
+
     PRIMARY KEY (prueba_id),
-    KEY idx_rest_pantalla_prueba (acceso_id, fecha_expira)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+    KEY idx_rest_pantalla_prueba (
+        acceso_id,
+        fecha_expira
+    )
+)
+ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_general_ci;
 
--- IZZY - PANTALLA COCINA INDEPENDIENTE - EJECUTAR EN CADA BD CLIENTE
-SET @db_actual:=DATABASE();
-SET @existe_col:=(SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db_actual AND TABLE_NAME='restaurante_configuracion' AND COLUMN_NAME='pantalla_cocina_activa');
-SET @sql:=IF(@existe_col=0,"ALTER TABLE restaurante_configuracion ADD COLUMN pantalla_cocina_activa TINYINT(1) NOT NULL DEFAULT 0 AFTER flujo_cocina","SELECT 'pantalla_cocina_activa ya existe' AS info");
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-UPDATE restaurante_configuracion SET pantalla_cocina_activa=0 WHERE pantalla_cocina_activa IS NULL;
-SELECT empresa_id,usar_comandas,etiqueta_cocina,flujo_cocina,pantalla_cocina_activa FROM restaurante_configuracion ORDER BY empresa_id;
-
-
---SOLO EN LA BASE DE DATOS PRINCIPAL
--- IZZY - PANTALLA COCINA INDEPENDIENTE - EJECUTAR EN DB_MAIN
-CREATE TABLE IF NOT EXISTS restaurante_pantalla_accesos (
- acceso_id BIGINT NOT NULL AUTO_INCREMENT, server_customers_id INT NOT NULL, empresa_id INT NOT NULL, tipo VARCHAR(20) NOT NULL DEFAULT 'cocina',
- token_hash CHAR(64) NOT NULL, token_cifrado TEXT NOT NULL, activo TINYINT(1) NOT NULL DEFAULT 0,
- fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, fecha_actualizacion DATETIME NULL, fecha_regeneracion DATETIME NULL,
- PRIMARY KEY(acceso_id), UNIQUE KEY uq_rest_pantalla_empresa_tipo(server_customers_id,empresa_id,tipo), UNIQUE KEY uq_rest_pantalla_token_hash(token_hash),
- KEY idx_rest_pantalla_resolver(token_hash,tipo,activo), KEY idx_rest_pantalla_cliente(server_customers_id,empresa_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-SELECT acceso_id,server_customers_id,empresa_id,tipo,activo,fecha_regeneracion FROM restaurante_pantalla_accesos ORDER BY acceso_id DESC;
-
-
--- IZZY - PANTALLA COCINA INDEPENDIENTE - EJECUTAR EN DB_MAIN
-CREATE TABLE IF NOT EXISTS restaurante_pantalla_accesos (
- acceso_id BIGINT NOT NULL AUTO_INCREMENT, server_customers_id INT NOT NULL, empresa_id INT NOT NULL, tipo VARCHAR(20) NOT NULL DEFAULT 'cocina',
- token_hash CHAR(64) NOT NULL, token_cifrado TEXT NOT NULL, activo TINYINT(1) NOT NULL DEFAULT 0,
- fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, fecha_actualizacion DATETIME NULL, fecha_regeneracion DATETIME NULL,
- PRIMARY KEY(acceso_id), UNIQUE KEY uq_rest_pantalla_empresa_tipo(server_customers_id,empresa_id,tipo), UNIQUE KEY uq_rest_pantalla_token_hash(token_hash),
- KEY idx_rest_pantalla_resolver(token_hash,tipo,activo), KEY idx_rest_pantalla_cliente(server_customers_id,empresa_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-SELECT acceso_id,server_customers_id,empresa_id,tipo,activo,fecha_regeneracion FROM restaurante_pantalla_accesos ORDER BY acceso_id DESC;
 
 -- ============================================================
--- IZZY RESTAURANTE / POS
--- Permitir facturas al crédito
---
--- 0 = Solo Contado (DEFAULT)
--- 1 = Permite elegir Contado / Crédito
---
--- Seguro para ejecutar más de una vez.
+-- 3. ACCESOS PARA PANTALLA COCINA INDEPENDIENTE
 -- ============================================================
+
+CREATE TABLE IF NOT EXISTS restaurante_pantalla_accesos (
+    acceso_id BIGINT NOT NULL AUTO_INCREMENT,
+
+    server_customers_id INT NOT NULL,
+    empresa_id INT NOT NULL,
+
+    tipo VARCHAR(20) NOT NULL DEFAULT 'cocina',
+
+    token_hash CHAR(64) NOT NULL,
+    token_cifrado TEXT NOT NULL,
+
+    activo TINYINT(1) NOT NULL DEFAULT 0,
+
+    fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion DATETIME NULL,
+    fecha_regeneracion DATETIME NULL,
+
+    PRIMARY KEY (acceso_id),
+
+    UNIQUE KEY uq_rest_pantalla_empresa_tipo (
+        server_customers_id,
+        empresa_id,
+        tipo
+    ),
+
+    UNIQUE KEY uq_rest_pantalla_token_hash (
+        token_hash
+    ),
+
+    KEY idx_rest_pantalla_resolver (
+        token_hash,
+        tipo,
+        activo
+    ),
+
+    KEY idx_rest_pantalla_cliente (
+        server_customers_id,
+        empresa_id
+    )
+)
+ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_general_ci;
+
+
+-- ============================================================
+-- VERIFICACION DB_MAIN
+-- ============================================================
+
+SELECT
+    acceso_id,
+    server_customers_id,
+    empresa_id,
+    tipo,
+    activo,
+    fecha_regeneracion
+FROM restaurante_pantalla_accesos
+ORDER BY acceso_id DESC;
+
+
+
+-- ============================================================
+-- ============================================================
+-- SECCION 2
+-- EJECUTAR EN CADA BASE DE DATOS DEL CLIENTE
+-- ============================================================
+-- ============================================================
+
+
+-- ============================================================
+-- 4. ACTIVAR SOPORTE PARA PANTALLA COCINA INDEPENDIENTE
+--
+-- Campo:
+-- pantalla_cocina_activa
+--
+-- 0 = Desactivada
+-- 1 = Activada
+-- ============================================================
+
+SET @db_actual := DATABASE();
+
+
+SET @existe_col_pantalla := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = @db_actual
+      AND TABLE_NAME = 'restaurante_configuracion'
+      AND COLUMN_NAME = 'pantalla_cocina_activa'
+);
+
+
+SET @sql_pantalla := IF(
+    @existe_col_pantalla = 0,
+
+    'ALTER TABLE restaurante_configuracion
+     ADD COLUMN pantalla_cocina_activa TINYINT(1) NOT NULL DEFAULT 0
+     AFTER flujo_cocina',
+
+    'SELECT ''pantalla_cocina_activa ya existe'' AS info'
+);
+
+
+PREPARE stmt_pantalla FROM @sql_pantalla;
+
+EXECUTE stmt_pantalla;
+
+DEALLOCATE PREPARE stmt_pantalla;
+
+
+-- Asegurar valor por defecto en registros existentes
+
+UPDATE restaurante_configuracion
+SET pantalla_cocina_activa = 0
+WHERE pantalla_cocina_activa IS NULL;
+
+
+-- Verificacion
+
+SELECT
+    empresa_id,
+    usar_comandas,
+    etiqueta_cocina,
+    flujo_cocina,
+    pantalla_cocina_activa
+FROM restaurante_configuracion
+ORDER BY empresa_id;
+
+
+
+-- ============================================================
+-- 5. PERMITIR FACTURAS AL CREDITO
+--
+-- Campo:
+-- permitir_facturas_credito
+--
+-- 0 = Solo contado
+-- 1 = Permite elegir Contado / Credito
+-- ============================================================
+
 
 SET @existe_columna_credito := (
     SELECT COUNT(*)
@@ -80,29 +229,45 @@ SET @existe_columna_credito := (
       AND COLUMN_NAME = 'permitir_facturas_credito'
 );
 
+
 SET @sql_credito := IF(
     @existe_columna_credito = 0,
-    'ALTER TABLE restaurante_configuracion ADD COLUMN permitir_facturas_credito TINYINT(1) NOT NULL DEFAULT 0 AFTER solicitar_clave_gestion',
+
+    'ALTER TABLE restaurante_configuracion
+     ADD COLUMN permitir_facturas_credito TINYINT(1) NOT NULL DEFAULT 0
+     AFTER solicitar_clave_gestion',
+
     'SELECT ''permitir_facturas_credito ya existe'' AS info'
 );
 
+
 PREPARE stmt_credito FROM @sql_credito;
+
 EXECUTE stmt_credito;
+
 DEALLOCATE PREPARE stmt_credito;
+
+
+-- Asegurar valor por defecto en registros existentes
 
 UPDATE restaurante_configuracion
 SET permitir_facturas_credito = 0
 WHERE permitir_facturas_credito IS NULL;
+
+
+-- ============================================================
+-- VERIFICACION FINAL BASE DEL CLIENTE
+-- ============================================================
 
 SELECT
     empresa_id,
     usar_mesas,
     usar_comandas,
     solicitar_clave_gestion,
-    permitir_facturas_credito
+    permitir_facturas_credito,
+    pantalla_cocina_activa
 FROM restaurante_configuracion
 ORDER BY empresa_id;
-
 
 ####22 de agosto 2026####
 -- ============================================================

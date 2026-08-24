@@ -26,27 +26,26 @@ function __format_tel_legible($digits) {
 $telefono_ws_legible = __format_tel_legible($__tel_digits);
 ?>
 
-<!-- INICIO MODAL AYUDA (PRO) -->
+<!-- INICIO MODAL AYUDA (PRO / DINÁMICO) -->
 <div class="modal fade" id="modalAyuda" tabindex="-1" role="dialog" aria-labelledby="modalAyudaLabel" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
-    <div class="modal-content help-modal">
+    <div class="modal-content help-modal help-center-modal">
 
-      <!-- Header -->
       <div class="modal-header help-header">
         <div class="title-wrap">
           <span class="help-badge"><i class="fas fa-life-ring"></i></span>
           <div class="title-text">
-            <h4 class="modal-title help-title" id="modalAyudaLabel">Centro de Ayuda</h4>
-            <small class="help-subtitle">Atajos y operaciones rápidas de facturación</small>
+            <h4 class="modal-title help-title" id="modalAyudaLabel">Centro de Ayuda de Facturación</h4>
+            <small class="help-subtitle">Encuentre rápidamente atajos y operaciones frecuentes.</small>
           </div>
         </div>
 
         <div class="header-actions">
           <div class="btn-group btn-group-sm mr-2">
-            <button type="button" class="btn btn-light" id="helpCopy">
+            <button type="button" class="btn btn-light" id="helpCopy" title="Copiar los resultados visibles">
               <i class="fas fa-copy"></i> Copiar
             </button>
-            <button type="button" class="btn btn-light" id="helpPrint">
+            <button type="button" class="btn btn-light" id="helpPrint" title="Imprimir los resultados visibles">
               <i class="fas fa-print"></i> Imprimir
             </button>
           </div>
@@ -56,98 +55,113 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
         </div>
       </div>
 
-      <!-- Body -->
-      <div class="modal-body pt-0">
-        <!-- Aviso -->
-        <div class="callout callout-info mb-3">
-          <div class="d-flex">
-            <i class="fas fa-info-circle mr-2 mt-1"></i>
-            <div class="small">
-              <strong>Importante:</strong> las teclas de función funcionan cuando el foco está en el campo
-              <u>Código del Producto</u>.
-            </div>
+      <div class="modal-body help-center-body">
+        <div class="help-center-toolbar">
+          <div class="help-search-wrap">
+            <i class="fas fa-search help-search-icon"></i>
+            <input class="form-control" id="helpSearch" autocomplete="off"
+                   placeholder="Buscar: guardar, producto, caja, cliente, F7..."
+                   aria-label="Buscar en el Centro de Ayuda">
+            <button type="button" id="helpClearSearch" class="help-clear-search" aria-label="Limpiar búsqueda" title="Limpiar búsqueda">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="help-result-status" aria-live="polite">
+            <span id="helpResultCount">13 resultados</span>
           </div>
         </div>
 
-        <!-- Buscador -->
-        <div class="form-group position-relative mb-4">
-          <input class="form-control form-control-lg pl-5" id="helpSearch" placeholder="Buscar atajo... (ej. F2, cotización, cliente)">
-          <i class="fas fa-search help-search-icon"></i>
+        <div class="help-category-nav" id="helpCategoryNav" aria-label="Categorías de ayuda">
+          <button type="button" class="help-category-btn active" data-help-category="all"><i class="fas fa-th-large"></i><span>Todo</span></button>
+          <button type="button" class="help-category-btn" data-help-category="venta"><i class="fas fa-file-invoice-dollar"></i><span>Venta</span></button>
+          <button type="button" class="help-category-btn" data-help-category="productos"><i class="fas fa-box-open"></i><span>Productos</span></button>
+          <button type="button" class="help-category-btn" data-help-category="personas"><i class="fas fa-users"></i><span>Clientes y vendedores</span></button>
+          <button type="button" class="help-category-btn" data-help-category="caja"><i class="fas fa-cash-register"></i><span>Caja</span></button>
+          <button type="button" class="help-category-btn" data-help-category="general"><i class="fas fa-keyboard"></i><span>General</span></button>
         </div>
 
-        <div class="row">
-          <!-- Atajos -->
-          <div class="col-lg-8">
-            <div class="table-responsive">
-              <table class="table table-hover table-sm table-shortcuts" id="tableShortcuts">
-                <thead>
-                  <tr>
-                    <th style="width:13%">Tecla</th>
-                    <th style="width:22%">Acción</th>
-                    <th>Descripción</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr><td><kbd>F2</kbd></td><td>Guardar</td><td>Guarda la factura como <u>borrador</u> para continuar después. No emite documento fiscal; podrás editar/eliminar sin afectar SAR.</td></tr>
-                  <tr><td><kbd>F3</kbd></td><td>Búsqueda de productos</td><td>Abre el buscador; permite crear productos. Usa “Actualizar” para refrescar tras un alta.</td></tr>
-                  <tr><td><kbd>F4</kbd></td><td>Descuentos</td><td>Aplica descuentos a productos. Si está activa la opción <b>Solicitar clave para descuentos y precios</b>, pedirá validación administrativa antes de abrir.</td></tr>
-                  <tr><td><kbd>F5</kbd></td><td>Actualizar</td><td>Recarga la página. <u>Precaución</u>: perderás lo no guardado.</td></tr>
-                  <tr><td><kbd>F6</kbd></td><td>Modificar precio</td><td>Ajusta el precio del producto. Si está activa la opción <b>Solicitar clave para descuentos y precios</b>, pedirá validación administrativa antes de abrir.</td></tr>
-                  <tr><td><kbd>F7</kbd></td><td>Registrar / Cobrar</td><td>Emite la factura fiscal. Acción <u>definitiva</u>: no editable (solo anulación o nota de crédito).</td></tr>
-                  <tr><td><kbd>F8</kbd></td><td>Clientes</td><td>Busca o crea clientes. Usa “Actualizar” para refrescar la lista.</td></tr>
-                  <tr><td><kbd>F9</kbd></td><td>Vendedores</td><td>Busca o crea colaboradores/vendedores.</td></tr>
-                  <tr><td><kbd>F10</kbd></td><td>Apertura de caja</td><td>Habilita caja para ventas y registro de fondo inicial.</td></tr>
-                  <tr><td><kbd>F11</kbd></td><td>Cierre de caja</td><td>Cierre del día con conteo de ventas (desde la primera hasta la última factura).</td></tr>
-                  <tr><td><kbd>+</kbd> / <kbd>−</kbd></td><td>Cantidad</td><td>Incrementa/disminuye la cantidad con el foco en <em>Código del Producto</em>.</td></tr>
-                  <tr><td><kbd>*</kbd></td><td>Comodín de cantidad</td><td>Escribe <code>10*código</code> para agregar 10 unidades del producto.</td></tr>
-                  <tr><td><kbd>F1</kbd></td><td>Ayuda</td><td>Abre esta ventana de ayuda en cualquier momento.</td></tr>
-                </tbody>
-              </table>
+        <div class="help-quick-section">
+          <div class="help-section-heading">
+            <div>
+              <strong><i class="fas fa-bolt"></i> Accesos rápidos</strong>
+              <small>Pulse una tecla para localizar su explicación.</small>
             </div>
           </div>
+          <div class="help-quick-grid" id="helpQuickGrid">
+            <button type="button" class="help-quick-btn" data-help-jump="F2"><kbd>F2</kbd><span>Guardar</span></button>
+            <button type="button" class="help-quick-btn" data-help-jump="F3"><kbd>F3</kbd><span>Productos</span></button>
+            <button type="button" class="help-quick-btn" data-help-jump="F7"><kbd>F7</kbd><span>Registrar</span></button>
+            <button type="button" class="help-quick-btn" data-help-jump="F8"><kbd>F8</kbd><span>Clientes</span></button>
+            <button type="button" class="help-quick-btn" data-help-jump="F10"><kbd>F10</kbd><span>Aperturar caja</span></button>
+            <button type="button" class="help-quick-btn" data-help-jump="F11"><kbd>F11</kbd><span>Cerrar caja</span></button>
+          </div>
+        </div>
 
-          <!-- Lateral -->
-          <div class="col-lg-4">
-            <div class="card shadow-sm mb-3">
-              <div class="card-body py-3">
-                <h6 class="mb-2"><i class="fas fa-lightbulb mr-1"></i> Consejos rápidos</h6>
-                <ul class="list-unstyled small mb-0">
-                  <li class="mb-1">Evita <kbd>F5</kbd> si tienes cambios sin guardar.</li>
-                  <li class="mb-1">Para cantidades rápidas: <kbd>n*</kbd><code>código</code> (ej. <code>10*ABC123</code>).</li>
-                  <li class="mb-1">Verifica existencia antes de emitir.</li>
-                </ul>
+        <div class="help-context-note">
+          <i class="fas fa-info-circle"></i>
+          <div>
+            <strong>Importante</strong>
+            <span>Las teclas de función trabajan cuando el foco está en <b>Código del Producto</b>. F1 abre esta ayuda en cualquier momento.</span>
+          </div>
+        </div>
+
+        <div class="help-content-grid">
+          <section class="help-shortcuts-panel" aria-labelledby="helpShortcutsTitle">
+            <div class="help-section-heading help-list-heading">
+              <div>
+                <strong id="helpShortcutsTitle"><i class="fas fa-keyboard"></i> Atajos y operaciones</strong>
+                <small id="helpCurrentFilter">Mostrando todas las opciones.</small>
               </div>
             </div>
 
-            <div class="card shadow-sm">
-              <div class="card-body py-3">
-                <h6 class="mb-2"><i class="fas fa-headset mr-1"></i> Soporte</h6>
-                <p class="small mb-3">¿Necesitas más ayuda? Contacta al administrador del sistema.</p>
+            <div class="help-shortcuts-list" id="tableShortcuts" role="list">
+              <article class="help-shortcut-item" data-help-cat="venta" data-help-key="F2" role="listitem"><div class="help-key"><kbd>F2</kbd></div><div class="help-item-copy"><strong>Guardar</strong><p>Guarda la factura como <u>borrador</u> para continuar después. No emite documento fiscal; podrá editarla o eliminarla sin afectar SAR.</p></div></article>
+              <article class="help-shortcut-item" data-help-cat="productos" data-help-key="F3" role="listitem"><div class="help-key"><kbd>F3</kbd></div><div class="help-item-copy"><strong>Búsqueda de productos</strong><p>Abre el buscador y permite crear productos. Use “Actualizar” para refrescar después de un alta.</p></div></article>
+              <article class="help-shortcut-item" data-help-cat="productos" data-help-key="F4" role="listitem"><div class="help-key"><kbd>F4</kbd></div><div class="help-item-copy"><strong>Descuentos</strong><p>Aplica descuentos a productos. Si está activa la seguridad de descuentos y precios, solicitará validación administrativa.</p></div></article>
+              <article class="help-shortcut-item" data-help-cat="general" data-help-key="F5" role="listitem"><div class="help-key"><kbd>F5</kbd></div><div class="help-item-copy"><strong>Actualizar</strong><p>Recarga la página. <u>Precaución:</u> perderá información que todavía no haya guardado.</p></div></article>
+              <article class="help-shortcut-item" data-help-cat="productos" data-help-key="F6" role="listitem"><div class="help-key"><kbd>F6</kbd></div><div class="help-item-copy"><strong>Modificar precio</strong><p>Ajusta el precio del producto. Si está activa la seguridad de descuentos y precios, solicitará validación administrativa.</p></div></article>
+              <article class="help-shortcut-item" data-help-cat="venta" data-help-key="F7" role="listitem"><div class="help-key"><kbd>F7</kbd></div><div class="help-item-copy"><strong>Registrar / Cobrar</strong><p>Emite la factura fiscal. Es una acción definitiva; para corregir posteriormente se requiere anulación o Nota de Crédito.</p></div></article>
+              <article class="help-shortcut-item" data-help-cat="personas" data-help-key="F8" role="listitem"><div class="help-key"><kbd>F8</kbd></div><div class="help-item-copy"><strong>Clientes</strong><p>Busca o crea clientes. Use “Actualizar” para refrescar la lista después de crear uno nuevo.</p></div></article>
+              <article class="help-shortcut-item" data-help-cat="personas" data-help-key="F9" role="listitem"><div class="help-key"><kbd>F9</kbd></div><div class="help-item-copy"><strong>Vendedores</strong><p>Busca o crea colaboradores y vendedores para asignarlos a la venta.</p></div></article>
+              <article class="help-shortcut-item" data-help-cat="caja" data-help-key="F10" role="listitem"><div class="help-key"><kbd>F10</kbd></div><div class="help-item-copy"><strong>Apertura de caja</strong><p>Habilita caja para ventas y permite registrar el fondo inicial del turno.</p></div></article>
+              <article class="help-shortcut-item" data-help-cat="caja" data-help-key="F11" role="listitem"><div class="help-key"><kbd>F11</kbd></div><div class="help-item-copy"><strong>Cierre de caja</strong><p>Realiza el cierre del turno con conteo de ventas desde la primera hasta la última factura.</p></div></article>
+              <article class="help-shortcut-item" data-help-cat="productos" data-help-key="+ −" role="listitem"><div class="help-key"><kbd>+</kbd><kbd>−</kbd></div><div class="help-item-copy"><strong>Cantidad</strong><p>Incrementa o disminuye la cantidad cuando el foco está en <em>Código del Producto</em>.</p></div></article>
+              <article class="help-shortcut-item" data-help-cat="productos" data-help-key="*" role="listitem"><div class="help-key"><kbd>*</kbd></div><div class="help-item-copy"><strong>Comodín de cantidad</strong><p>Escriba <code>10*código</code> para agregar 10 unidades del producto de una sola vez.</p></div></article>
+              <article class="help-shortcut-item" data-help-cat="general" data-help-key="F1" role="listitem"><div class="help-key"><kbd>F1</kbd></div><div class="help-item-copy"><strong>Ayuda</strong><p>Abre este Centro de Ayuda en cualquier momento.</p></div></article>
+            </div>
 
-                <!-- Botón WhatsApp -->
-                <a href="<?php echo htmlspecialchars($url_ws, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener" class="btn btn-success btn-sm btn-block">
-                  <i class="fab fa-whatsapp"></i> Chatear por WhatsApp
-                </a>
-                <?php if ($telefono_ws_legible): ?>
-                <div class="small text-muted mt-2">
-                  <i class="fas fa-phone-alt mr-1"></i><?php echo htmlspecialchars($telefono_ws_legible, ENT_QUOTES, 'UTF-8'); ?>
-                </div>
-                <?php endif; ?>
+            <div class="help-empty-state" id="helpEmptyState" hidden>
+              <i class="fas fa-search"></i>
+              <strong>No encontramos resultados</strong>
+              <span>Pruebe otra palabra, tecla o categoría.</span>
+              <button type="button" class="btn btn-sm btn-primary" id="helpResetFilters"><i class="fas fa-undo"></i> Ver todo</button>
+            </div>
+          </section>
+
+          <aside class="help-side-panel">
+            <div class="help-side-card">
+              <div class="help-side-icon"><i class="fas fa-lightbulb"></i></div>
+              <div><strong>Consejos rápidos</strong><ul><li>Evite <kbd>F5</kbd> si tiene cambios sin guardar.</li><li>Para cantidades rápidas use <code>n*código</code>.</li><li>Verifique existencia antes de emitir.</li></ul></div>
+            </div>
+            <div class="help-side-card">
+              <div class="help-side-icon"><i class="fas fa-headset"></i></div>
+              <div class="help-side-grow"><strong>¿Necesita más ayuda?</strong><p>Contacte al administrador o al soporte de ES MULTISERVICIOS.</p>
+                <a href="<?php echo htmlspecialchars($url_ws, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener" class="btn btn-success btn-sm btn-block"><i class="fab fa-whatsapp"></i> WhatsApp</a>
+                <?php if ($telefono_ws_legible): ?><small class="help-phone"><i class="fas fa-phone-alt"></i> <?php echo htmlspecialchars($telefono_ws_legible, ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
               </div>
             </div>
-          </div>
+          </aside>
         </div>
       </div>
 
-      <!-- Footer -->
-      <div class="modal-footer">
-        <small class="text-muted mr-auto">Tip: enfoca <em>Código del Producto</em> para usar las teclas de función.</small>
+      <div class="modal-footer help-center-footer">
+        <small class="text-muted mr-auto"><i class="fas fa-info-circle"></i> Use el buscador o las categorías para encontrar una opción rápidamente.</small>
         <button type="button" class="btn btn-primary" data-dismiss="modal"><i class="fas fa-check"></i> Entendido</button>
       </div>
     </div>
   </div>
 </div>
-<!-- FIN MODAL AYUDA (PRO) -->
+<!-- FIN MODAL AYUDA (PRO / DINÁMICO) -->
 
 <!--INICIO MODAL BUSQUEDA CONVERTIR COTIZACION EN FACTURAS-->
 <div class="modal fade" id="modal_buscar_cotizaciones">

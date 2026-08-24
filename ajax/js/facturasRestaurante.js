@@ -3132,6 +3132,36 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     if (el) el.classList.add('seleccionada');
   }  
 
+  function limpiarVentaParaMesaLibre(){
+    // Una mesa libre sin cuenta abierta representa SIEMPRE una venta nueva.
+    // No debe heredar productos, cliente, observaciones, factura ni totales
+    // de una operación anterior que haya quedado en memoria del navegador.
+    facturaActual = null;
+    comandaItems = [];
+    clienteSeleccionado = { id: 1, nombre: 'CONSUMIDOR FINAL', identificacion: '' };
+
+    try {
+      if (observacionesTextarea) observacionesTextarea.value = '';
+    } catch(_) {}
+
+    try { pintarClienteInfoHeader(); } catch(_) {}
+    try { setClienteInfoUI({ nombre:'Consumidor final', rtn:'' }); } catch(_) {}
+    try { actualizarComandaUI(); } catch(_) {}
+    try { updateProductBadges(); } catch(_) {}
+    try { setTipoFacturaRestaurante('contado',{silencioso:true}); } catch(_) {}
+
+    if (facturaTitle) {
+      facturaTitle.innerHTML = usaComandasOperacion()
+        ? '<i class="fas fa-receipt"></i> Nueva Comanda'
+        : '<i class="fas fa-cash-register"></i> Nueva venta';
+    }
+    if (btnImprimir) btnImprimir.disabled = true;
+
+    // Fuerza actualización inmediata del resumen móvil (contador y total).
+    try { rsMobileUpdate(); } catch(_) {}
+    try { updateAccionPrincipalUI(); } catch(_) {}
+  }
+
   function seleccionarMesa(mesa){
     const mesaId = Number(mesa && (mesa.id || mesa.mesa_id) || 0);
     if (!mesaId) return;
@@ -3204,10 +3234,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     // Una mesa libre SIN cuenta abierta siempre inicia limpia. Nunca heredamos
     // productos que hayan quedado en memoria visual de otra operación.
     setServicioTipo('mesa');
-    facturaActual = null;
-    comandaItems = [];
-    actualizarComandaUI();
-    if (typeof updateProductBadges === 'function') updateProductBadges();
+    limpiarVentaParaMesaLibre();
 
     mesaSeleccionada = {
       id: mesaId,
@@ -4165,11 +4192,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
         // Esto evita pedidos fantasma al volver a entrar o cambiar de mesa,
         // especialmente en el asistente móvil.
         setServicioTipo('mesa');
-        facturaActual = null;
-        comandaItems = [];
-
-        actualizarComandaUI();
-        if (typeof updateProductBadges === 'function') updateProductBadges();
+        limpiarVentaParaMesaLibre();
 
         if (facturaTitle) {
           facturaTitle.innerHTML = usaComandasOperacion()?'<i class="fas fa-receipt"></i> Nueva Comanda':'<i class="fas fa-cash-register"></i> Nueva venta';

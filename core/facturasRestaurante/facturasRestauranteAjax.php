@@ -492,6 +492,7 @@ try {
             $momentoTicket = strtolower(trim((string)AjaxHelper::in('momento_ticket','enviar')));
             $flujoCocina = strtolower(trim((string)AjaxHelper::in('flujo_cocina','pasos')));
             $solicitarClaveGestion = AjaxHelper::toBool(AjaxHelper::in('solicitar_clave_gestion',1),1);
+            $permitirFacturasCredito = AjaxHelper::toBool(AjaxHelper::in('permitir_facturas_credito',0),0);
             AjaxHelper::json($m->guardarConfiguracionOperacion(
                 $usarMesas,
                 $usarComandas,
@@ -500,7 +501,8 @@ try {
                 $destinoComanda,
                 $momentoTicket,
                 $flujoCocina,
-                $solicitarClaveGestion
+                $solicitarClaveGestion,
+                $permitirFacturasCredito
             ));
             break;
         }
@@ -803,6 +805,7 @@ try {
             $mesa_id       = (int) AjaxHelper::in('mesa_id', 0);
             $factura_id    = (int) AjaxHelper::in('factura_id', 0);
             $clientes_id   = (int) AjaxHelper::in('clientes_id', 0);
+            $tipo_factura  = ((int)AjaxHelper::in('tipo_factura',1) === 2) ? 2 : 1;
             $observaciones = trim((string) AjaxHelper::in('observaciones', ''));
             $detalle       = json_decode((string) AjaxHelper::in('detalle', '[]'), true);
             $enviarComanda = AjaxHelper::toBool(AjaxHelper::in('enviar_comanda', 1), 1);
@@ -821,6 +824,7 @@ try {
                 $resActualizar = $m->actualizarCuentaBorrador([
                     'factura_id'    => $factura_id,
                     'cliente_id'    => $clientes_id,
+                    'tipo_factura'  => $tipo_factura,
                     'items'         => $detalle,
                     'observaciones' => $observaciones,
                     'mesa_id'       => $mesa_id,
@@ -868,7 +872,7 @@ try {
                 'secuencia_facturacion_id' => 1,
                 'apertura_id'              => $apertura_id,
                 'number'                   => 0,
-                'tipo_factura'             => 1,
+                'tipo_factura'             => $tipo_factura,
                 'colaboradores_id'         => $colaborador_id,
                 'notas'                    => $observaciones,
                 'usuario'                  => $usuario_id,

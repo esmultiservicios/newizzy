@@ -195,6 +195,18 @@
                 </span>
               </span>
 
+              <div id="tipo-factura-restaurante-wrap" class="rs-invoice-type" style="display:none;" aria-label="Condición de la factura">
+                <span class="rs-invoice-type-label"><i class="fas fa-file-invoice-dollar"></i> Factura</span>
+                <div class="rs-invoice-type-options" role="group" aria-label="Contado o crédito">
+                  <button type="button" id="btn-rest-tipo-contado" class="rs-invoice-type-btn is-active" data-tipo-factura="contado" aria-pressed="true">
+                    <i class="fas fa-money-bill-wave"></i><span>Contado</span>
+                  </button>
+                  <button type="button" id="btn-rest-tipo-credito" class="rs-invoice-type-btn" data-tipo-factura="credito" aria-pressed="false">
+                    <i class="fas fa-calendar-check"></i><span>Crédito</span>
+                  </button>
+                </div>
+              </div>
+
               <button id="btn-cambiar-cliente" class="btn btn-sm btn-primary">
                 <i class="fa-solid fa-right-left"></i> Cambiar
               </button>
@@ -1352,6 +1364,27 @@
             </span>
             <span class="rs-switch">
               <input type="checkbox" id="config-solicitar-clave-gestion" checked>
+              <span class="rs-switch-track"><span class="rs-switch-thumb"></span></span>
+            </span>
+          </label>
+        </section>
+
+        <section class="rs-config-credit" aria-labelledby="rs-config-credit-title">
+          <div class="rs-config-credit-main">
+            <span class="rs-config-credit-icon"><i class="fas fa-file-invoice-dollar"></i></span>
+            <div class="rs-config-credit-copy">
+              <strong id="rs-config-credit-title">Facturación al crédito</strong>
+              <small>Decide si los cajeros pueden elegir entre Contado y Crédito al facturar.</small>
+            </div>
+            <span id="config-credito-estado" class="rs-config-credit-status is-off"><i class="fas fa-money-bill-wave"></i> Solo contado</span>
+          </div>
+          <label class="rs-config-credit-toggle" for="config-permitir-facturas-credito">
+            <span>
+              <b>Permitir facturas al crédito</b>
+              <small>Desactivada por defecto. Al activarla aparecerá el selector Contado / Crédito. Cada venta nueva siempre inicia en Contado.</small>
+            </span>
+            <span class="rs-switch">
+              <input type="checkbox" id="config-permitir-facturas-credito">
               <span class="rs-switch-track"><span class="rs-switch-thumb"></span></span>
             </span>
           </label>

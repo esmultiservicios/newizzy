@@ -306,7 +306,14 @@ document.addEventListener('DOMContentLoaded', function () {
         <span id="rs-mobile-caja-client-rtn" style="display:none"></span>
       </div>
       <button type="button" id="rs-mobile-change-client"><i class="fas fa-exchange-alt"></i> Cambiar cliente</button>
-      <div class="rs-mobile-caja-note">Puedes cambiar el cliente antes de finalizar el cobro.</div>
+      <div id="rs-mobile-invoice-type" class="rs-mobile-invoice-type" style="display:none;">
+        <span><i class="fas fa-file-invoice-dollar"></i> Condición de factura</span>
+        <div class="rs-mobile-invoice-type-options">
+          <button type="button" id="rs-mobile-tipo-contado" data-rs-tipo-factura="contado" class="is-active" aria-pressed="true"><i class="fas fa-money-bill-wave"></i> Contado</button>
+          <button type="button" id="rs-mobile-tipo-credito" data-rs-tipo-factura="credito" aria-pressed="false"><i class="fas fa-calendar-check"></i> Crédito</button>
+        </div>
+      </div>
+      <div class="rs-mobile-caja-note">Puedes cambiar el cliente y, si está habilitado, la condición de factura antes de finalizar.</div>
     `;
 
     const panelComandaLocal = document.getElementById('panel-comanda');
@@ -685,8 +692,10 @@ document.addEventListener('DOMContentLoaded', function () {
     comandaItems = [];
     clienteSeleccionado = { id: 1, nombre: 'CONSUMIDOR FINAL', identificacion: '' };
     servicioActual = 'llevar';
+    REST_TIPO_FACTURA = 'contado';
 
     try { setServicioTipo('llevar'); } catch(_){}
+    try { setTipoFacturaRestaurante('contado',{silencioso:true}); } catch(_){}
     try { setMesaSeleccionadaUI(null); } catch(_){}
     try { setClienteInfoUI({ nombre:'Consumidor final', rtn:'' }); } catch(_){}
     try { pintarClienteInfoHeader(); } catch(_){}
@@ -846,6 +855,63 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function usaComandasOperacion(){
     return !(window.REST_CONFIG && Number(window.REST_CONFIG.usar_comandas)===0);
+  }
+
+
+  let REST_TIPO_FACTURA = 'contado';
+
+  function permiteCreditoOperacion(){
+    return Number(window.REST_CONFIG && window.REST_CONFIG.permitir_facturas_credito) === 1;
+  }
+
+  function tipoFacturaRestauranteActual(){
+    return permiteCreditoOperacion() && REST_TIPO_FACTURA === 'credito' ? 2 : 1;
+  }
+
+  function sincronizarTipoFacturaRestauranteUI(){
+    const habilitado = permiteCreditoOperacion();
+    const wrap = document.getElementById('tipo-factura-restaurante-wrap');
+    if(wrap) wrap.style.display = habilitado ? '' : 'none';
+
+    if(!habilitado) REST_TIPO_FACTURA = 'contado';
+
+    document.querySelectorAll('[data-tipo-factura]').forEach(function(btn){
+      const activo = String(btn.dataset.tipoFactura || '') === REST_TIPO_FACTURA;
+      btn.classList.toggle('is-active', activo);
+      btn.setAttribute('aria-pressed', activo ? 'true' : 'false');
+    });
+
+    const mobileContado = document.getElementById('rs-mobile-tipo-contado');
+    const mobileCredito = document.getElementById('rs-mobile-tipo-credito');
+    if(mobileContado){
+      mobileContado.classList.toggle('is-active', REST_TIPO_FACTURA === 'contado');
+      mobileContado.setAttribute('aria-pressed', REST_TIPO_FACTURA === 'contado' ? 'true' : 'false');
+    }
+    if(mobileCredito){
+      mobileCredito.classList.toggle('is-active', REST_TIPO_FACTURA === 'credito');
+      mobileCredito.setAttribute('aria-pressed', REST_TIPO_FACTURA === 'credito' ? 'true' : 'false');
+    }
+
+    const mobileWrap = document.getElementById('rs-mobile-invoice-type');
+    if(mobileWrap) mobileWrap.style.display = habilitado ? '' : 'none';
+  }
+
+  function setTipoFacturaRestaurante(tipo, opciones={}){
+    const solicitado = String(tipo || 'contado').toLowerCase() === 'credito' ? 'credito' : 'contado';
+
+    if(solicitado === 'credito' && !permiteCreditoOperacion()){
+      REST_TIPO_FACTURA = 'contado';
+      sincronizarTipoFacturaRestauranteUI();
+      if(!opciones.silencioso){
+        showAlert('info','Facturación al crédito','Esta empresa trabaja únicamente con facturas de contado. Puede habilitar Crédito desde Configuración del módulo.');
+      }
+      return false;
+    }
+
+    REST_TIPO_FACTURA = solicitado;
+    sincronizarTipoFacturaRestauranteUI();
+    if(isMobileAssistantActive()) rsMobileUpdate();
+    return true;
   }
 
   function destinoComandaOperacion(){
@@ -4390,6 +4456,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     const payload={
       action:'guardarFacturaRestaurante', servicio:'mesa', mesa_id,
       factura_id:facturaIdActual(), clientes_id:clienteIdActual(),
+      tipo_factura:tipoFacturaRestauranteActual(),
       observaciones:String((observacionesTextarea&&observacionesTextarea.value)||'').trim(),
       detalle:prepararDetalleRestaurante(), enviar_comanda:(enviarComanda&&debeEnviarPantallaComanda())?1:0
     };
@@ -4453,9 +4520,10 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     params.set('fecha', fecha);
     params.set('fecha_dolar', fecha);
     params.set('notesBill', String((observacionesTextarea && observacionesTextarea.value) || '').trim());
-    params.set('facturas_activo', '1');          // contado
-    params.set('facturas_proforma', '0');        // factura fiscal normal
-    params.set('tipo_factura', '1');
+    const tipoFactura = tipoFacturaRestauranteActual();
+    params.set('facturas_activo', tipoFactura === 2 ? '0' : '1'); // UI backend: 1=Contado, 0=Crédito
+    params.set('facturas_proforma', '0');                         // factura fiscal normal
+    params.set('tipo_factura', String(tipoFactura));              // compatibilidad: 1=Contado, 2=Crédito
     if (facturaId) params.set('facturas_id', String(facturaId));
 
     (comandaItems || []).forEach((it, idx)=>{
@@ -4500,6 +4568,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     // formulario #formulario_facturacion), elementos que no existen aquí.
     const patrones=[
       /\bpago\s*\(\s*["']?(\d+)["']?/i,
+      /\bprintBill\s*\(\s*["']?(\d+)["']?/i,
       /facturas?_id[^0-9]{0,20}(\d+)/i
     ];
     for(const re of patrones){
@@ -4588,6 +4657,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     mesaSeleccionada=null;
     setServicioTipo('llevar');
     setMesaSeleccionadaUI(null);
+    setTipoFacturaRestaurante('contado',{silencioso:true});
     if(facturaTitle) facturaTitle.innerHTML=usaComandasOperacion()?'<i class="fas fa-receipt"></i> Nueva Comanda':'<i class="fas fa-cash-register"></i> Nueva venta';
     if(btnImprimir) btnImprimir.disabled=true;
     updateAccionPrincipalUI();
@@ -4689,8 +4759,6 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
         ticket_snapshot:crearSnapshotTicket({factura_id:facturaId}),
         finalizado:false
       };
-      prepararModalPagoContextual(contextoPagoRestaurante);
-
       const response=await $.ajax({
         type:'POST',
         url:BASE+'ajax/addFacturaAjax.php',
@@ -4733,11 +4801,26 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
       // resetear #formulario_facturacion, que no existe en Restaurante.
       // El backend oficial YA hizo la factura/numeración; desde aquí abrimos
       // solamente el flujo oficial de pago con el ID real generado.
-      instalarHookPagoRestaurante();
-      if(typeof pago !== 'function'){
-        throw new Error('No está disponible el flujo oficial de pagos.');
+      const esCredito = tipoFacturaRestauranteActual() === 2;
+
+      if(esCredito){
+        // El controlador oficial ya registró la CxC. No existe pago inmediato.
+        if(typeof printBill === 'function'){
+          try{ printBill(realId); }catch(_){}
+        }else{
+          showAlert('info','Factura al crédito','La factura fue registrada correctamente. Puede imprimirla desde el historial de facturas.');
+        }
+
+        await finalizarUITrasPagoRestaurante(contextoPagoRestaurante);
+        showAlert('success','Factura al crédito','La factura al crédito fue registrada correctamente.');
+      }else{
+        prepararModalPagoContextual(contextoPagoRestaurante);
+        instalarHookPagoRestaurante();
+        if(typeof pago !== 'function'){
+          throw new Error('No está disponible el flujo oficial de pagos.');
+        }
+        pago(realId, 1, 'factura');
       }
-      pago(realId, 1, 'factura');
     }catch(e){
       contextoPagoRestaurante=null;
       showAlert('error','No se pudo facturar',e && e.message ? e.message : 'Ocurrió un error al registrar la factura.');
@@ -6012,6 +6095,21 @@ function cargarReglasCombo(comboId){
         </ul>`
     },
     {
+      id:'factura-credito', category:'Facturación', icon:'fa-file-invoice-dollar',
+      title:'Facturas de contado y crédito',
+      keywords:['credito','crédito','contado','cuenta por cobrar','condicion factura','condición factura'],
+      short:'Cómo elegir la condición de una factura cuando Crédito está habilitado.',
+      visible:()=>permiteCreditoOperacion(),
+      body:()=>`
+        <p>Cuando <b>Permitir facturas al crédito</b> está activa, cada venta nueva inicia en <b>Contado</b> y el cajero puede cambiarla a <b>Crédito</b> antes de finalizar.</p>
+        <ul>
+          <li><b>Contado:</b> utiliza el flujo normal de cobro y métodos de pago.</li>
+          <li><b>Crédito:</b> registra la factura como cuenta por cobrar y no solicita pago inmediato.</li>
+          <li>Una cuenta abierta conserva la condición seleccionada al guardarse y recuperarse.</li>
+          <li>Si Crédito está deshabilitado, el módulo trabaja únicamente en Contado.</li>
+        </ul>`
+    },
+    {
       id:'caja', category:'Caja y pago', icon:'fa-cash-register',
       title:'Apertura, cierre de caja y cobro',
       keywords:['caja','apertura','cerrar caja','cobrar','pago','efectivo','tarjeta','transferencia'],
@@ -7224,7 +7322,7 @@ function initSelect2ForComboRow(row){
   /* ================================================================
      CIERRE FUNCIONAL RESTAURANTE - CONFIG / CUENTAS / TICKET / AUTH
      ================================================================ */
-  window.REST_CONFIG = window.REST_CONFIG || {usar_mesas:1, usar_comandas:1, etiqueta_cocina:'Cocina', etiqueta_barra:'Barra', destino_comanda:'pantalla', momento_ticket:'enviar', flujo_cocina:'pasos', solicitar_clave_gestion:1};
+  window.REST_CONFIG = window.REST_CONFIG || {usar_mesas:1, usar_comandas:1, etiqueta_cocina:'Cocina', etiqueta_barra:'Barra', destino_comanda:'pantalla', momento_ticket:'enviar', flujo_cocina:'pasos', solicitar_clave_gestion:1, permitir_facturas_credito:0};
   let REST_TIPO_USUARIO = 0;
   let REST_PERMISOS = {};
   let REST_AUTH_BYPASS = false;
@@ -7509,6 +7607,7 @@ function initSelect2ForComboRow(row){
       } else {
         const d=await $.ajax({type:'POST',url:BASE+'core/facturasRestaurante/facturasRestauranteAjax.php',dataType:'json',data:{
           action:'guardarFacturaRestaurante',servicio:'llevar',mesa_id:0,factura_id:facturaIdActual(),clientes_id:clienteIdActual(),
+          tipo_factura:tipoFacturaRestauranteActual(),
           observaciones:String((observacionesTextarea&&observacionesTextarea.value)||'').trim(),detalle:prepararDetalleRestaurante(),
           enviar_comanda:0
         }});
@@ -7733,6 +7832,7 @@ function initSelect2ForComboRow(row){
       }
       const c=d.cuenta;
       facturaActual={id:Number(c.facturas_id),factura_id:Number(c.facturas_id),facturas_id:Number(c.facturas_id),notas:c.notas||''};
+      setTipoFacturaRestaurante(Number(c.tipo_factura)===2?'credito':'contado',{silencioso:true});
       clienteSeleccionado={id:Number(c.clientes_id||1),nombre:c.cliente_nombre||'Consumidor Final',identificacion:c.cliente_rtn||''};
       pintarClienteInfoHeader();
       comandaItems=mapCuentaItems(c.items);
@@ -7759,9 +7859,10 @@ function initSelect2ForComboRow(row){
         destino_comanda:String(d.config.destino_comanda||'pantalla'),
         momento_ticket:String(d.config.momento_ticket||'enviar'),
         flujo_cocina:String(d.config.flujo_cocina||'pasos'),
-        solicitar_clave_gestion:Number(d.config.solicitar_clave_gestion)!==0?1:0
+        solicitar_clave_gestion:Number(d.config.solicitar_clave_gestion)!==0?1:0,
+        permitir_facturas_credito:Number(d.config.permitir_facturas_credito)===1?1:0
       };
-    }catch(_){ window.REST_CONFIG={usar_mesas:1,usar_comandas:1,etiqueta_cocina:'Cocina',etiqueta_barra:'Barra',destino_comanda:'pantalla',momento_ticket:'enviar',flujo_cocina:'pasos',solicitar_clave_gestion:1}; }
+    }catch(_){ window.REST_CONFIG={usar_mesas:1,usar_comandas:1,etiqueta_cocina:'Cocina',etiqueta_barra:'Barra',destino_comanda:'pantalla',momento_ticket:'enviar',flujo_cocina:'pasos',solicitar_clave_gestion:1,permitir_facturas_credito:0}; }
     aplicarConfiguracionOperacion();
   }
 
@@ -7792,6 +7893,16 @@ function initSelect2ForComboRow(row){
     const flujo=document.getElementById('config-flujo-cocina'); if(flujo) flujo.value=String(window.REST_CONFIG.flujo_cocina||'pasos');
     const claveGestion=document.getElementById('config-solicitar-clave-gestion');
     if(claveGestion) claveGestion.checked=solicitarClaveGestionOperacion();
+    const permitirCredito=document.getElementById('config-permitir-facturas-credito');
+    if(permitirCredito) permitirCredito.checked=permiteCreditoOperacion();
+    const creditoEstado=document.getElementById('config-credito-estado');
+    if(creditoEstado){
+      creditoEstado.innerHTML=permiteCreditoOperacion()
+        ? '<i class="fas fa-credit-card"></i> Contado + Crédito'
+        : '<i class="fas fa-money-bill-wave"></i> Solo contado';
+      creditoEstado.classList.toggle('is-off',!permiteCreditoOperacion());
+    }
+    sincronizarTipoFacturaRestauranteUI();
     const seguridadEstado=document.getElementById('config-seguridad-estado');
     if(seguridadEstado){
       seguridadEstado.innerHTML=solicitarClaveGestionOperacion()
@@ -7837,6 +7948,14 @@ function initSelect2ForComboRow(row){
     sincronizarBotonesConfiguracion(targetId);
   });
 
+  $(document)
+    .off('click.restTipoFactura','[data-tipo-factura],[data-rs-tipo-factura]')
+    .on('click.restTipoFactura','[data-tipo-factura],[data-rs-tipo-factura]',function(e){
+      e.preventDefault();
+      const tipo = String(this.dataset.tipoFactura || this.dataset.rsTipoFactura || 'contado');
+      setTipoFacturaRestaurante(tipo);
+    });
+
   async function guardarConfiguracionOperacionUI(){
     const btn=document.getElementById('btn-guardar-configuracion-restaurante');
     setButtonBusy(btn,true,'Guardando…');
@@ -7849,7 +7968,8 @@ function initSelect2ForComboRow(row){
         destino_comanda:String((document.getElementById('config-destino-comanda')||{}).value||'pantalla'),
         momento_ticket:String((document.getElementById('config-momento-ticket')||{}).value||'enviar'),
         flujo_cocina:String((document.getElementById('config-flujo-cocina')||{}).value||'pasos'),
-        solicitar_clave_gestion:(document.getElementById('config-solicitar-clave-gestion')||{}).checked?'1':'0'
+        solicitar_clave_gestion:(document.getElementById('config-solicitar-clave-gestion')||{}).checked?'1':'0',
+        permitir_facturas_credito:(document.getElementById('config-permitir-facturas-credito')||{}).checked?'1':'0'
       });
       if(!d||!d.status) throw new Error(d&&d.message?d.message:'No se pudo guardar');
       window.REST_CONFIG=d.config||window.REST_CONFIG; aplicarConfiguracionOperacion();
@@ -7913,6 +8033,16 @@ function initSelect2ForComboRow(row){
       estado.innerHTML=this.checked
         ? '<i class="fas fa-shield-halved"></i> Protección activa'
         : '<i class="fas fa-unlock"></i> Sin clave adicional';
+      estado.classList.toggle('is-off',!this.checked);
+    }
+  });
+
+  $('#config-permitir-facturas-credito').off('change.restCfgCredito').on('change.restCfgCredito',function(){
+    const estado=document.getElementById('config-credito-estado');
+    if(estado){
+      estado.innerHTML=this.checked
+        ? '<i class="fas fa-credit-card"></i> Contado + Crédito'
+        : '<i class="fas fa-money-bill-wave"></i> Solo contado';
       estado.classList.toggle('is-off',!this.checked);
     }
   });

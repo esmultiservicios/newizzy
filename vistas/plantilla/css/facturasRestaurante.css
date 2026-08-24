@@ -4580,7 +4580,10 @@ body[data-servicio="mesa"] #btn-guardar.btn-warning:focus {
 
   /* El CSS existente ocultaba Volver; aquí solo revertimos eso
      para que los cuatro accesos sigan disponibles en teléfono. */
-  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-volver-dashboard,
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-volver-dashboard{
+    display:none !important;
+  }
+
   .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-help{
     display:inline-flex !important;
   }
@@ -4597,7 +4600,6 @@ body[data-servicio="mesa"] #btn-guardar.btn-warning:focus {
 
   /* Volver / Fullscreen / Ayuda / Salir:
      exactamente el mismo tamaño y SOLO icono. */
-  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-volver-dashboard,
   .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-fullscreen-restaurante,
   .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-help,
   .vista-facturacion-restaurante.rs-mobile-assistant-enabled .control-buttons .btn-exit-system{
@@ -4620,7 +4622,6 @@ body[data-servicio="mesa"] #btn-guardar.btn-warning:focus {
     flex:0 0 32px !important;
   }
 
-  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-volver-dashboard i,
   .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-fullscreen-restaurante i,
   .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-help i,
   .vista-facturacion-restaurante.rs-mobile-assistant-enabled .control-buttons .btn-exit-system i{
@@ -4658,16 +4659,17 @@ body[data-servicio="mesa"] #btn-guardar.btn-warning:focus {
   }
 
   .vista-facturacion-restaurante.rs-mobile-assistant-enabled .control-counter{
-    min-width:0 !important;
-    max-width:92px !important;
-    padding-left:7px !important;
-    padding-right:7px !important;
+    min-width:96px !important;
+    max-width:118px !important;
+    padding-left:9px !important;
+    padding-right:9px !important;
     overflow:hidden !important;
   }
 
   .vista-facturacion-restaurante.rs-mobile-assistant-enabled .control-counter .counter-value{
-    overflow:hidden !important;
-    text-overflow:ellipsis !important;
+    overflow:visible !important;
+    text-overflow:clip !important;
     white-space:nowrap !important;
+    font-size:12px !important;
   }
 }

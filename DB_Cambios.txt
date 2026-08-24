@@ -1,4 +1,47 @@
-####22 de agost 2026####
+####23 de agosto 2026####
+-- ============================================================
+-- IZZY RESTAURANTE / POS
+-- Permitir facturas al crédito
+--
+-- 0 = Solo Contado (DEFAULT)
+-- 1 = Permite elegir Contado / Crédito
+--
+-- Seguro para ejecutar más de una vez.
+-- ============================================================
+
+SET @existe_columna_credito := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'restaurante_configuracion'
+      AND COLUMN_NAME = 'permitir_facturas_credito'
+);
+
+SET @sql_credito := IF(
+    @existe_columna_credito = 0,
+    'ALTER TABLE restaurante_configuracion ADD COLUMN permitir_facturas_credito TINYINT(1) NOT NULL DEFAULT 0 AFTER solicitar_clave_gestion',
+    'SELECT ''permitir_facturas_credito ya existe'' AS info'
+);
+
+PREPARE stmt_credito FROM @sql_credito;
+EXECUTE stmt_credito;
+DEALLOCATE PREPARE stmt_credito;
+
+UPDATE restaurante_configuracion
+SET permitir_facturas_credito = 0
+WHERE permitir_facturas_credito IS NULL;
+
+SELECT
+    empresa_id,
+    usar_mesas,
+    usar_comandas,
+    solicitar_clave_gestion,
+    permitir_facturas_credito
+FROM restaurante_configuracion
+ORDER BY empresa_id;
+
+
+####22 de agosto 2026####
 -- ============================================================
 -- IZZY - FACTURACIÓN NORMAL
 -- Seguridad configurable para descuentos y modificación precio

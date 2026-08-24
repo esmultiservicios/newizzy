@@ -3202,7 +3202,8 @@ public function crearPagoContado(array $data){
             'destino_comanda'=>'pantalla',
             'momento_ticket'=>'enviar',
             'flujo_cocina'=>'pasos',
-            'solicitar_clave_gestion'=>1
+            'solicitar_clave_gestion'=>1,
+            'permitir_facturas_credito'=>0
         ];
         if (!$this->hasTable('restaurante_configuracion')) return $cfg;
 
@@ -3212,6 +3213,7 @@ public function crearPagoContado(array $data){
         $hasMT=$this->hasColumn('restaurante_configuracion','momento_ticket');
         $hasFC=$this->hasColumn('restaurante_configuracion','flujo_cocina');
         $hasSCG=$this->hasColumn('restaurante_configuracion','solicitar_clave_gestion');
+        $hasPFC=$this->hasColumn('restaurante_configuracion','permitir_facturas_credito');
 
         $cols='usar_mesas, usar_comandas'
             .($hasEC?', etiqueta_cocina':'')
@@ -3219,7 +3221,8 @@ public function crearPagoContado(array $data){
             .($hasDC?', destino_comanda':'')
             .($hasMT?', momento_ticket':'')
             .($hasFC?', flujo_cocina':'')
-            .($hasSCG?', solicitar_clave_gestion':'');
+            .($hasSCG?', solicitar_clave_gestion':'')
+            .($hasPFC?', permitir_facturas_credito':'');
 
         $rs = $this->ejecutar_consulta_simple_preparada(
             "SELECT {$cols} FROM restaurante_configuracion WHERE empresa_id=? LIMIT 1",
@@ -3253,6 +3256,9 @@ public function crearPagoContado(array $data){
             if($hasSCG){
                 $cfg['solicitar_clave_gestion']=(int)($r['solicitar_clave_gestion']??1)===0?0:1;
             }
+            if($hasPFC){
+                $cfg['permitir_facturas_credito']=(int)($r['permitir_facturas_credito']??0)===1?1:0;
+            }
         }
         return $cfg;
     }
@@ -3265,7 +3271,8 @@ public function crearPagoContado(array $data){
         string $destinoComanda='pantalla',
         string $momentoTicket='enviar',
         string $flujoCocina='pasos',
-        int $solicitarClaveGestion=1
+        int $solicitarClaveGestion=1,
+        int $permitirFacturasCredito=0
     ): array {
         if (!$this->hasTable('restaurante_configuracion')) {
             return ['status'=>false,'message'=>'Falta ejecutar el SQL de configuración incluido en esta entrega.'];
@@ -3287,6 +3294,7 @@ public function crearPagoContado(array $data){
         $flujoCocina=strtolower(trim($flujoCocina));
         if(!in_array($flujoCocina,['pasos','directo'],true)) $flujoCocina='pasos';
         $solicitarClaveGestion=$solicitarClaveGestion?1:0;
+        $permitirFacturasCredito=$permitirFacturasCredito?1:0;
 
         $hasEC=$this->hasColumn('restaurante_configuracion','etiqueta_cocina');
         $hasEB=$this->hasColumn('restaurante_configuracion','etiqueta_barra');
@@ -3294,15 +3302,29 @@ public function crearPagoContado(array $data){
         $hasMT=$this->hasColumn('restaurante_configuracion','momento_ticket');
         $hasFC=$this->hasColumn('restaurante_configuracion','flujo_cocina');
         $hasSCG=$this->hasColumn('restaurante_configuracion','solicitar_clave_gestion');
+        $hasPFC=$this->hasColumn('restaurante_configuracion','permitir_facturas_credito');
 
         $ex=$this->ejecutar_consulta_simple_preparada(
             "SELECT empresa_id FROM restaurante_configuracion WHERE empresa_id=? LIMIT 1",
             "i",[$empresa]
         );
 
+        $fullBase = $hasEC && $hasEB && $hasDC && $hasMT && $hasFC;
+
         if($ex && $ex->num_rows){
-            if($hasEC && $hasEB && $hasDC && $hasMT && $hasFC){
-                if($hasSCG){
+            if($fullBase){
+                if($hasSCG && $hasPFC){
+                    $ok=$this->ejecutar_consulta_simple_preparada(
+                        "UPDATE restaurante_configuracion
+                         SET usar_mesas=?, usar_comandas=?, etiqueta_cocina=?, etiqueta_barra=?,
+                             destino_comanda=?, momento_ticket=?, flujo_cocina=?,
+                             solicitar_clave_gestion=?, permitir_facturas_credito=?,
+                             usuario_id=?, fecha_actualizacion=NOW()
+                         WHERE empresa_id=?",
+                        "iisssssiiii",
+                        [$usarMesas,$usarComandas,$etiquetaCocina,$etiquetaBarra,$destinoComanda,$momentoTicket,$flujoCocina,$solicitarClaveGestion,$permitirFacturasCredito,$usuario,$empresa]
+                    );
+                } elseif($hasSCG){
                     $ok=$this->ejecutar_consulta_simple_preparada(
                         "UPDATE restaurante_configuracion
                          SET usar_mesas=?, usar_comandas=?, etiqueta_cocina=?, etiqueta_barra=?,
@@ -3312,11 +3334,22 @@ public function crearPagoContado(array $data){
                         "iisssssiii",
                         [$usarMesas,$usarComandas,$etiquetaCocina,$etiquetaBarra,$destinoComanda,$momentoTicket,$flujoCocina,$solicitarClaveGestion,$usuario,$empresa]
                     );
+                } elseif($hasPFC){
+                    $ok=$this->ejecutar_consulta_simple_preparada(
+                        "UPDATE restaurante_configuracion
+                         SET usar_mesas=?, usar_comandas=?, etiqueta_cocina=?, etiqueta_barra=?,
+                             destino_comanda=?, momento_ticket=?, flujo_cocina=?, permitir_facturas_credito=?,
+                             usuario_id=?, fecha_actualizacion=NOW()
+                         WHERE empresa_id=?",
+                        "iisssssiii",
+                        [$usarMesas,$usarComandas,$etiquetaCocina,$etiquetaBarra,$destinoComanda,$momentoTicket,$flujoCocina,$permitirFacturasCredito,$usuario,$empresa]
+                    );
                 } else {
                     $ok=$this->ejecutar_consulta_simple_preparada(
                         "UPDATE restaurante_configuracion
                          SET usar_mesas=?, usar_comandas=?, etiqueta_cocina=?, etiqueta_barra=?,
-                             destino_comanda=?, momento_ticket=?, flujo_cocina=?, usuario_id=?, fecha_actualizacion=NOW()
+                             destino_comanda=?, momento_ticket=?, flujo_cocina=?,
+                             usuario_id=?, fecha_actualizacion=NOW()
                          WHERE empresa_id=?",
                         "iisssssii",
                         [$usarMesas,$usarComandas,$etiquetaCocina,$etiquetaBarra,$destinoComanda,$momentoTicket,$flujoCocina,$usuario,$empresa]
@@ -3324,19 +3357,37 @@ public function crearPagoContado(array $data){
                 }
             } else {
                 $ok=$this->ejecutar_consulta_simple_preparada(
-                    "UPDATE restaurante_configuracion SET usar_mesas=?, usar_comandas=?, usuario_id=?, fecha_actualizacion=NOW() WHERE empresa_id=?",
+                    "UPDATE restaurante_configuracion
+                     SET usar_mesas=?, usar_comandas=?, usuario_id=?, fecha_actualizacion=NOW()
+                     WHERE empresa_id=?",
                     "iiii",[$usarMesas,$usarComandas,$usuario,$empresa]
                 );
             }
         } else {
-            if($hasEC && $hasEB && $hasDC && $hasMT && $hasFC){
-                if($hasSCG){
+            if($fullBase){
+                if($hasSCG && $hasPFC){
+                    $ok=$this->ejecutar_consulta_simple_preparada(
+                        "INSERT INTO restaurante_configuracion
+                         (empresa_id,usar_mesas,usar_comandas,etiqueta_cocina,etiqueta_barra,destino_comanda,momento_ticket,flujo_cocina,solicitar_clave_gestion,permitir_facturas_credito,usuario_id,fecha_registro,fecha_actualizacion)
+                         VALUES(?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())",
+                        "iiisssssiii",
+                        [$empresa,$usarMesas,$usarComandas,$etiquetaCocina,$etiquetaBarra,$destinoComanda,$momentoTicket,$flujoCocina,$solicitarClaveGestion,$permitirFacturasCredito,$usuario]
+                    );
+                } elseif($hasSCG){
                     $ok=$this->ejecutar_consulta_simple_preparada(
                         "INSERT INTO restaurante_configuracion
                          (empresa_id,usar_mesas,usar_comandas,etiqueta_cocina,etiqueta_barra,destino_comanda,momento_ticket,flujo_cocina,solicitar_clave_gestion,usuario_id,fecha_registro,fecha_actualizacion)
                          VALUES(?,?,?,?,?,?,?,?,?,?,NOW(),NOW())",
                         "iiisssssii",
                         [$empresa,$usarMesas,$usarComandas,$etiquetaCocina,$etiquetaBarra,$destinoComanda,$momentoTicket,$flujoCocina,$solicitarClaveGestion,$usuario]
+                    );
+                } elseif($hasPFC){
+                    $ok=$this->ejecutar_consulta_simple_preparada(
+                        "INSERT INTO restaurante_configuracion
+                         (empresa_id,usar_mesas,usar_comandas,etiqueta_cocina,etiqueta_barra,destino_comanda,momento_ticket,flujo_cocina,permitir_facturas_credito,usuario_id,fecha_registro,fecha_actualizacion)
+                         VALUES(?,?,?,?,?,?,?,?,?,?,NOW(),NOW())",
+                        "iiisssssii",
+                        [$empresa,$usarMesas,$usarComandas,$etiquetaCocina,$etiquetaBarra,$destinoComanda,$momentoTicket,$flujoCocina,$permitirFacturasCredito,$usuario]
                     );
                 } else {
                     $ok=$this->ejecutar_consulta_simple_preparada(
@@ -3349,7 +3400,9 @@ public function crearPagoContado(array $data){
                 }
             } else {
                 $ok=$this->ejecutar_consulta_simple_preparada(
-                    "INSERT INTO restaurante_configuracion (empresa_id,usar_mesas,usar_comandas,usuario_id,fecha_registro,fecha_actualizacion) VALUES(?,?,?,?,NOW(),NOW())",
+                    "INSERT INTO restaurante_configuracion
+                     (empresa_id,usar_mesas,usar_comandas,usuario_id,fecha_registro,fecha_actualizacion)
+                     VALUES(?,?,?,?,NOW(),NOW())",
                     "iiii",[$empresa,$usarMesas,$usarComandas,$usuario]
                 );
             }
@@ -3415,6 +3468,7 @@ public function crearPagoContado(array $data){
         $cnn = $this->connection();
         $facturaId = (int)($data['factura_id'] ?? 0);
         $clienteId = (int)($data['cliente_id'] ?? 0);
+        $tipoFactura = ((int)($data['tipo_factura'] ?? 1) === 2) ? 2 : 1;
         $items = is_array($data['items'] ?? null) ? $data['items'] : [];
         $notas = $this->cleanString($data['observaciones'] ?? '');
         $mesaId = max(0,(int)$mesaId);
@@ -3435,8 +3489,8 @@ public function crearPagoContado(array $data){
 
             $tot = $this->calcularTotalesDesdeItems($items);
             $ok = $this->ejecutar_consulta_simple_preparada(
-                "UPDATE facturas SET clientes_id=?, importe=?, notas=? WHERE facturas_id=? AND empresa_id=? AND estado=1",
-                "idsii", [$clienteId,$tot['total'],$notas,$facturaId,$this->empresaId()]
+                "UPDATE facturas SET clientes_id=?, tipo_factura=?, importe=?, notas=? WHERE facturas_id=? AND empresa_id=? AND estado=1",
+                "iidsii", [$clienteId,$tipoFactura,$tot['total'],$notas,$facturaId,$this->empresaId()]
             );
             if (!$ok) throw new Exception('No se pudo actualizar la cuenta');
 
@@ -3569,7 +3623,7 @@ public function crearPagoContado(array $data){
 
     public function obtenerCuentasAbiertas(): array {
         $empresa=$this->empresaId();
-        $sql="SELECT f.facturas_id, f.clientes_id, f.importe, f.notas, f.fecha, f.fecha_registro,
+        $sql="SELECT f.facturas_id, f.clientes_id, f.tipo_factura, f.importe, f.notas, f.fecha, f.fecha_registro,
                     COALESCE(c.nombre,'Consumidor Final') cliente_nombre,
                     COALESCE(c.rtn,'') cliente_rtn,
                     COALESCE(rc.mesa_id,0) mesa_id,
@@ -3595,6 +3649,7 @@ public function crearPagoContado(array $data){
             $out[]=[
                 'facturas_id'=>(int)$r['facturas_id'],
                 'clientes_id'=>(int)$r['clientes_id'],
+                'tipo_factura'=>(int)($r['tipo_factura']??1)===2?2:1,
                 'cliente_nombre'=>$r['cliente_nombre'],
                 'cliente_rtn'=>$r['cliente_rtn'],
                 'importe'=>(float)$r['importe'],
@@ -3617,7 +3672,7 @@ public function crearPagoContado(array $data){
         if($facturaId<=0) return null;
         $empresa=$this->empresaId();
         $rs=$this->ejecutar_consulta_simple_preparada(
-            "SELECT f.facturas_id,f.clientes_id,f.importe,f.notas,f.fecha,
+            "SELECT f.facturas_id,f.clientes_id,f.tipo_factura,f.importe,f.notas,f.fecha,
                     COALESCE(c.nombre,'Consumidor Final') cliente_nombre,
                     COALESCE(c.rtn,'') cliente_rtn,
                     COALESCE(rc.mesa_id,0) mesa_id,

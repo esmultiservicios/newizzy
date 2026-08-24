@@ -1998,6 +1998,10 @@ try {
     window.REST_SISTEMA_PRUEBA = <?php echo json_encode((int)($GLOBALS['SISTEMA_PRUEBA'] ?? 0)); ?>;
     window.REST_REPORT_SERVER = <?php echo json_encode(defined('SERVERURLWINDOWS') ? SERVERURLWINDOWS : ''); ?>;
   </script>
-  <script src="<?php echo SERVERURL; ?>ajax/js/facturasRestaurante.js"></script>
+  <?php
+  $__rest_js_path = dirname(__DIR__, 2) . '/ajax/js/facturasRestaurante.js';
+  $__rest_js_ver = is_file($__rest_js_path) ? filemtime($__rest_js_path) : time();
+?>
+<script src="<?php echo SERVERURL; ?>ajax/js/facturasRestaurante.js?v=<?php echo $__rest_js_ver; ?>"></script>
 </body>
 </html>

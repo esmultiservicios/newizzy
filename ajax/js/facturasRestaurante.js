@@ -8150,6 +8150,8 @@ function initSelect2ForComboRow(row){
       });
       if(!d||!d.status) throw new Error(d&&d.message?d.message:'No se pudo guardar');
       window.REST_CONFIG=d.config||window.REST_CONFIG; aplicarConfiguracionOperacion();
+      rsConfigEstadoBase=rsConfigCapturarEstado();
+      rsConfigActualizarEstadoCambios();
       document.getElementById('modal-configuracion-restaurante').style.display='none';
       showAlert('success','Configuración','La configuración del módulo fue actualizada.');
     }catch(e){showAlert('error','Error',e.message||'No se pudo guardar');}
@@ -8192,10 +8194,212 @@ function initSelect2ForComboRow(row){
       aplicarConfiguracionOperacion();
       const modalConfig = document.getElementById('modal-configuracion-restaurante');
       if(modalConfig) modalConfig.style.display='block';
+      rsConfigPrepararCentro();
       setTimeout(reinitSelect2Restaurante,80);
     });
   });
   $('#btn-guardar-configuracion-restaurante').off('click.restCfgSave').on('click.restCfgSave',guardarConfiguracionOperacionUI);
+
+  // ===========================================================
+  // CENTRO DE CONFIGURACIÓN — NAVEGACIÓN / BÚSQUEDA
+  // La vista usa paneles con .is-active. Este bloque es el único
+  // responsable de cambiar entre General / Operación / Facturación /
+  // Cocina / Dispositivos / Seguridad sin alterar el layout existente.
+  // ===========================================================
+  let rsConfigTabActual = 'general';
+
+  function rsConfigNormalizarTexto(valor){
+    return String(valor || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g,'')
+      .toLowerCase()
+      .trim();
+  }
+
+  function rsConfigComandasActivas(){
+    const control=document.getElementById('config-usar-comandas');
+    if(control) return !!control.checked;
+    return !(window.REST_CONFIG && Number(window.REST_CONFIG.usar_comandas)===0);
+  }
+
+  function rsConfigActualizarDependencias(){
+    const comandas=rsConfigComandasActivas();
+    const aviso=document.getElementById('config-dependencias-aviso');
+
+    document.querySelectorAll('[data-config-requires-comandas-nav="1"]').forEach(el=>{
+      el.disabled=!comandas;
+      el.classList.toggle('is-disabled',!comandas);
+      el.setAttribute('aria-disabled',!comandas?'true':'false');
+      el.title=!comandas?'Active “Usar comandas” para habilitar esta categoría.':'';
+    });
+
+    document.querySelectorAll('[data-config-requires-comandas="1"]').forEach(el=>{
+      el.style.display=comandas?'':'none';
+    });
+
+    if(!comandas && (rsConfigTabActual==='cocina' || rsConfigTabActual==='dispositivos')){
+      rsConfigActivarTab('general',{silencioso:true});
+      if(aviso){
+        aviso.innerHTML='<i class="fas fa-circle-info"></i><span>Active <b>Usar comandas</b> para configurar Cocina y dispositivos vinculados.</span>';
+        aviso.style.display='flex';
+      }
+    }else if(aviso){
+      aviso.style.display='none';
+    }
+  }
+
+  function rsConfigActivarTab(tab,opciones={}){
+    const modal=document.getElementById('modal-configuracion-restaurante');
+    if(!modal) return false;
+
+    const nombre=String(tab||'general');
+    const nav=modal.querySelector(`.rs-settings-nav-item[data-config-tab="${nombre}"]`);
+    const panel=modal.querySelector(`.rs-settings-panel[data-config-panel="${nombre}"]`);
+    if(!nav || !panel) return false;
+
+    if(nav.disabled || nav.getAttribute('aria-disabled')==='true'){
+      if(!opciones.silencioso && typeof showNotify==='function'){
+        showNotify('info','Configuración','Active “Usar comandas” para acceder a esta categoría.');
+      }
+      return false;
+    }
+
+    rsConfigTabActual=nombre;
+    modal.classList.remove('rs-settings-searching');
+
+    const search=document.getElementById('config-buscar-ajuste');
+    const clear=document.getElementById('config-limpiar-busqueda');
+    const empty=document.getElementById('config-sin-resultados');
+    if(search && !opciones.conservarBusqueda) search.value='';
+    if(clear && !opciones.conservarBusqueda) clear.style.display='none';
+    if(empty) empty.style.display='none';
+
+    modal.querySelectorAll('.rs-settings-nav-item[data-config-tab]').forEach(btn=>{
+      const activo=btn===nav;
+      btn.classList.toggle('is-active',activo);
+      btn.setAttribute('aria-current',activo?'page':'false');
+    });
+
+    modal.querySelectorAll('.rs-settings-panel[data-config-panel]').forEach(sec=>{
+      const activo=sec===panel;
+      sec.classList.toggle('is-active',activo);
+      sec.classList.remove('has-search-results');
+    });
+
+    const content=document.getElementById('config-centro-contenido');
+    if(content) content.scrollTop=0;
+    return true;
+  }
+
+  function rsConfigBuscar(valor){
+    const modal=document.getElementById('modal-configuracion-restaurante');
+    if(!modal) return;
+
+    const query=rsConfigNormalizarTexto(valor);
+    const clear=document.getElementById('config-limpiar-busqueda');
+    const empty=document.getElementById('config-sin-resultados');
+    if(clear) clear.style.display=query?'inline-flex':'none';
+
+    if(!query){
+      modal.classList.remove('rs-settings-searching');
+      modal.querySelectorAll('.rs-settings-item[data-config-search]').forEach(item=>item.style.display='');
+      modal.querySelectorAll('.rs-settings-panel').forEach(panel=>panel.classList.remove('has-search-results'));
+      if(empty) empty.style.display='none';
+      rsConfigActivarTab(rsConfigTabActual,{silencioso:true,conservarBusqueda:true});
+      rsConfigActualizarDependencias();
+      return;
+    }
+
+    modal.classList.add('rs-settings-searching');
+    let total=0;
+
+    modal.querySelectorAll('.rs-settings-panel[data-config-panel]').forEach(panel=>{
+      let resultados=0;
+      panel.querySelectorAll('.rs-settings-item[data-config-search]').forEach(item=>{
+        const requiere=item.getAttribute('data-config-requires-comandas')==='1';
+        const permitido=!requiere || rsConfigComandasActivas();
+        const texto=rsConfigNormalizarTexto(item.getAttribute('data-config-search')+' '+item.textContent);
+        const match=permitido && texto.includes(query);
+        item.style.display=match?'':'none';
+        if(match) resultados++;
+      });
+      panel.classList.toggle('has-search-results',resultados>0);
+      total+=resultados;
+    });
+
+    if(empty) empty.style.display=total===0?'flex':'none';
+  }
+
+  function rsConfigCapturarEstado(){
+    const ids=[
+      'config-usar-mesas','config-usar-comandas','config-etiqueta-cocina','config-etiqueta-barra',
+      'config-destino-comanda','config-momento-ticket','config-flujo-cocina',
+      'config-solicitar-clave-gestion','config-permitir-facturas-credito'
+    ];
+    const estado={};
+    ids.forEach(id=>{
+      const el=document.getElementById(id);
+      if(!el) return;
+      estado[id]=(el.type==='checkbox')?!!el.checked:String(el.value||'');
+    });
+    return estado;
+  }
+
+  let rsConfigEstadoBase=null;
+
+  function rsConfigActualizarEstadoCambios(){
+    const badge=document.getElementById('config-cambios-pendientes');
+    const footer=document.getElementById('config-footer-estado');
+    if(!badge || !rsConfigEstadoBase) return;
+    const actual=JSON.stringify(rsConfigCapturarEstado());
+    const base=JSON.stringify(rsConfigEstadoBase);
+    const dirty=actual!==base;
+    badge.classList.toggle('is-clean',!dirty);
+    badge.classList.toggle('is-dirty',dirty);
+    badge.innerHTML=dirty
+      ? '<i class="fas fa-circle-exclamation"></i> Cambios pendientes'
+      : '<i class="fas fa-circle-check"></i> Sin cambios pendientes';
+    if(footer){
+      footer.innerHTML=dirty
+        ? '<i class="fas fa-circle-exclamation"></i> Hay cambios sin guardar.'
+        : '<i class="fas fa-circle-info"></i> Los cambios de categorías se guardan juntos.';
+    }
+  }
+
+  function rsConfigPrepararCentro(){
+    rsConfigActualizarDependencias();
+    rsConfigActivarTab('general',{silencioso:true});
+    rsConfigEstadoBase=rsConfigCapturarEstado();
+    rsConfigActualizarEstadoCambios();
+  }
+
+  $(document)
+    .off('click.restConfigTabs','.rs-settings-nav-item[data-config-tab]')
+    .on('click.restConfigTabs','.rs-settings-nav-item[data-config-tab]',function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      rsConfigActivarTab(this.dataset.configTab);
+    });
+
+  $('#config-buscar-ajuste')
+    .off('input.restConfigSearch')
+    .on('input.restConfigSearch',function(){rsConfigBuscar(this.value);});
+
+  $('#config-limpiar-busqueda')
+    .off('click.restConfigSearch')
+    .on('click.restConfigSearch',function(e){
+      e.preventDefault();
+      const search=document.getElementById('config-buscar-ajuste');
+      if(search){search.value='';search.focus();}
+      rsConfigBuscar('');
+    });
+
+  $(document)
+    .off('change.restConfigDirty input.restConfigDirty','#modal-configuracion-restaurante input,#modal-configuracion-restaurante select')
+    .on('change.restConfigDirty input.restConfigDirty','#modal-configuracion-restaurante input,#modal-configuracion-restaurante select',function(){
+      rsConfigActualizarDependencias();
+      rsConfigActualizarEstadoCambios();
+    });
 
   $('#config-usar-comandas').off('change.restCfgComandas').on('change.restCfgComandas',function(){
     const wrap=document.getElementById('config-grupos-operacion');

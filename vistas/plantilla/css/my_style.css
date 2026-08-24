@@ -14477,3 +14477,59 @@ table.dataTable tbody tr.shown td {
     -webkit-filter: none !important;
   }
 }
+
+
+/* ================================================================
+   FIX USUARIO TOPBAR MÓVIL
+   En teléfonos se conserva solo el icono del usuario para evitar
+   que el nombre compita con Logo + Menú principal.
+   No afecta tablet ni escritorio.
+   ================================================================ */
+@media (max-width: 576px) {
+
+  .sb-topnav .navbar-nav-user {
+    flex: 0 0 auto !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .sb-topnav .navbar-nav-user .nav-item.dropdown {
+    margin-left: .15rem !important;
+  }
+
+  .sb-topnav #userDropdown {
+    width: 38px !important;
+    min-width: 38px !important;
+    max-width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+    overflow: visible !important;
+  }
+
+  .sb-topnav #userDropdown #user_session {
+    display: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .sb-topnav #userDropdown > i {
+    margin: 0 !important;
+    font-size: 1.55rem !important;
+    line-height: 1 !important;
+  }
+
+  .sb-topnav #userDropdown::after {
+    display: none !important;
+  }
+}

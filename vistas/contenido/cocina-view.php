@@ -33,7 +33,7 @@
                 <button type="button" id="btn-nuevo-codigo-cocina" class="cocina-pair-new">
                     <i class="fas fa-rotate"></i> Generar otro código
                 </button>
-                <small>El código es temporal y solo sirve para vincular esta pantalla. El token privado nunca se escribe en la TV.</small>
+                <small>El código es temporal y solo sirve para vincular esta pantalla.</small>
             </div>
         </section>
 

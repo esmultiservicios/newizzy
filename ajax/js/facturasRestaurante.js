@@ -37,7 +37,6 @@ document.addEventListener('DOMContentLoaded', function () {
   let productos = [];
   let categorias = [];
   let comandaItems = [];
-  let facturaMesaRequestSeq = 0; // invalida respuestas antiguas al cambiar de mesa
   let clientes = [];
   let mesas = [];
   let isvRates = { 1: 0, 2: 0 };
@@ -50,6 +49,11 @@ document.addEventListener('DOMContentLoaded', function () {
   let servicioActual = 'mesa'; // 'mesa' | 'llevar'
   let PROMOS_VIGENTES = {};    // Mapa de promociones por producto
   let PROMOS_TICKER = null;    // Interval ID para el contador
+
+  // Cada selección de mesa invalida cualquier respuesta asíncrona anterior.
+  // Evita que una carga lenta de otra mesa vuelva a pintar productos/factura
+  // sobre la mesa que el cajero acaba de seleccionar.
+  let cargaFacturaMesaSecuencia = 0;
 
   // Control de solicitudes para evitar bloqueos, solapamientos y dobles envíos
   let cajaCheckEnCurso = false;
@@ -685,6 +689,27 @@ document.addEventListener('DOMContentLoaded', function () {
     if (rsEsTelefono() && !rsMobileInitReady) return;
 
     window.requestAnimationFrame(finalizarCargaInicialRestaurante);
+  }
+
+  function limpiarPedidoLocalNoPersistido({limpiarCliente=false, limpiarObservaciones=false}={}){
+    // Este helper SOLO limpia memoria/UI del navegador.
+    // No guarda, no cancela y no modifica una cuenta persistida en servidor.
+    comandaItems = [];
+
+    if(limpiarCliente){
+      clienteSeleccionado = { id: 1, nombre: 'CONSUMIDOR FINAL', identificacion: '' };
+      try { pintarClienteInfoHeader(); } catch(_){}
+      try { setClienteInfoUI({ nombre:'Consumidor final', rtn:'' }); } catch(_){}
+    }
+
+    if(limpiarObservaciones && observacionesTextarea){
+      observacionesTextarea.value = '';
+    }
+
+    try { actualizarComandaUI(); } catch(_){}
+    try { updateProductBadges(); } catch(_){}
+    try { updateAccionPrincipalUI(); } catch(_){}
+    try { if(isMobileAssistantActive()) rsMobileUpdate(); } catch(_){}
   }
 
   function resetVentaNuevaLocal(){
@@ -1832,17 +1857,15 @@ function initHotkeys(){
 
       const actualId = mesaSeleccionada && Number(mesaSeleccionada.id || mesaSeleccionada.mesa_id || mesaSeleccionada || 0);
       if (actualId === mesaId) {
-        // Quitar selección NO libera ni cancela la cuenta guardada; solo limpia la sesión visual.
-        const teniaCuenta = !!(facturaActual && (facturaActual.id || facturaActual.factura_id || facturaActual.facturas_id));
+        // Quitar selección NO libera ni cancela una cuenta guardada.
+        // Todo cambio que todavía no fue Guardado/Enviado se descarta localmente.
+        // Si la mesa tenía una cuenta persistida, al volver a abrirla se reconstruye
+        // exclusivamente desde el servidor.
+        cargaFacturaMesaSecuencia++;
         mesaSeleccionada = null;
         facturaActual = null;
-        if (teniaCuenta) {
-          comandaItems = [];
-          actualizarComandaUI();
-          clienteSeleccionado = { id: 1, nombre: 'CONSUMIDOR FINAL', identificacion: '' };
-          pintarClienteInfoHeader();
-          if (observacionesTextarea) observacionesTextarea.value = '';
-        }
+        limpiarPedidoLocalNoPersistido({limpiarCliente:true, limpiarObservaciones:true});
+        setTipoFacturaRestaurante('contado',{silencioso:true});
         setServicioTipo('llevar');
         setMesaSeleccionadaUI(null);
         highlightMesaSeleccionada();
@@ -3116,7 +3139,13 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
         if (!d || !(d.ok || d.status)) throw new Error((d && (d.message || d.msg)) || 'No se pudo liberar la mesa');
         const actualId = Number((mesaSeleccionada && (mesaSeleccionada.id || mesaSeleccionada.mesa_id)) || mesaSeleccionada || 0);
         if (actualId === mesaId) {
-          mesaSeleccionada=null; facturaActual=null; comandaItems=[]; actualizarComandaUI(); setServicioTipo('llevar'); setMesaSeleccionadaUI(null);
+          cargaFacturaMesaSecuencia++;
+          mesaSeleccionada=null;
+          facturaActual=null;
+          limpiarPedidoLocalNoPersistido({limpiarCliente:true, limpiarObservaciones:true});
+          setTipoFacturaRestaurante('contado',{silencioso:true});
+          setServicioTipo('llevar');
+          setMesaSeleccionadaUI(null);
         }
         showAlert('success','Mesa disponible',d.cuenta_conservada?`Mesa liberada. La cuenta #${d.factura_id} continúa abierta en “Cuentas abiertas”.`:'La mesa fue liberada correctamente.');
         await cargarMesas();
@@ -3132,42 +3161,17 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     if (el) el.classList.add('seleccionada');
   }  
 
-  function limpiarVentaParaMesaLibre(){
-    // Una mesa libre sin cuenta abierta representa SIEMPRE una venta nueva.
-    // No debe heredar productos, cliente, observaciones, factura ni totales
-    // de una operación anterior que haya quedado en memoria del navegador.
-    facturaActual = null;
-    comandaItems = [];
-    clienteSeleccionado = { id: 1, nombre: 'CONSUMIDOR FINAL', identificacion: '' };
-
-    try {
-      if (observacionesTextarea) observacionesTextarea.value = '';
-    } catch(_) {}
-
-    try { pintarClienteInfoHeader(); } catch(_) {}
-    try { setClienteInfoUI({ nombre:'Consumidor final', rtn:'' }); } catch(_) {}
-    try { actualizarComandaUI(); } catch(_) {}
-    try { updateProductBadges(); } catch(_) {}
-    try { setTipoFacturaRestaurante('contado',{silencioso:true}); } catch(_) {}
-
-    if (facturaTitle) {
-      facturaTitle.innerHTML = usaComandasOperacion()
-        ? '<i class="fas fa-receipt"></i> Nueva Comanda'
-        : '<i class="fas fa-cash-register"></i> Nueva venta';
-    }
-    if (btnImprimir) btnImprimir.disabled = true;
-
-    // Fuerza actualización inmediata del resumen móvil (contador y total).
-    try { rsMobileUpdate(); } catch(_) {}
-    try { updateAccionPrincipalUI(); } catch(_) {}
-  }
-
   function seleccionarMesa(mesa){
     const mesaId = Number(mesa && (mesa.id || mesa.mesa_id) || 0);
     if (!mesaId) return;
 
-    // Cada selección de mesa invalida cualquier respuesta pendiente de una mesa anterior.
-    facturaMesaRequestSeq++;
+    // Regla de aislamiento del pedido:
+    // cambiar/seleccionar una mesa NUNCA arrastra productos locales no guardados.
+    // Una cuenta existente se reconstruye exclusivamente con lo persistido en BD.
+    cargaFacturaMesaSecuencia++;
+    facturaActual = null;
+    limpiarPedidoLocalNoPersistido({limpiarCliente:true, limpiarObservaciones:true});
+    setTipoFacturaRestaurante('contado',{silencioso:true});
 
     // En móvil NO recuperar automáticamente una cuenta existente.
     // El usuario decide expresamente si quiere continuarla.
@@ -3224,17 +3228,15 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
         if (btnImprimir) btnImprimir.disabled = true;
         highlightMesaSeleccionada();
 
-        // Se carga únicamente cuando el usuario lo confirma.
-        cargarFacturaMesa(mesaId, []);
+        // Se carga únicamente cuando el usuario lo confirma y SOLO desde servidor.
+        cargarFacturaMesa(mesaId);
       });
       return;
     }
 
-    // Flujo para mesa disponible o escritorio/tablet.
-    // Una mesa libre SIN cuenta abierta siempre inicia limpia. Nunca heredamos
-    // productos que hayan quedado en memoria visual de otra operación.
+    // Mesa disponible o escritorio/tablet:
+    // jamás transportar un carrito local de una mesa/venta anterior.
     setServicioTipo('mesa');
-    limpiarVentaParaMesaLibre();
 
     mesaSeleccionada = {
       id: mesaId,
@@ -3249,11 +3251,9 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     highlightMesaSeleccionada();
 
     if (mesaSeleccionada.id) {
-      cargarFacturaMesa(mesaSeleccionada.id, []);
+      cargarFacturaMesa(mesaSeleccionada.id);
     } else {
-      comandaItems = [];
-      actualizarComandaUI();
-      if (typeof updateProductBadges === 'function') updateProductBadges();
+      limpiarPedidoLocalNoPersistido();
     }
   }
 
@@ -4116,27 +4116,41 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
   }  
 
   // ===== FACTURAS =====
-  // itemsToMerge = items que ya venía armando el cajero antes de tocar la mesa
-  function cargarFacturaMesa(mesaId, itemsToMerge = []){
-    const requestSeq = ++facturaMesaRequestSeq;
-    const mesaSolicitadaId = Number(mesaId || 0);
+  // La mesa se reconstruye SIEMPRE desde el servidor.
+  // Nunca se fusionan productos locales no guardados con otra mesa/cuenta.
+  function cargarFacturaMesa(mesaId){
+    const mesaSolicitada = Number(mesaId || 0);
+    if(!mesaSolicitada) return Promise.resolve(false);
 
-    fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
+    // SeleccionarMesa incrementa primero. Tomamos el valor actual como identidad
+    // de esta carga. Una nueva selección incrementará la secuencia y esta respuesta
+    // quedará automáticamente obsoleta.
+    const secuenciaCarga = cargaFacturaMesaSecuencia;
+
+    return fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `action=loadFacturaMesa&mesa_id=${encodeURIComponent(mesaId)}`
+      body: `action=loadFacturaMesa&mesa_id=${encodeURIComponent(mesaSolicitada)}`
     })
     .then(r => r.json())
     .then(data => {
-      const mesaActualId = Number((mesaSeleccionada && (mesaSeleccionada.id || mesaSeleccionada.mesa_id)) || 0);
-      if (requestSeq !== facturaMesaRequestSeq || mesaActualId !== mesaSolicitadaId) return;
+      const mesaActualId = Number(
+        mesaSeleccionada &&
+        (mesaSeleccionada.id || mesaSeleccionada.mesa_id || mesaSeleccionada) || 0
+      );
+
+      // Si el usuario cambió de mesa mientras esperaba, ignorar por completo
+      // esta respuesta para que una petición lenta no contamine la venta actual.
+      if(secuenciaCarga !== cargaFacturaMesaSecuencia || mesaActualId !== mesaSolicitada){
+        return false;
+      }
 
       if (data && data.status) {
-        // Hay factura abierta en la mesa
+        // Cuenta YA GUARDADA: reconstruir exclusivamente desde BD.
         setServicioTipo('mesa');
 
-        facturaActual    = data.factura || null;
-        mesaSeleccionada = data.mesa    || mesaSeleccionada;
+        facturaActual = data.factura || null;
+        mesaSeleccionada = data.mesa || mesaSeleccionada;
 
         if (facturaActual && (facturaActual.cliente_id || facturaActual.clientes_id)) {
           clienteSeleccionado = {
@@ -4145,37 +4159,47 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
             identificacion: facturaActual.cliente_identificacion || ''
           };
           pintarClienteInfoHeader();
+        } else {
+          clienteSeleccionado = { id: 1, nombre: 'CONSUMIDOR FINAL', identificacion: '' };
+          pintarClienteInfoHeader();
         }
 
-        const itemsMesa = (Array.isArray(data.items) ? data.items : []).map(item => ({
+        setTipoFacturaRestaurante(
+          Number(facturaActual && facturaActual.tipo_factura) === 2 ? 'credito' : 'contado',
+          {silencioso:true}
+        );
+
+        // CRÍTICO: reemplazar, no fusionar.
+        // Aquí solo pueden existir productos realmente persistidos en facturas_detalles.
+        comandaItems = (Array.isArray(data.items) ? data.items : []).map(item => ({
           producto: {
             id: item.productos_id,
             nombre: item.nombre_producto,
             precio: parseFloat(item.precio),
             descripcion: item.descripcion_producto || '',
-            isv1: Number(item.isv1 || 0) === 1, isv2: Number(item.isv2 || 0) === 1, para_cocina: 0,
+            isv1: Number(item.isv1 || 0) === 1,
+            isv2: Number(item.isv2 || 0) === 1,
+            para_cocina: 0,
             medida: item.medida || 'Und'
           },
           cantidad: parseFloat(item.cantidad),
-          precio:   parseFloat(item.precio),
-          total:    parseFloat(item.precio) * parseFloat(item.cantidad)
+          precio: parseFloat(item.precio),
+          total: parseFloat(item.precio) * parseFloat(item.cantidad),
+          descuento: Number(item.descuento || 0),
+          isv_valor: Number(item.isv_valor || 0)
         }));
 
-        // 🔀 Fusionar: lo de la mesa + lo que el cajero ya llevaba
-        comandaItems = mergeComandaItems(itemsMesa, itemsToMerge);
-
-        // UI de cabecera
         const nomMesa = mesaSeleccionada
           ? (mesaSeleccionada.numero || mesaSeleccionada.Numero || mesaSeleccionada.nombre || mesaSeleccionada.nombre_mesa || null)
           : null;
         setMesaSeleccionadaUI(nomMesa);
 
-        // Título y cliente
         const numFactura = facturaActual
           ? (facturaActual.number || facturaActual.numero || facturaActual.factura_numero || facturaActual.id || facturaActual.factura_id)
           : null;
+
         if (facturaTitle) {
-          facturaTitle.innerHTML = `<i class="fas fa-receipt"></i> ${numFactura ? 'Factura #'+numFactura : 'Factura abierta'}`;
+          facturaTitle.innerHTML = `<i class="fas fa-receipt"></i> ${numFactura ? 'Cuenta #'+numFactura : 'Cuenta abierta'}`;
         }
         if (observacionesTextarea) {
           observacionesTextarea.value = (facturaActual && (facturaActual.notas || facturaActual.observaciones || '')) || '';
@@ -4183,37 +4207,57 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
         if (btnImprimir) btnImprimir.disabled = false;
 
         actualizarComandaUI();
-        if (typeof updateProductBadges === 'function') updateProductBadges();
+        updateProductBadges();
         highlightMesaSeleccionada();
         updateAccionPrincipalUI();
-
-      } else {
-        // La mesa NO tiene cuenta abierta: siempre debe iniciar vacía.
-        // Esto evita pedidos fantasma al volver a entrar o cambiar de mesa,
-        // especialmente en el asistente móvil.
-        setServicioTipo('mesa');
-        limpiarVentaParaMesaLibre();
-
-        if (facturaTitle) {
-          facturaTitle.innerHTML = usaComandasOperacion()?'<i class="fas fa-receipt"></i> Nueva Comanda':'<i class="fas fa-cash-register"></i> Nueva venta';
-        }
-        if (btnImprimir) btnImprimir.disabled = true;
-
-        const nomMesa = mesaSeleccionada
-          ? (mesaSeleccionada.numero || mesaSeleccionada.Numero || null)
-          : null;
-        setMesaSeleccionadaUI(nomMesa);
-        highlightMesaSeleccionada();
-        updateAccionPrincipalUI();
+        if(isMobileAssistantActive()) rsMobileUpdate();
+        return true;
       }
+
+      // Mesa SIN cuenta guardada:
+      // debe quedar 100% limpia aunque una venta anterior haya tenido productos
+      // en memoria. Nada no persistido puede sobrevivir a esta selección.
+      setServicioTipo('mesa');
+      facturaActual = null;
+      limpiarPedidoLocalNoPersistido({limpiarCliente:true, limpiarObservaciones:true});
+      setTipoFacturaRestaurante('contado',{silencioso:true});
+
+      if (facturaTitle) {
+        facturaTitle.innerHTML = usaComandasOperacion()
+          ? '<i class="fas fa-receipt"></i> Nueva Comanda'
+          : '<i class="fas fa-cash-register"></i> Nueva venta';
+      }
+      if (btnImprimir) btnImprimir.disabled = true;
+
+      const nomMesa = mesaSeleccionada
+        ? (mesaSeleccionada.numero || mesaSeleccionada.Numero || null)
+        : null;
+      setMesaSeleccionadaUI(nomMesa);
+      highlightMesaSeleccionada();
+      updateAccionPrincipalUI();
+      if(isMobileAssistantActive()) rsMobileUpdate();
+      return true;
     })
-    .catch(() => {
-      const mesaActualId = Number((mesaSeleccionada && (mesaSeleccionada.id || mesaSeleccionada.mesa_id)) || 0);
-      if (requestSeq !== facturaMesaRequestSeq || mesaActualId !== mesaSolicitadaId) return;
-      showAlert('error', 'Error', 'Error al cargar la factura');
+    .catch((error) => {
+      const mesaActualId = Number(
+        mesaSeleccionada &&
+        (mesaSeleccionada.id || mesaSeleccionada.mesa_id || mesaSeleccionada) || 0
+      );
+
+      // No mostrar error de una petición que ya fue reemplazada por otra selección.
+      if(secuenciaCarga !== cargaFacturaMesaSecuencia || mesaActualId !== mesaSolicitada){
+        return false;
+      }
+
+      // Ante fallo de red NO reutilizar carrito viejo.
+      facturaActual = null;
+      limpiarPedidoLocalNoPersistido({limpiarCliente:true, limpiarObservaciones:true});
+      setTipoFacturaRestaurante('contado',{silencioso:true});
+      showAlert('error', 'Error', 'No se pudo comprobar la cuenta de esta mesa. El pedido local se mantuvo vacío para evitar mezclar productos.');
+      return false;
     });
   }
-  
+
   function agregarProductoComanda(producto) {
     const existente = comandaItems.find(i => i.producto.id === producto.id);
     if (existente) {
@@ -4682,9 +4726,9 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
       }
     }
 
+    cargaFacturaMesaSecuencia++;
     facturaActual=null;
-    comandaItems=[];
-    actualizarComandaUI();
+    limpiarPedidoLocalNoPersistido({limpiarCliente:false, limpiarObservaciones:false});
     updateProductBadges();
     if(observacionesTextarea) observacionesTextarea.value='';
     clienteSeleccionado={id:1,nombre:'CONSUMIDOR FINAL',identificacion:''};
@@ -4933,7 +4977,9 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     });
   }  
 
-  function limpiarComanda() { comandaItems = []; actualizarComandaUI(); }
+  function limpiarComanda() {
+    limpiarPedidoLocalNoPersistido();
+  }
 
   // ======= ISV del modal de Producto =======
   function prepararModalProductoISV(valoresEdicion = null){
@@ -7857,8 +7903,11 @@ function initSelect2ForComboRow(row){
   }
 
   async function abrirCuentaAbierta(facturaId){
+    // Recuperar una cuenta explícitamente también invalida cualquier carga de mesa previa.
+    const secuenciaCuenta = ++cargaFacturaMesaSecuencia;
     try{
       const d=await restPost('loadCuentaAbierta',{factura_id:String(facturaId)});
+      if(secuenciaCuenta !== cargaFacturaMesaSecuencia) return;
       if(!d||!d.status||!d.cuenta || !cuentaOperativamenteAbierta(d.cuenta)) {
         window.__REST_CUENTAS_ABIERTAS = (window.__REST_CUENTAS_ABIERTAS || [])
           .filter(c => Number(c.facturas_id) !== Number(facturaId));
@@ -7881,259 +7930,6 @@ function initSelect2ForComboRow(row){
       const modal=document.getElementById('modal-cuentas-abiertas'); if(modal) modal.style.display='none';
       showAlert('success','Cuenta recuperada','Puede seguir agregando productos o cobrarla cuando corresponda.');
     }catch(e){ showAlert('error','Error',e.message||'No se pudo abrir la cuenta'); }
-  }
-
-  // ===========================================================
-  // PANTALLA DE COCINA INDEPENDIENTE
-  // Se administra desde Configuración Restaurante, pero NO participa
-  // en la carga inicial del POS para no alterar su loader ni su arranque.
-  // ===========================================================
-  async function cocinaAccesoAdminPost(action, data={}){
-    const adminContext=String(window.REST_COCINA_ADMIN_CONTEXT||'').trim();
-    if(!adminContext) throw new Error('No se pudo preparar el contexto seguro de Cocina para esta sesión.');
-    const body=new URLSearchParams({action,context:adminContext,...data});
-    const response=await fetch(BASE+'core/cocina/cocinaAccesoAdminAjax.php',{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8',
-        'Accept':'application/json'
-      },
-      body:body.toString(),
-      cache:'no-store',
-      credentials:'same-origin'
-    });
-
-    let payload=null;
-    try{ payload=await response.json(); }catch(_){}
-
-    if(!response.ok || !payload || !payload.status){
-      throw new Error(payload&&payload.message?payload.message:'No se pudo administrar el acceso de Cocina.');
-    }
-    return payload;
-  }
-
-  function actualizarEstadoAccesoCocina(){
-    const toggle=document.getElementById('config-pantalla-cocina-activa');
-    const status=document.getElementById('config-cocina-estado');
-    if(!toggle || !status) return;
-    const activo=!!toggle.checked;
-    status.classList.toggle('is-on',activo);
-    status.classList.toggle('is-off',!activo);
-    status.innerHTML=activo
-      ? '<i class="fas fa-circle-check"></i> Activa'
-      : '<i class="fas fa-circle"></i> Inactiva';
-  }
-
-  async function cargarAccesoCocinaUI(){
-    const wrap=document.getElementById('config-acceso-cocina');
-    const toggle=document.getElementById('config-pantalla-cocina-activa');
-    const input=document.getElementById('config-enlace-cocina');
-    const tvInput=document.getElementById('config-enlace-tv-cocina');
-    if(!wrap || !toggle || !input) return;
-
-    // Cocina independiente solo aplica cuando la empresa usa comandas.
-    const usaComandas=Number(window.REST_CONFIG&&window.REST_CONFIG.usar_comandas)!==0;
-    wrap.style.display=usaComandas?'':'none';
-    if(!usaComandas){
-      toggle.checked=false;
-      input.value='';
-      actualizarEstadoAccesoCocina();
-      return;
-    }
-
-    try{
-      const d=await cocinaAccesoAdminPost('load');
-      toggle.checked=Number(d.config&&d.config.activo)===1;
-      input.value=String(d.config&&d.config.enlace||'');
-      if(tvInput) tvInput.value=String(d.config&&d.config.enlace_tv||(`${BASE}cocina/`));
-      actualizarEstadoAccesoCocina();
-      await cargarDispositivosCocinaUI({silencioso:true});
-    }catch(e){
-      // Abrir Configuración no debe lanzar una alerta visual por una consulta auxiliar.
-      // El error queda en consola y cualquier fallo real se mostrará al guardar/regenerar.
-      toggle.checked=false;
-      input.value='';
-      if(tvInput) tvInput.value=`${BASE}cocina/`;
-      actualizarEstadoAccesoCocina();
-      console.warn('[Restaurante] Acceso Cocina:',e.message);
-    }
-  }
-
-  async function guardarAccesoCocinaUI(){
-    const toggle=document.getElementById('config-pantalla-cocina-activa');
-    const input=document.getElementById('config-enlace-cocina');
-    if(!toggle) return;
-
-    const usarComandas=document.getElementById('config-usar-comandas');
-    const activo=(usarComandas&&usarComandas.checked&&toggle.checked)?'1':'0';
-    const d=await cocinaAccesoAdminPost('save',{activo});
-    toggle.checked=Number(d.config&&d.config.activo)===1;
-    if(input) input.value=String(d.config&&d.config.enlace||'');
-    const tvInput=document.getElementById('config-enlace-tv-cocina'); if(tvInput) tvInput.value=String(d.config&&d.config.enlace_tv||(`${BASE}cocina/`));
-    actualizarEstadoAccesoCocina();
-  }
-
-  async function copiarUrlTvCocina(){
-    const input=document.getElementById('config-enlace-tv-cocina');
-    const url=String((input&&input.value)||`${BASE}cocina/`).trim();
-    try{
-      if(navigator.clipboard&&window.isSecureContext) await navigator.clipboard.writeText(url);
-      else{ const tmp=document.createElement('textarea');tmp.value=url;tmp.style.position='fixed';tmp.style.opacity='0';document.body.appendChild(tmp);tmp.select();document.execCommand('copy');tmp.remove(); }
-      showAlert('success','Dirección copiada','Abra esta dirección corta en la TV.');
-    }catch(_){ showAlert('warning','Dirección de Cocina',url); }
-  }
-
-  function formatearFechaDispositivoCocina(valor){
-    const raw=String(valor||'').trim();
-    if(!raw) return 'Sin conexión registrada';
-    const d=new Date(raw.replace(' ','T'));
-    if(Number.isNaN(d.getTime())) return raw;
-    return d.toLocaleString('es-HN',{dateStyle:'short',timeStyle:'short'});
-  }
-
-  function renderDispositivosCocina(dispositivos){
-    const list=document.getElementById('config-dispositivos-cocina');
-    if(!list) return;
-    const rows=Array.isArray(dispositivos)?dispositivos:[];
-    if(!rows.length){
-      list.innerHTML='<div class="rs-kitchen-device-empty"><i class="fas fa-display"></i><span>No hay pantallas vinculadas todavía.</span></div>';
-      return;
-    }
-    list.innerHTML=rows.map(d=>{
-      const active=Number(d.activo)===1;
-      const online=active&&Number(d.en_linea)===1;
-      const name=escapeHtml(String(d.nombre||'Pantalla de Cocina'));
-      const last=escapeHtml(formatearFechaDispositivoCocina(d.ultima_conexion||d.fecha_vinculacion));
-      const linked=escapeHtml(formatearFechaDispositivoCocina(d.fecha_vinculacion));
-      return `<article class="rs-kitchen-device-card${active?' is-active':' is-off'}">
-        <div class="rs-kitchen-device-icon"><i class="fas fa-tv"></i></div>
-        <div class="rs-kitchen-device-info">
-          <div class="rs-kitchen-device-title">
-            <strong>${name}</strong>
-            <span class="rs-kitchen-device-status ${online?'is-online':(active?'is-idle':'is-off')}">
-              <i class="fas fa-circle"></i> ${online?'En línea':(active?'Vinculada':'Desvinculada')}
-            </span>
-          </div>
-          <small><i class="far fa-clock"></i> Última conexión: ${last}</small>
-          <small><i class="far fa-calendar-check"></i> Vinculada: ${linked}</small>
-        </div>
-        <div class="rs-kitchen-device-actions">
-          ${active?`<button type="button" class="btn btn-light btn-sm btn-renombrar-dispositivo-cocina" data-device-id="${Number(d.dispositivo_id)||0}" data-device-name="${name}"><i class="fas fa-pen"></i> Renombrar</button><button type="button" class="btn btn-danger btn-sm btn-desvincular-dispositivo-cocina" data-device-id="${Number(d.dispositivo_id)||0}" data-device-name="${name}"><i class="fas fa-link-slash"></i> Desvincular</button>`:''}
-        </div>
-      </article>`;
-    }).join('');
-  }
-
-  async function cargarDispositivosCocinaUI({silencioso=false}={}){
-    const list=document.getElementById('config-dispositivos-cocina');
-    if(!list) return;
-    if(!silencioso) list.innerHTML='<div class="rs-kitchen-device-empty"><i class="fas fa-spinner fa-spin"></i> Actualizando pantallas…</div>';
-    try{
-      const d=await cocinaAccesoAdminPost('listDevices');
-      renderDispositivosCocina(d.dispositivos||[]);
-    }catch(e){
-      list.innerHTML=`<div class="rs-kitchen-device-empty is-error"><i class="fas fa-triangle-exclamation"></i><span>${escapeHtml(e.message||'No se pudieron consultar las pantallas.')}</span></div>`;
-      console.warn('[Restaurante] Dispositivos Cocina:',e.message);
-    }
-  }
-
-  async function desvincularDispositivoCocina(deviceId,deviceName){
-    const id=Number(deviceId||0);
-    if(!id) return;
-    const nombre=String(deviceName||'esta pantalla');
-
-    showConfirm(
-      'Desvincular pantalla',
-      `${nombre} dejará de acceder a Cocina. Las demás pantallas seguirán funcionando.`,
-      async ()=>{
-        try{
-          const d=await cocinaAccesoAdminPost('unlinkDevice',{dispositivo_id:String(id)});
-          renderDispositivosCocina(d.dispositivos||[]);
-          showAlert('success','Pantalla desvinculada',d.message||'La pantalla fue desvinculada.');
-        }catch(e){
-          showAlert('error','No se pudo desvincular',e.message||'Intente nuevamente.');
-        }
-      },
-      {danger:true}
-    );
-  }
-
-  async function vincularTvCocina(){
-    const input=document.getElementById('config-codigo-vinculacion-cocina');
-    const btn=document.getElementById('btn-vincular-tv-cocina');
-    const codigo=String(input&&input.value||'').replace(/\D/g,'');
-    const nombreInput=document.getElementById('config-nombre-dispositivo-cocina');
-    const nombre=String(nombreInput&&nombreInput.value||'').trim();
-    if(!/^\d{6}$/.test(codigo)){ showAlert('warning','Código incompleto','Escriba los 6 dígitos que aparecen en la TV.'); if(input) input.focus(); return; }
-    const toggle=document.getElementById('config-pantalla-cocina-activa');
-    if(!toggle || !toggle.checked){ showAlert('warning','Pantalla inactiva','Active primero la Pantalla de Cocina para vincular la TV.'); return; }
-    setButtonBusy(btn,true,'Vinculando…');
-    try{
-      // Facilita el flujo: si el usuario acaba de activar el switch, guardamos ese acceso antes de vincular.
-      await guardarAccesoCocinaUI();
-      const d=await cocinaAccesoAdminPost('linkDevice',{codigo,nombre});
-      if(input) input.value='';
-      if(btn) btn.disabled=true;
-      if(nombreInput) nombreInput.value='';
-      renderDispositivosCocina(d.dispositivos||[]);
-      showAlert('success','TV vinculada',d.message||'La pantalla quedó vinculada correctamente.');
-    }catch(e){ showAlert('error','No se pudo vincular',e.message||'Revise el código e intente nuevamente.'); }
-    finally{setButtonBusy(btn,false);}
-  }
-
-  async function copiarEnlaceCocina(){
-    const input=document.getElementById('config-enlace-cocina');
-    const value=String(input&&input.value||'').trim();
-    if(!value){
-      showAlert('warning','Pantalla de Cocina','Primero active y guarde la Pantalla de Cocina para generar su enlace.');
-      return;
-    }
-
-    try{
-      if(navigator.clipboard&&window.isSecureContext){
-        await navigator.clipboard.writeText(value);
-      }else{
-        input.focus();
-        input.select();
-        document.execCommand('copy');
-      }
-      showAlert('success','Enlace copiado','El enlace privado de Cocina fue copiado.');
-    }catch(_){
-      input.focus();
-      input.select();
-      showAlert('info','Copiar enlace','El enlace quedó seleccionado para que pueda copiarlo manualmente.');
-    }
-  }
-
-  async function regenerarEnlaceCocina(){
-    const usarComandas=document.getElementById('config-usar-comandas');
-    if(usarComandas && !usarComandas.checked){
-      showAlert('warning','Pantalla de Cocina','Primero debe activar "Usar comandas".');
-      return;
-    }
-
-    showConfirm(
-      'Regenerar acceso de Cocina',
-      'El acceso actual dejará de funcionar inmediatamente y todas las pantallas deberán vincularse nuevamente. ¿Desea continuar?',
-      async ()=>{
-        const btn=document.getElementById('btn-regenerar-enlace-cocina');
-        setButtonBusy(btn,true,'Regenerando…');
-        try{
-          const d=await cocinaAccesoAdminPost('regenerate');
-          const input=document.getElementById('config-enlace-cocina');
-          const toggle=document.getElementById('config-pantalla-cocina-activa');
-          if(input) input.value=String(d.config&&d.config.enlace||'');
-          if(toggle) toggle.checked=true;
-          actualizarEstadoAccesoCocina();
-          showAlert('success','Acceso regenerado','El acceso anterior quedó inválido y las pantallas deberán vincularse nuevamente.');
-        }catch(e){
-          showAlert('error','Error',e.message||'No se pudo regenerar el acceso de Cocina.');
-        }finally{
-          setButtonBusy(btn,false);
-        }
-      },
-      {danger:true}
-    );
   }
 
   async function cargarConfiguracionOperacion(){
@@ -8176,7 +7972,6 @@ function initSelect2ForComboRow(row){
     const ec=document.getElementById('config-etiqueta-cocina'); if(ec)ec.value=etiquetaEstacion('cocina');
     const eb=document.getElementById('config-etiqueta-barra'); if(eb)eb.value=etiquetaEstacion('barra');
     const salidaWrap=document.getElementById('config-salida-comanda'); if(salidaWrap) salidaWrap.style.display=usaComandas?'':'none';
-    const accesoCocinaWrap=document.getElementById('config-acceso-cocina'); if(accesoCocinaWrap) accesoCocinaWrap.style.display=usaComandas?'':'none';
     const destino=document.getElementById('config-destino-comanda'); if(destino) destino.value=destinoComandaOperacion();
     const momento=document.getElementById('config-momento-ticket'); if(momento) momento.value=momentoTicketOperacion();
     const flujo=document.getElementById('config-flujo-cocina'); if(flujo) flujo.value=String(window.REST_CONFIG.flujo_cocina||'pasos');
@@ -8200,7 +7995,6 @@ function initSelect2ForComboRow(row){
       seguridadEstado.classList.toggle('is-off',!solicitarClaveGestionOperacion());
     }
     sincronizarTodosBotonesConfiguracion();
-    actualizarVisibilidadConfiguracionComandas();
     aplicarEtiquetasOperacion();
     renderizarCategorias();
     filtrarProductos(buscarProductoInput ? buscarProductoInput.value : '');
@@ -8246,273 +8040,7 @@ function initSelect2ForComboRow(row){
       setTipoFacturaRestaurante(tipo);
     });
 
-
-  // ===========================================================
-  // CENTRO DE CONFIGURACIÓN: categorías, búsqueda y memoria UI
-  // ===========================================================
-  const REST_CONFIG_TAB_KEY='izzy_restaurante_config_tab';
-
-  function normalizarBusquedaConfiguracion(valor){
-    return String(valor||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-  }
-
-  function obtenerTabConfiguracionDisponible(tab){
-    const requested=String(tab||'general');
-    const btn=document.querySelector(`#modal-configuracion-restaurante .rs-settings-nav-item[data-config-tab="${requested}"]`);
-    if(btn && btn.style.display!=='none') return requested;
-    return 'general';
-  }
-
-  function activarCategoriaConfiguracion(tab, opciones={}){
-    const modal=document.getElementById('modal-configuracion-restaurante');
-    if(!modal) return;
-    const target=obtenerTabConfiguracionDisponible(tab);
-    const search=document.getElementById('config-buscar-ajuste');
-    if(opciones.limpiarBusqueda!==false && search && search.value){
-      search.value='';
-      filtrarCentroConfiguracion('');
-    }
-    modal.querySelectorAll('.rs-settings-nav-item[data-config-tab]').forEach(btn=>{
-      const active=String(btn.dataset.configTab||'')===target;
-      btn.classList.toggle('is-active',active);
-      btn.setAttribute('aria-current',active?'page':'false');
-    });
-    modal.querySelectorAll('.rs-settings-panel[data-config-panel]').forEach(panel=>{
-      panel.classList.toggle('is-active',String(panel.dataset.configPanel||'')===target);
-    });
-    try{ sessionStorage.setItem(REST_CONFIG_TAB_KEY,target); }catch(_){}
-    const content=document.getElementById('config-centro-contenido');
-    if(content) content.scrollTop=0;
-  }
-
-  function filtrarCentroConfiguracion(valor){
-    const modal=document.getElementById('modal-configuracion-restaurante');
-    if(!modal) return;
-    const q=normalizarBusquedaConfiguracion(valor);
-    const searching=q.length>0;
-    const clear=document.getElementById('config-limpiar-busqueda');
-    const empty=document.getElementById('config-sin-resultados');
-    if(clear) clear.style.display=searching?'':'none';
-    modal.classList.toggle('rs-settings-searching',searching);
-
-    if(!searching){
-      modal.querySelectorAll('.rs-settings-item').forEach(item=>item.classList.remove('is-search-match'));
-      modal.querySelectorAll('.rs-settings-panel').forEach(panel=>panel.classList.remove('has-search-results'));
-      if(empty) empty.style.display='none';
-      let last='general';
-      try{ last=sessionStorage.getItem(REST_CONFIG_TAB_KEY)||'general'; }catch(_){}
-      activarCategoriaConfiguracion(last,{limpiarBusqueda:false});
-      return;
-    }
-
-    let total=0;
-    modal.querySelectorAll('.rs-settings-panel[data-config-panel]').forEach(panel=>{
-      let panelMatches=0;
-      panel.querySelectorAll('.rs-settings-item').forEach(item=>{
-        // No mostrar resultados pertenecientes a una función no disponible.
-        if(item.closest('[data-config-requires-comandas="1"]') && !usaComandasOperacion()){
-          item.classList.remove('is-search-match');
-          return;
-        }
-        const text=normalizarBusquedaConfiguracion((item.dataset.configSearch||'')+' '+(item.textContent||''));
-        const match=text.includes(q);
-        item.classList.toggle('is-search-match',match);
-        if(match){ panelMatches++; total++; }
-      });
-      panel.classList.toggle('has-search-results',panelMatches>0);
-    });
-    if(empty) empty.style.display=total===0?'flex':'none';
-  }
-
-  function actualizarVisibilidadConfiguracionComandas(){
-    const usa=usaComandasOperacion();
-    const modal=document.getElementById('modal-configuracion-restaurante');
-    if(!modal) return;
-    modal.querySelectorAll('[data-config-requires-comandas="1"]').forEach(el=>{ el.style.display=usa?'':'none'; });
-    modal.querySelectorAll('[data-config-requires-comandas-nav="1"]').forEach(el=>{ el.style.display=usa?'':'none'; });
-    const active=modal.querySelector('.rs-settings-nav-item.is-active[data-config-tab]');
-    if(active && active.style.display==='none') activarCategoriaConfiguracion('general');
-    const search=document.getElementById('config-buscar-ajuste');
-    if(search && search.value) filtrarCentroConfiguracion(search.value);
-  }
-
-  function inicializarCentroConfiguracionRestaurante(){
-    const modal=document.getElementById('modal-configuracion-restaurante');
-    if(!modal) return;
-    actualizarVisibilidadConfiguracionComandas();
-    const search=document.getElementById('config-buscar-ajuste');
-    if(search) search.value='';
-    modal.classList.remove('rs-settings-searching');
-    let last='general';
-    try{ last=sessionStorage.getItem(REST_CONFIG_TAB_KEY)||'general'; }catch(_){}
-    activarCategoriaConfiguracion(last,{limpiarBusqueda:false});
-    if(search) setTimeout(()=>{ try{search.focus({preventScroll:true});}catch(_){search.focus();} },120);
-  }
-
-
-  // ===========================================================
-  // CENTRO DE CONFIGURACIÓN INTELIGENTE
-  // Cambios pendientes, perfiles recomendados, dependencias,
-  // diagnóstico, restauración por sección e historial.
-  // ===========================================================
-  let REST_CONFIG_SNAPSHOT=null;
-  let REST_CONFIG_DIRTY=false;
-
-  function leerFormularioConfiguracion(){
-    const val=(id,def='')=>{const el=document.getElementById(id);return el?String(el.value??def):String(def)};
-    const chk=(id,def=false)=>{const el=document.getElementById(id);return el?!!el.checked:!!def};
-    return {
-      usar_mesas:chk('config-usar-mesas')?1:0,
-      usar_comandas:chk('config-usar-comandas',true)?1:0,
-      etiqueta_cocina:val('config-etiqueta-cocina','Cocina').trim()||'Cocina',
-      etiqueta_barra:val('config-etiqueta-barra','Barra').trim()||'Barra',
-      destino_comanda:val('config-destino-comanda','pantalla'),
-      momento_ticket:val('config-momento-ticket','enviar'),
-      flujo_cocina:val('config-flujo-cocina','pasos'),
-      solicitar_clave_gestion:chk('config-solicitar-clave-gestion',true)?1:0,
-      permitir_facturas_credito:chk('config-permitir-facturas-credito')?1:0,
-      pantalla_cocina_activa:chk('config-pantalla-cocina-activa')?1:0
-    };
-  }
-
-  function diferenciasConfiguracion(a,b){
-    const out={}; a=a||{};b=b||{};
-    Object.keys(b).forEach(k=>{if(String(a[k]??'')!==String(b[k]??''))out[k]={antes:a[k]??null,despues:b[k]??null};});
-    return out;
-  }
-
-  function establecerSnapshotConfiguracion(){
-    REST_CONFIG_SNAPSHOT=leerFormularioConfiguracion();
-    REST_CONFIG_DIRTY=false;
-    actualizarCambiosPendientesUI();
-  }
-
-  function actualizarCambiosPendientesUI(){
-    const current=leerFormularioConfiguracion();
-    const diff=REST_CONFIG_SNAPSHOT?diferenciasConfiguracion(REST_CONFIG_SNAPSHOT,current):{};
-    const count=Object.keys(diff).length;
-    REST_CONFIG_DIRTY=count>0;
-    const badge=document.getElementById('config-cambios-pendientes');
-    const footer=document.getElementById('config-footer-estado');
-    if(badge){
-      badge.classList.toggle('is-clean',!count); badge.classList.toggle('is-dirty',!!count);
-      badge.innerHTML=count?`<i class="fas fa-circle-exclamation"></i> ${count} cambio${count===1?'':'s'} pendiente${count===1?'':'s'}`:'<i class="fas fa-circle-check"></i> Sin cambios pendientes';
-    }
-    if(footer) footer.innerHTML=count?`<i class="fas fa-circle-exclamation"></i> Hay ${count} cambio${count===1?'':'s'} sin guardar.`:'<i class="fas fa-circle-info"></i> Los cambios de categorías se guardan juntos.';
-    return diff;
-  }
-
-  function categoriaActivaConfiguracion(){
-    const modal=document.getElementById('modal-configuracion-restaurante');
-    const active=modal&&modal.querySelector('.rs-settings-nav-item.is-active[data-config-tab]');
-    return active?String(active.dataset.configTab||'general'):'general';
-  }
-
-  function defaultsCategoria(cat){
-    const defaults={
-      general:{usar_mesas:1,usar_comandas:1},
-      operacion:{etiqueta_cocina:'Cocina',etiqueta_barra:'Barra',destino_comanda:'pantalla',momento_ticket:'enviar',flujo_cocina:'pasos'},
-      facturacion:{permitir_facturas_credito:0},
-      cocina:{pantalla_cocina_activa:0},
-      seguridad:{solicitar_clave_gestion:1}
-    };
-    return defaults[cat]||{};
-  }
-
-  function aplicarValoresConfiguracion(vals){
-    const checks={usar_mesas:'config-usar-mesas',usar_comandas:'config-usar-comandas',solicitar_clave_gestion:'config-solicitar-clave-gestion',permitir_facturas_credito:'config-permitir-facturas-credito',pantalla_cocina_activa:'config-pantalla-cocina-activa'};
-    const inputs={etiqueta_cocina:'config-etiqueta-cocina',etiqueta_barra:'config-etiqueta-barra',destino_comanda:'config-destino-comanda',momento_ticket:'config-momento-ticket',flujo_cocina:'config-flujo-cocina'};
-    Object.entries(vals||{}).forEach(([k,v])=>{
-      if(checks[k]){const el=document.getElementById(checks[k]);if(el){el.checked=Number(v)!==0;el.dispatchEvent(new Event('change',{bubbles:true}));}}
-      if(inputs[k]){const el=document.getElementById(inputs[k]);if(el){el.value=String(v);el.dispatchEvent(new Event('change',{bubbles:true}));}}
-    });
-    sincronizarTodosBotonesConfiguracion(); actualizarVisibilidadConfiguracionComandas(); actualizarEstadoAccesoCocina(); actualizarCambiosPendientesUI(); actualizarDependenciasConfiguracion();
-  }
-
-  function aplicarPerfilNegocio(){
-    const select=document.getElementById('config-perfil-negocio'); const perfil=String(select&&select.value||'');
-    if(!perfil){showAlert('info','Configuración recomendada','Seleccione primero el tipo de negocio.');return;}
-    const perfiles={
-      restaurante:{usar_mesas:1,usar_comandas:1,destino_comanda:'pantalla',momento_ticket:'enviar',flujo_cocina:'pasos',solicitar_clave_gestion:1,permitir_facturas_credito:0},
-      rapida:{usar_mesas:0,usar_comandas:1,destino_comanda:'pantalla',momento_ticket:'enviar',flujo_cocina:'directo',solicitar_clave_gestion:1,permitir_facturas_credito:0},
-      cafeteria:{usar_mesas:1,usar_comandas:1,destino_comanda:'pantalla',momento_ticket:'enviar',flujo_cocina:'pasos',solicitar_clave_gestion:1,permitir_facturas_credito:0},
-      venta_directa:{usar_mesas:0,usar_comandas:0,destino_comanda:'ticket',momento_ticket:'cobrar',flujo_cocina:'directo',pantalla_cocina_activa:0,solicitar_clave_gestion:1,permitir_facturas_credito:0}
-    };
-    aplicarValoresConfiguracion(perfiles[perfil]||{});
-    showAlert('success','Configuración aplicada','Revise los valores y presione Guardar configuración para confirmarlos.');
-  }
-
-  function restaurarCategoriaConfiguracion(){
-    const cat=categoriaActivaConfiguracion();
-    if(cat==='dispositivos'){showAlert('info','Dispositivos','Esta sección no tiene valores predeterminados. Puede administrar cada pantalla individualmente.');return;}
-    aplicarValoresConfiguracion(defaultsCategoria(cat));
-    showAlert('info','Sección restaurada','Se aplicaron valores recomendados a esta sección. Presione Guardar configuración para confirmarlos.');
-  }
-
-  function actualizarDependenciasConfiguracion(){
-    const box=document.getElementById('config-dependencias-aviso'); if(!box)return;
-    const c=leerFormularioConfiguracion(); const msgs=[];
-    if(!c.usar_comandas && c.pantalla_cocina_activa) msgs.push('La Pantalla de Cocina se desactivará porque las comandas están deshabilitadas.');
-    if(!c.usar_comandas) msgs.push('Sin comandas no se mostrarán Cocina, dispositivos ni flujo de preparación.');
-    if(c.destino_comanda==='ticket' && c.pantalla_cocina_activa) msgs.push('La pantalla está activa, pero el destino de la comanda está configurado como Solo ticket.');
-    box.style.display=msgs.length?'':'none';
-    box.innerHTML=msgs.length?`<i class="fas fa-triangle-exclamation"></i><div><strong>Revise estas dependencias</strong>${msgs.map(x=>`<span>${escapeHtml(x)}</span>`).join('')}</div>`:'';
-  }
-
-  async function mostrarDiagnosticoConfiguracion(){
-    const c=leerFormularioConfiguracion(); let devices=[];
-    try{const d=await cocinaAccesoAdminPost('listDevices');devices=Array.isArray(d.dispositivos)?d.dispositivos:[];}catch(_){devices=[];}
-    const activeDevices=devices.filter(x=>Number(x.activo)===1); const online=activeDevices.filter(x=>Number(x.en_linea)===1);
-    const rows=[
-      ['Modo',c.usar_mesas?'Mesas + Para llevar':'Venta directa / Para llevar'],
-      ['Comandas',c.usar_comandas?'Activas':'Desactivadas'],
-      ['Crédito',c.permitir_facturas_credito?'Habilitado':'Solo contado'],
-      ['Seguridad',c.solicitar_clave_gestion?'Clave de gestión activa':'Sin clave adicional'],
-      ['Pantalla Cocina',c.pantalla_cocina_activa?'Activa':'Inactiva'],
-      ['Pantallas vinculadas',String(activeDevices.length)],
-      ['Pantallas en línea',String(online.length)]
-    ];
-    const html=`<div style="text-align:left">${rows.map(r=>`<div style="display:flex;justify-content:space-between;gap:16px;padding:7px 0;border-bottom:1px solid #edf1f4"><b>${escapeHtml(r[0])}</b><span>${escapeHtml(r[1])}</span></div>`).join('')}</div>`;
-    const summary=document.getElementById('config-diagnostico-resumen'); if(summary) summary.textContent=`${activeDevices.length} pantalla(s) vinculada(s), ${online.length} en línea · ${c.usar_comandas?'Comandas activas':'Comandas desactivadas'}`;
-    if(typeof Swal!=='undefined'&&Swal.fire) Swal.fire({title:'Diagnóstico del Restaurante',html,icon:'info'}); else showAlert('info','Diagnóstico',rows.map(r=>r.join(': ')).join(' · '));
-  }
-
-  async function enviarPruebaCocina(){
-    const btn=document.getElementById('btn-probar-pantalla-cocina'); setButtonBusy(btn,true,'Enviando…');
-    try{const d=await cocinaAccesoAdminPost('sendTest',{mensaje:'Prueba de conexión IZZY'});showAlert('success','Prueba enviada',d.message||'Revise las pantallas de Cocina.');}
-    catch(e){showAlert('error','No se pudo enviar',e.message||'Revise que Cocina esté activa y tenga dispositivos vinculados.');}
-    finally{setButtonBusy(btn,false);}
-  }
-
-  async function renombrarDispositivoCocina(deviceId,currentName){
-    let name='';
-    if(typeof Swal!=='undefined'&&Swal.fire){const r=await Swal.fire({title:'Renombrar pantalla',input:'text',inputValue:String(currentName||''),inputLabel:'Nombre del dispositivo',showCancelButton:true,confirmButtonText:'Guardar',cancelButtonText:'Cancelar',inputValidator:v=>String(v||'').trim()?'':'Escriba un nombre.'}); if(!r.isConfirmed)return;name=String(r.value||'').trim();}
-    else{name=String(window.prompt('Nombre de la pantalla:',String(currentName||''))||'').trim();if(!name)return;}
-    try{const d=await cocinaAccesoAdminPost('renameDevice',{dispositivo_id:String(deviceId),nombre:name});renderDispositivosCocina(d.dispositivos||[]);showAlert('success','Pantalla actualizada','El nombre fue actualizado.');}
-    catch(e){showAlert('error','No se pudo renombrar',e.message||'Intente nuevamente.');}
-  }
-
-  async function cargarHistorialConfiguracion(){
-    const box=document.getElementById('config-historial-list');if(!box)return;
-    box.innerHTML='<div class="rs-kitchen-device-empty"><i class="fas fa-spinner fa-spin"></i> Cargando historial…</div>';
-    try{
-      const d=await cocinaAccesoAdminPost('listHistory'); const rows=Array.isArray(d.historial)?d.historial:[];
-      if(!rows.length){box.innerHTML='<div class="rs-kitchen-device-empty"><i class="fas fa-clock"></i> Todavía no hay cambios registrados.</div>';return;}
-      box.innerHTML=rows.map(h=>`<article class="rs-config-history-item"><span class="rs-config-history-icon"><i class="fas fa-pen-to-square"></i></span><div><strong>${escapeHtml(h.resumen||'Configuración actualizada')}</strong><small>${escapeHtml(formatearFechaDispositivoCocina(h.fecha_registro))} · Usuario #${Number(h.users_id)||0}</small></div><span class="rs-config-history-category">${escapeHtml(h.categoria||'general')}</span></article>`).join('');
-    }catch(e){box.innerHTML=`<div class="rs-kitchen-device-empty is-error"><i class="fas fa-triangle-exclamation"></i>${escapeHtml(e.message||'No se pudo cargar el historial.')}</div>`;}
-  }
-
-  async function registrarHistorialConfiguracion(diff){
-    if(!diff||!Object.keys(diff).length)return;
-    const keys=Object.keys(diff); const map={usar_mesas:'General',usar_comandas:'General',etiqueta_cocina:'Operación',etiqueta_barra:'Operación',destino_comanda:'Operación',momento_ticket:'Operación',flujo_cocina:'Operación',solicitar_clave_gestion:'Seguridad',permitir_facturas_credito:'Facturación',pantalla_cocina_activa:'Cocina'};
-    const cats=[...new Set(keys.map(k=>map[k]||'General'))]; const resumen=`${keys.length} ajuste${keys.length===1?'':'s'} actualizado${keys.length===1?'':'s'} · ${cats.join(', ')}`;
-    try{await cocinaAccesoAdminPost('recordHistory',{categoria:cats.length===1?cats[0].toLowerCase():'varias',resumen,cambios:JSON.stringify(diff)});}catch(e){console.warn('[Restaurante] Historial:',e.message);}
-  }
-
-  function marcarCambioConfiguracion(){actualizarCambiosPendientesUI();actualizarDependenciasConfiguracion();}
-
   async function guardarConfiguracionOperacionUI(){
-    const diffAntes=actualizarCambiosPendientesUI();
     const btn=document.getElementById('btn-guardar-configuracion-restaurante');
     setButtonBusy(btn,true,'Guardando…');
     try{
@@ -8529,23 +8057,8 @@ function initSelect2ForComboRow(row){
       });
       if(!d||!d.status) throw new Error(d&&d.message?d.message:'No se pudo guardar');
       window.REST_CONFIG=d.config||window.REST_CONFIG; aplicarConfiguracionOperacion();
-
-      let cocinaAviso='';
-      try{
-        await guardarAccesoCocinaUI();
-      }catch(errorCocina){
-        console.error('[Restaurante] No se pudo guardar el acceso independiente de Cocina:',errorCocina);
-        cocinaAviso=errorCocina&&errorCocina.message?errorCocina.message:'No se pudo actualizar el acceso independiente de Cocina.';
-      }
-
-      await registrarHistorialConfiguracion(diffAntes);
-      establecerSnapshotConfiguracion();
       document.getElementById('modal-configuracion-restaurante').style.display='none';
-      if(cocinaAviso){
-        showAlert('warning','Configuración guardada','La configuración del módulo fue actualizada, pero el acceso de Cocina no pudo actualizarse: '+cocinaAviso);
-      }else{
-        showAlert('success','Configuración','La configuración del módulo fue actualizada.');
-      }
+      showAlert('success','Configuración','La configuración del módulo fue actualizada.');
     }catch(e){showAlert('error','Error',e.message||'No se pudo guardar');}
     finally{setButtonBusy(btn,false);}
   }
@@ -8586,84 +8099,16 @@ function initSelect2ForComboRow(row){
       aplicarConfiguracionOperacion();
       const modalConfig = document.getElementById('modal-configuracion-restaurante');
       if(modalConfig) modalConfig.style.display='block';
-      inicializarCentroConfiguracionRestaurante();
       setTimeout(reinitSelect2Restaurante,80);
-      Promise.resolve(cargarAccesoCocinaUI()).finally(()=>{
-        setTimeout(()=>{establecerSnapshotConfiguracion();actualizarDependenciasConfiguracion();},80);
-      });
-      cargarHistorialConfiguracion();
-      const pairBtn=document.getElementById('btn-vincular-tv-cocina'); const pairInput=document.getElementById('config-codigo-vinculacion-cocina'); if(pairBtn) pairBtn.disabled=String(pairInput&&pairInput.value||'').replace(/\D/g,'').length!==6;
     });
   });
-
-  document.addEventListener('click',function(e){
-    const close=e.target&&e.target.closest?e.target.closest('[data-close="#modal-configuracion-restaurante"]'):null;
-    if(!close||!REST_CONFIG_DIRTY)return;
-    e.preventDefault();e.stopImmediatePropagation();
-    const doClose=()=>{REST_CONFIG_DIRTY=false;const m=document.getElementById('modal-configuracion-restaurante');if(m)m.style.display='none';};
-    showConfirm(
-      'Cambios sin guardar',
-      'Tiene cambios pendientes. Si cierra ahora se perderán.',
-      doClose,
-      {danger:true}
-    );
-  },true);
   $('#btn-guardar-configuracion-restaurante').off('click.restCfgSave').on('click.restCfgSave',guardarConfiguracionOperacionUI);
 
-  $(document).off('click.restCfgTabs','#modal-configuracion-restaurante .rs-settings-nav-item[data-config-tab]').on('click.restCfgTabs','#modal-configuracion-restaurante .rs-settings-nav-item[data-config-tab]',function(e){
-    e.preventDefault();
-    activarCategoriaConfiguracion(this.dataset.configTab||'general');
-  });
-  $('#config-buscar-ajuste').off('input.restCfgSearch').on('input.restCfgSearch',function(){ filtrarCentroConfiguracion(this.value); });
-  $('#config-buscar-ajuste').off('keydown.restCfgSearch').on('keydown.restCfgSearch',function(e){ if(e.key==='Escape' && this.value){ e.preventDefault(); this.value=''; filtrarCentroConfiguracion(''); } });
-  $('#config-limpiar-busqueda').off('click.restCfgSearch').on('click.restCfgSearch',function(e){ e.preventDefault(); const input=document.getElementById('config-buscar-ajuste'); if(input){input.value=''; filtrarCentroConfiguracion(''); input.focus();} });
-
-  $('#btn-copiar-url-tv-cocina').off('click.restKitchenTvUrl').on('click.restKitchenTvUrl',function(e){ e.preventDefault(); copiarUrlTvCocina(); });
-  $('#btn-copiar-url-seguridad-cocina').off('click.restKitchenSecurityUrl').on('click.restKitchenSecurityUrl',async function(e){
-    e.preventDefault();
-    const input=document.getElementById('config-url-cocina-seguridad');
-    const url=String((input&&input.value)||`${BASE}cocina/`).trim();
-    try{
-      if(navigator.clipboard&&window.isSecureContext) await navigator.clipboard.writeText(url);
-      else{ const tmp=document.createElement('textarea');tmp.value=url;tmp.style.position='fixed';tmp.style.opacity='0';document.body.appendChild(tmp);tmp.select();document.execCommand('copy');tmp.remove(); }
-      showAlert('success','Dirección copiada','La dirección de Pantalla de Cocina fue copiada.');
-    }catch(_){ if(input){input.focus();input.select();} showAlert('info','Dirección de Cocina',url); }
-  });
-  $('#btn-aplicar-perfil-config').off('click.restCfgProfile').on('click.restCfgProfile',function(e){e.preventDefault();aplicarPerfilNegocio();});
-  $('#btn-diagnostico-config').off('click.restCfgDiag').on('click.restCfgDiag',function(e){e.preventDefault();mostrarDiagnosticoConfiguracion();});
-  $('#btn-restaurar-seccion-config').off('click.restCfgRestore').on('click.restCfgRestore',function(e){e.preventDefault();restaurarCategoriaConfiguracion();});
-  $('#btn-probar-pantalla-cocina').off('click.restKitchenTest').on('click.restKitchenTest',function(e){e.preventDefault();enviarPruebaCocina();});
-  $('#btn-refrescar-historial-config').off('click.restCfgHistory').on('click.restCfgHistory',function(e){e.preventDefault();cargarHistorialConfiguracion();});
-  $(document).off('click.restKitchenRename','.btn-renombrar-dispositivo-cocina').on('click.restKitchenRename','.btn-renombrar-dispositivo-cocina',function(e){e.preventDefault();renombrarDispositivoCocina(this.dataset.deviceId,this.dataset.deviceName);});
-  $(document).off('input.restCfgDirty change.restCfgDirty','#modal-configuracion-restaurante input,#modal-configuracion-restaurante select').on('input.restCfgDirty change.restCfgDirty','#modal-configuracion-restaurante input,#modal-configuracion-restaurante select',function(){if(this.id==='config-buscar-ajuste'||this.id==='config-perfil-negocio'||this.id==='config-codigo-vinculacion-cocina'||this.id==='config-nombre-dispositivo-cocina')return;marcarCambioConfiguracion();});
-
-  $('#btn-vincular-tv-cocina').off('click.restKitchenPair').on('click.restKitchenPair',function(e){ e.preventDefault(); vincularTvCocina(); });
-  $('#btn-refrescar-dispositivos-cocina').off('click.restKitchenDevices').on('click.restKitchenDevices',function(e){ e.preventDefault(); cargarDispositivosCocinaUI(); });
-  $(document).off('click.restKitchenUnlink','.btn-desvincular-dispositivo-cocina').on('click.restKitchenUnlink','.btn-desvincular-dispositivo-cocina',function(e){ e.preventDefault(); desvincularDispositivoCocina(this.dataset.deviceId,this.dataset.deviceName); });
-  $('#config-codigo-vinculacion-cocina').off('input.restKitchenCode').on('input.restKitchenCode',function(){ const n=String(this.value||'').replace(/\D/g,'').slice(0,6); this.value=n.length>3?n.slice(0,3)+' '+n.slice(3):n; const b=document.getElementById('btn-vincular-tv-cocina'); if(b)b.disabled=n.length!==6; });
-  $('#config-codigo-vinculacion-cocina').off('keydown.restKitchenCode').on('keydown.restKitchenCode',function(e){ if(e.key==='Enter'){e.preventDefault();vincularTvCocina();} });
-
-  $('#btn-copiar-enlace-cocina').off('click.restKitchenCopy').on('click.restKitchenCopy',function(e){
-    e.preventDefault();
-    copiarEnlaceCocina();
-  });
-
-  $('#btn-regenerar-enlace-cocina').off('click.restKitchenRegen').on('click.restKitchenRegen',function(e){
-    e.preventDefault();
-    regenerarEnlaceCocina();
-  });
-
-  $('#config-pantalla-cocina-activa').off('change.restKitchenActive').on('change.restKitchenActive',function(){
-    actualizarEstadoAccesoCocina();
-  });
-
   $('#config-usar-comandas').off('change.restCfgComandas').on('change.restCfgComandas',function(){
-    actualizarVisibilidadConfiguracionComandas();
-    if(!this.checked){
-      const toggle=document.getElementById('config-pantalla-cocina-activa');
-      if(toggle) toggle.checked=false;
-      actualizarEstadoAccesoCocina();
-    }
+    const wrap=document.getElementById('config-grupos-operacion');
+    const salida=document.getElementById('config-salida-comanda');
+    if(wrap) wrap.style.display=this.checked?'':'none';
+    if(salida) salida.style.display=this.checked?'':'none';
   });
 
   $('#config-solicitar-clave-gestion').off('change.restCfgClave').on('change.restCfgClave',function(){

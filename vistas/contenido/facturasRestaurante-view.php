@@ -1,3 +1,18 @@
+<?php
+// Contexto cifrado para administrar el enlace de Cocina desde una sesión normal de Restaurante.
+// No modifica login, plantilla ni el loader del POS.
+$restCocinaAdminContext = '';
+try {
+    require_once dirname(__DIR__, 2) . '/core/cocina/cocinaTokenService.php';
+    $restTenantDb = trim((string)($GLOBALS['db'] ?? (defined('DB') ? DB : '')));
+    $restEmpresaId = (int)($_SESSION['empresa_id_sd'] ?? 0);
+    if ($restTenantDb !== '' && $restEmpresaId > 0 && session_id() !== '') {
+        $restCocinaAdminContext = CocinaTokenService::createAdminContext($restTenantDb, $restEmpresaId, session_id());
+    }
+} catch (Throwable $e) {
+    error_log('[Restaurante][CocinaContext] ' . $e->getMessage());
+}
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -1325,183 +1340,322 @@
 
   <!-- =================== MODAL: CONFIGURACIÓN DEL MÓDULO =================== -->
   <div id="modal-configuracion-restaurante" class="modal rs-modal" role="dialog" aria-modal="true" style="display:none;">
-    <div class="modal-content rs-config-modal">
+    <div class="modal-content rs-config-modal rs-settings-modal">
       <div class="modal-header">
-        <h3><i class="fas fa-sliders-h"></i> Configuración del módulo</h3>
+        <h3><i class="fas fa-sliders-h"></i> Centro de configuración</h3>
         <span class="close" data-close="#modal-configuracion-restaurante" title="Cerrar">&times;</span>
       </div>
-      <div class="modal-body">
-        <div class="rs-config-intro">
-          <i class="fas fa-store"></i>
-          <div><strong>Modo de operación</strong><small>Define si este punto de venta utiliza mesas o trabaja como venta directa.</small></div>
-        </div>
-        <div class="rs-config-options">
-          <label class="rs-config-card" for="config-usar-mesas">
-            <input type="checkbox" id="config-usar-mesas">
-            <span class="rs-config-card-icon"><i class="fas fa-chair"></i></span>
-            <span><strong>Usar mesas</strong><small>Muestra mesas y selector Para llevar / En mesa.</small></span>
-          </label>
-          <label class="rs-config-card" for="config-usar-comandas">
-            <input type="checkbox" id="config-usar-comandas" checked>
-            <span class="rs-config-card-icon"><i class="fas fa-fire"></i></span>
-            <span><strong>Usar comandas</strong><small>Envía productos de Cocina/Barra a sus pantallas de preparación.</small></span>
-          </label>
+
+      <div class="modal-body rs-settings-body">
+        <div class="rs-settings-topbar">
+          <div class="rs-settings-search-wrap">
+            <i class="fas fa-search" aria-hidden="true"></i>
+            <input type="search" id="config-buscar-ajuste" class="form-control" placeholder="Buscar configuración: mesas, crédito, cocina, seguridad, TV..." autocomplete="off" aria-label="Buscar configuración">
+            <button type="button" id="config-limpiar-busqueda" class="rs-settings-search-clear" title="Limpiar búsqueda" aria-label="Limpiar búsqueda" style="display:none;"><i class="fas fa-times"></i></button>
+          </div>
+          <div class="rs-settings-context">
+            <span class="rs-settings-context-icon"><i class="fas fa-store"></i></span>
+            <span><strong>Restaurante / POS</strong><small>Configure solo lo que necesita sin recorrer una ventana larga.</small></span>
+          </div>
         </div>
 
-        <section class="rs-config-security" aria-labelledby="rs-config-security-title">
-          <div class="rs-config-security-main">
-            <span class="rs-config-security-icon"><i class="fas fa-shield-halved"></i></span>
-            <div class="rs-config-security-copy">
-              <strong id="rs-config-security-title">Seguridad de gestión</strong>
-              <small>Decide si las acciones administrativas del módulo deben solicitar una clave adicional.</small>
-            </div>
-            <span id="config-seguridad-estado" class="rs-config-security-status"><i class="fas fa-shield-halved"></i> Protección activa</span>
-          </div>
-          <label class="rs-config-security-toggle" for="config-solicitar-clave-gestion">
-            <span>
-              <b>Solicitar clave para gestión</b>
-              <small>Si está activa, crear o editar clientes, mesas, categorías, productos, promociones y combos solicitará validación administrativa. Configuración del módulo siempre solicita clave, aunque esta opción esté desactivada. Los permisos del usuario siempre se mantienen.</small>
-            </span>
-            <span class="rs-switch">
-              <input type="checkbox" id="config-solicitar-clave-gestion" checked>
-              <span class="rs-switch-track"><span class="rs-switch-thumb"></span></span>
-            </span>
-          </label>
-        </section>
+        <div class="rs-settings-layout">
+          <nav class="rs-settings-nav" aria-label="Categorías de configuración">
+            <button type="button" class="rs-settings-nav-item is-active" data-config-tab="general">
+              <span class="rs-settings-nav-icon"><i class="fas fa-sliders-h"></i></span>
+              <span><b>General</b><small>Modo de operación</small></span>
+              <i class="fas fa-chevron-right rs-settings-nav-arrow"></i>
+            </button>
+            <button type="button" class="rs-settings-nav-item" data-config-tab="operacion">
+              <span class="rs-settings-nav-icon"><i class="fas fa-gears"></i></span>
+              <span><b>Operación</b><small>Grupos y comandas</small></span>
+              <i class="fas fa-chevron-right rs-settings-nav-arrow"></i>
+            </button>
+            <button type="button" class="rs-settings-nav-item" data-config-tab="facturacion">
+              <span class="rs-settings-nav-icon"><i class="fas fa-file-invoice-dollar"></i></span>
+              <span><b>Facturación</b><small>Contado y crédito</small></span>
+              <i class="fas fa-chevron-right rs-settings-nav-arrow"></i>
+            </button>
+            <button type="button" class="rs-settings-nav-item" data-config-tab="cocina" data-config-requires-comandas-nav="1">
+              <span class="rs-settings-nav-icon"><i class="fas fa-utensils"></i></span>
+              <span><b>Cocina</b><small>Pantalla y vinculación</small></span>
+              <i class="fas fa-chevron-right rs-settings-nav-arrow"></i>
+            </button>
+            <button type="button" class="rs-settings-nav-item" data-config-tab="dispositivos" data-config-requires-comandas-nav="1">
+              <span class="rs-settings-nav-icon"><i class="fas fa-display"></i></span>
+              <span><b>Dispositivos</b><small>TVs vinculadas</small></span>
+              <i class="fas fa-chevron-right rs-settings-nav-arrow"></i>
+            </button>
+            <button type="button" class="rs-settings-nav-item" data-config-tab="seguridad">
+              <span class="rs-settings-nav-icon"><i class="fas fa-shield-halved"></i></span>
+              <span><b>Seguridad</b><small>Protección y accesos</small></span>
+              <i class="fas fa-chevron-right rs-settings-nav-arrow"></i>
+            </button>
+          </nav>
 
-        <section class="rs-config-credit" aria-labelledby="rs-config-credit-title">
-          <div class="rs-config-credit-main">
-            <span class="rs-config-credit-icon"><i class="fas fa-file-invoice-dollar"></i></span>
-            <div class="rs-config-credit-copy">
-              <strong id="rs-config-credit-title">Facturación al crédito</strong>
-              <small>Decide si los cajeros pueden elegir entre Contado y Crédito al facturar.</small>
-            </div>
-            <span id="config-credito-estado" class="rs-config-credit-status is-off"><i class="fas fa-money-bill-wave"></i> Solo contado</span>
-          </div>
-          <label class="rs-config-credit-toggle" for="config-permitir-facturas-credito">
-            <span>
-              <b>Permitir facturas al crédito</b>
-              <small>Desactivada por defecto. Al activarla aparecerá el selector Contado / Crédito. Cada venta nueva siempre inicia en Contado.</small>
-            </span>
-            <span class="rs-switch">
-              <input type="checkbox" id="config-permitir-facturas-credito">
-              <span class="rs-switch-track"><span class="rs-switch-thumb"></span></span>
-            </span>
-          </label>
-        </section>
-
-        <div class="rs-config-stations" id="config-grupos-operacion">
-          <div class="rs-config-section-title">
-            <i class="fas fa-tags"></i>
-            <div><strong>Nombres de agrupación</strong><small>Personaliza los dos filtros de productos sin cambiar la lógica interna del sistema.</small></div>
-          </div>
-          <div class="rs-config-station-grid">
-            <div class="form-group">
-              <label for="config-etiqueta-cocina">Nombre del grupo 1</label>
-              <input type="text" id="config-etiqueta-cocina" class="form-control" maxlength="30" placeholder="Ej. Cocina, Productos, Bodega">
-            </div>
-            <div class="form-group">
-              <label for="config-etiqueta-barra">Nombre del grupo 2</label>
-              <input type="text" id="config-etiqueta-barra" class="form-control" maxlength="30" placeholder="Ej. Barra, Servicios, Mostrador">
-            </div>
-          </div>
-          <small class="rs-config-note"><i class="fas fa-info-circle"></i> Internamente se conservan los valores actuales para no romper productos, filtros ni comandas existentes.</small>
-        </div>
-
-        <div class="rs-config-stations" id="config-salida-comanda">
-          <div class="rs-config-section-title">
-            <i class="fas fa-print"></i>
-            <div>
-              <strong>Salida de la comanda</strong>
-              <small>Define qué ocurre con la orden de preparación cuando el negocio utiliza comandas.</small>
-            </div>
-          </div>
-
-          <div class="rs-config-flow-grid" aria-label="Flujo de salida de la comanda">
-            <section class="rs-config-flow-stage" data-config-stage="destino">
-              <div class="rs-config-flow-heading">
-                <span class="rs-config-flow-number">1</span>
-                <div>
-                  <strong>Destino de la orden</strong>
-                  <small>¿Dónde debe llegar la comanda?</small>
-                </div>
+          <main class="rs-settings-content" id="config-centro-contenido">
+            <div class="rs-config-smartbar" data-config-search="diagnóstico diagnostico cambios pendientes restaurar recomendada plantilla perfil negocio configuración inteligente">
+              <div class="rs-config-smart-status">
+                <span id="config-cambios-pendientes" class="rs-config-dirty-badge is-clean"><i class="fas fa-circle-check"></i> Sin cambios pendientes</span>
+                <small id="config-diagnostico-resumen">Configuración lista para revisar.</small>
               </div>
-              <input type="hidden" id="config-destino-comanda" value="pantalla">
-              <div class="rs-config-choice-list" data-choice-target="config-destino-comanda">
-                <button type="button" class="rs-config-choice" data-value="pantalla">
-                  <span class="rs-config-choice-icon"><i class="fas fa-display"></i></span>
-                  <span class="rs-config-choice-copy"><b>Solo pantalla</b><small>Cocina/Barra recibe la orden en pantalla.</small></span>
-                  <span class="rs-config-choice-check"><i class="fas fa-check"></i></span>
-                </button>
-                <button type="button" class="rs-config-choice" data-value="ticket">
-                  <span class="rs-config-choice-icon"><i class="fas fa-print"></i></span>
-                  <span class="rs-config-choice-copy"><b>Solo ticket</b><small>Imprime la orden en el equipo de caja.</small></span>
-                  <span class="rs-config-choice-check"><i class="fas fa-check"></i></span>
-                </button>
-                <button type="button" class="rs-config-choice" data-value="ambos">
-                  <span class="rs-config-choice-icon"><i class="fas fa-layer-group"></i></span>
-                  <span class="rs-config-choice-copy"><b>Pantalla + ticket</b><small>Usa ambas salidas al mismo tiempo.</small></span>
-                  <span class="rs-config-choice-check"><i class="fas fa-check"></i></span>
-                </button>
+              <div class="rs-config-smart-actions">
+                <select id="config-perfil-negocio" class="form-control" aria-label="Configuración recomendada">
+                  <option value="">Configuración recomendada…</option>
+                  <option value="restaurante">Restaurante con mesas</option>
+                  <option value="rapida">Comida rápida / mostrador</option>
+                  <option value="cafeteria">Cafetería</option>
+                  <option value="venta_directa">Venta directa / supermercado</option>
+                </select>
+                <button type="button" class="btn btn-info" id="btn-aplicar-perfil-config"><i class="fas fa-wand-magic-sparkles"></i> Aplicar</button>
+                <button type="button" class="btn btn-light" id="btn-diagnostico-config"><i class="fas fa-stethoscope"></i> Diagnóstico</button>
+                <button type="button" class="btn btn-light" id="btn-restaurar-seccion-config"><i class="fas fa-rotate-left"></i> Restaurar sección</button>
+              </div>
+            </div>
+            <div id="config-dependencias-aviso" class="rs-config-dependency-alert" style="display:none;"></div>
+            <!-- GENERAL -->
+            <section class="rs-settings-panel is-active" data-config-panel="general">
+              <header class="rs-settings-panel-head">
+                <span class="rs-settings-panel-icon"><i class="fas fa-sliders-h"></i></span>
+                <div><strong>Configuración general</strong><small>Define cómo se comporta este punto de venta.</small></div>
+              </header>
+
+              <div class="rs-settings-item" data-config-search="general modo operación operacion mesas mesa venta directa para llevar comandas restaurante pos">
+                <div class="rs-config-intro">
+                  <i class="fas fa-store"></i>
+                  <div><strong>Modo de operación</strong><small>Activa únicamente las herramientas que utiliza este negocio.</small></div>
+                </div>
+                <div class="rs-config-options">
+                  <label class="rs-config-card" for="config-usar-mesas">
+                    <input type="checkbox" id="config-usar-mesas">
+                    <span class="rs-config-card-icon"><i class="fas fa-chair"></i></span>
+                    <span><strong>Usar mesas</strong><small>Muestra mesas y selector Para llevar / En mesa.</small></span>
+                  </label>
+                  <label class="rs-config-card" for="config-usar-comandas">
+                    <input type="checkbox" id="config-usar-comandas" checked>
+                    <span class="rs-config-card-icon"><i class="fas fa-fire"></i></span>
+                    <span><strong>Usar comandas</strong><small>Envía productos de Cocina/Barra a preparación.</small></span>
+                  </label>
+                </div>
               </div>
             </section>
 
-            <section class="rs-config-flow-stage" data-config-stage="momento">
-              <div class="rs-config-flow-heading">
-                <span class="rs-config-flow-number">2</span>
-                <div>
-                  <strong>Momento del ticket</strong>
-                  <small>¿Cuándo debe generarse?</small>
+            <!-- OPERACIÓN -->
+            <section class="rs-settings-panel" data-config-panel="operacion">
+              <header class="rs-settings-panel-head">
+                <span class="rs-settings-panel-icon"><i class="fas fa-gears"></i></span>
+                <div><strong>Operación</strong><small>Personaliza agrupaciones y el flujo interno de preparación.</small></div>
+              </header>
+
+              <div class="rs-settings-item" data-config-search="operación operacion nombres grupos agrupación agrupacion cocina barra productos bodega servicios mostrador etiquetas" data-config-requires-comandas="1">
+                <div class="rs-config-stations" id="config-grupos-operacion">
+                  <div class="rs-config-section-title">
+                    <i class="fas fa-tags"></i>
+                    <div><strong>Nombres de agrupación</strong><small>Personaliza los dos filtros de productos sin cambiar la lógica interna del sistema.</small></div>
+                  </div>
+                  <div class="rs-config-station-grid">
+                    <div class="form-group">
+                      <label for="config-etiqueta-cocina">Nombre del grupo 1</label>
+                      <input type="text" id="config-etiqueta-cocina" class="form-control" maxlength="30" placeholder="Ej. Cocina, Productos, Bodega">
+                    </div>
+                    <div class="form-group">
+                      <label for="config-etiqueta-barra">Nombre del grupo 2</label>
+                      <input type="text" id="config-etiqueta-barra" class="form-control" maxlength="30" placeholder="Ej. Barra, Servicios, Mostrador">
+                    </div>
+                  </div>
+                  <small class="rs-config-note"><i class="fas fa-info-circle"></i> Internamente se conservan los valores actuales para no romper productos, filtros ni comandas existentes.</small>
                 </div>
               </div>
-              <input type="hidden" id="config-momento-ticket" value="enviar">
-              <div class="rs-config-choice-list" data-choice-target="config-momento-ticket">
-                <button type="button" class="rs-config-choice" data-value="enviar">
-                  <span class="rs-config-choice-icon"><i class="fas fa-paper-plane"></i></span>
-                  <span class="rs-config-choice-copy"><b>Al enviar</b><small>Ideal para mesas y preparación inmediata.</small></span>
-                  <span class="rs-config-choice-check"><i class="fas fa-check"></i></span>
-                </button>
-                <button type="button" class="rs-config-choice" data-value="cobrar">
-                  <span class="rs-config-choice-icon"><i class="fas fa-cash-register"></i></span>
-                  <span class="rs-config-choice-copy"><b>Al cobrar</b><small>Útil para venta rápida o para llevar.</small></span>
-                  <span class="rs-config-choice-check"><i class="fas fa-check"></i></span>
-                </button>
+
+              <div class="rs-settings-item" data-config-search="operación operacion salida comanda ticket imprimir impresión impresion pantalla destino momento enviar cobrar flujo preparación preparacion pasos directo" data-config-requires-comandas="1">
+                <div class="rs-config-stations" id="config-salida-comanda">
+                  <div class="rs-config-section-title">
+                    <i class="fas fa-print"></i>
+                    <div><strong>Salida de la comanda</strong><small>Define qué ocurre con la orden de preparación cuando el negocio utiliza comandas.</small></div>
+                  </div>
+
+                  <div class="rs-config-flow-grid" aria-label="Flujo de salida de la comanda">
+                    <section class="rs-config-flow-stage" data-config-stage="destino">
+                      <div class="rs-config-flow-heading"><span class="rs-config-flow-number">1</span><div><strong>Destino de la orden</strong><small>¿Dónde debe llegar la comanda?</small></div></div>
+                      <input type="hidden" id="config-destino-comanda" value="pantalla">
+                      <div class="rs-config-choice-list" data-choice-target="config-destino-comanda">
+                        <button type="button" class="rs-config-choice" data-value="pantalla"><span class="rs-config-choice-icon"><i class="fas fa-display"></i></span><span class="rs-config-choice-copy"><b>Solo pantalla</b><small>Cocina/Barra recibe la orden en pantalla.</small></span><span class="rs-config-choice-check"><i class="fas fa-check"></i></span></button>
+                        <button type="button" class="rs-config-choice" data-value="ticket"><span class="rs-config-choice-icon"><i class="fas fa-print"></i></span><span class="rs-config-choice-copy"><b>Solo ticket</b><small>Imprime la orden en el equipo de caja.</small></span><span class="rs-config-choice-check"><i class="fas fa-check"></i></span></button>
+                        <button type="button" class="rs-config-choice" data-value="ambos"><span class="rs-config-choice-icon"><i class="fas fa-layer-group"></i></span><span class="rs-config-choice-copy"><b>Pantalla + ticket</b><small>Usa ambas salidas al mismo tiempo.</small></span><span class="rs-config-choice-check"><i class="fas fa-check"></i></span></button>
+                      </div>
+                    </section>
+
+                    <section class="rs-config-flow-stage" data-config-stage="momento">
+                      <div class="rs-config-flow-heading"><span class="rs-config-flow-number">2</span><div><strong>Momento del ticket</strong><small>¿Cuándo debe generarse?</small></div></div>
+                      <input type="hidden" id="config-momento-ticket" value="enviar">
+                      <div class="rs-config-choice-list" data-choice-target="config-momento-ticket">
+                        <button type="button" class="rs-config-choice" data-value="enviar"><span class="rs-config-choice-icon"><i class="fas fa-paper-plane"></i></span><span class="rs-config-choice-copy"><b>Al enviar</b><small>Ideal para mesas y preparación inmediata.</small></span><span class="rs-config-choice-check"><i class="fas fa-check"></i></span></button>
+                        <button type="button" class="rs-config-choice" data-value="cobrar"><span class="rs-config-choice-icon"><i class="fas fa-cash-register"></i></span><span class="rs-config-choice-copy"><b>Al cobrar</b><small>Útil para venta rápida o para llevar.</small></span><span class="rs-config-choice-check"><i class="fas fa-check"></i></span></button>
+                      </div>
+                    </section>
+
+                    <section class="rs-config-flow-stage" data-config-stage="flujo">
+                      <div class="rs-config-flow-heading"><span class="rs-config-flow-number">3</span><div><strong>Flujo de preparación</strong><small>¿Cómo trabaja Cocina?</small></div></div>
+                      <input type="hidden" id="config-flujo-cocina" value="pasos">
+                      <div class="rs-config-choice-list" data-choice-target="config-flujo-cocina">
+                        <button type="button" class="rs-config-choice" data-value="pasos"><span class="rs-config-choice-icon"><i class="fas fa-list-check"></i></span><span class="rs-config-choice-copy"><b>Paso a paso</b><small>Pendiente → En preparación → Finalizar.</small></span><span class="rs-config-choice-check"><i class="fas fa-check"></i></span></button>
+                        <button type="button" class="rs-config-choice" data-value="directo"><span class="rs-config-choice-icon"><i class="fas fa-circle-check"></i></span><span class="rs-config-choice-copy"><b>Finalizar directo</b><small>Permite cerrar la orden sin paso intermedio.</small></span><span class="rs-config-choice-check"><i class="fas fa-check"></i></span></button>
+                      </div>
+                    </section>
+                  </div>
+
+                  <div class="rs-config-print-help"><i class="fas fa-info-circle"></i><span>La factura fiscal continúa usando la impresión normal de Facturas. Esta opción controla únicamente el ticket interno de la orden.</span></div>
+                </div>
               </div>
             </section>
 
-            <section class="rs-config-flow-stage" data-config-stage="flujo">
-              <div class="rs-config-flow-heading">
-                <span class="rs-config-flow-number">3</span>
-                <div>
-                  <strong>Flujo de preparación</strong>
-                  <small>¿Cómo trabaja Cocina?</small>
-                </div>
-              </div>
-              <input type="hidden" id="config-flujo-cocina" value="pasos">
-              <div class="rs-config-choice-list" data-choice-target="config-flujo-cocina">
-                <button type="button" class="rs-config-choice" data-value="pasos">
-                  <span class="rs-config-choice-icon"><i class="fas fa-list-check"></i></span>
-                  <span class="rs-config-choice-copy"><b>Paso a paso</b><small>Pendiente → En preparación → Finalizar.</small></span>
-                  <span class="rs-config-choice-check"><i class="fas fa-check"></i></span>
-                </button>
-                <button type="button" class="rs-config-choice" data-value="directo">
-                  <span class="rs-config-choice-icon"><i class="fas fa-circle-check"></i></span>
-                  <span class="rs-config-choice-copy"><b>Finalizar directo</b><small>Permite cerrar la orden sin paso intermedio.</small></span>
-                  <span class="rs-config-choice-check"><i class="fas fa-check"></i></span>
-                </button>
+            <!-- FACTURACIÓN -->
+            <section class="rs-settings-panel" data-config-panel="facturacion">
+              <header class="rs-settings-panel-head">
+                <span class="rs-settings-panel-icon"><i class="fas fa-file-invoice-dollar"></i></span>
+                <div><strong>Facturación</strong><small>Opciones que cambian la forma en que se cobra una venta.</small></div>
+              </header>
+
+              <div class="rs-settings-item" data-config-search="facturación facturacion crédito credito contado cuentas por cobrar pago venta">
+                <section class="rs-config-credit" aria-labelledby="rs-config-credit-title">
+                  <div class="rs-config-credit-main">
+                    <span class="rs-config-credit-icon"><i class="fas fa-file-invoice-dollar"></i></span>
+                    <div class="rs-config-credit-copy"><strong id="rs-config-credit-title">Facturación al crédito</strong><small>Decide si los cajeros pueden elegir entre Contado y Crédito al facturar.</small></div>
+                    <span id="config-credito-estado" class="rs-config-credit-status is-off"><i class="fas fa-money-bill-wave"></i> Solo contado</span>
+                  </div>
+                  <label class="rs-config-credit-toggle" for="config-permitir-facturas-credito">
+                    <span><b>Permitir facturas al crédito</b><small>Desactivada por defecto. Al activarla aparecerá el selector Contado / Crédito. Cada venta nueva siempre inicia en Contado.</small></span>
+                    <span class="rs-switch"><input type="checkbox" id="config-permitir-facturas-credito"><span class="rs-switch-track"><span class="rs-switch-thumb"></span></span></span>
+                  </label>
+                </section>
               </div>
             </section>
-          </div>
 
-          <div class="rs-config-print-help">
-            <i class="fas fa-info-circle"></i>
-            <span>La factura fiscal continúa usando la impresión normal de Facturas. Esta opción controla únicamente el ticket interno de la orden.</span>
-          </div>
+            <!-- COCINA -->
+            <section class="rs-settings-panel" data-config-panel="cocina" data-config-requires-comandas="1">
+              <header class="rs-settings-panel-head">
+                <span class="rs-settings-panel-icon"><i class="fas fa-utensils"></i></span>
+                <div><strong>Cocina</strong><small>Administra la pantalla independiente y vincula nuevos equipos.</small></div>
+              </header>
+
+              <div class="rs-settings-item" id="config-acceso-cocina" data-config-search="cocina pantalla independiente activar activa inactiva tv tablet computadora vincular código codigo seis dígitos digitos enlace corto">
+                <div class="rs-config-stations rs-kitchen-access">
+                  <div class="rs-config-section-title"><i class="fas fa-tv"></i><div><strong>Pantalla de Cocina independiente</strong><small>La TV entra por una dirección corta y se vincula con un código temporal de 6 dígitos.</small></div></div>
+
+                  <div class="rs-kitchen-access-grid">
+                    <div class="rs-kitchen-toggle-panel">
+                      <div class="rs-kitchen-toggle-head">
+                        <span class="rs-kitchen-toggle-icon"><i class="fas fa-power-off"></i></span>
+                        <div><strong>Pantalla de Cocina</strong><small>Controla el acceso independiente de esta empresa.</small></div>
+                        <span id="config-cocina-estado" class="rs-kitchen-status is-off"><i class="fas fa-circle"></i> Inactiva</span>
+                      </div>
+                      <label class="rs-config-security-toggle rs-kitchen-switch-row" for="config-pantalla-cocina-activa">
+                        <span><b>Habilitar pantalla independiente</b><small>Permite vincular TVs, tablets o computadoras sin iniciar sesión en IZZY.</small></span>
+                        <span class="rs-switch"><input type="checkbox" id="config-pantalla-cocina-activa"><span class="rs-switch-track"><span class="rs-switch-thumb"></span></span></span>
+                      </label>
+                    </div>
+
+                    <div class="rs-kitchen-pair-box">
+                      <div class="rs-kitchen-pair-title"><i class="fas fa-link"></i><div><strong>Vincular una nueva pantalla</strong><small>Repita este proceso para cada TV, tablet o computadora.</small></div></div>
+                      <div class="rs-kitchen-tv-url">
+                        <span>1. En la TV abra:</span>
+                        <div class="rs-kitchen-tv-url-row"><input type="text" id="config-enlace-tv-cocina" class="form-control" readonly><button type="button" class="btn btn-light" id="btn-copiar-url-tv-cocina"><i class="fas fa-copy"></i> Copiar</button></div>
+                      </div>
+                      <div class="rs-kitchen-code-entry">
+                        <label for="config-codigo-vinculacion-cocina">2. Escriba aquí el código de 6 dígitos que muestra la TV</label>
+                        <div class="rs-kitchen-device-name-row"><input type="text" id="config-nombre-dispositivo-cocina" class="form-control" maxlength="100" placeholder="Nombre opcional, ej. Cocina principal" autocomplete="off"></div>
+                        <div class="rs-kitchen-code-row"><input type="text" id="config-codigo-vinculacion-cocina" class="form-control" inputmode="numeric" maxlength="7" placeholder="000 000" autocomplete="off"><button type="button" class="btn btn-primary" id="btn-vincular-tv-cocina"><i class="fas fa-tv"></i> Vincular TV</button></div>
+                      </div>
+                      <small class="rs-config-note"><i class="fas fa-circle-info"></i> Abra la dirección indicada en cada pantalla y escriba aquí el código temporal que aparezca. Puede vincular todas las pantallas que necesite.</small>
+                      <div class="rs-kitchen-test-row"><div><strong>Probar pantallas vinculadas</strong><small>Envía una tarjeta de prueba durante unos segundos sin crear una venta real.</small></div><button type="button" class="btn btn-info" id="btn-probar-pantalla-cocina"><i class="fas fa-paper-plane"></i> Enviar prueba</button></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- DISPOSITIVOS -->
+            <section class="rs-settings-panel" data-config-panel="dispositivos" data-config-requires-comandas="1">
+              <header class="rs-settings-panel-head">
+                <span class="rs-settings-panel-icon"><i class="fas fa-display"></i></span>
+                <div><strong>Dispositivos vinculados</strong><small>Controle qué pantallas conservan acceso a Cocina.</small></div>
+              </header>
+
+              <div class="rs-settings-item" id="config-dispositivos-cocina-wrap" data-config-search="dispositivos pantallas vinculadas tv tablet computadora cocina principal secundaria última conexion ultima conexión desvincular seguridad acceso">
+                <div class="rs-kitchen-devices-box">
+                  <div class="rs-kitchen-devices-head">
+                    <div><strong><i class="fas fa-display"></i> Pantallas vinculadas</strong><small>Desvincule un solo equipo sin afectar los demás.</small></div>
+                    <button type="button" class="btn btn-light btn-sm" id="btn-refrescar-dispositivos-cocina"><i class="fas fa-rotate"></i> Actualizar</button>
+                  </div>
+                  <div id="config-dispositivos-cocina" class="rs-kitchen-devices-list"><div class="rs-kitchen-device-empty"><i class="fas fa-spinner fa-spin"></i> Cargando pantallas…</div></div>
+                </div>
+              </div>
+            </section>
+
+            <!-- SEGURIDAD -->
+            <section class="rs-settings-panel" data-config-panel="seguridad">
+              <header class="rs-settings-panel-head">
+                <span class="rs-settings-panel-icon"><i class="fas fa-shield-halved"></i></span>
+                <div><strong>Seguridad</strong><small>Protección de acciones administrativas y acceso independiente.</small></div>
+              </header>
+
+              <div class="rs-settings-item" data-config-search="seguridad protección proteccion clave gestión gestion administrador permisos clientes mesas categorías categorias productos promociones combos">
+                <section class="rs-config-security" aria-labelledby="rs-config-security-title">
+                  <div class="rs-config-security-main">
+                    <span class="rs-config-security-icon"><i class="fas fa-shield-halved"></i></span>
+                    <div class="rs-config-security-copy"><strong id="rs-config-security-title">Seguridad de gestión</strong><small>Decide si las acciones administrativas del módulo deben solicitar una clave adicional.</small></div>
+                    <span id="config-seguridad-estado" class="rs-config-security-status"><i class="fas fa-shield-halved"></i> Protección activa</span>
+                  </div>
+                  <label class="rs-config-security-toggle" for="config-solicitar-clave-gestion">
+                    <span><b>Solicitar clave para gestión</b><small>Si está activa, crear o editar clientes, mesas, categorías, productos, promociones y combos solicitará validación administrativa. Configuración del módulo siempre solicita clave, aunque esta opción esté desactivada. Los permisos del usuario siempre se mantienen.</small></span>
+                    <span class="rs-switch"><input type="checkbox" id="config-solicitar-clave-gestion" checked><span class="rs-switch-track"><span class="rs-switch-thumb"></span></span></span>
+                  </label>
+                </section>
+              </div>
+
+              <div class="rs-settings-item" id="config-acceso-privado-cocina" data-config-requires-comandas="1" data-config-search="seguridad cocina regenerar invalidar accesos tv pantallas desvincular todas">
+                <div class="rs-kitchen-link-box">
+                  <input type="hidden" id="config-enlace-cocina" value="">
+                  <div class="rs-config-section-title"><i class="fas fa-shield-halved"></i><div><strong>Acceso y revocación de Cocina</strong><small>Esta es la dirección que debe abrirse en cada TV, tablet o computadora. IZZY usa automáticamente la dirección configurada para este sistema.</small></div></div>
+                  <div class="rs-kitchen-short-url-box">
+                    <label for="config-url-cocina-seguridad">Dirección de Pantalla de Cocina</label>
+                    <div class="rs-kitchen-short-url-row">
+                      <input type="text" id="config-url-cocina-seguridad" class="form-control" value="<?php echo htmlspecialchars(rtrim((string)SERVERURL, '/') . '/cocina/', ENT_QUOTES, 'UTF-8'); ?>" readonly>
+                      <button type="button" class="btn btn-info" id="btn-copiar-url-seguridad-cocina"><i class="fas fa-copy"></i> Copiar dirección</button>
+                    </div>
+                    <small><i class="fas fa-circle-info"></i> El usuario abre exactamente esta dirección. Si la pantalla no está vinculada, allí mismo aparecerá un código temporal de 6 dígitos.</small>
+                  </div>
+                  <div class="rs-kitchen-revoke-row">
+                    <div><strong>Revocar todas las pantallas</strong><small>Úselo solamente si necesita invalidar todos los dispositivos vinculados.</small></div>
+                    <button type="button" class="btn btn-warning" id="btn-regenerar-enlace-cocina"><i class="fas fa-sync-alt"></i> Regenerar acceso</button>
+                  </div>
+                  <small class="rs-config-note"><i class="fas fa-shield-alt"></i> Regenerar invalida el acceso actual y obliga a volver a vincular todas las pantallas. Desvincular un dispositivo desde la categoría Dispositivos afecta únicamente a ese equipo.</small>
+                </div>
+              </div>
+
+              <div class="rs-settings-item" id="config-historial-wrap" data-config-search="historial cambios auditoría auditoria quién quien cuándo cuando seguridad configuración">
+                <div class="rs-config-history-box">
+                  <div class="rs-kitchen-devices-head"><div><strong><i class="fas fa-clock-rotate-left"></i> Historial de configuración</strong><small>Últimos cambios guardados en este Restaurante.</small></div><button type="button" class="btn btn-light btn-sm" id="btn-refrescar-historial-config"><i class="fas fa-rotate"></i> Actualizar</button></div>
+                  <div id="config-historial-list" class="rs-config-history-list"><div class="rs-kitchen-device-empty">El historial aparecerá aquí después del próximo cambio guardado.</div></div>
+                </div>
+              </div>
+            </section>
+
+            <div id="config-sin-resultados" class="rs-settings-empty" style="display:none;">
+              <i class="fas fa-search"></i>
+              <strong>No encontramos esa configuración</strong>
+              <small>Pruebe con palabras como “mesas”, “crédito”, “cocina”, “TV”, “ticket” o “seguridad”.</small>
+            </div>
+          </main>
         </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-danger" data-close="#modal-configuracion-restaurante"><i class="fas fa-times"></i> Cerrar</button>
-        <button type="button" class="btn btn-success" id="btn-guardar-configuracion-restaurante"><i class="fas fa-save"></i> Guardar configuración</button>
+
+      <div class="modal-footer rs-settings-footer">
+        <span class="rs-settings-footer-hint" id="config-footer-estado"><i class="fas fa-circle-info"></i> Los cambios de categorías se guardan juntos.</span>
+        <div class="rs-settings-footer-actions">
+          <button type="button" class="btn btn-danger" data-close="#modal-configuracion-restaurante"><i class="fas fa-times"></i> Cerrar</button>
+          <button type="button" class="btn btn-success" id="btn-guardar-configuracion-restaurante"><i class="fas fa-save"></i> Guardar configuración</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1811,6 +1965,7 @@
   <script src="<?php echo SERVERURL; ?>ajax/sweetalert/sweetalert.min.js"></script>
   <script src="<?php echo SERVERURL; ?>ajax/librerias/select2.min.js"></script>
   <script>
+    window.REST_COCINA_ADMIN_CONTEXT = <?php echo json_encode($restCocinaAdminContext, JSON_UNESCAPED_SLASHES); ?>;
     window.REST_COLABORADOR_ID = <?php echo json_encode((int)($_SESSION['colaborador_id_sd'] ?? 0)); ?>;
     window.REST_FECHA_SERVIDOR = <?php echo json_encode(date('Y-m-d')); ?>;
     window.REST_DB = <?php echo json_encode($GLOBALS['db'] ?? (defined('DB') ? DB : '')); ?>;

@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', function () {
   let productos = [];
   let categorias = [];
   let comandaItems = [];
+  let facturaMesaRequestSeq = 0; // invalida respuestas antiguas al cambiar de mesa
   let clientes = [];
   let mesas = [];
   let isvRates = { 1: 0, 2: 0 };
@@ -3135,6 +3136,9 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     const mesaId = Number(mesa && (mesa.id || mesa.mesa_id) || 0);
     if (!mesaId) return;
 
+    // Cada selección de mesa invalida cualquier respuesta pendiente de una mesa anterior.
+    facturaMesaRequestSeq++;
+
     // En móvil NO recuperar automáticamente una cuenta existente.
     // El usuario decide expresamente si quiere continuarla.
     const tieneCuentaAbierta =
@@ -3196,12 +3200,14 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
       return;
     }
 
-    // Flujo original para mesa disponible o escritorio/tablet.
+    // Flujo para mesa disponible o escritorio/tablet.
+    // Una mesa libre SIN cuenta abierta siempre inicia limpia. Nunca heredamos
+    // productos que hayan quedado en memoria visual de otra operación.
     setServicioTipo('mesa');
-
-    const pendientes = Array.isArray(comandaItems) ? comandaItems.map(i => ({
-      producto: i.producto, cantidad: i.cantidad, precio: i.precio, total: i.total
-    })) : [];
+    facturaActual = null;
+    comandaItems = [];
+    actualizarComandaUI();
+    if (typeof updateProductBadges === 'function') updateProductBadges();
 
     mesaSeleccionada = {
       id: mesaId,
@@ -3216,9 +3222,9 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     highlightMesaSeleccionada();
 
     if (mesaSeleccionada.id) {
-      cargarFacturaMesa(mesaSeleccionada.id, pendientes);
+      cargarFacturaMesa(mesaSeleccionada.id, []);
     } else {
-      comandaItems = pendientes;
+      comandaItems = [];
       actualizarComandaUI();
       if (typeof updateProductBadges === 'function') updateProductBadges();
     }
@@ -4085,6 +4091,9 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
   // ===== FACTURAS =====
   // itemsToMerge = items que ya venía armando el cajero antes de tocar la mesa
   function cargarFacturaMesa(mesaId, itemsToMerge = []){
+    const requestSeq = ++facturaMesaRequestSeq;
+    const mesaSolicitadaId = Number(mesaId || 0);
+
     fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -4092,6 +4101,9 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     })
     .then(r => r.json())
     .then(data => {
+      const mesaActualId = Number((mesaSeleccionada && (mesaSeleccionada.id || mesaSeleccionada.mesa_id)) || 0);
+      if (requestSeq !== facturaMesaRequestSeq || mesaActualId !== mesaSolicitadaId) return;
+
       if (data && data.status) {
         // Hay factura abierta en la mesa
         setServicioTipo('mesa');
@@ -4149,14 +4161,12 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
         updateAccionPrincipalUI();
 
       } else {
-        // ❗ La mesa no tiene factura abierta: mantenemos lo que el cajero traía
+        // La mesa NO tiene cuenta abierta: siempre debe iniciar vacía.
+        // Esto evita pedidos fantasma al volver a entrar o cambiar de mesa,
+        // especialmente en el asistente móvil.
         setServicioTipo('mesa');
         facturaActual = null;
-
-        // NO limpiar: conservar o establecer lo pendiente
-        if (Array.isArray(itemsToMerge) && itemsToMerge.length) {
-          comandaItems = mergeComandaItems([], itemsToMerge);
-        } // si venía algo ya en comandaItems, déjalo igual
+        comandaItems = [];
 
         actualizarComandaUI();
         if (typeof updateProductBadges === 'function') updateProductBadges();
@@ -4175,6 +4185,8 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
       }
     })
     .catch(() => {
+      const mesaActualId = Number((mesaSeleccionada && (mesaSeleccionada.id || mesaSeleccionada.mesa_id)) || 0);
+      if (requestSeq !== facturaMesaRequestSeq || mesaActualId !== mesaSolicitadaId) return;
       showAlert('error', 'Error', 'Error al cargar la factura');
     });
   }
@@ -8005,30 +8017,22 @@ function initSelect2ForComboRow(row){
   async function desvincularDispositivoCocina(deviceId,deviceName){
     const id=Number(deviceId||0);
     if(!id) return;
-    let confirmado=false;
     const nombre=String(deviceName||'esta pantalla');
-    if(typeof swal==='function'){
-      confirmado=await new Promise(resolve=>{
-        swal({
-          title:'Desvincular pantalla',
-          text:`${nombre} dejará de acceder a Cocina. Las demás pantallas seguirán funcionando.`,
-          type:'warning',
-          showCancelButton:true,
-          confirmButtonText:'Sí, desvincular',
-          cancelButtonText:'Cancelar'
-        },result=>resolve(!!result));
-      });
-    }else{
-      confirmado=window.confirm(`${nombre} dejará de acceder a Cocina. ¿Desea continuar?`);
-    }
-    if(!confirmado) return;
-    try{
-      const d=await cocinaAccesoAdminPost('unlinkDevice',{dispositivo_id:String(id)});
-      renderDispositivosCocina(d.dispositivos||[]);
-      showAlert('success','Pantalla desvinculada',d.message||'La pantalla fue desvinculada.');
-    }catch(e){
-      showAlert('error','No se pudo desvincular',e.message||'Intente nuevamente.');
-    }
+
+    showConfirm(
+      'Desvincular pantalla',
+      `${nombre} dejará de acceder a Cocina. Las demás pantallas seguirán funcionando.`,
+      async ()=>{
+        try{
+          const d=await cocinaAccesoAdminPost('unlinkDevice',{dispositivo_id:String(id)});
+          renderDispositivosCocina(d.dispositivos||[]);
+          showAlert('success','Pantalla desvinculada',d.message||'La pantalla fue desvinculada.');
+        }catch(e){
+          showAlert('error','No se pudo desvincular',e.message||'Intente nuevamente.');
+        }
+      },
+      {danger:true}
+    );
   }
 
   async function vincularTvCocina(){
@@ -8085,38 +8089,28 @@ function initSelect2ForComboRow(row){
       return;
     }
 
-    let confirmado=false;
-    if(typeof swal==='function'){
-      confirmado=await new Promise(resolve=>{
-        swal({
-          title:'Regenerar acceso de Cocina',
-          text:'El enlace anterior dejará de funcionar inmediatamente. ¿Desea continuar?',
-          type:'warning',
-          showCancelButton:true,
-          confirmButtonText:'Sí, regenerar',
-          cancelButtonText:'Cancelar'
-        },result=>resolve(!!result));
-      });
-    }else{
-      confirmado=window.confirm('El enlace anterior dejará de funcionar inmediatamente. ¿Desea regenerarlo?');
-    }
-    if(!confirmado) return;
-
-    const btn=document.getElementById('btn-regenerar-enlace-cocina');
-    setButtonBusy(btn,true,'Regenerando…');
-    try{
-      const d=await cocinaAccesoAdminPost('regenerate');
-      const input=document.getElementById('config-enlace-cocina');
-      const toggle=document.getElementById('config-pantalla-cocina-activa');
-      if(input) input.value=String(d.config&&d.config.enlace||'');
-      if(toggle) toggle.checked=true;
-      actualizarEstadoAccesoCocina();
-      showAlert('success','Acceso regenerado','El enlace anterior ya quedó inválido.');
-    }catch(e){
-      showAlert('error','Error',e.message||'No se pudo regenerar el acceso de Cocina.');
-    }finally{
-      setButtonBusy(btn,false);
-    }
+    showConfirm(
+      'Regenerar acceso de Cocina',
+      'El acceso actual dejará de funcionar inmediatamente y todas las pantallas deberán vincularse nuevamente. ¿Desea continuar?',
+      async ()=>{
+        const btn=document.getElementById('btn-regenerar-enlace-cocina');
+        setButtonBusy(btn,true,'Regenerando…');
+        try{
+          const d=await cocinaAccesoAdminPost('regenerate');
+          const input=document.getElementById('config-enlace-cocina');
+          const toggle=document.getElementById('config-pantalla-cocina-activa');
+          if(input) input.value=String(d.config&&d.config.enlace||'');
+          if(toggle) toggle.checked=true;
+          actualizarEstadoAccesoCocina();
+          showAlert('success','Acceso regenerado','El acceso anterior quedó inválido y las pantallas deberán vincularse nuevamente.');
+        }catch(e){
+          showAlert('error','Error',e.message||'No se pudo regenerar el acceso de Cocina.');
+        }finally{
+          setButtonBusy(btn,false);
+        }
+      },
+      {danger:true}
+    );
   }
 
   async function cargarConfiguracionOperacion(){
@@ -8584,8 +8578,12 @@ function initSelect2ForComboRow(row){
     if(!close||!REST_CONFIG_DIRTY)return;
     e.preventDefault();e.stopImmediatePropagation();
     const doClose=()=>{REST_CONFIG_DIRTY=false;const m=document.getElementById('modal-configuracion-restaurante');if(m)m.style.display='none';};
-    if(typeof Swal!=='undefined'&&Swal.fire){Swal.fire({title:'Cambios sin guardar',text:'Tiene cambios pendientes. Si cierra ahora se perderán.',icon:'warning',showCancelButton:true,confirmButtonText:'Cerrar sin guardar',cancelButtonText:'Continuar editando'}).then(r=>{if(r.isConfirmed)doClose();});}
-    else if(window.confirm('Tiene cambios sin guardar. ¿Cerrar sin guardar?'))doClose();
+    showConfirm(
+      'Cambios sin guardar',
+      'Tiene cambios pendientes. Si cierra ahora se perderán.',
+      doClose,
+      {danger:true}
+    );
   },true);
   $('#btn-guardar-configuracion-restaurante').off('click.restCfgSave').on('click.restCfgSave',guardarConfiguracionOperacionUI);
 

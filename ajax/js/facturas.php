@@ -4448,26 +4448,83 @@ $(() => {
             $('#amountDue').val(totalAftertax);
         }
     });
-    $(document).on('click', '.deleteInvoice', function() {
+    $(document).on('click', '.deleteInvoice', function(e) {
+        e.preventDefault();
+
         var id = $(this).attr("id");
-        if (confirm("Are you sure you want to remove this?")) {
+
+        if (!id) {
+            if (typeof showNotify === 'function') {
+                showNotify('error', 'Registro no válido', 'No se pudo identificar la factura que desea eliminar.');
+            }
+            return false;
+        }
+
+        swal({
+            title: 'Eliminar factura',
+            text: '¿Está seguro de eliminar esta factura?',
+            icon: 'warning',
+            buttons: {
+                cancel: {
+                    text: 'No, conservar',
+                    visible: true,
+                    closeModal: true
+                },
+                confirm: {
+                    text: 'Sí, eliminar',
+                    closeModal: false
+                }
+            },
+            dangerMode: true,
+            closeOnEsc: false,
+            closeOnClickOutside: false
+        }).then(function(confirmarEliminacion) {
+            if (confirmarEliminacion !== true) {
+                return false;
+            }
+
             $.ajax({
-                url: "action.php",
-                method: "POST",
-                dataType: "json",
+                url: 'action.php',
+                method: 'POST',
+                dataType: 'json',
                 data: {
                     id: id,
                     action: 'delete_invoice'
                 },
                 success: function(response) {
-                    if (response.status == 1) {
-                        $('#' + id).closest("tr").remove();
+                    if (response && response.status == 1) {
+                        $('#' + id).closest('tr').remove();
+                        swal.close();
+
+                        if (typeof showNotify === 'function') {
+                            showNotify('success', 'Factura eliminada', 'La factura fue eliminada correctamente.');
+                        }
+                        return;
+                    }
+
+                    swal.close();
+
+                    if (typeof showNotify === 'function') {
+                        showNotify(
+                            'error',
+                            'No se pudo eliminar',
+                            response && response.message
+                                ? response.message
+                                : 'No se pudo eliminar la factura.'
+                        );
+                    }
+                },
+                error: function() {
+                    swal.close();
+
+                    if (typeof showNotify === 'function') {
+                        showNotify('error', 'Error de comunicación', 'No se pudo eliminar la factura.');
                     }
                 }
             });
-        } else {
-            return false;
-        }
+        });
+
+        return false;
     });
 });
 
@@ -5191,7 +5248,6 @@ $(() => {
     }
 
     if (e.which === 113) { // F2
-      alert('Me haz presionado');
       e.preventDefault();
     }
 

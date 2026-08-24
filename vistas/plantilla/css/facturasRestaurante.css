@@ -4382,3 +4382,176 @@ body[data-servicio="mesa"] #btn-guardar.btn-warning:focus {
   .vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-history-item{grid-template-columns:32px minmax(0,1fr)}
   .vista-facturacion-restaurante #modal-configuracion-restaurante .rs-config-history-category{grid-column:2;justify-self:start}
 }
+
+
+/* ================================================================
+   AJUSTE FINAL — MODALES ESTABLES + AYUDA LEGIBLE
+   Mantiene tamaño estable en modales de contenido y evita reflow.
+   ================================================================ */
+@media (min-width:821px){
+  .vista-facturacion-restaurante #modal-configuracion-restaurante .rs-settings-modal,
+  .vista-facturacion-restaurante #modal-help .rs-help-modal,
+  .vista-facturacion-restaurante #modal-cuentas-abiertas .modal-content,
+  .vista-facturacion-restaurante #modal-producto .modal-content,
+  .vista-facturacion-restaurante #modal-combo-editor .modal-content,
+  .vista-facturacion-restaurante #modal-promociones-list .modal-content,
+  .vista-facturacion-restaurante #modal-promocion .modal-content,
+  .vista-facturacion-restaurante #modal-promo-productos .modal-content,
+  .vista-facturacion-restaurante #modal-promo-categorias .modal-content{
+    height:min(760px,calc(100vh - 40px)) !important;
+    max-height:min(760px,calc(100vh - 40px)) !important;
+    overflow:hidden !important;
+    display:flex !important;
+    flex-direction:column !important;
+  }
+
+  .vista-facturacion-restaurante #modal-configuracion-restaurante .modal-header,
+  .vista-facturacion-restaurante #modal-configuracion-restaurante .modal-footer,
+  .vista-facturacion-restaurante #modal-help .modal-header,
+  .vista-facturacion-restaurante #modal-help .modal-footer,
+  .vista-facturacion-restaurante #modal-cuentas-abiertas .modal-header,
+  .vista-facturacion-restaurante #modal-cuentas-abiertas .modal-footer,
+  .vista-facturacion-restaurante #modal-producto .modal-header,
+  .vista-facturacion-restaurante #modal-producto .modal-footer,
+  .vista-facturacion-restaurante #modal-combo-editor .modal-header,
+  .vista-facturacion-restaurante #modal-combo-editor .modal-footer,
+  .vista-facturacion-restaurante #modal-promociones-list .modal-header,
+  .vista-facturacion-restaurante #modal-promociones-list .modal-footer,
+  .vista-facturacion-restaurante #modal-promocion .modal-header,
+  .vista-facturacion-restaurante #modal-promocion .modal-footer,
+  .vista-facturacion-restaurante #modal-promo-productos .modal-header,
+  .vista-facturacion-restaurante #modal-promo-productos .modal-footer,
+  .vista-facturacion-restaurante #modal-promo-categorias .modal-header,
+  .vista-facturacion-restaurante #modal-promo-categorias .modal-footer{
+    flex:0 0 auto !important;
+  }
+
+  .vista-facturacion-restaurante #modal-cuentas-abiertas .modal-body,
+  .vista-facturacion-restaurante #modal-producto .modal-body,
+  .vista-facturacion-restaurante #modal-combo-editor .modal-body,
+  .vista-facturacion-restaurante #modal-promociones-list .modal-body,
+  .vista-facturacion-restaurante #modal-promocion .modal-body,
+  .vista-facturacion-restaurante #modal-promo-productos .modal-body,
+  .vista-facturacion-restaurante #modal-promo-categorias .modal-body{
+    flex:1 1 auto !important;
+    min-height:0 !important;
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+  }
+}
+
+/* Ayuda: contraste y lectura cómoda */
+.vista-facturacion-restaurante #modal-help .rs-help-body{
+  background:#f4f7fa !important;
+}
+.vista-facturacion-restaurante .rs-help-intro-copy h4{
+  font-size:17px !important;
+}
+.vista-facturacion-restaurante .rs-help-intro-copy p{
+  font-size:13px !important;
+  color:#53697c !important;
+}
+.vista-facturacion-restaurante .rs-help-mode b{font-size:12px !important}
+.vista-facturacion-restaurante .rs-help-mode small{font-size:10.5px !important}
+.vista-facturacion-restaurante #rs-help-search{font-size:13.5px !important}
+.vista-facturacion-restaurante .rs-help-sidebar-title{font-size:12px !important}
+.vista-facturacion-restaurante .rs-help-category{font-size:11.5px !important}
+.vista-facturacion-restaurante .rs-help-summary{font-size:11.5px !important}
+.vista-facturacion-restaurante .rs-help-topic-copy strong{font-size:13px !important}
+.vista-facturacion-restaurante .rs-help-topic-copy small{font-size:11px !important;color:#607487 !important}
+.vista-facturacion-restaurante .rs-help-topic-category{font-size:9.5px !important}
+.vista-facturacion-restaurante .rs-help-topic-body{
+  font-size:12px !important;
+  line-height:1.55 !important;
+  color:#3f5568 !important;
+  background:#fff !important;
+}
+.vista-facturacion-restaurante .rs-help-compare b{font-size:11.5px !important}
+.vista-facturacion-restaurante .rs-help-compare span{font-size:10.8px !important}
+.vista-facturacion-restaurante .rs-help-footer-note{font-size:10.5px !important}
+
+.vista-facturacion-restaurante .rs-help-quick-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);
+  gap:10px;
+  flex:0 0 auto;
+}
+.vista-facturacion-restaurante .rs-help-quick-card{
+  min-width:0;
+  display:grid;
+  grid-template-columns:38px minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  border:1px solid #d8e4ed;
+  border-radius:10px;
+  background:#fff;
+}
+.vista-facturacion-restaurante .rs-help-tips-card{
+  grid-template-columns:38px minmax(0,1fr);
+  background:#fffaf0;
+  border-color:#f1ddb2;
+}
+.vista-facturacion-restaurante .rs-help-quick-icon{
+  width:38px;height:38px;border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  background:#edf6fb;color:#278fc9;font-size:17px;
+}
+.vista-facturacion-restaurante .rs-help-tips-card .rs-help-quick-icon{
+  background:#fff3cf;color:#b97908;
+}
+.vista-facturacion-restaurante .rs-help-support-card .rs-help-quick-icon{
+  background:#e9f9ef;color:#1e9c58;
+}
+.vista-facturacion-restaurante .rs-help-quick-copy{
+  min-width:0;display:flex;flex-direction:column;gap:2px;color:#40576a;
+}
+.vista-facturacion-restaurante .rs-help-quick-copy strong{
+  color:#2c4153;font-size:12.5px;line-height:1.25;
+}
+.vista-facturacion-restaurante .rs-help-quick-copy span{
+  font-size:11px;line-height:1.4;overflow-wrap:anywhere;
+}
+.vista-facturacion-restaurante .rs-help-whatsapp{
+  min-height:36px;padding:7px 10px;border-radius:8px;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  background:#1fa463;color:#fff!important;text-decoration:none!important;
+  font-size:11px;font-weight:800;white-space:nowrap;
+}
+.vista-facturacion-restaurante .rs-help-whatsapp:hover{filter:brightness(.96)}
+
+@media(max-width:820px){
+  .vista-facturacion-restaurante .rs-help-quick-grid{grid-template-columns:1fr}
+  .vista-facturacion-restaurante #modal-help .rs-help-body{overflow-y:auto !important;overflow-x:hidden !important}
+  .vista-facturacion-restaurante .rs-help-layout{flex:0 0 auto;min-height:340px}
+}
+
+@media(max-width:599px){
+  .vista-facturacion-restaurante #modal-help .rs-help-modal{
+    width:calc(100vw - 10px)!important;
+    height:calc(100dvh - 10px)!important;
+    max-height:calc(100dvh - 10px)!important;
+  }
+  .vista-facturacion-restaurante #modal-help .rs-help-body{
+    padding:10px!important;
+    gap:9px!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+  }
+  .vista-facturacion-restaurante .rs-help-intro-copy h4{font-size:14px!important}
+  .vista-facturacion-restaurante .rs-help-intro-copy p{font-size:11px!important;line-height:1.4!important}
+  .vista-facturacion-restaurante .rs-help-quick-card{
+    grid-template-columns:34px minmax(0,1fr);
+    padding:9px;
+  }
+  .vista-facturacion-restaurante .rs-help-support-card .rs-help-whatsapp{
+    grid-column:1/-1;width:100%;min-height:40px;
+  }
+  .vista-facturacion-restaurante .rs-help-quick-icon{width:34px;height:34px;font-size:15px}
+  .vista-facturacion-restaurante .rs-help-quick-copy strong{font-size:12px}
+  .vista-facturacion-restaurante .rs-help-quick-copy span{font-size:10.5px}
+  .vista-facturacion-restaurante .rs-help-topic-copy strong{font-size:12px!important}
+  .vista-facturacion-restaurante .rs-help-topic-copy small{font-size:10.5px!important}
+  .vista-facturacion-restaurante .rs-help-topic-body{font-size:11px!important;padding:6px 10px 11px!important}
+  .vista-facturacion-restaurante .rs-help-layout{min-height:300px}
+}

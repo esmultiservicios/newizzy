@@ -35,6 +35,60 @@ document.addEventListener('DOMContentLoaded', function () {
     function actualizarHora(){ const a=new Date(); const el=document.getElementById('hora-actual'); if(el) el.textContent=[a.getHours(),a.getMinutes(),a.getSeconds()].map(v=>String(v).padStart(2,'0')).join(':'); }
     actualizarHora(); window.setInterval(actualizarHora,1000);
 
+
+    function fullscreenElementActual(){
+        return document.fullscreenElement
+            || document.webkitFullscreenElement
+            || document.msFullscreenElement
+            || null;
+    }
+
+    function actualizarBotonFullscreen(){
+        if(!fullscreenBtn) return;
+        const activo = !!fullscreenElementActual();
+
+        fullscreenBtn.setAttribute('aria-pressed', activo ? 'true' : 'false');
+        fullscreenBtn.setAttribute('aria-label', activo ? 'Salir de pantalla completa' : 'Activar pantalla completa');
+        fullscreenBtn.title = activo ? 'Salir de pantalla completa' : 'Pantalla completa';
+        fullscreenBtn.innerHTML = activo
+            ? '<i class="fas fa-compress"></i><span>Salir de pantalla completa</span>'
+            : '<i class="fas fa-expand"></i><span>Pantalla completa</span>';
+
+        document.body.classList.toggle('cocina-fullscreen-activo', activo);
+    }
+
+    async function alternarPantallaCompleta(){
+        if(!fullscreenBtn) return;
+
+        try{
+            if(fullscreenElementActual()){
+                if(document.exitFullscreen){
+                    await document.exitFullscreen();
+                }else if(document.webkitExitFullscreen){
+                    document.webkitExitFullscreen();
+                }else if(document.msExitFullscreen){
+                    document.msExitFullscreen();
+                }
+            }else{
+                const objetivo = document.documentElement;
+                if(objetivo.requestFullscreen){
+                    await objetivo.requestFullscreen();
+                }else if(objetivo.webkitRequestFullscreen){
+                    objetivo.webkitRequestFullscreen();
+                }else if(objetivo.msRequestFullscreen){
+                    objetivo.msRequestFullscreen();
+                }else{
+                    notificar('info','Pantalla completa','Este navegador o televisor no permite activar pantalla completa desde esta página.');
+                }
+            }
+        }catch(error){
+            console.warn('[Cocina] Pantalla completa:', error);
+            notificar('info','Pantalla completa','El navegador bloqueó el cambio de pantalla completa. Inténtelo nuevamente desde el botón.');
+        }finally{
+            window.setTimeout(actualizarBotonFullscreen,50);
+        }
+    }
+
     function randomHex(bytes=32){ const a=new Uint8Array(bytes); crypto.getRandomValues(a); return Array.from(a,b=>b.toString(16).padStart(2,'0')).join(''); }
     function getDeviceSecret(){ let s=String(localStorage.getItem(DEVICE_KEY)||'').toLowerCase(); if(!/^[a-f0-9]{64}$/.test(s)){ s=randomHex(32); localStorage.setItem(DEVICE_KEY,s); } return s; }
     function getStoredToken(){ const t=String(localStorage.getItem(TOKEN_KEY)||'').toLowerCase(); return /^[a-f0-9]{64}$/.test(t)?t:''; }

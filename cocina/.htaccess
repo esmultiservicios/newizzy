@@ -1,0 +1,10 @@
+# IZZY - Pantalla de Cocina independiente
+# DESTINO: /cocina/.htaccess
+Options -Indexes
+RewriteEngine On
+
+# /cocina/TOKEN_SEGURO/ -> /cocina/index.php?token=TOKEN_SEGURO
+RewriteRule ^([A-Fa-f0-9]{64})/?$ index.php?token=$1 [L,QSA]
+
+# Todo lo demás dentro de /cocina/ va al index independiente.
+RewriteRule ^$ index.php [L,QSA]

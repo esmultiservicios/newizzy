@@ -668,3 +668,72 @@
 .vista-cocina-container .btn-completar:hover{
   background:#188752 !important;
 }
+
+
+/* =========================================================
+   VINCULACIÓN SIMPLE DE TV — /cocina/
+   ========================================================= */
+.cocina-pairing{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--kitchen-bg);overflow:auto}
+.cocina-pairing[hidden]{display:none!important}
+.cocina-pairing-card{width:min(520px,100%);padding:30px 28px;background:#fff;border:1px solid var(--kitchen-border);border-radius:16px;box-shadow:var(--kitchen-shadow);text-align:center;color:var(--kitchen-text)}
+.cocina-pairing-icon{width:62px;height:62px;margin:0 auto 12px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#eaf5fb;color:var(--kitchen-blue-dark);font-size:26px}
+.cocina-pairing-card h2{margin:0 0 8px;font-size:1.45rem}
+.cocina-pairing-help{margin:0 auto 20px;max-width:430px;color:var(--kitchen-muted);line-height:1.55;font-size:.92rem}
+.cocina-pair-code{margin:0 auto 14px;padding:16px 18px;max-width:330px;border:2px dashed #9fcce5;border-radius:14px;background:#f4fbff;color:var(--kitchen-navy);font-size:clamp(2rem,7vw,3.3rem);font-weight:850;letter-spacing:.16em;line-height:1;font-variant-numeric:tabular-nums}
+.cocina-pair-status{display:flex;align-items:center;justify-content:center;gap:8px;min-height:28px;color:var(--kitchen-blue-dark);font-weight:700;font-size:.9rem}
+.cocina-pair-expire{margin:7px 0 14px;color:var(--kitchen-muted);font-size:.82rem}
+.cocina-pair-new{border:0;border-radius:10px;padding:10px 15px;background:var(--kitchen-navy);color:#fff;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.cocina-pair-new:hover{filter:brightness(1.06)}
+.cocina-pairing-card>small{display:block;margin-top:15px;color:var(--kitchen-muted);line-height:1.45}
+@media(max-width:600px){.cocina-pairing{padding:14px}.cocina-pairing-card{padding:24px 18px}.cocina-pair-code{letter-spacing:.1em}}
+
+
+/* =========================================================
+   FIX VINCULACIÓN TV — una sola vista visible a la vez
+   ========================================================= */
+.vista-cocina-container [hidden]{display:none !important;}
+.vista-cocina-container .comandas-container[hidden]{display:none !important;}
+.vista-cocina-container .cocina-pairing[hidden]{display:none !important;}
+
+.vista-cocina-container .cocina-pairing{
+  width:100%;
+  flex:1 1 auto;
+  min-height:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:28px;
+}
+.vista-cocina-container .cocina-pairing-card{
+  width:min(560px,100%);
+  padding:34px 30px;
+  border-radius:16px;
+}
+.vista-cocina-container .cocina-pairing-card h2{
+  font-size:1.5rem;
+  color:var(--kitchen-text);
+}
+.vista-cocina-container .cocina-pair-code{
+  margin-top:4px;
+  padding:18px 20px;
+  font-size:clamp(2.25rem,6vw,3.5rem);
+  letter-spacing:.14em;
+  background:#f4fbff;
+}
+.vista-cocina-container .cocina-pair-new{
+  min-height:42px;
+  padding:10px 18px;
+  border-radius:10px;
+}
+@media(max-width:600px){
+  .vista-cocina-container .cocina-pairing{padding:16px;}
+  .vista-cocina-container .cocina-pairing-card{padding:26px 18px;}
+}
+
+/* Tarjeta temporal de prueba enviada desde Centro de configuración */
+.pantalla-cocina .comanda-card.comanda-prueba,
+.comanda-card.comanda-prueba{border-color:#8bc8e8;box-shadow:0 8px 22px rgba(42,143,201,.12)}
+.pantalla-cocina .comanda-card.comanda-prueba .comanda-header,
+.comanda-card.comanda-prueba .comanda-header{background:#eef8fd}
+.pantalla-cocina .cocina-test-ok,
+.cocina-test-ok{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:9px 10px;border-radius:8px;background:#edf9f2;color:#238254;font-weight:700;font-size:12px;border:1px solid #bfe5cf}

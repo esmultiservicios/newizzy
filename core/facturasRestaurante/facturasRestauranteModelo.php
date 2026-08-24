@@ -1337,22 +1337,47 @@ class facturasRestauranteModelo extends mainModel {
             $nuevo = ($rp && $rp->num_rows) ? 2 : 4;
             $this->ejecutar_consulta_simple_preparada("UPDATE facturas SET estado=? WHERE facturas_id=?","ii",[$nuevo,$factura_id]);
 
-            // Si se cancela antes del pago, retirar órdenes pendientes de preparación
-            // conservando el historial en base de datos.
+            // Si se cancela antes del pago, retirar cualquier orden pendiente
+            // de la pantalla de preparación.
+            //
+            // IMPORTANTE:
+            // factura_comanda es una tabla histórica que en instalaciones existentes
+            // puede tener estado como ENUM con los valores ya usados por el sistema
+            // (pendiente, en_preparacion, urgente, preparada). No debemos escribir
+            // "cancelada" porque MySQL puede lanzar:
+            // Data truncated for column 'estado'.
+            //
+            // "preparada" es el estado terminal ya soportado por esa estructura y,
+            // junto con factura.estado=4 + el contexto cerrado, evita que la orden
+            // vuelva a aparecer como pendiente sin alterar el esquema existente.
             if($nuevo===4){
                 $this->ejecutar_consulta_simple_preparada(
-                    "UPDATE factura_comanda SET estado='cancelada' WHERE factura_id=?",
+                    "UPDATE factura_comanda
+                     SET estado='preparada'
+                     WHERE factura_id=? AND estado IN ('pendiente','en_preparacion','urgente')",
                     "i",[$factura_id]
                 );
+
                 $this->ejecutar_consulta_simple_preparada(
-                    "UPDATE factura_comanda_items SET estado='cancelada' WHERE factura_id=? AND estado IN ('pendiente','en_preparacion','urgente')",
+                    "UPDATE factura_comanda_items
+                     SET estado='preparada', fecha_actualizacion=NOW()
+                     WHERE factura_id=? AND estado IN ('pendiente','en_preparacion','urgente')",
                     "i",[$factura_id]
                 );
             }
 
-            $this->cerrarContextoCuenta($factura_id);
+            $contextoCerrado = $this->cerrarContextoCuenta($factura_id);
+            if(!$contextoCerrado){
+                return [
+                    'status'=>false,
+                    'message'=>'La factura fue actualizada, pero no se pudo cerrar el contexto operativo de la cuenta.'
+                ];
+            }
 
-            return ['status'=>true,'message'=>'Cuenta cancelada'];
+            return [
+                'status'=>true,
+                'message'=>($nuevo===4 ? 'Cuenta cerrada y cancelada correctamente' : 'Cuenta cerrada correctamente')
+            ];
         }catch(Throwable $e){
             return ['status'=>false,'message'=>'Error: '.$e->getMessage()];
         }

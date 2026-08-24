@@ -840,6 +840,10 @@ document.addEventListener('DOMContentLoaded', function () {
     return String(cfg.etiqueta_cocina||'Cocina').trim()||'Cocina';
   }
 
+  function usaMesasOperacion(){
+    return !(window.REST_CONFIG && Number(window.REST_CONFIG.usar_mesas)===0);
+  }
+
   function usaComandasOperacion(){
     return !(window.REST_CONFIG && Number(window.REST_CONFIG.usar_comandas)===0);
   }

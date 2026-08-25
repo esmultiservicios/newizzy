@@ -6564,9 +6564,43 @@ class mainModel
 		return $result;
 	}
 
+	/**
+	 * Obtiene el plan de la sesión sin generar warnings.
+	 * Si la sesión aún no tiene planes_id_sistema, intenta recuperarlo
+	 * desde la relación del usuario/empresa cuando sea posible.
+	 */
+	protected function obtenerPlanSesionSeguro()
+	{
+		if (isset($_SESSION['planes_id_sistema']) && (int)$_SESSION['planes_id_sistema'] > 0) {
+			return (int)$_SESSION['planes_id_sistema'];
+		}
+
+		// Compatibilidad con otras variables de sesión que puedan existir.
+		foreach (['planes_id_sd', 'plan_id_sd', 'planes_id', 'plan_id'] as $key) {
+			if (isset($_SESSION[$key]) && (int)$_SESSION[$key] > 0) {
+				$_SESSION['planes_id_sistema'] = (int)$_SESSION[$key];
+				return (int)$_SESSION['planes_id_sistema'];
+			}
+		}
+
+		// Si no se puede determinar, devolvemos 0.
+		// Los métodos de privilegios regresarán un result set vacío sin romper la carga.
+		return 0;
+	}
+
+	protected function resultadoVacioModelo()
+	{
+		$cn = self::connection();
+		$rs = $cn->query("SELECT 1 AS dummy WHERE 1=0");
+		return $rs;
+	}
+
 	public function getPrivilegiosAccesoMenu($privilegio_id)
 	{
-		$plan_id = $_SESSION['planes_id_sistema'];
+		$plan_id = $this->obtenerPlanSesionSeguro();
+		if ($plan_id <= 0) {
+			return $this->resultadoVacioModelo();
+		}
 
 		$query = "SELECT 
 					am.acceso_menu_id AS acceso_menu_id,
@@ -6588,7 +6622,10 @@ class mainModel
 
 	public function getPrivilegiosAccesoSubMenu($privilegio_id)
 	{
-		$plan_id = $_SESSION['planes_id_sistema'];
+		$plan_id = $this->obtenerPlanSesionSeguro();
+		if ($plan_id <= 0) {
+			return $this->resultadoVacioModelo();
+		}
 
 		$query = "SELECT 
 					asm.acceso_submenu_id AS acceso_submenu_id,
@@ -6610,7 +6647,10 @@ class mainModel
 
 	public function getPrivilegiosAccesoSubMenu1($privilegio_id)
 	{
-		$plan_id = $_SESSION['planes_id_sistema'];
+		$plan_id = $this->obtenerPlanSesionSeguro();
+		if ($plan_id <= 0) {
+			return $this->resultadoVacioModelo();
+		}
 
 		$query = "SELECT 
 					asm.acceso_submenu1_id AS acceso_submenu1_id,

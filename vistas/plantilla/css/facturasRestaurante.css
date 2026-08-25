@@ -4767,12 +4767,22 @@ body[data-servicio="mesa"] #btn-guardar.btn-warning:focus {
   }
 }
 
-/* Tablet táctil: card con proporciones móviles, sin afectar desktop/laptop. */
-@media (hover:none) and (pointer:coarse) and (min-width:600px) and (max-width:1368px){
-  .vista-facturacion-restaurante .producto-item{height:220px!important;min-height:220px!important;}
-  .vista-facturacion-restaurante .producto-imagen-container{height:90px!important;min-height:90px!important;flex:0 0 90px!important;}
-  .vista-facturacion-restaurante .producto-contenido{padding:5px 6px!important;gap:1px!important;} .vista-facturacion-restaurante .producto-nombre{min-height:14px!important;max-height:14px!important;line-height:14px!important;font-size:11px!important;}
-  .vista-facturacion-restaurante .producto-meta-line{min-height:18px!important;height:18px!important;} .vista-facturacion-restaurante .producto-desc{min-height:12px!important;max-height:12px!important;line-height:12px!important;font-size:9px!important;} .vista-facturacion-restaurante .producto-precios{padding-top:3px!important;}
+/* Tablet táctil: conservar el pack compacto existente sin afectar desktop/laptop. */
+@media (hover:none) and (pointer:coarse) and (orientation:landscape) and (min-width:600px) and (max-width:1368px){
+  .vista-facturacion-restaurante .producto-item{
+    height:188px!important;
+    min-height:188px!important;
+  }
+  .vista-facturacion-restaurante .productos-header{
+    margin-bottom:0!important;
+  }
+  .vista-facturacion-restaurante .estacion-filter{
+    padding-top:4px!important;
+  }
+  .vista-facturacion-restaurante .categorias-tabs{
+    margin-top:0!important;
+    margin-bottom:0!important;
+  }
 }
 
 
@@ -4957,3 +4967,60 @@ body[data-servicio="mesa"] #btn-guardar.btn-warning:focus {
 .vista-facturacion-restaurante .btn-light span{
   color:inherit !important;
 }
+
+/* =====================================================================
+   MÓVIL — PRODUCTOS COMO FOCO PRINCIPAL
+   Solo teléfonos <= 599px. No afecta tablet ni escritorio.
+   ===================================================================== */
+@media (max-width:599px){
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="productos"] .productos-header{
+    padding:5px 8px 4px!important;
+    margin:0!important;
+    border-bottom:0!important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="productos"] .productos-header h3{
+    display:none!important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="productos"] .productos-header .productos-search{
+    display:block!important;
+    width:100%!important;
+    margin:0!important;
+    padding:0!important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="productos"] #sg-name{
+    display:flex!important;
+    width:100%!important;
+    margin:0!important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="productos"] #sg-barcode{
+    display:none!important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="productos"] .search-group .help-under{
+    display:none!important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="productos"] .estacion-filter{
+    padding:3px 8px 0!important;
+    margin:0!important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="productos"] .estacion-filter .segmented-control label{
+    padding:6px 4px!important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="productos"] .categorias-tabs{
+    padding:4px 8px!important;
+    margin:0!important;
+    gap:5px!important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="productos"] .productos-grid{
+    padding-top:5px!important;
+  }
+}
+

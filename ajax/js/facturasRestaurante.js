@@ -645,6 +645,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const secondary = document.getElementById('rs-mobile-secondary');
     if(!back || !next || !secondary) return;
 
+    next.disabled = (rsMobileStep === 'caja' && !cajaAbierta);
+    next.setAttribute('aria-disabled', next.disabled ? 'true' : 'false');
+
     back.style.display = (rsMobileStep === 'servicio' || (rsMobileStep === 'productos' && !rsMobileMesasEnabled())) ? 'none' : '';
     secondary.style.display = 'none';
     secondary.innerHTML = '';
@@ -1494,6 +1497,7 @@ function initSelect2All(){
     // Bloquear botones principales
     $('#btn-guardar').prop('disabled', disable);
     $('#btn-cerrar').prop('disabled', disable);
+    $('#btn-cobrar-mesa').prop('disabled', disable);
     
     // Bloquear otros elementos de la UI (manteniendo tu código original)
     $('#agregar-producto').prop('disabled', disable);
@@ -1518,6 +1522,8 @@ function initSelect2All(){
       $('#btn-guardar').removeClass('btn-danger');
       updateAccionPrincipalUI(); // <- usamos nuestro rótulo contextual
     }
+
+    if (isMobileAssistantActive()) rsMobileUpdate();
   }
 
 // ==============================
@@ -5031,6 +5037,10 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
   async function facturarConFlujoNormal(servicio, opciones){
     opciones = opciones || {};
     if(facturandoRestaurante) return;
+    if(!cajaAbierta){
+      showAlert('warning','Caja cerrada','Debe aperturar la caja antes de cobrar.');
+      return;
+    }
     if(!Array.isArray(comandaItems)||!comandaItems.length){showAlert('warning','Sin productos','Agregue productos antes de cobrar.');return;}
     servicio = servicio==='mesa' ? 'mesa' : 'llevar';
     if(servicio==='mesa' && !mesaIdActual()){showAlert('warning','Mesa requerida','Seleccione una mesa antes de cobrar.');return;}

@@ -4767,12 +4767,12 @@ body[data-servicio="mesa"] #btn-guardar.btn-warning:focus {
   }
 }
 
-/* Tablet: tarjetas un poco más compactas, conservando intacto su contenido. */
+/* Tablet táctil: card con proporciones móviles, sin afectar desktop/laptop. */
 @media (hover:none) and (pointer:coarse) and (min-width:600px) and (max-width:1368px){
-  .vista-facturacion-restaurante .producto-item{
-    height:230px!important;
-    min-height:230px!important;
-  }
+  .vista-facturacion-restaurante .producto-item{height:220px!important;min-height:220px!important;}
+  .vista-facturacion-restaurante .producto-imagen-container{height:90px!important;min-height:90px!important;flex:0 0 90px!important;}
+  .vista-facturacion-restaurante .producto-contenido{padding:5px 6px!important;gap:1px!important;} .vista-facturacion-restaurante .producto-nombre{min-height:14px!important;max-height:14px!important;line-height:14px!important;font-size:11px!important;}
+  .vista-facturacion-restaurante .producto-meta-line{min-height:18px!important;height:18px!important;} .vista-facturacion-restaurante .producto-desc{min-height:12px!important;max-height:12px!important;line-height:12px!important;font-size:9px!important;} .vista-facturacion-restaurante .producto-precios{padding-top:3px!important;}
 }
 
 

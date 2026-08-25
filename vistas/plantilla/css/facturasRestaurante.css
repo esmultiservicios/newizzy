@@ -4767,11 +4767,11 @@ body[data-servicio="mesa"] #btn-guardar.btn-warning:focus {
   }
 }
 
-/* Tablet: no agrandar tarjetas. */
+/* Tablet: tarjetas un poco más compactas, conservando intacto su contenido. */
 @media (min-width:600px) and (max-width:1180px){
   .vista-facturacion-restaurante .producto-item{
-    height:260px!important;
-    min-height:260px!important;
+    height:230px!important;
+    min-height:230px!important;
   }
 }
 

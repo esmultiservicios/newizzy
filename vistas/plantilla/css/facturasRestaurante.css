@@ -5667,3 +5667,118 @@ body[data-servicio="mesa"] #btn-guardar.btn-warning:focus {
   }
 }
 
+/* =====================================================================
+   TABLET LANDSCAPE — NAVEGADOR NORMAL (NO FULLSCREEN)
+   Corrige la diferencia entre el viewport visible con barra del navegador
+   y el fullscreen. SOLO tablet táctil horizontal.
+   Usa svh (small viewport height) para respetar la altura realmente visible.
+   ===================================================================== */
+@media (hover:none) and (pointer:coarse) and (orientation:landscape) and (min-width:600px) and (max-width:1368px){
+
+  /* El overlay se limita a la altura visible REAL cuando la barra del
+     navegador está presente. En fullscreen svh simplemente crece. */
+  body.vista-facturacion-restaurante .modal.show,
+  body.vista-facturacion-restaurante .rs-modal[style*="display: block"],
+  body.vista-facturacion-restaurante .rs-modal[style*="display:block"],
+  body.vista-facturacion-restaurante .rs-modal.show{
+    top:8px !important;
+    right:10px !important;
+    bottom:auto !important;
+    left:10px !important;
+    width:auto !important;
+    height:calc(100svh - 16px) !important;
+    max-height:calc(100svh - 16px) !important;
+    min-height:0 !important;
+    margin:0 !important;
+    padding:0 !important;
+    align-items:flex-start !important;
+    justify-content:center !important;
+    overflow:hidden !important;
+  }
+
+  /* Bootstrap modal */
+  body.vista-facturacion-restaurante .modal.show .modal-dialog{
+    width:100% !important;
+    max-width:min(1100px,100%) !important;
+    height:100% !important;
+    min-height:0 !important;
+    max-height:100% !important;
+    margin:0 auto !important;
+    padding:0 !important;
+    align-items:stretch !important;
+    overflow:hidden !important;
+  }
+
+  /* Contenedor interno de TODOS los modales */
+  body.vista-facturacion-restaurante .modal.show .modal-content,
+  body.vista-facturacion-restaurante .rs-modal[style*="display: block"] > .modal-content,
+  body.vista-facturacion-restaurante .rs-modal[style*="display:block"] > .modal-content,
+  body.vista-facturacion-restaurante .rs-modal.show > .modal-content,
+  body.vista-facturacion-restaurante .rs-modal .rs-settings-modal,
+  body.vista-facturacion-restaurante .rs-modal .rs-help-modal,
+  body.vista-facturacion-restaurante .rs-modal .rs-config-modal,
+  body.vista-facturacion-restaurante .rs-modal .rs-open-accounts-modal,
+  body.vista-facturacion-restaurante .rs-modal .modal-content--promo,
+  body.vista-facturacion-restaurante .rs-modal .modal-content--combo-editor{
+    width:100% !important;
+    max-width:min(1100px,100%) !important;
+    height:100% !important;
+    min-height:0 !important;
+    max-height:100% !important;
+    margin:0 auto !important;
+    display:flex !important;
+    flex-direction:column !important;
+    overflow:hidden !important;
+  }
+
+  /* Si un form envuelve body/footer, también ocupa solo el alto disponible */
+  body.vista-facturacion-restaurante .modal.show .modal-content > form,
+  body.vista-facturacion-restaurante .rs-modal .modal-content > form,
+  body.vista-facturacion-restaurante .rs-modal .rs-settings-modal > form,
+  body.vista-facturacion-restaurante .rs-modal .rs-config-modal > form,
+  body.vista-facturacion-restaurante .rs-modal .modal-content--promo > form,
+  body.vista-facturacion-restaurante .rs-modal .modal-content--combo-editor > form{
+    flex:1 1 auto !important;
+    min-height:0 !important;
+    height:100% !important;
+    max-height:100% !important;
+    display:flex !important;
+    flex-direction:column !important;
+    overflow:hidden !important;
+  }
+
+  /* Cabecera y X siempre visibles dentro del viewport pequeño */
+  body.vista-facturacion-restaurante .modal.show .modal-header,
+  body.vista-facturacion-restaurante .rs-modal .modal-header{
+    flex:0 0 auto !important;
+    min-height:42px !important;
+    padding:7px 11px !important;
+    margin:0 !important;
+    overflow:visible !important;
+  }
+
+  /* Solo el cuerpo central scrollea */
+  body.vista-facturacion-restaurante .modal.show .modal-body,
+  body.vista-facturacion-restaurante .rs-modal .modal-body{
+    flex:1 1 auto !important;
+    min-height:0 !important;
+    height:auto !important;
+    max-height:none !important;
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+    -webkit-overflow-scrolling:touch !important;
+  }
+
+  /* Footer siempre visible, sin salirse por debajo de la barra del navegador */
+  body.vista-facturacion-restaurante .modal.show .modal-footer,
+  body.vista-facturacion-restaurante .rs-modal .modal-footer{
+    flex:0 0 auto !important;
+    min-height:40px !important;
+    padding:6px 11px !important;
+    margin:0 !important;
+    position:relative !important;
+    bottom:auto !important;
+    background:#fff !important;
+  }
+}
+

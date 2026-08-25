@@ -273,6 +273,9 @@ document.addEventListener('DOMContentLoaded', function () {
   const modalProducto  = document.getElementById('modal-producto');
   const modalNuevoCliente = document.getElementById('modal-nuevo-cliente');
 
+  // POLÍTICA DE MODALES RESTAURANTE:
+  // Guardar o editar nunca debe cerrar un modal automáticamente.
+  // El cierre solo ocurre por X, botones con data-close (Cerrar/Cancelar) o ESC.
   // Close genérico por X (span.close) y por data-close
   const closeModalButtonsX = document.querySelectorAll('.close');
   const closeModalButtonsData = document.querySelectorAll('[data-close]');
@@ -1106,48 +1109,41 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!el) return;
     const btnGuardarCuenta = document.getElementById('btn-guardar-cuenta');
     const btnCuentas = document.getElementById('btn-cuentas-abiertas');
+    const btnRecurrente = document.getElementById('btn-factura-recurrente');
     const tieneItems = Array.isArray(comandaItems) && comandaItems.length > 0;
     const tieneFactura = !!(facturaActual && (facturaActual.id || facturaActual.factura_id || facturaActual.facturas_id));
     const usarMesas = !(window.REST_CONFIG && Number(window.REST_CONFIG.usar_mesas) === 0);
-    const usarComandas = usaComandasOperacion();
+    const esMesa = usarMesas && servicioActual === 'mesa';
 
     el.classList.remove('btn-success','btn-warning','btn-danger');
 
-    if (!usarMesas || servicioActual === 'llevar') {
+    if (!esMesa) {
       el.innerHTML = '<i class="fas fa-cash-register"></i> Cobrar';
       el.classList.add('btn-success');
       el.title = 'Facturar y abrir el método de pago';
       if (btnCobrarMesa) btnCobrarMesa.style.display = 'none';
       if (btnGuardarCuenta) {
         btnGuardarCuenta.style.display = tieneItems ? '' : 'none';
-        btnGuardarCuenta.innerHTML = tieneFactura ? '<i class="fas fa-save"></i> Actualizar cuenta' : '<i class="fas fa-bookmark"></i> Guardar cuenta';
+        btnGuardarCuenta.innerHTML = '<i class="fas fa-bookmark"></i> Guardar para después';
       }
+      if (btnRecurrente) btnRecurrente.style.display = '';
+      if (btnCerrar) btnCerrar.style.display = tieneFactura ? '' : 'none';
     } else {
-      if (usarComandas) {
-        el.innerHTML = tieneFactura
-          ? '<i class="fas fa-sync-alt"></i> Actualizar cocina'
-          : '<i class="fas fa-fire"></i> Enviar a cocina';
-        el.title = tieneFactura ? 'Guardar cambios de la cuenta abierta y actualizar la comanda' : 'Guardar la cuenta y enviarla a preparación';
-      } else {
-        el.innerHTML = tieneFactura
-          ? '<i class="fas fa-save"></i> Actualizar cuenta'
-          : '<i class="fas fa-bookmark"></i> Guardar cuenta';
-        el.title = tieneFactura ? 'Actualizar la cuenta abierta de esta mesa' : 'Guardar la cuenta abierta de esta mesa';
-      }
+      el.innerHTML = '<i class="fas fa-save"></i> Guardar pedido';
       el.classList.add('btn-warning');
+      el.title = usaComandasOperacion()
+        ? 'Guardar/actualizar la cuenta y enviar únicamente lo nuevo a preparación'
+        : 'Guardar/actualizar la cuenta';
       if (btnCobrarMesa) btnCobrarMesa.style.display = (mesaSeleccionada && tieneItems) ? '' : 'none';
-      if (btnGuardarCuenta) {
-        btnGuardarCuenta.style.display = tieneItems ? '' : 'none';
-        btnGuardarCuenta.innerHTML = tieneFactura ? '<i class="fas fa-save"></i> Guardar cambios' : '<i class="fas fa-bookmark"></i> Guardar cuenta';
-        btnGuardarCuenta.title = 'Guardar la cuenta sin reenviar productos a preparación';
-      }
+      if (btnGuardarCuenta) btnGuardarCuenta.style.display = 'none';
+      if (btnCerrar) btnCerrar.style.display = 'none';
+      if (btnRecurrente) btnRecurrente.style.display = 'none';
     }
 
     if (btnImprimir) {
       btnImprimir.style.display = tieneItems ? '' : 'none';
       btnImprimir.disabled = !tieneItems;
     }
-    if (btnCerrar) btnCerrar.style.display = tieneFactura ? '' : 'none';
     if (btnCuentas) btnCuentas.style.display = '';
   }
 
@@ -2093,7 +2089,8 @@ function initHotkeys(){
         const res = await apiPromos(accion, data);
         if(!res || !res.status){ throw new Error(res && res.message ? res.message : 'No se pudo guardar'); }
         showAlert('success','Éxito', data.promo_id ? 'Promoción actualizada' : 'Promoción creada');
-        $('#modal-promocion').hide();
+        // El modal permanece abierto después de guardar/editar.
+        // Solo se cierra por X, botón Cerrar/Cancelar o tecla ESC.
 
         await Promise.allSettled([
           llenarPromosSelect($('#pp-promocion')),
@@ -2345,7 +2342,8 @@ function initHotkeys(){
           if (modalProducto) modalProducto.style.display = 'none';
           if (modalNuevoCliente) modalNuevoCliente.style.display = 'none';
           if (modalCombos) modalCombos.style.display = 'none';
-          if (modalComboEditor) modalComboEditor.style.display = 'none';
+          // Mantener el editor del combo abierto después de crear/actualizar.
+      // Solo X/Cerrar/Cancelar/ESC deben cerrarlo.
         }
       });
     });
@@ -3343,10 +3341,26 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     if (btnImprimir) btnImprimir.disabled = true;
     highlightMesaSeleccionada();
 
-    if (mesaSeleccionada.id) {
+    // REGLA DEFINITIVA:
+    // Una mesa que el catálogo acaba de declarar DISPONIBLE y sin cuenta abierta
+    // SIEMPRE inicia vacía. No hacemos una segunda consulta que pueda rescatar
+    // por accidente un contexto viejo de días anteriores.
+    const mesaTieneCuentaHoy =
+      Number(mesa && mesa.tiene_cuenta_abierta || 0) === 1 ||
+      String(mesa && mesa.estado || '').toLowerCase() === 'ocupada';
+
+    if (mesaTieneCuentaHoy) {
       cargarFacturaMesa(mesaSeleccionada.id);
     } else {
-      limpiarPedidoLocalNoPersistido();
+      facturaActual = null;
+      limpiarPedidoLocalNoPersistido({limpiarCliente:true, limpiarObservaciones:true});
+      setTipoFacturaRestaurante('contado',{silencioso:true});
+      updateProductBadges();
+      updateAccionPrincipalUI();
+      if(isMobileAssistantActive()){
+        rsMobileStep = 'servicio';
+        rsMobileUpdate();
+      }
     }
   }
 
@@ -3423,7 +3437,8 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
         .then(data => {
           if (data.status) {
             showAlert('success', 'Éxito', mesaId ? 'Mesa actualizada correctamente' : 'Mesa guardada correctamente');
-            if (modalMesa) modalMesa.style.display = 'none';
+            // Mantener el modal abierto después de guardar/editar la mesa.
+            // El cierre queda exclusivamente a decisión del usuario.
             (document.getElementById('mesa-id')||{}).value = '';
             cargarMesas(); // repinta con el estado correcto
           } else {
@@ -3708,12 +3723,48 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
         medida: producto.medida || 'Und'
       };
   
-      btnAgregar.addEventListener('click', (e) => { e.stopPropagation(); agregarProductoComanda(datosProducto); });
-      productoElement.addEventListener('click', () => agregarProductoComanda(datosProducto));
+      btnAgregar.addEventListener('click', (e) => { e.stopPropagation(); agregarProductoConValidacionCombo(datosProducto); });
+      productoElement.addEventListener('click', () => agregarProductoConValidacionCombo(datosProducto));
   
       productosContainer.appendChild(productoElement);
     });
   }  
+
+  function comboPorProductoId(productoId){
+    return (combos || []).find(c =>
+      Number(c.productos_id || c.producto_id || 0) === Number(productoId || 0)
+      && Number(c.activo == null ? 1 : c.activo) === 1
+    ) || null;
+  }
+
+  async function agregarProductoConValidacionCombo(datosProducto){
+    const combo=comboPorProductoId(datosProducto && datosProducto.id);
+    if(!combo){ agregarProductoComanda(datosProducto); return true; }
+
+    const actual=(comandaItems||[]).find(it =>
+      Number(it.productos_id || it.producto_id || (it.producto&&it.producto.id) || 0) === Number(datosProducto.id)
+    );
+    const cantidad=Math.max(1,Number(actual&&actual.cantidad||0)+1);
+
+    try{
+      const d=await $.ajax({
+        type:'POST',
+        url:BASE+'core/facturasRestaurante/facturasRestauranteAjax.php',
+        dataType:'json',
+        data:{action:'calcularDisponibilidadCombo',combo_id:Number(combo.combo_id||combo.id||0),cantidad}
+      });
+      if(!d||!d.status) throw new Error((d&&(d.message||d.msg))||'No se pudo validar el inventario del combo.');
+      if(String(d.alcanza_para||'').toLowerCase()!=='si'){
+        showAlert('warning','Combo sin inventario suficiente',`Disponibles: ${Number(d.disponibles||0)}. Revise los componentes del combo.`);
+        return false;
+      }
+      agregarProductoComanda(datosProducto);
+      return true;
+    }catch(e){
+      showAlert('error','Inventario del combo',e.message||'No se pudo validar la disponibilidad.');
+      return false;
+    }
+  }
 
   function filtrarProductos(termino, categoriaId = null) {
     let productosFiltrados = Array.isArray(productos) ? productos.slice() : [];
@@ -3761,7 +3812,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
       estacion: normalizeEstacion(prod),
       barCode: prod.barCode || ''
     };
-    agregarProductoComanda(datosProducto);
+    agregarProductoConValidacionCombo(datosProducto);
     return true;
   }
 
@@ -4215,6 +4266,15 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     const mesaSolicitada = Number(mesaId || 0);
     if(!mesaSolicitada) return Promise.resolve(false);
 
+    // Antes de consultar servidor, el estado visual queda vacío.
+    // Así el asistente móvil nunca puede mostrar el carrito anterior mientras
+    // espera una respuesta de red.
+    facturaActual = null;
+    limpiarPedidoLocalNoPersistido({limpiarCliente:true, limpiarObservaciones:true});
+    updateProductBadges();
+    updateAccionPrincipalUI();
+    if(isMobileAssistantActive()) rsMobileUpdate();
+
     // SeleccionarMesa incrementa primero. Tomamos el valor actual como identidad
     // de esta carga. Una nueva selección incrementará la secuencia y esta respuesta
     // quedará automáticamente obsoleta.
@@ -4575,7 +4635,8 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
       const r=await fetchWithTimeout(BASE+'core/facturasRestaurante/facturasRestauranteAjax.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString()});
       const d=await r.json();
       if(!d || !d.status) throw new Error((d&&d.message)||'No se pudo reservar la mesa');
-      $('#modal-reserva-mesa').hide();
+      // La reserva se guarda sin cerrar el modal automáticamente.
+      // Solo X/Cerrar/Cancelar/ESC deben cerrarlo.
       showAlert('success','Reserva',d.message || 'Mesa reservada correctamente');
       await cargarMesas();
     }catch(e){showAlert('error','Error',e.message||'No se pudo reservar la mesa');}
@@ -5004,7 +5065,14 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
   }
 
   $(document).off('click.restCobrarMesa','#btn-cobrar-mesa').on('click.restCobrarMesa','#btn-cobrar-mesa',function(){
-    facturarConFlujoNormal('mesa');
+    if(facturandoRestaurante) return;
+    const total=obtenerTotalComanda();
+    const numeroMesa=mesaSeleccionada && (mesaSeleccionada.numero||mesaSeleccionada.Numero);
+    showConfirm(
+      'Cobrar mesa',
+      `¿Desea finalizar ${numeroMesa ? 'Mesa '+numeroMesa : 'la mesa seleccionada'} por L ${formatNumber(total)}? Al continuar se generará la factura y se abrirá el método de pago.`,
+      ()=>facturarConFlujoNormal('mesa')
+    );
   });
 
   function guardarFactura(){
@@ -5023,15 +5091,20 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     const estado=String((tile&&tile.getAttribute('data-estado'))||'disponible').toLowerCase();
     if(estado==='mantenimiento'){showAlert('warning','Mesa no disponible','La mesa se encuentra en mantenimiento.');return false;}
 
-    showConfirm(facturaIdActual()?'Actualizar cuenta':'Enviar a cocina',
-      facturaIdActual()?'¿Desea guardar los cambios de esta cuenta y actualizar la comanda?':'¿Desea guardar esta cuenta y enviarla a cocina?',
+    showConfirm(
+      'Guardar pedido',
+      usaComandasOperacion()
+        ? (facturaIdActual()
+            ? '¿Desea guardar los cambios? Si agregó productos nuevos, solo esos productos se enviarán a preparación.'
+            : '¿Desea guardar el pedido y enviar los productos a preparación?')
+        : (facturaIdActual() ? '¿Desea guardar los cambios de esta cuenta?' : '¿Desea guardar esta cuenta?'),
       ()=>{
         if(guardandoFactura) return;
         guardandoFactura=true;
-        setButtonBusy(btnGuardar,true,facturaIdActual()?'Actualizando…':'Enviando…');
+        setButtonBusy(btnGuardar,true,'Guardando…');
         guardarCuentaMesa({silencioso:false,imprimirAlEnviar:true,enviarComanda:true})
-          .catch(e=>showAlert('error','Error',e.message||'No se pudo guardar la cuenta'))
-          .finally(()=>{guardandoFactura=false;setButtonBusy(btnGuardar,false);updateAccionPrincipalUI();});
+          .catch(e=>showAlert('error','Error',e.message||'No se pudo guardar el pedido'))
+          .finally(()=>{guardandoFactura=false;setButtonBusy(btnGuardar,false);updateAccionPrincipalUI();if(isMobileAssistantActive())rsMobileUpdate();});
       });
     return false;
   }
@@ -5040,6 +5113,10 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     if (!facturaActual || !(facturaActual.id || facturaActual.factura_id)) {
       showAlert('warning','Advertencia','No hay factura abierta'); 
       return; 
+    }
+    if(getServicioTipo()==='mesa'){
+      showAlert('info','Cuenta de mesa','Esta cuenta debe finalizarse mediante “Cobrar mesa”.');
+      return;
     }
     const fid = facturaActual.id || facturaActual.factura_id;
   
@@ -7496,7 +7573,7 @@ function initSelect2ForComboRow(row){
   /* ================================================================
      CIERRE FUNCIONAL RESTAURANTE - CONFIG / CUENTAS / TICKET / AUTH
      ================================================================ */
-  window.REST_CONFIG = window.REST_CONFIG || {usar_mesas:1, usar_comandas:1, etiqueta_cocina:'Cocina', etiqueta_barra:'Barra', destino_comanda:'pantalla', momento_ticket:'enviar', flujo_cocina:'pasos', solicitar_clave_gestion:1, permitir_facturas_credito:0};
+  window.REST_CONFIG = window.REST_CONFIG || {usar_mesas:1, usar_comandas:1, etiqueta_cocina:'Cocina', etiqueta_barra:'Barra', destino_comanda:'pantalla', momento_ticket:'enviar', flujo_cocina:'pasos', solicitar_clave_gestion:0, permitir_facturas_credito:0};
   let REST_TIPO_USUARIO = 0;
   let REST_PERMISOS = {};
   let REST_AUTH_BYPASS = false;
@@ -7571,7 +7648,8 @@ function initSelect2ForComboRow(row){
   }
 
   function solicitarClaveGestionOperacion(){
-    return Number(window.REST_CONFIG && window.REST_CONFIG.solicitar_clave_gestion) !== 0;
+    // La clave adicional SOLO aplica cuando el valor guardado es exactamente 1.
+    return Number(window.REST_CONFIG && window.REST_CONFIG.solicitar_clave_gestion) === 1;
   }
 
   function autorizarGestionRestaurante(accion, callback, referencia){
@@ -8039,7 +8117,20 @@ function initSelect2ForComboRow(row){
         solicitar_clave_gestion:Number(d.config.solicitar_clave_gestion)!==0?1:0,
         permitir_facturas_credito:Number(d.config.permitir_facturas_credito)===1?1:0
       };
-    }catch(_){ window.REST_CONFIG={usar_mesas:1,usar_comandas:1,etiqueta_cocina:'Cocina',etiqueta_barra:'Barra',destino_comanda:'pantalla',momento_ticket:'enviar',flujo_cocina:'pasos',solicitar_clave_gestion:1,permitir_facturas_credito:0}; }
+    }catch(_){
+      const anterior=window.REST_CONFIG||{};
+      window.REST_CONFIG={
+        usar_mesas:Number(anterior.usar_mesas)!==0?1:0,
+        usar_comandas:Number(anterior.usar_comandas)!==0?1:0,
+        etiqueta_cocina:String(anterior.etiqueta_cocina||'Cocina'),
+        etiqueta_barra:String(anterior.etiqueta_barra||'Barra'),
+        destino_comanda:String(anterior.destino_comanda||'pantalla'),
+        momento_ticket:String(anterior.momento_ticket||'enviar'),
+        flujo_cocina:String(anterior.flujo_cocina||'pasos'),
+        solicitar_clave_gestion:Number(anterior.solicitar_clave_gestion)===1?1:0,
+        permitir_facturas_credito:Number(anterior.permitir_facturas_credito)===1?1:0
+      };
+    }
     aplicarConfiguracionOperacion();
   }
 
@@ -8152,7 +8243,8 @@ function initSelect2ForComboRow(row){
       window.REST_CONFIG=d.config||window.REST_CONFIG; aplicarConfiguracionOperacion();
       rsConfigEstadoBase=rsConfigCapturarEstado();
       rsConfigActualizarEstadoCambios();
-      document.getElementById('modal-configuracion-restaurante').style.display='none';
+      // Guardar configuración NO cierra el Centro de configuración.
+      // El usuario decide cuándo salir con X, Cerrar/Cancelar o ESC.
       showAlert('success','Configuración','La configuración del módulo fue actualizada.');
     }catch(e){showAlert('error','Error',e.message||'No se pudo guardar');}
     finally{setButtonBusy(btn,false);}
@@ -8471,3 +8563,523 @@ function initSelect2ForComboRow(row){
   },120);
 
 });
+
+/* ================================================================
+   FIX — CENTRO DE CONFIGURACIÓN / PANTALLA DE COCINA
+   La vista ya contiene los controles de Cocina/Dispositivos, pero
+   esta integración no existía en el JS principal. Sin ella el bloque
+   #config-dispositivos-cocina queda permanentemente en "Cargando…".
+   Este bloque es autocontenido para no alterar el flujo POS existente.
+   ================================================================ */
+(function(){
+  'use strict';
+
+  function ready(fn){
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true});
+    else fn();
+  }
+
+  ready(function(){
+    const devicesBox = document.getElementById('config-dispositivos-cocina');
+    if(!devicesBox) return;
+
+    const base = String(window.SERVERURL || (typeof SERVERURL !== 'undefined' ? SERVERURL : '/') || '/').replace(/\/?$/, '/');
+    const endpoint = base + 'core/cocina/cocinaAccesoAdminAjax.php';
+    const adminContext = String(window.REST_COCINA_ADMIN_CONTEXT || '');
+    const REQUEST_TIMEOUT = 15000;
+    let loadingDevices = false;
+    let lastLoadAt = 0;
+    let pairingDeviceInProgress = false;
+
+    // Equipos ocultos SOLO EN ESTA VISTA/NAVEGADOR.
+    // No se elimina ni modifica ningún registro en la base de datos.
+    // Los dispositivos ocultos se guardan en DB_MAIN.
+    // No dependen de localStorage, caché ni historial del navegador.
+
+    function esc(v){
+      return String(v == null ? '' : v)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+    }
+
+    function notify(type,title,message){
+      if(typeof window.showNotify === 'function'){
+        window.showNotify(type,title,message);
+        return;
+      }
+      if(typeof window.swal === 'function'){
+        window.swal(title || '', message || '', type === 'error' ? 'error' : (type === 'success' ? 'success' : 'info'));
+        return;
+      }
+      if(message) console[type === 'error' ? 'error' : 'log']('[Restaurante/Cocina]', message);
+    }
+
+    function setBusy(btn,busy,text){
+      if(!btn) return;
+      if(busy){
+        if(!btn.dataset.rsKitchenHtml) btn.dataset.rsKitchenHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.setAttribute('aria-busy','true');
+        if(text) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + esc(text);
+      }else{
+        btn.disabled = false;
+        btn.removeAttribute('aria-busy');
+        if(btn.dataset.rsKitchenHtml){
+          btn.innerHTML = btn.dataset.rsKitchenHtml;
+          delete btn.dataset.rsKitchenHtml;
+        }
+      }
+    }
+
+    function responseOk(data){
+      if(!data || typeof data !== 'object') return false;
+      if(Object.prototype.hasOwnProperty.call(data,'status')) return !!data.status;
+      if(Object.prototype.hasOwnProperty.call(data,'success')) return !!data.success;
+      if(Object.prototype.hasOwnProperty.call(data,'ok')) return !!data.ok;
+      return true;
+    }
+
+    function messageOf(data, fallback){
+      return String((data && (data.message || data.mensaje || data.error)) || fallback || 'No se pudo completar la operación.');
+    }
+
+    function actionUnsupported(data){
+      const m = messageOf(data,'').toLowerCase();
+      return /acci[oó]n|action/.test(m) && /no (?:especificada|v[aá]lida|permitida|soportada|existe|encontrada)|desconocida|inv[aá]lida/.test(m);
+    }
+
+    async function postOnce(action,data){
+      const payload = Object.assign({}, data || {});
+      payload.action = action;
+      // Se envían aliases del contexto para mantener compatibilidad con
+      // versiones previas del endpoint sin tocar el backend existente.
+      payload.admin_context = adminContext;
+      payload.contexto_admin = adminContext;
+      payload.contexto = adminContext;
+      payload.context = adminContext;
+
+      const body = new URLSearchParams();
+      Object.keys(payload).forEach(function(k){
+        const v = payload[k];
+        if(v === undefined || v === null) return;
+        if(Array.isArray(v)) v.forEach(function(x){ body.append(k + '[]', String(x)); });
+        else body.append(k, String(v));
+      });
+
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timer = controller ? setTimeout(function(){ controller.abort(); }, REQUEST_TIMEOUT) : null;
+      try{
+        const res = await fetch(endpoint, {
+          method:'POST',
+          credentials:'same-origin',
+          headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'XMLHttpRequest'},
+          body:body.toString(),
+          signal:controller ? controller.signal : undefined
+        });
+        if(res.status === 401){
+          let auth = null;
+          try{ auth = await res.clone().json(); }catch(_){}
+          if(auth && auth.redirect) window.location.href = auth.redirect;
+          throw new Error(messageOf(auth,'La sesión expiró.'));
+        }
+        const raw = await res.text();
+        let json = null;
+        try{ json = raw ? JSON.parse(raw) : {}; }
+        catch(_){ throw new Error('La respuesta de Cocina no es JSON válido.'); }
+        if(!res.ok) throw new Error(messageOf(json,'Error HTTP ' + res.status));
+        return json;
+      }catch(e){
+        if(e && e.name === 'AbortError') throw new Error('La consulta de pantallas tardó demasiado tiempo.');
+        throw e;
+      }finally{
+        if(timer) clearTimeout(timer);
+      }
+    }
+
+    async function postCompat(actions,data){
+      let last = null;
+      for(let i=0;i<actions.length;i++){
+        const d = await postOnce(actions[i],data);
+        last = d;
+        if(responseOk(d) || !actionUnsupported(d)) return d;
+      }
+      return last;
+    }
+
+    function arrayFrom(data,keys){
+      if(Array.isArray(data)) return data;
+      if(!data || typeof data !== 'object') return [];
+      for(const k of keys){ if(Array.isArray(data[k])) return data[k]; }
+      if(data.data && typeof data.data === 'object'){
+        for(const k of keys){ if(Array.isArray(data.data[k])) return data.data[k]; }
+      }
+      return [];
+    }
+
+    function first(obj,keys,def){
+      if(!obj || typeof obj !== 'object') return def;
+      for(const k of keys){
+        if(Object.prototype.hasOwnProperty.call(obj,k) && obj[k] !== null && obj[k] !== '') return obj[k];
+      }
+      return def;
+    }
+
+    function boolish(v,def){
+      if(v === undefined || v === null || v === '') return !!def;
+      if(typeof v === 'boolean') return v;
+      const s = String(v).toLowerCase();
+      return !['0','false','no','off','inactivo','revocado','disabled'].includes(s);
+    }
+
+    function formatDate(v){
+      if(!v) return 'Sin conexión registrada';
+      const raw = String(v);
+      const d = new Date(raw.replace(' ','T'));
+      if(Number.isNaN(d.getTime())) return raw;
+      try{
+        return d.toLocaleString('es-HN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+      }catch(_){ return raw; }
+    }
+
+    function deviceState(dev){
+      const active = boolish(first(dev,['activo','active','estado_activo','habilitado'],1),true);
+      if(!active) return {cls:'is-off',label:'Desvinculada',active:false};
+      const last = first(dev,['ultima_conexion','ultimo_acceso','last_seen','last_connection','fecha_ultimo_acceso','fecha_actualizacion'],null);
+      if(!last) return {cls:'is-idle',label:'Vinculada',active:true};
+      const d = new Date(String(last).replace(' ','T'));
+      if(!Number.isNaN(d.getTime()) && (Date.now()-d.getTime()) <= 5*60*1000) return {cls:'is-online',label:'En línea',active:true};
+      return {cls:'is-idle',label:'Vinculada',active:true};
+    }
+
+    function renderDevices(list){
+      if(!Array.isArray(list) || list.length === 0){
+        devicesBox.innerHTML = '<div class="rs-kitchen-device-empty"><i class="fas fa-display"></i> No hay pantallas vinculadas todavía.</div>';
+        return;
+      }
+
+      const visibles=[], archivados=[];
+      list.forEach(function(dev,index){
+        const id=first(dev,['dispositivo_id','device_id','id','cocina_dispositivo_id','token_id'],index+1);
+        const st=deviceState(dev);
+        const oculto=Number(first(dev,['oculto_vista','archivado','hidden'],0))===1;
+        const row={dev,index,id,st};
+        if(!st.active && oculto) archivados.push(row);
+        else visibles.push(row);
+      });
+
+      let html='';
+      if(archivados.length){
+        html += '<div class="rs-kitchen-hidden-toolbar" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px 0;padding:8px 10px;border:1px dashed #cbd5e1;border-radius:10px;background:#f8fafc;">' +
+          '<small style="color:#64748b;"><i class="fas fa-archive"></i> '+archivados.length+' archivado'+(archivados.length===1?'':'s')+'</small>' +
+          '<button type="button" class="btn btn-light btn-sm rs-kitchen-show-archived"><i class="fas fa-eye"></i> Ver archivados</button>' +
+        '</div>';
+      }
+
+      if(!visibles.length){
+        html += '<div class="rs-kitchen-device-empty"><i class="fas fa-display"></i> No hay pantallas visibles.</div>';
+      }else{
+        html += visibles.map(function(row){
+          const dev=row.dev,index=row.index,id=row.id,st=row.st;
+          const name=first(dev,['nombre','nombre_dispositivo','device_name','alias'],'Pantalla '+(index+1));
+          const last=first(dev,['ultima_conexion','ultimo_acceso','last_seen','last_connection','fecha_ultimo_acceso','fecha_actualizacion'],null);
+          const agent=first(dev,['user_agent','navegador','device_info','descripcion'],'');
+          return '<div class="rs-kitchen-device-card '+(st.cls==='is-off'?'is-off':'')+'" data-kitchen-device-id="'+esc(id)+'">' +
+            '<div class="rs-kitchen-device-icon"><i class="fas fa-display"></i></div>' +
+            '<div class="rs-kitchen-device-info">' +
+              '<div class="rs-kitchen-device-title"><strong>'+esc(name)+'</strong><span class="rs-kitchen-device-status '+esc(st.cls)+'"><i class="fas fa-circle"></i> '+esc(st.label)+'</span></div>' +
+              '<small><i class="fas fa-clock"></i> '+esc(formatDate(last))+'</small>' +
+              (agent?'<small title="'+esc(agent)+'"><i class="fas fa-globe"></i> '+esc(agent)+'</small>':'') +
+            '</div>' +
+            (st.active
+              ? '<div class="rs-kitchen-device-actions"><button type="button" class="btn btn-danger btn-sm rs-kitchen-unlink" data-device-id="'+esc(id)+'"><i class="fas fa-unlink"></i> Desvincular</button></div>'
+              : '<div class="rs-kitchen-device-actions"><button type="button" class="btn btn-light btn-sm rs-kitchen-archive-device" data-device-id="'+esc(id)+'"><i class="fas fa-archive"></i> Quitar de vista</button></div>') +
+          '</div>';
+        }).join('');
+      }
+
+      if(archivados.length){
+        html += '<div class="rs-kitchen-archived-list" style="display:none;margin-top:10px;">' +
+          archivados.map(function(row){
+            const dev=row.dev,id=row.id,index=row.index;
+            const name=first(dev,['nombre','nombre_dispositivo','device_name','alias'],'Pantalla '+(index+1));
+            const last=first(dev,['ultima_conexion','ultimo_acceso','last_seen','last_connection','fecha_ultimo_acceso','fecha_actualizacion'],null);
+            return '<div class="rs-kitchen-device-card is-off" data-kitchen-device-id="'+esc(id)+'">' +
+              '<div class="rs-kitchen-device-icon"><i class="fas fa-display"></i></div>' +
+              '<div class="rs-kitchen-device-info">' +
+                '<div class="rs-kitchen-device-title"><strong>'+esc(name)+'</strong><span class="rs-kitchen-device-status is-off"><i class="fas fa-circle"></i> Archivada</span></div>' +
+                '<small><i class="fas fa-clock"></i> '+esc(formatDate(last))+'</small>' +
+              '</div>' +
+              '<div class="rs-kitchen-device-actions"><button type="button" class="btn btn-light btn-sm rs-kitchen-restore-device" data-device-id="'+esc(id)+'"><i class="fas fa-undo"></i> Restaurar</button></div>' +
+            '</div>';
+          }).join('') +
+        '</div>';
+      }
+
+      devicesBox.innerHTML=html;
+    }
+
+    async function loadDevices(force){
+      if(loadingDevices) return;
+      if(!force && Date.now()-lastLoadAt < 1500) return;
+      loadingDevices = true;
+      devicesBox.setAttribute('aria-busy','true');
+      devicesBox.innerHTML = '<div class="rs-kitchen-device-empty"><i class="fas fa-spinner fa-spin"></i> Cargando pantallas…</div>';
+      try{
+        if(!adminContext) throw new Error('No se pudo generar el contexto administrativo de Cocina. Recargue la página e intente de nuevo.');
+        const d = await postCompat(['listar','listar_dispositivos','listarDispositivos','dispositivos','listDevices'],{});
+        if(!responseOk(d)) throw new Error(messageOf(d,'No se pudieron cargar las pantallas vinculadas.'));
+        renderDevices(arrayFrom(d,['dispositivos','devices','pantallas','items']));
+        lastLoadAt = Date.now();
+      }catch(e){
+        devicesBox.innerHTML = '<div class="rs-kitchen-device-empty is-error"><i class="fas fa-triangle-exclamation"></i> '+esc(e.message || 'No se pudieron cargar las pantallas.')+'</div>';
+        console.error('[Restaurante][Cocina] cargar dispositivos:',e);
+      }finally{
+        loadingDevices = false;
+        devicesBox.removeAttribute('aria-busy');
+      }
+    }
+
+    function setKitchenStatus(active){
+      const sw = document.getElementById('config-pantalla-cocina-activa');
+      const badge = document.getElementById('config-cocina-estado');
+      if(sw) sw.checked = !!active;
+      if(badge){
+        badge.classList.toggle('is-off',!active);
+        badge.innerHTML = active ? '<i class="fas fa-circle"></i> Activa' : '<i class="fas fa-circle"></i> Inactiva';
+      }
+    }
+
+    async function loadKitchenState(){
+      try{
+        if(!adminContext) return;
+        const d = await postCompat(['load'],{});
+        if(!responseOk(d)) return;
+        const source = d.config || d.data || d;
+        const active = boolish(first(source,['pantalla_cocina_activa','activo','active','habilitado'],false),false);
+        setKitchenStatus(active);
+      }catch(e){ console.warn('[Restaurante][Cocina] estado:',e.message); }
+    }
+
+    async function pairDevice(btn){
+      if(pairingDeviceInProgress) return;
+
+      const input = document.getElementById('config-codigo-vinculacion-cocina');
+      const nameInput = document.getElementById('config-nombre-dispositivo-cocina');
+      const code = String(input ? input.value : '').replace(/\D/g,'').slice(0,6);
+      const name = String(nameInput ? nameInput.value : '').trim();
+
+      if(code.length !== 6){
+        notify('info','Vincular TV','Escriba los 6 dígitos que muestra la pantalla.');
+        if(input) input.focus();
+        return;
+      }
+
+      pairingDeviceInProgress = true;
+      setBusy(btn,true,'Vinculando…');
+
+      try{
+        // cocinaAccesoAdminAjax.php acepta exactamente "vincularDispositivo"
+        // y recibe el código en "codigo". No enviamos acciones alternativas
+        // que puedan generar 403 ni modificamos el código mostrado por la TV.
+        const d = await postOnce('vincularDispositivo',{
+          codigo:code,
+          nombre:name
+        });
+
+        if(!responseOk(d)) throw new Error(messageOf(d,'No se pudo vincular la pantalla.'));
+
+        if(input) input.value='';
+        if(nameInput) nameInput.value='';
+
+        notify('success','Pantalla de Cocina',messageOf(d,'Pantalla vinculada correctamente.'));
+        renderDevices(arrayFrom(d,['dispositivos','devices','pantallas','items']));
+        lastLoadAt = Date.now();
+      }catch(e){
+        notify('error','Pantalla de Cocina',e.message || 'No se pudo vincular la pantalla.');
+      }finally{
+        pairingDeviceInProgress = false;
+        setBusy(btn,false);
+      }
+    }
+
+    async function unlinkDevice(btn,id){
+      if(!id) return;
+      const run = async function(){
+        setBusy(btn,true,'Desvinculando…');
+        try{
+          const d = await postCompat(['desvincularDispositivo'],{
+            dispositivo_id:id, device_id:id, id:id
+          });
+          if(!responseOk(d)) throw new Error(messageOf(d,'No se pudo desvincular la pantalla.'));
+          notify('success','Pantalla de Cocina',messageOf(d,'Pantalla desvinculada.'));
+          await loadDevices(true);
+        }catch(e){ notify('error','Pantalla de Cocina',e.message || 'No se pudo desvincular la pantalla.'); }
+        finally{ setBusy(btn,false); }
+      };
+      if(typeof window.swal === 'function'){
+        window.swal({title:'Desvincular pantalla',text:'Este equipo perderá el acceso a Cocina. Las demás pantallas no se verán afectadas.',icon:'warning',buttons:['Cancelar','Desvincular'],dangerMode:true}).then(function(ok){ if(ok) run(); });
+      }else if(window.confirm('¿Desvincular esta pantalla de Cocina?')) run();
+    }
+
+    async function testScreens(btn){
+      setBusy(btn,true,'Enviando…');
+      try{
+        const d = await postCompat(['enviarPrueba'],{});
+        if(!responseOk(d)) throw new Error(messageOf(d,'No se pudo enviar la prueba.'));
+        notify('success','Pantalla de Cocina',messageOf(d,'Prueba enviada a las pantallas vinculadas.'));
+      }catch(e){ notify('error','Pantalla de Cocina',e.message || 'No se pudo enviar la prueba.'); }
+      finally{ setBusy(btn,false); }
+    }
+
+    async function regenerateAccess(btn){
+      const run = async function(){
+        setBusy(btn,true,'Regenerando…');
+        try{
+          const d = await postCompat(['regenerar'],{});
+          if(!responseOk(d)) throw new Error(messageOf(d,'No se pudo regenerar el acceso.'));
+          notify('success','Pantalla de Cocina',messageOf(d,'Acceso regenerado. Las pantallas deberán vincularse nuevamente.'));
+          await Promise.allSettled([loadDevices(true),loadKitchenState()]);
+        }catch(e){ notify('error','Pantalla de Cocina',e.message || 'No se pudo regenerar el acceso.'); }
+        finally{ setBusy(btn,false); }
+      };
+      if(typeof window.swal === 'function'){
+        window.swal({title:'Regenerar acceso de Cocina',text:'Se invalidará el acceso de todas las pantallas vinculadas.',icon:'warning',buttons:['Cancelar','Regenerar'],dangerMode:true}).then(function(ok){ if(ok) run(); });
+      }else if(window.confirm('¿Regenerar el acceso y desvincular todas las pantallas?')) run();
+    }
+
+    async function toggleKitchen(sw){
+      const desired = !!sw.checked;
+      const old = !desired;
+      sw.disabled = true;
+      try{
+        const d = await postCompat(['guardar'],{
+          activo:desired ? 1 : 0,
+          active:desired ? 1 : 0,
+          pantalla_cocina_activa:desired ? 1 : 0
+        });
+        if(!responseOk(d)) throw new Error(messageOf(d,'No se pudo cambiar el estado de Pantalla de Cocina.'));
+        setKitchenStatus(desired);
+      }catch(e){
+        sw.checked = old;
+        setKitchenStatus(old);
+        notify('error','Pantalla de Cocina',e.message || 'No se pudo cambiar el estado.');
+      }finally{ sw.disabled = false; }
+    }
+
+    async function copyInput(id){
+      const el = document.getElementById(id);
+      if(!el) return;
+      const value = String(el.value || '').trim();
+      if(!value) return;
+      try{
+        if(navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(value);
+        else { el.focus(); el.select(); document.execCommand('copy'); }
+        notify('success','Copiado','Dirección copiada al portapapeles.');
+      }catch(_){ notify('info','Copiar','Seleccione la dirección y cópiela manualmente.'); }
+    }
+
+    // Dirección corta de Cocina: la vista no necesita esperar AJAX para mostrarla.
+    ['config-enlace-tv-cocina','config-url-cocina-seguridad','config-enlace-cocina'].forEach(function(id){
+      const el = document.getElementById(id);
+      if(el && !String(el.value || '').trim()) el.value = base + 'cocina/';
+    });
+
+    document.addEventListener('input',function(e){
+      if(e.target && e.target.id === 'config-codigo-vinculacion-cocina'){
+        const digits = String(e.target.value || '').replace(/\D/g,'').slice(0,6);
+        e.target.value = digits.length > 3 ? digits.slice(0,3)+' '+digits.slice(3) : digits;
+      }
+    });
+
+    document.addEventListener('click',function(e){
+      const refresh = e.target.closest && e.target.closest('#btn-refrescar-dispositivos-cocina');
+      if(refresh){ e.preventDefault(); loadDevices(true); return; }
+
+      const pair = e.target.closest && e.target.closest('#btn-vincular-tv-cocina');
+      if(pair){ e.preventDefault(); pairDevice(pair); return; }
+
+      const unlink = e.target.closest && e.target.closest('.rs-kitchen-unlink');
+      if(unlink){ e.preventDefault(); unlinkDevice(unlink,String(unlink.dataset.deviceId || '')); return; }
+
+      const archiveDevice = e.target.closest && e.target.closest('.rs-kitchen-archive-device');
+      if(archiveDevice){
+        e.preventDefault();
+        const id=String(archiveDevice.dataset.deviceId||'');
+        if(!id) return;
+        setBusy(archiveDevice,true,'Quitando…');
+        postOnce('archivarDispositivo',{dispositivo_id:id})
+          .then(d=>{ if(!responseOk(d)) throw new Error(messageOf(d,'No se pudo quitar de la vista.')); renderDevices(arrayFrom(d,['dispositivos','devices','pantallas','items'])); })
+          .catch(e=>notify('error','Pantalla de Cocina',e.message||'No se pudo quitar de la vista.'))
+          .finally(()=>setBusy(archiveDevice,false));
+        return;
+      }
+
+      const restoreDevice = e.target.closest && e.target.closest('.rs-kitchen-restore-device');
+      if(restoreDevice){
+        e.preventDefault();
+        const id=String(restoreDevice.dataset.deviceId||'');
+        if(!id) return;
+        setBusy(restoreDevice,true,'Restaurando…');
+        postOnce('restaurarDispositivo',{dispositivo_id:id})
+          .then(d=>{ if(!responseOk(d)) throw new Error(messageOf(d,'No se pudo restaurar.')); renderDevices(arrayFrom(d,['dispositivos','devices','pantallas','items'])); })
+          .catch(e=>notify('error','Pantalla de Cocina',e.message||'No se pudo restaurar.'))
+          .finally(()=>setBusy(restoreDevice,false));
+        return;
+      }
+
+      const showArchived = e.target.closest && e.target.closest('.rs-kitchen-show-archived');
+      if(showArchived){
+        e.preventDefault();
+        const box=devicesBox.querySelector('.rs-kitchen-archived-list');
+        if(box){
+          const visible=box.style.display!=='none';
+          box.style.display=visible?'none':'';
+          showArchived.innerHTML=visible?'<i class="fas fa-eye"></i> Ver archivados':'<i class="fas fa-eye-slash"></i> Ocultar archivados';
+        }
+        return;
+      }
+
+      const test = e.target.closest && e.target.closest('#btn-probar-pantalla-cocina');
+      if(test){ e.preventDefault(); testScreens(test); return; }
+
+      const regen = e.target.closest && e.target.closest('#btn-regenerar-enlace-cocina');
+      if(regen){ e.preventDefault(); regenerateAccess(regen); return; }
+
+      const copyTv = e.target.closest && e.target.closest('#btn-copiar-url-tv-cocina');
+      if(copyTv){ e.preventDefault(); copyInput('config-enlace-tv-cocina'); return; }
+
+      const copySec = e.target.closest && e.target.closest('#btn-copiar-url-seguridad-cocina');
+      if(copySec){ e.preventDefault(); copyInput('config-url-cocina-seguridad'); return; }
+
+      const nav = e.target.closest && e.target.closest('.rs-settings-nav-item[data-config-tab]');
+      if(nav){
+        const tab = String(nav.getAttribute('data-config-tab') || '');
+        if(tab === 'dispositivos') setTimeout(function(){ loadDevices(true); },0);
+        if(tab === 'cocina') setTimeout(function(){ loadKitchenState(); },0);
+      }
+    });
+
+    const sw = document.getElementById('config-pantalla-cocina-activa');
+    if(sw) sw.addEventListener('change',function(){ toggleKitchen(sw); });
+
+    // Si el panel de Dispositivos se activa por búsqueda/navegación interna,
+    // también se carga. Esto evita depender del orden de otros handlers.
+    const panelDevices = document.querySelector('.rs-settings-panel[data-config-panel="dispositivos"]');
+    if(panelDevices && typeof MutationObserver !== 'undefined'){
+      new MutationObserver(function(){
+        if(panelDevices.classList.contains('is-active')) loadDevices(false);
+      }).observe(panelDevices,{attributes:true,attributeFilter:['class']});
+    }
+
+    // Al abrir el Centro de configuración precargamos estado y dispositivos.
+    const modalCfg = document.getElementById('modal-configuracion-restaurante');
+    if(modalCfg && typeof MutationObserver !== 'undefined'){
+      new MutationObserver(function(){
+        if(modalCfg.style.display !== 'none'){
+          loadKitchenState();
+          loadDevices(false);
+        }
+      }).observe(modalCfg,{attributes:true,attributeFilter:['style','class']});
+    }
+  });
+})();

@@ -905,6 +905,14 @@ class facturasRestauranteModelo extends mainModel {
 
     /* ===== Factura: leer por mesa ===== */
     public function obtenerFacturaMesa($mesa_id){
+        $mesa_id=(int)$mesa_id;
+        if($mesa_id<=0) return null;
+
+        $empresa=$this->empresaId();
+
+        // Una mesa solo puede recuperar una cuenta operativa del DÍA ACTUAL.
+        // Los borradores/contextos viejos se conservan para trazabilidad, pero jamás
+        // deben reaparecer automáticamente al seleccionar hoy una mesa disponible.
         $sql="SELECT
                 f.*,
                 rc.mesa_id,
@@ -912,13 +920,21 @@ class facturasRestauranteModelo extends mainModel {
                 c.clientes_id AS cliente_id, c.nombre AS cliente_nombre, c.rtn AS cliente_identificacion
               FROM facturas f
               INNER JOIN factura_restaurante_cuentas rc
-                ON rc.factura_id=f.facturas_id AND rc.empresa_id=f.empresa_id AND rc.estado='abierta'
-              INNER JOIN mesas m ON m.mesa_id=rc.mesa_id
+                ON rc.factura_id=f.facturas_id
+               AND rc.empresa_id=f.empresa_id
+               AND rc.estado='abierta'
+              INNER JOIN mesas m
+                ON m.mesa_id=rc.mesa_id
+               AND m.empresa_id=rc.empresa_id
               INNER JOIN clientes c ON c.clientes_id=f.clientes_id
-              WHERE rc.mesa_id=? AND rc.servicio_tipo='mesa' AND f.estado=1
-              ORDER BY f.facturas_id DESC
+              WHERE rc.mesa_id=?
+                AND rc.empresa_id=?
+                AND rc.servicio_tipo='mesa'
+                AND f.estado=1
+                AND DATE(COALESCE(rc.fecha_actualizacion,rc.fecha_registro))=CURDATE()
+              ORDER BY COALESCE(rc.fecha_actualizacion,rc.fecha_registro) DESC, f.facturas_id DESC
               LIMIT 1";
-        $rs = $this->ejecutar_consulta_simple_preparada($sql,"i",[intval($mesa_id)]);
+        $rs=$this->ejecutar_consulta_simple_preparada($sql,"ii",[$mesa_id,$empresa]);
         return $rs && $rs->num_rows ? $rs->fetch_assoc() : null;
     }
 
@@ -1742,6 +1758,52 @@ class facturasRestauranteModelo extends mainModel {
         return $det; // como ya usabas
     }
 
+    /** Valida receta y reglas antes de guardar/editar un combo. */
+    protected function validarComboPayload(int $productoPadre, array $items, array $reglas): array {
+        if($productoPadre<=0) return ['status'=>false,'message'=>'Producto combo inválido'];
+        if(!$items) return ['status'=>false,'message'=>'El combo debe tener al menos un componente'];
+
+        $vistos=[]; $opcionalesPorCategoria=[];
+        foreach($items as $it){
+            $pid=(int)($it['productos_id']??0);
+            $cant=(float)($it['cantidad_por_porcion']??$it['cantidad']??0);
+            $merma=(float)($it['merma_pct']??0);
+            $extra=(float)($it['precio_extra']??0);
+            $obligatorio=((int)($it['obligatorio']??1)===1);
+
+            if($pid<=0) return ['status'=>false,'message'=>'Hay un componente sin producto'];
+            if($pid===$productoPadre) return ['status'=>false,'message'=>'El producto maestro no puede ser componente de sí mismo'];
+            if(isset($vistos[$pid])) return ['status'=>false,'message'=>'No se permiten componentes repetidos'];
+            if($cant<=0) return ['status'=>false,'message'=>'La cantidad de cada componente debe ser mayor a 0'];
+            if($merma<0 || $merma>100) return ['status'=>false,'message'=>'La merma debe estar entre 0 y 100%'];
+            if($extra<0) return ['status'=>false,'message'=>'El precio extra no puede ser negativo'];
+
+            $rp=$this->ejecutar_consulta_simple_preparada(
+                "SELECT categoria_id FROM productos WHERE productos_id=? AND empresa_id=? AND estado=1 LIMIT 1",
+                "ii",[$pid,$this->empresaId()]
+            );
+            if(!$rp || !$rp->num_rows) return ['status'=>false,'message'=>'Un componente no existe, está inactivo o pertenece a otra empresa'];
+            $cat=(int)$rp->fetch_assoc()['categoria_id'];
+            if(!$obligatorio) $opcionalesPorCategoria[$cat]=($opcionalesPorCategoria[$cat]??0)+1;
+            $vistos[$pid]=1;
+        }
+
+        $cats=[];
+        foreach($reglas as $rg){
+            $cat=(int)($rg['categoria_id']??0);
+            $max=max(1,(int)($rg['max_seleccion']??1));
+            if($cat<=0) return ['status'=>false,'message'=>'Hay una regla sin categoría'];
+            if(isset($cats[$cat])) return ['status'=>false,'message'=>'No se puede repetir una categoría en las reglas'];
+            $rc=$this->ejecutar_consulta_simple_preparada("SELECT categoria_id FROM categoria WHERE categoria_id=? AND estado=1 LIMIT 1","i",[$cat]);
+            if(!$rc || !$rc->num_rows) return ['status'=>false,'message'=>'Una categoría de regla no existe o está inactiva'];
+            $disponibles=(int)($opcionalesPorCategoria[$cat]??0);
+            if($disponibles<=0) return ['status'=>false,'message'=>'Una regla no tiene componentes opcionales de esa categoría'];
+            if($max>$disponibles) return ['status'=>false,'message'=>'Una regla permite más selecciones que opciones disponibles'];
+            $cats[$cat]=1;
+        }
+        return ['status'=>true];
+    }
+
     /** Crear combo + receta + reglas por categoría (transaccional) */
     public function guardarCombo($payload){
         $prod_combo   = intval($payload['productos_id'] ?? 0);
@@ -1752,6 +1814,9 @@ class facturasRestauranteModelo extends mainModel {
         $reglas       = is_array($payload['reglas'] ?? null) ? $payload['reglas'] : [];
 
         if($prod_combo<=0){ return ['status'=>false,'message'=>'Producto combo inválido']; }
+
+        $validacionCombo=$this->validarComboPayload($prod_combo,$items,$reglas);
+        if(empty($validacionCombo['status'])) return $validacionCombo;
 
         // verificar producto dueño
         $chk = $this->ejecutar_consulta_simple_preparada(
@@ -2758,6 +2823,7 @@ class facturasRestauranteModelo extends mainModel {
             "SELECT rc.factura_id FROM factura_restaurante_cuentas rc
              INNER JOIN facturas f ON f.facturas_id=rc.factura_id AND f.empresa_id=rc.empresa_id
              WHERE rc.empresa_id=? AND rc.mesa_id=? AND rc.estado='abierta' AND f.estado=1
+               AND DATE(COALESCE(rc.fecha_actualizacion,rc.fecha_registro))=CURDATE()
              ORDER BY COALESCE(rc.fecha_actualizacion,rc.fecha_registro) DESC,rc.factura_id DESC LIMIT 1",
             "ii",[$empresa,$mesa_id]
         );
@@ -2770,12 +2836,45 @@ class facturasRestauranteModelo extends mainModel {
             );
             if(!$ok) return ['status'=>false,'message'=>'No se pudo desvincular la cuenta de la mesa'];
         }
-        $okMesa=$this->ejecutar_consulta_simple_preparada(
-            "UPDATE mesas SET estado='disponible' WHERE mesa_id=? AND empresa_id=?",
+        // Liberar mesa debe ser IDEMPOTENTE.
+        // Después de registrar el pago, otro tramo del flujo puede haberla dejado
+        // disponible antes de llegar aquí. En ese caso UPDATE afectaría 0 filas,
+        // pero la mesa YA está correctamente liberada y no debe mostrarse warning.
+        $stmtMesa=$cnn->prepare(
+            "UPDATE mesas SET estado='disponible' WHERE mesa_id=? AND empresa_id=?"
+        );
+        if(!$stmtMesa){
+            return ['status'=>false,'message'=>'No se pudo preparar la liberación de la mesa'];
+        }
+        $stmtMesa->bind_param("ii",$mesa_id,$empresa);
+        $execMesa=$stmtMesa->execute();
+        $errorMesa=$stmtMesa->error;
+        $stmtMesa->close();
+
+        if(!$execMesa){
+            return ['status'=>false,'message'=>'No se pudo liberar la mesa'.($errorMesa?': '.$errorMesa:'')];
+        }
+
+        // Confirmar el estado final en BD. Si ya estaba disponible, también es éxito.
+        $rsMesa=$this->ejecutar_consulta_simple_preparada(
+            "SELECT estado FROM mesas WHERE mesa_id=? AND empresa_id=? LIMIT 1",
             "ii",[$mesa_id,$empresa]
         );
-        if(!$okMesa) return ['status'=>false,'message'=>'No se pudo liberar la mesa'];
-        return ['status'=>true,'message'=>$facturaId>0?'Mesa liberada; la cuenta continúa abierta':'Mesa liberada','cuenta_conservada'=>$facturaId>0,'factura_id'=>$facturaId];
+        if(!$rsMesa || !$rsMesa->num_rows){
+            return ['status'=>false,'message'=>'No se encontró la mesa después de intentar liberarla'];
+        }
+        $estadoMesa=strtolower(trim((string)$rsMesa->fetch_assoc()['estado']));
+        if($estadoMesa!=='disponible'){
+            return ['status'=>false,'message'=>'La mesa no quedó disponible'];
+        }
+
+        return [
+            'status'=>true,
+            'message'=>$facturaId>0?'Mesa liberada; la cuenta continúa abierta':'Mesa liberada',
+            'cuenta_conservada'=>$facturaId>0,
+            'factura_id'=>$facturaId,
+            'ya_estaba_disponible'=>true
+        ];
     }
 
     /** Traer última factura ABIERTA (estado=1) por mesa + su detalle – sin $db externo */
@@ -3202,7 +3301,7 @@ public function crearPagoContado(array $data){
             'destino_comanda'=>'pantalla',
             'momento_ticket'=>'enviar',
             'flujo_cocina'=>'pasos',
-            'solicitar_clave_gestion'=>1,
+            'solicitar_clave_gestion'=>0,
             'permitir_facturas_credito'=>0
         ];
         if (!$this->hasTable('restaurante_configuracion')) return $cfg;
@@ -3254,7 +3353,7 @@ public function crearPagoContado(array $data){
                 if(in_array($flujo,['pasos','directo'],true)) $cfg['flujo_cocina']=$flujo;
             }
             if($hasSCG){
-                $cfg['solicitar_clave_gestion']=(int)($r['solicitar_clave_gestion']??1)===0?0:1;
+                $cfg['solicitar_clave_gestion']=(int)($r['solicitar_clave_gestion']??0)===1?1:0;
             }
             if($hasPFC){
                 $cfg['permitir_facturas_credito']=(int)($r['permitir_facturas_credito']??0)===1?1:0;
@@ -3488,11 +3587,41 @@ public function crearPagoContado(array $data){
             if ((int)$rf->fetch_assoc()['estado'] !== 1) throw new Exception('La cuenta ya no está abierta');
 
             $tot = $this->calcularTotalesDesdeItems($items);
-            $ok = $this->ejecutar_consulta_simple_preparada(
-                "UPDATE facturas SET clientes_id=?, tipo_factura=?, importe=?, notas=? WHERE facturas_id=? AND empresa_id=? AND estado=1",
-                "iidsii", [$clienteId,$tipoFactura,$tot['total'],$notas,$facturaId,$this->empresaId()]
+
+            // IMPORTANTE:
+            // Al cobrar una mesa, la cuenta normalmente ya fue guardada/enviada a Cocina.
+            // Por eso este UPDATE puede dejar exactamente los mismos valores y afectar 0 filas.
+            // Eso NO es un error: la cuenta sigue siendo válida y debe continuar al modal de pago.
+            //
+            // Usamos mysqli directamente para distinguir:
+            // - execute() = true + affected_rows = 0  -> correcto, no hubo cambios.
+            // - execute() = false                    -> error SQL real.
+            $sqlUpdateCuenta = "UPDATE facturas
+                                SET clientes_id=?, tipo_factura=?, importe=?, notas=?
+                                WHERE facturas_id=? AND empresa_id=? AND estado=1";
+            $stmtUpdateCuenta = $cnn->prepare($sqlUpdateCuenta);
+            if (!$stmtUpdateCuenta) {
+                throw new Exception('No se pudo preparar la actualización de la cuenta: '.$cnn->error);
+            }
+
+            $empresaActual = $this->empresaId();
+            $importeActual = (float)$tot['total'];
+            $stmtUpdateCuenta->bind_param(
+                "iidsii",
+                $clienteId,
+                $tipoFactura,
+                $importeActual,
+                $notas,
+                $facturaId,
+                $empresaActual
             );
-            if (!$ok) throw new Exception('No se pudo actualizar la cuenta');
+
+            if (!$stmtUpdateCuenta->execute()) {
+                $errorUpdate = $stmtUpdateCuenta->error ?: $cnn->error;
+                $stmtUpdateCuenta->close();
+                throw new Exception('No se pudo actualizar la cuenta'.($errorUpdate ? ': '.$errorUpdate : ''));
+            }
+            $stmtUpdateCuenta->close();
 
             $this->ejecutar_consulta_simple_preparada(
                 "DELETE FROM facturas_detalles WHERE facturas_id=?","i",[$facturaId]

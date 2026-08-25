@@ -121,6 +121,18 @@ try{
         ]);
     }
 
+    if(in_array($action,['archivardispositivo','ocultardispositivo','archivedevice','hidedevice'],true)){
+        $deviceId=(int)($_POST['dispositivo_id']??0);
+        CocinaTokenService::archiveDeviceFromView($serverCustomerId,$empresaId,$deviceId);
+        cocinaAdminOut(['status'=>true,'message'=>'Pantalla quitada de la vista. El historial se conserva.','dispositivos'=>CocinaTokenService::listDevices($serverCustomerId,$empresaId)]);
+    }
+
+    if(in_array($action,['restaurardispositivo','mostrardispositivo','restoredevice','showdevice'],true)){
+        $deviceId=(int)($_POST['dispositivo_id']??0);
+        CocinaTokenService::restoreDeviceToView($serverCustomerId,$empresaId,$deviceId);
+        cocinaAdminOut(['status'=>true,'message'=>'Pantalla restaurada en la vista.','dispositivos'=>CocinaTokenService::listDevices($serverCustomerId,$empresaId)]);
+    }
+
     if(in_array($action,['regenerate','regenerar','regenerateaccess','regeneraracceso'],true)){
         $r=CocinaTokenService::regenerate($serverCustomerId,$empresaId,$tenantDb);
         cocinaAdminOut([

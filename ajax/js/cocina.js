@@ -3,6 +3,8 @@
 if (typeof SERVERURL === 'undefined') var SERVERURL = window.location.origin + '/';
 
 document.addEventListener('DOMContentLoaded', function () {
+    // Evita inicializar dos veces la pantalla si el script se carga más de una vez.
+    if (window.COCINA_APP_BOOTED) return;
     window.COCINA_APP_BOOTED = true;
     const container = document.getElementById('comandas-container');
     const refreshBtn = document.getElementById('btn-refresh');
@@ -28,6 +30,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let ultimaFirmaComandas = null;
     let controladorCarga = null;
     let flujoCocina = 'pasos';
+    let creandoCodigoVinculacion = false;
 
     function notificar(tipo,titulo,mensaje){ if(typeof showNotify==='function') showNotify(tipo,titulo,mensaje); }
     function escapeHtml(valor){ return String(valor==null?'':valor).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
@@ -112,18 +115,30 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderPairCountdown(){ if(!pairExpireEl) return; const m=Math.floor(Math.max(0,pairSeconds)/60),s=Math.max(0,pairSeconds)%60; pairExpireEl.textContent=pairSeconds>0?`Este código vence en ${m}:${String(s).padStart(2,'0')}.`:'El código venció. Genere uno nuevo.'; }
 
     async function crearCodigoVinculacion(){
+        // Una sola solicitud de código por dispositivo a la vez.
+        // Esto evita que dos llamadas simultáneas invaliden visualmente el código recién mostrado.
+        if(creandoCodigoVinculacion) return;
+        creandoCodigoVinculacion = true;
+
         showPairing(); pairCode=''; pairSeconds=0;
+        if(newCodeBtn) newCodeBtn.disabled=true;
         if(pairCodeEl) pairCodeEl.textContent='------';
         if(pairStatusEl) pairStatusEl.innerHTML='<i class="fas fa-spinner fa-spin"></i> Generando código seguro…';
         try{
             const d=await pairPost('crear',{device_secret:getDeviceSecret()});
             pairCode=String(d.codigo||''); pairSeconds=Number(d.expira_segundos||600);
+            if(!/^\d{6}$/.test(pairCode)) throw new Error('El servidor no devolvió un código de vinculación válido.');
             if(pairCodeEl) pairCodeEl.textContent=pairCode.replace(/(\d{3})(\d{3})/,'$1 $2');
             if(pairStatusEl) pairStatusEl.innerHTML='<i class="fas fa-link"></i> Esperando vinculación desde IZZY…';
             renderPairCountdown();
             pairCountdown=setInterval(()=>{ pairSeconds--; renderPairCountdown(); if(pairSeconds<=0){stopPairing(); if(pairStatusEl) pairStatusEl.innerHTML='<i class="fas fa-clock"></i> Código vencido.';} },1000);
             pairPoll=setInterval(comprobarVinculacion,2000);
-        }catch(e){ if(pairStatusEl) pairStatusEl.innerHTML=`<i class="fas fa-triangle-exclamation"></i> ${escapeHtml(e.message)}`; }
+        }catch(e){
+            if(pairStatusEl) pairStatusEl.innerHTML=`<i class="fas fa-triangle-exclamation"></i> ${escapeHtml(e.message)}`;
+        }finally{
+            creandoCodigoVinculacion=false;
+            if(newCodeBtn) newCodeBtn.disabled=false;
+        }
     }
 
     async function comprobarVinculacion(){

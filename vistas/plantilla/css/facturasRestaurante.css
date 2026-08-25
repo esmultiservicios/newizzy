@@ -5782,3 +5782,1272 @@ body[data-servicio="mesa"] #btn-guardar.btn-warning:focus {
   }
 }
 
+/* =====================================================================
+   TABLET VERTICAL = EXPERIENCIA MÓVIL
+   Reutiliza integralmente las reglas móviles actuales.
+   Tablet horizontal conserva su layout actual.
+   ===================================================================== */
+@media (hover:none) and (pointer:coarse) and (orientation:portrait) and (min-width:600px) and (max-width:1368px){
+  body.vista-facturacion-restaurante.rs-mobile-assistant-enabled{
+    --bar-h:50px !important;
+    overflow:hidden !important;
+    background:#f5f7fa !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .restaurante-container{
+    position:fixed !important;
+    inset:0 !important;
+    width:100vw !important;
+    height:100dvh !important;
+    max-width:100vw !important;
+    overflow:hidden !important;
+  }
+
+  /* ---------- Barra superior ---------- */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .control-bar{
+    height:50px !important;
+    min-height:50px !important;
+    padding:5px 8px !important;
+    gap:6px !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .control-user{
+    min-width:0 !important;
+    max-width:44vw !important;
+    min-height:34px !important;
+    padding:0 8px !important;
+    gap:5px !important;
+    font-size:11px !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .control-user i{
+    width:24px !important;
+    height:24px !important;
+    padding:4px !important;
+    font-size:12px !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .control-center{
+    position:static !important;
+    inset:auto !important;
+    flex:1 1 auto !important;
+    min-width:0 !important;
+    display:flex !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .control-counter{
+    width:100% !important;
+    max-width:145px !important;
+    min-width:0 !important;
+    height:34px !important;
+    padding:5px 8px !important;
+    border-radius:10px !important;
+    font-size:11px !important;
+    gap:6px !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .control-counter i{font-size:12px !important}
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-volver-dashboard,
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-help{display:none !important}
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-cerrar-sesion{
+    width:34px !important;
+    min-width:34px !important;
+    height:34px !important;
+    padding:0 !important;
+    font-size:0 !important;
+    border-radius:10px !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-cerrar-sesion i{
+    font-size:13px !important;
+    margin:0 !important;
+  }
+
+  /* ---------- Estructura general ---------- */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .restaurante-content{
+    display:flex !important;
+    flex-direction:column !important;
+    width:100% !important;
+    height:calc(100dvh - 50px) !important;
+    min-height:0 !important;
+    overflow:hidden !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .main-content{
+    order:1 !important;
+    flex:1 1 auto !important;
+    width:100% !important;
+    height:100% !important;
+    min-width:0 !important;
+    min-height:0 !important;
+    overflow:hidden !important;
+  }
+
+  /* ---------- Encabezado del asistente ---------- */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-assistant{
+    display:block !important;
+    flex:0 0 auto !important;
+    background:#fff !important;
+    border-bottom:1px solid #dde6ed !important;
+    box-shadow:0 3px 12px rgba(15,23,42,.07) !important;
+    position:relative !important;
+    z-index:80 !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-progress{
+    display:grid !important;
+    grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+    gap:3px !important;
+    padding:7px 8px 5px !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-progress-step{
+    min-width:0 !important;
+    border:0 !important;
+    background:transparent !important;
+    color:#718096 !important;
+    padding:2px !important;
+    display:flex !important;
+    flex-direction:column !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:3px !important;
+    font-size:8.5px !important;
+    font-weight:700 !important;
+    line-height:1.1 !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-progress-step > span:last-child{
+    width:100% !important;
+    overflow:hidden !important;
+    white-space:nowrap !important;
+    text-overflow:ellipsis !important;
+    text-align:center !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-step-number{
+    width:25px !important;
+    height:25px !important;
+    display:grid !important;
+    place-items:center !important;
+    border-radius:50% !important;
+    background:#eef3f7 !important;
+    border:1px solid #d8e2ea !important;
+    color:#53687a !important;
+    font-size:10px !important;
+    font-weight:800 !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-progress-step.is-active{
+    color:#2084c5 !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-progress-step.is-active .rs-mobile-step-number{
+    background:#3498db !important;
+    color:#fff !important;
+    border-color:#3498db !important;
+    box-shadow:0 3px 8px rgba(52,152,219,.22) !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-context{
+    display:grid !important;
+    grid-template-columns:1fr 1fr !important;
+    gap:6px !important;
+    padding:5px 9px !important;
+    border-top:1px solid #f0f3f6 !important;
+    font-size:10px !important;
+    color:#687b8c !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-context span{
+    display:flex !important;
+    align-items:center !important;
+    gap:5px !important;
+    min-width:0 !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-context i{
+    color:#3498db !important;
+    flex:0 0 auto !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-context b{
+    color:#34495e !important;
+    overflow:hidden !important;
+    white-space:nowrap !important;
+    text-overflow:ellipsis !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-quick-actions{
+    display:flex !important;
+    gap:6px !important;
+    padding:0 9px 7px !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-quick-actions button{
+    flex:1 1 0 !important;
+    min-width:0 !important;
+    min-height:32px !important;
+    border:1px solid #dbe5ed !important;
+    background:#f8fafc !important;
+    color:#486176 !important;
+    border-radius:9px !important;
+    padding:5px 6px !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:5px !important;
+    font-size:9.5px !important;
+    font-weight:700 !important;
+  }
+
+  /* Las acciones originales siguen existiendo y funcionando.
+     Solo se ocultan visualmente en el asistente móvil. */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .fh-row-top{
+    display:none !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .btn-mostrar-productos,
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .btn-mostrar-comanda{
+    display:none !important;
+  }
+
+  /* ---------- PASO 1: servicio / mesa ---------- */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .mesas-sidebar{
+    display:none !important;
+    width:100% !important;
+    height:auto !important;
+    min-height:0 !important;
+    flex:1 1 auto !important;
+    border-right:0 !important;
+    overflow:hidden !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="servicio"] .mesas-sidebar{
+    display:flex !important;
+    order:2 !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="servicio"] .main-content{
+    flex:0 0 auto !important;
+    height:auto !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="servicio"] .factura-header{
+    display:block !important;
+    padding:7px 9px !important;
+    gap:0 !important;
+    border-bottom:1px solid #e3e9ee !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="servicio"] .fh-row-bottom{
+    display:flex !important;
+    flex-direction:column !important;
+    align-items:stretch !important;
+    gap:7px !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="servicio"] .factura-servicio{
+    width:100% !important;
+    margin:0 !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="servicio"] #servicio-switch .segmented-control{
+    width:100% !important;
+    display:grid !important;
+    grid-template-columns:1fr 1fr !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="servicio"] #servicio-switch .segmented-control label{
+    width:100% !important;
+    min-width:0 !important;
+    padding:9px 8px !important;
+    text-align:center !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="servicio"] .factura-meta{
+    width:100% !important;
+    min-width:0 !important;
+    overflow:visible !important;
+    white-space:normal !important;
+    justify-content:center !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="servicio"] #cliente-info,
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="servicio"] #btn-cambiar-cliente{
+    display:none !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="servicio"] .factura-body{
+    display:none !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .sidebar-header{
+    padding:8px 10px !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .mesas-toolbar{
+    padding:7px 9px !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .mesas-list{
+    display:grid !important;
+    grid-template-columns:1fr !important;
+    align-content:start !important;
+    gap:7px !important;
+    padding:7px 9px calc(78px + env(safe-area-inset-bottom)) !important;
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .mesa-item{
+    min-height:88px !important;
+    padding:9px !important;
+  }
+
+  /* ---------- Pasos 2, 3 y 4 ---------- */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled:not([data-rs-mobile-step="servicio"]) .mesas-sidebar{
+    display:none !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled:not([data-rs-mobile-step="servicio"]) .factura-header{
+    display:none !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .factura-body{
+    flex:1 1 auto !important;
+    height:auto !important;
+    min-height:0 !important;
+    padding-bottom:66px !important;
+    overflow:hidden !important;
+  }
+
+  /* ---------- PASO 2: productos ---------- */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="productos"] #panel-productos{
+    display:flex !important;
+    flex:1 1 auto !important;
+    width:100% !important;
+    min-width:0 !important;
+    border-right:0 !important;
+    overflow:hidden !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="productos"] #panel-comanda,
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="productos"] #rs-mobile-caja-card{
+    display:none !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .productos-header{
+    display:block !important;
+    padding:8px 9px 11px !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .productos-header h3{
+    font-size:14px !important;
+    margin-bottom:7px !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .productos-header .productos-search{
+    display:grid !important;
+    grid-template-columns:1fr !important;
+    gap:12px !important;
+    width:100% !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #sg-name,
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #sg-barcode{
+    width:100% !important;
+    min-width:0 !important;
+    flex:auto !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .search-group .help-under{
+    position:static !important;
+    display:block !important;
+    margin:3px 2px 0 !important;
+    white-space:normal !important;
+    font-size:9px !important;
+    line-height:1.25 !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .estacion-filter{
+    padding:6px 8px 0 !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .estacion-filter .segmented-control{
+    width:100% !important;
+    display:grid !important;
+    grid-template-columns:repeat(3,1fr) !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .estacion-filter .segmented-control label{
+    min-width:0 !important;
+    padding:7px 4px !important;
+    font-size:11px !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .categorias-tabs{
+    padding:7px 8px !important;
+    gap:5px !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .productos-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:7px !important;
+    padding:8px 8px calc(84px + env(safe-area-inset-bottom)) !important;
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .producto-item{
+    width:100% !important;
+    min-width:0 !important;
+    height:220px !important;
+    min-height:220px !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .producto-imagen-container{
+    height:90px !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .producto-contenido{
+    padding:8px !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .producto-nombre{
+    font-size:11px !important;
+    line-height:1.2 !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .precio-valor{
+    font-size:13px !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .btn-agregar{
+    min-height:34px !important;
+    height:34px !important;
+    font-size:11px !important;
+  }
+
+  /* ---------- PASO 3: pedido ---------- */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="pedido"] #panel-productos,
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="caja"] #panel-productos{
+    display:none !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="pedido"] #rs-mobile-caja-card{
+    display:none !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="pedido"] #panel-comanda,
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="caja"] #panel-comanda{
+    display:flex !important;
+    flex:1 1 auto !important;
+    width:100% !important;
+    min-width:0 !important;
+    border-left:0 !important;
+    overflow:hidden !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .comanda-header{
+    min-height:44px !important;
+    padding:8px 9px !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .comanda-header h3{
+    font-size:14px !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .comanda-items{
+    padding:7px 8px !important;
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+  }
+
+  /* Comanda como tarjetas, sin scroll horizontal */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .comanda-table,
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .comanda-table tbody,
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .comanda-table tr,
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .comanda-table td{
+    display:block !important;
+    width:100% !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .comanda-table thead{
+    display:none !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .comanda-table tr{
+    position:relative !important;
+    margin:0 0 8px !important;
+    padding:9px 42px 9px 9px !important;
+    border:1px solid #dce5ec !important;
+    border-radius:11px !important;
+    background:#fff !important;
+    box-shadow:0 2px 7px rgba(15,23,42,.05) !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .comanda-table td{
+    border:0 !important;
+    padding:2px 0 !important;
+    text-align:left !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .comanda-table td:nth-child(2),
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .comanda-table td:nth-child(3),
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .comanda-table td:nth-child(4){
+    display:inline-flex !important;
+    width:auto !important;
+    margin-right:9px !important;
+    vertical-align:middle !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .comanda-table td:nth-child(5){
+    position:absolute !important;
+    right:9px !important;
+    top:50% !important;
+    transform:translateY(-50%) !important;
+    width:auto !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .comanda-producto-nombre{
+    font-size:12px !important;
+    font-weight:700 !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .comanda-totales{
+    padding:8px 10px !important;
+    background:#f8fafc !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .comanda-observaciones{
+    padding:7px 10px calc(74px + env(safe-area-inset-bottom)) !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .comanda-observaciones textarea{
+    min-height:52px !important;
+    max-height:80px !important;
+  }
+
+  /* ---------- PASO 4: cliente / caja ---------- */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="caja"] .factura-body{
+    display:flex !important;
+    flex-direction:column !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="caja"] #rs-mobile-caja-card{
+    display:block !important;
+    order:0 !important;
+    margin:8px 8px 0 !important;
+    padding:11px !important;
+    border:1px solid #d9e6ef !important;
+    border-radius:12px !important;
+    background:#f8fbfd !important;
+    box-shadow:0 3px 10px rgba(15,23,42,.05) !important;
+    flex:0 0 auto !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="caja"] #panel-comanda{
+    order:1 !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-caja-title{
+    display:flex !important;
+    align-items:center !important;
+    gap:7px !important;
+    color:#2c3e50 !important;
+    font-size:12px !important;
+    font-weight:800 !important;
+    margin-bottom:7px !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-caja-title i{
+    color:#3498db !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-caja-client{
+    display:flex !important;
+    flex-direction:column !important;
+    gap:2px !important;
+    margin-bottom:8px !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-caja-client strong{
+    color:#24394c !important;
+    font-size:13px !important;
+    overflow-wrap:anywhere !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-caja-client span{
+    color:#63788a !important;
+    font-size:10.5px !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #rs-mobile-change-client{
+    width:100% !important;
+    min-height:34px !important;
+    border:1px solid #cfe3f1 !important;
+    border-radius:9px !important;
+    background:#fff !important;
+    color:#247fb8 !important;
+    font-size:11px !important;
+    font-weight:750 !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-caja-note{
+    margin-top:6px !important;
+    color:#7a8b99 !important;
+    font-size:9.5px !important;
+  }
+
+  /* ---------- Barra inferior ---------- */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-bottom{
+    display:flex !important;
+    align-items:center !important;
+    gap:6px !important;
+    position:fixed !important;
+    left:0 !important;
+    right:0 !important;
+    bottom:0 !important;
+    z-index:10060 !important;
+    min-height:64px !important;
+    padding:7px max(8px,env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left)) !important;
+    background:rgba(255,255,255,.98) !important;
+    border-top:1px solid #dbe4eb !important;
+    box-shadow:0 -5px 18px rgba(15,23,42,.10) !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-action{
+    min-height:43px !important;
+    border:0 !important;
+    border-radius:10px !important;
+    padding:7px 10px !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:5px !important;
+    font-size:11px !important;
+    font-weight:800 !important;
+    white-space:nowrap !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-action-back{
+    background:#eef2f5 !important;
+    color:#425466 !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-action-secondary{
+    background:#edf6fd !important;
+    color:#1976b6 !important;
+    border:1px solid #cfe7f7 !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-action-next{
+    flex:1 1 auto !important;
+    background:#2f96cf !important;
+    color:#fff !important;
+    box-shadow:0 4px 10px rgba(47,150,207,.20) !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-sale-summary{
+    min-width:66px !important;
+    display:flex !important;
+    flex-direction:column !important;
+    justify-content:center !important;
+    line-height:1.15 !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-sale-summary small{
+    color:#718096 !important;
+    font-size:8.5px !important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-sale-summary strong{
+    color:#138a52 !important;
+    font-size:11px !important;
+  }
+
+  /* Modo sin mesas: empieza directamente en productos */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled.rs-modo-venta-directa .rs-mobile-progress{
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  }
+}
+
+@media (hover:none) and (pointer:coarse) and (orientation:portrait) and (min-width:600px) and (max-width:1368px){
+  .vista-facturacion-restaurante .rs-open-accounts-modal{
+    width:calc(100vw - 16px) !important;
+    max-width:calc(100vw - 16px) !important;
+  }
+
+  .vista-facturacion-restaurante .rs-open-accounts-toolbar{
+    padding:10px !important;
+    gap:10px !important;
+    margin-bottom:10px !important;
+  }
+
+  .vista-facturacion-restaurante .rs-open-accounts-grid{
+    grid-template-columns:1fr !important;
+    gap:8px !important;
+  }
+
+  .vista-facturacion-restaurante .rs-open-account-card{
+    padding:11px !important;
+    gap:8px !important;
+  }
+
+  .vista-facturacion-restaurante .rs-open-account-load{
+    grid-template-columns:38px minmax(0,1fr) !important;
+    gap:9px !important;
+  }
+
+  .vista-facturacion-restaurante .rs-open-account-icon{
+    width:38px !important;
+    height:38px !important;
+    border-radius:9px !important;
+  }
+
+  .vista-facturacion-restaurante .rs-open-account-total{
+    grid-column:2 !important;
+    align-items:flex-start !important;
+    flex-direction:row !important;
+    gap:7px !important;
+    min-width:0 !important;
+    margin-top:2px !important;
+  }
+
+  .vista-facturacion-restaurante .rs-open-account-total small,
+  .vista-facturacion-restaurante .rs-open-account-total strong{
+    display:inline !important;
+  }
+
+  .vista-facturacion-restaurante .rs-open-account-close{
+    align-self:stretch !important;
+    width:100% !important;
+    min-height:34px !important;
+  }
+}
+
+@media (hover:none) and (pointer:coarse) and (orientation:portrait) and (min-width:600px) and (max-width:1368px){
+
+  /* Antes de que el JS móvil termine:
+     oculta el POS de escritorio y muestra una espera limpia. */
+  body.vista-facturacion-restaurante.rs-mobile-booting{
+    overflow:hidden !important;
+    background:#f5f7fa !important;
+  }
+
+  body.vista-facturacion-restaurante.rs-mobile-booting .restaurante-content{
+    visibility:hidden !important;
+    opacity:0 !important;
+    pointer-events:none !important;
+  }
+
+  body.vista-facturacion-restaurante.rs-mobile-booting::before{
+    content:"Preparando punto de venta…";
+    position:fixed;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    z-index:12000;
+    min-width:210px;
+    max-width:calc(100vw - 40px);
+    padding:48px 20px 18px;
+    border:1px solid #dce5ec;
+    border-radius:14px;
+    background:#fff;
+    color:#34495e;
+    box-shadow:0 10px 30px rgba(15,23,42,.12);
+    text-align:center;
+    font-size:12px;
+    font-weight:700;
+  }
+
+  body.vista-facturacion-restaurante.rs-mobile-booting::after{
+    content:"";
+    position:fixed;
+    left:50%;
+    top:calc(50% - 22px);
+    transform:translate(-50%,-50%);
+    z-index:12001;
+    width:25px;
+    height:25px;
+    border:3px solid #dbeaf4;
+    border-top-color:#3498db;
+    border-radius:50%;
+    animation:rsMobileBootSpin .75s linear infinite;
+  }
+
+  body.vista-facturacion-restaurante.rs-mobile-ready .restaurante-content{
+    visibility:visible !important;
+    opacity:1 !important;
+    transition:opacity .14s ease !important;
+  }
+
+  /* Cabecera del asistente más compacta */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-progress{
+    padding:5px 8px 3px !important;
+    gap:2px !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-progress-step{
+    gap:2px !important;
+    font-size:8px !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-step-number{
+    width:22px !important;
+    height:22px !important;
+    font-size:9px !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-context{
+    padding:4px 9px !important;
+    min-height:28px !important;
+    font-size:9.5px !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-quick-actions{
+    padding:0 9px 5px !important;
+    gap:5px !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .rs-mobile-quick-actions button{
+    min-height:29px !important;
+    padding:4px 5px !important;
+    font-size:9px !important;
+    border-radius:8px !important;
+  }
+
+  /* Recupera espacio vertical en Servicio / Mesas */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="servicio"] .factura-header{
+    padding:5px 9px !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="servicio"] #servicio-switch .segmented-control label{
+    padding:7px 8px !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .sidebar-header{
+    padding:6px 10px !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .mesas-toolbar{
+    padding:5px 9px !important;
+  }
+}
+
+@media (hover:none) and (pointer:coarse) and (orientation:portrait) and (min-width:600px) and (max-width:1368px){
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="pedido"] #panel-comanda,
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="caja"] #panel-comanda{
+    min-height:0 !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .comanda-items{
+    flex:1 1 auto !important;
+    min-height:100px !important;
+    max-height:none !important;
+    overflow-y:auto !important;
+    overscroll-behavior:contain !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .comanda-totales{
+    flex:0 0 auto !important;
+    padding:6px 10px !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .comanda-totales .totales-row{
+    margin:1px 0 !important;
+    line-height:1.2 !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .comanda-observaciones{
+    flex:0 0 auto !important;
+    padding:5px 10px 6px !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .comanda-observaciones label{
+    margin-bottom:3px !important;
+    font-size:11px !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .comanda-observaciones textarea{
+    min-height:38px !important;
+    height:42px !important;
+    max-height:64px !important;
+    padding:5px 7px !important;
+    font-size:11px !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .factura-body{
+    padding-bottom:64px !important;
+  }
+}
+
+@media (hover:none) and (pointer:coarse) and (orientation:portrait) and (min-width:600px) and (max-width:1368px){
+
+  /* El CSS existente ocultaba Volver; aquí solo revertimos eso
+     para que los cuatro accesos sigan disponibles en teléfono. */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-volver-dashboard{
+    display:none !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-help{
+    display:inline-flex !important;
+  }
+
+  /* Evita que el grupo de acciones crezca y se monte sobre contador/cajero. */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .control-buttons{
+    display:flex !important;
+    align-items:center !important;
+    justify-content:flex-end !important;
+    gap:4px !important;
+    flex:0 0 auto !important;
+    min-width:0 !important;
+  }
+
+  /* Volver / Fullscreen / Ayuda / Salir:
+     exactamente el mismo tamaño y SOLO icono. */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-fullscreen-restaurante,
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-help,
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .control-buttons .btn-exit-system{
+    width:32px !important;
+    min-width:32px !important;
+    max-width:32px !important;
+    height:32px !important;
+    min-height:32px !important;
+    padding:0 !important;
+    margin:0 !important;
+    border-radius:9px !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:0 !important;
+    overflow:hidden !important;
+    white-space:nowrap !important;
+    font-size:0 !important;
+    line-height:1 !important;
+    flex:0 0 32px !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-fullscreen-restaurante i,
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-help i,
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .control-buttons .btn-exit-system i{
+    margin:0 !important;
+    font-size:13px !important;
+    line-height:1 !important;
+  }
+
+  /* El texto de fullscreen tiene span propio; desaparece por completo. */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #btn-fullscreen-restaurante span{
+    display:none !important;
+  }
+
+  /* El nombre del cajero puede ser largo: no dejamos que invada los botones. */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .control-user{
+    min-width:0 !important;
+    max-width:128px !important;
+    padding-left:6px !important;
+    padding-right:7px !important;
+    overflow:hidden !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #cajero-actual{
+    min-width:0 !important;
+    max-width:100% !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+    white-space:nowrap !important;
+  }
+
+  /* El contador debe poder encogerse en teléfono. */
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .control-center{
+    min-width:0 !important;
+    flex:1 1 auto !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .control-counter{
+    min-width:96px !important;
+    max-width:118px !important;
+    padding-left:9px !important;
+    padding-right:9px !important;
+    overflow:hidden !important;
+  }
+
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .control-counter .counter-value{
+    overflow:visible !important;
+    text-overflow:clip !important;
+    white-space:nowrap !important;
+    font-size:12px !important;
+  }
+}
+
+@media (hover:none) and (pointer:coarse) and (orientation:portrait) and (min-width:600px) and (max-width:1368px){
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .producto-item{
+    height:220px!important;
+    min-height:220px!important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .producto-imagen-container{
+    height:90px!important;
+    min-height:90px!important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .producto-contenido{
+    padding:5px 6px!important;
+    gap:1px!important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .producto-nombre{
+    min-height:14px!important;
+    max-height:14px!important;
+    line-height:14px!important;
+    font-size:11px!important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .producto-meta-line{
+    min-height:18px!important;
+    height:18px!important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .producto-desc{
+    min-height:12px!important;
+    max-height:12px!important;
+    line-height:12px!important;
+    font-size:9px!important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .producto-precios{
+    padding-top:3px!important;
+  }
+}
+
+@media (hover:none) and (pointer:coarse) and (orientation:portrait) and (min-width:600px) and (max-width:1368px){
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="productos"] .productos-header{
+    padding:5px 8px 4px!important;
+    margin:0!important;
+    border-bottom:0!important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="productos"] .productos-header h3{display:none!important;}
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="productos"] .productos-header .productos-search{display:block!important;width:100%!important;margin:0!important;padding:0!important;}
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="productos"] #sg-name{display:flex!important;width:100%!important;margin:0!important;}
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="productos"] #sg-barcode{display:none!important;}
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="productos"] .search-group .help-under{display:none!important;}
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="productos"] .estacion-filter{padding:3px 8px 0!important;margin:0!important;}
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="productos"] .estacion-filter .segmented-control label{padding:6px 4px!important;}
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="productos"] .categorias-tabs{padding:4px 8px!important;margin:0!important;gap:5px!important;}
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled[data-rs-mobile-step="productos"] .productos-grid{padding-top:5px!important;}
+}
+
+@media (hover:none) and (pointer:coarse) and (orientation:portrait) and (min-width:600px) and (max-width:1368px){
+  body.vista-facturacion-restaurante .rs-modal{
+    position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;
+    max-width:100vw!important;max-height:100dvh!important;padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px))!important;
+    margin:0!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;z-index:30000!important;
+  }
+
+  body.vista-facturacion-restaurante .rs-modal .modal-content,
+  body.vista-facturacion-restaurante .rs-modal .rs-settings-modal,
+  body.vista-facturacion-restaurante .rs-modal .rs-help-modal{
+    position:relative!important;top:auto!important;left:auto!important;right:auto!important;bottom:auto!important;transform:none!important;
+    margin:0 auto!important;width:100%!important;max-width:100%!important;height:auto!important;min-height:0!important;
+    max-height:calc(100dvh - 16px - env(safe-area-inset-bottom,0px))!important;
+    display:flex!important;flex-direction:column!important;overflow:hidden!important;border-radius:12px!important;
+  }
+
+  body.vista-facturacion-restaurante .rs-modal .modal-header{
+    position:sticky!important;top:0!important;z-index:6!important;flex:0 0 auto!important;min-height:52px!important;padding:10px 12px!important;
+  }
+
+  body.vista-facturacion-restaurante .rs-modal .close{
+    display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 40px!important;
+    width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;margin-left:8px!important;
+    font-size:28px!important;line-height:1!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;z-index:8!important;
+  }
+
+  body.vista-facturacion-restaurante .rs-modal .modal-body{
+    flex:1 1 auto!important;min-height:0!important;max-height:none!important;overflow-y:auto!important;overflow-x:hidden!important;
+    -webkit-overflow-scrolling:touch!important;padding:12px!important;
+  }
+
+  body.vista-facturacion-restaurante .rs-modal .modal-footer{
+    position:sticky!important;bottom:0!important;z-index:6!important;flex:0 0 auto!important;padding:9px 12px!important;background:#fff!important;
+  }
+
+  body.vista-facturacion-restaurante #rs-mobile-bottom{z-index:12000!important;}
+
+  body.vista-facturacion-restaurante .rs-modal *,
+  body.vista-facturacion-restaurante .rs-modal *::before,
+  body.vista-facturacion-restaurante .rs-modal *::after{max-width:100%;}
+
+  body.vista-facturacion-restaurante .rs-modal .modal-body table{
+    display:block;width:100%;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;
+  }
+}
+
+@media (hover:none) and (pointer:coarse) and (orientation:portrait) and (min-width:600px) and (max-width:1368px){
+
+  /* Solo los modales realmente abiertos pasan a layout flex.
+     No se fuerza display sobre modales ocultos. */
+  body.vista-facturacion-restaurante .rs-modal[style*="display: block"],
+  body.vista-facturacion-restaurante .rs-modal[style*="display:block"],
+  body.vista-facturacion-restaurante .rs-modal.show{
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    padding:
+      max(8px, env(safe-area-inset-top, 0px))
+      8px
+      max(8px, env(safe-area-inset-bottom, 0px)) !important;
+    overflow:hidden !important;
+  }
+
+  body.vista-facturacion-restaurante .rs-modal .modal-content,
+  body.vista-facturacion-restaurante .rs-modal .rs-settings-modal,
+  body.vista-facturacion-restaurante .rs-modal .rs-help-modal{
+    position:relative !important;
+    top:auto !important;
+    left:auto !important;
+    right:auto !important;
+    bottom:auto !important;
+    transform:none !important;
+    margin:0 auto !important;
+    width:min(100%, 680px) !important;
+    max-width:100% !important;
+    height:auto !important;
+    min-height:0 !important;
+    max-height:calc(
+      100dvh
+      - max(16px, env(safe-area-inset-top, 0px))
+      - max(16px, env(safe-area-inset-bottom, 0px))
+    ) !important;
+    display:flex !important;
+    flex-direction:column !important;
+    overflow:hidden !important;
+  }
+
+  body.vista-facturacion-restaurante .rs-modal .modal-header{
+    position:relative !important;
+    top:auto !important;
+    flex:0 0 auto !important;
+    min-height:48px !important;
+    padding:9px 12px !important;
+    overflow:visible !important;
+  }
+
+  body.vista-facturacion-restaurante .rs-modal .modal-header .close,
+  body.vista-facturacion-restaurante .rs-modal .close{
+    position:relative !important;
+    top:auto !important;
+    right:auto !important;
+    flex:0 0 40px !important;
+    width:40px !important;
+    height:40px !important;
+    min-width:40px !important;
+    min-height:40px !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    visibility:visible !important;
+    opacity:1 !important;
+    pointer-events:auto !important;
+  }
+
+  body.vista-facturacion-restaurante .rs-modal .modal-body{
+    position:relative !important;
+    flex:1 1 auto !important;
+    min-height:0 !important;
+    max-height:none !important;
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+    overscroll-behavior:contain !important;
+    -webkit-overflow-scrolling:touch !important;
+  }
+
+  body.vista-facturacion-restaurante .rs-modal .modal-footer{
+    position:relative !important;
+    bottom:auto !important;
+    flex:0 0 auto !important;
+    margin:0 !important;
+    background:#fff !important;
+    z-index:8 !important;
+  }
+
+  /* Cuando existe un modal abierto, la navegación del asistente deja
+     de ocupar el frente. El modal conserva todos sus botones accesibles. */
+  body.vista-facturacion-restaurante:has(.rs-modal[style*="display: block"]) #rs-mobile-bottom,
+  body.vista-facturacion-restaurante:has(.rs-modal[style*="display:block"]) #rs-mobile-bottom,
+  body.vista-facturacion-restaurante:has(.rs-modal.show) #rs-mobile-bottom{
+    display:none !important;
+  }
+}
+
+@media (hover:none) and (pointer:coarse) and (orientation:portrait) and (min-width:600px) and (max-width:1368px){
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled #rs-mobile-secondary:empty{
+    display:none !important;
+    width:0 !important;
+    min-width:0 !important;
+    padding:0 !important;
+    margin:0 !important;
+    border:0 !important;
+  }
+}
+
+@media (hover:none) and (pointer:coarse) and (orientation:portrait) and (min-width:600px) and (max-width:1368px){
+
+  /* Bootstrap: recurrentes y cualquier otro modal público/externo. */
+  body.vista-facturacion-restaurante .modal.show{
+    position:fixed !important;
+    inset:0 !important;
+    z-index:30000 !important;
+    width:100vw !important;
+    height:100dvh !important;
+    padding:
+      max(8px, env(safe-area-inset-top, 0px))
+      8px
+      max(8px, env(safe-area-inset-bottom, 0px)) !important;
+    overflow:hidden !important;
+  }
+
+  body.vista-facturacion-restaurante .modal.show .modal-dialog{
+    position:relative !important;
+    top:auto !important;
+    left:auto !important;
+    right:auto !important;
+    bottom:auto !important;
+    transform:none !important;
+    margin:0 auto !important;
+    width:100% !important;
+    max-width:680px !important;
+    height:100% !important;
+    min-height:0 !important;
+    max-height:100% !important;
+    display:flex !important;
+    align-items:center !important;
+  }
+
+  body.vista-facturacion-restaurante .modal.show .modal-content{
+    position:relative !important;
+    top:auto !important;
+    transform:none !important;
+    margin:0 !important;
+    width:100% !important;
+    max-width:100% !important;
+    height:auto !important;
+    min-height:0 !important;
+    max-height:100% !important;
+    display:flex !important;
+    flex-direction:column !important;
+    overflow:hidden !important;
+    border-radius:12px !important;
+  }
+
+  /* Custom .rs-modal: aplicar el mismo criterio global. */
+  body.vista-facturacion-restaurante .rs-modal[style*="display: block"],
+  body.vista-facturacion-restaurante .rs-modal[style*="display:block"],
+  body.vista-facturacion-restaurante .rs-modal.show{
+    position:fixed !important;
+    inset:0 !important;
+    z-index:30000 !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    width:100vw !important;
+    height:100dvh !important;
+    padding:
+      max(8px, env(safe-area-inset-top, 0px))
+      8px
+      max(8px, env(safe-area-inset-bottom, 0px)) !important;
+    overflow:hidden !important;
+  }
+
+  body.vista-facturacion-restaurante .rs-modal[style*="display: block"] > .modal-content,
+  body.vista-facturacion-restaurante .rs-modal[style*="display:block"] > .modal-content,
+  body.vista-facturacion-restaurante .rs-modal.show > .modal-content,
+  body.vista-facturacion-restaurante .rs-modal .rs-settings-modal,
+  body.vista-facturacion-restaurante .rs-modal .rs-help-modal{
+    position:relative !important;
+    top:auto !important;
+    transform:none !important;
+    margin:0 auto !important;
+    width:100% !important;
+    max-width:680px !important;
+    height:auto !important;
+    min-height:0 !important;
+    max-height:100% !important;
+    display:flex !important;
+    flex-direction:column !important;
+    overflow:hidden !important;
+  }
+
+  /* Cabecera y cierre siempre visibles, para ambos tipos de modal. */
+  body.vista-facturacion-restaurante .modal.show .modal-header,
+  body.vista-facturacion-restaurante .rs-modal .modal-header{
+    position:relative !important;
+    top:auto !important;
+    flex:0 0 auto !important;
+    min-height:48px !important;
+    padding:9px 12px !important;
+    overflow:visible !important;
+    z-index:8 !important;
+  }
+
+  body.vista-facturacion-restaurante .modal.show .modal-header .close,
+  body.vista-facturacion-restaurante .modal.show .modal-header [data-dismiss="modal"],
+  body.vista-facturacion-restaurante .modal.show .modal-header [data-bs-dismiss="modal"],
+  body.vista-facturacion-restaurante .rs-modal .modal-header .close,
+  body.vista-facturacion-restaurante .rs-modal .close{
+    visibility:visible !important;
+    opacity:1 !important;
+    pointer-events:auto !important;
+    flex:0 0 auto !important;
+    z-index:10 !important;
+  }
+
+  /* ÚNICAMENTE el contenido central se desplaza. */
+  body.vista-facturacion-restaurante .modal.show .modal-body,
+  body.vista-facturacion-restaurante .rs-modal .modal-body{
+    position:relative !important;
+    flex:1 1 auto !important;
+    min-height:0 !important;
+    max-height:none !important;
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+    overscroll-behavior:contain !important;
+    -webkit-overflow-scrolling:touch !important;
+  }
+
+  /* Los botones finales quedan dentro de la pantalla. */
+  body.vista-facturacion-restaurante .modal.show .modal-footer,
+  body.vista-facturacion-restaurante .rs-modal .modal-footer{
+    position:relative !important;
+    bottom:auto !important;
+    flex:0 0 auto !important;
+    margin:0 !important;
+    background:#fff !important;
+    z-index:8 !important;
+  }
+
+  /* Mientras cualquier modal esté abierto, la barra de navegación móvil
+     desaparece para que nunca tape Guardar/Cerrar/Confirmar. */
+  body.vista-facturacion-restaurante:has(.modal.show) #rs-mobile-bottom,
+  body.vista-facturacion-restaurante:has(.rs-modal[style*="display: block"]) #rs-mobile-bottom,
+  body.vista-facturacion-restaurante:has(.rs-modal[style*="display:block"]) #rs-mobile-bottom,
+  body.vista-facturacion-restaurante:has(.rs-modal.show) #rs-mobile-bottom{
+    display:none !important;
+  }
+}

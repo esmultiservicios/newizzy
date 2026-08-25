@@ -291,7 +291,7 @@ document.addEventListener('DOMContentLoaded', function () {
   //  ASISTENTE MÓVIL RESTAURANTE / POS
   //  SOLO TELÉFONOS. Reutiliza la lógica y botones existentes.
   // ===========================================================
-  const RS_MOBILE_QUERY = '(max-width: 599px)';
+  const RS_MOBILE_QUERY = '(max-width: 599px), ((hover: none) and (pointer: coarse) and (orientation: portrait) and (min-width: 600px) and (max-width: 1368px))';
   let rsMobileMedia = null;
   let rsMobileStep = 'servicio';
   let rsMobileObserver = null;
@@ -727,9 +727,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function rsEsTelefono(){
     try{
-      return !!(window.matchMedia && window.matchMedia('(max-width: 599px)').matches);
+      return !!(window.matchMedia && window.matchMedia(RS_MOBILE_QUERY).matches);
     }catch(_){
-      return window.innerWidth <= 599;
+      const esTelefono = window.innerWidth <= 599;
+      const esTabletVertical =
+        window.innerWidth >= 600 &&
+        window.innerWidth <= 1368 &&
+        window.innerHeight > window.innerWidth;
+      return esTelefono || esTabletVertical;
     }
   }
 

@@ -5481,3 +5481,189 @@ body[data-servicio="mesa"] #btn-guardar.btn-warning:focus {
     z-index:8 !important;
   }
 }
+
+/* =====================================================================
+   TABLET LANDSCAPE — AJUSTE GLOBAL DEFINITIVO PARA TODOS LOS MODALES
+   SOLO tablet táctil horizontal. Desktop, móvil y tablet vertical NO cambian.
+   La ventana del modal queda SIEMPRE dentro del viewport visible:
+   - encabezado / X arriba
+   - acciones / Cerrar / Guardar abajo
+   - únicamente el contenido central hace scroll
+   ===================================================================== */
+@media (hover:none) and (pointer:coarse) and (orientation:landscape) and (min-width:600px) and (max-width:1368px){
+
+  /* 1) El overlay completo se limita físicamente al viewport visible.
+        No centramos un modal más alto que la pantalla: reservamos 12px
+        reales arriba/abajo para que nunca se corten cabecera o footer. */
+  body.vista-facturacion-restaurante .modal.show,
+  body.vista-facturacion-restaurante .rs-modal[style*="display: block"],
+  body.vista-facturacion-restaurante .rs-modal[style*="display:block"],
+  body.vista-facturacion-restaurante .rs-modal.show{
+    position:fixed !important;
+    inset:12px !important;
+    top:12px !important;
+    right:12px !important;
+    bottom:12px !important;
+    left:12px !important;
+    width:auto !important;
+    height:auto !important;
+    max-width:none !important;
+    max-height:none !important;
+    margin:0 !important;
+    padding:0 !important;
+    display:flex !important;
+    align-items:stretch !important;
+    justify-content:center !important;
+    overflow:hidden !important;
+    z-index:30000 !important;
+  }
+
+  /* 2) Bootstrap: el dialog ocupa solamente el área segura disponible. */
+  body.vista-facturacion-restaurante .modal.show .modal-dialog{
+    position:relative !important;
+    inset:auto !important;
+    top:auto !important;
+    left:auto !important;
+    right:auto !important;
+    bottom:auto !important;
+    transform:none !important;
+    margin:0 auto !important;
+    padding:0 !important;
+    width:100% !important;
+    max-width:min(1100px, 100%) !important;
+    height:100% !important;
+    min-height:0 !important;
+    max-height:100% !important;
+    display:flex !important;
+    align-items:stretch !important;
+    justify-content:center !important;
+    overflow:hidden !important;
+  }
+
+  /* 3) Contenedor real de TODOS los modales.
+        Incluye las variantes usadas por configuración, promociones,
+        productos, combos, cuentas abiertas y editores. */
+  body.vista-facturacion-restaurante .modal.show .modal-content,
+  body.vista-facturacion-restaurante .rs-modal[style*="display: block"] > .modal-content,
+  body.vista-facturacion-restaurante .rs-modal[style*="display:block"] > .modal-content,
+  body.vista-facturacion-restaurante .rs-modal.show > .modal-content,
+  body.vista-facturacion-restaurante .rs-modal .rs-settings-modal,
+  body.vista-facturacion-restaurante .rs-modal .rs-help-modal,
+  body.vista-facturacion-restaurante .rs-modal .rs-config-modal,
+  body.vista-facturacion-restaurante .rs-modal .rs-open-accounts-modal,
+  body.vista-facturacion-restaurante .rs-modal .modal-content--promo,
+  body.vista-facturacion-restaurante .rs-modal .modal-content--combo-editor{
+    position:relative !important;
+    inset:auto !important;
+    top:auto !important;
+    left:auto !important;
+    right:auto !important;
+    bottom:auto !important;
+    transform:none !important;
+    margin:0 auto !important;
+    width:100% !important;
+    max-width:min(1100px, 100%) !important;
+    height:100% !important;
+    min-height:0 !important;
+    max-height:100% !important;
+    display:flex !important;
+    flex-direction:column !important;
+    overflow:hidden !important;
+  }
+
+  /* 4) Algunos editores envuelven body/footer dentro de un FORM.
+        El form también debe participar del layout flex para que el footer
+        no sea empujado fuera de la pantalla. */
+  body.vista-facturacion-restaurante .modal.show .modal-content > form,
+  body.vista-facturacion-restaurante .rs-modal .modal-content > form,
+  body.vista-facturacion-restaurante .rs-modal .rs-settings-modal > form,
+  body.vista-facturacion-restaurante .rs-modal .rs-config-modal > form,
+  body.vista-facturacion-restaurante .rs-modal .modal-content--promo > form,
+  body.vista-facturacion-restaurante .rs-modal .modal-content--combo-editor > form{
+    flex:1 1 auto !important;
+    min-height:0 !important;
+    max-height:100% !important;
+    display:flex !important;
+    flex-direction:column !important;
+    overflow:hidden !important;
+  }
+
+  /* 5) La cabecera nunca se desplaza ni se recorta. */
+  body.vista-facturacion-restaurante .modal.show .modal-header,
+  body.vista-facturacion-restaurante .rs-modal .modal-header{
+    position:relative !important;
+    top:auto !important;
+    left:auto !important;
+    right:auto !important;
+    flex:0 0 auto !important;
+    min-height:44px !important;
+    max-height:none !important;
+    padding:8px 12px !important;
+    margin:0 !important;
+    overflow:visible !important;
+    z-index:20 !important;
+  }
+
+  body.vista-facturacion-restaurante .modal.show .modal-header .close,
+  body.vista-facturacion-restaurante .modal.show .modal-header [data-dismiss="modal"],
+  body.vista-facturacion-restaurante .modal.show .modal-header [data-bs-dismiss="modal"],
+  body.vista-facturacion-restaurante .rs-modal .modal-header .close,
+  body.vista-facturacion-restaurante .rs-modal .close{
+    position:relative !important;
+    top:auto !important;
+    right:auto !important;
+    visibility:visible !important;
+    opacity:1 !important;
+    pointer-events:auto !important;
+    flex:0 0 auto !important;
+    z-index:30 !important;
+  }
+
+  /* 6) SOLO el área central puede hacer scroll.
+        Anula max-height particulares que dejaban el footer fuera. */
+  body.vista-facturacion-restaurante .modal.show .modal-body,
+  body.vista-facturacion-restaurante .rs-modal .modal-body,
+  body.vista-facturacion-restaurante #modal-configuracion-restaurante .modal-body,
+  body.vista-facturacion-restaurante #modal-promocion .modal-body,
+  body.vista-facturacion-restaurante #modal-combo-editor .modal-body,
+  body.vista-facturacion-restaurante #modal-promo-productos .modal-body,
+  body.vista-facturacion-restaurante #modal-promo-categorias .modal-body{
+    position:relative !important;
+    flex:1 1 auto !important;
+    min-height:0 !important;
+    height:auto !important;
+    max-height:none !important;
+    margin:0 !important;
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+    overscroll-behavior:contain !important;
+    -webkit-overflow-scrolling:touch !important;
+  }
+
+  /* 7) Footer / botones SIEMPRE quedan dentro del área segura. */
+  body.vista-facturacion-restaurante .modal.show .modal-footer,
+  body.vista-facturacion-restaurante .rs-modal .modal-footer{
+    position:relative !important;
+    left:auto !important;
+    right:auto !important;
+    bottom:auto !important;
+    flex:0 0 auto !important;
+    min-height:44px !important;
+    max-height:none !important;
+    margin:0 !important;
+    padding:7px 12px !important;
+    background:#fff !important;
+    overflow:visible !important;
+    z-index:20 !important;
+  }
+
+  /* 8) Selectores/listas anchas nunca pueden ensanchar el modal. */
+  body.vista-facturacion-restaurante .modal.show .modal-body,
+  body.vista-facturacion-restaurante .rs-modal .modal-body,
+  body.vista-facturacion-restaurante .modal.show .modal-body > *,
+  body.vista-facturacion-restaurante .rs-modal .modal-body > *{
+    max-width:100% !important;
+    box-sizing:border-box !important;
+  }
+}
+

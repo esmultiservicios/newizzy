@@ -392,7 +392,7 @@ document.addEventListener('DOMContentLoaded', function () {
       <div class="rs-mobile-quick-actions">
         <button type="button" data-rs-proxy="#btn-cuentas-abiertas"><i class="fas fa-folder-open"></i><span>Cuentas</span></button>
         <button type="button" data-rs-proxy="#btn-factura-recurrente"><i class="fas fa-calendar-alt"></i><span>Recurrente</span></button>
-        <button type="button" id="rs-mobile-manage" data-rs-proxy="#btn-gestionar-acciones"><i class="fas fa-tools"></i><span>Gestionar</span></button>
+        <button type="button" id="rs-mobile-change-client-quick" data-rs-proxy="#btn-cambiar-cliente"><i class="fas fa-user-edit"></i><span>Cliente</span></button>
       </div>
     `;
     main.insertBefore(assistant, main.firstChild);
@@ -628,12 +628,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if(cajaRtn){
       cajaRtn.textContent = rtn ? ('RTN ' + rtn.replace(/^RTN\s*/i,'')) : '';
       cajaRtn.style.display = rtn ? '' : 'none';
-    }
-
-    const gestionarProxy = document.getElementById('rs-mobile-manage');
-    const gestionReal = document.getElementById('gestion-fija');
-    if(gestionarProxy){
-      gestionarProxy.style.display = (gestionReal && String(gestionReal.style.display || '') !== 'none') ? '' : 'none';
     }
 
     const recurrentProxy = assistant.querySelector('[data-rs-proxy="#btn-factura-recurrente"]');
@@ -1522,8 +1516,6 @@ function initSelect2All(){
       $('#btn-guardar').removeClass('btn-danger');
       updateAccionPrincipalUI(); // <- usamos nuestro rótulo contextual
     }
-
-    if (isMobileAssistantActive()) rsMobileUpdate();
   }
 
 // ==============================

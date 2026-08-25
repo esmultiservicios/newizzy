@@ -124,7 +124,7 @@ try {
                 <i class="fas fa-lock-open"></i> Aperturar Caja
               </button>
 
-              <button id="btn-guardar" class="btn btn-success">
+              <button id="btn-guardar" class="btn btn-success" type="button" title="Acción principal del pedido">
                 <i class="fas fa-cash-register"></i> Cobrar
               </button>
               <button id="btn-guardar-cuenta" class="btn btn-warning" type="button">
@@ -136,7 +136,7 @@ try {
               <button id="btn-factura-recurrente" class="btn btn-primary" type="button" title="Programar una factura recurrente">
                 <i class="fas fa-calendar-alt"></i> Recurrente
               </button>
-              <button id="btn-cobrar-mesa" class="btn btn-success" type="button" style="display:none;">
+              <button id="btn-cobrar-mesa" class="btn btn-success" type="button" style="display:none;" title="Finalizar la cuenta y abrir el método de pago">
                 <i class="fas fa-cash-register"></i> Cobrar mesa
               </button>
               <button id="btn-imprimir" class="btn btn-info" type="button" style="display:none;">

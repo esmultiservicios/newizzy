@@ -272,6 +272,13 @@ final class CocinaTokenService
         if(!$db->query($sql)){
             throw new RuntimeException('No se pudo preparar el registro de pantallas de Cocina. Ejecute SQL_VINCULACION_COCINA.sql en DB_MAIN.');
         }
+
+        $col=$db->query("SHOW COLUMNS FROM restaurante_pantalla_dispositivos LIKE 'oculto_vista'");
+        if($col && $col->num_rows===0){
+            if(!$db->query("ALTER TABLE restaurante_pantalla_dispositivos ADD COLUMN oculto_vista TINYINT(1) NOT NULL DEFAULT 0 AFTER activo")){
+                throw new RuntimeException('No se pudo agregar el estado visual de las pantallas.');
+            }
+        }
     }
 
     public static function ensurePairingSchema(): void {
@@ -312,7 +319,14 @@ final class CocinaTokenService
 
         // Limpieza suave de códigos vencidos/consumidos para no acumular registros temporales.
         $db->query("DELETE FROM restaurante_pantalla_vinculos WHERE (fecha_expira<NOW() OR estado IN ('consumido','expirado')) AND fecha_registro<DATE_SUB(NOW(),INTERVAL 1 DAY)");
-        $stOld=$db->prepare("UPDATE restaurante_pantalla_vinculos SET estado='expirado' WHERE dispositivo_hash=? AND estado='pendiente'");
+
+        $existing=$db->prepare("SELECT codigo,GREATEST(1,TIMESTAMPDIFF(SECOND,NOW(),fecha_expira)) segundos FROM restaurante_pantalla_vinculos WHERE dispositivo_hash=? AND estado='pendiente' AND fecha_expira>NOW() ORDER BY vinculo_id DESC LIMIT 1");
+        if($existing){
+            $existing->bind_param('s',$hash); $existing->execute(); $ers=$existing->get_result(); $erow=$ers?$ers->fetch_assoc():null; $existing->close();
+            if($erow) return ['codigo'=>(string)$erow['codigo'],'expira_segundos'=>(int)$erow['segundos']];
+        }
+
+        $stOld=$db->prepare("UPDATE restaurante_pantalla_vinculos SET estado='expirado' WHERE dispositivo_hash=? AND estado='pendiente' AND fecha_expira<=NOW()");
         if($stOld){ $stOld->bind_param('s',$hash); $stOld->execute(); $stOld->close(); }
 
         for($i=0;$i<30;$i++){
@@ -394,7 +408,7 @@ final class CocinaTokenService
 
         $stDev=$db->prepare("INSERT INTO restaurante_pantalla_dispositivos(acceso_id,dispositivo_hash,nombre,activo,fecha_vinculacion,ultima_conexion,fecha_actualizacion)
             VALUES(?,?,?,1,NOW(),NULL,NOW())
-            ON DUPLICATE KEY UPDATE nombre=VALUES(nombre),activo=1,fecha_vinculacion=NOW(),fecha_desvinculacion=NULL,fecha_actualizacion=NOW()");
+            ON DUPLICATE KEY UPDATE nombre=VALUES(nombre),activo=1,oculto_vista=0,fecha_vinculacion=NOW(),fecha_desvinculacion=NULL,fecha_actualizacion=NOW()");
         if(!$stDev) throw new RuntimeException('No se pudo registrar la pantalla vinculada.');
         $stDev->bind_param('iss',$accessId,$deviceHash,$deviceName); $stDev->execute(); $stDev->close();
 
@@ -410,7 +424,7 @@ final class CocinaTokenService
         if(!$access) return [];
         $accessId=(int)$access['acceso_id'];
         $db=self::master();
-        $st=$db->prepare("SELECT dispositivo_id,nombre,activo,fecha_vinculacion,ultima_conexion,fecha_desvinculacion
+        $st=$db->prepare("SELECT dispositivo_id,nombre,activo,oculto_vista,fecha_vinculacion,ultima_conexion,fecha_desvinculacion
             FROM restaurante_pantalla_dispositivos WHERE acceso_id=? ORDER BY activo DESC,COALESCE(ultima_conexion,fecha_vinculacion) DESC,dispositivo_id DESC");
         if(!$st) throw new RuntimeException('No se pudieron consultar las pantallas vinculadas.');
         $st->bind_param('i',$accessId); $st->execute(); $rs=$st->get_result(); $out=[];
@@ -422,6 +436,7 @@ final class CocinaTokenService
                 'dispositivo_id'=>(int)$r['dispositivo_id'],
                 'nombre'=>(string)$r['nombre'],
                 'activo'=>(int)$r['activo'],
+                'oculto_vista'=>(int)($r['oculto_vista']??0),
                 'en_linea'=>$online?1:0,
                 'fecha_vinculacion'=>$r['fecha_vinculacion'],
                 'ultima_conexion'=>$r['ultima_conexion'],
@@ -443,6 +458,31 @@ final class CocinaTokenService
         if(!$st) throw new RuntimeException('No se pudo desvincular la pantalla.');
         $st->bind_param('ii',$deviceId,$accessId); $st->execute(); $affected=$st->affected_rows; $st->close();
         if($affected<1) throw new DomainException('La pantalla ya estaba desvinculada o no pertenece a esta empresa.',404);
+    }
+
+    public static function archiveDeviceFromView(int $serverCustomerId,int $empresaId,int $deviceId): void {
+        if($deviceId<=0) throw new InvalidArgumentException('Pantalla inválida.');
+        self::ensureDeviceSchema();
+        $access=self::getAdminAccess($serverCustomerId,$empresaId);
+        if(!$access) throw new DomainException('No existe acceso de Cocina para esta empresa.',404);
+        $accessId=(int)$access['acceso_id'];
+        $db=self::master();
+        $st=$db->prepare("UPDATE restaurante_pantalla_dispositivos SET oculto_vista=1,fecha_actualizacion=NOW() WHERE dispositivo_id=? AND acceso_id=? AND activo=0");
+        if(!$st) throw new RuntimeException('No se pudo quitar la pantalla de la vista.');
+        $st->bind_param('ii',$deviceId,$accessId); $st->execute(); $affected=$st->affected_rows; $st->close();
+        if($affected<1) throw new DomainException('Solo puede quitarse de la vista una pantalla ya desvinculada.',409);
+    }
+
+    public static function restoreDeviceToView(int $serverCustomerId,int $empresaId,int $deviceId): void {
+        if($deviceId<=0) throw new InvalidArgumentException('Pantalla inválida.');
+        self::ensureDeviceSchema();
+        $access=self::getAdminAccess($serverCustomerId,$empresaId);
+        if(!$access) throw new DomainException('No existe acceso de Cocina para esta empresa.',404);
+        $accessId=(int)$access['acceso_id'];
+        $db=self::master();
+        $st=$db->prepare("UPDATE restaurante_pantalla_dispositivos SET oculto_vista=0,fecha_actualizacion=NOW() WHERE dispositivo_id=? AND acceso_id=?");
+        if(!$st) throw new RuntimeException('No se pudo restaurar la pantalla.');
+        $st->bind_param('ii',$deviceId,$accessId); $st->execute(); $st->close();
     }
 
     public static function unlinkAllDevicesByAccess(int $accessId): void {

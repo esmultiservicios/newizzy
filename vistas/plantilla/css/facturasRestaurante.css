@@ -4673,3 +4673,287 @@ body[data-servicio="mesa"] #btn-guardar.btn-warning:focus {
     font-size:12px !important;
   }
 }
+
+
+/* =====================================================================
+   PRODUCTOS — LEGIBILIDAD SIN AUMENTAR ALTURA
+   Mantiene las alturas existentes: desktop/tablet 260px y móvil 220px.
+   Solo ordena el contenido para que nombre/estación/descripción/precio
+   no se monten entre sí.
+   ===================================================================== */
+.vista-facturacion-restaurante .producto-item{
+  height:260px!important;
+  min-height:260px!important;
+  overflow:hidden!important;
+}
+.vista-facturacion-restaurante .producto-contenido{
+  display:grid!important;
+  grid-template-rows:auto auto minmax(0,1fr) auto!important;
+  align-content:start!important;
+  gap:2px!important;
+  padding:7px 9px!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+.vista-facturacion-restaurante .producto-nombre{
+  display:block!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  min-height:17px!important;
+  max-height:17px!important;
+  line-height:17px!important;
+  margin:0!important;
+  text-align:center!important;
+}
+.vista-facturacion-restaurante .producto-meta-line{
+  min-height:21px!important;
+  height:21px!important;
+  margin:0!important;
+}
+.vista-facturacion-restaurante .producto-desc{
+  display:block!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  min-height:14px!important;
+  max-height:14px!important;
+  line-height:14px!important;
+  margin:0!important;
+  text-align:center!important;
+  color:#667085!important;
+}
+.vista-facturacion-restaurante .producto-precios{
+  position:static!important;
+  margin-top:auto!important;
+  padding-top:5px!important;
+  width:100%!important;
+  align-self:end!important;
+}
+.vista-facturacion-restaurante .card-actions{z-index:8!important}
+
+/* El asistente móvil conserva la altura compacta original. */
+@media (max-width:599px){
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .producto-item{
+    height:220px!important;
+    min-height:220px!important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .producto-imagen-container{
+    height:90px!important;
+    min-height:90px!important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .producto-contenido{
+    padding:5px 6px!important;
+    gap:1px!important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .producto-nombre{
+    min-height:14px!important;
+    max-height:14px!important;
+    line-height:14px!important;
+    font-size:11px!important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .producto-meta-line{
+    min-height:18px!important;
+    height:18px!important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .producto-desc{
+    min-height:12px!important;
+    max-height:12px!important;
+    line-height:12px!important;
+    font-size:9px!important;
+  }
+  .vista-facturacion-restaurante.rs-mobile-assistant-enabled .producto-precios{
+    padding-top:3px!important;
+  }
+}
+
+/* Tablet: no agrandar tarjetas. */
+@media (min-width:600px) and (max-width:1180px){
+  .vista-facturacion-restaurante .producto-item{
+    height:260px!important;
+    min-height:260px!important;
+  }
+}
+
+
+/* =====================================================================
+   DISPOSITIVOS COCINA — ACCIONES SIEMPRE LEGIBLES
+   La tarjeta desvinculada puede verse atenuada, pero NUNCA sus botones.
+   ===================================================================== */
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-kitchen-device-card.is-off{
+  opacity:1 !important;
+  background:#f7f9fb !important;
+  border-color:#d9e2e9 !important;
+}
+
+/* Atenuar solamente la información del equipo desvinculado. */
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-kitchen-device-card.is-off
+.rs-kitchen-device-icon,
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-kitchen-device-card.is-off
+.rs-kitchen-device-info{
+  opacity:.68;
+}
+
+/* Las acciones nunca heredan opacidad del estado del dispositivo. */
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-kitchen-device-card.is-off
+.rs-kitchen-device-actions{
+  opacity:1 !important;
+  filter:none !important;
+}
+
+/* Quitar de vista: acción secundaria, pero claramente visible. */
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-kitchen-archive-device{
+  opacity:1 !important;
+  filter:none !important;
+  background:#fff !important;
+  color:#455a6b !important;
+  border:1px solid #aebbc5 !important;
+  box-shadow:0 2px 6px rgba(31,49,64,.12) !important;
+  font-weight:700 !important;
+}
+
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-kitchen-archive-device i{
+  color:#596f80 !important;
+}
+
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-kitchen-archive-device:hover,
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-kitchen-archive-device:focus{
+  background:#eef3f6 !important;
+  color:#243746 !important;
+  border-color:#7f929f !important;
+  transform:translateY(-1px);
+}
+
+/* Restaurar: acción positiva y distinguible de "Quitar de vista". */
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-kitchen-restore-device{
+  opacity:1 !important;
+  filter:none !important;
+  background:#eaf8f1 !important;
+  color:#176d49 !important;
+  border:1px solid #91cfaf !important;
+  box-shadow:0 2px 6px rgba(23,109,73,.10) !important;
+  font-weight:700 !important;
+}
+
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-kitchen-restore-device:hover,
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-kitchen-restore-device:focus{
+  background:#dff3e8 !important;
+  border-color:#67b88f !important;
+}
+
+/* Ver archivados: botón neutro pero con contraste suficiente. */
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-kitchen-show-archived{
+  opacity:1 !important;
+  filter:none !important;
+  background:#fff !important;
+  color:#32495b !important;
+  border:1px solid #bcc8d1 !important;
+  font-weight:700 !important;
+}
+
+/* Mantener el rojo de Desvincular fuerte incluso dentro de la sección. */
+.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-kitchen-unlink{
+  opacity:1 !important;
+  filter:none !important;
+  color:#fff !important;
+}
+
+/* Móvil/tablet: acciones completas, legibles y sin salirse de la tarjeta. */
+@media (max-width:720px){
+  .vista-facturacion-restaurante #modal-configuracion-restaurante
+  .rs-kitchen-device-actions .btn{
+    width:100% !important;
+    min-height:38px !important;
+    justify-content:center !important;
+  }
+}
+
+
+/* =====================================================================
+   CABECERA POS — ESTADOS HOVER/FOCUS/ACTIVE SIEMPRE LEGIBLES
+   Corrige conflictos con Bootstrap/estilos globales que cambian el color
+   del texto al pasar el mouse. Mantiene contraste y coherencia visual.
+   ===================================================================== */
+
+/* VOLVER + PANTALLA COMPLETA: botones claros, texto oscuro siempre. */
+.vista-facturacion-restaurante .control-buttons #btn-volver-dashboard,
+.vista-facturacion-restaurante .control-buttons #btn-fullscreen-restaurante{
+  background:#f4f7f9 !important;
+  color:#34495e !important;
+  border:1px solid #d5dde3 !important;
+}
+
+.vista-facturacion-restaurante .control-buttons #btn-volver-dashboard i,
+.vista-facturacion-restaurante .control-buttons #btn-volver-dashboard span,
+.vista-facturacion-restaurante .control-buttons #btn-fullscreen-restaurante i,
+.vista-facturacion-restaurante .control-buttons #btn-fullscreen-restaurante span{
+  color:inherit !important;
+}
+
+.vista-facturacion-restaurante .control-buttons #btn-volver-dashboard:hover,
+.vista-facturacion-restaurante .control-buttons #btn-volver-dashboard:focus,
+.vista-facturacion-restaurante .control-buttons #btn-volver-dashboard:active,
+.vista-facturacion-restaurante .control-buttons #btn-fullscreen-restaurante:hover,
+.vista-facturacion-restaurante .control-buttons #btn-fullscreen-restaurante:focus,
+.vista-facturacion-restaurante .control-buttons #btn-fullscreen-restaurante:active{
+  background:#e2e9ee !important;
+  color:#1f3446 !important;
+  border-color:#b9c7d1 !important;
+  box-shadow:0 2px 7px rgba(31,52,70,.15) !important;
+  text-decoration:none !important;
+}
+
+/* Pantalla completa activa: se distingue sin perder contraste. */
+.vista-facturacion-restaurante .control-buttons #btn-fullscreen-restaurante.is-active{
+  background:#dce8ef !important;
+  color:#18364c !important;
+  border-color:#9eb5c4 !important;
+}
+
+.vista-facturacion-restaurante .control-buttons #btn-fullscreen-restaurante.is-active:hover,
+.vista-facturacion-restaurante .control-buttons #btn-fullscreen-restaurante.is-active:focus,
+.vista-facturacion-restaurante .control-buttons #btn-fullscreen-restaurante.is-active:active{
+  background:#cfdee8 !important;
+  color:#102c40 !important;
+  border-color:#87a5b8 !important;
+}
+
+/* AYUDA: azul con texto blanco en todos sus estados. */
+.vista-facturacion-restaurante .control-buttons #btn-help,
+.vista-facturacion-restaurante .control-buttons #btn-help:hover,
+.vista-facturacion-restaurante .control-buttons #btn-help:focus,
+.vista-facturacion-restaurante .control-buttons #btn-help:active{
+  color:#fff !important;
+  text-decoration:none !important;
+}
+
+.vista-facturacion-restaurante .control-buttons #btn-help i{
+  color:inherit !important;
+}
+
+/* SALIR: rojo con texto blanco siempre. */
+.vista-facturacion-restaurante .control-buttons .btn-exit-system,
+.vista-facturacion-restaurante .control-buttons .btn-exit-system:hover,
+.vista-facturacion-restaurante .control-buttons .btn-exit-system:focus,
+.vista-facturacion-restaurante .control-buttons .btn-exit-system:active,
+.vista-facturacion-restaurante .control-buttons .btn-exit-system:visited{
+  color:#fff !important;
+  text-decoration:none !important;
+}
+
+.vista-facturacion-restaurante .control-buttons .btn-exit-system i{
+  color:inherit !important;
+}
+
+/* Botones claros del módulo: nunca pasar a texto blanco por estilos externos. */
+.vista-facturacion-restaurante .btn-light,
+.vista-facturacion-restaurante .btn-light:hover,
+.vista-facturacion-restaurante .btn-light:focus,
+.vista-facturacion-restaurante .btn-light:active{
+  color:#34495e !important;
+}
+
+.vista-facturacion-restaurante .btn-light i,
+.vista-facturacion-restaurante .btn-light span{
+  color:inherit !important;
+}

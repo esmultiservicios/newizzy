@@ -1,29 +1,22 @@
 ####23 de agosto 2026####
 -- ============================================================
 -- IZZY RESTAURANTE / POS
--- SCRIPT DE CONFIGURACION RESTAURANTE
+-- CONFIGURACION CENTRAL - DB_MAIN
 -- ============================================================
 --
--- IMPORTANTE:
---
--- SECCION 1:
--- Ejecutar UNICAMENTE en DB_MAIN.
---
--- SECCION 2:
--- Ejecutar en CADA BASE DE DATOS DEL CLIENTE.
---
--- Los scripts están preparados para poder ejecutarse
--- más de una vez sin crear columnas o tablas duplicadas.
---
--- ============================================================
-
-
--- ============================================================
--- ============================================================
--- SECCION 1
 -- EJECUTAR UNICAMENTE EN DB_MAIN
+--
+-- Este script:
+-- 1. Crea historial de configuracion.
+-- 2. Crea accesos para Pantalla Cocina.
+-- 3. Crea pruebas de conexion.
+-- 4. Agrega oculto_vista a dispositivos SI la tabla existe.
+--
+-- NO BORRA INFORMACION.
+-- PUEDE EJECUTARSE MAS DE UNA VEZ.
 -- ============================================================
--- ============================================================
+
+SET @db_actual := DATABASE();
 
 
 -- ============================================================
@@ -55,30 +48,7 @@ COLLATE=utf8mb4_general_ci;
 
 
 -- ============================================================
--- 2. PRUEBAS DE CONEXION DE PANTALLA COCINA
--- ============================================================
-
-CREATE TABLE IF NOT EXISTS restaurante_pantalla_pruebas (
-    prueba_id BIGINT NOT NULL AUTO_INCREMENT,
-    acceso_id BIGINT NOT NULL,
-    mensaje VARCHAR(160) NOT NULL DEFAULT 'Prueba de conexión IZZY',
-    fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_expira DATETIME NOT NULL,
-
-    PRIMARY KEY (prueba_id),
-
-    KEY idx_rest_pantalla_prueba (
-        acceso_id,
-        fecha_expira
-    )
-)
-ENGINE=InnoDB
-DEFAULT CHARSET=utf8mb4
-COLLATE=utf8mb4_general_ci;
-
-
--- ============================================================
--- 3. ACCESOS PARA PANTALLA COCINA INDEPENDIENTE
+-- 2. ACCESOS PARA PANTALLA COCINA INDEPENDIENTE
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS restaurante_pantalla_accesos (
@@ -95,8 +65,8 @@ CREATE TABLE IF NOT EXISTS restaurante_pantalla_accesos (
     activo TINYINT(1) NOT NULL DEFAULT 0,
 
     fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_actualizacion DATETIME NULL,
-    fecha_regeneracion DATETIME NULL,
+    fecha_actualizacion DATETIME NULL DEFAULT NULL,
+    fecha_regeneracion DATETIME NULL DEFAULT NULL,
 
     PRIMARY KEY (acceso_id),
 
@@ -127,7 +97,122 @@ COLLATE=utf8mb4_general_ci;
 
 
 -- ============================================================
--- VERIFICACION DB_MAIN
+-- 3. PRUEBAS DE CONEXION DE PANTALLA COCINA
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS restaurante_pantalla_pruebas (
+    prueba_id BIGINT NOT NULL AUTO_INCREMENT,
+    acceso_id BIGINT NOT NULL,
+    mensaje VARCHAR(160) NOT NULL DEFAULT 'Prueba de conexión IZZY',
+    fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_expira DATETIME NOT NULL,
+
+    PRIMARY KEY (prueba_id),
+
+    KEY idx_rest_pantalla_prueba (
+        acceso_id,
+        fecha_expira
+    )
+)
+ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_general_ci;
+
+
+-- ============================================================
+-- 4. OCULTAR DISPOSITIVOS DE COCINA DE FORMA PERSISTENTE
+-- ============================================================
+--
+-- IMPORTANTE:
+-- restaurante_pantalla_dispositivos debe pertenecer a DB_MAIN.
+--
+-- Si la tabla existe:
+--     agrega oculto_vista si hace falta.
+--
+-- Si la tabla NO existe:
+--     NO genera error #1146.
+-- ============================================================
+
+SET @existe_tabla_dispositivos := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.TABLES
+    WHERE TABLE_SCHEMA = @db_actual
+      AND TABLE_NAME = 'restaurante_pantalla_dispositivos'
+);
+
+
+SET @existe_oculto_vista := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = @db_actual
+      AND TABLE_NAME = 'restaurante_pantalla_dispositivos'
+      AND COLUMN_NAME = 'oculto_vista'
+);
+
+
+SET @sql_dispositivos := IF(
+    @existe_tabla_dispositivos = 0,
+
+    'SELECT
+        ''ATENCION: restaurante_pantalla_dispositivos NO existe en esta base. No se realizo ningun cambio.'' AS resultado',
+
+    IF(
+        @existe_oculto_vista = 0,
+
+        'ALTER TABLE restaurante_pantalla_dispositivos
+         ADD COLUMN oculto_vista TINYINT(1) NOT NULL DEFAULT 0
+         AFTER activo',
+
+        'SELECT
+            ''restaurante_pantalla_dispositivos.oculto_vista ya existe'' AS resultado'
+    )
+);
+
+
+PREPARE stmt_dispositivos FROM @sql_dispositivos;
+
+EXECUTE stmt_dispositivos;
+
+DEALLOCATE PREPARE stmt_dispositivos;
+
+
+-- ============================================================
+-- 5. VERIFICAR DISPOSITIVOS
+-- ============================================================
+--
+-- Solo ejecuta SELECT si la tabla realmente existe.
+-- ============================================================
+
+SET @sql_ver_dispositivos := IF(
+    @existe_tabla_dispositivos > 0,
+
+    'SELECT
+        dispositivo_id,
+        nombre,
+        activo,
+        oculto_vista,
+        fecha_vinculacion,
+        fecha_desvinculacion
+     FROM restaurante_pantalla_dispositivos
+     ORDER BY
+        activo DESC,
+        oculto_vista ASC,
+        dispositivo_id DESC',
+
+    'SELECT
+        ''No se verificaron dispositivos porque restaurante_pantalla_dispositivos no existe en esta base.'' AS resultado'
+);
+
+
+PREPARE stmt_ver_dispositivos FROM @sql_ver_dispositivos;
+
+EXECUTE stmt_ver_dispositivos;
+
+DEALLOCATE PREPARE stmt_ver_dispositivos;
+
+
+-- ============================================================
+-- 6. VERIFICACION DE ACCESOS
 -- ============================================================
 
 SELECT
@@ -141,794 +226,31 @@ FROM restaurante_pantalla_accesos
 ORDER BY acceso_id DESC;
 
 
-
 -- ============================================================
--- ============================================================
--- SECCION 2
--- EJECUTAR EN CADA BASE DE DATOS DEL CLIENTE
--- ============================================================
--- ============================================================
-
-
--- ============================================================
--- 4. ACTIVAR SOPORTE PARA PANTALLA COCINA INDEPENDIENTE
---
--- Campo:
--- pantalla_cocina_activa
---
--- 0 = Desactivada
--- 1 = Activada
--- ============================================================
-
-SET @db_actual := DATABASE();
-
-
-SET @existe_col_pantalla := (
-    SELECT COUNT(*)
-    FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE TABLE_SCHEMA = @db_actual
-      AND TABLE_NAME = 'restaurante_configuracion'
-      AND COLUMN_NAME = 'pantalla_cocina_activa'
-);
-
-
-SET @sql_pantalla := IF(
-    @existe_col_pantalla = 0,
-
-    'ALTER TABLE restaurante_configuracion
-     ADD COLUMN pantalla_cocina_activa TINYINT(1) NOT NULL DEFAULT 0
-     AFTER flujo_cocina',
-
-    'SELECT ''pantalla_cocina_activa ya existe'' AS info'
-);
-
-
-PREPARE stmt_pantalla FROM @sql_pantalla;
-
-EXECUTE stmt_pantalla;
-
-DEALLOCATE PREPARE stmt_pantalla;
-
-
--- Asegurar valor por defecto en registros existentes
-
-UPDATE restaurante_configuracion
-SET pantalla_cocina_activa = 0
-WHERE pantalla_cocina_activa IS NULL;
-
-
--- Verificacion
-
-SELECT
-    empresa_id,
-    usar_comandas,
-    etiqueta_cocina,
-    flujo_cocina,
-    pantalla_cocina_activa
-FROM restaurante_configuracion
-ORDER BY empresa_id;
-
-
-
--- ============================================================
--- 5. PERMITIR FACTURAS AL CREDITO
---
--- Campo:
--- permitir_facturas_credito
---
--- 0 = Solo contado
--- 1 = Permite elegir Contado / Credito
--- ============================================================
-
-
-SET @existe_columna_credito := (
-    SELECT COUNT(*)
-    FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE TABLE_SCHEMA = DATABASE()
-      AND TABLE_NAME = 'restaurante_configuracion'
-      AND COLUMN_NAME = 'permitir_facturas_credito'
-);
-
-
-SET @sql_credito := IF(
-    @existe_columna_credito = 0,
-
-    'ALTER TABLE restaurante_configuracion
-     ADD COLUMN permitir_facturas_credito TINYINT(1) NOT NULL DEFAULT 0
-     AFTER solicitar_clave_gestion',
-
-    'SELECT ''permitir_facturas_credito ya existe'' AS info'
-);
-
-
-PREPARE stmt_credito FROM @sql_credito;
-
-EXECUTE stmt_credito;
-
-DEALLOCATE PREPARE stmt_credito;
-
-
--- Asegurar valor por defecto en registros existentes
-
-UPDATE restaurante_configuracion
-SET permitir_facturas_credito = 0
-WHERE permitir_facturas_credito IS NULL;
-
-
--- ============================================================
--- VERIFICACION FINAL BASE DEL CLIENTE
+-- 7. VERIFICACION FINAL DB_MAIN
 -- ============================================================
 
 SELECT
-    empresa_id,
-    usar_mesas,
-    usar_comandas,
-    solicitar_clave_gestion,
-    permitir_facturas_credito,
-    pantalla_cocina_activa
-FROM restaurante_configuracion
-ORDER BY empresa_id;
-
-####22 de agosto 2026####
--- ============================================================
--- IZZY - FACTURACIÓN NORMAL
--- Seguridad configurable para descuentos y modificación precio
---
--- activar = 1 -> Solicitar clave administrativa
--- activar = 2 -> No solicitar clave (DEFAULT)
---
--- NO modifica las configuraciones 1 a 7.
--- ============================================================
-
-INSERT INTO config (
-    config_id,
-    accion,
-    activar
-)
-SELECT
-    8,
-    'Clave Descuento y Precio',
-    2
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM config
-    WHERE config_id = 8
-);
-
--- ============================================================
--- COMPROBACIÓN
--- ============================================================
-
-SELECT
-    config_id,
-    accion,
-    activar
-FROM config
-WHERE config_id BETWEEN 1 AND 8
-ORDER BY config_id;
--- ============================================================
--- IZZY RESTAURANTE / POS
--- Seguridad configurable para acciones administrativas
--- Ejecutar UNA vez. No borra ni modifica ventas existentes.
--- ============================================================
-
-SET @db_actual := DATABASE();
-
-SET @existe_col := (
-    SELECT COUNT(*)
-    FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = @db_actual
-      AND TABLE_NAME = 'restaurante_configuracion'
-      AND COLUMN_NAME = 'solicitar_clave_gestion'
-);
-
-SET @sql := IF(
-    @existe_col = 0,
-    "ALTER TABLE restaurante_configuracion ADD COLUMN solicitar_clave_gestion TINYINT(1) NOT NULL DEFAULT 1 AFTER flujo_cocina",
-    "SELECT 'solicitar_clave_gestion ya existe' AS info"
-);
-
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
--- Seguridad activa por defecto para registros existentes.
-UPDATE restaurante_configuracion
-SET solicitar_clave_gestion = 1
-WHERE solicitar_clave_gestion IS NULL;
-
--- Verificación.
-SELECT
-    empresa_id,
-    usar_mesas,
-    usar_comandas,
-    solicitar_clave_gestion,
-    fecha_actualizacion
-FROM restaurante_configuracion
-ORDER BY empresa_id;
-
--- ============================================================
--- IZZY RESTAURANTE / PUNTO DE VENTA
--- CONFIGURACIÓN COMPLETA Y ORDENADA
--- ============================================================
--- IMPORTANTE:
--- 1) Ejecutar TODO este script de arriba hacia abajo.
--- 2) Es seguro para instalaciones nuevas y para instalaciones donde
---    algunas tablas/columnas ya existen.
--- 3) No borra facturas, pagos, productos, comandas ni cuentas.
--- ============================================================
-
-SET @db_actual := DATABASE();
-
-
--- ============================================================
--- 1. CONFIGURACIÓN OPERATIVA DEL MÓDULO
--- ============================================================
--- PRIMERO se crea la tabla. Esto evita el error:
--- #1146 - restaurante_configuracion doesn't exist
-CREATE TABLE IF NOT EXISTS restaurante_configuracion (
-    empresa_id INT NOT NULL,
-    usar_mesas TINYINT(1) NOT NULL DEFAULT 1,
-    usar_comandas TINYINT(1) NOT NULL DEFAULT 1,
-    etiqueta_cocina VARCHAR(30) NOT NULL DEFAULT 'Cocina',
-    etiqueta_barra VARCHAR(30) NOT NULL DEFAULT 'Barra',
-    destino_comanda VARCHAR(20) NOT NULL DEFAULT 'pantalla',
-    momento_ticket VARCHAR(20) NOT NULL DEFAULT 'enviar',
-    flujo_cocina VARCHAR(20) NOT NULL DEFAULT 'pasos',
-    usuario_id INT NOT NULL DEFAULT 0,
-    fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_actualizacion DATETIME NULL DEFAULT NULL,
-    PRIMARY KEY (empresa_id)
-) ENGINE=InnoDB
-DEFAULT CHARSET=utf8mb4
-COLLATE=utf8mb4_general_ci;
-
-
--- ============================================================
--- 2. COMPLETAR COLUMNAS EN INSTALACIONES ANTERIORES
--- ============================================================
--- Aunque la tabla ya existiera de una versión anterior,
--- garantizamos una por una las columnas nuevas.
-
--- etiqueta_cocina
-SET @existe_col := (
-    SELECT COUNT(*)
-    FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = @db_actual
-      AND TABLE_NAME = 'restaurante_configuracion'
-      AND COLUMN_NAME = 'etiqueta_cocina'
-);
-SET @sql := IF(
-    @existe_col = 0,
-    "ALTER TABLE restaurante_configuracion ADD COLUMN etiqueta_cocina VARCHAR(30) NOT NULL DEFAULT 'Cocina' AFTER usar_comandas",
-    "SELECT 'etiqueta_cocina ya existe' AS info"
-);
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
--- etiqueta_barra
-SET @existe_col := (
-    SELECT COUNT(*)
-    FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = @db_actual
-      AND TABLE_NAME = 'restaurante_configuracion'
-      AND COLUMN_NAME = 'etiqueta_barra'
-);
-SET @sql := IF(
-    @existe_col = 0,
-    "ALTER TABLE restaurante_configuracion ADD COLUMN etiqueta_barra VARCHAR(30) NOT NULL DEFAULT 'Barra' AFTER etiqueta_cocina",
-    "SELECT 'etiqueta_barra ya existe' AS info"
-);
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
--- destino_comanda
-SET @existe_col := (
-    SELECT COUNT(*)
-    FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = @db_actual
-      AND TABLE_NAME = 'restaurante_configuracion'
-      AND COLUMN_NAME = 'destino_comanda'
-);
-SET @sql := IF(
-    @existe_col = 0,
-    "ALTER TABLE restaurante_configuracion ADD COLUMN destino_comanda VARCHAR(20) NOT NULL DEFAULT 'pantalla' AFTER etiqueta_barra",
-    "SELECT 'destino_comanda ya existe' AS info"
-);
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
--- momento_ticket
-SET @existe_col := (
-    SELECT COUNT(*)
-    FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = @db_actual
-      AND TABLE_NAME = 'restaurante_configuracion'
-      AND COLUMN_NAME = 'momento_ticket'
-);
-SET @sql := IF(
-    @existe_col = 0,
-    "ALTER TABLE restaurante_configuracion ADD COLUMN momento_ticket VARCHAR(20) NOT NULL DEFAULT 'enviar' AFTER destino_comanda",
-    "SELECT 'momento_ticket ya existe' AS info"
-);
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
--- flujo_cocina
--- Se agrega DESPUÉS de asegurar que momento_ticket exista.
-SET @existe_col := (
-    SELECT COUNT(*)
-    FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = @db_actual
-      AND TABLE_NAME = 'restaurante_configuracion'
-      AND COLUMN_NAME = 'flujo_cocina'
-);
-SET @sql := IF(
-    @existe_col = 0,
-    "ALTER TABLE restaurante_configuracion ADD COLUMN flujo_cocina VARCHAR(20) NOT NULL DEFAULT 'pasos' AFTER momento_ticket",
-    "SELECT 'flujo_cocina ya existe' AS info"
-);
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
-
--- ============================================================
--- 3. CREAR CONFIGURACIÓN POR EMPRESA
--- ============================================================
--- Mantiene por defecto el comportamiento de restaurante
--- para empresas que ya tienen mesas.
-INSERT INTO restaurante_configuracion (
-    empresa_id,
-    usar_mesas,
-    usar_comandas,
-    etiqueta_cocina,
-    etiqueta_barra,
-    destino_comanda,
-    momento_ticket,
-    flujo_cocina,
-    usuario_id,
-    fecha_registro,
-    fecha_actualizacion
-)
-SELECT DISTINCT
-    empresa_id,
-    1,
-    1,
-    'Cocina',
-    'Barra',
-    'pantalla',
-    'enviar',
-    'pasos',
-    0,
-    NOW(),
-    NOW()
-FROM mesas
-WHERE empresa_id IS NOT NULL
-ON DUPLICATE KEY UPDATE
-    empresa_id = VALUES(empresa_id);
-
-
--- Normalizar valores.
-UPDATE restaurante_configuracion
-SET
-    etiqueta_cocina = COALESCE(NULLIF(TRIM(etiqueta_cocina), ''), 'Cocina'),
-    etiqueta_barra = COALESCE(NULLIF(TRIM(etiqueta_barra), ''), 'Barra'),
-    destino_comanda = CASE
-        WHEN LOWER(TRIM(destino_comanda)) IN ('pantalla', 'ticket', 'ambos')
-            THEN LOWER(TRIM(destino_comanda))
-        ELSE 'pantalla'
-    END,
-    momento_ticket = CASE
-        WHEN LOWER(TRIM(momento_ticket)) IN ('enviar', 'cobrar')
-            THEN LOWER(TRIM(momento_ticket))
-        ELSE 'enviar'
-    END,
-    flujo_cocina = CASE
-        WHEN LOWER(TRIM(flujo_cocina)) IN ('pasos', 'directo')
-            THEN LOWER(TRIM(flujo_cocina))
-        ELSE 'pasos'
-    END;
-
-
--- ============================================================
--- 4. ESTACIÓN INDIVIDUAL POR PRODUCTO
--- ============================================================
-SET @existe_estacion_producto := (
-    SELECT COUNT(*)
-    FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = @db_actual
-      AND TABLE_NAME = 'productos'
-      AND COLUMN_NAME = 'estacion'
-);
-
-SET @sql_estacion_producto := IF(
-    @existe_estacion_producto = 0,
-    "ALTER TABLE productos ADD COLUMN estacion VARCHAR(20) NULL AFTER restaurante",
-    "SELECT 'productos.estacion ya existe' AS info"
-);
-PREPARE stmt_estacion_producto FROM @sql_estacion_producto;
-EXECUTE stmt_estacion_producto;
-DEALLOCATE PREPARE stmt_estacion_producto;
-
--- Solo completa productos antiguos SIN estación.
--- No pisa cocina/barra ya guardado directamente en productos.
-UPDATE productos p
-INNER JOIN categoria c
-    ON c.categoria_id = p.categoria_id
-SET p.estacion = LOWER(TRIM(c.estacion))
-WHERE p.restaurante = 1
-  AND (p.estacion IS NULL OR TRIM(p.estacion) = '')
-  AND LOWER(TRIM(c.estacion)) IN ('cocina', 'barra');
-
-
--- ============================================================
--- 5. PREPARAR factura_comanda PARA MESA Y PARA LLEVAR
--- ============================================================
--- Para llevar no tiene mesa real: mesa_id debe aceptar NULL.
-SET @existe_factura_comanda := (
-    SELECT COUNT(*)
-    FROM information_schema.TABLES
-    WHERE TABLE_SCHEMA = @db_actual
-      AND TABLE_NAME = 'factura_comanda'
-);
-
--- servicio_tipo
-SET @existe_col := (
-    SELECT COUNT(*)
-    FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = @db_actual
-      AND TABLE_NAME = 'factura_comanda'
-      AND COLUMN_NAME = 'servicio_tipo'
-);
-SET @sql := IF(
-    @existe_factura_comanda > 0 AND @existe_col = 0,
-    "ALTER TABLE factura_comanda ADD COLUMN servicio_tipo VARCHAR(20) NOT NULL DEFAULT 'llevar' AFTER estado",
-    "SELECT 'factura_comanda.servicio_tipo ya existe o la tabla no existe' AS info"
-);
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
--- fecha_actualizacion
-SET @existe_col := (
-    SELECT COUNT(*)
-    FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = @db_actual
-      AND TABLE_NAME = 'factura_comanda'
-      AND COLUMN_NAME = 'fecha_actualizacion'
-);
-SET @sql := IF(
-    @existe_factura_comanda > 0 AND @existe_col = 0,
-    "ALTER TABLE factura_comanda ADD COLUMN fecha_actualizacion DATETIME NULL DEFAULT NULL AFTER fecha_registro",
-    "SELECT 'factura_comanda.fecha_actualizacion ya existe o la tabla no existe' AS info"
-);
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
--- Hacer mesa_id nullable conservando el tipo real actual.
-SET @tipo_mesa_factura_comanda := (
-    SELECT COLUMN_TYPE
-    FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = @db_actual
-      AND TABLE_NAME = 'factura_comanda'
-      AND COLUMN_NAME = 'mesa_id'
-    LIMIT 1
-);
-SET @sql := IF(
-    @tipo_mesa_factura_comanda IS NOT NULL,
-    CONCAT(
-        'ALTER TABLE factura_comanda MODIFY COLUMN mesa_id ',
-        @tipo_mesa_factura_comanda,
-        ' NULL DEFAULT NULL'
-    ),
-    "SELECT 'factura_comanda.mesa_id no existe' AS info"
-);
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
--- Convertir legado 0 -> NULL si aplica.
-SET @sql := IF(
-    @existe_factura_comanda > 0,
-    "UPDATE factura_comanda SET mesa_id=NULL WHERE mesa_id=0",
-    "SELECT 'factura_comanda no existe' AS info"
-);
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
--- Normalizar mesa/llevar.
-SET @sql := IF(
-    @existe_factura_comanda > 0,
-    "UPDATE factura_comanda
-     SET servicio_tipo =
-         CASE WHEN mesa_id IS NULL THEN 'llevar' ELSE 'mesa' END
-     WHERE servicio_tipo IS NULL
-        OR TRIM(servicio_tipo)=''
-        OR servicio_tipo NOT IN ('mesa','llevar')",
-    "SELECT 'factura_comanda no existe' AS info"
-);
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
-
--- ============================================================
--- 6. RESERVAS DE MESAS
--- ============================================================
-CREATE TABLE IF NOT EXISTS mesas_reservas (
-    mesa_reserva_id INT NOT NULL AUTO_INCREMENT,
-    mesa_id INT NOT NULL,
-    clientes_id INT NOT NULL,
-    fecha_reserva DATE NOT NULL,
-    hora_reserva TIME NOT NULL,
-    personas INT NOT NULL DEFAULT 1,
-    notas VARCHAR(250) NULL,
-    estado VARCHAR(20) NOT NULL DEFAULT 'activa',
-    usuario_id INT NOT NULL,
-    empresa_id INT NOT NULL,
-    fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_actualizacion DATETIME NULL DEFAULT NULL,
-    PRIMARY KEY (mesa_reserva_id),
-    INDEX idx_mr_mesa_estado (mesa_id, estado),
-    INDEX idx_mr_cliente (clientes_id),
-    INDEX idx_mr_empresa_estado (empresa_id, estado),
-    INDEX idx_mr_fecha (fecha_reserva, hora_reserva)
-) ENGINE=InnoDB
-DEFAULT CHARSET=utf8mb4
-COLLATE=utf8mb4_unicode_ci;
-
-SET @existe_ai := (
-    SELECT COUNT(*)
-    FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = @db_actual
-      AND TABLE_NAME = 'mesas_reservas'
-      AND COLUMN_NAME = 'mesa_reserva_id'
-      AND EXTRA LIKE '%auto_increment%'
-);
-SET @sql := IF(
-    @existe_ai = 0,
-    "ALTER TABLE mesas_reservas MODIFY COLUMN mesa_reserva_id INT NOT NULL AUTO_INCREMENT",
-    "SELECT 'mesas_reservas.mesa_reserva_id ya es AUTO_INCREMENT' AS info"
-);
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
-
--- ============================================================
--- 7. CUENTAS ABIERTAS
--- ============================================================
-CREATE TABLE IF NOT EXISTS factura_restaurante_cuentas (
-    factura_id INT NOT NULL,
-    mesa_id INT NOT NULL DEFAULT 0,
-    servicio_tipo VARCHAR(20) NOT NULL DEFAULT 'llevar',
-    estado VARCHAR(20) NOT NULL DEFAULT 'abierta',
-    usuario_id INT NOT NULL DEFAULT 0,
-    empresa_id INT NOT NULL,
-    fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_actualizacion DATETIME NULL DEFAULT NULL,
-    PRIMARY KEY (factura_id),
-    INDEX idx_frc_empresa_estado (empresa_id, estado),
-    INDEX idx_frc_mesa_estado (mesa_id, estado)
-) ENGINE=InnoDB
-DEFAULT CHARSET=utf8mb4
-COLLATE=utf8mb4_general_ci;
-
--- Migrar únicamente si factura_comanda existe.
-SET @sql := IF(
-    @existe_factura_comanda > 0,
-    "INSERT INTO factura_restaurante_cuentas
-        (factura_id, mesa_id, servicio_tipo, estado, usuario_id, empresa_id, fecha_registro, fecha_actualizacion)
-     SELECT
-        f.facturas_id,
-        COALESCE(fc.mesa_id,0),
-        CASE
-            WHEN fc.servicio_tipo='mesa' OR fc.mesa_id IS NOT NULL THEN 'mesa'
-            ELSE 'llevar'
-        END,
-        CASE WHEN f.estado=1 THEN 'abierta' ELSE 'cerrada' END,
-        COALESCE(f.usuario,0),
-        f.empresa_id,
-        COALESCE(f.fecha_registro,NOW()),
-        NOW()
-     FROM factura_comanda fc
-     INNER JOIN facturas f ON f.facturas_id=fc.factura_id
-     ON DUPLICATE KEY UPDATE
-        mesa_id=VALUES(mesa_id),
-        servicio_tipo=VALUES(servicio_tipo),
-        estado=CASE
-            WHEN VALUES(estado)='abierta' THEN 'abierta'
-            ELSE factura_restaurante_cuentas.estado
-        END,
-        usuario_id=VALUES(usuario_id),
-        fecha_actualizacion=NOW()",
-    "SELECT 'factura_comanda no existe; no hay datos antiguos que migrar' AS info"
-);
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
-
--- ============================================================
--- 8. COMANDAS INCREMENTALES
--- ============================================================
-CREATE TABLE IF NOT EXISTS factura_comanda_items (
-    comanda_item_id INT NOT NULL AUTO_INCREMENT,
-    factura_id INT NOT NULL,
-    productos_id INT NOT NULL,
-    cantidad DECIMAL(12,3) NOT NULL DEFAULT 0,
-    estacion VARCHAR(20) NOT NULL DEFAULT 'cocina',
-    estado VARCHAR(20) NOT NULL DEFAULT 'pendiente',
-    fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_actualizacion DATETIME NULL DEFAULT NULL,
-    PRIMARY KEY (comanda_item_id),
-    INDEX idx_fci_factura_estado (factura_id, estado),
-    INDEX idx_fci_estacion_estado (estacion, estado),
-    INDEX idx_fci_factura_producto (factura_id, productos_id)
-) ENGINE=InnoDB
-DEFAULT CHARSET=utf8mb4
-COLLATE=utf8mb4_general_ci;
-
-SET @existe_ai := (
-    SELECT COUNT(*)
-    FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = @db_actual
-      AND TABLE_NAME = 'factura_comanda_items'
-      AND COLUMN_NAME = 'comanda_item_id'
-      AND EXTRA LIKE '%auto_increment%'
-);
-SET @sql := IF(
-    @existe_ai = 0,
-    "ALTER TABLE factura_comanda_items MODIFY COLUMN comanda_item_id INT NOT NULL AUTO_INCREMENT",
-    "SELECT 'factura_comanda_items.comanda_item_id ya es AUTO_INCREMENT' AS info"
-);
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
--- Migración de comandas antiguas:
--- solo si factura_comanda existe.
-SET @sql := IF(
-    @existe_factura_comanda > 0,
-    "INSERT INTO factura_comanda_items
-        (factura_id, productos_id, cantidad, estacion, estado, fecha_registro, fecha_actualizacion)
-     SELECT
-        q.factura_id,
-        q.productos_id,
-        q.cantidad,
-        q.estacion,
-        q.estado,
-        q.fecha_registro,
-        NOW()
-     FROM (
-        SELECT
-            fc.factura_id,
-            fd.productos_id,
-            SUM(fd.cantidad) AS cantidad,
-            LOWER(TRIM(COALESCE(NULLIF(p.estacion,''),NULLIF(c.estacion,''),'cocina'))) AS estacion,
-            CASE
-                WHEN fc.estado IN ('pendiente','en_preparacion','urgente','preparada')
-                    THEN fc.estado
-                ELSE 'preparada'
-            END AS estado,
-            COALESCE(fc.fecha_registro,NOW()) AS fecha_registro
-        FROM factura_comanda fc
-        INNER JOIN facturas_detalles fd
-            ON fd.facturas_id=fc.factura_id
-        INNER JOIN productos p
-            ON p.productos_id=fd.productos_id
-        LEFT JOIN categoria c
-            ON c.categoria_id=p.categoria_id
-        LEFT JOIN factura_comanda_items existente
-            ON existente.factura_id=fc.factura_id
-           AND existente.productos_id=fd.productos_id
-        WHERE existente.comanda_item_id IS NULL
-        GROUP BY
-            fc.factura_id,
-            fd.productos_id,
-            estacion,
-            estado,
-            fc.fecha_registro
-     ) q",
-    "SELECT 'factura_comanda no existe; no hay comandas antiguas que migrar' AS info"
-);
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
-
--- ============================================================
--- 9. VERIFICACIÓN FINAL
--- ============================================================
-
--- Configuración.
-SELECT
-    empresa_id,
-    usar_mesas,
-    usar_comandas,
-    etiqueta_cocina,
-    etiqueta_barra,
-    destino_comanda,
-    momento_ticket,
-    flujo_cocina,
-    fecha_actualizacion
-FROM restaurante_configuracion
-ORDER BY empresa_id;
-
--- Productos restaurante y estación.
-SELECT
-    p.productos_id,
-    p.nombre,
-    p.categoria_id,
-    p.estacion
-FROM productos p
-WHERE p.restaurante = 1
-ORDER BY p.nombre;
-
--- Cuentas abiertas.
-SELECT
-    rc.factura_id,
-    rc.mesa_id,
-    rc.servicio_tipo,
-    rc.estado,
-    f.clientes_id,
-    f.importe
-FROM factura_restaurante_cuentas rc
-INNER JOIN facturas f
-    ON f.facturas_id = rc.factura_id
-WHERE rc.estado = 'abierta'
-ORDER BY rc.factura_id DESC;
-
--- Historial incremental.
-SELECT
-    fci.comanda_item_id,
-    fci.factura_id,
-    fci.productos_id,
-    p.nombre AS producto,
-    fci.cantidad,
-    fci.estacion,
-    fci.estado,
-    fci.fecha_registro
-FROM factura_comanda_items fci
-INNER JOIN productos p
-    ON p.productos_id = fci.productos_id
-ORDER BY fci.comanda_item_id DESC;
-
--- Lo que Cocina puede mostrar actualmente.
-SELECT
-    fc.id AS factura_comanda_id,
-    fc.factura_id,
-    fc.servicio_tipo,
-    fc.mesa_id,
-    COALESCE(m.numero, '') AS mesa,
-    COALESCE(c.nombre, 'Consumidor Final') AS cliente,
-    p.nombre AS producto,
-    fci.cantidad,
-    fci.estacion,
-    fci.estado,
-    fci.fecha_registro
-FROM factura_comanda_items fci
-INNER JOIN factura_comanda fc
-    ON fc.factura_id = fci.factura_id
-INNER JOIN facturas f
-    ON f.facturas_id = fci.factura_id
-INNER JOIN productos p
-    ON p.productos_id = fci.productos_id
-LEFT JOIN clientes c
-    ON c.clientes_id = f.clientes_id
-LEFT JOIN mesas m
-    ON m.mesa_id = fc.mesa_id
-WHERE fci.estacion = 'cocina'
-  AND fci.estado IN ('pendiente', 'en_preparacion', 'urgente')
-ORDER BY fci.fecha_registro DESC, fci.comanda_item_id DESC;
-
+    DATABASE() AS base_actual,
+    @existe_tabla_dispositivos AS existe_tabla_dispositivos,
+    (
+        SELECT COUNT(*)
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'restaurante_configuracion_historial'
+    ) AS existe_historial,
+    (
+        SELECT COUNT(*)
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'restaurante_pantalla_accesos'
+    ) AS existe_accesos,
+    (
+        SELECT COUNT(*)
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'restaurante_pantalla_pruebas'
+    ) AS existe_pruebas;
 
 
 ####21 de agost 2026####

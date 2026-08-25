@@ -37,10 +37,11 @@ var DB_MAIN = "<?php echo $IZZY_DB_MAIN_JS; ?>";
  * No altera el flujo de inicio, los menús ni el navbar lateral.
  */
 var IZZY_DB_ACTUAL = "<?php echo $IZZY_DB_JS; ?>";
-var IZZY_PRIVILEGIO_USUARIO = <?php echo (int)($_SESSION['privilegio_id'] ?? 0); ?>;
+var IZZY_PRIVILEGIO_USUARIO = <?php echo (int)($_SESSION['privilegio_id'] ?? $_SESSION['privilegio_sd'] ?? 0); ?>;
 
 var izzyPermisosDataTablesPromise = null;
 var izzyProgramaPuntosPromise = null;
+var izzyPrivilegioUsuarioPromise = null;
 
 function izzyParseJsonSeguro(valor, respaldo) {
     if (valor !== null && typeof valor === 'object') {
@@ -81,13 +82,21 @@ function aplicarPermisosDataTablesAsync() {
 
     return izzyPermisosDataTablesPromise.then(function(permisos) {
         permisos.forEach(function(permiso) {
-            var $controles = $('.table_' + permiso.tipo_permiso);
+            var clasePermiso = String(permiso.tipo_permiso || '');
+            if (!clasePermiso) return;
+
             var habilitado = Number(permiso.estado) === 1;
 
-            $controles.toggle(habilitado).prop('disabled', !habilitado);
+            $('.' + clasePermiso)
+                .toggle(habilitado)
+                .prop('disabled', !habilitado);
+
+            $('.table_' + clasePermiso)
+                .toggle(habilitado)
+                .prop('disabled', !habilitado);
         });
     }).catch(function(error) {
-        console.error('No se pudieron aplicar los permisos de los DataTables.', error);
+        console.error('No se pudieron aplicar los permisos de formularios/DataTables.', error);
     });
 }
 
@@ -122,8 +131,8 @@ validarAperturaCajaUsuario();
 getCollaboradoresModalPagoFacturas();
 
 // LLAMAMOS LOS MÉTODOS QUE OBTIENEN LOS PERMISOS DE LOS USUARIOS PARA LOS ACCESOS
-getPermisosTipoUsuarioAccesosForms(getPrivilegioTipoUsuario());
-getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+// Se resuelven de forma asíncrona y cacheada para NO bloquear el hilo principal.
+aplicarPermisosDataTablesAsync();
 
 getAlmacen();
 getMedida();
@@ -547,77 +556,97 @@ function getSubMenu1(privilegio_id) {
 }
 
 // --- 4) Orquestador (cubre sidebar + topbar)
-function actualizarPermisos() {
-  const privilegio_id = (typeof getPrivilegioUsuario === 'function')
-    ? getPrivilegioUsuario()
-    : <?php echo (int)($_SESSION['privilegio_id'] ?? 0); ?>;
-
-  // Evita flash en ambos navs y limpia estados
-  $('#sidenavAccordion, .sb-topnav').addClass('nav-loading');
-  ocultarTodoNavbar();
-
-  $.when(
-    getMenu(privilegio_id),
-    getSubMenu(privilegio_id),
-    getSubMenu1(privilegio_id)
-  ).always(function () {
-    $('#sidenavAccordion, .sb-topnav').removeClass('nav-loading');
-  });
+function manejarSesionExpiradaPermisos() {
+    swal({
+        title: "⏳ Sesión Expirada",
+        text: "😞 ¡Oh no! Tu sesión ha expirado. Por favor, inicia sesión nuevamente. 🔐",
+        icon: "warning",
+        buttons: {
+            confirm: {
+                text: "🔄 Iniciar Sesión",
+                closeModal: true
+            }
+        },
+        dangerMode: true,
+        closeOnEsc: false,
+        closeOnClickOutside: false
+    }).then(function() {
+        window.location.href = "<?php echo SERVERURL;?>login/";
+    });
 }
 
-function getPrivilegioUsuario() {
-    var url = '<?php echo SERVERURL;?>core/getPrivilegioUsuario.php';
-    var privilegio = null;
+function obtenerPrivilegioUsuarioAsync() {
+    if (izzyPrivilegioUsuarioPromise) {
+        return izzyPrivilegioUsuarioPromise;
+    }
 
-    $.ajax({
+    izzyPrivilegioUsuarioPromise = $.ajax({
         type: 'POST',
-        url: url,
-        async: false, // ⚠️ Bloquea la ejecución hasta recibir la respuesta
-        success: function(valores) {
-            var datos = JSON.parse(valores); // Asegurar que se parsea correctamente
+        url: '<?php echo SERVERURL;?>core/getPrivilegioUsuario.php',
+        timeout: 12000
+    }).then(function(valores) {
+        var datos = izzyParseJsonSeguro(valores, []);
 
-            if (datos.error === "session_expired") {
-                swal({
-                    title: "⏳ Sesión Expirada",
-                    text: "😞 ¡Oh no! Tu sesión ha expirado. Por favor, inicia sesión nuevamente. 🔐",
-                    icon: "warning",
-                    buttons: {
-                        confirm: {
-                            text: "🔄 Iniciar Sesión",
-                            closeModal: true,
-                        },
-                    },
-                    dangerMode: true,
-                    closeOnEsc: false,
-                    closeOnClickOutside: false
-                }).then(() => {
-                    window.location.href = "<?php echo SERVERURL;?>login/";
-                });
-
-                return;
-            }
-
-            privilegio = datos[0]; // Asigna el privilegio
-        },
-        error: function(xhr, status, error) {     
-            swal({
-                title: "❌ ¡Error Detectado!",
-                text: "😵‍💫 Algo salió mal al procesar la solicitud. Inténtalo de nuevo más tarde. 🛠️",
-                icon: "error",
-                buttons: {
-                    confirm: {
-                        text: "😓 Cerrar",
-                        closeModal: true,
-                    },
-                },
-                dangerMode: true,
-                closeOnEsc: false,
-                closeOnClickOutside: false
-            });
+        if (datos && datos.error === "session_expired") {
+            manejarSesionExpiradaPermisos();
+            return 0;
         }
+
+        var privilegio = 0;
+
+        if (Array.isArray(datos)) {
+            privilegio = parseInt(datos[0] || 0, 10);
+        } else if (datos && typeof datos === 'object') {
+            privilegio = parseInt(
+                datos.privilegio_id ||
+                datos.privilegio ||
+                datos.id ||
+                0,
+                10
+            );
+        }
+
+        if (!privilegio && IZZY_PRIVILEGIO_USUARIO > 0) {
+            privilegio = IZZY_PRIVILEGIO_USUARIO;
+        }
+
+        return privilegio || 0;
+    }).catch(function(error) {
+        console.error('No se pudo obtener el privilegio del usuario.', error);
+        return IZZY_PRIVILEGIO_USUARIO > 0 ? IZZY_PRIVILEGIO_USUARIO : 0;
     });
 
-    return privilegio; // Devuelve el privilegio directamente
+    return izzyPrivilegioUsuarioPromise;
+}
+
+// --- 4) Orquestador (cubre sidebar + topbar) SIN AJAX SÍNCRONO
+function actualizarPermisos() {
+    $('#sidenavAccordion, .sb-topnav').addClass('nav-loading');
+    ocultarTodoNavbar();
+
+    obtenerPrivilegioUsuarioAsync()
+        .then(function(privilegio_id) {
+            if (!privilegio_id || privilegio_id <= 0) {
+                return $.Deferred().resolve().promise();
+            }
+
+            return $.when(
+                getMenu(privilegio_id),
+                getSubMenu(privilegio_id),
+                getSubMenu1(privilegio_id)
+            );
+        })
+        .always(function() {
+            $('#sidenavAccordion, .sb-topnav').removeClass('nav-loading');
+        });
+}
+
+/*
+ * Compatibilidad con código legado:
+ * ya no hace una petición síncrona, devuelve el privilegio disponible en sesión.
+ */
+function getPrivilegioUsuario() {
+    return IZZY_PRIVILEGIO_USUARIO > 0 ? IZZY_PRIVILEGIO_USUARIO : 0;
 }
 
 function getSessionUser() {

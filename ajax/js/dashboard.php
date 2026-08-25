@@ -13,6 +13,7 @@ function setTotalCustomers() {
     $.ajax({
         type: 'POST',
         url: url,
+        timeout: 15000,
         async: true,
         success: function(data) {
             $('#main_clientes').html(data);
@@ -26,6 +27,7 @@ function setTotalSuppliers() {
     $.ajax({
         type: 'POST',
         url: url,
+        timeout: 15000,
         async: true,
         success: function(data) {
             $('#main_proveedores').html(data);
@@ -39,6 +41,7 @@ function setTotalBills() {
     $.ajax({
         type: 'POST',
         url: url,
+        timeout: 15000,
         async: true,
         success: function(data) {
             $('#main_facturas').html("L. " + data);
@@ -52,6 +55,7 @@ function setTotalPurchases() {
     $.ajax({
         type: 'POST',
         url: url,
+        timeout: 15000,
         async: true,
         success: function(data) {
             $('#main_compras').html("L. " + data);
@@ -65,6 +69,7 @@ function getMesFacturaCompra() {
     $.ajax({
         type: "POST",
         url: url,
+        timeout: 15000,
         async: true,
         success: function(data) {
             $('#mes_factura').html(data);
@@ -119,6 +124,7 @@ function showTopProductos(months) {
     $.ajax({
         type: 'GET',
         url: url,
+        timeout: 15000,
         success: function(data) {
             var datos = [];
 
@@ -294,6 +300,7 @@ function showVentasAnuales(year) {
     $.ajax({
         type: 'GET',
         url: url,
+        timeout: 15000,
         success: function(data) {
             var datos = [];
 
@@ -437,6 +444,7 @@ function showComprasAnuales(year) {
     $.ajax({
         type: 'GET',
         url: url,
+        timeout: 15000,
         success: function(data) {
             var datos = [];
 
@@ -1169,7 +1177,9 @@ function listar_secuencia_fiscales_dashboard() {
             }
         ],
         "drawCallback": function(settings) {
-            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+            if (typeof aplicarPermisosDataTablesAsync === 'function') {
+                aplicarPermisosDataTablesAsync();
+            }
         }
     });
 

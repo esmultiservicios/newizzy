@@ -3041,24 +3041,67 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
 
   
   // ===== ISV (para totales de la comanda) =====
-  function cargarISV() {
-    return fetchWithTimeout(BASE + 'core/facturasRestaurante/facturasRestauranteAjax.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'action=loadISV'
-    })
-      .then(r => r.json())
-      .then(data => {
-        if (data.status && Array.isArray(data.isv)) {
-          data.isv.forEach(i => { isvRates[i.id] = parseFloat(i.valor || 0); });
-        }
-      })
-      .catch(()=>{});
+  // MISMA REGLA QUE FACTURA.PHP:
+  // isv_id=1 => ISV1 | isv_id=2 => ISV2.
+  // No usar isv_tipo_id para decidir la tasa porque ese campo puede repetirse.
+  function normalizarValorISVRestaurante(valor){
+    if(valor && typeof valor === 'object'){
+      if(valor.valor !== undefined) valor = valor.valor;
+      else if(Array.isArray(valor) && valor.length) valor = valor[0];
+    }
+    const n = parseFloat(valor || 0);
+    return Number.isFinite(n) ? n : 0;
   }
-  
+
+  async function obtenerISVPorIdRestaurante(isvId){
+    const fallback = Number(isvId) === 1 ? 15 : (Number(isvId) === 2 ? 18 : 0);
+
+    try{
+      const response = await fetchWithTimeout(BASE + 'core/getISV.php', {
+        method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'},
+        body:'isv_id=' + encodeURIComponent(String(isvId))
+      });
+
+      const data = await response.json();
+      let valor = 0;
+
+      if(data && typeof data === 'object' && !Array.isArray(data) && data.valor !== undefined){
+        valor = normalizarValorISVRestaurante(data.valor);
+      }else if(Array.isArray(data) && data.length){
+        valor = normalizarValorISVRestaurante(data[0]);
+      }else{
+        valor = normalizarValorISVRestaurante(data);
+      }
+
+      return valor > 0 ? valor : fallback;
+    }catch(_){
+      return fallback;
+    }
+  }
+
+  async function cargarISV() {
+    const tasas = await Promise.all([
+      obtenerISVPorIdRestaurante(1),
+      obtenerISVPorIdRestaurante(2)
+    ]);
+
+    isvRates[1] = Number(tasas[0] || 0);
+    isvRates[2] = Number(tasas[1] || 0);
+
+    actualizarEtiquetasISVCabecera();
+    return isvRates;
+  }
+
+  function formatearTasaISVRestaurante(valor){
+    const n = Number(valor || 0);
+    if(!Number.isFinite(n)) return '0';
+    return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/,'');
+  }
+
   function actualizarEtiquetasISVCabecera(){
-    if (impuesto1Label) impuesto1Label.textContent = `Impuesto (ISV ${isvRates[1]||0}%):`;
-    if (impuesto2Label) impuesto2Label.textContent = `Impuesto (ISV ${isvRates[2]||0}%):`;
+    if (impuesto1Label) impuesto1Label.textContent = `Impuesto (ISV ${formatearTasaISVRestaurante(isvRates[1])}%):`;
+    if (impuesto2Label) impuesto2Label.textContent = `Impuesto (ISV ${formatearTasaISVRestaurante(isvRates[2])}%):`;
   }
 
   // ===== Mesas =====
@@ -4547,24 +4590,42 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
   }
 
   function calcularTotales() {
-    const subtotal = comandaItems.reduce((sum, it) => sum + (it.total || 0), 0);
-    const r1 = (isvRates[1] || 0) / 100.0;
-    const r2 = (isvRates[2] || 0) / 100.0;
+    const r1 = (Number(isvRates[1]) || 0) / 100.0;
+    const r2 = (Number(isvRates[2]) || 0) / 100.0;
 
-    let imp1 = 0, imp2 = 0;
-    comandaItems.forEach(it => {
-      const base = it.precio * it.cantidad;
-      if (it.producto.isv1) imp1 += base * r1;
-      if (it.producto.isv2) imp2 += base * r2;
+    let subtotal = 0;
+    let descuentos = 0;
+    let imp1 = 0;
+    let imp2 = 0;
+
+    (comandaItems || []).forEach(it => {
+      const precio = Number(it.precio || (it.producto && it.producto.precio) || 0);
+      const cantidad = Number(it.cantidad || 1);
+      const descuento = Math.max(0, Number(it.descuento || 0));
+      const baseBruta = precio * cantidad;
+      const baseNeta = Math.max(0, baseBruta - descuento);
+
+      subtotal += baseBruta;
+      descuentos += descuento;
+
+      // Cada producto grava SOLO el impuesto marcado en su ficha.
+      // isv1 usa isv_id=1; isv2 usa isv_id=2.
+      if (it.producto && it.producto.isv1 === true) imp1 += baseNeta * r1;
+      if (it.producto && it.producto.isv2 === true) imp2 += baseNeta * r2;
     });
 
-    const total = subtotal + imp1 + imp2;
-    const fmt = (n) => new Intl.NumberFormat('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+    const total = (subtotal - descuentos) + imp1 + imp2;
+    const fmt = (n) => new Intl.NumberFormat('es-HN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(Number(n || 0));
 
     if (subtotalElement) subtotalElement.textContent = `L ${fmt(subtotal)}`;
     if (impuesto1Element) impuesto1Element.textContent = `L ${fmt(imp1)}`;
     if (impuesto2Element) impuesto2Element.textContent = `L ${fmt(imp2)}`;
     if (totalElement) totalElement.textContent = `L ${fmt(total)}`;
+
+    actualizarEtiquetasISVCabecera();
     updateAccionPrincipalUI();
   }
 
@@ -4729,6 +4790,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
   // respuesta abre pago() del modal unificado oficial.
   let contextoPagoRestaurante = null;
   let facturandoRestaurante = false;
+  let confirmandoCobroMesa = false;
 
   function clienteNombreActual(){
     return String((clienteSeleccionado && clienteSeleccionado.nombre) || 'CONSUMIDOR FINAL').trim() || 'CONSUMIDOR FINAL';
@@ -4966,13 +5028,18 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     $('#rest-liberar-mesa-switch').prop('checked',true).trigger('change.restRelease');
   }
 
-  async function facturarConFlujoNormal(servicio){
+  async function facturarConFlujoNormal(servicio, opciones){
+    opciones = opciones || {};
     if(facturandoRestaurante) return;
     if(!Array.isArray(comandaItems)||!comandaItems.length){showAlert('warning','Sin productos','Agregue productos antes de cobrar.');return;}
     servicio = servicio==='mesa' ? 'mesa' : 'llevar';
     if(servicio==='mesa' && !mesaIdActual()){showAlert('warning','Mesa requerida','Seleccione una mesa antes de cobrar.');return;}
     if(Number(window.REST_COLABORADOR_ID||0)<=0){showAlert('error','Cajero no identificado','No se pudo identificar el colaborador de la sesión.');return;}
 
+    // El SweetAlert de confirmación del pago se muestra JUSTO ANTES
+    // de abrir el modal oficial de pagos. No se confirma aquí para evitar
+    // que el usuario confirme demasiado pronto.
+    confirmandoCobroMesa=false;
     facturandoRestaurante=true;
     const cobrarBtn = servicio==='mesa' ? document.getElementById('btn-cobrar-mesa') : document.getElementById('btn-guardar');
     setButtonBusy(cobrarBtn,true,'Preparando factura…');
@@ -5047,11 +5114,27 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
         await finalizarUITrasPagoRestaurante(contextoPagoRestaurante);
         showAlert('success','Factura al crédito','La factura al crédito fue registrada correctamente.');
       }else{
+        // PUNTO EXACTO DE CONFIRMACIÓN:
+        // la factura ya está preparada, pero el modal de pagos TODAVÍA NO se abre.
+        // Solo después de aceptar el SweetAlert se llama a pago().
+        const confirmarPago = await confirmarRegistroPagoRestaurante(contextoPagoRestaurante);
+
+        if(!confirmarPago){
+          // No abrir el modal ni registrar el pago si el usuario cancela.
+          contextoPagoRestaurante = null;
+          showNotify && typeof showNotify === 'function'
+            ? showNotify('info','Pago cancelado','No se abrió el método de pago.')
+            : null;
+          return;
+        }
+
         prepararModalPagoContextual(contextoPagoRestaurante);
         instalarHookPagoRestaurante();
+
         if(typeof pago !== 'function'){
           throw new Error('No está disponible el flujo oficial de pagos.');
         }
+
         pago(realId, 1, 'factura');
       }
     }catch(e){
@@ -5064,15 +5147,10 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     }
   }
 
-  $(document).off('click.restCobrarMesa','#btn-cobrar-mesa').on('click.restCobrarMesa','#btn-cobrar-mesa',function(){
-    if(facturandoRestaurante) return;
-    const total=obtenerTotalComanda();
-    const numeroMesa=mesaSeleccionada && (mesaSeleccionada.numero||mesaSeleccionada.Numero);
-    showConfirm(
-      'Cobrar mesa',
-      `¿Desea finalizar ${numeroMesa ? 'Mesa '+numeroMesa : 'la mesa seleccionada'} por L ${formatNumber(total)}? Al continuar se generará la factura y se abrirá el método de pago.`,
-      ()=>facturarConFlujoNormal('mesa')
-    );
+  $(document).off('click.restCobrarMesa','#btn-cobrar-mesa').on('click.restCobrarMesa','#btn-cobrar-mesa',function(e){
+    if(e){ e.preventDefault(); e.stopImmediatePropagation(); }
+    if(facturandoRestaurante || confirmandoCobroMesa) return;
+    facturarConFlujoNormal('mesa');
   });
 
   function guardarFactura(){
@@ -7363,6 +7441,53 @@ function initSelect2ForComboRow(row){
     showAlert('error', 'SweetAlert no disponible', 'No se puede confirmar la operación de forma segura.');
   }
 
+  function confirmarRegistroPagoRestaurante(contexto){
+    return new Promise((resolve)=>{
+      if(typeof swal === 'undefined'){
+        showAlert('error','SweetAlert no disponible','No se puede registrar el pago sin confirmación.');
+        resolve(false);
+        return;
+      }
+
+      const total = obtenerTotalComanda();
+      const numeroMesa = mesaSeleccionada && (mesaSeleccionada.numero || mesaSeleccionada.Numero);
+      const destino = contexto && contexto.servicio === 'mesa'
+        ? (numeroMesa ? 'Mesa ' + numeroMesa : 'la mesa seleccionada')
+        : 'esta venta';
+
+      confirmandoCobroMesa = true;
+
+      swal({
+        title:'Confirmar pago',
+        text:`¿Desea registrar el pago de ${destino} por L ${formatNumber(total)}?`,
+        icon:'warning',
+        buttons:{
+          cancel:{
+            text:'Cancelar',
+            value:false,
+            visible:true,
+            closeModal:true
+          },
+          confirm:{
+            text:'Sí, registrar pago',
+            value:true,
+            visible:true,
+            closeModal:true
+          }
+        },
+        dangerMode:false,
+        closeOnEsc:true,
+        closeOnClickOutside:false
+      }).then((ok)=>{
+        confirmandoCobroMesa=false;
+        resolve(ok === true);
+      }).catch(()=>{
+        confirmandoCobroMesa=false;
+        resolve(false);
+      });
+    });
+  }
+
 
   // ===== Integración con componentes oficiales de Facturación =====
   function normalizarOpcionesSelect(data, valueKeys, labelKeys){
@@ -8593,8 +8718,30 @@ function initSelect2ForComboRow(row){
 
     // Equipos ocultos SOLO EN ESTA VISTA/NAVEGADOR.
     // No se elimina ni modifica ningún registro en la base de datos.
-    // Los dispositivos ocultos se guardan en DB_MAIN.
-    // No dependen de localStorage, caché ni historial del navegador.
+    const HIDDEN_DEVICES_KEY = 'izzy_restaurante_cocina_dispositivos_ocultos';
+
+    function getHiddenDevices(){
+      try{
+        const raw = JSON.parse(localStorage.getItem(HIDDEN_DEVICES_KEY) || '[]');
+        return new Set((Array.isArray(raw) ? raw : []).map(v => String(v)));
+      }catch(_){
+        return new Set();
+      }
+    }
+
+    function saveHiddenDevices(set){
+      try{ localStorage.setItem(HIDDEN_DEVICES_KEY, JSON.stringify(Array.from(set))); }catch(_){}
+    }
+
+    function hideDeviceFromView(id){
+      const hidden = getHiddenDevices();
+      hidden.add(String(id));
+      saveHiddenDevices(hidden);
+    }
+
+    function restoreHiddenDevices(){
+      try{ localStorage.removeItem(HIDDEN_DEVICES_KEY); }catch(_){}
+    }
 
     function esc(v){
       return String(v == null ? '' : v)
@@ -8757,65 +8904,60 @@ function initSelect2ForComboRow(row){
         return;
       }
 
-      const visibles=[], archivados=[];
+      const hidden = getHiddenDevices();
+      const visibles = [];
+      let ocultos = 0;
+
       list.forEach(function(dev,index){
-        const id=first(dev,['dispositivo_id','device_id','id','cocina_dispositivo_id','token_id'],index+1);
-        const st=deviceState(dev);
-        const oculto=Number(first(dev,['oculto_vista','archivado','hidden'],0))===1;
-        const row={dev,index,id,st};
-        if(!st.active && oculto) archivados.push(row);
-        else visibles.push(row);
+        const id = first(dev,['dispositivo_id','device_id','id','cocina_dispositivo_id','token_id'],index+1);
+        const st = deviceState(dev);
+
+        // Un equipo activo jamás se oculta. Solo se puede ocultar si ya está desvinculado.
+        if(!st.active && hidden.has(String(id))){
+          ocultos++;
+          return;
+        }
+        visibles.push({dev,index,id,st});
       });
 
-      let html='';
-      if(archivados.length){
+      let html = '';
+
+      if(ocultos > 0){
         html += '<div class="rs-kitchen-hidden-toolbar" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px 0;padding:8px 10px;border:1px dashed #cbd5e1;border-radius:10px;background:#f8fafc;">' +
-          '<small style="color:#64748b;"><i class="fas fa-archive"></i> '+archivados.length+' archivado'+(archivados.length===1?'':'s')+'</small>' +
-          '<button type="button" class="btn btn-light btn-sm rs-kitchen-show-archived"><i class="fas fa-eye"></i> Ver archivados</button>' +
+          '<small style="color:#64748b;"><i class="fas fa-eye-slash"></i> '+ocultos+' dispositivo'+(ocultos===1?' oculto':'s ocultos')+'</small>' +
+          '<button type="button" class="btn btn-light btn-sm rs-kitchen-restore-hidden"><i class="fas fa-eye"></i> Mostrar ocultos</button>' +
         '</div>';
       }
 
-      if(!visibles.length){
-        html += '<div class="rs-kitchen-device-empty"><i class="fas fa-display"></i> No hay pantallas visibles.</div>';
-      }else{
-        html += visibles.map(function(row){
-          const dev=row.dev,index=row.index,id=row.id,st=row.st;
-          const name=first(dev,['nombre','nombre_dispositivo','device_name','alias'],'Pantalla '+(index+1));
-          const last=first(dev,['ultima_conexion','ultimo_acceso','last_seen','last_connection','fecha_ultimo_acceso','fecha_actualizacion'],null);
-          const agent=first(dev,['user_agent','navegador','device_info','descripcion'],'');
-          return '<div class="rs-kitchen-device-card '+(st.cls==='is-off'?'is-off':'')+'" data-kitchen-device-id="'+esc(id)+'">' +
-            '<div class="rs-kitchen-device-icon"><i class="fas fa-display"></i></div>' +
-            '<div class="rs-kitchen-device-info">' +
-              '<div class="rs-kitchen-device-title"><strong>'+esc(name)+'</strong><span class="rs-kitchen-device-status '+esc(st.cls)+'"><i class="fas fa-circle"></i> '+esc(st.label)+'</span></div>' +
-              '<small><i class="fas fa-clock"></i> '+esc(formatDate(last))+'</small>' +
-              (agent?'<small title="'+esc(agent)+'"><i class="fas fa-globe"></i> '+esc(agent)+'</small>':'') +
-            '</div>' +
-            (st.active
-              ? '<div class="rs-kitchen-device-actions"><button type="button" class="btn btn-danger btn-sm rs-kitchen-unlink" data-device-id="'+esc(id)+'"><i class="fas fa-unlink"></i> Desvincular</button></div>'
-              : '<div class="rs-kitchen-device-actions"><button type="button" class="btn btn-light btn-sm rs-kitchen-archive-device" data-device-id="'+esc(id)+'"><i class="fas fa-archive"></i> Quitar de vista</button></div>') +
-          '</div>';
-        }).join('');
+      if(visibles.length === 0){
+        html += '<div class="rs-kitchen-device-empty"><i class="fas fa-display"></i> No hay pantallas visibles en esta lista.</div>';
+        devicesBox.innerHTML = html;
+        return;
       }
 
-      if(archivados.length){
-        html += '<div class="rs-kitchen-archived-list" style="display:none;margin-top:10px;">' +
-          archivados.map(function(row){
-            const dev=row.dev,id=row.id,index=row.index;
-            const name=first(dev,['nombre','nombre_dispositivo','device_name','alias'],'Pantalla '+(index+1));
-            const last=first(dev,['ultima_conexion','ultimo_acceso','last_seen','last_connection','fecha_ultimo_acceso','fecha_actualizacion'],null);
-            return '<div class="rs-kitchen-device-card is-off" data-kitchen-device-id="'+esc(id)+'">' +
-              '<div class="rs-kitchen-device-icon"><i class="fas fa-display"></i></div>' +
-              '<div class="rs-kitchen-device-info">' +
-                '<div class="rs-kitchen-device-title"><strong>'+esc(name)+'</strong><span class="rs-kitchen-device-status is-off"><i class="fas fa-circle"></i> Archivada</span></div>' +
-                '<small><i class="fas fa-clock"></i> '+esc(formatDate(last))+'</small>' +
-              '</div>' +
-              '<div class="rs-kitchen-device-actions"><button type="button" class="btn btn-light btn-sm rs-kitchen-restore-device" data-device-id="'+esc(id)+'"><i class="fas fa-undo"></i> Restaurar</button></div>' +
-            '</div>';
-          }).join('') +
+      html += visibles.map(function(row){
+        const dev = row.dev;
+        const index = row.index;
+        const id = row.id;
+        const st = row.st;
+        const name = first(dev,['nombre','nombre_dispositivo','device_name','alias'], 'Pantalla ' + (index+1));
+        const last = first(dev,['ultima_conexion','ultimo_acceso','last_seen','last_connection','fecha_ultimo_acceso','fecha_actualizacion'],null);
+        const agent = first(dev,['user_agent','navegador','device_info','descripcion'],'');
+
+        return '<div class="rs-kitchen-device-card '+(st.cls==='is-off'?'is-off':'')+'" data-kitchen-device-id="'+esc(id)+'">' +
+          '<div class="rs-kitchen-device-icon"><i class="fas fa-display"></i></div>' +
+          '<div class="rs-kitchen-device-info">' +
+            '<div class="rs-kitchen-device-title"><strong>'+esc(name)+'</strong><span class="rs-kitchen-device-status '+esc(st.cls)+'"><i class="fas fa-circle"></i> '+esc(st.label)+'</span></div>' +
+            '<small><i class="fas fa-clock"></i> '+esc(formatDate(last))+'</small>' +
+            (agent ? '<small title="'+esc(agent)+'"><i class="fas fa-globe"></i> '+esc(agent)+'</small>' : '') +
+          '</div>' +
+          (st.active
+            ? '<div class="rs-kitchen-device-actions"><button type="button" class="btn btn-danger btn-sm rs-kitchen-unlink" data-device-id="'+esc(id)+'"><i class="fas fa-unlink"></i> Desvincular</button></div>'
+            : '<div class="rs-kitchen-device-actions"><button type="button" class="btn btn-light btn-sm rs-kitchen-hide-device" data-device-id="'+esc(id)+'" title="Ocultar solo de esta vista; no borra el registro"><i class="fas fa-eye-slash"></i> Ocultar</button></div>') +
         '</div>';
-      }
+      }).join('');
 
-      devicesBox.innerHTML=html;
+      devicesBox.innerHTML = html;
     }
 
     async function loadDevices(force){
@@ -9001,41 +9143,22 @@ function initSelect2ForComboRow(row){
       const unlink = e.target.closest && e.target.closest('.rs-kitchen-unlink');
       if(unlink){ e.preventDefault(); unlinkDevice(unlink,String(unlink.dataset.deviceId || '')); return; }
 
-      const archiveDevice = e.target.closest && e.target.closest('.rs-kitchen-archive-device');
-      if(archiveDevice){
+      const hideDevice = e.target.closest && e.target.closest('.rs-kitchen-hide-device');
+      if(hideDevice){
         e.preventDefault();
-        const id=String(archiveDevice.dataset.deviceId||'');
-        if(!id) return;
-        setBusy(archiveDevice,true,'Quitando…');
-        postOnce('archivarDispositivo',{dispositivo_id:id})
-          .then(d=>{ if(!responseOk(d)) throw new Error(messageOf(d,'No se pudo quitar de la vista.')); renderDevices(arrayFrom(d,['dispositivos','devices','pantallas','items'])); })
-          .catch(e=>notify('error','Pantalla de Cocina',e.message||'No se pudo quitar de la vista.'))
-          .finally(()=>setBusy(archiveDevice,false));
-        return;
-      }
-
-      const restoreDevice = e.target.closest && e.target.closest('.rs-kitchen-restore-device');
-      if(restoreDevice){
-        e.preventDefault();
-        const id=String(restoreDevice.dataset.deviceId||'');
-        if(!id) return;
-        setBusy(restoreDevice,true,'Restaurando…');
-        postOnce('restaurarDispositivo',{dispositivo_id:id})
-          .then(d=>{ if(!responseOk(d)) throw new Error(messageOf(d,'No se pudo restaurar.')); renderDevices(arrayFrom(d,['dispositivos','devices','pantallas','items'])); })
-          .catch(e=>notify('error','Pantalla de Cocina',e.message||'No se pudo restaurar.'))
-          .finally(()=>setBusy(restoreDevice,false));
-        return;
-      }
-
-      const showArchived = e.target.closest && e.target.closest('.rs-kitchen-show-archived');
-      if(showArchived){
-        e.preventDefault();
-        const box=devicesBox.querySelector('.rs-kitchen-archived-list');
-        if(box){
-          const visible=box.style.display!=='none';
-          box.style.display=visible?'none':'';
-          showArchived.innerHTML=visible?'<i class="fas fa-eye"></i> Ver archivados':'<i class="fas fa-eye-slash"></i> Ocultar archivados';
+        const id = String(hideDevice.dataset.deviceId || '');
+        if(id){
+          hideDeviceFromView(id);
+          loadDevices(true);
         }
+        return;
+      }
+
+      const restoreHidden = e.target.closest && e.target.closest('.rs-kitchen-restore-hidden');
+      if(restoreHidden){
+        e.preventDefault();
+        restoreHiddenDevices();
+        loadDevices(true);
         return;
       }
 

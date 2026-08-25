@@ -4768,7 +4768,7 @@ body[data-servicio="mesa"] #btn-guardar.btn-warning:focus {
 }
 
 /* Tablet: tarjetas un poco más compactas, conservando intacto su contenido. */
-@media (min-width:600px) and (max-width:1180px){
+@media (hover:none) and (pointer:coarse) and (min-width:600px) and (max-width:1368px){
   .vista-facturacion-restaurante .producto-item{
     height:230px!important;
     min-height:230px!important;

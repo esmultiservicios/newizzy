@@ -14533,3 +14533,317 @@ table.dataTable tbody tr.shown td {
     display: none !important;
   }
 }
+
+/* ======================================================================
+   FACTURACIÓN — MODALES DE CONSULTA UNIFORMES
+   ----------------------------------------------------------------------
+   Objetivo:
+   - mismo ancho y alto visual aunque la tabla tenga 0, 1 o muchos registros;
+   - nunca superar el viewport;
+   - header y footer fijos dentro del modal;
+   - scroll únicamente en el cuerpo cuando sea necesario;
+   - no afecta modales de otros módulos.
+   ====================================================================== */
+
+@media (min-width: 769px) {
+  #modal_buscar_bill .modal-dialog,
+  #modal_buscar_bill_draft .modal-dialog,
+  #modal_buscar_cuentas_cobrar_clientes .modal-dialog,
+  #modal_buscar_cotizaciones .modal-dialog,
+  #modal_buscar_productos_facturacion .modal-dialog,
+  #modal_buscar_clientes_facturacion .modal-dialog,
+  #modal_buscar_colaboradores_facturacion .modal-dialog,
+  #modalCajaFactura .modal-dialog {
+    width: calc(100vw - 64px) !important;
+    max-width: 1600px !important;
+    height: calc(100dvh - 48px) !important;
+    min-height: calc(100dvh - 48px) !important;
+    max-height: calc(100dvh - 48px) !important;
+    margin: 24px auto !important;
+    display: flex !important;
+    align-items: stretch !important;
+  }
+
+  #modal_buscar_bill .modal-content,
+  #modal_buscar_bill_draft .modal-content,
+  #modal_buscar_cuentas_cobrar_clientes .modal-content,
+  #modal_buscar_cotizaciones .modal-content,
+  #modal_buscar_productos_facturacion .modal-content,
+  #modal_buscar_clientes_facturacion .modal-content,
+  #modal_buscar_colaboradores_facturacion .modal-content,
+  #modalCajaFactura .modal-content {
+    width: 100% !important;
+    max-width: none !important;
+    height: 100% !important;
+    min-height: 100% !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  #modal_buscar_bill .modal-header,
+  #modal_buscar_bill_draft .modal-header,
+  #modal_buscar_cuentas_cobrar_clientes .modal-header,
+  #modal_buscar_cotizaciones .modal-header,
+  #modal_buscar_productos_facturacion .modal-header,
+  #modal_buscar_clientes_facturacion .modal-header,
+  #modal_buscar_colaboradores_facturacion .modal-header,
+  #modalCajaFactura .modal-header,
+  #modal_buscar_bill .modal-footer,
+  #modal_buscar_bill_draft .modal-footer,
+  #modal_buscar_cuentas_cobrar_clientes .modal-footer,
+  #modal_buscar_cotizaciones .modal-footer,
+  #modal_buscar_productos_facturacion .modal-footer,
+  #modal_buscar_clientes_facturacion .modal-footer,
+  #modal_buscar_colaboradores_facturacion .modal-footer,
+  #modalCajaFactura .modal-footer {
+    flex: 0 0 auto !important;
+  }
+
+  #modal_buscar_bill .modal-body,
+  #modal_buscar_bill_draft .modal-body,
+  #modal_buscar_cuentas_cobrar_clientes .modal-body,
+  #modal_buscar_cotizaciones .modal-body,
+  #modal_buscar_productos_facturacion .modal-body,
+  #modal_buscar_clientes_facturacion .modal-body,
+  #modal_buscar_colaboradores_facturacion .modal-body,
+  #modalCajaFactura .modal-body {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+}
+
+@media (max-width: 768px) {
+  #modal_buscar_bill .modal-dialog,
+  #modal_buscar_bill_draft .modal-dialog,
+  #modal_buscar_cuentas_cobrar_clientes .modal-dialog,
+  #modal_buscar_cotizaciones .modal-dialog,
+  #modal_buscar_productos_facturacion .modal-dialog,
+  #modal_buscar_clientes_facturacion .modal-dialog,
+  #modal_buscar_colaboradores_facturacion .modal-dialog,
+  #modalCajaFactura .modal-dialog {
+    width: calc(100vw - 12px) !important;
+    max-width: none !important;
+    height: calc(100dvh - 12px) !important;
+    min-height: calc(100dvh - 12px) !important;
+    max-height: calc(100dvh - 12px) !important;
+    margin: 6px auto !important;
+    display: flex !important;
+    align-items: stretch !important;
+  }
+
+  #modal_buscar_bill .modal-content,
+  #modal_buscar_bill_draft .modal-content,
+  #modal_buscar_cuentas_cobrar_clientes .modal-content,
+  #modal_buscar_cotizaciones .modal-content,
+  #modal_buscar_productos_facturacion .modal-content,
+  #modal_buscar_clientes_facturacion .modal-content,
+  #modal_buscar_colaboradores_facturacion .modal-content,
+  #modalCajaFactura .modal-content {
+    width: 100% !important;
+    max-width: none !important;
+    height: 100% !important;
+    min-height: 100% !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  #modal_buscar_bill .modal-header,
+  #modal_buscar_bill_draft .modal-header,
+  #modal_buscar_cuentas_cobrar_clientes .modal-header,
+  #modal_buscar_cotizaciones .modal-header,
+  #modal_buscar_productos_facturacion .modal-header,
+  #modal_buscar_clientes_facturacion .modal-header,
+  #modal_buscar_colaboradores_facturacion .modal-header,
+  #modalCajaFactura .modal-header,
+  #modal_buscar_bill .modal-footer,
+  #modal_buscar_bill_draft .modal-footer,
+  #modal_buscar_cuentas_cobrar_clientes .modal-footer,
+  #modal_buscar_cotizaciones .modal-footer,
+  #modal_buscar_productos_facturacion .modal-footer,
+  #modal_buscar_clientes_facturacion .modal-footer,
+  #modal_buscar_colaboradores_facturacion .modal-footer,
+  #modalCajaFactura .modal-footer {
+    flex: 0 0 auto !important;
+  }
+
+  #modal_buscar_bill .modal-body,
+  #modal_buscar_bill_draft .modal-body,
+  #modal_buscar_cuentas_cobrar_clientes .modal-body,
+  #modal_buscar_cotizaciones .modal-body,
+  #modal_buscar_productos_facturacion .modal-body,
+  #modal_buscar_clientes_facturacion .modal-body,
+  #modal_buscar_colaboradores_facturacion .modal-body,
+  #modalCajaFactura .modal-body {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+}
+
+/* =========================================================
+   MODAL PREMIUM - FACTURA ANULADA / REGENERAR
+   ========================================================= */
+#modalRegenerarFactura .modal-dialog {
+    max-width: 720px;
+}
+#modalRegenerarFactura .izzy-regenerar-modal {
+    border: 0;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, .28);
+}
+#modalRegenerarFactura .izzy-regenerar-header {
+    background: #132235;
+    color: #fff;
+    border-bottom: 3px solid #20c997;
+    padding: 1.15rem 1.4rem;
+    align-items: center;
+}
+#modalRegenerarFactura .izzy-regenerar-eyebrow {
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #9fe8d2;
+    margin-bottom: .25rem;
+}
+#modalRegenerarFactura .modal-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #fff;
+}
+#modalRegenerarFactura .izzy-regenerar-body {
+    padding: 1.5rem;
+    background: #fff;
+}
+#modalRegenerarFactura .izzy-regenerar-status {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid #d7eee7;
+    background: #f3fbf8;
+    border-radius: 10px;
+    margin-bottom: 1.25rem;
+}
+#modalRegenerarFactura .izzy-regenerar-icon {
+    width: 46px;
+    height: 46px;
+    min-width: 46px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #198754;
+    color: #fff;
+    font-size: 1.1rem;
+}
+#modalRegenerarFactura .izzy-regenerar-status-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+#modalRegenerarFactura .izzy-regenerar-label {
+    color: #617081;
+    font-size: .78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+#modalRegenerarFactura #modalRegenerarFacturaNumero {
+    color: #172033;
+    font-size: 1.08rem;
+    word-break: break-word;
+}
+#modalRegenerarFactura .izzy-regenerar-copy h6 {
+    color: #172033;
+    font-weight: 700;
+    margin-bottom: .45rem;
+}
+#modalRegenerarFactura .izzy-regenerar-copy p {
+    color: #5f6b7a;
+    line-height: 1.55;
+    margin-bottom: 1rem;
+}
+#modalRegenerarFactura .izzy-regenerar-note {
+    display: flex;
+    align-items: flex-start;
+    gap: .8rem;
+    padding: .9rem 1rem;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-left: 4px solid #3498db;
+    border-radius: 8px;
+    color: #475569;
+}
+#modalRegenerarFactura .izzy-regenerar-note > i {
+    color: #3498db;
+    margin-top: .18rem;
+}
+#modalRegenerarFactura .izzy-regenerar-note strong,
+#modalRegenerarFactura .izzy-regenerar-note span {
+    display: block;
+}
+#modalRegenerarFactura .izzy-regenerar-note strong {
+    color: #263445;
+    margin-bottom: .2rem;
+}
+#modalRegenerarFactura .izzy-regenerar-footer {
+    background: #f8fafc;
+    border-top: 1px solid #e7ebef;
+    padding: 1rem 1.4rem;
+    gap: .45rem;
+}
+@media (max-width: 576px) {
+    #modalRegenerarFactura .modal-dialog {
+        margin: .65rem;
+    }
+    #modalRegenerarFactura .izzy-regenerar-header,
+    #modalRegenerarFactura .izzy-regenerar-body,
+    #modalRegenerarFactura .izzy-regenerar-footer {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    #modalRegenerarFactura .izzy-regenerar-footer {
+        flex-direction: column-reverse;
+    }
+    #modalRegenerarFactura .izzy-regenerar-footer .btn {
+        width: 100%;
+        margin: 0;
+    }
+}
+
+/* =========================================================
+   FIN MODAL PREMIUM - FACTURA ANULADA / REGENERAR
+   ========================================================= */
+
+
+/* =========================================================
+   FIX ESPECÍFICO - TÍTULO MODAL REGENERAR FACTURA
+   No afecta los demás modales.
+   ========================================================= */
+#modalRegenerarFactura .modal-header .modal-title,
+#modalRegenerarFactura .izzy-regenerar-header .modal-title {
+    width: auto !important;
+    max-width: none !important;
+    padding-right: 3rem !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    line-height: 1.3 !important;
+}
+
+/* =========================================================
+   FIN FIX TÍTULO MODAL REGENERAR FACTURA
+   ========================================================= */

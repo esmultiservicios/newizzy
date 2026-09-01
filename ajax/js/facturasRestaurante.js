@@ -1926,6 +1926,276 @@ function initHotkeys(){
     }catch(e){}
   }
 
+  let REST_INV={almacenes:[],medidas:[],productos:[],saldos:[],almacen_principal_id:0};
+
+  async function cargarInventarioRestaurante(silencioso=false){
+    try{
+      const r=await fetchWithTimeout(BASE+'core/facturasRestaurante/facturasRestauranteAjax.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'action=loadInventarioRestaurante'});
+      const d=await r.json();
+      if(!d||!d.status) throw new Error((d&&(d.message||d.msg))||'No se pudo cargar inventario');
+      REST_INV={almacenes:d.almacenes||[],medidas:d.medidas||[],productos:d.productos||[],saldos:d.saldos||[],almacen_principal_id:Number(d.almacen_principal_id||0)};
+      llenarControlesInventario(); renderInventarioResumen(); actualizarPoliticasInventario();
+      return REST_INV;
+    }catch(e){ if(!silencioso) showAlert('error','Inventario',e.message||'No se pudo cargar el inventario'); throw e; }
+  }
+
+  function opcionesAlmacenes(includeAll=false){
+    const first=includeAll?'<option value="0">Todos los almacenes</option>':'';
+    return first+(REST_INV.almacenes||[]).map(a=>`<option value="${Number(a.almacen_id)}">${escapeHtml(a.nombre||'Almacén')} ${Number(a.facturar_cero)===1?'· permite negativo':''}</option>`).join('');
+  }
+  function opcionesProductosInventario(almacenId=0){
+    const aid=Number(almacenId||0);
+    return '<option value="">Seleccione un producto…</option>'+(REST_INV.productos||[]).map(p=>{
+      const esCombo=Number(p.combo_id||0)>0;
+      let stockTxt='';
+      if(!esCombo){
+        if(aid>0){
+          stockTxt=` · ${fmtInv(saldoInv(p.productos_id,aid))} ${escapeHtml(p.medida||'Und')}`;
+        }else{
+          const total=(REST_INV.almacenes||[]).reduce((acc,a)=>acc+saldoInv(p.productos_id,a.almacen_id),0);
+          stockTxt=` · Total ${fmtInv(total)} ${escapeHtml(p.medida||'Und')}`;
+        }
+      }
+      return `<option value="${Number(p.productos_id)}" data-combo="${Number(p.combo_id||0)}">${escapeHtml(p.nombre||'Producto')}${esCombo?' · Combo':stockTxt}</option>`;
+    }).join('');
+  }
+
+  function refrescarSelectProductoInventario(selectId,almacenId){
+    const el=document.getElementById(selectId);
+    if(!el) return;
+    const actual=String(el.value||'');
+    const $el=window.jQuery?$(el):null;
+    try{
+      if($el && ($el.hasClass('select2-hidden-accessible') || $el.data('select2'))) $el.select2('destroy');
+    }catch(_){}
+    el.innerHTML=opcionesProductosInventario(almacenId);
+    if([...el.options].some(o=>String(o.value)===actual)) el.value=actual;
+    window.setTimeout(inicializarSelectsBuscablesInventario,0);
+  }
+  function llenarControlesInventario(){
+    ['inv-filtro-almacen','inv-lotes-almacen'].forEach(id=>{const el=document.getElementById(id); if(el){const v=el.value;el.innerHTML=opcionesAlmacenes(true);if([...el.options].some(o=>o.value===v))el.value=v;}});
+    ['inv-entrada-almacen','inv-transfer-origen','inv-transfer-destino'].forEach(id=>{const el=document.getElementById(id);if(el){const v=el.value;el.innerHTML=opcionesAlmacenes(false);if([...el.options].some(o=>o.value===v))el.value=v;else if(REST_INV.almacen_principal_id)el.value=String(REST_INV.almacen_principal_id);}});
+    const entradaAid=Number((document.getElementById('inv-entrada-almacen')||{}).value||REST_INV.almacen_principal_id||0);
+    const transferAid=Number((document.getElementById('inv-transfer-origen')||{}).value||REST_INV.almacen_principal_id||0);
+    const lotesAid=Number((document.getElementById('inv-lotes-almacen')||{}).value||0);
+    [['inv-entrada-producto',entradaAid],['inv-transfer-producto',transferAid],['inv-lotes-producto',lotesAid]].forEach(([id,aid])=>{const el=document.getElementById(id);if(el){const v=el.value;el.innerHTML=opcionesProductosInventario(aid);if([...el.options].some(o=>o.value===v))el.value=v;}});
+    const pa=document.getElementById('prod-almacen'); if(pa){const v=pa.value;pa.innerHTML=opcionesAlmacenes(false); if([...pa.options].some(o=>o.value===v))pa.value=v; else if(REST_INV.almacen_principal_id)pa.value=String(REST_INV.almacen_principal_id);}
+    const pm=document.getElementById('prod-medida'); if(pm){const v=pm.value;pm.innerHTML=(REST_INV.medidas||[]).map(m=>`<option value="${Number(m.medida_id)}">${escapeHtml(m.nombre||'Und')} · ${escapeHtml(m.descripcion||'')}</option>`).join(''); if([...pm.options].some(o=>o.value===v))pm.value=v; else if(pm.options.length)pm.selectedIndex=0;}
+    window.setTimeout(inicializarSelectsBuscablesInventario,0);
+  }
+
+  function inicializarSelectsBuscablesInventario(){
+    if(!(window.jQuery && $.fn && $.fn.select2)) return;
+
+    const defs=[
+      ['#inv-filtro-almacen','#modal-inventario-restaurante'],
+      ['#inv-entrada-producto','#modal-inventario-restaurante'],
+      ['#inv-entrada-almacen','#modal-inventario-restaurante'],
+      ['#inv-transfer-producto','#modal-inventario-restaurante'],
+      ['#inv-transfer-origen','#modal-inventario-restaurante'],
+      ['#inv-transfer-destino','#modal-inventario-restaurante'],
+      ['#inv-lotes-producto','#modal-inventario-restaurante'],
+      ['#inv-lotes-almacen','#modal-inventario-restaurante'],
+      ['#prod-almacen','#modal-producto'],
+      ['#prod-medida','#modal-producto']
+    ];
+
+    defs.forEach(([selector,modalSelector])=>{
+      const $sel=$(selector);
+      if(!$sel.length) return;
+
+      const value=$sel.val();
+      try{
+        if($sel.hasClass('select2-hidden-accessible') || $sel.data('select2')) $sel.select2('destroy');
+      }catch(_){}
+
+      const totalOpciones=$sel.find('option').length;
+      $sel.select2({
+        width:'100%',
+        dropdownParent:$(modalSelector),
+        minimumResultsForSearch:totalOpciones>2 ? 0 : Infinity,
+        allowClear:false,
+        placeholder:$sel.find('option[value=""]').first().text() || 'Seleccione…'
+      });
+
+      if(value!==null && typeof value!=='undefined') $sel.val(value).trigger('change.select2');
+    });
+  }
+  function almacenInv(id){return (REST_INV.almacenes||[]).find(a=>Number(a.almacen_id)===Number(id))||null;}
+  function productoInv(id){return (REST_INV.productos||[]).find(p=>Number(p.productos_id)===Number(id))||null;}
+  function saldoInv(pid,aid){const x=(REST_INV.saldos||[]).find(s=>Number(s.productos_id)===Number(pid)&&Number(s.almacen_id)===Number(aid));return x?Number(x.saldo||0):0;}
+  function fmtInv(n){return Number(n||0).toLocaleString('es-HN',{minimumFractionDigits:0,maximumFractionDigits:4});}
+
+  function renderInventarioResumen(){
+    const root=document.getElementById('inv-resumen'); if(!root)return;
+    const q=String((document.getElementById('inv-buscar')||{}).value||'').trim().toLowerCase();
+    const filtroA=Number((document.getElementById('inv-filtro-almacen')||{}).value||0);
+    const prods=(REST_INV.productos||[]).filter(p=>!q||String(p.nombre||'').toLowerCase().includes(q));
+    if(!prods.length){root.innerHTML='<div class="inventory-empty"><i class="fas fa-box-open"></i><span>No hay productos para mostrar.</span></div>';return;}
+    root.innerHTML=prods.map(p=>{
+      const esCombo=Number(p.combo_id||0)>0;
+      const img=p.file_name
+        ? `${SERVERURL}vistas/plantilla/img/products/${encodeURIComponent(p.file_name)}`
+        : `${SERVERURL}vistas/plantilla/img/products/image_preview.png`;
+      const info=`<div class="inventory-product-info"><img class="inventory-product-image" src="${img}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${SERVERURL}vistas/plantilla/img/products/image_preview.png';"><div class="inventory-product-text"><strong>${escapeHtml(p.nombre)}</strong>${esCombo?'<small><i class="fas fa-layer-group"></i> Combo virtual</small>':`<small>Predeterminado: ${escapeHtml((almacenInv(p.almacen_id)||{}).nombre||'Sin definir')}</small>`}</div></div>`;
+      if(esCombo){return `<article class="inventory-product-card is-combo">${info}<span class="inventory-stock combo-stock">Se calcula por componentes</span></article>`;}
+      const almacenes=(REST_INV.almacenes||[]).filter(a=>!filtroA||Number(a.almacen_id)===filtroA);
+      const chips=almacenes.map(a=>{
+        const saldo=saldoInv(p.productos_id,a.almacen_id);
+        const neg=saldo<0;
+        return `<span class="inventory-stock ${neg?'is-negative':''}"><b>${escapeHtml(a.nombre)}</b>${neg?'<i class="fas fa-triangle-exclamation" aria-hidden="true"></i>':''} ${fmtInv(saldo)} ${escapeHtml(p.medida||'Und')}${Number(a.facturar_cero)===1?' <em>negativo permitido</em>':''}</span>`;
+      }).join('');
+      const acciones=`<div class="inventory-quick-actions">
+        <button type="button" class="btn btn-sm btn-success" data-inv-quick="entrada" data-producto-id="${Number(p.productos_id)}" title="Registrar entrada"><i class="fas fa-arrow-down"></i><span>Entrada</span></button>
+        <button type="button" class="btn btn-sm btn-primary" data-inv-quick="transferencia" data-producto-id="${Number(p.productos_id)}" title="Transferir inventario"><i class="fas fa-right-left"></i><span>Transferir</span></button>
+        <button type="button" class="btn btn-sm btn-light" data-inv-quick="lotes" data-producto-id="${Number(p.productos_id)}" title="Ver lotes"><i class="fas fa-calendar-alt"></i><span>Lotes</span></button>
+      </div>`;
+      return `<article class="inventory-product-card">${info}<div class="inventory-product-side"><div class="inventory-stock-list">${chips}</div>${acciones}</div></article>`;
+    }).join('');
+  }
+
+  function actualizarPoliticasInventario(){
+    const aEntrada=almacenInv((document.getElementById('inv-entrada-almacen')||{}).value);
+    const pe=document.getElementById('inv-entrada-policy'); if(pe)pe.innerHTML=aEntrada?`<i class="fas fa-shield-halved"></i> ${escapeHtml(aEntrada.nombre)}: ${Number(aEntrada.facturar_cero)===1?'permite facturar y quedar en negativo.':'bloquea salidas cuando no hay existencia suficiente.'}`:'';
+    const aOrigen=almacenInv((document.getElementById('inv-transfer-origen')||{}).value);
+    const pt=document.getElementById('inv-transfer-policy'); if(pt)pt.innerHTML=aOrigen?`<i class="fas fa-circle-info"></i> Origen ${escapeHtml(aOrigen.nombre)}: ${Number(aOrigen.facturar_cero)===1?'puede quedar negativo.':'no permite transferir más de la existencia disponible.'}`:'';
+    const pa=almacenInv((document.getElementById('prod-almacen')||{}).value); const pp=document.getElementById('prod-almacen-policy'); if(pp)pp.innerHTML=pa?`<i class="fas fa-warehouse"></i> ${escapeHtml(pa.nombre)} · ${Number(pa.facturar_cero)===1?'inventario negativo permitido':'inventario negativo bloqueado'}`:'';
+  }
+
+  function cambiarTabInventario(tab){
+    document.querySelectorAll('#modal-inventario-restaurante .inventory-tab').forEach(b=>b.classList.toggle('active',b.dataset.invTab===tab));
+    document.querySelectorAll('#modal-inventario-restaurante .inventory-pane').forEach(p=>p.classList.toggle('active',p.dataset.invPane===tab));
+    if(tab==='lotes') cargarLotesInventarioUI();
+  }
+
+  function seleccionarProductoInventarioEnTab(tab,productoId){
+    const pid=Number(productoId||0);
+    const producto=productoInv(pid);
+    if(!producto) return;
+
+    const mapa={
+      entrada:'inv-entrada-producto',
+      transferencia:'inv-transfer-producto',
+      lotes:'inv-lotes-producto'
+    };
+    const selectId=mapa[tab];
+    if(!selectId) return;
+
+    const select=document.getElementById(selectId);
+    if(select){
+      select.value=String(pid);
+      if(window.jQuery) $(select).val(String(pid)).trigger('change.select2');
+    }
+
+    cambiarTabInventario(tab);
+
+    if(tab==='lotes') cargarLotesInventarioUI();
+    if(tab==='entrada' || tab==='transferencia') actualizarPoliticasInventario();
+  }
+
+  async function abrirInventarioRestaurante(productoId=0){
+    await cargarInventarioRestaurante();
+
+    const modal=document.getElementById('modal-inventario-restaurante');
+    if(!modal) return;
+
+    const productoContexto=productoId ? productoInv(productoId) : null;
+    const buscar=document.getElementById('inv-buscar');
+    const filtroAlmacen=document.getElementById('inv-filtro-almacen');
+
+    if(productoContexto){
+      if(buscar) buscar.value=String(productoContexto.nombre||'').trim();
+
+      ['inv-entrada-producto','inv-transfer-producto','inv-lotes-producto'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el) el.value=String(productoId);
+      });
+
+      if(filtroAlmacen){
+        filtroAlmacen.value='0';
+      }
+    }else{
+      if(buscar) buscar.value='';
+    }
+
+    renderInventarioResumen();
+    modal.style.display='block';
+    cambiarTabInventario('existencias');
+    actualizarPoliticasInventario();
+
+    window.setTimeout(()=>{
+      inicializarSelectsBuscablesInventario();
+
+      if(productoContexto){
+        ['#inv-entrada-producto','#inv-transfer-producto','#inv-lotes-producto'].forEach(selector=>{
+          const $sel=$(selector);
+          if($sel.length){
+            $sel.val(String(productoId)).trigger('change.select2');
+          }
+        });
+
+        const $filtro=$('#inv-filtro-almacen');
+        if($filtro.length){
+          $filtro.val('0').trigger('change.select2');
+        }
+
+        renderInventarioResumen();
+      }
+    },50);
+  }
+
+  async function registrarEntradaInventarioUI(){
+    const pid=Number((document.getElementById('inv-entrada-producto')||{}).value||0), aid=Number((document.getElementById('inv-entrada-almacen')||{}).value||0), cantidad=Number((document.getElementById('inv-entrada-cantidad')||{}).value||0);
+    const prod=productoInv(pid); if(!prod){showAlert('warning','Inventario','Seleccione un producto.');return;} if(Number(prod.combo_id||0)>0){showAlert('info','Combo virtual','El combo no recibe inventario propio. Registre inventario en sus componentes.');return;} if(!aid){showAlert('warning','Inventario','Seleccione un almacén.');return;} if(!(cantidad>0)){showAlert('warning','Inventario','La cantidad debe ser mayor a cero.');return;}
+    const ven=String((document.getElementById('inv-entrada-vencimiento')||{}).value||''); if(ven && ven<new Date().toISOString().slice(0,10)){showAlert('warning','Vencimiento','No puede ingresar un lote ya vencido.');return;}
+    showConfirm('Registrar entrada',`¿Registrar ${fmtInv(cantidad)} en ${prod.nombre}?`,async()=>{try{const data={productos_id:pid,almacen_id:aid,cantidad,fecha_vencimiento:ven,comentario:(document.getElementById('inv-entrada-comentario')||{}).value||''};const r=await fetchWithTimeout(BASE+'core/facturasRestaurante/facturasRestauranteAjax.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'registrarEntradaInventario',data})});const d=await r.json();if(!d||!d.status)throw new Error((d&&(d.message||d.msg))||'No se pudo registrar');showAlert('success','Inventario','Entrada registrada correctamente.');document.getElementById('inv-entrada-cantidad').value='';document.getElementById('inv-entrada-vencimiento').value='';await cargarInventarioRestaurante(true);}catch(e){showAlert('error','Inventario',e.message||'No se pudo registrar la entrada');}});
+  }
+
+  async function transferirInventarioUI(){
+    const pid=Number((document.getElementById('inv-transfer-producto')||{}).value||0), ori=Number((document.getElementById('inv-transfer-origen')||{}).value||0), des=Number((document.getElementById('inv-transfer-destino')||{}).value||0), cant=Number((document.getElementById('inv-transfer-cantidad')||{}).value||0);const prod=productoInv(pid);
+    if(!prod){showAlert('warning','Transferencia','Seleccione un producto.');return;} if(Number(prod.combo_id||0)>0){showAlert('info','Combo virtual','Transfiera los componentes del combo, no el producto maestro.');return;} if(!ori||!des||ori===des){showAlert('warning','Transferencia','Seleccione almacenes de origen y destino diferentes.');return;} if(!(cant>0)){showAlert('warning','Transferencia','La cantidad debe ser mayor a cero.');return;}
+    const a=almacenInv(ori), saldo=saldoInv(pid,ori); if(a&&Number(a.facturar_cero)!==1&&saldo+0.000001<cant){showAlert('warning','Inventario insuficiente',`Disponible en ${a.nombre}: ${fmtInv(saldo)}.`);return;}
+    const destino=almacenInv(des);
+    const permiteNegativo=a&&Number(a.facturar_cero)===1;
+    const cambiarDefault=(document.getElementById('inv-transfer-default')||{}).checked;
+    const detalleConfirmacion=[
+      `Producto: ${prod.nombre}`,
+      `Cantidad: ${fmtInv(cant)} ${prod.medida||'Und'}`,
+      `Origen: ${a?a.nombre:'-'}`,
+      `Destino: ${destino?destino.nombre:'-'}`,
+      `Disponible en origen: ${fmtInv(saldo)} ${prod.medida||'Und'}`,
+      `Inventario negativo: ${permiteNegativo?'permitido':'bloqueado'}`,
+      `Destino será predeterminado: ${cambiarDefault?'sí':'no'}`
+    ].join('\n');
+    showConfirm('Transferir inventario',detalleConfirmacion,async()=>{try{const data={productos_id:pid,almacen_origen_id:ori,almacen_destino_id:des,cantidad:cant,usar_destino_predeterminado:cambiarDefault?1:0,comentario:(document.getElementById('inv-transfer-comentario')||{}).value||''};const r=await fetchWithTimeout(BASE+'core/facturasRestaurante/facturasRestauranteAjax.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'transferirInventario',data})});const d=await r.json();if(!d||!d.status)throw new Error((d&&(d.message||d.msg))||'No se pudo transferir');const ref=d.referencia?` Referencia: ${d.referencia}.`:'';showAlert('success','Inventario',`Transferencia realizada correctamente.${ref}`);document.getElementById('inv-transfer-cantidad').value='';await cargarInventarioRestaurante(true);await cargarProductos();}catch(e){showAlert('error','Inventario',e.message||'No se pudo transferir');}});
+  }
+
+  async function cargarLotesInventarioUI(){
+    const pid=Number((document.getElementById('inv-lotes-producto')||{}).value||0), aid=Number((document.getElementById('inv-lotes-almacen')||{}).value||0), root=document.getElementById('inv-lotes-list'); if(!root)return; if(!pid){root.innerHTML='<div class="inventory-empty">Seleccione un producto.</div>';return;} const prod=productoInv(pid); if(prod&&Number(prod.combo_id||0)>0){root.innerHTML='<div class="inventory-empty"><i class="fas fa-layer-group"></i> Los combos no manejan lotes propios; sus componentes sí.</div>';return;} root.innerHTML='<div class="inventory-loading"><i class="fas fa-spinner fa-spin"></i> Cargando lotes…</div>';
+    try{const body=`action=loadLotesInventario&productos_id=${encodeURIComponent(pid)}&almacen_id=${encodeURIComponent(aid)}`;const r=await fetchWithTimeout(BASE+'core/facturasRestaurante/facturasRestauranteAjax.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});const d=await r.json();if(!d||!d.status)throw new Error(d&&d.message||'No se pudieron cargar');const lotes=d.lotes||[];if(!lotes.length){root.innerHTML='<div class="inventory-empty"><i class="fas fa-calendar-xmark"></i> Este producto no tiene lotes registrados.</div>';return;}root.innerHTML=lotes.map(l=>{
+      const vencido=Number(l.vencido)===1;
+      const dias=l.dias_vencimiento===null||typeof l.dias_vencimiento==='undefined'?null:Number(l.dias_vencimiento);
+      let cls=vencido?'is-expired':'';
+      let badge=vencido?'<em class="lot-expiry-badge is-expired">VENCIDO</em>':'';
+      let venceTexto=l.fecha_vencimiento?'Vence '+escapeHtml(l.fecha_vencimiento):'Sin vencimiento';
+      if(!vencido && dias!==null){
+        if(dias<=7){cls+=' is-critical';badge=`<em class="lot-expiry-badge is-critical">Vence en ${dias} día${dias===1?'':'s'}</em>`;}
+        else if(dias<=30){cls+=' is-warning';badge=`<em class="lot-expiry-badge is-warning">Vence en ${dias} días</em>`;}
+      }
+      return `<article class="inventory-lot ${cls.trim()}"><div><strong>${escapeHtml(l.numero_lote||('Lote #'+l.lote_id))}</strong><small>${escapeHtml(l.almacen_nombre||'')} · ${escapeHtml(l.estado||'')}</small></div><div><b>${fmtInv(l.cantidad)}</b><span>${venceTexto}</span>${badge}</div></article>`;
+    }).join('');}catch(e){root.innerHTML='<div class="inventory-empty">'+escapeHtml(e.message||'Error')+'</div>';}
+  }
+
+  async function prepararInventarioProductoModal(prod=null){
+    try{await cargarInventarioRestaurante(true);}catch(_){return;}
+    const edicion=!!(prod&&prod.productos_id); const fields=document.querySelectorAll('#modal-producto .prod-initial-stock-field'); fields.forEach(x=>x.style.display=edicion?'none':'');
+    const note=document.getElementById('prod-inventory-edit-note'); if(note)note.style.display=edicion?'flex':'none';
+    const a=document.getElementById('prod-almacen'); if(a)a.value=String((prod&&prod.almacen_id)||REST_INV.almacen_principal_id||a.value||'');
+    const m=document.getElementById('prod-medida'); if(m)m.value=String((prod&&prod.medida_id)||1);
+    if(!edicion){const q=document.getElementById('prod-inventario-inicial');if(q)q.value='0';const v=document.getElementById('prod-vencimiento');if(v)v.value='';}
+    const manage=document.getElementById('btn-prod-abrir-inventario'); if(manage)manage.dataset.productoId=edicion?String(prod.productos_id):''; actualizarPoliticasInventario();
+  }
+
   function setupEventListeners() {
     if (buscarMesaRapido) {
       buscarMesaRapido.addEventListener('input', function(){ filtroMesaRapido=this.value||''; renderizarMesas(); });
@@ -2005,9 +2275,16 @@ function initHotkeys(){
     });
     $(document).on('click',function(){ $('#gestionar-menu').removeClass('show'); });
     $(document).on('click','#gestionar-menu button',function(e){
+      if($(this).hasClass('gest-submenu-toggle')){
+        e.preventDefault(); e.stopPropagation();
+        const $parent=$(this).closest('.gest-submenu');
+        $('#gestionar-menu .gest-submenu').not($parent).removeClass('open');
+        $parent.toggleClass('open');
+        return;
+      }
       var t = $(this).data('target');
-      $('#gestionar-menu').removeClass('show');
-      if(!t) return; // configuración tiene su propio listener protegido
+      $('#gestionar-menu').removeClass('show').find('.gest-submenu').removeClass('open');
+      if(!t) return;
       e.preventDefault(); e.stopPropagation();
       var label = ($(this).text() || 'Administrar').trim();
       autorizarGestionRestaurante(label, function(){
@@ -2015,6 +2292,25 @@ function initHotkeys(){
         try { $(t).trigger('click'); } finally { setTimeout(function(){ REST_AUTH_BYPASS=false; },0); }
       });
     });
+
+    $(document).on('click','#btn-gestionar-inventario',function(){ abrirInventarioRestaurante(); });
+    $(document).on('click','#btn-prod-abrir-inventario',function(){ const id=Number(this.dataset.productoId||0); if(id) abrirInventarioRestaurante(id); });
+    $(document).on('click','#modal-inventario-restaurante .inventory-tab',function(){ cambiarTabInventario(this.dataset.invTab||'existencias'); });
+    $(document).on('input','#inv-buscar',renderInventarioResumen);
+    $(document).on('change','#inv-filtro-almacen',renderInventarioResumen);
+    $(document).on('change','#inv-entrada-almacen,#inv-transfer-origen,#prod-almacen',actualizarPoliticasInventario);
+    $(document).on('change','#inv-entrada-almacen',function(){refrescarSelectProductoInventario('inv-entrada-producto',this.value);});
+    $(document).on('change','#inv-transfer-origen',function(){refrescarSelectProductoInventario('inv-transfer-producto',this.value);});
+    $(document).on('change','#inv-lotes-almacen',function(){refrescarSelectProductoInventario('inv-lotes-producto',this.value);});
+    $(document).on('change','#inv-lotes-producto,#inv-lotes-almacen',cargarLotesInventarioUI);
+    $(document).on('click','#inv-resumen [data-inv-quick]',function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      seleccionarProductoInventarioEnTab(this.dataset.invQuick||'',Number(this.dataset.productoId||0));
+    });
+    $(document).on('click','#btn-inv-refrescar',()=>cargarInventarioRestaurante());
+    $(document).on('click','#btn-inv-registrar-entrada',registrarEntradaInventarioUI);
+    $(document).on('click','#btn-inv-transferir',transferirInventarioUI);
 
     // ====== Apertura y cierre genérico de modales .rs-modal
     $(document).on('click','[data-close]',function(){
@@ -2496,6 +2792,7 @@ function initHotkeys(){
     
       // 2) Si por timing aún no hay categorías, espera y llena; si ya hay, no pasa nada
       ensureCategoriasReady().then(()=> fillProdCategoriaOptionsByEstacion());
+      prepararInventarioProductoModal(null);
     
       if (modalProducto) modalProducto.style.display='block';
       setTimeout(()=>{ inpNombre && inpNombre.focus(); },10);
@@ -4009,6 +4306,14 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     const precio = parseFloat((inpPrecio||{}).value || '0') || 0;
     const isv1   = !!(chkISV1||{}).checked;
     const isv2   = !!(chkISV2||{}).checked;
+    const almacenId = Number((document.getElementById('prod-almacen')||{}).value||0);
+    const medidaId = Number((document.getElementById('prod-medida')||{}).value||0);
+    const inventarioInicial = Number((document.getElementById('prod-inventario-inicial')||{}).value||0);
+    const vencimiento = String((document.getElementById('prod-vencimiento')||{}).value||'').trim();
+    if(!almacenId){ showAlert('warning','Producto','Seleccione el almacén predeterminado.'); return; }
+    if(!medidaId){ showAlert('warning','Producto','Seleccione la unidad de medida.'); return; }
+    if(inventarioInicial<0){ showAlert('warning','Producto','El inventario inicial no puede ser negativo.'); return; }
+    if(vencimiento && vencimiento<new Date().toISOString().slice(0,10)){ showAlert('warning','Producto','La fecha de vencimiento no puede estar en el pasado.'); return; }
 
     const esEdicion   = !!id;
     const titulo      = esEdicion ? 'Editar Producto' : 'Nuevo Producto';
@@ -4032,6 +4337,12 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
         fd.append('isv1', isv1 ? '1' : '0');
         fd.append('isv2', isv2 ? '1' : '0');
         fd.append('estacion', lastEstacion);
+        fd.append('almacen_id', String(almacenId));
+        fd.append('medida_id', String(medidaId));
+        if(!esEdicion){
+          fd.append('inventario_inicial', String(inventarioInicial));
+          fd.append('fecha_vencimiento', vencimiento);
+        }
 
         const file = (typeof getProductoImagenFile === 'function') ? getProductoImagenFile() : null;
         if (file) fd.append('imagen_producto', file);
@@ -4098,6 +4409,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
         // Refrescar catálogos usando SIEMPRE la respuesta real del servidor.
         if (typeof cargarCategorias === 'function') await cargarCategorias();
         if (typeof cargarProductos === 'function') await cargarProductos();
+        try { await cargarInventarioRestaurante(true); } catch(_) {}
 
         // Verificación de consistencia: después de guardar, el producto debe regresar
         // desde loadProductos con la misma estación seleccionada.
@@ -5385,6 +5697,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     // Preparar toggles/ISV y uploader si aplica
     try { if (typeof prepararModalProductoISV === 'function') prepararModalProductoISV(prod); } catch(_) {}
     try { if (typeof initProductoImageUpload   === 'function') initProductoImageUpload();   } catch(_) {}
+    prepararInventarioProductoModal(prod);
 
     // Mostrar modal
     if (typeof modalProducto !== 'undefined' && modalProducto) {
@@ -7758,6 +8071,7 @@ function initSelect2ForComboRow(row){
       ['#btn-nuevo-producto','restaurante_productos'],
       ['#btn-gestionar-combos','restaurante_combos'],
       ['#btn-gestionar-promos','restaurante_promociones'],
+      ['#btn-gestionar-inventario','restaurante_productos'],
       ['#btn-nueva-promocion','restaurante_promociones'],
       ['#btn-asignar-promo-productos','restaurante_promociones'],
       ['#btn-asignar-promo-categorias','restaurante_promociones']
@@ -7829,7 +8143,7 @@ function initSelect2ForComboRow(row){
 
   // Protege accesos de creación/gestión antes de que disparen sus listeners originales.
   document.addEventListener('click', function(ev){
-    const target=ev.target && ev.target.closest ? ev.target.closest('#btn-nuevo-cliente-rapido,#btn-nuevo-cliente,#btn-editar-cliente-seleccionado,#btn-nueva-mesa,#btn-nueva-categoria,#btn-nuevo-producto,#btn-gestionar-combos,#btn-gestionar-promos,#btn-nueva-promocion,#btn-asignar-promo-productos,#btn-asignar-promo-categorias') : null;
+    const target=ev.target && ev.target.closest ? ev.target.closest('#btn-nuevo-cliente-rapido,#btn-nuevo-cliente,#btn-editar-cliente-seleccionado,#btn-nueva-mesa,#btn-nueva-categoria,#btn-nuevo-producto,#btn-gestionar-inventario,#btn-gestionar-combos,#btn-gestionar-promos,#btn-nueva-promocion,#btn-asignar-promo-productos,#btn-asignar-promo-categorias') : null;
     if(!target || REST_AUTH_BYPASS) return;
     ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation();
     const label=(target.textContent||target.title||'Administrar').trim();

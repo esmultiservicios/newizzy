@@ -665,235 +665,416 @@ class facturasModelo extends mainModel{
     }
 
     /* ===========================
+    * COMBOS: CONSULTAS DE INVENTARIO
+    * =========================== */
+    protected function tabla_combo_facturacion_existe_modelo($tabla) {
+        static $cache = [];
+
+        $tabla = preg_replace('/[^a-zA-Z0-9_]/', '', (string)$tabla);
+
+        if ($tabla === '') {
+            return false;
+        }
+
+        if (array_key_exists($tabla, $cache)) {
+            return $cache[$tabla];
+        }
+
+        $cn = mainModel::connection();
+
+        if (!$cn) {
+            $cache[$tabla] = false;
+            return false;
+        }
+
+        $sql = "SELECT 1
+                FROM INFORMATION_SCHEMA.TABLES
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = ?
+                LIMIT 1";
+
+        $stmt = $cn->prepare($sql);
+
+        if (!$stmt) {
+            $cache[$tabla] = false;
+            return false;
+        }
+
+        $stmt->bind_param("s", $tabla);
+        $stmt->execute();
+        $rs = $stmt->get_result();
+
+        $cache[$tabla] = ($rs && $rs->num_rows > 0);
+        $stmt->close();
+
+        return $cache[$tabla];
+    }
+
+    protected function obtener_combo_activo_producto_modelo($productos_id, $empresa_id) {
+        if (
+            !$this->tabla_combo_facturacion_existe_modelo('combos') ||
+            !$this->tabla_combo_facturacion_existe_modelo('combo_detalle')
+        ) {
+            return null;
+        }
+
+        $productos_id = (int)$productos_id;
+        $empresa_id = (int)$empresa_id;
+
+        if ($productos_id <= 0 || $empresa_id <= 0) {
+            return null;
+        }
+
+        $cn = mainModel::connection();
+
+        $sql = "SELECT c.combo_id,
+                       c.productos_id,
+                       c.version_actual
+                FROM combos c
+                INNER JOIN productos p
+                    ON p.productos_id = c.productos_id
+                WHERE c.productos_id = ?
+                  AND c.activo = 1
+                  AND p.empresa_id = ?
+                LIMIT 1";
+
+        $stmt = $cn->prepare($sql);
+
+        if (!$stmt) {
+            return null;
+        }
+
+        $stmt->bind_param("ii", $productos_id, $empresa_id);
+        $stmt->execute();
+        $rs = $stmt->get_result();
+        $row = ($rs && $rs->num_rows > 0) ? $rs->fetch_assoc() : null;
+        $stmt->close();
+
+        return $row ?: null;
+    }
+
+    protected function obtener_componentes_combo_inventario_modelo($combo_id, $version, $empresa_id) {
+        if (
+            !$this->tabla_combo_facturacion_existe_modelo('combos') ||
+            !$this->tabla_combo_facturacion_existe_modelo('combo_detalle')
+        ) {
+            return [];
+        }
+
+        $combo_id = (int)$combo_id;
+        $version = (int)$version;
+        $empresa_id = (int)$empresa_id;
+
+        if ($combo_id <= 0 || $empresa_id <= 0) {
+            return [];
+        }
+
+        $cn = mainModel::connection();
+
+        $sql = "SELECT d.combo_detalle_id,
+                       d.productos_id,
+                       d.cantidad_por_porcion,
+                       d.unidad,
+                       d.merma_pct,
+                       d.obligatorio,
+                       d.version,
+                       d.orden,
+                       p.nombre,
+                       p.almacen_id,
+                       p.empresa_id
+                FROM combo_detalle d
+                INNER JOIN productos p
+                    ON p.productos_id = d.productos_id
+                WHERE d.combo_id = ?
+                  AND d.obligatorio = 1
+                  AND p.empresa_id = ?";
+
+        $types = "ii";
+        $params = [$combo_id, $empresa_id];
+
+        if ($version > 0) {
+            $sql .= " AND d.version = ?";
+            $types .= "i";
+            $params[] = $version;
+        }
+
+        $sql .= " ORDER BY d.orden ASC, d.combo_detalle_id ASC";
+
+        $stmt = $cn->prepare($sql);
+
+        if (!$stmt) {
+            return [];
+        }
+
+        $stmt->bind_param($types, ...$params);
+        $stmt->execute();
+        $rs = $stmt->get_result();
+
+        $items = [];
+
+        if ($rs) {
+            while ($row = $rs->fetch_assoc()) {
+                $items[] = $row;
+            }
+        }
+
+        $stmt->close();
+
+        return $items;
+    }
+
+    protected function obtener_politica_almacen_modelo($almacen_id, $empresa_id) {
+        $almacen_id = (int)$almacen_id;
+        $empresa_id = (int)$empresa_id;
+
+        if ($almacen_id <= 0 || $empresa_id <= 0) {
+            return ['existe'=>false, 'facturar_cero'=>0, 'nombre'=>''];
+        }
+
+        $cn = mainModel::connection();
+        $stmt = $cn->prepare(
+            "SELECT nombre, facturar_cero
+             FROM almacen
+             WHERE almacen_id = ? AND empresa_id = ? AND estado = 1
+             LIMIT 1"
+        );
+
+        if (!$stmt) {
+            return ['existe'=>false, 'facturar_cero'=>0, 'nombre'=>''];
+        }
+
+        $stmt->bind_param("ii", $almacen_id, $empresa_id);
+        $stmt->execute();
+        $rs = $stmt->get_result();
+        $row = ($rs && $rs->num_rows > 0) ? $rs->fetch_assoc() : null;
+        $stmt->close();
+
+        if (!$row) {
+            return ['existe'=>false, 'facturar_cero'=>0, 'nombre'=>''];
+        }
+
+        return [
+            'existe'=>true,
+            'facturar_cero'=>((int)($row['facturar_cero'] ?? 0) === 1 ? 1 : 0),
+            'nombre'=>(string)($row['nombre'] ?? '')
+        ];
+    }
+
+    protected function obtener_saldo_vendible_producto_modelo($productos_id, $empresa_id, $almacen_id) {
+        $productos_id=(int)$productos_id; $empresa_id=(int)$empresa_id; $almacen_id=(int)$almacen_id;
+        if($productos_id<=0 || $empresa_id<=0 || $almacen_id<=0) return 0.0;
+        $cn=mainModel::connection();
+        $stmt=$cn->prepare("SELECT COALESCE(SUM(cantidad_entrada),0)-COALESCE(SUM(cantidad_salida),0) saldo FROM movimientos WHERE productos_id=? AND empresa_id=? AND almacen_id=? AND lote_id=0");
+        if(!$stmt) return 0.0;
+        $stmt->bind_param('iii',$productos_id,$empresa_id,$almacen_id); $stmt->execute(); $rs=$stmt->get_result();
+        $sinLote=($rs&&$rs->num_rows)?(float)($rs->fetch_assoc()['saldo']??0):0.0; $stmt->close();
+        $stmt=$cn->prepare("SELECT COALESCE(SUM(cantidad),0) saldo FROM lotes WHERE productos_id=? AND empresa_id=? AND almacen_id=? AND estado='Activo' AND cantidad>0 AND (fecha_vencimiento IS NULL OR fecha_vencimiento>=CURDATE())");
+        if(!$stmt) return $sinLote;
+        $stmt->bind_param('iii',$productos_id,$empresa_id,$almacen_id); $stmt->execute(); $rs=$stmt->get_result();
+        $lotes=($rs&&$rs->num_rows)?(float)($rs->fetch_assoc()['saldo']??0):0.0; $stmt->close();
+        return $sinLote+$lotes;
+    }
+
+    protected function obtener_saldo_inventario_producto_modelo($productos_id, $empresa_id, $almacen_id = 0) {
+        $productos_id = (int)$productos_id;
+        $empresa_id = (int)$empresa_id;
+        $almacen_id = (int)$almacen_id;
+
+        if ($productos_id <= 0 || $empresa_id <= 0) {
+            return 0.0;
+        }
+
+        $cn = mainModel::connection();
+
+        $sql = "SELECT COALESCE(SUM(cantidad_entrada), 0)
+                     - COALESCE(SUM(cantidad_salida), 0) AS saldo
+                FROM movimientos
+                WHERE productos_id = ?
+                  AND empresa_id = ?";
+
+        if ($almacen_id > 0) {
+            $sql .= " AND almacen_id = ?";
+            $stmt = $cn->prepare($sql);
+
+            if (!$stmt) {
+                return 0.0;
+            }
+
+            $stmt->bind_param("iii", $productos_id, $empresa_id, $almacen_id);
+        } else {
+            $stmt = $cn->prepare($sql);
+
+            if (!$stmt) {
+                return 0.0;
+            }
+
+            $stmt->bind_param("ii", $productos_id, $empresa_id);
+        }
+
+        $stmt->execute();
+        $rs = $stmt->get_result();
+        $saldo = 0.0;
+
+        if ($rs && $rs->num_rows > 0) {
+            $row = $rs->fetch_assoc();
+            $saldo = (float)($row['saldo'] ?? 0);
+        }
+
+        $stmt->close();
+
+        return $saldo;
+    }
+
+    /* ===========================
     * INVENTARIO: ARREGLA bind_param (con/sin lote)
     * =========================== */
     protected function registrar_salida_lote_modelo($datos) {
         $mysqli = mainModel::connection();
 
-        $producto_id         = (int)$datos['productos_id'];
-        $empresa_id          = (int)$datos['empresa_id'];
-        $clientes_id         = (int)($datos['clientes_id'] ?? 0);
-        $documento           = (string)$datos['documento'];
-        $comentario          = (string)$datos['comentario'];
-        $cantidad_solicitada = (float)$datos['cantidad'];
-        $almacen_solicitado  = isset($datos['almacen_id']) ? (int)$datos['almacen_id'] : 0;
+        $producto_id = (int)($datos['productos_id'] ?? 0);
+        $empresa_id = (int)($datos['empresa_id'] ?? $datos['empresa'] ?? 0);
+        $clientes_id = (int)($datos['clientes_id'] ?? 0);
+        $documento = (string)($datos['documento'] ?? '');
+        $comentario = (string)($datos['comentario'] ?? 'Salida de inventario por venta');
+        $cantidad_solicitada = (float)($datos['cantidad'] ?? 0);
+        $almacen_solicitado = (int)($datos['almacen_id'] ?? 0);
 
         if($producto_id <= 0 || $empresa_id <= 0 || $cantidad_solicitada <= 0){
-            return ["status" => "error", "message" => "Datos inválidos para rebajar inventario"];
+            return ['status'=>'error','message'=>'Datos inválidos para rebajar inventario'];
         }
 
-        $nombre_producto = "Producto ID ".$producto_id;
-        $stmtNombre = $mysqli->prepare("SELECT nombre FROM productos WHERE productos_id = ? LIMIT 1");
+        if($almacen_solicitado <= 0){
+            $almacen_solicitado = (int)$this->getAlmacenProducto($producto_id);
+        }
+
+        $politica = $this->obtener_politica_almacen_modelo($almacen_solicitado, $empresa_id);
+        if(empty($politica['existe'])){
+            return ['status'=>'error','message'=>'El almacén seleccionado no existe, está inactivo o no pertenece a la empresa.'];
+        }
+        $permiteNegativo = !empty($politica['facturar_cero']);
+
+        $nombre_producto = 'Producto ID '.$producto_id;
+        $stmtNombre = $mysqli->prepare('SELECT nombre FROM productos WHERE productos_id=? AND empresa_id=? LIMIT 1');
         if($stmtNombre){
-            $stmtNombre->bind_param("i", $producto_id);
+            $stmtNombre->bind_param('ii',$producto_id,$empresa_id);
             $stmtNombre->execute();
-            $resNombre = $stmtNombre->get_result();
-            if($resNombre && $resNombre->num_rows > 0){
-                $rowNombre = $resNombre->fetch_assoc();
-                $nombre_producto = $rowNombre['nombre'];
+            $resNombre=$stmtNombre->get_result();
+            if($resNombre && $resNombre->num_rows){
+                $nombre_producto=(string)$resNombre->fetch_assoc()['nombre'];
             }
             $stmtNombre->close();
         }
 
-        $restante = $cantidad_solicitada;
-        $consumos = [];
+        $sqlSaldo = "SELECT COALESCE(SUM(cantidad_entrada),0)-COALESCE(SUM(cantidad_salida),0) AS saldo
+                     FROM movimientos
+                     WHERE productos_id=? AND empresa_id=? AND almacen_id=?";
+        $stmtSaldo=$mysqli->prepare($sqlSaldo);
+        if(!$stmtSaldo){
+            return ['status'=>'error','message'=>'No se pudo consultar el inventario del producto.'];
+        }
+        $stmtSaldo->bind_param('iii',$producto_id,$empresa_id,$almacen_solicitado);
+        $stmtSaldo->execute();
+        $rsSaldo=$stmtSaldo->get_result();
+        $saldoInicial=0.0;
+        if($rsSaldo && $rsSaldo->num_rows){
+            $saldoInicial=(float)($rsSaldo->fetch_assoc()['saldo'] ?? 0);
+        }
+        $stmtSaldo->close();
 
-        /*
-         * 1) Si existen lotes activos, consume FIFO.
-         *    Si el producto no maneja lotes, simplemente pasa a saldo global por movimientos.
-         */
-        $sql = "
-            SELECT lote_id, cantidad, almacen_id
-            FROM lotes
-            WHERE productos_id = ?
-              AND estado = 'Activo'
-              AND cantidad > 0
-              ".($almacen_solicitado > 0 ? " AND almacen_id = ? " : "")."
-            ORDER BY fecha_ingreso ASC, fecha_vencimiento ASC, lote_id ASC
-        ";
+        $saldoVendible=$this->obtener_saldo_vendible_producto_modelo($producto_id,$empresa_id,$almacen_solicitado);
+        if(!$permiteNegativo && ($saldoVendible + 0.000001) < $cantidad_solicitada){
+            return [
+                'status'=>'error',
+                'message'=>'Saldo vendible insuficiente para '.$nombre_producto.' en '.$politica['nombre'].'. Disponible: '.number_format($saldoVendible,4,'.','').', solicitado: '.number_format($cantidad_solicitada,4,'.','')
+            ];
+        }
 
-        $stmt = $mysqli->prepare($sql);
+        $restante=$cantidad_solicitada;
+        $consumos=[];
+        $saldoOperacion=$saldoInicial;
 
+        $sqlLotes="SELECT lote_id, numero_lote, cantidad, almacen_id, fecha_vencimiento, fecha_ingreso
+                   FROM lotes
+                   WHERE productos_id=? AND empresa_id=? AND almacen_id=?
+                     AND estado='Activo' AND cantidad>0
+                     AND (fecha_vencimiento IS NULL OR fecha_vencimiento>=CURDATE())
+                   ORDER BY
+                     CASE WHEN fecha_vencimiento IS NULL THEN 1 ELSE 0 END ASC,
+                     fecha_vencimiento ASC,
+                     fecha_ingreso ASC,
+                     lote_id ASC";
+        $stmt=$mysqli->prepare($sqlLotes);
         if($stmt){
-            if ($almacen_solicitado > 0) {
-                $stmt->bind_param("ii", $producto_id, $almacen_solicitado);
-            } else {
-                $stmt->bind_param("i", $producto_id);
-            }
-
+            $stmt->bind_param('iii',$producto_id,$empresa_id,$almacen_solicitado);
             if($stmt->execute()){
-                $rs = $stmt->get_result();
+                $rs=$stmt->get_result();
+                while($restante>0 && $rs && ($lote=$rs->fetch_assoc())){
+                    $enLote=(float)$lote['cantidad'];
+                    if($enLote<=0) continue;
+                    $usar=min($enLote,$restante);
+                    $nuevoLote=$enLote-$usar;
+                    $saldoOperacion-=$usar;
 
-                while ($restante > 0 && $rs && ($lote = $rs->fetch_assoc())) {
-                    $lote_id      = (int)$lote['lote_id'];
-                    $en_lote      = (float)$lote['cantidad'];
-                    $almacen_lote = (int)$lote['almacen_id'];
-
-                    if ($en_lote <= 0) {
-                        continue;
+                    $stmtMov=$mysqli->prepare("INSERT INTO movimientos
+                        (productos_id,cantidad_entrada,cantidad_salida,saldo,empresa_id,fecha_registro,almacen_id,lote_id,clientes_id,documento,comentario)
+                        VALUES (?,0,?,?,?,NOW(),?,?,?,?,?)");
+                    if(!$stmtMov){ $stmt->close(); return ['status'=>'error','message'=>'No se pudo preparar el movimiento de inventario.']; }
+                    $loteId=(int)$lote['lote_id'];
+                    $stmtMov->bind_param('iddiiiiss',$producto_id,$usar,$saldoOperacion,$empresa_id,$almacen_solicitado,$loteId,$clientes_id,$documento,$comentario);
+                    if(!$stmtMov->execute()){
+                        $msg=$stmtMov->error; $stmtMov->close(); $stmt->close();
+                        return ['status'=>'error','message'=>'No se pudo registrar la salida de inventario: '.$msg];
                     }
-
-                    $a_usar           = ($en_lote >= $restante) ? $restante : $en_lote;
-                    $nuevo_saldo_lote = $en_lote - $a_usar;
-
-                    $insertMov = "INSERT INTO movimientos
-                        (productos_id, cantidad_entrada, cantidad_salida, saldo, empresa_id, fecha_registro,
-                         almacen_id, lote_id, clientes_id, documento, comentario)
-                        VALUES (?, 0, ?, ?, ?, NOW(), ?, ?, ?, ?, ?)";
-
-                    $stmtMov = $mysqli->prepare($insertMov);
-                    if (!$stmtMov) {
-                        $stmt->close();
-                        return ["status" => "error", "message" => "Error prepare movimiento con lote: ".$mysqli->error];
-                    }
-
-                    $stmtMov->bind_param(
-                        "iddiiiiss",
-                        $producto_id,
-                        $a_usar,
-                        $nuevo_saldo_lote,
-                        $empresa_id,
-                        $almacen_lote,
-                        $lote_id,
-                        $clientes_id,
-                        $documento,
-                        $comentario
-                    );
-
-                    if (!$stmtMov->execute()) {
-                        $msg = $stmtMov->error;
-                        $stmtMov->close();
-                        $stmt->close();
-                        return ["status" => "error", "message" => "Error ejecutar movimiento con lote: ".$msg];
-                    }
-
                     $stmtMov->close();
 
-                    $sqlUp = "UPDATE lotes SET cantidad = ?".($nuevo_saldo_lote <= 0 ? ", estado='Inactivo' " : " ")."WHERE lote_id = ?";
-                    $up = $mysqli->prepare($sqlUp);
-                    if (!$up) {
-                        $stmt->close();
-                        return ["status" => "error", "message" => "Error prepare update lote: ".$mysqli->error];
-                    }
+                    $estadoLote=$nuevoLote<=0?'Inactivo':'Activo';
+                    $up=$mysqli->prepare('UPDATE lotes SET cantidad=?, estado=? WHERE lote_id=?');
+                    $up->bind_param('dsi',$nuevoLote,$estadoLote,$loteId);
+                    $up->execute(); $up->close();
 
-                    $up->bind_param("di", $nuevo_saldo_lote, $lote_id);
+                    $consumos[]=['lote_id'=>$loteId,'numero_lote'=>$lote['numero_lote'],'usado'=>$usar,'almacen_id'=>$almacen_solicitado,'saldo_final'=>$saldoOperacion];
+                    $restante-=$usar;
+                }
+            }
+            $stmt->close();
+        }
 
-                    if (!$up->execute()) {
-                        $msg = $up->error;
-                        $up->close();
-                        $stmt->close();
-                        return ["status" => "error", "message" => "Error update lote: ".$msg];
-                    }
-
-                    $up->close();
-
-                    $consumos[] = [
-                        "lote_id"     => $lote_id,
-                        "usado"       => $a_usar,
-                        "almacen_id"  => $almacen_lote,
-                        "saldo_final" => $nuevo_saldo_lote
-                    ];
-
-                    $restante -= $a_usar;
+        if($restante>0){
+            if(!$permiteNegativo){
+                $stmtNoLote=$mysqli->prepare("SELECT COALESCE(SUM(cantidad_entrada),0)-COALESCE(SUM(cantidad_salida),0) saldo FROM movimientos WHERE productos_id=? AND empresa_id=? AND almacen_id=? AND lote_id=0");
+                $saldoSinLote=0.0;
+                if($stmtNoLote){
+                    $stmtNoLote->bind_param('iii',$producto_id,$empresa_id,$almacen_solicitado); $stmtNoLote->execute(); $rsNoLote=$stmtNoLote->get_result();
+                    if($rsNoLote&&$rsNoLote->num_rows)$saldoSinLote=(float)($rsNoLote->fetch_assoc()['saldo']??0); $stmtNoLote->close();
+                }
+                if(($saldoSinLote+0.000001)<$restante){
+                    return ['status'=>'error','message'=>'Inventario insuficiente después de consumir los lotes vigentes de '.$nombre_producto.'.'];
                 }
             }
 
-            $stmt->close();
-        } else {
-            error_log("No se pudo preparar consulta de lotes, se usará saldo global por movimientos: ".$mysqli->error);
-        }
-
-        /*
-         * 2) Si aún queda cantidad, usa saldo global por movimientos.
-         *    Esta consulta usa la MISMA conexión y respeta empresa/bodega.
-         */
-        if ($restante > 0) {
-            $sqlSaldo = "
-                SELECT COALESCE(SUM(cantidad_entrada), 0) - COALESCE(SUM(cantidad_salida), 0) AS saldo
-                FROM movimientos
-                WHERE productos_id = ?
-                  AND empresa_id = ?
-            ";
-
-            $tiposSaldo = "ii";
-            $paramsSaldo = [$producto_id, $empresa_id];
-
-            if($almacen_solicitado > 0){
-                $sqlSaldo .= " AND almacen_id = ?";
-                $tiposSaldo .= "i";
-                $paramsSaldo[] = $almacen_solicitado;
+            $saldoOperacion-=$restante;
+            $stmtMov=$mysqli->prepare("INSERT INTO movimientos
+                (productos_id,cantidad_entrada,cantidad_salida,saldo,empresa_id,fecha_registro,almacen_id,lote_id,clientes_id,documento,comentario)
+                VALUES (?,0,?,?,?,NOW(),?,0,?,?,?)");
+            if(!$stmtMov){ return ['status'=>'error','message'=>'No se pudo preparar el movimiento sin lote.']; }
+            $stmtMov->bind_param('iddiiiss',$producto_id,$restante,$saldoOperacion,$empresa_id,$almacen_solicitado,$clientes_id,$documento,$comentario);
+            if(!$stmtMov->execute()){
+                $msg=$stmtMov->error; $stmtMov->close();
+                return ['status'=>'error','message'=>'No se pudo registrar la salida sin lote: '.$msg];
             }
-
-            $stmtSaldo = $mysqli->prepare($sqlSaldo);
-            if(!$stmtSaldo){
-                return ["status" => "error", "message" => "Error prepare saldo: ".$mysqli->error];
-            }
-
-            $stmtSaldo->bind_param($tiposSaldo, ...$paramsSaldo);
-            $stmtSaldo->execute();
-            $resSaldo = $stmtSaldo->get_result();
-            $saldo_global = 0.0;
-
-            if($resSaldo && $resSaldo->num_rows > 0){
-                $rowSaldo = $resSaldo->fetch_assoc();
-                $saldo_global = (float)$rowSaldo['saldo'];
-            }
-
-            $stmtSaldo->close();
-
-            if (($saldo_global + 0.000001) < $restante) {
-                $falta = $restante - $saldo_global;
-                return [
-                    "status" => "error",
-                    "message" => "Saldo insuficiente para el producto {$nombre_producto}. Disponible: ".number_format($saldo_global, 4, '.', '').", solicitado: ".number_format($restante, 4, '.', '').", falta: ".number_format($falta, 4, '.', '')
-                ];
-            }
-
-            $nuevo_saldo_global = $saldo_global - $restante;
-            $almacen_mov = $almacen_solicitado > 0 ? $almacen_solicitado : (int)$this->getAlmacenProducto($producto_id);
-
-            $insertMov = "INSERT INTO movimientos
-                (productos_id, cantidad_entrada, cantidad_salida, saldo, empresa_id, fecha_registro,
-                 almacen_id, lote_id, clientes_id, documento, comentario)
-                VALUES (?, 0, ?, ?, ?, NOW(), ?, 0, ?, ?, ?)";
-
-            $stmtMov = $mysqli->prepare($insertMov);
-            if (!$stmtMov) {
-                return ["status" => "error", "message" => "Error prepare movimiento sin lote: ".$mysqli->error];
-            }
-
-            $stmtMov->bind_param(
-                "iddiiiss",
-                $producto_id,
-                $restante,
-                $nuevo_saldo_global,
-                $empresa_id,
-                $almacen_mov,
-                $clientes_id,
-                $documento,
-                $comentario
-            );
-
-            if (!$stmtMov->execute()) {
-                $msg = $stmtMov->error;
-                $stmtMov->close();
-                return ["status" => "error", "message" => "Error ejecutar movimiento sin lote: ".$msg];
-            }
-
             $stmtMov->close();
-
-            $consumos[] = [
-                "lote_id"     => 0,
-                "usado"       => $restante,
-                "almacen_id"  => $almacen_mov,
-                "saldo_final" => $nuevo_saldo_global
-            ];
-
-            $restante = 0;
+            $consumos[]=['lote_id'=>0,'numero_lote'=>'','usado'=>$restante,'almacen_id'=>$almacen_solicitado,'saldo_final'=>$saldoOperacion];
+            $restante=0;
         }
 
-        return ["status" => "success", "message" => "Salida registrada correctamente", "detalle" => $consumos];
-    }    
+        return [
+            'status'=>'success',
+            'message'=>'Salida registrada correctamente',
+            'detalle'=>$consumos,
+            'saldo_final'=>$saldoOperacion,
+            'permite_negativo'=>$permiteNegativo?1:0
+        ];
+    }
 
     // --- HELPER: almacén por defecto del producto (por si no hay lotes) ---
     protected function getAlmacenProducto($producto_id) {

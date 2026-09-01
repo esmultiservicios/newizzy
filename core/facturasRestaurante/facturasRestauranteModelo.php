@@ -419,12 +419,14 @@ class facturasRestauranteModelo extends mainModel {
                      p.cantidad_mayoreo, p.precio_mayoreo, p.file_name, p.categoria_id,
                      p.isv1, p.isv2, p.barCode, p.almacen_id, p.medida_id,
                      COALESCE(me.nombre, 'Und') AS medida,
+                     COALESCE(a.nombre, '') AS almacen_nombre, COALESCE(a.facturar_cero,0) AS facturar_cero,
                      c.nombre AS categoria_nombre,
                      $catEstSel AS categoria_estacion,
                      $prodEstSel AS producto_estacion
               FROM productos p
               INNER JOIN categoria c ON c.categoria_id = p.categoria_id
               LEFT JOIN medida me ON me.medida_id = p.medida_id
+              LEFT JOIN almacen a ON a.almacen_id=p.almacen_id AND a.empresa_id=p.empresa_id
               WHERE p.estado=1 AND p.restaurante=1
               ORDER BY p.nombre ASC";
         $rs=$this->ejecutar_consulta_simple($sql);
@@ -451,6 +453,8 @@ class facturasRestauranteModelo extends mainModel {
                 'almacen_id'       => intval($r['almacen_id'] ?? 0),
                 'medida_id'        => intval($r['medida_id'] ?? 0),
                 'medida'           => $r['medida'] ?? 'Und',
+                'almacen_nombre'   => $r['almacen_nombre'] ?? '',
+                'facturar_cero'    => intval($r['facturar_cero'] ?? 0),
                 'estacion'         => $est,
                 'categoria_estacion'=> $catEst,
                 'para_cocina'      => $est === 'cocina' ? 1 : 0
@@ -474,13 +478,21 @@ class facturasRestauranteModelo extends mainModel {
         if($nombre==='' || $catId<=0){
             return ['status'=>false,'message'=>'Nombre y categoría son obligatorios'];
         }
+        $inventarioInicial=(float)($data['inventario_inicial'] ?? 0);
+        $vencimientoInicial=trim((string)($data['fecha_vencimiento'] ?? ''));
+        if($inventarioInicial<0) return ['status'=>false,'message'=>'El inventario inicial no puede ser negativo'];
+        if($vencimientoInicial!=='' && (!preg_match('/^\d{4}-\d{2}-\d{2}$/',$vencimientoInicial) || $vencimientoInicial<date('Y-m-d'))){
+            return ['status'=>false,'message'=>'La fecha de vencimiento del inventario inicial no es válida'];
+        }
 
         $productos_id = mainModel::correlativo("productos_id","productos");
 
         // Defaults seguros para tu tabla
         $barCode           = '';
-        $almacen_id        = 1;
-        $medida_id         = 1;
+        $almacen_id        = intval($data['almacen_id'] ?? 0);
+        if($almacen_id<=0) $almacen_id=$this->obtenerAlmacenPrincipalId();
+        $medida_id         = intval($data['medida_id'] ?? 1);
+        if(!$this->almacenInventarioValido($almacen_id)) return ['status'=>false,'message'=>'Seleccione un almacén válido'];
         $tipo_producto_id  = 1; // 1=básico
         $precio_compra     = 0.00;
         $porcentaje_venta  = 0.00;
@@ -579,6 +591,23 @@ class facturasRestauranteModelo extends mainModel {
             }
         }
 
+        $inventarioInicial = (float)($data['inventario_inicial'] ?? 0);
+        if($inventarioInicial < 0){
+            return ['status'=>false,'message'=>'El inventario inicial no puede ser negativo'];
+        }
+        if($inventarioInicial > 0){
+            $entrada=$this->registrarEntradaInventarioRestaurante([
+                'productos_id'=>$productos_id,
+                'almacen_id'=>$almacen_id,
+                'cantidad'=>$inventarioInicial,
+                'fecha_vencimiento'=>$data['fecha_vencimiento'] ?? '',
+                'comentario'=>'Inventario inicial al crear producto en Restaurante'
+            ]);
+            if(empty($entrada['status'])){
+                return ['status'=>false,'message'=>'Producto creado, pero no se pudo registrar el inventario inicial: '.($entrada['message']??'Error')];
+            }
+        }
+
         return [
             'status'=>true,
             'producto_id'=>$productos_id,
@@ -606,6 +635,10 @@ class facturasRestauranteModelo extends mainModel {
         $isv_venta      = ($isv1||$isv2) ? 1 : 2;
         $empresa_id     = $this->empresaId();
         $colaborador_id = $this->colaboradorId();
+        $almacen_id = intval($data['almacen_id'] ?? 0);
+        $medida_id = intval($data['medida_id'] ?? 0);
+        if($almacen_id<=0 || !$this->almacenInventarioValido($almacen_id)) return ['status'=>false,'message'=>'Seleccione un almacén válido'];
+        if($medida_id<=0) return ['status'=>false,'message'=>'Seleccione una unidad de medida válida'];
 
         // ===== UPDATE de campos básicos + estación en una sola operación
         $cnn  = $this->connection();
@@ -621,31 +654,31 @@ class facturasRestauranteModelo extends mainModel {
             }
             $sqlU = "UPDATE productos
                      SET categoria_id=?, nombre=?, descripcion=?, precio_venta=?,
-                         isv_venta=?, isv1=?, isv2=?, colaborador_id=?, empresa_id=?, estacion=?
+                         isv_venta=?, isv1=?, isv2=?, colaborador_id=?, empresa_id=?, almacen_id=?, medida_id=?, estacion=?
                      WHERE productos_id=? AND empresa_id=?";
             $stmt = $cnn->prepare($sqlU);
             if(!$stmt){
                 return ['status'=>false,'message'=>'No se pudo preparar la actualización del producto'];
             }
             $stmt->bind_param(
-                "issdiiiiisii",
+                "issdiiiiiiisii",
                 $catId, $nombre, $desc, $precio,
-                $isv_venta, $isv1, $isv2, $colaborador_id, $empresa_id, $estacion,
+                $isv_venta, $isv1, $isv2, $colaborador_id, $empresa_id, $almacen_id, $medida_id, $estacion,
                 $productos_id, $empresa_id
             );
         } else {
             $sqlU = "UPDATE productos
                      SET categoria_id=?, nombre=?, descripcion=?, precio_venta=?,
-                         isv_venta=?, isv1=?, isv2=?, colaborador_id=?, empresa_id=?
+                         isv_venta=?, isv1=?, isv2=?, colaborador_id=?, empresa_id=?, almacen_id=?, medida_id=?
                      WHERE productos_id=? AND empresa_id=?";
             $stmt = $cnn->prepare($sqlU);
             if(!$stmt){
                 return ['status'=>false,'message'=>'No se pudo preparar la actualización del producto'];
             }
             $stmt->bind_param(
-                "issdiiiiiii",
+                "issdiiiiiiiii",
                 $catId, $nombre, $desc, $precio,
-                $isv_venta, $isv1, $isv2, $colaborador_id, $empresa_id,
+                $isv_venta, $isv1, $isv2, $colaborador_id, $empresa_id, $almacen_id, $medida_id,
                 $productos_id, $empresa_id
             );
         }
@@ -733,6 +766,288 @@ class facturasRestauranteModelo extends mainModel {
     }
 
         
+    public function obtenerAlmacenesInventario(){
+        $rs=$this->ejecutar_consulta_simple_preparada(
+            "SELECT almacen_id,nombre,facturar_cero
+             FROM almacen
+             WHERE empresa_id=? AND estado=1
+             ORDER BY CASE WHEN LOWER(nombre) LIKE '%principal%' THEN 0 ELSE 1 END, almacen_id ASC",
+            "i",[$this->empresaId()]
+        );
+        $out=[];
+        if($rs) while($r=$rs->fetch_assoc()){
+            $out[]=['almacen_id'=>(int)$r['almacen_id'],'nombre'=>$r['nombre'],'facturar_cero'=>(int)$r['facturar_cero']];
+        }
+        return $out;
+    }
+
+    public function obtenerMedidasInventario(){
+        $rs=$this->ejecutar_consulta_simple("SELECT medida_id,nombre,descripcion FROM medida WHERE estado=1 ORDER BY medida_id ASC");
+        $out=[];
+        if($rs) while($r=$rs->fetch_assoc()){
+            $out[]=['medida_id'=>(int)$r['medida_id'],'nombre'=>$r['nombre'],'descripcion'=>$r['descripcion']];
+        }
+        return $out;
+    }
+
+    protected function obtenerAlmacenPrincipalId(){
+        $almacenes=$this->obtenerAlmacenesInventario();
+        return !empty($almacenes)?(int)$almacenes[0]['almacen_id']:0;
+    }
+
+    protected function almacenInventarioValido($almacenId){
+        $rs=$this->ejecutar_consulta_simple_preparada(
+            "SELECT almacen_id,nombre,facturar_cero FROM almacen WHERE almacen_id=? AND empresa_id=? AND estado=1 LIMIT 1",
+            "ii",[(int)$almacenId,$this->empresaId()]
+        );
+        return ($rs && $rs->num_rows)?$rs->fetch_assoc():null;
+    }
+
+    protected function productoInventarioValido($productoId){
+        $rs=$this->ejecutar_consulta_simple_preparada(
+            "SELECT productos_id,nombre,almacen_id,medida_id,tipo_producto_id FROM productos WHERE productos_id=? AND empresa_id=? AND estado=1 LIMIT 1",
+            "ii",[(int)$productoId,$this->empresaId()]
+        );
+        return ($rs && $rs->num_rows)?$rs->fetch_assoc():null;
+    }
+
+    protected function saldoProductoAlmacen($productoId,$almacenId){
+        $rs=$this->ejecutar_consulta_simple_preparada(
+            "SELECT COALESCE(SUM(cantidad_entrada),0)-COALESCE(SUM(cantidad_salida),0) saldo
+             FROM movimientos WHERE productos_id=? AND empresa_id=? AND almacen_id=?",
+            "iii",[(int)$productoId,$this->empresaId(),(int)$almacenId]
+        );
+        if($rs && $rs->num_rows) return (float)($rs->fetch_assoc()['saldo']??0);
+        return 0.0;
+    }
+
+    protected function saldoVendibleProductoAlmacen($productoId,$almacenId){
+        $productoId=(int)$productoId; $almacenId=(int)$almacenId; $empresa=$this->empresaId();
+        $rsNoLote=$this->ejecutar_consulta_simple_preparada(
+            "SELECT COALESCE(SUM(cantidad_entrada),0)-COALESCE(SUM(cantidad_salida),0) saldo
+             FROM movimientos WHERE productos_id=? AND empresa_id=? AND almacen_id=? AND lote_id=0",
+            "iii",[$productoId,$empresa,$almacenId]
+        );
+        $sinLote=($rsNoLote && $rsNoLote->num_rows)?(float)($rsNoLote->fetch_assoc()['saldo']??0):0.0;
+        $rsLote=$this->ejecutar_consulta_simple_preparada(
+            "SELECT COALESCE(SUM(cantidad),0) saldo FROM lotes
+             WHERE productos_id=? AND empresa_id=? AND almacen_id=? AND estado='Activo' AND cantidad>0
+               AND (fecha_vencimiento IS NULL OR fecha_vencimiento>=CURDATE())",
+            "iii",[$productoId,$empresa,$almacenId]
+        );
+        $lotes=($rsLote && $rsLote->num_rows)?(float)($rsLote->fetch_assoc()['saldo']??0):0.0;
+        return $sinLote+$lotes;
+    }
+
+    protected function esProductoComboActivo($productoId){
+        if(!$this->hasTable('combos')) return null;
+        $rs=$this->ejecutar_consulta_simple_preparada(
+            "SELECT combo_id,version_actual FROM combos WHERE productos_id=? AND activo=1 LIMIT 1",
+            "i",[(int)$productoId]
+        );
+        return ($rs && $rs->num_rows)?$rs->fetch_assoc():null;
+    }
+
+    public function obtenerInventarioRestaurante(){
+        $empresaId=$this->empresaId();
+        $almacenes=$this->obtenerAlmacenesInventario();
+        $medidas=$this->obtenerMedidasInventario();
+        $productos=[];
+        $rs=$this->ejecutar_consulta_simple_preparada(
+            "SELECT p.productos_id,p.nombre,p.file_name,p.almacen_id,p.medida_id,COALESCE(me.nombre,'Und') medida,
+                    c.combo_id
+             FROM productos p
+             LEFT JOIN medida me ON me.medida_id=p.medida_id
+             LEFT JOIN combos c ON c.productos_id=p.productos_id AND c.activo=1
+             WHERE p.empresa_id=? AND p.estado=1 AND p.restaurante=1
+             ORDER BY p.nombre ASC",
+            "i",[$empresaId]
+        );
+        if($rs) while($r=$rs->fetch_assoc()){
+            $productos[]=[
+                'productos_id'=>(int)$r['productos_id'],'nombre'=>$r['nombre'],
+                'file_name'=>(string)($r['file_name']??''),
+                'almacen_id'=>(int)$r['almacen_id'],'medida_id'=>(int)$r['medida_id'],'medida'=>$r['medida'],
+                'combo_id'=>$r['combo_id']!==null?(int)$r['combo_id']:0
+            ];
+        }
+
+        $saldos=[];
+        $rsS=$this->ejecutar_consulta_simple_preparada(
+            "SELECT m.productos_id,m.almacen_id,a.nombre almacen_nombre,a.facturar_cero,
+                    COALESCE(SUM(m.cantidad_entrada),0)-COALESCE(SUM(m.cantidad_salida),0) saldo
+             FROM movimientos m
+             INNER JOIN productos p ON p.productos_id=m.productos_id AND p.empresa_id=m.empresa_id
+             LEFT JOIN almacen a ON a.almacen_id=m.almacen_id AND a.empresa_id=m.empresa_id
+             WHERE m.empresa_id=? AND p.estado=1 AND p.restaurante=1
+             GROUP BY m.productos_id,m.almacen_id,a.nombre,a.facturar_cero
+             ORDER BY m.productos_id,m.almacen_id",
+            "i",[$empresaId]
+        );
+        if($rsS) while($r=$rsS->fetch_assoc()){
+            $saldos[]=[
+                'productos_id'=>(int)$r['productos_id'],'almacen_id'=>(int)$r['almacen_id'],
+                'almacen_nombre'=>$r['almacen_nombre']??('Almacén #'.$r['almacen_id']),
+                'facturar_cero'=>(int)($r['facturar_cero']??0),'saldo'=>(float)$r['saldo']
+            ];
+        }
+
+        return ['status'=>true,'almacenes'=>$almacenes,'medidas'=>$medidas,'productos'=>$productos,'saldos'=>$saldos,'almacen_principal_id'=>$this->obtenerAlmacenPrincipalId()];
+    }
+
+    protected function numeroLoteTransferencia($base){
+        $base=preg_replace('/[^A-Za-z0-9_-]/','',trim((string)$base));
+        if($base==='') $base='LOT';
+        return substr($base,0,28).'-T'.date('ymdHis').substr((string)mt_rand(100,999),0,3);
+    }
+
+    public function registrarEntradaInventarioRestaurante($data){
+        $productoId=(int)($data['productos_id']??0);
+        $almacenId=(int)($data['almacen_id']??0);
+        $cantidad=(float)($data['cantidad']??0);
+        $vencimiento=trim((string)($data['fecha_vencimiento']??''));
+        $comentario=trim((string)($data['comentario']??'Entrada de inventario desde Restaurante'));
+
+        $producto=$this->productoInventarioValido($productoId);
+        $almacen=$this->almacenInventarioValido($almacenId);
+        if(!$producto) return ['status'=>false,'message'=>'Producto inválido o inactivo'];
+        if(!$almacen) return ['status'=>false,'message'=>'Almacén inválido o inactivo'];
+        if($cantidad<=0) return ['status'=>false,'message'=>'La cantidad debe ser mayor a cero'];
+        if($vencimiento!=='' && !preg_match('/^\d{4}-\d{2}-\d{2}$/',$vencimiento)) return ['status'=>false,'message'=>'Fecha de vencimiento inválida'];
+        if($vencimiento!=='' && $vencimiento<date('Y-m-d')) return ['status'=>false,'message'=>'No se puede ingresar un lote ya vencido'];
+
+        $cn=$this->connection();
+        try{
+            $cn->begin_transaction();
+            $loteId=0;
+            if($vencimiento!==''){
+                $empresa=$this->empresaId();
+                do{
+                    $numeroLote='LOT'.$productoId.date('YmdHis').mt_rand(100,999);
+                    $chk=$cn->prepare("SELECT lote_id FROM lotes WHERE numero_lote=? LIMIT 1");
+                    $chk->bind_param('s',$numeroLote);
+                    $chk->execute();
+                    $rr=$chk->get_result();
+                    $existeNumero=($rr && $rr->num_rows>0);
+                    $chk->close();
+                }while($existeNumero);
+
+                $ins=$cn->prepare("INSERT INTO lotes(numero_lote,productos_id,cantidad,fecha_vencimiento,fecha_ingreso,almacen_id,empresa_id,estado) VALUES(?,?,?,NULLIF(?,''),NOW(),?,?,'Activo')");
+                $ins->bind_param('sidsii',$numeroLote,$productoId,$cantidad,$vencimiento,$almacenId,$empresa);
+                if(!$ins->execute()) throw new Exception($ins->error?:'No se pudo crear el lote');
+                $loteId=(int)$ins->insert_id;
+                $ins->close();
+            }
+
+            $saldoAnterior=$this->saldoProductoAlmacen($productoId,$almacenId);
+            $nuevoSaldo=$saldoAnterior+$cantidad;
+            $entrada=$cantidad; $salida=0.0; $empresa=$this->empresaId(); $cliente=0;
+            $stmt=$cn->prepare("INSERT INTO movimientos(productos_id,documento,cantidad_entrada,cantidad_salida,saldo,empresa_id,fecha_registro,clientes_id,comentario,almacen_id,lote_id) VALUES(?,'Entrada Restaurante',?,?,?, ?,NOW(),?,?,?,?)");
+            $stmt->bind_param('idddiisii',$productoId,$entrada,$salida,$nuevoSaldo,$empresa,$cliente,$comentario,$almacenId,$loteId);
+            if(!$stmt->execute()) throw new Exception($stmt->error?:'No se pudo registrar la entrada');
+            $movId=(int)$stmt->insert_id; $stmt->close();
+            $doc='Movimiento '.$movId; $up=$cn->prepare('UPDATE movimientos SET documento=? WHERE movimientos_id=?'); $up->bind_param('si',$doc,$movId); $up->execute(); $up->close();
+            $cn->commit();
+            return ['status'=>true,'message'=>'Entrada registrada correctamente','saldo'=>$nuevoSaldo,'lote_id'=>$loteId];
+        }catch(Throwable $e){
+            $cn->rollback();
+            return ['status'=>false,'message'=>$e->getMessage()];
+        }
+    }
+
+    public function transferirInventarioRestaurante($data){
+        $productoId=(int)($data['productos_id']??0);
+        $origen=(int)($data['almacen_origen_id']??0);
+        $destino=(int)($data['almacen_destino_id']??0);
+        $cantidad=(float)($data['cantidad']??0);
+        $hacerDefault=!empty($data['usar_destino_predeterminado']);
+        $comentario=trim((string)($data['comentario']??'Transferencia desde Restaurante'));
+
+        $producto=$this->productoInventarioValido($productoId);
+        $almOrigen=$this->almacenInventarioValido($origen);
+        $almDestino=$this->almacenInventarioValido($destino);
+        if(!$producto) return ['status'=>false,'message'=>'Producto inválido o inactivo'];
+        if(!$almOrigen || !$almDestino) return ['status'=>false,'message'=>'Seleccione almacenes activos válidos'];
+        if($origen===$destino) return ['status'=>false,'message'=>'El almacén de origen y destino deben ser diferentes'];
+        if($cantidad<=0) return ['status'=>false,'message'=>'La cantidad debe ser mayor a cero'];
+        if($this->esProductoComboActivo($productoId)) return ['status'=>false,'message'=>'Los combos no tienen existencia física propia. Transfiera sus componentes.'];
+
+        $saldoOrigen=$this->saldoVendibleProductoAlmacen($productoId,$origen);
+        $permiteNegativo=((int)($almOrigen['facturar_cero']??0)===1);
+        if(!$permiteNegativo && ($saldoOrigen+0.000001)<$cantidad){
+            return ['status'=>false,'message'=>'Existencia insuficiente en '.$almOrigen['nombre'].'. Disponible: '.number_format($saldoOrigen,4,'.','')];
+        }
+
+        $cn=$this->connection();
+        try{
+            $cn->begin_transaction();
+            $referencia='TRF-'.date('YmdHis').'-'.str_pad((string)mt_rand(1,999),3,'0',STR_PAD_LEFT);
+            $documento='Transferencia '.$referencia;
+            $comentarioTrazable=$comentario!=='' ? ($comentario.' · '.$referencia) : $referencia;
+            $restante=$cantidad;
+            $saldoOrigOp=$saldoOrigen;
+            $saldoDestOp=$this->saldoProductoAlmacen($productoId,$destino);
+            $empresa=$this->empresaId(); $cliente=0;
+
+            $q=$cn->prepare("SELECT lote_id,numero_lote,cantidad,fecha_vencimiento FROM lotes WHERE productos_id=? AND empresa_id=? AND almacen_id=? AND estado='Activo' AND cantidad>0 AND (fecha_vencimiento IS NULL OR fecha_vencimiento>=CURDATE()) ORDER BY CASE WHEN fecha_vencimiento IS NULL THEN 1 ELSE 0 END,fecha_vencimiento,fecha_ingreso,lote_id FOR UPDATE");
+            $q->bind_param('iii',$productoId,$empresa,$origen); $q->execute(); $rs=$q->get_result();
+            while($restante>0 && $rs && ($l=$rs->fetch_assoc())){
+                $disp=(float)$l['cantidad']; if($disp<=0) continue;
+                $usar=min($disp,$restante); $nuevo=$disp-$usar; $saldoOrigOp-=$usar; $saldoDestOp+=$usar;
+                $loteId=(int)$l['lote_id']; $estado=$nuevo<=0?'Inactivo':'Activo';
+                $up=$cn->prepare('UPDATE lotes SET cantidad=?,estado=? WHERE lote_id=?'); $up->bind_param('dsi',$nuevo,$estado,$loteId); $up->execute(); $up->close();
+
+                $out=$cn->prepare("INSERT INTO movimientos(productos_id,documento,cantidad_entrada,cantidad_salida,saldo,empresa_id,fecha_registro,clientes_id,comentario,almacen_id,lote_id) VALUES(?,?,0,?,?,?,NOW(),?,?,?,?)");
+                $out->bind_param('isddiissi',$productoId,$documento,$usar,$saldoOrigOp,$empresa,$cliente,$comentarioTrazable,$origen,$loteId); $out->execute(); $out->close();
+
+                $nuevoNumero=$this->numeroLoteTransferencia($l['numero_lote']);
+                $ven=(string)($l['fecha_vencimiento']??'');
+                $insL=$cn->prepare("INSERT INTO lotes(numero_lote,productos_id,cantidad,fecha_vencimiento,fecha_ingreso,almacen_id,empresa_id,estado) VALUES(?,?,?,NULLIF(?,''),NOW(),?,?,'Activo')");
+                $insL->bind_param('sidsii',$nuevoNumero,$productoId,$usar,$ven,$destino,$empresa); if(!$insL->execute()) throw new Exception($insL->error); $destLote=(int)$insL->insert_id; $insL->close();
+                $in=$cn->prepare("INSERT INTO movimientos(productos_id,documento,cantidad_entrada,cantidad_salida,saldo,empresa_id,fecha_registro,clientes_id,comentario,almacen_id,lote_id) VALUES(?,?,?,0,?,?,NOW(),?,?,?,?)");
+                $in->bind_param('isddiissi',$productoId,$documento,$usar,$saldoDestOp,$empresa,$cliente,$comentarioTrazable,$destino,$destLote); $in->execute(); $in->close();
+                $restante-=$usar;
+            }
+            $q->close();
+
+            if($restante>0){
+                $saldoOrigOp-=$restante; $saldoDestOp+=$restante;
+                $out=$cn->prepare("INSERT INTO movimientos(productos_id,documento,cantidad_entrada,cantidad_salida,saldo,empresa_id,fecha_registro,clientes_id,comentario,almacen_id,lote_id) VALUES(?,?,0,?,?,?,NOW(),?,?,?,0)");
+                $out->bind_param('isddiisi',$productoId,$documento,$restante,$saldoOrigOp,$empresa,$cliente,$comentarioTrazable,$origen); $out->execute(); $out->close();
+                $in=$cn->prepare("INSERT INTO movimientos(productos_id,documento,cantidad_entrada,cantidad_salida,saldo,empresa_id,fecha_registro,clientes_id,comentario,almacen_id,lote_id) VALUES(?,?,?,0,?,?,NOW(),?,?,?,0)");
+                $in->bind_param('isddiisi',$productoId,$documento,$restante,$saldoDestOp,$empresa,$cliente,$comentarioTrazable,$destino); $in->execute(); $in->close();
+            }
+
+            if($hacerDefault){
+                $upP=$cn->prepare('UPDATE productos SET almacen_id=? WHERE productos_id=? AND empresa_id=?');
+                $upP->bind_param('iii',$destino,$productoId,$empresa); $upP->execute(); $upP->close();
+            }
+            $cn->commit();
+            return ['status'=>true,'message'=>'Transferencia realizada correctamente','referencia'=>$referencia,'saldo_origen'=>$saldoOrigOp,'saldo_destino'=>$saldoDestOp];
+        }catch(Throwable $e){
+            $cn->rollback();
+            return ['status'=>false,'message'=>'No se pudo transferir el inventario: '.$e->getMessage()];
+        }
+    }
+
+    public function obtenerLotesInventarioRestaurante($productoId,$almacenId=0){
+        $productoId=(int)$productoId; $almacenId=(int)$almacenId; $empresa=$this->empresaId();
+        if(!$this->productoInventarioValido($productoId)) return ['status'=>false,'message'=>'Producto inválido','lotes'=>[]];
+        $sql="SELECT l.lote_id,l.numero_lote,l.cantidad,l.fecha_vencimiento,l.fecha_ingreso,l.almacen_id,l.estado,a.nombre almacen_nombre,
+                    CASE WHEN l.fecha_vencimiento IS NOT NULL AND l.fecha_vencimiento<CURDATE() THEN 1 ELSE 0 END vencido,
+                    CASE WHEN l.fecha_vencimiento IS NULL THEN NULL ELSE DATEDIFF(l.fecha_vencimiento,CURDATE()) END dias_vencimiento
+             FROM lotes l LEFT JOIN almacen a ON a.almacen_id=l.almacen_id AND a.empresa_id=l.empresa_id
+             WHERE l.productos_id=? AND l.empresa_id=?";
+        $types='ii'; $params=[$productoId,$empresa];
+        if($almacenId>0){ $sql.=' AND l.almacen_id=?'; $types.='i'; $params[]=$almacenId; }
+        $sql.=" ORDER BY CASE WHEN l.fecha_vencimiento IS NULL THEN 1 ELSE 0 END,l.fecha_vencimiento,l.fecha_ingreso,l.lote_id";
+        $rs=$this->ejecutar_consulta_simple_preparada($sql,$types,$params); $out=[];
+        if($rs) while($r=$rs->fetch_assoc()){
+            $out[]=['lote_id'=>(int)$r['lote_id'],'numero_lote'=>$r['numero_lote'],'cantidad'=>(float)$r['cantidad'],'fecha_vencimiento'=>$r['fecha_vencimiento'],'fecha_ingreso'=>$r['fecha_ingreso'],'almacen_id'=>(int)$r['almacen_id'],'almacen_nombre'=>$r['almacen_nombre'],'estado'=>$r['estado'],'vencido'=>(int)$r['vencido'],'dias_vencimiento'=>isset($r['dias_vencimiento'])?(int)$r['dias_vencimiento']:null];
+        }
+        return ['status'=>true,'lotes'=>$out];
+    }
+
     public function obtenerClientes(){
         $sql="SELECT clientes_id, nombre, rtn AS identificacion
               FROM clientes WHERE estado=1 ORDER BY nombre ASC";
@@ -2019,79 +2334,33 @@ class facturasRestauranteModelo extends mainModel {
 
     /** Disponibilidad del combo según hijos OBLIGATORIOS (backflush) usando 'movimientos' */
     public function calcularDisponibilidadCombo($combo_id, $cantidadSolicitada = 1){
-        $combo_id = intval($combo_id);
-        $cantidadSolicitada = max(1, intval($cantidadSolicitada));
-
-        // 1) Receta obligatoria
-        $sql = "SELECT d.productos_id,
-                       d.cantidad_por_porcion,
-                       d.merma_pct
-                FROM combo_detalle d
-                WHERE d.combo_id = ? AND d.obligatorio = 1";
-        $rs = $this->ejecutar_consulta_simple_preparada($sql, "i", [$combo_id]);
-        if(!$rs || !$rs->num_rows){
-            return ['status'=>false,'message'=>'El combo no tiene componentes obligatorios'];
-        }
-
-        $insumos = [];
+        $combo_id=intval($combo_id);
+        $cantidadSolicitada=max(1,intval($cantidadSolicitada));
+        $empresaId=$this->empresaId();
+        $cab=$this->ejecutar_consulta_simple_preparada("SELECT c.version_actual FROM combos c INNER JOIN productos p ON p.productos_id=c.productos_id WHERE c.combo_id=? AND c.activo=1 AND p.empresa_id=? LIMIT 1","ii",[$combo_id,$empresaId]);
+        if(!$cab || !$cab->num_rows) return ['status'=>false,'message'=>'Combo no disponible'];
+        $version=(int)($cab->fetch_assoc()['version_actual']??0);
+        $sql="SELECT d.productos_id,d.cantidad_por_porcion,d.merma_pct,p.almacen_id,a.facturar_cero,a.nombre almacen_nombre
+              FROM combo_detalle d INNER JOIN productos p ON p.productos_id=d.productos_id
+              LEFT JOIN almacen a ON a.almacen_id=p.almacen_id AND a.empresa_id=p.empresa_id
+              WHERE d.combo_id=? AND d.obligatorio=1 AND p.empresa_id=?";
+        $types='ii'; $params=[$combo_id,$empresaId];
+        if($version>0){ $sql.=' AND d.version=?'; $types.='i'; $params[]=$version; }
+        $rs=$this->ejecutar_consulta_simple_preparada($sql,$types,$params);
+        if(!$rs || !$rs->num_rows) return ['status'=>false,'message'=>'El combo no tiene componentes obligatorios'];
+        $posibles=PHP_INT_MAX; $hayRestriccion=false;
         while($r=$rs->fetch_assoc()){
-            $pid   = intval($r['productos_id']);
-            $cant  = (float)$r['cantidad_por_porcion'];
-            $merma = (float)$r['merma_pct'];
-            $consumoEfectivo = $cant * (1.0 + ($merma/100.0));
-            if ($consumoEfectivo <= 0) $consumoEfectivo = $cant; // seguridad
-            $insumos[$pid] = $consumoEfectivo; // map pid => consumo
+            $base=(float)$r['cantidad_por_porcion']; $merma=max(0,min(100,(float)$r['merma_pct']));
+            $consumo=$base*(1+($merma/100)); if($consumo<=0) return ['status'=>false,'message'=>'La receta contiene una cantidad inválida'];
+            if((int)($r['facturar_cero']??0)===1) continue;
+            $hayRestriccion=true;
+            $saldo=$this->saldoVendibleProductoAlmacen((int)$r['productos_id'],(int)$r['almacen_id']);
+            $porciones=(int)floor(($saldo+0.000001)/$consumo);
+            $posibles=min($posibles,max(0,$porciones));
         }
-        if (empty($insumos)){
-            return ['status'=>false,'message'=>'Receta inválida'];
-        }
-
-        // 2) Saldos actuales desde 'movimientos' (último movimiento por producto y empresa)
-        $ids = array_keys($insumos);
-        $place = implode(',', array_fill(0,count($ids),'?'));
-        $types = str_repeat('i', count($ids));
-
-        $params = $ids;
-        array_unshift($params, $this->empresaId());
-        $typesAll = 'i'.$types;
-
-        $qSaldo = "
-            SELECT m.productos_id, m.saldo
-            FROM movimientos m
-            INNER JOIN (
-                SELECT productos_id, MAX(movimientos_id) AS mid
-                FROM movimientos
-                WHERE empresa_id = ?
-                  AND productos_id IN ($place)
-                GROUP BY productos_id
-            ) ult
-              ON ult.productos_id = m.productos_id
-             AND ult.mid = m.movimientos_id
-        ";
-
-        $rsStk = $this->ejecutar_consulta_simple_preparada($qSaldo, $typesAll, $params);
-        $stockMap = [];
-        if ($rsStk) {
-            while($s = $rsStk->fetch_assoc()){
-                $stockMap[(int)$s['productos_id']] = (float)$s['saldo'];
-            }
-        }
-
-        // 3) Combos posibles = piso( MIN (stock(pid) / consumo(pid)) )
-        $posibles = PHP_INT_MAX;
-        foreach($insumos as $pid => $consumo){
-            $stk = $stockMap[$pid] ?? 0.0;
-            $porciones = ($consumo > 0) ? floor($stk / $consumo) : 0;
-            if ($porciones < $posibles) $posibles = $porciones;
-        }
-        if ($posibles < 0 || $posibles === PHP_INT_MAX) $posibles = 0;
-
-        return [
-            'status'        => true,
-            'disponibles'   => (int)$posibles,
-            'alcanza_para'  => ($posibles >= $cantidadSolicitada) ? 'si' : 'no',
-            'solicitados'   => $cantidadSolicitada
-        ];
+        if(!$hayRestriccion) $posibles=999999999;
+        if($posibles===PHP_INT_MAX) $posibles=0;
+        return ['status'=>true,'disponibles'=>(int)$posibles,'alcanza_para'=>$posibles>=$cantidadSolicitada?'si':'no','solicitados'=>$cantidadSolicitada,'inventario_sin_limite'=>!$hayRestriccion?1:0];
     }
 
     /* ============================================================

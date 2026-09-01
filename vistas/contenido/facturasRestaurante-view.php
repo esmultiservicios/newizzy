@@ -152,43 +152,38 @@ try {
                   <i class="fas fa-tools"></i> Gestionar
                 </button>
                 <div class="gest-menu" id="gestionar-menu">
-                  <button type="button" data-target="#btn-nuevo-cliente-rapido">
-                    <i class="fas fa-user-plus"></i> Crear cliente
-                  </button>
-
-                  <div class="dropdown-divider" style="margin:.35rem 0;border-top:1px solid #e5e7eb;"></div>
-
-                  <button type="button" data-target="#btn-nueva-categoria">
-                    <i class="fas fa-folder-plus"></i> + Categoría
-                  </button>
-                  <button type="button" data-target="#btn-nuevo-producto">
-                    <i class="fas fa-plus-square"></i> Nuevo producto
-                  </button>
-                  <button type="button" data-target="#btn-gestionar-combos">
-                    <i class="fas fa-layer-group"></i> Combos
-                  </button>
-
-                  <div class="dropdown-divider" style="margin:.35rem 0;border-top:1px solid #e5e7eb;"></div>
-
-                  <!-- === NUEVOS ACCESOS DE PROMOS === -->
-                  <button type="button" data-target="#btn-gestionar-promos">
-                    <i class="fas fa-tags"></i> Promociones
-                  </button>
-                  <button type="button" data-target="#btn-nueva-promocion">
-                    <i class="fas fa-tag"></i> Nueva promoción
-                  </button>
-                  <button type="button" data-target="#btn-asignar-promo-productos">
-                    <i class="fas fa-cart-plus"></i> Asignar productos a promo
-                  </button>
-                  <button type="button" data-target="#btn-asignar-promo-categorias">
-                    <i class="fas fa-sitemap"></i> Asignar categorías a promo
-                  </button>
-
-                  <div class="dropdown-divider" style="margin:.35rem 0;border-top:1px solid #e5e7eb;"></div>
-                  <button type="button" id="btn-configuracion-restaurante">
-                    <i class="fas fa-sliders-h"></i> Configuración del módulo
-                  </button>
+                  <div class="gest-submenu">
+                    <button type="button" class="gest-submenu-toggle"><i class="fas fa-database"></i> Maestros <i class="fas fa-chevron-right"></i></button>
+                    <div class="gest-submenu-panel">
+                      <button type="button" data-target="#btn-nuevo-cliente-rapido"><i class="fas fa-user-plus"></i> Crear cliente</button>
+                      <button type="button" data-target="#btn-nueva-categoria"><i class="fas fa-folder-plus"></i> Categorías</button>
+                      <button type="button" data-target="#btn-nuevo-producto"><i class="fas fa-plus-square"></i> Nuevo producto</button>
+                      <button type="button" data-target="#btn-gestionar-combos"><i class="fas fa-layer-group"></i> Combos</button>
+                    </div>
+                  </div>
+                  <div class="gest-submenu">
+                    <button type="button" class="gest-submenu-toggle"><i class="fas fa-boxes-stacked"></i> Inventario <i class="fas fa-chevron-right"></i></button>
+                    <div class="gest-submenu-panel">
+                      <button type="button" data-target="#btn-gestionar-inventario"><i class="fas fa-warehouse"></i> Existencias y movimientos</button>
+                    </div>
+                  </div>
+                  <div class="gest-submenu">
+                    <button type="button" class="gest-submenu-toggle"><i class="fas fa-tags"></i> Promociones <i class="fas fa-chevron-right"></i></button>
+                    <div class="gest-submenu-panel">
+                      <button type="button" data-target="#btn-gestionar-promos"><i class="fas fa-list"></i> Ver promociones</button>
+                      <button type="button" data-target="#btn-nueva-promocion"><i class="fas fa-tag"></i> Nueva promoción</button>
+                      <button type="button" data-target="#btn-asignar-promo-productos"><i class="fas fa-cart-plus"></i> Asignar productos</button>
+                      <button type="button" data-target="#btn-asignar-promo-categorias"><i class="fas fa-sitemap"></i> Asignar categorías</button>
+                    </div>
+                  </div>
+                  <div class="gest-submenu">
+                    <button type="button" class="gest-submenu-toggle"><i class="fas fa-gear"></i> Sistema <i class="fas fa-chevron-right"></i></button>
+                    <div class="gest-submenu-panel">
+                      <button type="button" id="btn-configuracion-restaurante"><i class="fas fa-sliders-h"></i> Configuración del módulo</button>
+                    </div>
+                  </div>
                 </div>
+                <button id="btn-gestionar-inventario" type="button" style="display:none;"></button>
               </div>
             </div>
           </div>
@@ -1153,6 +1148,45 @@ try {
       </div>
     </div>
 
+    <div class="product-inventory-box" id="prod-inventory-box">
+      <div class="product-inventory-title"><i class="fas fa-warehouse"></i><span>Inventario</span><small>El restaurante usa el almacén predeterminado del producto al facturar.</small></div>
+      <div class="form-row">
+        <div class="form-group col-lg-4 col-md-6">
+          <label for="prod-almacen">Almacén predeterminado</label>
+          <select id="prod-almacen" class="form-control"></select>
+        </div>
+        <div class="form-group col-lg-3 col-md-6">
+          <label for="prod-medida">Unidad de medida</label>
+          <select id="prod-medida" class="form-control"></select>
+        </div>
+        <div class="form-group col-lg-2 col-md-6 prod-initial-stock-field">
+          <label for="prod-inventario-inicial">Inventario inicial</label>
+          <input type="number" class="form-control" id="prod-inventario-inicial" min="0" step="0.0001" value="0">
+        </div>
+        <div class="form-group col-lg-3 col-md-6 prod-initial-stock-field">
+          <label for="prod-vencimiento">Vencimiento (opcional)</label>
+          <input type="date" class="form-control" id="prod-vencimiento">
+        </div>
+      </div>
+      <div class="form-row prod-initial-stock-field">
+        <div class="form-group col-12">
+          <div class="inventory-lot-auto-note">
+            <i class="fas fa-barcode"></i>
+            <span>Si registra inventario inicial con fecha de vencimiento, el número de lote se genera automáticamente.</span>
+          </div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group col-12">
+          <div class="inventory-policy-note" id="prod-almacen-policy"></div>
+        </div>
+      </div>
+      <div class="product-inventory-edit-note" id="prod-inventory-edit-note" style="display:none;">
+        <span><i class="fas fa-circle-info"></i> Para entradas, transferencias y lotes use el administrador de inventario.</span>
+        <button type="button" class="btn btn-info btn-sm" id="btn-prod-abrir-inventario"><i class="fas fa-boxes-stacked"></i> Gestionar inventario</button>
+      </div>
+    </div>
+
     <!-- fila 5 -->
     <div class="form-row">
       <div class="form-group col-12">
@@ -1189,6 +1223,88 @@ try {
     </div>
   </div>
 </div>
+
+  <div id="modal-inventario-restaurante" class="modal rs-modal modal--xl" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-inventario-restaurante">
+    <div class="modal-content inventory-modal-content">
+      <div class="modal-header">
+        <h3 id="titulo-modal-inventario-restaurante"><i class="fas fa-boxes-stacked"></i> Inventario</h3>
+        <span class="close" data-close="#modal-inventario-restaurante">&times;</span>
+      </div>
+      <div class="modal-body inventory-modal-body">
+        <div class="inventory-toolbar">
+          <div>
+            <strong>Inventario del restaurante</strong>
+            <small>Existencias, entradas, transferencias y lotes desde un solo lugar.</small>
+          </div>
+          <button type="button" class="btn btn-light btn-sm" id="btn-inv-refrescar"><i class="fas fa-rotate"></i> Actualizar</button>
+        </div>
+        <div class="inventory-tabs" role="tablist">
+          <button type="button" class="inventory-tab active" data-inv-tab="existencias"><i class="fas fa-chart-column"></i> Existencias</button>
+          <button type="button" class="inventory-tab" data-inv-tab="entrada"><i class="fas fa-arrow-down"></i> Entrada</button>
+          <button type="button" class="inventory-tab" data-inv-tab="transferencia"><i class="fas fa-right-left"></i> Transferir</button>
+          <button type="button" class="inventory-tab" data-inv-tab="lotes"><i class="fas fa-calendar-days"></i> Lotes</button>
+        </div>
+
+        <section class="inventory-pane active" data-inv-pane="existencias">
+          <div class="inventory-filter-row">
+            <input type="search" id="inv-buscar" class="form-control" placeholder="Buscar producto o combo...">
+            <select id="inv-filtro-almacen" class="form-control"><option value="0">Todos los almacenes</option></select>
+          </div>
+          <div id="inv-resumen" class="inventory-summary-grid"></div>
+        </section>
+
+        <section class="inventory-pane" data-inv-pane="entrada">
+          <div class="inventory-form-card">
+            <h4><i class="fas fa-box-open"></i> Registrar entrada</h4>
+            <div class="form-row">
+              <div class="form-group col-md-6"><label>Producto</label><select id="inv-entrada-producto" class="form-control"></select></div>
+              <div class="form-group col-md-6"><label>Almacén</label><select id="inv-entrada-almacen" class="form-control"></select></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-md-6"><label>Cantidad</label><input type="number" id="inv-entrada-cantidad" class="form-control" min="0.0001" step="0.0001"></div>
+              <div class="form-group col-md-6">
+                <label>Fecha de vencimiento (opcional)</label>
+                <input type="date" id="inv-entrada-vencimiento" class="form-control">
+                <small class="inventory-field-help"><i class="fas fa-barcode"></i> Si usa vencimiento, el número de lote se genera automáticamente.</small>
+              </div>
+            </div>
+            <div class="form-group"><label>Comentario</label><input type="text" id="inv-entrada-comentario" class="form-control" maxlength="254" value="Entrada de inventario desde Restaurante"></div>
+            <div id="inv-entrada-policy" class="inventory-policy-note"></div>
+            <div class="inventory-form-actions"><button type="button" class="btn btn-success" id="btn-inv-registrar-entrada"><i class="fas fa-save"></i> Registrar entrada</button></div>
+          </div>
+        </section>
+
+        <section class="inventory-pane" data-inv-pane="transferencia">
+          <div class="inventory-form-card">
+            <h4><i class="fas fa-right-left"></i> Transferir entre almacenes</h4>
+            <div class="form-row">
+              <div class="form-group col-md-6"><label>Producto</label><select id="inv-transfer-producto" class="form-control"></select></div>
+              <div class="form-group col-md-3"><label>Origen</label><select id="inv-transfer-origen" class="form-control"></select></div>
+              <div class="form-group col-md-3"><label>Destino</label><select id="inv-transfer-destino" class="form-control"></select></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-md-4"><label>Cantidad</label><input type="number" id="inv-transfer-cantidad" class="form-control" min="0.0001" step="0.0001"></div>
+              <div class="form-group col-md-8"><label>Comentario</label><input type="text" id="inv-transfer-comentario" class="form-control" maxlength="254" value="Transferencia desde Restaurante"></div>
+            </div>
+            <label class="inventory-check"><input type="checkbox" id="inv-transfer-default"> Usar el almacén destino como predeterminado para futuras ventas de este producto</label>
+            <div id="inv-transfer-policy" class="inventory-policy-note"></div>
+            <div class="inventory-form-actions"><button type="button" class="btn btn-primary" id="btn-inv-transferir"><i class="fas fa-right-left"></i> Transferir inventario</button></div>
+          </div>
+        </section>
+
+        <section class="inventory-pane" data-inv-pane="lotes">
+          <div class="inventory-filter-row">
+            <select id="inv-lotes-producto" class="form-control"></select>
+            <select id="inv-lotes-almacen" class="form-control"><option value="0">Todos los almacenes</option></select>
+          </div>
+          <div id="inv-lotes-list" class="inventory-lots-list"></div>
+        </section>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger" data-close="#modal-inventario-restaurante" type="button"><i class="fas fa-times"></i> Cerrar</button>
+      </div>
+    </div>
+  </div>
 
   <!-- =================== MODAL: LISTA DE COMBOS =================== -->
   <div id="modal-combos" class="modal rs-modal">

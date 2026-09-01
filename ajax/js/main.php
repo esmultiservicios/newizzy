@@ -10706,7 +10706,9 @@ $(document)
 
 
   //INICIO METODO ANULAR FACTURAS
-  function anularFacturas(facturas_id) {
+  function anularFacturas(facturas_id, opciones) {
+    opciones = opciones || {};
+
     swal({
         title: "¿Está seguro?",
         text: "¿Desea anular la factura: # " + getNumeroFactura(facturas_id) + "?",
@@ -10740,11 +10742,108 @@ $(document)
         return false;
         }
 
-        anular(facturas_id, value);
+        anular(facturas_id, value, opciones);
     });
 }
 
-function anular(facturas_id, comentario) {
+function preguntarRegenerarFacturaAnulada(facturas_id, response, opciones) {
+  opciones = opciones || {};
+
+  // La regeneración solo se ofrece desde la pantalla de Facturación.
+  // Reportes u otros módulos continúan anulando sin intentar cargar el formulario.
+  if (opciones.permitir_regenerar !== true) {
+    return;
+  }
+
+  if ($('#modalRegenerarFactura').length === 0) {
+    showNotify(
+      'warning',
+      'Factura anulada',
+      'La factura fue anulada correctamente, pero no se encontró el modal para cargar una copia editable.'
+    );
+    return;
+  }
+
+  var numero = (response && response.factura) ? response.factura : getNumeroFactura(facturas_id);
+  var cliente = '';
+
+  // Mostrar el cliente de la factura anulada para que el usuario confirme
+  // visualmente que está trabajando sobre el documento correcto.
+  try {
+    if (response && response.cliente) {
+      cliente = $.trim(response.cliente);
+    } else if (typeof getNombreClienteFactura === 'function') {
+      cliente = $.trim(getNombreClienteFactura(facturas_id) || '');
+    }
+  } catch (e) {
+    cliente = '';
+  }
+
+  $('#modalRegenerarFacturaNumero').text(numero || ('ID ' + facturas_id));
+  $('#modalRegenerarFacturaCliente').text(cliente || 'Cliente no disponible');
+  $('#modalRegenerarFactura')
+    .data('facturas-id', parseInt(facturas_id || 0, 10))
+    .modal({
+      show: true,
+      keyboard: false,
+      backdrop: 'static'
+    });
+}
+
+$(document)
+  .off('click.regenerarFactura', '#btnRegenerarFacturaConfirmar')
+  .on('click.regenerarFactura', '#btnRegenerarFacturaConfirmar', function (e) {
+    e.preventDefault();
+
+    var $modal = $('#modalRegenerarFactura');
+    var facturas_id = parseInt($modal.data('facturas-id') || 0, 10);
+
+    if (facturas_id <= 0) {
+      showNotify('error', 'Error', 'No se pudo identificar la factura anulada.');
+      return;
+    }
+
+    if (typeof window.cargarFacturaEnFormulario !== 'function') {
+      showNotify(
+        'error',
+        'No se pudo cargar la factura',
+        'La función para cargar la factura en la vista de facturación no está disponible en esta pantalla.'
+      );
+      return;
+    }
+
+    $(this).prop('disabled', true)
+      .html('<i class="fas fa-spinner fa-spin mr-1"></i> Cargando...');
+
+    var carga = window.cargarFacturaEnFormulario(facturas_id, {
+      modo: 'regenerar',
+      cerrarModal: true,
+      notificar: true
+    });
+
+    $.when(carga).done(function () {
+      $modal.modal('hide');
+    }).always(function () {
+      $('#btnRegenerarFacturaConfirmar')
+        .prop('disabled', false)
+        .html('<i class="fas fa-file-import mr-1"></i> Cargar para corregir');
+    });
+  });
+
+$(document)
+  .off('hidden.bs.modal.regenerarFactura', '#modalRegenerarFactura')
+  .on('hidden.bs.modal.regenerarFactura', '#modalRegenerarFactura', function () {
+    $(this).removeData('facturas-id');
+    $('#modalRegenerarFacturaNumero').text('');
+    $('#modalRegenerarFacturaCliente').text('');
+    $('#btnRegenerarFacturaConfirmar')
+      .prop('disabled', false)
+      .html('<i class="fas fa-file-import mr-1"></i> Cargar para corregir');
+  });
+
+function anular(facturas_id, comentario, opciones) {
+  opciones = opciones || {};
+
   $.ajax({
     type: 'POST',
     url: '<?php echo SERVERURL; ?>core/anularFactura.php',
@@ -10761,11 +10860,25 @@ function anular(facturas_id, comentario) {
       if (response && response.success === true) {
         showNotify(
           'success',
-          'Success',
+          'Factura anulada',
           response.message || 'La factura ha sido anulada con éxito'
         );
 
-        listar_reporte_ventas();
+        // Se conservan los refrescos existentes y solo se ejecutan si están disponibles.
+        if (typeof listar_reporte_ventas === 'function') {
+          listar_reporte_ventas();
+        }
+
+        if (typeof listar_busqueda_bill === 'function') {
+          listar_busqueda_bill();
+        }
+
+        if (typeof listar_busqueda_cuentas_por_cobrar_clientes === 'function') {
+          listar_busqueda_cuentas_por_cobrar_clientes();
+        }
+
+        // La pregunta aparece después de que la anulación terminó y el backend hizo COMMIT.
+        preguntarRegenerarFacturaAnulada(facturas_id, response, opciones);
       } else {
         showNotify(
           'error',
@@ -10801,7 +10914,7 @@ function anular(facturas_id, comentario) {
           'Error',
           'No se pudo anular la factura. Intente nuevamente.'
       );
-  }
+    }
   });
 }
   //FIN METODO ANULAR FACTURAS

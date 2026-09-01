@@ -822,33 +822,251 @@ class facturasControlador extends facturasModelo {
         return $existe;
     }
 
-    protected function procesarInventario($facturas_id,$clientes_id,$productos_id,$quantity,$bodega,$empresa_id,$medida){
-        $tipo_producto = facturasModelo::tipo_producto_modelo($productos_id);
+    protected function procesarInventario($facturas_id,$clientes_id,$productos_id,$quantity,$bodega,$empresa_id,$medida,$comboStack = [],$requeridoPorCombo = false){
+        $productos_id = (int)$productos_id;
+        $quantity = (float)$quantity;
+        $bodega = (int)$bodega;
+        $empresa_id = (int)$empresa_id;
 
-        if($tipo_producto->num_rows > 0){
-            $consulta = $tipo_producto->fetch_assoc();
-            $tipo = strtolower(trim($consulta["tipo_producto"] ?? ''));
+        if($productos_id <= 0 || $quantity <= 0 || $empresa_id <= 0){
+            return;
+        }
 
-            // Solo se rebaja inventario para Producto o Insumo.
-            // Servicio no debe generar movimiento.
-            if(!in_array($tipo, ['producto', 'insumo'], true)){
-                return;
+        $combo = facturasModelo::obtener_combo_activo_producto_modelo($productos_id, $empresa_id);
+
+        if($combo){
+            $combo_id = (int)$combo['combo_id'];
+
+            if(in_array($combo_id, $comboStack, true)){
+                throw new Exception('Se detectó una referencia circular entre combos. Revise la composición antes de facturar.');
             }
 
-            // Si no tiene registro en movimientos, no se intenta rebajar.
-            // Esto evita afectar servicios o registros sin inventario inicial.
-            if(!$this->productoTieneMovimientoInventario($productos_id, $empresa_id, $bodega)){
-                return;
-            }
-
-            $this->registrarSalidaInventario(
+            $this->procesarInventarioCombo(
                 $facturas_id,
-                $productos_id,
                 $clientes_id,
+                $combo,
                 $quantity,
                 $bodega,
                 $empresa_id,
-                $medida
+                $comboStack
+            );
+
+            return;
+        }
+
+        $tipo_producto = facturasModelo::tipo_producto_modelo($productos_id);
+
+        if(!$tipo_producto || $tipo_producto->num_rows <= 0){
+            if($requeridoPorCombo){
+                throw new Exception("No se pudo identificar el tipo de producto del componente #{$productos_id}.");
+            }
+
+            return;
+        }
+
+        $consulta = $tipo_producto->fetch_assoc();
+        $tipo = strtolower(trim($consulta["tipo_producto"] ?? ''));
+
+        if(!in_array($tipo, ['producto', 'insumo'], true)){
+            return;
+        }
+
+        if(!$this->productoTieneMovimientoInventario($productos_id, $empresa_id, $bodega)){
+            if($requeridoPorCombo){
+                throw new Exception("El componente #{$productos_id} no tiene inventario registrado en la bodega seleccionada.");
+            }
+
+            return;
+        }
+
+        $this->registrarSalidaInventario(
+            $facturas_id,
+            $productos_id,
+            $clientes_id,
+            $quantity,
+            $bodega,
+            $empresa_id,
+            $medida
+        );
+    }
+
+    protected function procesarInventarioCombo($facturas_id,$clientes_id,$combo,$quantity,$bodega,$empresa_id,$comboStack = []){
+        $combo_id = (int)($combo['combo_id'] ?? 0);
+        $version = (int)($combo['version_actual'] ?? 0);
+        $producto_maestro_id = (int)($combo['productos_id'] ?? 0);
+
+        if($combo_id <= 0 || $producto_maestro_id <= 0){
+            throw new Exception('La configuración del combo es inválida.');
+        }
+
+        $componentes = facturasModelo::obtener_componentes_combo_inventario_modelo(
+            $combo_id,
+            $version,
+            $empresa_id
+        );
+
+        if(empty($componentes)){
+            throw new Exception("El combo #{$combo_id} no tiene componentes obligatorios configurados para inventario.");
+        }
+
+        $nuevoStack = $comboStack;
+        $nuevoStack[] = $combo_id;
+
+        $consumos = [];
+
+        foreach($componentes as $componente){
+            $componente_id = (int)($componente['productos_id'] ?? 0);
+            $cantidad_por_porcion = (float)($componente['cantidad_por_porcion'] ?? 0);
+            $merma_pct = (float)($componente['merma_pct'] ?? 0);
+            $unidad = trim((string)($componente['unidad'] ?? 'Und'));
+            $nombre = trim((string)($componente['nombre'] ?? ''));
+
+            if($componente_id <= 0 || $cantidad_por_porcion <= 0){
+                throw new Exception("El combo #{$combo_id} contiene un componente inválido.");
+            }
+
+            if($merma_pct < 0){
+                $merma_pct = 0;
+            }
+
+            if($merma_pct > 100){
+                $merma_pct = 100;
+            }
+
+            $cantidad_efectiva = $quantity
+                * $cantidad_por_porcion
+                * (1 + ($merma_pct / 100));
+
+            if($cantidad_efectiva <= 0){
+                continue;
+            }
+
+            $almacen_componente = $bodega > 0
+                ? $bodega
+                : (int)($componente['almacen_id'] ?? 0);
+
+            $consumos[] = [
+                'productos_id' => $componente_id,
+                'nombre' => $nombre !== '' ? $nombre : "Producto #{$componente_id}",
+                'cantidad' => $cantidad_efectiva,
+                'almacen_id' => $almacen_componente,
+                'unidad' => $unidad !== '' ? $unidad : 'Und'
+            ];
+        }
+
+        if(empty($consumos)){
+            throw new Exception("El combo #{$combo_id} no tiene consumos válidos para rebajar inventario.");
+        }
+
+        foreach($consumos as $consumo){
+            $this->validarDisponibilidadComponenteCombo(
+                $consumo['productos_id'],
+                $consumo['nombre'],
+                $consumo['cantidad'],
+                $consumo['almacen_id'],
+                $empresa_id,
+                $nuevoStack
+            );
+        }
+
+        foreach($consumos as $consumo){
+            $this->procesarInventario(
+                $facturas_id,
+                $clientes_id,
+                $consumo['productos_id'],
+                $consumo['cantidad'],
+                $consumo['almacen_id'],
+                $empresa_id,
+                $consumo['unidad'],
+                $nuevoStack,
+                true
+            );
+        }
+    }
+
+    protected function validarDisponibilidadComponenteCombo($productos_id,$nombre,$cantidad,$bodega,$empresa_id,$comboStack = []){
+        $comboHijo = facturasModelo::obtener_combo_activo_producto_modelo($productos_id, $empresa_id);
+
+        if($comboHijo){
+            $combo_id = (int)$comboHijo['combo_id'];
+
+            if(in_array($combo_id, $comboStack, true)){
+                throw new Exception('Se detectó una referencia circular entre combos. Revise la composición antes de facturar.');
+            }
+
+            $componentes = facturasModelo::obtener_componentes_combo_inventario_modelo(
+                $combo_id,
+                (int)($comboHijo['version_actual'] ?? 0),
+                $empresa_id
+            );
+
+            if(empty($componentes)){
+                throw new Exception("El combo componente {$nombre} no tiene componentes obligatorios configurados.");
+            }
+
+            $nuevoStack = $comboStack;
+            $nuevoStack[] = $combo_id;
+
+            foreach($componentes as $componente){
+                $cantidadBase = (float)($componente['cantidad_por_porcion'] ?? 0);
+                $merma = max(0, min(100, (float)($componente['merma_pct'] ?? 0)));
+
+                if($cantidadBase <= 0){
+                    throw new Exception("El combo componente {$nombre} contiene una cantidad inválida.");
+                }
+
+                $cantidadHija = $cantidad * $cantidadBase * (1 + ($merma / 100));
+                $bodegaHija = $bodega > 0 ? $bodega : (int)($componente['almacen_id'] ?? 0);
+
+                $this->validarDisponibilidadComponenteCombo(
+                    (int)$componente['productos_id'],
+                    trim((string)($componente['nombre'] ?? 'Componente')),
+                    $cantidadHija,
+                    $bodegaHija,
+                    $empresa_id,
+                    $nuevoStack
+                );
+            }
+
+            return;
+        }
+
+        $tipo_producto = facturasModelo::tipo_producto_modelo($productos_id);
+
+        if(!$tipo_producto || $tipo_producto->num_rows <= 0){
+            throw new Exception("No se pudo identificar el tipo de producto del componente {$nombre}.");
+        }
+
+        $consulta = $tipo_producto->fetch_assoc();
+        $tipo = strtolower(trim($consulta["tipo_producto"] ?? ''));
+
+        if(!in_array($tipo, ['producto', 'insumo'], true)){
+            return;
+        }
+
+        if(!$this->productoTieneMovimientoInventario($productos_id, $empresa_id, $bodega)){
+            throw new Exception("El componente {$nombre} no tiene inventario registrado en la bodega seleccionada.");
+        }
+
+        $politicaAlmacen = facturasModelo::obtener_politica_almacen_modelo($bodega, $empresa_id);
+        $permiteNegativo = !empty($politicaAlmacen['facturar_cero']);
+
+        if($permiteNegativo){
+            return;
+        }
+
+        $saldo = (float)facturasModelo::obtener_saldo_vendible_producto_modelo(
+            $productos_id,
+            $empresa_id,
+            $bodega
+        );
+
+        if(($saldo + 0.000001) < $cantidad){
+            throw new Exception(
+                "Inventario insuficiente para {$nombre}. Disponible: "
+                .number_format($saldo, 4, '.', '')
+                .", requerido por el combo: "
+                .number_format($cantidad, 4, '.', '')
             );
         }
     }
@@ -1249,6 +1467,63 @@ class facturasControlador extends facturasModelo {
             $fecha_dolar    = $_POST['fecha_dolar'];
             $fecha_registro = date("Y-m-d H:i:s");
 
+            // Trazabilidad opcional de regeneración.
+            // Este ID corresponde a la factura ANULADA usada como plantilla;
+            // nunca sustituye facturas_id ni reutiliza su número fiscal.
+            $factura_origen_regeneracion = isset($_POST['factura_origen_regeneracion'])
+                ? (int)$_POST['factura_origen_regeneracion']
+                : 0;
+            $numero_origen_regeneracion = '';
+
+            if ($factura_origen_regeneracion > 0) {
+                $empresaOrigen = (int)$datosBasicos['empresa_id'];
+                $cnOrigen = mainModel::connection();
+
+                $stmtOrigen = $cnOrigen->prepare("
+                    SELECT f.number, sf.prefijo, sf.relleno
+                    FROM facturas f
+                    LEFT JOIN secuencia_facturacion sf
+                      ON sf.secuencia_facturacion_id = f.secuencia_facturacion_id
+                    WHERE f.facturas_id = ?
+                      AND f.empresa_id = ?
+                      AND f.estado = 4
+                    LIMIT 1
+                ");
+
+                if (!$stmtOrigen) {
+                    throw new Exception('No se pudo validar la factura anulada de origen.');
+                }
+
+                $stmtOrigen->bind_param("ii", $factura_origen_regeneracion, $empresaOrigen);
+                $stmtOrigen->execute();
+                $resOrigen = $stmtOrigen->get_result();
+
+                if (!$resOrigen || $resOrigen->num_rows === 0) {
+                    $stmtOrigen->close();
+                    throw new Exception('La factura de origen para regeneración no existe, no pertenece a la empresa o no está anulada.');
+                }
+
+                $rowOrigen = $resOrigen->fetch_assoc();
+                $stmtOrigen->close();
+
+                $numeroOrigen = (int)($rowOrigen['number'] ?? 0);
+                $prefijoOrigen = trim((string)($rowOrigen['prefijo'] ?? ''));
+                $rellenoOrigen = (int)($rowOrigen['relleno'] ?? 0);
+
+                $numero_origen_regeneracion = $prefijoOrigen . (
+                    $rellenoOrigen > 0
+                        ? str_pad($numeroOrigen, $rellenoOrigen, '0', STR_PAD_LEFT)
+                        : $numeroOrigen
+                );
+            }
+
+            // Una regeneración crea un documento fiscal NUEVO.
+            // No debe conservar la fecha de la factura anulada, porque la apertura
+            // de caja y la emisión corresponden al día en que se genera la nueva factura.
+            if ($factura_origen_regeneracion > 0) {
+                $fecha = date("Y-m-d");
+            }
+
             // Exoneración
             $exoneracion_orden         = $_POST['exoneracion_orden'] ?? null;
             $exoneracion_constancia    = $_POST['exoneracion_constancia'] ?? null;
@@ -1276,13 +1551,23 @@ class facturasControlador extends facturasModelo {
             }
 
             // 7) Apertura de caja
-            $apertura = facturasModelo::getAperturaIDModelo([
+            $resultadoApertura = facturasModelo::getAperturaIDModelo([
                 "colaboradores_id" => $datosBasicos['usuario'],
                 "fecha"            => $fecha,
                 "estado"           => 1
-            ])->fetch_assoc();
+            ]);
 
-            $apertura_id = $apertura['apertura_id'];
+            $apertura = $resultadoApertura ? $resultadoApertura->fetch_assoc() : null;
+
+            if (!$apertura || empty($apertura['apertura_id'])) {
+                return mainModel::showNotification([
+                    "title" => "Caja no aperturada",
+                    "text"  => "No se encontró una apertura de caja activa para la fecha ".date('d/m/Y', strtotime($fecha)).". Verifique la caja antes de registrar la factura.",
+                    "type"  => "error"
+                ]);
+            }
+
+            $apertura_id = (int)$apertura['apertura_id'];
 
             // 8) Tomar número
             $empresa_id   = $_SESSION['empresa_id_sd'];
@@ -1423,6 +1708,25 @@ class facturasControlador extends facturasModelo {
                 "Se registró la factura al {$tipoTxt} para el cliente {$cliente['nombre']} con el RTN {$cliente['rtn']}"
             );
 
+            // Si esta factura nació de una factura anulada, dejar relación explícita
+            // en el historial. La factura original permanece intacta y anulada.
+            if ($factura_origen_regeneracion > 0) {
+                $prefijoNuevo = trim((string)($numeroFactura['data']['prefijo'] ?? ''));
+                $rellenoNuevo = (int)($numeroFactura['data']['relleno'] ?? 0);
+                $numeroNuevo = (int)($numeroFactura['data']['numero'] ?? 0);
+                $numero_nueva_regenerada = $prefijoNuevo . (
+                    $rellenoNuevo > 0
+                        ? str_pad($numeroNuevo, $rellenoNuevo, '0', STR_PAD_LEFT)
+                        : $numeroNuevo
+                );
+
+                $this->guardarHistorialFactura(
+                    'Facturación',
+                    'Regeneración',
+                    "Se emitió la factura {$numero_nueva_regenerada} (ID {$facturas_id}) a partir de la factura anulada {$numero_origen_regeneracion} (ID {$factura_origen_regeneracion})."
+                );
+            }
+
             // 14) Pagos múltiples
             $funcion_pagos = "";
 
@@ -1543,13 +1847,23 @@ class facturasControlador extends facturasModelo {
 
         try {
             // 6.1) Apertura de caja
-            $apertura = facturasModelo::getAperturaIDModelo([
+            $resultadoApertura = facturasModelo::getAperturaIDModelo([
                 "colaboradores_id" => $datosBasicos['usuario'],
                 "fecha"            => $fecha,
                 "estado"           => 1
-            ])->fetch_assoc();
+            ]);
 
-            $apertura_id = $apertura['apertura_id'];
+            $apertura = $resultadoApertura ? $resultadoApertura->fetch_assoc() : null;
+
+            if (!$apertura || empty($apertura['apertura_id'])) {
+                return mainModel::showNotification([
+                    "title" => "Caja no aperturada",
+                    "text"  => "No se encontró una apertura de caja activa para la fecha ".date('d/m/Y', strtotime($fecha)).". Verifique la caja antes de guardar la factura.",
+                    "type"  => "error"
+                ]);
+            }
+
+            $apertura_id = (int)$apertura['apertura_id'];
 
             // 6.2) Obtener secuencia activa sin consumir número
             $documento_id = $datosBasicos['documento_id'];

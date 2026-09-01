@@ -6692,105 +6692,214 @@ var listar_busqueda_bill_draf = function () {
   delete_bill_draft_dataTable("#DatatableBusquedaBillDraft tbody", table);
 };
 
+/* =========================================================
+   CARGA REUTILIZABLE DE FACTURA EN EL FORMULARIO
+   ---------------------------------------------------------
+   modo = "borrador"
+     - Continúa editando el mismo borrador.
+     - Conserva facturas_id y facturas_detalle_id.
+
+   modo = "regenerar"
+     - Usa una factura existente únicamente como plantilla.
+     - NO conserva facturas_id ni facturas_detalle_id.
+     - Al registrar, el flujo normal genera un nuevo ID y
+       consume un nuevo número fiscal desde la secuencia.
+   ========================================================= */
+window.cargarFacturaEnFormulario = function (facturas_id, opciones) {
+  opciones = opciones || {};
+
+  var modo = opciones.modo === 'regenerar' ? 'regenerar' : 'borrador';
+  var cerrarModal = opciones.cerrarModal !== false;
+  var notificar = opciones.notificar !== false;
+
+  facturas_id = parseInt(facturas_id || 0, 10);
+
+  if (!facturas_id || facturas_id <= 0) {
+    showNotify('error', 'Error', 'No se pudo identificar la factura que desea cargar.');
+    return $.Deferred().reject().promise();
+  }
+
+  return $.ajax({
+    type: 'POST',
+    url: "<?php echo SERVERURL;?>core/facturas/getDraftBills.php",
+    data: { facturas_id: facturas_id },
+    dataType: 'json'
+  }).done(function (r) {
+    if (!r || r.type !== 'success') {
+      showNotify('error', 'Error', (r && r.message) ? r.message : 'No se pudo cargar la factura.');
+      return;
+    }
+
+    var h = r.header || {};
+    var datos = Array.isArray(r.detalle) ? r.detalle : [];
+    var esRegeneracion = (modo === 'regenerar');
+
+    /* ===== IDENTIDAD DEL DOCUMENTO ===== */
+    // Borrador: se sigue trabajando sobre el mismo registro.
+    // Regeneración: la factura anulada solo sirve como plantilla.
+    $("#invoice-form #facturas_id").val(esRegeneracion ? '' : facturas_id);
+
+    // Trazabilidad de regeneración. Se crea dinámicamente para no alterar
+    // el formulario original ni reutilizar el ID fiscal de la factura anulada.
+    var $origenRegeneracion = $("#invoice-form #factura_origen_regeneracion");
+    if (!$origenRegeneracion.length) {
+      $origenRegeneracion = $('<input>', {
+        type: 'hidden',
+        id: 'factura_origen_regeneracion',
+        name: 'factura_origen_regeneracion'
+      }).appendTo('#invoice-form');
+    }
+    $origenRegeneracion.val(esRegeneracion ? facturas_id : '');
+
+    /* ===== ENCABEZADO ===== */
+    $("#cliente_id").val(h.clientes_id || "");
+    $("#cliente").val(h.cliente_nombre || "");
+    $("#rtn-customers-bill").text(h.cliente_rtn ? ("RTN: " + h.cliente_rtn) : "");
+    $("#client-customers-bill").text(h.cliente_nombre ? ("Cliente: " + h.cliente_nombre) : "");
+
+    $("#colaborador_id").val(h.colaboradores_id || "");
+    $("#colaborador").val(h.vendedor_nombre || "");
+    $("#vendedor-customers-bill").text(h.vendedor_nombre ? ("Vendedor: " + h.vendedor_nombre) : "");
+
+    // Una factura regenerada es un documento NUEVO: no debe heredar la fecha
+    // fiscal de la factura anulada. Esto también permite relacionarla con la
+    // apertura de caja vigente del día actual.
+    if (esRegeneracion) {
+      var fechaActual = '';
+      if (typeof today === 'function') {
+        fechaActual = today();
+      } else {
+        var ahora = new Date();
+        var mes = String(ahora.getMonth() + 1).padStart(2, '0');
+        var dia = String(ahora.getDate()).padStart(2, '0');
+        fechaActual = ahora.getFullYear() + '-' + mes + '-' + dia;
+      }
+      $("#fecha").val(fechaActual);
+    } else if (h.fecha) {
+      $("#fecha").val(h.fecha);
+    }
+
+    if (h.fecha_dolar) $("#fecha_dolar").val(h.fecha_dolar);
+    $("#notesBill").val(h.notas || "");
+
+    // Exoneración
+    $("#exoneracion_orden").val(h.no_orden || "");
+    $("#exoneracion_constancia").val(h.constancia || "");
+    $("#exoneracion_sag").val(h.identificativo_sag || "");
+    $("#exoneracion_orden_interno").val(h.numero_interno || "");
+
+    // Tipo de factura: UI 1=Contado / 0=Crédito; BD 1/2.
+    var tf = parseInt(h.tipo_factura, 10);
+    if (tf === 2) {
+      $("#facturas_activo").val(0);
+      $("#btn-tipo-credito").addClass("active btn-primary").removeClass("btn-outline-primary");
+      $("#btn-tipo-contado").removeClass("active btn-primary").addClass("btn-outline-primary");
+    } else {
+      $("#facturas_activo").val(1);
+      $("#btn-tipo-contado").addClass("active btn-primary").removeClass("btn-outline-primary");
+      $("#btn-tipo-credito").removeClass("active btn-primary").addClass("btn-outline-primary");
+    }
+
+    /* ===== DETALLE ===== */
+    limpiarTablaFacturaDetalles(0);
+
+    for (var i = 0; i < datos.length; i++) {
+      if (i > 0) addRowFacturas();
+
+      // En regeneración NUNCA reutilizar el ID de detalle de la factura anulada.
+      $("#facturas_detalle_id_" + i).val(esRegeneracion ? '' : (datos[i]["facturas_detalle_id"] || ""));
+      $("#bar-code-id_" + i).val(datos[i]["barCode"] || "");
+      $("#productos_id_" + i).val(datos[i]["productos_id"] || "");
+      $("#productName_" + i).val(datos[i]["producto"] || "");
+      $("#productName_text_" + i).text(datos[i]["producto"] || "Descripción del Producto");
+      $("#quantity_" + i).val(datos[i]["cantidad"] || 0);
+      $("#price_" + i).val(datos[i]["precio"] || 0);
+      $("#precio_real_" + i).val(datos[i]["precio"] || 0);
+      $("#isv_" + i).val(datos[i]["isv_venta"] || 0);
+      $("#valor_isv_" + i).val(datos[i]["isv_valor"] || 0);
+      $("#cantidad_mayoreo_" + i).val(datos[i]["cantidad_mayoreo"] || 0);
+      $("#precio_mayoreo_" + i).val(datos[i]["precio_venta"] || 0);
+      $("#bodega_" + i).val(datos[i]["almacen_id"] || "");
+      $("#medida_" + i).val(datos[i]["medida"] || "");
+      $("#medida_text_" + i).text(datos[i]["medida"] || "Medida");
+      $("#discount_" + i).val(datos[i]["descuento"] || 0);
+    }
+
+    calculateTotalFacturas();
+
+    // Fila vacía adicional para continuar capturando normalmente.
+    addRowFacturas();
+
+    if (cerrarModal) {
+      $('#modal_buscar_bill_draft').modal('hide');
+      $('#modal_buscar_bill').modal('hide');
+    }
+
+    if (notificar) {
+      if (esRegeneracion) {
+        showNotify(
+          'success',
+          'Factura cargada para corregir',
+          'Se cargó una copia editable de la factura anulada. Realice los cambios y regístrela normalmente para generar un nuevo número.'
+        );
+      } else {
+        showNotify('success', 'Borrador', 'Factura cargada correctamente.');
+      }
+    }
+
+    // Registrar que la factura anulada fue cargada como plantilla editable.
+    // La auditoría no modifica la factura ni bloquea la edición del usuario.
+    if (esRegeneracion) {
+      $.ajax({
+        type: 'POST',
+        url: "<?php echo SERVERURL;?>core/facturas/auditarRegeneracionFactura.php",
+        dataType: 'json',
+        data: {
+          facturas_id: facturas_id,
+          accion: 'cargar_plantilla'
+        }
+      }).done(function (auditoria) {
+        if (!auditoria || auditoria.success !== true) {
+          showNotify(
+            'warning',
+            'Auditoría',
+            (auditoria && auditoria.message) ? auditoria.message : 'La factura fue cargada, pero no se pudo registrar la auditoría de regeneración.'
+          );
+        }
+      }).fail(function () {
+        showNotify(
+          'warning',
+          'Auditoría',
+          'La factura fue cargada, pero no se pudo registrar la auditoría de regeneración.'
+        );
+      });
+    }
+
+    // Dejar al usuario en la vista de factura listo para corregir.
+    try {
+      $('html, body').animate({ scrollTop: $('#invoice-form').offset().top - 80 }, 250);
+    } catch (e) {}
+
+    var $primerCodigo = $("#bar-code-id_0");
+    if ($primerCodigo.length) {
+      setTimeout(function () { $primerCodigo.trigger('focus'); }, 150);
+    }
+  }).fail(function (xhr) {
+    showNotify('error', 'Error', 'Error de comunicación (' + xhr.status + ').');
+  });
+};
+
 var continue_bill_draft_dataTable = function (tbody, table) {
   $(tbody).off("click", "button.pay").on("click", "button.pay", function (e) {
     e.preventDefault();
+
     var row = table.row($(this).parents("tr")).data();
-    if (!row) return;
+    if (!row || !row.facturas_id) return;
 
-    // set factura seleccionada
-    $("#invoice-form #facturas_id").val(row.facturas_id);
-
-    $.ajax({
-      type: 'POST',
-      url: "<?php echo SERVERURL;?>core/facturas/getDraftBills.php",
-      data: { facturas_id: row.facturas_id },
-      dataType: 'json', // <<--- IMPORTANTE: así recibimos un objeto y no hay que parsear nada
-      success: function (r) {
-        if (!r || r.type !== 'success') {
-          return showNotify('error', 'Error', (r && r.message) ? r.message : 'No se pudo cargar la factura.');
-        }
-
-        // ====== ENCABEZADO ======
-        var h = r.header || {};
-
-        // Cliente (inputs ocultos + cabecera visible)
-        $("#cliente_id").val(h.clientes_id || "");
-        $("#cliente").val(h.cliente_nombre || "");
-        $("#rtn-customers-bill").text(h.cliente_rtn ? ("RTN: " + h.cliente_rtn) : "");
-        $("#client-customers-bill").text(h.cliente_nombre ? ("Cliente: " + h.cliente_nombre) : "");
-
-        // Vendedor (inputs ocultos + cabecera visible)
-        $("#colaborador_id").val(h.colaboradores_id || "");
-        $("#colaborador").val(h.vendedor_nombre || "");
-        $("#vendedor-customers-bill").text(h.vendedor_nombre ? ("Vendedor: " + h.vendedor_nombre) : "");
-
-        // Fecha / fecha dólar / notas
-        if (h.fecha) $("#fecha").val(h.fecha);
-        if (h.fecha_dolar) $("#fecha_dolar").val(h.fecha_dolar);
-        $("#notesBill").val(h.notas || "");
-
-        // Exoneración
-        $("#exoneracion_orden").val(h.no_orden || "");
-        $("#exoneracion_constancia").val(h.constancia || "");
-        $("#exoneracion_sag").val(h.identificativo_sag || "");
-        $("#exoneracion_orden_interno").val(h.numero_interno || "");
-
-        // Tipo de factura (tu hidden usa 1=Contado, 0=Crédito; la BD trae 1/2)
-        var tf = parseInt(h.tipo_factura, 10);
-        if (tf === 2) { // Crédito
-          $("#facturas_activo").val(0);
-          $("#btn-tipo-credito").addClass("active btn-primary").removeClass("btn-outline-primary");
-          $("#btn-tipo-contado").removeClass("active btn-primary").addClass("btn-outline-primary");
-        } else { // Contado (default)
-          $("#facturas_activo").val(1);
-          $("#btn-tipo-contado").addClass("active btn-primary").removeClass("btn-outline-primary");
-          $("#btn-tipo-credito").removeClass("active btn-primary").addClass("btn-outline-primary");
-        }
-
-        // ====== DETALLE ======
-        var datos = Array.isArray(r.detalle) ? r.detalle : [];
-
-        // Limpia la tabla y deja UNA fila base (index 0)
-        limpiarTablaFacturaDetalles(0);
-
-        // Rellena filas guardadas
-        for (var i = 0; i < datos.length; i++) {
-          if (i > 0) addRowFacturas();
-
-          $("#facturas_detalle_id_" + i).val(datos[i]["facturas_detalle_id"] || "");
-          $("#bar-code-id_" + i).val(datos[i]["barCode"] || "");
-          $("#productos_id_" + i).val(datos[i]["productos_id"] || "");
-          $("#productName_" + i).val(datos[i]["producto"] || "");
-          $("#productName_text_" + i).text(datos[i]["producto"] || "Descripción del Producto");
-          $("#quantity_" + i).val(datos[i]["cantidad"] || 0);
-          $("#price_" + i).val(datos[i]["precio"] || 0);
-          $("#precio_real_" + i).val(datos[i]["precio"] || 0);
-          $("#isv_" + i).val(datos[i]["isv_venta"] || 0);
-          $("#valor_isv_" + i).val(datos[i]["isv_valor"] || 0);
-          $("#cantidad_mayoreo_" + i).val(datos[i]["cantidad_mayoreo"] || 0);
-          $("#precio_mayoreo_" + i).val(datos[i]["precio_venta"] || 0);
-          $("#bodega_" + i).val(datos[i]["almacen_id"] || "");
-          $("#medida_" + i).val(datos[i]["medida"] || "");
-          $("#medida_text_" + i).text(datos[i]["medida"] || "Medida");
-          $("#discount_" + i).val(datos[i]["descuento"] || 0);
-        }
-
-        // Recalcula importes
-        calculateTotalFacturas();
-
-        // Agrega una fila VACÍA extra y deja el cursor en su código
-        addRowFacturas();
-
-        // Cierra el modal
-        $('#modal_buscar_bill_draft').modal('hide');
-
-        // Notificación bonita
-        showNotify('success', 'Borrador', 'Factura cargada correctamente.');
-      },
-      error: function (xhr) {
-        showNotify('error', 'Error', 'Error de comunicación (' + xhr.status + ').');
-      }
+    window.cargarFacturaEnFormulario(row.facturas_id, {
+      modo: 'borrador',
+      cerrarModal: true,
+      notificar: true
     });
   });
 };
@@ -7482,7 +7591,10 @@ var view_anular_bill_dataTable = function (tbody, table) {
                 return;
             }
 
-            anularFacturas(facturaId);
+            anularFacturas(facturaId, {
+                permitir_regenerar: true,
+                origen: 'facturacion'
+            });
         }, {
             mensaje: 'Para anular esta factura debe validar un administrador.',
             modulo: 'Facturación',

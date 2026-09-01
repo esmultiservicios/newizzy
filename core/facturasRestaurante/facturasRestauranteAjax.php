@@ -197,6 +197,46 @@ try {
             AjaxHelper::json(['status' => true, 'clientes' => $m->obtenerClientes()]);
             break;
 
+        case 'loadInventarioRestaurante':
+            AjaxHelper::json($m->obtenerInventarioRestaurante());
+            break;
+
+        case 'registrarEntradaInventario': {
+            $payload=AjaxHelper::$payload;
+            if(!$payload || !is_array($payload)){
+                $payload=[
+                    'productos_id'=>(int)AjaxHelper::in('productos_id',0),
+                    'almacen_id'=>(int)AjaxHelper::in('almacen_id',0),
+                    'cantidad'=>(float)AjaxHelper::in('cantidad',0),
+                    'numero_lote'=>(string)AjaxHelper::in('numero_lote',''),
+                    'fecha_vencimiento'=>(string)AjaxHelper::in('fecha_vencimiento',''),
+                    'comentario'=>(string)AjaxHelper::in('comentario','')
+                ];
+            }
+            AjaxHelper::json($m->registrarEntradaInventarioRestaurante($payload));
+            break;
+        }
+
+        case 'transferirInventario': {
+            $payload=AjaxHelper::$payload;
+            if(!$payload || !is_array($payload)){
+                $payload=[
+                    'productos_id'=>(int)AjaxHelper::in('productos_id',0),
+                    'almacen_origen_id'=>(int)AjaxHelper::in('almacen_origen_id',0),
+                    'almacen_destino_id'=>(int)AjaxHelper::in('almacen_destino_id',0),
+                    'cantidad'=>(float)AjaxHelper::in('cantidad',0),
+                    'usar_destino_predeterminado'=>(int)AjaxHelper::in('usar_destino_predeterminado',0),
+                    'comentario'=>(string)AjaxHelper::in('comentario','')
+                ];
+            }
+            AjaxHelper::json($m->transferirInventarioRestaurante($payload));
+            break;
+        }
+
+        case 'loadLotesInventario':
+            AjaxHelper::json($m->obtenerLotesInventarioRestaurante((int)AjaxHelper::in('productos_id',0),(int)AjaxHelper::in('almacen_id',0)));
+            break;
+
         /* ============================================================
          * ======= GUARDAR / ACTUALIZAR CAT/PROD/CLI =================
          * ============================================================ */
@@ -246,6 +286,11 @@ try {
                     'isv2'         => (int) AjaxHelper::in('isv2',0),
                     'restaurante'  => (int) AjaxHelper::in('restaurante',1),
                     'estacion'     => (string) AjaxHelper::in('estacion',''),
+                    'almacen_id'   => (int) AjaxHelper::in('almacen_id',0),
+                    'medida_id'    => (int) AjaxHelper::in('medida_id',1),
+                    'inventario_inicial'=>(float) AjaxHelper::in('inventario_inicial',0),
+                    'numero_lote'  => (string) AjaxHelper::in('numero_lote',''),
+                    'fecha_vencimiento'=>(string) AjaxHelper::in('fecha_vencimiento',''),
                 ];
             }
             AjaxHelper::json($m->guardarProductoBasico($payload));
@@ -265,6 +310,8 @@ try {
                     'isv2'         => (int) AjaxHelper::in('isv2',0),
                     'restaurante'  => (int) AjaxHelper::in('restaurante',1),
                     'estacion'     => (string) AjaxHelper::in('estacion',''),
+                    'almacen_id'   => (int) AjaxHelper::in('almacen_id',0),
+                    'medida_id'    => (int) AjaxHelper::in('medida_id',1),
                 ];
             }
             AjaxHelper::json($m->actualizarProductoBasico($payload));

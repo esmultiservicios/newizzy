@@ -164,9 +164,9 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
 <!-- FIN MODAL AYUDA (PRO / DINÁMICO) -->
 
 <!--INICIO MODAL BUSQUEDA CONVERTIR COTIZACION EN FACTURAS-->
-<div class="modal fade" id="modal_buscar_cotizaciones">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
+<div class="modal fade izzy-modal-consulta-facturacion" id="modal_buscar_cotizaciones">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="width:calc(100vw - 64px) !important; max-width:1600px !important; height:calc(100vh - 48px) !important; min-height:calc(100vh - 48px) !important; max-height:calc(100vh - 48px) !important; margin:24px auto !important; display:flex !important; align-items:stretch !important;">
+        <div class="modal-content" style="width:100% !important; max-width:none !important; height:100% !important; min-height:100% !important; max-height:100% !important; margin:0 !important; display:flex !important; flex-direction:column !important; overflow:hidden !important;">
             <div class="modal-header">
                 <h4 class="modal-title">Buscar Cotizaciones</h4>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -174,7 +174,7 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
                 </button>
             </div>
             <div class="container"></div>
-            <div class="modal-body">
+            <div class="modal-body" style="flex:1 1 auto !important; min-height:0 !important; max-height:none !important; overflow-y:auto !important; overflow-x:hidden !important;">
                 <form class="FormularioAjax" id="formulario_busqueda_cotizaciones">
 
                     <div class="row align-items-end">
@@ -260,9 +260,9 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
 <!--FIN MODAL BUSQUEDA CONVERTIR COTIZACION EN FACTURAS-->
 
 <!--INICIO MODAL BUSQUEDA COBRAR CUENTAS POR COBRAR CLIENTES-->
-<div class="modal fade" id="modal_buscar_cuentas_cobrar_clientes">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
+<div class="modal fade izzy-modal-consulta-facturacion" id="modal_buscar_cuentas_cobrar_clientes">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="width:calc(100vw - 64px) !important; max-width:1600px !important; height:calc(100vh - 48px) !important; min-height:calc(100vh - 48px) !important; max-height:calc(100vh - 48px) !important; margin:24px auto !important; display:flex !important; align-items:stretch !important;">
+        <div class="modal-content" style="width:100% !important; max-width:none !important; height:100% !important; min-height:100% !important; max-height:100% !important; margin:0 !important; display:flex !important; flex-direction:column !important; overflow:hidden !important;">
             <div class="modal-header">
                 <h4 class="modal-title">Buscar Cuentas por Cobrar Clientes</h4>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -270,7 +270,7 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
                 </button>
             </div>
 
-            <div class="modal-body">
+            <div class="modal-body" style="flex:1 1 auto !important; min-height:0 !important; max-height:none !important; overflow-y:auto !important; overflow-x:hidden !important;">
                 <form class="FormularioAjax" id="formulario_busqueda_cuentas_cobrar_clientes">
                     <div class="container-fluid">
                         <!-- Fila de filtros -->
@@ -348,16 +348,16 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
 <!--FIN MODAL BUSQUEDA COBRAR CUENTAS POR COBRAR CLIENTES-->
 
 <!--INICIO MODAL BUSQUEDA FACTURAS BORRADOR-->
-<div class="modal fade" id="modal_buscar_bill_draft">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
+<div class="modal fade izzy-modal-consulta-facturacion" id="modal_buscar_bill_draft">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="width:calc(100vw - 64px) !important; max-width:1600px !important; height:calc(100vh - 48px) !important; min-height:calc(100vh - 48px) !important; max-height:calc(100vh - 48px) !important; margin:24px auto !important; display:flex !important; align-items:stretch !important;">
+        <div class="modal-content" style="width:100% !important; max-width:none !important; height:100% !important; min-height:100% !important; max-height:100% !important; margin:0 !important; display:flex !important; flex-direction:column !important; overflow:hidden !important;">
             <div class="modal-header">
                 <h4 class="modal-title">Buscar Facturas Pendientes</h4>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="flex:1 1 auto !important; min-height:0 !important; max-height:none !important; overflow-y:auto !important; overflow-x:hidden !important;">
                 <form class="FormularioAjax" id="formulario_bill_draft">
                     <div class="container-fluid">
                         <!-- Fila de filtros -->
@@ -438,9 +438,9 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
 <!--FIN MODAL BUSQUEDA FACTURAS BORRADOR-->
 
 <!--INICIO MODAL BUSQUEDA CREDITO Y CONTADO-->
-<div class="modal fade" id="modal_buscar_bill">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
+<div class="modal fade izzy-modal-consulta-facturacion" id="modal_buscar_bill">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="width:calc(100vw - 64px) !important; max-width:1600px !important; height:calc(100vh - 48px) !important; min-height:calc(100vh - 48px) !important; max-height:calc(100vh - 48px) !important; margin:24px auto !important; display:flex !important; align-items:stretch !important;">
+        <div class="modal-content" style="width:100% !important; max-width:none !important; height:100% !important; min-height:100% !important; max-height:100% !important; margin:0 !important; display:flex !important; flex-direction:column !important; overflow:hidden !important;">
             <div class="modal-header">
                 <h4 class="modal-title">Buscar Facturas</h4>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -448,7 +448,7 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
                 </button>
             </div>
 
-            <div class="modal-body">
+            <div class="modal-body" style="flex:1 1 auto !important; min-height:0 !important; max-height:none !important; overflow-y:auto !important; overflow-x:hidden !important;">
                 <form class="FormularioAjax" id="formulario_bill">
                     <div class="container-fluid">
                         <!-- Primera fila de filtros -->
@@ -555,9 +555,9 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
 <!-- =========================================================
      INICIO MODAL - CAJA DESDE FACTURACIÓN
      ========================================================= -->
-     <div class="modal fade" id="modalCajaFactura" tabindex="-1" role="dialog" aria-labelledby="modalCajaFacturaLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
-        <div class="modal-content">
+     <div class="modal fade izzy-modal-consulta-facturacion" id="modalCajaFactura" tabindex="-1" role="dialog" aria-labelledby="modalCajaFacturaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered" role="document" style="width:calc(100vw - 64px) !important; max-width:1600px !important; height:calc(100vh - 48px) !important; min-height:calc(100vh - 48px) !important; max-height:calc(100vh - 48px) !important; margin:24px auto !important; display:flex !important; align-items:stretch !important;">
+        <div class="modal-content" style="width:100% !important; max-width:none !important; height:100% !important; min-height:100% !important; max-height:100% !important; margin:0 !important; display:flex !important; flex-direction:column !important; overflow:hidden !important;">
 
             <div class="modal-header bg-dark text-white">
                 <h5 class="modal-title" id="modalCajaFacturaLabel">
@@ -573,7 +573,7 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
                 </button>
             </div>
 
-            <div class="modal-body">
+            <div class="modal-body" style="flex:1 1 auto !important; min-height:0 !important; max-height:none !important; overflow-y:auto !important; overflow-x:hidden !important;">
 
                 <form id="formCajaFactura" autocomplete="off">
                     <div class="row mb-3">
@@ -629,3 +629,73 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
 <!-- =========================================================
      FIN MODAL - CAJA DESDE FACTURACIÓN
      ========================================================= -->
+
+<!-- =========================================================
+     MODAL PREMIUM - FACTURA ANULADA / REGENERAR
+     Solo se utiliza desde la vista principal de Facturación.
+     ========================================================= -->
+<div class="modal fade" id="modalRegenerarFactura" tabindex="-1" role="dialog"
+     aria-labelledby="modalRegenerarFacturaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content izzy-regenerar-modal">
+            <div class="modal-header izzy-regenerar-header">
+                <div>
+                    <div class="izzy-regenerar-eyebrow">
+                        <i class="fas fa-shield-alt mr-1"></i> Documento fiscal
+                    </div>
+                    <h5 class="modal-title mb-0" id="modalRegenerarFacturaLabel">
+                        Factura anulada correctamente
+                    </h5>
+                </div>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body izzy-regenerar-body">
+                <div class="izzy-regenerar-status">
+                    <div class="izzy-regenerar-icon">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <div class="izzy-regenerar-status-text">
+                        <div class="izzy-regenerar-documento">
+                            <span class="izzy-regenerar-label">Factura anulada</span>
+                            <strong id="modalRegenerarFacturaNumero"></strong>
+                        </div>
+                        <div class="izzy-regenerar-cliente">
+                            <span class="izzy-regenerar-label">Cliente</span>
+                            <strong id="modalRegenerarFacturaCliente"></strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="izzy-regenerar-copy">
+                    <h6>¿Desea cargar una copia editable?</h6>
+                    <p>
+                        Puede utilizar los datos de la factura anulada como base para realizar las correcciones necesarias
+                        y generar una nueva factura sin volver a ingresar toda la información.
+                    </p>
+                </div>
+
+                <div class="izzy-regenerar-note">
+                    <i class="fas fa-info-circle"></i>
+                    <div>
+                        <strong>La factura original no será modificada.</strong>
+                        <span>La nueva factura se registrará como un documento independiente y recibirá un nuevo número fiscal.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer izzy-regenerar-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-check mr-1"></i> Finalizar
+                </button>
+                <button type="button" class="btn btn-success" id="btnRegenerarFacturaConfirmar">
+                    <i class="fas fa-file-import mr-1"></i> Cargar para corregir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FIN MODAL PREMIUM - FACTURA ANULADA / REGENERAR -->

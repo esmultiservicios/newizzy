@@ -7051,3 +7051,259 @@ body[data-servicio="mesa"] #btn-guardar.btn-warning:focus {
     display:none !important;
   }
 }
+
+/* ============================== INVENTARIO / MENÚ GESTIÓN ============================== */
+.gest-menu .gest-submenu{position:relative}
+.gest-menu .gest-submenu-toggle{display:flex!important;align-items:center;gap:9px;width:100%;justify-content:flex-start}
+.gest-menu .gest-submenu-toggle .fa-chevron-right{margin-left:auto;font-size:10px;transition:transform .18s ease}
+.gest-menu .gest-submenu.open>.gest-submenu-toggle .fa-chevron-right{transform:rotate(90deg)}
+.gest-menu .gest-submenu-panel{display:none;padding:3px 0 5px 14px;border-left:2px solid #e6edf5;margin:1px 0 4px 10px}
+.gest-menu .gest-submenu.open>.gest-submenu-panel{display:block}
+.gest-menu .gest-submenu-panel button{font-size:12px;padding:8px 10px!important}
+
+.product-inventory-box{margin:8px 0 12px;padding:12px;border:1px solid #dbe5ef;border-radius:10px;background:#f8fbfe}
+.product-inventory-title{display:flex;align-items:center;gap:8px;color:#2c3e50;font-weight:700;margin-bottom:10px}
+.product-inventory-title small{font-weight:400;color:#64748b;margin-left:auto}
+.product-inventory-edit-note{align-items:center;justify-content:space-between;gap:12px;padding:8px 10px;background:#eef7ff;border:1px solid #cfe6fb;border-radius:8px}
+.inventory-policy-note{font-size:12px;color:#475569;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;width:100%}
+
+.inventory-modal-content{width:min(1180px,calc(100vw - 28px))!important;max-width:1180px!important}
+.inventory-modal-body{display:flex;flex-direction:column;min-height:0;overflow:hidden!important}
+.inventory-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+.inventory-toolbar>div{display:flex;flex-direction:column}.inventory-toolbar small{color:#64748b}
+.inventory-tabs{display:flex;gap:6px;overflow-x:auto;border-bottom:1px solid #dbe4ee;padding-bottom:7px;margin-bottom:10px;flex:0 0 auto}
+.inventory-tab{border:1px solid #dbe4ee;background:#fff;color:#334155;border-radius:8px;padding:8px 12px;font-weight:650;white-space:nowrap;cursor:pointer}
+.inventory-tab.active{background:#3498db;border-color:#3498db;color:#fff}
+.inventory-pane{display:none;min-height:0;overflow:auto;flex:1}.inventory-pane.active{display:block}
+.inventory-filter-row{display:grid;grid-template-columns:minmax(220px,1fr) minmax(200px,320px);gap:10px;margin-bottom:10px}
+.inventory-summary-grid{display:grid;grid-template-columns:1fr;gap:8px}
+.inventory-product-card{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 12px;border:1px solid #e2e8f0;border-radius:9px;background:#fff}
+.inventory-product-card>div:first-child{display:flex;flex-direction:column;min-width:180px}.inventory-product-card small{color:#64748b}
+.inventory-stock-list{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}
+.inventory-stock{display:inline-flex;gap:5px;align-items:center;background:#f0f7ff;border:1px solid #d5e8fb;border-radius:999px;padding:5px 9px;font-size:12px;white-space:nowrap}
+.inventory-stock em{font-style:normal;font-size:10px;color:#7c3aed}.inventory-stock.is-negative{background:#fff1f2;border-color:#fecdd3;color:#b91c1c}.combo-stock{background:#f5f3ff;border-color:#ddd6fe;color:#6d28d9}
+.inventory-product-card.is-combo{background:#fbfaff}
+.inventory-form-card{max-width:920px;margin:0 auto;padding:14px;border:1px solid #dbe4ee;border-radius:10px;background:#fff}
+.inventory-form-card h4{margin:0 0 12px;color:#2c3e50}.inventory-form-actions{display:flex;justify-content:flex-end;margin-top:12px}
+.inventory-check{display:flex;align-items:center;gap:8px;margin:8px 0;color:#334155}
+.inventory-lots-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
+.inventory-lot{display:flex;justify-content:space-between;gap:10px;border:1px solid #e2e8f0;border-radius:9px;background:#fff;padding:10px}
+.inventory-lot>div{display:flex;flex-direction:column}.inventory-lot small,.inventory-lot span{color:#64748b;font-size:11px}.inventory-lot em{font-style:normal;color:#b91c1c;font-weight:800;font-size:10px}.inventory-lot.is-expired{background:#fff5f5;border-color:#fecaca}
+.inventory-empty,.inventory-loading{padding:28px;text-align:center;color:#64748b;border:1px dashed #cbd5e1;border-radius:10px;background:#fafcff;display:flex;gap:8px;align-items:center;justify-content:center}
+
+@media (max-width:599px), (hover:none) and (pointer:coarse) and (orientation:portrait) and (min-width:600px) and (max-width:1368px){
+  .inventory-modal-content{width:100%!important;max-width:100%!important}
+  .inventory-toolbar{align-items:flex-start}.inventory-filter-row{grid-template-columns:1fr}.inventory-product-card{align-items:flex-start;flex-direction:column}.inventory-stock-list{justify-content:flex-start}.inventory-lots-list{grid-template-columns:1fr}.product-inventory-title{align-items:flex-start;flex-wrap:wrap}.product-inventory-title small{width:100%;margin-left:0}.product-inventory-edit-note{align-items:flex-start;flex-direction:column}
+}
+@media (hover:none) and (pointer:coarse) and (orientation:landscape) and (min-width:600px) and (max-width:1368px){
+  #modal-inventario-restaurante .modal-content{height:100%!important;max-height:100%!important}
+  #modal-inventario-restaurante .modal-body{min-height:0!important;overflow:hidden!important}
+  #modal-inventario-restaurante .inventory-pane{overflow-y:auto!important}
+}
+
+/* ============================== INVENTARIO — AJUSTE FINAL UI ============================== */
+#modal-inventario-restaurante .inventory-modal-content{
+  width:min(1180px,calc(100vw - 28px))!important;
+  max-width:1180px!important;
+  height:min(680px,calc(100svh - 28px))!important;
+  min-height:min(560px,calc(100svh - 28px))!important;
+  max-height:calc(100svh - 28px)!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+}
+#modal-inventario-restaurante .inventory-modal-body{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+#modal-inventario-restaurante .inventory-toolbar,
+#modal-inventario-restaurante .inventory-tabs{
+  flex:0 0 auto!important;
+}
+#modal-inventario-restaurante .inventory-pane{
+  display:none;
+  width:100%;
+  min-height:0!important;
+  height:100%!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  padding-right:4px;
+  -webkit-overflow-scrolling:touch;
+}
+#modal-inventario-restaurante .inventory-pane.active{
+  display:block!important;
+}
+
+#modal-inventario-restaurante .inventory-form-card{
+  width:100%!important;
+  max-width:none!important;
+  margin:0!important;
+  padding:14px 16px!important;
+}
+
+#modal-inventario-restaurante .inventory-product-info{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  min-width:250px;
+  flex:0 1 auto;
+}
+#modal-inventario-restaurante .inventory-product-image{
+  width:52px;
+  height:52px;
+  flex:0 0 52px;
+  object-fit:contain;
+  border:1px solid #e2e8f0;
+  border-radius:9px;
+  background:#f8fafc;
+  padding:3px;
+}
+#modal-inventario-restaurante .inventory-product-text{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+#modal-inventario-restaurante .inventory-product-text strong{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+#modal-inventario-restaurante .inventory-product-card>div:first-child{
+  min-width:0;
+}
+
+.inventory-lot-auto-note,
+.inventory-field-help{
+  color:#64748b;
+  font-size:12px;
+}
+.inventory-lot-auto-note{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  border:1px solid #dbe7f3;
+  border-radius:8px;
+  background:#f8fbfe;
+}
+.inventory-field-help{
+  display:block;
+  margin-top:5px;
+}
+
+#modal-inventario-restaurante .select2-container,
+#modal-producto .select2-container{
+  width:100%!important;
+  max-width:100%!important;
+}
+#modal-inventario-restaurante .select2-container .select2-selection--single,
+#modal-producto .select2-container .select2-selection--single{
+  min-height:39px;
+  display:flex;
+  align-items:center;
+}
+#modal-inventario-restaurante .select2-container .select2-selection__rendered,
+#modal-producto .select2-container .select2-selection__rendered{
+  width:100%;
+}
+#modal-inventario-restaurante .select2-search--dropdown .select2-search__field,
+#modal-producto .select2-search--dropdown .select2-search__field{
+  width:100%!important;
+}
+
+@media (max-width:599px), (hover:none) and (pointer:coarse) and (orientation:portrait) and (min-width:600px) and (max-width:1368px){
+  #modal-inventario-restaurante .inventory-modal-content{
+    width:100%!important;
+    max-width:100%!important;
+    height:calc(100svh - 16px)!important;
+    min-height:0!important;
+    max-height:calc(100svh - 16px)!important;
+  }
+  #modal-inventario-restaurante .inventory-product-info{
+    min-width:0;
+    width:100%;
+  }
+}
+
+@media (hover:none) and (pointer:coarse) and (orientation:landscape) and (min-width:600px) and (max-width:1368px){
+  #modal-inventario-restaurante .inventory-modal-content{
+    height:calc(100svh - 16px)!important;
+    min-height:0!important;
+    max-height:calc(100svh - 16px)!important;
+  }
+}
+
+/* ============================== INVENTARIO — MEJORAS OPERATIVAS ============================== */
+#modal-inventario-restaurante .inventory-product-side{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:8px;
+  min-width:0;
+}
+#modal-inventario-restaurante .inventory-quick-actions{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:6px;
+}
+#modal-inventario-restaurante .inventory-quick-actions .btn{
+  min-height:31px;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  white-space:nowrap;
+}
+#modal-inventario-restaurante .inventory-stock.is-negative{
+  background:#fff1f2!important;
+  border-color:#fda4af!important;
+  color:#991b1b!important;
+  font-weight:700;
+  box-shadow:0 0 0 1px rgba(225,29,72,.05);
+}
+#modal-inventario-restaurante .inventory-stock.is-negative i{
+  color:#e11d48;
+}
+#modal-inventario-restaurante .inventory-lot.is-critical{
+  background:#fff7ed;
+  border-color:#fdba74;
+}
+#modal-inventario-restaurante .inventory-lot.is-warning{
+  background:#fffbeb;
+  border-color:#fde68a;
+}
+#modal-inventario-restaurante .lot-expiry-badge{
+  display:inline-flex;
+  align-items:center;
+  align-self:flex-end;
+  margin-top:4px;
+  padding:2px 7px;
+  border-radius:999px;
+  font-style:normal!important;
+  font-size:10px!important;
+  font-weight:800!important;
+}
+#modal-inventario-restaurante .lot-expiry-badge.is-expired{
+  color:#991b1b!important;
+  background:#fee2e2;
+}
+#modal-inventario-restaurante .lot-expiry-badge.is-critical{
+  color:#9a3412!important;
+  background:#ffedd5;
+}
+#modal-inventario-restaurante .lot-expiry-badge.is-warning{
+  color:#92400e!important;
+  background:#fef3c7;
+}
+
+@media (max-width:760px){
+  #modal-inventario-restaurante .inventory-product-side{
+    width:100%;
+    align-items:flex-start;
+  }
+  #modal-inventario-restaurante .inventory-quick-actions,
+  #modal-inventario-restaurante .inventory-stock-list{
+    justify-content:flex-start;
+  }
+}

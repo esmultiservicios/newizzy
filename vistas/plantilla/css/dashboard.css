@@ -1,0 +1,287 @@
+/* Ubicación: vistas/plantilla/css/dashboard.css */
+/* Dashboard IZZY - estilos exclusivos del módulo */
+
+.dashboard-fiscales-row,
+.dashboard-fiscales-row * { box-sizing: border-box; }
+
+.dashboard-fiscales-card {
+    border: 1px solid #e3eaf3;
+    border-radius: 12px;
+    overflow: visible;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, .05);
+}
+
+.dashboard-fiscales-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px;
+    background: #fff;
+    border-bottom: 1px solid #e8edf4;
+}
+
+.dashboard-fiscales-heading { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.dashboard-fiscales-heading-icon {
+    width: 42px; height: 42px; flex: 0 0 42px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    background: #edf6ff; color: #1677c8; font-size: 18px;
+}
+.dashboard-fiscales-heading strong { display: block; color: #132238; font-size: 16px; }
+.dashboard-fiscales-heading small { line-height: 1.45; white-space: normal; }
+.dashboard-fiscales-link {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 38px; padding: 8px 12px; border-radius: 9px;
+    border: 1px solid #d7e4f2; color: #1269ad; background: #fff;
+    font-size: 13px; font-weight: 700; text-decoration: none !important; white-space: nowrap;
+}
+.dashboard-fiscales-link:hover { background: #f4f9ff; color: #0b5a96; }
+
+.dashboard-fiscales-toolbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    margin-bottom: 16px; flex-wrap: wrap;
+}
+.dashboard-fiscales-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.dashboard-fiscales-page-size { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #46556b; }
+.dashboard-fiscales-page-size select { width: 72px; min-width: 72px; }
+
+.dashboard-fiscales-state {
+    min-height: 110px; padding: 22px; border: 1px dashed #d8e2ee; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; gap: 12px; color: #66768c; text-align: center;
+}
+.dashboard-fiscales-state i { font-size: 22px; }
+.dashboard-fiscales-state strong, .dashboard-fiscales-state small { display: block; }
+
+.dashboard-fiscales-listado { display: grid; gap: 14px; min-width: 0; }
+.dashboard-fiscal-item {
+    position: relative; min-width: 0; overflow: hidden;
+    border: 1px solid #dce6f1; border-radius: 12px; background: #fff;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, .035);
+}
+.dashboard-fiscal-item::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #27b98a;
+}
+.dashboard-fiscal-item-head { padding: 16px 16px 12px; border-bottom: 1px solid #edf1f6; background: #fbfdff; }
+.dashboard-fiscal-identidad { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+.dashboard-fiscal-icon {
+    width: 42px; height: 42px; flex: 0 0 42px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    background: #edf5ff; color: #176fbc; border: 1px solid #d9e9fb;
+}
+.dashboard-fiscal-identidad-content { min-width: 0; flex: 1; }
+.dashboard-fiscal-title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dashboard-fiscal-title-row h4 { margin: 0; color: #10233f; font-size: 15px; font-weight: 800; overflow-wrap: anywhere; }
+.dashboard-fiscal-doc-row { margin-top: 6px; }
+.dashboard-fiscal-identidad-content small { display: block; margin-top: 7px; color: #75849a; }
+
+.dashboard-fiscal-badge, .dashboard-fiscal-doc-badge, .dashboard-fiscal-vigencia {
+    display: inline-flex; align-items: center; gap: 5px; border-radius: 999px;
+    padding: 3px 8px; font-size: 11px; font-weight: 800; line-height: 1.2; white-space: nowrap;
+}
+.dashboard-fiscal-badge-active { background: #e9f9ef; color: #187a3c; border: 1px solid #bde9cc; }
+.dashboard-fiscal-badge-inactive { background: #f5f6f8; color: #667085; border: 1px solid #dfe3e8; }
+.dashboard-fiscal-doc-factura { background: #edf4ff; color: #1559b7; border: 1px solid #cfe0ff; }
+.dashboard-fiscal-doc-proforma { background: #fff4e5; color: #9d5b00; border: 1px solid #f6d9a8; }
+.dashboard-fiscal-doc-credito { background: #eafaf5; color: #14765d; border: 1px solid #c5eadf; }
+.dashboard-fiscal-doc-debito { background: #fef0f0; color: #b33b3b; border: 1px solid #f2cccc; }
+.dashboard-fiscal-doc-default { background: #f3f5f8; color: #536173; border: 1px solid #dde3ea; }
+
+.dashboard-fiscal-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1fr); min-width: 0; }
+.dashboard-fiscal-section { min-width: 0; padding: 15px 16px 16px; border-right: 1px solid #edf1f6; }
+.dashboard-fiscal-section:last-child { border-right: 0; }
+.dashboard-fiscal-section-title {
+    display: flex; align-items: center; gap: 7px; margin-bottom: 12px;
+    color: #1b2d46; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .35px;
+}
+.dashboard-fiscal-section-title i { color: #2878bb; }
+.dashboard-fiscal-detail { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 9px; min-width: 0; color: #405068; font-size: 12px; }
+.dashboard-fiscal-detail > div { min-width: 0; flex: 1; }
+.dashboard-fiscal-detail strong { display: block; color: #17283f; font-size: 11px; margin-bottom: 2px; }
+.dashboard-fiscal-detail span { overflow-wrap: anywhere; word-break: break-word; }
+.dashboard-fiscal-detail-icon {
+    width: 24px; height: 24px; flex: 0 0 24px; border-radius: 7px;
+    display: flex; align-items: center; justify-content: center; font-size: 10px;
+}
+.icon-cai { background: #e8f8ef; color: #16804a; }
+.icon-prefix { background: #eef4ff; color: #2e66bd; }
+.icon-date { background: #fff3e8; color: #e56b17; }
+.dashboard-fiscal-wrap { font-family: monospace; font-size: 11px; }
+.dashboard-fiscal-mini { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.dashboard-fiscal-mini span { background: #f5f8fb; border: 1px solid #e4eaf1; border-radius: 7px; padding: 5px 7px; font-size: 11px; color: #607087; }
+
+.dashboard-fiscal-next {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 11px; border: 1px solid #dbe5f0; background: #f8fbff; border-radius: 9px;
+}
+.dashboard-fiscal-next span { color: #67778d; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+.dashboard-fiscal-next strong { color: #10233f; font-size: 18px; }
+.dashboard-fiscal-range { display: flex; align-items: center; gap: 7px; margin: 10px 0; color: #43546d; font-size: 11px; font-family: monospace; }
+.dashboard-fiscal-progress-track { height: 7px; overflow: hidden; border-radius: 999px; background: #e1e8f0; }
+.dashboard-fiscal-progress-track span { display: block; height: 100%; background: #2bbd86; border-radius: inherit; }
+.dashboard-fiscal-progress-meta { display: flex; justify-content: space-between; gap: 10px; margin-top: 6px; font-size: 10px; color: #68778c; }
+.dashboard-fiscal-progress-meta strong { color: #14804f; }
+
+.dashboard-fiscal-vigencia-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.dashboard-fiscal-vigencia-row small { color: #607087; }
+.dashboard-fiscal-vigencia-success { background: #e9f9ef; color: #187a3c; border: 1px solid #bde9cc; }
+.dashboard-fiscal-vigencia-warning { background: #fff7e7; color: #996000; border: 1px solid #f2d89d; }
+.dashboard-fiscal-vigencia-danger { background: #feeeee; color: #b13535; border: 1px solid #f2c8c8; }
+.dashboard-fiscal-vigencia-neutral { background: #f2f4f7; color: #667085; border: 1px solid #dde1e7; }
+
+.dashboard-fiscales-footer-list { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+.dashboard-fiscales-info { color: #68778c; font-size: 12px; }
+.dashboard-fiscales-paginacion { display: flex; align-items: center; justify-content: flex-end; gap: 5px; flex-wrap: wrap; }
+.dashboard-page-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+    min-height: 34px; padding: 6px 9px; border-radius: 8px; border: 1px solid #dce4ee;
+    background: #fff; color: #34445b; font-size: 11px; font-weight: 700;
+}
+.dashboard-page-btn:hover:not(.disabled):not(.active) { background: #f1f7fd; border-color: #bcd6ee; color: #166ea9; }
+.dashboard-page-btn.active { background: #268fd0; border-color: #268fd0; color: #fff; }
+.dashboard-page-btn.disabled { opacity: .45; cursor: not-allowed; }
+
+@media (max-width: 991.98px) {
+    .dashboard-fiscal-grid { grid-template-columns: 1fr; }
+    .dashboard-fiscal-section { border-right: 0; border-bottom: 1px solid #edf1f6; }
+    .dashboard-fiscal-section:last-child { border-bottom: 0; }
+}
+
+@media (max-width: 767.98px) {
+    .dashboard-fiscales-header { align-items: flex-start; flex-direction: column; }
+    .dashboard-fiscales-link { width: 100%; }
+    .dashboard-fiscales-toolbar { align-items: stretch; flex-direction: column; }
+    .dashboard-fiscales-actions { width: 100%; }
+    .dashboard-fiscales-actions .btn { flex: 1 1 120px; }
+    .dashboard-fiscales-page-size { width: 100%; justify-content: flex-start; }
+    .dashboard-fiscales-footer-list { align-items: stretch; flex-direction: column; }
+    .dashboard-fiscales-paginacion { justify-content: flex-start; }
+    .dashboard-page-btn span { display: none; }
+}
+
+@media (max-width: 575.98px) {
+    .dashboard-fiscales-card .card-body { padding: 12px; }
+    .dashboard-fiscal-item-head, .dashboard-fiscal-section { padding-left: 12px; padding-right: 12px; }
+    .dashboard-fiscal-title-row { align-items: flex-start; }
+    .dashboard-fiscal-progress-meta { flex-direction: column; gap: 2px; }
+    .dashboard-fiscales-actions .btn { flex: 1 1 100%; }
+}
+
+/* Tarjetas principales: misma línea visual limpia de Secuencia */
+.dashboard-card {
+    position: relative;
+    min-height: 142px;
+    border: 1px solid #e0e8f2 !important;
+    border-radius: 12px !important;
+    background: #fff !important;
+    color: #17283f !important;
+    box-shadow: 0 3px 12px rgba(15, 23, 42, .05) !important;
+    overflow: hidden;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.dashboard-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: #2f8fd0;
+}
+.card-link:nth-child(1) .dashboard-card::before,
+.col-xl-3:nth-child(1) .dashboard-card::before { background: #2f8fd0; }
+.col-xl-3:nth-child(2) .dashboard-card::before { background: #22a878; }
+.col-xl-3:nth-child(3) .dashboard-card::before { background: #e8a629; }
+.col-xl-3:nth-child(4) .dashboard-card::before { background: #e05b5b; }
+.dashboard-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 18px rgba(15, 23, 42, .08) !important;
+    border-color: #cad8e8 !important;
+}
+.dashboard-card .card-body { padding: 18px 18px 16px 20px; }
+.dashboard-card .card-subtitle { color: #68778d !important; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .3px; }
+.dashboard-card h2 { color: #10233f !important; font-size: 25px; font-weight: 800; overflow-wrap: anywhere; }
+.dashboard-card .icon-circle {
+    width: 46px; height: 46px; border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    background: #edf6ff !important; color: #247cc1 !important; font-size: 18px;
+    border: 1px solid #d9e9f8;
+}
+.col-xl-3:nth-child(2) .dashboard-card .icon-circle { background: #eaf9f3 !important; color: #16815b !important; border-color: #d2eee2; }
+.col-xl-3:nth-child(3) .dashboard-card .icon-circle { background: #fff7e8 !important; color: #b97a0c !important; border-color: #f4e2bd; }
+.col-xl-3:nth-child(4) .dashboard-card .icon-circle { background: #fff0f0 !important; color: #c34d4d !important; border-color: #f2d5d5; }
+.dashboard-card .card-footer-text { color: #748398 !important; font-size: 11px; }
+.card-link { text-decoration: none !important; }
+
+/* Gráficos */
+.chart-card {
+    height: 100%;
+    min-width: 0;
+    background: #fff;
+    border: 1px solid #e0e8f2;
+    border-radius: 12px;
+    box-shadow: 0 3px 12px rgba(15, 23, 42, .05);
+    overflow: hidden;
+}
+.chart-header {
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #e9eef5;
+    background: #fbfdff;
+}
+.chart-title {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    color: #17283f;
+    font-size: 15px;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+.chart-title i { color: #297fbe; }
+.chart-actions { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
+.year-selector { display: flex; flex-wrap: wrap; }
+.year-selector .btn {
+    background: #fff;
+    border: 1px solid #d9e3ee;
+    color: #506079;
+    font-size: 11px;
+    font-weight: 700;
+    min-height: 32px;
+}
+.year-selector .btn.active,
+.year-selector .btn:hover {
+    background: #edf6fd;
+    border-color: #afd2ec;
+    color: #156fae;
+}
+.chart-btn {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d9e3ee;
+    border-radius: 8px;
+    background: #fff;
+    color: #246fa9;
+    text-decoration: none !important;
+    cursor: pointer;
+}
+.chart-btn:hover { background: #eef7fd; color: #135f97; border-color: #bcd9ee; }
+.chart-container { position: relative; width: 100%; min-height: 310px; padding: 16px; overflow: hidden; }
+.chart-container canvas { max-width: 100% !important; }
+.chart-legend { display: flex; gap: 10px; flex-wrap: wrap; padding: 0 16px 15px; color: #65748a; font-size: 11px; }
+.legend-item { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.legend-color { width: 9px; height: 9px; border-radius: 3px; flex: 0 0 9px; }
+
+@media (max-width: 767.98px) {
+    .chart-header { align-items: flex-start; flex-direction: column; }
+    .chart-actions { width: 100%; justify-content: flex-start; }
+    .chart-container { min-height: 270px; padding: 10px; }
+}

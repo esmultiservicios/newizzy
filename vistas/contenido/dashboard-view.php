@@ -1,3 +1,5 @@
+<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/dashboard.css">
+
 <div class="container-fluid">
     <!-- Breadcrumb para Dashboard -->
     <div class="breadcrumb-container">
@@ -217,49 +219,95 @@
 
 	</div>
     
-    <!-- Tabla Documentos Fiscales -->
-    <div class="row">
+    <!-- Documentos Fiscales - Listado por DIVs -->
+    <div class="row dashboard-fiscales-row">
         <div class="col-12">
-            <div class="card mb-4 secuencia-table-card">
-                <div class="card-header secuencia-card-header">
-                    <div>
-                        <i class="fas fa-sliders-h fa-lg mr-1"></i>
-                        <strong>Documentos Fiscales</strong>
-                        <small class="d-block text-muted mt-1">
-                            Control rápido de documentos fiscales, rangos autorizados, correlativo siguiente y fecha de expiración.
-                        </small>
+            <div class="card mb-4 dashboard-fiscales-card">
+                <div class="card-header dashboard-fiscales-header">
+                    <div class="dashboard-fiscales-heading">
+                        <div class="dashboard-fiscales-heading-icon">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                        </div>
+                        <div>
+                            <strong>Documentos Fiscales</strong>
+                            <small class="d-block text-muted mt-1">
+                                Control rápido de documentos fiscales, rangos autorizados, correlativo siguiente y fecha de expiración.
+                            </small>
+                        </div>
                     </div>
 
-                    <a href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>secuencia/" 
-                    class="chart-btn" 
-                    data-toggle="tooltip" 
-                    data-placement="top" 
-                    title="Ver reporte completo">
+                    <a href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>secuencia/"
+                       class="dashboard-fiscales-link"
+                       data-toggle="tooltip"
+                       data-placement="top"
+                       title="Ver secuencias">
+                        <span>Ver secuencias</span>
                         <i class="fas fa-arrow-right"></i>
                     </a>
                 </div>
 
                 <div class="card-body">
-                    <div class="table-responsive secuencia-table-responsive">
-                        <table id="dataTableSecuenciaDashboard" class="table table-header-gradient table-striped table-condensed table-hover secuencia-table" style="width:100%"></table>  
+                    <div class="dashboard-fiscales-toolbar">
+                        <div class="dashboard-fiscales-actions">
+                            <button type="button" class="btn btn-secondary table_actualizar ocultar" id="btn_dashboard_fiscales_actualizar">
+                                <i class="fas fa-sync-alt mr-1"></i> Actualizar
+                            </button>
+                            <button type="button" class="btn btn-success table_reportes ocultar" id="btn_dashboard_fiscales_excel">
+                                <i class="fas fa-file-excel mr-1"></i> Excel
+                            </button>
+                            <button type="button" class="btn btn-danger table_reportes ocultar" id="btn_dashboard_fiscales_pdf">
+                                <i class="fas fa-file-pdf mr-1"></i> PDF
+                            </button>
+                        </div>
+
+                        <div class="dashboard-fiscales-page-size">
+                            <label for="dashboard_fiscales_page_size">Mostrar</label>
+                            <select id="dashboard_fiscales_page_size" class="form-control form-control-sm">
+                                <option value="3" selected>3</option>
+                                <option value="5">5</option>
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                            </select>
+                            <span>registros</span>
+                        </div>
+                    </div>
+
+                    <div id="dashboard_fiscales_loading" class="dashboard-fiscales-state d-none" role="status" aria-live="polite">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span>Cargando documentos fiscales...</span>
+                    </div>
+
+                    <div id="dashboard_fiscales_empty" class="dashboard-fiscales-state d-none" role="status" aria-live="polite">
+                        <i class="fas fa-inbox"></i>
+                        <div>
+                            <strong>No se encontraron documentos fiscales</strong>
+                            <small>No hay secuencias disponibles para mostrar.</small>
+                        </div>
+                    </div>
+
+                    <div id="dashboard_fiscales_listado" class="dashboard-fiscales-listado" aria-live="polite"></div>
+
+                    <div class="dashboard-fiscales-footer-list">
+                        <div id="dashboard_fiscales_info" class="dashboard-fiscales-info">Mostrando 0 registros</div>
+                        <nav id="dashboard_fiscales_paginacion" class="dashboard-fiscales-paginacion" aria-label="Paginación de documentos fiscales"></nav>
                     </div>
                 </div>
 
                 <div class="card-footer small text-muted">
                     <?php
                         require_once "./core/mainModel.php";
-                        
+
                         $insMainModel = new mainModel();
                         $entidad = "secuencia_facturacion";
-                        
+
                         if($insMainModel->getlastUpdate($entidad)->num_rows > 0){
                             $consulta_last_update = $insMainModel->getlastUpdate($entidad)->fetch_assoc();
                             $fecha_registro = htmlspecialchars($consulta_last_update['fecha_registro'], ENT_QUOTES, 'UTF-8');
                             $hora = htmlspecialchars(date('g:i:s a', strtotime($fecha_registro)), ENT_QUOTES, 'UTF-8');
                             echo "Última Actualización ".htmlspecialchars($insMainModel->getTheDay($fecha_registro, $hora), ENT_QUOTES, 'UTF-8');
                         } else {
-                            echo "No se encontraron registros ";
-                        }                
+                            echo "No se encontraron registros";
+                        }
                     ?>
                 </div>
             </div>

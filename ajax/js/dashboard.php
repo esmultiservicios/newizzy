@@ -732,37 +732,16 @@ function getChartOptions(title, stacked) {
 }
 
 /****************************************************************************************************************************************************************/
-// HEADER DINÁMICO - SECUENCIA DASHBOARD
+// DOCUMENTOS FISCALES DASHBOARD - LISTADO POR DIVs
 /****************************************************************************************************************************************************************/
 
-function construirHeaderDataTableSecuenciaDashboard() {
-    var $tabla = $("#dataTableSecuenciaDashboard");
-
-    $tabla.empty();
-
-    $tabla.append(
-        '<thead>' +
-            '<tr>' +
-                '<th>Secuencia</th>' +
-                '<th>Autorización / CAI</th>' +
-                '<th>Numeración</th>' +
-                '<th>Vigencia</th>' +
-            '</tr>' +
-        '</thead>'
-    );
-}
-
-/****************************************************************************************************************************************************************/
-// HELPERS SECUENCIA DASHBOARD
-/****************************************************************************************************************************************************************/
+var dashboardFiscalesRows = [];
+var dashboardFiscalesPagina = 1;
+var dashboardFiscalesPorPagina = 3;
 
 function secuenciaDashboardValor(valor, textoDefault) {
     if (valor === null || valor === undefined || String(valor).trim() === '') {
-        if (textoDefault !== undefined) {
-            return textoDefault;
-        }
-
-        return 'No registrado';
+        return textoDefault !== undefined ? textoDefault : 'No registrado';
     }
 
     return String(valor).trim();
@@ -779,12 +758,7 @@ function secuenciaDashboardEscape(valor) {
 
 function secuenciaDashboardNumero(valor) {
     var numero = parseInt(String(valor || '0').replace(/[^0-9]/g, ''), 10);
-
-    if (isNaN(numero)) {
-        return 0;
-    }
-
-    return numero;
+    return isNaN(numero) ? 0 : numero;
 }
 
 function secuenciaDashboardFechaToDate(fecha) {
@@ -795,7 +769,6 @@ function secuenciaDashboardFechaToDate(fecha) {
     }
 
     var partes = fecha.split('/');
-
     if (partes.length !== 3) {
         return null;
     }
@@ -805,99 +778,71 @@ function secuenciaDashboardFechaToDate(fecha) {
 
 function secuenciaDashboardDiasRestantes(fechaLimite) {
     var fecha = secuenciaDashboardFechaToDate(fechaLimite);
-
     if (!fecha) {
         return null;
     }
 
     var hoy = new Date();
-
     hoy.setHours(0, 0, 0, 0);
     fecha.setHours(0, 0, 0, 0);
 
-    var diff = fecha.getTime() - hoy.getTime();
-
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+    return Math.ceil((fecha.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 function secuenciaDashboardEstadoBadge(estado) {
-    if (parseInt(estado) === 1) {
-        return '' +
-            '<span class="secuencia-status-badge secuencia-status-active">' +
-                '<i class="fas fa-check-circle"></i> Activo' +
-            '</span>';
+    if (parseInt(estado, 10) === 1) {
+        return '<span class="dashboard-fiscal-badge dashboard-fiscal-badge-active"><i class="fas fa-check-circle"></i> Activo</span>';
     }
 
-    return '' +
-        '<span class="secuencia-status-badge secuencia-status-inactive">' +
-            '<i class="fas fa-times-circle"></i> Inactivo' +
-        '</span>';
+    return '<span class="dashboard-fiscal-badge dashboard-fiscal-badge-inactive"><i class="fas fa-times-circle"></i> Inactivo</span>';
 }
 
 function secuenciaDashboardDocumentoBadge(documento) {
     var doc = secuenciaDashboardValor(documento, 'Documento');
     var docLower = doc.toLowerCase();
-
-    if (docLower.indexOf('factura') !== -1) {
-        return '' +
-            '<span class="secuencia-doc-badge secuencia-doc-factura">' +
-                '<i class="fas fa-file-invoice-dollar"></i> ' + secuenciaDashboardEscape(doc) +
-            '</span>';
-    }
+    var clase = 'dashboard-fiscal-doc-default';
+    var icono = 'fa-file-alt';
 
     if (docLower.indexOf('proforma') !== -1) {
-        return '' +
-            '<span class="secuencia-doc-badge secuencia-doc-proforma">' +
-                '<i class="fas fa-file-alt"></i> ' + secuenciaDashboardEscape(doc) +
-            '</span>';
+        clase = 'dashboard-fiscal-doc-proforma';
+        icono = 'fa-file-contract';
+    } else if (docLower.indexOf('credito') !== -1 || docLower.indexOf('crédito') !== -1) {
+        clase = 'dashboard-fiscal-doc-credito';
+        icono = 'fa-file-invoice';
+    } else if (docLower.indexOf('debito') !== -1 || docLower.indexOf('débito') !== -1) {
+        clase = 'dashboard-fiscal-doc-debito';
+        icono = 'fa-file-invoice-dollar';
+    } else if (docLower.indexOf('factura') !== -1) {
+        clase = 'dashboard-fiscal-doc-factura';
+        icono = 'fa-file-invoice-dollar';
     }
 
-    return '' +
-        '<span class="secuencia-doc-badge secuencia-doc-normal">' +
-            '<i class="fas fa-file"></i> ' + secuenciaDashboardEscape(doc) +
-        '</span>';
+    return '<span class="dashboard-fiscal-doc-badge ' + clase + '"><i class="fas ' + icono + '"></i> ' + secuenciaDashboardEscape(doc) + '</span>';
 }
 
 function secuenciaDashboardVencimientoBadge(fechaLimite) {
     var dias = secuenciaDashboardDiasRestantes(fechaLimite);
 
     if (dias === null) {
-        return '' +
-            '<span class="secuencia-vencimiento-badge secuencia-vencimiento-normal">' +
-                '<i class="fas fa-calendar-alt"></i> Sin fecha' +
-            '</span>';
+        return '<span class="dashboard-fiscal-vigencia dashboard-fiscal-vigencia-neutral"><i class="fas fa-calendar-alt"></i> Sin fecha</span>';
     }
 
     if (dias < 0) {
-        return '' +
-            '<span class="secuencia-vencimiento-badge secuencia-vencimiento-vencida">' +
-                '<i class="fas fa-times-circle"></i> Vencida' +
-            '</span>';
+        return '<span class="dashboard-fiscal-vigencia dashboard-fiscal-vigencia-danger"><i class="fas fa-times-circle"></i> Vencida</span>';
     }
 
     if (dias <= 30) {
-        return '' +
-            '<span class="secuencia-vencimiento-badge secuencia-vencimiento-alerta">' +
-                '<i class="fas fa-exclamation-triangle"></i> ' + dias + ' días' +
-            '</span>';
+        return '<span class="dashboard-fiscal-vigencia dashboard-fiscal-vigencia-warning"><i class="fas fa-exclamation-triangle"></i> ' + dias + ' días</span>';
     }
 
-    return '' +
-        '<span class="secuencia-vencimiento-badge secuencia-vencimiento-ok">' +
-            '<i class="fas fa-check-circle"></i> Vigente' +
-        '</span>';
+    return '<span class="dashboard-fiscal-vigencia dashboard-fiscal-vigencia-success"><i class="fas fa-check-circle"></i> Vigente</span>';
 }
 
 function secuenciaDashboardDisponibles(row) {
     var rangoFinal = secuenciaDashboardNumero(row.fin || row.rango_final);
     var siguiente = secuenciaDashboardNumero(row.siguiente);
     var disponibles = rangoFinal - siguiente + 1;
-
-    if (disponibles < 0) {
-        disponibles = 0;
-    }
-
-    return disponibles;
+    return disponibles < 0 ? 0 : disponibles;
 }
 
 function secuenciaDashboardPorcentajeUsado(row) {
@@ -911,279 +856,795 @@ function secuenciaDashboardPorcentajeUsado(row) {
         return 0;
     }
 
-    if (usado < 0) {
-        usado = 0;
-    }
-
-    var porcentaje = (usado / total) * 100;
-
-    if (porcentaje > 100) {
-        porcentaje = 100;
-    }
-
-    return porcentaje.toFixed(0);
+    usado = Math.max(0, usado);
+    return Math.min(100, Math.round((usado / total) * 100));
 }
 
-/****************************************************************************************************************************************************************/
-// DATATABLE DOCUMENTOS FISCALES DASHBOARD
-/****************************************************************************************************************************************************************/
+function dashboardFiscalesRenderCard(row) {
+    var empresa = secuenciaDashboardEscape(secuenciaDashboardValor(row.empresa, 'Empresa'));
+    var documento = secuenciaDashboardDocumentoBadge(row.documento);
+    var estado = secuenciaDashboardEstadoBadge(row.estado !== undefined ? row.estado : 1);
+    var idSecuencia = secuenciaDashboardEscape(secuenciaDashboardValor(row.secuencia_facturacion_id || row.id || row.secuencia_id, 'N/D'));
+    var cai = secuenciaDashboardEscape(secuenciaDashboardValor(row.cai, 'Sin CAI'));
+    var prefijo = secuenciaDashboardEscape(secuenciaDashboardValor(row.prefijo, 'Sin prefijo'));
+    var relleno = secuenciaDashboardEscape(secuenciaDashboardValor(row.relleno, '0'));
+    var incremento = secuenciaDashboardEscape(secuenciaDashboardValor(row.incremento, '0'));
+    var siguiente = secuenciaDashboardEscape(secuenciaDashboardValor(row.siguiente, '0'));
+    var rangoInicial = secuenciaDashboardEscape(secuenciaDashboardValor(row.inicio || row.rango_inicial, '0'));
+    var rangoFinal = secuenciaDashboardEscape(secuenciaDashboardValor(row.fin || row.rango_final, '0'));
+    var disponibles = secuenciaDashboardDisponibles(row);
+    var porcentaje = secuenciaDashboardPorcentajeUsado(row);
+    var fechaActivacionRaw = row.fecha_activacion || row.activacion || '';
+    var fechaLimiteRaw = row.fecha_limite || row.fecha || '';
+    var fechaRegistroRaw = row.fecha_registro || row.registro || '';
+    var fechaActivacion = secuenciaDashboardEscape(secuenciaDashboardValor(fechaActivacionRaw, 'No registrada'));
+    var fechaLimite = secuenciaDashboardEscape(secuenciaDashboardValor(fechaLimiteRaw, 'No registrada'));
+    var fechaRegistro = secuenciaDashboardEscape(secuenciaDashboardValor(fechaRegistroRaw, 'No registrada'));
+    var vigencia = secuenciaDashboardVencimientoBadge(fechaLimiteRaw);
+    var dias = secuenciaDashboardDiasRestantes(fechaLimiteRaw);
+    var diasTexto = 'Sin información';
 
-function listar_secuencia_fiscales_dashboard() {
-    if ($.fn.DataTable.isDataTable("#dataTableSecuenciaDashboard")) {
-        $("#dataTableSecuenciaDashboard").DataTable().clear().destroy();
+    if (dias !== null) {
+        diasTexto = dias < 0 ? 'Venció hace ' + Math.abs(dias) + ' días' : 'Faltan ' + dias + ' días';
     }
 
-    construirHeaderDataTableSecuenciaDashboard();
+    return '' +
+        '<article class="dashboard-fiscal-item">' +
+            '<div class="dashboard-fiscal-item-head">' +
+                '<div class="dashboard-fiscal-identidad">' +
+                    '<div class="dashboard-fiscal-icon"><i class="fas fa-file-invoice"></i></div>' +
+                    '<div class="dashboard-fiscal-identidad-content">' +
+                        '<div class="dashboard-fiscal-title-row">' +
+                            '<h4>' + empresa + '</h4>' + estado +
+                        '</div>' +
+                        '<div class="dashboard-fiscal-doc-row">' + documento + '</div>' +
+                        '<small><i class="fas fa-hashtag"></i> ID: ' + idSecuencia + '</small>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
 
-    var table_secuencia_fiscales_dashboard = $("#dataTableSecuenciaDashboard").DataTable({
-        "destroy": true,
-        "autoWidth": false,
-        "scrollX": false,
-        "ajax": {
-            "method": "POST",
-            "url": "<?php echo SERVERURL; ?>core/llenarDataTableSecuenciaFacturacion.php",
-            "dataSrc": function(json) {
-                if (json && json.data) {
-                    return json.data;
-                }
+            '<div class="dashboard-fiscal-grid">' +
+                '<section class="dashboard-fiscal-section">' +
+                    '<div class="dashboard-fiscal-section-title"><i class="fas fa-key"></i><span>Autorización / CAI</span></div>' +
+                    '<div class="dashboard-fiscal-detail"><span class="dashboard-fiscal-detail-icon icon-cai"><i class="fas fa-key"></i></span><div><strong>CAI</strong><span class="dashboard-fiscal-wrap">' + cai + '</span></div></div>' +
+                    '<div class="dashboard-fiscal-detail"><span class="dashboard-fiscal-detail-icon icon-prefix"><i class="fas fa-barcode"></i></span><div><strong>Prefijo</strong><span>' + prefijo + '</span></div></div>' +
+                    '<div class="dashboard-fiscal-mini"><span>Relleno <strong>' + relleno + '</strong></span><span>Incremento <strong>' + incremento + '</strong></span></div>' +
+                '</section>' +
 
-                return [];
-            }
+                '<section class="dashboard-fiscal-section">' +
+                    '<div class="dashboard-fiscal-section-title"><i class="fas fa-list-ol"></i><span>Numeración</span></div>' +
+                    '<div class="dashboard-fiscal-next"><span>Siguiente</span><strong>' + siguiente + '</strong></div>' +
+                    '<div class="dashboard-fiscal-range"><i class="fas fa-arrows-alt-h"></i><span>' + rangoInicial + ' - ' + rangoFinal + '</span></div>' +
+                    '<div class="dashboard-fiscal-progress"><div class="dashboard-fiscal-progress-track"><span style="width:' + porcentaje + '%"></span></div><div class="dashboard-fiscal-progress-meta"><span>' + porcentaje + '% usado</span><strong>' + disponibles + ' disponibles</strong></div></div>' +
+                '</section>' +
+
+                '<section class="dashboard-fiscal-section">' +
+                    '<div class="dashboard-fiscal-section-title"><i class="fas fa-calendar-alt"></i><span>Vigencia</span></div>' +
+                    '<div class="dashboard-fiscal-detail"><span class="dashboard-fiscal-detail-icon icon-date"><i class="fas fa-calendar-check"></i></span><div><strong>Activación</strong><span>' + fechaActivacion + '</span></div></div>' +
+                    '<div class="dashboard-fiscal-detail"><span class="dashboard-fiscal-detail-icon icon-date"><i class="fas fa-calendar-times"></i></span><div><strong>Límite</strong><span>' + fechaLimite + '</span></div></div>' +
+                    '<div class="dashboard-fiscal-detail"><span class="dashboard-fiscal-detail-icon icon-date"><i class="fas fa-clock"></i></span><div><strong>Registro</strong><span>' + fechaRegistro + '</span></div></div>' +
+                    '<div class="dashboard-fiscal-vigencia-row">' + vigencia + '<small>' + secuenciaDashboardEscape(diasTexto) + '</small></div>' +
+                '</section>' +
+            '</div>' +
+        '</article>';
+}
+
+function dashboardFiscalesRender() {
+    var total = dashboardFiscalesRows.length;
+    dashboardFiscalesPorPagina = parseInt($('#dashboard_fiscales_page_size').val(), 10) || 3;
+
+    var totalPaginas = Math.max(1, Math.ceil(total / dashboardFiscalesPorPagina));
+    if (dashboardFiscalesPagina > totalPaginas) {
+        dashboardFiscalesPagina = totalPaginas;
+    }
+
+    var inicio = (dashboardFiscalesPagina - 1) * dashboardFiscalesPorPagina;
+    var fin = Math.min(inicio + dashboardFiscalesPorPagina, total);
+    var filasPagina = dashboardFiscalesRows.slice(inicio, fin);
+
+    $('#dashboard_fiscales_listado').html(filasPagina.map(dashboardFiscalesRenderCard).join(''));
+    $('#dashboard_fiscales_empty').toggleClass('d-none', total !== 0);
+    $('#dashboard_fiscales_info').text(total === 0 ? 'Mostrando 0 registros' : 'Mostrando ' + (inicio + 1) + ' a ' + fin + ' de ' + total + ' registros');
+
+    dashboardFiscalesRenderPaginacion(totalPaginas);
+
+    if (typeof getPermisosTipoUsuarioAccesosTable === 'function' && typeof getPrivilegioTipoUsuario === 'function') {
+        getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+    }
+}
+
+function dashboardFiscalesRenderPaginacion(totalPaginas) {
+    var $nav = $('#dashboard_fiscales_paginacion');
+    $nav.empty();
+
+    if (totalPaginas <= 1) {
+        return;
+    }
+
+    function boton(texto, pagina, disabled, active, icono) {
+        var clase = 'dashboard-page-btn';
+        if (active) clase += ' active';
+        if (disabled) clase += ' disabled';
+
+        return '<button type="button" class="' + clase + '" data-page="' + pagina + '" ' + (disabled ? 'disabled' : '') + '>' +
+            (icono ? '<i class="fas ' + icono + '"></i>' : '') + '<span>' + texto + '</span></button>';
+    }
+
+    var html = '';
+    html += boton('Inicio', 1, dashboardFiscalesPagina === 1, false, 'fa-angle-double-left');
+    html += boton('Anterior', dashboardFiscalesPagina - 1, dashboardFiscalesPagina === 1, false, 'fa-angle-left');
+
+    var desde = Math.max(1, dashboardFiscalesPagina - 2);
+    var hasta = Math.min(totalPaginas, desde + 4);
+    desde = Math.max(1, hasta - 4);
+
+    for (var i = desde; i <= hasta; i++) {
+        html += boton(String(i), i, false, i === dashboardFiscalesPagina, '');
+    }
+
+    html += boton('Siguiente', dashboardFiscalesPagina + 1, dashboardFiscalesPagina === totalPaginas, false, 'fa-angle-right');
+    html += boton('Final', totalPaginas, dashboardFiscalesPagina === totalPaginas, false, 'fa-angle-double-right');
+
+    $nav.html(html);
+}
+
+function listar_secuencia_fiscales_dashboard() {
+    $('#dashboard_fiscales_loading').removeClass('d-none');
+    $('#dashboard_fiscales_empty').addClass('d-none');
+    $('#dashboard_fiscales_listado').empty();
+
+    $.ajax({
+        method: 'POST',
+        url: '<?php echo SERVERURL; ?>core/llenarDataTableSecuenciaFacturacion.php',
+        dataType: 'json',
+        timeout: 15000,
+        success: function(json) {
+            dashboardFiscalesRows = json && Array.isArray(json.data) ? json.data : [];
+            dashboardFiscalesPagina = 1;
+            dashboardFiscalesRender();
         },
-        "columns": [
-            {
-                "data": null,
-                "className": "align-middle secuencia-info-cell",
-                "render": function(data, type, row) {
-                    var empresa = secuenciaDashboardEscape(row.empresa);
-                    var estado = row.estado !== null && row.estado !== undefined ? row.estado : 1;
-                    var estadoBadge = secuenciaDashboardEstadoBadge(estado);
-                    var documentoBadge = secuenciaDashboardDocumentoBadge(row.documento);
-                    var idSecuencia = secuenciaDashboardValor(row.secuencia_facturacion_id || row.id || row.secuencia_id, 'No disponible');
-
-                    if (type !== "display") {
-                        return empresa + ' ' + row.documento + ' ' + (parseInt(estado) === 1 ? 'Activo' : 'Inactivo');
-                    }
-
-                    return '' +
-                        '<div class="secuencia-main-box">' +
-                            '<div class="secuencia-main-icon">' +
-                                '<i class="fas fa-file-invoice"></i>' +
-                            '</div>' +
-                            '<div class="secuencia-main-info">' +
-                                '<div class="secuencia-title-row">' +
-                                    '<h6 class="secuencia-empresa">' + empresa + '</h6>' +
-                                    estadoBadge +
-                                '</div>' +
-                                '<div class="secuencia-documento-row">' +
-                                    documentoBadge +
-                                '</div>' +
-                                '<div class="secuencia-id-text">' +
-                                    '<i class="fas fa-hashtag mr-1"></i> ID: ' + secuenciaDashboardEscape(idSecuencia) +
-                                '</div>' +
-                            '</div>' +
-                        '</div>';
-                }
-            },
-            {
-                "data": null,
-                "className": "align-middle secuencia-cai-cell",
-                "render": function(data, type, row) {
-                    var cai = secuenciaDashboardEscape(secuenciaDashboardValor(row.cai, 'Sin CAI'));
-                    var prefijo = secuenciaDashboardEscape(secuenciaDashboardValor(row.prefijo, 'Sin prefijo'));
-                    var relleno = secuenciaDashboardEscape(secuenciaDashboardValor(row.relleno, '0'));
-                    var incremento = secuenciaDashboardEscape(secuenciaDashboardValor(row.incremento, '0'));
-
-                    if (type !== "display") {
-                        return cai + ' ' + prefijo + ' ' + relleno + ' ' + incremento;
-                    }
-
-                    return '' +
-                        '<div class="secuencia-detail-list">' +
-                            '<div class="secuencia-detail-item">' +
-                                '<span class="secuencia-detail-icon secuencia-icon-cai"><i class="fas fa-key"></i></span>' +
-                                '<span><strong>CAI:</strong> <span class="secuencia-cai-text">' + cai + '</span></span>' +
-                            '</div>' +
-                            '<div class="secuencia-detail-item">' +
-                                '<span class="secuencia-detail-icon secuencia-icon-prefijo"><i class="fas fa-barcode"></i></span>' +
-                                '<span><strong>Prefijo:</strong> ' + prefijo + '</span>' +
-                            '</div>' +
-                            '<div class="secuencia-mini-row">' +
-                                '<span><i class="fas fa-fill-drip mr-1"></i> Relleno: <strong>' + relleno + '</strong></span>' +
-                                '<span><i class="fas fa-plus mr-1"></i> Incremento: <strong>' + incremento + '</strong></span>' +
-                            '</div>' +
-                        '</div>';
-                }
-            },
-            {
-                "data": null,
-                "className": "align-middle secuencia-numero-cell",
-                "render": function(data, type, row) {
-                    var siguiente = secuenciaDashboardEscape(secuenciaDashboardValor(row.siguiente, '0'));
-                    var rangoInicial = secuenciaDashboardEscape(secuenciaDashboardValor(row.inicio || row.rango_inicial, '0'));
-                    var rangoFinal = secuenciaDashboardEscape(secuenciaDashboardValor(row.fin || row.rango_final, '0'));
-                    var disponibles = secuenciaDashboardDisponibles(row);
-                    var porcentaje = secuenciaDashboardPorcentajeUsado(row);
-
-                    if (type !== "display") {
-                        return siguiente + ' ' + rangoInicial + ' ' + rangoFinal + ' ' + disponibles;
-                    }
-
-                    return '' +
-                        '<div class="secuencia-number-box">' +
-                            '<div class="secuencia-next-number">' +
-                                '<span>Siguiente</span>' +
-                                '<strong>' + siguiente + '</strong>' +
-                            '</div>' +
-                            '<div class="secuencia-range-text">' +
-                                '<i class="fas fa-arrows-alt-h mr-1"></i>' +
-                                rangoInicial + ' - ' + rangoFinal +
-                            '</div>' +
-                            '<div class="secuencia-progress-box">' +
-                                '<div class="secuencia-progress-line">' +
-                                    '<span style="width:' + porcentaje + '%"></span>' +
-                                '</div>' +
-                                '<div class="secuencia-progress-meta">' +
-                                    '<span>' + porcentaje + '% usado</span>' +
-                                    '<strong>' + disponibles + ' disponibles</strong>' +
-                                '</div>' +
-                            '</div>' +
-                        '</div>';
-                }
-            },
-            {
-                "data": null,
-                "className": "align-middle secuencia-vigencia-cell",
-                "render": function(data, type, row) {
-                    var fechaActivacionRaw = row.fecha_activacion || row.activacion || '';
-                    var fechaLimiteRaw = row.fecha_limite || row.fecha || '';
-                    var fechaRegistroRaw = row.fecha_registro || row.registro || '';
-
-                    var fechaActivacion = secuenciaDashboardEscape(secuenciaDashboardValor(fechaActivacionRaw, 'No registrada'));
-                    var fechaLimite = secuenciaDashboardEscape(secuenciaDashboardValor(fechaLimiteRaw, 'No registrada'));
-                    var fechaRegistro = secuenciaDashboardEscape(secuenciaDashboardValor(fechaRegistroRaw, 'No registrada'));
-
-                    var badgeVencimiento = secuenciaDashboardVencimientoBadge(fechaLimiteRaw);
-                    var dias = secuenciaDashboardDiasRestantes(fechaLimiteRaw);
-
-                    var diasTexto = 'Sin información';
-
-                    if (dias !== null) {
-                        if (dias < 0) {
-                            diasTexto = 'Venció hace ' + Math.abs(dias) + ' días';
-                        } else {
-                            diasTexto = 'Faltan ' + dias + ' días';
-                        }
-                    }
-
-                    if (type !== "display") {
-                        return fechaActivacion + ' ' + fechaLimite + ' ' + fechaRegistro + ' ' + diasTexto;
-                    }
-
-                    return '' +
-                        '<div class="secuencia-detail-list">' +
-                            '<div class="secuencia-detail-item">' +
-                                '<span class="secuencia-detail-icon secuencia-icon-date"><i class="fas fa-calendar-check"></i></span>' +
-                                '<span><strong>Activación:</strong> ' + fechaActivacion + '</span>' +
-                            '</div>' +
-                            '<div class="secuencia-detail-item">' +
-                                '<span class="secuencia-detail-icon secuencia-icon-date"><i class="fas fa-calendar-times"></i></span>' +
-                                '<span><strong>Límite:</strong> ' + fechaLimite + '</span>' +
-                            '</div>' +
-                            '<div class="secuencia-detail-item">' +
-                                '<span class="secuencia-detail-icon secuencia-icon-date"><i class="fas fa-clock"></i></span>' +
-                                '<span><strong>Registro:</strong> ' + fechaRegistro + '</span>' +
-                            '</div>' +
-                            '<div class="secuencia-vencimiento-row">' +
-                                badgeVencimiento +
-                                '<small>' + diasTexto + '</small>' +
-                            '</div>' +
-                        '</div>';
-                }
+        error: function(xhr) {
+            dashboardFiscalesRows = [];
+            dashboardFiscalesRender();
+            if (typeof showNotify === 'function') {
+                showNotify('error', 'Error', 'No se pudieron cargar los documentos fiscales del dashboard.');
             }
-        ],
-        "lengthMenu": lengthMenu,
-        "stateSave": true,
-        "bDestroy": true,
-        "language": idioma_español,
-        "dom": dom,
-        "order": [[0, "asc"]],
-        "columnDefs": [
-            {
-                width: "30%",
-                targets: 0,
-                className: "align-middle secuencia-info-cell"
-            },
-            {
-                width: "30%",
-                targets: 1,
-                className: "align-middle secuencia-cai-cell"
-            },
-            {
-                width: "22%",
-                targets: 2,
-                className: "align-middle secuencia-numero-cell"
-            },
-            {
-                width: "18%",
-                targets: 3,
-                className: "align-middle secuencia-vigencia-cell"
-            }
-        ],
-        "buttons": [
-            {
-                text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-                titleAttr: 'Actualizar Documentos Fiscales',
-                className: 'table_actualizar btn btn-secondary ocultar',
-                action: function() {
-                    listar_secuencia_fiscales_dashboard();
-                }
-            },
-            {
-                extend: 'excelHtml5',
-                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
-                titleAttr: 'Excel',
-                orientation: 'landscape',
-                pageSize: 'LETTER',
-                title: 'Reporte Documentos Fiscales',
-                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-                className: 'table_reportes btn btn-success ocultar',
-                exportOptions: {
-                    columns: [0, 1, 2, 3]
-                }
-            },
-            {
-                extend: 'pdf',
-                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-                titleAttr: 'PDF',
-                orientation: 'landscape',
-                pageSize: 'LETTER',
-                title: 'Reporte Documentos Fiscales',
-                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-                className: 'table_reportes btn btn-danger ocultar',
-                exportOptions: {
-                    columns: [0, 1, 2, 3]
-                },
-                customize: function(doc) {
-                    if (imagen) {
-                        doc.content.splice(0, 0, {
-                            image: imagen,
-                            width: 100,
-                            height: 45,
-                            margin: [0, 0, 0, 12]
-                        });
-                    }
-                }
-            }
-        ],
-        "drawCallback": function(settings) {
-            if (typeof aplicarPermisosDataTablesAsync === 'function') {
-                aplicarPermisosDataTablesAsync();
-            }
+            console.error('Error al cargar documentos fiscales:', xhr.status, xhr.responseText);
+        },
+        complete: function() {
+            $('#dashboard_fiscales_loading').addClass('d-none');
         }
     });
+}
 
-    table_secuencia_fiscales_dashboard.search('').draw();
+function dashboardFiscalesDatosExportacion() {
+    return dashboardFiscalesRows.map(function(row) {
+        var estado = parseInt(row.estado !== undefined ? row.estado : 1, 10) === 1 ? 'Activo' : 'Inactivo';
+        var fechaLimite = secuenciaDashboardValor(row.fecha_limite || row.fecha, '');
+        var dias = secuenciaDashboardDiasRestantes(fechaLimite);
+        var vigencia = 'Sin información';
+
+        if (dias !== null) {
+            if (dias < 0) {
+                vigencia = 'Vencida hace ' + Math.abs(dias) + ' días';
+            } else if (dias === 0) {
+                vigencia = 'Vence hoy';
+            } else {
+                vigencia = 'Faltan ' + dias + ' días';
+            }
+        }
+
+        return {
+            empresa: secuenciaDashboardValor(row.empresa, ''),
+            documento: secuenciaDashboardValor(row.documento, ''),
+            estado: estado,
+            cai: secuenciaDashboardValor(row.cai, 'Sin CAI'),
+            prefijo: secuenciaDashboardValor(row.prefijo, 'Sin prefijo'),
+            relleno: secuenciaDashboardValor(row.relleno, '0'),
+            incremento: secuenciaDashboardValor(row.incremento, '1'),
+            siguiente: secuenciaDashboardValor(row.siguiente, '0'),
+            rango_inicial: secuenciaDashboardValor(row.inicio || row.rango_inicial, ''),
+            rango_final: secuenciaDashboardValor(row.fin || row.rango_final, ''),
+            disponibles: secuenciaDashboardDisponibles(row),
+            porcentaje: secuenciaDashboardPorcentajeUsado(row),
+            activacion: secuenciaDashboardValor(row.fecha_activacion || row.activacion, ''),
+            limite: fechaLimite,
+            vigencia: vigencia
+        };
+    });
+}
+
+function dashboardFiscalesFechaReporte() {
+    if (typeof convertDateFormat === 'function' && typeof today === 'function') {
+        return convertDateFormat(today());
+    }
+
+    return new Date().toLocaleDateString('es-HN');
+}
+
+function dashboardFiscalesNombreArchivo(extension) {
+    var fecha = new Date();
+    var yyyy = fecha.getFullYear();
+    var mm = String(fecha.getMonth() + 1).padStart(2, '0');
+    var dd = String(fecha.getDate()).padStart(2, '0');
+    return 'Documentos_Fiscales_' + yyyy + '-' + mm + '-' + dd + '.' + extension;
+}
+
+function dashboardFiscalesXmlEscape(value) {
+    return String(value === null || value === undefined ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+}
+
+function dashboardFiscalesExcelColName(index) {
+    var name = '';
+    var n = index + 1;
+
+    while (n > 0) {
+        var mod = (n - 1) % 26;
+        name = String.fromCharCode(65 + mod) + name;
+        n = Math.floor((n - 1) / 26);
+    }
+
+    return name;
+}
+
+function dashboardFiscalesExcelCell(ref, value, styleId, numeric) {
+    if (numeric) {
+        var numero = Number(value);
+        if (!isNaN(numero)) {
+            return '<c r="' + ref + '" s="' + styleId + '"><v>' + numero + '</v></c>';
+        }
+    }
+
+    var raw = String(value === null || value === undefined ? '' : value);
+    var preserve = /^\s|\s$/.test(raw) ? ' xml:space="preserve"' : '';
+
+    return '<c r="' + ref + '" s="' + styleId + '" t="inlineStr"><is><t' + preserve + '>' + dashboardFiscalesXmlEscape(raw) + '</t></is></c>';
+}
+
+function dashboardFiscalesGenerarXlsx(rows) {
+    if (typeof JSZip === 'undefined') {
+        return null;
+    }
+
+    var headers = [
+        'Empresa', 'Documento', 'Estado', 'CAI', 'Prefijo', 'Relleno',
+        'Incremento', 'Siguiente', 'Rango Inicial', 'Rango Final',
+        'Disponibles', '% Usado', 'Activación', 'Límite', 'Vigencia'
+    ];
+
+    var totalActivas = rows.filter(function(row) {
+        return String(row.estado || '').toLowerCase() === 'activo';
+    }).length;
+
+    var totalCai = rows.filter(function(row) {
+        return row.cai && String(row.cai).trim() !== '' && String(row.cai).toLowerCase() !== 'sin cai';
+    }).length;
+
+    var totalDisponibles = rows.reduce(function(total, row) {
+        return total + (parseInt(row.disponibles, 10) || 0);
+    }, 0);
+
+    var totalPorVencer = rows.filter(function(row) {
+        var texto = String(row.vigencia || '').toLowerCase();
+        var match = texto.match(/faltan\s+(\d+)/);
+        return match && parseInt(match[1], 10) <= 30;
+    }).length;
+
+    var dataRows = rows.map(function(row) {
+        return [
+            row.empresa,
+            row.documento,
+            row.estado,
+            row.cai,
+            row.prefijo,
+            row.relleno,
+            row.incremento,
+            row.siguiente,
+            row.rango_inicial,
+            row.rango_final,
+            row.disponibles,
+            row.porcentaje,
+            row.activacion,
+            row.limite,
+            row.vigencia
+        ];
+    });
+
+    var lastCol = dashboardFiscalesExcelColName(headers.length - 1);
+    var headerRow = 7;
+    var lastRow = Math.max(headerRow, headerRow + dataRows.length);
+    var sheetRows = [];
+
+    sheetRows.push('<row r="1" ht="30" customHeight="1">' +
+        dashboardFiscalesExcelCell('A1', 'IZZY • DOCUMENTOS FISCALES', 1, false) +
+    '</row>');
+
+    sheetRows.push('<row r="2" ht="20" customHeight="1">' +
+        dashboardFiscalesExcelCell('A2', 'Control de secuencias fiscales, correlativos y vigencia • Generado: ' + dashboardFiscalesFechaReporte(), 2, false) +
+    '</row>');
+
+    sheetRows.push('<row r="3" ht="18" customHeight="1">' +
+        dashboardFiscalesExcelCell('A3', 'REGISTROS', 6, false) +
+        dashboardFiscalesExcelCell('D3', 'ACTIVAS', 6, false) +
+        dashboardFiscalesExcelCell('G3', 'CON CAI', 6, false) +
+        dashboardFiscalesExcelCell('J3', 'DISPONIBLES', 6, false) +
+        dashboardFiscalesExcelCell('M3', 'POR VENCER', 6, false) +
+    '</row>');
+
+    sheetRows.push('<row r="4" ht="26" customHeight="1">' +
+        dashboardFiscalesExcelCell('A4', rows.length, 7, true) +
+        dashboardFiscalesExcelCell('D4', totalActivas, 7, true) +
+        dashboardFiscalesExcelCell('G4', totalCai, 7, true) +
+        dashboardFiscalesExcelCell('J4', totalDisponibles, 7, true) +
+        dashboardFiscalesExcelCell('M4', totalPorVencer, 7, true) +
+    '</row>');
+
+    sheetRows.push('<row r="5"></row>');
+    sheetRows.push('<row r="6" ht="18" customHeight="1">' +
+        dashboardFiscalesExcelCell('A6', 'Detalle de documentos fiscales', 8, false) +
+    '</row>');
+
+    var headerCells = headers.map(function(header, index) {
+        return dashboardFiscalesExcelCell(dashboardFiscalesExcelColName(index) + headerRow, header, 3, false);
+    }).join('');
+
+    sheetRows.push('<row r="' + headerRow + '" ht="28" customHeight="1">' + headerCells + '</row>');
+
+    dataRows.forEach(function(row, rowIndex) {
+        var excelRow = headerRow + rowIndex + 1;
+        var cells = row.map(function(value, colIndex) {
+            var numeric = colIndex === 5 || colIndex === 6 || colIndex === 7 || colIndex === 10 || colIndex === 11;
+            var style = 4;
+
+            if (colIndex === 2) {
+                style = String(value || '').toLowerCase() === 'activo' ? 9 : 10;
+            } else if (numeric) {
+                style = 5;
+            }
+
+            return dashboardFiscalesExcelCell(
+                dashboardFiscalesExcelColName(colIndex) + excelRow,
+                value,
+                style,
+                numeric
+            );
+        }).join('');
+
+        sheetRows.push('<row r="' + excelRow + '" ht="22" customHeight="1">' + cells + '</row>');
+    });
+
+    var sheetXml =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+            '<dimension ref="A1:' + lastCol + lastRow + '"/>' +
+            '<sheetViews><sheetView workbookViewId="0" showGridLines="0">' +
+                '<pane ySplit="7" topLeftCell="A8" activePane="bottomLeft" state="frozen"/>' +
+                '<selection pane="bottomLeft" activeCell="A8" sqref="A8"/>' +
+            '</sheetView></sheetViews>' +
+            '<sheetFormatPr defaultRowHeight="15"/>' +
+            '<cols>' +
+                '<col min="1" max="1" width="24" customWidth="1"/>' +
+                '<col min="2" max="2" width="24" customWidth="1"/>' +
+                '<col min="3" max="3" width="12" customWidth="1"/>' +
+                '<col min="4" max="4" width="42" customWidth="1"/>' +
+                '<col min="5" max="5" width="20" customWidth="1"/>' +
+                '<col min="6" max="8" width="12" customWidth="1"/>' +
+                '<col min="9" max="10" width="17" customWidth="1"/>' +
+                '<col min="11" max="12" width="14" customWidth="1"/>' +
+                '<col min="13" max="14" width="16" customWidth="1"/>' +
+                '<col min="15" max="15" width="24" customWidth="1"/>' +
+            '</cols>' +
+            '<sheetData>' + sheetRows.join('') + '</sheetData>' +
+            '<autoFilter ref="A' + headerRow + ':' + lastCol + lastRow + '"/>' +
+            '<mergeCells count="12">' +
+                '<mergeCell ref="A1:' + lastCol + '1"/>' +
+                '<mergeCell ref="A2:' + lastCol + '2"/>' +
+                '<mergeCell ref="A3:C3"/><mergeCell ref="A4:C4"/>' +
+                '<mergeCell ref="D3:F3"/><mergeCell ref="D4:F4"/>' +
+                '<mergeCell ref="G3:I3"/><mergeCell ref="G4:I4"/>' +
+                '<mergeCell ref="J3:L3"/><mergeCell ref="J4:L4"/>' +
+                '<mergeCell ref="M3:O3"/><mergeCell ref="M4:O4"/>' +
+            '</mergeCells>' +
+            '<pageMargins left="0.25" right="0.25" top="0.5" bottom="0.5" header="0.2" footer="0.2"/>' +
+            '<pageSetup orientation="landscape" paperSize="1" fitToWidth="1" fitToHeight="0"/>' +
+        '</worksheet>';
+
+    var stylesXml =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+            '<fonts count="7">' +
+                '<font><sz val="10"/><name val="Calibri"/><family val="2"/></font>' +
+                '<font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+                '<font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+                '<font><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="8"/><color rgb="FF6B778C"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="15"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+            '</fonts>' +
+            '<fills count="7">' +
+                '<fill><patternFill patternType="none"/></fill>' +
+                '<fill><patternFill patternType="gray125"/></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FF172B4D"/><bgColor indexed="64"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/><bgColor indexed="64"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFF7F9FC"/><bgColor indexed="64"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFE3FCEF"/><bgColor indexed="64"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFFFEBE6"/><bgColor indexed="64"/></patternFill></fill>' +
+            '</fills>' +
+            '<borders count="2">' +
+                '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+                '<border><left style="thin"><color rgb="FFDDE3EA"/></left><right style="thin"><color rgb="FFDDE3EA"/></right><top style="thin"><color rgb="FFDDE3EA"/></top><bottom style="thin"><color rgb="FFDDE3EA"/></bottom><diagonal/></border>' +
+            '</borders>' +
+            '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+            '<cellXfs count="11">' +
+                '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+                '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="2" fillId="4" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+                '<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="6" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="5" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="5" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="6" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+            '</cellXfs>' +
+            '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+        '</styleSheet>';
+
+    var workbookXml =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+            '<bookViews><workbookView activeTab="0"/></bookViews>' +
+            '<sheets><sheet name="Documentos Fiscales" sheetId="1" r:id="rId1"/></sheets>' +
+        '</workbook>';
+
+    var workbookRels =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+            '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+        '</Relationships>';
+
+    var rootRels =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+        '</Relationships>';
+
+    var contentTypes =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+            '<Default Extension="xml" ContentType="application/xml"/>' +
+            '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+            '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+            '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+        '</Types>';
+
+    var zip = new JSZip();
+    zip.file('[Content_Types].xml', contentTypes);
+    zip.folder('_rels').file('.rels', rootRels);
+    zip.folder('xl').file('workbook.xml', workbookXml);
+    zip.folder('xl').file('styles.xml', stylesXml);
+    zip.folder('xl').folder('_rels').file('workbook.xml.rels', workbookRels);
+    zip.folder('xl').folder('worksheets').file('sheet1.xml', sheetXml);
+
+    var opcionesZip = {
+        type: 'blob',
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        compression: 'DEFLATE'
+    };
+
+    if (typeof zip.generateAsync === 'function') {
+        return zip.generateAsync(opcionesZip);
+    }
+
+    if (typeof zip.generate === 'function') {
+        try {
+            return Promise.resolve(zip.generate(opcionesZip));
+        } catch (error) {
+            return Promise.reject(error);
+        }
+    }
+
+    return Promise.reject(new Error('La versión de JSZip cargada no soporta generateAsync() ni generate().'));
+}
+
+function dashboardFiscalesDescargarBlob(blob, nombreArchivo) {
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+
+    link.href = url;
+    link.download = nombreArchivo;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setTimeout(function() {
+        URL.revokeObjectURL(url);
+    }, 1000);
+}
+
+function dashboardFiscalesExportarExcel() {
+    var rows = dashboardFiscalesDatosExportacion();
+
+    if (!rows.length) {
+        if (typeof showNotify === 'function') {
+            showNotify('warning', 'Advertencia', 'No hay registros para exportar.');
+        }
+        return;
+    }
+
+    var promesa = dashboardFiscalesGenerarXlsx(rows);
+
+    if (!promesa) {
+        if (typeof showNotify === 'function') {
+            showNotify('error', 'Excel no disponible', 'No se encontró JSZip. Verifique que la librería esté cargada antes de dashboard.php.');
+        }
+        return;
+    }
+
+    promesa.then(function(blob) {
+        dashboardFiscalesDescargarBlob(blob, dashboardFiscalesNombreArchivo('xlsx'));
+
+        if (typeof showNotify === 'function') {
+            showNotify('success', 'Excel generado', 'El reporte de documentos fiscales se generó correctamente.');
+        }
+    }).catch(function(error) {
+        console.error('Error generando Excel de documentos fiscales:', error);
+
+        if (typeof showNotify === 'function') {
+            showNotify('error', 'Error', 'No se pudo generar el archivo Excel.');
+        }
+    });
+}
+
+function dashboardFiscalesExportarPDF() {
+    var rows = dashboardFiscalesDatosExportacion();
+
+    if (!rows.length) {
+        if (typeof showNotify === 'function') {
+            showNotify('warning', 'Advertencia', 'No hay registros para exportar.');
+        }
+        return;
+    }
+
+    if (typeof pdfMake === 'undefined') {
+        if (typeof showNotify === 'function') {
+            showNotify('error', 'PDF no disponible', 'El componente PDF no está disponible.');
+        }
+        return;
+    }
+
+    var totalActivas = rows.filter(function(row) {
+        return String(row.estado || '').toLowerCase() === 'activo';
+    }).length;
+
+    var totalCai = rows.filter(function(row) {
+        return row.cai && String(row.cai).trim() !== '' && String(row.cai).toLowerCase() !== 'sin cai';
+    }).length;
+
+    var totalDisponibles = rows.reduce(function(total, row) {
+        return total + (parseInt(row.disponibles, 10) || 0);
+    }, 0);
+
+    var totalPorVencer = rows.filter(function(row) {
+        var texto = String(row.vigencia || '').toLowerCase();
+        var match = texto.match(/faltan\s+(\d+)/);
+        return match && parseInt(match[1], 10) <= 30;
+    }).length;
+
+    var contenido = [];
+
+    contenido.push({
+        columns: [
+            {
+                width: '*',
+                stack: [
+                    {text: 'DOCUMENTOS FISCALES', style: 'titulo'},
+                    {text: 'Control de secuencias, correlativos y vigencia', style: 'subtitulo'}
+                ]
+            },
+            {
+                width: 150,
+                stack: [
+                    {text: 'REPORTE EJECUTIVO', style: 'reporteLabel', alignment: 'right'},
+                    {text: dashboardFiscalesFechaReporte(), style: 'reporteFecha', alignment: 'right'},
+                    {text: rows.length + ' registro(s)', style: 'reporteMeta', alignment: 'right'}
+                ]
+            }
+        ],
+        margin: [0, 0, 0, 12]
+    });
+
+    contenido.push({
+        table: {
+            widths: ['*', '*', '*', '*', '*'],
+            body: [[
+                {stack: [{text: 'REGISTROS', style: 'kpiLabel'}, {text: String(rows.length), style: 'kpiValue'}], margin: [8, 6, 8, 6]},
+                {stack: [{text: 'ACTIVAS', style: 'kpiLabel'}, {text: String(totalActivas), style: 'kpiValue'}], margin: [8, 6, 8, 6]},
+                {stack: [{text: 'CON CAI', style: 'kpiLabel'}, {text: String(totalCai), style: 'kpiValue'}], margin: [8, 6, 8, 6]},
+                {stack: [{text: 'DISPONIBLES', style: 'kpiLabel'}, {text: String(totalDisponibles), style: 'kpiValue'}], margin: [8, 6, 8, 6]},
+                {stack: [{text: 'POR VENCER', style: 'kpiLabel'}, {text: String(totalPorVencer), style: 'kpiValue'}], margin: [8, 6, 8, 6]}
+            ]]
+        },
+        layout: {
+            hLineColor: function() { return '#DDE3EA'; },
+            vLineColor: function() { return '#DDE3EA'; },
+            hLineWidth: function() { return 0.6; },
+            vLineWidth: function() { return 0.6; }
+        },
+        margin: [0, 0, 0, 14]
+    });
+
+    rows.forEach(function(row, index) {
+        var estadoColor = String(row.estado).toLowerCase() === 'activo' ? '#07883F' : '#C9372C';
+        var porcentaje = Math.max(0, Math.min(100, parseInt(row.porcentaje, 10) || 0));
+
+        contenido.push({
+            unbreakable: true,
+            margin: [0, 0, 0, 10],
+            table: {
+                widths: ['*'],
+                body: [[{
+                    margin: [10, 8, 10, 8],
+                    stack: [
+                        {
+                            columns: [
+                                {
+                                    width: '*',
+                                    stack: [
+                                        {text: row.empresa || 'Empresa', style: 'cardTitulo'},
+                                        {text: row.documento || 'Documento', style: 'cardDocumento'}
+                                    ]
+                                },
+                                {
+                                    width: 90,
+                                    stack: [
+                                        {text: row.estado, bold: true, fontSize: 8, color: estadoColor, alignment: 'right'},
+                                        {text: row.vigencia, bold: true, fontSize: 8, color: estadoColor, alignment: 'right', margin: [0, 3, 0, 0]}
+                                    ]
+                                }
+                            ],
+                            margin: [0, 0, 0, 7]
+                        },
+                        {
+                            columns: [
+                                {
+                                    width: '42%',
+                                    stack: [
+                                        {text: 'CAI / AUTORIZACIÓN', style: 'campoLabel'},
+                                        {text: row.cai || 'Sin CAI', style: 'campoValor'},
+                                        {
+                                            columns: [
+                                                {width: '*', stack: [{text: 'PREFIJO', style: 'campoLabel'}, {text: row.prefijo || 'Sin prefijo', style: 'campoValor'}]},
+                                                {width: 45, stack: [{text: 'RELLENO', style: 'campoLabel'}, {text: String(row.relleno), style: 'campoValor'}]},
+                                                {width: 52, stack: [{text: 'INCREMENTO', style: 'campoLabel'}, {text: String(row.incremento), style: 'campoValor'}]}
+                                            ],
+                                            margin: [0, 7, 0, 0]
+                                        }
+                                    ]
+                                },
+                                {
+                                    width: '33%',
+                                    margin: [12, 0, 12, 0],
+                                    stack: [
+                                        {
+                                            columns: [
+                                                {width: '*', stack: [{text: 'SIGUIENTE', style: 'campoLabel'}, {text: String(row.siguiente), style: 'numeroGrande'}]},
+                                                {width: 62, stack: [{text: 'DISPONIBLES', style: 'campoLabel'}, {text: String(row.disponibles), style: 'numeroDisponible'}]}
+                                            ]
+                                        },
+                                        {text: 'Rango: ' + row.rango_inicial + ' - ' + row.rango_final, style: 'rangoTexto', margin: [0, 6, 0, 3]},
+                                        {
+                                            canvas: [
+                                                {type: 'rect', x: 0, y: 0, w: 150, h: 5, color: '#E8EDF3'},
+                                                {type: 'rect', x: 0, y: 0, w: 150 * (porcentaje / 100), h: 5, color: '#0EA5A8'}
+                                            ]
+                                        },
+                                        {text: porcentaje + '% usado • ' + row.disponibles + ' disponibles', style: 'rangoTexto', margin: [0, 3, 0, 0]}
+                                    ]
+                                },
+                                {
+                                    width: '*',
+                                    stack: [
+                                        {text: 'ACTIVACIÓN', style: 'campoLabel'},
+                                        {text: row.activacion || 'No registrada', style: 'campoValor'},
+                                        {text: 'FECHA LÍMITE', style: 'campoLabel', margin: [0, 7, 0, 0]},
+                                        {text: row.limite || 'No registrada', style: 'campoValor'},
+                                        {text: 'VIGENCIA', style: 'campoLabel', margin: [0, 7, 0, 0]},
+                                        {text: row.vigencia, bold: true, fontSize: 8, color: estadoColor}
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }]]
+            },
+            layout: {
+                hLineColor: function() { return '#D8E0EA'; },
+                vLineColor: function() { return '#D8E0EA'; },
+                hLineWidth: function() { return 0.7; },
+                vLineWidth: function() { return 0.7; }
+            }
+        });
+    });
+
+    var doc = {
+        pageSize: 'LETTER',
+        pageOrientation: 'landscape',
+        pageMargins: [34, 30, 34, 34],
+        content: contenido,
+        defaultStyle: {
+            fontSize: 8,
+            color: '#172B4D'
+        },
+        styles: {
+            titulo: {fontSize: 17, bold: true, color: '#172B4D'},
+            subtitulo: {fontSize: 9, color: '#6B778C', margin: [0, 2, 0, 0]},
+            reporteLabel: {fontSize: 7, bold: true, color: '#0EA5A8'},
+            reporteFecha: {fontSize: 10, bold: true, color: '#172B4D', margin: [0, 2, 0, 0]},
+            reporteMeta: {fontSize: 7, color: '#7A869A', margin: [0, 2, 0, 0]},
+            kpiLabel: {fontSize: 6.5, bold: true, color: '#6B778C', alignment: 'center'},
+            kpiValue: {fontSize: 13, bold: true, color: '#172B4D', alignment: 'center', margin: [0, 2, 0, 0]},
+            cardTitulo: {fontSize: 10, bold: true, color: '#172B4D'},
+            cardDocumento: {fontSize: 8, bold: true, color: '#0EA5A8', margin: [0, 2, 0, 0]},
+            campoLabel: {fontSize: 6, bold: true, color: '#6B778C'},
+            campoValor: {fontSize: 7.5, color: '#172B4D', margin: [0, 1, 0, 0]},
+            numeroGrande: {fontSize: 11, bold: true, color: '#172B4D', margin: [0, 1, 0, 0]},
+            numeroDisponible: {fontSize: 10, bold: true, color: '#07883F', alignment: 'right', margin: [0, 1, 0, 0]},
+            rangoTexto: {fontSize: 6.5, color: '#6B778C'}
+        },
+        footer: function(currentPage, pageCount) {
+            return {
+                margin: [34, 0, 34, 0],
+                columns: [
+                    {text: 'IZZY • Documentos Fiscales', fontSize: 6.5, color: '#7A869A'},
+                    {text: 'Página ' + currentPage + ' de ' + pageCount, fontSize: 6.5, color: '#7A869A', alignment: 'right'}
+                ]
+            };
+        }
+    };
+
+    if (typeof imagen !== 'undefined' && imagen) {
+        doc.content[0].columns.unshift({image: imagen, width: 62, margin: [0, 0, 14, 0]});
+    }
+
+    try {
+        pdfMake.createPdf(doc).download(dashboardFiscalesNombreArchivo('pdf'));
+
+        if (typeof showNotify === 'function') {
+            showNotify('success', 'PDF generado', 'El reporte de documentos fiscales se generó correctamente.');
+        }
+    } catch (error) {
+        console.error('Error generando PDF de documentos fiscales:', error);
+
+        if (typeof showNotify === 'function') {
+            showNotify('error', 'Error', 'No se pudo generar el archivo PDF.');
+        }
+    }
+}
+
+function setupDashboardFiscales() {
+    $('#btn_dashboard_fiscales_actualizar').off('click').on('click', listar_secuencia_fiscales_dashboard);
+    $('#btn_dashboard_fiscales_excel').off('click').on('click', dashboardFiscalesExportarExcel);
+    $('#btn_dashboard_fiscales_pdf').off('click').on('click', dashboardFiscalesExportarPDF);
+
+    $('#dashboard_fiscales_page_size').off('change').on('change', function() {
+        dashboardFiscalesPagina = 1;
+        dashboardFiscalesRender();
+    });
+
+    $('#dashboard_fiscales_paginacion').off('click', '.dashboard-page-btn').on('click', '.dashboard-page-btn', function() {
+        if ($(this).prop('disabled')) return;
+        dashboardFiscalesPagina = parseInt($(this).data('page'), 10) || 1;
+        dashboardFiscalesRender();
+    });
 }
 
 /****************************************************************************************************************************************************************/
@@ -1197,6 +1658,7 @@ $(document).ready(function() {
     setTotalPurchases();
     getMesFacturaCompra();
 
+    setupDashboardFiscales();
     listar_secuencia_fiscales_dashboard();
 
     $(window).scrollTop(0);

@@ -7327,6 +7327,14 @@ var listar_busqueda_bill = function() {
                         '</button>';
 
                     accionesBill +=
+                        '<button type="button" class="dropdown-item accion-item accion-nota-credito nota_credito_factura">' +
+                            '<span class="accion-icon accion-icon-credito">' +
+                                '<i class="fas fa-file-invoice-dollar"></i>' +
+                            '</span>' +
+                            '<span class="accion-label">Nota de Crédito</span>' +
+                        '</button>';
+
+                    accionesBill +=
                         '<button type="button" class="dropdown-item accion-item accion-anular table_cancelar cancelar_factura">' +
                             '<span class="accion-icon accion-icon-danger">' +
                                 '<i class="fas fa-ban"></i>' +

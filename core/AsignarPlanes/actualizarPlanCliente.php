@@ -110,29 +110,15 @@ try {
 
     $conexionCliente->autocommit(false);
 
-    AsignarPlanesSyncHelper::actualizarServerCustomer(
-        $conexionPrincipal,
-        $serverCustomersId,
-        $clienteId,
-        $planesId,
-        $validar,
-        $estado
-    );
-
-    AsignarPlanesSyncHelper::actualizarServerCustomer(
-        $conexionCliente,
-        $serverCustomersId,
-        $clienteId,
-        $planesId,
-        $validar,
-        $estado
-    );
-
-    AsignarPlanesSyncHelper::actualizarPlanTablaCliente(
-        $conexionCliente,
-        $planesId,
-        $userExtra
-    );
+    /*
+     * IMPORTANTE:
+     * menu_plan, submenu_plan y submenu1_plan históricamente son MyISAM.
+     * MyISAM no revierte cambios con rollback().
+     *
+     * Por seguridad se prepara primero el catálogo y los permisos del nuevo
+     * plan. Solo cuando esa sincronización termina correctamente se cambia el
+     * plan activo del cliente.
+     */
 
     AsignarPlanesSyncHelper::sincronizarPlanCatalogoCliente(
         $conexionPrincipal,
@@ -144,6 +130,41 @@ try {
         $conexionPrincipal,
         $conexionCliente,
         $planesId
+    );
+
+    AsignarPlanesSyncHelper::actualizarPlanTablaCliente(
+        $conexionCliente,
+        $planesId,
+        $userExtra
+    );
+
+    AsignarPlanesSyncHelper::verificarPlanTablaClienteActualizado(
+        $conexionCliente,
+        $planesId,
+        $userExtra
+    );
+
+    AsignarPlanesSyncHelper::actualizarServerCustomer(
+        $conexionCliente,
+        $serverCustomersId,
+        $clienteId,
+        $planesId,
+        $validar,
+        $estado
+    );
+
+    /*
+     * La base principal se actualiza al final.
+     * Si algo falla antes, el cliente continúa apuntando al plan anterior.
+     */
+    AsignarPlanesSyncHelper::actualizarServerCustomer(
+        $conexionPrincipal,
+        $serverCustomersId,
+        $clienteId,
+        $planesId,
+        $validar,
+        $estado,
+        true
     );
 
     $conexionCliente->commit();
@@ -176,7 +197,7 @@ try {
         'success' => false,
         'type' => 'error',
         'title' => 'Error',
-        'message' => 'Error al actualizar plan: ' . $e->getMessage()
+        'message' => 'No se pudo completar el cambio de plan. Detalle: ' . $e->getMessage()
     ]);
 
 } finally {

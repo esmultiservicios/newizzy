@@ -1,64 +1,158 @@
 <script>
-// caja.js - COMPLETO Y CORREGIDO
+// caja.js - LISTADO MODERNIZADO SIN DATATABLE
+var cajasState = {
+    registros: [],
+    filtrados: [],
+    pagina: 1,
+    porPagina: 10,
+    porPaginaDetalle: 10,
+    porPaginaMiniatura: 6,
+    vista: 'detalle',
+    busqueda: '',
+    loading: false
+};
+
+var CAJAS_STORAGE_VISTA = 'izzy.cajas.tipo_vista';
+var CAJAS_STORAGE_FILTROS = 'izzy.cajas.filtros.visible';
+var CAJAS_STORAGE_KPIS = 'izzy.cajas.kpis.visible';
+
 $(() => {
+    inicializarCajasUI();
+    inicializarDropdownAccionesCajas();
+
     $("#formMainCajas #estado_cajas").val(0);
-    $('#formMainCajas #estado_cajas').selectpicker('refresh');
+
+    if ($.fn.selectpicker) {
+        $('#formMainCajas #estado_cajas').selectpicker('refresh');
+    }
 
     listar_registro_cajas();
 
-    $('#formMainCajas #search').on("click", function (e) {
-        e.preventDefault();
-        listar_registro_cajas();
-    });
-
-    $('#btnGananciaPeriodo').on("click", function () {
-        cargarDesgloseGananciaCaja(0, 'periodo');
-    });
-
-    $('#btnRetirosPeriodo').on("click", function () {
-        cargarDetalleRetirosCaja(0, 'periodo');
-    });
-
-    $('#btnCuadreDia').on("click", function () {
-        cargarCuadreDiaCaja(0, 'periodo');
-    });
-
-    $('#btnActualizarCuadreDia').on("click", function () {
-        refrescarCuadreDiaCaja();
-    });
-
-    $('#btnImprimirCuadreDia').on("click", function () {
-        imprimirCuadreDiaCaja();
-    });
-
-    $('#formMainCajas').on('reset', function () {
-        $('#formMainCajas .selectpicker').val('').selectpicker('refresh');
-
-        setTimeout(function () {
-            $("#formMainCajas #estado_cajas").val(0);
-            $('#formMainCajas #estado_cajas').selectpicker('refresh');
-
-            var hoy = new Date().toISOString().split('T')[0];
-            $("#formMainCajas #fecha_cajas").val(hoy);
-            $("#formMainCajas #fecha_cajas_f").val(hoy);
-
+    $('#formMainCajas')
+        .off('submit.cajas')
+        .on('submit.cajas', function (e) {
+            e.preventDefault();
+            cajasState.pagina = 1;
             listar_registro_cajas();
-        }, 100);
-    });
+        });
+
+    $('#formMainCajas')
+        .off('reset.cajas')
+        .on('reset.cajas', function () {
+            setTimeout(function () {
+                $("#formMainCajas #estado_cajas").val(0);
+
+                if ($.fn.selectpicker) {
+                    $('#formMainCajas #estado_cajas')
+                        .selectpicker('val', '0')
+                        .selectpicker('refresh');
+                }
+
+                var hoy = new Date().toISOString().split('T')[0];
+                $("#formMainCajas #fecha_cajas").val(hoy);
+                $("#formMainCajas #fecha_cajas_f").val(hoy);
+
+                cajasState.busqueda = '';
+                $('#buscarCajas').val('');
+                cajasState.pagina = 1;
+
+                listar_registro_cajas();
+            }, 80);
+        });
+
+    $('#formMainCajas #estado_cajas, #formMainCajas #fecha_cajas, #formMainCajas #fecha_cajas_f')
+        .off('change.cajas')
+        .on('change.cajas', function () {
+            cajasState.pagina = 1;
+            listar_registro_cajas();
+        });
+
+    $('#btnGananciaPeriodo')
+        .off('click.cajas')
+        .on('click.cajas', function () {
+            cargarDesgloseGananciaCaja(0, 'periodo');
+        });
+
+    $('#btnRetirosPeriodo')
+        .off('click.cajas')
+        .on('click.cajas', function () {
+            cargarDetalleRetirosCaja(0, 'periodo');
+        });
+
+    $('#btnCuadreDia')
+        .off('click.cajas')
+        .on('click.cajas', function () {
+            cargarCuadreDiaCaja(0, 'periodo');
+        });
+
+    $('#btnActualizarCuadreDia')
+        .off('click.cajas')
+        .on('click.cajas', function () {
+            refrescarCuadreDiaCaja();
+        });
+
+    $('#btnImprimirCuadreDia')
+        .off('click.cajas')
+        .on('click.cajas', function () {
+            imprimirCuadreDiaCaja();
+        });
+
+    $('#btnActualizarCajas')
+        .off('click.cajas')
+        .on('click.cajas', listar_registro_cajas);
+
+    $('#btnExcelCajas')
+        .off('click.cajas')
+        .on('click.cajas', exportarCajasExcelPremium);
+
+    $('#btnPdfCajas')
+        .off('click.cajas')
+        .on('click.cajas', previsualizarCajasPdfPremium);
+
+    $('#buscarCajas')
+        .off('input.cajas')
+        .on('input.cajas', function () {
+            cajasState.busqueda = String($(this).val() || '').trim().toLowerCase();
+            cajasState.pagina = 1;
+            aplicarFiltroCajas();
+        });
+
+    $('#cajasPageSize')
+        .off('change.cajas')
+        .on('change.cajas', function () {
+            var valor = parseInt($(this).val(), 10);
+
+            cajasState.porPagina = isNaN(valor) || valor <= 0
+                ? (cajasState.vista === 'miniatura' ? 6 : 10)
+                : valor;
+
+            if (cajasState.vista === 'miniatura') {
+                cajasState.porPaginaMiniatura = cajasState.porPagina;
+            } else {
+                cajasState.porPaginaDetalle = cajasState.porPagina;
+            }
+
+            cajasState.pagina = 1;
+            renderCajas();
+        });
+
+    $('.cajas-view-btn')
+        .off('click.cajasVista')
+        .on('click.cajasVista', function () {
+            cambiarVistaCajas($(this).data('view'));
+        });
+
+    comprobante_cajas_dataTable();
+    cerrar_registro_cajas_dataTable();
+    desglose_ganancia_caja_dataTable();
+    retiro_caja_dataTable();
+    detalle_retiros_caja_dataTable();
+    cuadre_dia_caja_dataTable();
 });
 
-$('#formMainCajas #estado_cajas').on("change", function () {
-    listar_registro_cajas();
-});
-
-$('#formMainCajas #fecha_cajas').on("change", function () {
-    listar_registro_cajas();
-});
-
-$('#formMainCajas #fecha_cajas_f').on("change", function () {
-    listar_registro_cajas();
-});
-
+/* =========================================================
+   UTILIDADES
+   ========================================================= */
 function parseMonto(valor) {
     if (typeof valor === 'string') {
         valor = valor.replace(/L\./g, '').replace(/,/g, '').trim();
@@ -77,426 +171,695 @@ function formatoMoneda(valor) {
     });
 }
 
-function renderMonedaColor(data, type) {
-    var valor = parseMonto(data);
-    var number = formatoMoneda(valor);
-
-    if (type === 'display') {
-        var color = valor < 0 ? '#dc2626' : '#008000';
-        return '<span style="color:' + color + '; font-weight:700; white-space:nowrap;">' + number + '</span>';
-    }
-
-    return valor;
-}
-
 function esCajaActiva(row) {
-    return row && row.caja && String(row.caja).toLowerCase() === 'activa';
-}
-
-/* =========================================================
-   HEADER Y FOOTER DINÁMICO - REGISTRO DE CAJAS
-   ========================================================= */
-function construirHeaderFooterDataTableCajas() {
-    var $tabla = $("#dataTableCajas");
-
-    $tabla.empty();
-
-    $tabla.append(
-        '<thead>' +
-            '<tr>' +
-                '<th>Acciones</th>' +
-                '<th>Fecha</th>' +
-                '<th>Usuario</th>' +
-                '<th>Factura Inicial</th>' +
-                '<th>Factura Final</th>' +
-                '<th>Monto Apertura</th>' +
-                '<th>Venta del Día</th>' +
-                '<th>Retiro Caja</th>' +
-                '<th>Neto Caja</th>' +
-            '</tr>' +
-        '</thead>' +
-        '<tfoot>' +
-            '<tr>' +
-                '<th colspan="5" class="text-right">Totales:</th>' +
-                '<th id="total_monto_apertura">L. 0.00</th>' +
-                '<th id="total_venta_dia">L. 0.00</th>' +
-                '<th id="total_retiro_caja">L. 0.00</th>' +
-                '<th id="total_neto">L. 0.00</th>' +
-            '</tr>' +
-        '</tfoot>'
+    return row && (
+        parseInt(row.estado, 10) === 1 ||
+        String(row.caja || '').toLowerCase() === 'activa'
     );
 }
 
+function cajaEscape(valor) {
+    return String(valor === null || typeof valor === 'undefined' ? '' : valor)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function cajaValor(valor, defecto) {
+    if (valor === null || typeof valor === 'undefined' || String(valor).trim() === '') {
+        return defecto || 'No registrado';
+    }
+
+    return String(valor).trim();
+}
+
+function cajaNormalizar(valor) {
+    return String(valor || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+}
+
 /* =========================================================
-   LISTADO REGISTRO DE CAJAS
+   PERSISTENCIA / VISTAS
+   ========================================================= */
+function inicializarCajasUI() {
+    configurarToggleCajas(
+        '#btnToggleFiltrosCajas',
+        '#cajasFiltrosContenido',
+        CAJAS_STORAGE_FILTROS
+    );
+
+    configurarToggleCajas(
+        '#btnToggleKpisCajas',
+        '#cajasKpisContenido',
+        CAJAS_STORAGE_KPIS
+    );
+
+    try {
+        cajasState.vista = localStorage.getItem(CAJAS_STORAGE_VISTA) === 'miniatura'
+            ? 'miniatura'
+            : 'detalle';
+    } catch (error) {
+        cajasState.vista = 'detalle';
+    }
+
+    actualizarBotonesVistaCajas();
+    sincronizarPageSizeCajas();
+}
+
+function configurarToggleCajas(buttonSelector, contentSelector, storageKey) {
+    var $button = $(buttonSelector);
+    var $content = $(contentSelector);
+
+    if (!$button.length || !$content.length) {
+        return;
+    }
+
+    var visible = true;
+
+    try {
+        var stored = localStorage.getItem(storageKey);
+
+        if (stored !== null) {
+            visible = stored === '1';
+        }
+    } catch (error) {
+        visible = true;
+    }
+
+    function aplicarEstado(guardar) {
+        $content.toggle(visible);
+
+        $button.attr('aria-expanded', visible ? 'true' : 'false');
+        $button.find('span').text(visible ? 'Ocultar' : 'Mostrar');
+        $button.find('i')
+            .toggleClass('fa-chevron-up', visible)
+            .toggleClass('fa-chevron-down', !visible);
+
+        if (guardar) {
+            try {
+                localStorage.setItem(storageKey, visible ? '1' : '0');
+            } catch (error) {
+                console.warn('No se pudo guardar el estado de la sección:', error);
+            }
+        }
+    }
+
+    aplicarEstado(false);
+
+    $button
+        .off('click.cajasToggle')
+        .on('click.cajasToggle', function () {
+            visible = !visible;
+
+            $content.stop(true, true)[visible ? 'slideDown' : 'slideUp'](180);
+            aplicarEstado(true);
+        });
+}
+
+function cambiarVistaCajas(vista) {
+    cajasState.vista = vista === 'miniatura' ? 'miniatura' : 'detalle';
+
+    try {
+        localStorage.setItem(CAJAS_STORAGE_VISTA, cajasState.vista);
+    } catch (error) {
+        console.warn('No se pudo guardar la vista de cajas:', error);
+    }
+
+    actualizarBotonesVistaCajas();
+    sincronizarPageSizeCajas();
+    cajasState.pagina = 1;
+    renderCajas();
+}
+
+function actualizarBotonesVistaCajas() {
+    $('.cajas-view-btn')
+        .removeClass('active')
+        .attr('aria-pressed', 'false');
+
+    $('.cajas-view-btn[data-view="' + cajasState.vista + '"]')
+        .addClass('active')
+        .attr('aria-pressed', 'true');
+}
+
+function sincronizarPageSizeCajas() {
+    var miniatura = cajasState.vista === 'miniatura';
+    var opciones = miniatura
+        ? [6, 12, 18, 30]
+        : [10, 25, 50, 100];
+
+    var seleccionado = miniatura
+        ? cajasState.porPaginaMiniatura
+        : cajasState.porPaginaDetalle;
+
+    var $select = $('#cajasPageSize');
+    $select.empty();
+
+    opciones.forEach(function (valor) {
+        $select.append(
+            $('<option></option>')
+                .attr('value', valor)
+                .text(valor)
+        );
+    });
+
+    cajasState.porPagina = opciones.indexOf(seleccionado) !== -1
+        ? seleccionado
+        : opciones[0];
+
+    $select.val(String(cajasState.porPagina));
+}
+
+/* =========================================================
+   CARGA / FILTRO / KPIs
    ========================================================= */
 var listar_registro_cajas = function () {
+    if (cajasState.loading) {
+        return;
+    }
+
     var fechai = $("#formMainCajas #fecha_cajas").val();
     var fechaf = $("#formMainCajas #fecha_cajas_f").val();
     var estado = $("#formMainCajas #estado_cajas").val();
 
-    if ($.fn.DataTable.isDataTable("#dataTableCajas")) {
-        $("#dataTableCajas").DataTable().clear().destroy();
+    cajasState.loading = true;
+
+    $.ajax({
+        method: 'POST',
+        url: '<?php echo SERVERURL;?>core/llenarDataTableCajaDisponibles.php',
+        dataType: 'json',
+        data: {
+            fechai: fechai,
+            fechaf: fechaf,
+            estado: estado
+        },
+        success: function (response) {
+            cajasState.registros = response && Array.isArray(response.data)
+                ? response.data
+                : [];
+
+            cajasState.pagina = 1;
+            aplicarFiltroCajas();
+        },
+        error: function (xhr) {
+            console.error('Error al cargar cajas:', xhr.responseText);
+
+            cajasState.registros = [];
+            cajasState.filtrados = [];
+            actualizarKpisCajas();
+            renderCajas();
+
+            if (typeof showNotify === 'function') {
+                showNotify(
+                    'error',
+                    'Error',
+                    'No se pudo cargar el registro de cajas.'
+                );
+            }
+        },
+        complete: function () {
+            cajasState.loading = false;
+        }
+    });
+};
+
+function aplicarFiltroCajas() {
+    var busqueda = cajaNormalizar(cajasState.busqueda);
+
+    cajasState.filtrados = cajasState.registros.filter(function (row) {
+        if (!busqueda) {
+            return true;
+        }
+
+        var texto = cajaNormalizar([
+            row.apertura_id,
+            row.fecha,
+            row.usuario,
+            row.factura_inicial,
+            row.factura_final,
+            row.caja,
+            esCajaActiva(row) ? 'abierta activa' : 'cerrada inactiva',
+            formatoMoneda(row.monto_apertura),
+            formatoMoneda(row.importe_venta),
+            formatoMoneda(row.retiro_caja),
+            formatoMoneda(row.neto)
+        ].join(' '));
+
+        return texto.indexOf(busqueda) !== -1;
+    });
+
+    actualizarKpisCajas();
+    renderCajas();
+}
+
+function actualizarKpisCajas() {
+    var rows = cajasState.filtrados || [];
+    var abiertas = 0;
+    var ventas = 0;
+    var neto = 0;
+
+    rows.forEach(function (row) {
+        if (esCajaActiva(row)) {
+            abiertas++;
+        }
+
+        ventas += parseMonto(row.importe_venta);
+        neto += parseMonto(row.neto);
+    });
+
+    $('#cajasKpiRegistros').text(rows.length);
+    $('#cajasKpiAbiertas').text(abiertas);
+    $('#cajasKpiVentas').text(formatoMoneda(ventas));
+    $('#cajasKpiNeto').text(formatoMoneda(neto));
+}
+
+/* =========================================================
+   RENDER DIVs
+   ========================================================= */
+function renderCajas() {
+    var total = cajasState.filtrados.length;
+    var totalPaginas = Math.max(1, Math.ceil(total / cajasState.porPagina));
+
+    if (cajasState.pagina > totalPaginas) {
+        cajasState.pagina = totalPaginas;
     }
 
-    construirHeaderFooterDataTableCajas();
+    var inicio = (cajasState.pagina - 1) * cajasState.porPagina;
+    var fin = Math.min(inicio + cajasState.porPagina, total);
+    var paginaRows = cajasState.filtrados.slice(inicio, fin);
+    var html = '';
 
-    var table_registro_cajas = $("#dataTableCajas").DataTable({
-        destroy: true,
-        autoWidth: false,
-        responsive: false,
-        stateSave: true,
-        bDestroy: true,
-        language: idioma_español,
-        lengthMenu: lengthMenu,
-        dom: dom,
+    var $listado = $('#cajasListado');
 
-        ajax: {
-            method: "POST",
-            url: "<?php echo SERVERURL;?>core/llenarDataTableCajaDisponibles.php",
-            dataType: "json",
-            data: {
-                fechai: fechai,
-                fechaf: fechaf,
-                estado: estado
-            }
-        },
+    $listado
+        .toggleClass('vista-detalle', cajasState.vista === 'detalle')
+        .toggleClass('vista-miniatura', cajasState.vista === 'miniatura');
 
-        columns: [
-            {
-                data: null,
-                orderable: false,
-                searchable: false,
-                className: "text-center align-middle",
-                render: function (data, type, row) {
-                    if (type !== "display") {
-                        return "";
-                    }
+    if (cajasState.vista === 'detalle' && total > 0) {
+        html += construirHeaderCajasDetalle();
+    }
 
-                    var activa = esCajaActiva(row);
-
-                    var badgeEstado = activa
-                        ? '<span class="badge-estado-caja badge-caja-abierta"><i class="fas fa-circle"></i> Abierta</span>'
-                        : '<span class="badge-estado-caja badge-caja-cerrada"><i class="fas fa-lock"></i> Cerrada</span>';
-
-                    var accionesCaja = "";
-
-                    if (activa) {
-                        accionesCaja +=
-                            '<button type="button" class="dropdown-item accion-item accion-cerrar table_crear table_cerrar_caja">' +
-                                '<span class="accion-icon accion-icon-success">' +
-                                    '<i class="fas fa-lock"></i>' +
-                                '</span>' +
-                                '<span class="accion-label">Cerrar caja</span>' +
-                            '</button>';
-
-                        accionesCaja +=
-                            '<button type="button" class="dropdown-item accion-item accion-retiro table_retiro_caja">' +
-                                '<span class="accion-icon accion-icon-warning">' +
-                                    '<i class="fas fa-money-bill-wave"></i>' +
-                                '</span>' +
-                                '<span class="accion-label">Retirar dinero</span>' +
-                            '</button>';
-                    } else {
-                        accionesCaja +=
-                            '<button type="button" class="dropdown-item accion-item accion-cerrada" disabled>' +
-                                '<span class="accion-icon accion-icon-eliminar">' +
-                                    '<i class="fas fa-lock"></i>' +
-                                '</span>' +
-                                '<span class="accion-label">Caja cerrada</span>' +
-                            '</button>';
-
-                        accionesCaja +=
-                            '<button type="button" class="dropdown-item accion-item accion-no-retiro" disabled>' +
-                                '<span class="accion-icon accion-icon-eliminar">' +
-                                    '<i class="fas fa-ban"></i>' +
-                                '</span>' +
-                                '<span class="accion-label">Retiro no disponible</span>' +
-                            '</button>';
-                    }
-
-                    accionesCaja +=
-                        '<button type="button" class="dropdown-item accion-item accion-comprobante table_reportes table_comprobante_caja">' +
-                            '<span class="accion-icon accion-icon-danger">' +
-                                '<i class="far fa-file-pdf"></i>' +
-                            '</span>' +
-                            '<span class="accion-label">Comprobante</span>' +
-                        '</button>';
-
-                    accionesCaja +=
-                        '<button type="button" class="dropdown-item accion-item accion-retiros-detalle table_detalle_retiros_caja">' +
-                            '<span class="accion-icon accion-icon-warning">' +
-                                '<i class="fas fa-list-ul"></i>' +
-                            '</span>' +
-                            '<span class="accion-label">Ver retiros</span>' +
-                        '</button>';
-
-                    accionesCaja +=
-                        '<button type="button" class="dropdown-item accion-item accion-ganancia table_ganancia">' +
-                            '<span class="accion-icon accion-icon-primary">' +
-                                '<i class="fas fa-chart-line"></i>' +
-                            '</span>' +
-                            '<span class="accion-label">Ver ganancia</span>' +
-                        '</button>';
-
-                    accionesCaja +=
-                        '<button type="button" class="dropdown-item accion-item accion-cuadre-dia table_cuadre_dia">' +
-                            '<span class="accion-icon accion-icon-success">' +
-                                '<i class="fas fa-balance-scale"></i>' +
-                            '</span>' +
-                            '<span class="accion-label">Cuadre del día</span>' +
-                        '</button>';
-
-                    return '' +
-                        '<div class="acciones-caja-wrap">' +
-                            '<div class="dropdown acciones-dropdown">' +
-                                '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
-                                    '<i class="fas fa-cog"></i>' +
-                                    '<span>Acciones</span>' +
-                                '</button>' +
-
-                                '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
-                                    accionesCaja +
-                                '</div>' +
-                            '</div>' +
-                            badgeEstado +
-                        '</div>';
-                }
-            },
-            { data: "fecha" },
-            { data: "usuario" },
-            { data: "factura_inicial" },
-            { data: "factura_final" },
-            {
-                data: "monto_apertura",
-                render: function (data, type) {
-                    return renderMonedaColor(data, type);
-                }
-            },
-            {
-                data: "importe_venta",
-                render: function (data, type) {
-                    return renderMonedaColor(data, type);
-                }
-            },
-            {
-                data: "retiro_caja",
-                render: function (data, type) {
-                    return renderMonedaColor(data, type);
-                }
-            },
-            {
-                data: "neto",
-                render: function (data, type) {
-                    return renderMonedaColor(data, type);
-                }
-            }
-        ],
-
-        columnDefs: [
-            {
-                targets: [5, 6, 7, 8],
-                className: "text-right text-nowrap"
-            },
-            {
-                targets: [0, 1, 3, 4],
-                className: "text-center text-nowrap"
-            }
-        ],
-
-        createdRow: function (row, data) {
-            if (esCajaActiva(data)) {
-                $(row).addClass("fila-caja-abierta");
-            } else {
-                $(row).addClass("fila-caja-cerrada");
-            }
-        },
-
-        buttons: [
-            {
-                text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-                titleAttr: "Actualizar Registro de Cajas",
-                className: "table_actualizar btn btn-secondary ocultar",
-                action: function () {
-                    listar_registro_cajas();
-                }
-            },
-            {
-                extend: "excelHtml5",
-                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
-                titleAttr: "Excel",
-                title: "Reporte Registro de Cajas",
-                messageBottom: "Fecha de Reporte: " + convertDateFormat(today()),
-                className: "table_reportes btn btn-success ocultar",
-                exportOptions: {
-                    columns: [1, 2, 3, 4, 5, 6, 7, 8]
-                }
-            },
-            {
-                extend: "pdf",
-                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-                titleAttr: "PDF",
-                orientation: "landscape",
-                title: "Reporte Registro de Cajas",
-                messageBottom: "Fecha de Reporte: " + convertDateFormat(today()),
-                className: "table_reportes btn btn-danger ocultar",
-                exportOptions: {
-                    columns: [1, 2, 3, 4, 5, 6, 7, 8]
-                },
-                customize: function (doc) {
-                    if (imagen) {
-                        doc.content.splice(0, 0, {
-                            image: imagen,
-                            width: 100,
-                            height: 45,
-                            margin: [0, 0, 0, 12]
-                        });
-                    }
-                }
-            }
-        ],
-
-        footerCallback: function () {
-            var api = this.api();
-
-            var totalMontoApertura = api.column(5, { page: "current" }).data().reduce(function (a, b) {
-                return parseMonto(a) + parseMonto(b);
-            }, 0);
-
-            var totalVentaDia = api.column(6, { page: "current" }).data().reduce(function (a, b) {
-                return parseMonto(a) + parseMonto(b);
-            }, 0);
-
-            var totalRetiroCaja = api.column(7, { page: "current" }).data().reduce(function (a, b) {
-                return parseMonto(a) + parseMonto(b);
-            }, 0);
-
-            var totalNeto = api.column(8, { page: "current" }).data().reduce(function (a, b) {
-                return parseMonto(a) + parseMonto(b);
-            }, 0);
-
-            $("#total_monto_apertura").html("<span>" + formatoMoneda(totalMontoApertura) + "</span>");
-            $("#total_venta_dia").html("<span>" + formatoMoneda(totalVentaDia) + "</span>");
-            $("#total_retiro_caja").html("<span>" + formatoMoneda(totalRetiroCaja) + "</span>");
-            $("#total_neto").html("<span>" + formatoMoneda(totalNeto) + "</span>");
-        },
-
-        drawCallback: function () {
-            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-
-            if (typeof cerrarDropdownAcciones === "function") {
-                cerrarDropdownAcciones();
-            }
-
-            $('[title]').tooltip({
-                container: "body",
-                placement: "top"
-            });
-        }
+    paginaRows.forEach(function (row) {
+        html += cajasState.vista === 'miniatura'
+            ? construirMiniaturaCaja(row)
+            : construirFilaCajaDetalle(row);
     });
 
-    table_registro_cajas.search("").draw();
+    $listado.html(html);
+    $('#cajasVacio').toggle(total === 0);
 
-    comprobante_cajas_dataTable("#dataTableCajas tbody", table_registro_cajas);
-    cerrar_registro_cajas_dataTable("#dataTableCajas tbody", table_registro_cajas);
-    desglose_ganancia_caja_dataTable("#dataTableCajas tbody", table_registro_cajas);
-    retiro_caja_dataTable("#dataTableCajas tbody", table_registro_cajas);
-    detalle_retiros_caja_dataTable("#dataTableCajas tbody", table_registro_cajas);
-    cuadre_dia_caja_dataTable("#dataTableCajas tbody", table_registro_cajas);
-};
+    $('#cajasInfo').text(
+        total > 0
+            ? 'Mostrando ' + (inicio + 1) + ' a ' + fin + ' de ' + total + ' registros'
+            : 'Mostrando 0 registros'
+    );
 
-var comprobante_cajas_dataTable = function (tbody, table) {
-    $(tbody).off("click", "button.table_crear");
+    renderPaginacionCajas(totalPaginas);
 
-    $(tbody).on("click", "button.table_crear", function () {
-        var data = table.row($(this).parents("tr")).data();
+    if (typeof getPermisosTipoUsuarioAccesosTable === 'function' &&
+        typeof getPrivilegioTipoUsuario === 'function') {
+        getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+    }
 
-        if (!esCajaActiva(data)) {
-            showNotify('error', 'Error', 'Esta caja ya está cerrada. No se puede cerrar nuevamente.');
-            return;
-        }
+    if (typeof cerrarDropdownAcciones === 'function') {
+        cerrarDropdownAcciones();
+    }
+}
 
-        var url = '<?php echo SERVERURL;?>core/editarCajas.php';
+function construirHeaderCajasDetalle() {
+    return '' +
+        '<div class="cajas-detail-header">' +
+            '<div>Acciones</div>' +
+            '<div>Fecha / Estado</div>' +
+            '<div>Usuario</div>' +
+            '<div>Facturación</div>' +
+            '<div>Apertura</div>' +
+            '<div>Venta del día</div>' +
+            '<div>Retiros</div>' +
+            '<div>Neto caja</div>' +
+        '</div>';
+}
 
-        $('#formAperturaCaja #apertura_id').val(data.apertura_id);
+function construirAccionesCaja(row) {
+    var activa = esCajaActiva(row);
+    var acciones = '';
 
-        $.ajax({
-            type: 'POST',
-            url: url,
-            data: $('#formAperturaCaja').serialize(),
-            success: function (registro) {
-                var valores = eval(registro);
+    if (activa) {
+        acciones +=
+            '<button type="button" class="dropdown-item accion-item accion-cerrar table_crear table_cerrar_caja">' +
+                '<span class="accion-icon accion-icon-success"><i class="fas fa-lock"></i></span>' +
+                '<span class="accion-label">Cerrar caja</span>' +
+            '</button>';
 
-                $('#formAperturaCaja').attr({ 'data-form': 'update' });
-                $('#formAperturaCaja').attr({ 'action': '<?php echo SERVERURL;?>ajax/addCierreCajaAjax.php' });
-                $('#formAperturaCaja')[0].reset();
+        acciones +=
+            '<button type="button" class="dropdown-item accion-item accion-retiro table_retiro_caja">' +
+                '<span class="accion-icon accion-icon-warning"><i class="fas fa-money-bill-wave"></i></span>' +
+                '<span class="accion-label">Retirar dinero</span>' +
+            '</button>';
+    } else {
+        acciones +=
+            '<button type="button" class="dropdown-item accion-item accion-cerrada" disabled>' +
+                '<span class="accion-icon accion-icon-eliminar"><i class="fas fa-lock"></i></span>' +
+                '<span class="accion-label">Caja cerrada</span>' +
+            '</button>';
 
-                $('#open_caja').hide();
-                $('#close_caja').show();
+        acciones +=
+            '<button type="button" class="dropdown-item accion-item accion-no-retiro" disabled>' +
+                '<span class="accion-icon accion-icon-eliminar"><i class="fas fa-ban"></i></span>' +
+                '<span class="accion-label">Retiro no disponible</span>' +
+            '</button>';
+    }
 
-                $('#formAperturaCaja #usuario_apertura').val(valores[0]);
-                $('#formAperturaCaja #monto_apertura').val(valores[1]);
-                $('#formAperturaCaja #fecha_apertura').val(valores[2]);
-                $('#formAperturaCaja #colaboradores_id_apertura').val(valores[3]);
+    acciones +=
+        '<button type="button" class="dropdown-item accion-item accion-comprobante table_reportes table_comprobante_caja">' +
+            '<span class="accion-icon accion-icon-danger"><i class="far fa-file-pdf"></i></span>' +
+            '<span class="accion-label">Comprobante</span>' +
+        '</button>';
 
-                $('#formAperturaCaja #usuario_apertura').attr('readonly', true);
-                $('#formAperturaCaja #monto_apertura').attr('readonly', true);
-                $('#formAperturaCaja #fecha_apertura').attr('readonly', true);
+    acciones +=
+        '<button type="button" class="dropdown-item accion-item accion-retiros-detalle table_detalle_retiros_caja">' +
+            '<span class="accion-icon accion-icon-warning"><i class="fas fa-list-ul"></i></span>' +
+            '<span class="accion-label">Ver retiros</span>' +
+        '</button>';
 
-                $('#formAperturaCaja #proceso_aperturaCaja').val("Cerrar Caja");
+    acciones +=
+        '<button type="button" class="dropdown-item accion-item accion-ganancia table_ganancia">' +
+            '<span class="accion-icon accion-icon-primary"><i class="fas fa-chart-line"></i></span>' +
+            '<span class="accion-label">Ver ganancia</span>' +
+        '</button>';
 
-                $('#modal_apertura_caja').modal({
-                    show: true,
-                    keyboard: false,
-                    backdrop: 'static'
-                });
+    acciones +=
+        '<button type="button" class="dropdown-item accion-item accion-cuadre-dia table_cuadre_dia">' +
+            '<span class="accion-icon accion-icon-success"><i class="fas fa-balance-scale"></i></span>' +
+            '<span class="accion-label">Cuadre del día</span>' +
+        '</button>';
+
+    return '' +
+        '<div class="dropdown acciones-dropdown cajas-actions-dropdown">' +
+            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                '<i class="fas fa-cog"></i>' +
+                '<span>Acciones</span>' +
+            '</button>' +
+            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+                acciones +
+            '</div>' +
+        '</div>';
+}
+
+function construirBadgeEstadoCaja(row) {
+    var activa = esCajaActiva(row);
+
+    return '' +
+        '<span class="cajas-status-badge ' + (activa ? 'is-open' : 'is-closed') + '">' +
+            '<i class="fas ' + (activa ? 'fa-circle' : 'fa-lock') + '"></i>' +
+            (activa ? 'Abierta' : 'Cerrada') +
+        '</span>';
+}
+
+function construirFilaCajaDetalle(row) {
+    return '' +
+        '<article class="cajas-detail-row" data-id="' + cajaEscape(row.apertura_id) + '">' +
+            '<div class="cajas-detail-cell cajas-actions-cell">' +
+                construirAccionesCaja(row) +
+            '</div>' +
+
+            '<div class="cajas-detail-cell">' +
+                '<div class="cajas-stack">' +
+                    '<strong><i class="far fa-calendar-alt mr-1"></i>' + cajaEscape(cajaValor(row.fecha)) + '</strong>' +
+                    construirBadgeEstadoCaja(row) +
+                '</div>' +
+            '</div>' +
+
+            '<div class="cajas-detail-cell">' +
+                '<div class="cajas-data-line">' +
+                    '<i class="fas fa-user"></i>' +
+                    '<span>' + cajaEscape(cajaValor(row.usuario)) + '</span>' +
+                '</div>' +
+            '</div>' +
+
+            '<div class="cajas-detail-cell">' +
+                '<div class="cajas-stack">' +
+                    '<span><small>Inicial</small><strong>' + cajaEscape(cajaValor(row.factura_inicial)) + '</strong></span>' +
+                    '<span><small>Final</small><strong>' + cajaEscape(cajaValor(row.factura_final, 'Sin cierre')) + '</strong></span>' +
+                '</div>' +
+            '</div>' +
+
+            '<div class="cajas-detail-cell cajas-money-cell">' +
+                '<strong>' + cajaEscape(formatoMoneda(row.monto_apertura)) + '</strong>' +
+            '</div>' +
+
+            '<div class="cajas-detail-cell cajas-money-cell is-positive">' +
+                '<strong>' + cajaEscape(formatoMoneda(row.importe_venta)) + '</strong>' +
+            '</div>' +
+
+            '<div class="cajas-detail-cell cajas-money-cell is-withdraw">' +
+                '<strong>' + cajaEscape(formatoMoneda(row.retiro_caja)) + '</strong>' +
+            '</div>' +
+
+            '<div class="cajas-detail-cell cajas-money-cell ' + (parseMonto(row.neto) < 0 ? 'is-negative' : 'is-net') + '">' +
+                '<strong>' + cajaEscape(formatoMoneda(row.neto)) + '</strong>' +
+            '</div>' +
+        '</article>';
+}
+
+function construirMiniaturaCaja(row) {
+    return '' +
+        '<article class="cajas-mini-card" data-id="' + cajaEscape(row.apertura_id) + '">' +
+            '<div class="cajas-mini-topline"></div>' +
+
+            '<div class="cajas-mini-header">' +
+                '<div class="cajas-mini-identity">' +
+                    '<div class="cajas-mini-icon"><i class="fas fa-cash-register"></i></div>' +
+                    '<div>' +
+                        '<h4>Caja #' + cajaEscape(row.apertura_id) + '</h4>' +
+                        '<span><i class="far fa-calendar-alt mr-1"></i>' + cajaEscape(cajaValor(row.fecha)) + '</span>' +
+                    '</div>' +
+                '</div>' +
+                construirBadgeEstadoCaja(row) +
+            '</div>' +
+
+            '<div class="cajas-mini-user">' +
+                '<i class="fas fa-user mr-1"></i>' +
+                '<strong>' + cajaEscape(cajaValor(row.usuario)) + '</strong>' +
+            '</div>' +
+
+            '<div class="cajas-mini-grid">' +
+                '<div><small>Apertura</small><strong>' + cajaEscape(formatoMoneda(row.monto_apertura)) + '</strong></div>' +
+                '<div><small>Venta</small><strong class="text-success">' + cajaEscape(formatoMoneda(row.importe_venta)) + '</strong></div>' +
+                '<div><small>Retiros</small><strong class="text-warning">' + cajaEscape(formatoMoneda(row.retiro_caja)) + '</strong></div>' +
+                '<div><small>Neto</small><strong class="' + (parseMonto(row.neto) < 0 ? 'text-danger' : 'text-success') + '">' + cajaEscape(formatoMoneda(row.neto)) + '</strong></div>' +
+            '</div>' +
+
+            '<div class="cajas-mini-invoices">' +
+                '<span><small>Factura inicial</small><strong>' + cajaEscape(cajaValor(row.factura_inicial)) + '</strong></span>' +
+                '<span><small>Factura final</small><strong>' + cajaEscape(cajaValor(row.factura_final, 'Sin cierre')) + '</strong></span>' +
+            '</div>' +
+
+            '<div class="cajas-mini-footer">' +
+                construirAccionesCaja(row) +
+            '</div>' +
+        '</article>';
+}
+
+/* =========================================================
+   PAGINACIÓN
+   ========================================================= */
+function renderPaginacionCajas(totalPaginas) {
+    var pagina = cajasState.pagina;
+    var html = '';
+
+    html += crearBotonPaginaCaja('Inicio', 'fa-angle-double-left', 1, pagina <= 1);
+    html += crearBotonPaginaCaja('Anterior', 'fa-angle-left', Math.max(1, pagina - 1), pagina <= 1);
+
+    var desde = Math.max(1, pagina - 2);
+    var hasta = Math.min(totalPaginas, desde + 4);
+
+    if (hasta - desde < 4) {
+        desde = Math.max(1, hasta - 4);
+    }
+
+    for (var i = desde; i <= hasta; i++) {
+        html += '<button type="button" class="cajas-page-btn cajas-page-number ' +
+            (i === pagina ? 'active' : '') +
+            '" data-page="' + i + '">' + i + '</button>';
+    }
+
+    html += crearBotonPaginaCaja('Siguiente', 'fa-angle-right', Math.min(totalPaginas, pagina + 1), pagina >= totalPaginas);
+    html += crearBotonPaginaCaja('Final', 'fa-angle-double-right', totalPaginas, pagina >= totalPaginas);
+
+    $('#cajasPaginacion').html(html);
+
+    $('#cajasPaginacion .cajas-page-btn')
+        .off('click.cajasPage')
+        .on('click.cajasPage', function () {
+            if ($(this).prop('disabled')) {
+                return;
             }
+
+            cajasState.pagina = parseInt($(this).data('page'), 10) || 1;
+            renderCajas();
         });
-    });
+}
+
+function crearBotonPaginaCaja(texto, icono, pagina, disabled) {
+    return '' +
+        '<button type="button" class="cajas-page-btn" data-page="' + pagina + '" ' +
+            (disabled ? 'disabled' : '') + '>' +
+            '<i class="fas ' + icono + '"></i>' +
+            '<span>' + texto + '</span>' +
+        '</button>';
+}
+
+function obtenerCajaPorId(id) {
+    return cajasState.registros.find(function (row) {
+        return String(row.apertura_id) === String(id);
+    }) || null;
+}
+
+function obtenerCajaDesdeBoton(boton) {
+    var id = $(boton).closest('[data-id]').data('id');
+    return obtenerCajaPorId(id);
+}
+
+/* =========================================================
+   ACCIONES - SE CONSERVAN LOS NOMBRES EXISTENTES
+   ========================================================= */
+var comprobante_cajas_dataTable = function () {
+    $('#cajasListado')
+        .off('click.cajasCerrar', '.table_cerrar_caja')
+        .on('click.cajasCerrar', '.table_cerrar_caja', function () {
+            var data = obtenerCajaDesdeBoton(this);
+
+            if (!data || !data.apertura_id) {
+                showNotify('error', 'Error', 'No se encontró la apertura de caja.');
+                return;
+            }
+
+            if (!esCajaActiva(data)) {
+                showNotify('error', 'Error', 'Esta caja ya está cerrada. No se puede cerrar nuevamente.');
+                return;
+            }
+
+            var url = '<?php echo SERVERURL;?>core/editarCajas.php';
+
+            $('#formAperturaCaja #apertura_id').val(data.apertura_id);
+
+            $.ajax({
+                type: 'POST',
+                url: url,
+                data: $('#formAperturaCaja').serialize(),
+                success: function (registro) {
+                    var valores = eval(registro);
+
+                    $('#formAperturaCaja').attr({ 'data-form': 'update' });
+                    $('#formAperturaCaja').attr({ 'action': '<?php echo SERVERURL;?>ajax/addCierreCajaAjax.php' });
+                    $('#formAperturaCaja')[0].reset();
+
+                    $('#open_caja').hide();
+                    $('#close_caja').show();
+
+                    $('#formAperturaCaja #usuario_apertura').val(valores[0]);
+                    $('#formAperturaCaja #monto_apertura').val(valores[1]);
+                    $('#formAperturaCaja #fecha_apertura').val(valores[2]);
+                    $('#formAperturaCaja #colaboradores_id_apertura').val(valores[3]);
+
+                    $('#formAperturaCaja #usuario_apertura').attr('readonly', true);
+                    $('#formAperturaCaja #monto_apertura').attr('readonly', true);
+                    $('#formAperturaCaja #fecha_apertura').attr('readonly', true);
+
+                    $('#formAperturaCaja #proceso_aperturaCaja').val('Cerrar Caja');
+
+                    $('#modal_apertura_caja').modal({
+                        show: true,
+                        keyboard: false,
+                        backdrop: 'static'
+                    });
+                }
+            });
+        });
 };
 
-var cerrar_registro_cajas_dataTable = function (tbody, table) {
-    $(tbody).off("click", "button.table_reportes");
+var cerrar_registro_cajas_dataTable = function () {
+    $('#cajasListado')
+        .off('click.cajasComprobante', '.table_comprobante_caja')
+        .on('click.cajasComprobante', '.table_comprobante_caja', function () {
+            var data = obtenerCajaDesdeBoton(this);
 
-    $(tbody).on("click", "button.table_reportes", function () {
-        var data = table.row($(this).parents("tr")).data();
-        printComprobanteCajas(data.apertura_id);
-    });
+            if (!data || !data.apertura_id) {
+                showNotify('error', 'Error', 'No se encontró la apertura de caja.');
+                return;
+            }
+
+            printComprobanteCajas(data.apertura_id);
+        });
 };
 
-var desglose_ganancia_caja_dataTable = function (tbody, table) {
-    $(tbody).off("click", "button.table_ganancia");
+var desglose_ganancia_caja_dataTable = function () {
+    $('#cajasListado')
+        .off('click.cajasGanancia', '.table_ganancia')
+        .on('click.cajasGanancia', '.table_ganancia', function () {
+            var data = obtenerCajaDesdeBoton(this);
 
-    $(tbody).on("click", "button.table_ganancia", function () {
-        var data = table.row($(this).parents("tr")).data();
+            if (!data || !data.apertura_id) {
+                showNotify('error', 'Error', 'No se encontró el código de apertura de caja.');
+                return;
+            }
 
-        if (!data || !data.apertura_id) {
-            showNotify('error', 'Error', 'No se encontró el código de apertura de caja.');
-            return;
-        }
-
-        cargarDesgloseGananciaCaja(data.apertura_id, 'caja');
-    });
+            cargarDesgloseGananciaCaja(data.apertura_id, 'caja');
+        });
 };
 
-var retiro_caja_dataTable = function (tbody, table) {
-    $(tbody).off("click", "button.table_retiro_caja");
+var retiro_caja_dataTable = function () {
+    $('#cajasListado')
+        .off('click.cajasRetiro', '.table_retiro_caja')
+        .on('click.cajasRetiro', '.table_retiro_caja', function () {
+            var data = obtenerCajaDesdeBoton(this);
 
-    $(tbody).on("click", "button.table_retiro_caja", function () {
-        var data = table.row($(this).parents("tr")).data();
+            if (!data || !data.apertura_id) {
+                showNotify('error', 'Error', 'No se encontró la apertura de caja.');
+                return;
+            }
 
-        if (!data || !data.apertura_id) {
-            showNotify('error', 'Error', 'No se encontró la apertura de caja.');
-            return;
-        }
+            if (!esCajaActiva(data)) {
+                showNotify('error', 'Error', 'Solo puede retirar dinero de una caja activa.');
+                return;
+            }
 
-        if (!esCajaActiva(data)) {
-            showNotify('error', 'Error', 'Solo puede retirar dinero de una caja activa.');
-            return;
-        }
+            abrirModalRetiroCaja(data.apertura_id);
+        });
+};
 
-        abrirModalRetiroCaja(data.apertura_id);
-    });
+var detalle_retiros_caja_dataTable = function () {
+    $('#cajasListado')
+        .off('click.cajasDetalleRetiros', '.table_detalle_retiros_caja')
+        .on('click.cajasDetalleRetiros', '.table_detalle_retiros_caja', function () {
+            var data = obtenerCajaDesdeBoton(this);
+
+            if (!data || !data.apertura_id) {
+                showNotify('error', 'Error', 'No se encontró la apertura de caja.');
+                return;
+            }
+
+            cargarDetalleRetirosCaja(data.apertura_id, 'caja');
+        });
+};
+
+var cuadre_dia_caja_dataTable = function () {
+    $('#cajasListado')
+        .off('click.cajasCuadre', '.table_cuadre_dia')
+        .on('click.cajasCuadre', '.table_cuadre_dia', function () {
+            var data = obtenerCajaDesdeBoton(this);
+
+            if (!data || !data.apertura_id) {
+                showNotify('error', 'Error', 'No se encontró la apertura de caja.');
+                return;
+            }
+
+            cargarCuadreDiaCaja(data.apertura_id, 'caja');
+        });
 };
 
 function abrirModalRetiroCaja(apertura_id) {
@@ -685,61 +1048,986 @@ function validarRetiroCaja(mostrarMensaje) {
     return true;
 }
 
-$('#retiro_monto_efectivo, #retiro_monto_transferencia').off('input change keyup').on('input change keyup', function () {
-    validarRetiroCaja(false);
-});
+$('#retiro_monto_efectivo, #retiro_monto_transferencia')
+    .off('input change keyup')
+    .on('input change keyup', function () {
+        validarRetiroCaja(false);
+    });
 
-$('#retiro_categoria_gastos_id').off('change').on('change', function () {
-    validarRetiroCaja(false);
-});
+$('#retiro_categoria_gastos_id')
+    .off('change')
+    .on('change', function () {
+        validarRetiroCaja(false);
+    });
 
-$('#btn_guardar_retiro_caja').off('click.validacionRetiroCaja').on('click.validacionRetiroCaja', function (e) {
-    if (!validarRetiroCaja(true)) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        return false;
-    }
-});
+$('#btn_guardar_retiro_caja')
+    .off('click.validacionRetiroCaja')
+    .on('click.validacionRetiroCaja', function (e) {
+        if (!validarRetiroCaja(true)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            return false;
+        }
+    });
 
-$('#formRetiroCaja').off('submit.validacionRetiroCaja').on('submit.validacionRetiroCaja', function (e) {
-    if (!validarRetiroCaja(true)) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        return false;
-    }
-
-    return true;
-});
-
-var detalle_retiros_caja_dataTable = function (tbody, table) {
-    $(tbody).off("click", "button.table_detalle_retiros_caja");
-
-    $(tbody).on("click", "button.table_detalle_retiros_caja", function () {
-        var data = table.row($(this).parents("tr")).data();
-
-        if (!data || !data.apertura_id) {
-            showNotify('error', 'Error', 'No se encontró la apertura de caja.');
-            return;
+$('#formRetiroCaja')
+    .off('submit.validacionRetiroCaja')
+    .on('submit.validacionRetiroCaja', function (e) {
+        if (!validarRetiroCaja(true)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            return false;
         }
 
-        cargarDetalleRetirosCaja(data.apertura_id, 'caja');
+        return true;
     });
-};
 
-var cuadre_dia_caja_dataTable = function (tbody, table) {
-    $(tbody).off("click", "button.table_cuadre_dia");
+/* =========================================================
+   EXCEL PREMIUM
+   ========================================================= */
+function cajasExportRows() {
+    return cajasState.filtrados.map(function (row) {
+        return {
+            fecha: cajaValor(row.fecha),
+            usuario: cajaValor(row.usuario),
+            facturaInicial: cajaValor(row.factura_inicial),
+            facturaFinal: cajaValor(row.factura_final, 'Sin cierre'),
+            apertura: parseMonto(row.monto_apertura),
+            venta: parseMonto(row.importe_venta),
+            retiro: parseMonto(row.retiro_caja),
+            neto: parseMonto(row.neto),
+            estado: esCajaActiva(row) ? 'Abierta' : 'Cerrada'
+        };
+    });
+}
 
-    $(tbody).on("click", "button.table_cuadre_dia", function () {
-        var data = table.row($(this).parents("tr")).data();
+function cajasXmlEscape(value) {
+    return String(value === null || typeof value === 'undefined' ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+}
 
-        if (!data || !data.apertura_id) {
-            showNotify('error', 'Error', 'No se encontró la apertura de caja.');
-            return;
+function cajasExcelCol(index) {
+    var name = '';
+    var n = index + 1;
+
+    while (n > 0) {
+        var mod = (n - 1) % 26;
+        name = String.fromCharCode(65 + mod) + name;
+        n = Math.floor((n - 1) / 26);
+    }
+
+    return name;
+}
+
+function cajasExcelCell(ref, value, styleId, numeric) {
+    if (numeric) {
+        var numero = Number(value);
+
+        if (!isNaN(numero)) {
+            return '<c r="' + ref + '" s="' + styleId + '"><v>' + numero + '</v></c>';
         }
+    }
 
-        cargarCuadreDiaCaja(data.apertura_id, 'caja');
+    return '<c r="' + ref + '" s="' + styleId + '" t="inlineStr">' +
+        '<is><t>' + cajasXmlEscape(value) + '</t></is>' +
+    '</c>';
+}
+
+function cajasDescargarBlob(blob, nombre) {
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+
+    link.href = url;
+    link.download = nombre;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setTimeout(function () {
+        URL.revokeObjectURL(url);
+    }, 1000);
+}
+
+function exportarCajasExcelPremium() {
+    var rows = cajasExportRows();
+
+    if (!rows.length) {
+        showNotify('warning', 'Sin información', 'No hay cajas para exportar.');
+        return;
+    }
+
+    if (typeof JSZip === 'undefined') {
+        showNotify('error', 'Excel no disponible', 'No se encontró JSZip para generar el archivo XLSX.');
+        return;
+    }
+
+    var headers = [
+        'Fecha',
+        'Usuario',
+        'Factura Inicial',
+        'Factura Final',
+        'Monto Apertura',
+        'Venta del Día',
+        'Retiro Caja',
+        'Neto Caja',
+        'Estado'
+    ];
+
+    var totalApertura = rows.reduce(function (acc, row) { return acc + row.apertura; }, 0);
+    var totalVenta = rows.reduce(function (acc, row) { return acc + row.venta; }, 0);
+    var totalRetiro = rows.reduce(function (acc, row) { return acc + row.retiro; }, 0);
+    var totalNeto = rows.reduce(function (acc, row) { return acc + row.neto; }, 0);
+    var abiertas = rows.filter(function (row) { return row.estado === 'Abierta'; }).length;
+
+    var headerRow = 7;
+    var firstDataRow = 8;
+    var lastRow = Math.max(headerRow, headerRow + rows.length);
+    var sheetRows = [];
+
+    sheetRows.push(
+        '<row r="1" ht="30" customHeight="1">' +
+            cajasExcelCell('A1', 'IZZY • REPORTE DE CAJAS', 1, false) +
+        '</row>'
+    );
+
+    sheetRows.push(
+        '<row r="2" ht="20" customHeight="1">' +
+            cajasExcelCell(
+                'A2',
+                'Control de aperturas, ventas, retiros y neto • Generado: ' +
+                new Date().toLocaleDateString('es-HN'),
+                2,
+                false
+            ) +
+        '</row>'
+    );
+
+    sheetRows.push(
+        '<row r="3">' +
+            cajasExcelCell('A3', 'REGISTROS', 6, false) +
+            cajasExcelCell('C3', 'CAJAS ABIERTAS', 6, false) +
+            cajasExcelCell('E3', 'VENTA', 6, false) +
+            cajasExcelCell('G3', 'RETIROS', 6, false) +
+            cajasExcelCell('I3', 'NETO', 6, false) +
+        '</row>'
+    );
+
+    sheetRows.push(
+        '<row r="4" ht="27" customHeight="1">' +
+            cajasExcelCell('A4', rows.length, 7, true) +
+            cajasExcelCell('C4', abiertas, 7, true) +
+            cajasExcelCell('E4', totalVenta, 11, true) +
+            cajasExcelCell('G4', totalRetiro, 11, true) +
+            cajasExcelCell('I4', totalNeto, 11, true) +
+        '</row>'
+    );
+
+    sheetRows.push('<row r="5"></row>');
+
+    sheetRows.push(
+        '<row r="6">' +
+            cajasExcelCell('A6', 'Detalle de cajas filtradas', 8, false) +
+        '</row>'
+    );
+
+    var headerCells = headers.map(function (header, index) {
+        return cajasExcelCell(
+            cajasExcelCol(index) + headerRow,
+            header,
+            3,
+            false
+        );
+    }).join('');
+
+    sheetRows.push(
+        '<row r="' + headerRow + '" ht="28" customHeight="1">' +
+            headerCells +
+        '</row>'
+    );
+
+    rows.forEach(function (row, rowIndex) {
+        var excelRow = firstDataRow + rowIndex;
+        var valores = [
+            row.fecha,
+            row.usuario,
+            row.facturaInicial,
+            row.facturaFinal,
+            row.apertura,
+            row.venta,
+            row.retiro,
+            row.neto,
+            row.estado
+        ];
+
+        var cells = valores.map(function (value, colIndex) {
+            var numeric = colIndex >= 4 && colIndex <= 7;
+            var style = numeric ? 11 : 4;
+
+            if (colIndex === 8) {
+                style = value === 'Abierta' ? 9 : 10;
+            }
+
+            return cajasExcelCell(
+                cajasExcelCol(colIndex) + excelRow,
+                value,
+                style,
+                numeric
+            );
+        }).join('');
+
+        sheetRows.push(
+            '<row r="' + excelRow + '" ht="28" customHeight="1">' +
+                cells +
+            '</row>'
+        );
     });
-};
+
+    var sheetXml =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+            '<dimension ref="A1:I' + lastRow + '"/>' +
+            '<sheetViews><sheetView workbookViewId="0" showGridLines="0">' +
+                '<pane ySplit="7" topLeftCell="A8" activePane="bottomLeft" state="frozen"/>' +
+            '</sheetView></sheetViews>' +
+            '<cols>' +
+                '<col min="1" max="1" width="16" customWidth="1"/>' +
+                '<col min="2" max="2" width="28" customWidth="1"/>' +
+                '<col min="3" max="4" width="20" customWidth="1"/>' +
+                '<col min="5" max="8" width="18" customWidth="1"/>' +
+                '<col min="9" max="9" width="14" customWidth="1"/>' +
+            '</cols>' +
+            '<sheetData>' + sheetRows.join('') + '</sheetData>' +
+            '<autoFilter ref="A7:I' + lastRow + '"/>' +
+            '<mergeCells count="12">' +
+                '<mergeCell ref="A1:I1"/>' +
+                '<mergeCell ref="A2:I2"/>' +
+                '<mergeCell ref="A3:B3"/><mergeCell ref="A4:B4"/>' +
+                '<mergeCell ref="C3:D3"/><mergeCell ref="C4:D4"/>' +
+                '<mergeCell ref="E3:F3"/><mergeCell ref="E4:F4"/>' +
+                '<mergeCell ref="G3:H3"/><mergeCell ref="G4:H4"/>' +
+                '<mergeCell ref="I3:I3"/><mergeCell ref="I4:I4"/>' +
+            '</mergeCells>' +
+            '<pageMargins left="0.25" right="0.25" top="0.5" bottom="0.5" header="0.2" footer="0.2"/>' +
+            '<pageSetup orientation="landscape" paperSize="1" fitToWidth="1" fitToHeight="0"/>' +
+        '</worksheet>';
+
+    var stylesXml =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+            '<numFmts count="1"><numFmt numFmtId="164" formatCode="&quot;L. &quot;#,##0.00"/></numFmts>' +
+            '<fonts count="7">' +
+                '<font><sz val="10"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+                '<font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+                '<font><sz val="9"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="8"/><color rgb="FF6B778C"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="15"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+            '</fonts>' +
+            '<fills count="7">' +
+                '<fill><patternFill patternType="none"/></fill>' +
+                '<fill><patternFill patternType="gray125"/></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFF7F9FC"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFE3FCEF"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFFFEBE6"/></patternFill></fill>' +
+            '</fills>' +
+            '<borders count="2">' +
+                '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+                '<border><left style="thin"><color rgb="FFDDE3EA"/></left><right style="thin"><color rgb="FFDDE3EA"/></right><top style="thin"><color rgb="FFDDE3EA"/></top><bottom style="thin"><color rgb="FFDDE3EA"/></bottom><diagonal/></border>' +
+            '</borders>' +
+            '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+            '<cellXfs count="12">' +
+                '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+                '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="2" fillId="4" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="6" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="5" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="5" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="6" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="164" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+            '</cellXfs>' +
+            '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+        '</styleSheet>';
+
+    var workbookXml =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+            '<sheets><sheet name="Cajas" sheetId="1" r:id="rId1"/></sheets>' +
+        '</workbook>';
+
+    var workbookRels =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+            '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+        '</Relationships>';
+
+    var rootRels =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+        '</Relationships>';
+
+    var contentTypes =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+            '<Default Extension="xml" ContentType="application/xml"/>' +
+            '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+            '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+            '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+        '</Types>';
+
+    var zip = new JSZip();
+
+    zip.file('[Content_Types].xml', contentTypes);
+    zip.folder('_rels').file('.rels', rootRels);
+    zip.folder('xl').file('workbook.xml', workbookXml);
+    zip.folder('xl').file('styles.xml', stylesXml);
+    zip.folder('xl').folder('_rels').file('workbook.xml.rels', workbookRels);
+    zip.folder('xl').folder('worksheets').file('sheet1.xml', sheetXml);
+
+    var opciones = {
+        type: 'blob',
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        compression: 'DEFLATE'
+    };
+
+    var promesa = typeof zip.generateAsync === 'function'
+        ? zip.generateAsync(opciones)
+        : Promise.resolve(zip.generate(opciones));
+
+    promesa.then(function (blob) {
+        cajasDescargarBlob(blob, 'Reporte_Cajas.xlsx');
+    }).catch(function (error) {
+        console.error(error);
+        showNotify('error', 'Error', 'No se pudo generar el archivo Excel.');
+    });
+}
+
+/* =========================================================
+   PDF PREMIUM SEGÚN VISTA
+   ========================================================= */
+function cajasPdfDato(label, value, color) {
+    return {
+        stack: [
+            {
+                text: String(label || '').toUpperCase(),
+                fontSize: 6.2,
+                bold: true,
+                color: '#6B778C',
+                margin: [0, 0, 0, 2]
+            },
+            {
+                text: String(
+                    value === null ||
+                    typeof value === 'undefined' ||
+                    value === ''
+                        ? '—'
+                        : value
+                ),
+                fontSize: 7.8,
+                bold: true,
+                color: color || '#172B4D'
+            }
+        ]
+    };
+}
+
+function cajasPdfFiltroTexto() {
+    var estado = $('#estado_cajas option:selected').text() || 'Todas';
+    var fechaInicial = $('#fecha_cajas').val() || '';
+    var fechaFinal = $('#fecha_cajas_f').val() || '';
+
+    return 'Estado: ' + estado +
+        '   |   Desde: ' + (fechaInicial || '—') +
+        '   |   Hasta: ' + (fechaFinal || '—');
+}
+
+function cajasPdfEncabezadoPremium(rows) {
+    var totalVentas = rows.reduce(function (acc, row) {
+        return acc + row.venta;
+    }, 0);
+
+    var totalRetiros = rows.reduce(function (acc, row) {
+        return acc + row.retiro;
+    }, 0);
+
+    var totalNeto = rows.reduce(function (acc, row) {
+        return acc + row.neto;
+    }, 0);
+
+    var abiertas = rows.filter(function (row) {
+        return row.estado === 'Abierta';
+    }).length;
+
+    var logoCell;
+
+    if (typeof imagen !== 'undefined' && imagen) {
+        logoCell = {
+            image: imagen,
+            width: 52,
+            height: 24,
+            alignment: 'center',
+            margin: [0, 2, 0, 0]
+        };
+    } else {
+        logoCell = {
+            text: 'IZZY',
+            fontSize: 16,
+            bold: true,
+            color: '#FFFFFF',
+            alignment: 'center',
+            margin: [0, 5, 0, 0]
+        };
+    }
+
+    var header = {
+        table: {
+            widths: [72, '*', 155],
+            body: [[
+                {
+                    border: [false, false, false, false],
+                    fillColor: '#17324D',
+                    margin: [12, 10, 0, 10],
+                    stack: [logoCell]
+                },
+                {
+                    border: [false, false, false, false],
+                    fillColor: '#17324D',
+                    margin: [0, 10, 0, 10],
+                    stack: [
+                        {
+                            text: 'REPORTE DE CAJAS',
+                            fontSize: 16,
+                            bold: true,
+                            color: '#FFFFFF'
+                        },
+                        {
+                            text: 'Control de aperturas, ventas, retiros y neto de caja',
+                            fontSize: 7.5,
+                            color: '#D8E5F0',
+                            margin: [0, 2, 0, 0]
+                        }
+                    ]
+                },
+                {
+                    border: [false, false, false, false],
+                    fillColor: '#17324D',
+                    margin: [0, 10, 12, 10],
+                    stack: [
+                        {
+                            text: 'REPORTE EJECUTIVO',
+                            fontSize: 6.5,
+                            bold: true,
+                            color: '#72E2E5',
+                            alignment: 'right'
+                        },
+                        {
+                            text: new Date().toLocaleDateString('es-HN'),
+                            fontSize: 9,
+                            bold: true,
+                            color: '#FFFFFF',
+                            alignment: 'right',
+                            margin: [0, 3, 0, 0]
+                        },
+                        {
+                            text: rows.length + ' registro(s) filtrado(s)',
+                            fontSize: 6.5,
+                            color: '#D8E5F0',
+                            alignment: 'right',
+                            margin: [0, 2, 0, 0]
+                        }
+                    ]
+                }
+            ]]
+        },
+        layout: {
+            hLineWidth: function () { return 0; },
+            vLineWidth: function () { return 0; }
+        },
+        margin: [0, 0, 0, 10]
+    };
+
+    var filtros = {
+        table: {
+            widths: ['*'],
+            body: [[{
+                text: 'Filtros aplicados: ' + cajasPdfFiltroTexto(),
+                fontSize: 6.8,
+                color: '#52627A',
+                margin: [10, 7, 10, 7],
+                fillColor: '#F7F9FC'
+            }]]
+        },
+        layout: {
+            hLineColor: function () { return '#DDE3EA'; },
+            vLineColor: function () { return '#DDE3EA'; },
+            hLineWidth: function () { return 0.6; },
+            vLineWidth: function () { return 0.6; }
+        },
+        margin: [0, 0, 0, 10]
+    };
+
+    var resumen = {
+        table: {
+            widths: ['*', '*', '*', '*', '*'],
+            body: [[
+                {
+                    fillColor: '#F7F9FC',
+                    margin: [8, 7, 8, 7],
+                    stack: [
+                        {text: 'REGISTROS', fontSize: 6.3, bold: true, color: '#6B778C'},
+                        {text: String(rows.length), fontSize: 13, bold: true, color: '#172B4D', margin: [0, 2, 0, 0]}
+                    ]
+                },
+                {
+                    fillColor: '#F7F9FC',
+                    margin: [8, 7, 8, 7],
+                    stack: [
+                        {text: 'CAJAS ABIERTAS', fontSize: 6.3, bold: true, color: '#6B778C'},
+                        {text: String(abiertas), fontSize: 13, bold: true, color: '#172B4D', margin: [0, 2, 0, 0]}
+                    ]
+                },
+                {
+                    fillColor: '#F7F9FC',
+                    margin: [8, 7, 8, 7],
+                    stack: [
+                        {text: 'VENTA', fontSize: 6.3, bold: true, color: '#6B778C'},
+                        {text: formatoMoneda(totalVentas), fontSize: 11, bold: true, color: '#14804A', margin: [0, 2, 0, 0]}
+                    ]
+                },
+                {
+                    fillColor: '#F7F9FC',
+                    margin: [8, 7, 8, 7],
+                    stack: [
+                        {text: 'RETIROS', fontSize: 6.3, bold: true, color: '#6B778C'},
+                        {text: formatoMoneda(totalRetiros), fontSize: 11, bold: true, color: '#B66A00', margin: [0, 2, 0, 0]}
+                    ]
+                },
+                {
+                    fillColor: '#F7F9FC',
+                    margin: [8, 7, 8, 7],
+                    stack: [
+                        {text: 'NETO', fontSize: 6.3, bold: true, color: '#6B778C'},
+                        {
+                            text: formatoMoneda(totalNeto),
+                            fontSize: 11,
+                            bold: true,
+                            color: totalNeto < 0 ? '#C9372C' : '#14804A',
+                            margin: [0, 2, 0, 0]
+                        }
+                    ]
+                }
+            ]]
+        },
+        layout: {
+            hLineColor: function () { return '#DDE3EA'; },
+            vLineColor: function () { return '#DDE3EA'; },
+            hLineWidth: function () { return 0.6; },
+            vLineWidth: function () { return 0.6; }
+        },
+        margin: [0, 0, 0, 12]
+    };
+
+    return [header, filtros, resumen];
+}
+
+function cajasPdfContenidoDetalle(rows) {
+    var body = [[
+        {text: 'FECHA', style: 'th', fillColor: '#17324D'},
+        {text: 'USUARIO', style: 'th', fillColor: '#17324D'},
+        {text: 'FACTURA INICIAL', style: 'th', fillColor: '#17324D'},
+        {text: 'FACTURA FINAL', style: 'th', fillColor: '#17324D'},
+        {text: 'APERTURA', style: 'th', fillColor: '#17324D'},
+        {text: 'VENTA', style: 'th', fillColor: '#17324D'},
+        {text: 'RETIROS', style: 'th', fillColor: '#17324D'},
+        {text: 'NETO', style: 'th', fillColor: '#17324D'},
+        {text: 'ESTADO', style: 'th', fillColor: '#17324D'}
+    ]];
+
+    rows.forEach(function (row, index) {
+        var fill = index % 2 === 0 ? '#FFFFFF' : '#F7F9FC';
+
+        body.push([
+            {text: row.fecha, style: 'tdCenter', fillColor: fill},
+            {text: row.usuario, style: 'tdStrong', fillColor: fill},
+            {text: row.facturaInicial, style: 'tdCenter', fillColor: fill},
+            {text: row.facturaFinal, style: 'tdCenter', fillColor: fill},
+            {text: formatoMoneda(row.apertura), style: 'tdMoney', fillColor: fill},
+            {text: formatoMoneda(row.venta), style: 'tdMoney', color: '#14804A', fillColor: fill},
+            {text: formatoMoneda(row.retiro), style: 'tdMoney', color: '#B66A00', fillColor: fill},
+            {
+                text: formatoMoneda(row.neto),
+                style: 'tdMoney',
+                color: row.neto < 0 ? '#C9372C' : '#14804A',
+                bold: true,
+                fillColor: fill
+            },
+            {
+                text: row.estado,
+                style: 'tdCenter',
+                color: row.estado === 'Abierta' ? '#14804A' : '#C9372C',
+                bold: true,
+                fillColor: fill
+            }
+        ]);
+    });
+
+    return [
+        {
+            text: 'VISTA DETALLE',
+            fontSize: 7,
+            bold: true,
+            color: '#17324D',
+            margin: [0, 1, 0, 7]
+        },
+        {
+            table: {
+                headerRows: 1,
+                widths: [62, 104, 72, 72, 68, 68, 68, 68, 50],
+                body: body
+            },
+            layout: {
+                hLineColor: function () { return '#DDE3EA'; },
+                vLineColor: function () { return '#DDE3EA'; },
+                hLineWidth: function () { return 0.55; },
+                vLineWidth: function () { return 0.55; },
+                paddingLeft: function () { return 5; },
+                paddingRight: function () { return 5; },
+                paddingTop: function () { return 6; },
+                paddingBottom: function () { return 6; }
+            }
+        }
+    ];
+}
+
+function cajasPdfMiniCard(row) {
+    var estadoColor = row.estado === 'Abierta' ? '#14804A' : '#C9372C';
+
+    return {
+        table: {
+            widths: ['*'],
+            body: [[{
+                margin: [10, 9, 10, 9],
+                stack: [
+                    {
+                        columns: [
+                            {
+                                width: '*',
+                                stack: [
+                                    {
+                                        text: row.usuario,
+                                        fontSize: 10,
+                                        bold: true,
+                                        color: '#172B4D'
+                                    },
+                                    {
+                                        text: 'Caja • ' + row.fecha,
+                                        fontSize: 7,
+                                        color: '#6B778C',
+                                        margin: [0, 2, 0, 0]
+                                    }
+                                ]
+                            },
+                            {
+                                width: 'auto',
+                                table: {
+                                    body: [[{
+                                        text: row.estado,
+                                        fontSize: 6.8,
+                                        bold: true,
+                                        color: estadoColor,
+                                        fillColor: row.estado === 'Abierta' ? '#E9F9EF' : '#FFF0EF',
+                                        margin: [6, 3, 6, 3]
+                                    }]]
+                                },
+                                layout: {
+                                    hLineColor: function () {
+                                        return row.estado === 'Abierta' ? '#BFE8CF' : '#F2C3BF';
+                                    },
+                                    vLineColor: function () {
+                                        return row.estado === 'Abierta' ? '#BFE8CF' : '#F2C3BF';
+                                    },
+                                    hLineWidth: function () { return 0.6; },
+                                    vLineWidth: function () { return 0.6; }
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        canvas: [{
+                            type: 'line',
+                            x1: 0,
+                            y1: 0,
+                            x2: 250,
+                            y2: 0,
+                            lineWidth: 0.6,
+                            lineColor: '#DDE3EA'
+                        }],
+                        margin: [0, 7, 0, 7]
+                    },
+                    {
+                        columns: [
+                            {
+                                width: '50%',
+                                stack: [
+                                    cajasPdfDato('Factura inicial', row.facturaInicial),
+                                    {
+                                        margin: [0, 8, 0, 0],
+                                        stack: [
+                                            cajasPdfDato(
+                                                'Apertura',
+                                                formatoMoneda(row.apertura)
+                                            )
+                                        ]
+                                    },
+                                    {
+                                        margin: [0, 8, 0, 0],
+                                        stack: [
+                                            cajasPdfDato(
+                                                'Retiros',
+                                                formatoMoneda(row.retiro),
+                                                '#B66A00'
+                                            )
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                width: '50%',
+                                stack: [
+                                    cajasPdfDato('Factura final', row.facturaFinal),
+                                    {
+                                        margin: [0, 8, 0, 0],
+                                        stack: [
+                                            cajasPdfDato(
+                                                'Venta',
+                                                formatoMoneda(row.venta),
+                                                '#14804A'
+                                            )
+                                        ]
+                                    },
+                                    {
+                                        margin: [0, 8, 0, 0],
+                                        stack: [
+                                            cajasPdfDato(
+                                                'Neto',
+                                                formatoMoneda(row.neto),
+                                                row.neto < 0
+                                                    ? '#C9372C'
+                                                    : '#14804A'
+                                            )
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }]]
+        },
+        layout: {
+            hLineColor: function () { return '#DDE3EA'; },
+            vLineColor: function () { return '#DDE3EA'; },
+            hLineWidth: function () { return 0.7; },
+            vLineWidth: function () { return 0.7; }
+        }
+    };
+}
+
+function cajasPdfContenidoMiniatura(rows) {
+    var contenido = [
+        {
+            text: 'VISTA MINIATURA',
+            fontSize: 7,
+            bold: true,
+            color: '#17324D',
+            margin: [0, 1, 0, 7]
+        }
+    ];
+
+    for (var i = 0; i < rows.length; i += 2) {
+        contenido.push({
+            columns: [
+                {
+                    width: '*',
+                    stack: [cajasPdfMiniCard(rows[i])]
+                },
+                {
+                    width: 10,
+                    text: ''
+                },
+                rows[i + 1]
+                    ? {
+                        width: '*',
+                        stack: [cajasPdfMiniCard(rows[i + 1])]
+                    }
+                    : {
+                        width: '*',
+                        text: ''
+                    }
+            ],
+            margin: [0, 0, 0, 9]
+        });
+    }
+
+    return contenido;
+}
+
+function previsualizarCajasPdfPremium() {
+    var rows = cajasExportRows();
+
+    if (!rows.length) {
+        showNotify(
+            'warning',
+            'Sin información',
+            'No hay cajas para exportar.'
+        );
+        return;
+    }
+
+    if (typeof pdfMake === 'undefined') {
+        showNotify(
+            'error',
+            'PDF no disponible',
+            'No se encontró pdfMake.'
+        );
+        return;
+    }
+
+    if (typeof abrirModalPdfPublico !== 'function') {
+        showNotify(
+            'error',
+            'Visor PDF no disponible',
+            'No se encontró el modal PDF público.'
+        );
+        return;
+    }
+
+    var esMiniatura = cajasState.vista === 'miniatura';
+
+    var contenido = cajasPdfEncabezadoPremium(rows).concat(
+        esMiniatura
+            ? cajasPdfContenidoMiniatura(rows)
+            : cajasPdfContenidoDetalle(rows)
+    );
+
+    var docDefinition = {
+        pageSize: 'LETTER',
+        pageOrientation: 'landscape',
+        pageMargins: [28, 28, 28, 34],
+
+        header: function () {
+            return {
+                margin: [28, 12, 28, 0],
+                canvas: [{
+                    type: 'line',
+                    x1: 0,
+                    y1: 0,
+                    x2: 736,
+                    y2: 0,
+                    lineWidth: 2,
+                    lineColor: '#0EA5A8'
+                }]
+            };
+        },
+
+        footer: function (currentPage, pageCount) {
+            return {
+                margin: [28, 8, 28, 0],
+                columns: [
+                    {
+                        text: 'IZZY • Registro de Cajas',
+                        fontSize: 7,
+                        color: '#7A869A'
+                    },
+                    {
+                        text: 'Página ' + currentPage + ' de ' + pageCount,
+                        fontSize: 7,
+                        color: '#7A869A',
+                        alignment: 'right'
+                    }
+                ]
+            };
+        },
+
+        content: contenido,
+
+        styles: {
+            th: {
+                fontSize: 6.2,
+                bold: true,
+                color: '#FFFFFF',
+                alignment: 'center',
+                margin: [0, 1, 0, 1]
+            },
+            tdStrong: {
+                fontSize: 6.5,
+                bold: true,
+                color: '#172B4D',
+                alignment: 'left'
+            },
+            tdCenter: {
+                fontSize: 6.4,
+                color: '#253858',
+                alignment: 'center'
+            },
+            tdMoney: {
+                fontSize: 6.4,
+                color: '#253858',
+                alignment: 'right'
+            }
+        },
+
+        defaultStyle: {
+            fontSize: 8,
+            color: '#253858'
+        }
+    };
+
+    var pdf = pdfMake.createPdf(docDefinition);
+    var nombre = 'Reporte_Cajas.pdf';
+
+    if (typeof pdf.getDataUrl === 'function') {
+        pdf.getDataUrl(function (dataUrl) {
+            abrirModalPdfPublico(
+                dataUrl,
+                'Reporte de Cajas',
+                nombre
+            );
+        });
+        return;
+    }
+
+    if (typeof pdf.getBase64 === 'function') {
+        pdf.getBase64(function (base64) {
+            abrirModalPdfPublico(
+                'data:application/pdf;base64,' + base64,
+                'Reporte de Cajas',
+                nombre
+            );
+        });
+        return;
+    }
+
+    showNotify(
+        'error',
+        'PDF no disponible',
+        'La versión actual de pdfMake no permite una vista previa compatible.'
+    );
+}
 
 /* =========================================================
    CUADRE DEL DÍA / PERÍODO
@@ -1796,4 +3084,214 @@ function cargarTablaDetalleGananciaCaja(detalles) {
         }
     });
 }
+
+/* =========================================================
+   CAJAS | DROPDOWN DE ACCIONES ADAPTATIVO
+   Funciona en vista detalle y miniatura.
+   - sólo un menú abierto;
+   - eleva únicamente su fila/card;
+   - decide abajo / arriba / derecha / izquierda según el viewport.
+   ========================================================= */
+function limpiarDireccionDropdownCajas($dropdown) {
+    if (!$dropdown || !$dropdown.length) {
+        return;
+    }
+
+    $dropdown.removeClass('dropup dropright dropleft');
+    $dropdown.children('.dropdown-menu')
+        .removeClass('dropdown-menu-right')
+        .removeAttr('x-placement data-popper-placement')
+        .css({ top: '', left: '', right: '', bottom: '', transform: '' });
+}
+
+function medirMenuDropdownCajas($menu) {
+    var menu = $menu && $menu.length ? $menu[0] : null;
+
+    if (!menu) {
+        return { width: 220, height: 220 };
+    }
+
+    var estilos = {
+        display: menu.style.display,
+        visibility: menu.style.visibility,
+        position: menu.style.position,
+        top: menu.style.top,
+        left: menu.style.left,
+        right: menu.style.right,
+        bottom: menu.style.bottom,
+        transform: menu.style.transform
+    };
+    var teniaShow = $menu.hasClass('show');
+
+    $menu.addClass('show').css({
+        display: 'block',
+        visibility: 'hidden',
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        right: 'auto',
+        bottom: 'auto',
+        transform: 'none'
+    });
+
+    var rect = menu.getBoundingClientRect();
+
+    if (!teniaShow) {
+        $menu.removeClass('show');
+    }
+
+    menu.style.display = estilos.display;
+    menu.style.visibility = estilos.visibility;
+    menu.style.position = estilos.position;
+    menu.style.top = estilos.top;
+    menu.style.left = estilos.left;
+    menu.style.right = estilos.right;
+    menu.style.bottom = estilos.bottom;
+    menu.style.transform = estilos.transform;
+
+    return {
+        width: Math.max(rect.width || 0, 220),
+        height: Math.max(rect.height || 0, 1)
+    };
+}
+
+function prepararDireccionDropdownCajas($dropdown) {
+    if (!$dropdown || !$dropdown.length) {
+        return;
+    }
+
+    var $button = $dropdown.children('.js-acciones-toggle');
+    var $menu = $dropdown.children('.dropdown-menu');
+    var button = $button.length ? $button[0] : null;
+
+    if (!button || !$menu.length) {
+        return;
+    }
+
+    limpiarDireccionDropdownCajas($dropdown);
+
+    var rect = button.getBoundingClientRect();
+    var menuSize = medirMenuDropdownCajas($menu);
+    var viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+    var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    var margin = 12;
+    var gap = 8;
+
+    var abajo = viewportHeight - rect.bottom - margin;
+    var arriba = rect.top - margin;
+    var derecha = viewportWidth - rect.right - margin;
+    var izquierda = rect.left - margin;
+
+    if (abajo >= menuSize.height + gap) {
+        // Posición normal: abajo.
+    } else if (arriba >= menuSize.height + gap) {
+        $dropdown.addClass('dropup');
+    } else if (derecha >= menuSize.width + gap) {
+        $dropdown.addClass('dropright');
+    } else if (izquierda >= menuSize.width + gap) {
+        $dropdown.addClass('dropleft');
+    } else if (arriba > abajo) {
+        $dropdown.addClass('dropup');
+    }
+
+    if (!$dropdown.hasClass('dropright') && !$dropdown.hasClass('dropleft')) {
+        var desbordaDerecha = rect.left + menuSize.width > viewportWidth - margin;
+        var puedeAlinearDerecha = rect.right - menuSize.width >= margin;
+
+        if (desbordaDerecha && puedeAlinearDerecha) {
+            $menu.addClass('dropdown-menu-right');
+        }
+    }
+}
+
+function cerrarDropdownsCajasExcepto($actual) {
+    $('#cajasListado .cajas-actions-dropdown').each(function () {
+        var $dropdown = $(this);
+        var $btn = $dropdown.children('.js-acciones-toggle');
+        var $menu = $dropdown.children('.dropdown-menu');
+
+        if ($actual && $actual.length && $dropdown.is($actual)) {
+            return;
+        }
+
+        try {
+            if (typeof $.fn.dropdown === 'function' && $menu.hasClass('show')) {
+                $btn.dropdown('hide');
+            }
+        } catch (error) {
+            // Respaldo manual abajo.
+        }
+
+        $btn.attr('aria-expanded', 'false');
+        $dropdown.removeClass('show');
+        $menu.removeClass('show');
+        limpiarDireccionDropdownCajas($dropdown);
+        $dropdown.closest('.cajas-detail-row, .cajas-mini-card').removeClass('cajas-dropdown-open');
+    });
+}
+
+function inicializarDropdownAccionesCajas() {
+    $('#cajasListado')
+        .off('click.cajasDropdownAdaptativo', '.cajas-actions-dropdown .js-acciones-toggle')
+        .on('click.cajasDropdownAdaptativo', '.cajas-actions-dropdown .js-acciones-toggle', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+
+            var $button = $(this);
+            var $dropdown = $button.closest('.cajas-actions-dropdown');
+            var $menu = $dropdown.children('.dropdown-menu');
+            var estabaAbierto = $menu.hasClass('show');
+
+            if (typeof $.fn.dropdown !== 'function') {
+                return;
+            }
+
+            cerrarDropdownsCajasExcepto($dropdown);
+
+            if (estabaAbierto) {
+                try {
+                    $button.dropdown('hide');
+                } catch (error) {
+                    $dropdown.removeClass('show');
+                    $menu.removeClass('show');
+                }
+
+                $button.attr('aria-expanded', 'false');
+                limpiarDireccionDropdownCajas($dropdown);
+                $dropdown.closest('.cajas-detail-row, .cajas-mini-card').removeClass('cajas-dropdown-open');
+                return;
+            }
+
+            try {
+                prepararDireccionDropdownCajas($dropdown);
+
+                $button.dropdown({
+                    boundary: 'viewport',
+                    flip: true,
+                    offset: '0,6'
+                });
+
+                $button.dropdown('show');
+                $dropdown.closest('.cajas-detail-row, .cajas-mini-card').addClass('cajas-dropdown-open');
+            } catch (error) {
+                console.error('No se pudo abrir el dropdown de acciones de Cajas:', error);
+            }
+        });
+
+    $(document)
+        .off('shown.bs.dropdown.cajasDropdownAdaptativo', '#cajasListado .cajas-actions-dropdown')
+        .on('shown.bs.dropdown.cajasDropdownAdaptativo', '#cajasListado .cajas-actions-dropdown', function () {
+            var $dropdown = $(this);
+            cerrarDropdownsCajasExcepto($dropdown);
+            $dropdown.closest('.cajas-detail-row, .cajas-mini-card').addClass('cajas-dropdown-open');
+        })
+        .off('hidden.bs.dropdown.cajasDropdownAdaptativo', '#cajasListado .cajas-actions-dropdown')
+        .on('hidden.bs.dropdown.cajasDropdownAdaptativo', '#cajasListado .cajas-actions-dropdown', function () {
+            var $dropdown = $(this);
+            limpiarDireccionDropdownCajas($dropdown);
+            $dropdown.closest('.cajas-detail-row, .cajas-mini-card').removeClass('cajas-dropdown-open');
+        });
+}
+
 </script>

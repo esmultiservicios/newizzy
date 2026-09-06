@@ -20,8 +20,19 @@
     </div>
 
     <!-- Filtros -->
-    <div class="card mb-4 secuencia-filtro-card">
-        <div class="card-body">
+    <div class="card mb-4 secuencia-filtro-card secuencia-panel-card">
+        <div class="card-header secuencia-panel-header">
+            <div>
+                <div class="secuencia-panel-title">
+                    <i class="fas fa-filter mr-2"></i> Filtros de secuencia
+                </div>
+                <small>Refine los registros por estado, documento, vencimiento o búsqueda rápida.</small>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm secuencia-toggle-btn" id="btn_toggle_secuencia_filtros">
+                <i class="fas fa-chevron-down mr-1"></i> Mostrar
+            </button>
+        </div>
+        <div class="card-body" id="secuencia_filtros_body" style="display:none;">
             <form id="form_main_secuencia" autocomplete="off">
                 <div class="row align-items-end">
                     <div class="col-xl-3 col-lg-4 col-md-6 mb-3">
@@ -92,48 +103,63 @@
     </div>
 
     <!-- Cards resumen -->
-    <div class="row secuencia-resumen-row">
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="secuencia-resumen-card secuencia-resumen-activa">
-                <div class="secuencia-resumen-content">
-                    <span class="secuencia-resumen-label"><i class="fas fa-check-circle mr-1"></i> Secuencias activas</span>
-                    <h3 id="secuencia_total_activas">0</h3>
-                    <p>Registros activos filtrados</p>
+    <div class="card mb-4 secuencia-kpi-card secuencia-panel-card">
+        <div class="card-header secuencia-panel-header">
+            <div>
+                <div class="secuencia-panel-title">
+                    <i class="fas fa-chart-pie mr-2"></i> Resumen de secuencia
                 </div>
-                <div class="secuencia-resumen-icon"><i class="fas fa-sliders-h"></i></div>
+                <small>Indicadores calculados sobre los registros filtrados.</small>
             </div>
+            <button type="button" class="btn btn-primary btn-sm secuencia-toggle-btn" id="btn_toggle_secuencia_kpis">
+                <i class="fas fa-chevron-down mr-1"></i> Mostrar
+            </button>
         </div>
-
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="secuencia-resumen-card secuencia-resumen-fiscal">
-                <div class="secuencia-resumen-content">
-                    <span class="secuencia-resumen-label"><i class="fas fa-file-invoice-dollar mr-1"></i> Con CAI</span>
-                    <h3 id="secuencia_total_cai">0</h3>
-                    <p>Documentos fiscales</p>
+        <div class="card-body" id="secuencia_kpis_body" style="display:none;">
+            <div class="row secuencia-resumen-row mb-0">
+                <div class="col-xl-3 col-md-6 mb-3">
+                    <div class="secuencia-resumen-card secuencia-resumen-activa">
+                        <div class="secuencia-resumen-content">
+                            <span class="secuencia-resumen-label"><i class="fas fa-check-circle mr-1"></i> Secuencias activas</span>
+                            <h3 id="secuencia_total_activas">0</h3>
+                            <p>Registros activos filtrados</p>
+                        </div>
+                        <div class="secuencia-resumen-icon"><i class="fas fa-sliders-h"></i></div>
+                    </div>
                 </div>
-                <div class="secuencia-resumen-icon"><i class="fas fa-receipt"></i></div>
-            </div>
-        </div>
 
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="secuencia-resumen-card secuencia-resumen-disponible">
-                <div class="secuencia-resumen-content">
-                    <span class="secuencia-resumen-label"><i class="fas fa-layer-group mr-1"></i> Disponibles</span>
-                    <h3 id="secuencia_total_disponibles">0</h3>
-                    <p>Correlativos restantes</p>
+                <div class="col-xl-3 col-md-6 mb-3">
+                    <div class="secuencia-resumen-card secuencia-resumen-fiscal">
+                        <div class="secuencia-resumen-content">
+                            <span class="secuencia-resumen-label"><i class="fas fa-file-invoice-dollar mr-1"></i> Con CAI</span>
+                            <h3 id="secuencia_total_cai">0</h3>
+                            <p>Documentos fiscales</p>
+                        </div>
+                        <div class="secuencia-resumen-icon"><i class="fas fa-receipt"></i></div>
+                    </div>
                 </div>
-                <div class="secuencia-resumen-icon"><i class="fas fa-list-ol"></i></div>
-            </div>
-        </div>
 
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="secuencia-resumen-card secuencia-resumen-vencer">
-                <div class="secuencia-resumen-content">
-                    <span class="secuencia-resumen-label"><i class="fas fa-calendar-times mr-1"></i> Por vencer</span>
-                    <h3 id="secuencia_total_por_vencer">0</h3>
-                    <p>Vencen en 30 días o menos</p>
+                <div class="col-xl-3 col-md-6 mb-3">
+                    <div class="secuencia-resumen-card secuencia-resumen-disponible">
+                        <div class="secuencia-resumen-content">
+                            <span class="secuencia-resumen-label"><i class="fas fa-layer-group mr-1"></i> Disponibles</span>
+                            <h3 id="secuencia_total_disponibles">0</h3>
+                            <p>Correlativos restantes</p>
+                        </div>
+                        <div class="secuencia-resumen-icon"><i class="fas fa-list-ol"></i></div>
+                    </div>
                 </div>
-                <div class="secuencia-resumen-icon"><i class="fas fa-hourglass-half"></i></div>
+
+                <div class="col-xl-3 col-md-6 mb-3">
+                    <div class="secuencia-resumen-card secuencia-resumen-vencer">
+                        <div class="secuencia-resumen-content">
+                            <span class="secuencia-resumen-label"><i class="fas fa-calendar-times mr-1"></i> Por vencer</span>
+                            <h3 id="secuencia_total_por_vencer">0</h3>
+                            <p>Vencen en 30 días o menos</p>
+                        </div>
+                        <div class="secuencia-resumen-icon"><i class="fas fa-hourglass-half"></i></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -170,15 +196,49 @@
                     </button>
                 </div>
 
-                <div class="secuencia-page-size">
-                    <label for="secuencia_page_size">Mostrar</label>
-                    <select id="secuencia_page_size" class="form-control form-control-sm">
-                        <option value="5" selected>5</option>
-                        <option value="10">10</option>
-                        <option value="20">20</option>
-                        <option value="50">50</option>
-                    </select>
-                    <span>registros</span>
+                <div class="secuencia-toolbar-tools">
+                    <div class="secuencia-page-size">
+                        <label for="secuencia_page_size">Mostrar</label>
+                        <select id="secuencia_page_size" class="form-control form-control-sm">
+                            <option value="5" selected>5</option>
+                            <option value="10">10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                        </select>
+                        <span>registros</span>
+                    </div>
+
+                    <div class="secuencia-view-switch"
+                         role="group"
+                         aria-label="Cambiar vista de secuencias">
+                        <button type="button"
+                                class="secuencia-view-btn active"
+                                data-view="detalle"
+                                title="Vista detalle"
+                                aria-pressed="true">
+                            <i class="fas fa-list"></i>
+                            <span>Detalle</span>
+                        </button>
+
+                        <button type="button"
+                                class="secuencia-view-btn"
+                                data-view="miniatura"
+                                title="Vista miniatura"
+                                aria-pressed="false">
+                            <i class="fas fa-th-large"></i>
+                            <span>Miniatura</span>
+                        </button>
+                    </div>
+
+                    <div class="secuencia-list-search">
+                        <label for="secuencia_buscar_listado" class="sr-only">Buscar</label>
+                        <div class="input-group input-group-sm">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            </div>
+                            <input type="search" id="secuencia_buscar_listado" class="form-control" placeholder="Buscar secuencia..." autocomplete="off">
+                        </div>
+                    </div>
                 </div>
             </div>
 

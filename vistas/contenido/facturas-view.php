@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/nota_credito.css">
 <body id="view_bill">
     <div class="container-fluid">
         <div class="card mb-4">
@@ -688,6 +689,13 @@
         </div>
       </div>
     </div>    
+
+<?php
+// FASE 3: Nota de Crédito compartida. Luego Restaurante puede reutilizar estos mismos archivos.
+require_once './vistas/contenido/modals/notaCredito-modals.php';
+require_once './Ajax/js/notaCredito.php';
+?>
+
 </body>
 
 <?php

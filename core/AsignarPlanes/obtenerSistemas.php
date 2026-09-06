@@ -27,7 +27,16 @@ $conexion = null;
 $stmt = null;
 
 try {
-    $conexion = $mainModel->connection();
+    if (defined('DB_MAIN') && method_exists($mainModel, 'connectToDatabase')) {
+        $conexion = $mainModel->connectToDatabase([
+            "host" => SERVER,
+            "user" => USER,
+            "pass" => PASS,
+            "name" => DB_MAIN
+        ]);
+    } else {
+        $conexion = $mainModel->connection();
+    }
 
     if (!$conexion) {
         throw new Exception("No se pudo conectar a la base principal.");

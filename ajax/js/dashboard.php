@@ -736,8 +736,13 @@ function getChartOptions(title, stacked) {
 /****************************************************************************************************************************************************************/
 
 var dashboardFiscalesRows = [];
+var dashboardFiscalesFiltradas = [];
+var dashboardFiscalesVista = 'detalle';
+var DASHBOARD_FISCALES_STORAGE_VISTA = 'izzy_dashboard_fiscales_tipo_vista';
 var dashboardFiscalesPagina = 1;
 var dashboardFiscalesPorPagina = 3;
+var dashboardFiscalesPorPaginaDetalle = 3;
+var dashboardFiscalesPorPaginaMiniatura = 6;
 
 function secuenciaDashboardValor(valor, textoDefault) {
     if (valor === null || valor === undefined || String(valor).trim() === '') {
@@ -860,6 +865,112 @@ function secuenciaDashboardPorcentajeUsado(row) {
     return Math.min(100, Math.round((usado / total) * 100));
 }
 
+function dashboardFiscalesNormalizarTexto(valor) {
+    return String(valor || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+}
+
+function dashboardFiscalesInicializarVista() {
+    var vista = 'detalle';
+
+    try {
+        vista = localStorage.getItem(DASHBOARD_FISCALES_STORAGE_VISTA) || 'detalle';
+    } catch (e) {
+        vista = 'detalle';
+    }
+
+    dashboardFiscalesVista = vista === 'miniatura' ? 'miniatura' : 'detalle';
+    dashboardFiscalesActualizarBotonesVista();
+    dashboardFiscalesSincronizarTamanoPagina();
+}
+
+function dashboardFiscalesCambiarVista(vista) {
+    dashboardFiscalesVista = vista === 'miniatura' ? 'miniatura' : 'detalle';
+
+    try {
+        localStorage.setItem(DASHBOARD_FISCALES_STORAGE_VISTA, dashboardFiscalesVista);
+    } catch (e) {
+        // La interfaz continúa funcionando aunque localStorage esté bloqueado.
+    }
+
+    dashboardFiscalesActualizarBotonesVista();
+    dashboardFiscalesSincronizarTamanoPagina();
+    dashboardFiscalesPagina = 1;
+    dashboardFiscalesRender();
+}
+
+function dashboardFiscalesSincronizarTamanoPagina() {
+    var $select = $('#dashboard_fiscales_page_size');
+    var esMiniatura = dashboardFiscalesVista === 'miniatura';
+    var opciones = esMiniatura ? [6, 12, 18, 30] : [3, 5, 10, 20];
+    var seleccionado = esMiniatura
+        ? dashboardFiscalesPorPaginaMiniatura
+        : dashboardFiscalesPorPaginaDetalle;
+
+    $select.empty();
+
+    opciones.forEach(function(valor) {
+        $select.append('<option value="' + valor + '">' + valor + '</option>');
+    });
+
+    dashboardFiscalesPorPagina = opciones.indexOf(seleccionado) !== -1
+        ? seleccionado
+        : opciones[0];
+
+    $select.val(String(dashboardFiscalesPorPagina));
+}
+
+function dashboardFiscalesActualizarBotonesVista() {
+    $('.dashboard-fiscales-view-btn')
+        .removeClass('active')
+        .attr('aria-pressed', 'false');
+
+    $('.dashboard-fiscales-view-btn[data-view="' + dashboardFiscalesVista + '"]')
+        .addClass('active')
+        .attr('aria-pressed', 'true');
+}
+
+function dashboardFiscalesFiltrarRows() {
+    var termino = dashboardFiscalesNormalizarTexto($('#dashboard_fiscales_buscar').val());
+
+    if (!termino) {
+        dashboardFiscalesFiltradas = dashboardFiscalesRows.slice();
+        return;
+    }
+
+    dashboardFiscalesFiltradas = dashboardFiscalesRows.filter(function(row) {
+        var texto = dashboardFiscalesNormalizarTexto([
+            row.secuencia_facturacion_id || row.id || row.secuencia_id,
+            row.empresa,
+            row.documento,
+            row.cai,
+            row.prefijo,
+            row.relleno,
+            row.incremento,
+            row.siguiente,
+            row.inicio || row.rango_inicial,
+            row.fin || row.rango_final,
+            row.fecha_activacion || row.activacion,
+            row.fecha_limite || row.fecha,
+            row.fecha_registro || row.registro
+        ].join(' '));
+
+        return texto.indexOf(termino) !== -1;
+    });
+}
+
+function dashboardFiscalesRenderHeaderDetalle() {
+    return '' +
+        '<div class="dashboard-fiscales-detail-header" role="row">' +
+            '<div class="dashboard-fiscales-detail-header-cell" role="columnheader"><i class="fas fa-file-invoice"></i><span>Documento</span></div>' +
+            '<div class="dashboard-fiscales-detail-header-cell" role="columnheader"><i class="fas fa-key"></i><span>Autorización / CAI</span></div>' +
+            '<div class="dashboard-fiscales-detail-header-cell" role="columnheader"><i class="fas fa-list-ol"></i><span>Numeración</span></div>' +
+            '<div class="dashboard-fiscales-detail-header-cell" role="columnheader"><i class="fas fa-calendar-alt"></i><span>Vigencia</span></div>' +
+        '</div>';
+}
+
 function dashboardFiscalesRenderCard(row) {
     var empresa = secuenciaDashboardEscape(secuenciaDashboardValor(row.empresa, 'Empresa'));
     var documento = secuenciaDashboardDocumentoBadge(row.documento);
@@ -929,26 +1040,93 @@ function dashboardFiscalesRenderCard(row) {
         '</article>';
 }
 
+function dashboardFiscalesRenderMiniatura(row) {
+    var empresa = secuenciaDashboardEscape(secuenciaDashboardValor(row.empresa, 'Empresa'));
+    var documento = secuenciaDashboardDocumentoBadge(row.documento);
+    var estado = secuenciaDashboardEstadoBadge(row.estado !== undefined ? row.estado : 1);
+    var idSecuencia = secuenciaDashboardEscape(secuenciaDashboardValor(row.secuencia_facturacion_id || row.id || row.secuencia_id, 'N/D'));
+    var cai = secuenciaDashboardEscape(secuenciaDashboardValor(row.cai, 'Sin CAI'));
+    var prefijo = secuenciaDashboardEscape(secuenciaDashboardValor(row.prefijo, 'Sin prefijo'));
+    var siguiente = secuenciaDashboardEscape(secuenciaDashboardValor(row.siguiente, '0'));
+    var disponibles = secuenciaDashboardDisponibles(row);
+    var porcentaje = secuenciaDashboardPorcentajeUsado(row);
+    var fechaLimiteRaw = row.fecha_limite || row.fecha || '';
+    var fechaLimite = secuenciaDashboardEscape(secuenciaDashboardValor(fechaLimiteRaw, 'No registrada'));
+    var vigencia = secuenciaDashboardVencimientoBadge(fechaLimiteRaw);
+
+    return '' +
+        '<article class="dashboard-fiscal-mini-card">' +
+            '<div class="dashboard-fiscal-mini-topline"></div>' +
+
+            '<div class="dashboard-fiscal-mini-head">' +
+                '<div class="dashboard-fiscal-icon"><i class="fas fa-file-invoice"></i></div>' +
+                '<div class="dashboard-fiscal-mini-title">' +
+                    '<div class="dashboard-fiscal-title-row"><h4>' + empresa + '</h4>' + estado + '</div>' +
+                    '<div class="dashboard-fiscal-doc-row">' + documento + '</div>' +
+                '</div>' +
+            '</div>' +
+
+            '<div class="dashboard-fiscal-mini-body">' +
+                '<div class="dashboard-fiscal-mini-field"><span><i class="fas fa-key"></i> CAI</span><strong class="dashboard-fiscal-wrap">' + cai + '</strong></div>' +
+                '<div class="dashboard-fiscal-mini-field"><span><i class="fas fa-barcode"></i> Prefijo</span><strong>' + prefijo + '</strong></div>' +
+                '<div class="dashboard-fiscal-mini-field"><span><i class="fas fa-list-ol"></i> Siguiente</span><strong class="dashboard-fiscal-mini-number">' + siguiente + '</strong></div>' +
+                '<div class="dashboard-fiscal-mini-field"><span><i class="fas fa-calendar-times"></i> Límite</span><strong>' + fechaLimite + '</strong></div>' +
+            '</div>' +
+
+            '<div class="dashboard-fiscal-mini-progress">' +
+                '<div class="dashboard-fiscal-progress-track"><span style="width:' + porcentaje + '%"></span></div>' +
+                '<div class="dashboard-fiscal-progress-meta"><span>' + porcentaje + '% usado</span><strong>' + disponibles + ' disponibles</strong></div>' +
+            '</div>' +
+
+            '<div class="dashboard-fiscal-mini-footer">' +
+                '<small><i class="fas fa-hashtag"></i> ID: ' + idSecuencia + '</small>' +
+                vigencia +
+            '</div>' +
+        '</article>';
+}
+
 function dashboardFiscalesRender() {
-    var total = dashboardFiscalesRows.length;
+    dashboardFiscalesFiltrarRows();
+
+    var total = dashboardFiscalesFiltradas.length;
     dashboardFiscalesPorPagina = parseInt($('#dashboard_fiscales_page_size').val(), 10) || 3;
 
     var totalPaginas = Math.max(1, Math.ceil(total / dashboardFiscalesPorPagina));
+
     if (dashboardFiscalesPagina > totalPaginas) {
         dashboardFiscalesPagina = totalPaginas;
     }
 
     var inicio = (dashboardFiscalesPagina - 1) * dashboardFiscalesPorPagina;
     var fin = Math.min(inicio + dashboardFiscalesPorPagina, total);
-    var filasPagina = dashboardFiscalesRows.slice(inicio, fin);
+    var filasPagina = dashboardFiscalesFiltradas.slice(inicio, fin);
+    var $listado = $('#dashboard_fiscales_listado');
+    var html = '';
 
-    $('#dashboard_fiscales_listado').html(filasPagina.map(dashboardFiscalesRenderCard).join(''));
+    $listado
+        .toggleClass('vista-detalle', dashboardFiscalesVista === 'detalle')
+        .toggleClass('vista-miniatura', dashboardFiscalesVista === 'miniatura');
+
+    if (dashboardFiscalesVista === 'detalle' && total > 0) {
+        html += dashboardFiscalesRenderHeaderDetalle();
+        html += filasPagina.map(dashboardFiscalesRenderCard).join('');
+    } else {
+        html += filasPagina.map(dashboardFiscalesRenderMiniatura).join('');
+    }
+
+    $listado.html(html);
+
     $('#dashboard_fiscales_empty').toggleClass('d-none', total !== 0);
-    $('#dashboard_fiscales_info').text(total === 0 ? 'Mostrando 0 registros' : 'Mostrando ' + (inicio + 1) + ' a ' + fin + ' de ' + total + ' registros');
+    $('#dashboard_fiscales_info').text(
+        total === 0
+            ? 'Mostrando 0 registros'
+            : 'Mostrando ' + (inicio + 1) + ' a ' + fin + ' de ' + total + ' registros'
+    );
 
     dashboardFiscalesRenderPaginacion(totalPaginas);
 
-    if (typeof getPermisosTipoUsuarioAccesosTable === 'function' && typeof getPrivilegioTipoUsuario === 'function') {
+    if (typeof getPermisosTipoUsuarioAccesosTable === 'function' &&
+        typeof getPrivilegioTipoUsuario === 'function') {
         getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
     }
 }
@@ -1404,240 +1582,198 @@ function dashboardFiscalesExportarExcel() {
     });
 }
 
+function dashboardFiscalesAbrirPdfEnModal(pdfGenerator, tituloModal, nombreArchivo) {
+    if (typeof abrirModalPdfPublico !== 'function') {
+        if (typeof showNotify === 'function') {
+            showNotify(
+                'error',
+                'Vista previa no disponible',
+                'No se encontró el modal público de PDF.'
+            );
+        }
+        return;
+    }
+
+    var abrir = function(url) {
+        abrirModalPdfPublico(url, tituloModal, nombreArchivo);
+
+        if (typeof showNotify === 'function') {
+            showNotify(
+                'success',
+                'PDF generado',
+                'El reporte está listo para visualizarse.'
+            );
+        }
+    };
+
+    if (pdfGenerator && typeof pdfGenerator.getBlob === 'function') {
+        pdfGenerator.getBlob(function(blob) {
+            var url = URL.createObjectURL(blob);
+            abrir(url);
+        });
+        return;
+    }
+
+    if (pdfGenerator && typeof pdfGenerator.getDataUrl === 'function') {
+        pdfGenerator.getDataUrl(function(dataUrl) {
+            abrir(dataUrl);
+        });
+        return;
+    }
+
+    if (pdfGenerator && typeof pdfGenerator.getBase64 === 'function') {
+        pdfGenerator.getBase64(function(base64) {
+            abrir('data:application/pdf;base64,' + base64);
+        });
+        return;
+    }
+
+    if (typeof showNotify === 'function') {
+        showNotify(
+            'error',
+            'PDF no disponible',
+            'La versión actual del componente PDF no permite generar la vista previa.'
+        );
+    }
+}
+
+
 function dashboardFiscalesExportarPDF() {
     var rows = dashboardFiscalesDatosExportacion();
 
     if (!rows.length) {
         if (typeof showNotify === 'function') {
-            showNotify('warning', 'Advertencia', 'No hay registros para exportar.');
+            showNotify('warning', 'Sin información', 'No hay documentos fiscales para exportar.');
         }
         return;
     }
 
     if (typeof pdfMake === 'undefined') {
         if (typeof showNotify === 'function') {
-            showNotify('error', 'PDF no disponible', 'El componente PDF no está disponible.');
+            showNotify('error', 'PDF no disponible', 'No se encontró pdfMake.');
         }
         return;
     }
 
-    var totalActivas = rows.filter(function(row) {
-        return String(row.estado || '').toLowerCase() === 'activo';
-    }).length;
+    var activos = rows.filter(function(row){return String(row.estado).toLowerCase()==='activo';}).length;
+    var conCai = rows.filter(function(row){return row.cai && row.cai !== 'Sin CAI';}).length;
+    var disponibles = rows.reduce(function(acc,row){return acc + (parseInt(row.disponibles,10)||0);},0);
+    var logo=(typeof imagen!=='undefined'&&imagen)?{image:imagen,width:50,height:24,alignment:'center',margin:[0,1,0,0]}:{text:'IZZY',fontSize:16,bold:true,color:'#FFFFFF',alignment:'center',margin:[0,4,0,0]};
 
-    var totalCai = rows.filter(function(row) {
-        return row.cai && String(row.cai).trim() !== '' && String(row.cai).toLowerCase() !== 'sin cai';
-    }).length;
+    var encabezado={table:{widths:[70,'*',150],body:[[
+        {border:[false,false,false,false],fillColor:'#17324D',margin:[12,10,0,10],stack:[logo]},
+        {border:[false,false,false,false],fillColor:'#17324D',margin:[0,10,0,10],stack:[
+            {text:'DOCUMENTOS FISCALES',fontSize:16,bold:true,color:'#FFFFFF'},
+            {text:'Control de secuencias, vigencia y disponibilidad fiscal',fontSize:7.5,color:'#D8E5F0',margin:[0,2,0,0]}
+        ]},
+        {border:[false,false,false,false],fillColor:'#17324D',margin:[0,10,12,10],stack:[
+            {text:'REPORTE EJECUTIVO',fontSize:6.5,bold:true,color:'#72E2E5',alignment:'right'},
+            {text:new Date().toLocaleDateString('es-HN'),fontSize:9,bold:true,color:'#FFFFFF',alignment:'right',margin:[0,3,0,0]},
+            {text:rows.length+' registro(s) filtrado(s)',fontSize:6.5,color:'#D8E5F0',alignment:'right',margin:[0,2,0,0]}
+        ]}
+    ]]},layout:{hLineWidth:function(){return 0;},vLineWidth:function(){return 0;}},margin:[0,0,0,10]};
 
-    var totalDisponibles = rows.reduce(function(total, row) {
-        return total + (parseInt(row.disponibles, 10) || 0);
-    }, 0);
+    var filtros={table:{widths:['*'],body:[[{text:'Filtros aplicados: se respetan los filtros actuales del panel de Documentos Fiscales.',fontSize:6.8,color:'#52627A',margin:[10,7,10,7],fillColor:'#F7F9FC'}]]},
+        layout:{hLineColor:function(){return '#DDE3EA';},vLineColor:function(){return '#DDE3EA';},hLineWidth:function(){return 0.6;},vLineWidth:function(){return 0.6;}},margin:[0,0,0,10]};
 
-    var totalPorVencer = rows.filter(function(row) {
-        var texto = String(row.vigencia || '').toLowerCase();
-        var match = texto.match(/faltan\s+(\d+)/);
-        return match && parseInt(match[1], 10) <= 30;
-    }).length;
+    var resumen={table:{widths:['*','*','*','*'],body:[[
+        {fillColor:'#F7F9FC',margin:[8,7,8,7],stack:[{text:'REGISTROS',fontSize:6.3,bold:true,color:'#6B778C'},{text:String(rows.length),fontSize:13,bold:true,color:'#172B4D',margin:[0,2,0,0]}]},
+        {fillColor:'#F7F9FC',margin:[8,7,8,7],stack:[{text:'ACTIVAS',fontSize:6.3,bold:true,color:'#6B778C'},{text:String(activos),fontSize:13,bold:true,color:'#172B4D',margin:[0,2,0,0]}]},
+        {fillColor:'#F7F9FC',margin:[8,7,8,7],stack:[{text:'CON CAI',fontSize:6.3,bold:true,color:'#6B778C'},{text:String(conCai),fontSize:13,bold:true,color:'#172B4D',margin:[0,2,0,0]}]},
+        {fillColor:'#F7F9FC',margin:[8,7,8,7],stack:[{text:'DISPONIBLES',fontSize:6.3,bold:true,color:'#6B778C'},{text:String(disponibles),fontSize:13,bold:true,color:'#14804A',margin:[0,2,0,0]}]}
+    ]]},layout:{hLineColor:function(){return '#DDE3EA';},vLineColor:function(){return '#DDE3EA';},hLineWidth:function(){return 0.6;},vLineWidth:function(){return 0.6;}},margin:[0,0,0,12]};
 
-    var contenido = [];
+    var vistaPdfFiscales = dashboardFiscalesState && dashboardFiscalesState.view ? dashboardFiscalesState.view : 'detalle';
+    var contenido=[];
 
-    contenido.push({
-        columns: [
-            {
-                width: '*',
-                stack: [
-                    {text: 'DOCUMENTOS FISCALES', style: 'titulo'},
-                    {text: 'Control de secuencias, correlativos y vigencia', style: 'subtitulo'}
-                ]
-            },
-            {
-                width: 150,
-                stack: [
-                    {text: 'REPORTE EJECUTIVO', style: 'reporteLabel', alignment: 'right'},
-                    {text: dashboardFiscalesFechaReporte(), style: 'reporteFecha', alignment: 'right'},
-                    {text: rows.length + ' registro(s)', style: 'reporteMeta', alignment: 'right'}
-                ]
-            }
-        ],
-        margin: [0, 0, 0, 12]
-    });
-
-    contenido.push({
-        table: {
-            widths: ['*', '*', '*', '*', '*'],
-            body: [[
-                {stack: [{text: 'REGISTROS', style: 'kpiLabel'}, {text: String(rows.length), style: 'kpiValue'}], margin: [8, 6, 8, 6]},
-                {stack: [{text: 'ACTIVAS', style: 'kpiLabel'}, {text: String(totalActivas), style: 'kpiValue'}], margin: [8, 6, 8, 6]},
-                {stack: [{text: 'CON CAI', style: 'kpiLabel'}, {text: String(totalCai), style: 'kpiValue'}], margin: [8, 6, 8, 6]},
-                {stack: [{text: 'DISPONIBLES', style: 'kpiLabel'}, {text: String(totalDisponibles), style: 'kpiValue'}], margin: [8, 6, 8, 6]},
-                {stack: [{text: 'POR VENCER', style: 'kpiLabel'}, {text: String(totalPorVencer), style: 'kpiValue'}], margin: [8, 6, 8, 6]}
-            ]]
-        },
-        layout: {
-            hLineColor: function() { return '#DDE3EA'; },
-            vLineColor: function() { return '#DDE3EA'; },
-            hLineWidth: function() { return 0.6; },
-            vLineWidth: function() { return 0.6; }
-        },
-        margin: [0, 0, 0, 14]
-    });
-
-    rows.forEach(function(row, index) {
-        var estadoColor = String(row.estado).toLowerCase() === 'activo' ? '#07883F' : '#C9372C';
-        var porcentaje = Math.max(0, Math.min(100, parseInt(row.porcentaje, 10) || 0));
-
-        contenido.push({
-            unbreakable: true,
-            margin: [0, 0, 0, 10],
-            table: {
-                widths: ['*'],
-                body: [[{
-                    margin: [10, 8, 10, 8],
-                    stack: [
-                        {
-                            columns: [
-                                {
-                                    width: '*',
-                                    stack: [
-                                        {text: row.empresa || 'Empresa', style: 'cardTitulo'},
-                                        {text: row.documento || 'Documento', style: 'cardDocumento'}
-                                    ]
-                                },
-                                {
-                                    width: 90,
-                                    stack: [
-                                        {text: row.estado, bold: true, fontSize: 8, color: estadoColor, alignment: 'right'},
-                                        {text: row.vigencia, bold: true, fontSize: 8, color: estadoColor, alignment: 'right', margin: [0, 3, 0, 0]}
-                                    ]
-                                }
-                            ],
-                            margin: [0, 0, 0, 7]
-                        },
-                        {
-                            columns: [
-                                {
-                                    width: '42%',
-                                    stack: [
-                                        {text: 'CAI / AUTORIZACIÓN', style: 'campoLabel'},
-                                        {text: row.cai || 'Sin CAI', style: 'campoValor'},
-                                        {
-                                            columns: [
-                                                {width: '*', stack: [{text: 'PREFIJO', style: 'campoLabel'}, {text: row.prefijo || 'Sin prefijo', style: 'campoValor'}]},
-                                                {width: 45, stack: [{text: 'RELLENO', style: 'campoLabel'}, {text: String(row.relleno), style: 'campoValor'}]},
-                                                {width: 52, stack: [{text: 'INCREMENTO', style: 'campoLabel'}, {text: String(row.incremento), style: 'campoValor'}]}
-                                            ],
-                                            margin: [0, 7, 0, 0]
-                                        }
-                                    ]
-                                },
-                                {
-                                    width: '33%',
-                                    margin: [12, 0, 12, 0],
-                                    stack: [
-                                        {
-                                            columns: [
-                                                {width: '*', stack: [{text: 'SIGUIENTE', style: 'campoLabel'}, {text: String(row.siguiente), style: 'numeroGrande'}]},
-                                                {width: 62, stack: [{text: 'DISPONIBLES', style: 'campoLabel'}, {text: String(row.disponibles), style: 'numeroDisponible'}]}
-                                            ]
-                                        },
-                                        {text: 'Rango: ' + row.rango_inicial + ' - ' + row.rango_final, style: 'rangoTexto', margin: [0, 6, 0, 3]},
-                                        {
-                                            canvas: [
-                                                {type: 'rect', x: 0, y: 0, w: 150, h: 5, color: '#E8EDF3'},
-                                                {type: 'rect', x: 0, y: 0, w: 150 * (porcentaje / 100), h: 5, color: '#0EA5A8'}
-                                            ]
-                                        },
-                                        {text: porcentaje + '% usado • ' + row.disponibles + ' disponibles', style: 'rangoTexto', margin: [0, 3, 0, 0]}
-                                    ]
-                                },
-                                {
-                                    width: '*',
-                                    stack: [
-                                        {text: 'ACTIVACIÓN', style: 'campoLabel'},
-                                        {text: row.activacion || 'No registrada', style: 'campoValor'},
-                                        {text: 'FECHA LÍMITE', style: 'campoLabel', margin: [0, 7, 0, 0]},
-                                        {text: row.limite || 'No registrada', style: 'campoValor'},
-                                        {text: 'VIGENCIA', style: 'campoLabel', margin: [0, 7, 0, 0]},
-                                        {text: row.vigencia, bold: true, fontSize: 8, color: estadoColor}
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
-                }]]
-            },
-            layout: {
-                hLineColor: function() { return '#D8E0EA'; },
-                vLineColor: function() { return '#D8E0EA'; },
-                hLineWidth: function() { return 0.7; },
-                vLineWidth: function() { return 0.7; }
-            }
-        });
-    });
-
-    var doc = {
-        pageSize: 'LETTER',
-        pageOrientation: 'landscape',
-        pageMargins: [34, 30, 34, 34],
-        content: contenido,
-        defaultStyle: {
-            fontSize: 8,
-            color: '#172B4D'
-        },
-        styles: {
-            titulo: {fontSize: 17, bold: true, color: '#172B4D'},
-            subtitulo: {fontSize: 9, color: '#6B778C', margin: [0, 2, 0, 0]},
-            reporteLabel: {fontSize: 7, bold: true, color: '#0EA5A8'},
-            reporteFecha: {fontSize: 10, bold: true, color: '#172B4D', margin: [0, 2, 0, 0]},
-            reporteMeta: {fontSize: 7, color: '#7A869A', margin: [0, 2, 0, 0]},
-            kpiLabel: {fontSize: 6.5, bold: true, color: '#6B778C', alignment: 'center'},
-            kpiValue: {fontSize: 13, bold: true, color: '#172B4D', alignment: 'center', margin: [0, 2, 0, 0]},
-            cardTitulo: {fontSize: 10, bold: true, color: '#172B4D'},
-            cardDocumento: {fontSize: 8, bold: true, color: '#0EA5A8', margin: [0, 2, 0, 0]},
-            campoLabel: {fontSize: 6, bold: true, color: '#6B778C'},
-            campoValor: {fontSize: 7.5, color: '#172B4D', margin: [0, 1, 0, 0]},
-            numeroGrande: {fontSize: 11, bold: true, color: '#172B4D', margin: [0, 1, 0, 0]},
-            numeroDisponible: {fontSize: 10, bold: true, color: '#07883F', alignment: 'right', margin: [0, 1, 0, 0]},
-            rangoTexto: {fontSize: 6.5, color: '#6B778C'}
-        },
-        footer: function(currentPage, pageCount) {
-            return {
-                margin: [34, 0, 34, 0],
-                columns: [
-                    {text: 'IZZY • Documentos Fiscales', fontSize: 6.5, color: '#7A869A'},
-                    {text: 'Página ' + currentPage + ' de ' + pageCount, fontSize: 6.5, color: '#7A869A', alignment: 'right'}
-                ]
-            };
+    if (vistaPdfFiscales === 'miniatura') {
+        function card(row) {
+            var estadoColor=String(row.estado||'').toLowerCase()==='activo'?'#14804A':'#C9372C';
+            return {table:{widths:['*'],body:[[{margin:[10,9,10,9],stack:[
+                {columns:[{width:'*',stack:[{text:row.empresa||'Empresa',fontSize:10,bold:true,color:'#172B4D'},{text:row.documento||'Documento',fontSize:7,color:'#6B778C',margin:[0,2,0,0]}]},{width:'auto',text:row.estado||'',fontSize:7,bold:true,color:estadoColor}]},
+                {canvas:[{type:'line',x1:0,y1:0,x2:250,y2:0,lineWidth:0.6,lineColor:'#DDE3EA'}],margin:[0,7,0,7]},
+                {columns:[
+                    {width:'50%',stack:[{text:'CAI',fontSize:6.2,bold:true,color:'#6B778C'},{text:row.cai||'Sin CAI',fontSize:7.5,bold:true,color:'#172B4D',margin:[0,2,0,0]},{text:'PREFIJO',fontSize:6.2,bold:true,color:'#6B778C',margin:[0,8,0,0]},{text:row.prefijo||'—',fontSize:7.5,bold:true,color:'#172B4D',margin:[0,2,0,0]}]},
+                    {width:'50%',stack:[{text:'SIGUIENTE',fontSize:6.2,bold:true,color:'#6B778C'},{text:String(row.siguiente||'0'),fontSize:9,bold:true,color:'#172B4D',margin:[0,2,0,0]},{text:'DISPONIBLES',fontSize:6.2,bold:true,color:'#6B778C',margin:[0,8,0,0]},{text:String(row.disponibles||'0'),fontSize:9,bold:true,color:'#14804A',margin:[0,2,0,0]}]}
+                ]},
+                {text:'Rango: '+String(row.rango_inicial||'')+' - '+String(row.rango_final||''),fontSize:6.5,color:'#6B778C',margin:[0,8,0,0]},
+                {text:'Vigencia: '+(row.vigencia||'—'),fontSize:7,bold:true,color:estadoColor,margin:[0,3,0,0]}
+            ]}]]},layout:{hLineColor:function(){return '#DDE3EA';},vLineColor:function(){return '#DDE3EA';},hLineWidth:function(){return 0.7;},vLineWidth:function(){return 0.7;}}};
         }
-    };
-
-    if (typeof imagen !== 'undefined' && imagen) {
-        doc.content[0].columns.unshift({image: imagen, width: 62, margin: [0, 0, 14, 0]});
+        for(var i=0;i<rows.length;i+=2){
+            contenido.push({columns:[{width:'*',stack:[card(rows[i])]},{width:10,text:''},rows[i+1]?{width:'*',stack:[card(rows[i+1])]}:{width:'*',text:''}],margin:[0,0,0,9]});
+        }
+    } else {
+        var body=[[{text:'EMPRESA',style:'th',fillColor:'#17324D'},{text:'DOCUMENTO',style:'th',fillColor:'#17324D'},{text:'ESTADO',style:'th',fillColor:'#17324D'},{text:'CAI',style:'th',fillColor:'#17324D'},{text:'PREFIJO',style:'th',fillColor:'#17324D'},{text:'SIGUIENTE',style:'th',fillColor:'#17324D'},{text:'RANGO',style:'th',fillColor:'#17324D'},{text:'DISPONIBLES',style:'th',fillColor:'#17324D'},{text:'VIGENCIA',style:'th',fillColor:'#17324D'}]];
+        rows.forEach(function(row,index){
+            var fill=index%2===0?'#FFFFFF':'#F7F9FC';
+            var estadoColor=String(row.estado||'').toLowerCase()==='activo'?'#14804A':'#C9372C';
+            body.push([
+                {text:row.empresa||'Empresa',fillColor:fill,bold:true},
+                {text:row.documento||'Documento',fillColor:fill},
+                {text:row.estado||'',fillColor:fill,color:estadoColor,bold:true},
+                {text:row.cai||'Sin CAI',fillColor:fill},
+                {text:row.prefijo||'—',fillColor:fill},
+                {text:String(row.siguiente||'0'),fillColor:fill,alignment:'center',bold:true},
+                {text:String(row.rango_inicial||'')+' - '+String(row.rango_final||''),fillColor:fill},
+                {text:String(row.disponibles||'0'),fillColor:fill,alignment:'center',color:'#14804A',bold:true},
+                {text:row.vigencia||'—',fillColor:fill,color:estadoColor,bold:true}
+            ]);
+        });
+        contenido=[{table:{headerRows:1,widths:[82,74,48,112,62,46,92,52,'*'],body:body},layout:{
+            hLineColor:function(){return '#DDE3EA';},vLineColor:function(){return '#DDE3EA';},hLineWidth:function(){return 0.55;},vLineWidth:function(){return 0.55;},
+            paddingLeft:function(){return 4;},paddingRight:function(){return 4;},paddingTop:function(){return 5;},paddingBottom:function(){return 5;}
+        }}];
     }
 
+    var doc={pageSize:'LETTER',pageOrientation:'landscape',pageMargins:[28,28,28,34],
+        header:function(){return{margin:[28,12,28,0],canvas:[{type:'line',x1:0,y1:0,x2:736,y2:0,lineWidth:2,lineColor:'#0EA5A8'}]};},
+        footer:function(currentPage,pageCount){return{margin:[28,8,28,0],columns:[{text:'IZZY • Documentos Fiscales',fontSize:7,color:'#7A869A'},{text:'Página '+currentPage+' de '+pageCount,fontSize:7,color:'#7A869A',alignment:'right'}]};},
+        content:[encabezado,filtros,resumen,{text:vistaPdfFiscales==='miniatura'?'VISTA MINIATURA':'VISTA DETALLE',fontSize:7,bold:true,color:'#17324D',margin:[0,1,0,7]}].concat(contenido),
+        styles:{th:{fontSize:6.2,bold:true,color:'#FFFFFF',alignment:'center'}},
+        defaultStyle:{fontSize:8,color:'#253858'}
+    };
+
     try {
-        pdfMake.createPdf(doc).download(dashboardFiscalesNombreArchivo('pdf'));
-
-        if (typeof showNotify === 'function') {
-            showNotify('success', 'PDF generado', 'El reporte de documentos fiscales se generó correctamente.');
-        }
-    } catch (error) {
-        console.error('Error generando PDF de documentos fiscales:', error);
-
-        if (typeof showNotify === 'function') {
-            showNotify('error', 'Error', 'No se pudo generar el archivo PDF.');
-        }
+        var pdfGenerator=pdfMake.createPdf(doc);
+        dashboardFiscalesAbrirPdfEnModal(pdfGenerator,'Reporte de Documentos Fiscales',dashboardFiscalesNombreArchivo('pdf'));
+    } catch(error) {
+        console.error('Error generando PDF de documentos fiscales:',error);
+        if(typeof showNotify==='function'){showNotify('error','Error','No se pudo generar el reporte PDF.');}
     }
 }
 
 function setupDashboardFiscales() {
+    dashboardFiscalesInicializarVista();
+
     $('#btn_dashboard_fiscales_actualizar').off('click').on('click', listar_secuencia_fiscales_dashboard);
     $('#btn_dashboard_fiscales_excel').off('click').on('click', dashboardFiscalesExportarExcel);
     $('#btn_dashboard_fiscales_pdf').off('click').on('click', dashboardFiscalesExportarPDF);
 
     $('#dashboard_fiscales_page_size').off('change').on('change', function() {
+        var valor = parseInt($(this).val(), 10);
+
+        dashboardFiscalesPorPagina = isNaN(valor) || valor <= 0
+            ? (dashboardFiscalesVista === 'miniatura' ? 6 : 3)
+            : valor;
+
+        if (dashboardFiscalesVista === 'miniatura') {
+            dashboardFiscalesPorPaginaMiniatura = dashboardFiscalesPorPagina;
+        } else {
+            dashboardFiscalesPorPaginaDetalle = dashboardFiscalesPorPagina;
+        }
+
         dashboardFiscalesPagina = 1;
         dashboardFiscalesRender();
+    });
+
+    $('#dashboard_fiscales_buscar').off('input.dashboardFiscales').on('input.dashboardFiscales', function() {
+        dashboardFiscalesPagina = 1;
+        dashboardFiscalesRender();
+    });
+
+    $('.dashboard-fiscales-view-btn').off('click.dashboardFiscalesVista').on('click.dashboardFiscalesVista', function() {
+        dashboardFiscalesCambiarVista($(this).data('view'));
     });
 
     $('#dashboard_fiscales_paginacion').off('click', '.dashboard-page-btn').on('click', '.dashboard-page-btn', function() {
@@ -1647,11 +1783,175 @@ function setupDashboardFiscales() {
     });
 }
 
+
+/****************************************************************************************************************************************************************/
+// MOSTRAR / OCULTAR SECCIONES DEL DASHBOARD + PERSISTENCIA EN LOCALSTORAGE
+/****************************************************************************************************************************************************************/
+
+function dashboardStorageGet(key, defaultValue) {
+    try {
+        var value = localStorage.getItem(key);
+
+        if (value === null) {
+            return defaultValue;
+        }
+
+        return value === '1';
+    } catch (error) {
+        console.warn('No se pudo leer el estado del dashboard:', key, error);
+        return defaultValue;
+    }
+}
+
+function dashboardStorageSet(key, visible) {
+    try {
+        localStorage.setItem(key, visible ? '1' : '0');
+    } catch (error) {
+        console.warn('No se pudo guardar el estado del dashboard:', key, error);
+    }
+}
+
+function dashboardActualizarBotonSeccion($button, visible) {
+    var $icon = $button.find('i').first();
+    var $text = $button.find('span').first();
+
+    $icon
+        .removeClass('fa-chevron-down fa-chevron-up')
+        .addClass(visible ? 'fa-chevron-up' : 'fa-chevron-down');
+
+    if ($text.length) {
+        $text.text(visible ? 'Ocultar' : 'Mostrar');
+    }
+
+    $button.attr('aria-expanded', visible ? 'true' : 'false');
+}
+
+function dashboardActualizarBotonGrafico($button, visible) {
+    var $icon = $button.find('i').first();
+
+    $icon
+        .removeClass('fa-chevron-down fa-chevron-up')
+        .addClass(visible ? 'fa-chevron-up' : 'fa-chevron-down');
+
+    $button.attr({
+        'aria-expanded': visible ? 'true' : 'false',
+        'title': visible ? 'Ocultar gráfico' : 'Mostrar gráfico',
+        'data-original-title': visible ? 'Ocultar gráfico' : 'Mostrar gráfico'
+    });
+
+    if ($button.tooltip) {
+        $button.tooltip('dispose').tooltip();
+    }
+}
+
+function dashboardRedimensionarGraficos() {
+    var charts = [
+        window.chartVentas,
+        window.chartCompras,
+        window.chartTopProductosAnoActual
+    ];
+
+    charts.forEach(function(chart) {
+        if (chart && typeof chart.resize === 'function') {
+            try {
+                chart.resize();
+            } catch (error) {
+                console.warn('No se pudo redimensionar un gráfico del dashboard:', error);
+            }
+        }
+    });
+}
+
+function dashboardAplicarEstadoPersistente($button, tipoBoton) {
+    var selector = $button.data('target');
+    var storageKey = $button.data('storage-key');
+
+    if (!selector || !storageKey) {
+        return;
+    }
+
+    var $target = $(selector);
+
+    if (!$target.length) {
+        return;
+    }
+
+    var visible = dashboardStorageGet(storageKey, true);
+
+    $target.toggle(visible);
+
+    if (tipoBoton === 'grafico') {
+        dashboardActualizarBotonGrafico($button, visible);
+    } else {
+        dashboardActualizarBotonSeccion($button, visible);
+    }
+}
+
+function dashboardConfigurarBotonesMostrarOcultar() {
+    $('.dashboard-toggle-btn').each(function() {
+        dashboardAplicarEstadoPersistente($(this), 'seccion');
+    });
+
+    $('.dashboard-chart-toggle').each(function() {
+        dashboardAplicarEstadoPersistente($(this), 'grafico');
+    });
+
+    $('.dashboard-toggle-btn')
+        .off('click.dashboardToggle')
+        .on('click.dashboardToggle', function() {
+            var $button = $(this);
+            var selector = $button.data('target');
+            var storageKey = $button.data('storage-key');
+            var $target = $(selector);
+
+            if (!$target.length) {
+                return;
+            }
+
+            var visible = !$target.is(':visible');
+
+            $target.stop(true, true).slideToggle(180, function() {
+                if (visible) {
+                    dashboardRedimensionarGraficos();
+                }
+            });
+
+            dashboardStorageSet(storageKey, visible);
+            dashboardActualizarBotonSeccion($button, visible);
+        });
+
+    $('.dashboard-chart-toggle')
+        .off('click.dashboardChartToggle')
+        .on('click.dashboardChartToggle', function() {
+            var $button = $(this);
+            var selector = $button.data('target');
+            var storageKey = $button.data('storage-key');
+            var $target = $(selector);
+
+            if (!$target.length) {
+                return;
+            }
+
+            var visible = !$target.is(':visible');
+
+            $target.stop(true, true).slideToggle(180, function() {
+                if (visible) {
+                    dashboardRedimensionarGraficos();
+                }
+            });
+
+            dashboardStorageSet(storageKey, visible);
+            dashboardActualizarBotonGrafico($button, visible);
+        });
+}
+
 /****************************************************************************************************************************************************************/
 // INICIALIZACIÓN DASHBOARD
 /****************************************************************************************************************************************************************/
 
 $(document).ready(function() {
+    dashboardConfigurarBotonesMostrarOcultar();
+
     setTotalCustomers();
     setTotalSuppliers();
     setTotalBills();

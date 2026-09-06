@@ -142,8 +142,18 @@ class usuarioControlador extends usuarioModelo{
         $contraseña_generada = mainModel::encryption($pass);    
         $correo_usuario = isset($_POST['correo_usuario']) ? mainModel::cleanStringStrtolower($_POST['correo_usuario']) : "";
         $empresa = isset($_POST['empresa_usuario']) ? mainModel::cleanString($_POST['empresa_usuario']) : $empresa_id_sesion;
-        $tipo_user = isset($_POST['tipo_user']) ? mainModel::cleanString($_POST['tipo_user']) : "";            
-        $estado = isset($_POST['estado_usuario']) ? 1 : 2;    
+        $tipo_user = isset($_POST['tipo_user']) ? mainModel::cleanString($_POST['tipo_user']) : "";
+        $estado = isset($_POST['estado_usuario']) ? 1 : 2;
+        $username = $this->generarUsernameLegible($correo_usuario);
+
+        /*
+         * DB_MAIN contiene usuarios propios y usuarios espejo de clientes.
+         * Los usuarios propios de MAIN siempre pertenecen al scope 0.
+         * En una DB cliente se valida únicamente contra la tabla local.
+         */
+        $es_db_principal = ($GLOBALS['db'] === $GLOBALS['DB_MAIN']);
+        $scope_server_customer = $es_db_principal ? 0 : null;
+        $server_customers_id_destino = $es_db_principal ? 0 : $server_customers_id;
 
         if ($correo_usuario == "" || !filter_var($correo_usuario, FILTER_VALIDATE_EMAIL)) {
             return mainModel::showNotification([
@@ -169,8 +179,8 @@ class usuarioControlador extends usuarioModelo{
             ]);
         }
     
-        // Validar correo duplicado
-        if(usuarioModelo::valid_correo_modelo($correo_usuario)) {
+        // Validar correo duplicado dentro del scope correcto.
+        if(usuarioModelo::valid_correo_modelo($correo_usuario, $scope_server_customer)) {
             return mainModel::showNotification([
                 "type" => "error",
                 "title" => "Error",
@@ -186,7 +196,7 @@ class usuarioControlador extends usuarioModelo{
             $limiteBase = (int)($planConfig['usuarios'] ?? 0);
             $usuariosExtras = (int)usuarioModelo::getTotalUsuariosExtras();
             $limiteTotal = $limiteBase + $usuariosExtras;
-            $totalUsuarios = (int)usuarioModelo::getTotalUsuarios();
+            $totalUsuarios = (int)usuarioModelo::getTotalUsuarios($scope_server_customer);
 
             // Caso 1: Límite base es 0
             if ($limiteBase === 0) {
@@ -207,8 +217,10 @@ class usuarioControlador extends usuarioModelo{
             }
 		}
         
-        // Validar que el colaborador no tenga usuario
-        if(usuarioModelo::valid_user_modelo($colaborador_id)) {
+        // Validar que el colaborador no tenga usuario dentro del scope correcto.
+        // En MAIN se valida SOLO server_customers_id = 0 para no confundir
+        // colaboradores propios con usuarios espejo de clientes que reutilizan IDs.
+        if(usuarioModelo::valid_user_modelo($colaborador_id, $scope_server_customer)) {
             return mainModel::showNotification([
                 "type" => "error",
                 "title" => "Error",
@@ -219,13 +231,14 @@ class usuarioControlador extends usuarioModelo{
         // Datos para crear el usuario
         $datos_usuario = [
             "colaborador_id" => $colaborador_id,
-            "privilegio_id" => $privilegio_id,                
+            "privilegio_id" => $privilegio_id,
+            "username" => $username,
             "pass" => $contraseña_generada,                
             "email" => $correo_usuario,                
             "tipo_user" => $tipo_user,                
             "estado" => $estado,
             "empresa" => $empresa,
-            "server_customers_id" => $server_customers_id
+            "server_customers_id" => $server_customers_id_destino
         ];
         
         // Crear usuario
@@ -233,9 +246,26 @@ class usuarioControlador extends usuarioModelo{
                 
         if($usuario_id) {
 
-            // Guardar en DB principal si es necesario
+            // Si estamos en una DB de cliente, el usuario debe existir tanto localmente
+            // como en DB_MAIN. Si el espejo falla, revertimos el usuario local para no
+            // dejar credenciales desincronizadas.
             if($GLOBALS['db'] !== $GLOBALS['DB_MAIN']) {
-                $this->guardarUsuarioEnDBPrincipal($colaborador_id, $correo_usuario, $contraseña_generada, $server_customers_id);
+                $guardado_main = $this->guardarUsuarioEnDBPrincipal(
+                    $colaborador_id,
+                    $correo_usuario,
+                    $contraseña_generada,
+                    $server_customers_id
+                );
+
+                if(!$guardado_main) {
+                    usuarioModelo::delete_user_modelo($usuario_id);
+
+                    return mainModel::showNotification([
+                        "type" => "error",
+                        "title" => "No se pudo sincronizar",
+                        "text" => "El usuario no fue creado porque no se pudo guardar también en la base principal. Intente nuevamente."
+                    ]);
+                }
             }
             
             // Enviar correo de bienvenida al usuario creado
@@ -258,10 +288,17 @@ class usuarioControlador extends usuarioModelo{
             ]);
 
         } else {
+            $detalle = usuarioModelo::getUltimoErrorUsuario();
+            $mensaje = "No se pudo registrar el usuario.";
+
+            if (!empty($detalle)) {
+                $mensaje .= " Detalle: " . $detalle;
+            }
+
             return mainModel::showNotification([
                 "type" => "error",
-                "title" => "Error",
-                "text" => "No se pudo registrar el usuario"
+                "title" => "Error al registrar",
+                "text" => $mensaje
             ]);
         }
     }
@@ -298,6 +335,8 @@ class usuarioControlador extends usuarioModelo{
             ]);
         }
 
+        $usuario_anterior = usuarioModelo::get_usuario_info($usuarios_id);
+
         if ($correo == "" || !filter_var($correo, FILTER_VALIDATE_EMAIL)) {
             return mainModel::showNotification([
                 "type" => "error",
@@ -315,17 +354,15 @@ class usuarioControlador extends usuarioModelo{
             "estado" => $estado                
         ];
         
-        if(usuarioModelo::edit_user_modelo($datos)) {    
+        if(usuarioModelo::edit_user_modelo($datos)) {
 
-            if($GLOBALS['db'] !== $GLOBALS['DB_MAIN']) {
-                $updateDBMainUsers = "
-                    UPDATE users 
-                    SET estado = '$estado'
-                    WHERE users_id = '$usuarios_id' 
-                      AND server_customers_id = '$server_customers_id'
-                ";
-                
-                mainModel::connectionLogin()->query($updateDBMainUsers);
+            if($GLOBALS['db'] !== $GLOBALS['DB_MAIN'] && $usuario_anterior) {
+                $this->actualizarUsuarioEspejoDBPrincipal(
+                    $usuario_anterior['email'],
+                    $correo,
+                    $estado,
+                    $server_customers_id
+                );
             }
 
             return mainModel::showNotification([
@@ -392,8 +429,8 @@ class usuarioControlador extends usuarioModelo{
         if(usuarioModelo::delete_user_modelo($usuarios_id)) {
 
             if($GLOBALS['db'] !== $GLOBALS['DB_MAIN']) {
-                $deleteDBMainUsers = "DELETE FROM users WHERE users_id = '$usuarios_id'";
-                mainModel::connectionLogin()->query($deleteDBMainUsers);
+                $server_customer_usuario = (int)($usuario_info['server_customers_id'] ?? 0);
+                $this->eliminarUsuarioEspejoDBPrincipal($usuario_info['email'], $server_customer_usuario);
             }
 
             return json_encode([
@@ -437,6 +474,8 @@ class usuarioControlador extends usuarioModelo{
             ]);
         }
 
+        $info_usuario = $this->obtenerInfoUsuarioParaCorreo($users_id);
+
         // Generar nueva contraseña
         $nueva_pass = mainModel::generar_password_complejo();
         $pass_encriptada = mainModel::encryption($nueva_pass);
@@ -444,20 +483,18 @@ class usuarioControlador extends usuarioModelo{
         // Actualizar contraseña
         if(usuarioModelo::resetear_password_modelo($users_id, $pass_encriptada)) {
 
-            // Actualizar en la base de datos principal si es necesario
-            if($GLOBALS['db'] !== $GLOBALS['DB_MAIN']) {
-                $updateDBMain = "
-                    UPDATE users 
-                    SET password = '$pass_encriptada' 
-                    WHERE users_id = '$users_id' 
-                      AND server_customers_id = '$server_customers_id'
-                ";
-
-                mainModel::connectionLogin()->query($updateDBMain);
+            // Actualizar en la base de datos principal si es necesario.
+            // El users_id local no tiene por qué coincidir con el users_id del espejo;
+            // por eso se identifica por correo + server_customers_id.
+            if($GLOBALS['db'] !== $GLOBALS['DB_MAIN'] && $info_usuario) {
+                $this->actualizarPasswordEspejoDBPrincipal(
+                    $info_usuario['email'],
+                    $server_customers_id,
+                    $pass_encriptada
+                );
             }
-            
+
             // Obtener información del usuario para enviar correo
-            $info_usuario = $this->obtenerInfoUsuarioParaCorreo($users_id);
             
             if($info_usuario && !empty($info_usuario['email'])) {
                 $sendEmail = new sendEmail();
@@ -486,6 +523,29 @@ class usuarioControlador extends usuarioModelo{
     }
 
     /*----------- Funciones privadas auxiliares -----------*/
+    /**
+     * Genera un username legible a partir del correo.
+     * Ejemplo: cestonipamela@gmail.com -> cestonipamela
+     * La tabla usa CHAR(20), por eso se limita a 20 caracteres.
+     */
+    private function generarUsernameLegible($correo){
+        $correo = strtolower(trim((string)$correo));
+        $base = strstr($correo, '@', true);
+
+        if ($base === false || $base === '') {
+            $base = 'usuario';
+        }
+
+        $base = preg_replace('/[^a-z0-9._-]/', '', $base);
+        $base = trim($base, '._-');
+
+        if ($base === '') {
+            $base = 'usuario';
+        }
+
+        return substr($base, 0, 20);
+    }
+
     private function guardarUsuarioEnDBPrincipal($colaborador_id, $correo, $password, $server_customers_id){
 
         // Obtener datos del colaborador local
@@ -529,7 +589,7 @@ class usuarioControlador extends usuarioModelo{
             );
             
             if(!$stmt_colab->execute()) {
-                throw new Exception("Error al guardar colaborador en DB principal");
+                throw new Exception("Error al guardar colaborador en DB principal: " . $stmt_colab->error);
             }
             
             // Insertar usuario en DB principal
@@ -543,6 +603,7 @@ class usuarioControlador extends usuarioModelo{
                     users_id,
                     colaboradores_id,
                     privilegio_id,
+                    username,
                     password,
                     email,
                     tipo_user_id,
@@ -551,13 +612,17 @@ class usuarioControlador extends usuarioModelo{
                     empresa_id,
                     server_customers_id
                 ) 
-                VALUES (?, ?, ?, ?, ?, ?, 1, NOW(), 1, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 1, NOW(), 1, ?)
             ");
-            
-            $stmt_user->bind_param("iiissii", 
+
+            $username_main = $this->generarUsernameLegible($correo);
+
+            $stmt_user->bind_param(
+                "iiisssii",
                 $users_id_main,
                 $colaboradores_id_main,
                 $privilegio_id_default,
+                $username_main,
                 $password,
                 $correo,
                 $tipo_user_default,
@@ -565,13 +630,14 @@ class usuarioControlador extends usuarioModelo{
             );
             
             if(!$stmt_user->execute()) {
-                throw new Exception("Error al guardar usuario en DB principal");
+                throw new Exception("Error al guardar usuario en DB principal: " . $stmt_user->error);
             }
             
             $conexion_main->commit();
             return true;
             
         } catch(Exception $e) {
+            error_log("IZZY usuarios - sincronización MAIN: " . $e->getMessage());
             $conexion_main->rollback();
             return false;
 
@@ -580,6 +646,37 @@ class usuarioControlador extends usuarioModelo{
         }
     }
     
+
+    private function actualizarUsuarioEspejoDBPrincipal($correo_anterior, $correo_nuevo, $estado, $server_customers_id){
+        $conexion_main = mainModel::connectionLogin();
+        $stmt = $conexion_main->prepare("UPDATE users SET email = ?, estado = ? WHERE email = ? AND server_customers_id = ?");
+        if(!$stmt) return false;
+        $stmt->bind_param("sisi", $correo_nuevo, $estado, $correo_anterior, $server_customers_id);
+        $ok = $stmt->execute();
+        $stmt->close();
+        return $ok;
+    }
+
+    private function actualizarPasswordEspejoDBPrincipal($correo, $server_customers_id, $password){
+        $conexion_main = mainModel::connectionLogin();
+        $stmt = $conexion_main->prepare("UPDATE users SET password = ? WHERE email = ? AND server_customers_id = ?");
+        if(!$stmt) return false;
+        $stmt->bind_param("ssi", $password, $correo, $server_customers_id);
+        $ok = $stmt->execute();
+        $stmt->close();
+        return $ok;
+    }
+
+    private function eliminarUsuarioEspejoDBPrincipal($correo, $server_customers_id){
+        $conexion_main = mainModel::connectionLogin();
+        $stmt = $conexion_main->prepare("DELETE FROM users WHERE email = ? AND server_customers_id = ?");
+        if(!$stmt) return false;
+        $stmt->bind_param("si", $correo, $server_customers_id);
+        $ok = $stmt->execute();
+        $stmt->close();
+        return $ok;
+    }
+
     private function enviarCorreoBienvenida($correo_usuario, $pass, $privilegio_id, $empresa_id, $users_id, $sendEmail, $colaborador_id){
 
         // Obtener datos del colaborador nuevo/asignado al usuario

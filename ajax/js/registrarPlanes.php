@@ -105,7 +105,25 @@
         /* =========================================================
             VARIABLES DEL MÓDULO
         ========================================================= */
-        let dataTablePlanes = null;
+        let dataTablePlanes = null; // Compatibilidad con modales auxiliares.
+
+        const PLANES_STORAGE_VISTA = "izzy.registrarPlanes.tipo_vista";
+        const PLANES_STORAGE_FILTROS = "izzy.registrarPlanes.filtros.visible";
+        const PLANES_STORAGE_KPIS = "izzy.registrarPlanes.kpis.visible";
+
+        const planesState = {
+            registros: [],
+            filtrados: [],
+            pagina: 1,
+            porPagina: 10,
+            porPaginaDetalle: 10,
+            porPaginaMiniatura: 6,
+            vista: "detalle",
+            busqueda: "",
+            filtroEstado: "todos",
+            filtroConfiguracion: "",
+            loading: false
+        };
 
         /* =========================================================
             HELPERS
@@ -245,257 +263,1329 @@
         }
 
         /* =========================================================
-            HEADER DINÁMICO - PLANES
+            LISTADO PRINCIPAL - DIVs
         ========================================================= */
-        function construirHeaderDataTablePlanes() {
-            const $tabla = $("#dataTablePlanes");
+        function planesEscape(valor) {
+            return String(valor === null || typeof valor === "undefined" ? "" : valor)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
 
-            $tabla.empty();
+        function planesNormalizarTexto(valor) {
+            return String(valor || "")
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "");
+        }
 
-            $tabla.append(
-                '<thead>' +
-                    '<tr>' +
-                        '<th>Acciones</th>' +
-                        '<th>Código</th>' +
-                        '<th>Plan</th>' +
-                        '<th>Configuraciones</th>' +
-                        '<th>Estado</th>' +
-                        '<th>Menús</th>' +
-                        '<th>Submenús</th>' +
-                        '<th>Submenús 2</th>' +
-                    '</tr>' +
-                '</thead>' +
-                '<tbody></tbody>'
+        function normalizarConfiguracionesFila(row) {
+            let configs = row && row.configuraciones_json ? row.configuraciones_json : {};
+
+            if (typeof configs === "string") {
+                try {
+                    configs = JSON.parse(configs);
+                } catch (e) {
+                    configs = {};
+                }
+            }
+
+            return configs && typeof configs === "object" && !Array.isArray(configs)
+                ? configs
+                : {};
+        }
+
+        function obtenerTextoConfiguraciones(row) {
+            const configs = normalizarConfiguracionesFila(row);
+            const partes = [];
+
+            Object.keys(configs).forEach(function(clave) {
+                const opcion = opcionesConfiguracion.find(function(item) {
+                    return item.value === clave;
+                });
+
+                partes.push(
+                    (opcion ? opcion.text : clave) +
+                    ": " +
+                    configs[clave]
+                );
+            });
+
+            return partes.length ? partes.join(" • ") : "Sin configuraciones";
+        }
+
+        function contarAccesosPlan(row) {
+            return (
+                parseInt(row.menus_asignados || 0, 10) +
+                parseInt(row.submenus_asignados || 0, 10) +
+                parseInt(row.submenus2_asignados || 0, 10)
             );
         }
 
-        /* =========================================================
-            DATATABLE PRINCIPAL - PLANES
-        ========================================================= */
-        function inicializarDataTablePlanes() {
-            if ($("#dataTablePlanes").length === 0) {
-                console.error("No existe la tabla #dataTablePlanes en esta vista.");
+        function configurarToggleSeccionPlanes(buttonSelector, contentSelector, storageKey) {
+            const $button = $(buttonSelector);
+            const $content = $(contentSelector);
+
+            if (!$button.length || !$content.length) {
                 return;
             }
 
-            if ($.fn.dataTable.isDataTable("#dataTablePlanes")) {
-                $("#dataTablePlanes").DataTable().clear().destroy();
+            let visible = true;
+
+            try {
+                const stored = localStorage.getItem(storageKey);
+                if (stored !== null) {
+                    visible = stored === "1";
+                }
+            } catch (e) {
+                visible = true;
             }
 
-            construirHeaderDataTablePlanes();
+            function aplicarEstado(guardar) {
+                $content.toggle(visible);
+                $button.attr("aria-expanded", visible ? "true" : "false");
+                $button.find("span").text(visible ? "Ocultar" : "Mostrar");
+                $button.find("i")
+                    .toggleClass("fa-chevron-up", visible)
+                    .toggleClass("fa-chevron-down", !visible);
 
-            dataTablePlanes = $("#dataTablePlanes").DataTable({
-                destroy: true,
-                ajax: {
-                    url: PLANES_URLS.llenarDataTable,
-                    type: "POST",
-                    dataSrc: "data",
-                    error: function(xhr) {
-                        console.error("Error al cargar datos:", xhr.responseText);
-                        notificarPlan("error", "Error", "Error al cargar los datos de planes");
-                    }
-                },
-                columns: [
-                    {
-                        data: null,
-                        orderable: false,
-                        searchable: false,
-                        className: "text-center align-middle",
-                        render: function(data, type, row) {
-                            if (type !== "display") {
-                                return "";
-                            }
-
-                            return '' +
-                                '<div class="dropdown acciones-dropdown">' +
-
-                                    '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
-                                        '<i class="fas fa-cog"></i>' +
-                                        '<span>Acciones</span>' +
-                                    '</button>' +
-
-                                    '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
-
-                                        '<button type="button" class="dropdown-item accion-item btn-asignar-menu" data-plan-id="' + row.planes_id + '" data-plan-nombre="' + row.nombre + '">' +
-                                            '<span class="accion-icon accion-icon-primary">' +
-                                                '<i class="fas fa-link"></i>' +
-                                            '</span>' +
-                                            '<span class="accion-label">Asignar Menú</span>' +
-                                        '</button>' +
-
-                                        '<button type="button" class="dropdown-item accion-item btn-asignar-submenu" data-plan-id="' + row.planes_id + '" data-plan-nombre="' + row.nombre + '">' +
-                                            '<span class="accion-icon accion-icon-primary">' +
-                                                '<i class="fas fa-link"></i>' +
-                                            '</span>' +
-                                            '<span class="accion-label">Asignar Submenú</span>' +
-                                        '</button>' +
-
-                                        '<button type="button" class="dropdown-item accion-item btn-asignar-submenu2" data-plan-id="' + row.planes_id + '" data-plan-nombre="' + row.nombre + '">' +
-                                            '<span class="accion-icon accion-icon-primary">' +
-                                                '<i class="fas fa-link"></i>' +
-                                            '</span>' +
-                                            '<span class="accion-label">Asignar Submenú 2</span>' +
-                                        '</button>' +
-
-                                        '<div class="dropdown-divider"></div>' +
-
-                                        '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar btn-editar" data-id="' + row.planes_id + '">' +
-                                            '<span class="accion-icon accion-icon-editar">' +
-                                                '<i class="fas fa-edit"></i>' +
-                                            '</span>' +
-                                            '<span class="accion-label">Editar</span>' +
-                                        '</button>' +
-
-                                        '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar ocultar btn-eliminar" data-id="' + row.planes_id + '" data-nombre="' + row.nombre + '">' +
-                                            '<span class="accion-icon accion-icon-eliminar">' +
-                                                '<i class="fas fa-trash-alt"></i>' +
-                                            '</span>' +
-                                            '<span class="accion-label">Eliminar</span>' +
-                                        '</button>' +
-
-                                    '</div>' +
-
-                                '</div>';
-                        }
-                    },
-                    {
-                        data: "planes_id"
-                    },
-                    {
-                        data: "nombre"
-                    },
-                    {
-                        data: "configuraciones",
-                        render: function(data, type, row) {
-                            if (!data || data === "Sin configuraciones") {
-                                return data;
-                            }
-
-                            if (typeof data === "string" && data.includes("<ul")) {
-                                const configs = $(data).find("li");
-
-                                if (configs.length > 0) {
-                                    const first = configs.first().text();
-                                    const extras = configs.length - 1;
-
-                                    return `
-                                        <div>${first}</div>
-                                        ${extras > 0 ? `<small class="text-muted">+${extras} más</small>` : ""}
-                                        <button class="btn btn-sm btn-info btn-ver-configs mt-1"
-                                            data-configs='${JSON.stringify(row.configuraciones_json)}'>
-                                            <i class="fas fa-eye"></i> Ver todas
-                                        </button>
-                                    `;
-                                }
-                            }
-
-                            return data;
-                        }
-                    },
-                    {
-                        data: "estado",
-                        className: "text-center",
-                        render: function(data) {
-                            return obtenerHtmlEstado(data);
-                        }
-                    },
-                    {
-                        data: null,
-                        className: "text-center",
-                        render: function(data, type, row) {
-                            const count = row.menus_asignados || 0;
-
-                            return `
-                                <span class="badge badge-pill badge-primary" id="contador-menus-${row.planes_id}">
-                                    ${count} asignados
-                                </span>
-                            `;
-                        }
-                    },
-                    {
-                        data: null,
-                        className: "text-center",
-                        render: function(data, type, row) {
-                            const count = row.submenus_asignados || 0;
-
-                            return `
-                                <span class="badge badge-pill badge-info" id="contador-submenus-${row.planes_id}">
-                                    ${count} asignados
-                                </span>
-                            `;
-                        }
-                    },
-                    {
-                        data: null,
-                        className: "text-center",
-                        render: function(data, type, row) {
-                            const count = row.submenus2_asignados || 0;
-
-                            return `
-                                <span class="badge badge-pill badge-secondary" id="contador-submenus2-${row.planes_id}">
-                                    ${count} asignados
-                                </span>
-                            `;
-                        }
-                    }
-                ],
-                language: typeof idioma_español !== "undefined" ? idioma_español : {},
-                responsive: true,
-                autoWidth: false,
-                columnDefs: [
-                    {
-                        width: "10%",
-                        targets: 0,
-                        orderable: false,
-                        searchable: false,
-                        className: "text-center text-nowrap align-middle",
-                        responsivePriority: 1
-                    },
-                    {
-                        width: "8%",
-                        targets: 1,
-                        className: "text-center text-nowrap"
-                    },
-                    {
-                        width: "18%",
-                        targets: 2
-                    },
-                    {
-                        width: "28%",
-                        targets: 3,
-                        responsivePriority: 3
-                    },
-                    {
-                        width: "10%",
-                        targets: 4,
-                        className: "text-center text-nowrap"
-                    },
-                    {
-                        width: "9%",
-                        targets: 5,
-                        className: "text-center text-nowrap"
-                    },
-                    {
-                        width: "9%",
-                        targets: 6,
-                        className: "text-center text-nowrap"
-                    },
-                    {
-                        width: "9%",
-                        targets: 7,
-                        className: "text-center text-nowrap"
-                    }
-                ],
-                drawCallback: function(settings) {
-                    if (typeof getPermisosTipoUsuarioAccesosTable === "function" && typeof getPrivilegioTipoUsuario === "function") {
-                        getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-                    }
-
-                    if (typeof cerrarDropdownAcciones === "function") {
-                        cerrarDropdownAcciones();
+                if (guardar) {
+                    try {
+                        localStorage.setItem(storageKey, visible ? "1" : "0");
+                    } catch (e) {
+                        console.warn("No se pudo guardar el estado de la sección.", e);
                     }
                 }
+            }
+
+            aplicarEstado(false);
+
+            $button
+                .off("click.planesToggleSection")
+                .on("click.planesToggleSection", function() {
+                    visible = !visible;
+                    $content.stop(true, true)[visible ? "slideDown" : "slideUp"](180);
+                    aplicarEstado(true);
+                });
+        }
+
+        function inicializarUIPlanes() {
+            configurarToggleSeccionPlanes(
+                "#btnToggleFiltrosPlanes",
+                "#planesFiltrosContenido",
+                PLANES_STORAGE_FILTROS
+            );
+
+            configurarToggleSeccionPlanes(
+                "#btnToggleKpisPlanes",
+                "#planesKpisContenido",
+                PLANES_STORAGE_KPIS
+            );
+
+            try {
+                planesState.vista =
+                    localStorage.getItem(PLANES_STORAGE_VISTA) === "miniatura"
+                        ? "miniatura"
+                        : "detalle";
+            } catch (e) {
+                planesState.vista = "detalle";
+            }
+
+            actualizarBotonesVistaPlanes();
+            sincronizarPageSizePlanes();
+        }
+
+        function actualizarBotonesVistaPlanes() {
+            $(".planes-view-btn")
+                .removeClass("active")
+                .attr("aria-pressed", "false");
+
+            $('.planes-view-btn[data-view="' + planesState.vista + '"]')
+                .addClass("active")
+                .attr("aria-pressed", "true");
+        }
+
+        function sincronizarPageSizePlanes() {
+            const miniatura = planesState.vista === "miniatura";
+            const opciones = miniatura ? [6, 12, 18, 30] : [10, 25, 50, 100];
+
+            let valor = miniatura
+                ? planesState.porPaginaMiniatura
+                : planesState.porPaginaDetalle;
+
+            if (opciones.indexOf(valor) === -1) {
+                valor = opciones[0];
+            }
+
+            planesState.porPagina = valor;
+
+            const $select = $("#planesPageSize");
+            $select.empty();
+
+            opciones.forEach(function(item) {
+                $select.append(
+                    $("<option></option>")
+                        .attr("value", item)
+                        .text(item)
+                );
             });
+
+            $select.val(String(valor));
+        }
+
+        function cambiarVistaPlanes(vista) {
+            planesState.vista = vista === "miniatura" ? "miniatura" : "detalle";
+
+            try {
+                localStorage.setItem(PLANES_STORAGE_VISTA, planesState.vista);
+            } catch (e) {
+                console.warn("No se pudo guardar la vista.", e);
+            }
+
+            actualizarBotonesVistaPlanes();
+            sincronizarPageSizePlanes();
+            planesState.pagina = 1;
+            renderPlanesPrincipal();
+        }
+
+        function recargarPlanesPrincipal(mantenerPagina) {
+            if (planesState.loading) {
+                return;
+            }
+
+            const paginaAnterior = planesState.pagina;
+            planesState.loading = true;
+
+            $.ajax({
+                url: PLANES_URLS.llenarDataTable,
+                type: "POST",
+                dataType: "json",
+                success: function(response) {
+                    planesState.registros =
+                        response && Array.isArray(response.data)
+                            ? response.data
+                            : [];
+
+                    planesState.pagina = mantenerPagina ? paginaAnterior : 1;
+                    aplicarFiltrosPlanesPrincipal();
+                },
+                error: function(xhr) {
+                    console.error("Error al cargar planes:", xhr.responseText);
+
+                    planesState.registros = [];
+                    planesState.filtrados = [];
+
+                    actualizarKpisPlanes();
+                    renderPlanesPrincipal();
+
+                    notificarPlan(
+                        "error",
+                        "Error",
+                        "Error al cargar los datos de planes"
+                    );
+                },
+                complete: function() {
+                    planesState.loading = false;
+                }
+            });
+        }
+
+        function aplicarFiltrosPlanesPrincipal() {
+            const busqueda = planesNormalizarTexto(planesState.busqueda);
+            const estado = String(planesState.filtroEstado);
+            const configuracion = String(planesState.filtroConfiguracion || "");
+
+            planesState.filtrados = planesState.registros.filter(function(row) {
+                if (
+                    estado !== "todos" &&
+                    String(parseInt(row.estado || 0, 10)) !== estado
+                ) {
+                    return false;
+                }
+
+                const configs = normalizarConfiguracionesFila(row);
+
+                if (
+                    configuracion &&
+                    !Object.prototype.hasOwnProperty.call(configs, configuracion)
+                ) {
+                    return false;
+                }
+
+                if (!busqueda) {
+                    return true;
+                }
+
+                const texto = planesNormalizarTexto([
+                    row.planes_id,
+                    row.nombre,
+                    obtenerTextoConfiguraciones(row),
+                    parseInt(row.estado || 0, 10) === 1 ? "activo" : "inactivo",
+                    row.menus_asignados || 0,
+                    row.submenus_asignados || 0,
+                    row.submenus2_asignados || 0
+                ].join(" "));
+
+                return texto.indexOf(busqueda) !== -1;
+            });
+
+            actualizarKpisPlanes();
+            renderPlanesPrincipal();
+        }
+
+        function actualizarKpisPlanes() {
+            let activos = 0;
+            let configurados = 0;
+            let accesos = 0;
+
+            planesState.filtrados.forEach(function(row) {
+                if (parseInt(row.estado || 0, 10) === 1) {
+                    activos++;
+                }
+
+                if (Object.keys(normalizarConfiguracionesFila(row)).length > 0) {
+                    configurados++;
+                }
+
+                accesos += contarAccesosPlan(row);
+            });
+
+            $("#planesKpiRegistros").text(planesState.filtrados.length);
+            $("#planesKpiActivos").text(activos);
+            $("#planesKpiConfigurados").text(configurados);
+            $("#planesKpiAccesos").text(accesos);
+        }
+
+        function obtenerPlanStatePorId(planId) {
+            return planesState.registros.find(function(row) {
+                return String(row.planes_id) === String(planId);
+            }) || null;
+        }
+
+        function obtenerHtmlEstadoPlanDiv(row) {
+            const activo = parseInt(row.estado || 0, 10) === 1;
+
+            return '' +
+                '<span class="planes-status-badge ' +
+                    (activo ? 'is-active' : 'is-inactive') +
+                '">' +
+                    '<i class="fas ' +
+                        (activo ? 'fa-check-circle' : 'fa-times-circle') +
+                    '"></i>' +
+                    (activo ? 'Activo' : 'Inactivo') +
+                '</span>';
+        }
+
+        function construirAccionesPlan(row) {
+            return '' +
+                '<div class="dropdown planes-actions-dropdown">' +
+                    '<button type="button" class="btn btn-sm btn-acciones planes-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                        '<i class="fas fa-cog"></i><span>Acciones</span>' +
+                    '</button>' +
+                    '<div class="dropdown-menu acciones-menu">' +
+                        '<button type="button" class="dropdown-item accion-item btn-asignar-menu" data-plan-id="' + planesEscape(row.planes_id) + '" data-plan-nombre="' + planesEscape(row.nombre) + '">' +
+                            '<span class="accion-icon accion-icon-primary"><i class="fas fa-link"></i></span>' +
+                            '<span class="accion-label">Asignar Menú</span>' +
+                        '</button>' +
+                        '<button type="button" class="dropdown-item accion-item btn-asignar-submenu" data-plan-id="' + planesEscape(row.planes_id) + '" data-plan-nombre="' + planesEscape(row.nombre) + '">' +
+                            '<span class="accion-icon accion-icon-primary"><i class="fas fa-link"></i></span>' +
+                            '<span class="accion-label">Asignar Submenú</span>' +
+                        '</button>' +
+                        '<button type="button" class="dropdown-item accion-item btn-asignar-submenu2" data-plan-id="' + planesEscape(row.planes_id) + '" data-plan-nombre="' + planesEscape(row.nombre) + '">' +
+                            '<span class="accion-icon accion-icon-primary"><i class="fas fa-link"></i></span>' +
+                            '<span class="accion-label">Asignar Submenú 2</span>' +
+                        '</button>' +
+                        '<div class="dropdown-divider"></div>' +
+                        '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar btn-editar" data-id="' + planesEscape(row.planes_id) + '">' +
+                            '<span class="accion-icon accion-icon-editar"><i class="fas fa-edit"></i></span>' +
+                            '<span class="accion-label">Editar</span>' +
+                        '</button>' +
+                        '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar ocultar btn-eliminar" data-id="' + planesEscape(row.planes_id) + '" data-nombre="' + planesEscape(row.nombre) + '">' +
+                            '<span class="accion-icon accion-icon-eliminar"><i class="fas fa-trash-alt"></i></span>' +
+                            '<span class="accion-label">Eliminar</span>' +
+                        '</button>' +
+                    '</div>' +
+                '</div>';
+        }
+
+        function construirResumenConfiguracionesPlan(row, miniatura) {
+            const configs = normalizarConfiguracionesFila(row);
+            const keys = Object.keys(configs);
+
+            if (!keys.length) {
+                return '<span class="planes-no-config">Sin configuraciones</span>';
+            }
+
+            const visibles = keys.slice(0, miniatura ? 4 : 3);
+            let html = '<div class="planes-config-tags">';
+
+            visibles.forEach(function(clave) {
+                const opcion = opcionesConfiguracion.find(function(item) {
+                    return item.value === clave;
+                });
+
+                html +=
+                    '<span class="planes-config-tag"><strong>' +
+                    planesEscape(opcion ? opcion.text : clave) +
+                    ':</strong> ' +
+                    planesEscape(configs[clave]) +
+                    '</span>';
+            });
+
+            html += '</div>';
+
+            if (keys.length > visibles.length) {
+                html +=
+                    '<small class="planes-more-config">+' +
+                    (keys.length - visibles.length) +
+                    ' más</small>';
+            }
+
+            html +=
+                '<button type="button" class="btn btn-sm btn-info btn-ver-configs mt-2" data-plan-id="' +
+                planesEscape(row.planes_id) +
+                '"><i class="fas fa-eye mr-1"></i> Ver todas</button>';
+
+            return html;
+        }
+
+        function construirHeaderPlanesDetalle() {
+            return '' +
+                '<div class="planes-detail-header">' +
+                    '<div>Acciones</div>' +
+                    '<div>Plan</div>' +
+                    '<div>Configuraciones</div>' +
+                    '<div>Estado</div>' +
+                    '<div>Menús</div>' +
+                    '<div>Submenús</div>' +
+                    '<div>Submenús 2</div>' +
+                '</div>';
+        }
+
+        function construirFilaPlanDetalle(row) {
+            return '' +
+                '<article class="planes-detail-row" data-id="' + planesEscape(row.planes_id) + '">' +
+                    '<div class="planes-detail-cell planes-actions-cell">' +
+                        construirAccionesPlan(row) +
+                    '</div>' +
+                    '<div class="planes-detail-cell">' +
+                        '<div class="planes-plan-identity">' +
+                            '<div class="planes-plan-icon"><i class="fas fa-layer-group"></i></div>' +
+                            '<div>' +
+                                '<strong class="planes-plan-name">' + planesEscape(row.nombre || "Sin nombre") + '</strong>' +
+                                '<span class="planes-plan-code">ID: ' + planesEscape(row.planes_id) + '</span>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="planes-detail-cell"><div class="planes-config-cell">' +
+                        construirResumenConfiguracionesPlan(row, false) +
+                    '</div></div>' +
+                    '<div class="planes-detail-cell planes-center-cell">' +
+                        obtenerHtmlEstadoPlanDiv(row) +
+                    '</div>' +
+                    '<div class="planes-detail-cell planes-center-cell">' +
+                        '<span class="planes-count-badge menus" id="contador-menus-' + planesEscape(row.planes_id) + '">' +
+                            planesEscape(row.menus_asignados || 0) + ' asignados</span>' +
+                    '</div>' +
+                    '<div class="planes-detail-cell planes-center-cell">' +
+                        '<span class="planes-count-badge submenus" id="contador-submenus-' + planesEscape(row.planes_id) + '">' +
+                            planesEscape(row.submenus_asignados || 0) + ' asignados</span>' +
+                    '</div>' +
+                    '<div class="planes-detail-cell planes-center-cell">' +
+                        '<span class="planes-count-badge submenus2" id="contador-submenus2-' + planesEscape(row.planes_id) + '">' +
+                            planesEscape(row.submenus2_asignados || 0) + ' asignados</span>' +
+                    '</div>' +
+                '</article>';
+        }
+
+        function construirMiniaturaPlan(row) {
+            return '' +
+                '<article class="planes-mini-card" data-id="' + planesEscape(row.planes_id) + '">' +
+                    '<div class="planes-mini-topline"></div>' +
+                    '<div class="planes-mini-header">' +
+                        '<div class="planes-plan-identity">' +
+                            '<div class="planes-plan-icon"><i class="fas fa-layer-group"></i></div>' +
+                            '<div><h4>' + planesEscape(row.nombre || "Sin nombre") + '</h4>' +
+                            '<span>ID: ' + planesEscape(row.planes_id) + '</span></div>' +
+                        '</div>' +
+                        obtenerHtmlEstadoPlanDiv(row) +
+                    '</div>' +
+                    '<div class="planes-mini-body">' +
+                        '<span class="planes-mini-label">Configuraciones</span>' +
+                        construirResumenConfiguracionesPlan(row, true) +
+                        '<div class="planes-mini-counts">' +
+                            '<div><small>Menús</small><strong id="contador-menus-' + planesEscape(row.planes_id) + '">' + planesEscape(row.menus_asignados || 0) + '</strong></div>' +
+                            '<div><small>Submenús</small><strong id="contador-submenus-' + planesEscape(row.planes_id) + '">' + planesEscape(row.submenus_asignados || 0) + '</strong></div>' +
+                            '<div><small>Submenús 2</small><strong id="contador-submenus2-' + planesEscape(row.planes_id) + '">' + planesEscape(row.submenus2_asignados || 0) + '</strong></div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="planes-mini-footer">' +
+                        construirAccionesPlan(row) +
+                    '</div>' +
+                '</article>';
+        }
+
+        function renderPlanesPrincipal() {
+            const total = planesState.filtrados.length;
+            const totalPaginas = Math.max(1, Math.ceil(total / planesState.porPagina));
+
+            if (planesState.pagina > totalPaginas) {
+                planesState.pagina = totalPaginas;
+            }
+
+            const inicio = (planesState.pagina - 1) * planesState.porPagina;
+            const fin = Math.min(inicio + planesState.porPagina, total);
+            const paginaRows = planesState.filtrados.slice(inicio, fin);
+
+            const $listado = $("#planesListado");
+            let html = "";
+
+            $listado
+                .toggleClass("vista-detalle", planesState.vista === "detalle")
+                .toggleClass("vista-miniatura", planesState.vista === "miniatura");
+
+            if (planesState.vista === "detalle" && total > 0) {
+                html += construirHeaderPlanesDetalle();
+            }
+
+            paginaRows.forEach(function(row) {
+                html += planesState.vista === "miniatura"
+                    ? construirMiniaturaPlan(row)
+                    : construirFilaPlanDetalle(row);
+            });
+
+            $listado.html(html);
+            $("#planesVacio").toggle(total === 0);
+
+            $("#planesInfo").text(
+                total > 0
+                    ? "Mostrando " + (inicio + 1) + " a " + fin + " de " + total + " registros"
+                    : "Mostrando 0 registros"
+            );
+
+            renderPaginacionPlanes(totalPaginas);
+
+            if (
+                typeof getPermisosTipoUsuarioAccesosTable === "function" &&
+                typeof getPrivilegioTipoUsuario === "function"
+            ) {
+                getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+            }
+        }
+
+        function renderPaginacionPlanes(totalPaginas) {
+            const pagina = planesState.pagina;
+            let html = "";
+
+            html += crearBotonPaginaPlanes("Inicio", "fa-angle-double-left", 1, pagina <= 1);
+            html += crearBotonPaginaPlanes("Anterior", "fa-angle-left", Math.max(1, pagina - 1), pagina <= 1);
+
+            let desde = Math.max(1, pagina - 2);
+            let hasta = Math.min(totalPaginas, desde + 4);
+
+            if (hasta - desde < 4) {
+                desde = Math.max(1, hasta - 4);
+            }
+
+            for (let i = desde; i <= hasta; i++) {
+                html +=
+                    '<button type="button" class="planes-page-btn planes-page-number ' +
+                    (i === pagina ? "active" : "") +
+                    '" data-page="' + i + '">' + i + '</button>';
+            }
+
+            html += crearBotonPaginaPlanes("Siguiente", "fa-angle-right", Math.min(totalPaginas, pagina + 1), pagina >= totalPaginas);
+            html += crearBotonPaginaPlanes("Final", "fa-angle-double-right", totalPaginas, pagina >= totalPaginas);
+
+            $("#planesPaginacion").html(html);
+        }
+
+        function crearBotonPaginaPlanes(texto, icono, pagina, disabled) {
+            return '' +
+                '<button type="button" class="planes-page-btn" data-page="' + pagina + '" ' +
+                    (disabled ? "disabled" : "") + '>' +
+                    '<i class="fas ' + icono + '"></i><span>' + texto + '</span>' +
+                '</button>';
+        }
+
+        /* =========================================================
+            EXCEL PREMIUM
+        ========================================================= */
+        function planesExportRows() {
+            return planesState.filtrados.map(function(row) {
+                return {
+                    id: parseInt(row.planes_id || 0, 10),
+                    plan: row.nombre || "Sin nombre",
+                    configuraciones: obtenerTextoConfiguraciones(row),
+                    estado: parseInt(row.estado || 0, 10) === 1 ? "Activo" : "Inactivo",
+                    menus: parseInt(row.menus_asignados || 0, 10),
+                    submenus: parseInt(row.submenus_asignados || 0, 10),
+                    submenus2: parseInt(row.submenus2_asignados || 0, 10),
+                    accesos: contarAccesosPlan(row)
+                };
+            });
+        }
+
+        function planesXmlEscape(value) {
+            return String(value === null || typeof value === "undefined" ? "" : value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&apos;");
+        }
+
+        function planesExcelCol(index) {
+            let name = "";
+            let n = index + 1;
+
+            while (n > 0) {
+                const mod = (n - 1) % 26;
+                name = String.fromCharCode(65 + mod) + name;
+                n = Math.floor((n - 1) / 26);
+            }
+
+            return name;
+        }
+
+        function planesExcelCell(ref, value, styleId, numeric) {
+            if (numeric) {
+                const numero = Number(value);
+
+                if (!isNaN(numero)) {
+                    return '<c r="' + ref + '" s="' + styleId + '"><v>' + numero + '</v></c>';
+                }
+            }
+
+            return '<c r="' + ref + '" s="' + styleId + '" t="inlineStr"><is><t>' +
+                planesXmlEscape(value) +
+                '</t></is></c>';
+        }
+
+        function descargarBlobPlanes(blob, nombre) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+
+            link.href = url;
+            link.download = nombre;
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            setTimeout(function() {
+                URL.revokeObjectURL(url);
+            }, 1000);
+        }
+
+        function exportarPlanesExcelPremium() {
+            const rows = planesExportRows();
+
+            if (!rows.length) {
+                notificarPlan("warning", "Sin información", "No hay planes para exportar.");
+                return;
+            }
+
+            if (typeof JSZip === "undefined") {
+                notificarPlan("error", "Excel no disponible", "No se encontró JSZip para generar el archivo XLSX.");
+                return;
+            }
+
+            const headers = [
+                "ID",
+                "Plan",
+                "Configuraciones",
+                "Estado",
+                "Menús",
+                "Submenús",
+                "Submenús 2",
+                "Accesos Totales"
+            ];
+
+            const activos = rows.filter(function(row) {
+                return row.estado === "Activo";
+            }).length;
+
+            const configurados = rows.filter(function(row) {
+                return row.configuraciones !== "Sin configuraciones";
+            }).length;
+
+            const accesos = rows.reduce(function(acc, row) {
+                return acc + row.accesos;
+            }, 0);
+
+            const headerRow = 7;
+            const firstDataRow = 8;
+            const lastRow = Math.max(headerRow, headerRow + rows.length);
+            const sheetRows = [];
+
+            sheetRows.push(
+                '<row r="1" ht="30" customHeight="1">' +
+                planesExcelCell("A1", "IZZY • REPORTE DE PLANES", 1, false) +
+                '</row>'
+            );
+
+            sheetRows.push(
+                '<row r="2" ht="20" customHeight="1">' +
+                planesExcelCell(
+                    "A2",
+                    "Administración de planes, configuraciones y accesos • Generado: " +
+                    new Date().toLocaleDateString("es-HN"),
+                    2,
+                    false
+                ) +
+                '</row>'
+            );
+
+            sheetRows.push(
+                '<row r="3">' +
+                planesExcelCell("A3", "REGISTROS", 6, false) +
+                planesExcelCell("C3", "ACTIVOS", 6, false) +
+                planesExcelCell("E3", "CONFIGURADOS", 6, false) +
+                planesExcelCell("G3", "ACCESOS", 6, false) +
+                '</row>'
+            );
+
+            sheetRows.push(
+                '<row r="4" ht="27" customHeight="1">' +
+                planesExcelCell("A4", rows.length, 7, true) +
+                planesExcelCell("C4", activos, 7, true) +
+                planesExcelCell("E4", configurados, 7, true) +
+                planesExcelCell("G4", accesos, 7, true) +
+                '</row>'
+            );
+
+            sheetRows.push('<row r="5"></row>');
+
+            sheetRows.push(
+                '<row r="6">' +
+                planesExcelCell("A6", "Detalle de planes filtrados", 8, false) +
+                '</row>'
+            );
+
+            sheetRows.push(
+                '<row r="' + headerRow + '" ht="28" customHeight="1">' +
+                headers.map(function(header, index) {
+                    return planesExcelCell(
+                        planesExcelCol(index) + headerRow,
+                        header,
+                        3,
+                        false
+                    );
+                }).join("") +
+                '</row>'
+            );
+
+            rows.forEach(function(row, index) {
+                const excelRow = firstDataRow + index;
+                const valores = [
+                    row.id,
+                    row.plan,
+                    row.configuraciones,
+                    row.estado,
+                    row.menus,
+                    row.submenus,
+                    row.submenus2,
+                    row.accesos
+                ];
+
+                const cells = valores.map(function(value, colIndex) {
+                    const numeric = colIndex === 0 || colIndex >= 4;
+                    let style = numeric ? 5 : 4;
+
+                    if (colIndex === 3) {
+                        style = value === "Activo" ? 9 : 10;
+                    }
+
+                    return planesExcelCell(
+                        planesExcelCol(colIndex) + excelRow,
+                        value,
+                        style,
+                        numeric
+                    );
+                }).join("");
+
+                sheetRows.push(
+                    '<row r="' + excelRow + '" ht="34" customHeight="1">' +
+                    cells +
+                    '</row>'
+                );
+            });
+
+            const sheetXml =
+                '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+                '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+                '<dimension ref="A1:H' + lastRow + '"/>' +
+                '<sheetViews><sheetView workbookViewId="0" showGridLines="0">' +
+                '<pane ySplit="7" topLeftCell="A8" activePane="bottomLeft" state="frozen"/>' +
+                '</sheetView></sheetViews>' +
+                '<cols>' +
+                '<col min="1" max="1" width="10" customWidth="1"/>' +
+                '<col min="2" max="2" width="24" customWidth="1"/>' +
+                '<col min="3" max="3" width="55" customWidth="1"/>' +
+                '<col min="4" max="4" width="14" customWidth="1"/>' +
+                '<col min="5" max="8" width="16" customWidth="1"/>' +
+                '</cols>' +
+                '<sheetData>' + sheetRows.join("") + '</sheetData>' +
+                '<autoFilter ref="A7:H' + lastRow + '"/>' +
+                '<mergeCells count="10">' +
+                '<mergeCell ref="A1:H1"/><mergeCell ref="A2:H2"/>' +
+                '<mergeCell ref="A3:B3"/><mergeCell ref="A4:B4"/>' +
+                '<mergeCell ref="C3:D3"/><mergeCell ref="C4:D4"/>' +
+                '<mergeCell ref="E3:F3"/><mergeCell ref="E4:F4"/>' +
+                '<mergeCell ref="G3:H3"/><mergeCell ref="G4:H4"/>' +
+                '</mergeCells>' +
+                '<pageMargins left="0.25" right="0.25" top="0.5" bottom="0.5" header="0.2" footer="0.2"/>' +
+                '<pageSetup orientation="landscape" paperSize="1" fitToWidth="1" fitToHeight="0"/>' +
+                '</worksheet>';
+
+            const stylesXml =
+                '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+                '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+                '<fonts count="7">' +
+                '<font><sz val="10"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+                '<font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+                '<font><sz val="9"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="8"/><color rgb="FF6B778C"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="15"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+                '</fonts>' +
+                '<fills count="7">' +
+                '<fill><patternFill patternType="none"/></fill>' +
+                '<fill><patternFill patternType="gray125"/></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFF7F9FC"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFE3FCEF"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFFFEBE6"/></patternFill></fill>' +
+                '</fills>' +
+                '<borders count="2">' +
+                '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+                '<border><left style="thin"><color rgb="FFDDE3EA"/></left><right style="thin"><color rgb="FFDDE3EA"/></right><top style="thin"><color rgb="FFDDE3EA"/></top><bottom style="thin"><color rgb="FFDDE3EA"/></bottom><diagonal/></border>' +
+                '</borders>' +
+                '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+                '<cellXfs count="11">' +
+                '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+                '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="2" fillId="4" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="6" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="5" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="5" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="6" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '</cellXfs>' +
+                '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+                '</styleSheet>';
+
+            const workbookXml =
+                '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+                '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+                '<sheets><sheet name="Planes" sheetId="1" r:id="rId1"/></sheets></workbook>';
+
+            const workbookRels =
+                '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+                '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+                '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+                '</Relationships>';
+
+            const rootRels =
+                '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+                '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+                '</Relationships>';
+
+            const contentTypes =
+                '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+                '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+                '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+                '<Default Extension="xml" ContentType="application/xml"/>' +
+                '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+                '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+                '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+                '</Types>';
+
+            const zip = new JSZip();
+
+            zip.file("[Content_Types].xml", contentTypes);
+            zip.folder("_rels").file(".rels", rootRels);
+            zip.folder("xl").file("workbook.xml", workbookXml);
+            zip.folder("xl").file("styles.xml", stylesXml);
+            zip.folder("xl").folder("_rels").file("workbook.xml.rels", workbookRels);
+            zip.folder("xl").folder("worksheets").file("sheet1.xml", sheetXml);
+
+            const opciones = {
+                type: "blob",
+                mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                compression: "DEFLATE"
+            };
+
+            const promesa =
+                typeof zip.generateAsync === "function"
+                    ? zip.generateAsync(opciones)
+                    : Promise.resolve(zip.generate(opciones));
+
+            promesa
+                .then(function(blob) {
+                    descargarBlobPlanes(blob, "Reporte_Planes.xlsx");
+                })
+                .catch(function(error) {
+                    console.error(error);
+                    notificarPlan("error", "Error", "No se pudo generar el archivo Excel.");
+                });
+        }
+
+        /* =========================================================
+            PDF PREMIUM - ESTILO CAJAS
+        ========================================================= */
+        function planesPdfDato(label, value, color) {
+            return {
+                stack: [
+                    {
+                        text: String(label || "").toUpperCase(),
+                        fontSize: 6.2,
+                        bold: true,
+                        color: "#6B778C",
+                        margin: [0, 0, 0, 2]
+                    },
+                    {
+                        text: String(value === null || typeof value === "undefined" || value === "" ? "—" : value),
+                        fontSize: 7.8,
+                        bold: true,
+                        color: color || "#172B4D"
+                    }
+                ]
+            };
+        }
+
+        function planesPdfFiltroTexto() {
+            const estado =
+                $("#filtroEstadoPlanes option:selected").text() || "Todos";
+
+            const configuracion =
+                $("#filtroConfiguracionPlanes option:selected").text() || "Todas";
+
+            const busqueda =
+                $.trim($("#buscarPlanes").val()) || "Sin búsqueda";
+
+            return (
+                "Estado: " + estado +
+                "   |   Configuración: " + configuracion +
+                "   |   Búsqueda: " + busqueda
+            );
+        }
+
+        function planesPdfEncabezadoPremium(rows) {
+            const activos = rows.filter(function(row) {
+                return row.estado === "Activo";
+            }).length;
+
+            const configurados = rows.filter(function(row) {
+                return row.configuraciones !== "Sin configuraciones";
+            }).length;
+
+            const accesos = rows.reduce(function(acc, row) {
+                return acc + row.accesos;
+            }, 0);
+
+            const logoCell =
+                typeof imagen !== "undefined" && imagen
+                    ? {
+                        image: imagen,
+                        width: 52,
+                        height: 24,
+                        alignment: "center",
+                        margin: [0, 2, 0, 0]
+                    }
+                    : {
+                        text: "IZZY",
+                        fontSize: 16,
+                        bold: true,
+                        color: "#FFFFFF",
+                        alignment: "center",
+                        margin: [0, 5, 0, 0]
+                    };
+
+            return [
+                {
+                    table: {
+                        widths: [72, "*", 155],
+                        body: [[
+                            {
+                                border: [false, false, false, false],
+                                fillColor: "#17324D",
+                                margin: [12, 10, 0, 10],
+                                stack: [logoCell]
+                            },
+                            {
+                                border: [false, false, false, false],
+                                fillColor: "#17324D",
+                                margin: [0, 10, 0, 10],
+                                stack: [
+                                    {
+                                        text: "REPORTE DE PLANES",
+                                        fontSize: 16,
+                                        bold: true,
+                                        color: "#FFFFFF"
+                                    },
+                                    {
+                                        text: "Administración de planes, configuraciones y accesos",
+                                        fontSize: 7.5,
+                                        color: "#D8E5F0",
+                                        margin: [0, 2, 0, 0]
+                                    }
+                                ]
+                            },
+                            {
+                                border: [false, false, false, false],
+                                fillColor: "#17324D",
+                                margin: [0, 10, 12, 10],
+                                stack: [
+                                    {
+                                        text: "REPORTE EJECUTIVO",
+                                        fontSize: 6.5,
+                                        bold: true,
+                                        color: "#72E2E5",
+                                        alignment: "right"
+                                    },
+                                    {
+                                        text: new Date().toLocaleDateString("es-HN"),
+                                        fontSize: 9,
+                                        bold: true,
+                                        color: "#FFFFFF",
+                                        alignment: "right",
+                                        margin: [0, 3, 0, 0]
+                                    },
+                                    {
+                                        text: rows.length + " registro(s) filtrado(s)",
+                                        fontSize: 6.5,
+                                        color: "#D8E5F0",
+                                        alignment: "right",
+                                        margin: [0, 2, 0, 0]
+                                    }
+                                ]
+                            }
+                        ]]
+                    },
+                    layout: {
+                        hLineWidth: function() { return 0; },
+                        vLineWidth: function() { return 0; }
+                    },
+                    margin: [0, 0, 0, 10]
+                },
+                {
+                    table: {
+                        widths: ["*"],
+                        body: [[{
+                            text: "Filtros aplicados: " + planesPdfFiltroTexto(),
+                            fontSize: 6.8,
+                            color: "#52627A",
+                            margin: [10, 7, 10, 7],
+                            fillColor: "#F7F9FC"
+                        }]]
+                    },
+                    layout: {
+                        hLineColor: function() { return "#DDE3EA"; },
+                        vLineColor: function() { return "#DDE3EA"; },
+                        hLineWidth: function() { return 0.6; },
+                        vLineWidth: function() { return 0.6; }
+                    },
+                    margin: [0, 0, 0, 10]
+                },
+                {
+                    table: {
+                        widths: ["*", "*", "*", "*"],
+                        body: [[
+                            {
+                                fillColor: "#F7F9FC",
+                                margin: [8, 7, 8, 7],
+                                stack: [
+                                    {text: "REGISTROS", fontSize: 6.3, bold: true, color: "#6B778C"},
+                                    {text: String(rows.length), fontSize: 13, bold: true, color: "#172B4D"}
+                                ]
+                            },
+                            {
+                                fillColor: "#F7F9FC",
+                                margin: [8, 7, 8, 7],
+                                stack: [
+                                    {text: "ACTIVOS", fontSize: 6.3, bold: true, color: "#6B778C"},
+                                    {text: String(activos), fontSize: 13, bold: true, color: "#14804A"}
+                                ]
+                            },
+                            {
+                                fillColor: "#F7F9FC",
+                                margin: [8, 7, 8, 7],
+                                stack: [
+                                    {text: "CONFIGURADOS", fontSize: 6.3, bold: true, color: "#6B778C"},
+                                    {text: String(configurados), fontSize: 13, bold: true, color: "#172B4D"}
+                                ]
+                            },
+                            {
+                                fillColor: "#F7F9FC",
+                                margin: [8, 7, 8, 7],
+                                stack: [
+                                    {text: "ACCESOS", fontSize: 6.3, bold: true, color: "#6B778C"},
+                                    {text: String(accesos), fontSize: 13, bold: true, color: "#172B4D"}
+                                ]
+                            }
+                        ]]
+                    },
+                    layout: {
+                        hLineColor: function() { return "#DDE3EA"; },
+                        vLineColor: function() { return "#DDE3EA"; },
+                        hLineWidth: function() { return 0.6; },
+                        vLineWidth: function() { return 0.6; }
+                    },
+                    margin: [0, 0, 0, 12]
+                }
+            ];
+        }
+
+        function planesPdfContenidoDetalle(rows) {
+            const body = [[
+                {text: "ID", style: "th", fillColor: "#17324D"},
+                {text: "PLAN", style: "th", fillColor: "#17324D"},
+                {text: "CONFIGURACIONES", style: "th", fillColor: "#17324D"},
+                {text: "ESTADO", style: "th", fillColor: "#17324D"},
+                {text: "MENÚS", style: "th", fillColor: "#17324D"},
+                {text: "SUBMENÚS", style: "th", fillColor: "#17324D"},
+                {text: "SUBMENÚS 2", style: "th", fillColor: "#17324D"},
+                {text: "ACCESOS", style: "th", fillColor: "#17324D"}
+            ]];
+
+            rows.forEach(function(row, index) {
+                const fill = index % 2 === 0 ? "#FFFFFF" : "#F7F9FC";
+
+                body.push([
+                    {text: String(row.id), style: "tdCenter", fillColor: fill},
+                    {text: row.plan, style: "tdStrong", fillColor: fill},
+                    {text: row.configuraciones, style: "td", fillColor: fill},
+                    {
+                        text: row.estado,
+                        style: "tdCenter",
+                        color: row.estado === "Activo" ? "#14804A" : "#C9372C",
+                        bold: true,
+                        fillColor: fill
+                    },
+                    {text: String(row.menus), style: "tdCenter", fillColor: fill},
+                    {text: String(row.submenus), style: "tdCenter", fillColor: fill},
+                    {text: String(row.submenus2), style: "tdCenter", fillColor: fill},
+                    {text: String(row.accesos), style: "tdCenter", bold: true, fillColor: fill}
+                ]);
+            });
+
+            return [
+                {
+                    text: "VISTA DETALLE",
+                    fontSize: 7,
+                    bold: true,
+                    color: "#17324D",
+                    margin: [0, 1, 0, 7]
+                },
+                {
+                    table: {
+                        headerRows: 1,
+                        widths: [34, 92, "*", 52, 48, 54, 58, 50],
+                        body: body
+                    },
+                    layout: {
+                        hLineColor: function() { return "#DDE3EA"; },
+                        vLineColor: function() { return "#DDE3EA"; },
+                        hLineWidth: function() { return 0.55; },
+                        vLineWidth: function() { return 0.55; },
+                        paddingLeft: function() { return 5; },
+                        paddingRight: function() { return 5; },
+                        paddingTop: function() { return 6; },
+                        paddingBottom: function() { return 6; }
+                    }
+                }
+            ];
+        }
+
+        function planesPdfMiniCard(row) {
+            return {
+                table: {
+                    widths: ["*"],
+                    body: [[{
+                        margin: [10, 9, 10, 9],
+                        stack: [
+                            {
+                                columns: [
+                                    {
+                                        width: "*",
+                                        stack: [
+                                            {text: row.plan, fontSize: 10, bold: true, color: "#172B4D"},
+                                            {text: "Plan ID: " + row.id, fontSize: 7, color: "#6B778C", margin: [0, 2, 0, 0]}
+                                        ]
+                                    },
+                                    {
+                                        width: "auto",
+                                        text: row.estado,
+                                        fontSize: 6.8,
+                                        bold: true,
+                                        color: row.estado === "Activo" ? "#14804A" : "#C9372C"
+                                    }
+                                ]
+                            },
+                            {
+                                canvas: [{
+                                    type: "line",
+                                    x1: 0,
+                                    y1: 0,
+                                    x2: 250,
+                                    y2: 0,
+                                    lineWidth: 0.6,
+                                    lineColor: "#DDE3EA"
+                                }],
+                                margin: [0, 7, 0, 7]
+                            },
+                            planesPdfDato("Configuraciones", row.configuraciones),
+                            {
+                                margin: [0, 9, 0, 0],
+                                columns: [
+                                    {width: "33%", stack: [planesPdfDato("Menús", row.menus)]},
+                                    {width: "33%", stack: [planesPdfDato("Submenús", row.submenus)]},
+                                    {width: "34%", stack: [planesPdfDato("Submenús 2", row.submenus2)]}
+                                ]
+                            },
+                            {
+                                margin: [0, 9, 0, 0],
+                                stack: [planesPdfDato("Accesos totales", row.accesos)]
+                            }
+                        ]
+                    }]]
+                },
+                layout: {
+                    hLineColor: function() { return "#DDE3EA"; },
+                    vLineColor: function() { return "#DDE3EA"; },
+                    hLineWidth: function() { return 0.7; },
+                    vLineWidth: function() { return 0.7; }
+                }
+            };
+        }
+
+        function planesPdfContenidoMiniatura(rows) {
+            const contenido = [
+                {
+                    text: "VISTA MINIATURA",
+                    fontSize: 7,
+                    bold: true,
+                    color: "#17324D",
+                    margin: [0, 1, 0, 7]
+                }
+            ];
+
+            for (let i = 0; i < rows.length; i += 2) {
+                contenido.push({
+                    columns: [
+                        {width: "*", stack: [planesPdfMiniCard(rows[i])]},
+                        {width: 10, text: ""},
+                        rows[i + 1]
+                            ? {width: "*", stack: [planesPdfMiniCard(rows[i + 1])]}
+                            : {width: "*", text: ""}
+                    ],
+                    margin: [0, 0, 0, 9]
+                });
+            }
+
+            return contenido;
+        }
+
+        function previsualizarPlanesPdfPremium() {
+            const rows = planesExportRows();
+
+            if (!rows.length) {
+                notificarPlan("warning", "Sin información", "No hay planes para exportar.");
+                return;
+            }
+
+            if (typeof pdfMake === "undefined") {
+                notificarPlan("error", "PDF no disponible", "No se encontró pdfMake.");
+                return;
+            }
+
+            if (typeof abrirModalPdfPublico !== "function") {
+                notificarPlan("error", "Visor PDF no disponible", "No se encontró el modal PDF público.");
+                return;
+            }
+
+            const esMiniatura = planesState.vista === "miniatura";
+
+            const contenido = planesPdfEncabezadoPremium(rows).concat(
+                esMiniatura
+                    ? planesPdfContenidoMiniatura(rows)
+                    : planesPdfContenidoDetalle(rows)
+            );
+
+            const docDefinition = {
+                pageSize: "LETTER",
+                pageOrientation: "landscape",
+                pageMargins: [28, 28, 28, 34],
+                header: function() {
+                    return {
+                        margin: [28, 12, 28, 0],
+                        canvas: [{
+                            type: "line",
+                            x1: 0,
+                            y1: 0,
+                            x2: 736,
+                            y2: 0,
+                            lineWidth: 2,
+                            lineColor: "#0EA5A8"
+                        }]
+                    };
+                },
+                footer: function(currentPage, pageCount) {
+                    return {
+                        margin: [28, 8, 28, 0],
+                        columns: [
+                            {text: "IZZY • Administrar Planes", fontSize: 7, color: "#7A869A"},
+                            {text: "Página " + currentPage + " de " + pageCount, fontSize: 7, color: "#7A869A", alignment: "right"}
+                        ]
+                    };
+                },
+                content: contenido,
+                styles: {
+                    th: {fontSize: 6.2, bold: true, color: "#FFFFFF", alignment: "center"},
+                    td: {fontSize: 6.3, color: "#253858"},
+                    tdStrong: {fontSize: 6.5, bold: true, color: "#172B4D"},
+                    tdCenter: {fontSize: 6.4, color: "#253858", alignment: "center"}
+                },
+                defaultStyle: {fontSize: 8, color: "#253858"}
+            };
+
+            const pdf = pdfMake.createPdf(docDefinition);
+            const nombre = "Reporte_Planes.pdf";
+
+            if (typeof pdf.getDataUrl === "function") {
+                pdf.getDataUrl(function(dataUrl) {
+                    abrirModalPdfPublico(dataUrl, "Reporte de Planes", nombre);
+                });
+                return;
+            }
+
+            if (typeof pdf.getBase64 === "function") {
+                pdf.getBase64(function(base64) {
+                    abrirModalPdfPublico(
+                        "data:application/pdf;base64," + base64,
+                        "Reporte de Planes",
+                        nombre
+                    );
+                });
+                return;
+            }
+
+            notificarPlan(
+                "error",
+                "PDF no disponible",
+                "La versión actual de pdfMake no permite una vista previa compatible."
+            );
         }
 
         /* =========================================================
@@ -691,10 +1781,7 @@
                 success: function(response) {
                     if (response.type === "success") {
                         resetFormulario();
-
-                        if (dataTablePlanes) {
-                            dataTablePlanes.ajax.reload(null, false);
-                        }
+                            recargarPlanesPrincipal(true);
 
                         notificarPlan(response.type, response.title, response.message);
                     } else {
@@ -795,10 +1882,7 @@
 
                                 table.clear().rows.add(newData).draw();
                             }
-
-                            if (dataTablePlanes) {
-                                dataTablePlanes.ajax.reload(null, false);
-                            }
+                            recargarPlanesPrincipal(true);
 
                             notificarPlan("success", "Éxito", response.message);
                         } else {
@@ -869,9 +1953,7 @@
                         cerrarLoadingSiExiste();
 
                         if (response.type === "success") {
-                            if (dataTablePlanes) {
-                                dataTablePlanes.ajax.reload(null, false);
-                            }
+                            recargarPlanesPrincipal(true);
 
                             notificarPlan(response.type, response.title, response.message);
                         } else {
@@ -1086,9 +2168,399 @@
         }
 
         /* =========================================================
+            STACKING DEL DROPDOWN DE ACCIONES
+            La fila que tiene el menú abierto sube por encima de
+            todas las demás filas/cards. Evita depender de :has().
+        ========================================================= */
+        function limpiarStackDropdownPlanes() {
+            $("#planesListado .planes-detail-row, #planesListado .planes-mini-card")
+                .removeClass("planes-dropdown-open");
+        }
+
+        function activarStackDropdownPlanes($dropdown) {
+            limpiarStackDropdownPlanes();
+
+            if (!$dropdown || !$dropdown.length) {
+                return;
+            }
+
+            $dropdown
+                .closest(".planes-detail-row, .planes-mini-card")
+                .addClass("planes-dropdown-open");
+        }
+
+        /* =========================================================
+            DIRECCIÓN ADAPTATIVA DEL DROPDOWN
+            Prioridad: abajo -> arriba -> derecha -> izquierda.
+            Bootstrap/Popper conserva el ajuste final contra viewport.
+        ========================================================= */
+        function limpiarDireccionDropdownPlanes($dropdown) {
+            if (!$dropdown || !$dropdown.length) {
+                return;
+            }
+
+            $dropdown.removeClass("dropup dropright dropleft");
+            $dropdown.children(".dropdown-menu")
+                .removeClass("dropdown-menu-right")
+                .removeAttr("x-placement data-popper-placement")
+                .css({ top: "", left: "", right: "", bottom: "", transform: "" });
+        }
+
+        function medirMenuDropdownPlanes($menu) {
+            const menu = $menu && $menu.length ? $menu[0] : null;
+            if (!menu) {
+                return { width: 220, height: 220 };
+            }
+
+            const estilos = {
+                display: menu.style.display,
+                visibility: menu.style.visibility,
+                position: menu.style.position,
+                top: menu.style.top,
+                left: menu.style.left,
+                right: menu.style.right,
+                bottom: menu.style.bottom,
+                transform: menu.style.transform
+            };
+            const teniaShow = $menu.hasClass("show");
+
+            $menu.addClass("show").css({
+                display: "block",
+                visibility: "hidden",
+                position: "fixed",
+                top: "0",
+                left: "0",
+                right: "auto",
+                bottom: "auto",
+                transform: "none"
+            });
+
+            const rect = menu.getBoundingClientRect();
+
+            if (!teniaShow) {
+                $menu.removeClass("show");
+            }
+            menu.style.display = estilos.display;
+            menu.style.visibility = estilos.visibility;
+            menu.style.position = estilos.position;
+            menu.style.top = estilos.top;
+            menu.style.left = estilos.left;
+            menu.style.right = estilos.right;
+            menu.style.bottom = estilos.bottom;
+            menu.style.transform = estilos.transform;
+
+            return {
+                width: Math.max(rect.width || 0, 220),
+                height: Math.max(rect.height || 0, 1)
+            };
+        }
+
+        function prepararDireccionDropdownPlanes($dropdown) {
+            if (!$dropdown || !$dropdown.length) {
+                return;
+            }
+
+            const $button = $dropdown.children(".planes-acciones-toggle");
+            const $menu = $dropdown.children(".dropdown-menu");
+            const button = $button.length ? $button[0] : null;
+
+            if (!button || !$menu.length) {
+                return;
+            }
+
+            limpiarDireccionDropdownPlanes($dropdown);
+
+            const rect = button.getBoundingClientRect();
+            const menuSize = medirMenuDropdownPlanes($menu);
+            const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+            const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+            const margin = 12;
+            const gap = 8;
+
+            const espacioAbajo = viewportHeight - rect.bottom - margin;
+            const espacioArriba = rect.top - margin;
+            const espacioDerecha = viewportWidth - rect.right - margin;
+            const espacioIzquierda = rect.left - margin;
+
+            const cabeAbajo = espacioAbajo >= menuSize.height + gap;
+            const cabeArriba = espacioArriba >= menuSize.height + gap;
+            const cabeDerecha = espacioDerecha >= menuSize.width + gap;
+            const cabeIzquierda = espacioIzquierda >= menuSize.width + gap;
+
+            if (cabeAbajo) {
+                /* Dropdown normal. */
+            } else if (cabeArriba) {
+                $dropdown.addClass("dropup");
+            } else if (cabeDerecha) {
+                $dropdown.addClass("dropright");
+            } else if (cabeIzquierda) {
+                $dropdown.addClass("dropleft");
+            } else if (espacioArriba > espacioAbajo) {
+                $dropdown.addClass("dropup");
+            }
+
+            /* Alineación horizontal preventiva para dropdown/dropup. */
+            if (!$dropdown.hasClass("dropright") && !$dropdown.hasClass("dropleft")) {
+                const desbordaDerecha = rect.left + menuSize.width > viewportWidth - margin;
+                const puedeAlinearDerecha = rect.right - menuSize.width >= margin;
+
+                if (desbordaDerecha && puedeAlinearDerecha) {
+                    $menu.addClass("dropdown-menu-right");
+                }
+            }
+        }
+
+        /* =========================================================
             EVENTOS
         ========================================================= */
         function registrarEventosPlanes() {
+            /* =====================================================
+               DROPDOWN DE ACCIONES DEL LISTADO PRINCIPAL
+               Comportamiento normal Bootstrap/Popper:
+               - abre debajo del botón;
+               - cambia de posición únicamente si no hay espacio;
+               - usa el viewport como límite para no quedar oculto.
+               ===================================================== */
+            function cerrarDropdownsPlanesExcepto($actual) {
+                $("#planesListado .planes-actions-dropdown").each(function() {
+                    const $dropdown = $(this);
+                    const $btn = $dropdown.children(".planes-acciones-toggle");
+                    const $menu = $dropdown.children(".dropdown-menu");
+
+                    if ($actual && $actual.length && $dropdown.is($actual)) {
+                        return;
+                    }
+
+                    try {
+                        if (typeof $.fn.dropdown === "function" && $menu.hasClass("show")) {
+                            $btn.dropdown("hide");
+                        }
+                    } catch (error) {
+                        /* Limpieza manual abajo como respaldo. */
+                    }
+
+                    $btn.attr("aria-expanded", "false");
+                    $dropdown.removeClass("show");
+                    $menu.removeClass("show");
+                    limpiarDireccionDropdownPlanes($dropdown);
+
+                    /* IMPORTANTE: solo baja la fila que se está cerrando. */
+                    $dropdown
+                        .closest(".planes-detail-row, .planes-mini-card")
+                        .removeClass("planes-dropdown-open");
+                });
+            }
+
+            $(document)
+                .off("click.planesAcciones", "#planesListado .planes-acciones-toggle")
+                .on("click.planesAcciones", "#planesListado .planes-acciones-toggle", function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+
+                    const $button = $(this);
+                    const $dropdown = $button.closest(".planes-actions-dropdown");
+                    const $menu = $dropdown.children(".dropdown-menu");
+                    const estabaAbierto = $menu.hasClass("show");
+
+                    if (typeof $.fn.dropdown !== "function") {
+                        notificarPlan(
+                            "error",
+                            "Acciones no disponibles",
+                            "No se encontró el componente Dropdown de Bootstrap."
+                        );
+                        return;
+                    }
+
+                    cerrarDropdownsPlanesExcepto($dropdown);
+
+                    if (estabaAbierto) {
+                        try { $button.dropdown("hide"); } catch (error) {}
+                        $button.attr("aria-expanded", "false");
+                        $dropdown.removeClass("show");
+                        $menu.removeClass("show");
+                        limpiarDireccionDropdownPlanes($dropdown);
+                        limpiarStackDropdownPlanes();
+                        return;
+                    }
+
+                    try {
+                        prepararDireccionDropdownPlanes($dropdown);
+
+                        $button.dropdown({
+                            boundary: "viewport",
+                            flip: true,
+                            offset: "0,6"
+                        });
+                        $button.dropdown("show");
+                        activarStackDropdownPlanes($dropdown);
+                    } catch (error) {
+                        console.error("No se pudo abrir el dropdown de acciones:", error);
+                        notificarPlan(
+                            "error",
+                            "Acciones no disponibles",
+                            "No se pudo abrir el menú de acciones."
+                        );
+                    }
+                });
+
+            $(document)
+                .off("shown.bs.dropdown.planesStack", "#planesListado .planes-actions-dropdown")
+                .on("shown.bs.dropdown.planesStack", "#planesListado .planes-actions-dropdown", function() {
+                    activarStackDropdownPlanes($(this));
+                })
+                .off("hidden.bs.dropdown.planesStack", "#planesListado .planes-actions-dropdown")
+                .on("hidden.bs.dropdown.planesStack", "#planesListado .planes-actions-dropdown", function() {
+                    /* No limpiar todas las filas: un hidden anterior puede dispararse
+                       después de abrir otro dropdown y quitarle su stacking. */
+                    const $dropdown = $(this);
+                    limpiarDireccionDropdownPlanes($dropdown);
+                    $dropdown
+                        .closest(".planes-detail-row, .planes-mini-card")
+                        .removeClass("planes-dropdown-open");
+                });
+
+            $(document)
+                .off("click.planesCerrarAlElegir", "#planesListado .planes-actions-dropdown .dropdown-item")
+                .on("click.planesCerrarAlElegir", "#planesListado .planes-actions-dropdown .dropdown-item", function() {
+                    const $button = $(this)
+                        .closest(".planes-actions-dropdown")
+                        .children(".planes-acciones-toggle");
+
+                    if ($button.length && typeof $.fn.dropdown === "function") {
+                        try {
+                            $button.dropdown("hide");
+                        } catch (error) {
+                            /* Bootstrap puede no exponer hide en versiones antiguas. */
+                        }
+                    }
+                });
+
+            $("#formFiltrosPlanes")
+                .off("submit.planesFiltros")
+                .on("submit.planesFiltros", function(e) {
+                    e.preventDefault();
+
+                    planesState.filtroEstado =
+                        $("#filtroEstadoPlanes").val() || "todos";
+
+                    planesState.filtroConfiguracion =
+                        $("#filtroConfiguracionPlanes").val() || "";
+
+                    planesState.pagina = 1;
+                    aplicarFiltrosPlanesPrincipal();
+                });
+
+            $("#formFiltrosPlanes")
+                .off("reset.planesFiltros")
+                .on("reset.planesFiltros", function() {
+                    setTimeout(function() {
+                        planesState.filtroEstado = "todos";
+                        planesState.filtroConfiguracion = "";
+                        planesState.pagina = 1;
+
+                        $("#filtroEstadoPlanes").val("todos");
+                        $("#filtroConfiguracionPlanes").val("");
+
+                        aplicarFiltrosPlanesPrincipal();
+                    }, 50);
+                });
+
+            $("#filtroEstadoPlanes, #filtroConfiguracionPlanes")
+                .off("change.planesFiltroRapido")
+                .on("change.planesFiltroRapido", function() {
+                    planesState.filtroEstado =
+                        $("#filtroEstadoPlanes").val() || "todos";
+
+                    planesState.filtroConfiguracion =
+                        $("#filtroConfiguracionPlanes").val() || "";
+
+                    planesState.pagina = 1;
+                    aplicarFiltrosPlanesPrincipal();
+                });
+
+            $("#buscarPlanes")
+                .off("input.planesSearch")
+                .on("input.planesSearch", function() {
+                    planesState.busqueda =
+                        $.trim($(this).val()).toLowerCase();
+
+                    planesState.pagina = 1;
+                    aplicarFiltrosPlanesPrincipal();
+                });
+
+            $("#planesPageSize")
+                .off("change.planesPageSize")
+                .on("change.planesPageSize", function() {
+                    const valor = parseInt($(this).val(), 10);
+
+                    planesState.porPagina =
+                        isNaN(valor) || valor <= 0
+                            ? (planesState.vista === "miniatura" ? 6 : 10)
+                            : valor;
+
+                    if (planesState.vista === "miniatura") {
+                        planesState.porPaginaMiniatura = planesState.porPagina;
+                    } else {
+                        planesState.porPaginaDetalle = planesState.porPagina;
+                    }
+
+                    planesState.pagina = 1;
+                    renderPlanesPrincipal();
+                });
+
+            $(".planes-view-btn")
+                .off("click.planesVista")
+                .on("click.planesVista", function() {
+                    cambiarVistaPlanes($(this).data("view"));
+                });
+
+            $("#planesPaginacion")
+                .off("click.planesPage", ".planes-page-btn")
+                .on("click.planesPage", ".planes-page-btn", function() {
+                    if ($(this).prop("disabled")) {
+                        return;
+                    }
+
+                    planesState.pagina =
+                        parseInt($(this).data("page"), 10) || 1;
+
+                    renderPlanesPrincipal();
+                });
+
+            $("#btnActualizarPlanes")
+                .off("click.planesRefresh")
+                .on("click.planesRefresh", function() {
+                    recargarPlanesPrincipal(true);
+                });
+
+            $("#btnIngresarPlan")
+                .off("click.planesIngresar")
+                .on("click.planesIngresar", function() {
+                    resetFormulario();
+
+                    const $card = $("#cardFormularioPlan");
+
+                    if ($card.length) {
+                        $("html, body").animate(
+                            {scrollTop: $card.offset().top - 80},
+                            250
+                        );
+                    }
+
+                    setTimeout(function() {
+                        $("#nombre_plan").trigger("focus");
+                    }, 280);
+                });
+
+            $("#btnExcelPlanes")
+                .off("click.planesExcel")
+                .on("click.planesExcel", exportarPlanesExcelPremium);
+
+            $("#btnPdfPlanes")
+                .off("click.planesPdf")
+                .on("click.planesPdf", previsualizarPlanesPdfPremium);
+
             $("#estado_plan").off("change.planes").on("change.planes", updateEstadoLabel);
 
             $("#agregar-configuracion").off("click.planes").on("click.planes", function() {
@@ -1104,19 +2576,30 @@
             });
 
             $(document).off("click.planesVerConfigs", ".btn-ver-configs").on("click.planesVerConfigs", ".btn-ver-configs", function() {
-                const configs = $(this).data("configs");
-                const rowData = dataTablePlanes.row($(this).closest("tr")).data();
-                const planId = rowData ? rowData.planes_id : null;
+                const planId = $(this).data("plan-id");
+                const rowData = obtenerPlanStatePorId(planId);
+                const configs = rowData ? normalizarConfiguracionesFila(rowData) : {};
                 const planNombre = rowData ? rowData.nombre : "Sin nombre";
 
-                $("#modalConfiguraciones .modal-title").text("Configuraciones del Plan: " + planNombre);
+                $("#modalConfiguraciones .modal-title")
+                    .text("Configuraciones del Plan: " + planNombre);
 
                 listar_configuraciones(planId, configs);
             });
 
             $(document).off("click.planesEditar", ".btn-editar").on("click.planesEditar", ".btn-editar", function() {
                 const planId = $(this).data("id");
+
                 cargarPlanParaEditar(planId);
+
+                const $card = $("#cardFormularioPlan");
+
+                if ($card.length) {
+                    $("html, body").animate(
+                        {scrollTop: $card.offset().top - 80},
+                        250
+                    );
+                }
             });
 
             $("#btn-cancelar-edicion").off("click.planes").on("click.planes", function() {
@@ -1155,10 +2638,7 @@
                         if (response.estado) {
                             actualizarUIBotonAsignacion($button, asignado);
                             actualizarContadorAsignacion("#contador-menus-" + planId, asignado);
-
-                            if (dataTablePlanes) {
-                                dataTablePlanes.ajax.reload(null, false);
-                            }
+                            recargarPlanesPrincipal(true);
 
                             notificarPlan(response.type, response.title, response.message);
                         } else {
@@ -1197,10 +2677,7 @@
                         if (response.estado) {
                             actualizarUIBotonAsignacion($button, asignado);
                             actualizarContadorAsignacion("#contador-submenus-" + planId, asignado);
-
-                            if (dataTablePlanes) {
-                                dataTablePlanes.ajax.reload(null, false);
-                            }
+                            recargarPlanesPrincipal(true);
 
                             notificarPlan(response.type, response.title, response.message);
                         } else {
@@ -1239,10 +2716,7 @@
                         if (response.estado) {
                             actualizarUIBotonAsignacion($button, asignado);
                             actualizarContadorAsignacion("#contador-submenus2-" + planId, asignado);
-
-                            if (dataTablePlanes) {
-                                dataTablePlanes.ajax.reload(null, false);
-                            }
+                            recargarPlanesPrincipal(true);
 
                             notificarPlan(response.type, response.title, response.message);
                         } else {
@@ -1310,8 +2784,9 @@
         function arrancarPlanes() {
             updateEstadoLabel();
             inicializarSelectPicker();
+            inicializarUIPlanes();
             registrarEventosPlanes();
-            inicializarDataTablePlanes();
+            recargarPlanesPrincipal(false);
 
             $("#configuraciones-container").empty();
             agregarConfiguracion(false);

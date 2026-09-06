@@ -251,7 +251,6 @@
                 <form class="FormularioAjax" id="formUsers" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
                     <input type="hidden" id="usuarios_id" name="usuarios_id">
                     <input type="hidden" id="server_customers_id" name="server_customers_id">
-                    <input type="hidden" id="colaboradores_id" name="colaboradores_id">
                     <input type="hidden" id="es_nuevo_colaborador" name="es_nuevo_colaborador" value="0">
                     
                     <!-- Pestañas para selección de colaborador -->
@@ -400,7 +399,7 @@
                                     <label>Estado de la Cuenta</label>
                                     <div class="custom-control custom-switch">
                                         <input type="checkbox" class="custom-control-input" id="estado_usuario" name="estado_usuario" checked>
-                                        <label class="custom-control-label" for="estado_usuario">Cuenta Activa</label>
+                                        <label class="custom-control-label" for="estado_usuario" id="label_usuarios_activo">Activo</label>
                                     </div>
                                     <small class="form-text text-muted">Habilite o deshabilite el acceso al sistema</small>
                                 </div>
@@ -6346,3 +6345,249 @@
 <!-- =========================================================
      FIN MODAL FACTURAS RECURRENTES
 ========================================================= -->
+
+<!-- MODAL PUBLICO / REUTILIZABLE PARA PREVISUALIZAR PDF -->
+<style>
+    #modal_pdf_publico .modal-dialog {
+        min-height: calc(100vh - 2rem);
+        display: flex;
+        align-items: center;
+        margin: 1rem auto;
+    }
+
+    #modal_pdf_publico .pdf-public-modal-content {
+        height: 88vh;
+        max-height: 88vh;
+        overflow: hidden;
+        border: 0;
+        border-radius: 12px;
+        box-shadow: 0 18px 46px rgba(15, 35, 55, .28);
+    }
+
+    #modal_pdf_publico .pdf-public-modal-header {
+        min-height: 58px;
+        padding: 13px 18px;
+        border-bottom: 3px solid #0ea5a8;
+        background: #14283a;
+        color: #fff;
+    }
+
+    #modal_pdf_publico .pdf-public-modal-header .modal-title {
+        margin: 0;
+        font-size: 17px;
+        font-weight: 800;
+    }
+
+    #modal_pdf_publico .pdf-public-modal-header .close {
+        margin: -4px -2px -4px auto;
+        padding: 7px 10px;
+        color: #fff;
+        opacity: .95;
+        text-shadow: none;
+    }
+
+    #modal_pdf_publico .pdf-public-modal-body {
+        min-height: 0;
+        flex: 1 1 auto;
+        padding: 0;
+        background: #e9edf2;
+    }
+
+    #modal_pdf_publico #visor_pdf_publico {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: #e9edf2;
+    }
+
+    #modal_pdf_publico .pdf-public-modal-footer {
+        min-height: 68px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 12px 18px;
+        border-top: 1px solid #dce3ea;
+        background: #f8fafc;
+    }
+
+    #modal_pdf_publico .pdf-public-footer-info {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #6b778c;
+        font-size: 12px;
+    }
+
+    #modal_pdf_publico .pdf-public-footer-info-icon {
+        width: 34px;
+        height: 34px;
+        flex: 0 0 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #d8e5f0;
+        border-radius: 9px;
+        background: #fff;
+        color: #176fae;
+    }
+
+    #modal_pdf_publico .pdf-public-footer-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 9px;
+        margin-left: auto;
+    }
+
+    #modal_pdf_publico .pdf-public-footer-actions .btn {
+        min-width: 132px;
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        border-radius: 8px;
+        font-weight: 700;
+        box-shadow: 0 2px 6px rgba(23, 50, 77, .10);
+    }
+
+    #modal_pdf_publico .pdf-public-download-btn {
+        border-color: #119b70;
+        background: #119b70;
+        color: #fff;
+    }
+
+    #modal_pdf_publico .pdf-public-download-btn:hover,
+    #modal_pdf_publico .pdf-public-download-btn:focus {
+        border-color: #0c815e;
+        background: #0c815e;
+        color: #fff;
+    }
+
+    @media (max-width: 767.98px) {
+        #modal_pdf_publico .modal-dialog {
+            min-height: calc(100vh - 1rem);
+            max-width: 98vw !important;
+            margin: .5rem auto;
+        }
+
+        #modal_pdf_publico .pdf-public-modal-content {
+            height: 94vh;
+            max-height: 94vh;
+            border-radius: 9px;
+        }
+
+        #modal_pdf_publico .pdf-public-modal-footer {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        #modal_pdf_publico .pdf-public-footer-info {
+            width: 100%;
+        }
+
+        #modal_pdf_publico .pdf-public-footer-actions {
+            width: 100%;
+            margin-left: 0;
+        }
+
+        #modal_pdf_publico .pdf-public-footer-actions .btn {
+            flex: 1 1 50%;
+            min-width: 0;
+        }
+    }
+</style>
+
+<div class="modal fade"
+     id="modal_pdf_publico"
+     tabindex="-1"
+     role="dialog"
+     aria-hidden="true"
+     data-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-centered"
+         role="document"
+         style="max-width: 96vw;">
+        <div class="modal-content pdf-public-modal-content">
+
+            <div class="modal-header pdf-public-modal-header">
+                <h4 class="modal-title d-flex align-items-center">
+                    <i class="fas fa-file-pdf mr-2"></i>
+                    <span id="titulo_pdf_publico">Vista previa del PDF</span>
+                </h4>
+
+                <button type="button"
+                        class="close"
+                        data-dismiss="modal"
+                        aria-label="Cerrar"
+                        title="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body pdf-public-modal-body">
+                <iframe id="visor_pdf_publico"
+                        title="Vista previa PDF"></iframe>
+            </div>
+
+            <div class="modal-footer pdf-public-modal-footer">
+                <div class="pdf-public-footer-info">
+                    <span class="pdf-public-footer-info-icon">
+                        <i class="fas fa-info-circle"></i>
+                    </span>
+                    <span>
+                        Revise el documento antes de descargarlo.
+                    </span>
+                </div>
+
+                <div class="pdf-public-footer-actions">
+                    <button type="button"
+                            class="btn btn-danger"
+                            data-dismiss="modal">
+                        <i class="fas fa-times mr-1"></i>
+                        Cerrar
+                    </button>
+
+                    <a href="#"
+                       class="btn pdf-public-download-btn"
+                       id="btn_descargar_pdf_publico"
+                       download="reporte.pdf">
+                        <i class="fas fa-download mr-1"></i>
+                        Descargar PDF
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PUBLICO / REUTILIZABLE PARA PREVISUALIZAR EXCEL -->
+<div class="modal fade" id="modal_excel_publico" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h4 class="modal-title d-flex align-items-center">
+                    <i class="fas fa-file-excel mr-2"></i>
+                    <span id="titulo_excel_publico">Vista previa del Excel</span>
+                </h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="visor_excel_publico" class="table-responsive"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cerrar
+                </button>
+                <a href="#" class="btn btn-success" id="btn_descargar_excel_publico" download="reporte.xlsx">
+                    <i class="fas fa-download mr-1"></i> Descargar Excel
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

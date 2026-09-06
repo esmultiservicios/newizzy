@@ -22,6 +22,20 @@ if (method_exists($mainModel, 'validarSesion')) {
     }
 }
 
+
+function conectarPrincipalVerificarPlanCliente($mainModel) {
+    if (defined('DB_MAIN') && method_exists($mainModel, 'connectToDatabase')) {
+        return $mainModel->connectToDatabase([
+            "host" => SERVER,
+            "user" => USER,
+            "pass" => PASS,
+            "name" => DB_MAIN
+        ]);
+    }
+
+    return $mainModel->connection();
+}
+
 function responderVerificarPlanCliente($data) {
     echo json_encode($data, JSON_UNESCAPED_UNICODE);
     exit;
@@ -251,7 +265,7 @@ $conexion = null;
 $stmt = null;
 
 try {
-    $conexion = $mainModel->connection();
+    $conexion = conectarPrincipalVerificarPlanCliente($mainModel);
 
     if (!$conexion) {
         throw new Exception("No se pudo conectar a la base principal.");

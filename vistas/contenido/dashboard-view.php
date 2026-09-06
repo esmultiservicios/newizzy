@@ -12,7 +12,31 @@
     </div>
         
     <!-- Cards de Métricas - Versión Mejorada -->
-    <div class="row mb-4">
+    <div class="card mb-4 dashboard-section-card" id="dashboard_kpis_card">
+        <div class="card-header dashboard-section-header">
+            <div class="dashboard-section-heading">
+                <div class="dashboard-section-icon">
+                    <i class="fas fa-chart-pie"></i>
+                </div>
+                <div>
+                    <strong>Resumen del Dashboard</strong>
+                    <small class="d-block text-muted mt-1">Indicadores principales de clientes, proveedores, facturación y compras.</small>
+                </div>
+            </div>
+
+            <button type="button"
+                    class="btn btn-secondary dashboard-toggle-btn"
+                    id="btn_toggle_dashboard_kpis"
+                    data-target="#dashboard_kpis_body"
+                    data-storage-key="izzy_dashboard_kpis_visible"
+                    aria-expanded="true">
+                <i class="fas fa-chevron-up mr-1"></i>
+                <span>Ocultar</span>
+            </button>
+        </div>
+
+        <div class="card-body dashboard-section-body" id="dashboard_kpis_body">
+            <div class="row">
         <!-- Card Clientes -->
         <div class="col-xl-3 col-md-6 mb-4">
             <a href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>clientes/" class="card-link">
@@ -109,9 +133,35 @@
             </a>
         </div>
     </div>
-    
+        </div>
+    </div>
+
 	<!-- Sección de Gráficos Mejorada -->
-	<div class="row mb-4">
+    <div class="card mb-4 dashboard-section-card" id="dashboard_graficos_card">
+        <div class="card-header dashboard-section-header">
+            <div class="dashboard-section-heading">
+                <div class="dashboard-section-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div>
+                    <strong>Gráficos del Dashboard</strong>
+                    <small class="d-block text-muted mt-1">Ventas, compras y productos más vendidos.</small>
+                </div>
+            </div>
+
+            <button type="button"
+                    class="btn btn-secondary dashboard-toggle-btn"
+                    id="btn_toggle_dashboard_graficos"
+                    data-target="#dashboard_graficos_body"
+                    data-storage-key="izzy_dashboard_graficos_visible"
+                    aria-expanded="true">
+                <i class="fas fa-chevron-up mr-1"></i>
+                <span>Ocultar</span>
+            </button>
+        </div>
+
+        <div class="card-body dashboard-section-body" id="dashboard_graficos_body">
+	        <div class="row">
 		<!-- Gráfico Ventas - Versión Premium -->
 		<div class="col-xl-6 col-md-12 mb-4">
 			<div class="chart-card h-100">
@@ -136,14 +186,26 @@
 						<button class="chart-btn download-ventas" data-toggle="tooltip" data-placement="top" title="Descargar gráfico">
 							<i class="fas fa-download"></i>
 						</button>
+                        <button type="button"
+                                class="chart-btn dashboard-chart-toggle"
+                                data-target="#dashboard_chart_ventas_body"
+                                data-storage-key="izzy_dashboard_chart_ventas_visible"
+                                data-toggle="tooltip"
+                                data-placement="top"
+                                title="Ocultar gráfico"
+                                aria-expanded="true">
+                            <i class="fas fa-chevron-up"></i>
+                        </button>
 					</div>
 				</div>
-				<div class="chart-container bar-chart">
-					<canvas id="graphVentas" height="250"></canvas>
-				</div>
-				<div class="chart-legend" id="ventas-legend">
-					<!-- Leyenda generada dinámicamente -->
-				</div>
+                <div id="dashboard_chart_ventas_body" class="dashboard-chart-body">
+				    <div class="chart-container bar-chart">
+					    <canvas id="graphVentas" height="250"></canvas>
+				    </div>
+				    <div class="chart-legend" id="ventas-legend">
+					    <!-- Leyenda generada dinámicamente -->
+				    </div>
+                </div>
 			</div>
 		</div>
 		
@@ -171,14 +233,26 @@
 						<button class="chart-btn download-compras" data-toggle="tooltip" data-placement="top" title="Descargar gráfico">
 							<i class="fas fa-download"></i>
 						</button>
+                        <button type="button"
+                                class="chart-btn dashboard-chart-toggle"
+                                data-target="#dashboard_chart_compras_body"
+                                data-storage-key="izzy_dashboard_chart_compras_visible"
+                                data-toggle="tooltip"
+                                data-placement="top"
+                                title="Ocultar gráfico"
+                                aria-expanded="true">
+                            <i class="fas fa-chevron-up"></i>
+                        </button>
 					</div>
 				</div>
-				<div class="chart-container bar-chart">
-					<canvas id="graphCompras" height="250"></canvas>
-				</div>
-				<div class="chart-legend" id="compras-legend">
-					<!-- Leyenda generada dinámicamente -->
-				</div>
+                <div id="dashboard_chart_compras_body" class="dashboard-chart-body">
+				    <div class="chart-container bar-chart">
+					    <canvas id="graphCompras" height="250"></canvas>
+				    </div>
+				    <div class="chart-legend" id="compras-legend">
+					    <!-- Leyenda generada dinámicamente -->
+				    </div>
+                </div>
 			</div>
 		</div>
 		
@@ -206,19 +280,33 @@
 						<button class="chart-btn download-top-productos" data-toggle="tooltip" data-placement="top" title="Descargar gráfico">
 							<i class="fas fa-download"></i>
 						</button>
+                        <button type="button"
+                                class="chart-btn dashboard-chart-toggle"
+                                data-target="#dashboard_chart_productos_body"
+                                data-storage-key="izzy_dashboard_chart_productos_visible"
+                                data-toggle="tooltip"
+                                data-placement="top"
+                                title="Ocultar gráfico"
+                                aria-expanded="true">
+                            <i class="fas fa-chevron-up"></i>
+                        </button>
 					</div>
 				</div>
-				<div class="chart-container bar-chart">
-					<canvas id="graphTopProductosporAno" height="120"></canvas>
-				</div>
-				<div class="chart-legend" id="top-products-legend">
-					<!-- La leyenda se generará dinámicamente con JavaScript -->
-				</div>
+                <div id="dashboard_chart_productos_body" class="dashboard-chart-body">
+				    <div class="chart-container bar-chart">
+					    <canvas id="graphTopProductosporAno" height="120"></canvas>
+				    </div>
+				    <div class="chart-legend" id="top-products-legend">
+					    <!-- La leyenda se generará dinámicamente con JavaScript -->
+				    </div>
+                </div>
 			</div>
 		</div>
 
-	</div>
-    
+	        </div>
+        </div>
+    </div>
+
     <!-- Documentos Fiscales - Listado por DIVs -->
     <div class="row dashboard-fiscales-row">
         <div class="col-12">
@@ -236,17 +324,30 @@
                         </div>
                     </div>
 
-                    <a href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>secuencia/"
-                       class="dashboard-fiscales-link"
-                       data-toggle="tooltip"
-                       data-placement="top"
-                       title="Ver secuencias">
-                        <span>Ver secuencias</span>
-                        <i class="fas fa-arrow-right"></i>
-                    </a>
+                    <div class="dashboard-fiscales-header-actions">
+                        <a href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>secuencia/"
+                           class="dashboard-fiscales-link"
+                           data-toggle="tooltip"
+                           data-placement="top"
+                           title="Ver secuencias">
+                            <span>Ver secuencias</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </a>
+
+                        <button type="button"
+                                class="btn btn-secondary dashboard-toggle-btn"
+                                id="btn_toggle_dashboard_fiscales"
+                                data-target="#dashboard_fiscales_body"
+                                data-storage-key="izzy_dashboard_fiscales_visible"
+                                aria-expanded="true">
+                            <i class="fas fa-chevron-up mr-1"></i>
+                            <span>Ocultar</span>
+                        </button>
+                    </div>
                 </div>
 
-                <div class="card-body">
+                <div id="dashboard_fiscales_body" class="dashboard-fiscales-collapsible">
+                    <div class="card-body">
                     <div class="dashboard-fiscales-toolbar">
                         <div class="dashboard-fiscales-actions">
                             <button type="button" class="btn btn-secondary table_actualizar ocultar" id="btn_dashboard_fiscales_actualizar">
@@ -260,15 +361,55 @@
                             </button>
                         </div>
 
-                        <div class="dashboard-fiscales-page-size">
-                            <label for="dashboard_fiscales_page_size">Mostrar</label>
-                            <select id="dashboard_fiscales_page_size" class="form-control form-control-sm">
-                                <option value="3" selected>3</option>
-                                <option value="5">5</option>
-                                <option value="10">10</option>
-                                <option value="20">20</option>
-                            </select>
-                            <span>registros</span>
+                        <div class="dashboard-fiscales-tools">
+                            <div class="dashboard-fiscales-page-size">
+                                <label for="dashboard_fiscales_page_size">Mostrar</label>
+                                <select id="dashboard_fiscales_page_size"
+                                        class="form-control form-control-sm">
+                                    <option value="3" selected>3</option>
+                                    <option value="5">5</option>
+                                    <option value="10">10</option>
+                                    <option value="20">20</option>
+                                </select>
+                                <span>registros</span>
+                            </div>
+
+                            <div class="dashboard-fiscales-view-switch"
+                                 role="group"
+                                 aria-label="Tipo de vista de documentos fiscales">
+                                <button type="button"
+                                        class="dashboard-fiscales-view-btn active"
+                                        data-view="detalle"
+                                        title="Vista detalle"
+                                        aria-pressed="true">
+                                    <i class="fas fa-list-ul"></i>
+                                    <span>Detalle</span>
+                                </button>
+
+                                <button type="button"
+                                        class="dashboard-fiscales-view-btn"
+                                        data-view="miniatura"
+                                        title="Vista miniatura"
+                                        aria-pressed="false">
+                                    <i class="fas fa-th-large"></i>
+                                    <span>Miniatura</span>
+                                </button>
+                            </div>
+
+                            <div class="dashboard-fiscales-search">
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">
+                                            <i class="fas fa-search"></i>
+                                        </span>
+                                    </div>
+                                    <input type="search"
+                                           id="dashboard_fiscales_buscar"
+                                           class="form-control"
+                                           placeholder="Buscar secuencia..."
+                                           autocomplete="off">
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -309,6 +450,7 @@
                             echo "No se encontraron registros";
                         }
                     ?>
+                </div>
                 </div>
             </div>
         </div>

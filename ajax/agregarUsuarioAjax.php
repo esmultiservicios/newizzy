@@ -1,38 +1,41 @@
 <?php
-	//agregarUsuarioAjax.php
-	$peticionAjax = true;
-	require_once "../core/configGenerales.php";
-	
-	if(isset($_POST['colaboradores_id']) && isset($_POST['privilegio_id']) && 
-		isset($_POST['correo_usuario']) && isset($_POST['empresa_usuario']) && 
-		isset($_POST['tipo_user']) && isset($_POST['estado_usuario'])){
-		require_once "../controladores/usuarioControlador.php";
-		$insVarios = new usuarioControlador();
+// agregarUsuarioAjax.php
+$peticionAjax = true;
+require_once "../core/configGenerales.php";
 
-		echo $insVarios->agregar_usuario_controlador();
-	} else {
-		// Identificar campos faltantes
-		$missingFields = [];
-		
-		if (!isset($_POST['usuarios_colaborador_id'])) $missingFields[] = "ID del usuario";
-		if (!isset($_POST['colaborador_id_usuario'])) $missingFields[] = "ID del colaborador";
-		if (!isset($_POST['privilegio_id'])) $missingFields[] = "ID del privilegio";
-		if (!isset($_POST['correo_usuario'])) $missingFields[] = "Correo del usuario";
-		if (!isset($_POST['empresa_usuario'])) $missingFields[] = "Empresa del Usuario";
-		if (!isset($_POST['tipo_user'])) $missingFields[] = "Tipo de Usuario";
-		if (!isset($_POST['usuarios_activo'])) $missingFields[] = "Activo del Usuario";
-	
-		// Preparar el mensaje
-		$missingText = implode(", ", $missingFields);
-		$title = "Error 🚨";
-		$message = "Faltan los siguientes campos: $missingText. Por favor, corrígelos.";
-		
-		// Escapar comillas para JavaScript
-		$title = addslashes($title);
-		$message = addslashes($message);
-		
-		// Llamar a TU función showNotify exactamente como está definida
-		echo "<script>
-			showNotify('error', '$title', '$message');
-		</script>";
-	}
+/*
+ * estado_usuario NO se valida con isset() porque cuando el switch está
+ * desmarcado el navegador no envía el checkbox. El controlador ya convierte
+ * ausencia = Inactivo (2).
+ */
+$camposRequeridos = [
+    'colaboradores_id' => 'Colaborador',
+    'privilegio_id' => 'Nivel de privilegio',
+    'correo_usuario' => 'Correo electrónico',
+    'empresa_usuario' => 'Empresa',
+    'tipo_user' => 'Tipo de permisos'
+];
+
+$faltantes = [];
+
+foreach ($camposRequeridos as $campo => $etiqueta) {
+    if (!isset($_POST[$campo]) || trim((string)$_POST[$campo]) === '') {
+        $faltantes[] = $etiqueta;
+    }
+}
+
+if (!empty($faltantes)) {
+    $mensaje = 'Faltan campos requeridos: ' . implode(', ', $faltantes) . '.';
+
+    echo '<script>(function(){' .
+        'if (typeof showNotify === "function") {' .
+            'showNotify("error", "Datos incompletos", ' . json_encode($mensaje, JSON_UNESCAPED_UNICODE) . ');' .
+        '}' .
+    '})();</script>';
+    exit;
+}
+
+require_once "../controladores/usuarioControlador.php";
+$insUsuario = new usuarioControlador();
+
+echo $insUsuario->agregar_usuario_controlador();

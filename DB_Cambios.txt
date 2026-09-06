@@ -1,3 +1,90 @@
+####04 de septiembre 2026####
+-- ============================================================
+-- IZZY | FASE 3 - NOTA DE CRÉDITO
+-- Ejecutar UNA VEZ en cada base de datos de cliente.
+-- No modifica facturas, pagos ni secuencia_facturacion.
+-- ============================================================
+
+SET NAMES utf8mb4;
+
+CREATE TABLE IF NOT EXISTS notas_credito (
+    nota_credito_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    empresa_id INT NOT NULL,
+    facturas_id INT NOT NULL,
+    clientes_id INT NOT NULL,
+    secuencia_facturacion_id INT NOT NULL,
+    documento_id INT NOT NULL DEFAULT 2,
+    number INT NOT NULL,
+    prefijo VARCHAR(30) NOT NULL DEFAULT '',
+    relleno INT NOT NULL DEFAULT 0,
+    numero_completo VARCHAR(80) NOT NULL,
+    fecha DATE NOT NULL,
+    motivo VARCHAR(500) NOT NULL,
+
+    base_acreditada DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+    isv15_acreditado DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+    isv18_acreditado DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+    total_acreditado DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+
+    importe_factura_original DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+    total_acreditado_anterior DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+
+    cxc_aplicada TINYINT(1) NOT NULL DEFAULT 0,
+    cxc_saldo_antes DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+    cxc_saldo_despues DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+    credito_favor DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+
+    secuencia_actualizada TINYINT(1) NOT NULL DEFAULT 0,
+    estado TINYINT NOT NULL DEFAULT 1 COMMENT '1=Emitida, 2=Anulada',
+    colaboradores_id INT NOT NULL,
+    usuario INT NOT NULL,
+    origen VARCHAR(30) NOT NULL DEFAULT 'escritorio',
+    fecha_registro DATETIME NOT NULL,
+
+    PRIMARY KEY (nota_credito_id),
+    UNIQUE KEY uq_nc_numero_fiscal (empresa_id, secuencia_facturacion_id, number),
+    KEY idx_nc_factura (empresa_id, facturas_id, estado),
+    KEY idx_nc_cliente (empresa_id, clientes_id),
+    KEY idx_nc_fecha (empresa_id, fecha)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
+
+CREATE TABLE IF NOT EXISTS notas_credito_detalle (
+    nota_credito_detalle_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    nota_credito_id BIGINT UNSIGNED NOT NULL,
+    facturas_detalle_id INT NOT NULL,
+    productos_id INT NOT NULL,
+    producto VARCHAR(255) NOT NULL,
+
+    cantidad_original DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+    precio_original DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+    descuento_original DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+    base_original DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+    isv15_original DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+    isv18_original DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+
+    base_acreditada DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+    isv15_acreditado DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+    isv18_acreditado DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+    total_acreditado DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+
+    fecha_registro DATETIME NOT NULL,
+
+    PRIMARY KEY (nota_credito_detalle_id),
+    KEY idx_ncd_nota (nota_credito_id),
+    KEY idx_ncd_factura_detalle (facturas_detalle_id),
+    CONSTRAINT fk_ncd_nota
+        FOREIGN KEY (nota_credito_id)
+        REFERENCES notas_credito (nota_credito_id)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
+
+-- Verificación recomendada antes de usar el módulo:
+-- 1) documento_id = 2 debe corresponder a Nota de Crédito y estar activo.
+-- 2) Debe existir una secuencia activa para documento_id = 2 por empresa.
+-- 3) La secuencia debe estar vigente y con rango disponible.
+
+
 ####23 de agosto 2026####
 -- ============================================================
 -- IZZY RESTAURANTE / POS

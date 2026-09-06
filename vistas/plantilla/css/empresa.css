@@ -1,0 +1,1344 @@
+/* =========================================================
+   IZZY | EMPRESA
+   Estilos propios del módulo.
+   ========================================================= */
+
+.empresa-section-card,
+.empresa-list-card {
+    border: 1px solid #dde5ee;
+    border-radius: 10px;
+    box-shadow: 0 3px 12px rgba(23, 50, 77, .05);
+    overflow: visible;
+}
+
+.empresa-section-header,
+.empresa-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 15px 18px;
+    border-bottom: 1px solid #e6ebf1;
+    background: #fff;
+}
+
+.empresa-section-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.empresa-section-icon {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d9e9fb;
+    border-radius: 10px;
+    background: #edf5ff;
+    color: #176fbc;
+    font-size: 16px;
+}
+
+.empresa-section-title h5 {
+    margin: 0;
+    color: #172b4d;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.empresa-section-title p {
+    margin: 3px 0 0;
+    color: #6b778c;
+    font-size: 12px;
+}
+
+.empresa-section-body {
+    padding: 16px 18px 4px;
+}
+
+.empresa-toggle-btn {
+    flex: 0 0 auto;
+    min-width: 108px;
+}
+
+.empresa-filter-actions .btn {
+    min-height: 38px;
+}
+
+/* KPI */
+.empresa-resumen-row {
+    margin-bottom: 0;
+}
+
+.empresa-resumen-card {
+    position: relative;
+    min-height: 118px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 18px;
+    border: 1px solid #dce5ef;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 3px 10px rgba(23, 50, 77, .05);
+    overflow: hidden;
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease,
+        border-color .18s ease;
+}
+
+.empresa-resumen-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+}
+
+.empresa-resumen-activa::before {
+    background: #1fbf75;
+}
+
+.empresa-resumen-contacto::before {
+    background: #2f9ddd;
+}
+
+.empresa-resumen-web::before {
+    background: #8a63d2;
+}
+
+.empresa-resumen-firma::before {
+    background: #f59e0b;
+}
+
+.empresa-resumen-card:hover {
+    transform: translateY(-3px);
+    border-color: #cfd9e5;
+    box-shadow: 0 8px 20px rgba(23, 50, 77, .11);
+}
+
+.empresa-resumen-label {
+    color: #52627a;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.empresa-resumen-card h3 {
+    margin: 4px 0 2px;
+    color: #172b4d;
+    font-size: 24px;
+    font-weight: 800;
+}
+
+.empresa-resumen-card p {
+    margin: 0;
+    color: #75849a;
+    font-size: 11px;
+}
+
+.empresa-resumen-icon {
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #dce6f1;
+    border-radius: 11px;
+    background: #f7faff;
+    color: #244b71;
+    font-size: 18px;
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease;
+}
+
+.empresa-resumen-card:hover .empresa-resumen-icon {
+    transform: translateY(-1px) scale(1.05);
+    box-shadow: 0 5px 12px rgba(23, 50, 77, .10);
+}
+
+/* Toolbar */
+.empresa-list-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 16px;
+    flex-wrap: nowrap;
+}
+
+.empresa-list-actions {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.empresa-list-tools {
+    flex: 0 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    min-width: 0;
+    margin-left: auto;
+}
+
+.empresa-page-size {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    color: #46556b;
+    font-size: 13px;
+}
+
+.empresa-page-size label {
+    margin: 0;
+    color: #172033;
+    font-weight: 700;
+}
+
+.empresa-page-size select {
+    width: 72px;
+    min-width: 72px;
+    min-height: 38px;
+    border-radius: 8px;
+}
+
+.empresa-view-switch {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    padding: 3px;
+    border: 1px solid #d7e1eb;
+    border-radius: 9px;
+    background: #f5f8fb;
+}
+
+.empresa-view-btn {
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #52627a;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.empresa-view-btn:hover {
+    color: #176fae;
+    background: #eaf4fc;
+}
+
+.empresa-view-btn.active {
+    color: #fff;
+    background: #2f9ddd;
+    box-shadow: 0 2px 7px rgba(47, 157, 221, .24);
+}
+
+.empresa-search-list {
+    flex: 0 1 300px;
+    width: 300px;
+    min-width: 220px;
+    max-width: 300px;
+}
+
+.empresa-search-list .input-group {
+    width: 100%;
+}
+
+.empresa-search-list .input-group-text {
+    min-height: 38px;
+    background: #fff;
+    color: #233b55;
+    border-radius: 8px 0 0 8px;
+}
+
+.empresa-search-list .form-control {
+    min-width: 0;
+    min-height: 38px;
+    border-radius: 0 8px 8px 0;
+}
+
+/* Detalle */
+.empresa-listado.vista-detalle {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.empresa-detail-header,
+.empresa-detail-row {
+    display: grid;
+    grid-template-columns:
+        130px
+        minmax(240px, 1.35fr)
+        minmax(210px, 1.15fr)
+        minmax(180px, .95fr)
+        minmax(190px, 1fr)
+        minmax(210px, 1.15fr)
+        120px;
+    min-width: 0;
+}
+
+.empresa-detail-header {
+    overflow: hidden;
+    background: #1f354e;
+    border-radius: 10px;
+    color: #fff;
+}
+
+.empresa-detail-header > div {
+    padding: 11px 13px;
+    border-right: 1px solid rgba(255,255,255,.12);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.empresa-detail-header > div:last-child {
+    border-right: 0;
+}
+
+.empresa-detail-row {
+    overflow: visible;
+    border: 1px solid #dfe6ee;
+    border-top: 3px solid #20c997;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(23, 50, 77, .05);
+}
+
+.empresa-detail-cell {
+    min-width: 0;
+    padding: 14px 13px;
+    border-right: 1px solid #edf1f6;
+    overflow-wrap: anywhere;
+}
+
+.empresa-detail-cell:last-child {
+    border-right: 0;
+}
+
+.empresa-detail-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.empresa-main-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.empresa-logo-box,
+.empresa-mini-logo {
+    display: block;
+    flex: 0 0 auto;
+}
+
+.empresa-logo-img {
+    width: 52px;
+    height: 52px;
+    object-fit: cover;
+    border: 1px solid #dce6f1;
+    border-radius: 9px;
+    background: #fff;
+}
+
+.empresa-main-info {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.empresa-title-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 7px;
+}
+
+.empresa-nombre {
+    min-width: 0;
+    margin: 0;
+    color: #172b4d;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.3;
+}
+
+.empresa-razon {
+    margin-top: 4px;
+    color: #6b778c;
+    font-size: 11px;
+}
+
+.empresa-status-badge,
+.empresa-firma-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.empresa-status-active,
+.firma-visible {
+    border: 1px solid #bfe8cf;
+    background: #e9f9ef;
+    color: #14804a;
+}
+
+.empresa-status-inactive,
+.firma-oculta {
+    border: 1px solid #f2c3bf;
+    background: #fff0ef;
+    color: #c9372c;
+}
+
+.empresa-detail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.empresa-detail-list > div,
+.empresa-location-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    color: #46556b;
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+.empresa-detail-list i,
+.empresa-location-box i {
+    width: 14px;
+    flex: 0 0 14px;
+    margin-top: 2px;
+    color: #2878bb;
+}
+
+.empresa-detail-list a {
+    font-weight: 700;
+}
+
+.empresa-firma-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+}
+
+.empresa-firma-img {
+    width: 58px;
+    height: 42px;
+    object-fit: contain;
+    border: 1px solid #dce6f1;
+    border-radius: 7px;
+    background: #fff;
+}
+
+/* Miniatura */
+.empresa-listado.vista-miniatura {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.empresa-mini-card {
+    position: relative;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    border: 1px solid #dfe6ee;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(23, 50, 77, .06);
+}
+
+.empresa-mini-topline {
+    height: 3px;
+    flex: 0 0 3px;
+    background: #20c997;
+    border-radius: 10px 10px 0 0;
+}
+
+.empresa-mini-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    padding: 14px;
+    border-bottom: 1px solid #edf1f6;
+    background: #fbfdff;
+}
+
+.empresa-mini-logo img {
+    width: 44px;
+    height: 44px;
+    object-fit: cover;
+    border: 1px solid #dce6f1;
+    border-radius: 9px;
+    background: #fff;
+}
+
+.empresa-mini-identity {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.empresa-mini-title-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.empresa-mini-title-row h4 {
+    min-width: 0;
+    margin: 0;
+    color: #172b4d;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.empresa-mini-subtitle,
+.empresa-mini-rtn {
+    margin-top: 4px;
+    color: #6b778c;
+    font-size: 10px;
+}
+
+.empresa-mini-body {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.empresa-mini-field {
+    min-width: 0;
+    padding: 12px 14px;
+    border-right: 1px solid #edf1f6;
+    border-bottom: 1px solid #edf1f6;
+}
+
+.empresa-mini-field:nth-child(2n) {
+    border-right: 0;
+}
+
+.empresa-mini-field-full {
+    grid-column: 1 / -1;
+    border-right: 0;
+}
+
+.empresa-mini-field span,
+.empresa-mini-field strong {
+    display: block;
+}
+
+.empresa-mini-field span {
+    margin-bottom: 4px;
+    color: #6b778c;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.empresa-mini-field span i {
+    margin-right: 4px;
+    color: #2878bb;
+}
+
+.empresa-mini-field strong {
+    color: #172b4d;
+    font-size: 11px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.empresa-mini-footer {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 11px 14px;
+}
+
+/* Empty / footer / pagination */
+.empresa-empty-state {
+    padding: 42px 20px;
+    text-align: center;
+    color: #75849a;
+}
+
+.empresa-empty-state > i {
+    margin-bottom: 10px;
+    font-size: 34px;
+}
+
+.empresa-empty-state h5 {
+    margin-bottom: 5px;
+    color: #3e4c61;
+}
+
+.empresa-list-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 16px;
+}
+
+.empresa-list-info {
+    color: #6b778c;
+    font-size: 12px;
+}
+
+.empresa-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.empresa-page-btn {
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 7px 10px;
+    border: 1px solid #d7e1eb;
+    border-radius: 7px;
+    background: #fff;
+    color: #405269;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.empresa-page-btn:hover:not(:disabled):not(.active) {
+    background: #edf6fd;
+    color: #176fae;
+}
+
+.empresa-page-btn.active {
+    border-color: #2f9ddd;
+    background: #2f9ddd;
+    color: #fff;
+}
+
+.empresa-page-btn:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+/* Dropdown actions above cards */
+.empresa-listado,
+.empresa-detail-row,
+.empresa-mini-card,
+.empresa-mini-footer {
+    overflow: visible;
+}
+
+.acciones-dropdown {
+    position: relative;
+}
+
+/* Responsive */
+@media (max-width: 1399.98px) {
+    .empresa-list-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .empresa-list-tools {
+        flex: 1 1 100%;
+        justify-content: flex-end;
+    }
+
+    .empresa-detail-header {
+        display: none;
+    }
+
+    .empresa-detail-row {
+        grid-template-columns: 130px repeat(2, minmax(0, 1fr));
+    }
+
+    .empresa-detail-cell {
+        border-bottom: 1px solid #edf1f6;
+    }
+}
+
+@media (max-width: 1199.98px) {
+    .empresa-listado.vista-miniatura {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 991.98px) {
+    .empresa-list-tools {
+        width: 100%;
+        margin-left: 0;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .empresa-search-list {
+        flex: 1 1 100%;
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+    }
+
+    .empresa-filter-actions {
+        text-align: left !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .empresa-section-header {
+        align-items: flex-start;
+    }
+
+    .empresa-section-title {
+        align-items: flex-start;
+    }
+
+    .empresa-list-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .empresa-list-tools {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .empresa-page-size,
+    .empresa-view-switch {
+        width: 100%;
+    }
+
+    .empresa-view-btn {
+        flex: 1 1 50%;
+    }
+
+    .empresa-listado.vista-miniatura,
+    .empresa-detail-row {
+        grid-template-columns: 1fr;
+    }
+
+    .empresa-detail-cell {
+        border-right: 0;
+    }
+
+    .empresa-list-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .empresa-pagination {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .empresa-section-header {
+        flex-direction: column;
+    }
+
+    .empresa-toggle-btn {
+        align-self: flex-end;
+    }
+
+    .empresa-list-actions .btn {
+        flex: 1 1 auto;
+    }
+
+    .empresa-mini-body {
+        grid-template-columns: 1fr;
+    }
+
+    .empresa-mini-field,
+    .empresa-mini-field:nth-child(2n),
+    .empresa-mini-field-full {
+        grid-column: auto;
+        border-right: 0;
+    }
+
+    .empresa-mini-title-row {
+        flex-wrap: wrap;
+    }
+
+    .empresa-page-btn span {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .empresa-resumen-card,
+    .empresa-resumen-icon {
+        transition: none;
+    }
+
+    .empresa-resumen-card:hover,
+    .empresa-resumen-card:hover .empresa-resumen-icon {
+        transform: none;
+    }
+}
+
+
+/* Estado de carga del listado */
+.empresa-loading {
+    position: relative;
+    min-height: 90px;
+    opacity: .55;
+    pointer-events: none;
+}
+
+.empresa-loading::after {
+    content: "Cargando empresas...";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    padding: 8px 12px;
+    border: 1px solid #d7e1eb;
+    border-radius: 8px;
+    background: #fff;
+    color: #52627a;
+    font-size: 12px;
+    font-weight: 700;
+    box-shadow: 0 3px 10px rgba(23, 50, 77, .08);
+}
+
+
+/* =========================================================
+   EMPRESA | AJUSTES VISUALES FINOS
+   Zoom en imágenes + contenido siempre dentro de su columna.
+   ========================================================= */
+
+/* Logo y firma: comunicar visualmente que se pueden ampliar. */
+.empresa-logo-box,
+.empresa-mini-logo,
+.empresa-firma-box,
+.empresa-logo-box img,
+.empresa-mini-logo img,
+.empresa-firma-box img {
+    cursor: zoom-in !important;
+}
+
+.empresa-logo-box,
+.empresa-mini-logo,
+.empresa-firma-box {
+    position: relative;
+    overflow: hidden;
+    border-radius: 9px;
+}
+
+.empresa-logo-box::after,
+.empresa-mini-logo::after,
+.empresa-firma-box::after {
+    content: "\f00e";
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(23, 50, 77, .88);
+    color: #fff;
+    font-family: "Font Awesome 5 Free";
+    font-size: 10px;
+    font-weight: 900;
+    opacity: 0;
+    transform: scale(.86);
+    transition: opacity .16s ease, transform .16s ease;
+    pointer-events: none;
+}
+
+.empresa-logo-box:hover::after,
+.empresa-mini-logo:hover::after,
+.empresa-firma-box:hover::after {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Nada debe desbordarse hacia la siguiente columna. */
+.empresa-detail-row,
+.empresa-detail-cell,
+.empresa-main-box,
+.empresa-main-info,
+.empresa-title-row,
+.empresa-mini-card,
+.empresa-mini-header,
+.empresa-mini-identity,
+.empresa-mini-title-row {
+    min-width: 0;
+}
+
+.empresa-detail-cell {
+    overflow: hidden;
+}
+
+.empresa-main-info,
+.empresa-mini-identity {
+    overflow: hidden;
+}
+
+.empresa-title-row,
+.empresa-mini-title-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+
+.empresa-nombre,
+.empresa-mini-title-row h4 {
+    flex: 1 1 135px;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.empresa-status-badge,
+.empresa-firma-badge {
+    flex: 0 0 auto;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.empresa-detail-list span,
+.empresa-location-box span,
+.empresa-detail-list a,
+.empresa-razon,
+.empresa-mini-subtitle,
+.empresa-mini-rtn {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+/* La firma nunca invade otra celda. */
+.empresa-firma-cell {
+    overflow: hidden;
+}
+
+.empresa-firma-box {
+    max-width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .empresa-logo-box::after,
+    .empresa-mini-logo::after,
+    .empresa-firma-box::after {
+        transition: none;
+    }
+}
+
+/* =========================================================
+   EMPRESA | AJUSTE FINAL DE CONTENCIÓN EN VISTA DETALLE
+   Ningún texto debe cortarse ni invadir otra columna.
+   ========================================================= */
+
+/* Distribución flexible: la ubicación recibe más espacio sin romper el grid. */
+.empresa-detail-header,
+.empresa-detail-row {
+    grid-template-columns:
+        120px
+        minmax(0, 1.28fr)
+        minmax(0, 1.08fr)
+        minmax(0, .92fr)
+        minmax(0, 1.32fr)
+        minmax(0, 1.10fr)
+        110px;
+    width: 100%;
+    max-width: 100%;
+    align-items: stretch;
+}
+
+.empresa-detail-row {
+    height: auto;
+    min-height: 0;
+}
+
+.empresa-detail-cell {
+    min-width: 0;
+    max-width: 100%;
+    height: auto;
+    overflow: hidden;
+}
+
+/* Todos los bloques de texto pueden crecer verticalmente dentro de su celda. */
+.empresa-detail-list,
+.empresa-detail-list > div,
+.empresa-location-box {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.empresa-detail-list > div,
+.empresa-location-box {
+    align-items: flex-start;
+}
+
+.empresa-detail-list span,
+.empresa-location-box span,
+.empresa-detail-list a,
+.empresa-razon {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal !important;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    hyphens: auto;
+    line-height: 1.45;
+}
+
+/* Dirección: prioridad de lectura y sin recortes. */
+.empresa-location-box {
+    display: grid;
+    grid-template-columns: 14px minmax(0, 1fr);
+    column-gap: 7px;
+}
+
+.empresa-location-box i {
+    width: 14px;
+    margin-top: 2px;
+}
+
+.empresa-location-box span {
+    display: block;
+}
+
+/* Empresa y estado permanecen dentro de la misma columna. */
+.empresa-title-row {
+    width: 100%;
+    max-width: 100%;
+}
+
+.empresa-nombre {
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+}
+
+.empresa-status-badge,
+.empresa-firma-badge {
+    max-width: 100%;
+    white-space: nowrap;
+}
+
+/* En pantallas medianas, no comprimir columnas hasta volverlas ilegibles. */
+@media (max-width: 1399.98px) and (min-width: 768px) {
+    .empresa-detail-header {
+        display: none;
+    }
+
+    .empresa-detail-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .empresa-detail-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-start;
+    }
+
+    .empresa-firma-cell {
+        align-items: flex-start;
+    }
+}
+
+
+/* =========================================================
+   EMPRESA | ESCALA VISUAL PREMIUM
+   Referencia: módulos Usuarios / Secuencia.
+   Mantiene estructura, colores y comportamiento existentes.
+   ========================================================= */
+
+.empresa-detail-header > div {
+    padding: 13px 14px;
+    font-size: 11px;
+    line-height: 1.3;
+}
+
+.empresa-detail-row {
+    min-height: 108px;
+    align-items: stretch;
+}
+
+.empresa-detail-cell {
+    min-width: 0;
+    max-width: 100%;
+    padding: 16px 14px;
+    font-size: 12px;
+    line-height: 1.45;
+    overflow: hidden;
+}
+
+.empresa-main-box {
+    gap: 12px;
+}
+
+.empresa-logo-img {
+    width: 58px;
+    height: 58px;
+}
+
+.empresa-nombre {
+    font-size: 14px;
+    line-height: 1.35;
+}
+
+.empresa-razon {
+    margin-top: 5px;
+    font-size: 11.5px;
+    line-height: 1.4;
+}
+
+.empresa-status-badge,
+.empresa-firma-badge {
+    max-width: 100%;
+    padding: 5px 9px;
+    font-size: 10.5px;
+    line-height: 1.2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.empresa-detail-list {
+    gap: 9px;
+}
+
+.empresa-detail-list > div,
+.empresa-location-box {
+    min-width: 0;
+    max-width: 100%;
+    gap: 8px;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.empresa-detail-list span,
+.empresa-location-box span,
+.empresa-detail-list a,
+.empresa-razon {
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.empresa-firma-img {
+    width: 66px;
+    height: 48px;
+}
+
+.empresa-detail-actions .btn-acciones {
+    min-height: 38px;
+    padding: 8px 13px;
+}
+
+/* Miniatura con mayor presencia visual */
+.empresa-listado.vista-miniatura {
+    gap: 16px;
+}
+
+.empresa-mini-card {
+    min-height: 285px;
+}
+
+.empresa-mini-header {
+    min-width: 0;
+    padding: 16px;
+    gap: 12px;
+}
+
+.empresa-mini-logo img {
+    width: 50px;
+    height: 50px;
+}
+
+.empresa-mini-title-row h4 {
+    font-size: 14px;
+    line-height: 1.35;
+}
+
+.empresa-mini-subtitle,
+.empresa-mini-rtn {
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.empresa-mini-field {
+    min-width: 0;
+    padding: 14px 16px;
+}
+
+.empresa-mini-field span {
+    font-size: 9.5px;
+}
+
+.empresa-mini-field strong {
+    min-width: 0;
+    max-width: 100%;
+    font-size: 12px;
+    line-height: 1.45;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.empresa-mini-footer {
+    min-width: 0;
+    padding: 13px 16px;
+}
+
+.empresa-mini-header,
+.empresa-mini-identity,
+.empresa-mini-title-row,
+.empresa-mini-body,
+.empresa-mini-field,
+.empresa-mini-footer {
+    min-width: 0;
+    max-width: 100%;
+}
+
+
+/* En escritorio amplio, dar más aire sin perder contención. */
+@media (min-width: 1400px) {
+    .empresa-detail-header,
+    .empresa-detail-row {
+        grid-template-columns:
+            128px
+            minmax(230px, 1.22fr)
+            minmax(220px, 1.08fr)
+            minmax(190px, .92fr)
+            minmax(240px, 1.28fr)
+            minmax(220px, 1.10fr)
+            122px;
+    }
+}
+
+@media (max-width: 1399.98px) and (min-width: 768px) {
+    .empresa-detail-row {
+        min-height: 0;
+    }
+
+    .empresa-detail-cell {
+        padding: 15px 14px;
+    }
+}
+
+/* =========================================================
+   EMPRESA | DROPDOWN ACCIONES
+   Una sola fila/card puede quedar elevada a la vez.
+   No se eleva el listado completo.
+   ========================================================= */
+#empresaListado,
+.empresa-list-card,
+.empresa-list-card .card-body,
+.empresa-listado,
+.empresa-detail-row,
+.empresa-detail-cell,
+.empresa-mini-card,
+.empresa-mini-footer {
+    overflow: visible !important;
+}
+
+.empresa-detail-row,
+.empresa-mini-card {
+    position: relative;
+    z-index: 0;
+}
+
+.empresa-detail-row.empresa-dropdown-open,
+.empresa-mini-card.empresa-dropdown-open {
+    z-index: 40 !important;
+}
+
+.acciones-dropdown {
+    position: relative;
+    z-index: auto;
+}
+
+.acciones-dropdown > .dropdown-menu {
+    min-width: 200px;
+    z-index: 45 !important;
+}
+
+@media (max-width: 575.98px) {
+    .acciones-dropdown > .dropdown-menu {
+        max-width: calc(100vw - 24px);
+    }
+}
+
+
+/* =========================================================
+   VISTA MINIATURA | INTERACCIÓN VISUAL
+   Efecto sutil únicamente en dispositivos con hover real.
+   ========================================================= */
+.empresa-mini-card {
+    transition: transform .20s ease, box-shadow .20s ease, border-color .20s ease;
+}
+
+.empresa-mini-logo img {
+    transition: transform .20s ease, box-shadow .20s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .empresa-listado.vista-miniatura .empresa-mini-card:hover {
+        transform: translateY(-5px);
+        border-color: #c9d9e8;
+        box-shadow: 0 12px 26px rgba(23, 50, 77, .13);
+    }
+
+    .empresa-listado.vista-miniatura .empresa-mini-card:hover .empresa-mini-logo img {
+        transform: translateY(-1px) scale(1.04);
+        box-shadow: 0 6px 14px rgba(23, 50, 77, .10);
+    }
+}
+
+/* Mientras Acciones está abierto, conserva la tarjeta estable y elevada. */
+.empresa-listado.vista-miniatura .empresa-mini-card.empresa-dropdown-open {
+    transform: translateY(-3px);
+}

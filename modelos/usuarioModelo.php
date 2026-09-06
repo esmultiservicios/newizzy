@@ -6,6 +6,11 @@ if($peticionAjax){
 }
 
 class usuarioModelo extends mainModel{
+    protected static $ultimoErrorUsuario = "";
+
+    public static function getUltimoErrorUsuario(){
+        return self::$ultimoErrorUsuario;
+    }
     /*----------- Modelo para agregar colaborador -----------*/
     protected function agregar_colaborador_modelo($datos){
         $conexion = mainModel::connection();
@@ -61,22 +66,41 @@ class usuarioModelo extends mainModel{
     /*----------- Modelo para agregar usuario -----------*/
     protected function agregar_usuario_modelo($datos){
         $conexion = mainModel::connection();
-        
+        self::$ultimoErrorUsuario = "";
+
         try {
             $conexion->autocommit(false);
-            
-            // Obtener el próximo ID disponible
+
             $users_id = mainModel::correlativo("users_id", "users");
-            
-            // Sentencia preparada para insertar usuario
-            $stmt = $conexion->prepare("INSERT INTO users 
-                (users_id, colaboradores_id, privilegio_id, password, email, tipo_user_id, estado, fecha_registro, empresa_id, server_customers_id) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)");
-            
-            $stmt->bind_param("iiissiiii", 
+
+            /*
+             * La columna username es NOT NULL en la tabla users.
+             * Antes se omitía del INSERT y MySQL rechazaba el registro.
+             */
+            $stmt = $conexion->prepare("INSERT INTO users (
+                users_id,
+                colaboradores_id,
+                privilegio_id,
+                username,
+                password,
+                email,
+                tipo_user_id,
+                estado,
+                fecha_registro,
+                empresa_id,
+                server_customers_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)");
+
+            if (!$stmt) {
+                throw new Exception("No se pudo preparar el registro de usuario: " . $conexion->error);
+            }
+
+            $stmt->bind_param(
+                "iiisssiiii",
                 $users_id,
                 $datos['colaborador_id'],
                 $datos['privilegio_id'],
+                $datos['username'],
                 $datos['pass'],
                 $datos['email'],
                 $datos['tipo_user'],
@@ -84,16 +108,19 @@ class usuarioModelo extends mainModel{
                 $datos['empresa'],
                 $datos['server_customers_id']
             );
-        
-            
-            if(!$stmt->execute()) {
+
+            if (!$stmt->execute()) {
                 throw new Exception($stmt->error);
             }
-            
+
             $conexion->commit();
+            $stmt->close();
+
             return $users_id;
-            
+
         } catch(Exception $e) {
+            self::$ultimoErrorUsuario = $e->getMessage();
+            error_log("IZZY usuarios - error al registrar: " . $e->getMessage());
             $conexion->rollback();
             return false;
         } finally {
@@ -121,32 +148,49 @@ class usuarioModelo extends mainModel{
 	}	
     
     /*----------- Modelo para validar usuario existente -----------*/
-    protected function valid_user_modelo($colaborador_id){
+    protected function valid_user_modelo($colaborador_id, $server_customers_id = null){
         $conexion = mainModel::connection();
-        
+
         try {
-            $stmt = $conexion->prepare("SELECT users_id FROM users WHERE colaboradores_id = ?");
-            $stmt->bind_param("i", $colaborador_id);
+            if ($server_customers_id === null) {
+                $stmt = $conexion->prepare("SELECT users_id FROM users WHERE colaboradores_id = ? LIMIT 1");
+                $stmt->bind_param("i", $colaborador_id);
+            } else {
+                $stmt = $conexion->prepare("SELECT users_id FROM users WHERE colaboradores_id = ? AND server_customers_id = ? LIMIT 1");
+                $stmt->bind_param("ii", $colaborador_id, $server_customers_id);
+            }
+
             $stmt->execute();
-            return $stmt->get_result()->num_rows > 0;
+            $existe = $stmt->get_result()->num_rows > 0;
+            $stmt->close();
+            return $existe;
         } catch(Exception $e) {
             return false;
         }
-    }	
+    }
 
     /*----------- Modelo para validar correo existente -----------*/
-    protected function valid_correo_modelo($email){
+    protected function valid_correo_modelo($email, $server_customers_id = null){
         $conexion = mainModel::connection();
-        
+
         try {
-            $stmt = $conexion->prepare("SELECT users_id FROM users WHERE email = ?");
-            $stmt->bind_param("s", $email);
+            if ($server_customers_id === null) {
+                $stmt = $conexion->prepare("SELECT users_id FROM users WHERE email = ? LIMIT 1");
+                $stmt->bind_param("s", $email);
+            } else {
+                $stmt = $conexion->prepare("SELECT users_id FROM users WHERE email = ? AND server_customers_id = ? LIMIT 1");
+                $stmt->bind_param("si", $email, $server_customers_id);
+            }
+
             $stmt->execute();
-            return $stmt->get_result()->num_rows > 0;
+            $existe = $stmt->get_result()->num_rows > 0;
+            $stmt->close();
+
+            return $existe;
         } catch(Exception $e) {
             return false;
         }
-    }			
+    }
 
     /*----------- Modelo para editar usuario -----------*/
     protected function edit_user_modelo($datos){
@@ -156,13 +200,15 @@ class usuarioModelo extends mainModel{
             $conexion->autocommit(false);
             
             $stmt = $conexion->prepare("UPDATE users SET 
+                email = ?,
                 tipo_user_id = ?,
                 privilegio_id = ?,
                 empresa_id = ?,
                 estado = ?
                 WHERE users_id = ?");
             
-            $stmt->bind_param("iiiii", 
+            $stmt->bind_param("siiiii", 
+                $datos['email'],
                 $datos['tipo_user'],
                 $datos['privilegio_id'],
                 $datos['empresa_id'],
@@ -273,18 +319,36 @@ class usuarioModelo extends mainModel{
     }	
 
     /*----------- Modelo para contar usuarios activos -----------*/
-    protected function getTotalUsuarios(){
+    protected function getTotalUsuarios($server_customers_id = null){
         $conexion = mainModel::connection();
-        
+
         try {
-            $stmt = $conexion->prepare("SELECT COUNT(*) AS 'total_usuarios' FROM users WHERE estado = 1 AND tipo_user_id NOT IN(1)");
+            if ($server_customers_id === null) {
+                $stmt = $conexion->prepare(
+                    "SELECT COUNT(*) AS total_usuarios
+                     FROM users
+                     WHERE estado = 1
+                       AND tipo_user_id NOT IN(1)"
+                );
+            } else {
+                $stmt = $conexion->prepare(
+                    "SELECT COUNT(*) AS total_usuarios
+                     FROM users
+                     WHERE estado = 1
+                       AND tipo_user_id NOT IN(1)
+                       AND server_customers_id = ?"
+                );
+                $stmt->bind_param("i", $server_customers_id);
+            }
+
             $stmt->execute();
             $result = $stmt->get_result();
+
             return $result->fetch_assoc()['total_usuarios'] ?? 0;
         } catch(Exception $e) {
             return 0;
         }
-    }		
+    }
 
     /*----------- Modelo para obtener configuración del plan -----------*/
     protected function getPlanConfiguracion(){       
@@ -298,7 +362,7 @@ class usuarioModelo extends mainModel{
         $conexion = mainModel::connection();
         
         try {
-            $stmt = $conexion->prepare("SELECT users.email, CONCAT(colaboradores.nombre, ' ', colaboradores.apellido) AS nombre_completo
+            $stmt = $conexion->prepare("SELECT users.email, colaboradores.nombre AS nombre_completo
                 FROM colaboradores
                 INNER JOIN users ON colaboradores.colaboradores_id = users.colaboradores_id
                 WHERE users.privilegio_id IN(1,2) AND users.estado = 1");
@@ -329,7 +393,7 @@ class usuarioModelo extends mainModel{
         $conexion = mainModel::connection();
         
         try {
-            $stmt = $conexion->prepare("SELECT u.email, c.nombre 
+            $stmt = $conexion->prepare("SELECT u.email, u.server_customers_id, u.colaboradores_id, c.nombre 
                 FROM users u 
                 JOIN colaboradores c ON u.colaboradores_id = c.colaboradores_id 
                 WHERE u.users_id = ?");
@@ -347,7 +411,7 @@ class usuarioModelo extends mainModel{
         $conexion = mainModel::connection();
         
         try {
-            $stmt = $conexion->prepare("SELECT u.email, CONCAT(c.nombre, ' ', c.apellido) AS nombre_completo
+            $stmt = $conexion->prepare("SELECT u.email, c.nombre AS nombre_completo
                 FROM users u
                 JOIN colaboradores c ON u.colaboradores_id = c.colaboradores_id
                 WHERE u.users_id = ? AND u.privilegio_id = 3");

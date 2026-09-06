@@ -7,7 +7,10 @@
         filtered: [],
         page: 1,
         pageSize: 5,
-        loading: false
+        pageSizeDetalle: 5,
+        pageSizeMiniatura: 6,
+        loading: false,
+        view: 'detalle'
     };
 
     var documentosState = {
@@ -17,8 +20,16 @@
 
     var reabrirSecuenciaTrasDocumentos = false;
 
+    var SECUENCIA_STORAGE_FILTROS = 'izzy_secuencia_filtros_visible';
+    var SECUENCIA_STORAGE_KPIS = 'izzy_secuencia_kpis_visible';
+    var SECUENCIA_STORAGE_VISTA = 'izzy_secuencia_tipo_vista';
+
+
     $(document).ready(function () {
+        inicializarEstadoPersistenteSecuencia();
+        inicializarVistaSecuencia();
         inicializarEventosSecuencia();
+        inicializarDropdownAdaptativoSecuencia();
         cargarDocumentosSecuencia(true);
         listar_secuencia_facturacion();
     });
@@ -34,16 +45,33 @@
             var form = this;
             setTimeout(function () {
                 $(form).find('.selectpicker').val('').selectpicker('refresh');
-                $('#filtro_secuencia_general').val('');
+                $('#filtro_secuencia_general, #secuencia_buscar_listado').val('');
                 secuenciaState.page = 1;
                 aplicarFiltrosYRender();
             }, 50);
         });
 
         $('#filtro_secuencia_general').off('input.secuencia').on('input.secuencia', secuenciaDebounce(function () {
+            var valor = $(this).val();
+            $('#secuencia_buscar_listado').val(valor);
             secuenciaState.page = 1;
             aplicarFiltrosYRender();
         }, 180));
+
+        $('#secuencia_buscar_listado').off('input.secuencia').on('input.secuencia', secuenciaDebounce(function () {
+            var valor = $(this).val();
+            $('#filtro_secuencia_general').val(valor);
+            secuenciaState.page = 1;
+            aplicarFiltrosYRender();
+        }, 180));
+
+        $('#btn_toggle_secuencia_filtros').off('click.secuenciaPanel').on('click.secuenciaPanel', function () {
+            alternarPanelSecuencia('#secuencia_filtros_body', $(this), SECUENCIA_STORAGE_FILTROS);
+        });
+
+        $('#btn_toggle_secuencia_kpis').off('click.secuenciaPanel').on('click.secuenciaPanel', function () {
+            alternarPanelSecuencia('#secuencia_kpis_body', $(this), SECUENCIA_STORAGE_KPIS);
+        });
 
         $('#estado_secuencia_main, #documento_secuencia_main, #vencimiento_secuencia_main')
             .off('changed.bs.select.secuencia change.secuencia')
@@ -54,9 +82,22 @@
 
         $('#secuencia_page_size').off('change.secuencia').on('change.secuencia', function () {
             var valor = parseInt($(this).val(), 10);
-            secuenciaState.pageSize = isNaN(valor) || valor <= 0 ? 5 : valor;
+            secuenciaState.pageSize = isNaN(valor) || valor <= 0
+                ? (secuenciaState.view === 'miniatura' ? 6 : 5)
+                : valor;
+
+            if (secuenciaState.view === 'miniatura') {
+                secuenciaState.pageSizeMiniatura = secuenciaState.pageSize;
+            } else {
+                secuenciaState.pageSizeDetalle = secuenciaState.pageSize;
+            }
+
             secuenciaState.page = 1;
             renderSecuencias();
+        });
+
+        $('.secuencia-view-btn').off('click.secuenciaVista').on('click.secuenciaVista', function () {
+            cambiarVistaSecuencia($(this).data('view'));
         });
 
         $('#btn_actualizar_secuencias').off('click.secuencia').on('click.secuencia', function () {
@@ -143,22 +184,67 @@
                 cambiarEstadoDocumentoSecuencia($(this).data('id'), $(this).data('estado'));
             });
 
-        $(document).off('click.secuenciaDropdown').on('click.secuenciaDropdown', function (e) {
-            if (!$(e.target).closest('.secuencia-actions').length) {
-                $('.secuencia-actions .dropdown-menu').removeClass('show');
-                $('.secuencia-actions .dropdown-toggle').attr('aria-expanded', 'false');
-            }
-        });
+    }
 
-        $('#secuencia_listado').off('click.secuenciaDropdownToggle').on('click.secuenciaDropdownToggle', '.secuencia-actions .dropdown-toggle', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            var $menu = $(this).siblings('.dropdown-menu');
-            $('.secuencia-actions .dropdown-menu').not($menu).removeClass('show');
-            $('.secuencia-actions .dropdown-toggle').not(this).attr('aria-expanded', 'false');
-            $menu.toggleClass('show');
-            $(this).attr('aria-expanded', $menu.hasClass('show') ? 'true' : 'false');
-        });
+    function obtenerEstadoPanelSecuencia(clave, valorPorDefecto) {
+        try {
+            var valor = window.localStorage.getItem(clave);
+            if (valor === null) {
+                return valorPorDefecto;
+            }
+            return valor === '1';
+        } catch (error) {
+            return valorPorDefecto;
+        }
+    }
+
+    function guardarEstadoPanelSecuencia(clave, visible) {
+        try {
+            window.localStorage.setItem(clave, visible ? '1' : '0');
+        } catch (error) {
+            // Si el navegador bloquea storage, el módulo sigue funcionando sin persistencia.
+        }
+    }
+
+    function actualizarBotonPanelSecuencia($boton, visible) {
+        $boton.html(
+            visible
+                ? '<i class="fas fa-chevron-up mr-1"></i> Ocultar'
+                : '<i class="fas fa-chevron-down mr-1"></i> Mostrar'
+        );
+        $boton.attr('aria-expanded', visible ? 'true' : 'false');
+    }
+
+    function aplicarEstadoPanelSecuencia(selector, $boton, visible) {
+        var $panel = $(selector);
+        $panel.toggle(visible);
+        actualizarBotonPanelSecuencia($boton, visible);
+    }
+
+    function alternarPanelSecuencia(selector, $boton, claveStorage) {
+        var $panel = $(selector);
+        var visible = !$panel.is(':visible');
+
+        $panel.stop(true, true).slideToggle(180);
+        actualizarBotonPanelSecuencia($boton, visible);
+        guardarEstadoPanelSecuencia(claveStorage, visible);
+    }
+
+    function inicializarEstadoPersistenteSecuencia() {
+        var filtrosVisibles = obtenerEstadoPanelSecuencia(SECUENCIA_STORAGE_FILTROS, false);
+        var kpisVisibles = obtenerEstadoPanelSecuencia(SECUENCIA_STORAGE_KPIS, true);
+
+        aplicarEstadoPanelSecuencia(
+            '#secuencia_filtros_body',
+            $('#btn_toggle_secuencia_filtros'),
+            filtrosVisibles
+        );
+
+        aplicarEstadoPanelSecuencia(
+            '#secuencia_kpis_body',
+            $('#btn_toggle_secuencia_kpis'),
+            kpisVisibles
+        );
     }
 
     function secuenciaDebounce(fn, wait) {
@@ -413,6 +499,79 @@
         $('#secuencia_total_por_vencer').text(porVencer);
     }
 
+    function inicializarVistaSecuencia() {
+        var vistaGuardada = 'detalle';
+
+        try {
+            vistaGuardada = localStorage.getItem(SECUENCIA_STORAGE_VISTA) || 'detalle';
+        } catch (e) {
+            vistaGuardada = 'detalle';
+        }
+
+        if (vistaGuardada !== 'miniatura') {
+            vistaGuardada = 'detalle';
+        }
+
+        secuenciaState.view = vistaGuardada;
+        actualizarBotonesVistaSecuencia();
+        sincronizarTamanoPaginaSecuencia();
+    }
+
+    function cambiarVistaSecuencia(vista) {
+        secuenciaState.view = vista === 'miniatura' ? 'miniatura' : 'detalle';
+
+        try {
+            localStorage.setItem(SECUENCIA_STORAGE_VISTA, secuenciaState.view);
+        } catch (e) {
+            // La vista sigue funcionando aunque localStorage no esté disponible.
+        }
+
+        actualizarBotonesVistaSecuencia();
+        sincronizarTamanoPaginaSecuencia();
+        secuenciaState.page = 1;
+        renderSecuencias();
+    }
+
+    function sincronizarTamanoPaginaSecuencia() {
+        var $select = $('#secuencia_page_size');
+        var esMiniatura = secuenciaState.view === 'miniatura';
+        var opciones = esMiniatura ? [6, 12, 18, 30] : [5, 10, 20, 50];
+        var seleccionado = esMiniatura
+            ? secuenciaState.pageSizeMiniatura
+            : secuenciaState.pageSizeDetalle;
+
+        $select.empty();
+
+        opciones.forEach(function(valor) {
+            $select.append('<option value="' + valor + '">' + valor + '</option>');
+        });
+
+        secuenciaState.pageSize = opciones.indexOf(seleccionado) !== -1
+            ? seleccionado
+            : opciones[0];
+
+        $select.val(String(secuenciaState.pageSize));
+    }
+
+    function actualizarBotonesVistaSecuencia() {
+        $('.secuencia-view-btn').removeClass('active').attr('aria-pressed', 'false');
+
+        $('.secuencia-view-btn[data-view="' + secuenciaState.view + '"]')
+            .addClass('active')
+            .attr('aria-pressed', 'true');
+    }
+
+    function renderSecuenciaHeaderDetalle() {
+        return '' +
+            '<div class="secuencia-detail-header" role="row">' +
+                '<div class="secuencia-detail-header-cell" role="columnheader"><i class="fas fa-file-invoice"></i><span>Documento</span></div>' +
+                '<div class="secuencia-detail-header-cell" role="columnheader"><i class="fas fa-key"></i><span>Autorización / CAI</span></div>' +
+                '<div class="secuencia-detail-header-cell" role="columnheader"><i class="fas fa-list-ol"></i><span>Numeración</span></div>' +
+                '<div class="secuencia-detail-header-cell" role="columnheader"><i class="fas fa-calendar-alt"></i><span>Vigencia</span></div>' +
+                '<div class="secuencia-detail-header-cell" role="columnheader"><i class="fas fa-cog"></i><span>Acciones</span></div>' +
+            '</div>';
+    }
+
     function renderSecuencias() {
         var $listado = $('#secuencia_listado');
         var total = secuenciaState.filtered.length;
@@ -437,7 +596,19 @@
             return;
         }
 
-        var html = rows.map(renderSecuenciaCard).join('');
+        $listado
+            .toggleClass('vista-detalle', secuenciaState.view === 'detalle')
+            .toggleClass('vista-miniatura', secuenciaState.view === 'miniatura');
+
+        var html = '';
+
+        if (secuenciaState.view === 'detalle') {
+            html += renderSecuenciaHeaderDetalle();
+            html += rows.map(renderSecuenciaCard).join('');
+        } else {
+            html += rows.map(renderSecuenciaMiniatura).join('');
+        }
+
         $listado.html(html);
 
         $('#secuencia_resultado_info').text('Mostrando registros del ' + (start + 1) + ' al ' + end + ' de un total de ' + total + ' registros');
@@ -519,6 +690,67 @@
                             '</div>' +
                         '</div>' +
                     '</section>' +
+                '</div>' +
+            '</article>';
+    }
+
+    function renderSecuenciaMiniatura(row) {
+        var id = secuenciaEscape(row.secuencia_facturacion_id);
+        var empresa = secuenciaEscape(secuenciaValor(row.empresa, 'Empresa no registrada'));
+        var documento = secuenciaEscape(secuenciaValor(row.documento, 'Documento'));
+        var estado = row.estado !== undefined ? row.estado : row.activo;
+        var cai = secuenciaEscape(secuenciaValor(row.cai, 'Sin CAI'));
+        var prefijo = secuenciaEscape(secuenciaValor(row.prefijo, 'Sin prefijo'));
+        var siguiente = secuenciaEscape(secuenciaValor(row.siguiente, '0'));
+        var disponibles = secuenciaDisponibles(row);
+        var porcentaje = secuenciaPorcentajeUsado(row);
+        var limite = secuenciaEscape(secuenciaValor(row.fecha_limite, 'No registrada'));
+
+        return '' +
+            '<article class="secuencia-mini-card" data-id="' + id + '">' +
+                '<div class="secuencia-mini-topline"></div>' +
+
+                '<div class="secuencia-mini-head">' +
+                    '<div class="secuencia-main-icon"><i class="fas fa-file-invoice"></i></div>' +
+                    '<div class="secuencia-mini-title">' +
+                        '<div class="secuencia-title-row"><h6 class="secuencia-empresa">' + empresa + '</h6>' + secuenciaEstadoBadge(estado) + '</div>' +
+                        '<div class="secuencia-documento-row">' + secuenciaDocumentoBadge(documento) + '</div>' +
+                    '</div>' +
+                '</div>' +
+
+                '<div class="secuencia-mini-body">' +
+                    '<div class="secuencia-mini-field">' +
+                        '<span><i class="fas fa-key"></i> CAI</span>' +
+                        '<strong class="secuencia-mini-wrap">' + cai + '</strong>' +
+                    '</div>' +
+                    '<div class="secuencia-mini-field">' +
+                        '<span><i class="fas fa-barcode"></i> Prefijo</span>' +
+                        '<strong>' + prefijo + '</strong>' +
+                    '</div>' +
+                    '<div class="secuencia-mini-field">' +
+                        '<span><i class="fas fa-list-ol"></i> Siguiente</span>' +
+                        '<strong class="secuencia-mini-number">' + siguiente + '</strong>' +
+                    '</div>' +
+                    '<div class="secuencia-mini-field">' +
+                        '<span><i class="fas fa-calendar-times"></i> Límite</span>' +
+                        '<strong>' + limite + '</strong>' +
+                    '</div>' +
+                '</div>' +
+
+                '<div class="secuencia-mini-progress">' +
+                    '<div class="secuencia-progress-line"><span style="width:' + porcentaje + '%"></span></div>' +
+                    '<div class="secuencia-progress-meta"><span>' + porcentaje + '% usado</span><strong>' + disponibles + ' disponibles</strong></div>' +
+                '</div>' +
+
+                '<div class="secuencia-mini-footer">' +
+                    '<span class="secuencia-id-text"><i class="fas fa-hashtag mr-1"></i>ID: ' + id + '</span>' +
+                    '<div class="dropdown secuencia-actions">' +
+                        '<button type="button" class="btn btn-primary dropdown-toggle" aria-haspopup="true" aria-expanded="false"><i class="fas fa-cog mr-1"></i>Acciones</button>' +
+                        '<div class="dropdown-menu dropdown-menu-right">' +
+                            '<button type="button" class="dropdown-item js-secuencia-editar table_editar ocultar" data-id="' + id + '"><i class="fas fa-edit mr-2"></i>Editar</button>' +
+                            '<button type="button" class="dropdown-item text-danger js-secuencia-eliminar table_eliminar ocultar" data-id="' + id + '"><i class="fas fa-trash-alt mr-2"></i>Eliminar</button>' +
+                        '</div>' +
+                    '</div>' +
                 '</div>' +
             '</article>';
     }
@@ -1573,6 +1805,55 @@
             };
         }
 
+
+        function secuenciaPdfDetalle(rows) {
+            var body = [[
+                {text: 'Empresa', bold: true, color: '#FFFFFF', fillColor: '#17324D'},
+                {text: 'Documento', bold: true, color: '#FFFFFF', fillColor: '#17324D'},
+                {text: 'Estado', bold: true, color: '#FFFFFF', fillColor: '#17324D'},
+                {text: 'CAI', bold: true, color: '#FFFFFF', fillColor: '#17324D'},
+                {text: 'Prefijo', bold: true, color: '#FFFFFF', fillColor: '#17324D'},
+                {text: 'Siguiente', bold: true, color: '#FFFFFF', fillColor: '#17324D'},
+                {text: 'Rango', bold: true, color: '#FFFFFF', fillColor: '#17324D'},
+                {text: 'Disponibles', bold: true, color: '#FFFFFF', fillColor: '#17324D'},
+                {text: 'Vigencia', bold: true, color: '#FFFFFF', fillColor: '#17324D'}
+            ]];
+
+            rows.forEach(function (row, index) {
+                var fill = index % 2 === 0 ? '#F7F9FC' : '#FFFFFF';
+                body.push([
+                    {text: row.empresa || 'No registrada', fillColor: fill},
+                    {text: row.documento || 'Documento', fillColor: fill},
+                    {text: row.estado || '', fillColor: fill, color: secuenciaPdfEstadoColor(row.estado), bold: true},
+                    {text: row.cai || 'Sin CAI', fillColor: fill},
+                    {text: row.prefijo || '—', fillColor: fill},
+                    {text: String(row.siguiente || '0'), fillColor: fill, alignment: 'center', bold: true},
+                    {text: String(row.rango_inicial || '') + ' - ' + String(row.rango_final || ''), fillColor: fill},
+                    {text: String(row.disponibles || '0'), fillColor: fill, alignment: 'center', color: '#14804A', bold: true},
+                    {text: row.vigencia || '—', fillColor: fill, color: secuenciaPdfVigenciaColor(row.vigencia), bold: true}
+                ]);
+            });
+
+            return {
+                table: {
+                    headerRows: 1,
+                    widths: [82, 74, 48, 112, 62, 46, 92, 52, '*'],
+                    body: body
+                },
+                layout: {
+                    hLineColor: function () { return '#DDE3EA'; },
+                    vLineColor: function () { return '#DDE3EA'; },
+                    hLineWidth: function () { return 0.6; },
+                    vLineWidth: function () { return 0.6; },
+                    paddingLeft: function () { return 4; },
+                    paddingRight: function () { return 4; },
+                    paddingTop: function () { return 5; },
+                    paddingBottom: function () { return 5; }
+                },
+                fontSize: 6.8
+            };
+        }
+
         var tarjetas = [];
         for (var i = 0; i < rows.length; i += 2) {
             var columnas = [
@@ -1600,61 +1881,41 @@
             });
         }
 
+        var filtroEstado = $('#estado_secuencia_main option:selected').text() || 'Todos';
+        var filtroDocumento = $('#documento_secuencia_main option:selected').text() || 'Todos';
+        var filtroVencimiento = $('#vencimiento_secuencia_main option:selected').text() || 'Todos';
+        var logoSecuencia = (typeof imagen !== 'undefined' && imagen)
+            ? {image: imagen, width: 50, height: 24, alignment: 'center', margin: [0, 1, 0, 0]}
+            : {text: 'IZZY', fontSize: 16, bold: true, color: '#FFFFFF', alignment: 'center', margin: [0, 4, 0, 0]};
+
         var encabezado = {
-            columns: [
-                {
-                    width: '*',
-                    stack: [
-                        {
-                            text: 'SECUENCIA DE FACTURACIÓN',
-                            fontSize: 17,
-                            bold: true,
-                            color: '#172B4D'
-                        },
-                        {
-                            text: 'Control de documentos fiscales, correlativos y vigencia',
-                            fontSize: 8.8,
-                            color: '#6B778C',
-                            margin: [0, 3, 0, 0]
-                        }
-                    ]
-                },
-                {
-                    width: 170,
-                    alignment: 'right',
-                    stack: [
-                        {
-                            text: 'REPORTE EJECUTIVO',
-                            fontSize: 7.5,
-                            bold: true,
-                            color: '#0EA5A8'
-                        },
-                        {
-                            text: secuenciaFechaReporte(),
-                            fontSize: 9,
-                            bold: true,
-                            color: '#172B4D',
-                            margin: [0, 4, 0, 0]
-                        },
-                        {
-                            text: rows.length + ' registro(s) filtrado(s)',
-                            fontSize: 7,
-                            color: '#7A869A',
-                            margin: [0, 2, 0, 0]
-                        }
-                    ]
-                }
-            ],
-            margin: [0, 0, 0, 11]
+            table: {
+                widths: [70, '*', 150],
+                body: [[
+                    {border:[false,false,false,false], fillColor:'#17324D', margin:[12,10,0,10], stack:[logoSecuencia]},
+                    {border:[false,false,false,false], fillColor:'#17324D', margin:[0,10,0,10], stack:[
+                        {text:'SECUENCIA DE FACTURACIÓN', fontSize:16, bold:true, color:'#FFFFFF'},
+                        {text:'Control de documentos fiscales, correlativos y vigencia', fontSize:7.5, color:'#D8E5F0', margin:[0,2,0,0]}
+                    ]},
+                    {border:[false,false,false,false], fillColor:'#17324D', margin:[0,10,12,10], stack:[
+                        {text:'REPORTE EJECUTIVO', fontSize:6.5, bold:true, color:'#72E2E5', alignment:'right'},
+                        {text:secuenciaFechaReporte(), fontSize:9, bold:true, color:'#FFFFFF', alignment:'right', margin:[0,3,0,0]},
+                        {text:rows.length + ' registro(s) filtrado(s)', fontSize:6.5, color:'#D8E5F0', alignment:'right', margin:[0,2,0,0]}
+                    ]}
+                ]]
+            },
+            layout:{hLineWidth:function(){return 0;},vLineWidth:function(){return 0;}},
+            margin:[0,0,0,10]
         };
 
-        if (typeof imagen !== 'undefined' && imagen) {
-            encabezado.columns.unshift({
-                image: imagen,
-                width: 72,
-                margin: [0, 0, 12, 0]
-            });
-        }
+        var filtrosPdfSecuencia = {
+            table:{
+                widths:['*'],
+                body:[[{text:'Filtros aplicados: Estado: ' + filtroEstado + '   |   Documento: ' + filtroDocumento + '   |   Vencimiento: ' + filtroVencimiento, fontSize:6.8, color:'#52627A', margin:[10,7,10,7], fillColor:'#F7F9FC'}]]
+            },
+            layout:{hLineColor:function(){return '#DDE3EA';},vLineColor:function(){return '#DDE3EA';},hLineWidth:function(){return 0.6;},vLineWidth:function(){return 0.6;}},
+            margin:[0,0,0,10]
+        };
 
         var resumen = {
             table: {
@@ -1740,15 +2001,65 @@
             },
             content: [
                 encabezado,
-                resumen
-            ].concat(tarjetas),
+                filtrosPdfSecuencia,
+                resumen,
+                {
+                    text: secuenciaState.view === 'miniatura' ? 'VISTA MINIATURA' : 'VISTA DETALLE',
+                    fontSize: 7,
+                    bold: true,
+                    color: '#17324D',
+                    margin: [0, 0, 0, 7]
+                }
+            ].concat(
+                secuenciaState.view === 'miniatura'
+                    ? tarjetas
+                    : [secuenciaPdfDetalle(rows)]
+            ),
             defaultStyle: {
                 fontSize: 8,
                 color: '#253858'
             }
         };
 
-        pdfMake.createPdf(docDefinition).download('Reporte_Secuencia_Facturacion.pdf');
+        var pdfSecuencia = pdfMake.createPdf(docDefinition);
+        var nombrePdfSecuencia = 'Reporte_Secuencia_Facturacion.pdf';
+
+        if (typeof abrirModalPdfPublico !== 'function') {
+            showNotify(
+                'error',
+                'Visor PDF no disponible',
+                'No se encontró el modal PDF público. Verifique que vistasModals.php y main.js estén cargados.'
+            );
+            return;
+        }
+
+        if (typeof pdfSecuencia.getDataUrl === 'function') {
+            pdfSecuencia.getDataUrl(function (dataUrl) {
+                abrirModalPdfPublico(
+                    dataUrl,
+                    'Secuencia de Facturación',
+                    nombrePdfSecuencia
+                );
+            });
+            return;
+        }
+
+        if (typeof pdfSecuencia.getBase64 === 'function') {
+            pdfSecuencia.getBase64(function (base64) {
+                abrirModalPdfPublico(
+                    'data:application/pdf;base64,' + base64,
+                    'Secuencia de Facturación',
+                    nombrePdfSecuencia
+                );
+            });
+            return;
+        }
+
+        showNotify(
+            'error',
+            'PDF no disponible',
+            'La versión actual de pdfMake no permite generar una vista previa compatible.'
+        );
     }
 
     function descargarBlob(contenido, nombre, tipo, yaEsBlob) {
@@ -1761,6 +2072,213 @@
         link.click();
         document.body.removeChild(link);
         setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    }
+
+
+    /* =========================================================
+       SECUENCIA | DROPDOWN DE ACCIONES ADAPTATIVO
+       Funciona en vista detalle y miniatura.
+       ========================================================= */
+    function limpiarDireccionDropdownSecuencia($dropdown) {
+        if (!$dropdown || !$dropdown.length) {
+            return;
+        }
+
+        $dropdown.removeClass('dropup dropright dropleft');
+        $dropdown.children('.dropdown-menu')
+            .removeClass('dropdown-menu-right')
+            .removeAttr('x-placement data-popper-placement')
+            .css({ top: '', left: '', right: '', bottom: '', transform: '' });
+    }
+
+    function medirMenuDropdownSecuencia($menu) {
+        var menu = $menu && $menu.length ? $menu[0] : null;
+
+        if (!menu) {
+            return { width: 200, height: 130 };
+        }
+
+        var estilos = {
+            display: menu.style.display,
+            visibility: menu.style.visibility,
+            position: menu.style.position,
+            top: menu.style.top,
+            left: menu.style.left,
+            right: menu.style.right,
+            bottom: menu.style.bottom,
+            transform: menu.style.transform
+        };
+        var teniaShow = $menu.hasClass('show');
+
+        $menu.addClass('show').css({
+            display: 'block',
+            visibility: 'hidden',
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            right: 'auto',
+            bottom: 'auto',
+            transform: 'none'
+        });
+
+        var rect = menu.getBoundingClientRect();
+
+        if (!teniaShow) {
+            $menu.removeClass('show');
+        }
+
+        menu.style.display = estilos.display;
+        menu.style.visibility = estilos.visibility;
+        menu.style.position = estilos.position;
+        menu.style.top = estilos.top;
+        menu.style.left = estilos.left;
+        menu.style.right = estilos.right;
+        menu.style.bottom = estilos.bottom;
+        menu.style.transform = estilos.transform;
+
+        return {
+            width: Math.max(rect.width || 0, 200),
+            height: Math.max(rect.height || 0, 1)
+        };
+    }
+
+    function prepararDireccionDropdownSecuencia($dropdown) {
+        if (!$dropdown || !$dropdown.length) {
+            return;
+        }
+
+        var $button = $dropdown.children('.dropdown-toggle');
+        var $menu = $dropdown.children('.dropdown-menu');
+        var button = $button.length ? $button[0] : null;
+
+        if (!button || !$menu.length) {
+            return;
+        }
+
+        limpiarDireccionDropdownSecuencia($dropdown);
+
+        var rect = button.getBoundingClientRect();
+        var menuSize = medirMenuDropdownSecuencia($menu);
+        var viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+        var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+        var margin = 12;
+        var gap = 8;
+
+        var abajo = viewportHeight - rect.bottom - margin;
+        var arriba = rect.top - margin;
+        var derecha = viewportWidth - rect.right - margin;
+        var izquierda = rect.left - margin;
+
+        if (abajo >= menuSize.height + gap) {
+            // Posición normal: abajo.
+        } else if (arriba >= menuSize.height + gap) {
+            $dropdown.addClass('dropup');
+        } else if (derecha >= menuSize.width + gap) {
+            $dropdown.addClass('dropright');
+        } else if (izquierda >= menuSize.width + gap) {
+            $dropdown.addClass('dropleft');
+        } else if (arriba > abajo) {
+            $dropdown.addClass('dropup');
+        }
+
+        if (!$dropdown.hasClass('dropright') && !$dropdown.hasClass('dropleft')) {
+            var desbordaDerecha = rect.left + menuSize.width > viewportWidth - margin;
+            var puedeAlinearDerecha = rect.right - menuSize.width >= margin;
+
+            if (desbordaDerecha && puedeAlinearDerecha) {
+                $menu.addClass('dropdown-menu-right');
+            }
+        }
+    }
+
+    function cerrarDropdownsSecuenciaExcepto($actual) {
+        $('#secuencia_listado .secuencia-actions').each(function () {
+            var $dropdown = $(this);
+            var $btn = $dropdown.children('.dropdown-toggle');
+            var $menu = $dropdown.children('.dropdown-menu');
+
+            if ($actual && $actual.length && $dropdown.is($actual)) {
+                return;
+            }
+
+            try {
+                if (typeof $.fn.dropdown === 'function' && $menu.hasClass('show')) {
+                    $btn.dropdown('hide');
+                }
+            } catch (error) {
+                // Respaldo manual abajo.
+            }
+
+            $btn.attr('aria-expanded', 'false');
+            $dropdown.removeClass('show');
+            $menu.removeClass('show');
+            limpiarDireccionDropdownSecuencia($dropdown);
+            $dropdown.closest('.secuencia-record-card, .secuencia-mini-card').removeClass('secuencia-dropdown-open');
+        });
+    }
+
+    function inicializarDropdownAdaptativoSecuencia() {
+        $('#secuencia_listado')
+            .off('click.secuenciaDropdownAdaptativo', '.secuencia-actions .dropdown-toggle')
+            .on('click.secuenciaDropdownAdaptativo', '.secuencia-actions .dropdown-toggle', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+
+                var $button = $(this);
+                var $dropdown = $button.closest('.secuencia-actions');
+                var $menu = $dropdown.children('.dropdown-menu');
+                var estabaAbierto = $menu.hasClass('show');
+
+                if (typeof $.fn.dropdown !== 'function') {
+                    return;
+                }
+
+                cerrarDropdownsSecuenciaExcepto($dropdown);
+
+                if (estabaAbierto) {
+                    try {
+                        $button.dropdown('hide');
+                    } catch (error) {
+                        $dropdown.removeClass('show');
+                        $menu.removeClass('show');
+                    }
+
+                    $button.attr('aria-expanded', 'false');
+                    limpiarDireccionDropdownSecuencia($dropdown);
+                    $dropdown.closest('.secuencia-record-card, .secuencia-mini-card').removeClass('secuencia-dropdown-open');
+                    return;
+                }
+
+                try {
+                    prepararDireccionDropdownSecuencia($dropdown);
+
+                    $button.dropdown({
+                        boundary: 'viewport',
+                        flip: true,
+                        offset: '0,6'
+                    });
+
+                    $button.dropdown('show');
+                    $dropdown.closest('.secuencia-record-card, .secuencia-mini-card').addClass('secuencia-dropdown-open');
+                } catch (error) {
+                    console.error('No se pudo abrir el dropdown de acciones de Secuencia:', error);
+                }
+            });
+
+        $(document)
+            .off('shown.bs.dropdown.secuenciaDropdownAdaptativo', '#secuencia_listado .secuencia-actions')
+            .on('shown.bs.dropdown.secuenciaDropdownAdaptativo', '#secuencia_listado .secuencia-actions', function () {
+                var $dropdown = $(this);
+                cerrarDropdownsSecuenciaExcepto($dropdown);
+                $dropdown.closest('.secuencia-record-card, .secuencia-mini-card').addClass('secuencia-dropdown-open');
+            })
+            .off('hidden.bs.dropdown.secuenciaDropdownAdaptativo', '#secuencia_listado .secuencia-actions')
+            .on('hidden.bs.dropdown.secuenciaDropdownAdaptativo', '#secuencia_listado .secuencia-actions', function () {
+                var $dropdown = $(this);
+                limpiarDireccionDropdownSecuencia($dropdown);
+                $dropdown.closest('.secuencia-record-card, .secuencia-mini-card').removeClass('secuencia-dropdown-open');
+            });
     }
 
 })(jQuery);

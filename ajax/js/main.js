@@ -1486,3 +1486,64 @@ function moneyCell(data, type) {
     close: hideModal,
   };
 })();
+
+/* =========================================================
+   MODAL PDF PUBLICO / REUTILIZABLE
+   Requiere que vistasModals.php contenga #modal_pdf_publico.
+   ========================================================= */
+(function (window, $) {
+    'use strict';
+
+    var pdfPublicoUrlActual = null;
+
+    window.abrirModalPdfPublico = function (url, titulo, nombreArchivo) {
+        if (!url) {
+            return false;
+        }
+
+        if (
+            pdfPublicoUrlActual &&
+            pdfPublicoUrlActual !== url &&
+            String(pdfPublicoUrlActual).indexOf('blob:') === 0
+        ) {
+            try {
+                URL.revokeObjectURL(pdfPublicoUrlActual);
+            } catch (e) {}
+        }
+
+        pdfPublicoUrlActual = url;
+
+        $('#titulo_pdf_publico').text(titulo || 'Vista previa del PDF');
+        $('#visor_pdf_publico').attr('src', url);
+
+        $('#btn_descargar_pdf_publico')
+            .attr('href', url)
+            .attr('download', nombreArchivo || 'reporte.pdf');
+
+        $('#modal_pdf_publico').modal({
+            show: true,
+            backdrop: 'static',
+            keyboard: true
+        });
+
+        return true;
+    };
+
+    $(document)
+        .off('hidden.bs.modal.modalPdfPublico', '#modal_pdf_publico')
+        .on('hidden.bs.modal.modalPdfPublico', '#modal_pdf_publico', function () {
+            $('#visor_pdf_publico').attr('src', 'about:blank');
+            $('#btn_descargar_pdf_publico').attr('href', '#');
+
+            if (
+                pdfPublicoUrlActual &&
+                String(pdfPublicoUrlActual).indexOf('blob:') === 0
+            ) {
+                try {
+                    URL.revokeObjectURL(pdfPublicoUrlActual);
+                } catch (e) {}
+            }
+
+            pdfPublicoUrlActual = null;
+        });
+})(window, jQuery);

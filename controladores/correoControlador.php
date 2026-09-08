@@ -3,8 +3,10 @@
 
 if($peticionAjax){
     require_once "../modelos/correoModelo.php";
+    require_once "../core/correo/NotificationService.php";
 }else{
     require_once "./modelos/correoModelo.php";
+    require_once "./core/correo/NotificationService.php";
 }
 
 class correoControlador extends correoModelo{
@@ -24,6 +26,53 @@ class correoControlador extends correoModelo{
 
     private function contieneValorEnmascarado($valor){
         return strpos((string)$valor, '****') !== false;
+    }
+
+    private function notificarCorreo($titulo, $resumen, array $detalles = [], array $cambios = [], $tipo = 'security'){
+        try {
+            $service = new NotificationService();
+            $dbActual = $service->currentDbName();
+
+            if ($dbActual === '') {
+                return ['sent' => false, 'count' => 0, 'message' => 'Base de datos actual no identificada.'];
+            }
+
+            return $service->notifyAdmins(
+                $dbActual,
+                isset($_SESSION['empresa_id_sd']) ? (int)$_SESSION['empresa_id_sd'] : 0,
+                'IZZY · '.$titulo,
+                $resumen,
+                $detalles,
+                $cambios,
+                $tipo
+            );
+        } catch (Throwable $e) {
+            error_log('Correo - notificación: '.$e->getMessage());
+            return ['sent' => false, 'count' => 0, 'message' => $e->getMessage()];
+        }
+    }
+
+    private function obtenerConfiguracionCorreoAuditoria($correoId){
+        $conexion = null;
+        $stmt = null;
+
+        try {
+            $conexion = mainModel::connection();
+            $stmt = $conexion->prepare("\n                SELECT\n                    correo_id, metodo_envio, server, correo, port, smtp_secure,\n                    graph_user, save_to_sent_items\n                FROM correo\n                WHERE correo_id = ?\n                LIMIT 1\n            ");
+
+            if (!$stmt) return null;
+
+            $id = (int)$correoId;
+            $stmt->bind_param('i', $id);
+            $stmt->execute();
+            $resultado = $stmt->get_result();
+            return $resultado ? $resultado->fetch_assoc() : null;
+        } catch (Throwable $e) {
+            error_log('Correo - lectura anterior para auditoría: '.$e->getMessage());
+            return null;
+        } finally {
+            if ($stmt) $stmt->close();
+        }
     }
 
     public function edit_correo_controlador(){
@@ -158,6 +207,8 @@ class correoControlador extends correoModelo{
             $clientSecretFinal = mainModel::encryption($clientSecretConfEmail);
         }
 
+        $anterior = $this->obtenerConfiguracionCorreoAuditoria($correo_id);
+
         $datos = [
             "correo_id" => $correo_id,
             "metodo_envio" => $metodo_envio,
@@ -180,6 +231,45 @@ class correoControlador extends correoModelo{
                 "type" => "error"
             ]);
         }
+
+        $cambios = [];
+        if ($anterior) {
+            $comparaciones = [
+                'Método de envío' => [(string)$anterior['metodo_envio'], (string)$metodo_envio],
+                'Servidor' => [(string)$anterior['server'], (string)$serverConfEmail],
+                'Correo remitente' => [(string)$anterior['correo'], (string)$correoConfEmail],
+                'Puerto' => [(string)$anterior['port'], (string)$puertoConfEmail],
+                'Seguridad SMTP' => [(string)$anterior['smtp_secure'], (string)$smtpSecureConfEmail],
+                'Graph User' => [(string)$anterior['graph_user'], (string)$graphUserConfEmail],
+                'Guardar en enviados' => [((int)$anterior['save_to_sent_items'] === 1 ? 'Sí' : 'No'), ((int)$saveToSentItemsConfEmail === 1 ? 'Sí' : 'No')]
+            ];
+
+            foreach ($comparaciones as $campo => $valores) {
+                if ($valores[0] !== $valores[1]) {
+                    $cambios[$campo] = ['anterior' => $valores[0], 'nuevo' => $valores[1]];
+                }
+            }
+        }
+
+        if ($passConfEmail !== '') {
+            $cambios['Contraseña SMTP'] = ['anterior' => 'Conservada / protegida', 'nuevo' => 'Actualizada'];
+        }
+        if ($clientSecretConfEmail !== '') {
+            $cambios['Client Secret'] = ['anterior' => 'Conservado / protegido', 'nuevo' => 'Actualizado'];
+        }
+
+        $this->notificarCorreo(
+            'Configuración de correo actualizada',
+            'Se modificó la configuración utilizada para el envío de correos del sistema.',
+            [
+                'Método de envío' => $metodo_envio,
+                'Correo remitente' => $correoConfEmail,
+                'Servidor' => $serverConfEmail,
+                'Graph User' => $graphUserConfEmail !== '' ? $graphUserConfEmail : 'No aplica'
+            ],
+            $cambios,
+            'security'
+        );
 
         return mainModel::showNotification([
             "type" => "success",
@@ -214,6 +304,18 @@ class correoControlador extends correoModelo{
                 "type" => "error"
             ]);
         }
+
+        $this->notificarCorreo(
+            'Destinatario de notificaciones agregado',
+            'Se agregó un nuevo destinatario para las notificaciones administrativas de esta base de datos.',
+            [
+                'Nombre' => $nombre,
+                'Correo' => $correo,
+                'Estado' => 'Activo'
+            ],
+            [],
+            'info'
+        );
 
         return mainModel::showNotification([
             "type" => "success",

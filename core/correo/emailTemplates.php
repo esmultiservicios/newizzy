@@ -7,285 +7,137 @@ require_once __DIR__ . '/../configAPP.php';
 class emailTemplates {
     public function __construct() {}
 
-    private function plantillaBase($titulo, $contenido, $datosEmpresa) {
-        $year = date('Y');
-        
-        $logoHtml = '';
+    private function esc($value) {
+        return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+    }
 
-        if (!empty($datosEmpresa['url_logo'])) {
-            $logoHtml = '<img src="'.$datosEmpresa['url_logo'].'" alt="'.$datosEmpresa['nombre'].'" class="email-logo">';
+    private function safeUrl($value) {
+        $value = trim((string)$value);
+        return filter_var($value, FILTER_VALIDATE_URL) ? $value : '';
+    }
+
+    private function plantillaBase($titulo, $contenido, $datosEmpresa, $tipo = 'info') {
+        $year = date('Y');
+        $nombreEmpresa = trim((string)($datosEmpresa['nombre'] ?? $datosEmpresa['empresa'] ?? 'ES MULTISERVICIOS'));
+        $eslogan = trim((string)($datosEmpresa['eslogan'] ?? ''));
+        $ubicacion = trim((string)($datosEmpresa['ubicacion'] ?? ''));
+        $telefono = trim((string)($datosEmpresa['telefono'] ?? ''));
+        $celular = trim((string)($datosEmpresa['celular'] ?? ''));
+        $correo = trim((string)($datosEmpresa['correo'] ?? ''));
+        $sitioweb = $this->safeUrl($datosEmpresa['sitioweb'] ?? '');
+        $urlLogo = $this->safeUrl($datosEmpresa['url_logo'] ?? '');
+
+        $nombreEmpresaHtml = $this->esc($nombreEmpresa);
+        $tituloHtml = $this->esc($titulo);
+        $esloganHtml = $this->esc($eslogan);
+        $ubicacionHtml = $this->esc($ubicacion);
+        $telefonoHtml = $this->esc($telefono);
+        $celularHtml = $this->esc($celular);
+        $correoHtml = $this->esc($correo);
+        $sitioHtml = $this->esc($sitioweb);
+
+        $tipo = strtolower(trim((string)$tipo));
+        $accent = '#0EA5A8';
+        $badge = 'Información';
+        if ($tipo === 'success') { $accent = '#14804A'; $badge = 'Confirmación'; }
+        elseif ($tipo === 'warning') { $accent = '#B26A00'; $badge = 'Importante'; }
+        elseif ($tipo === 'security') { $accent = '#17324D'; $badge = 'Seguridad'; }
+        elseif ($tipo === 'billing') { $accent = '#0EA5A8'; $badge = 'Facturación'; }
+        elseif ($tipo === 'audit') { $accent = '#5E6C84'; $badge = 'Auditoría'; }
+
+        $logoHtml = '';
+        if ($urlLogo !== '') {
+            $logoHtml = '<img src="'.$this->esc($urlLogo).'" alt="'.$nombreEmpresaHtml.'" width="142" style="display:block;width:142px;max-width:142px;height:auto;margin:0 auto;border:0;outline:none;text-decoration:none;">';
+        } else {
+            $logoHtml = '<div style="font-family:Arial,Helvetica,sans-serif;font-size:22px;line-height:1.2;font-weight:800;color:#17324D;text-align:center;">'.$nombreEmpresaHtml.'</div>';
         }
-        
-        $nombreEmpresa = $datosEmpresa['nombre'] ?? '';
-        $eslogan = $datosEmpresa['eslogan'] ?? '';
-        $ubicacion = $datosEmpresa['ubicacion'] ?? '';
-        $telefono = $datosEmpresa['telefono'] ?? '';
-        $celular = $datosEmpresa['celular'] ?? '';
-        $correo = $datosEmpresa['correo'] ?? '';
-        $sitioweb = $datosEmpresa['sitioweb'] ?? '#';
-        $facebook = $datosEmpresa['facebook'] ?? '#';
-        
-        return <<<HTML
-<!DOCTYPE html>
+
+        $contactos = array();
+        if ($telefonoHtml !== '') $contactos[] = 'Tel. '.$telefonoHtml;
+        if ($celularHtml !== '') $contactos[] = 'Cel. '.$celularHtml;
+        if ($correoHtml !== '') $contactos[] = $correoHtml;
+        $contactoHtml = implode(' &nbsp;•&nbsp; ', $contactos);
+
+        $webHtml = $sitioweb !== ''
+            ? '<a href="'.$this->esc($sitioweb).'" style="color:#0EA5A8;text-decoration:none;font-weight:700;">'.$sitioHtml.'</a>'
+            : '';
+
+        $footerMeta = array_filter(array($ubicacionHtml, $contactoHtml, $webHtml));
+        $footerMetaHtml = implode('<br>', $footerMeta);
+
+        return '<!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{$titulo} | {$nombreEmpresa}</title>
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            line-height: 1.6;
-            color: #2d3748;
-            background-color: #f5f7fa;
-        }
-        
-        .email-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            border: 1px solid #e2e8f0;
-        }
-        
-        .email-header {
-            background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
-            padding: 30px 20px;
-            text-align: center;
-            position: relative;
-            color: white;
-        }
-        
-        .email-header:after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #3498db, #2ecc71);
-        }
-        
-        .email-logo {
-            max-width: 180px;
-            height: auto;
-            margin-bottom: 15px;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        
-        .email-title {
-            font-size: 24px;
-            font-weight: 700;
-            margin: 0;
-            color: inherit;
-        }
-        
-        .email-eslogan {
-            font-style: italic;
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.8);
-            margin-top: 8px;
-        }
-        
-        .email-content {
-            padding: 30px;
-            line-height: 1.6;
-        }
-        
-        .email-content h2 {
-            color: #2c3e50;
-            font-size: 20px;
-            margin-top: 0;
-            margin-bottom: 20px;
-            font-weight: 600;
-        }
-        
-        .email-content p {
-            margin-bottom: 16px;
-            font-size: 15px;
-        }
-        
-        .email-highlight {
-            background-color: #f8f9fa;
-            border-left: 4px solid #3498db;
-            padding: 20px;
-            border-radius: 6px;
-            margin: 20px 0;
-        }
-        
-        .email-highlight p {
-            margin: 0;
-            font-size: 14px;
-        }
-        
-        .email-highlight strong {
-            color: #2c3e50;
-        }
-        
-        .email-button {
-            display: inline-block;
-            padding: 12px 25px;
-            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-            color: white !important;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: 600;
-            text-align: center;
-            margin: 15px 0;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        
-        .email-footer {
-            background-color: #f8f9fa;
-            padding: 20px;
-            text-align: center;
-            font-size: 13px;
-            color: #718096;
-            border-top: 1px solid #e2e8f0;
-        }
-        
-        .contact-info {
-            margin-top: 15px;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 15px;
-        }
-        
-        .contact-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 13px;
-        }
-        
-        .contact-item i {
-            color: #3498db;
-            font-size: 14px;
-        }
-        
-        .social-links {
-            margin-top: 15px;
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-        }
-        
-        .social-links a {
-            color: #3498db;
-            text-decoration: none;
-        }
-        
-        .copyright {
-            margin-top: 20px;
-            font-size: 12px;
-            color: #a0aec0;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>'.$tituloHtml.' | '.$nombreEmpresaHtml.'</title>
+<style>
+@media only screen and (max-width: 620px) {
+  .izzy-shell { width:100% !important; max-width:100% !important; }
+  .izzy-pad { padding-left:18px !important; padding-right:18px !important; }
+  .izzy-title { font-size:24px !important; line-height:1.25 !important; }
+  .izzy-body { font-size:15px !important; }
+  .izzy-logo-wrap { padding-top:20px !important; padding-bottom:16px !important; }
+  .izzy-card { padding:16px !important; }
+}
+</style>
 </head>
-<body>
-    <div class="email-container">
-        <div class="email-header">
-            {$logoHtml}
-            <h1 class="email-title">{$nombreEmpresa}</h1>
-            <p class="email-eslogan">{$eslogan}</p>
-        </div>
-        
-        <div class="email-content">
-            {$contenido}
-        </div>
-        
-        <div class="email-footer">
-            <div class="contact-info">
-                <div class="contact-item">
-                    <span>📍 {$ubicacion}</span>
-                </div>
-                <div class="contact-item">
-                    <span>☎ {$telefono}</span>
-                </div>
-                <div class="contact-item">
-                    <span>📱 {$celular}</span>
-                </div>
-                <div class="contact-item">
-                    <span>✉ {$correo}</span>
-                </div>
-            </div>
-            
-            <div class="social-links">
-                <a href="{$sitioweb}">🌐 Sitio Web</a>
-                <a href="{$facebook}">Facebook</a>
-            </div>
-            
-            <p class="copyright">
-                © {$year} {$nombreEmpresa} · Todos los derechos reservados
-            </p>
-        </div>
-    </div>
+<body style="margin:0;padding:0;background:#F7F9FC;font-family:Arial,Helvetica,sans-serif;color:#172B4D;-webkit-text-size-adjust:100%;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#F7F9FC;margin:0;padding:0;">
+<tr><td align="center" style="padding:20px 12px;">
+<table role="presentation" class="izzy-shell" width="600" cellspacing="0" cellpadding="0" border="0" style="width:600px;max-width:600px;background:#FFFFFF;border:1px solid #DDE3EA;border-collapse:separate;border-spacing:0;">
+<tr><td class="izzy-logo-wrap" align="center" style="padding:24px 24px 18px;border-bottom:1px solid #DDE3EA;">'.$logoHtml.'</td></tr>
+<tr><td style="height:4px;background:'.$accent.';font-size:0;line-height:0;">&nbsp;</td></tr>
+<tr><td class="izzy-pad" style="padding:26px 30px 8px;">
+<span style="display:inline-block;padding:6px 10px;background:#F7F9FC;border:1px solid #DDE3EA;border-radius:999px;color:'.$accent.';font-size:11px;line-height:1;font-weight:800;letter-spacing:.7px;text-transform:uppercase;">'.$this->esc($badge).'</span>
+<h1 class="izzy-title" style="margin:14px 0 0;font-size:28px;line-height:1.25;color:#17324D;font-weight:800;">'.$tituloHtml.'</h1>
+'.($esloganHtml !== '' ? '<p style="margin:7px 0 0;font-size:13px;line-height:1.5;color:#5E6C84;">'.$esloganHtml.'</p>' : '').'
+</td></tr>
+<tr><td class="izzy-pad izzy-body" style="padding:12px 30px 30px;font-size:16px;line-height:1.6;color:#253858;overflow-wrap:anywhere;word-break:break-word;">'.$contenido.'</td></tr>
+<tr><td style="padding:0 30px;"><div style="height:1px;background:#DDE3EA;font-size:0;line-height:0;">&nbsp;</div></td></tr>
+<tr><td class="izzy-pad" align="center" style="padding:20px 30px 24px;background:#F7F9FC;color:#5E6C84;font-size:12px;line-height:1.6;">
+<div style="font-weight:800;color:#17324D;">'.$nombreEmpresaHtml.'</div>
+'.($footerMetaHtml !== '' ? '<div style="margin-top:6px;">'.$footerMetaHtml.'</div>' : '').'
+<div style="margin-top:12px;color:#6B778C;">Este es un mensaje automático. Por favor, no responda directamente a este correo.</div>
+<div style="margin-top:8px;color:#6B778C;">© '.$year.' '.$nombreEmpresaHtml.' · Todos los derechos reservados</div>
+</td></tr>
+</table>
+</td></tr>
+</table>
 </body>
-</html>
-HTML;
+</html>';
+    }
+
+    public function plantillaContenido($titulo, $contenidoHtml, $datosEmpresa, $tipo = 'info') {
+        return $this->plantillaBase($titulo, $contenidoHtml, $datosEmpresa, $tipo);
     }
 
     public function plantillaBienvenida($datosUsuario, $datosEmpresa) {
-        $loginUrl = SERVERURL . "login";
+        $loginUrl = rtrim(SERVERURL, '/') . '/login/';
+        $nombre = $this->esc($datosUsuario['nombre'] ?? 'Usuario');
+        $empresa = $this->esc($datosUsuario['empresa'] ?? '');
+        $email = $this->esc($datosUsuario['email'] ?? '');
+        $password = $this->esc($datosUsuario['password'] ?? '');
 
-        $contenido = <<<HTML
-            <h2>¡Bienvenido/a, {$datosUsuario['nombre']}!</h2>
-            
-            <p>Gracias por registrarte en nuestra plataforma. Estamos encantados de tenerte con nosotros.</p>
-            
-            <p>A continuación encontrarás los detalles de acceso a tu cuenta:</p>
-            
-            <div class="email-highlight">
-                <p><strong>Empresa:</strong> {$datosUsuario['empresa']}</p>
-                <p><strong>Correo electrónico del usuario para acceder al sistema:</strong> {$datosUsuario['email']}</p>
-                <p><strong>Base de datos asignada:</strong> {$datosUsuario['nombre_db']}</p>
-                <p><strong>Contraseña temporal:</strong> {$datosUsuario['password']}</p>
-            </div>
-            
-            <p style="text-align: center;">
-                <a href="{$loginUrl}" class="email-button">Acceder al Sistema</a>
-            </p>
-            
-            <p>Por seguridad, te recomendamos cambiar tu contraseña después de iniciar sesión por primera vez.</p>
-            
-            <p>Si tienes alguna pregunta o necesitas asistencia, no dudes en contactar a nuestro equipo de soporte.</p>
-            
-            <p>Atentamente,<br>El equipo de {$datosEmpresa['nombre']}</p>
-HTML;
+        $contenido = '<p style="margin:0 0 16px;">Hola <strong>'.$nombre.'</strong>,</p>
+<p style="margin:0 0 18px;">Tu cuenta en IZZY fue creada correctamente. Estas credenciales son personales y fueron enviadas únicamente a tu correo.</p>
+<div class="izzy-card" style="padding:18px;background:#F7F9FC;border:1px solid #DDE3EA;border-left:4px solid #0EA5A8;border-radius:8px;">
+<div style="margin-bottom:10px;"><strong style="color:#17324D;">Empresa</strong><br>'.$empresa.'</div>
+<div style="margin-bottom:10px;"><strong style="color:#17324D;">Usuario</strong><br>'.$email.'</div>
+<div><strong style="color:#17324D;">Contraseña temporal</strong><br><span style="font-family:Consolas,Monaco,monospace;font-weight:700;">'.$password.'</span></div>
+</div>
+<p style="margin:18px 0 0;">Por seguridad, cambia tu contraseña después del primer acceso.</p>
+<p style="margin:22px 0 0;text-align:center;"><a href="'.$this->esc($loginUrl).'" style="display:inline-block;padding:12px 22px;background:#17324D;color:#FFFFFF;text-decoration:none;border-radius:7px;font-weight:800;">Ingresar a IZZY</a></p>';
 
-        return $this->plantillaBase("Bienvenido", $contenido, $datosEmpresa);
+        return $this->plantillaBase('Bienvenido a IZZY', $contenido, $datosEmpresa, 'security');
     }
 
-    public function plantillaGenerica($titulo, $mensaje, $datosEmpresa, $accion = null) {
-        $contenido = <<<HTML
-            <h2>{$titulo}</h2>
-            
-            <p>{$mensaje}</p>
-            
-            {$this->generarBotonAccion($accion)}
-            
-            <p>Si tienes alguna pregunta o no reconoces esta acción, por favor contacta con nuestro equipo de soporte.</p>
-HTML;
-
-        return $this->plantillaBase($titulo, $contenido, $datosEmpresa);
-    }
-
-    private function generarBotonAccion($accion) {
-        if (!$accion) {
-            return '';
+    public function plantillaGenerica($titulo, $mensaje, $datosEmpresa, $accion = null, $tipo = 'info') {
+        $contenido = $mensaje;
+        if ($accion && !empty($accion['url']) && !empty($accion['texto'])) {
+            $contenido .= '<p style="margin:22px 0 0;text-align:center;"><a href="'.$this->esc($accion['url']).'" style="display:inline-block;padding:12px 22px;background:#17324D;color:#FFFFFF;text-decoration:none;border-radius:7px;font-weight:800;">'.$this->esc($accion['texto']).'</a></p>';
         }
-        
-        return <<<HTML
-            <p style="text-align: center;">
-                <a href="{$accion['url']}" class="email-button">{$accion['texto']}</a>
-            </p>
-HTML;
+        return $this->plantillaBase($titulo, $contenido, $datosEmpresa, $tipo);
     }
 }

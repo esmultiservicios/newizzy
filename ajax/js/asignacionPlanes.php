@@ -55,9 +55,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
         return $ts ? date('d/m/Y', $ts) : $value;
     }
 
+    function apApiNotifyAdmin($dbName, $title, $summary, array $details = array(), array $changes = array(), $type = 'audit', $empresaId = 0) {
+        try {
+            $svc = new NotificationService();
+            $ctx = $svc->clientContextFromDb($dbName);
+            return $svc->notifyClientAndMain(
+                $dbName,
+                $empresaId,
+                $ctx['cliente_nombre'] ?? 'Cliente IZZY',
+                'IZZY · '.$title,
+                $summary,
+                $details,
+                $changes,
+                'IZZY · Auditoría · '.$title,
+                $summary,
+                $details,
+                $changes,
+                $type
+            );
+        } catch (Throwable $e) {
+            error_log('Asignación de Planes - notificación '.$title.': '.$e->getMessage());
+            return array();
+        }
+    }
+
+    function apApiNotifyAffected($dbName, $field, $id, $title, $summary, array $changes = array()) {
+        try {
+            $svc = new NotificationService();
+            return $svc->notifyAffectedUsersByField($dbName, 0, $field, $id, 'IZZY · '.$title, $summary, $changes);
+        } catch (Throwable $e) {
+            error_log('Asignación de Planes - usuarios afectados '.$title.': '.$e->getMessage());
+            return array('sent'=>0,'failed'=>0);
+        }
+    }
+
     try {
         require_once __DIR__ . '/../../core/configGenerales.php';
         require_once __DIR__ . '/../../core/mainModel.php';
+        require_once __DIR__ . '/../../core/correo/NotificationService.php';
 
         $validacion = mainModel::validarSesion();
         if (!empty($validacion['error'])) {
@@ -230,6 +265,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
             if (!apApiTableExists($client, 'documento')) throw new Exception('La tabla documento no existe en la base del cliente.');
             $id = isset($_POST['documento_id']) ? (int)$_POST['documento_id'] : 0;
             $nombre = trim((string)($_POST['nombre'] ?? ''));
+            $documentoAnterior = null;
+            if ($id > 0) {
+                $stOld = $client->prepare('SELECT * FROM documento WHERE documento_id=? LIMIT 1');
+                if ($stOld) { $stOld->bind_param('i',$id); $stOld->execute(); $documentoAnterior=$stOld->get_result()->fetch_assoc(); $stOld->close(); }
+            }
             if ($nombre === '') apApiRespond(false, 'Ingrese el nombre del documento.', array(), 400);
             if (mb_strlen($nombre) > 30) apApiRespond(false, 'El nombre del documento no puede superar 30 caracteres.', array(), 400);
 
@@ -263,35 +303,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
                 $id = $nextId !== null ? $nextId : (int)$client->insert_id;
                 $st->close();
             }
+            $cambiosDocumento = [];
+            if ($documentoAnterior && trim((string)($documentoAnterior['nombre'] ?? '')) !== $nombre) {
+                $cambiosDocumento['Nombre'] = ['anterior'=>$documentoAnterior['nombre'], 'nuevo'=>$nombre];
+            }
+            apApiNotifyAdmin($dbName, $documentoAnterior ? 'Documento actualizado' : 'Documento creado', $documentoAnterior ? 'Se actualizó un documento de facturación.' : 'Se creó un nuevo documento de facturación.', ['Documento'=>$nombre, 'ID'=>$id], $cambiosDocumento, $documentoAnterior ? 'info' : 'success');
             $client->close();
-            apApiRespond(true, $id > 0 ? 'Documento guardado correctamente.' : 'Documento registrado correctamente.', array('documento_id'=>$id));
+            apApiRespond(true, $documentoAnterior ? 'Documento guardado correctamente.' : 'Documento registrado correctamente.', array('documento_id'=>$id));
         }
 
         if ($action === 'toggle_document') {
             $id=(int)($_POST['documento_id']??0); $estado=(int)($_POST['estado']??0)===1?1:0;
+            $docInfo=null; $stDoc=$client->prepare('SELECT * FROM documento WHERE documento_id=? LIMIT 1'); if($stDoc){$stDoc->bind_param('i',$id);$stDoc->execute();$docInfo=$stDoc->get_result()->fetch_assoc();$stDoc->close();}
             $cols=apApiColumns($client,'documento');
             $field=isset($cols['estado'])?'estado':(isset($cols['activo'])?'activo':'');
             if (!$field) throw new Exception('La tabla documento no tiene un campo de estado compatible.');
             $st=$client->prepare("UPDATE documento SET `{$field}`=? WHERE documento_id=?");
             $st->bind_param('ii',$estado,$id); if(!$st->execute()) throw new Exception($st->error); $st->close();
+            apApiNotifyAdmin($dbName, 'Estado de documento actualizado', 'Se cambió el estado de un documento de facturación.', ['Documento'=>$docInfo['nombre']??('#'.$id)], ['Estado'=>['anterior'=>!empty($docInfo[$field])?'Activo':'Inactivo','nuevo'=>$estado?'Activo':'Inactivo']], 'info');
             $client->close(); apApiRespond(true,$estado?'Documento activado correctamente.':'Documento desactivado correctamente.');
         }
 
         if ($action === 'delete_document') {
             $id=(int)($_POST['documento_id']??0);
+            $docEliminar=null;
+            $stInfo=$client->prepare('SELECT * FROM documento WHERE documento_id=? LIMIT 1');
+            if($stInfo){$stInfo->bind_param('i',$id);$stInfo->execute();$docEliminar=$stInfo->get_result()->fetch_assoc();$stInfo->close();}
             if (apApiTableExists($client,'secuencia_facturacion')) {
                 $st=$client->prepare('SELECT COUNT(*) AS total FROM secuencia_facturacion WHERE documento_id=?');
                 $st->bind_param('i',$id); $st->execute(); $cnt=(int)$st->get_result()->fetch_assoc()['total']; $st->close();
                 if($cnt>0) apApiRespond(false,'No se puede eliminar el documento porque tiene secuencias asociadas.',array('secuencias_total'=>$cnt),409);
             }
             $st=$client->prepare('DELETE FROM documento WHERE documento_id=?'); $st->bind_param('i',$id);
-            if(!$st->execute()) throw new Exception($st->error); $st->close(); $client->close();
+            if(!$st->execute()) throw new Exception($st->error); $st->close();
+            apApiNotifyAdmin(
+                $dbName,
+                'Documento eliminado',
+                'Se eliminó un documento de facturación.',
+                ['Documento'=>$docEliminar['nombre']??('#'.$id),'ID'=>$id],
+                [],
+                'audit'
+            );
+            $client->close();
             apApiRespond(true,'Documento eliminado correctamente.');
         }
 
         if ($action === 'save_sequence') {
             if (!apApiTableExists($client,'secuencia_facturacion')) throw new Exception('La tabla secuencia_facturacion no existe en la base del cliente.');
             $id=(int)($_POST['secuencia_facturacion_id']??0);
+            $secuenciaAnterior=null;
+            if($id>0){$stOld=$client->prepare('SELECT * FROM secuencia_facturacion WHERE secuencia_facturacion_id=? LIMIT 1');if($stOld){$stOld->bind_param('i',$id);$stOld->execute();$secuenciaAnterior=$stOld->get_result()->fetch_assoc();$stOld->close();}}
             $empresa=(int)($_POST['empresa_secuencia']??0); $documento=(int)($_POST['documento_secuencia']??0);
             $cai=trim((string)($_POST['cai_secuencia']??'')); $prefijo=trim((string)($_POST['prefijo_secuencia']??''));
             $relleno=(int)($_POST['relleno_secuencia']??0); $incremento=(int)($_POST['incremento_secuencia']??0); $siguiente=(int)($_POST['siguiente_secuencia']??0);
@@ -423,6 +484,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
                 $sql='INSERT INTO secuencia_facturacion (`'.implode('`,`',$fields).'`) VALUES ('.implode(',',$values).')';
                 $st=$client->prepare($sql); if(!$st) throw new Exception($client->error); $st->bind_param($types,...$params); if(!$st->execute()) throw new Exception($st->error); $id=$nextId!==null?$nextId:(int)$client->insert_id; $st->close();
             }
+            $seqInfo=null;$stInfo=$client->prepare("SELECT sf.*,COALESCE(e.nombre,CONCAT('Empresa #',sf.empresa_id)) empresa,COALESCE(d.nombre,CONCAT('Documento #',sf.documento_id)) documento FROM secuencia_facturacion sf LEFT JOIN empresa e ON e.empresa_id=sf.empresa_id LEFT JOIN documento d ON d.documento_id=sf.documento_id WHERE sf.secuencia_facturacion_id=? LIMIT 1");if($stInfo){$stInfo->bind_param('i',$id);$stInfo->execute();$seqInfo=$stInfo->get_result()->fetch_assoc();$stInfo->close();}
+            $cambiosSeq=[];
+            if($secuenciaAnterior){if((int)$secuenciaAnterior['siguiente']!==$siguiente)$cambiosSeq['Siguiente']=['anterior'=>$secuenciaAnterior['siguiente'],'nuevo'=>$siguiente];if((int)$secuenciaAnterior['activo']!==$activo)$cambiosSeq['Estado']=['anterior'=>(int)$secuenciaAnterior['activo']===1?'Activo':'Inactivo','nuevo'=>$activo===1?'Activo':'Inactivo'];}
+            apApiNotifyAdmin($dbName,$secuenciaAnterior?'Secuencia actualizada':'Secuencia creada',$secuenciaAnterior?'Se actualizó una secuencia de facturación.':'Se creó una nueva secuencia de facturación.',['Empresa'=>$seqInfo['empresa']??$empresa,'Documento'=>$seqInfo['documento']??$documento,'CAI'=>$seqInfo['cai']??$cai,'Prefijo'=>$seqInfo['prefijo']??$prefijo,'Rango'=>($seqInfo['rango_inicial']??$rin).' - '.($seqInfo['rango_final']??$rfin),'Fecha límite'=>$seqInfo['fecha_limite']??$flim],$cambiosSeq,$secuenciaAnterior?'info':'success',$empresa);
             $client->close(); apApiRespond(true,'Secuencia guardada correctamente.',array('secuencia_facturacion_id'=>$id));
         }
 
@@ -526,6 +591,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
                 throw new Exception('La tabla privilegio no existe en la base del cliente.');
             }
             $id = isset($_POST['privilegio_id']) ? (int)$_POST['privilegio_id'] : 0;
+            $privAnterior=null;if($id>0){$stOld=$client->prepare('SELECT * FROM privilegio WHERE privilegio_id=? LIMIT 1');if($stOld){$stOld->bind_param('i',$id);$stOld->execute();$privAnterior=$stOld->get_result()->fetch_assoc();$stOld->close();}}
             $nombre = trim((string)($_POST['nombre'] ?? ''));
             $estado = isset($_POST['estado']) && (int)$_POST['estado'] === 1 ? 1 : 0;
             if ($nombre === '') throw new Exception('Ingrese el nombre del privilegio.');
@@ -574,6 +640,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
                 if ($id <= 0) $id = (int)$client->insert_id;
                 $st->close();
             }
+            $cambiosPriv=[];if($privAnterior){if(trim((string)$privAnterior['nombre'])!==$nombre)$cambiosPriv['Privilegio']=['anterior'=>$privAnterior['nombre'],'nuevo'=>$nombre];if(isset($privAnterior['estado'])&&(int)$privAnterior['estado']!==$estado)$cambiosPriv['Estado']=['anterior'=>(int)$privAnterior['estado']===1?'Activo':'Inactivo','nuevo'=>$estado===1?'Activo':'Inactivo'];}
+            apApiNotifyAdmin($dbName,$privAnterior?'Privilegio actualizado':'Privilegio creado',$privAnterior?'Se actualizó un privilegio del cliente.':'Se creó un privilegio para el cliente.',['Privilegio'=>$nombre,'ID'=>$id],$cambiosPriv,$privAnterior?'security':'success');
+            if($privAnterior) apApiNotifyAffected($dbName,'privilegio_id',$id,'Privilegio actualizado','Se actualizó el privilegio asociado a tu usuario IZZY.',$cambiosPriv);
             $client->close();
             apApiRespond(true, 'Privilegio guardado correctamente.', array('privilegio_id' => $id));
         }
@@ -581,6 +650,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
         if ($action === 'delete_privilege') {
             $id = (int)($_POST['privilegio_id'] ?? 0);
             if ($id <= 0) throw new Exception('Privilegio no válido.');
+            $privEliminar=null;
+            $stInfo=$client->prepare('SELECT * FROM privilegio WHERE privilegio_id=? LIMIT 1');
+            if($stInfo){$stInfo->bind_param('i',$id);$stInfo->execute();$privEliminar=$stInfo->get_result()->fetch_assoc();$stInfo->close();}
             if (in_array($id, array(1,2), true)) {
                 $client->close();
                 apApiRespond(false, 'Este privilegio es base del sistema y no puede eliminarse.', array(), 409);
@@ -603,7 +675,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
             $st = $client->prepare('DELETE FROM privilegio WHERE privilegio_id = ?');
             $st->bind_param('i', $id);
             if (!$st->execute()) throw new Exception($st->error);
-            $st->close(); $client->close();
+            $st->close();
+            apApiNotifyAdmin(
+                $dbName,
+                'Privilegio eliminado',
+                'Se eliminó un privilegio del cliente.',
+                ['Privilegio'=>$privEliminar['nombre']??('#'.$id),'ID'=>$id],
+                [],
+                'audit'
+            );
+            $client->close();
             apApiRespond(true, 'Privilegio eliminado correctamente.');
         }
 
@@ -612,6 +693,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
                 throw new Exception('La tabla tipo_user no existe en la base del cliente.');
             }
             $id = isset($_POST['tipo_user_id']) ? (int)$_POST['tipo_user_id'] : 0;
+            $tipoAnterior=null;if($id>0){$stOld=$client->prepare('SELECT * FROM tipo_user WHERE tipo_user_id=? LIMIT 1');if($stOld){$stOld->bind_param('i',$id);$stOld->execute();$tipoAnterior=$stOld->get_result()->fetch_assoc();$stOld->close();}}
             $nombre = trim((string)($_POST['nombre'] ?? ''));
             $estado = isset($_POST['estado']) && (int)$_POST['estado'] === 1 ? 1 : 2;
             if ($nombre === '') throw new Exception('Ingrese el nombre del tipo de usuario.');
@@ -650,6 +732,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
                 $st->bind_param($types,...$params); if(!$st->execute()) throw new Exception($st->error);
                 if($id<=0)$id=(int)$client->insert_id; $st->close();
             }
+            $cambiosTipo=[];if($tipoAnterior){if(trim((string)$tipoAnterior['nombre'])!==$nombre)$cambiosTipo['Tipo / permisos']=['anterior'=>$tipoAnterior['nombre'],'nuevo'=>$nombre];if(isset($tipoAnterior['estado'])&&(int)$tipoAnterior['estado']!==$estado)$cambiosTipo['Estado']=['anterior'=>(int)$tipoAnterior['estado']===1?'Activo':'Inactivo','nuevo'=>$estado===1?'Activo':'Inactivo'];}
+            apApiNotifyAdmin($dbName,$tipoAnterior?'Tipo de usuario actualizado':'Tipo de usuario creado',$tipoAnterior?'Se actualizó un tipo de usuario/permisos.':'Se creó un tipo de usuario/permisos.',['Tipo'=>$nombre,'ID'=>$id],$cambiosTipo,$tipoAnterior?'security':'success');
+            if($tipoAnterior) apApiNotifyAffected($dbName,'tipo_user_id',$id,'Permisos de usuario actualizados','Se actualizó el tipo de permisos asociado a tu usuario IZZY.',$cambiosTipo);
             $client->close();
             apApiRespond(true, 'Tipo de usuario guardado correctamente.', array('tipo_user_id'=>$id));
         }
@@ -657,6 +742,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
         if ($action === 'delete_type_user') {
             $id=(int)($_POST['tipo_user_id']??0);
             if($id<=0) throw new Exception('Tipo de usuario no válido.');
+            $tipoEliminar=null;
+            $stInfo=$client->prepare('SELECT * FROM tipo_user WHERE tipo_user_id=? LIMIT 1');
+            if($stInfo){$stInfo->bind_param('i',$id);$stInfo->execute();$tipoEliminar=$stInfo->get_result()->fetch_assoc();$stInfo->close();}
             if(in_array($id,array(1,2),true)){
                 $client->close();
                 apApiRespond(false,'Este tipo de usuario es base del sistema y no puede eliminarse.',array(),409);
@@ -670,7 +758,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
                 $st=$client->prepare('DELETE FROM permisos WHERE tipo_user_id=?');$st->bind_param('i',$id);$st->execute();$st->close();
             }
             $st=$client->prepare('DELETE FROM tipo_user WHERE tipo_user_id=?');$st->bind_param('i',$id);
-            if(!$st->execute())throw new Exception($st->error);$st->close();$client->close();
+            if(!$st->execute())throw new Exception($st->error);$st->close();
+            apApiNotifyAdmin(
+                $dbName,
+                'Tipo de usuario eliminado',
+                'Se eliminó un tipo de usuario/permisos.',
+                ['Tipo'=>$tipoEliminar['nombre']??('#'.$id),'ID'=>$id],
+                [],
+                'audit'
+            );
+            $client->close();
             apApiRespond(true,'Tipo de usuario eliminado correctamente.');
         }
 
@@ -682,6 +779,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
             if (is_string($raw)) $raw = json_decode($raw, true);
             if (!is_array($raw)) $raw = array();
             $permitidos=array('guardar','editar','eliminar','consultar','imprimir','crear','reportes','actualizar','view','pay','cambiar','cancelar','sistema','generar');
+            $permisosAntes=[];
+            $stAntes=$client->prepare('SELECT tipo_permiso,estado FROM permisos WHERE tipo_user_id=?');
+            if($stAntes){
+                $stAntes->bind_param('i',$tipoId);$stAntes->execute();$rsAntes=$stAntes->get_result();
+                while($rAntes=$rsAntes->fetch_assoc()){if((int)$rAntes['estado']===1)$permisosAntes[]=(string)$rAntes['tipo_permiso'];}
+                $stAntes->close();
+            }
             $cols=apApiColumns($client,'permisos');
             $pk=null;
             foreach($cols as $field=>$meta){
@@ -709,6 +813,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
                     if(!$st->execute())throw new Exception($st->error);$st->close();
                 }
             }
+            $tipoNombre='Tipo #'.$tipoId;$stTipo=$client->prepare('SELECT nombre FROM tipo_user WHERE tipo_user_id=? LIMIT 1');if($stTipo){$stTipo->bind_param('i',$tipoId);$stTipo->execute();$rTipo=$stTipo->get_result()->fetch_assoc();if($rTipo)$tipoNombre=$rTipo['nombre'];$stTipo->close();}
+            $permisosActivos=[];foreach($permitidos as $perm){if(!empty($raw[$perm]))$permisosActivos[]=$perm;}
+            sort($permisosAntes); sort($permisosActivos);
+            $cambiosPerm=['Permisos activos'=>[
+                'anterior'=>implode(', ',$permisosAntes)?:'Ninguno',
+                'nuevo'=>implode(', ',$permisosActivos)?:'Ninguno'
+            ]];
+            apApiNotifyAdmin($dbName,'Permisos actualizados','Se actualizó la configuración de permisos de un tipo de usuario.',['Tipo'=>$tipoNombre],$cambiosPerm,'security');
+            apApiNotifyAffected($dbName,'tipo_user_id',$tipoId,'Permisos actualizados','Se actualizaron los permisos asociados a tu usuario IZZY.',$cambiosPerm);
             $client->close();
             apApiRespond(true,'Permisos guardados correctamente.');
         }
@@ -904,12 +1017,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
                 $st=$client->prepare("DELETE FROM `{$table}` WHERE privilegio_id=? AND `{$cfg['item']}`=?");
                 $st->bind_param('ii',$privId,$itemId);if(!$st->execute())throw new Exception($st->error);$st->close();
             }
+            $privNombre='Privilegio #'.$privId;$stPN=$client->prepare('SELECT nombre FROM privilegio WHERE privilegio_id=? LIMIT 1');if($stPN){$stPN->bind_param('i',$privId);$stPN->execute();$rPN=$stPN->get_result()->fetch_assoc();if($rPN)$privNombre=$rPN['nombre'];$stPN->close();}
+            $cambiosAcceso=['Acceso '.$level.' #'.$itemId=>['anterior'=>$assigned?'No asignado':'Asignado','nuevo'=>$assigned?'Asignado':'Retirado']];
+            apApiNotifyAdmin($dbName,'Acceso de privilegio actualizado','Se modificó la matriz de accesos de un privilegio.',['Privilegio'=>$privNombre],$cambiosAcceso,'security');
+            apApiNotifyAffected($dbName,'privilegio_id',$privId,'Accesos actualizados','Se actualizaron los accesos asociados a tu privilegio IZZY.',$cambiosAcceso);
             $client->close();
             apApiRespond(true,$assigned?'Acceso asignado correctamente.':'Acceso retirado correctamente.');
         }
 
         if ($action === 'delete_sequence') {
             $id=(int)($_POST['secuencia_facturacion_id']??0);
+            $seqEliminar=null;
+            $sqlInfo='SELECT s.*, COALESCE(e.nombre, CONCAT("Empresa #",s.empresa_id)) AS empresa_nombre, COALESCE(d.nombre, CONCAT("Documento #",s.documento_id)) AS documento_nombre FROM secuencia_facturacion s LEFT JOIN empresa e ON e.empresa_id=s.empresa_id LEFT JOIN documento d ON d.documento_id=s.documento_id WHERE s.secuencia_facturacion_id=? LIMIT 1';
+            $stInfo=$client->prepare($sqlInfo);
+            if($stInfo){$stInfo->bind_param('i',$id);$stInfo->execute();$seqEliminar=$stInfo->get_result()->fetch_assoc();$stInfo->close();}
             if(apApiTableExists($client,'facturas')){
                 $cols=apApiColumns($client,'facturas');
                 if(isset($cols['secuencia_facturacion_id'])){
@@ -917,7 +1038,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
                     if($cnt>0) apApiRespond(false,'No se puede eliminar esta secuencia porque ya tiene facturas relacionadas.',array('facturas_total'=>$cnt),409);
                 }
             }
-            $st=$client->prepare('DELETE FROM secuencia_facturacion WHERE secuencia_facturacion_id=?');$st->bind_param('i',$id);if(!$st->execute()) throw new Exception($st->error);$st->close();$client->close();
+            $st=$client->prepare('DELETE FROM secuencia_facturacion WHERE secuencia_facturacion_id=?');$st->bind_param('i',$id);if(!$st->execute()) throw new Exception($st->error);$st->close();
+            apApiNotifyAdmin(
+                $dbName,
+                'Secuencia eliminada',
+                'Se eliminó una secuencia de facturación.',
+                [
+                    'Empresa'=>$seqEliminar['empresa_nombre']??'',
+                    'Documento'=>$seqEliminar['documento_nombre']??'',
+                    'CAI'=>$seqEliminar['cai']??'',
+                    'Prefijo'=>$seqEliminar['prefijo']??'',
+                    'Rango'=>($seqEliminar['rango_inicial']??'').' - '.($seqEliminar['rango_final']??'')
+                ],
+                [],
+                'audit'
+            );
+            $client->close();
             apApiRespond(true,'Secuencia eliminada correctamente.');
         }
 

@@ -1,11 +1,16 @@
 <?php
     if($peticionAjax){
         require_once "../modelos/privilegioModelo.php";
+        require_once "../core/correo/NotificationService.php";
     }else{
         require_once "./modelos/privilegioModelo.php";
+        require_once "./core/correo/NotificationService.php";
     }
 	
 	class privilegioControlador extends privilegioModelo{
+        private function notificarPrivilegio($titulo,$resumen,array $detalles=[],array $cambios=[],$tipo='audit',$privilegioId=0){
+            try{$svc=new NotificationService();$db=$svc->currentDbName();$ctx=$svc->clientContextFromDb($db);$r=$svc->notifyClientAndMain($db,0,$ctx['cliente_nombre']??'Cliente IZZY','IZZY · '.$titulo,$resumen,$detalles,$cambios,'IZZY · Auditoría · '.$titulo,$resumen,$detalles,$cambios,$tipo);if($privilegioId>0)$svc->notifyAffectedUsersByField($db,0,'privilegio_id',$privilegioId,'IZZY · '.$titulo,$resumen,$cambios);return $r;}catch(Throwable $e){error_log('Privilegio - notificación: '.$e->getMessage());return [];}
+        }
 		public function agregar_privilegio_controlador(){
 			$nombre = mainModel::cleanStringConverterCase($_POST['privilegios_nombre']);
 			$estado = 1;
@@ -34,6 +39,14 @@
 				]);
 			}
 
+            $this->notificarPrivilegio(
+                'Privilegio creado',
+                'Se creó un nuevo privilegio.',
+                ['Privilegio'=>$nombre, 'Estado'=>'Activo'],
+                [],
+                'success'
+            );
+
 			return mainModel::showNotification([
 				"type" => "success",
 				"title" => "Registro exitoso",
@@ -48,6 +61,21 @@
 			$nombre = mainModel::cleanStringConverterCase($_POST['privilegios_nombre']);
 			
 			$estado = isset($_POST['privilegio_activo']) && $_POST['privilegio_activo'] == 'on' ? 1 : 0;
+
+            $privilegioAnterior = null;
+            try {
+                $cnNoti = mainModel::connection();
+                $stNoti = $cnNoti->prepare("SELECT nombre, estado FROM privilegio WHERE privilegio_id = ? LIMIT 1");
+                if ($stNoti) {
+                    $idNoti = (int)$privilegio_id;
+                    $stNoti->bind_param("i", $idNoti);
+                    $stNoti->execute();
+                    $privilegioAnterior = $stNoti->get_result()->fetch_assoc();
+                    $stNoti->close();
+                }
+            } catch (Throwable $e) {
+                error_log('Privilegio - lectura anterior: '.$e->getMessage());
+            }
 			
 			$datos = [
 				"privilegio_id" => $privilegio_id,
@@ -63,6 +91,27 @@
 				]);
 			}
 
+            $cambiosPrivilegio = [];
+            if ($privilegioAnterior) {
+                if (trim((string)$privilegioAnterior['nombre']) !== trim((string)$nombre)) {
+                    $cambiosPrivilegio['Privilegio'] = ['anterior'=>$privilegioAnterior['nombre'], 'nuevo'=>$nombre];
+                }
+                if ((int)$privilegioAnterior['estado'] !== (int)$estado) {
+                    $cambiosPrivilegio['Estado'] = [
+                        'anterior'=>(int)$privilegioAnterior['estado'] === 1 ? 'Activo' : 'Inactivo',
+                        'nuevo'=>(int)$estado === 1 ? 'Activo' : 'Inactivo'
+                    ];
+                }
+            }
+            $this->notificarPrivilegio(
+                'Privilegio actualizado',
+                'Se actualizó un privilegio.',
+                ['Privilegio'=>$nombre],
+                $cambiosPrivilegio,
+                'security',
+                (int)$privilegio_id
+            );
+
 			return mainModel::showNotification([
 				"type" => "success",
 				"title" => "Registro exitoso",
@@ -74,7 +123,7 @@
 		public function delete_privilegio_controlador(){
 			$privilegio_id = $_POST['privilegio_id_'];
 			
-			$campos = ['privilegio_id'];
+			$campos = ['privilegio_id', 'nombre'];
 			$tabla = "privilegio";
 			$condicion = "privilegio_id = {$privilegio_id}";
 
@@ -90,7 +139,7 @@
 				exit();
 			}
 			
-			$nombre = $privilegio[0]['privilegio_nombre'] ?? '';
+			$nombre = $privilegio[0]['nombre'] ?? '';
 
 			// VALIDAMOS QUE EL PRODCUTO NO TENGA MOVIMIENTOS, PARA PODER ELIMINARSE
 			if(privilegioModelo::valid_privilegio_usuarios($privilegio_id)->num_rows > 0){
@@ -113,6 +162,14 @@
 				exit();
 			}
 			
+            $this->notificarPrivilegio(
+                'Privilegio eliminado',
+                'Se eliminó un privilegio.',
+                ['Privilegio'=>$nombre, 'ID'=>(int)$privilegio_id],
+                [],
+                'audit'
+            );
+
 			header('Content-Type: application/json');
 			echo json_encode([
 				"status" => "success",

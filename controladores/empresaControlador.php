@@ -20,16 +20,17 @@ class empresaControlador extends empresaModelo
         try {
             $service = new NotificationService();
             $db = $service->currentDbName();
-            $ctx = $service->clientContextFromDb($db);
-            return $service->notifyClientAndMain(
+
+            if ($db === '') {
+                return ['sent' => false, 'count' => 0, 'message' => 'No se pudo determinar la base actual.'];
+            }
+
+            // Fuera de Asignación de Planes, la auditoría se notifica únicamente
+            // a los destinatarios configurados en la base donde ocurrió la acción.
+            return $service->notifyAdmins(
                 $db,
                 $empresaId,
-                $ctx['cliente_nombre'] ?? 'Cliente IZZY',
                 'IZZY · '.$titulo,
-                $resumen,
-                $detalles,
-                $cambios,
-                'IZZY · Auditoría · '.$titulo,
                 $resumen,
                 $detalles,
                 $cambios,

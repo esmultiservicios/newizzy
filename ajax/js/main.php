@@ -1380,7 +1380,7 @@ function modal_puestos(){
             // Listener para después del cierre
             $('#modal_registrar_puestos').on('hidden.bs.modal', function () {
                 if($('#formPuestos').data('success')) {
-                    alert("hey haz llegado hasta aqui");
+                    showNotify('success', 'Éxito', 'La operación se completó correctamente.');
                 }
             });
     });
@@ -3083,11 +3083,7 @@ function mostrarErrorBadgePin(mensaje) {
 
 // Mostrar error con notificación
 function mostrarErrorCliente(mensaje) {
-    if (typeof showNotify !== 'undefined') {
-        showNotify("error", "Error", mensaje);
-    } else {
-        alert(mensaje);
-    }
+    showNotify("error", "Error", mensaje);
 }
 
 // Inicializar popover
@@ -6462,11 +6458,7 @@ function isFactura() {
 }
 
 function notifyPago(type, title, message) {
-  if (typeof showNotify === 'function') {
-    showNotify(type, title, message);
-  } else {
-    alert((title || 'Aviso') + '\n' + (message || ''));
-  }
+  showNotify(type, title, message);
 }
 
 /* ===============================
@@ -7786,20 +7778,11 @@ function handleServerResponse(resp) {
     }
   } catch (_) {}
 
-  if (typeof showNotify === 'function') {
-    showNotify(
-      resp && resp.status ? 'success' : 'error',
-      resp && resp.title ? resp.title : (resp && resp.status ? 'Éxito' : 'Error'),
-      resp && resp.message ? resp.message : ''
-    );
-  } else {
-    alert(
-      (resp && resp.status ? 'OK: ' : 'ERROR: ')
-      + (resp && resp.title ? resp.title : '')
-      + '\n'
-      + (resp && resp.message ? resp.message : '')
-    );
-  }
+  showNotify(
+    resp && resp.status ? 'success' : 'error',
+    resp && resp.title ? resp.title : (resp && resp.status ? 'Éxito' : 'Error'),
+    resp && resp.message ? resp.message : ''
+  );
 
   if (resp && resp.closeAllModals) {
     $('#modal_pagos_unificado').modal('hide');
@@ -10691,18 +10674,7 @@ function formatoMonedaRetiro(valor) {
 }
 
 function notificarRetiroCaja(tipo, titulo, mensaje) {
-    if (typeof showNotify === 'function') {
-        showNotify(tipo, titulo, mensaje);
-    } else if (typeof swal === 'function') {
-        swal({
-            title: titulo,
-            text: mensaje,
-            icon: tipo === 'success' ? 'success' : 'error',
-            button: 'Aceptar'
-        });
-    } else {
-        alert(titulo + ': ' + mensaje);
-    }
+    showNotify(tipo, titulo, mensaje);
 }
 
 function cargarCategoriasRetiroCaja() {

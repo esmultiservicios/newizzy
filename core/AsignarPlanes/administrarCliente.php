@@ -25,6 +25,24 @@ function apiClean($value) {
     return trim((string)$value);
 }
 
+/**
+ * Genera la contraseña temporal usada por Asignación de Planes sin invocar
+ * el método protegido mainModel::generar_password_complejo() desde scope global.
+ * Mantiene el mismo formato actual de IZZY: 12 caracteres alfanuméricos.
+ */
+function apiGenerarPasswordComplejo() {
+    $largo = 12;
+    $cadenaBase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    $limite = strlen($cadenaBase) - 1;
+    $password = '';
+
+    for ($i = 0; $i < $largo; $i++) {
+        $password .= $cadenaBase[random_int(0, $limite)];
+    }
+
+    return $password;
+}
+
 function apiInt($key, $default = 0) {
     return isset($_POST[$key]) ? (int)$_POST[$key] : $default;
 }
@@ -863,8 +881,8 @@ try {
         if ($stmt->get_result()->num_rows) throw new Exception('El colaborador ya tiene usuario o el correo ya está registrado.');
         $stmt->close();
 
-        $plain = mainModel::generar_password_complejo();
-        $encrypted = mainModel::encryption($plain);
+        $plain = apiGenerarPasswordComplejo();
+        $encrypted = $mainModel->encryption($plain);
         $username = apiUsername($email);
         $userId = apiNextId($client, 'users', 'users_id');
         $stmt = $client->prepare("INSERT INTO users (users_id,colaboradores_id,privilegio_id,username,password,email,tipo_user_id,estado,fecha_registro,empresa_id,server_customers_id) VALUES (?,?,?,?,?,?,?,?,NOW(),?,?)");
@@ -893,8 +911,8 @@ try {
         $stmt = $client->prepare("SELECT u.email,u.colaboradores_id,u.privilegio_id,u.tipo_user_id,u.estado,c.nombre,c.identidad,c.telefono,c.puestos_id,c.fecha_ingreso,c.empresa_id FROM users u INNER JOIN colaboradores c ON c.colaboradores_id=u.colaboradores_id WHERE u.users_id=? LIMIT 1");
         $stmt->bind_param('i',$userId); $stmt->execute(); $info=$stmt->get_result()->fetch_assoc(); $stmt->close();
         if (!$info || !filter_var($info['email'], FILTER_VALIDATE_EMAIL)) throw new Exception('El usuario no tiene un correo válido para enviar la nueva contraseña.');
-        $plain = mainModel::generar_password_complejo();
-        $encrypted = mainModel::encryption($plain);
+        $plain = apiGenerarPasswordComplejo();
+        $encrypted = $mainModel->encryption($plain);
         $stmt = $client->prepare("UPDATE users SET password=? WHERE users_id=?");
         $stmt->bind_param('si',$encrypted,$userId);
         if (!$stmt->execute()) throw new Exception('No se pudo actualizar la contraseña local.');

@@ -4842,7 +4842,7 @@ function clientesGenerarXlsx(rows) {
     });
 
     var sheetXml =
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
             '<dimension ref="A1:' + lastCol + lastRow + '"/>' +
             '<sheetViews>' +
@@ -4885,7 +4885,7 @@ function clientesGenerarXlsx(rows) {
      * interpretar correctamente los estilos del workbook.
      */
     var stylesXml =
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
             '<fonts count="7">' +
                 '<font><sz val="10"/><name val="Calibri"/><family val="2"/></font>' +
@@ -4935,7 +4935,7 @@ function clientesGenerarXlsx(rows) {
         '</styleSheet>';
 
     var workbookXml =
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
             'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
             '<bookViews><workbookView activeTab="0"/></bookViews>' +
@@ -4943,7 +4943,7 @@ function clientesGenerarXlsx(rows) {
         '</workbook>';
 
     var workbookRels =
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
             '<Relationship Id="rId1" ' +
                 'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" ' +
@@ -4954,7 +4954,7 @@ function clientesGenerarXlsx(rows) {
         '</Relationships>';
 
     var rootRels =
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
             '<Relationship Id="rId1" ' +
                 'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" ' +
@@ -4962,7 +4962,7 @@ function clientesGenerarXlsx(rows) {
         '</Relationships>';
 
     var contentTypes =
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
             '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
             '<Default Extension="xml" ContentType="application/xml"/>' +

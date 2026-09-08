@@ -530,7 +530,7 @@
 
 .menus-actions-dropdown > .dropdown-menu {
     min-width: 210px;
-    z-index: 9999 !important;
+    z-index: 1985 !important;
 }
 
 .menus-detail-row,
@@ -542,7 +542,7 @@
 .menus-actions-dropdown.show,
 .menus-detail-row:has(.menus-actions-dropdown.show),
 .menus-mini-card:has(.menus-actions-dropdown.show) {
-    z-index: 9998;
+    z-index: 30;
 }
 
 .menus-list-card,

@@ -1428,7 +1428,7 @@
 
 .ap-actions-portal {
     position: fixed;
-    z-index: 2147483000;
+    z-index: 1985;
     width: 300px;
     max-width: calc(100vw - 16px);
     display: none;

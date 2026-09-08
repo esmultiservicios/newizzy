@@ -10840,113 +10840,347 @@ $(document).on('submit', '#formRetiroCaja', function (e) {
 /*FIN RETIRO DE CAJA*/
 
 /* =========================================================
-   DROPDOWN GLOBAL DE ACCIONES PARA DATATABLES
+   IZZY | DROPDOWN GLOBAL DE ACCIONES V3
+   Portal real al <body>: nunca queda detrás de filas/cards ni es recortado
+   por overflow/transform. Se posiciona abajo/arriba/derecha/izquierda según
+   el espacio disponible y respeta la capa de los modales.
    ========================================================= */
+(function inicializarDropdownAccionesGlobalIZZY() {
+    'use strict';
 
-/* Limpia eventos anteriores para evitar duplicados */
-$(document).off("click", ".js-acciones-toggle");
-$(document).off("click", ".acciones-menu");
-$(document).off("click", ".acciones-menu .accion-item");
-$(document).off("click.accionesGlobal");
-$(document).off("show.bs.modal.accionesGlobal");
-$(document).off("hidden.bs.modal.accionesGlobal");
-$(window).off("scroll.accionesGlobal resize.accionesGlobal");
-
-/* Función global para cerrar cualquier menú abierto */
-function cerrarDropdownAcciones() {
-    $(".acciones-menu.show").each(function () {
-        $(this)
-            .removeClass("show")
-            .removeAttr("style");
-    });
-
-    $(".js-acciones-toggle").attr("aria-expanded", "false");
-}
-
-/* Abrir/cerrar menú al presionar el botón Acciones */
-$(document).on("click", ".js-acciones-toggle", function (e) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    var $button = $(this);
-    var $dropdown = $button.closest(".acciones-dropdown");
-    var $menu = $dropdown.find(".acciones-menu").first();
-
-    if ($menu.hasClass("show")) {
-        cerrarDropdownAcciones();
-        return;
+    if (window.IZZYActionDropdown && typeof window.IZZYActionDropdown.destroy === 'function') {
+        try { window.IZZYActionDropdown.destroy(); } catch (e) {}
     }
 
-    cerrarDropdownAcciones();
-
-    $menu.addClass("show");
-
-    var rect = this.getBoundingClientRect();
-    var menuWidth = $menu.outerWidth();
-    var menuHeight = $menu.outerHeight();
-
-    var top = rect.bottom + 8;
-    var left = rect.right - menuWidth;
-
-    if (left < 10) {
-        left = rect.left;
+    if (window.jQuery) {
+        /* Quitar el manejador global anterior. Los manejadores específicos de
+           módulos quedan anulados por el listener capture de este administrador. */
+        $(document).off('click', '.js-acciones-toggle');
+        $(document).off('click', '.acciones-menu');
+        $(document).off('click', '.acciones-menu .accion-item');
+        $(document).off('click.accionesGlobal');
+        $(document).off('show.bs.modal.accionesGlobal hidden.bs.modal.accionesGlobal');
+        $(window).off('scroll.accionesGlobal resize.accionesGlobal');
     }
 
-    if (left + menuWidth > window.innerWidth) {
-        left = window.innerWidth - menuWidth - 10;
+    var TOGGLE_SELECTOR = [
+        '.acciones-dropdown > .js-acciones-toggle',
+        '.clientes-actions-dropdown > .clientes-acciones-toggle',
+        '.menus-actions-dropdown > .menus-acciones-toggle',
+        '.planes-actions-dropdown > .planes-acciones-toggle',
+        '.secuencia-actions > .dropdown-toggle',
+        '.ap-sequence-main-actions > .dropdown-toggle',
+        '.ap-sequence-row-actions > .dropdown-toggle',
+        '.ap-document-actions > .dropdown-toggle',
+        '.ap-company-actions > .dropdown-toggle',
+        '.ap-access-actions > .dropdown-toggle'
+    ].join(',');
+
+    var ROOT_CLASSES = [
+        'clientes-page', 'usuarios-page', 'empresa-page', 'menus-page',
+        'planes-page', 'secuencia-page', 'cajas-page', 'asignacion-planes-page'
+    ];
+
+    var state = {
+        trigger: null,
+        dropdown: null,
+        originalMenu: null,
+        host: null,
+        cloneMenu: null,
+        raf: 0
+    };
+
+    function firstDirectMenu(dropdown) {
+        if (!dropdown) return null;
+        for (var i = 0; i < dropdown.children.length; i++) {
+            if (dropdown.children[i].classList.contains('dropdown-menu')) return dropdown.children[i];
+        }
+        return dropdown.querySelector('.dropdown-menu');
     }
 
-    if (top + menuHeight > window.innerHeight) {
-        top = rect.top - menuHeight - 8;
+    function resolveDropdown(trigger) {
+        if (!trigger) return null;
+        return trigger.closest(
+            '.acciones-dropdown,.clientes-actions-dropdown,.menus-actions-dropdown,' +
+            '.planes-actions-dropdown,.secuencia-actions,.ap-sequence-main-actions,' +
+            '.ap-sequence-row-actions,.ap-document-actions,.ap-company-actions,' +
+            '.ap-access-actions,.dropdown'
+        );
     }
 
-    if (top < 10) {
-        top = 10;
+    function interactiveItems(menu) {
+        if (!menu) return [];
+        return Array.prototype.slice.call(menu.querySelectorAll('.dropdown-item,.accion-item,a,button'));
     }
 
-    $menu.css({
-        display: "block",
-        position: "fixed",
-        top: top + "px",
-        left: left + "px",
-        right: "auto",
-        bottom: "auto",
-        transform: "none",
-        zIndex: 999999
-    });
+    function computedNumber(value, fallback) {
+        var n = parseInt(value, 10);
+        return isFinite(n) ? n : fallback;
+    }
 
-    $button.attr("aria-expanded", "true");
-});
+    function hostZIndex(trigger) {
+        var modal = trigger ? trigger.closest('.modal.show') : null;
+        if (!modal) return 20000; // Por encima de cualquier fila/card del contenido normal.
+        var z = computedNumber(window.getComputedStyle(modal).zIndex, 1050);
+        return Math.max(20020, z + 20);
+    }
 
-/* No cerrar si solo se hace clic dentro del menú vacío */
-$(document).on("click", ".acciones-menu", function (e) {
-    e.stopPropagation();
-});
+    function copyVisibility(originalMenu, cloneMenu) {
+        var originals = interactiveItems(originalMenu);
+        var clones = interactiveItems(cloneMenu);
+        for (var i = 0; i < Math.min(originals.length, clones.length); i++) {
+            var cs = window.getComputedStyle(originals[i]);
+            if (cs.display === 'none' || cs.visibility === 'hidden') {
+                clones[i].style.setProperty('display', 'none', 'important');
+            }
+        }
+    }
 
-/* Cerrar al presionar una opción del menú */
-$(document).on("click", ".acciones-menu .accion-item", function () {
-    cerrarDropdownAcciones();
-});
+    function buildHost(trigger, originalMenu) {
+        var host = document.createElement('div');
+        host.className = 'izzy-actions-floating-host';
+        host.setAttribute('data-izzy-actions-portal', '1');
+        host.style.cssText = [
+            'position:fixed', 'inset:0', 'width:100vw', 'height:100vh',
+            'pointer-events:none', 'overflow:visible', 'z-index:' + hostZIndex(trigger)
+        ].join(';');
 
-/* Cerrar al hacer clic fuera */
-$(document).on("click.accionesGlobal", function () {
-    cerrarDropdownAcciones();
-});
+        for (var i = 0; i < ROOT_CLASSES.length; i++) {
+            if (trigger.closest('.' + ROOT_CLASSES[i])) host.classList.add(ROOT_CLASSES[i]);
+        }
 
-/* Cerrar al hacer scroll o cambiar tamaño */
-$(window).on("scroll.accionesGlobal resize.accionesGlobal", function () {
-    cerrarDropdownAcciones();
-});
+        var menu = originalMenu.cloneNode(true);
+        menu.removeAttribute('id');
+        menu.classList.add('show', 'izzy-actions-floating-menu');
+        menu.classList.remove('dropdown-menu-right');
+        menu.removeAttribute('x-placement');
+        menu.removeAttribute('data-popper-placement');
+        menu.style.cssText += ';display:block!important;position:fixed!important;right:auto!important;bottom:auto!important;transform:none!important;visibility:hidden;pointer-events:auto;margin:0!important;';
 
-/* Cerrar siempre que se abra un modal */
-$(document).on("show.bs.modal.accionesGlobal", ".modal", function () {
-    cerrarDropdownAcciones();
-});
+        host.appendChild(menu);
+        document.body.appendChild(host);
+        copyVisibility(originalMenu, menu);
+        return { host: host, menu: menu };
+    }
 
-/* Cerrar también cuando se cierre un modal */
-$(document).on("hidden.bs.modal.accionesGlobal", ".modal", function () {
-    cerrarDropdownAcciones();
-});
+    function clamp(value, min, max) {
+        if (max < min) return min;
+        return Math.max(min, Math.min(value, max));
+    }
+
+    function positionCurrent() {
+        if (!state.trigger || !state.cloneMenu || !document.documentElement.contains(state.trigger)) {
+            closeCurrent();
+            return;
+        }
+
+        var rect = state.trigger.getBoundingClientRect();
+        var menu = state.cloneMenu;
+        var vw = window.innerWidth || document.documentElement.clientWidth || 0;
+        var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+        var margin = 10;
+        var gap = 7;
+
+        menu.style.maxWidth = Math.max(120, vw - (margin * 2)) + 'px';
+        menu.style.maxHeight = Math.max(80, vh - (margin * 2)) + 'px';
+        menu.style.overflowY = 'auto';
+        menu.style.overflowX = 'hidden';
+        menu.style.visibility = 'hidden';
+        menu.style.left = '0px';
+        menu.style.top = '0px';
+
+        var mr = menu.getBoundingClientRect();
+        var mw = Math.min(mr.width || 210, Math.max(120, vw - margin * 2));
+        var mh = Math.min(mr.height || 1, Math.max(80, vh - margin * 2));
+
+        var spaces = {
+            bottom: Math.max(0, vh - rect.bottom - margin),
+            top: Math.max(0, rect.top - margin),
+            right: Math.max(0, vw - rect.right - margin),
+            left: Math.max(0, rect.left - margin)
+        };
+
+        var placement = '';
+        if (spaces.bottom >= mh + gap) placement = 'bottom';
+        else if (spaces.top >= mh + gap) placement = 'top';
+        else if (spaces.right >= mw + gap) placement = 'right';
+        else if (spaces.left >= mw + gap) placement = 'left';
+        else {
+            var scores = {
+                bottom: spaces.bottom * mw,
+                top: spaces.top * mw,
+                right: spaces.right * mh,
+                left: spaces.left * mh
+            };
+            placement = 'bottom';
+            Object.keys(scores).forEach(function(k) {
+                if (scores[k] > scores[placement]) placement = k;
+            });
+        }
+
+        var top;
+        var left;
+        if (placement === 'top') {
+            top = rect.top - mh - gap;
+            left = rect.left;
+        } else if (placement === 'right') {
+            top = rect.top;
+            left = rect.right + gap;
+        } else if (placement === 'left') {
+            top = rect.top;
+            left = rect.left - mw - gap;
+        } else {
+            top = rect.bottom + gap;
+            left = rect.left;
+        }
+
+        top = clamp(top, margin, Math.max(margin, vh - mh - margin));
+        left = clamp(left, margin, Math.max(margin, vw - mw - margin));
+
+        menu.style.width = mw + 'px';
+        menu.style.top = Math.round(top) + 'px';
+        menu.style.left = Math.round(left) + 'px';
+        menu.style.visibility = 'visible';
+        menu.setAttribute('data-placement', placement);
+        state.host.style.zIndex = String(hostZIndex(state.trigger));
+    }
+
+    function closeCurrent() {
+        if (state.raf) {
+            window.cancelAnimationFrame(state.raf);
+            state.raf = 0;
+        }
+        if (state.trigger) state.trigger.setAttribute('aria-expanded', 'false');
+        if (state.host && state.host.parentNode) state.host.parentNode.removeChild(state.host);
+        state.trigger = null;
+        state.dropdown = null;
+        state.originalMenu = null;
+        state.host = null;
+        state.cloneMenu = null;
+    }
+
+    function openFor(trigger) {
+        var dropdown = resolveDropdown(trigger);
+        var originalMenu = firstDirectMenu(dropdown);
+        if (!dropdown || !originalMenu) return;
+
+        if (state.trigger === trigger) {
+            closeCurrent();
+            return;
+        }
+
+        closeCurrent();
+
+        /* Bootstrap/Popper no debe abrir simultáneamente el menú original. */
+        originalMenu.classList.remove('show');
+        dropdown.classList.remove('show', 'dropup', 'dropright', 'dropleft');
+        originalMenu.removeAttribute('style');
+
+        var portal = buildHost(trigger, originalMenu);
+        state.trigger = trigger;
+        state.dropdown = dropdown;
+        state.originalMenu = originalMenu;
+        state.host = portal.host;
+        state.cloneMenu = portal.menu;
+        trigger.setAttribute('aria-expanded', 'true');
+        positionCurrent();
+    }
+
+    function proxyPortalAction(target, event) {
+        if (!state.cloneMenu || !state.originalMenu) return false;
+        var item = target.closest('.dropdown-item,.accion-item,a,button');
+        if (!item || !state.cloneMenu.contains(item)) return false;
+
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+
+        if (item.disabled || item.getAttribute('aria-disabled') === 'true' || item.classList.contains('disabled')) {
+            return true;
+        }
+
+        var cloneItems = interactiveItems(state.cloneMenu);
+        var originals = interactiveItems(state.originalMenu);
+        var index = cloneItems.indexOf(item);
+        var original = index >= 0 ? originals[index] : null;
+
+        closeCurrent();
+        if (original) {
+            window.setTimeout(function() {
+                try { original.click(); } catch (e) {
+                    if (window.jQuery) window.jQuery(original).trigger('click');
+                }
+            }, 0);
+        }
+        return true;
+    }
+
+    function onDocumentClickCapture(event) {
+        if (state.cloneMenu && state.cloneMenu.contains(event.target)) {
+            proxyPortalAction(event.target, event);
+            return;
+        }
+
+        var toggle = event.target.closest ? event.target.closest(TOGGLE_SELECTOR) : null;
+        if (toggle) {
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            openFor(toggle);
+            return;
+        }
+
+        if (state.trigger) closeCurrent();
+    }
+
+    function onKeydownCapture(event) {
+        if (event.key === 'Escape' && state.trigger) {
+            event.preventDefault();
+            closeCurrent();
+        }
+    }
+
+    function scheduleReposition() {
+        if (!state.trigger || state.raf) return;
+        state.raf = window.requestAnimationFrame(function() {
+            state.raf = 0;
+            positionCurrent();
+        });
+    }
+
+    function onModalShow() {
+        /* Si una acción abre modal, el menú desaparece antes de que aparezca el backdrop. */
+        if (state.trigger) closeCurrent();
+    }
+
+    document.addEventListener('click', onDocumentClickCapture, true);
+    document.addEventListener('keydown', onKeydownCapture, true);
+    window.addEventListener('resize', scheduleReposition, { passive: true });
+    window.addEventListener('scroll', scheduleReposition, { passive: true, capture: true });
+
+    if (window.jQuery) {
+        $(document).off('show.bs.modal.izzyActionsPortal').on('show.bs.modal.izzyActionsPortal', '.modal', onModalShow);
+    }
+
+    window.IZZYActionDropdown = {
+        open: openFor,
+        close: closeCurrent,
+        reposition: scheduleReposition,
+        isGlobalManager: true,
+        destroy: function() {
+            closeCurrent();
+            document.removeEventListener('click', onDocumentClickCapture, true);
+            document.removeEventListener('keydown', onKeydownCapture, true);
+            window.removeEventListener('resize', scheduleReposition, { passive: true });
+            window.removeEventListener('scroll', scheduleReposition, { passive: true, capture: true });
+            if (window.jQuery) $(document).off('show.bs.modal.izzyActionsPortal');
+        }
+    };
+
+    /* Compatibilidad con código antiguo que llama esta función. */
+    window.cerrarDropdownAcciones = closeCurrent;
+})();
+
 
 /* =========================================================
    INICIO MODAL GLOBAL: VISTA PREVIA DE DOCUMENTOS Y REPORTES

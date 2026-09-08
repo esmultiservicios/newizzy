@@ -2623,64 +2623,35 @@ function obtenerFechaArchivo() {
 
 /* =========================================================
    USUARIOS | DROPDOWN DE ACCIONES ADAPTATIVO
-   Funciona en vista detalle y miniatura.
+   - Abajo / arriba / derecha / izquierda según espacio real.
+   - Nunca queda detrás del contenido ni por encima de un modal.
+   - Cierra otros menús, clic externo, scroll, resize, ESC y modal.
    ========================================================= */
-function limpiarDireccionDropdownUsuarios($dropdown) {
-    if (!$dropdown || !$dropdown.length) {
-        return;
-    }
+var usuariosDropdownActivo = null;
 
-    $dropdown.removeClass('dropup dropright dropleft');
-    $dropdown.children('.dropdown-menu')
-        .removeClass('dropdown-menu-right')
-        .removeAttr('x-placement data-popper-placement')
-        .css({ top: '', left: '', right: '', bottom: '', transform: '' });
+function usuariosObtenerBoton($dropdown) {
+    return $dropdown.children('.js-acciones-toggle').first();
 }
 
-function medirMenuDropdownUsuarios($menu) {
+function usuariosMedirDropdown($menu) {
     var menu = $menu && $menu.length ? $menu[0] : null;
+    if (!menu) return { width: 200, height: 160 };
 
-    if (!menu) {
-        return { width: 200, height: 150 };
-    }
-
-    var estilos = {
-        display: menu.style.display,
-        visibility: menu.style.visibility,
-        position: menu.style.position,
-        top: menu.style.top,
-        left: menu.style.left,
-        right: menu.style.right,
-        bottom: menu.style.bottom,
-        transform: menu.style.transform
-    };
     var teniaShow = $menu.hasClass('show');
-
-    $menu.addClass('show').css({
-        display: 'block',
-        visibility: 'hidden',
-        position: 'fixed',
-        top: '0',
-        left: '0',
-        right: 'auto',
-        bottom: 'auto',
-        transform: 'none'
-    });
+    var cssText = menu.style.cssText;
+    $menu.addClass('show');
+    menu.style.setProperty('display','block','important');
+    menu.style.setProperty('visibility','hidden','important');
+    menu.style.setProperty('position','fixed','important');
+    menu.style.setProperty('top','0px','important');
+    menu.style.setProperty('left','0px','important');
+    menu.style.setProperty('right','auto','important');
+    menu.style.setProperty('bottom','auto','important');
+    menu.style.setProperty('transform','none','important');
 
     var rect = menu.getBoundingClientRect();
-
-    if (!teniaShow) {
-        $menu.removeClass('show');
-    }
-
-    menu.style.display = estilos.display;
-    menu.style.visibility = estilos.visibility;
-    menu.style.position = estilos.position;
-    menu.style.top = estilos.top;
-    menu.style.left = estilos.left;
-    menu.style.right = estilos.right;
-    menu.style.bottom = estilos.bottom;
-    menu.style.transform = estilos.transform;
+    menu.style.cssText = cssText;
+    if (!teniaShow) $menu.removeClass('show');
 
     return {
         width: Math.max(rect.width || 0, 200),
@@ -2688,143 +2659,160 @@ function medirMenuDropdownUsuarios($menu) {
     };
 }
 
-function prepararDireccionDropdownUsuarios($dropdown) {
-    if (!$dropdown || !$dropdown.length) {
-        return;
+function usuariosLimpiarDropdown($dropdown) {
+    if (!$dropdown || !$dropdown.length) return;
+
+    var $menu = $dropdown.children('.dropdown-menu').first();
+    var menu = $menu[0];
+    var $row = $dropdown.closest('.usuario-row, .usuario-mini-card');
+
+    $dropdown.removeClass('show dropup dropright dropleft');
+    $menu.removeClass('show dropdown-menu-right')
+        .removeAttr('x-placement data-popper-placement data-izzy-placement');
+
+    if (menu) {
+        ['display','visibility','position','top','left','right','bottom','transform','z-index','max-height','overflow-y']
+            .forEach(function(prop) { menu.style.removeProperty(prop); });
     }
 
-    var $button = $dropdown.children('.js-acciones-toggle');
-    var $menu = $dropdown.children('.dropdown-menu');
-    var button = $button.length ? $button[0] : null;
+    usuariosObtenerBoton($dropdown).attr('aria-expanded','false');
+    $row.removeClass('usuarios-dropdown-open');
+    if ($row.length) $row[0].style.removeProperty('transform');
 
-    if (!button || !$menu.length) {
-        return;
+    if (usuariosDropdownActivo && usuariosDropdownActivo.length && usuariosDropdownActivo.is($dropdown)) {
+        usuariosDropdownActivo = null;
     }
+}
 
-    limpiarDireccionDropdownUsuarios($dropdown);
+function usuariosCerrarTodosDropdowns($excepto) {
+    $('#usuariosListado .acciones-dropdown').each(function() {
+        var $dropdown = $(this);
+        if ($excepto && $excepto.length && $dropdown.is($excepto)) return;
+        usuariosLimpiarDropdown($dropdown);
+    });
+}
 
+function usuariosPosicionarDropdown($dropdown) {
+    var $button = usuariosObtenerBoton($dropdown);
+    var $menu = $dropdown.children('.dropdown-menu').first();
+    if (!$button.length || !$menu.length) return false;
+
+    var button = $button[0];
+    var menu = $menu[0];
     var rect = button.getBoundingClientRect();
-    var menuSize = medirMenuDropdownUsuarios($menu);
+    var size = usuariosMedirDropdown($menu);
     var viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
     var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-    var margin = 12;
-    var gap = 8;
+    var margin = 10;
+    var gap = 7;
 
     var abajo = viewportHeight - rect.bottom - margin;
     var arriba = rect.top - margin;
     var derecha = viewportWidth - rect.right - margin;
     var izquierda = rect.left - margin;
+    var top;
+    var left;
+    var placement;
 
-    if (abajo >= menuSize.height + gap) {
-        // Posición normal: abajo.
-    } else if (arriba >= menuSize.height + gap) {
-        $dropdown.addClass('dropup');
-    } else if (derecha >= menuSize.width + gap) {
-        $dropdown.addClass('dropright');
-    } else if (izquierda >= menuSize.width + gap) {
-        $dropdown.addClass('dropleft');
-    } else if (arriba > abajo) {
-        $dropdown.addClass('dropup');
+    if (abajo >= size.height + gap) {
+        top = rect.bottom + gap;
+        placement = 'bottom';
+    } else if (arriba >= size.height + gap) {
+        top = rect.top - size.height - gap;
+        placement = 'top';
+    } else if (derecha >= size.width + gap) {
+        left = rect.right + gap;
+        top = rect.top;
+        placement = 'right';
+    } else if (izquierda >= size.width + gap) {
+        left = rect.left - size.width - gap;
+        top = rect.top;
+        placement = 'left';
+    } else {
+        top = arriba > abajo ? rect.top - size.height - gap : rect.bottom + gap;
+        placement = arriba > abajo ? 'top-clamped' : 'bottom-clamped';
     }
 
-    if (!$dropdown.hasClass('dropright') && !$dropdown.hasClass('dropleft')) {
-        var desbordaDerecha = rect.left + menuSize.width > viewportWidth - margin;
-        var puedeAlinearDerecha = rect.right - menuSize.width >= margin;
-
-        if (desbordaDerecha && puedeAlinearDerecha) {
-            $menu.addClass('dropdown-menu-right');
+    if (typeof left === 'undefined') {
+        left = rect.left;
+        if (left + size.width > viewportWidth - margin) {
+            left = rect.right - size.width;
         }
     }
-}
 
-function cerrarDropdownsUsuariosExcepto($actual) {
-    $('#usuariosListado .acciones-dropdown').each(function () {
-        var $dropdown = $(this);
-        var $btn = $dropdown.children('.js-acciones-toggle');
-        var $menu = $dropdown.children('.dropdown-menu');
+    left = Math.max(margin, Math.min(left, Math.max(margin, viewportWidth - size.width - margin)));
+    top = Math.max(margin, Math.min(top, Math.max(margin, viewportHeight - Math.min(size.height, viewportHeight - margin * 2) - margin)));
 
-        if ($actual && $actual.length && $dropdown.is($actual)) {
-            return;
-        }
+    menu.style.setProperty('display','block','important');
+    menu.style.setProperty('visibility','visible','important');
+    menu.style.setProperty('position','fixed','important');
+    menu.style.setProperty('left',Math.round(left)+'px','important');
+    menu.style.setProperty('top',Math.round(top)+'px','important');
+    menu.style.setProperty('right','auto','important');
+    menu.style.setProperty('bottom','auto','important');
+    menu.style.setProperty('transform','none','important');
+    /* my_style usa backdrop 1990 y modal 2000: acciones quedan justo debajo. */
+    menu.style.setProperty('z-index','1985','important');
+    menu.style.setProperty('max-height',Math.max(90, viewportHeight - margin * 2)+'px','important');
+    menu.style.setProperty('overflow-y','auto','important');
+    menu.setAttribute('data-izzy-placement', placement);
 
-        try {
-            if (typeof $.fn.dropdown === 'function' && $menu.hasClass('show')) {
-                $btn.dropdown('hide');
-            }
-        } catch (error) {
-            // Respaldo manual abajo.
-        }
+    $menu.addClass('show');
+    $button.attr('aria-expanded','true');
 
-        $btn.attr('aria-expanded', 'false');
-        $dropdown.removeClass('show');
-        $menu.removeClass('show');
-        limpiarDireccionDropdownUsuarios($dropdown);
-        $dropdown.closest('.usuario-row, .usuario-mini-card').removeClass('usuario-dropdown-open');
-    });
+    var $row = $dropdown.closest('.usuario-row, .usuario-mini-card');
+    $row.addClass('usuarios-dropdown-open');
+    /* Evita que un hover con transform convierta al padre en containing block del fixed. */
+    if ($row.length) $row[0].style.setProperty('transform','none','important');
+
+    usuariosDropdownActivo = $dropdown;
+    return true;
 }
 
 function inicializarDropdownAccionesUsuarios() {
-    $('#usuariosListado')
-        .off('click.usuariosDropdownAdaptativo', '.acciones-dropdown .js-acciones-toggle')
-        .on('click.usuariosDropdownAdaptativo', '.acciones-dropdown .js-acciones-toggle', function (event) {
-            event.preventDefault();
-            event.stopPropagation();
-            event.stopImmediatePropagation();
+    // El administrador global de main.php usa portal al <body> y evita conflictos con Bootstrap/Popper.
+    if (window.IZZYActionDropdown && window.IZZYActionDropdown.isGlobalManager) return;
+    var $root = $('#usuariosListado').first();
+    if (!$root.length) return;
 
-            var $button = $(this);
-            var $dropdown = $button.closest('.acciones-dropdown');
-            var $menu = $dropdown.children('.dropdown-menu');
-            var estabaAbierto = $menu.hasClass('show');
+    $root.off('click.usuariosDropdownAdaptativo', '.acciones-dropdown .js-acciones-toggle')
+        .on('click.usuariosDropdownAdaptativo', '.acciones-dropdown .js-acciones-toggle', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
 
-            if (typeof $.fn.dropdown !== 'function') {
-                return;
-            }
+            var $dropdown = $(this).closest('.acciones-dropdown');
+            var estabaAbierto = $dropdown.children('.dropdown-menu').hasClass('show');
 
-            cerrarDropdownsUsuariosExcepto($dropdown);
-
+            usuariosCerrarTodosDropdowns($dropdown);
             if (estabaAbierto) {
-                try {
-                    $button.dropdown('hide');
-                } catch (error) {
-                    $dropdown.removeClass('show');
-                    $menu.removeClass('show');
-                }
-
-                $button.attr('aria-expanded', 'false');
-                limpiarDireccionDropdownUsuarios($dropdown);
-                $dropdown.closest('.usuario-row, .usuario-mini-card').removeClass('usuario-dropdown-open');
+                usuariosLimpiarDropdown($dropdown);
                 return;
             }
 
-            try {
-                prepararDireccionDropdownUsuarios($dropdown);
-
-                $button.dropdown({
-                    boundary: 'viewport',
-                    flip: true,
-                    offset: '0,6'
-                });
-
-                $button.dropdown('show');
-                $dropdown.closest('.usuario-row, .usuario-mini-card').addClass('usuario-dropdown-open');
-            } catch (error) {
-                console.error('No se pudo abrir el dropdown de acciones de Usuarios:', error);
-            }
+            usuariosLimpiarDropdown($dropdown);
+            usuariosPosicionarDropdown($dropdown);
         });
 
-    $(document)
-        .off('shown.bs.dropdown.usuariosDropdownAdaptativo', '#usuariosListado .acciones-dropdown')
-        .on('shown.bs.dropdown.usuariosDropdownAdaptativo', '#usuariosListado .acciones-dropdown', function () {
-            var $dropdown = $(this);
-            cerrarDropdownsUsuariosExcepto($dropdown);
-            $dropdown.closest('.usuario-row, .usuario-mini-card').addClass('usuario-dropdown-open');
-        })
-        .off('hidden.bs.dropdown.usuariosDropdownAdaptativo', '#usuariosListado .acciones-dropdown')
-        .on('hidden.bs.dropdown.usuariosDropdownAdaptativo', '#usuariosListado .acciones-dropdown', function () {
-            var $dropdown = $(this);
-            limpiarDireccionDropdownUsuarios($dropdown);
-            $dropdown.closest('.usuario-row, .usuario-mini-card').removeClass('usuario-dropdown-open');
+    $root.off('click.usuariosDropdownItem', '.acciones-dropdown .dropdown-item, .acciones-dropdown .accion-item')
+        .on('click.usuariosDropdownItem', '.acciones-dropdown .dropdown-item, .acciones-dropdown .accion-item', function() {
+            var $dropdown = $(this).closest('.acciones-dropdown');
+            window.setTimeout(function() { usuariosLimpiarDropdown($dropdown); }, 0);
         });
+
+    $(document).off('click.usuariosDropdownOutside').on('click.usuariosDropdownOutside', function(e) {
+        if (!$(e.target).closest('.acciones-dropdown').length) usuariosCerrarTodosDropdowns();
+    });
+
+    $(document).off('show.bs.modal.usuariosDropdown').on('show.bs.modal.usuariosDropdown', function() {
+        usuariosCerrarTodosDropdowns();
+    });
+
+    $(document).off('keydown.usuariosDropdown').on('keydown.usuariosDropdown', function(e) {
+        if (e.key === 'Escape') usuariosCerrarTodosDropdowns();
+    });
+
+    $(window).off('resize.usuariosDropdown scroll.usuariosDropdown')
+        .on('resize.usuariosDropdown scroll.usuariosDropdown', function() { usuariosCerrarTodosDropdowns(); });
 }
-
 </script>

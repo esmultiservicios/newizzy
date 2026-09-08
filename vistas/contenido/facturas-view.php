@@ -693,7 +693,7 @@
 <?php
 // FASE 3: Nota de Crédito compartida. Luego Restaurante puede reutilizar estos mismos archivos.
 require_once './vistas/contenido/modals/notaCredito-modals.php';
-require_once './Ajax/js/notaCredito.php';
+require_once __DIR__ . '/../../ajax/js/notaCredito.php';
 ?>
 
 </body>

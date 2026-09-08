@@ -1018,7 +1018,7 @@
             sheetRows.push('<row r="' + excelRow + '" ht="22" customHeight="1">' + cells + '</row>');
         });
 
-        const sheetXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        const sheetXml = '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
             '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
             '<dimension ref="A1:' + lastCol + lastRow + '"/>' +
             '<sheetViews><sheetView workbookViewId="0" showGridLines="0">' +
@@ -1043,7 +1043,7 @@
             '<pageSetup orientation="landscape" paperSize="1" fitToWidth="1" fitToHeight="0"/>' +
             '</worksheet>';
 
-        const stylesXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        const stylesXml = '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
             '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
             '<fonts count="7">' +
             '<font><sz val="10"/><name val="Calibri"/><family val="2"/></font>' +
@@ -1078,17 +1078,17 @@
             '<xf numFmtId="0" fontId="4" fillId="6" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
             '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
 
-        const workbookXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        const workbookXml = '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
             '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
             '<bookViews><workbookView activeTab="0"/></bookViews><sheets><sheet name="Menus" sheetId="1" r:id="rId1"/></sheets></workbook>';
-        const workbookRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        const workbookRels = '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
             '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
             '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
             '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
-        const rootRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        const rootRels = '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
             '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
             '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
-        const contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        const contentTypes = '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
             '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
             '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
             '<Default Extension="xml" ContentType="application/xml"/>' +

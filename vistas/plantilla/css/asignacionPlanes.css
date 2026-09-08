@@ -1377,3 +1377,2379 @@
         box-shadow: 0 6px 14px rgba(31, 47, 67, .10);
     }
 }
+
+
+/* =========================================================
+   ADMINISTRACIÓN DE CLIENTES | EXTENSIÓN DEL MISMO MÓDULO
+   Un solo CSS: vistas/plantilla/css/asignacionPlanes.css
+   ========================================================= */
+
+/* Acciones: mismo lenguaje visual del dropdown estándar de IZZY */
+.ap-actions-wrap {
+    position: relative;
+    display: inline-flex;
+    width: 100%;
+}
+
+.ap-actions-trigger {
+    width: 100%;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .48rem;
+    padding: .52rem .85rem;
+    border: 0;
+    border-radius: 10px;
+    background: #2359e8 !important;
+    color: #fff !important;
+    font-weight: 800;
+    box-shadow: 0 4px 10px rgba(35, 89, 232, .20);
+    white-space: nowrap;
+}
+
+.ap-actions-trigger:hover,
+.ap-actions-trigger:focus,
+.ap-actions-trigger[aria-expanded="true"] {
+    background: #194bd2 !important;
+    color: #fff !important;
+    box-shadow: 0 6px 14px rgba(35, 89, 232, .25);
+    outline: 0;
+}
+
+.ap-actions-trigger .fa-chevron-down {
+    font-size: .72rem;
+    transition: transform .16s ease;
+}
+
+.ap-actions-trigger[aria-expanded="true"] .fa-chevron-down {
+    transform: rotate(180deg);
+}
+
+.ap-actions-portal {
+    position: fixed;
+    z-index: 2147483000;
+    width: 300px;
+    max-width: calc(100vw - 16px);
+    display: none;
+    padding: 8px;
+    background: #fff;
+    border: 1px solid #e0e6ee;
+    border-radius: 14px;
+    box-shadow: 0 16px 36px rgba(28, 42, 58, .22);
+}
+
+.ap-actions-portal.is-open {
+    display: block;
+}
+
+.ap-actions-portal .ap-action-item {
+    width: 100%;
+    min-height: 54px;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: #26384e;
+    text-align: left;
+    transition: background-color .14s ease, transform .14s ease;
+}
+
+.ap-actions-portal .ap-action-item + .ap-action-item {
+    margin-top: 3px;
+}
+
+.ap-actions-portal .ap-action-item:hover,
+.ap-actions-portal .ap-action-item:focus {
+    background: #f5f8fc;
+    outline: 0;
+    transform: translateX(1px);
+}
+
+.ap-actions-portal .ap-item-icon {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    font-size: .86rem;
+}
+
+.ap-actions-portal .ap-item-icon-edit {
+    background: #fff2cf;
+    color: #d79518;
+}
+
+.ap-actions-portal .ap-item-icon-users {
+    background: #e7efff;
+    color: #356fe0;
+}
+
+.ap-actions-portal .ap-item-copy {
+    min-width: 0;
+    display: block;
+}
+
+.ap-actions-portal .ap-item-copy strong,
+.ap-actions-portal .ap-item-copy small {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.ap-actions-portal .ap-item-copy strong {
+    color: #27384c;
+    font-size: .84rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.ap-actions-portal .ap-item-copy small {
+    margin-top: 2px;
+    color: #7b8998;
+    font-size: .68rem;
+    line-height: 1.25;
+}
+
+/* Las tarjetas conservan su interacción sin interferir con el portal flotante. */
+.asignacion-record-card:hover {
+    box-shadow: 0 10px 24px rgba(18, 52, 77, .09);
+    transition: box-shadow .18s ease;
+}
+
+
+/* =========================================================
+   ADMINISTRACIÓN IZZY | ESTILOS CONSOLIDADOS
+   Una sola geometría para todos los modales del módulo.
+   ========================================================= */
+
+/*
+ * MODALES DEL MÓDULO
+ * Centrado real contra el viewport. No usamos top/left/translate:
+ * el propio overlay ocupa todo el viewport y centra el dialog con flex.
+ *
+ * IMPORTANTE:
+ * my_style.css usa .modal { z-index:2000 } y .modal-backdrop { z-index:1990 }.
+ * Por eso estos modales deben quedar por ENCIMA de 1990; antes estaban en
+ * 1055/1075 y el backdrop quedaba encima, bloqueando todos los clics.
+ */
+#modalAdministrarCliente,
+#modalApColaborador,
+#modalApUsuario,
+#modalApEmpresa {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    width: 100dvw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    margin: 0 !important;
+    padding: 16px !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+    pointer-events: auto !important;
+}
+
+#modalAdministrarCliente.show,
+#modalApColaborador.show,
+#modalApUsuario.show,
+#modalApEmpresa.show {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+#modalAdministrarCliente > .modal-dialog,
+#modalApColaborador > .modal-dialog,
+#modalApUsuario > .modal-dialog,
+#modalApEmpresa > .modal-dialog,
+#modalAdministrarCliente.fade > .modal-dialog,
+#modalApColaborador.fade > .modal-dialog,
+#modalApUsuario.fade > .modal-dialog,
+#modalApEmpresa.fade > .modal-dialog,
+#modalAdministrarCliente.show > .modal-dialog,
+#modalApColaborador.show > .modal-dialog,
+#modalApUsuario.show > .modal-dialog,
+#modalApEmpresa.show > .modal-dialog {
+    position: relative !important;
+    inset: auto !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    margin: 0 !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+    pointer-events: auto !important;
+    flex: 0 1 auto !important;
+}
+
+/* Deben superar el z-index global 1990 del backdrop de my_style.css. */
+#modalAdministrarCliente { z-index: 2050 !important; }
+#modalApColaborador,
+#modalApUsuario,
+#modalApEmpresa { z-index: 2070 !important; }
+
+#modalAdministrarCliente > .modal-dialog.ap-admin-main-dialog {
+    width: min(1240px, calc(100vw - 32px)) !important;
+    min-width: 0 !important;
+    max-width: min(1240px, calc(100vw - 32px)) !important;
+    height: min(760px, calc(100dvh - 32px)) !important;
+    min-height: 0 !important;
+    max-height: min(760px, calc(100dvh - 32px)) !important;
+}
+
+#modalApColaborador > .modal-dialog.ap-admin-child-dialog,
+#modalApUsuario > .modal-dialog.ap-admin-child-dialog {
+    width: min(980px, calc(100vw - 32px)) !important;
+    min-width: 0 !important;
+    max-width: min(980px, calc(100vw - 32px)) !important;
+    height: min(660px, calc(100dvh - 32px)) !important;
+    min-height: 0 !important;
+    max-height: min(660px, calc(100dvh - 32px)) !important;
+}
+
+#modalApEmpresa > .modal-dialog.ap-admin-child-dialog {
+    width: min(980px, calc(100vw - 32px)) !important;
+    min-width: 0 !important;
+    max-width: min(980px, calc(100vw - 32px)) !important;
+    height: min(720px, calc(100dvh - 32px)) !important;
+    min-height: 0 !important;
+    max-height: min(720px, calc(100dvh - 32px)) !important;
+}
+
+#modalAdministrarCliente .modal-content,
+#modalApColaborador .modal-content,
+#modalApUsuario .modal-content,
+#modalApEmpresa .modal-content {
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    pointer-events: auto !important;
+    transition: none !important;
+    animation: none !important;
+    border: 0;
+    border-radius: 14px;
+    box-shadow: 0 24px 60px rgba(8, 25, 43, .22);
+}
+
+/* Backdrop suave: clic afuera sigue bloqueado por backdrop:'static'. */
+.modal-backdrop.show {
+    opacity: .08 !important;
+    pointer-events: auto !important;
+}
+
+#modalAdministrarCliente .modal-header,
+#modalApColaborador .modal-header,
+#modalApUsuario .modal-header,
+#modalApEmpresa .modal-header {
+    flex: 0 0 auto !important;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 18px;
+    background: #122537;
+    color: #fff;
+    border-bottom: 3px solid #22c7a9;
+}
+
+#modalAdministrarCliente .modal-header > div:first-child,
+#modalApColaborador .modal-header > div:first-child,
+#modalApUsuario .modal-header > div:first-child,
+#modalApEmpresa .modal-header > div:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+#modalAdministrarCliente .modal-title,
+#modalApColaborador .modal-title,
+#modalApUsuario .modal-title,
+#modalApEmpresa .modal-title {
+    min-width: 0;
+    max-width: calc(100% - 46px);
+    margin: 0;
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 800;
+    line-height: 1.28;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    overflow-wrap: anywhere;
+}
+
+#modalAdministrarCliente .close,
+#modalApColaborador .close,
+#modalApUsuario .close,
+#modalApEmpresa .close {
+    flex: 0 0 auto;
+    margin-left: auto;
+    color: #fff;
+    opacity: 1 !important;
+    text-shadow: none;
+}
+
+#modalAdministrarCliente > .modal-dialog > .modal-content > .modal-body {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    padding: 18px;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    background: #f6f9fc;
+}
+
+#modalAdministrarCliente > .modal-dialog > .modal-content > .modal-footer {
+    flex: 0 0 auto !important;
+    padding: 10px 16px;
+    background: #fff;
+    border-top: 1px solid #e4eaf0;
+}
+
+#modalApColaborador .ap-admin-modal-form,
+#modalApUsuario .ap-admin-modal-form,
+#modalApEmpresa .ap-admin-modal-form {
+    flex: 1 1 0 !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+}
+
+#modalApColaborador .ap-admin-modal-form > .modal-body,
+#modalApUsuario .ap-admin-modal-form > .modal-body,
+#modalApEmpresa .ap-admin-modal-form > .modal-body {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    padding: 1rem 1.25rem !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    background: #fff;
+}
+
+#modalApColaborador .ap-admin-modal-form > .modal-footer,
+#modalApUsuario .ap-admin-modal-form > .modal-footer,
+#modalApEmpresa .ap-admin-modal-form > .modal-footer {
+    flex: 0 0 auto !important;
+    margin: 0 !important;
+    padding: .85rem 1.25rem !important;
+    background: #fff;
+    border-top: 1px solid #e4eaf0;
+}
+
+#modalAdministrarCliente #ap_admin_content,
+#modalAdministrarCliente .ap-admin-panel,
+#modalAdministrarCliente .ap-section-card {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+}
+
+/* Buscador y acciones */
+.ap-search {
+    flex: 0 1 360px;
+    width: 360px;
+    min-width: 280px;
+}
+.ap-search .input-group {
+    width: 100%;
+    height: 38px;
+    flex-wrap: nowrap;
+}
+.ap-search .input-group-prepend,
+.ap-search .input-group-text { height: 38px; }
+.ap-search .input-group-text {
+    width: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: #fff;
+    border-color: #d5dee8;
+}
+.ap-search .form-control {
+    min-width: 0;
+    height: 38px !important;
+    padding-top: .375rem;
+    padding-bottom: .375rem;
+    border-color: #d5dee8;
+}
+
+.ap-collab-actions { min-width: 132px; }
+.ap-collab-actions-trigger {
+    width: 100%;
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    white-space: nowrap;
+    border-radius: 9px;
+    background: #2f9ddd !important;
+    border-color: #2f9ddd !important;
+    color: #fff !important;
+    font-weight: 800;
+    opacity: 1 !important;
+    box-shadow: 0 4px 10px rgba(47,157,221,.18);
+}
+.ap-collab-actions-trigger .fa-chevron-down {
+    font-size: .7rem;
+    transition: transform .16s ease;
+}
+.ap-collab-actions-trigger[aria-expanded="true"] .fa-chevron-down { transform: rotate(180deg); }
+.ap-mini-actions {
+    margin-top: 12px;
+    padding-top: 11px;
+    border-top: 1px solid #edf1f5;
+}
+.ap-mini-actions .ap-collab-actions-trigger { width: 100%; flex: 1 1 100%; }
+.ap-actions-portal .ap-item-icon-key { background: #fff0d9; color: #e09100; }
+.ap-actions-portal .ap-item-icon-add { background: #e5f8ef; color: #16945d; }
+.ap-collab-actions-portal { width: 310px; }
+.ap-collab-mini { display: flex; flex-direction: column; height: 100%; }
+.ap-collab-mini .ap-user-lines { flex: 1 1 auto; }
+
+/* Select2 del administrador */
+.ap-select2 + .select2-container { width: 100% !important; }
+#modalApColaborador .select2-container .select2-selection--single,
+#modalApUsuario .select2-container .select2-selection--single {
+    min-height: 46px;
+    height: 46px;
+    border: 1px solid #d5dee8;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+}
+#modalApColaborador .select2-container .select2-selection--single .select2-selection__rendered,
+#modalApUsuario .select2-container .select2-selection--single .select2-selection__rendered {
+    width: 100%;
+    padding-left: 14px;
+    padding-right: 38px;
+    line-height: 44px;
+    color: #34495e;
+}
+#modalApColaborador .select2-container .select2-selection--single .select2-selection__arrow,
+#modalApUsuario .select2-container .select2-selection--single .select2-selection__arrow {
+    height: 44px;
+    right: 8px;
+}
+.select2-container--open { z-index: 1085 !important; }
+.select2-dropdown { border-color: #cfd9e4; box-shadow: 0 10px 24px rgba(31,47,67,.14); }
+.select2-search--dropdown { padding: 8px; }
+.select2-search--dropdown .select2-search__field {
+    min-height: 38px;
+    border: 1px solid #cfd9e4 !important;
+    border-radius: 7px;
+    outline: none;
+}
+
+/* Formularios compactos, anchos y ordenados. */
+#modalApColaborador .ap-form-grid,
+#modalApUsuario .ap-form-grid,
+#modalApEmpresa .ap-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: .75rem 1rem !important;
+    align-content: start !important;
+}
+#modalApColaborador .form-group,
+#modalApUsuario .form-group,
+#modalApEmpresa .form-group { margin-bottom: .35rem !important; }
+
+/* Estado: etiqueta arriba, switch alineado debajo. */
+.ap-status-field {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    min-width: 0 !important;
+}
+.ap-status-field > .ap-field-label {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 0 .45rem 0 !important;
+    color: #172033 !important;
+    font-size: .84rem !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+}
+.ap-status-control {
+    min-height: 46px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+}
+.ap-status-switch {
+    position: relative !important;
+    min-height: 44px !important;
+    margin: 0 !important;
+    padding: .34rem .72rem .34rem .42rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: .68rem !important;
+    border: 1px solid #d7e2ec !important;
+    border-radius: 10px !important;
+    background: #f8fbfe !important;
+    box-shadow: 0 2px 8px rgba(31,47,67,.05) !important;
+    cursor: pointer !important;
+    user-select: none;
+}
+.ap-status-switch input[type="checkbox"] {
+    position: absolute !important;
+    opacity: 0 !important;
+    width: 1px !important;
+    height: 1px !important;
+    pointer-events: none !important;
+}
+.ap-status-slider {
+    position: relative !important;
+    width: 50px !important;
+    height: 28px !important;
+    flex: 0 0 50px !important;
+    border: 1px solid #c9d4df !important;
+    border-radius: 999px !important;
+    background: #e7edf3 !important;
+    box-shadow: inset 0 1px 2px rgba(31,47,67,.08) !important;
+    transition: background-color .18s ease, border-color .18s ease !important;
+}
+.ap-status-slider::after {
+    content: "" !important;
+    position: absolute !important;
+    width: 22px !important;
+    height: 22px !important;
+    left: 2px !important;
+    top: 2px !important;
+    border-radius: 50% !important;
+    background: #fff !important;
+    box-shadow: 0 2px 6px rgba(31,47,67,.22) !important;
+    transition: transform .18s ease !important;
+}
+.ap-status-switch input[type="checkbox"]:checked + .ap-status-slider {
+    border-color: #17a967 !important;
+    background: #20b86a !important;
+}
+.ap-status-switch input[type="checkbox"]:checked + .ap-status-slider::after {
+    transform: translateX(22px) !important;
+}
+.ap-status-label {
+    min-width: 58px !important;
+    margin: 0 !important;
+    color: #24364b !important;
+    font-size: .84rem !important;
+    font-weight: 800 !important;
+    line-height: 1 !important;
+}
+
+/* Límites de plan: los deshabilitados sí se ven deshabilitados. */
+.ap-action-item.is-disabled,
+.ap-action-item:disabled,
+#ap_btn_nueva_empresa:disabled {
+    opacity: .52 !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+}
+.ap-action-item.is-disabled:hover,
+.ap-action-item:disabled:hover { transform: none !important; }
+
+/* Hover activo: nunca cambia a opaco ni pierde contraste. */
+#modalAdministrarCliente .btn:not(:disabled),
+#modalApColaborador .btn:not(:disabled),
+#modalApUsuario .btn:not(:disabled),
+#modalApEmpresa .btn:not(:disabled),
+.ap-actions-trigger:not(:disabled),
+.ap-collab-actions-trigger:not(:disabled) {
+    opacity: 1 !important;
+    filter: none !important;
+}
+
+#modalAdministrarCliente .btn:not(:disabled):hover,
+#modalAdministrarCliente .btn:not(:disabled):focus,
+#modalApColaborador .btn:not(:disabled):hover,
+#modalApColaborador .btn:not(:disabled):focus,
+#modalApUsuario .btn:not(:disabled):hover,
+#modalApUsuario .btn:not(:disabled):focus,
+#modalApEmpresa .btn:not(:disabled):hover,
+#modalApEmpresa .btn:not(:disabled):focus,
+.ap-actions-trigger:not(:disabled):hover,
+.ap-actions-trigger:not(:disabled):focus,
+.ap-collab-actions-trigger:not(:disabled):hover,
+.ap-collab-actions-trigger:not(:disabled):focus {
+    opacity: 1 !important;
+    filter: none !important;
+    color: #fff !important;
+    text-decoration: none !important;
+}
+
+#modalAdministrarCliente .btn-primary:not(:disabled):hover,
+#modalAdministrarCliente .btn-primary:not(:disabled):focus,
+#modalApColaborador .btn-primary:not(:disabled):hover,
+#modalApColaborador .btn-primary:not(:disabled):focus,
+#modalApUsuario .btn-primary:not(:disabled):hover,
+#modalApUsuario .btn-primary:not(:disabled):focus,
+#modalApEmpresa .btn-primary:not(:disabled):hover,
+#modalApEmpresa .btn-primary:not(:disabled):focus,
+.ap-collab-actions-trigger:not(:disabled):hover,
+.ap-collab-actions-trigger:not(:disabled):focus {
+    background: #2f9ddd !important;
+    border-color: #2f9ddd !important;
+    box-shadow: 0 6px 14px rgba(47,157,221,.24) !important;
+}
+
+.ap-actions-trigger:not(:disabled):hover,
+.ap-actions-trigger:not(:disabled):focus {
+    background: #2359e8 !important;
+    border-color: #2359e8 !important;
+    box-shadow: 0 6px 14px rgba(35,89,232,.24) !important;
+}
+
+#modalAdministrarCliente .btn-success:not(:disabled):hover,
+#modalAdministrarCliente .btn-success:not(:disabled):focus,
+#modalApColaborador .btn-success:not(:disabled):hover,
+#modalApColaborador .btn-success:not(:disabled):focus,
+#modalApUsuario .btn-success:not(:disabled):hover,
+#modalApUsuario .btn-success:not(:disabled):focus,
+#modalApEmpresa .btn-success:not(:disabled):hover,
+#modalApEmpresa .btn-success:not(:disabled):focus {
+    background: #20b86a !important;
+    border-color: #20b86a !important;
+    color: #fff !important;
+}
+
+#modalAdministrarCliente .btn-danger:not(:disabled):hover,
+#modalAdministrarCliente .btn-danger:not(:disabled):focus,
+#modalApColaborador .btn-danger:not(:disabled):hover,
+#modalApColaborador .btn-danger:not(:disabled):focus,
+#modalApUsuario .btn-danger:not(:disabled):hover,
+#modalApUsuario .btn-danger:not(:disabled):focus,
+#modalApEmpresa .btn-danger:not(:disabled):hover,
+#modalApEmpresa .btn-danger:not(:disabled):focus {
+    background: #e74c3c !important;
+    border-color: #e74c3c !important;
+    color: #fff !important;
+}
+
+#modalAdministrarCliente .btn-secondary:not(:disabled):hover,
+#modalAdministrarCliente .btn-secondary:not(:disabled):focus,
+#modalApColaborador .btn-secondary:not(:disabled):hover,
+#modalApColaborador .btn-secondary:not(:disabled):focus,
+#modalApUsuario .btn-secondary:not(:disabled):hover,
+#modalApUsuario .btn-secondary:not(:disabled):focus,
+#modalApEmpresa .btn-secondary:not(:disabled):hover,
+#modalApEmpresa .btn-secondary:not(:disabled):focus {
+    opacity: 1 !important;
+    color: #fff !important;
+}
+
+/* Controles internos que no usan .btn tampoco pierden contraste al pasar el mouse. */
+#modalAdministrarCliente button:not(:disabled):hover,
+#modalAdministrarCliente button:not(:disabled):focus,
+#modalApColaborador button:not(:disabled):hover,
+#modalApColaborador button:not(:disabled):focus,
+#modalApUsuario button:not(:disabled):hover,
+#modalApUsuario button:not(:disabled):focus,
+#modalApEmpresa button:not(:disabled):hover,
+#modalApEmpresa button:not(:disabled):focus {
+    opacity: 1 !important;
+    filter: none !important;
+}
+
+#modalAdministrarCliente .ap-admin-tab:not(.active):hover,
+#modalAdministrarCliente .ap-admin-tab:not(.active):focus,
+#modalAdministrarCliente .ap-view-switch button:not(.active):hover,
+#modalAdministrarCliente .ap-view-switch button:not(.active):focus,
+#modalAdministrarCliente .ap-pagination button:not(.active):not(:disabled):hover,
+#modalAdministrarCliente .ap-pagination button:not(.active):not(:disabled):focus {
+    background: #f2f7fb !important;
+    color: #40566c !important;
+}
+
+#modalAdministrarCliente .ap-admin-tab.active:hover,
+#modalAdministrarCliente .ap-admin-tab.active:focus,
+#modalAdministrarCliente .ap-view-switch button.active:hover,
+#modalAdministrarCliente .ap-view-switch button.active:focus,
+#modalAdministrarCliente .ap-pagination button.active:hover,
+#modalAdministrarCliente .ap-pagination button.active:focus {
+    background: #178bd1 !important;
+    color: #fff !important;
+}
+
+/* SweetAlert del módulo: botones propios, sin heredar .btn globales.
+   El hover conserva exactamente el contraste y nunca baja opacidad. */
+.swal-modal .ap-swal-btn,
+.swal-modal .ap-swal-btn:hover,
+.swal-modal .ap-swal-btn:focus,
+.swal-modal .ap-swal-btn:active {
+    min-width: 118px !important;
+    padding: .62rem 1rem !important;
+    border: 0 !important;
+    border-radius: 8px !important;
+    opacity: 1 !important;
+    filter: none !important;
+    box-shadow: 0 4px 10px rgba(31,47,67,.14) !important;
+    color: #fff !important;
+    font-weight: 800 !important;
+    text-shadow: none !important;
+    transform: none !important;
+    transition: none !important;
+}
+.swal-modal .ap-swal-btn-confirm,
+.swal-modal .ap-swal-btn-confirm:hover,
+.swal-modal .ap-swal-btn-confirm:focus,
+.swal-modal .ap-swal-btn-confirm:active {
+    background: #20b86a !important;
+    color: #fff !important;
+}
+.swal-modal .ap-swal-btn-cancel,
+.swal-modal .ap-swal-btn-cancel:hover,
+.swal-modal .ap-swal-btn-cancel:focus,
+.swal-modal .ap-swal-btn-cancel:active {
+    background: #e74c3c !important;
+    color: #fff !important;
+}
+
+/* SweetAlert2, si el proyecto usa esa variante. */
+.swal2-popup .ap-swal2-btn {
+    min-width: 118px !important;
+    padding: .62rem 1rem !important;
+    margin: .25rem !important;
+    border: 0 !important;
+    border-radius: 8px !important;
+    opacity: 1 !important;
+    filter: none !important;
+    box-shadow: 0 4px 10px rgba(31,47,67,.14) !important;
+    color: #fff !important;
+    font-weight: 800 !important;
+    transform: none !important;
+    transition: none !important;
+}
+.swal2-popup .ap-swal2-btn-confirm,
+.swal2-popup .ap-swal2-btn-confirm:hover,
+.swal2-popup .ap-swal2-btn-confirm:focus,
+.swal2-popup .ap-swal2-btn-confirm:active {
+    background: #20b86a !important;
+    color: #fff !important;
+    opacity: 1 !important;
+}
+.swal2-popup .ap-swal2-btn-cancel,
+.swal2-popup .ap-swal2-btn-cancel:hover,
+.swal2-popup .ap-swal2-btn-cancel:focus,
+.swal2-popup .ap-swal2-btn-cancel:active {
+    background: #e74c3c !important;
+    color: #fff !important;
+    opacity: 1 !important;
+}
+
+@media (max-width: 767.98px) {
+    #modalAdministrarCliente,
+    #modalApColaborador,
+    #modalApUsuario,
+    #modalApEmpresa { padding: 6px !important; }
+
+    #modalAdministrarCliente > .modal-dialog.ap-admin-main-dialog,
+    #modalApColaborador > .modal-dialog.ap-admin-child-dialog,
+    #modalApUsuario > .modal-dialog.ap-admin-child-dialog,
+    #modalApEmpresa > .modal-dialog.ap-admin-child-dialog {
+        width: calc(100vw - 12px) !important;
+        min-width: 0 !important;
+        max-width: calc(100vw - 12px) !important;
+        height: calc(100dvh - 12px) !important;
+        min-height: 0 !important;
+        max-height: calc(100dvh - 12px) !important;
+    }
+
+    #modalAdministrarCliente .modal-content,
+    #modalApColaborador .modal-content,
+    #modalApUsuario .modal-content,
+    #modalApEmpresa .modal-content { border-radius: 11px; }
+
+    #modalApColaborador .ap-form-grid,
+    #modalApUsuario .ap-form-grid,
+    #modalApEmpresa .ap-form-grid { grid-template-columns: 1fr !important; }
+}
+
+/* Admin content */
+.ap-client-hero {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 15px 17px;
+    margin-bottom: 14px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+}
+
+.ap-client-hero-main { display: flex; gap: 12px; align-items: center; min-width: 0; }
+.ap-client-icon { width: 46px; height: 46px; flex: 0 0 46px; display: grid; place-items: center; border-radius: 11px; background: #eaf5ff; color: #1683d8; font-size: 1.1rem; }
+.ap-client-hero strong { display: block; color: #13293d; font-size: 1.08rem; overflow-wrap: anywhere; }
+.ap-client-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 4px; color: #66788a; font-size: .84rem; }
+.ap-client-badges { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.ap-chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px; border-radius: 999px; background: #edf7f2; color: #178254; font-size: .78rem; font-weight: 700; }
+.ap-chip.secondary { background: #eef4ff; color: #3567b7; }
+
+.ap-admin-tabs { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px; margin-bottom: 14px; background: #fff; border: 1px solid #e2e8f0; border-radius: 11px; }
+.ap-admin-tab { padding: 9px 13px; border: 0; border-radius: 8px; background: transparent; color: #516273; font-weight: 700; }
+.ap-admin-tab.active { background: #178bd1; color: #fff; }
+.ap-admin-panel { display: none; }
+.ap-admin-panel.active { display: block; }
+.ap-section-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: visible; }
+.ap-section-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 13px 15px; border-bottom: 1px solid #e9eef3; }
+.ap-section-head h5 { margin: 0; color: #1b344c; font-size: 1rem; font-weight: 700; }
+.ap-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 15px; border-bottom: 1px solid #edf1f5; }
+.ap-toolbar-left, .ap-toolbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ap-toolbar-right { margin-left: auto; }
+.ap-page-size { display: flex; align-items: center; gap: 6px; font-size: .82rem; }
+.ap-page-size select { width: 72px; }
+.ap-view-switch { display: inline-flex; overflow: hidden; border: 1px solid #d7e0e9; border-radius: 8px; }
+.ap-view-switch button { padding: 7px 10px; border: 0; background: #fff; color: #516273; }
+.ap-view-switch button.active { background: #168bd1; color: #fff; }
+.ap-search { min-width: 255px; }
+.ap-list { padding: 13px; min-width: 0; }
+.ap-list.ap-mini { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.ap-list.ap-detail { display: flex; flex-direction: column; gap: 9px; }
+.ap-empty { padding: 36px 15px; color: #718096; text-align: center; }
+.ap-empty i { margin-bottom: 8px; color: #aab8c5; font-size: 2rem; }
+.ap-list-footer { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 10px 15px; border-top: 1px solid #edf1f5; flex-wrap: wrap; }
+.ap-pagination { display: flex; gap: 5px; flex-wrap: wrap; }
+.ap-pagination button { padding: 6px 9px; border: 1px solid #d8e1e9; border-radius: 7px; background: #fff; color: #41576b; }
+.ap-pagination button.active { background: #168bd1; border-color: #168bd1; color: #fff; }
+.ap-pagination button:disabled { opacity: .45; }
+
+.ap-collab-detail { display: grid; grid-template-columns: 1.4fr .8fr 1fr 1.15fr auto; gap: 12px; align-items: center; padding: 12px; background: #fff; border: 1px solid #dfe7ef; border-left: 4px solid #1cc7a5; border-radius: 10px; }
+.ap-collab-main { display: flex; gap: 10px; align-items: center; min-width: 0; }
+.ap-avatar { width: 42px; height: 42px; flex: 0 0 42px; display: grid; place-items: center; border-radius: 10px; background: #edf6ff; color: #177fca; }
+.ap-collab-main strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ap-sub { display: block; margin-top: 2px; color: #708090; font-size: .79rem; overflow-wrap: anywhere; }
+.ap-user-status { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 999px; font-size: .75rem; font-weight: 700; }
+.ap-user-status.yes { background: #e8f7ef; color: #16834d; }
+.ap-user-status.no { background: #fff4e5; color: #b36b00; }
+.ap-collab-actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+
+.ap-collab-mini { min-width: 0; padding: 13px; background: #fff; border: 1px solid #dfe7ef; border-top: 3px solid #1cc7a5; border-radius: 11px; }
+.ap-collab-mini-top { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.ap-collab-mini h6 { margin: 0; color: #17324a; font-weight: 700; }
+.ap-mini-data { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
+.ap-mini-data div { min-width: 0; padding: 8px; background: #f7fafc; border-radius: 8px; }
+.ap-mini-data small { display: block; color: #7a8996; }
+.ap-mini-data strong { display: block; color: #243b53; font-size: .86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ap-user-lines { padding-top: 9px; margin-top: 9px; border-top: 1px dashed #dce5ed; }
+.ap-user-line { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; font-size: .8rem; }
+.ap-user-line span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.ap-mini-actions { display: flex; gap: 7px; margin-top: 10px; }
+.ap-mini-actions .btn { flex: 1; }
+
+.ap-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.ap-form-grid .full { grid-column: 1 / -1; }
+.ap-help { margin-top: 4px; color: #718096; font-size: .76rem; }
+.ap-company-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.ap-company-card { min-width: 0; padding: 14px; background: #fff; border: 1px solid #dfe7ef; border-radius: 11px; }
+.ap-company-card h6 { margin: 0 0 5px; color: #17324a; font-weight: 700; overflow-wrap: anywhere; }
+.ap-company-meta { display: flex; flex-direction: column; gap: 3px; color: #6e7d8b; font-size: .8rem; overflow-wrap: anywhere; }
+.ap-modal-subtitle { margin-top: 2px; color: #d1dde8; font-size: .8rem; }
+.ap-loading { padding: 35px; color: #547086; text-align: center; }
+.ap-loading i { margin-right: 6px; font-size: 1.5rem; }
+
+@media (max-width: 991.98px) {
+    .ap-list.ap-mini { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ap-collab-detail { grid-template-columns: 1.4fr 1fr 1fr auto; }
+    .ap-collab-detail .ap-hide-tablet { display: none; }
+    .ap-form-grid, .ap-company-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 767.98px) {
+    .ap-client-hero { flex-direction: column; }
+    .ap-client-badges { justify-content: flex-start; }
+    .ap-toolbar { align-items: stretch; }
+    .ap-toolbar-left, .ap-toolbar-right { width: 100%; }
+    .ap-toolbar-right { margin-left: 0; }
+    .ap-page-size { order: 1; }
+    .ap-view-switch { display: none; }
+    .ap-search { order: 2; flex: 1 1 100%; width: 100%; min-width: 0; }
+    .ap-list.ap-mini, .ap-list.ap-detail { display: grid; grid-template-columns: 1fr; gap: 10px; }
+    .ap-collab-detail { display: none !important; }
+    .ap-collab-mini { display: block !important; }
+    .ap-section-head { align-items: flex-start; flex-direction: column; }
+    .ap-form-grid { grid-template-columns: 1fr !important; }
+    .ap-form-grid .full { grid-column: auto; }
+    .ap-company-grid { grid-template-columns: 1fr; }
+    .ap-list-footer { align-items: flex-start; flex-direction: column; }
+    .ap-pagination { width: 100%; justify-content: center; }
+    .ap-actions-portal { width: min(300px, calc(100vw - 16px)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ap-actions-trigger .fa-chevron-down,
+    .ap-collab-actions-trigger .fa-chevron-down,
+    .ap-actions-portal .ap-action-item,
+    .ap-status-slider,
+    .ap-status-slider::after {
+        transition: none !important;
+    }
+}
+
+
+/* =========================================================
+   SWEETALERT - CONTRASTE FIJO EN HOVER
+   my_style.css aplica transform/box-shadow global a .btn:hover.
+   SweetAlert vive fuera del modal, por eso se protege aquí.
+   ========================================================= */
+.swal-overlay {
+    z-index: 3000 !important;
+}
+.swal-modal .swal-button,
+.swal-modal .swal-button:hover,
+.swal-modal .swal-button:focus,
+.swal-modal .swal-button:active,
+.swal-modal .ap-swal-btn,
+.swal-modal .ap-swal-btn:hover,
+.swal-modal .ap-swal-btn:focus,
+.swal-modal .ap-swal-btn:active {
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+    text-shadow: none !important;
+    outline: none !important;
+}
+.swal-modal .ap-swal-btn-confirm,
+.swal-modal .ap-swal-btn-confirm:hover,
+.swal-modal .ap-swal-btn-confirm:focus,
+.swal-modal .ap-swal-btn-confirm:active {
+    background-color: #20b86a !important;
+    border-color: #20b86a !important;
+    color: #fff !important;
+}
+.swal-modal .ap-swal-btn-cancel,
+.swal-modal .ap-swal-btn-cancel:hover,
+.swal-modal .ap-swal-btn-cancel:focus,
+.swal-modal .ap-swal-btn-cancel:active {
+    background-color: #e74c3c !important;
+    border-color: #e74c3c !important;
+    color: #fff !important;
+}
+.swal2-container {
+    z-index: 3000 !important;
+}
+
+/* =========================================================
+   ADMIN CLIENTE · FLUJO UNIFICADO / MODALES PÚBLICOS
+   Solo aplica cuando el modal público fue abierto desde Asignación de Planes.
+   IMPORTANTE: aquí NO se cambian width/height/max-width del modal público.
+   Su tamaño original (modal-xl/modal-dialog-centered/modal-dialog-scrollable)
+   se conserva exactamente como está definido en vistasModals.
+   ========================================================= */
+.ap-sequence-head {
+    align-items: flex-start !important;
+    gap: .8rem;
+}
+.ap-sequence-head > div:first-child { min-width: 0; }
+.ap-section-note {
+    display: block;
+    margin-top: .25rem;
+    color: #708090;
+    line-height: 1.4;
+}
+.ap-sequence-main-actions { flex: 0 0 auto; }
+.ap-sequence-main-actions > .btn { min-width: 112px; }
+.ap-sequence-main-actions .dropdown-menu,
+.ap-sequence-row-actions .dropdown-menu,
+.ap-document-actions .dropdown-menu {
+    min-width: 190px;
+    border-radius: 8px;
+    border: 1px solid #dde5ec;
+    box-shadow: 0 10px 28px rgba(18, 42, 64, .14);
+    padding: .35rem;
+    z-index: 2300 !important;
+}
+.ap-sequence-main-actions .dropdown-item,
+.ap-sequence-row-actions .dropdown-item,
+.ap-document-actions .dropdown-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    border: 0;
+    border-radius: 6px;
+    padding: .55rem .7rem;
+    background: transparent;
+    color: #25384c;
+    font-size: .82rem;
+    font-weight: 650;
+    text-align: left;
+    white-space: nowrap;
+}
+.ap-sequence-main-actions .dropdown-item:hover,
+.ap-sequence-main-actions .dropdown-item:focus,
+.ap-sequence-row-actions .dropdown-item:hover,
+.ap-sequence-row-actions .dropdown-item:focus,
+.ap-document-actions .dropdown-item:hover,
+.ap-document-actions .dropdown-item:focus {
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+    background: #eef6fc !important;
+    color: #15324a !important;
+}
+.ap-sequence-main-actions .dropdown-item.text-danger:hover,
+.ap-sequence-row-actions .dropdown-item.text-danger:hover,
+.ap-document-actions .dropdown-item.text-danger:hover {
+    background: #fff0f0 !important;
+    color: #dc3545 !important;
+}
+
+.ap-billing-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .7rem;
+    margin-bottom: .9rem;
+}
+.ap-billing-summary-card {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    min-width: 0;
+    padding: .75rem .85rem;
+    border: 1px solid #dfe8f0;
+    border-radius: 10px;
+    background: #fbfdff;
+}
+.ap-billing-summary-icon {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 9px;
+    background: #eaf5fd;
+    color: #1787ca;
+}
+.ap-billing-summary-card strong,
+.ap-billing-summary-card small { display: block; }
+.ap-billing-summary-card strong {
+    color: #152f46;
+    font-size: 1.05rem;
+    line-height: 1.05;
+}
+.ap-billing-summary-card small {
+    margin-top: .15rem;
+    color: #738194;
+    font-size: .72rem;
+}
+
+.ap-sequence-list {
+    display: flex;
+    flex-direction: column;
+    gap: .7rem;
+    min-width: 0;
+}
+.ap-sequence-card {
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr) auto;
+    gap: .85rem;
+    align-items: center;
+    min-width: 0;
+    padding: .85rem;
+    border: 1px solid #dfe7ef;
+    border-left: 4px solid #20b86a;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(31,47,67,.045);
+}
+.ap-sequence-card-icon {
+    width: 46px;
+    height: 46px;
+    display: grid;
+    place-items: center;
+    border: 1px solid #d7e9f7;
+    border-radius: 10px;
+    background: #edf6ff;
+    color: #177fca;
+}
+.ap-sequence-card-body { min-width: 0; }
+.ap-sequence-card-title {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: .7rem;
+    min-width: 0;
+}
+.ap-sequence-card-title > div { min-width: 0; }
+.ap-sequence-card-title strong,
+.ap-sequence-card-title span { display: block; }
+.ap-sequence-card-title strong {
+    color: #172033;
+    font-size: .92rem;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+.ap-sequence-card-title > div > span {
+    margin-top: .16rem;
+    color: #667789;
+    font-size: .74rem;
+}
+.ap-sequence-status {
+    flex: 0 0 auto;
+    display: inline-flex !important;
+    align-items: center;
+    gap: .3rem;
+    padding: .25rem .55rem;
+    border-radius: 999px;
+    font-size: .68rem;
+    font-weight: 800;
+}
+.ap-sequence-status.is-active {
+    color: #187a3c;
+    background: #e9f9ef;
+    border: 1px solid #bde9cc;
+}
+.ap-sequence-status.is-inactive {
+    color: #66707a;
+    background: #f1f3f5;
+    border: 1px solid #dfe3e7;
+}
+.ap-sequence-card-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .5rem .8rem;
+    margin-top: .55rem;
+}
+.ap-sequence-card-grid > div { min-width: 0; }
+.ap-sequence-card-grid small,
+.ap-sequence-card-grid span { display: block; }
+.ap-sequence-card-grid small {
+    color: #7c8998;
+    font-size: .65rem;
+    margin-bottom: .1rem;
+}
+.ap-sequence-card-grid span {
+    color: #27384a;
+    font-size: .75rem;
+    font-weight: 650;
+    overflow-wrap: anywhere;
+}
+.ap-sequence-row-actions { align-self: center; }
+
+/* =========================================================
+   MODALES PÚBLICOS REUTILIZADOS
+   Conservan el tamaño y layout originales de vistasModals.
+   Solo se corrige apilamiento/interacción al abrirlos sobre el modal padre.
+   ========================================================= */
+#modal_registrar_usuarios.ap-from-assignment,
+#modal_registrar_empresa.ap-from-assignment,
+#modal_registrar_secuencias.ap-from-assignment,
+#modal_documentos_secuencia.ap-from-assignment {
+    z-index: 2140 !important;
+    pointer-events: auto !important;
+}
+#modal_registrar_usuarios.ap-from-assignment .modal-dialog,
+#modal_registrar_empresa.ap-from-assignment .modal-dialog,
+#modal_registrar_secuencias.ap-from-assignment .modal-dialog,
+#modal_documentos_secuencia.ap-from-assignment .modal-dialog,
+#modal_registrar_usuarios.ap-from-assignment .modal-content,
+#modal_registrar_empresa.ap-from-assignment .modal-content,
+#modal_registrar_secuencias.ap-from-assignment .modal-content,
+#modal_documentos_secuencia.ap-from-assignment .modal-content {
+    pointer-events: auto !important;
+}
+
+/* No se agrega otro backdrop para los modales secundarios. */
+body.modal-open > .modal-backdrop { z-index: 1990 !important; }
+#modalAdministrarCliente { z-index: 2050 !important; }
+#modalApColaborador { z-index: 2070 !important; }
+
+/* =========================================================
+   DOCUMENTOS DE FACTURACIÓN · CATÁLOGO EN DIVS RESPONSIVE
+   ========================================================= */
+#modal_documentos_secuencia.ap-from-assignment .documentos-layout {
+    display: grid !important;
+    grid-template-columns: minmax(300px, .82fr) minmax(0, 1.45fr) !important;
+    gap: 1rem !important;
+    align-items: start !important;
+}
+#modal_documentos_secuencia.ap-from-assignment .documentos-form-panel,
+#modal_documentos_secuencia.ap-from-assignment .documentos-list-panel {
+    min-width: 0 !important;
+    margin: 0 !important;
+    border: 1px solid #dfe7ef !important;
+    border-radius: 11px !important;
+    background: #fff !important;
+    overflow: visible !important;
+}
+#modal_documentos_secuencia.ap-from-assignment .secuencia-section-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: .75rem !important;
+    padding: .85rem 1rem !important;
+    background: #f8fafc !important;
+    border-bottom: 1px solid #e5ebf1 !important;
+}
+#modal_documentos_secuencia.ap-from-assignment .secuencia-section-header h5 {
+    margin: 0 !important;
+    color: #17324a !important;
+    font-size: .98rem !important;
+    font-weight: 800 !important;
+}
+#modal_documentos_secuencia.ap-from-assignment .secuencia-section-body { padding: 1rem !important; overflow: visible !important; }
+#modal_documentos_secuencia.ap-from-assignment .documentos-header-flex > div { min-width: 0 !important; }
+#modal_documentos_secuencia.ap-from-assignment .documentos-header-flex small {
+    display: block !important;
+    margin-top: .25rem !important;
+    color: #708090 !important;
+    line-height: 1.35 !important;
+}
+#modal_documentos_secuencia.ap-from-assignment .documentos-form-actions {
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: .5rem !important;
+    flex-wrap: wrap !important;
+}
+#modal_documentos_secuencia.ap-from-assignment #documentos_secuencia_listado {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: .7rem !important;
+    min-width: 0 !important;
+}
+#modal_documentos_secuencia.ap-from-assignment .ap-document-card {
+    display: grid !important;
+    grid-template-columns: 46px minmax(0, 1fr) auto !important;
+    gap: .8rem !important;
+    align-items: center !important;
+    min-width: 0 !important;
+    padding: .82rem !important;
+    border: 1px solid #dfe7ef !important;
+    border-left: 4px solid #20b86a !important;
+    border-radius: 10px !important;
+    background: #fff !important;
+    box-shadow: 0 2px 8px rgba(31,47,67,.05) !important;
+    overflow: visible !important;
+}
+#modal_documentos_secuencia.ap-from-assignment .ap-document-icon {
+    width: 46px !important;
+    height: 46px !important;
+    display: grid !important;
+    place-items: center !important;
+    border: 1px solid #d7e9f7 !important;
+    border-radius: 10px !important;
+    background: #edf6ff !important;
+    color: #177fca !important;
+    font-size: 1rem !important;
+}
+#modal_documentos_secuencia.ap-from-assignment .ap-document-info { min-width: 0 !important; }
+#modal_documentos_secuencia.ap-from-assignment .ap-document-title-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: .5rem !important;
+    flex-wrap: wrap !important;
+    min-width: 0 !important;
+}
+#modal_documentos_secuencia.ap-from-assignment .ap-document-title-row h6 {
+    margin: 0 !important;
+    color: #172033 !important;
+    font-size: .92rem !important;
+    font-weight: 800 !important;
+    overflow-wrap: anywhere !important;
+}
+#modal_documentos_secuencia.ap-from-assignment .ap-document-status {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: .3rem !important;
+    padding: .25rem .55rem !important;
+    border-radius: 999px !important;
+    font-size: .69rem !important;
+    font-weight: 800 !important;
+}
+#modal_documentos_secuencia.ap-from-assignment .ap-document-status.is-active {
+    color: #187a3c !important;
+    background: #e9f9ef !important;
+    border: 1px solid #bde9cc !important;
+}
+#modal_documentos_secuencia.ap-from-assignment .ap-document-status.is-inactive {
+    color: #66707a !important;
+    background: #f1f3f5 !important;
+    border: 1px solid #dfe3e7 !important;
+}
+#modal_documentos_secuencia.ap-from-assignment .ap-document-meta {
+    display: flex !important;
+    align-items: center !important;
+    gap: .75rem !important;
+    flex-wrap: wrap !important;
+    margin-top: .35rem !important;
+    color: #6d7785 !important;
+    font-size: .72rem !important;
+}
+#modal_documentos_secuencia.ap-from-assignment .ap-document-meta span {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: .3rem !important;
+}
+#modal_documentos_secuencia.ap-from-assignment .ap-document-actions {
+    position: relative !important;
+    display: block !important;
+    min-width: 104px !important;
+}
+#modal_documentos_secuencia.ap-from-assignment .ap-document-actions > .btn { width: 100% !important; }
+
+/* =========================================================
+   HOVER FIJO · NO OPACIDAD / NO TRANSFORM
+   ========================================================= */
+#modalAdministrarCliente .btn:not(:disabled):hover,
+#modalAdministrarCliente .btn:not(:disabled):focus,
+#modalApColaborador .btn:not(:disabled):hover,
+#modalApColaborador .btn:not(:disabled):focus,
+#modal_registrar_usuarios.ap-from-assignment .btn:not(:disabled):hover,
+#modal_registrar_usuarios.ap-from-assignment .btn:not(:disabled):focus,
+#modal_registrar_empresa.ap-from-assignment .btn:not(:disabled):hover,
+#modal_registrar_empresa.ap-from-assignment .btn:not(:disabled):focus,
+#modal_registrar_secuencias.ap-from-assignment .btn:not(:disabled):hover,
+#modal_registrar_secuencias.ap-from-assignment .btn:not(:disabled):focus,
+#modal_documentos_secuencia.ap-from-assignment .btn:not(:disabled):hover,
+#modal_documentos_secuencia.ap-from-assignment .btn:not(:disabled):focus,
+.swal-modal button:hover,
+.swal-modal button:focus,
+.swal2-container button:hover,
+.swal2-container button:focus {
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+}
+#modal_registrar_usuarios.ap-from-assignment .btn-primary:not(:disabled):hover,
+#modal_registrar_empresa.ap-from-assignment .btn-primary:not(:disabled):hover,
+#modal_registrar_secuencias.ap-from-assignment .btn-primary:not(:disabled):hover,
+#modal_documentos_secuencia.ap-from-assignment .btn-primary:not(:disabled):hover {
+    background-color: #2f9ddd !important;
+    border-color: #2f9ddd !important;
+    color: #fff !important;
+}
+#modal_registrar_usuarios.ap-from-assignment .btn-success:not(:disabled):hover,
+#modal_registrar_empresa.ap-from-assignment .btn-success:not(:disabled):hover,
+#modal_registrar_secuencias.ap-from-assignment .btn-success:not(:disabled):hover,
+#modal_documentos_secuencia.ap-from-assignment .btn-success:not(:disabled):hover {
+    background-color: #20b86a !important;
+    border-color: #20b86a !important;
+    color: #fff !important;
+}
+#modal_registrar_usuarios.ap-from-assignment .btn-danger:not(:disabled):hover,
+#modal_registrar_empresa.ap-from-assignment .btn-danger:not(:disabled):hover,
+#modal_registrar_secuencias.ap-from-assignment .btn-danger:not(:disabled):hover,
+#modal_documentos_secuencia.ap-from-assignment .btn-danger:not(:disabled):hover {
+    background-color: #e74c3c !important;
+    border-color: #e74c3c !important;
+    color: #fff !important;
+}
+
+@media (max-width: 1199.98px) {
+    .ap-sequence-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 991.98px) {
+    #modal_documentos_secuencia.ap-from-assignment .documentos-layout { grid-template-columns: 1fr !important; }
+    .ap-billing-summary { grid-template-columns: repeat(3, minmax(120px, 1fr)); }
+}
+@media (max-width: 767.98px) {
+    .ap-sequence-head { flex-direction: column !important; }
+    .ap-sequence-main-actions { width: 100%; }
+    .ap-sequence-main-actions > .btn { width: 100%; }
+    .ap-billing-summary { grid-template-columns: 1fr; }
+    .ap-sequence-card { grid-template-columns: 42px minmax(0, 1fr); align-items: start; }
+    .ap-sequence-card-icon { width: 42px; height: 42px; }
+    .ap-sequence-row-actions { grid-column: 1 / -1; width: 100%; }
+    .ap-sequence-row-actions > .btn { width: 100%; }
+    .ap-sequence-card-grid { grid-template-columns: 1fr 1fr; }
+    #modal_documentos_secuencia.ap-from-assignment .ap-document-card {
+        grid-template-columns: 46px minmax(0, 1fr) !important;
+        align-items: start !important;
+    }
+    #modal_documentos_secuencia.ap-from-assignment .ap-document-actions {
+        grid-column: 1 / -1 !important;
+        width: 100% !important;
+    }
+    #modal_documentos_secuencia.ap-from-assignment .documentos-header-flex {
+        align-items: flex-start !important;
+        flex-direction: column !important;
+    }
+    #modal_documentos_secuencia.ap-from-assignment .documentos-header-flex .btn,
+    #modal_documentos_secuencia.ap-from-assignment .documentos-form-actions .btn {
+        width: 100% !important;
+        flex: 1 1 100% !important;
+    }
+}
+@media (max-width: 575.98px) {
+    .ap-sequence-card-grid { grid-template-columns: 1fr; }
+    .ap-sequence-card-title { flex-direction: column; }
+    #modal_documentos_secuencia.ap-from-assignment .ap-document-meta {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: .28rem !important;
+    }
+}
+
+/* =========================================================
+   AJUSTES FINALES · FILTROS, LÍMITES, HOVER Y TAMAÑO ESTABLE
+   ========================================================= */
+.ap-client-badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: .45rem;
+}
+.ap-limit-chip {
+    background: #eef6ff !important;
+    color: #245f91 !important;
+    border: 1px solid #d6e8f8 !important;
+}
+.ap-limit-chip.company {
+    background: #f4f1ff !important;
+    color: #5f4a9b !important;
+    border-color: #e2dafa !important;
+}
+
+.ap-filterable-head,
+.ap-sequence-head {
+    align-items: center !important;
+    gap: .8rem !important;
+}
+.ap-head-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .6rem;
+    flex-wrap: wrap;
+}
+.ap-status-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    padding: 3px;
+    border: 1px solid #d8e3ec;
+    border-radius: 9px;
+    background: #f6f9fc;
+}
+.ap-status-filter button {
+    border: 0 !important;
+    background: transparent !important;
+    color: #526476 !important;
+    min-height: 31px;
+    padding: .32rem .62rem;
+    border-radius: 7px !important;
+    font-size: .76rem;
+    font-weight: 800;
+    line-height: 1.1;
+    box-shadow: none !important;
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+    transition: none !important;
+}
+.ap-status-filter button.active {
+    background: #2f9ddd !important;
+    color: #fff !important;
+}
+.ap-status-filter button:hover,
+.ap-status-filter button:focus,
+.ap-status-filter button:active {
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+.ap-status-filter button:not(.active):hover,
+.ap-status-filter button:not(.active):focus {
+    background: transparent !important;
+    color: #526476 !important;
+}
+.ap-status-filter button.active:hover,
+.ap-status-filter button.active:focus {
+    background: #2f9ddd !important;
+    color: #fff !important;
+}
+
+.ap-company-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: .75rem;
+}
+.ap-company-card-main {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex-wrap: wrap;
+}
+.ap-company-status {
+    display: inline-flex;
+    align-items: center;
+    gap: .28rem;
+    padding: .22rem .48rem;
+    border-radius: 999px;
+    font-size: .68rem;
+    font-weight: 800;
+    line-height: 1;
+}
+.ap-company-status.is-active {
+    color: #177a3d;
+    background: #eaf8ef;
+    border: 1px solid #bce4ca;
+}
+.ap-company-status.is-inactive {
+    color: #68727d;
+    background: #f1f3f5;
+    border: 1px solid #dce1e5;
+}
+
+.ap-public-plan-limit {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin: 0 0 1rem;
+    padding: .7rem .85rem;
+    border: 1px solid #d7e7f4;
+    border-radius: 10px;
+    background: #f5faff;
+    color: #173b59;
+}
+.ap-public-plan-limit > i {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 34px;
+    border-radius: 9px;
+    background: #e5f3fe;
+    color: #168acb;
+}
+.ap-public-plan-limit > div {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+.ap-public-plan-limit strong {
+    font-size: .8rem;
+    color: #17324a;
+}
+.ap-public-plan-limit span {
+    font-size: .75rem;
+    color: #617588;
+    font-weight: 700;
+}
+
+/* El modal público de usuarios mantiene exactamente la misma geometría
+   aunque cambie entre colaborador existente y nuevo usuario/colaborador. */
+#modal_registrar_usuarios.ap-from-assignment > .modal-dialog {
+    width: min(1140px, calc(100vw - 32px)) !important;
+    max-width: min(1140px, calc(100vw - 32px)) !important;
+    height: min(820px, calc(100dvh - 32px)) !important;
+    max-height: min(820px, calc(100dvh - 32px)) !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+}
+#modal_registrar_usuarios.ap-from-assignment > .modal-dialog > .modal-content {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+}
+#modal_registrar_usuarios.ap-from-assignment > .modal-dialog > .modal-content > .modal-body {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+#modal_registrar_usuarios.ap-from-assignment > .modal-dialog > .modal-content > .modal-header,
+#modal_registrar_usuarios.ap-from-assignment > .modal-dialog > .modal-content > .modal-footer {
+    flex: 0 0 auto !important;
+}
+
+/* Hover neutro: ningún botón, icono o texto pierde contraste ni cambia opacidad. */
+#modalAdministrarCliente button:not(:disabled),
+#modalAdministrarCliente button:not(:disabled) *,
+#modal_registrar_usuarios.ap-from-assignment button:not(:disabled),
+#modal_registrar_usuarios.ap-from-assignment button:not(:disabled) *,
+#modal_registrar_empresa.ap-from-assignment button:not(:disabled),
+#modal_registrar_empresa.ap-from-assignment button:not(:disabled) *,
+#modal_registrar_secuencias.ap-from-assignment button:not(:disabled),
+#modal_registrar_secuencias.ap-from-assignment button:not(:disabled) *,
+#modal_documentos_secuencia.ap-from-assignment button:not(:disabled),
+#modal_documentos_secuencia.ap-from-assignment button:not(:disabled) *,
+.swal-modal button:not(:disabled),
+.swal-modal button:not(:disabled) *,
+.swal2-container button:not(:disabled),
+.swal2-container button:not(:disabled) * {
+    opacity: 1 !important;
+    filter: none !important;
+}
+#modalAdministrarCliente button:not(:disabled):hover,
+#modalAdministrarCliente button:not(:disabled):hover *,
+#modalAdministrarCliente button:not(:disabled):focus,
+#modalAdministrarCliente button:not(:disabled):focus *,
+#modal_registrar_usuarios.ap-from-assignment button:not(:disabled):hover,
+#modal_registrar_usuarios.ap-from-assignment button:not(:disabled):hover *,
+#modal_registrar_empresa.ap-from-assignment button:not(:disabled):hover,
+#modal_registrar_empresa.ap-from-assignment button:not(:disabled):hover *,
+#modal_registrar_secuencias.ap-from-assignment button:not(:disabled):hover,
+#modal_registrar_secuencias.ap-from-assignment button:not(:disabled):hover *,
+#modal_documentos_secuencia.ap-from-assignment button:not(:disabled):hover,
+#modal_documentos_secuencia.ap-from-assignment button:not(:disabled):hover *,
+.swal-modal button:not(:disabled):hover,
+.swal-modal button:not(:disabled):hover *,
+.swal2-container button:not(:disabled):hover,
+.swal2-container button:not(:disabled):hover * {
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+    text-shadow: none !important;
+}
+
+/* Los elementos del dropdown conservan su apariencia normal al pasar el mouse. */
+#modalAdministrarCliente .dropdown-menu .dropdown-item:not(:disabled):hover,
+#modalAdministrarCliente .dropdown-menu .dropdown-item:not(:disabled):focus,
+#modalAdministrarCliente .dropdown-menu .dropdown-item:not(:disabled):hover *,
+#modalAdministrarCliente .dropdown-menu .dropdown-item:not(:disabled):focus *,
+#modal_documentos_secuencia.ap-from-assignment .dropdown-menu .dropdown-item:not(:disabled):hover,
+#modal_documentos_secuencia.ap-from-assignment .dropdown-menu .dropdown-item:not(:disabled):focus,
+#modal_documentos_secuencia.ap-from-assignment .dropdown-menu .dropdown-item:not(:disabled):hover *,
+#modal_documentos_secuencia.ap-from-assignment .dropdown-menu .dropdown-item:not(:disabled):focus * {
+    background: #fff !important;
+    color: #26384b !important;
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+}
+#modalAdministrarCliente .dropdown-menu .dropdown-item.text-danger:not(:disabled):hover,
+#modalAdministrarCliente .dropdown-menu .dropdown-item.text-danger:not(:disabled):focus,
+#modalAdministrarCliente .dropdown-menu .dropdown-item.text-danger:not(:disabled):hover *,
+#modalAdministrarCliente .dropdown-menu .dropdown-item.text-danger:not(:disabled):focus *,
+#modal_documentos_secuencia.ap-from-assignment .dropdown-menu .dropdown-item.text-danger:not(:disabled):hover,
+#modal_documentos_secuencia.ap-from-assignment .dropdown-menu .dropdown-item.text-danger:not(:disabled):focus,
+#modal_documentos_secuencia.ap-from-assignment .dropdown-menu .dropdown-item.text-danger:not(:disabled):hover *,
+#modal_documentos_secuencia.ap-from-assignment .dropdown-menu .dropdown-item.text-danger:not(:disabled):focus * {
+    background: #fff !important;
+    color: #dc3545 !important;
+}
+
+/* Mantener exactamente los colores base de Bootstrap/IZZY durante hover. */
+#modalAdministrarCliente .btn-primary:not(:disabled):hover,
+#modalAdministrarCliente .btn-primary:not(:disabled):focus { background:#2f9ddd !important; border-color:#2f9ddd !important; color:#fff !important; }
+#modalAdministrarCliente .btn-info:not(:disabled):hover,
+#modalAdministrarCliente .btn-info:not(:disabled):focus { background:#2f9ddd !important; border-color:#2f9ddd !important; color:#fff !important; }
+#modalAdministrarCliente .btn-success:not(:disabled):hover,
+#modalAdministrarCliente .btn-success:not(:disabled):focus { background:#20b86a !important; border-color:#20b86a !important; color:#fff !important; }
+#modalAdministrarCliente .btn-danger:not(:disabled):hover,
+#modalAdministrarCliente .btn-danger:not(:disabled):focus { background:#e74c3c !important; border-color:#e74c3c !important; color:#fff !important; }
+#modalAdministrarCliente .btn-secondary:not(:disabled):hover,
+#modalAdministrarCliente .btn-secondary:not(:disabled):focus { background:#6c757d !important; border-color:#6c757d !important; color:#fff !important; }
+
+@media (max-width: 991.98px) {
+    .ap-filterable-head,
+    .ap-sequence-head {
+        align-items: stretch !important;
+    }
+    .ap-head-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
+@media (max-width: 767.98px) {
+    .ap-head-actions,
+    .ap-status-filter {
+        width: 100%;
+    }
+    .ap-status-filter button {
+        flex: 1 1 0;
+        min-width: 0;
+        padding-left: .35rem;
+        padding-right: .35rem;
+    }
+    .ap-head-actions > .btn,
+    .ap-head-actions > .dropdown,
+    .ap-head-actions > .dropdown > .btn {
+        width: 100% !important;
+    }
+    .ap-company-card-top {
+        flex-direction: column;
+    }
+    .ap-company-card-top > .btn {
+        width: 100%;
+    }
+    #modal_registrar_usuarios.ap-from-assignment > .modal-dialog {
+        width: calc(100vw - 16px) !important;
+        max-width: calc(100vw - 16px) !important;
+        height: calc(100dvh - 16px) !important;
+        max-height: calc(100dvh - 16px) !important;
+    }
+}
+#modal_registrar_usuarios.ap-from-assignment.show {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+}
+#modalAdministrarCliente button:not(:disabled):hover *,
+#modalAdministrarCliente button:not(:disabled):focus *,
+#modal_registrar_usuarios.ap-from-assignment button:not(:disabled):hover *,
+#modal_registrar_usuarios.ap-from-assignment button:not(:disabled):focus *,
+#modal_registrar_empresa.ap-from-assignment button:not(:disabled):hover *,
+#modal_registrar_empresa.ap-from-assignment button:not(:disabled):focus *,
+#modal_registrar_secuencias.ap-from-assignment button:not(:disabled):hover *,
+#modal_registrar_secuencias.ap-from-assignment button:not(:disabled):focus *,
+#modal_documentos_secuencia.ap-from-assignment button:not(:disabled):hover *,
+#modal_documentos_secuencia.ap-from-assignment button:not(:disabled):focus * {
+    color: inherit !important;
+}
+
+
+/* =========================================================
+   UNIFORMIDAD FINAL · ESTADOS, HOVER, VISOR PDF Y MODALES
+   ========================================================= */
+.ap-collab-name-row {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+.ap-collab-name-row h6,
+.ap-collab-name-row strong { margin: 0; min-width: 0; }
+.ap-collaborator-status-filter { flex: 0 0 auto; }
+
+#modal_documentos_secuencia.ap-from-assignment .ap-document-header-tools {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .55rem;
+    flex-wrap: wrap;
+}
+#modal_documentos_secuencia.ap-from-assignment .ap-document-header-tools #btn_refrescar_documentos_secuencia {
+    flex: 0 0 auto !important;
+    width: auto !important;
+}
+
+/* El visor PDF público siempre debe quedar por encima de Administración y de los modales públicos. */
+#modal_pdf_publico.ap-from-assignment {
+    z-index: 2600 !important;
+    pointer-events: auto !important;
+}
+#modal_pdf_publico.ap-from-assignment .modal-dialog,
+#modal_pdf_publico.ap-from-assignment .modal-content,
+#modal_pdf_publico.ap-from-assignment iframe {
+    pointer-events: auto !important;
+}
+body > .modal-backdrop.ap-pdf-backdrop {
+    z-index: 2590 !important;
+    opacity: .12 !important;
+}
+
+/* El modal público de usuarios no cambia de geometría al alternar pestañas/modos. */
+#modal_registrar_usuarios.ap-from-assignment,
+#modal_registrar_usuarios.ap-from-assignment.show {
+    transition: none !important;
+    animation: none !important;
+}
+#modal_registrar_usuarios.ap-from-assignment > .modal-dialog,
+#modal_registrar_usuarios.ap-from-assignment > .modal-dialog > .modal-content,
+#modal_registrar_usuarios.ap-from-assignment .modal-body,
+#modal_registrar_usuarios.ap-from-assignment .tab-content,
+#modal_registrar_usuarios.ap-from-assignment .tab-pane {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+}
+#modal_registrar_usuarios.ap-from-assignment > .modal-dialog {
+    flex: 0 0 auto !important;
+}
+
+/*
+ * HOVER 100% NEUTRO EN TODO EL MÓDULO.
+ * my_style.css tiene reglas globales sobre .btn:hover; aquí se conservan
+ * color, fondo, borde, iconos y opacidad en todos los botones de esta pantalla.
+ */
+:is(.asignacion-planes-page,
+    #modalAdministrarCliente,
+    #modalApColaborador,
+    #modal_registrar_usuarios.ap-from-assignment,
+    #modal_registrar_empresa.ap-from-assignment,
+    #modal_registrar_secuencias.ap-from-assignment,
+    #modal_documentos_secuencia.ap-from-assignment,
+    #modal_pdf_publico.ap-from-assignment,
+    .swal-modal,
+    .swal2-container) button:not(:disabled),
+:is(.asignacion-planes-page,
+    #modalAdministrarCliente,
+    #modalApColaborador,
+    #modal_registrar_usuarios.ap-from-assignment,
+    #modal_registrar_empresa.ap-from-assignment,
+    #modal_registrar_secuencias.ap-from-assignment,
+    #modal_documentos_secuencia.ap-from-assignment,
+    #modal_pdf_publico.ap-from-assignment,
+    .swal-modal,
+    .swal2-container) button:not(:disabled) * {
+    opacity: 1 !important;
+    filter: none !important;
+    visibility: visible !important;
+    text-shadow: none !important;
+    transition: none !important;
+}
+:is(.asignacion-planes-page,
+    #modalAdministrarCliente,
+    #modalApColaborador,
+    #modal_registrar_usuarios.ap-from-assignment,
+    #modal_registrar_empresa.ap-from-assignment,
+    #modal_registrar_secuencias.ap-from-assignment,
+    #modal_documentos_secuencia.ap-from-assignment,
+    #modal_pdf_publico.ap-from-assignment,
+    .swal-modal,
+    .swal2-container) button:not(:disabled):hover,
+:is(.asignacion-planes-page,
+    #modalAdministrarCliente,
+    #modalApColaborador,
+    #modal_registrar_usuarios.ap-from-assignment,
+    #modal_registrar_empresa.ap-from-assignment,
+    #modal_registrar_secuencias.ap-from-assignment,
+    #modal_documentos_secuencia.ap-from-assignment,
+    #modal_pdf_publico.ap-from-assignment,
+    .swal-modal,
+    .swal2-container) button:not(:disabled):focus,
+:is(.asignacion-planes-page,
+    #modalAdministrarCliente,
+    #modalApColaborador,
+    #modal_registrar_usuarios.ap-from-assignment,
+    #modal_registrar_empresa.ap-from-assignment,
+    #modal_registrar_secuencias.ap-from-assignment,
+    #modal_documentos_secuencia.ap-from-assignment,
+    #modal_pdf_publico.ap-from-assignment,
+    .swal-modal,
+    .swal2-container) button:not(:disabled):active {
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+    text-shadow: none !important;
+}
+
+:is(.asignacion-planes-page,#modalAdministrarCliente,#modalApColaborador,#modal_registrar_usuarios.ap-from-assignment,#modal_registrar_empresa.ap-from-assignment,#modal_registrar_secuencias.ap-from-assignment,#modal_documentos_secuencia.ap-from-assignment,#modal_pdf_publico.ap-from-assignment) .btn-primary:not(:disabled),
+:is(.asignacion-planes-page,#modalAdministrarCliente,#modalApColaborador,#modal_registrar_usuarios.ap-from-assignment,#modal_registrar_empresa.ap-from-assignment,#modal_registrar_secuencias.ap-from-assignment,#modal_documentos_secuencia.ap-from-assignment,#modal_pdf_publico.ap-from-assignment) .btn-primary:not(:disabled):hover,
+:is(.asignacion-planes-page,#modalAdministrarCliente,#modalApColaborador,#modal_registrar_usuarios.ap-from-assignment,#modal_registrar_empresa.ap-from-assignment,#modal_registrar_secuencias.ap-from-assignment,#modal_documentos_secuencia.ap-from-assignment,#modal_pdf_publico.ap-from-assignment) .btn-primary:not(:disabled):focus { background:#2f9ddd !important; border-color:#2f9ddd !important; color:#fff !important; }
+:is(.asignacion-planes-page,#modalAdministrarCliente,#modalApColaborador,#modal_registrar_usuarios.ap-from-assignment,#modal_registrar_empresa.ap-from-assignment,#modal_registrar_secuencias.ap-from-assignment,#modal_documentos_secuencia.ap-from-assignment,#modal_pdf_publico.ap-from-assignment) .btn-info:not(:disabled),
+:is(.asignacion-planes-page,#modalAdministrarCliente,#modalApColaborador,#modal_registrar_usuarios.ap-from-assignment,#modal_registrar_empresa.ap-from-assignment,#modal_registrar_secuencias.ap-from-assignment,#modal_documentos_secuencia.ap-from-assignment,#modal_pdf_publico.ap-from-assignment) .btn-info:not(:disabled):hover,
+:is(.asignacion-planes-page,#modalAdministrarCliente,#modalApColaborador,#modal_registrar_usuarios.ap-from-assignment,#modal_registrar_empresa.ap-from-assignment,#modal_registrar_secuencias.ap-from-assignment,#modal_documentos_secuencia.ap-from-assignment,#modal_pdf_publico.ap-from-assignment) .btn-info:not(:disabled):focus { background:#2f9ddd !important; border-color:#2f9ddd !important; color:#fff !important; }
+:is(.asignacion-planes-page,#modalAdministrarCliente,#modalApColaborador,#modal_registrar_usuarios.ap-from-assignment,#modal_registrar_empresa.ap-from-assignment,#modal_registrar_secuencias.ap-from-assignment,#modal_documentos_secuencia.ap-from-assignment,#modal_pdf_publico.ap-from-assignment) .btn-success:not(:disabled),
+:is(.asignacion-planes-page,#modalAdministrarCliente,#modalApColaborador,#modal_registrar_usuarios.ap-from-assignment,#modal_registrar_empresa.ap-from-assignment,#modal_registrar_secuencias.ap-from-assignment,#modal_documentos_secuencia.ap-from-assignment,#modal_pdf_publico.ap-from-assignment) .btn-success:not(:disabled):hover,
+:is(.asignacion-planes-page,#modalAdministrarCliente,#modalApColaborador,#modal_registrar_usuarios.ap-from-assignment,#modal_registrar_empresa.ap-from-assignment,#modal_registrar_secuencias.ap-from-assignment,#modal_documentos_secuencia.ap-from-assignment,#modal_pdf_publico.ap-from-assignment) .btn-success:not(:disabled):focus { background:#20b86a !important; border-color:#20b86a !important; color:#fff !important; }
+:is(.asignacion-planes-page,#modalAdministrarCliente,#modalApColaborador,#modal_registrar_usuarios.ap-from-assignment,#modal_registrar_empresa.ap-from-assignment,#modal_registrar_secuencias.ap-from-assignment,#modal_documentos_secuencia.ap-from-assignment,#modal_pdf_publico.ap-from-assignment) .btn-danger:not(:disabled),
+:is(.asignacion-planes-page,#modalAdministrarCliente,#modalApColaborador,#modal_registrar_usuarios.ap-from-assignment,#modal_registrar_empresa.ap-from-assignment,#modal_registrar_secuencias.ap-from-assignment,#modal_documentos_secuencia.ap-from-assignment,#modal_pdf_publico.ap-from-assignment) .btn-danger:not(:disabled):hover,
+:is(.asignacion-planes-page,#modalAdministrarCliente,#modalApColaborador,#modal_registrar_usuarios.ap-from-assignment,#modal_registrar_empresa.ap-from-assignment,#modal_registrar_secuencias.ap-from-assignment,#modal_documentos_secuencia.ap-from-assignment,#modal_pdf_publico.ap-from-assignment) .btn-danger:not(:disabled):focus { background:#e74c3c !important; border-color:#e74c3c !important; color:#fff !important; }
+:is(.asignacion-planes-page,#modalAdministrarCliente,#modalApColaborador,#modal_registrar_usuarios.ap-from-assignment,#modal_registrar_empresa.ap-from-assignment,#modal_registrar_secuencias.ap-from-assignment,#modal_documentos_secuencia.ap-from-assignment,#modal_pdf_publico.ap-from-assignment) .btn-secondary:not(:disabled),
+:is(.asignacion-planes-page,#modalAdministrarCliente,#modalApColaborador,#modal_registrar_usuarios.ap-from-assignment,#modal_registrar_empresa.ap-from-assignment,#modal_registrar_secuencias.ap-from-assignment,#modal_documentos_secuencia.ap-from-assignment,#modal_pdf_publico.ap-from-assignment) .btn-secondary:not(:disabled):hover,
+:is(.asignacion-planes-page,#modalAdministrarCliente,#modalApColaborador,#modal_registrar_usuarios.ap-from-assignment,#modal_registrar_empresa.ap-from-assignment,#modal_registrar_secuencias.ap-from-assignment,#modal_documentos_secuencia.ap-from-assignment,#modal_pdf_publico.ap-from-assignment) .btn-secondary:not(:disabled):focus { background:#6c757d !important; border-color:#6c757d !important; color:#fff !important; }
+:is(.asignacion-planes-page,#modalAdministrarCliente,#modalApColaborador,#modal_registrar_usuarios.ap-from-assignment,#modal_registrar_empresa.ap-from-assignment,#modal_registrar_secuencias.ap-from-assignment,#modal_documentos_secuencia.ap-from-assignment,#modal_pdf_publico.ap-from-assignment) .btn-light:not(:disabled),
+:is(.asignacion-planes-page,#modalAdministrarCliente,#modalApColaborador,#modal_registrar_usuarios.ap-from-assignment,#modal_registrar_empresa.ap-from-assignment,#modal_registrar_secuencias.ap-from-assignment,#modal_documentos_secuencia.ap-from-assignment,#modal_pdf_publico.ap-from-assignment) .btn-light:not(:disabled):hover,
+:is(.asignacion-planes-page,#modalAdministrarCliente,#modalApColaborador,#modal_registrar_usuarios.ap-from-assignment,#modal_registrar_empresa.ap-from-assignment,#modal_registrar_secuencias.ap-from-assignment,#modal_documentos_secuencia.ap-from-assignment,#modal_pdf_publico.ap-from-assignment) .btn-light:not(:disabled):focus { background:#f8f9fa !important; border-color:#dfe4e8 !important; color:#25384c !important; }
+:is(.asignacion-planes-page,#modalAdministrarCliente,#modalApColaborador,#modal_registrar_usuarios.ap-from-assignment,#modal_registrar_empresa.ap-from-assignment,#modal_registrar_secuencias.ap-from-assignment,#modal_documentos_secuencia.ap-from-assignment,#modal_pdf_publico.ap-from-assignment) .btn-link:not(:disabled),
+:is(.asignacion-planes-page,#modalAdministrarCliente,#modalApColaborador,#modal_registrar_usuarios.ap-from-assignment,#modal_registrar_empresa.ap-from-assignment,#modal_registrar_secuencias.ap-from-assignment,#modal_documentos_secuencia.ap-from-assignment,#modal_pdf_publico.ap-from-assignment) .btn-link:not(:disabled):hover,
+:is(.asignacion-planes-page,#modalAdministrarCliente,#modalApColaborador,#modal_registrar_usuarios.ap-from-assignment,#modal_registrar_empresa.ap-from-assignment,#modal_registrar_secuencias.ap-from-assignment,#modal_documentos_secuencia.ap-from-assignment,#modal_pdf_publico.ap-from-assignment) .btn-link:not(:disabled):focus { background:transparent !important; border-color:transparent !important; color:#168acb !important; box-shadow:none !important; }
+
+:is(.asignacion-planes-page,#modalAdministrarCliente,#modalApColaborador,#modal_registrar_usuarios.ap-from-assignment,#modal_registrar_empresa.ap-from-assignment,#modal_registrar_secuencias.ap-from-assignment,#modal_documentos_secuencia.ap-from-assignment,#modal_pdf_publico.ap-from-assignment) .btn:not(:disabled):hover *,
+:is(.asignacion-planes-page,#modalAdministrarCliente,#modalApColaborador,#modal_registrar_usuarios.ap-from-assignment,#modal_registrar_empresa.ap-from-assignment,#modal_registrar_secuencias.ap-from-assignment,#modal_documentos_secuencia.ap-from-assignment,#modal_pdf_publico.ap-from-assignment) .btn:not(:disabled):focus * { color:inherit !important; opacity:1 !important; }
+
+@media (max-width: 991.98px) {
+    #modal_documentos_secuencia.ap-from-assignment .ap-document-header-tools {
+        width: 100%;
+        margin-left: 0;
+        justify-content: flex-start;
+    }
+}
+@media (max-width: 767.98px) {
+    .ap-collaborator-status-filter { width: 100%; }
+    #modal_documentos_secuencia.ap-from-assignment .ap-document-header-tools,
+    #modal_documentos_secuencia.ap-from-assignment .ap-document-status-filter { width: 100%; }
+    #modal_documentos_secuencia.ap-from-assignment .ap-document-status-filter button { flex:1 1 0; }
+    #modal_documentos_secuencia.ap-from-assignment .ap-document-header-tools #btn_refrescar_documentos_secuencia { width:100% !important; }
+}
+
+/* =========================================================
+   ADMINISTRACIÓN DE CLIENTE · EMPRESAS Y SECUENCIAS
+   Vista Detalle / Miniatura + reportes
+   ========================================================= */
+#modalAdministrarCliente .ap-company-toolbar,
+#modalAdministrarCliente .ap-sequence-head .ap-head-actions {
+    flex-wrap: wrap;
+}
+
+#modalAdministrarCliente .ap-company-view-switch,
+#modalAdministrarCliente .ap-sequence-view-switch {
+    flex: 0 0 auto;
+}
+
+#modalAdministrarCliente .ap-company-detail-head,
+#modalAdministrarCliente .ap-company-detail-row {
+    display: grid;
+    grid-template-columns: minmax(140px,1.05fr) minmax(170px,1.25fr) minmax(120px,.85fr) minmax(180px,1.3fr) 105px 120px;
+    gap: 10px;
+    align-items: center;
+}
+
+#modalAdministrarCliente .ap-company-detail-head {
+    padding: 10px 14px;
+    background: #17324d;
+    color: #fff;
+    border-radius: 9px 9px 0 0;
+    font-size: .74rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+}
+
+#modalAdministrarCliente .ap-company-detail-row {
+    padding: 12px 14px;
+    border: 1px solid #dfe7ef;
+    border-top: 0;
+    background: #fff;
+    color: #52627a;
+    font-size: .82rem;
+}
+
+#modalAdministrarCliente .ap-company-detail-row:last-child {
+    border-radius: 0 0 9px 9px;
+}
+
+#modalAdministrarCliente .ap-company-detail-main strong {
+    color: #172b4d;
+    font-size: .9rem;
+    overflow-wrap: anywhere;
+}
+
+#modalAdministrarCliente .ap-company-actions > .btn,
+#modalAdministrarCliente .ap-sequence-row-actions > .btn {
+    min-width: 108px;
+}
+
+#modalAdministrarCliente .ap-sequence-detail-head,
+#modalAdministrarCliente .ap-sequence-detail-row {
+    display: grid;
+    grid-template-columns: minmax(160px,1.2fr) minmax(170px,1.2fr) minmax(120px,.9fr) minmax(120px,.9fr) minmax(170px,1.2fr) 95px 120px;
+    gap: 10px;
+    align-items: center;
+}
+
+#modalAdministrarCliente .ap-sequence-detail-head {
+    padding: 10px 14px;
+    background: #17324d;
+    color: #fff;
+    border-radius: 9px 9px 0 0;
+    font-size: .74rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+#modalAdministrarCliente .ap-sequence-detail-row {
+    padding: 12px 14px;
+    border: 1px solid #dfe7ef;
+    border-top: 0;
+    background: #fff;
+    color: #52627a;
+    font-size: .78rem;
+    min-width: 0;
+}
+
+#modalAdministrarCliente .ap-sequence-detail-row:last-child {
+    border-radius: 0 0 9px 9px;
+}
+
+#modalAdministrarCliente .ap-sequence-detail-row > div,
+#modalAdministrarCliente .ap-company-detail-row > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+#modalAdministrarCliente .ap-sequence-detail-main strong,
+#modalAdministrarCliente .ap-sequence-detail-main span {
+    display: block;
+}
+
+#modalAdministrarCliente .ap-sequence-detail-main strong {
+    color: #172b4d;
+    font-size: .88rem;
+}
+
+#modalAdministrarCliente .ap-sequence-detail-main span {
+    margin-top: 2px;
+    color: #6b778c;
+    font-size: .74rem;
+}
+
+#modalAdministrarCliente .ap-sequence-list.is-mini {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 12px;
+}
+
+#modalAdministrarCliente .ap-sequence-mini-card {
+    min-width: 0;
+    border: 1px solid #dfe7ef;
+    border-left: 4px solid #20c997;
+    border-radius: 11px;
+    background: #fff;
+    padding: 13px;
+    box-shadow: 0 2px 8px rgba(23,50,77,.04);
+}
+
+#modalAdministrarCliente .ap-sequence-mini-top {
+    display: grid;
+    grid-template-columns: 42px minmax(0,1fr) auto;
+    gap: 10px;
+    align-items: center;
+}
+
+#modalAdministrarCliente .ap-sequence-mini-title strong,
+#modalAdministrarCliente .ap-sequence-mini-title span {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+#modalAdministrarCliente .ap-sequence-mini-title strong {
+    color: #172b4d;
+    font-size: .9rem;
+}
+
+#modalAdministrarCliente .ap-sequence-mini-title span {
+    color: #6b778c;
+    font-size: .76rem;
+    margin-top: 2px;
+}
+
+#modalAdministrarCliente .ap-sequence-mini-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 14px;
+    padding: 12px 0;
+}
+
+#modalAdministrarCliente .ap-sequence-mini-grid small,
+#modalAdministrarCliente .ap-sequence-mini-grid span {
+    display: block;
+}
+
+#modalAdministrarCliente .ap-sequence-mini-grid small {
+    color: #7a869a;
+    font-size: .68rem;
+}
+
+#modalAdministrarCliente .ap-sequence-mini-grid span {
+    color: #253858;
+    font-size: .78rem;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+#modalAdministrarCliente .ap-sequence-mini-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 10px;
+    border-top: 1px solid #edf1f5;
+}
+
+#modalAdministrarCliente .ap-company-list.is-mini .ap-company-grid,
+#modalAdministrarCliente #ap_company_list.is-mini .ap-company-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+}
+
+/* Mantener el hover legible también en controles nuevos */
+#modalAdministrarCliente #ap_btn_excel_empresas:hover,
+#modalAdministrarCliente #ap_btn_excel_empresas:focus,
+#modalAdministrarCliente #ap_btn_excel_secuencias:hover,
+#modalAdministrarCliente #ap_btn_excel_secuencias:focus {
+    color: #fff !important;
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+}
+
+#modalAdministrarCliente #ap_btn_pdf_empresas:hover,
+#modalAdministrarCliente #ap_btn_pdf_empresas:focus,
+#modalAdministrarCliente #ap_btn_pdf_secuencias:hover,
+#modalAdministrarCliente #ap_btn_pdf_secuencias:focus {
+    color: #fff !important;
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+}
+
+@media (max-width: 1199.98px) {
+    #modalAdministrarCliente .ap-company-detail-head,
+    #modalAdministrarCliente .ap-sequence-detail-head {
+        display: none;
+    }
+
+    #modalAdministrarCliente .ap-company-detail-row,
+    #modalAdministrarCliente .ap-sequence-detail-row {
+        grid-template-columns: repeat(2,minmax(0,1fr));
+        border-top: 1px solid #dfe7ef;
+        border-radius: 10px;
+        margin-bottom: 10px;
+    }
+
+    #modalAdministrarCliente .ap-company-detail-row > div::before,
+    #modalAdministrarCliente .ap-sequence-detail-row > div::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 3px;
+        color: #7a869a;
+        font-size: .65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    #modalAdministrarCliente .ap-company-detail-main,
+    #modalAdministrarCliente .ap-sequence-detail-main {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 767.98px) {
+    #modalAdministrarCliente .ap-company-view-switch,
+    #modalAdministrarCliente .ap-sequence-view-switch {
+        display: none !important;
+    }
+
+    #modalAdministrarCliente .ap-sequence-list.is-mini,
+    #modalAdministrarCliente #ap_company_list.is-mini .ap-company-grid {
+        grid-template-columns: 1fr;
+    }
+
+    #modalAdministrarCliente .ap-company-detail-row,
+    #modalAdministrarCliente .ap-sequence-detail-row {
+        grid-template-columns: 1fr;
+    }
+
+    #modalAdministrarCliente .ap-company-toolbar > .btn,
+    #modalAdministrarCliente .ap-sequence-head .ap-head-actions > .btn,
+    #modalAdministrarCliente .ap-sequence-main-actions,
+    #modalAdministrarCliente .ap-sequence-main-actions > .btn {
+        width: 100%;
+    }
+
+    #modalAdministrarCliente .ap-sequence-mini-top {
+        grid-template-columns: 42px minmax(0,1fr);
+    }
+
+    #modalAdministrarCliente .ap-sequence-mini-top .ap-sequence-status {
+        grid-column: 1 / -1;
+        justify-self: start;
+    }
+
+    #modalAdministrarCliente .ap-sequence-mini-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* =====================================================================
+   ACCESOS PREMIUM - PRIVILEGIOS / TIPOS DE USUARIO
+   ===================================================================== */
+#modalAdministrarCliente .ap-access-subtabs{
+    display:flex; flex-wrap:wrap; gap:8px; padding:10px 12px; margin:0 0 12px;
+    border:1px solid #dce6ef; border-radius:10px; background:#f8fbfd;
+}
+#modalAdministrarCliente .ap-access-subtab{
+    border:0; border-radius:8px; padding:9px 13px; background:transparent; color:#52627a;
+    font-weight:700; transition:none !important; transform:none !important; opacity:1 !important;
+}
+#modalAdministrarCliente .ap-access-subtab.active{background:#168fd0;color:#fff;}
+#modalAdministrarCliente .ap-access-subtab:hover,
+#modalAdministrarCliente .ap-access-subtab:focus{opacity:1 !important;filter:none !important;transform:none !important;box-shadow:none !important;}
+#modalAdministrarCliente .ap-access-subtab:not(.active):hover,
+#modalAdministrarCliente .ap-access-subtab:not(.active):focus{background:#eaf5fb !important;color:#17324d !important;}
+#modalAdministrarCliente .ap-access-subpanel{display:none;}
+#modalAdministrarCliente .ap-access-subpanel.active{display:block;}
+
+#modalAdministrarCliente .ap-access-summary{
+    display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; padding:12px;
+    border-top:1px solid #e4ebf2; border-bottom:1px solid #e4ebf2; background:#fbfdff;
+}
+#modalAdministrarCliente .ap-access-summary>div{
+    display:grid; grid-template-columns:38px auto; grid-template-rows:auto auto; align-items:center;
+    column-gap:10px; border:1px solid #dce6ef; border-radius:10px; background:#fff; padding:10px 12px;
+}
+#modalAdministrarCliente .ap-access-summary i{grid-row:1/3;width:38px;height:38px;border-radius:9px;background:#e9f5fd;color:#168fd0;display:flex;align-items:center;justify-content:center;}
+#modalAdministrarCliente .ap-access-summary strong{font-size:17px;color:#17324d;line-height:1.1;}
+#modalAdministrarCliente .ap-access-summary small{color:#6b778c;font-size:11px;}
+
+#modalAdministrarCliente .ap-access-list{padding:12px;display:grid;gap:10px;}
+#modalAdministrarCliente .ap-access-row{
+    display:grid; grid-template-columns:minmax(220px,1.7fr) 120px 90px 100px 90px 90px 125px;
+    gap:10px; align-items:center; border:1px solid #dce6ef; border-left:4px solid #20bf8f;
+    border-radius:10px; background:#fff; padding:12px 14px;
+}
+#modalAdministrarCliente .ap-type-row{grid-template-columns:minmax(220px,1.5fr) 120px 125px 90px minmax(240px,1.7fr) 125px;}
+#modalAdministrarCliente .ap-access-row>div>small{display:block;color:#6b778c;font-size:10px;margin-bottom:3px;}
+#modalAdministrarCliente .ap-access-row>div>strong{color:#172b4d;font-size:13px;}
+#modalAdministrarCliente .ap-access-main{display:flex;gap:10px;align-items:center;min-width:0;}
+#modalAdministrarCliente .ap-access-main>div{min-width:0;}
+#modalAdministrarCliente .ap-access-main strong{display:block;color:#172b4d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#modalAdministrarCliente .ap-access-main small{display:block;color:#6b778c;font-size:10px;}
+#modalAdministrarCliente .ap-access-icon{
+    width:42px;height:42px;flex:0 0 42px;border-radius:10px;background:#eaf5fd;color:#168fd0;display:flex;align-items:center;justify-content:center;font-size:16px;
+}
+#modalAdministrarCliente .ap-access-icon.type{background:#f1edff;color:#6b4bc3;}
+#modalAdministrarCliente .ap-access-row-actions{display:flex;justify-content:flex-end;}
+#modalAdministrarCliente .ap-access-actions .dropdown-menu{min-width:220px;z-index:2405;}
+#modalAdministrarCliente .ap-access-actions .dropdown-item{font-weight:600;font-size:12px;padding:9px 12px;}
+
+#modalAdministrarCliente .ap-access-card{
+    border:1px solid #dce6ef;border-left:4px solid #20bf8f;border-radius:11px;background:#fff;padding:12px 14px;min-width:0;
+}
+#modalAdministrarCliente .ap-access-list.is-mini{grid-template-columns:repeat(2,minmax(0,1fr));}
+#modalAdministrarCliente .ap-access-card-top{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;}
+#modalAdministrarCliente .ap-access-title{min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+#modalAdministrarCliente .ap-access-title strong{color:#172b4d;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#modalAdministrarCliente .ap-access-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:11px;}
+#modalAdministrarCliente .ap-access-metrics span{border:1px solid #e2e9f0;border-radius:8px;padding:8px;text-align:center;background:#fafcfe;}
+#modalAdministrarCliente .ap-access-metrics i{display:block;color:#168fd0;margin-bottom:3px;}
+#modalAdministrarCliente .ap-access-metrics strong{display:block;color:#172b4d;font-size:14px;}
+#modalAdministrarCliente .ap-access-metrics small{display:block;color:#6b778c;font-size:9px;}
+#modalAdministrarCliente .ap-access-meta-line{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;color:#52627a;font-size:11px;}
+
+#modalAdministrarCliente .ap-status-badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:4px 8px;font-size:10px;font-weight:700;white-space:nowrap;}
+#modalAdministrarCliente .ap-status-badge.is-active{background:#e3fcef;color:#14804a;border:1px solid #b8e8ca;}
+#modalAdministrarCliente .ap-status-badge.is-inactive{background:#eef1f4;color:#6b778c;border:1px solid #d7dde4;}
+
+#modalAdministrarCliente .ap-permission-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;}
+#modalAdministrarCliente .ap-permission-chip{display:inline-flex;align-items:center;gap:4px;border:1px solid #dbe6ef;background:#f7fafc;color:#52627a;border-radius:999px;padding:4px 7px;font-size:9px;font-weight:600;}
+#modalAdministrarCliente .ap-permission-chip i{color:#168fd0;}
+#modalAdministrarCliente .ap-permission-chip.more{background:#eaf5fd;color:#168fd0;}
+#modalAdministrarCliente .ap-permission-empty{font-size:10px;color:#97a0af;font-style:italic;}
+
+#modal_registrar_privilegios.ap-from-assignment,
+#modal_registrar_menuaccesos.ap-from-assignment,
+#modal_registrar_submenuaccesos.ap-from-assignment,
+#modal_registrar_submenu1accesos.ap-from-assignment,
+#modal_registrar_tipoUsuario.ap-from-assignment,
+#modal_permisos.ap-from-assignment{
+    z-index:2360 !important; pointer-events:auto !important;
+}
+#modal_registrar_privilegios.ap-from-assignment .modal-dialog,
+#modal_registrar_menuaccesos.ap-from-assignment .modal-dialog,
+#modal_registrar_submenuaccesos.ap-from-assignment .modal-dialog,
+#modal_registrar_submenu1accesos.ap-from-assignment .modal-dialog,
+#modal_registrar_tipoUsuario.ap-from-assignment .modal-dialog,
+#modal_permisos.ap-from-assignment .modal-dialog{
+    pointer-events:auto !important;
+    transform:none !important; transition:none !important; animation:none !important;
+}
+#modal_registrar_privilegios.ap-from-assignment .modal-content,
+#modal_registrar_menuaccesos.ap-from-assignment .modal-content,
+#modal_registrar_submenuaccesos.ap-from-assignment .modal-content,
+#modal_registrar_submenu1accesos.ap-from-assignment .modal-content,
+#modal_registrar_tipoUsuario.ap-from-assignment .modal-content,
+#modal_permisos.ap-from-assignment .modal-content{pointer-events:auto !important;}
+
+/* Ningún botón usado por este flujo cambia opacidad, filtro, escala o color de contenido al hover. */
+:is(#modalAdministrarCliente,
+#modal_registrar_privilegios.ap-from-assignment,
+#modal_registrar_menuaccesos.ap-from-assignment,
+#modal_registrar_submenuaccesos.ap-from-assignment,
+#modal_registrar_submenu1accesos.ap-from-assignment,
+#modal_registrar_tipoUsuario.ap-from-assignment,
+#modal_permisos.ap-from-assignment) .btn,
+:is(#modalAdministrarCliente,
+#modal_registrar_privilegios.ap-from-assignment,
+#modal_registrar_menuaccesos.ap-from-assignment,
+#modal_registrar_submenuaccesos.ap-from-assignment,
+#modal_registrar_submenu1accesos.ap-from-assignment,
+#modal_registrar_tipoUsuario.ap-from-assignment,
+#modal_permisos.ap-from-assignment) .btn:hover,
+:is(#modalAdministrarCliente,
+#modal_registrar_privilegios.ap-from-assignment,
+#modal_registrar_menuaccesos.ap-from-assignment,
+#modal_registrar_submenuaccesos.ap-from-assignment,
+#modal_registrar_submenu1accesos.ap-from-assignment,
+#modal_registrar_tipoUsuario.ap-from-assignment,
+#modal_permisos.ap-from-assignment) .btn:focus,
+:is(#modalAdministrarCliente,
+#modal_registrar_privilegios.ap-from-assignment,
+#modal_registrar_menuaccesos.ap-from-assignment,
+#modal_registrar_submenuaccesos.ap-from-assignment,
+#modal_registrar_submenu1accesos.ap-from-assignment,
+#modal_registrar_tipoUsuario.ap-from-assignment,
+#modal_permisos.ap-from-assignment) .btn:active{
+    opacity:1 !important;filter:none !important;transform:none !important;transition:none !important;
+}
+:is(#modalAdministrarCliente,
+#modal_registrar_privilegios.ap-from-assignment,
+#modal_registrar_menuaccesos.ap-from-assignment,
+#modal_registrar_submenuaccesos.ap-from-assignment,
+#modal_registrar_submenu1accesos.ap-from-assignment,
+#modal_registrar_tipoUsuario.ap-from-assignment,
+#modal_permisos.ap-from-assignment) .btn:hover *,
+:is(#modalAdministrarCliente,
+#modal_registrar_privilegios.ap-from-assignment,
+#modal_registrar_menuaccesos.ap-from-assignment,
+#modal_registrar_submenuaccesos.ap-from-assignment,
+#modal_registrar_submenu1accesos.ap-from-assignment,
+#modal_registrar_tipoUsuario.ap-from-assignment,
+#modal_permisos.ap-from-assignment) .btn:focus *{
+    opacity:1 !important;color:inherit !important;filter:none !important;
+}
+#modal_registrar_privilegios.ap-from-assignment .btn-primary,
+#modal_registrar_menuaccesos.ap-from-assignment .btn-primary,
+#modal_registrar_submenuaccesos.ap-from-assignment .btn-primary,
+#modal_registrar_submenu1accesos.ap-from-assignment .btn-primary,
+#modal_registrar_tipoUsuario.ap-from-assignment .btn-primary,
+#modal_permisos.ap-from-assignment .btn-primary{background:#2f9ddd !important;border-color:#2f9ddd !important;color:#fff !important;}
+#modal_registrar_privilegios.ap-from-assignment .btn-success,
+#modal_registrar_menuaccesos.ap-from-assignment .btn-success,
+#modal_registrar_submenuaccesos.ap-from-assignment .btn-success,
+#modal_registrar_submenu1accesos.ap-from-assignment .btn-success,
+#modal_registrar_tipoUsuario.ap-from-assignment .btn-success,
+#modal_permisos.ap-from-assignment .btn-success{background:#20b86a !important;border-color:#20b86a !important;color:#fff !important;}
+#modal_registrar_privilegios.ap-from-assignment .btn-danger,
+#modal_registrar_menuaccesos.ap-from-assignment .btn-danger,
+#modal_registrar_submenuaccesos.ap-from-assignment .btn-danger,
+#modal_registrar_submenu1accesos.ap-from-assignment .btn-danger,
+#modal_registrar_tipoUsuario.ap-from-assignment .btn-danger,
+#modal_permisos.ap-from-assignment .btn-danger{background:#e74c3c !important;border-color:#e74c3c !important;color:#fff !important;}
+
+@media (max-width:1199.98px){
+    #modalAdministrarCliente .ap-access-row{grid-template-columns:minmax(210px,1.5fr) 110px repeat(4,80px) 120px;}
+    #modalAdministrarCliente .ap-type-row{grid-template-columns:minmax(210px,1.4fr) 110px 115px 80px minmax(200px,1.4fr) 120px;}
+}
+@media (max-width:991.98px){
+    #modalAdministrarCliente .ap-access-list.is-mini{grid-template-columns:1fr;}
+    #modalAdministrarCliente .ap-access-row,
+    #modalAdministrarCliente .ap-type-row{grid-template-columns:repeat(2,minmax(0,1fr));}
+    #modalAdministrarCliente .ap-access-main,
+    #modalAdministrarCliente .ap-type-permission-preview{grid-column:1/-1;}
+    #modalAdministrarCliente .ap-access-row-actions{grid-column:1/-1;justify-content:flex-end;}
+}
+@media (max-width:767.98px){
+    #modalAdministrarCliente .ap-access-subtabs{display:grid;grid-template-columns:1fr;}
+    #modalAdministrarCliente .ap-access-subtab{width:100%;text-align:left;}
+    #modalAdministrarCliente .ap-access-summary{grid-template-columns:1fr;}
+    #modalAdministrarCliente .ap-access-card-top{grid-template-columns:40px minmax(0,1fr);}
+    #modalAdministrarCliente .ap-access-card-top .ap-access-actions{grid-column:1/-1;justify-self:stretch;}
+    #modalAdministrarCliente .ap-access-card-top .ap-access-actions>.btn{width:100%;}
+    #modalAdministrarCliente .ap-access-metrics{grid-template-columns:repeat(2,1fr);}
+}
+
+#modalAdministrarCliente .ap-user-access-summary{
+    display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-top:4px;color:#6b778c;font-size:9.5px;font-weight:600;
+}
+#modalAdministrarCliente .ap-user-access-summary i{color:#168fd0;}
+#modalAdministrarCliente .ap-user-access-summary b{color:#b7c1cc;font-weight:400;}
+#modalAdministrarCliente .ap-user-access-line{margin-top:5px;padding-top:5px;border-top:1px dashed #e0e7ee;}

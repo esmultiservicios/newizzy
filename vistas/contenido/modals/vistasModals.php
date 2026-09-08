@@ -6347,160 +6347,6 @@
 ========================================================= -->
 
 <!-- MODAL PUBLICO / REUTILIZABLE PARA PREVISUALIZAR PDF -->
-<style>
-    #modal_pdf_publico .modal-dialog {
-        min-height: calc(100vh - 2rem);
-        display: flex;
-        align-items: center;
-        margin: 1rem auto;
-    }
-
-    #modal_pdf_publico .pdf-public-modal-content {
-        height: 88vh;
-        max-height: 88vh;
-        overflow: hidden;
-        border: 0;
-        border-radius: 12px;
-        box-shadow: 0 18px 46px rgba(15, 35, 55, .28);
-    }
-
-    #modal_pdf_publico .pdf-public-modal-header {
-        min-height: 58px;
-        padding: 13px 18px;
-        border-bottom: 3px solid #0ea5a8;
-        background: #14283a;
-        color: #fff;
-    }
-
-    #modal_pdf_publico .pdf-public-modal-header .modal-title {
-        margin: 0;
-        font-size: 17px;
-        font-weight: 800;
-    }
-
-    #modal_pdf_publico .pdf-public-modal-header .close {
-        margin: -4px -2px -4px auto;
-        padding: 7px 10px;
-        color: #fff;
-        opacity: .95;
-        text-shadow: none;
-    }
-
-    #modal_pdf_publico .pdf-public-modal-body {
-        min-height: 0;
-        flex: 1 1 auto;
-        padding: 0;
-        background: #e9edf2;
-    }
-
-    #modal_pdf_publico #visor_pdf_publico {
-        display: block;
-        width: 100%;
-        height: 100%;
-        border: 0;
-        background: #e9edf2;
-    }
-
-    #modal_pdf_publico .pdf-public-modal-footer {
-        min-height: 68px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 14px;
-        padding: 12px 18px;
-        border-top: 1px solid #dce3ea;
-        background: #f8fafc;
-    }
-
-    #modal_pdf_publico .pdf-public-footer-info {
-        min-width: 0;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        color: #6b778c;
-        font-size: 12px;
-    }
-
-    #modal_pdf_publico .pdf-public-footer-info-icon {
-        width: 34px;
-        height: 34px;
-        flex: 0 0 34px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 1px solid #d8e5f0;
-        border-radius: 9px;
-        background: #fff;
-        color: #176fae;
-    }
-
-    #modal_pdf_publico .pdf-public-footer-actions {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 9px;
-        margin-left: auto;
-    }
-
-    #modal_pdf_publico .pdf-public-footer-actions .btn {
-        min-width: 132px;
-        min-height: 40px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        border-radius: 8px;
-        font-weight: 700;
-        box-shadow: 0 2px 6px rgba(23, 50, 77, .10);
-    }
-
-    #modal_pdf_publico .pdf-public-download-btn {
-        border-color: #119b70;
-        background: #119b70;
-        color: #fff;
-    }
-
-    #modal_pdf_publico .pdf-public-download-btn:hover,
-    #modal_pdf_publico .pdf-public-download-btn:focus {
-        border-color: #0c815e;
-        background: #0c815e;
-        color: #fff;
-    }
-
-    @media (max-width: 767.98px) {
-        #modal_pdf_publico .modal-dialog {
-            min-height: calc(100vh - 1rem);
-            max-width: 98vw !important;
-            margin: .5rem auto;
-        }
-
-        #modal_pdf_publico .pdf-public-modal-content {
-            height: 94vh;
-            max-height: 94vh;
-            border-radius: 9px;
-        }
-
-        #modal_pdf_publico .pdf-public-modal-footer {
-            align-items: stretch;
-            flex-direction: column;
-        }
-
-        #modal_pdf_publico .pdf-public-footer-info {
-            width: 100%;
-        }
-
-        #modal_pdf_publico .pdf-public-footer-actions {
-            width: 100%;
-            margin-left: 0;
-        }
-
-        #modal_pdf_publico .pdf-public-footer-actions .btn {
-            flex: 1 1 50%;
-            min-width: 0;
-        }
-    }
-</style>
-
 <div class="modal fade"
      id="modal_pdf_publico"
      tabindex="-1"
@@ -6591,3 +6437,742 @@
         </div>
     </div>
 </div>
+
+<!-- INICIO MODAL SECUENCIA DE FACTURACION -->
+<div class="modal fade" id="modal_registrar_secuencias" tabindex="-1" role="dialog" aria-labelledby="modalSecuenciaTitulo" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+        <div class="modal-content secuencia-modal-content">
+            <div class="modal-header secuencia-modal-header">
+                <h4 class="modal-title" id="modalSecuenciaTitulo">
+                    <i class="fas fa-file-invoice mr-2"></i>Secuencia de Facturación
+                </h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <form class="FormularioAjax" id="formSecuencia" method="POST" autocomplete="off" enctype="multipart/form-data">
+                    <input type="hidden" id="secuencia_facturacion_id" name="secuencia_facturacion_id">
+
+                    <!-- Información General -->
+                    <section class="secuencia-form-section mb-4">
+                        <div class="secuencia-section-header">
+                            <h5><i class="fas fa-info-circle mr-2"></i>Información General</h5>
+                        </div>
+                        <div class="secuencia-section-body">
+                            <div class="form-row">
+                                <div class="col-12 col-md-6 col-xl-3 mb-3">
+                                    <label for="empresa_secuencia"><i class="fas fa-building mr-1"></i>Empresa <span class="priority">*</span></label>
+                                    <select id="empresa_secuencia" name="empresa_secuencia" class="selectpicker" data-live-search="true" data-width="100%" data-container="#modal_registrar_secuencias" title="Seleccione una empresa" required>
+                                        <option value="">Seleccione</option>
+                                    </select>
+                                    <small class="form-text text-muted">Empresa asociada a esta secuencia</small>
+                                </div>
+
+                                <div class="col-12 col-md-6 col-xl-3 mb-3">
+                                    <label for="documento_secuencia"><i class="fas fa-file-alt mr-1"></i>Documento <span class="priority">*</span></label>
+                                    <select id="documento_secuencia" name="documento_secuencia" class="selectpicker" data-live-search="true" data-width="100%" data-container="#modal_registrar_secuencias" title="Seleccione un documento" required>
+                                        <option value="">Seleccione</option>
+                                    </select>
+                                    <div class="secuencia-field-help-row">
+                                        <small class="form-text text-muted">Solo se muestran documentos activos</small>
+                                        <button type="button" class="btn btn-link btn-sm p-0" id="btn_administrar_documentos_desde_modal">
+                                            Administrar
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-xl-6 mb-3">
+                                    <label for="cai_secuencia"><i class="fas fa-id-card mr-1"></i>CAI</label>
+                                    <input type="text" name="cai_secuencia" id="cai_secuencia" class="form-control" placeholder="CAI" maxlength="37">
+                                    <small class="form-text text-muted">Código de Autorización de Impresión (máximo 37 caracteres)</small>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Configuración de Secuencia -->
+                    <section class="secuencia-form-section mb-4">
+                        <div class="secuencia-section-header">
+                            <h5><i class="fas fa-sliders-h mr-2"></i>Configuración de Secuencia</h5>
+                        </div>
+                        <div class="secuencia-section-body">
+                            <div class="form-row">
+                                <div class="col-12 col-sm-6 col-xl-3 mb-3">
+                                    <label for="prefijo_secuencia"><i class="fas fa-font mr-1"></i>Prefijo</label>
+                                    <input type="text" name="prefijo_secuencia" id="prefijo_secuencia" class="form-control" placeholder="Prefijo" maxlength="15">
+                                    <small class="form-text text-muted">Texto inicial del número de documento</small>
+                                </div>
+
+                                <div class="col-12 col-sm-6 col-xl-3 mb-3">
+                                    <label for="relleno_secuencia"><i class="fas fa-text-width mr-1"></i>Relleno <span class="priority">*</span></label>
+                                    <input type="number" min="1" max="20" name="relleno_secuencia" id="relleno_secuencia" class="form-control" placeholder="Relleno" required>
+                                    <small class="form-text text-muted">Cantidad de dígitos para el número</small>
+                                </div>
+
+                                <div class="col-12 col-sm-6 col-xl-3 mb-3">
+                                    <label for="incremento_secuencia"><i class="fas fa-plus mr-1"></i>Incremento <span class="priority">*</span></label>
+                                    <input type="number" min="1" name="incremento_secuencia" id="incremento_secuencia" class="form-control" placeholder="Incremento" required>
+                                    <small class="form-text text-muted">Valor de incremento por documento</small>
+                                </div>
+
+                                <div class="col-12 col-sm-6 col-xl-3 mb-3">
+                                    <label for="siguiente_secuencia"><i class="fas fa-arrow-right mr-1"></i>Siguiente <span class="priority">*</span></label>
+                                    <input type="number" min="0" name="siguiente_secuencia" id="siguiente_secuencia" class="form-control" placeholder="Siguiente" required>
+                                    <small class="form-text text-muted">Próximo número a utilizar</small>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="col-12 col-sm-6 col-xl-3 mb-3">
+                                    <label for="rango_inicial_secuencia"><i class="fas fa-list-ol mr-1"></i>Rango Inicial <span class="priority">*</span></label>
+                                    <input type="text" inputmode="numeric" name="rango_inicial_secuencia" id="rango_inicial_secuencia" class="form-control" placeholder="Rango Inicial" maxlength="11" required>
+                                    <small class="form-text text-muted">Primer número autorizado</small>
+                                </div>
+
+                                <div class="col-12 col-sm-6 col-xl-3 mb-3">
+                                    <label for="rango_final_secuencia"><i class="fas fa-list-ol mr-1"></i>Rango Final <span class="priority">*</span></label>
+                                    <input type="text" inputmode="numeric" name="rango_final_secuencia" id="rango_final_secuencia" class="form-control" placeholder="Rango Final" maxlength="11" required>
+                                    <small class="form-text text-muted">Último número autorizado</small>
+                                </div>
+
+                                <div class="col-12 col-sm-6 col-xl-3 mb-3">
+                                    <label for="fecha_activacion_secuencia"><i class="fas fa-calendar-alt mr-1"></i>Fecha Activación <span class="priority">*</span></label>
+                                    <input type="date" id="fecha_activacion_secuencia" name="fecha_activacion_secuencia" value="<?php echo date('Y-m-d');?>" class="form-control" required>
+                                    <small class="form-text text-muted">Fecha de inicio de uso</small>
+                                </div>
+
+                                <div class="col-12 col-sm-6 col-xl-3 mb-3">
+                                    <label for="fecha_limite_secuencia"><i class="fas fa-calendar-times mr-1"></i>Fecha Límite <span class="priority">*</span></label>
+                                    <input type="date" id="fecha_limite_secuencia" name="fecha_limite_secuencia" value="<?php echo date('Y-m-d');?>" class="form-control" required>
+                                    <small class="form-text text-muted">Fecha máxima de uso</small>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Estado -->
+                    <section class="secuencia-form-section mb-2" id="estado_secuencia_container">
+                        <div class="secuencia-section-header">
+                            <h5><i class="fas fa-power-off mr-2"></i>Estado de la Secuencia</h5>
+                        </div>
+                        <div class="secuencia-section-body">
+                            <div class="secuencia-switch-row">
+                                <div class="custom-control custom-switch">
+                                    <input type="checkbox" class="custom-control-input" id="estado_secuencia" name="estado_secuencia" checked>
+                                    <label class="custom-control-label" for="estado_secuencia">
+                                        <i class="fas fa-check-circle mr-1"></i>
+                                        <span id="label_estado_secuencia">Activo</span>
+                                    </label>
+                                </div>
+                                <small class="form-text text-muted">Active o desactive esta secuencia en el sistema</small>
+                            </div>
+                        </div>
+                    </section>
+
+                    <div class="RespuestaAjax"></div>
+                </form>
+            </div>
+
+            <div class="modal-footer secuencia-modal-footer">
+                <button class="btn btn-danger" type="button" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
+                </button>
+                <button class="btn btn-success" type="submit" style="display:none;" id="reg_secuencia" form="formSecuencia">
+                    <i class="far fa-save mr-1"></i> Registrar
+                </button>
+                <button class="btn btn-success" type="submit" style="display:none;" id="edi_secuencia" form="formSecuencia">
+                    <i class="fas fa-edit mr-1"></i> Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- FIN MODAL SECUENCIA DE FACTURACION -->
+
+<!-- INICIO MODAL CATALOGO DE DOCUMENTOS -->
+<div class="modal fade" id="modal_documentos_secuencia" tabindex="-1" role="dialog" aria-labelledby="modalDocumentosSecuenciaTitulo" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+        <div class="modal-content secuencia-modal-content">
+            <div class="modal-header secuencia-modal-header">
+                <h4 class="modal-title" id="modalDocumentosSecuenciaTitulo">
+                    <i class="fas fa-folder-open mr-2"></i>Documentos de Facturación
+                </h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="documentos-layout">
+                    <section class="secuencia-form-section documentos-form-panel">
+                        <div class="secuencia-section-header">
+                            <h5><i class="fas fa-plus-circle mr-2"></i><span id="documento_form_titulo">Nuevo Documento</span></h5>
+                        </div>
+                        <div class="secuencia-section-body">
+                            <form id="formDocumentoSecuencia" autocomplete="off">
+                                <input type="hidden" id="documento_id_secuencia" name="documento_id" value="0">
+
+                                <div class="form-group">
+                                    <label for="documento_nombre_secuencia">
+                                        <i class="fas fa-file-alt mr-1"></i>Nombre del documento <span class="priority">*</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="documento_nombre_secuencia" name="nombre" maxlength="30" placeholder="Ej. Nota de Crédito" required>
+                                    <small class="form-text text-muted">El nombre debe ser único y tendrá un máximo de 30 caracteres.</small>
+                                </div>
+
+                                <div class="documentos-form-actions">
+                                    <button type="button" class="btn btn-secondary d-none" id="btn_cancelar_edicion_documento">
+                                        <i class="fas fa-undo mr-1"></i> Cancelar edición
+                                    </button>
+                                    <button type="submit" class="btn btn-success" id="btn_guardar_documento_secuencia">
+                                        <i class="fas fa-save mr-1"></i> Guardar documento
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </section>
+
+                    <section class="secuencia-form-section documentos-list-panel">
+                        <div class="secuencia-section-header documentos-header-flex">
+                            <div>
+                                <h5><i class="fas fa-copy mr-2"></i>Documentos Disponibles</h5>
+                                <small>Los documentos activos estarán disponibles al crear una secuencia.</small>
+                            </div>
+                            <button type="button" class="btn btn-secondary btn-sm" id="btn_refrescar_documentos_secuencia">
+                                <i class="fas fa-sync-alt mr-1"></i> Actualizar
+                            </button>
+                        </div>
+                        <div class="secuencia-section-body">
+                            <div id="documentos_secuencia_loading" class="secuencia-state-box d-none">
+                                <i class="fas fa-spinner fa-spin"></i><span>Cargando documentos...</span>
+                            </div>
+                            <div id="documentos_secuencia_empty" class="secuencia-state-box d-none">
+                                <i class="fas fa-folder-open"></i>
+                                <div><strong>No hay documentos registrados</strong><small>Registra el primer documento para comenzar.</small></div>
+                            </div>
+                            <div id="documentos_secuencia_listado" class="documentos-secuencia-listado"></div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <div class="modal-footer secuencia-modal-footer">
+                <button class="btn btn-primary" type="button" data-dismiss="modal">
+                    <i class="fas fa-check mr-1"></i> Finalizar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- FIN MODAL CATALOGO DE DOCUMENTOS -->
+
+<!-- =========================================================
+     INICIO MODAL TIPO USERS
+========================================================= -->
+<!--INICIO MODAL TIPO USUARIO-->
+<div class="modal fade" id="modal_registrar_tipoUsuario">
+    <div class="modal-dialog modal-md modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-user-tag mr-2"></i>Tipo de Usuario</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form class="FormularioAjax" id="formTipoUsuario" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+					<input type="hidden" id="tipo_user_id" name="tipo_user_id" class="form-control">
+					
+                    <!-- Sección de Información Básica -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Información Básica</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="tipo_usuario_nombre"><i class="fas fa-id-card-alt mr-1"></i>Nombre <span class="priority">*</span></label>
+                                    <input type="text" name="tipo_usuario_nombre" id="tipo_usuario_nombre" class="form-control" placeholder="Nombre" maxlength="20" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" required>
+                                    <small class="form-text text-muted">Nombre del tipo de usuario (máx. 20 caracteres)</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección de Estado -->
+                    <div class="card border-primary mb-4" id="estado_tipo_usuario">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-power-off mr-2"></i><span class="question mb-2" id="label_tipo_usuario_activo"></span></h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" id="tipo_usuario_activo" name="tipo_usuario_activo" value="1" checked>
+                                <label class="custom-control-label" for="tipo_usuario_activo"><i class="fas fa-check-circle mr-1"></i><span class="question mb-2" id="label_tipo_usuario_activo"></span></label>
+                            </div>
+                            <small class="form-text text-muted">Activar/Desactivar este tipo de usuario</small>
+                        </div>
+                    </div>
+                    
+                    <div class="RespuestaAjax"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                </button>
+                <button class="btn btn-success" type="submit" style="display: none;" id="reg_tipo_usuario" form="formTipoUsuario">
+                    <i class="far fa-save fa-lg mr-1"></i> Registrar
+                </button>
+                <button class="btn btn-success" type="submit" style="display: none;" id="edi_tipo_usuario" form="formTipoUsuario">
+                    <i class="fas fa-edit fa-lg mr-1"></i> Editar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!--FIN MODAL TIPO USAURIO-->
+
+<!--INICIO MODAL PARA EL INGRESO DE PERMISOS-->
+<div class="modal fade" id="modal_permisos">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-key mr-2"></i>Permisos de Usuario</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form class="form-horizontal FormularioAjax" id="formPermisos" action="" method="POST" data-form="" enctype="multipart/form-data">
+					<input type="hidden" required readonly id="permisos_tipo_user_id" name="permisos_tipo_user_id">
+					<input type="hidden" required readonly id="permisos_nombre" name="permisos_nombre">
+									                    
+                    <!-- Sección de Permisos Básicos -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-user-shield mr-2"></i>Permisos Básicos</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="opcion_guardar" name="opcion_guardar" value="1">
+                                        <label class="custom-control-label" for="opcion_guardar"><i class="fas fa-save mr-1"></i>Guardar</label>
+                                    </div>
+                                    <small class="form-text text-muted">Permite guardar registros</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="opcion_editar" name="opcion_editar" value="1">
+                                        <label class="custom-control-label" for="opcion_editar"><i class="fas fa-edit mr-1"></i>Modificar</label>
+                                    </div>
+                                    <small class="form-text text-muted">Permite editar registros</small>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="opcion_eliminar" name="opcion_eliminar" value="1">
+                                        <label class="custom-control-label" for="opcion_eliminar"><i class="fas fa-trash mr-1"></i>Eliminar</label>
+                                    </div>
+                                    <small class="form-text text-muted">Permite eliminar registros</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="opcion_consultar" name="opcion_consultar" value="1">
+                                        <label class="custom-control-label" for="opcion_consultar"><i class="fas fa-search mr-1"></i>Consultar</label>
+                                    </div>
+                                    <small class="form-text text-muted">Permite consultar registros</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección de Permisos Avanzados -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-user-cog mr-2"></i>Permisos Avanzados</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="opcion_imprimir" name="opcion_imprimir" value="1">
+                                        <label class="custom-control-label" for="opcion_imprimir"><i class="fas fa-print mr-1"></i>Imprimir</label>
+                                    </div>
+                                    <small class="form-text text-muted">Permite imprimir documentos</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="opcion_crear" name="opcion_crear" value="1">
+                                        <label class="custom-control-label" for="opcion_crear"><i class="fas fa-plus-circle mr-1"></i>Crear</label>
+                                    </div>
+                                    <small class="form-text text-muted">Permite crear nuevos registros</small>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="opcion_reportes" name="opcion_reportes" value="1">
+                                        <label class="custom-control-label" for="opcion_reportes"><i class="fas fa-chart-bar mr-1"></i>Reportes</label>
+                                    </div>
+                                    <small class="form-text text-muted">Permite generar reportes</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="opcion_actualizar" name="opcion_actualizar" value="1">
+                                        <label class="custom-control-label" for="opcion_actualizar"><i class="fas fa-sync-alt mr-1"></i>Actualizar</label>
+                                    </div>
+                                    <small class="form-text text-muted">Permite actualizar registros</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección de Permisos Especiales -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-user-lock mr-2"></i>Permisos Especiales</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="opcion_view" name="opcion_view" value="1">
+                                        <label class="custom-control-label" for="opcion_view"><i class="fas fa-eye mr-1"></i>Seleccionar</label>
+                                    </div>
+                                    <small class="form-text text-muted">Permite seleccionar registros</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="opcion_pay" name="opcion_pay" value="1">
+                                        <label class="custom-control-label" for="opcion_pay"><i class="fas fa-money-bill-wave mr-1"></i>Cobrar</label>
+                                    </div>
+                                    <small class="form-text text-muted">Permite realizar cobros y pagos</small>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="opcion_cambiar" name="opcion_cambiar" value="1">
+                                        <label class="custom-control-label" for="opcion_cambiar"><i class="fas fa-key mr-1"></i>Cambiar Contraseña</label>
+                                    </div>
+                                    <small class="form-text text-muted">Permite cambiar la contraseña</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="opcion_cancelar" name="opcion_cancelar" value="1">
+                                        <label class="custom-control-label" for="opcion_cancelar"><i class="fas fa-ban mr-1"></i>Cancelar</label>
+                                    </div>
+                                    <small class="form-text text-muted">Permite cancelar transacciones</small>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="opcion_sistema" name="opcion_sistema" value="1">
+                                        <label class="custom-control-label" for="opcion_sistema"><i class="fas fa-desktop mr-1"></i>Sistema</label>
+                                    </div>
+                                    <small class="form-text text-muted">Permite ver sistemas del cliente</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="opcion_generar" name="opcion_generar" value="1">
+                                        <label class="custom-control-label" for="opcion_generar"><i class="fas fa-cogs mr-1"></i>Generar Sistema</label>
+                                    </div>
+                                    <small class="form-text text-muted">Permite generar sistemas para clientes</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="RespuestaAjax"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                </button>
+                <button class="btn btn-success" type="submit" id="reg_permisos" form="formPermisos">
+                    <i class="far fa-save fa-lg mr-1"></i> Registrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!--FIN MODAL PARA EL INGRESO DE PERMISOS-->
+<!-- =========================================================
+     FIN MODAL TIPO USERS
+========================================================= -->
+
+<!-- =========================================================
+     INICIO MODAL PRIVILEGIOS
+========================================================= -->
+<!--INICIO MODAL PRIVILEGIOS-->
+<div class="modal fade" id="modal_registrar_privilegios">
+    <div class="modal-dialog modal-md modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-user-shield mr-2"></i>Privilegios</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form class="FormularioAjax" id="formPrivilegios" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+                    <input type="hidden" id="privilegio_id_" name="privilegio_id_" class="form-control">
+                    
+                    <!-- Sección de Datos del Privilegio -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-key mr-2"></i>Datos del Privilegio</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="privilegios_nombre"><i class="fas fa-id-card-alt mr-1"></i>Nombre <span class="priority">*</span></label>
+                                    <div class="input-group">
+                                        <input type="text" name="privilegios_nombre" id="privilegios_nombre" class="form-control" placeholder="Nombre" maxlength="20" required>
+                                        <div class="input-group-append">
+                                            <span class="input-group-text"><i class="fas fa-key"></i></span>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Nombre del privilegio (máx. 20 caracteres)</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección de Estado -->
+                    <div class="card border-primary" id="estado_privilegios">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-power-off mr-2"></i><span class="question mb-2" id="label_privilegio_activo"></span></h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <div class="custom-control custom-switch">
+                                    <input type="checkbox" class="custom-control-input" id="privilegio_activo" name="privilegio_activo" checked>
+                                    <label class="custom-control-label" for="privilegio_activo"><i class="fas fa-check-circle mr-1"></i>Privilegio Activo</label>
+                                </div>
+                                <small class="form-text text-muted">Active o desactive el estado del privilegio</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="RespuestaAjax"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
+                </button>
+                <button class="btn btn-success" type="submit" style="display: none;" id="reg_privilegios" form="formPrivilegios">
+                    <i class="far fa-save fa-lg mr-1"></i> Registrar
+                </button>
+                <button class="btn btn-success" type="submit" style="display: none;" id="edi_privilegios" form="formPrivilegios">
+                    <i class="fas fa-edit fa-lg mr-1"></i> Confirmar
+            </div>
+        </div>
+    </div>
+</div>
+<!--FIN MODAL PRIVILEGIOS-->
+
+<!--INICIO AGREGAR MENUS-->
+<div class="modal fade" id="modal_registrar_menuaccesos">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-list mr-2"></i>Privilegios - Menús</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form class="FormularioAjax" id="formMenuAccesos" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+                    <input type="hidden" id="privilegio_id_accesos" name="privilegio_id_accesos" class="form-control">
+                    
+                    <!-- Sección de Menús -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-bars mr-2"></i>Menús Disponibles</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table id="dataTableMenuAccesos" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
+                                    <thead>
+                                        <tr>
+                                            <th><i class="fas fa-hashtag mr-1"></i>#</th>
+                                            <th><i class="fas fa-list mr-1"></i>Menú</th>
+                                            <th><i class="fas fa-power-off mr-1"></i>Estado</th>
+                                            <th><i class="fas fa-cogs mr-1"></i>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="RespuestaAjax"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!--FIN AGREGAR MENUS-->
+
+<!--INICIO AGREGAR MENUS-->
+<div class="modal fade" id="modal_registrar_menuaccesos">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-list mr-2"></i>Privilegios - Menús</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form class="FormularioAjax" id="formMenuAccesos" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+                    <input type="hidden" id="privilegio_id_accesos" name="privilegio_id_accesos" class="form-control">
+                    
+                    <!-- Sección de Menús -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-bars mr-2"></i>Menús Disponibles</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table id="dataTableMenuAccesos" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
+                                    <thead>
+                                        <tr>
+                                            <th><i class="fas fa-hashtag mr-1"></i>#</th>
+                                            <th><i class="fas fa-list mr-1"></i>Menú</th>
+                                            <th><i class="fas fa-power-off mr-1"></i>Estado</th>
+                                            <th><i class="fas fa-cogs mr-1"></i>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="RespuestaAjax"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!--FIN AGREGAR MENUS-->
+
+<!--INICIO AGREGAR SUBMENUS-->
+<div class="modal fade" id="modal_registrar_submenuaccesos">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-list mr-2"></i>Privilegios - Submenús</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form class="FormularioAjax" id="formSubMenuAccesos" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+                    <input type="hidden" id="privilegio_id_accesos" name="privilegio_id_accesos" class="form-control">
+                    <input type="hidden" id="menu_id_accesos" name="menu_id_accesos" class="form-control">
+                    
+                    <!-- Sección de Submenús -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-list-ul mr-2"></i>Submenús Disponibles</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table id="dataTableSubMenuAccesos" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
+                                    <thead>
+                                        <tr>
+                                            <th><i class="fas fa-hashtag mr-1"></i>#</th>
+                                            <th><i class="fas fa-list mr-1"></i>Menú</th>
+                                            <th><i class="fas fa-list-ul mr-1"></i>Submenú</th>
+                                            <th><i class="fas fa-power-off mr-1"></i>Estado</th>
+                                            <th><i class="fas fa-cogs mr-1"></i>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="RespuestaAjax"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!--FIN AGREGAR SUBMENUS-->
+
+<!--INICIO AGREGAR SUBMENUS1-->
+<div class="modal fade" id="modal_registrar_submenu1accesos">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title"><i class="fas fa-list mr-2"></i>Privilegios - Submenús Nivel 2</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form class="FormularioAjax" id="formSubMenu1Accesos" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
+                    <input type="hidden" id="privilegio_id_accesos" name="privilegio_id_accesos" class="form-control">
+                    
+                    <!-- Sección de Submenús Nivel 2 -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-list-ol mr-2"></i>Submenús Nivel 2 Disponibles</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table id="dataTableSubMenu1Accesos" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
+                                    <thead>
+                                        <tr>
+                                            <th><i class="fas fa-hashtag mr-1"></i>#</th>
+                                            <th><i class="fas fa-list-ul mr-1"></i>Submenú</th>
+                                            <th><i class="fas fa-list-ol mr-1"></i>Submenú Nivel 2</th>
+                                            <th><i class="fas fa-power-off mr-1"></i>Estado</th>
+                                            <th><i class="fas fa-cogs mr-1"></i>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="RespuestaAjax"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times fa-lg mr-1"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!--FIN AGREGAR SUBMENUS1-->
+<!-- =========================================================
+     FIN MODAL PRIVILEGIOS
+========================================================= -->

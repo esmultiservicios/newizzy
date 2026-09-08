@@ -1496,6 +1496,25 @@ function moneyCell(data, type) {
 
     var pdfPublicoUrlActual = null;
 
+    function pdfPublicoUrlConZoom(url) {
+        var valor = String(url || '');
+
+        if (!valor) {
+            return valor;
+        }
+
+        /*
+         * El visor nativo de Chrome/Edge respeta estos parámetros y abre
+         * el documento ajustado al ancho, evitando iniciar demasiado pequeño.
+         * La descarga conserva la URL original, sin parámetros visuales.
+         */
+        if (valor.indexOf('#') >= 0) {
+            valor = valor.split('#')[0];
+        }
+
+        return valor + '#zoom=page-width&view=FitH&pagemode=none';
+    }
+
     window.abrirModalPdfPublico = function (url, titulo, nombreArchivo) {
         if (!url) {
             return false;
@@ -1513,18 +1532,34 @@ function moneyCell(data, type) {
 
         pdfPublicoUrlActual = url;
 
+        var $modalPdfPublico = $('#modal_pdf_publico');
+
+        /*
+         * El modal es global. Se mantiene directamente bajo <body> para que
+         * ninguna vista/modal padre limite su tamaño o z-index.
+         */
+        if ($modalPdfPublico.length && !$modalPdfPublico.parent().is('body')) {
+            $modalPdfPublico.appendTo('body');
+        }
+
         $('#titulo_pdf_publico').text(titulo || 'Vista previa del PDF');
-        $('#visor_pdf_publico').attr('src', url);
+        $('#visor_pdf_publico')
+            .attr('src', 'about:blank')
+            .attr('src', pdfPublicoUrlConZoom(url));
 
         $('#btn_descargar_pdf_publico')
             .attr('href', url)
             .attr('download', nombreArchivo || 'reporte.pdf');
 
-        $('#modal_pdf_publico').modal({
+        $modalPdfPublico.modal({
             show: true,
             backdrop: 'static',
             keyboard: true
         });
+
+        setTimeout(function () {
+            $('body > .modal-backdrop').last().addClass('pdf-public-backdrop');
+        }, 0);
 
         return true;
     };
@@ -1534,6 +1569,7 @@ function moneyCell(data, type) {
         .on('hidden.bs.modal.modalPdfPublico', '#modal_pdf_publico', function () {
             $('#visor_pdf_publico').attr('src', 'about:blank');
             $('#btn_descargar_pdf_publico').attr('href', '#');
+            $('body > .modal-backdrop.pdf-public-backdrop').remove();
 
             if (
                 pdfPublicoUrlActual &&
@@ -1545,5 +1581,9 @@ function moneyCell(data, type) {
             }
 
             pdfPublicoUrlActual = null;
+
+            if ($('.modal.show').length > 0) {
+                $('body').addClass('modal-open');
+            }
         });
 })(window, jQuery);

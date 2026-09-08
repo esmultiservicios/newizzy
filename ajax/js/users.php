@@ -1704,7 +1704,112 @@ function exportarUsuariosCsvFallback(rows) {
 }
 
 
+
+function usuariosObtenerLogoPdf(callback) {
+    function convertirLogo(source) {
+        source = String(source || '').trim();
+
+        if (!source) {
+            if (typeof showNotify === 'function') {
+                showNotify('error', 'Logo no disponible', 'No se pudo obtener el logo para el reporte PDF.');
+            }
+            return;
+        }
+
+        if (source.indexOf('data:image/') === 0) {
+            callback(source);
+            return;
+        }
+
+        var img = new Image();
+        img.crossOrigin = 'Anonymous';
+
+        img.onload = function () {
+            try {
+                var canvas = document.createElement('canvas');
+                var ctx = canvas.getContext('2d');
+                canvas.width = img.naturalWidth || img.width;
+                canvas.height = img.naturalHeight || img.height;
+                ctx.drawImage(img, 0, 0);
+                var dataUrl = canvas.toDataURL('image/png');
+
+                if (!dataUrl || dataUrl.indexOf('data:image/') !== 0) {
+                    throw new Error('No se pudo convertir el logo a Data URL.');
+                }
+
+                try { imagen = dataUrl; } catch (e) {}
+                callback(dataUrl);
+            } catch (error) {
+                console.error('Error preparando logo PDF:', error);
+                if (typeof showNotify === 'function') {
+                    showNotify('error', 'Logo no disponible', 'No se pudo preparar el logo para el reporte PDF.');
+                }
+            }
+        };
+
+        img.onerror = function () {
+            if (typeof showNotify === 'function') {
+                showNotify('error', 'Logo no disponible', 'No se pudo cargar el logo para el reporte PDF.');
+            }
+        };
+
+        img.src = source;
+    }
+
+    if (typeof imagen !== 'undefined' && imagen) {
+        convertirLogo(imagen);
+        return;
+    }
+
+    $.ajax({
+        type: 'GET',
+        url: '<?php echo SERVERURL;?>core/get_image.php',
+        dataType: 'text',
+        timeout: 15000
+    }).done(function (imageUrl) {
+        convertirLogo(imageUrl);
+    }).fail(function (xhr) {
+        console.error('Error obteniendo logo PDF:', xhr.responseText);
+        if (typeof showNotify === 'function') {
+            showNotify('error', 'Logo no disponible', 'No se pudo obtener el logo para el reporte PDF.');
+        }
+    });
+}
+
+function usuariosPdfLogoPlate(logoDataUrl) {
+    return {
+        table: {
+            widths: ['*'],
+            body: [[{
+                image: logoDataUrl,
+                fit: [62, 36],
+                alignment: 'center',
+                margin: [7, 5, 7, 5],
+                fillColor: '#FFFFFF'
+            }]]
+        },
+        layout: {
+            hLineColor: function () { return '#DDE3EA'; },
+            vLineColor: function () { return '#DDE3EA'; },
+            hLineWidth: function () { return .5; },
+            vLineWidth: function () { return .5; },
+            paddingLeft: function () { return 0; },
+            paddingRight: function () { return 0; },
+            paddingTop: function () { return 0; },
+            paddingBottom: function () { return 0; }
+        }
+    };
+}
+
 function previsualizarUsuariosPdfPremium() {
+    if (!(typeof imagen !== 'undefined' && typeof imagen === 'string' && imagen.indexOf('data:image/') === 0)) {
+        usuariosObtenerLogoPdf(function (logoDataUrl) {
+            try { imagen = logoDataUrl; } catch (e) {}
+            previsualizarUsuariosPdfPremium();
+        });
+        return;
+    }
+
     var rows = datosUsuariosExportar();
 
     if (!rows.length) {
@@ -1732,12 +1837,10 @@ function previsualizarUsuariosPdfPremium() {
     var filtroTipo = $('#filtroTipoUsuario option:selected').text() || 'Todos';
     var filtroPrivilegio = $('#filtroPrivilegioUsuario option:selected').text() || 'Todos';
     var busqueda = String($('#buscarUsuarios').val() || '').trim();
-    var logo = (typeof imagen !== 'undefined' && imagen)
-        ? {image:imagen,width:50,height:24,alignment:'center',margin:[0,1,0,0]}
-        : {text:'IZZY',fontSize:16,bold:true,color:'#FFFFFF',alignment:'center',margin:[0,4,0,0]};
+    var logo = usuariosPdfLogoPlate(imagen);
 
     var encabezado={
-        table:{widths:[70,'*',150],body:[[
+        table:{widths:[100,'*',150],body:[[
             {border:[false,false,false,false],fillColor:'#17324D',margin:[12,10,0,10],stack:[logo]},
             {border:[false,false,false,false],fillColor:'#17324D',margin:[0,10,0,10],stack:[
                 {text:'REPORTE DE USUARIOS',fontSize:16,bold:true,color:'#FFFFFF'},

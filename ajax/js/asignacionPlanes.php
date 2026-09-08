@@ -3820,13 +3820,36 @@ $(window).on("load", function() {
         const pw = $portal.outerWidth();
         const ph = $portal.outerHeight();
         const margin = 8;
-        let left = rect.right - pw;
-        if (left < margin) left = margin;
-        if (left + pw > window.innerWidth - margin) left = window.innerWidth - pw - margin;
-        let top = rect.bottom + 6;
-        if (top + ph > window.innerHeight - margin && rect.top - ph - 6 >= margin) top = rect.top - ph - 6;
-        if (top + ph > window.innerHeight - margin) top = Math.max(margin, window.innerHeight - ph - margin);
-        $portal.css({ left: Math.round(left) + "px", top: Math.round(top) + "px" });
+        const gap = 6;
+        const vw = window.innerWidth || document.documentElement.clientWidth || 0;
+        const vh = window.innerHeight || document.documentElement.clientHeight || 0;
+        const abajo = vh - rect.bottom - margin;
+        const arriba = rect.top - margin;
+        const derecha = vw - rect.right - margin;
+        const izquierda = rect.left - margin;
+        let top, left, placement;
+
+        if (abajo >= ph + gap) { top = rect.bottom + gap; placement = "bottom"; }
+        else if (arriba >= ph + gap) { top = rect.top - ph - gap; placement = "top"; }
+        else if (derecha >= pw + gap) { left = rect.right + gap; top = rect.top; placement = "right"; }
+        else if (izquierda >= pw + gap) { left = rect.left - pw - gap; top = rect.top; placement = "left"; }
+        else { top = arriba > abajo ? rect.top - ph - gap : rect.bottom + gap; placement = arriba > abajo ? "top-clamped" : "bottom-clamped"; }
+
+        if (left === undefined) {
+            left = rect.left;
+            if (left + pw > vw - margin) left = rect.right - pw;
+        }
+        left = Math.max(margin, Math.min(left, Math.max(margin, vw - pw - margin)));
+        top = Math.max(margin, Math.min(top, Math.max(margin, vh - Math.min(ph, vh - margin * 2) - margin)));
+
+        let zIndex = 1985;
+        $portal.attr("data-izzy-placement", placement).css({
+            left: Math.round(left) + "px",
+            top: Math.round(top) + "px",
+            zIndex: zIndex,
+            maxHeight: Math.max(90, vh - margin * 2) + "px",
+            overflowY: "auto"
+        });
     }
 
     function apCloseActionsPortal() {
@@ -3892,6 +3915,7 @@ $(window).on("load", function() {
         });
 
     $(window).off("resize.apActions scroll.apActions").on("resize.apActions scroll.apActions", function(){ apCloseActionsPortal(); apCloseCollaboratorActionsPortal(); });
+    $(document).off("show.bs.modal.apActionsPortal").on("show.bs.modal.apActionsPortal", function(){ apCloseActionsPortal(); apCloseCollaboratorActionsPortal(); });
 
     $(document).off("select2:open.apAdmin").on("select2:open.apAdmin", function(){
         setTimeout(function(){ const el=document.querySelector(".select2-container--open .select2-search__field"); if(el) el.focus(); }, 0);
@@ -5094,13 +5118,41 @@ $(window).on("load", function() {
         const pw = $portal.outerWidth();
         const ph = $portal.outerHeight();
         const margin = 8;
-        let left = rect.right - pw;
-        if (left < margin) left = margin;
-        if (left + pw > window.innerWidth - margin) left = window.innerWidth - pw - margin;
-        let top = rect.bottom + 6;
-        if (top + ph > window.innerHeight - margin && rect.top - ph - 6 >= margin) top = rect.top - ph - 6;
-        if (top + ph > window.innerHeight - margin) top = Math.max(margin, window.innerHeight - ph - margin);
-        $portal.css({ left: Math.round(left) + "px", top: Math.round(top) + "px" });
+        const gap = 6;
+        const vw = window.innerWidth || document.documentElement.clientWidth || 0;
+        const vh = window.innerHeight || document.documentElement.clientHeight || 0;
+        const abajo = vh - rect.bottom - margin;
+        const arriba = rect.top - margin;
+        const derecha = vw - rect.right - margin;
+        const izquierda = rect.left - margin;
+        let top, left, placement;
+
+        if (abajo >= ph + gap) { top = rect.bottom + gap; placement = "bottom"; }
+        else if (arriba >= ph + gap) { top = rect.top - ph - gap; placement = "top"; }
+        else if (derecha >= pw + gap) { left = rect.right + gap; top = rect.top; placement = "right"; }
+        else if (izquierda >= pw + gap) { left = rect.left - pw - gap; top = rect.top; placement = "left"; }
+        else { top = arriba > abajo ? rect.top - ph - gap : rect.bottom + gap; placement = arriba > abajo ? "top-clamped" : "bottom-clamped"; }
+
+        if (left === undefined) {
+            left = rect.left;
+            if (left + pw > vw - margin) left = rect.right - pw;
+        }
+        left = Math.max(margin, Math.min(left, Math.max(margin, vw - pw - margin)));
+        top = Math.max(margin, Math.min(top, Math.max(margin, vh - Math.min(ph, vh - margin * 2) - margin)));
+
+        let zIndex = 1985;
+        const $ownerModal = $trigger.closest(".modal.show");
+        if ($ownerModal.length) {
+            const modalZ = parseInt(window.getComputedStyle($ownerModal[0]).zIndex, 10);
+            zIndex = (isNaN(modalZ) ? 2050 : modalZ) + 10;
+        }
+        $portal.attr("data-izzy-placement", placement).css({
+            left: Math.round(left) + "px",
+            top: Math.round(top) + "px",
+            zIndex: zIndex,
+            maxHeight: Math.max(90, vh - margin * 2) + "px",
+            overflowY: "auto"
+        });
     }
 
     function apRenderCollaborators() {

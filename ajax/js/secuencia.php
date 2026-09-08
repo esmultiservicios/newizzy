@@ -42,7 +42,160 @@
         listar_secuencia_facturacion();
     });
 
+/* =========================================================
+       SECUENCIA | DROPDOWN DE ACCIONES ADAPTATIVO
+       Posicionamiento real contra viewport, sin invadir modales.
+       ========================================================= */
+    var secuenciaDropdownActivo = null;
+    
+    function secuenciaMedirDropdown($menu) {
+        var menu = $menu && $menu.length ? $menu[0] : null;
+        if (!menu) return { width: 170, height: 160 };
+    
+        var prev = {
+            display: menu.style.display, visibility: menu.style.visibility, position: menu.style.position,
+            top: menu.style.top, left: menu.style.left, right: menu.style.right, bottom: menu.style.bottom,
+            transform: menu.style.transform, maxHeight: menu.style.maxHeight, overflowY: menu.style.overflowY
+        };
+        menu.classList.add('show');
+        menu.style.setProperty('display', 'block', 'important');
+        menu.style.setProperty('visibility', 'hidden', 'important');
+        menu.style.setProperty('position', 'fixed', 'important');
+        menu.style.setProperty('top', '0px', 'important');
+        menu.style.setProperty('left', '0px', 'important');
+        menu.style.setProperty('right', 'auto', 'important');
+        menu.style.setProperty('bottom', 'auto', 'important');
+        menu.style.setProperty('transform', 'none', 'important');
+        var r = menu.getBoundingClientRect();
+        Object.keys(prev).forEach(function(k) {
+            if (prev[k]) menu.style[k] = prev[k]; else menu.style.removeProperty(k.replace(/[A-Z]/g,function(m){return '-'+m.toLowerCase();}));
+        });
+        menu.classList.remove('show');
+        return { width: Math.max(r.width || 0, 170), height: Math.max(r.height || 0, 1) };
+    }
+    
+    function secuenciaLimpiarEstilosDropdown($dropdown) {
+        if (!$dropdown || !$dropdown.length) return;
+        var $menu = $dropdown.children('.dropdown-menu');
+        var menu = $menu[0];
+        $dropdown.removeClass('show dropup dropright dropleft');
+        $menu.removeClass('show dropdown-menu-right').removeAttr('x-placement data-popper-placement data-izzy-placement');
+        if (menu) {
+            ['display','visibility','position','top','left','right','bottom','transform','z-index','max-height','overflow-y'].forEach(function(prop){ menu.style.removeProperty(prop); });
+        }
+        var $row = $dropdown.closest('.secuencia-detail-row, .secuencia-mini-card, .secuencia-record');
+        $row.removeClass('secuencia-dropdown-open');
+        if ($row.length) $row[0].style.removeProperty('transform');
+    }
+    
+    function secuenciaCerrarDropdown($dropdown) {
+        if (!$dropdown || !$dropdown.length) return;
+        $dropdown.children('.dropdown-toggle').attr('aria-expanded','false');
+        secuenciaLimpiarEstilosDropdown($dropdown);
+        if (secuenciaDropdownActivo && secuenciaDropdownActivo.length && secuenciaDropdownActivo.is($dropdown)) secuenciaDropdownActivo = null;
+    }
+    
+    function secuenciaCerrarTodosDropdowns($excepto) {
+        $('#secuencia_listado .secuencia-actions').each(function() {
+            var $d = $(this);
+            if ($excepto && $excepto.length && $d.is($excepto)) return;
+            secuenciaCerrarDropdown($d);
+        });
+    }
+    
+    function secuenciaPosicionarDropdown($dropdown) {
+        var $button = $dropdown.children('.dropdown-toggle').first();
+        var $menu = $dropdown.children('.dropdown-menu').first();
+        if (!$button.length || !$menu.length) return false;
+    
+        var button = $button[0], menu = $menu[0];
+        var rect = button.getBoundingClientRect();
+        var size = secuenciaMedirDropdown($menu);
+        var vw = window.innerWidth || document.documentElement.clientWidth || 0;
+        var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+        var margin = 10, gap = 7;
+        var below = vh - rect.bottom - margin;
+        var above = rect.top - margin;
+        var right = vw - rect.right - margin;
+        var leftSpace = rect.left - margin;
+        var top, left, placement;
+    
+        if (below >= size.height + gap) {
+            top = rect.bottom + gap; placement = 'bottom';
+        } else if (above >= size.height + gap) {
+            top = rect.top - size.height - gap; placement = 'top';
+        } else if (right >= size.width + gap) {
+            left = rect.right + gap; top = rect.top; placement = 'right';
+        } else if (leftSpace >= size.width + gap) {
+            left = rect.left - size.width - gap; top = rect.top; placement = 'left';
+        } else {
+            top = above > below ? rect.top - size.height - gap : rect.bottom + gap;
+            placement = above > below ? 'top-clamped' : 'bottom-clamped';
+        }
+    
+        if (left === undefined) {
+            left = rect.left;
+            if (left + size.width > vw - margin) left = rect.right - size.width;
+        }
+        left = Math.max(margin, Math.min(left, vw - size.width - margin));
+        top = Math.max(margin, Math.min(top, vh - Math.min(size.height, vh - margin * 2) - margin));
+    
+        var maxHeight = Math.max(90, vh - margin * 2);
+        menu.style.setProperty('display','block','important');
+        menu.style.setProperty('visibility','visible','important');
+        menu.style.setProperty('position','fixed','important');
+        menu.style.setProperty('left',Math.round(left)+'px','important');
+        menu.style.setProperty('top',Math.round(top)+'px','important');
+        menu.style.setProperty('right','auto','important');
+        menu.style.setProperty('bottom','auto','important');
+        menu.style.setProperty('transform','none','important');
+        menu.style.setProperty('z-index','1985','important');
+        menu.style.setProperty('max-height',maxHeight+'px','important');
+        menu.style.setProperty('overflow-y','auto','important');
+        menu.setAttribute('data-izzy-placement', placement);
+        $menu.addClass('show');
+        $button.attr('aria-expanded','true');
+    
+        var $row = $dropdown.closest('.secuencia-detail-row, .secuencia-mini-card, .secuencia-record');
+        $row.addClass('secuencia-dropdown-open');
+        if ($row.length) $row[0].style.setProperty('transform','none','important');
+        secuenciaDropdownActivo = $dropdown;
+        return true;
+    }
+    
+    function inicializarDropdownAccionesSecuencia() {
+    // El administrador global de main.php usa portal al <body> y evita conflictos con Bootstrap/Popper.
+    if (window.IZZYActionDropdown && window.IZZYActionDropdown.isGlobalManager) return;
+        var $root = $('#secuencia_listado').first();
+        if (!$root.length) $root = $('body');
+    
+        $root.off('click.secuenciaDropdownAdaptativo', '.secuencia-actions .dropdown-toggle')
+            .on('click.secuenciaDropdownAdaptativo', '.secuencia-actions .dropdown-toggle', function(e) {
+                e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+                var $dropdown = $(this).closest('.secuencia-actions');
+                var estaba = $dropdown.children('.dropdown-menu').hasClass('show');
+                secuenciaCerrarTodosDropdowns($dropdown);
+                if (estaba) { secuenciaCerrarDropdown($dropdown); return; }
+                secuenciaLimpiarEstilosDropdown($dropdown);
+                secuenciaPosicionarDropdown($dropdown);
+            });
+
+        $root.off('click.secuenciaDropdownItem', '.secuencia-actions .dropdown-item, .secuencia-actions .accion-item')
+            .on('click.secuenciaDropdownItem', '.secuencia-actions .dropdown-item, .secuencia-actions .accion-item', function() {
+                var $dropdown = $(this).closest('.secuencia-actions');
+                window.setTimeout(function() { secuenciaLimpiarEstilosDropdown($dropdown); }, 0);
+            });
+
+        $(document).off('click.secuenciaDropdownOutside').on('click.secuenciaDropdownOutside', function(e) {
+            if (!$(e.target).closest('.secuencia-actions').length) secuenciaCerrarTodosDropdowns();
+        });
+        $(document).off('show.bs.modal.secuenciaDropdown').on('show.bs.modal.secuenciaDropdown', function() { secuenciaCerrarTodosDropdowns(); });
+        $(document).off('keydown.secuenciaDropdown').on('keydown.secuenciaDropdown', function(e) { if (e.key === 'Escape') secuenciaCerrarTodosDropdowns(); });
+        $(window).off('resize.secuenciaDropdown scroll.secuenciaDropdown').on('resize.secuenciaDropdown scroll.secuenciaDropdown', function() { secuenciaCerrarTodosDropdowns(); });
+    }
+    
     function inicializarEventosSecuencia() {
+        inicializarDropdownAccionesSecuencia();
         $('#form_main_secuencia').off('submit.secuencia').on('submit.secuencia', function (e) {
             e.preventDefault();
             secuenciaState.page = 1;
@@ -197,23 +350,6 @@
             .on('click.documentos', '.js-documento-estado', function () {
                 cambiarEstadoDocumentoSecuencia($(this).data('id'), $(this).data('estado'));
             });
-
-        $(document).off('click.secuenciaDropdown').on('click.secuenciaDropdown', function (e) {
-            if (!$(e.target).closest('.secuencia-actions').length) {
-                $('.secuencia-actions .dropdown-menu').removeClass('show');
-                $('.secuencia-actions .dropdown-toggle').attr('aria-expanded', 'false');
-            }
-        });
-
-        $('#secuencia_listado').off('click.secuenciaDropdownToggle').on('click.secuenciaDropdownToggle', '.secuencia-actions .dropdown-toggle', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            var $menu = $(this).siblings('.dropdown-menu');
-            $('.secuencia-actions .dropdown-menu').not($menu).removeClass('show');
-            $('.secuencia-actions .dropdown-toggle').not(this).attr('aria-expanded', 'false');
-            $menu.toggleClass('show');
-            $(this).attr('aria-expanded', $menu.hasClass('show') ? 'true' : 'false');
-        });
     }
 
     function obtenerEstadoPanelSecuencia(clave, valorPorDefecto) {
@@ -771,11 +907,20 @@
 
                     '<section class="secuencia-record-section secuencia-record-actions">' +
                         '<h6 class="secuencia-section-title"><i class="fas fa-cog"></i> Acciones</h6>' +
-                        '<div class="dropdown secuencia-actions">' +
-                            '<button type="button" class="btn btn-primary dropdown-toggle" aria-haspopup="true" aria-expanded="false"><i class="fas fa-cog mr-1"></i>Acciones</button>' +
-                            '<div class="dropdown-menu dropdown-menu-right">' +
-                                '<button type="button" class="dropdown-item js-secuencia-editar table_editar ocultar" data-id="' + id + '"><i class="fas fa-edit mr-2"></i>Editar</button>' +
-                                '<button type="button" class="dropdown-item text-danger js-secuencia-eliminar table_eliminar ocultar" data-id="' + id + '"><i class="fas fa-trash-alt mr-2"></i>Eliminar</button>' +
+                        '<div class="dropdown acciones-dropdown secuencia-actions">' +
+                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' +
+                                '<i class="fas fa-cog"></i> ' +
+                                '<span>Acciones</span>' +
+                            '</button>' +
+                            '<div class="dropdown-menu acciones-menu">' +
+                                '<button type="button" class="dropdown-item accion-item accion-editar js-secuencia-editar table_editar ocultar" data-id="' + id + '">' +
+                                    '<span class="accion-icon accion-icon-editar"><i class="fas fa-edit"></i></span> ' +
+                                    '<span class="accion-label">Editar</span>' +
+                                '</button>' +
+                                '<button type="button" class="dropdown-item accion-item accion-eliminar js-secuencia-eliminar table_eliminar ocultar" data-id="' + id + '">' +
+                                    '<span class="accion-icon accion-icon-eliminar"><i class="fas fa-trash-alt"></i></span> ' +
+                                    '<span class="accion-label">Eliminar</span>' +
+                                '</button>' +
                             '</div>' +
                         '</div>' +
                     '</section>' +
@@ -833,11 +978,20 @@
 
                 '<div class="secuencia-mini-footer">' +
                     '<span class="secuencia-id-text"><i class="fas fa-hashtag mr-1"></i>ID: ' + id + '</span>' +
-                    '<div class="dropdown secuencia-actions">' +
-                        '<button type="button" class="btn btn-primary dropdown-toggle" aria-haspopup="true" aria-expanded="false"><i class="fas fa-cog mr-1"></i>Acciones</button>' +
-                        '<div class="dropdown-menu dropdown-menu-right">' +
-                            '<button type="button" class="dropdown-item js-secuencia-editar table_editar ocultar" data-id="' + id + '"><i class="fas fa-edit mr-2"></i>Editar</button>' +
-                            '<button type="button" class="dropdown-item text-danger js-secuencia-eliminar table_eliminar ocultar" data-id="' + id + '"><i class="fas fa-trash-alt mr-2"></i>Eliminar</button>' +
+                    '<div class="dropdown acciones-dropdown secuencia-actions">' +
+                        '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' +
+                            '<i class="fas fa-cog"></i> ' +
+                            '<span>Acciones</span>' +
+                        '</button>' +
+                        '<div class="dropdown-menu acciones-menu">' +
+                            '<button type="button" class="dropdown-item accion-item accion-editar js-secuencia-editar table_editar ocultar" data-id="' + id + '">' +
+                                '<span class="accion-icon accion-icon-editar"><i class="fas fa-edit"></i></span> ' +
+                                '<span class="accion-label">Editar</span>' +
+                            '</button>' +
+                            '<button type="button" class="dropdown-item accion-item accion-eliminar js-secuencia-eliminar table_eliminar ocultar" data-id="' + id + '">' +
+                                '<span class="accion-icon accion-icon-eliminar"><i class="fas fa-trash-alt"></i></span> ' +
+                                '<span class="accion-label">Eliminar</span>' +
+                            '</button>' +
                         '</div>' +
                     '</div>' +
                 '</div>' +

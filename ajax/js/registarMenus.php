@@ -692,7 +692,150 @@
         $("#menus_paginacion").html(html);
     }
 
+    /* =========================================================
+       MENUS | DROPDOWN DE ACCIONES ADAPTATIVO
+       Posicionamiento real contra viewport, sin invadir modales.
+       ========================================================= */
+    var menusDropdownActivo = null;
+
+    function menusMedirDropdown($menu) {
+        var menu = $menu && $menu.length ? $menu[0] : null;
+        if (!menu) return { width: 210, height: 160 };
+        var wasShow = $menu.hasClass('show');
+        var cssText = menu.style.cssText;
+        $menu.addClass('show');
+        menu.style.setProperty('display','block','important');
+        menu.style.setProperty('visibility','hidden','important');
+        menu.style.setProperty('position','fixed','important');
+        menu.style.setProperty('top','0px','important');
+        menu.style.setProperty('left','0px','important');
+        menu.style.setProperty('right','auto','important');
+        menu.style.setProperty('bottom','auto','important');
+        menu.style.setProperty('transform','none','important');
+        var r = menu.getBoundingClientRect();
+        menu.style.cssText = cssText;
+        if (!wasShow) $menu.removeClass('show');
+        return { width: Math.max(r.width || 0, 210), height: Math.max(r.height || 0, 1) };
+    }
+
+    function menusLimpiarEstilosDropdown($dropdown) {
+        if (!$dropdown || !$dropdown.length) return;
+        var $menu = $dropdown.children('.dropdown-menu').first();
+        var menu = $menu[0];
+        $dropdown.removeClass('show dropup dropright dropleft');
+        $menu.removeClass('show dropdown-menu-right').removeAttr('x-placement data-popper-placement data-izzy-placement');
+        if (menu) {
+            ['display','visibility','position','top','left','right','bottom','transform','z-index','max-height','overflow-y'].forEach(function(prop) { menu.style.removeProperty(prop); });
+        }
+        var $row = $dropdown.closest('.menus-detail-row, .menus-mini-card');
+        $row.removeClass('menus-dropdown-open');
+        if ($row.length) $row[0].style.removeProperty('transform');
+    }
+
+    function menusObtenerBoton($dropdown) {
+        return $dropdown.children('.menus-acciones-toggle').first();
+    }
+
+    function menusCerrarDropdown($dropdown) {
+        if (!$dropdown || !$dropdown.length) return;
+        menusObtenerBoton($dropdown).attr('aria-expanded','false');
+        menusLimpiarEstilosDropdown($dropdown);
+        if (menusDropdownActivo && menusDropdownActivo.length && menusDropdownActivo.is($dropdown)) menusDropdownActivo = null;
+    }
+
+    function menusCerrarTodosDropdowns($excepto) {
+        $('#menus_listado .menus-actions-dropdown').each(function() {
+            var $d = $(this);
+            if ($excepto && $excepto.length && $d.is($excepto)) return;
+            menusCerrarDropdown($d);
+        });
+    }
+
+    function menusPosicionarDropdown($dropdown) {
+        var $button = menusObtenerBoton($dropdown);
+        var $menu = $dropdown.children('.dropdown-menu').first();
+        if (!$button.length || !$menu.length) return false;
+
+        var button = $button[0], menu = $menu[0];
+        var rect = button.getBoundingClientRect();
+        var size = menusMedirDropdown($menu);
+        var vw = window.innerWidth || document.documentElement.clientWidth || 0;
+        var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+        var margin = 10, gap = 7;
+        var below = vh - rect.bottom - margin;
+        var above = rect.top - margin;
+        var right = vw - rect.right - margin;
+        var leftSpace = rect.left - margin;
+        var top, left, placement;
+
+        if (below >= size.height + gap) { top = rect.bottom + gap; placement = 'bottom'; }
+        else if (above >= size.height + gap) { top = rect.top - size.height - gap; placement = 'top'; }
+        else if (right >= size.width + gap) { left = rect.right + gap; top = rect.top; placement = 'right'; }
+        else if (leftSpace >= size.width + gap) { left = rect.left - size.width - gap; top = rect.top; placement = 'left'; }
+        else { top = above > below ? rect.top - size.height - gap : rect.bottom + gap; placement = above > below ? 'top-clamped' : 'bottom-clamped'; }
+
+        if (left === undefined) {
+            left = rect.left;
+            if (left + size.width > vw - margin) left = rect.right - size.width;
+        }
+        left = Math.max(margin, Math.min(left, Math.max(margin, vw - size.width - margin)));
+        top = Math.max(margin, Math.min(top, Math.max(margin, vh - Math.min(size.height, vh - margin * 2) - margin)));
+
+        menu.style.setProperty('display','block','important');
+        menu.style.setProperty('visibility','visible','important');
+        menu.style.setProperty('position','fixed','important');
+        menu.style.setProperty('left',Math.round(left)+'px','important');
+        menu.style.setProperty('top',Math.round(top)+'px','important');
+        menu.style.setProperty('right','auto','important');
+        menu.style.setProperty('bottom','auto','important');
+        menu.style.setProperty('transform','none','important');
+        menu.style.setProperty('z-index','1985','important');
+        menu.style.setProperty('max-height',Math.max(90,vh-margin*2)+'px','important');
+        menu.style.setProperty('overflow-y','auto','important');
+        menu.setAttribute('data-izzy-placement', placement);
+        $menu.addClass('show');
+        $button.attr('aria-expanded','true');
+
+        var $row = $dropdown.closest('.menus-detail-row, .menus-mini-card');
+        $row.addClass('menus-dropdown-open');
+        if ($row.length) $row[0].style.setProperty('transform','none','important');
+        menusDropdownActivo = $dropdown;
+        return true;
+    }
+
+    function inicializarDropdownAccionesMenus() {
+    // El administrador global de main.php usa portal al <body> y evita conflictos con Bootstrap/Popper.
+    if (window.IZZYActionDropdown && window.IZZYActionDropdown.isGlobalManager) return;
+        var $root = $('#menus_listado').first();
+        if (!$root.length) $root = $('body');
+
+        $root.off('click.menusDropdownAdaptativo', '.menus-actions-dropdown .menus-acciones-toggle')
+            .on('click.menusDropdownAdaptativo', '.menus-actions-dropdown .menus-acciones-toggle', function(e) {
+                e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+                var $dropdown = $(this).closest('.menus-actions-dropdown');
+                var estaba = $dropdown.children('.dropdown-menu').hasClass('show');
+                menusCerrarTodosDropdowns($dropdown);
+                if (estaba) { menusCerrarDropdown($dropdown); return; }
+                menusLimpiarEstilosDropdown($dropdown);
+                menusPosicionarDropdown($dropdown);
+            });
+
+        $root.off('click.menusDropdownItem', '.menus-actions-dropdown .dropdown-item, .menus-actions-dropdown .accion-item')
+            .on('click.menusDropdownItem', '.menus-actions-dropdown .dropdown-item, .menus-actions-dropdown .accion-item', function() {
+                var $dropdown = $(this).closest('.menus-actions-dropdown');
+                window.setTimeout(function() { menusLimpiarEstilosDropdown($dropdown); }, 0);
+            });
+
+        $(document).off('click.menusDropdownOutside').on('click.menusDropdownOutside', function(e) {
+            if (!$(e.target).closest('.menus-actions-dropdown').length) menusCerrarTodosDropdowns();
+        });
+        $(document).off('show.bs.modal.menusDropdown').on('show.bs.modal.menusDropdown', function() { menusCerrarTodosDropdowns(); });
+        $(document).off('keydown.menusDropdown').on('keydown.menusDropdown', function(e) { if (e.key === 'Escape') menusCerrarTodosDropdowns(); });
+        $(window).off('resize.menusDropdown scroll.menusDropdown').on('resize.menusDropdown scroll.menusDropdown', function() { menusCerrarTodosDropdowns(); });
+    }
+
     function inicializarEventosListadoMenus() {
+        inicializarDropdownAccionesMenus();
         menusConfigurarPanel("#btn_toggle_menus_filtros", "#menus_filtros_body", MENUS_STORAGE_FILTROS, true);
         menusConfigurarPanel("#btn_toggle_menus_kpis", "#menus_kpis_body", MENUS_STORAGE_KPIS, true);
 
@@ -786,40 +929,6 @@
         $(window)
             .off("resize.menusResponsive")
             .on("resize.menusResponsive", menusDebounce(aplicarVistaResponsiveMenus, 120));
-
-        /* Dropdown normal + inteligente. */
-        $(document)
-            .off("click.menusDropdown", "#menus_listado .menus-acciones-toggle")
-            .on("click.menusDropdown", "#menus_listado .menus-acciones-toggle", function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-
-                const $button = $(this);
-
-                if (typeof $.fn.dropdown !== "function") {
-                    notificarMenu("error", "Acciones no disponibles", "No se encontró el componente Dropdown de Bootstrap.");
-                    return;
-                }
-
-                $("#menus_listado .menus-acciones-toggle").not($button).each(function() {
-                    try {
-                        $(this).dropdown("hide");
-                    } catch (error) {}
-                });
-
-                try {
-                    $button.dropdown({
-                        boundary: "viewport",
-                        flip: true,
-                        offset: "0,6"
-                    });
-                    $button.dropdown("toggle");
-                } catch (error) {
-                    console.error("Error abriendo dropdown de menús:", error);
-                    notificarMenu("error", "Acciones no disponibles", "No se pudo abrir el menú de acciones.");
-                }
-            });
 
         $("#btn_exportar_menus_excel")
             .off("click.menusExcel")

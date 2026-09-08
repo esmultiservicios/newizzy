@@ -2278,252 +2278,152 @@
         }
 
         /* =========================================================
-            DIRECCIÓN ADAPTATIVA DEL DROPDOWN
-            Prioridad: abajo -> arriba -> derecha -> izquierda.
-            Bootstrap/Popper conserva el ajuste final contra viewport.
-        ========================================================= */
-        function limpiarDireccionDropdownPlanes($dropdown) {
-            if (!$dropdown || !$dropdown.length) {
-                return;
-            }
+           PLANES | DROPDOWN DE ACCIONES ADAPTATIVO
+           Posicionamiento real contra viewport, sin invadir modales.
+           ========================================================= */
+        var planesDropdownActivo = null;
 
-            $dropdown.removeClass("dropup dropright dropleft");
-            $dropdown.children(".dropdown-menu")
-                .removeClass("dropdown-menu-right")
-                .removeAttr("x-placement data-popper-placement")
-                .css({ top: "", left: "", right: "", bottom: "", transform: "" });
+        function planesMedirDropdown($menu) {
+            var menu = $menu && $menu.length ? $menu[0] : null;
+            if (!menu) return { width: 220, height: 160 };
+            var wasShow = $menu.hasClass('show');
+            var cssText = menu.style.cssText;
+            $menu.addClass('show');
+            menu.style.setProperty('display','block','important');
+            menu.style.setProperty('visibility','hidden','important');
+            menu.style.setProperty('position','fixed','important');
+            menu.style.setProperty('top','0px','important');
+            menu.style.setProperty('left','0px','important');
+            menu.style.setProperty('right','auto','important');
+            menu.style.setProperty('bottom','auto','important');
+            menu.style.setProperty('transform','none','important');
+            var r = menu.getBoundingClientRect();
+            menu.style.cssText = cssText;
+            if (!wasShow) $menu.removeClass('show');
+            return { width: Math.max(r.width || 0, 220), height: Math.max(r.height || 0, 1) };
         }
 
-        function medirMenuDropdownPlanes($menu) {
-            const menu = $menu && $menu.length ? $menu[0] : null;
-            if (!menu) {
-                return { width: 220, height: 220 };
+        function planesLimpiarEstilosDropdown($dropdown) {
+            if (!$dropdown || !$dropdown.length) return;
+            var $menu = $dropdown.children('.dropdown-menu').first();
+            var menu = $menu[0];
+            $dropdown.removeClass('show dropup dropright dropleft');
+            $menu.removeClass('show dropdown-menu-right').removeAttr('x-placement data-popper-placement data-izzy-placement');
+            if (menu) {
+                ['display','visibility','position','top','left','right','bottom','transform','z-index','max-height','overflow-y'].forEach(function(prop) { menu.style.removeProperty(prop); });
             }
+            var $row = $dropdown.closest('.planes-detail-row, .planes-mini-card');
+            $row.removeClass('planes-dropdown-open');
+            if ($row.length) $row[0].style.removeProperty('transform');
+        }
 
-            const estilos = {
-                display: menu.style.display,
-                visibility: menu.style.visibility,
-                position: menu.style.position,
-                top: menu.style.top,
-                left: menu.style.left,
-                right: menu.style.right,
-                bottom: menu.style.bottom,
-                transform: menu.style.transform
-            };
-            const teniaShow = $menu.hasClass("show");
+        function planesObtenerBoton($dropdown) {
+            return $dropdown.children('.planes-acciones-toggle').first();
+        }
 
-            $menu.addClass("show").css({
-                display: "block",
-                visibility: "hidden",
-                position: "fixed",
-                top: "0",
-                left: "0",
-                right: "auto",
-                bottom: "auto",
-                transform: "none"
+        function planesCerrarDropdown($dropdown) {
+            if (!$dropdown || !$dropdown.length) return;
+            planesObtenerBoton($dropdown).attr('aria-expanded','false');
+            planesLimpiarEstilosDropdown($dropdown);
+            if (planesDropdownActivo && planesDropdownActivo.length && planesDropdownActivo.is($dropdown)) planesDropdownActivo = null;
+        }
+
+        function planesCerrarTodosDropdowns($excepto) {
+            $('#planesListado .planes-actions-dropdown').each(function() {
+                var $d = $(this);
+                if ($excepto && $excepto.length && $d.is($excepto)) return;
+                planesCerrarDropdown($d);
             });
-
-            const rect = menu.getBoundingClientRect();
-
-            if (!teniaShow) {
-                $menu.removeClass("show");
-            }
-            menu.style.display = estilos.display;
-            menu.style.visibility = estilos.visibility;
-            menu.style.position = estilos.position;
-            menu.style.top = estilos.top;
-            menu.style.left = estilos.left;
-            menu.style.right = estilos.right;
-            menu.style.bottom = estilos.bottom;
-            menu.style.transform = estilos.transform;
-
-            return {
-                width: Math.max(rect.width || 0, 220),
-                height: Math.max(rect.height || 0, 1)
-            };
         }
 
-        function prepararDireccionDropdownPlanes($dropdown) {
-            if (!$dropdown || !$dropdown.length) {
-                return;
+        function planesPosicionarDropdown($dropdown) {
+            var $button = planesObtenerBoton($dropdown);
+            var $menu = $dropdown.children('.dropdown-menu').first();
+            if (!$button.length || !$menu.length) return false;
+
+            var button = $button[0], menu = $menu[0];
+            var rect = button.getBoundingClientRect();
+            var size = planesMedirDropdown($menu);
+            var vw = window.innerWidth || document.documentElement.clientWidth || 0;
+            var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+            var margin = 10, gap = 7;
+            var below = vh - rect.bottom - margin;
+            var above = rect.top - margin;
+            var right = vw - rect.right - margin;
+            var leftSpace = rect.left - margin;
+            var top, left, placement;
+
+            if (below >= size.height + gap) { top = rect.bottom + gap; placement = 'bottom'; }
+            else if (above >= size.height + gap) { top = rect.top - size.height - gap; placement = 'top'; }
+            else if (right >= size.width + gap) { left = rect.right + gap; top = rect.top; placement = 'right'; }
+            else if (leftSpace >= size.width + gap) { left = rect.left - size.width - gap; top = rect.top; placement = 'left'; }
+            else { top = above > below ? rect.top - size.height - gap : rect.bottom + gap; placement = above > below ? 'top-clamped' : 'bottom-clamped'; }
+
+            if (left === undefined) {
+                left = rect.left;
+                if (left + size.width > vw - margin) left = rect.right - size.width;
             }
+            left = Math.max(margin, Math.min(left, Math.max(margin, vw - size.width - margin)));
+            top = Math.max(margin, Math.min(top, Math.max(margin, vh - Math.min(size.height, vh - margin * 2) - margin)));
 
-            const $button = $dropdown.children(".planes-acciones-toggle");
-            const $menu = $dropdown.children(".dropdown-menu");
-            const button = $button.length ? $button[0] : null;
+            menu.style.setProperty('display','block','important');
+            menu.style.setProperty('visibility','visible','important');
+            menu.style.setProperty('position','fixed','important');
+            menu.style.setProperty('left',Math.round(left)+'px','important');
+            menu.style.setProperty('top',Math.round(top)+'px','important');
+            menu.style.setProperty('right','auto','important');
+            menu.style.setProperty('bottom','auto','important');
+            menu.style.setProperty('transform','none','important');
+            menu.style.setProperty('z-index','1985','important');
+            menu.style.setProperty('max-height',Math.max(90,vh-margin*2)+'px','important');
+            menu.style.setProperty('overflow-y','auto','important');
+            menu.setAttribute('data-izzy-placement', placement);
+            $menu.addClass('show');
+            $button.attr('aria-expanded','true');
 
-            if (!button || !$menu.length) {
-                return;
-            }
+            var $row = $dropdown.closest('.planes-detail-row, .planes-mini-card');
+            $row.addClass('planes-dropdown-open');
+            if ($row.length) $row[0].style.setProperty('transform','none','important');
+            planesDropdownActivo = $dropdown;
+            return true;
+        }
 
-            limpiarDireccionDropdownPlanes($dropdown);
+        function inicializarDropdownAccionesPlanes() {
+    // El administrador global de main.php usa portal al <body> y evita conflictos con Bootstrap/Popper.
+    if (window.IZZYActionDropdown && window.IZZYActionDropdown.isGlobalManager) return;
+            var $root = $('#planesListado').first();
+            if (!$root.length) $root = $('body');
 
-            const rect = button.getBoundingClientRect();
-            const menuSize = medirMenuDropdownPlanes($menu);
-            const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
-            const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-            const margin = 12;
-            const gap = 8;
+            $root.off('click.planesDropdownAdaptativo', '.planes-actions-dropdown .planes-acciones-toggle')
+                .on('click.planesDropdownAdaptativo', '.planes-actions-dropdown .planes-acciones-toggle', function(e) {
+                    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+                    var $dropdown = $(this).closest('.planes-actions-dropdown');
+                    var estaba = $dropdown.children('.dropdown-menu').hasClass('show');
+                    planesCerrarTodosDropdowns($dropdown);
+                    if (estaba) { planesCerrarDropdown($dropdown); return; }
+                    planesLimpiarEstilosDropdown($dropdown);
+                    planesPosicionarDropdown($dropdown);
+                });
 
-            const espacioAbajo = viewportHeight - rect.bottom - margin;
-            const espacioArriba = rect.top - margin;
-            const espacioDerecha = viewportWidth - rect.right - margin;
-            const espacioIzquierda = rect.left - margin;
+            $root.off('click.planesDropdownItem', '.planes-actions-dropdown .dropdown-item, .planes-actions-dropdown .accion-item')
+                .on('click.planesDropdownItem', '.planes-actions-dropdown .dropdown-item, .planes-actions-dropdown .accion-item', function() {
+                    var $dropdown = $(this).closest('.planes-actions-dropdown');
+                    window.setTimeout(function() { planesLimpiarEstilosDropdown($dropdown); }, 0);
+                });
 
-            const cabeAbajo = espacioAbajo >= menuSize.height + gap;
-            const cabeArriba = espacioArriba >= menuSize.height + gap;
-            const cabeDerecha = espacioDerecha >= menuSize.width + gap;
-            const cabeIzquierda = espacioIzquierda >= menuSize.width + gap;
-
-            if (cabeAbajo) {
-                /* Dropdown normal. */
-            } else if (cabeArriba) {
-                $dropdown.addClass("dropup");
-            } else if (cabeDerecha) {
-                $dropdown.addClass("dropright");
-            } else if (cabeIzquierda) {
-                $dropdown.addClass("dropleft");
-            } else if (espacioArriba > espacioAbajo) {
-                $dropdown.addClass("dropup");
-            }
-
-            /* Alineación horizontal preventiva para dropdown/dropup. */
-            if (!$dropdown.hasClass("dropright") && !$dropdown.hasClass("dropleft")) {
-                const desbordaDerecha = rect.left + menuSize.width > viewportWidth - margin;
-                const puedeAlinearDerecha = rect.right - menuSize.width >= margin;
-
-                if (desbordaDerecha && puedeAlinearDerecha) {
-                    $menu.addClass("dropdown-menu-right");
-                }
-            }
+            $(document).off('click.planesDropdownOutside').on('click.planesDropdownOutside', function(e) {
+                if (!$(e.target).closest('.planes-actions-dropdown').length) planesCerrarTodosDropdowns();
+            });
+            $(document).off('show.bs.modal.planesDropdown').on('show.bs.modal.planesDropdown', function() { planesCerrarTodosDropdowns(); });
+            $(document).off('keydown.planesDropdown').on('keydown.planesDropdown', function(e) { if (e.key === 'Escape') planesCerrarTodosDropdowns(); });
+            $(window).off('resize.planesDropdown scroll.planesDropdown').on('resize.planesDropdown scroll.planesDropdown', function() { planesCerrarTodosDropdowns(); });
         }
 
         /* =========================================================
             EVENTOS
         ========================================================= */
         function registrarEventosPlanes() {
-            /* =====================================================
-               DROPDOWN DE ACCIONES DEL LISTADO PRINCIPAL
-               Comportamiento normal Bootstrap/Popper:
-               - abre debajo del botón;
-               - cambia de posición únicamente si no hay espacio;
-               - usa el viewport como límite para no quedar oculto.
-               ===================================================== */
-            function cerrarDropdownsPlanesExcepto($actual) {
-                $("#planesListado .planes-actions-dropdown").each(function() {
-                    const $dropdown = $(this);
-                    const $btn = $dropdown.children(".planes-acciones-toggle");
-                    const $menu = $dropdown.children(".dropdown-menu");
-
-                    if ($actual && $actual.length && $dropdown.is($actual)) {
-                        return;
-                    }
-
-                    try {
-                        if (typeof $.fn.dropdown === "function" && $menu.hasClass("show")) {
-                            $btn.dropdown("hide");
-                        }
-                    } catch (error) {
-                        /* Limpieza manual abajo como respaldo. */
-                    }
-
-                    $btn.attr("aria-expanded", "false");
-                    $dropdown.removeClass("show");
-                    $menu.removeClass("show");
-                    limpiarDireccionDropdownPlanes($dropdown);
-
-                    /* IMPORTANTE: solo baja la fila que se está cerrando. */
-                    $dropdown
-                        .closest(".planes-detail-row, .planes-mini-card")
-                        .removeClass("planes-dropdown-open");
-                });
-            }
-
-            $(document)
-                .off("click.planesAcciones", "#planesListado .planes-acciones-toggle")
-                .on("click.planesAcciones", "#planesListado .planes-acciones-toggle", function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.stopImmediatePropagation();
-
-                    const $button = $(this);
-                    const $dropdown = $button.closest(".planes-actions-dropdown");
-                    const $menu = $dropdown.children(".dropdown-menu");
-                    const estabaAbierto = $menu.hasClass("show");
-
-                    if (typeof $.fn.dropdown !== "function") {
-                        notificarPlan(
-                            "error",
-                            "Acciones no disponibles",
-                            "No se encontró el componente Dropdown de Bootstrap."
-                        );
-                        return;
-                    }
-
-                    cerrarDropdownsPlanesExcepto($dropdown);
-
-                    if (estabaAbierto) {
-                        try { $button.dropdown("hide"); } catch (error) {}
-                        $button.attr("aria-expanded", "false");
-                        $dropdown.removeClass("show");
-                        $menu.removeClass("show");
-                        limpiarDireccionDropdownPlanes($dropdown);
-                        limpiarStackDropdownPlanes();
-                        return;
-                    }
-
-                    try {
-                        prepararDireccionDropdownPlanes($dropdown);
-
-                        $button.dropdown({
-                            boundary: "viewport",
-                            flip: true,
-                            offset: "0,6"
-                        });
-                        $button.dropdown("show");
-                        activarStackDropdownPlanes($dropdown);
-                    } catch (error) {
-                        console.error("No se pudo abrir el dropdown de acciones:", error);
-                        notificarPlan(
-                            "error",
-                            "Acciones no disponibles",
-                            "No se pudo abrir el menú de acciones."
-                        );
-                    }
-                });
-
-            $(document)
-                .off("shown.bs.dropdown.planesStack", "#planesListado .planes-actions-dropdown")
-                .on("shown.bs.dropdown.planesStack", "#planesListado .planes-actions-dropdown", function() {
-                    activarStackDropdownPlanes($(this));
-                })
-                .off("hidden.bs.dropdown.planesStack", "#planesListado .planes-actions-dropdown")
-                .on("hidden.bs.dropdown.planesStack", "#planesListado .planes-actions-dropdown", function() {
-                    /* No limpiar todas las filas: un hidden anterior puede dispararse
-                       después de abrir otro dropdown y quitarle su stacking. */
-                    const $dropdown = $(this);
-                    limpiarDireccionDropdownPlanes($dropdown);
-                    $dropdown
-                        .closest(".planes-detail-row, .planes-mini-card")
-                        .removeClass("planes-dropdown-open");
-                });
-
-            $(document)
-                .off("click.planesCerrarAlElegir", "#planesListado .planes-actions-dropdown .dropdown-item")
-                .on("click.planesCerrarAlElegir", "#planesListado .planes-actions-dropdown .dropdown-item", function() {
-                    const $button = $(this)
-                        .closest(".planes-actions-dropdown")
-                        .children(".planes-acciones-toggle");
-
-                    if ($button.length && typeof $.fn.dropdown === "function") {
-                        try {
-                            $button.dropdown("hide");
-                        } catch (error) {
-                            /* Bootstrap puede no exponer hide en versiones antiguas. */
-                        }
-                    }
-                });
-
+            inicializarDropdownAccionesPlanes();
             $("#formFiltrosPlanes")
                 .off("submit.planesFiltros")
                 .on("submit.planesFiltros", function(e) {

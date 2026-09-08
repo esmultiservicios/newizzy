@@ -336,115 +336,36 @@ function inicializarEmpresaModulo() {
 }
 
 /* =========================================================
-   STACKING DEL DROPDOWN DE ACCIONES
-   Mantiene la fila/card con acciones por encima del resto.
+   EMPRESA | DROPDOWN DE ACCIONES ADAPTATIVO
+   - Abajo / arriba / derecha / izquierda según espacio real.
+   - Nunca queda detrás del contenido ni por encima de un modal.
+   - Cierra otros menús, clic externo, scroll, resize, ESC y modal.
    ========================================================= */
-function limpiarStackDropdownEmpresa() {
-    $('#empresaListado .empresa-detail-row, #empresaListado .empresa-mini-card')
-        .removeClass('empresa-dropdown-open');
+var empresaDropdownActivo = null;
+
+function empresaObtenerBoton($dropdown) {
+    return $dropdown.children('.js-acciones-toggle').first();
 }
 
-function activarStackDropdownEmpresa($dropdown) {
-    limpiarStackDropdownEmpresa();
-
-    if (!$dropdown || !$dropdown.length) {
-        return;
-    }
-
-    $dropdown
-        .closest('.empresa-detail-row, .empresa-mini-card')
-        .addClass('empresa-dropdown-open');
-}
-
-function cerrarDropdownsEmpresaExcepto($actual) {
-    $('#empresaListado .acciones-dropdown').each(function () {
-        var $dropdown = $(this);
-        var $btn = $dropdown.children('.js-acciones-toggle');
-        var $menu = $dropdown.children('.dropdown-menu');
-
-        if ($actual && $actual.length && $dropdown.is($actual)) {
-            return;
-        }
-
-        try {
-            if (typeof $.fn.dropdown === 'function' && $menu.hasClass('show')) {
-                $btn.dropdown('hide');
-            }
-        } catch (error) {
-            /* Limpieza manual abajo como respaldo. */
-        }
-
-        $btn.attr('aria-expanded', 'false');
-        $dropdown.removeClass('show');
-        $menu.removeClass('show');
-        limpiarDireccionDropdownEmpresa($dropdown);
-
-        /* Solo se baja la fila/card cuyo menú se cerró. */
-        $dropdown
-            .closest('.empresa-detail-row, .empresa-mini-card')
-            .removeClass('empresa-dropdown-open');
-    });
-}
-
-/* =========================================================
-   DIRECCIÓN ADAPTATIVA DEL DROPDOWN
-   Prioridad: abajo -> arriba -> derecha -> izquierda.
-   Bootstrap/Popper conserva el ajuste final contra viewport.
-   ========================================================= */
-function limpiarDireccionDropdownEmpresa($dropdown) {
-    if (!$dropdown || !$dropdown.length) {
-        return;
-    }
-
-    $dropdown.removeClass('dropup dropright dropleft');
-    $dropdown.children('.dropdown-menu')
-        .removeClass('dropdown-menu-right')
-        .removeAttr('x-placement data-popper-placement')
-        .css({ top: '', left: '', right: '', bottom: '', transform: '' });
-}
-
-function medirMenuDropdownEmpresa($menu) {
+function empresaMedirDropdown($menu) {
     var menu = $menu && $menu.length ? $menu[0] : null;
-    if (!menu) {
-        return { width: 200, height: 120 };
-    }
+    if (!menu) return { width: 200, height: 160 };
 
-    var estilos = {
-        display: menu.style.display,
-        visibility: menu.style.visibility,
-        position: menu.style.position,
-        top: menu.style.top,
-        left: menu.style.left,
-        right: menu.style.right,
-        bottom: menu.style.bottom,
-        transform: menu.style.transform
-    };
     var teniaShow = $menu.hasClass('show');
-
-    $menu.addClass('show').css({
-        display: 'block',
-        visibility: 'hidden',
-        position: 'fixed',
-        top: '0',
-        left: '0',
-        right: 'auto',
-        bottom: 'auto',
-        transform: 'none'
-    });
+    var cssText = menu.style.cssText;
+    $menu.addClass('show');
+    menu.style.setProperty('display','block','important');
+    menu.style.setProperty('visibility','hidden','important');
+    menu.style.setProperty('position','fixed','important');
+    menu.style.setProperty('top','0px','important');
+    menu.style.setProperty('left','0px','important');
+    menu.style.setProperty('right','auto','important');
+    menu.style.setProperty('bottom','auto','important');
+    menu.style.setProperty('transform','none','important');
 
     var rect = menu.getBoundingClientRect();
-
-    if (!teniaShow) {
-        $menu.removeClass('show');
-    }
-    menu.style.display = estilos.display;
-    menu.style.visibility = estilos.visibility;
-    menu.style.position = estilos.position;
-    menu.style.top = estilos.top;
-    menu.style.left = estilos.left;
-    menu.style.right = estilos.right;
-    menu.style.bottom = estilos.bottom;
-    menu.style.transform = estilos.transform;
+    menu.style.cssText = cssText;
+    if (!teniaShow) $menu.removeClass('show');
 
     return {
         width: Math.max(rect.width || 0, 200),
@@ -452,114 +373,161 @@ function medirMenuDropdownEmpresa($menu) {
     };
 }
 
-function prepararDireccionDropdownEmpresa($dropdown) {
-    if (!$dropdown || !$dropdown.length) {
-        return;
+function empresaLimpiarDropdown($dropdown) {
+    if (!$dropdown || !$dropdown.length) return;
+
+    var $menu = $dropdown.children('.dropdown-menu').first();
+    var menu = $menu[0];
+    var $row = $dropdown.closest('.empresa-detail-row, .empresa-mini-card');
+
+    $dropdown.removeClass('show dropup dropright dropleft');
+    $menu.removeClass('show dropdown-menu-right')
+        .removeAttr('x-placement data-popper-placement data-izzy-placement');
+
+    if (menu) {
+        ['display','visibility','position','top','left','right','bottom','transform','z-index','max-height','overflow-y']
+            .forEach(function(prop) { menu.style.removeProperty(prop); });
     }
 
-    var $button = $dropdown.children('.js-acciones-toggle');
-    var $menu = $dropdown.children('.dropdown-menu');
-    var button = $button.length ? $button[0] : null;
+    empresaObtenerBoton($dropdown).attr('aria-expanded','false');
+    $row.removeClass('empresa-dropdown-open');
+    if ($row.length) $row[0].style.removeProperty('transform');
 
-    if (!button || !$menu.length) {
-        return;
-    }
-
-    limpiarDireccionDropdownEmpresa($dropdown);
-
-    var rect = button.getBoundingClientRect();
-    var menuSize = medirMenuDropdownEmpresa($menu);
-    var viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
-    var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-    var margin = 12;
-    var gap = 8;
-
-    var espacioAbajo = viewportHeight - rect.bottom - margin;
-    var espacioArriba = rect.top - margin;
-    var espacioDerecha = viewportWidth - rect.right - margin;
-    var espacioIzquierda = rect.left - margin;
-
-    var cabeAbajo = espacioAbajo >= menuSize.height + gap;
-    var cabeArriba = espacioArriba >= menuSize.height + gap;
-    var cabeDerecha = espacioDerecha >= menuSize.width + gap;
-    var cabeIzquierda = espacioIzquierda >= menuSize.width + gap;
-
-    if (cabeAbajo) {
-        /* Dropdown normal. */
-    } else if (cabeArriba) {
-        $dropdown.addClass('dropup');
-    } else if (cabeDerecha) {
-        $dropdown.addClass('dropright');
-    } else if (cabeIzquierda) {
-        $dropdown.addClass('dropleft');
-    } else if (espacioArriba > espacioAbajo) {
-        $dropdown.addClass('dropup');
-    }
-
-    if (!$dropdown.hasClass('dropright') && !$dropdown.hasClass('dropleft')) {
-        var desbordaDerecha = rect.left + menuSize.width > viewportWidth - margin;
-        var puedeAlinearDerecha = rect.right - menuSize.width >= margin;
-
-        if (desbordaDerecha && puedeAlinearDerecha) {
-            $menu.addClass('dropdown-menu-right');
-        }
+    if (empresaDropdownActivo && empresaDropdownActivo.length && empresaDropdownActivo.is($dropdown)) {
+        empresaDropdownActivo = null;
     }
 }
 
+function empresaCerrarTodosDropdowns($excepto) {
+    $('#empresaListado .acciones-dropdown').each(function() {
+        var $dropdown = $(this);
+        if ($excepto && $excepto.length && $dropdown.is($excepto)) return;
+        empresaLimpiarDropdown($dropdown);
+    });
+}
+
+function empresaPosicionarDropdown($dropdown) {
+    var $button = empresaObtenerBoton($dropdown);
+    var $menu = $dropdown.children('.dropdown-menu').first();
+    if (!$button.length || !$menu.length) return false;
+
+    var button = $button[0];
+    var menu = $menu[0];
+    var rect = button.getBoundingClientRect();
+    var size = empresaMedirDropdown($menu);
+    var viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+    var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    var margin = 10;
+    var gap = 7;
+
+    var abajo = viewportHeight - rect.bottom - margin;
+    var arriba = rect.top - margin;
+    var derecha = viewportWidth - rect.right - margin;
+    var izquierda = rect.left - margin;
+    var top;
+    var left;
+    var placement;
+
+    if (abajo >= size.height + gap) {
+        top = rect.bottom + gap;
+        placement = 'bottom';
+    } else if (arriba >= size.height + gap) {
+        top = rect.top - size.height - gap;
+        placement = 'top';
+    } else if (derecha >= size.width + gap) {
+        left = rect.right + gap;
+        top = rect.top;
+        placement = 'right';
+    } else if (izquierda >= size.width + gap) {
+        left = rect.left - size.width - gap;
+        top = rect.top;
+        placement = 'left';
+    } else {
+        top = arriba > abajo ? rect.top - size.height - gap : rect.bottom + gap;
+        placement = arriba > abajo ? 'top-clamped' : 'bottom-clamped';
+    }
+
+    if (typeof left === 'undefined') {
+        left = rect.left;
+        if (left + size.width > viewportWidth - margin) {
+            left = rect.right - size.width;
+        }
+    }
+
+    left = Math.max(margin, Math.min(left, Math.max(margin, viewportWidth - size.width - margin)));
+    top = Math.max(margin, Math.min(top, Math.max(margin, viewportHeight - Math.min(size.height, viewportHeight - margin * 2) - margin)));
+
+    menu.style.setProperty('display','block','important');
+    menu.style.setProperty('visibility','visible','important');
+    menu.style.setProperty('position','fixed','important');
+    menu.style.setProperty('left',Math.round(left)+'px','important');
+    menu.style.setProperty('top',Math.round(top)+'px','important');
+    menu.style.setProperty('right','auto','important');
+    menu.style.setProperty('bottom','auto','important');
+    menu.style.setProperty('transform','none','important');
+    /* my_style usa backdrop 1990 y modal 2000: acciones quedan justo debajo. */
+    menu.style.setProperty('z-index','1985','important');
+    menu.style.setProperty('max-height',Math.max(90, viewportHeight - margin * 2)+'px','important');
+    menu.style.setProperty('overflow-y','auto','important');
+    menu.setAttribute('data-izzy-placement', placement);
+
+    $menu.addClass('show');
+    $button.attr('aria-expanded','true');
+
+    var $row = $dropdown.closest('.empresa-detail-row, .empresa-mini-card');
+    $row.addClass('empresa-dropdown-open');
+    /* Evita que un hover con transform convierta al padre en containing block del fixed. */
+    if ($row.length) $row[0].style.setProperty('transform','none','important');
+
+    empresaDropdownActivo = $dropdown;
+    return true;
+}
+
 function inicializarStackDropdownEmpresa() {
-    $(document)
-        .off('click.empresaDropdownStack', '#empresaListado .js-acciones-toggle')
-        .on('click.empresaDropdownStack', '#empresaListado .js-acciones-toggle', function (event) {
-            event.preventDefault();
-            event.stopPropagation();
-            event.stopImmediatePropagation();
+    // El administrador global de main.php usa portal al <body> y evita conflictos con Bootstrap/Popper.
+    if (window.IZZYActionDropdown && window.IZZYActionDropdown.isGlobalManager) return;
+    var $root = $('#empresaListado').first();
+    if (!$root.length) return;
 
-            var $button = $(this);
-            var $dropdown = $button.closest('.acciones-dropdown');
-            var $menu = $dropdown.children('.dropdown-menu');
-            var estabaAbierto = $menu.hasClass('show');
+    $root.off('click.empresaDropdownAdaptativo', '.acciones-dropdown .js-acciones-toggle')
+        .on('click.empresaDropdownAdaptativo', '.acciones-dropdown .js-acciones-toggle', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
 
-            if (typeof $.fn.dropdown !== 'function') {
-                return;
-            }
+            var $dropdown = $(this).closest('.acciones-dropdown');
+            var estabaAbierto = $dropdown.children('.dropdown-menu').hasClass('show');
 
-            cerrarDropdownsEmpresaExcepto($dropdown);
-
+            empresaCerrarTodosDropdowns($dropdown);
             if (estabaAbierto) {
-                try { $button.dropdown('hide'); } catch (error) {}
-                $button.attr('aria-expanded', 'false');
-                $dropdown.removeClass('show');
-                $menu.removeClass('show');
-                limpiarDireccionDropdownEmpresa($dropdown);
-                limpiarStackDropdownEmpresa();
+                empresaLimpiarDropdown($dropdown);
                 return;
             }
 
-            try {
-                prepararDireccionDropdownEmpresa($dropdown);
-
-                $button.dropdown({
-                    boundary: 'viewport',
-                    flip: true,
-                    offset: '0,6'
-                });
-                $button.dropdown('show');
-                activarStackDropdownEmpresa($dropdown);
-            } catch (error) {
-                console.error('No se pudo abrir el dropdown de acciones de Empresa:', error);
-            }
-        })
-        .off('shown.bs.dropdown.empresaDropdownStack', '#empresaListado .acciones-dropdown')
-        .on('shown.bs.dropdown.empresaDropdownStack', '#empresaListado .acciones-dropdown', function () {
-            cerrarDropdownsEmpresaExcepto($(this));
-            activarStackDropdownEmpresa($(this));
-        })
-        .off('hidden.bs.dropdown.empresaDropdownStack', '#empresaListado .acciones-dropdown')
-        .on('hidden.bs.dropdown.empresaDropdownStack', '#empresaListado .acciones-dropdown', function () {
-            var $dropdown = $(this);
-            limpiarDireccionDropdownEmpresa($dropdown);
-            $dropdown.closest('.empresa-detail-row, .empresa-mini-card').removeClass('empresa-dropdown-open');
+            empresaLimpiarDropdown($dropdown);
+            empresaPosicionarDropdown($dropdown);
         });
+
+    $root.off('click.empresaDropdownItem', '.acciones-dropdown .dropdown-item, .acciones-dropdown .accion-item')
+        .on('click.empresaDropdownItem', '.acciones-dropdown .dropdown-item, .acciones-dropdown .accion-item', function() {
+            var $dropdown = $(this).closest('.acciones-dropdown');
+            window.setTimeout(function() { empresaLimpiarDropdown($dropdown); }, 0);
+        });
+
+    $(document).off('click.empresaDropdownOutside').on('click.empresaDropdownOutside', function(e) {
+        if (!$(e.target).closest('.acciones-dropdown').length) empresaCerrarTodosDropdowns();
+    });
+
+    $(document).off('show.bs.modal.empresaDropdown').on('show.bs.modal.empresaDropdown', function() {
+        empresaCerrarTodosDropdowns();
+    });
+
+    $(document).off('keydown.empresaDropdown').on('keydown.empresaDropdown', function(e) {
+        if (e.key === 'Escape') empresaCerrarTodosDropdowns();
+    });
+
+    $(window).off('resize.empresaDropdown scroll.empresaDropdown')
+        .on('resize.empresaDropdown scroll.empresaDropdown', function() { empresaCerrarTodosDropdowns(); });
 }
 
 function inicializarEmpresaUI() {

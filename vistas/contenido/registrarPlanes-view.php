@@ -432,7 +432,7 @@
                                 <th width="15%">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody id="tbodySubmenus"></tbody>
+                        <tbody id="tbodySubmenus2"></tbody>
                     </table>
                 </div>
             </div>

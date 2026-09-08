@@ -1606,7 +1606,7 @@ function exportarEmpresaExcelPremium() {
     var lastRow = Math.max(headerRow, headerRow + data.length);
 
     var sheetXml =
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
             '<dimension ref="A1:L' + lastRow + '"/>' +
             '<sheetViews><sheetView workbookViewId="0" showGridLines="0">' +
@@ -1637,7 +1637,7 @@ function exportarEmpresaExcelPremium() {
         '</worksheet>';
 
     var stylesXml =
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
             '<fonts count="7">' +
                 '<font><sz val="10"/><name val="Calibri"/></font>' +
@@ -1679,27 +1679,27 @@ function exportarEmpresaExcelPremium() {
         '</styleSheet>';
 
     var workbookXml =
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
         'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
             '<sheets><sheet name="Empresas" sheetId="1" r:id="rId1"/></sheets>' +
         '</workbook>';
 
     var workbookRels =
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
             '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
             '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
         '</Relationships>';
 
     var rootRels =
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
             '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
         '</Relationships>';
 
     var contentTypes =
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
             '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
             '<Default Extension="xml" ContentType="application/xml"/>' +

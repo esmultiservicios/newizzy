@@ -4335,18 +4335,1198 @@ $(() => {
 });
 
 // Evento para el botón de Buscar (submit)
-$('#form_main_clientes').on('submit', function(e) {
+$('#form_main_clientes').off('submit.clientesLegacy').on('submit.clientesLegacy', function(e) {
+    if ($('#clientes_listado').length) return;
     e.preventDefault();
-    listar_clientes(); 
+    listar_clientes();
 });
 
 // Evento para el botón de Limpiar (reset)
-$('#form_main_clientes').on('reset', function() {
-    // Limpia y refresca los selects
-    $('#form_main_clientes .selectpicker')
-        .val('')
-        .selectpicker('refresh');
+$('#form_main_clientes').off('reset.clientesLegacy').on('reset.clientesLegacy', function() {
+    if ($('#clientes_listado').length) return;
+    $('#form_main_clientes .selectpicker').val('').selectpicker('refresh');
     listar_clientes();
+});
+
+
+/* =========================================================
+   CLIENTES | LISTADO MODERNO Y UI NO BLOQUEANTE
+   Solo aplica cuando existe #clientes_listado.
+   ========================================================= */
+var CLIENTES_STORAGE_FILTROS = 'izzy.clientes.filtros.visible';
+var CLIENTES_STORAGE_KPIS = 'izzy.clientes.kpis.visible';
+var CLIENTES_STORAGE_VISTA = 'izzy.clientes.tipo_vista';
+var CLIENTES_MOBILE_QUERY = '(max-width: 767.98px)';
+
+var clientesUIState = {
+    rows: [], filtered: [], page: 1, pageSize: 10,
+    pageSizeDetalle: 10, pageSizeMiniatura: 6,
+    view: 'detalle', preferredView: 'detalle',
+    search: '', loading: false, request: null, mostrarPuntos: false
+};
+
+function clientesUIEscape(v) {
+    return String(v === null || typeof v === 'undefined' ? '' : v)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+function clientesUIDebounce(fn, wait) {
+    var t;
+    return function() {
+        var c = this, a = arguments;
+        clearTimeout(t);
+        t = setTimeout(function(){ fn.apply(c,a); }, wait);
+    };
+}
+
+function clientesUIEsPantallaPequena() {
+    return window.matchMedia ? window.matchMedia(CLIENTES_MOBILE_QUERY).matches : $(window).width() <= 767;
+}
+
+function clientesUIConfigurarPanel(btn, body, key, def) {
+    var $b=$(btn), $body=$(body), visible=def;
+    if (!$b.length || !$body.length) return;
+    try { var s=localStorage.getItem(key); if (s!==null) visible=s==='1'; } catch(e){}
+    function paint(){
+        $body.toggle(visible);
+        $b.attr('aria-expanded',visible?'true':'false').html(
+            visible ? '<i class="fas fa-chevron-up mr-1"></i> Ocultar'
+                    : '<i class="fas fa-chevron-down mr-1"></i> Mostrar'
+        );
+    }
+    paint();
+    $b.off('click.clientesPanel').on('click.clientesPanel',function(){
+        visible=!visible;
+        $body.stop(true,true)[visible?'slideDown':'slideUp'](180);
+        paint();
+        try { localStorage.setItem(key,visible?'1':'0'); } catch(e){}
+    });
+}
+
+function clientesUIInicializarVista() {
+    var v='detalle';
+    try { v=localStorage.getItem(CLIENTES_STORAGE_VISTA)||'detalle'; } catch(e){}
+    if (v!=='miniatura') v='detalle';
+    clientesUIState.preferredView=v;
+    clientesUIState.view=clientesUIEsPantallaPequena()?'miniatura':v;
+    clientesUIActualizarDisponibilidadVista();
+    clientesUIActualizarBotonesVista();
+    clientesUISincronizarPageSize();
+}
+
+function clientesUIActualizarDisponibilidadVista() {
+    var small=clientesUIEsPantallaPequena();
+    $('.clientes-view-btn[data-view="detalle"]')
+        .prop('disabled',small).toggleClass('d-none',small)
+        .attr('aria-hidden',small?'true':'false');
+}
+
+function clientesUIActualizarBotonesVista() {
+    $('.clientes-view-btn').removeClass('active').attr('aria-pressed','false');
+    $('.clientes-view-btn[data-view="'+clientesUIState.view+'"]')
+        .addClass('active').attr('aria-pressed','true');
+}
+
+function clientesUISincronizarPageSize() {
+    var mini=clientesUIState.view==='miniatura';
+    var opts=mini?[6,12,18,30]:[10,25,50,100];
+    var val=mini?clientesUIState.pageSizeMiniatura:clientesUIState.pageSizeDetalle;
+    if (opts.indexOf(val)===-1) val=opts[0];
+    clientesUIState.pageSize=val;
+    var $s=$('#clientes_page_size').empty();
+    opts.forEach(function(x){$s.append('<option value="'+x+'">'+x+'</option>');});
+    $s.val(String(val));
+}
+
+function clientesUICambiarVista(view) {
+    var next=view==='miniatura'?'miniatura':'detalle';
+    if (clientesUIEsPantallaPequena()) next='miniatura';
+    else {
+        clientesUIState.preferredView=next;
+        try { localStorage.setItem(CLIENTES_STORAGE_VISTA,next); } catch(e){}
+    }
+    clientesUIState.view=next; clientesUIState.page=1;
+    clientesUIActualizarDisponibilidadVista(); clientesUIActualizarBotonesVista();
+    clientesUISincronizarPageSize(); clientesUIRender();
+}
+
+function clientesUIAplicarResponsive() {
+    var target=clientesUIEsPantallaPequena()?'miniatura':clientesUIState.preferredView;
+    clientesUIActualizarDisponibilidadVista();
+    if (clientesUIState.view===target) return;
+    clientesUIState.view=target; clientesUIState.page=1;
+    clientesUIActualizarBotonesVista(); clientesUISincronizarPageSize(); clientesUIRender();
+}
+
+function clientesUIEstadoBadge(row) {
+    return Number(row.estado)===1
+      ? '<span class="clientes-status-badge is-active"><i class="fas fa-check-circle"></i> Activo</span>'
+      : '<span class="clientes-status-badge is-inactive"><i class="fas fa-times-circle"></i> Inactivo</span>';
+}
+
+function clientesUISistemaBadge(row) {
+    var s=String(row.sistema||'').trim(), cls='is-none', icon=s?'fa-cogs':'fa-ban';
+    if(s==='IZZY') cls='is-izzy'; else if(s==='CAMI') cls='is-cami';
+    else if(s==='MONISYS') cls='is-monisys'; else if(s) cls='is-other';
+    return '<span class="clientes-system-badge '+cls+'"><i class="fas '+icon+'"></i> '+clientesUIEscape(s||'Sin sistema')+'</span>';
+}
+
+function clientesUIPuedeGenerar() {
+    var p=Number(IZZY_PRIVILEGIO_USUARIO||0), db=IZZY_DB_ACTUAL===''?DB_MAIN:IZZY_DB_ACTUAL;
+    return [1,2,3].indexOf(p)!==-1 && db===DB_MAIN;
+}
+
+function clientesUIAcciones() {
+    var generar=clientesUIPuedeGenerar()
+      ? '<button type="button" class="dropdown-item accion-item table_crear generar clientes-generar-action"><span class="accion-icon accion-icon-primary"><i class="fab fa-centos"></i></span><span class="accion-label">Generar</span></button>'
+      : '';
+    return '<div class="dropdown clientes-actions-dropdown">'+
+      '<button type="button" class="btn btn-sm btn-acciones clientes-acciones-toggle" aria-haspopup="true" aria-expanded="false"><i class="fas fa-cog"></i><span>Acciones</span></button>'+
+      '<div class="dropdown-menu acciones-menu">'+generar+
+      '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar clientes-editar-action"><span class="accion-icon accion-icon-editar"><i class="fas fa-edit"></i></span><span class="accion-label">Editar</span></button>'+
+      '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar ocultar clientes-eliminar-action"><span class="accion-icon accion-icon-eliminar"><i class="fas fa-trash-alt"></i></span><span class="accion-label">Eliminar</span></button>'+
+      '</div></div>';
+}
+
+function clientesUIRowIndex(row) {
+    var id=String(row.clientes_id||row.id||'');
+    for(var i=0;i<clientesUIState.rows.length;i++){
+        if(String(clientesUIState.rows[i].clientes_id||clientesUIState.rows[i].id||'')===id) return i;
+    }
+    return -1;
+}
+
+function clientesUIDataIndex(row){ return ' data-client-index="'+clientesUIRowIndex(row)+'"'; }
+
+function clientesUIRenderDetalle(row) {
+    var sistema=(IZZY_DB_ACTUAL===''?DB_MAIN:IZZY_DB_ACTUAL)===DB_MAIN;
+    return '<article class="clientes-detail-row"'+clientesUIDataIndex(row)+'>'+
+      '<div class="clientes-detail-cell clientes-actions-cell">'+clientesUIAcciones()+'</div>'+
+      '<div class="clientes-detail-cell clientes-name-cell"><div class="clientes-avatar"><i class="fas fa-user"></i></div><div><strong>'+clientesUIEscape(row.cliente||'Sin nombre')+'</strong><small>RTN: '+clientesUIEscape(row.rtn||'No registrado')+'</small></div></div>'+
+      '<div class="clientes-detail-cell">'+clientesUIEscape(row.telefono||'No registrado')+'</div>'+
+      '<div class="clientes-detail-cell">'+clientesUIEscape(row.correo||'No registrado')+'</div>'+
+      '<div class="clientes-detail-cell">'+clientesUIEscape(row.departamento||'No registrado')+'</div>'+
+      '<div class="clientes-detail-cell">'+clientesUIEscape(row.municipio||'No registrado')+'</div>'+
+      (sistema?'<div class="clientes-detail-cell clientes-center-cell">'+clientesUISistemaBadge(row)+'</div>':'')+
+      '<div class="clientes-detail-cell clientes-center-cell">'+clientesUIEstadoBadge(row)+'</div></article>';
+}
+
+function clientesUIRenderMiniatura(row) {
+    var sistema=(IZZY_DB_ACTUAL===''?DB_MAIN:IZZY_DB_ACTUAL)===DB_MAIN;
+    return '<article class="clientes-mini-card"'+clientesUIDataIndex(row)+'><div class="clientes-mini-topline"></div>'+
+      '<div class="clientes-mini-header"><div class="clientes-mini-title-wrap"><div class="clientes-avatar"><i class="fas fa-user"></i></div><div><h4>'+clientesUIEscape(row.cliente||'Sin nombre')+'</h4><span>'+clientesUIEscape(row.rtn||'RTN no registrado')+'</span></div></div>'+clientesUIEstadoBadge(row)+'</div>'+
+      '<div class="clientes-mini-body">'+
+      '<div class="clientes-mini-field"><span>Teléfono</span><strong>'+clientesUIEscape(row.telefono||'No registrado')+'</strong></div>'+
+      '<div class="clientes-mini-field"><span>Correo</span><strong>'+clientesUIEscape(row.correo||'No registrado')+'</strong></div>'+
+      '<div class="clientes-mini-field"><span>Departamento</span><strong>'+clientesUIEscape(row.departamento||'No registrado')+'</strong></div>'+
+      '<div class="clientes-mini-field"><span>Municipio</span><strong>'+clientesUIEscape(row.municipio||'No registrado')+'</strong></div>'+
+      (sistema?'<div class="clientes-mini-field"><span>Sistema</span><strong>'+clientesUISistemaBadge(row)+'</strong></div>':'')+
+      (clientesUIState.mostrarPuntos?'<div class="clientes-mini-field"><span>Puntos</span><strong class="clientes-points-value">'+Number(row.puntos||0).toFixed(2)+' <button type="button" class="btn btn-sm btn-info clientes-ver-historial"><i class="fas fa-history"></i></button></strong></div>':'')+
+      '</div><div class="clientes-mini-footer">'+clientesUIAcciones()+'</div></article>';
+}
+
+function clientesUIActualizarKPIs() {
+    var a=0,i=0,s=0;
+    clientesUIState.filtered.forEach(function(r){
+        if(Number(r.estado)===1)a++;else i++;
+        if(String(r.sistema||'').trim()!=='')s++;
+    });
+    $('#clientes_kpi_total').text(clientesUIState.filtered.length);
+    $('#clientes_kpi_activos').text(a); $('#clientes_kpi_inactivos').text(i); $('#clientes_kpi_sistema').text(s);
+}
+
+function clientesUIAplicarFiltros() {
+    var q=String(clientesUIState.search||'').trim().toLowerCase();
+    clientesUIState.filtered=clientesUIState.rows.filter(function(r){
+        if(!q)return true;
+        return [r.cliente,r.rtn,r.telefono,r.correo,r.departamento,r.municipio,r.sistema,Number(r.estado)===1?'activo':'inactivo',r.puntos].join(' ').toLowerCase().indexOf(q)!==-1;
+    });
+    clientesUIActualizarKPIs(); clientesUIRender();
+}
+
+function clientesUIRender() {
+    if(!$('#clientes_listado').length)return;
+    if(clientesUIEsPantallaPequena()&&clientesUIState.view!=='miniatura'){
+        clientesUIState.view='miniatura'; clientesUIActualizarDisponibilidadVista();
+        clientesUIActualizarBotonesVista(); clientesUISincronizarPageSize();
+    }
+    var total=clientesUIState.filtered.length,pages=Math.max(1,Math.ceil(total/clientesUIState.pageSize));
+    if(clientesUIState.page>pages)clientesUIState.page=pages;
+    var start=(clientesUIState.page-1)*clientesUIState.pageSize,end=Math.min(start+clientesUIState.pageSize,total);
+    var rows=clientesUIState.filtered.slice(start,end),$list=$('#clientes_listado');
+    var sistema=(IZZY_DB_ACTUAL===''?DB_MAIN:IZZY_DB_ACTUAL)===DB_MAIN;
+    $list.toggleClass('vista-detalle',clientesUIState.view==='detalle').toggleClass('vista-miniatura',clientesUIState.view==='miniatura').toggleClass('sin-sistema',!sistema);
+    var html='';
+    if(clientesUIState.view==='detalle'&&total){
+      html='<div class="clientes-detail-header"><div>Acciones</div><div>Cliente / RTN</div><div>Teléfono</div><div>Correo</div><div>Departamento</div><div>Municipio</div>'+(sistema?'<div>Sistema</div>':'')+'<div>Estado</div></div>';
+    }
+    rows.forEach(function(r){html+=clientesUIState.view==='miniatura'?clientesUIRenderMiniatura(r):clientesUIRenderDetalle(r);});
+    $list.html(html);
+    $('#clientes_empty').toggleClass('d-none',total!==0||clientesUIState.loading);
+    $('#clientes_resultado_info').text(total?'Mostrando '+(start+1)+' a '+end+' de '+total+' registros':'Mostrando 0 registros');
+    clientesUIRenderPaginacion(pages);
+    if(typeof aplicarPermisosDataTablesAsync==='function')aplicarPermisosDataTablesAsync();
+}
+
+function clientesUIRenderPaginacion(totalPages) {
+    var c=clientesUIState.page,html='';
+    function b(t,ic,p,d){return '<button type="button" class="clientes-page-btn" data-page="'+p+'" '+(d?'disabled':'')+'><i class="fas '+ic+'"></i><span>'+t+'</span></button>';}
+    html+=b('Inicio','fa-angle-double-left',1,c<=1)+b('Anterior','fa-angle-left',Math.max(1,c-1),c<=1);
+    var from=Math.max(1,c-2),to=Math.min(totalPages,from+4);if(to-from<4)from=Math.max(1,to-4);
+    for(var i=from;i<=to;i++)html+='<button type="button" class="clientes-page-btn clientes-page-number '+(i===c?'active':'')+'" data-page="'+i+'">'+i+'</button>';
+    html+=b('Siguiente','fa-angle-right',Math.min(totalPages,c+1),c>=totalPages)+b('Final','fa-angle-double-right',totalPages,c>=totalPages);
+    $('#clientes_paginacion').html(html);
+}
+
+function clientesUICargar(mantenerPagina) {
+    if(!$('#clientes_listado').length)return;
+    if(clientesUIState.request&&clientesUIState.request.readyState!==4)clientesUIState.request.abort();
+    var prev=clientesUIState.page,estado=$('#form_main_clientes #estado_clientes').val()||'';
+    clientesUIState.loading=true;$('#clientes_loading').removeClass('d-none');$('#clientes_empty').addClass('d-none');
+    clientesUIState.request=$.ajax({
+      method:'POST',url:'<?php echo SERVERURL;?>core/llenarDataTableClientes.php',
+      dataType:'json',data:{estado:estado},timeout:30000
+    }).done(function(resp){
+      clientesUIState.rows=resp&&Array.isArray(resp.data)?resp.data:[];
+      clientesUIState.page=mantenerPagina?prev:1;clientesUIAplicarFiltros();
+      if(typeof obtenerProgramaPuntosAsync==='function'){
+        obtenerProgramaPuntosAsync().then(function(x){clientesUIState.mostrarPuntos=Boolean(x);clientesUIRender();});
+      }
+    }).fail(function(xhr,status){
+      if(status==='abort')return;
+      clientesUIState.rows=[];clientesUIState.filtered=[];clientesUIActualizarKPIs();clientesUIRender();
+      showNotify('error','Error','No se pudieron cargar los clientes.');
+    }).always(function(){clientesUIState.loading=false;$('#clientes_loading').addClass('d-none');});
+}
+
+function clientesUIObtenerRow(el) {
+    var idx=parseInt($(el).closest('[data-client-index]').attr('data-client-index'),10);
+    return !isNaN(idx)&&clientesUIState.rows[idx]?clientesUIState.rows[idx]:null;
+}
+
+function clientesUIGenerar(row) {
+    if(!row)return;
+    $('#formGenerarSistema')[0].reset();$('#formGenerarSistema #clientes_id').val(row.clientes_id);listar_generar_clientes();
+    $('#formGenerarSistema #cliente').val(row.cliente);$('#formGenerarSistema #rtn').val(row.rtn);
+    $('#formGenerarSistema #clientes_telefono').val(row.telefono);$('#formGenerarSistema #clientes_correo').val(row.correo);
+    $('#formGenerarSistema #clientes_ubicacion').val(row.ubicacion);$('#formGenerarSistema #empresa').val(row.empresa);
+    $('#formGenerarSistema #eslogan').val(row.eslogan);$('#formGenerarSistema #otra_informacion').val(row.otra_informacion);
+    $('#formGenerarSistema #whatsApp').val(row.whatsapp);$('#formGenerarSistema #sistema').val(row.sistema_id).selectpicker('refresh');
+    $('#formGenerarSistema #plan').val(row.planes_id).selectpicker('refresh');
+    $('#formGenerarSistema #cliente, #formGenerarSistema #rtn').attr('disabled',true);
+    $('#formGenerarSistema #proceso_GenerarSistema').val('Generar Sistema');getValidarFacturacion();
+    if(row.correo===''){showNotify('error','Correo requerido','El cliente no tiene correo registrado. Agregue uno en su perfil antes de continuar');$('#reg_generarSitema').attr('disabled',true);}
+    else $('#reg_generarSitema').attr('disabled',false);
+    $('#modal_generar_sistema').modal({show:true,keyboard:false,backdrop:'static'});
+}
+
+function clientesUIEditar(row) {
+    if(!row)return;
+    $('#formClientes #clientes_id').val(row.clientes_id);
+    $.ajax({
+      type:'POST',url:'<?php echo SERVERURL;?>core/editarClientes.php',data:$('#formClientes').serialize(),dataType:'json'
+    }).done(function(r){
+      $('#formClientes').attr({'data-form':'update','action':'<?php echo SERVERURL;?>ajax/modificarClientesAjax.php'}).trigger('reset');
+      $('#reg_cliente').hide();$('#edi_cliente').show();$('#delete_cliente').hide();
+      $('#formClientes #nombre_clientes').val(r.nombre||'');$('#formClientes #identidad_clientes').val(r.rtn||'');
+      $('#formClientes #fecha_clientes').attr('disabled',true).val(r.fecha||'');
+      $('#formClientes #departamento_cliente').val(r.departamentos_id||'').selectpicker('refresh');getMunicipiosClientes(r.municipios_id);
+      $('#formClientes #municipio_cliente').val(r.municipios_id||'').selectpicker('refresh');
+      $('#formClientes #dirección_clientes').val(r.localidad||'');$('#formClientes #telefono_clientes').val(r.telefono||'');
+      $('#formClientes #correo_clientes').val(r.correo||'');$('#formClientes #clientes_activo').prop('checked',r.estado==1);
+      $('#card_puntos_cliente').show();var puntos=r.puntos||0;$('#puntos_acumulados').val(puntos);
+      var fa='No existe';if(r.ultima_actualizacion&&r.ultima_actualizacion!=='No existe'){var f=new Date(r.ultima_actualizacion);if(!isNaN(f.getTime()))fa=f.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+      $('#puntos_ultima_actualizacion').val(fa);$('#puntos_acumulados').toggleClass('text-muted',puntos==0).toggleClass('text-success',puntos!=0);
+      $('#puntos_ultima_actualizacion').toggleClass('text-muted',fa==='No existe');
+      $('#btn_ver_historial_puntos').off('click.clientesUI').on('click.clientesUI',function(){$('#modal_historial_puntos').modal('show');cargarHistorialPuntos(row.clientes_id);});
+      $('#formClientes #nombre_clientes').attr('readonly',false);
+      $('#formClientes #departamento_cliente, #formClientes #municipio_cliente, #formClientes #dirección_clientes').attr('disabled',false);
+      $('#formClientes #telefono_clientes, #formClientes #correo_clientes').attr('readonly',false);$('#formClientes #clientes_activo').attr('disabled',false);
+      $('#formClientes #grupo_editar_rtn').show();$('#formClientes #identidad_clientes').attr('readonly',true);$('#formClientes #fecha_clientes').attr('readonly',true);
+      $('#formClientes #proceso_clientes').val('Editar');$('#modal_registrar_clientes').modal({show:true,keyboard:false,backdrop:'static'});
+    }).fail(function(){showNotify('error','Error','No se pudieron cargar los datos del cliente');$('#modal_registrar_clientes').modal('hide');});
+}
+
+function clientesUIEliminar(row) {
+    if(!row)return;
+    var id=row.clientes_id,msg='¿Desea eliminar permanentemente al cliente?<br><br><strong>Nombre:</strong> '+clientesUIEscape(row.cliente)+'<br><strong>RTN:</strong> '+clientesUIEscape(row.rtn||'No registrado');
+    swal({title:'Confirmar eliminación',content:{element:'span',attributes:{innerHTML:msg}},icon:'warning',
+      buttons:{cancel:{text:'Cancelar',value:null,visible:true,className:'btn-light'},confirm:{text:'Sí, eliminar',value:true,className:'btn-danger',closeModal:false}},
+      dangerMode:true,closeOnEsc:false,closeOnClickOutside:false
+    }).then(function(ok){
+      if(!ok)return;if(typeof showLoading==='function')showLoading('Eliminando registro...');
+      $.ajax({type:'POST',url:'<?php echo SERVERURL;?>ajax/eliminarClientesAjax.php',data:{clientes_id:id},dataType:'json'})
+      .done(function(r){swal.close();if(r.status==='success'){showNotify('success',r.title,r.message);clientesUICargar(true);}else showNotify('error',r.title,r.message);})
+      .fail(function(){swal.close();showNotify('error','Error','Ocurrió un error al procesar la solicitud');});
+    });
+}
+
+function clientesExcelXmlEscape(value) {
+    return String(value === null || typeof value === 'undefined' ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function clientesExcelColName(index) {
+    var name = '';
+
+    while (index >= 0) {
+        name = String.fromCharCode((index % 26) + 65) + name;
+        index = Math.floor(index / 26) - 1;
+    }
+
+    return name;
+}
+
+function clientesExcelCell(ref, value, styleId, numeric) {
+    if (numeric) {
+        var numberValue = Number(value);
+
+        if (!isFinite(numberValue)) {
+            numberValue = 0;
+        }
+
+        return '<c r="' + ref + '" s="' + styleId + '" t="n"><v>' +
+            numberValue +
+        '</v></c>';
+    }
+
+    var texto = clientesExcelXmlEscape(value);
+    var raw = String(value === null || typeof value === 'undefined' ? '' : value);
+    var preserve = /^\s|\s$/.test(raw) ? ' xml:space="preserve"' : '';
+
+    return '<c r="' + ref + '" s="' + styleId + '" t="inlineStr">' +
+        '<is><t' + preserve + '>' + texto + '</t></is>' +
+    '</c>';
+}
+
+function clientesGenerarXlsx(rows) {
+    if (typeof JSZip === 'undefined') {
+        return null;
+    }
+
+    var headers = [
+        'Cliente',
+        'RTN',
+        'Teléfono',
+        'Correo',
+        'Departamento',
+        'Municipio',
+        'Sistema',
+        'Estado'
+    ];
+
+    var totalActivos = rows.filter(function(row) {
+        return Number(row.estado) === 1;
+    }).length;
+
+    var totalInactivos = rows.length - totalActivos;
+
+    var totalConSistema = rows.filter(function(row) {
+        return String(row.sistema || '').trim() !== '';
+    }).length;
+
+    var lastCol = 'H';
+    var headerRow = 7;
+    var firstDataRow = 8;
+    var lastRow = Math.max(headerRow, headerRow + rows.length);
+    var sheetRows = [];
+
+    sheetRows.push(
+        '<row r="1" ht="30" customHeight="1">' +
+            clientesExcelCell('A1', 'IZZY • REPORTE DE CLIENTES', 1, false) +
+        '</row>'
+    );
+
+    sheetRows.push(
+        '<row r="2" ht="20" customHeight="1">' +
+            clientesExcelCell(
+                'A2',
+                'Directorio y estado general de clientes • Generado: ' +
+                new Date().toLocaleDateString('es-HN'),
+                2,
+                false
+            ) +
+        '</row>'
+    );
+
+    sheetRows.push(
+        '<row r="3" ht="18" customHeight="1">' +
+            clientesExcelCell('A3', 'REGISTROS', 6, false) +
+            clientesExcelCell('C3', 'ACTIVOS', 6, false) +
+            clientesExcelCell('E3', 'INACTIVOS', 6, false) +
+            clientesExcelCell('G3', 'CON SISTEMA', 6, false) +
+        '</row>'
+    );
+
+    sheetRows.push(
+        '<row r="4" ht="26" customHeight="1">' +
+            clientesExcelCell('A4', rows.length, 7, true) +
+            clientesExcelCell('C4', totalActivos, 7, true) +
+            clientesExcelCell('E4', totalInactivos, 7, true) +
+            clientesExcelCell('G4', totalConSistema, 7, true) +
+        '</row>'
+    );
+
+    sheetRows.push(
+        '<row r="5" ht="18" customHeight="1">' +
+            clientesExcelCell(
+                'A5',
+                'Filtros: Estado ' +
+                ($('#estado_clientes option:selected').text() || 'Todos') +
+                ' | Búsqueda: ' +
+                ($.trim($('#clientes_buscar').val()) || 'Sin búsqueda'),
+                8,
+                false
+            ) +
+        '</row>'
+    );
+
+    sheetRows.push(
+        '<row r="6" ht="18" customHeight="1">' +
+            clientesExcelCell('A6', 'Detalle de clientes filtrados', 8, false) +
+        '</row>'
+    );
+
+    var headerCells = headers.map(function(header, index) {
+        return clientesExcelCell(
+            clientesExcelColName(index) + headerRow,
+            header,
+            3,
+            false
+        );
+    }).join('');
+
+    sheetRows.push(
+        '<row r="' + headerRow + '" ht="26" customHeight="1">' +
+            headerCells +
+        '</row>'
+    );
+
+    rows.forEach(function(row, rowIndex) {
+        var excelRow = firstDataRow + rowIndex;
+        var values = [
+            row.cliente || '',
+            row.rtn || '',
+            row.telefono || '',
+            row.correo || '',
+            row.departamento || '',
+            row.municipio || '',
+            row.sistema || 'Sin sistema',
+            Number(row.estado) === 1 ? 'Activo' : 'Inactivo'
+        ];
+
+        var cells = values.map(function(value, colIndex) {
+            var style = 4;
+
+            if (colIndex === 7) {
+                style = String(value).toLowerCase() === 'activo' ? 9 : 10;
+            }
+
+            return clientesExcelCell(
+                clientesExcelColName(colIndex) + excelRow,
+                value,
+                style,
+                false
+            );
+        }).join('');
+
+        sheetRows.push(
+            '<row r="' + excelRow + '" ht="22" customHeight="1">' +
+                cells +
+            '</row>'
+        );
+    });
+
+    var sheetXml =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+            '<dimension ref="A1:' + lastCol + lastRow + '"/>' +
+            '<sheetViews>' +
+                '<sheetView workbookViewId="0" showGridLines="0">' +
+                    '<pane ySplit="7" topLeftCell="A8" activePane="bottomLeft" state="frozen"/>' +
+                    '<selection pane="bottomLeft" activeCell="A8" sqref="A8"/>' +
+                '</sheetView>' +
+            '</sheetViews>' +
+            '<sheetFormatPr defaultRowHeight="15"/>' +
+            '<cols>' +
+                '<col min="1" max="1" width="30" customWidth="1"/>' +
+                '<col min="2" max="2" width="18" customWidth="1"/>' +
+                '<col min="3" max="3" width="16" customWidth="1"/>' +
+                '<col min="4" max="4" width="32" customWidth="1"/>' +
+                '<col min="5" max="6" width="20" customWidth="1"/>' +
+                '<col min="7" max="7" width="16" customWidth="1"/>' +
+                '<col min="8" max="8" width="14" customWidth="1"/>' +
+            '</cols>' +
+            '<sheetData>' + sheetRows.join('') + '</sheetData>' +
+            '<autoFilter ref="A' + headerRow + ':' + lastCol + lastRow + '"/>' +
+            '<mergeCells count="10">' +
+                '<mergeCell ref="A1:H1"/>' +
+                '<mergeCell ref="A2:H2"/>' +
+                '<mergeCell ref="A3:B3"/>' +
+                '<mergeCell ref="A4:B4"/>' +
+                '<mergeCell ref="C3:D3"/>' +
+                '<mergeCell ref="C4:D4"/>' +
+                '<mergeCell ref="E3:F3"/>' +
+                '<mergeCell ref="E4:F4"/>' +
+                '<mergeCell ref="G3:H3"/>' +
+                '<mergeCell ref="G4:H4"/>' +
+            '</mergeCells>' +
+            '<pageMargins left="0.25" right="0.25" top="0.5" bottom="0.5" header="0.2" footer="0.2"/>' +
+            '<pageSetup orientation="landscape" paperSize="1" fitToWidth="1" fitToHeight="0"/>' +
+        '</worksheet>';
+
+    /*
+     * OOXML completo y válido:
+     * incluye cellStyleXfs + cellStyles, que Excel requiere para
+     * interpretar correctamente los estilos del workbook.
+     */
+    var stylesXml =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+            '<fonts count="7">' +
+                '<font><sz val="10"/><name val="Calibri"/><family val="2"/></font>' +
+                '<font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+                '<font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+                '<font><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="8"/><color rgb="FF6B778C"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="15"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+            '</fonts>' +
+            '<fills count="7">' +
+                '<fill><patternFill patternType="none"/></fill>' +
+                '<fill><patternFill patternType="gray125"/></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/><bgColor indexed="64"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/><bgColor indexed="64"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFF7F9FC"/><bgColor indexed="64"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFE3FCEF"/><bgColor indexed="64"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFFFEBE6"/><bgColor indexed="64"/></patternFill></fill>' +
+            '</fills>' +
+            '<borders count="2">' +
+                '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+                '<border>' +
+                    '<left style="thin"><color rgb="FFDDE3EA"/></left>' +
+                    '<right style="thin"><color rgb="FFDDE3EA"/></right>' +
+                    '<top style="thin"><color rgb="FFDDE3EA"/></top>' +
+                    '<bottom style="thin"><color rgb="FFDDE3EA"/></bottom>' +
+                    '<diagonal/>' +
+                '</border>' +
+            '</borders>' +
+            '<cellStyleXfs count="1">' +
+                '<xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>' +
+            '</cellStyleXfs>' +
+            '<cellXfs count="11">' +
+                '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+                '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="2" fillId="4" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+                '<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="6" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="5" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="6" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+            '</cellXfs>' +
+            '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+        '</styleSheet>';
+
+    var workbookXml =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
+            'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+            '<bookViews><workbookView activeTab="0"/></bookViews>' +
+            '<sheets><sheet name="Clientes" sheetId="1" r:id="rId1"/></sheets>' +
+        '</workbook>';
+
+    var workbookRels =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+            '<Relationship Id="rId1" ' +
+                'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" ' +
+                'Target="worksheets/sheet1.xml"/>' +
+            '<Relationship Id="rId2" ' +
+                'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" ' +
+                'Target="styles.xml"/>' +
+        '</Relationships>';
+
+    var rootRels =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+            '<Relationship Id="rId1" ' +
+                'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" ' +
+                'Target="xl/workbook.xml"/>' +
+        '</Relationships>';
+
+    var contentTypes =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+            '<Default Extension="xml" ContentType="application/xml"/>' +
+            '<Override PartName="/xl/workbook.xml" ' +
+                'ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+            '<Override PartName="/xl/worksheets/sheet1.xml" ' +
+                'ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+            '<Override PartName="/xl/styles.xml" ' +
+                'ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+        '</Types>';
+
+    var zip = new JSZip();
+
+    zip.file('[Content_Types].xml', contentTypes);
+    zip.folder('_rels').file('.rels', rootRels);
+    zip.folder('xl').file('workbook.xml', workbookXml);
+    zip.folder('xl').file('styles.xml', stylesXml);
+    zip.folder('xl').folder('_rels').file('workbook.xml.rels', workbookRels);
+    zip.folder('xl').folder('worksheets').file('sheet1.xml', sheetXml);
+
+    var opcionesZip = {
+        type: 'blob',
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        compression: 'DEFLATE'
+    };
+
+    if (typeof zip.generateAsync === 'function') {
+        return zip.generateAsync(opcionesZip);
+    }
+
+    if (typeof zip.generate === 'function') {
+        try {
+            return Promise.resolve(zip.generate(opcionesZip));
+        } catch (errorGenerate) {
+            console.error('Error al generar XLSX de Clientes con JSZip legado:', errorGenerate);
+            return Promise.reject(errorGenerate);
+        }
+    }
+
+    return Promise.reject(
+        new Error('La versión de JSZip cargada no soporta generateAsync() ni generate().')
+    );
+}
+
+function clientesUIExportarExcel() {
+    var rows = clientesUIState.filtered;
+
+    if (!rows.length) {
+        showNotify('warning', 'Sin información', 'No hay clientes para exportar.');
+        return;
+    }
+
+    var promesaXlsx = clientesGenerarXlsx(rows);
+
+    if (!promesaXlsx) {
+        showNotify(
+            'error',
+            'Excel no disponible',
+            'JSZip no está disponible en esta pantalla.'
+        );
+        return;
+    }
+
+    promesaXlsx
+        .then(function(blob) {
+            var url = URL.createObjectURL(blob);
+            var anchor = document.createElement('a');
+
+            anchor.href = url;
+            anchor.download = 'Reporte_Clientes.xlsx';
+            document.body.appendChild(anchor);
+            anchor.click();
+            document.body.removeChild(anchor);
+
+            setTimeout(function() {
+                URL.revokeObjectURL(url);
+            }, 1000);
+        })
+        .catch(function(error) {
+            console.error('Error al generar XLSX de Clientes:', error);
+            showNotify(
+                'error',
+                'Error al generar Excel',
+                'No se pudo generar el archivo Excel.'
+            );
+        });
+}
+
+function clientesUIObtenerLogoPdf(callback) {
+    /*
+     * Si main.php ya cargó el logo global "imagen", reutilizarlo.
+     */
+    if (typeof imagen === 'string' && imagen.indexOf('data:image/') === 0) {
+        callback(imagen);
+        return;
+    }
+
+    /*
+     * Si todavía no terminó la carga global del logo, obtenerlo aquí
+     * de forma asíncrona. No se bloquea la UI.
+     */
+    $.ajax({
+        type: 'GET',
+        url: '<?php echo SERVERURL;?>core/get_image.php',
+        dataType: 'text',
+        timeout: 15000
+    }).done(function(imageUrl) {
+        imageUrl = $.trim(imageUrl || '');
+
+        if (!imageUrl) {
+            showNotify('error', 'Logo no disponible', 'No se pudo obtener el logo para el reporte PDF.');
+            return;
+        }
+
+        var img = new Image();
+        img.crossOrigin = 'Anonymous';
+
+        img.onload = function() {
+            try {
+                var canvas = document.createElement('canvas');
+                var ctx = canvas.getContext('2d');
+
+                canvas.width = img.naturalWidth || img.width;
+                canvas.height = img.naturalHeight || img.height;
+                ctx.drawImage(img, 0, 0);
+
+                var dataUrl = canvas.toDataURL('image/png');
+
+                if (!dataUrl || dataUrl.indexOf('data:image/') !== 0) {
+                    throw new Error('El logo no pudo convertirse a Data URL.');
+                }
+
+                imagen = dataUrl;
+                callback(dataUrl);
+            } catch (error) {
+                console.error('Error preparando logo PDF Clientes:', error);
+                showNotify('error', 'Logo no disponible', 'No se pudo preparar el logo para el reporte PDF.');
+            }
+        };
+
+        img.onerror = function() {
+            showNotify('error', 'Logo no disponible', 'No se pudo cargar el logo para el reporte PDF.');
+        };
+
+        img.src = imageUrl;
+    }).fail(function(xhr) {
+        console.error('Error obteniendo logo PDF Clientes:', xhr.responseText);
+        showNotify('error', 'Logo no disponible', 'No se pudo obtener el logo para el reporte PDF.');
+    });
+}
+
+function clientesUIExportarPDF() {
+    var rows = clientesUIState.filtered;
+
+    if (!rows.length) {
+        showNotify('warning', 'Sin información', 'No hay clientes para mostrar en PDF.');
+        return;
+    }
+
+    if (typeof pdfMake === 'undefined' || typeof abrirModalPdfPublico !== 'function') {
+        showNotify(
+            'error',
+            'PDF no disponible',
+            'No se encontraron los componentes necesarios para previsualizar el PDF.'
+        );
+        return;
+    }
+
+    /*
+     * El PDF oficial de IZZY SIEMPRE debe llevar logo.
+     * La construcción del documento empieza únicamente cuando
+     * el logo ya está disponible como Data URL.
+     */
+    clientesUIObtenerLogoPdf(function(logoDataUrl) {
+        var activos = rows.filter(function(r) {
+            return Number(r.estado) === 1;
+        }).length;
+
+        var conSistema = rows.filter(function(r) {
+            return String(r.sistema || '').trim() !== '';
+        }).length;
+
+        var content = [
+            {
+                table: {
+                    widths: [100, '*', 160],
+                    body: [[
+                        {
+                            table: {
+                                widths: ['*'],
+                                body: [[{
+                                    image: logoDataUrl,
+                                    fit: [62, 36],
+                                    alignment: 'center',
+                                    margin: [7, 5, 7, 5],
+                                    fillColor: '#FFFFFF'
+                                }]]
+                            },
+                            layout: {
+                                hLineColor: function() { return '#DDE3EA'; },
+                                vLineColor: function() { return '#DDE3EA'; },
+                                hLineWidth: function() { return .5; },
+                                vLineWidth: function() { return .5; },
+                                paddingLeft: function() { return 0; },
+                                paddingRight: function() { return 0; },
+                                paddingTop: function() { return 0; },
+                                paddingBottom: function() { return 0; }
+                            },
+                            fillColor: '#17324D',
+                            margin: [8, 7, 8, 7]
+                        },
+                        {
+                            stack: [
+                                {
+                                    text: 'REPORTE DE CLIENTES',
+                                    bold: true,
+                                    fontSize: 16,
+                                    color: '#FFFFFF'
+                                },
+                                {
+                                    text: 'Directorio y estado general de clientes',
+                                    fontSize: 7.5,
+                                    color: '#D8E5F0',
+                                    margin: [0, 2, 0, 0]
+                                }
+                            ],
+                            fillColor: '#17324D',
+                            margin: [0, 10, 0, 10]
+                        },
+                        {
+                            stack: [
+                                {
+                                    text: 'REPORTE EJECUTIVO',
+                                    bold: true,
+                                    fontSize: 6.5,
+                                    color: '#72E2E5',
+                                    alignment: 'right'
+                                },
+                                {
+                                    text: new Date().toLocaleDateString('es-HN'),
+                                    bold: true,
+                                    fontSize: 9,
+                                    color: '#FFFFFF',
+                                    alignment: 'right'
+                                },
+                                {
+                                    text: rows.length + ' registro(s) filtrado(s)',
+                                    fontSize: 6.5,
+                                    color: '#D8E5F0',
+                                    alignment: 'right'
+                                }
+                            ],
+                            fillColor: '#17324D',
+                            margin: [0, 10, 12, 10]
+                        }
+                    ]]
+                },
+                layout: 'noBorders',
+                margin: [0, 0, 0, 10]
+            },
+            {
+                table: {
+                    widths: ['*'],
+                    body: [[{
+                        text:
+                            'Filtros aplicados: Estado ' +
+                            ($('#estado_clientes option:selected').text() || 'Todos') +
+                            ' | Búsqueda: ' +
+                            ($.trim($('#clientes_buscar').val()) || 'Sin búsqueda'),
+                        fontSize: 7,
+                        color: '#52627A',
+                        fillColor: '#F7F9FC',
+                        margin: [8, 7, 8, 7]
+                    }]]
+                },
+                layout: {
+                    hLineColor: function() { return '#DDE3EA'; },
+                    vLineColor: function() { return '#DDE3EA'; },
+                    hLineWidth: function() { return .6; },
+                    vLineWidth: function() { return .6; }
+                },
+                margin: [0, 0, 0, 10]
+            },
+            {
+                table: {
+                    widths: ['*', '*', '*'],
+                    body: [[
+                        {
+                            stack: [
+                                {text: 'REGISTROS', fontSize: 6.3, bold: true, color: '#6B778C'},
+                                {text: String(rows.length), fontSize: 13, bold: true, color: '#172B4D'}
+                            ],
+                            fillColor: '#F7F9FC',
+                            margin: [8, 7, 8, 7]
+                        },
+                        {
+                            stack: [
+                                {text: 'ACTIVOS', fontSize: 6.3, bold: true, color: '#6B778C'},
+                                {text: String(activos), fontSize: 13, bold: true, color: '#14804A'}
+                            ],
+                            fillColor: '#F7F9FC',
+                            margin: [8, 7, 8, 7]
+                        },
+                        {
+                            stack: [
+                                {text: 'CON SISTEMA', fontSize: 6.3, bold: true, color: '#6B778C'},
+                                {text: String(conSistema), fontSize: 13, bold: true, color: '#2F9DDD'}
+                            ],
+                            fillColor: '#F7F9FC',
+                            margin: [8, 7, 8, 7]
+                        }
+                    ]]
+                },
+                layout: {
+                    hLineColor: function() { return '#DDE3EA'; },
+                    vLineColor: function() { return '#DDE3EA'; },
+                    hLineWidth: function() { return .6; },
+                    vLineWidth: function() { return .6; }
+                },
+                margin: [0, 0, 0, 12]
+            }
+        ];
+
+        if (clientesUIState.view === 'miniatura') {
+            content.push({
+                text: 'VISTA MINIATURA',
+                bold: true,
+                fontSize: 7,
+                color: '#17324D',
+                margin: [0, 0, 0, 7]
+            });
+
+            for (var i = 0; i < rows.length; i += 2) {
+                var makeCard = function(r) {
+                    return {
+                        table: {
+                            widths: ['*'],
+                            body: [[{
+                                stack: [
+                                    {
+                                        text: r.cliente || 'Sin nombre',
+                                        bold: true,
+                                        fontSize: 10,
+                                        color: '#172B4D'
+                                    },
+                                    {
+                                        text: 'RTN: ' + (r.rtn || 'No registrado'),
+                                        fontSize: 7,
+                                        color: '#6B778C',
+                                        margin: [0, 2, 0, 5]
+                                    },
+                                    {
+                                        text: 'Teléfono: ' + (r.telefono || 'No registrado'),
+                                        fontSize: 7,
+                                        color: '#253858'
+                                    },
+                                    {
+                                        text: 'Correo: ' + (r.correo || 'No registrado'),
+                                        fontSize: 7,
+                                        color: '#253858',
+                                        margin: [0, 2, 0, 0]
+                                    },
+                                    {
+                                        text:
+                                            'Ubicación: ' +
+                                            (r.departamento || '') +
+                                            ' / ' +
+                                            (r.municipio || ''),
+                                        fontSize: 7,
+                                        color: '#253858',
+                                        margin: [0, 2, 0, 0]
+                                    },
+                                    {
+                                        text: Number(r.estado) === 1 ? 'Activo' : 'Inactivo',
+                                        fontSize: 7,
+                                        bold: true,
+                                        color: Number(r.estado) === 1 ? '#14804A' : '#C9372C',
+                                        margin: [0, 4, 0, 0]
+                                    }
+                                ],
+                                margin: [9, 8, 9, 8]
+                            }]]
+                        },
+                        layout: {
+                            hLineColor: function() { return '#DDE3EA'; },
+                            vLineColor: function() { return '#DDE3EA'; },
+                            hLineWidth: function() { return .6; },
+                            vLineWidth: function() { return .6; }
+                        }
+                    };
+                };
+
+                content.push({
+                    columns: [
+                        {width: '*', stack: [makeCard(rows[i])]},
+                        {width: 10, text: ''},
+                        rows[i + 1]
+                            ? {width: '*', stack: [makeCard(rows[i + 1])]}
+                            : {width: '*', text: ''}
+                    ],
+                    margin: [0, 0, 0, 8]
+                });
+            }
+        } else {
+            content.push({
+                text: 'VISTA DETALLE',
+                bold: true,
+                fontSize: 7,
+                color: '#17324D',
+                margin: [0, 0, 0, 7]
+            });
+
+            var body = [[
+                {text: 'CLIENTE', style: 'th', fillColor: '#17324D'},
+                {text: 'RTN', style: 'th', fillColor: '#17324D'},
+                {text: 'TELÉFONO', style: 'th', fillColor: '#17324D'},
+                {text: 'CORREO', style: 'th', fillColor: '#17324D'},
+                {text: 'DEPARTAMENTO', style: 'th', fillColor: '#17324D'},
+                {text: 'MUNICIPIO', style: 'th', fillColor: '#17324D'},
+                {text: 'ESTADO', style: 'th', fillColor: '#17324D'}
+            ]];
+
+            rows.forEach(function(r, index) {
+                var fill = index % 2 === 0 ? '#FFFFFF' : '#F7F9FC';
+
+                body.push([
+                    {text: r.cliente || '', style: 'td', fillColor: fill},
+                    {text: r.rtn || 'No registrado', style: 'td', fillColor: fill},
+                    {text: r.telefono || 'No registrado', style: 'td', fillColor: fill},
+                    {text: r.correo || 'No registrado', style: 'td', fillColor: fill},
+                    {text: r.departamento || '', style: 'td', fillColor: fill},
+                    {text: r.municipio || '', style: 'td', fillColor: fill},
+                    {
+                        text: Number(r.estado) === 1 ? 'Activo' : 'Inactivo',
+                        style: 'tdCenter',
+                        bold: true,
+                        color: Number(r.estado) === 1 ? '#14804A' : '#C9372C',
+                        fillColor: fill
+                    }
+                ]);
+            });
+
+            content.push({
+                table: {
+                    headerRows: 1,
+                    widths: [120, 80, 75, '*', 90, 90, 55],
+                    body: body
+                },
+                layout: {
+                    hLineColor: function() { return '#DDE3EA'; },
+                    vLineColor: function() { return '#DDE3EA'; },
+                    hLineWidth: function() { return .55; },
+                    vLineWidth: function() { return .55; },
+                    paddingLeft: function() { return 5; },
+                    paddingRight: function() { return 5; },
+                    paddingTop: function() { return 6; },
+                    paddingBottom: function() { return 6; }
+                }
+            });
+        }
+
+        var doc = {
+            pageSize: 'LETTER',
+            pageOrientation: 'landscape',
+            pageMargins: [28, 28, 28, 34],
+            header: function() {
+                return {
+                    margin: [28, 12, 28, 0],
+                    canvas: [{
+                        type: 'line',
+                        x1: 0,
+                        y1: 0,
+                        x2: 736,
+                        y2: 0,
+                        lineWidth: 2,
+                        lineColor: '#0EA5A8'
+                    }]
+                };
+            },
+            footer: function(currentPage, pageCount) {
+                return {
+                    margin: [28, 8, 28, 0],
+                    columns: [
+                        {
+                            text: 'IZZY • Clientes',
+                            fontSize: 7,
+                            color: '#7A869A'
+                        },
+                        {
+                            text: 'Página ' + currentPage + ' de ' + pageCount,
+                            fontSize: 7,
+                            color: '#7A869A',
+                            alignment: 'right'
+                        }
+                    ]
+                };
+            },
+            content: content,
+            styles: {
+                th: {
+                    fontSize: 6.2,
+                    bold: true,
+                    color: '#FFFFFF',
+                    alignment: 'center'
+                },
+                td: {
+                    fontSize: 6.3,
+                    color: '#253858'
+                },
+                tdCenter: {
+                    fontSize: 6.3,
+                    color: '#253858',
+                    alignment: 'center'
+                }
+            }
+        };
+
+        pdfMake.createPdf(doc).getDataUrl(function(url) {
+            abrirModalPdfPublico(
+                url,
+                'Reporte de Clientes',
+                'Reporte_Clientes.pdf'
+            );
+        });
+    });
+}
+
+function clientesUIEventos() {
+    clientesUIConfigurarPanel('#btn_toggle_clientes_filtros','#clientes_filtros_body',CLIENTES_STORAGE_FILTROS,true);
+    clientesUIConfigurarPanel('#btn_toggle_clientes_kpis','#clientes_kpis_body',CLIENTES_STORAGE_KPIS,true);
+
+    $('#form_main_clientes').off('submit.clientesUI').on('submit.clientesUI',function(e){e.preventDefault();clientesUIState.page=1;clientesUICargar(false);});
+    $('#form_main_clientes').off('reset.clientesUI').on('reset.clientesUI',function(){setTimeout(function(){$('#form_main_clientes .selectpicker').val('').selectpicker('refresh');clientesUIState.search='';$('#clientes_buscar').val('');clientesUIState.page=1;clientesUICargar(false);},30);});
+    $('#clientes_buscar').off('input.clientesUI').on('input.clientesUI',clientesUIDebounce(function(){clientesUIState.search=$(this).val()||'';clientesUIState.page=1;clientesUIAplicarFiltros();},180));
+    $('#clientes_page_size').off('change.clientesUI').on('change.clientesUI',function(){var v=parseInt($(this).val(),10);clientesUIState.pageSize=isNaN(v)?(clientesUIState.view==='miniatura'?6:10):v;if(clientesUIState.view==='miniatura')clientesUIState.pageSizeMiniatura=v;else clientesUIState.pageSizeDetalle=v;clientesUIState.page=1;clientesUIRender();});
+    $('.clientes-view-btn').off('click.clientesUI').on('click.clientesUI',function(){clientesUICambiarVista($(this).data('view'));});
+    $('#clientes_paginacion').off('click.clientesUI','button[data-page]').on('click.clientesUI','button[data-page]',function(){if($(this).prop('disabled'))return;clientesUIState.page=parseInt($(this).data('page'),10)||1;clientesUIRender();});
+    $('#btn_actualizar_clientes').off('click.clientesUI').on('click.clientesUI',function(){clientesUICargar(true);});
+    $('#btn_nuevo_cliente').off('click.clientesUI').on('click.clientesUI',modal_clientes);
+    $('#btn_exportar_clientes_excel').off('click.clientesUI').on('click.clientesUI',clientesUIExportarExcel);
+    $('#btn_exportar_clientes_pdf').off('click.clientesUI').on('click.clientesUI',clientesUIExportarPDF);
+
+    $('#clientes_listado').off('click.clientesUI')
+      .on('click.clientesUI','.clientes-generar-action',function(){clientesUIGenerar(clientesUIObtenerRow(this));})
+      .on('click.clientesUI','.clientes-editar-action',function(){clientesUIEditar(clientesUIObtenerRow(this));})
+      .on('click.clientesUI','.clientes-eliminar-action',function(){clientesUIEliminar(clientesUIObtenerRow(this));})
+      .on('click.clientesUI','.clientes-ver-historial',function(){var r=clientesUIObtenerRow(this);if(r){$('#modal_historial_puntos').modal('show');cargarHistorialPuntos(r.clientes_id||r.id);}});
+
+    $(document).off('click.clientesDropdown','#clientes_listado .clientes-acciones-toggle')
+      .on('click.clientesDropdown','#clientes_listado .clientes-acciones-toggle',function(e){
+        e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();var $b=$(this);
+        if(typeof $.fn.dropdown!=='function'){showNotify('error','Acciones no disponibles','No se encontró el componente Dropdown de Bootstrap.');return;}
+        $('#clientes_listado .clientes-acciones-toggle').not($b).each(function(){try{$(this).dropdown('hide');}catch(er){}});
+        try{$b.dropdown({boundary:'viewport',flip:true,offset:'0,6'});$b.dropdown('toggle');}catch(er){console.error('Dropdown Clientes:',er);}
+      });
+
+    $(window).off('resize.clientesResponsive').on('resize.clientesResponsive',clientesUIDebounce(clientesUIAplicarResponsive,120));
+}
+
+$(function(){
+    if(!$('#clientes_listado').length)return;
+    clientesUIInicializarVista();clientesUIEventos();
+    var start=function(){listar_clientes();};
+    if(window.requestIdleCallback)requestIdleCallback(start,{timeout:450});else setTimeout(start,0);
 });
 
 /* =========================================================
@@ -4377,352 +5557,7 @@ $('#form_main_clientes').on('reset', function() {
 
 //INICIO ACCIONES FORMULARIO CLIENTES
 var listar_clientes = function(estado) {
-    var estado = $('#form_main_clientes #estado_clientes').val();
-
-    if ($.fn.DataTable.isDataTable("#dataTableClientes")) {
-        $("#dataTableClientes").DataTable().clear().destroy();
-    }
-
-    construirHeaderDataTableClientes();
-
-    var table_clientes = $("#dataTableClientes").DataTable({
-        destroy: true,
-        processing: true,
-        deferRender: true,
-        searchDelay: 350,
-
-        ajax: {
-            method: "POST",
-            url: "<?php echo SERVERURL;?>core/llenarDataTableClientes.php",
-            data: {
-                estado: estado
-            },
-            timeout: 30000
-        },
-
-        columns: [
-            {
-                data: null,
-                orderable: false,
-                searchable: false,
-                className: "text-center align-middle",
-                render: function(data, type, row) {
-                    if (type !== "display") {
-                        return "";
-                    }
-
-                    var privilegio = Number(IZZY_PRIVILEGIO_USUARIO || 0);
-                    var db_consulta = IZZY_DB_ACTUAL === "" ? DB_MAIN : IZZY_DB_ACTUAL;
-
-                    /*
-                       Generar solo debe mostrarse si:
-                       - Está en la base principal DB_MAIN
-                       - El usuario tiene privilegio permitido
-                       Antes se manejaba con columna .generar.
-                       Ahora se maneja dentro del dropdown.
-                    */
-                    var privilegiosPermitidosGenerar = [1, 2, 3];
-                    var puedeGenerar = privilegiosPermitidosGenerar.includes(privilegio) && db_consulta === DB_MAIN;
-
-                    var botonGenerar = '';
-
-                    if (puedeGenerar) {
-                        botonGenerar =
-                            '<button type="button" class="dropdown-item accion-item accion-confirmar table_crear generar accion-generar-cliente">' +
-                                '<span class="accion-icon accion-icon-primary">' +
-                                    '<i class="fab fa-centos"></i>' +
-                                '</span>' +
-                                '<span class="accion-label">Generar</span>' +
-                            '</button>';
-                    }
-
-                    return '' +
-                        '<div class="dropdown acciones-dropdown">' +
-
-                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
-                                '<i class="fas fa-cog"></i>' +
-                                '<span>Acciones</span>' +
-                            '</button>' +
-
-                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
-
-                                botonGenerar +
-
-                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar">' +
-                                    '<span class="accion-icon accion-icon-editar">' +
-                                        '<i class="fas fa-edit"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Editar</span>' +
-                                '</button>' +
-
-                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar ocultar">' +
-                                    '<span class="accion-icon accion-icon-eliminar">' +
-                                        '<i class="fas fa-trash-alt"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Eliminar</span>' +
-                                '</button>' +
-
-                            '</div>' +
-
-                        '</div>';
-                }
-            },
-            {
-                data: "cliente"
-            },
-            {
-                data: "rtn"
-            },
-            {
-                data: "telefono"
-            },
-            {
-                data: "correo"
-            },
-            {
-                data: "departamento"
-            },
-            {
-                data: "municipio"
-            },
-            {
-                data: "sistema",
-                render: function(data, type, row) {
-                    if (type === "display") {
-                        let badgeClass = "badge badge-pill ";
-                        let label = "";
-                        let icon = '<i class="fas fa-cogs mr-1"></i>';
-
-                        if (!data) {
-                            badgeClass += "badge-secondary";
-                            label = "Sin sistema";
-                            icon = '<i class="fas fa-ban mr-1"></i>';
-                        } else {
-                            switch (data) {
-                                case "IZZY":
-                                    badgeClass += "badge-primary";
-                                    label = data;
-                                    break;
-
-                                case "CAMI":
-                                    badgeClass += "badge-success";
-                                    label = data;
-                                    break;
-
-                                case "MONISYS":
-                                    badgeClass += "badge-warning";
-                                    label = data;
-                                    break;
-
-                                default:
-                                    badgeClass += "badge-info";
-                                    label = data;
-                                    break;
-                            }
-                        }
-
-                        return '<span class="' + badgeClass + '" style="font-size: 0.9rem; padding: 0.45em 0.75em; font-weight: 600;">' +
-                            icon +
-                            label +
-                        '</span>';
-                    }
-
-                    return data || "Sin sistema";
-                }
-            },
-            {
-                data: "estado",
-                render: function(data, type, row) {
-                    if (type === "display") {
-                        var estadoText = data == 1 ? "Activo" : "Inactivo";
-
-                        var icon = data == 1 ?
-                            '<i class="fas fa-check-circle mr-1"></i>' :
-                            '<i class="fas fa-times-circle mr-1"></i>';
-
-                        var badgeClass = data == 1 ?
-                            "badge badge-pill badge-success" :
-                            "badge badge-pill badge-danger";
-
-                        return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
-                            icon +
-                            estadoText +
-                        '</span>';
-                    }
-
-                    return data;
-                }
-            },
-            {
-                data: "puntos",
-                render: function(data, type, row) {
-                    var clienteId = row.id || row.clientes_id || 0;
-
-                    return '<span class="badge badge-primary">' + (data || 0) + '</span> ' +
-                        '<button type="button" class="btn btn-sm btn-info ver-historial" title="Ver historial" data-id="' + clienteId + '">' +
-                            '<i class="fas fa-history" style="color: white;"></i>' +
-                        '</button>';
-                }
-            }
-        ],
-
-        order: [[1, "asc"]],
-
-        lengthMenu: lengthMenu10,
-        stateSave: true,
-        bDestroy: true,
-        language: idioma_español,
-        dom: dom,
-
-        columnDefs: [
-            {
-                width: "8%",
-                targets: 0,
-                orderable: false,
-                searchable: false,
-                className: "text-center text-nowrap align-middle"
-            },
-            {
-                width: "18%",
-                targets: 1
-            },
-            {
-                width: "12%",
-                targets: 2
-            },
-            {
-                width: "10%",
-                targets: 3
-            },
-            {
-                width: "16%",
-                targets: 4
-            },
-            {
-                width: "11%",
-                targets: 5
-            },
-            {
-                width: "11%",
-                targets: 6
-            },
-            {
-                width: "8%",
-                targets: 7,
-                className: "text-center text-nowrap"
-            },
-            {
-                width: "8%",
-                targets: 8,
-                className: "text-center text-nowrap"
-            },
-            {
-                width: "8%",
-                targets: 9,
-                className: "text-center text-nowrap"
-            }
-        ],
-
-        buttons: [
-            {
-                text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-                titleAttr: "Actualizar Clientes",
-                className: "table_actualizar btn btn-secondary ocultar",
-                action: function() {
-                    listar_clientes();
-                }
-            },
-            {
-                text: '<i class="fas fas fa-plus fa-lg crear"></i> Ingresar',
-                titleAttr: "Agregar Clientes",
-                className: "btn btn-primary ocultar",
-                action: function() {
-                    modal_clientes();
-                }
-            },
-            {
-                extend: "excelHtml5",
-                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
-                titleAttr: "Excel",
-                title: "Reporte de Clientes",
-                messageBottom: "Fecha de Reporte: " + convertDateFormat(today()),
-                exportOptions: {
-                    columns: [1, 2, 3, 4, 5, 6, 7, 8]
-                },
-                className: "table_reportes btn btn-success ocultar"
-            },
-            {
-                extend: "pdf",
-                orientation: "landscape",
-                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-                titleAttr: "PDF",
-                pageSize: "LEGAL",
-                title: "Reporte de Clientes",
-                messageBottom: "Fecha de Reporte: " + convertDateFormat(today()),
-                className: "table_reportes btn btn-danger ocultar",
-                exportOptions: {
-                    columns: [1, 2, 3, 4, 5, 6, 7, 8]
-                },
-                customize: function(doc) {
-                    if (imagen) {
-                        doc.content.splice(0, 0, {
-                            image: imagen,
-                            width: 100,
-                            height: 45,
-                            margin: [0, 0, 0, 12]
-                        });
-                    }
-                }
-            }
-        ],
-
-        drawCallback: function(settings) {
-            aplicarPermisosDataTablesAsync();
-
-            if (typeof cerrarDropdownAcciones === "function") {
-                cerrarDropdownAcciones();
-            }
-
-            var db_consulta = IZZY_DB_ACTUAL === "" ? DB_MAIN : IZZY_DB_ACTUAL;
-            var table = this.api();
-
-            /*
-               Sistema antes era columna 6.
-               Ahora con Acciones al inicio, Sistema es columna 7.
-               Se oculta si no está en DB_MAIN.
-            */
-            if (db_consulta === DB_MAIN) {
-                table.column(7).visible(true, false);
-            } else {
-                table.column(7).visible(false, false);
-            }
-
-            /*
-               Programa de puntos.
-               Puntos es columna 9.
-            */
-            obtenerProgramaPuntosAsync().then(function(mostrarPuntos) {
-                table.column(9).visible(mostrarPuntos, false);
-                table.columns.adjust();
-            });
-        }
-    });
-
-    $("#dataTableClientes").off("click", ".ver-historial");
-    $("#dataTableClientes").on("click", ".ver-historial", function() {
-        var cliente_id = $(this).data("id");
-
-        $("#modal_historial_puntos").modal("show");
-        cargarHistorialPuntos(cliente_id);
-    });
-
-    table_clientes.search("").draw();
-
-    $("#buscar").focus();
-
-    generar_clientes_dataTable("#dataTableClientes tbody", table_clientes);
-    editar_clientes_dataTable("#dataTableClientes tbody", table_clientes);
-    eliminar_clientes_dataTable("#dataTableClientes tbody", table_clientes);
+    clientesUICargar(false);
 };
 //FIN ACCIONES FORMULARIO CLIENTES
 

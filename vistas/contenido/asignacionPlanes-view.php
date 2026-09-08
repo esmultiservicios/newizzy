@@ -1,5 +1,5 @@
 <link rel="stylesheet"
-      href="<?php echo SERVERURL; ?>vistas/plantilla/css/asignacionPlanes.css">
+      href="<?php echo SERVERURL; ?>vistas/plantilla/css/asignacionPlanes.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/asignacionPlanes.css') ?: time(); ?>">
 
 <div class="container-fluid asignacion-planes-page" id="div_top">
     <!-- Breadcrumb -->
@@ -438,4 +438,283 @@
             </div>
         </div>
     </div>
+</div>
+
+
+<!-- Administración central de colaboradores, usuarios y empresas por cliente -->
+<div class="modal" id="modalAdministrarCliente" tabindex="-1" role="dialog" aria-labelledby="modalAdministrarClienteTitulo" aria-hidden="true" data-backdrop="static" data-keyboard="true">
+    <div class="modal-dialog ap-admin-main-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="modalAdministrarClienteTitulo">
+                        <i class="fas fa-users-cog mr-2"></i>Administración del Cliente
+                    </h5>
+                    <div class="ap-modal-subtitle">Colaboradores, usuarios, empresas, secuencias y documentos del cliente seleccionado.</div>
+                </div>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="ap_admin_server_customer_id" value="">
+                <div id="ap_admin_loading" class="ap-loading d-none"><i class="fas fa-spinner fa-spin"></i> Cargando información del cliente...</div>
+                <div id="ap_admin_content">
+                    <div class="ap-client-hero">
+                        <div class="ap-client-hero-main">
+                            <div class="ap-client-icon"><i class="fas fa-building"></i></div>
+                            <div>
+                                <strong id="ap_cliente_nombre">Cliente</strong>
+                                <div class="ap-client-meta">
+                                    <span><i class="fas fa-id-card mr-1"></i><span id="ap_cliente_rtn">—</span></span>
+                                    <span><i class="fas fa-barcode mr-1"></i><span id="ap_cliente_codigo">—</span></span>
+                                    <span><i class="fas fa-database mr-1"></i><span id="ap_cliente_db">—</span></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ap-client-badges">
+                            <span class="ap-chip"><i class="fas fa-user-friends"></i><span id="ap_total_colaboradores">0</span> colaboradores</span>
+                            <span class="ap-chip secondary"><i class="fas fa-user-shield"></i><span id="ap_total_usuarios">0</span> usuarios</span>
+                            <span class="ap-chip ap-limit-chip"><i class="fas fa-user-lock"></i><span id="ap_limite_usuarios_resumen">0 / 0 usuarios</span></span>
+                            <span class="ap-chip ap-limit-chip company"><i class="fas fa-building"></i><span id="ap_limite_empresas_resumen">0 / 0 empresas</span></span>
+                        </div>
+                    </div>
+
+                    <div class="ap-admin-tabs" role="tablist">
+                        <button type="button" class="ap-admin-tab active" data-ap-tab="colaboradores"><i class="fas fa-users mr-1"></i> Colaboradores y Usuarios</button>
+                        <button type="button" class="ap-admin-tab" data-ap-tab="empresas"><i class="fas fa-building mr-1"></i> Empresas</button>
+                        <button type="button" class="ap-admin-tab" data-ap-tab="secuencias"><i class="fas fa-file-invoice mr-1"></i> Secuencias</button>
+                    </div>
+
+                    <section class="ap-admin-panel active" id="ap_panel_colaboradores">
+                        <div class="ap-access-subtabs" role="tablist" aria-label="Administración de accesos">
+                            <button type="button" class="ap-access-subtab active" data-ap-access-tab="directory"><i class="fas fa-address-book mr-1"></i> Directorio</button>
+                            <button type="button" class="ap-access-subtab" data-ap-access-tab="privileges"><i class="fas fa-user-shield mr-1"></i> Privilegios</button>
+                            <button type="button" class="ap-access-subtab" data-ap-access-tab="permissions"><i class="fas fa-key mr-1"></i> Tipos de Usuario / Permisos</button>
+                        </div>
+
+                        <div class="ap-access-subpanel active" id="ap_access_directory">
+                            <div class="ap-section-card">
+                                <div class="ap-section-head">
+                                    <h5><i class="fas fa-users-cog mr-1"></i> Colaboradores y accesos</h5>
+                                    <button type="button" class="btn btn-primary btn-sm" id="ap_btn_nuevo_usuario"><i class="fas fa-user-plus mr-1"></i> Nuevo usuario / colaborador</button>
+                                </div>
+                                <div class="ap-toolbar">
+                                    <div class="ap-toolbar-left">
+                                        <button type="button" class="btn btn-secondary btn-sm" id="ap_btn_actualizar"><i class="fas fa-sync-alt mr-1"></i> Actualizar</button>
+                                        <button type="button" class="btn btn-success btn-sm" id="ap_btn_excel"><i class="fas fa-file-excel mr-1"></i> Excel</button>
+                                        <button type="button" class="btn btn-danger btn-sm" id="ap_btn_pdf"><i class="fas fa-file-pdf mr-1"></i> PDF</button>
+                                    </div>
+                                    <div class="ap-toolbar-right">
+                                        <div class="ap-status-filter ap-collaborator-status-filter" id="ap_collaborator_status_filter" aria-label="Filtrar colaboradores por estado">
+                                            <button type="button" class="active" data-collaborator-status="1"><i class="fas fa-check-circle mr-1"></i>Activos</button>
+                                            <button type="button" data-collaborator-status="0"><i class="fas fa-pause-circle mr-1"></i>Inactivos</button>
+                                            <button type="button" data-collaborator-status="all"><i class="fas fa-list mr-1"></i>Todos</button>
+                                        </div>
+                                        <div class="ap-page-size"><label class="mb-0" for="ap_page_size">Mostrar</label><select id="ap_page_size" class="form-control form-control-sm"><option value="5">5</option><option value="10" selected>10</option><option value="20">20</option><option value="50">50</option></select><span>registros</span></div>
+                                        <div class="ap-view-switch"><button type="button" class="active" data-ap-view="detail"><i class="fas fa-list-ul mr-1"></i>Detalle</button><button type="button" data-ap-view="mini"><i class="fas fa-th-large mr-1"></i>Miniatura</button></div>
+                                        <div class="ap-search"><div class="input-group input-group-sm"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-search"></i></span></div><input type="search" id="ap_search" class="form-control" placeholder="Buscar colaborador, correo, identidad..."></div></div>
+                                    </div>
+                                </div>
+                                <div id="ap_collaborator_list" class="ap-list ap-detail"></div>
+                                <div class="ap-list-footer"><div id="ap_result_info" class="text-muted small">Mostrando 0 registros</div><div id="ap_pagination" class="ap-pagination"></div></div>
+                            </div>
+                        </div>
+
+                        <div class="ap-access-subpanel" id="ap_access_privileges">
+                            <div class="ap-section-card">
+                                <div class="ap-section-head ap-filterable-head">
+                                    <div>
+                                        <h5><i class="fas fa-user-shield mr-1"></i> Privilegios y navegación</h5>
+                                        <small class="ap-section-note">Defina qué menús, submenús y submenús de nivel 2 puede utilizar cada privilegio.</small>
+                                    </div>
+                                    <button type="button" class="btn btn-primary btn-sm" id="ap_btn_nuevo_privilegio"><i class="fas fa-plus-circle mr-1"></i> Nuevo privilegio</button>
+                                </div>
+                                <div class="ap-toolbar">
+                                    <div class="ap-toolbar-left">
+                                        <button type="button" class="btn btn-secondary btn-sm" id="ap_btn_actualizar_privilegios"><i class="fas fa-sync-alt mr-1"></i> Actualizar</button>
+                                        <button type="button" class="btn btn-success btn-sm" id="ap_btn_excel_privilegios"><i class="fas fa-file-excel mr-1"></i> Excel</button>
+                                        <button type="button" class="btn btn-danger btn-sm" id="ap_btn_pdf_privilegios"><i class="fas fa-file-pdf mr-1"></i> PDF</button>
+                                    </div>
+                                    <div class="ap-toolbar-right">
+                                        <div class="ap-status-filter" id="ap_privilege_status_filter" aria-label="Filtrar privilegios por estado">
+                                            <button type="button" class="active" data-privilege-status="1"><i class="fas fa-check-circle mr-1"></i>Activos</button>
+                                            <button type="button" data-privilege-status="0"><i class="fas fa-pause-circle mr-1"></i>Inactivos</button>
+                                            <button type="button" data-privilege-status="all"><i class="fas fa-list mr-1"></i>Todos</button>
+                                        </div>
+                                        <div class="ap-view-switch" id="ap_privilege_view_switch">
+                                            <button type="button" class="active" data-privilege-view="detail"><i class="fas fa-list mr-1"></i>Detalle</button>
+                                            <button type="button" data-privilege-view="mini"><i class="fas fa-th-large mr-1"></i>Miniatura</button>
+                                        </div>
+                                        <div class="ap-search"><div class="input-group input-group-sm"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-search"></i></span></div><input type="search" id="ap_privilege_search" class="form-control" placeholder="Buscar privilegio..."></div></div>
+                                    </div>
+                                </div>
+                                <div class="ap-access-summary">
+                                    <div><i class="fas fa-user-shield"></i><strong id="ap_privilege_total">0</strong><small>Privilegios</small></div>
+                                    <div><i class="fas fa-bars"></i><strong id="ap_privilege_menu_total">0</strong><small>Menús asignados</small></div>
+                                    <div><i class="fas fa-users"></i><strong id="ap_privilege_user_total">0</strong><small>Usuarios vinculados</small></div>
+                                </div>
+                                <div id="ap_privilege_list" class="ap-access-list"></div>
+                                <div id="ap_privilege_empty" class="ap-empty d-none"><i class="fas fa-user-shield"></i><strong class="d-block">No hay privilegios para mostrar</strong></div>
+                            </div>
+                        </div>
+
+                        <div class="ap-access-subpanel" id="ap_access_permissions">
+                            <div class="ap-section-card">
+                                <div class="ap-section-head ap-filterable-head">
+                                    <div>
+                                        <h5><i class="fas fa-key mr-1"></i> Tipos de Usuario y permisos</h5>
+                                        <small class="ap-section-note">Configure perfiles de acciones y asígnelos a los usuarios desde su formulario.</small>
+                                    </div>
+                                    <button type="button" class="btn btn-primary btn-sm" id="ap_btn_nuevo_tipo_usuario"><i class="fas fa-plus-circle mr-1"></i> Nuevo tipo de usuario</button>
+                                </div>
+                                <div class="ap-toolbar">
+                                    <div class="ap-toolbar-left">
+                                        <button type="button" class="btn btn-secondary btn-sm" id="ap_btn_actualizar_tipos"><i class="fas fa-sync-alt mr-1"></i> Actualizar</button>
+                                        <button type="button" class="btn btn-success btn-sm" id="ap_btn_excel_tipos"><i class="fas fa-file-excel mr-1"></i> Excel</button>
+                                        <button type="button" class="btn btn-danger btn-sm" id="ap_btn_pdf_tipos"><i class="fas fa-file-pdf mr-1"></i> PDF</button>
+                                    </div>
+                                    <div class="ap-toolbar-right">
+                                        <div class="ap-status-filter" id="ap_type_status_filter" aria-label="Filtrar tipos de usuario por estado">
+                                            <button type="button" class="active" data-type-status="1"><i class="fas fa-check-circle mr-1"></i>Activos</button>
+                                            <button type="button" data-type-status="0"><i class="fas fa-pause-circle mr-1"></i>Inactivos</button>
+                                            <button type="button" data-type-status="all"><i class="fas fa-list mr-1"></i>Todos</button>
+                                        </div>
+                                        <div class="ap-view-switch" id="ap_type_view_switch">
+                                            <button type="button" class="active" data-type-view="detail"><i class="fas fa-list mr-1"></i>Detalle</button>
+                                            <button type="button" data-type-view="mini"><i class="fas fa-th-large mr-1"></i>Miniatura</button>
+                                        </div>
+                                        <div class="ap-search"><div class="input-group input-group-sm"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-search"></i></span></div><input type="search" id="ap_type_search" class="form-control" placeholder="Buscar tipo de usuario..."></div></div>
+                                    </div>
+                                </div>
+                                <div class="ap-access-summary">
+                                    <div><i class="fas fa-user-tag"></i><strong id="ap_type_total">0</strong><small>Tipos de usuario</small></div>
+                                    <div><i class="fas fa-check-double"></i><strong id="ap_type_permission_total">0</strong><small>Permisos activos</small></div>
+                                    <div><i class="fas fa-users"></i><strong id="ap_type_user_total">0</strong><small>Usuarios vinculados</small></div>
+                                </div>
+                                <div id="ap_type_list" class="ap-access-list"></div>
+                                <div id="ap_type_empty" class="ap-empty d-none"><i class="fas fa-key"></i><strong class="d-block">No hay tipos de usuario para mostrar</strong></div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="ap-admin-panel" id="ap_panel_empresas">
+                        <div class="ap-section-card">
+                            <div class="ap-section-head ap-filterable-head">
+                                <div>
+                                    <h5><i class="fas fa-building mr-1"></i> Empresas del cliente</h5>
+                                    <small class="ap-section-note" id="ap_company_limit_note">Límite según plan: —</small>
+                                </div>
+                                <div class="ap-head-actions ap-company-toolbar">
+                                    <div class="ap-status-filter" id="ap_company_status_filter" aria-label="Filtrar empresas por estado">
+                                        <button type="button" class="active" data-company-status="1"><i class="fas fa-check-circle mr-1"></i>Activas</button>
+                                        <button type="button" data-company-status="0"><i class="fas fa-pause-circle mr-1"></i>Inactivas</button>
+                                        <button type="button" data-company-status="all"><i class="fas fa-list mr-1"></i>Todas</button>
+                                    </div>
+                                    <div class="ap-view-switch ap-company-view-switch" aria-label="Vista de empresas">
+                                        <button type="button" class="active" data-company-view="detail"><i class="fas fa-list mr-1"></i>Detalle</button>
+                                        <button type="button" data-company-view="mini"><i class="fas fa-th-large mr-1"></i>Miniatura</button>
+                                    </div>
+                                    <button type="button" class="btn btn-success btn-sm" id="ap_btn_excel_empresas"><i class="fas fa-file-excel mr-1"></i> Excel</button>
+                                    <button type="button" class="btn btn-danger btn-sm" id="ap_btn_pdf_empresas"><i class="fas fa-file-pdf mr-1"></i> PDF</button>
+                                    <button type="button" class="btn btn-primary btn-sm" id="ap_btn_nueva_empresa"><i class="fas fa-plus-circle mr-1"></i> Nueva empresa</button>
+                                </div>
+                            </div>
+                            <div id="ap_company_list" class="ap-list"><div class="ap-company-grid"></div></div>
+                        </div>
+                    </section>
+
+                    <section class="ap-admin-panel" id="ap_panel_secuencias">
+                        <div class="ap-section-card">
+                            <div class="ap-section-head ap-sequence-head">
+                                <div>
+                                    <h5><i class="fas fa-file-invoice mr-1"></i> Secuencias y documentos de facturación</h5>
+                                    <small class="ap-section-note">La información se consulta directamente en la base de datos del cliente que está administrando.</small>
+                                </div>
+                                <div class="ap-head-actions">
+                                    <div class="ap-status-filter" id="ap_sequence_status_filter" aria-label="Filtrar secuencias por estado">
+                                        <button type="button" class="active" data-sequence-status="1"><i class="fas fa-check-circle mr-1"></i>Activas</button>
+                                        <button type="button" data-sequence-status="0"><i class="fas fa-pause-circle mr-1"></i>Inactivas</button>
+                                        <button type="button" data-sequence-status="all"><i class="fas fa-list mr-1"></i>Todas</button>
+                                    </div>
+                                    <div class="ap-view-switch ap-sequence-view-switch" aria-label="Vista de secuencias">
+                                        <button type="button" class="active" data-sequence-view="detail"><i class="fas fa-list mr-1"></i>Detalle</button>
+                                        <button type="button" data-sequence-view="mini"><i class="fas fa-th-large mr-1"></i>Miniatura</button>
+                                    </div>
+                                    <button type="button" class="btn btn-success btn-sm" id="ap_btn_excel_secuencias"><i class="fas fa-file-excel mr-1"></i> Excel</button>
+                                    <button type="button" class="btn btn-danger btn-sm" id="ap_btn_pdf_secuencias"><i class="fas fa-file-pdf mr-1"></i> PDF</button>
+                                    <div class="dropdown ap-sequence-main-actions">
+                                    <button type="button" class="btn btn-primary btn-sm dropdown-toggle" id="ap_sequence_main_actions"
+                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        <i class="fas fa-cog mr-1"></i> Acciones
+                                    </button>
+                                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="ap_sequence_main_actions">
+                                        <button type="button" class="dropdown-item" id="ap_btn_nueva_secuencia">
+                                            <i class="fas fa-plus-circle mr-2"></i>Nueva secuencia
+                                        </button>
+                                        <button type="button" class="dropdown-item" id="ap_btn_documentos_secuencia">
+                                            <i class="fas fa-folder-open mr-2"></i>Documentos
+                                        </button>
+                                        <div class="dropdown-divider"></div>
+                                        <button type="button" class="dropdown-item" id="ap_btn_actualizar_secuencias">
+                                            <i class="fas fa-sync-alt mr-2"></i>Actualizar
+                                        </button>
+                                    </div>
+                                </div>
+                                </div>
+                            </div>
+
+                            <div class="ap-billing-summary">
+                                <div class="ap-billing-summary-card">
+                                    <span class="ap-billing-summary-icon"><i class="fas fa-file-invoice"></i></span>
+                                    <div><strong id="ap_total_secuencias">0</strong><small>Secuencias</small></div>
+                                </div>
+                                <div class="ap-billing-summary-card">
+                                    <span class="ap-billing-summary-icon"><i class="fas fa-folder-open"></i></span>
+                                    <div><strong id="ap_total_documentos">0</strong><small>Documentos</small></div>
+                                </div>
+                                <div class="ap-billing-summary-card">
+                                    <span class="ap-billing-summary-icon"><i class="fas fa-building"></i></span>
+                                    <div><strong id="ap_total_empresas_facturacion">0</strong><small>Empresas</small></div>
+                                </div>
+                            </div>
+
+                            <div id="ap_billing_loading" class="ap-loading d-none">
+                                <i class="fas fa-spinner fa-spin"></i> Consultando secuencias y documentos del cliente...
+                            </div>
+                            <div id="ap_sequence_list" class="ap-sequence-list"></div>
+                            <div id="ap_sequence_empty" class="ap-empty d-none">
+                                <i class="fas fa-file-invoice"></i>
+                                <strong class="d-block">No hay secuencias registradas</strong>
+                                <small>Puede crear la primera secuencia desde el menú Acciones.</small>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times mr-1"></i> Cerrar</button></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal colaborador -->
+<div class="modal" id="modalApColaborador" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static" data-keyboard="true">
+ <div class="modal-dialog ap-admin-child-dialog" role="document"><div class="modal-content"><div class="modal-header"><h5 class="modal-title"><i class="fas fa-user-edit mr-2"></i><span id="ap_collab_modal_title">Colaborador</span></h5><button type="button" class="close" data-dismiss="modal"><span>&times;</span></button></div>
+ <form id="ap_form_collaborator" class="ap-admin-modal-form" autocomplete="off"><div class="modal-body"><input type="hidden" name="colaboradores_id" id="ap_colaboradores_id"><div class="ap-form-grid">
+  <div class="form-group full"><label>Nombre completo <span class="text-danger">*</span></label><input type="text" class="form-control" name="nombre" id="ap_colab_nombre" required maxlength="100"></div>
+  <div class="form-group"><label>Identidad</label><input type="text" class="form-control" name="identidad" id="ap_colab_identidad" maxlength="13"><div class="ap-help">Si se deja vacía se genera una identificación interna.</div></div>
+  <div class="form-group"><label>Teléfono</label><input type="text" class="form-control" name="telefono" id="ap_colab_telefono" maxlength="8"></div>
+  <div class="form-group"><label>Fecha de ingreso <span class="text-danger">*</span></label><input type="date" class="form-control" name="fecha_ingreso" id="ap_colab_fecha" required></div>
+  <div class="form-group"><label>Puesto <span class="text-danger">*</span></label><select class="form-control ap-select2" name="puestos_id" id="ap_colab_puesto" required></select></div>
+  <div class="form-group"><label>Empresa <span class="text-danger">*</span></label><select class="form-control ap-select2" name="empresa_id" id="ap_colab_empresa" required></select></div>
+  <div class="form-group ap-status-field">
+    <label class="ap-field-label">Estado</label>
+    <input type="hidden" name="estado" id="ap_colab_estado" value="1">
+    <div class="ap-status-control">
+        <label class="ap-status-switch" for="ap_colab_estado_toggle">
+            <input type="checkbox" id="ap_colab_estado_toggle" checked>
+            <span class="ap-status-slider"></span>
+            <span class="ap-status-label">Activo</span>
+        </label>
+    </div>
+</div>
+ </div></div><div class="modal-footer"><button type="button" class="btn btn-danger" data-dismiss="modal"><i class="fas fa-times mr-1"></i> Cancelar</button><button type="submit" class="btn btn-success"><i class="fas fa-save mr-1"></i> Guardar colaborador</button></div></form></div></div>
 </div>

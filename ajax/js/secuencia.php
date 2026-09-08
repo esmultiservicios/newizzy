@@ -23,13 +23,21 @@
     var SECUENCIA_STORAGE_FILTROS = 'izzy_secuencia_filtros_visible';
     var SECUENCIA_STORAGE_KPIS = 'izzy_secuencia_kpis_visible';
     var SECUENCIA_STORAGE_VISTA = 'izzy_secuencia_tipo_vista';
+    var SECUENCIA_MOBILE_QUERY = '(max-width: 767.98px)';
+    var secuenciaVistaPreferida = 'detalle';
+
+    function secuenciaEsPantallaPequena() {
+        return window.matchMedia
+            ? window.matchMedia(SECUENCIA_MOBILE_QUERY).matches
+            : $(window).width() <= 767;
+    }
+
 
 
     $(document).ready(function () {
         inicializarEstadoPersistenteSecuencia();
         inicializarVistaSecuencia();
         inicializarEventosSecuencia();
-        inicializarDropdownAdaptativoSecuencia();
         cargarDocumentosSecuencia(true);
         listar_secuencia_facturacion();
     });
@@ -99,6 +107,12 @@
         $('.secuencia-view-btn').off('click.secuenciaVista').on('click.secuenciaVista', function () {
             cambiarVistaSecuencia($(this).data('view'));
         });
+
+        $(window)
+            .off('resize.secuenciaResponsive')
+            .on('resize.secuenciaResponsive', secuenciaDebounce(function () {
+                aplicarVistaResponsiveSecuencia(false);
+            }, 120));
 
         $('#btn_actualizar_secuencias').off('click.secuencia').on('click.secuencia', function () {
             listar_secuencia_facturacion();
@@ -184,6 +198,22 @@
                 cambiarEstadoDocumentoSecuencia($(this).data('id'), $(this).data('estado'));
             });
 
+        $(document).off('click.secuenciaDropdown').on('click.secuenciaDropdown', function (e) {
+            if (!$(e.target).closest('.secuencia-actions').length) {
+                $('.secuencia-actions .dropdown-menu').removeClass('show');
+                $('.secuencia-actions .dropdown-toggle').attr('aria-expanded', 'false');
+            }
+        });
+
+        $('#secuencia_listado').off('click.secuenciaDropdownToggle').on('click.secuenciaDropdownToggle', '.secuencia-actions .dropdown-toggle', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var $menu = $(this).siblings('.dropdown-menu');
+            $('.secuencia-actions .dropdown-menu').not($menu).removeClass('show');
+            $('.secuencia-actions .dropdown-toggle').not(this).attr('aria-expanded', 'false');
+            $menu.toggleClass('show');
+            $(this).attr('aria-expanded', $menu.hasClass('show') ? 'true' : 'false');
+        });
     }
 
     function obtenerEstadoPanelSecuencia(clave, valorPorDefecto) {
@@ -512,24 +542,76 @@
             vistaGuardada = 'detalle';
         }
 
-        secuenciaState.view = vistaGuardada;
+        secuenciaVistaPreferida = vistaGuardada;
+        secuenciaState.view = secuenciaEsPantallaPequena()
+            ? 'miniatura'
+            : secuenciaVistaPreferida;
+
         actualizarBotonesVistaSecuencia();
         sincronizarTamanoPaginaSecuencia();
+        actualizarDisponibilidadVistaSecuencia();
     }
 
     function cambiarVistaSecuencia(vista) {
-        secuenciaState.view = vista === 'miniatura' ? 'miniatura' : 'detalle';
+        var vistaSolicitada = vista === 'miniatura' ? 'miniatura' : 'detalle';
 
-        try {
-            localStorage.setItem(SECUENCIA_STORAGE_VISTA, secuenciaState.view);
-        } catch (e) {
-            // La vista sigue funcionando aunque localStorage no esté disponible.
+        /*
+         * En teléfonos/pantallas pequeñas Detalle no está disponible.
+         * Se usa Miniatura porque presenta cada dato con su etiqueta/valor
+         * y evita columnas apretadas o headers convertidos en bloques.
+         */
+        if (secuenciaEsPantallaPequena()) {
+            vistaSolicitada = 'miniatura';
+        } else {
+            secuenciaVistaPreferida = vistaSolicitada;
+
+            try {
+                localStorage.setItem(SECUENCIA_STORAGE_VISTA, secuenciaVistaPreferida);
+            } catch (e) {
+                // La vista sigue funcionando aunque localStorage no esté disponible.
+            }
         }
 
+        secuenciaState.view = vistaSolicitada;
         actualizarBotonesVistaSecuencia();
         sincronizarTamanoPaginaSecuencia();
+        actualizarDisponibilidadVistaSecuencia();
         secuenciaState.page = 1;
         renderSecuencias();
+    }
+
+    function actualizarDisponibilidadVistaSecuencia() {
+        var pantallaPequena = secuenciaEsPantallaPequena();
+        var $detalle = $('.secuencia-view-btn[data-view="detalle"]');
+        var $switch = $('.secuencia-view-switch');
+
+        $detalle
+            .prop('disabled', pantallaPequena)
+            .attr('aria-hidden', pantallaPequena ? 'true' : 'false')
+            .toggleClass('d-none', pantallaPequena);
+
+        $switch.toggleClass('secuencia-mobile-only-mini', pantallaPequena);
+    }
+
+    function aplicarVistaResponsiveSecuencia(forzarRender) {
+        var pantallaPequena = secuenciaEsPantallaPequena();
+        var vistaObjetivo = pantallaPequena ? 'miniatura' : secuenciaVistaPreferida;
+        var cambioVista = secuenciaState.view !== vistaObjetivo;
+
+        actualizarDisponibilidadVistaSecuencia();
+
+        if (!cambioVista) {
+            return;
+        }
+
+        secuenciaState.view = vistaObjetivo;
+        secuenciaState.page = 1;
+        actualizarBotonesVistaSecuencia();
+        sincronizarTamanoPaginaSecuencia();
+
+        if (forzarRender !== false || secuenciaState.rows.length) {
+            renderSecuencias();
+        }
     }
 
     function sincronizarTamanoPaginaSecuencia() {
@@ -573,6 +655,13 @@
     }
 
     function renderSecuencias() {
+        if (secuenciaEsPantallaPequena() && secuenciaState.view !== 'miniatura') {
+            secuenciaState.view = 'miniatura';
+            sincronizarTamanoPaginaSecuencia();
+            actualizarBotonesVistaSecuencia();
+            actualizarDisponibilidadVistaSecuencia();
+        }
+
         var $listado = $('#secuencia_listado');
         var total = secuenciaState.filtered.length;
         var pageSize = secuenciaState.pageSize;
@@ -1543,7 +1632,112 @@
         });
     }
 
+
+    function secuenciaObtenerLogoPdf(callback) {
+    function convertirLogo(source) {
+        source = String(source || '').trim();
+
+        if (!source) {
+            if (typeof showNotify === 'function') {
+                showNotify('error', 'Logo no disponible', 'No se pudo obtener el logo para el reporte PDF.');
+            }
+            return;
+        }
+
+        if (source.indexOf('data:image/') === 0) {
+            callback(source);
+            return;
+        }
+
+        var img = new Image();
+        img.crossOrigin = 'Anonymous';
+
+        img.onload = function () {
+            try {
+                var canvas = document.createElement('canvas');
+                var ctx = canvas.getContext('2d');
+                canvas.width = img.naturalWidth || img.width;
+                canvas.height = img.naturalHeight || img.height;
+                ctx.drawImage(img, 0, 0);
+                var dataUrl = canvas.toDataURL('image/png');
+
+                if (!dataUrl || dataUrl.indexOf('data:image/') !== 0) {
+                    throw new Error('No se pudo convertir el logo a Data URL.');
+                }
+
+                try { imagen = dataUrl; } catch (e) {}
+                callback(dataUrl);
+            } catch (error) {
+                console.error('Error preparando logo PDF:', error);
+                if (typeof showNotify === 'function') {
+                    showNotify('error', 'Logo no disponible', 'No se pudo preparar el logo para el reporte PDF.');
+                }
+            }
+        };
+
+        img.onerror = function () {
+            if (typeof showNotify === 'function') {
+                showNotify('error', 'Logo no disponible', 'No se pudo cargar el logo para el reporte PDF.');
+            }
+        };
+
+        img.src = source;
+    }
+
+    if (typeof imagen !== 'undefined' && imagen) {
+        convertirLogo(imagen);
+        return;
+    }
+
+    $.ajax({
+        type: 'GET',
+        url: '<?php echo SERVERURL;?>core/get_image.php',
+        dataType: 'text',
+        timeout: 15000
+    }).done(function (imageUrl) {
+        convertirLogo(imageUrl);
+    }).fail(function (xhr) {
+        console.error('Error obteniendo logo PDF:', xhr.responseText);
+        if (typeof showNotify === 'function') {
+            showNotify('error', 'Logo no disponible', 'No se pudo obtener el logo para el reporte PDF.');
+        }
+    });
+}
+
+    function secuenciaPdfLogoPlate(logoDataUrl) {
+    return {
+        table: {
+            widths: ['*'],
+            body: [[{
+                image: logoDataUrl,
+                fit: [62, 36],
+                alignment: 'center',
+                margin: [7, 5, 7, 5],
+                fillColor: '#FFFFFF'
+            }]]
+        },
+        layout: {
+            hLineColor: function () { return '#DDE3EA'; },
+            vLineColor: function () { return '#DDE3EA'; },
+            hLineWidth: function () { return .5; },
+            vLineWidth: function () { return .5; },
+            paddingLeft: function () { return 0; },
+            paddingRight: function () { return 0; },
+            paddingTop: function () { return 0; },
+            paddingBottom: function () { return 0; }
+        }
+    };
+}
+
     function exportarSecuenciasPDF() {
+        if (!(typeof imagen !== 'undefined' && typeof imagen === 'string' && imagen.indexOf('data:image/') === 0)) {
+            secuenciaObtenerLogoPdf(function (logoDataUrl) {
+                try { imagen = logoDataUrl; } catch (e) {}
+                exportarSecuenciasPDF();
+            });
+            return;
+        }
+
         if (!secuenciaState.filtered.length) {
             showNotify('warning', 'Sin información', 'No hay secuencias para exportar.');
             return;
@@ -1884,13 +2078,11 @@
         var filtroEstado = $('#estado_secuencia_main option:selected').text() || 'Todos';
         var filtroDocumento = $('#documento_secuencia_main option:selected').text() || 'Todos';
         var filtroVencimiento = $('#vencimiento_secuencia_main option:selected').text() || 'Todos';
-        var logoSecuencia = (typeof imagen !== 'undefined' && imagen)
-            ? {image: imagen, width: 50, height: 24, alignment: 'center', margin: [0, 1, 0, 0]}
-            : {text: 'IZZY', fontSize: 16, bold: true, color: '#FFFFFF', alignment: 'center', margin: [0, 4, 0, 0]};
+        var logoSecuencia = secuenciaPdfLogoPlate(imagen);
 
         var encabezado = {
             table: {
-                widths: [70, '*', 150],
+                widths: [100, '*', 150],
                 body: [[
                     {border:[false,false,false,false], fillColor:'#17324D', margin:[12,10,0,10], stack:[logoSecuencia]},
                     {border:[false,false,false,false], fillColor:'#17324D', margin:[0,10,0,10], stack:[
@@ -2072,213 +2264,6 @@
         link.click();
         document.body.removeChild(link);
         setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-    }
-
-
-    /* =========================================================
-       SECUENCIA | DROPDOWN DE ACCIONES ADAPTATIVO
-       Funciona en vista detalle y miniatura.
-       ========================================================= */
-    function limpiarDireccionDropdownSecuencia($dropdown) {
-        if (!$dropdown || !$dropdown.length) {
-            return;
-        }
-
-        $dropdown.removeClass('dropup dropright dropleft');
-        $dropdown.children('.dropdown-menu')
-            .removeClass('dropdown-menu-right')
-            .removeAttr('x-placement data-popper-placement')
-            .css({ top: '', left: '', right: '', bottom: '', transform: '' });
-    }
-
-    function medirMenuDropdownSecuencia($menu) {
-        var menu = $menu && $menu.length ? $menu[0] : null;
-
-        if (!menu) {
-            return { width: 200, height: 130 };
-        }
-
-        var estilos = {
-            display: menu.style.display,
-            visibility: menu.style.visibility,
-            position: menu.style.position,
-            top: menu.style.top,
-            left: menu.style.left,
-            right: menu.style.right,
-            bottom: menu.style.bottom,
-            transform: menu.style.transform
-        };
-        var teniaShow = $menu.hasClass('show');
-
-        $menu.addClass('show').css({
-            display: 'block',
-            visibility: 'hidden',
-            position: 'fixed',
-            top: '0',
-            left: '0',
-            right: 'auto',
-            bottom: 'auto',
-            transform: 'none'
-        });
-
-        var rect = menu.getBoundingClientRect();
-
-        if (!teniaShow) {
-            $menu.removeClass('show');
-        }
-
-        menu.style.display = estilos.display;
-        menu.style.visibility = estilos.visibility;
-        menu.style.position = estilos.position;
-        menu.style.top = estilos.top;
-        menu.style.left = estilos.left;
-        menu.style.right = estilos.right;
-        menu.style.bottom = estilos.bottom;
-        menu.style.transform = estilos.transform;
-
-        return {
-            width: Math.max(rect.width || 0, 200),
-            height: Math.max(rect.height || 0, 1)
-        };
-    }
-
-    function prepararDireccionDropdownSecuencia($dropdown) {
-        if (!$dropdown || !$dropdown.length) {
-            return;
-        }
-
-        var $button = $dropdown.children('.dropdown-toggle');
-        var $menu = $dropdown.children('.dropdown-menu');
-        var button = $button.length ? $button[0] : null;
-
-        if (!button || !$menu.length) {
-            return;
-        }
-
-        limpiarDireccionDropdownSecuencia($dropdown);
-
-        var rect = button.getBoundingClientRect();
-        var menuSize = medirMenuDropdownSecuencia($menu);
-        var viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
-        var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-        var margin = 12;
-        var gap = 8;
-
-        var abajo = viewportHeight - rect.bottom - margin;
-        var arriba = rect.top - margin;
-        var derecha = viewportWidth - rect.right - margin;
-        var izquierda = rect.left - margin;
-
-        if (abajo >= menuSize.height + gap) {
-            // Posición normal: abajo.
-        } else if (arriba >= menuSize.height + gap) {
-            $dropdown.addClass('dropup');
-        } else if (derecha >= menuSize.width + gap) {
-            $dropdown.addClass('dropright');
-        } else if (izquierda >= menuSize.width + gap) {
-            $dropdown.addClass('dropleft');
-        } else if (arriba > abajo) {
-            $dropdown.addClass('dropup');
-        }
-
-        if (!$dropdown.hasClass('dropright') && !$dropdown.hasClass('dropleft')) {
-            var desbordaDerecha = rect.left + menuSize.width > viewportWidth - margin;
-            var puedeAlinearDerecha = rect.right - menuSize.width >= margin;
-
-            if (desbordaDerecha && puedeAlinearDerecha) {
-                $menu.addClass('dropdown-menu-right');
-            }
-        }
-    }
-
-    function cerrarDropdownsSecuenciaExcepto($actual) {
-        $('#secuencia_listado .secuencia-actions').each(function () {
-            var $dropdown = $(this);
-            var $btn = $dropdown.children('.dropdown-toggle');
-            var $menu = $dropdown.children('.dropdown-menu');
-
-            if ($actual && $actual.length && $dropdown.is($actual)) {
-                return;
-            }
-
-            try {
-                if (typeof $.fn.dropdown === 'function' && $menu.hasClass('show')) {
-                    $btn.dropdown('hide');
-                }
-            } catch (error) {
-                // Respaldo manual abajo.
-            }
-
-            $btn.attr('aria-expanded', 'false');
-            $dropdown.removeClass('show');
-            $menu.removeClass('show');
-            limpiarDireccionDropdownSecuencia($dropdown);
-            $dropdown.closest('.secuencia-record-card, .secuencia-mini-card').removeClass('secuencia-dropdown-open');
-        });
-    }
-
-    function inicializarDropdownAdaptativoSecuencia() {
-        $('#secuencia_listado')
-            .off('click.secuenciaDropdownAdaptativo', '.secuencia-actions .dropdown-toggle')
-            .on('click.secuenciaDropdownAdaptativo', '.secuencia-actions .dropdown-toggle', function (event) {
-                event.preventDefault();
-                event.stopPropagation();
-                event.stopImmediatePropagation();
-
-                var $button = $(this);
-                var $dropdown = $button.closest('.secuencia-actions');
-                var $menu = $dropdown.children('.dropdown-menu');
-                var estabaAbierto = $menu.hasClass('show');
-
-                if (typeof $.fn.dropdown !== 'function') {
-                    return;
-                }
-
-                cerrarDropdownsSecuenciaExcepto($dropdown);
-
-                if (estabaAbierto) {
-                    try {
-                        $button.dropdown('hide');
-                    } catch (error) {
-                        $dropdown.removeClass('show');
-                        $menu.removeClass('show');
-                    }
-
-                    $button.attr('aria-expanded', 'false');
-                    limpiarDireccionDropdownSecuencia($dropdown);
-                    $dropdown.closest('.secuencia-record-card, .secuencia-mini-card').removeClass('secuencia-dropdown-open');
-                    return;
-                }
-
-                try {
-                    prepararDireccionDropdownSecuencia($dropdown);
-
-                    $button.dropdown({
-                        boundary: 'viewport',
-                        flip: true,
-                        offset: '0,6'
-                    });
-
-                    $button.dropdown('show');
-                    $dropdown.closest('.secuencia-record-card, .secuencia-mini-card').addClass('secuencia-dropdown-open');
-                } catch (error) {
-                    console.error('No se pudo abrir el dropdown de acciones de Secuencia:', error);
-                }
-            });
-
-        $(document)
-            .off('shown.bs.dropdown.secuenciaDropdownAdaptativo', '#secuencia_listado .secuencia-actions')
-            .on('shown.bs.dropdown.secuenciaDropdownAdaptativo', '#secuencia_listado .secuencia-actions', function () {
-                var $dropdown = $(this);
-                cerrarDropdownsSecuenciaExcepto($dropdown);
-                $dropdown.closest('.secuencia-record-card, .secuencia-mini-card').addClass('secuencia-dropdown-open');
-            })
-            .off('hidden.bs.dropdown.secuenciaDropdownAdaptativo', '#secuencia_listado .secuencia-actions')
-            .on('hidden.bs.dropdown.secuenciaDropdownAdaptativo', '#secuencia_listado .secuencia-actions', function () {
-                var $dropdown = $(this);
-                limpiarDireccionDropdownSecuencia($dropdown);
-                $dropdown.closest('.secuencia-record-card, .secuencia-mini-card').removeClass('secuencia-dropdown-open');
-            });
     }
 
 })(jQuery);

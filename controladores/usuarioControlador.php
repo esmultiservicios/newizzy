@@ -4,12 +4,136 @@
 if($peticionAjax){
     require_once "../modelos/usuarioModelo.php";
     require_once "../core/correo/sendEmail.php";
+    require_once "../core/correo/NotificationService.php";
 }else{
     require_once "./modelos/usuarioModelo.php";
     require_once "./core/correo/sendEmail.php";
+    require_once "./core/correo/NotificationService.php";
 }
 
 class usuarioControlador extends usuarioModelo{
+
+    private function obtenerDetalleUsuarioNotificacion($users_id){
+        $conexion = mainModel::connection();
+        $detalle = null;
+        try {
+            $stmt = $conexion->prepare("
+                SELECT
+                    u.users_id,
+                    u.email,
+                    u.privilegio_id,
+                    u.tipo_user_id,
+                    u.empresa_id,
+                    u.estado,
+                    u.server_customers_id,
+                    COALESCE(c.nombre, u.email) AS nombre,
+                    COALESCE(p.nombre, CONCAT('Privilegio #', u.privilegio_id)) AS privilegio,
+                    COALESCE(t.nombre, CONCAT('Tipo #', u.tipo_user_id)) AS tipo_usuario,
+                    COALESCE(e.nombre, CONCAT('Empresa #', u.empresa_id)) AS empresa
+                FROM users u
+                LEFT JOIN colaboradores c ON c.colaboradores_id = u.colaboradores_id
+                LEFT JOIN privilegio p ON p.privilegio_id = u.privilegio_id
+                LEFT JOIN tipo_user t ON t.tipo_user_id = u.tipo_user_id
+                LEFT JOIN empresa e ON e.empresa_id = u.empresa_id
+                WHERE u.users_id = ?
+                LIMIT 1
+            ");
+            if ($stmt) {
+                $id = (int)$users_id;
+                $stmt->bind_param("i", $id);
+                $stmt->execute();
+                $detalle = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+            }
+        } catch (Throwable $e) {
+            error_log("usuarioControlador obtenerDetalleUsuarioNotificacion: ".$e->getMessage());
+        }
+        return $detalle;
+    }
+
+    private function obtenerNombreCatalogoUsuario($tabla, $idCampo, $id, $fallback){
+        $permitidos = [
+            'privilegio' => 'privilegio_id',
+            'tipo_user' => 'tipo_user_id',
+            'empresa' => 'empresa_id'
+        ];
+        if (!isset($permitidos[$tabla]) || $permitidos[$tabla] !== $idCampo) {
+            return $fallback;
+        }
+        $conexion = mainModel::connection();
+        try {
+            $sql = "SELECT nombre FROM `{$tabla}` WHERE `{$idCampo}` = ? LIMIT 1";
+            $stmt = $conexion->prepare($sql);
+            if ($stmt) {
+                $id = (int)$id;
+                $stmt->bind_param("i", $id);
+                $stmt->execute();
+                $row = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+                if ($row && trim((string)$row['nombre']) !== '') {
+                    return trim((string)$row['nombre']);
+                }
+            }
+        } catch (Throwable $e) {
+            error_log("usuarioControlador obtenerNombreCatalogoUsuario: ".$e->getMessage());
+        }
+        return $fallback;
+    }
+
+    private function notificarAuditoriaUsuario($asunto, $resumen, array $detalles = [], array $cambios = [], $tipo = 'audit'){
+        try {
+            $service = new NotificationService();
+            $dbActual = $service->currentDbName();
+            $dbMain = $service->mainDbName();
+            $empresaId = isset($_SESSION['empresa_id_sd']) ? (int)$_SESSION['empresa_id_sd'] : 0;
+
+            if ($dbActual === '' || strcasecmp($dbActual, $dbMain) === 0) {
+                return $service->notifyAdmins($dbMain, $empresaId, $asunto, $resumen, $detalles, $cambios, $tipo);
+            }
+
+            $ctx = $service->clientContextFromDb($dbActual);
+            return $service->notifyClientAndMain(
+                $dbActual,
+                $empresaId,
+                $ctx['cliente_nombre'] ?? '',
+                $asunto,
+                $resumen,
+                $detalles,
+                $cambios,
+                $asunto,
+                $resumen,
+                $detalles,
+                $cambios,
+                $tipo
+            );
+        } catch (Throwable $e) {
+            error_log("usuarioControlador notificarAuditoriaUsuario: ".$e->getMessage());
+            return false;
+        }
+    }
+
+    private function notificarUsuarioDirecto($email, $nombre, $asunto, $resumen, array $detalles = [], array $cambios = [], $tipo = 'security', $sensible = false, $nota = ''){
+        try {
+            $service = new NotificationService();
+            return $service->notifyUser(
+                $service->currentDbName(),
+                isset($_SESSION['empresa_id_sd']) ? (int)$_SESSION['empresa_id_sd'] : 0,
+                $email,
+                $nombre,
+                $asunto,
+                $resumen,
+                $detalles,
+                $cambios,
+                $tipo,
+                $sensible,
+                $nota
+            );
+        } catch (Throwable $e) {
+            error_log("usuarioControlador notificarUsuarioDirecto: ".$e->getMessage());
+            return false;
+        }
+    }
+
 
     /*----------- Controlador para agregar usuario -----------*/
     public function agregar_usuario_controlador() {     
@@ -142,18 +266,8 @@ class usuarioControlador extends usuarioModelo{
         $contraseña_generada = mainModel::encryption($pass);    
         $correo_usuario = isset($_POST['correo_usuario']) ? mainModel::cleanStringStrtolower($_POST['correo_usuario']) : "";
         $empresa = isset($_POST['empresa_usuario']) ? mainModel::cleanString($_POST['empresa_usuario']) : $empresa_id_sesion;
-        $tipo_user = isset($_POST['tipo_user']) ? mainModel::cleanString($_POST['tipo_user']) : "";
-        $estado = isset($_POST['estado_usuario']) ? 1 : 2;
-        $username = $this->generarUsernameLegible($correo_usuario);
-
-        /*
-         * DB_MAIN contiene usuarios propios y usuarios espejo de clientes.
-         * Los usuarios propios de MAIN siempre pertenecen al scope 0.
-         * En una DB cliente se valida únicamente contra la tabla local.
-         */
-        $es_db_principal = ($GLOBALS['db'] === $GLOBALS['DB_MAIN']);
-        $scope_server_customer = $es_db_principal ? 0 : null;
-        $server_customers_id_destino = $es_db_principal ? 0 : $server_customers_id;
+        $tipo_user = isset($_POST['tipo_user']) ? mainModel::cleanString($_POST['tipo_user']) : "";            
+        $estado = isset($_POST['estado_usuario']) ? 1 : 2;    
 
         if ($correo_usuario == "" || !filter_var($correo_usuario, FILTER_VALIDATE_EMAIL)) {
             return mainModel::showNotification([
@@ -179,8 +293,8 @@ class usuarioControlador extends usuarioModelo{
             ]);
         }
     
-        // Validar correo duplicado dentro del scope correcto.
-        if(usuarioModelo::valid_correo_modelo($correo_usuario, $scope_server_customer)) {
+        // Validar correo duplicado
+        if(usuarioModelo::valid_correo_modelo($correo_usuario)) {
             return mainModel::showNotification([
                 "type" => "error",
                 "title" => "Error",
@@ -196,7 +310,7 @@ class usuarioControlador extends usuarioModelo{
             $limiteBase = (int)($planConfig['usuarios'] ?? 0);
             $usuariosExtras = (int)usuarioModelo::getTotalUsuariosExtras();
             $limiteTotal = $limiteBase + $usuariosExtras;
-            $totalUsuarios = (int)usuarioModelo::getTotalUsuarios($scope_server_customer);
+            $totalUsuarios = (int)usuarioModelo::getTotalUsuarios();
 
             // Caso 1: Límite base es 0
             if ($limiteBase === 0) {
@@ -217,10 +331,8 @@ class usuarioControlador extends usuarioModelo{
             }
 		}
         
-        // Validar que el colaborador no tenga usuario dentro del scope correcto.
-        // En MAIN se valida SOLO server_customers_id = 0 para no confundir
-        // colaboradores propios con usuarios espejo de clientes que reutilizan IDs.
-        if(usuarioModelo::valid_user_modelo($colaborador_id, $scope_server_customer)) {
+        // Validar que el colaborador no tenga usuario
+        if(usuarioModelo::valid_user_modelo($colaborador_id)) {
             return mainModel::showNotification([
                 "type" => "error",
                 "title" => "Error",
@@ -231,14 +343,13 @@ class usuarioControlador extends usuarioModelo{
         // Datos para crear el usuario
         $datos_usuario = [
             "colaborador_id" => $colaborador_id,
-            "privilegio_id" => $privilegio_id,
-            "username" => $username,
+            "privilegio_id" => $privilegio_id,                
             "pass" => $contraseña_generada,                
             "email" => $correo_usuario,                
             "tipo_user" => $tipo_user,                
             "estado" => $estado,
             "empresa" => $empresa,
-            "server_customers_id" => $server_customers_id_destino
+            "server_customers_id" => $server_customers_id
         ];
         
         // Crear usuario
@@ -246,26 +357,9 @@ class usuarioControlador extends usuarioModelo{
                 
         if($usuario_id) {
 
-            // Si estamos en una DB de cliente, el usuario debe existir tanto localmente
-            // como en DB_MAIN. Si el espejo falla, revertimos el usuario local para no
-            // dejar credenciales desincronizadas.
+            // Guardar en DB principal si es necesario
             if($GLOBALS['db'] !== $GLOBALS['DB_MAIN']) {
-                $guardado_main = $this->guardarUsuarioEnDBPrincipal(
-                    $colaborador_id,
-                    $correo_usuario,
-                    $contraseña_generada,
-                    $server_customers_id
-                );
-
-                if(!$guardado_main) {
-                    usuarioModelo::delete_user_modelo($usuario_id);
-
-                    return mainModel::showNotification([
-                        "type" => "error",
-                        "title" => "No se pudo sincronizar",
-                        "text" => "El usuario no fue creado porque no se pudo guardar también en la base principal. Intente nuevamente."
-                    ]);
-                }
+                $this->guardarUsuarioEnDBPrincipal($colaborador_id, $correo_usuario, $contraseña_generada, $server_customers_id);
             }
             
             // Enviar correo de bienvenida al usuario creado
@@ -278,6 +372,23 @@ class usuarioControlador extends usuarioModelo{
                 $sendEmail,
                 $colaborador_id
             );
+
+            $colaboradorDataNoti = usuarioModelo::get_colaborador_info($colaborador_id);
+            $nombreNuevoUsuario = trim((string)($colaboradorDataNoti['nombre'] ?? 'Usuario'));
+            $this->notificarAuditoriaUsuario(
+                'Nuevo usuario creado',
+                'Se creó un nuevo usuario y las credenciales fueron enviadas únicamente al usuario correspondiente.',
+                [
+                    'Usuario'=>$correo_usuario,
+                    'Nombre'=>$nombreNuevoUsuario,
+                    'Privilegio'=>$this->obtenerNombreCatalogoUsuario('privilegio','privilegio_id',$privilegio_id,'#'.$privilegio_id),
+                    'Tipo de usuario'=>$this->obtenerNombreCatalogoUsuario('tipo_user','tipo_user_id',$tipo_user,'#'.$tipo_user),
+                    'Empresa'=>$this->obtenerNombreCatalogoUsuario('empresa','empresa_id',$empresa,'#'.$empresa),
+                    'Estado'=>(int)$estado === 1 ? 'Activo' : 'Inactivo'
+                ],
+                [],
+                'success'
+            );
             
             return mainModel::showNotification([
                 "type" => "success",
@@ -288,17 +399,10 @@ class usuarioControlador extends usuarioModelo{
             ]);
 
         } else {
-            $detalle = usuarioModelo::getUltimoErrorUsuario();
-            $mensaje = "No se pudo registrar el usuario.";
-
-            if (!empty($detalle)) {
-                $mensaje .= " Detalle: " . $detalle;
-            }
-
             return mainModel::showNotification([
                 "type" => "error",
-                "title" => "Error al registrar",
-                "text" => $mensaje
+                "title" => "Error",
+                "text" => "No se pudo registrar el usuario"
             ]);
         }
     }
@@ -335,7 +439,7 @@ class usuarioControlador extends usuarioModelo{
             ]);
         }
 
-        $usuario_anterior = usuarioModelo::get_usuario_info($usuarios_id);
+        $usuarioAnterior = $this->obtenerDetalleUsuarioNotificacion($usuarios_id);
 
         if ($correo == "" || !filter_var($correo, FILTER_VALIDATE_EMAIL)) {
             return mainModel::showNotification([
@@ -354,16 +458,80 @@ class usuarioControlador extends usuarioModelo{
             "estado" => $estado                
         ];
         
-        if(usuarioModelo::edit_user_modelo($datos)) {
+        if(usuarioModelo::edit_user_modelo($datos)) {    
 
-            if($GLOBALS['db'] !== $GLOBALS['DB_MAIN'] && $usuario_anterior) {
-                $this->actualizarUsuarioEspejoDBPrincipal(
-                    $usuario_anterior['email'],
-                    $correo,
-                    $estado,
-                    $server_customers_id
+            if($GLOBALS['db'] !== $GLOBALS['DB_MAIN']) {
+                $correoAnteriorMain = mainModel::cleanStringStrtolower($usuarioAnterior['email'] ?? $correo);
+                $conexionMain = mainModel::connectionLogin();
+                $stmtMain = $conexionMain->prepare("
+                    UPDATE users 
+                    SET estado = ?
+                    WHERE email = ?
+                      AND server_customers_id = ?
+                ");
+                if ($stmtMain) {
+                    $estadoMain = (int)$estado;
+                    $serverMain = (int)$server_customers_id;
+                    $stmtMain->bind_param("isi", $estadoMain, $correoAnteriorMain, $serverMain);
+                    $stmtMain->execute();
+                    $stmtMain->close();
+                }
+            }
+
+            $usuarioNuevo = $this->obtenerDetalleUsuarioNotificacion($usuarios_id);
+            $cambiosUsuario = [];
+            if ($usuarioAnterior) {
+                if (strtolower(trim((string)($usuarioAnterior['email'] ?? ''))) !== strtolower(trim((string)$correo))) {
+                    $cambiosUsuario['Correo'] = ['anterior'=>$usuarioAnterior['email'] ?? '', 'nuevo'=>$correo];
+                }
+                if ((int)($usuarioAnterior['privilegio_id'] ?? 0) !== (int)$privilegio_id) {
+                    $cambiosUsuario['Privilegio'] = [
+                        'anterior'=>$usuarioAnterior['privilegio'] ?? ('#'.($usuarioAnterior['privilegio_id'] ?? '')),
+                        'nuevo'=>$this->obtenerNombreCatalogoUsuario('privilegio','privilegio_id',$privilegio_id,'#'.$privilegio_id)
+                    ];
+                }
+                if ((int)($usuarioAnterior['tipo_user_id'] ?? 0) !== (int)$tipo_user) {
+                    $cambiosUsuario['Tipo / permisos'] = [
+                        'anterior'=>$usuarioAnterior['tipo_usuario'] ?? ('#'.($usuarioAnterior['tipo_user_id'] ?? '')),
+                        'nuevo'=>$this->obtenerNombreCatalogoUsuario('tipo_user','tipo_user_id',$tipo_user,'#'.$tipo_user)
+                    ];
+                }
+                if ((int)($usuarioAnterior['empresa_id'] ?? 0) !== (int)$empresa_usuario) {
+                    $cambiosUsuario['Empresa'] = [
+                        'anterior'=>$usuarioAnterior['empresa'] ?? ('#'.($usuarioAnterior['empresa_id'] ?? '')),
+                        'nuevo'=>$this->obtenerNombreCatalogoUsuario('empresa','empresa_id',$empresa_usuario,'#'.$empresa_usuario)
+                    ];
+                }
+                if ((int)($usuarioAnterior['estado'] ?? 0) !== (int)$estado) {
+                    $cambiosUsuario['Estado'] = [
+                        'anterior'=>(int)($usuarioAnterior['estado'] ?? 0) === 1 ? 'Activo' : 'Inactivo',
+                        'nuevo'=>(int)$estado === 1 ? 'Activo' : 'Inactivo'
+                    ];
+                }
+            }
+
+            $nombreUsuario = trim((string)($usuarioNuevo['nombre'] ?? $usuarioAnterior['nombre'] ?? 'Usuario'));
+            $correoDestino = trim((string)($usuarioNuevo['email'] ?? $correo));
+            if ($cambiosUsuario) {
+                $this->notificarUsuarioDirecto(
+                    $correoDestino,
+                    $nombreUsuario,
+                    'Tu usuario IZZY fue actualizado',
+                    'Se realizaron cambios en la configuración de tu usuario.',
+                    ['Usuario'=>$correoDestino],
+                    $cambiosUsuario,
+                    'security',
+                    false,
+                    'Si no reconoce este cambio, comuníquese con el administrador de su empresa.'
                 );
             }
+            $this->notificarAuditoriaUsuario(
+                'Usuario actualizado',
+                'Se actualizó un usuario del sistema.',
+                ['Usuario'=>$correoDestino, 'Nombre'=>$nombreUsuario],
+                $cambiosUsuario,
+                'audit'
+            );
 
             return mainModel::showNotification([
                 "type" => "success",
@@ -429,9 +597,38 @@ class usuarioControlador extends usuarioModelo{
         if(usuarioModelo::delete_user_modelo($usuarios_id)) {
 
             if($GLOBALS['db'] !== $GLOBALS['DB_MAIN']) {
-                $server_customer_usuario = (int)($usuario_info['server_customers_id'] ?? 0);
-                $this->eliminarUsuarioEspejoDBPrincipal($usuario_info['email'], $server_customer_usuario);
+                $correoEliminar = mainModel::cleanStringStrtolower($usuario_info['email'] ?? '');
+                $serverEliminar = (int)($usuario_info['server_customers_id'] ?? 0);
+                if ($correoEliminar !== '' && $serverEliminar > 0) {
+                    $stmtMain = mainModel::connectionLogin()->prepare("DELETE FROM users WHERE email = ? AND server_customers_id = ?");
+                    if ($stmtMain) {
+                        $stmtMain->bind_param("si", $correoEliminar, $serverEliminar);
+                        $stmtMain->execute();
+                        $stmtMain->close();
+                    }
+                }
             }
+
+            if (!empty($usuario_info['email'])) {
+                $this->notificarUsuarioDirecto(
+                    $usuario_info['email'],
+                    $usuario_info['nombre'] ?? 'Usuario',
+                    'Tu usuario IZZY fue eliminado',
+                    'Tu cuenta de usuario fue eliminada del sistema.',
+                    ['Usuario'=>$usuario_info['email']],
+                    [],
+                    'warning',
+                    false,
+                    'Si considera que esta acción no corresponde, comuníquese con el administrador de su empresa.'
+                );
+            }
+            $this->notificarAuditoriaUsuario(
+                'Usuario eliminado',
+                'Se eliminó un usuario del sistema.',
+                ['Usuario'=>$usuario_info['email'] ?? '', 'Nombre'=>$usuario_info['nombre'] ?? ''],
+                [],
+                'audit'
+            );
 
             return json_encode([
                 "status" => "success",
@@ -474,8 +671,6 @@ class usuarioControlador extends usuarioModelo{
             ]);
         }
 
-        $info_usuario = $this->obtenerInfoUsuarioParaCorreo($users_id);
-
         // Generar nueva contraseña
         $nueva_pass = mainModel::generar_password_complejo();
         $pass_encriptada = mainModel::encryption($nueva_pass);
@@ -483,19 +678,29 @@ class usuarioControlador extends usuarioModelo{
         // Actualizar contraseña
         if(usuarioModelo::resetear_password_modelo($users_id, $pass_encriptada)) {
 
+            // Obtener información del usuario para enviar correo y sincronizar el espejo.
+            $info_usuario = $this->obtenerInfoUsuarioParaCorreo($users_id);
+
             // Actualizar en la base de datos principal si es necesario.
-            // El users_id local no tiene por qué coincidir con el users_id del espejo;
-            // por eso se identifica por correo + server_customers_id.
-            if($GLOBALS['db'] !== $GLOBALS['DB_MAIN'] && $info_usuario) {
-                $this->actualizarPasswordEspejoDBPrincipal(
-                    $info_usuario['email'],
-                    $server_customers_id,
-                    $pass_encriptada
-                );
+            // Se identifica por correo + cliente porque el users_id local puede ser distinto al de DB_MAIN.
+            if($GLOBALS['db'] !== $GLOBALS['DB_MAIN'] && $info_usuario && !empty($info_usuario['email'])) {
+                $conexionMain = mainModel::connectionLogin();
+                $stmtMain = $conexionMain->prepare("
+                    UPDATE users
+                    SET password = ?
+                    WHERE email = ?
+                      AND server_customers_id = ?
+                ");
+                if ($stmtMain) {
+                    $serverMain = (int)$server_customers_id;
+                    $correoMain = mainModel::cleanStringStrtolower($info_usuario['email']);
+                    $stmtMain->bind_param("ssi", $pass_encriptada, $correoMain, $serverMain);
+                    $stmtMain->execute();
+                    $stmtMain->close();
+                }
             }
 
-            // Obtener información del usuario para enviar correo
-            
+            // Enviar la nueva credencial únicamente al usuario afectado.
             if($info_usuario && !empty($info_usuario['email'])) {
                 $sendEmail = new sendEmail();
 
@@ -504,6 +709,13 @@ class usuarioControlador extends usuarioModelo{
                     $nueva_pass,
                     $info_usuario['nombre'],
                     $sendEmail
+                );
+                $this->notificarAuditoriaUsuario(
+                    'Contraseña de usuario restablecida',
+                    'Se restableció la contraseña de un usuario. La nueva credencial fue enviada únicamente al usuario correspondiente.',
+                    ['Usuario'=>$info_usuario['email'], 'Nombre'=>$info_usuario['nombre'] ?? ''],
+                    [],
+                    'security'
                 );
             }
             
@@ -523,29 +735,6 @@ class usuarioControlador extends usuarioModelo{
     }
 
     /*----------- Funciones privadas auxiliares -----------*/
-    /**
-     * Genera un username legible a partir del correo.
-     * Ejemplo: cestonipamela@gmail.com -> cestonipamela
-     * La tabla usa CHAR(20), por eso se limita a 20 caracteres.
-     */
-    private function generarUsernameLegible($correo){
-        $correo = strtolower(trim((string)$correo));
-        $base = strstr($correo, '@', true);
-
-        if ($base === false || $base === '') {
-            $base = 'usuario';
-        }
-
-        $base = preg_replace('/[^a-z0-9._-]/', '', $base);
-        $base = trim($base, '._-');
-
-        if ($base === '') {
-            $base = 'usuario';
-        }
-
-        return substr($base, 0, 20);
-    }
-
     private function guardarUsuarioEnDBPrincipal($colaborador_id, $correo, $password, $server_customers_id){
 
         // Obtener datos del colaborador local
@@ -589,7 +778,7 @@ class usuarioControlador extends usuarioModelo{
             );
             
             if(!$stmt_colab->execute()) {
-                throw new Exception("Error al guardar colaborador en DB principal: " . $stmt_colab->error);
+                throw new Exception("Error al guardar colaborador en DB principal");
             }
             
             // Insertar usuario en DB principal
@@ -603,7 +792,6 @@ class usuarioControlador extends usuarioModelo{
                     users_id,
                     colaboradores_id,
                     privilegio_id,
-                    username,
                     password,
                     email,
                     tipo_user_id,
@@ -612,17 +800,13 @@ class usuarioControlador extends usuarioModelo{
                     empresa_id,
                     server_customers_id
                 ) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, 1, NOW(), 1, ?)
+                VALUES (?, ?, ?, ?, ?, ?, 1, NOW(), 1, ?)
             ");
-
-            $username_main = $this->generarUsernameLegible($correo);
-
-            $stmt_user->bind_param(
-                "iiisssii",
+            
+            $stmt_user->bind_param("iiissii", 
                 $users_id_main,
                 $colaboradores_id_main,
                 $privilegio_id_default,
-                $username_main,
                 $password,
                 $correo,
                 $tipo_user_default,
@@ -630,14 +814,13 @@ class usuarioControlador extends usuarioModelo{
             );
             
             if(!$stmt_user->execute()) {
-                throw new Exception("Error al guardar usuario en DB principal: " . $stmt_user->error);
+                throw new Exception("Error al guardar usuario en DB principal");
             }
             
             $conexion_main->commit();
             return true;
             
         } catch(Exception $e) {
-            error_log("IZZY usuarios - sincronización MAIN: " . $e->getMessage());
             $conexion_main->rollback();
             return false;
 
@@ -646,186 +829,51 @@ class usuarioControlador extends usuarioModelo{
         }
     }
     
-
-    private function actualizarUsuarioEspejoDBPrincipal($correo_anterior, $correo_nuevo, $estado, $server_customers_id){
-        $conexion_main = mainModel::connectionLogin();
-        $stmt = $conexion_main->prepare("UPDATE users SET email = ?, estado = ? WHERE email = ? AND server_customers_id = ?");
-        if(!$stmt) return false;
-        $stmt->bind_param("sisi", $correo_nuevo, $estado, $correo_anterior, $server_customers_id);
-        $ok = $stmt->execute();
-        $stmt->close();
-        return $ok;
-    }
-
-    private function actualizarPasswordEspejoDBPrincipal($correo, $server_customers_id, $password){
-        $conexion_main = mainModel::connectionLogin();
-        $stmt = $conexion_main->prepare("UPDATE users SET password = ? WHERE email = ? AND server_customers_id = ?");
-        if(!$stmt) return false;
-        $stmt->bind_param("ssi", $password, $correo, $server_customers_id);
-        $ok = $stmt->execute();
-        $stmt->close();
-        return $ok;
-    }
-
-    private function eliminarUsuarioEspejoDBPrincipal($correo, $server_customers_id){
-        $conexion_main = mainModel::connectionLogin();
-        $stmt = $conexion_main->prepare("DELETE FROM users WHERE email = ? AND server_customers_id = ?");
-        if(!$stmt) return false;
-        $stmt->bind_param("si", $correo, $server_customers_id);
-        $ok = $stmt->execute();
-        $stmt->close();
-        return $ok;
-    }
-
     private function enviarCorreoBienvenida($correo_usuario, $pass, $privilegio_id, $empresa_id, $users_id, $sendEmail, $colaborador_id){
-
-        // Obtener datos del colaborador nuevo/asignado al usuario
         $colaboradorData = usuarioModelo::get_colaborador_info($colaborador_id);
-        $colaborador_nombre = $colaboradorData ? trim($colaboradorData['nombre']) : "Usuario";
-        
-        // Obtener datos del privilegio
+        $colaborador_nombre = $colaboradorData ? trim((string)$colaboradorData['nombre']) : "Usuario";
         $privilegioData = usuarioModelo::get_privilegio_info($privilegio_id);
-        $privilegio_nombre = $privilegioData ? trim($privilegioData['nombre']) : "";
-
-        // Obtener datos de la empresa
+        $privilegio_nombre = $privilegioData ? trim((string)$privilegioData['nombre']) : "";
         $empresaData = usuarioModelo::get_empresa_info($empresa_id);
-        $empresa_nombre = $empresaData ? strtoupper(trim($empresaData['nombre'])) : "LA EMPRESA";
+        $empresa_nombre = $empresaData ? trim((string)$empresaData['nombre']) : "Empresa";
 
-        $correo_tipo_id = 1; // Notificaciones
-
-        $destinatarios = [
-            $correo_usuario => $colaborador_nombre
-        ];
-
-        $bccDestinatarios = $this->obtenerCorreosAdministradores($users_id);
-
-        $asunto = "¡Bienvenido! Registro de Usuario Exitoso";
-
-        $mensaje = '
-            <div style="padding: 20px;">
-                <p style="margin-bottom: 10px;">
-                    ¡Hola '.$colaborador_nombre.'!
-                </p>
-
-                <p>
-                    Tu registro en el sistema de <b>'.$empresa_nombre.'</b> ha sido exitoso.
-                </p>
-
-                <p>
-                    <strong>Tus credenciales de acceso son:</strong>
-                </p>
-
-                <ul>
-                    <li><strong>Usuario:</strong> '.$correo_usuario.'</li>
-                    <li><strong>Contraseña temporal:</strong> '.$pass.'</li>
-                    <li><strong>Privilegio:</strong> '.$privilegio_nombre.'</li>
-                </ul>
-
-                <p>
-                    Por seguridad, te recomendamos cambiar tu contraseña después del primer acceso.
-                </p>
-
-                <p>
-                    Atentamente,<br>
-                    El equipo de '.$empresa_nombre.'
-                </p>
-            </div>
-        ';
-
-        $archivos_adjuntos = [];
-
-        $sendEmail->enviarCorreo(
-            $destinatarios,
-            $bccDestinatarios,
-            $asunto,
-            $mensaje,
-            $correo_tipo_id,
-            $empresa_id,
-            $archivos_adjuntos
+        return $this->notificarUsuarioDirecto(
+            $correo_usuario,
+            $colaborador_nombre,
+            'Tu usuario IZZY fue creado',
+            'Tu cuenta fue creada correctamente. Utiliza estas credenciales para ingresar al sistema.',
+            [
+                'Usuario'=>$correo_usuario,
+                'Contraseña temporal'=>$pass,
+                'Privilegio'=>$privilegio_nombre,
+                'Empresa'=>$empresa_nombre
+            ],
+            [],
+            'security',
+            true,
+            'Por seguridad, cambia tu contraseña después del primer inicio de sesión y no compartas tus credenciales.'
         );
     }
-    
+
     private function enviarCorreoResetPassword($correo, $nueva_pass, $nombre_usuario, $sendEmail) {
-
-        $empresa_id_sesion = isset($_SESSION['empresa_id_sd']) ? (int)$_SESSION['empresa_id_sd'] : 0;
-        
-        // Obtener datos de la empresa
-        $empresaData = usuarioModelo::get_empresa_info($empresa_id_sesion);
-        $empresa_nombre = $empresaData ? strtoupper(trim($empresaData['nombre'])) : "LA EMPRESA";
-
-        $correo_tipo_id = 2; // Soporte
-
-        $destinatarios = [
-            $correo => $nombre_usuario
-        ];
-
-        $bccDestinatarios = $this->obtenerCorreosAdministradores($_SESSION['users_id_sd']);
-
-        $asunto = "Restablecimiento de Contraseña";
-
-        $mensaje = '
-            <div style="padding: 20px;">
-                <p style="margin-bottom: 10px;">
-                    ¡Hola '.$nombre_usuario.'!
-                </p>
-
-                <p>
-                    Tu contraseña en el sistema de <b>'.$empresa_nombre.'</b> ha sido restablecida.
-                </p>
-
-                <p>
-                    <strong>Tu nueva contraseña temporal es:</strong> '.$nueva_pass.'
-                </p>
-
-                <p>
-                    Por seguridad, te recomendamos cambiar esta contraseña después de iniciar sesión.
-                </p>
-
-                <p>
-                    Atentamente,<br>
-                    El equipo de '.$empresa_nombre.'
-                </p>
-            </div>
-        ';
-
-        $archivos_adjuntos = [];
-
-        $sendEmail->enviarCorreo(
-            $destinatarios,
-            $bccDestinatarios,
-            $asunto,
-            $mensaje,
-            $correo_tipo_id,
-            $empresa_id_sesion,
-            $archivos_adjuntos
+        return $this->notificarUsuarioDirecto(
+            $correo,
+            $nombre_usuario,
+            'Restablecimiento de contraseña',
+            'Tu contraseña de IZZY fue restablecida correctamente.',
+            [
+                'Usuario'=>$correo,
+                'Contraseña temporal'=>$nueva_pass
+            ],
+            [],
+            'security',
+            true,
+            'Por seguridad, cambia esta contraseña después de iniciar sesión y no la compartas con nadie.'
         );
     }
-    
+
     private function obtenerInfoUsuarioParaCorreo($users_id) {
         return usuarioModelo::get_usuario_info($users_id);
     }
     
-    private function obtenerCorreosAdministradores($users_id){
-
-        $bccDestinatarios = [];
-        
-        $correos_administradores = usuarioModelo::getCorrreosAdmin();
-        
-        if ($correos_administradores) {
-            foreach ($correos_administradores as $row) {
-                if (!empty($row["email"]) && filter_var($row["email"], FILTER_VALIDATE_EMAIL)) {
-                    $bccDestinatarios[$row["email"]] = $row["nombre_completo"];
-                }
-            }
-        }
-        
-        // Obtener datos del usuario revendedor
-        $usuario_revendedor = usuarioModelo::get_usuario_revendedor($users_id);
-        
-        if ($usuario_revendedor && !empty($usuario_revendedor['email']) && filter_var($usuario_revendedor['email'], FILTER_VALIDATE_EMAIL)) {
-            $bccDestinatarios[$usuario_revendedor['email']] = $usuario_revendedor['nombre_completo'];
-        }
-        
-        return $bccDestinatarios;
-    }
 }

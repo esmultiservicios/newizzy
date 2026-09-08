@@ -1,11 +1,20 @@
 <?php
 if($peticionAjax){
     require_once "../modelos/secuenciaFacturacionModelo.php";
+    require_once "../core/correo/NotificationService.php";
 }else{
     require_once "./modelos/secuenciaFacturacionModelo.php";
+    require_once "./core/correo/NotificationService.php";
 }
 
 class secuenciaFacturacionControlador extends secuenciaFacturacionModelo{
+    private function notificarSecuencia($titulo, $resumen, array $detalles = [], array $cambios = [], $tipo = 'audit', $empresaId = 0){
+        try{
+            $svc=new NotificationService();$db=$svc->currentDbName();$ctx=$svc->clientContextFromDb($db);
+            return $svc->notifyClientAndMain($db,$empresaId,$ctx['cliente_nombre']??'Cliente IZZY','IZZY · '.$titulo,$resumen,$detalles,$cambios,'IZZY · Auditoría · '.$titulo,$resumen,$detalles,$cambios,$tipo);
+        }catch(Throwable $e){error_log('Secuencia - notificación: '.$e->getMessage());return [];}
+    }
+
 
     public function agregar_secuencia_facturacion_controlador(){
         $validacion = mainModel::validarSesion();
@@ -104,6 +113,10 @@ class secuenciaFacturacionControlador extends secuenciaFacturacionModelo{
             ]);
         }
 
+        $this->notificarSecuencia('Secuencia creada','Se creó una nueva secuencia de facturación.',[
+            'Empresa ID'=>$empresa_id,'Documento'=>$documento['nombre']??$documento_id,'CAI'=>$cai,'Prefijo'=>$prefijo,'Rango'=>$rango_inicial.' - '.$rango_final,'Siguiente'=>$siguiente,'Fecha límite'=>$fecha_limite,'Estado'=>$activo===1?'Activa':'Inactiva'
+        ],[],'success',$empresa_id);
+
         return mainModel::showNotification([
             "type" => "success",
             "title" => "Registro exitoso",
@@ -200,6 +213,14 @@ class secuenciaFacturacionControlador extends secuenciaFacturacionModelo{
             ]);
         }
 
+        $cambiosSecuencia=[];
+        $mapSec=[
+            'Siguiente'=>[$rowInfo['siguiente']??'', $siguiente],
+            'Estado'=>[((int)($rowInfo['activo']??0)===1?'Activa':'Inactiva'), ($activo===1?'Activa':'Inactiva')]
+        ];
+        foreach($mapSec as $label=>$pair) if((string)$pair[0] !== (string)$pair[1]) $cambiosSecuencia[$label]=['anterior'=>$pair[0],'nuevo'=>$pair[1]];
+        $this->notificarSecuencia('Secuencia actualizada','Se actualizó una secuencia de facturación.',['Documento'=>$documento['nombre']??$documento_id,'CAI'=>$cai,'Prefijo'=>$prefijo,'Rango'=>$rango_inicial.' - '.$rango_final,'Fecha límite'=>$fecha_limite],$cambiosSecuencia,'info',$empresa_id);
+
         return mainModel::showNotification([
             "type" => "success",
             "title" => "Registro exitoso",
@@ -221,6 +242,8 @@ class secuenciaFacturacionControlador extends secuenciaFacturacionModelo{
             $this->jsonDelete("error", "Error", "Secuencia no encontrada.");
         }
 
+        $rowEliminar = $info->fetch_assoc();
+
         if(secuenciaFacturacionModelo::valid_secuencia_facturacion_facturas($secuencia_facturacion_id)->num_rows > 0){
             $this->jsonDelete("error", "No se puede eliminar", "La secuencia tiene documentos de facturación asociados y debe conservarse para mantener la trazabilidad.");
         }
@@ -229,6 +252,7 @@ class secuenciaFacturacionControlador extends secuenciaFacturacionModelo{
             $this->jsonDelete("error", "Error", "No se pudo eliminar la secuencia.");
         }
 
+        $this->notificarSecuencia('Secuencia eliminada','Se eliminó una secuencia de facturación.',['ID'=>$secuencia_facturacion_id,'Empresa ID'=>$rowEliminar['empresa_id']??'','Documento ID'=>$rowEliminar['documento_id']??'','Rango'=>($rowEliminar['rango_inicial']??'').' - '.($rowEliminar['rango_final']??'')],[],'warning',(int)($rowEliminar['empresa_id']??0));
         $this->jsonDelete("success", "Eliminado", "Secuencia de facturación eliminada correctamente.");
     }
 

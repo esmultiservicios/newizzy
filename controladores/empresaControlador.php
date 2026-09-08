@@ -1,8 +1,10 @@
 <?php
 if ($peticionAjax) {
     require_once '../modelos/empresaModelo.php';
+    require_once '../core/correo/NotificationService.php';
 } else {
     require_once './modelos/empresaModelo.php';
+    require_once './core/correo/NotificationService.php';
 }
 
 /**
@@ -13,6 +15,32 @@ if ($peticionAjax) {
 
 class empresaControlador extends empresaModelo
 {
+    private function notificarCambioEmpresa($titulo, $resumen, array $detalles = [], array $cambios = [], $tipo = 'audit', $empresaId = 0)
+    {
+        try {
+            $service = new NotificationService();
+            $db = $service->currentDbName();
+            $ctx = $service->clientContextFromDb($db);
+            return $service->notifyClientAndMain(
+                $db,
+                $empresaId,
+                $ctx['cliente_nombre'] ?? 'Cliente IZZY',
+                'IZZY · '.$titulo,
+                $resumen,
+                $detalles,
+                $cambios,
+                'IZZY · Auditoría · '.$titulo,
+                $resumen,
+                $detalles,
+                $cambios,
+                $tipo
+            );
+        } catch (Throwable $e) {
+            error_log('Empresa - notificación: '.$e->getMessage());
+            return [];
+        }
+    }
+
     /* =========================================================
        UTILIDADES DE ARCHIVOS (NOMBRES CORTOS Y ÚNICOS)
        ========================================================= */
@@ -206,6 +234,21 @@ class empresaControlador extends empresaModelo
             exit;
         }
 
+        $this->notificarCambioEmpresa(
+            'Empresa creada',
+            'Se registró una nueva empresa.',
+            [
+                'Empresa' => $empresa,
+                'Razón social' => $razon_social,
+                'RTN' => $rtn,
+                'Correo' => $correo,
+                'Teléfono' => $telefono,
+                'Estado' => 'Activa'
+            ],
+            [],
+            'success'
+        );
+
         $resp = mainModel::showNotification([
             "type"    => "success",
             "title"   => "Registro exitoso",
@@ -233,6 +276,13 @@ class empresaControlador extends empresaModelo
         }
 
         $empresa_id = $_POST['empresa_id'];
+
+        $empresaDatosAnterior = null;
+        try {
+            $cnPrev = mainModel::connection();
+            $stPrev = $cnPrev->prepare('SELECT nombre,razon_social,rtn,correo,telefono,celular,ubicacion,estado FROM empresa WHERE empresa_id=? LIMIT 1');
+            if ($stPrev) { $eid=(int)$empresa_id; $stPrev->bind_param('i',$eid); $stPrev->execute(); $empresaDatosAnterior=$stPrev->get_result()->fetch_assoc(); $stPrev->close(); }
+        } catch (Throwable $e) { error_log('Empresa - lectura previa: '.$e->getMessage()); }
 
         // Obtener datos actuales
         $empresaActual = empresaModelo::getImage($empresa_id)->fetch_assoc();
@@ -351,6 +401,20 @@ class empresaControlador extends empresaModelo
             $this->eliminarFisicoSiAplica($firmaActual);
         }
 
+        $cambiosEmpresa = [];
+        if ($empresaDatosAnterior) {
+            $mapCambios = [
+                'Nombre'=>[$empresaDatosAnterior['nombre'] ?? '', $datos['empresa']],
+                'Razón social'=>[$empresaDatosAnterior['razon_social'] ?? '', $datos['razon_social']],
+                'RTN'=>[$empresaDatosAnterior['rtn'] ?? '', $datos['rtn']],
+                'Correo'=>[$empresaDatosAnterior['correo'] ?? '', $datos['correo']],
+                'Teléfono'=>[$empresaDatosAnterior['telefono'] ?? '', $datos['telefono']],
+                'Estado'=>[((int)($empresaDatosAnterior['estado'] ?? 0)===1?'Activa':'Inactiva'), ((int)$datos['estado']===1?'Activa':'Inactiva')]
+            ];
+            foreach ($mapCambios as $label=>$pair) if ((string)$pair[0] !== (string)$pair[1]) $cambiosEmpresa[$label]=['anterior'=>$pair[0],'nuevo'=>$pair[1]];
+        }
+        $this->notificarCambioEmpresa('Empresa actualizada','Se actualizaron los datos de una empresa.',['Empresa'=>$datos['empresa'],'RTN'=>$datos['rtn']],$cambiosEmpresa,'info',(int)$empresa_id);
+
         $resp = mainModel::showNotification([
             "type"    => "success",
             "title"   => "Actualización exitosa",
@@ -417,6 +481,14 @@ class empresaControlador extends empresaModelo
             exit;
         }
     
+        $empresaNombreEliminar = 'Empresa #'.$empresa_id;
+        $empresaRtnEliminar = '';
+        try {
+            $cnDel = mainModel::connection();
+            $stDel = $cnDel->prepare('SELECT nombre,rtn FROM empresa WHERE empresa_id=? LIMIT 1');
+            if ($stDel) { $stDel->bind_param('i',$empresa_id); $stDel->execute(); $rDel=$stDel->get_result()->fetch_assoc(); $stDel->close(); if($rDel){$empresaNombreEliminar=$rDel['nombre'];$empresaRtnEliminar=$rDel['rtn'];} }
+        } catch (Throwable $e) {}
+
         // Eliminar en DB
         if (!empresaModelo::delete_empresa_modelo($empresa_id)) {
             echo json_encode([
@@ -430,6 +502,8 @@ class empresaControlador extends empresaModelo
         // Eliminar archivos físicos (en ENTERPRISE_PATH)
         $this->eliminarFisicoSiAplica($logo);
         $this->eliminarFisicoSiAplica($firma);
+
+        $this->notificarCambioEmpresa('Empresa eliminada','Se eliminó una empresa.',['Empresa'=>$empresaNombreEliminar,'RTN'=>$empresaRtnEliminar,'ID'=>$empresa_id],[],'warning');
     
         echo json_encode([
             "status"  => "success",

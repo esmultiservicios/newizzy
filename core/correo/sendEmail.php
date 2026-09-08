@@ -7,6 +7,7 @@ if (!isset($peticionAjax)) {
 
 require_once __DIR__ . '/../configAPP.php';
 require_once __DIR__ . '/../mainModel.php';
+require_once __DIR__ . '/emailTemplates.php';
 
 require_once __DIR__ . '/../phpmailer/Exception.php';
 require_once __DIR__ . '/../phpmailer/PHPMailer.php';
@@ -17,8 +18,11 @@ use PHPMailer\PHPMailer\Exception;
 
 class sendEmail {
 
-    public function __construct() {
+    private $databaseName = null;
 
+    public function __construct($databaseName = null) {
+        $databaseName = trim((string)$databaseName);
+        $this->databaseName = $databaseName !== '' ? $databaseName : null;
     }
 
     public function decryptionEmail($string) {
@@ -35,6 +39,21 @@ class sendEmail {
 
     private function obtenerConexion() {
         $mainModel = new mainModel();
+
+        if ($this->databaseName !== null) {
+            if (method_exists($mainModel, 'connectionDBLocal')) {
+                return $mainModel->connectionDBLocal($this->databaseName);
+            }
+            if (method_exists($mainModel, 'connectToDatabase')) {
+                return $mainModel->connectToDatabase([
+                    'host' => SERVER,
+                    'user' => USER,
+                    'pass' => PASS,
+                    'name' => $this->databaseName
+                ]);
+            }
+        }
+
         return $mainModel->connection();
     }
 
@@ -172,14 +191,21 @@ class sendEmail {
     }
 
     private function datosEmpresaDefault() {
+        /*
+         * Fallback neutro: nunca reutilizar branding de otra empresa si la
+         * configuración del cliente/principal no pudo resolverse. La plantilla
+         * mostrará el nombre en texto y omitirá logo/datos inexistentes.
+         */
         return [
-            "empresa" => "CLINICARE",
-            "logotipo" => "logo.png",
-            "ubicacion" => "Col. Monte Carlo, 6-7 , 22 AVENIDA B Casa #17 San Pedro Sula, Cortes",
-            "telefono" => "+504 25035517",
-            "sitioweb" => "https://clinicarehn.com",
-            "correo" => "clinicare@clinicarehn.com",
-            "rtn" => "05019021318813"
+            "empresa" => defined('COMPANY') && trim((string)COMPANY) !== '' ? trim((string)COMPANY) : "IZZY",
+            "logotipo" => "",
+            "ubicacion" => "",
+            "telefono" => "",
+            "celular" => "",
+            "sitioweb" => defined('SERVERURL') ? rtrim((string)SERVERURL, '/') : "",
+            "correo" => "",
+            "rtn" => "",
+            "eslogan" => ""
         ];
     }
 
@@ -189,7 +215,15 @@ class sendEmail {
         $empresa_id = (int)$empresa_id;
 
         if ($empresa_id <= 0) {
-            return $this->datosEmpresaDefault();
+            $query = "SELECT empresa_id, nombre, logotipo, ubicacion, telefono, sitioweb, correo, rtn, eslogan, celular
+                      FROM empresa WHERE estado = 1 ORDER BY empresa_id ASC LIMIT 1";
+            $resultado = $conexion->query($query);
+            if ($resultado && $resultado->num_rows > 0) {
+                $rowEmpresa = $resultado->fetch_assoc();
+                $empresa_id = (int)$rowEmpresa['empresa_id'];
+            } else {
+                return $this->datosEmpresaDefault();
+            }
         }
 
         $query = "SELECT 
@@ -199,7 +233,9 @@ class sendEmail {
                     telefono,
                     sitioweb,
                     correo,
-                    rtn
+                    rtn,
+                    eslogan,
+                    celular
                   FROM empresa
                   WHERE empresa_id = ?
                     AND estado = 1
@@ -240,7 +276,9 @@ class sendEmail {
                 "telefono" => $numero_formateado,
                 "sitioweb" => $rowEmpresa["sitioweb"],
                 "correo" => $rowEmpresa["correo"],
-                "rtn" => $rowEmpresa["rtn"]
+                "rtn" => $rowEmpresa["rtn"],
+                "eslogan" => $rowEmpresa["eslogan"] ?? "",
+                "celular" => $rowEmpresa["celular"] ?? ""
             ];
         }
 
@@ -255,7 +293,7 @@ class sendEmail {
         return "Sistema";
     }
 
-    public function enviarCorreo($destinatarios, $bccDestinatarios, $asunto, $mensaje, $correo_tipo_id, $empresa_id, $archivos_adjuntos = []) {
+    public function enviarCorreo($destinatarios, $bccDestinatarios, $asunto, $mensaje, $correo_tipo_id, $empresa_id, $archivos_adjuntos = [], $templateType = 'info') {
         ini_set('max_execution_time', 300);
 
         $configResult = $this->obtenerConfiguracionCorreo($correo_tipo_id);
@@ -268,7 +306,7 @@ class sendEmail {
         $configCorreo = $configResult["data"];
 
         $datos_empresa = $this->obtenerDatosEmpresaPlantilla($empresa_id);
-        $htmlMensaje = $this->getCorreoPlantilla($asunto, $mensaje, $datos_empresa);
+        $htmlMensaje = $this->getCorreoPlantilla($asunto, $mensaje, $datos_empresa, $templateType);
 
         if ($configCorreo["metodo_envio"] === "GRAPH") {
             $resultado = $this->enviarCorreoGraph(
@@ -1021,162 +1059,34 @@ class sendEmail {
         ];
     }
 
-    public function getCorreoPlantilla($asunto, $mensaje, $datos_empresa) {
-        $nombreEmpresa = isset($datos_empresa["empresa"]) && trim($datos_empresa["empresa"]) != ""
-            ? trim($datos_empresa["empresa"])
-            : "ES MULTISERVICIOS";
-    
-        $direccionEmpresa = isset($datos_empresa["ubicacion"]) && trim($datos_empresa["ubicacion"]) != ""
-            ? trim($datos_empresa["ubicacion"])
-            : "";
-    
-        $telefonoEmpresa = isset($datos_empresa["telefono"]) && trim($datos_empresa["telefono"]) != ""
-            ? trim($datos_empresa["telefono"])
-            : "";
-    
-        $rtnEmpresa = isset($datos_empresa["rtn"]) && trim($datos_empresa["rtn"]) != ""
-            ? trim($datos_empresa["rtn"])
-            : "";
-    
-        $sitioWebEmpresa = isset($datos_empresa["sitioweb"]) && trim($datos_empresa["sitioweb"]) != ""
-            ? trim($datos_empresa["sitioweb"])
-            : "";
-    
-        $logotipoEmpresa = isset($datos_empresa["logotipo"]) && trim($datos_empresa["logotipo"]) != ""
-            ? trim($datos_empresa["logotipo"])
-            : "esmultiservicios_logo.png";
-    
-        /*
-            IMPORTANTE:
-            El logo real está en:
-            vistas/plantilla/img/enterprise/
-    
-            Antes se usaba:
-            vistas/plantilla/img/logos/
-    
-            Por eso el logo salía roto en el correo.
-        */
-        $urlLogoEmpresa = SERVERURL . "vistas/plantilla/img/enterprise/" . $logotipoEmpresa;
-    
-        $htmlTelefono = "";
-        if ($telefonoEmpresa != "") {
-            $htmlTelefono = '<p style="margin: 8px 0 0 0;">Teléfono: '.$telefonoEmpresa.'</p>';
+    public function getCorreoPlantilla($asunto, $mensaje, $datos_empresa, $tipo = 'info') {
+        $nombreEmpresa = isset($datos_empresa['empresa']) && trim((string)$datos_empresa['empresa']) !== ''
+            ? trim((string)$datos_empresa['empresa'])
+            : 'ES MULTISERVICIOS';
+
+        $logotipoEmpresa = isset($datos_empresa['logotipo']) && trim((string)$datos_empresa['logotipo']) !== ''
+            ? trim((string)$datos_empresa['logotipo'])
+            : '';
+
+        $urlLogoEmpresa = '';
+        if ($logotipoEmpresa !== '' && $logotipoEmpresa !== 'image_preview.png') {
+            $urlLogoEmpresa = rtrim(SERVERURL, '/') . '/vistas/plantilla/img/enterprise/' . rawurlencode($logotipoEmpresa);
         }
-    
-        $htmlRtn = "";
-        if ($rtnEmpresa != "") {
-            $htmlRtn = '<p style="margin: 8px 0 0 0;">RTN: '.$rtnEmpresa.'</p>';
-        }
-    
-        $htmlSitioWeb = "";
-        if ($sitioWebEmpresa != "") {
-            $htmlSitioWeb = '
-                <p style="margin: 8px 0 0 0;">
-                    Sitio Web: 
-                    <a href="'.$sitioWebEmpresa.'" target="_blank" style="color: #0d6efd; text-decoration: none;">
-                        '.$sitioWebEmpresa.'
-                    </a>
-                </p>
-            ';
-        }
-    
-        $htmlDireccion = "";
-        if ($direccionEmpresa != "") {
-            $htmlDireccion = '<p style="margin: 10px 0 0 0;">'.$direccionEmpresa.'</p>';
-        }
-    
-        $encabezado = '
-            <div style="
-                background-color: #f2f2f2;
-                padding: 24px 20px;
-                text-align: center;
-                font-family: Arial, Helvetica, sans-serif;
-                color: #2d2d2d;
-            ">
-                <img 
-                    src="'.$urlLogoEmpresa.'" 
-                    alt="Logo de '.$nombreEmpresa.'" 
-                    style="
-                        display: block;
-                        margin: 0 auto 14px auto;
-                        max-width: 230px;
-                        width: auto;
-                        height: auto;
-                        border: 0;
-                        outline: none;
-                        text-decoration: none;
-                    "
-                >
-    
-                <h1 style="
-                    margin: 0;
-                    font-size: 26px;
-                    letter-spacing: 1px;
-                    color: #2d2d2d;
-                    font-weight: 700;
-                ">
-                    '.$nombreEmpresa.'
-                </h1>
-    
-                '.$htmlDireccion.'
-                '.$htmlTelefono.'
-                '.$htmlRtn.'
-                '.$htmlSitioWeb.'
-            </div>
-        ';
-    
-        $pieDePagina = '
-            <div style="
-                background-color: #f2f2f2;
-                padding: 18px 20px;
-                text-align: center;
-                font-family: Arial, Helvetica, sans-serif;
-                color: #2d2d2d;
-                font-size: 13px;
-            ">
-                <p style="margin: 0;">
-                    <b>Este correo fue enviado por '.$nombreEmpresa.', por favor no responda a este correo.</b>
-                </p>
-            </div>
-        ';
-    
-        $htmlMensaje = '
-            <html>
-                <head>
-                    <title>'.$asunto.'</title>
-                    <meta charset="UTF-8">
-                </head>
-    
-                <body style="
-                    margin: 0;
-                    padding: 0;
-                    background-color: #ffffff;
-                    font-family: Arial, Helvetica, sans-serif;
-                    color: #2d3748;
-                ">
-                    '.$encabezado.'
-    
-                    <div style="
-                        padding: 24px 20px;
-                        font-family: Arial, Helvetica, sans-serif;
-                        color: #2d3748;
-                    ">
-                        <h1 style="
-                            margin: 0 0 20px 0;
-                            font-size: 26px;
-                            color: #2d2d2d;
-                        ">
-                            '.$asunto.'
-                        </h1>
-    
-                        '.$mensaje.'
-                    </div>
-    
-                    '.$pieDePagina.'
-                </body>
-            </html>
-        ';
-    
-        return $htmlMensaje;
+
+        $datosPlantilla = [
+            'nombre' => $nombreEmpresa,
+            'empresa' => $nombreEmpresa,
+            'url_logo' => $urlLogoEmpresa,
+            'ubicacion' => $datos_empresa['ubicacion'] ?? '',
+            'telefono' => $datos_empresa['telefono'] ?? '',
+            'celular' => $datos_empresa['celular'] ?? '',
+            'correo' => $datos_empresa['correo'] ?? '',
+            'sitioweb' => $datos_empresa['sitioweb'] ?? '',
+            'eslogan' => $datos_empresa['eslogan'] ?? ''
+        ];
+
+        $template = new emailTemplates();
+        return $template->plantillaContenido($asunto, $mensaje, $datosPlantilla, $tipo);
     }
+
 }

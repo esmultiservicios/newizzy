@@ -6,6 +6,7 @@ $peticionAjax = true;
 require_once __DIR__ . '/../configGenerales.php';
 require_once __DIR__ . '/../mainModel.php';
 require_once __DIR__ . '/AsignarPlanesSyncHelper.php';
+require_once __DIR__ . '/../correo/NotificationService.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -205,66 +206,130 @@ function apiUpdateMainMirrorUser(mysqli $main, $serverCustomerId, $oldEmail, arr
     return $affected;
 }
 
-function apiSendMailBase($email, $name, $subject, $bodyHtml) {
-    try {
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return false;
+function apiNotificationService() {
+    static $service = null;
+    if ($service === null) $service = new NotificationService();
+    return $service;
+}
 
-        $path = __DIR__ . '/../correo/sendEmail.php';
-        if (!file_exists($path)) return false;
-
-        require_once $path;
-        if (!class_exists('sendEmail')) return false;
-
-        $sender = new sendEmail();
-        $destinatarios = [$email => $name ?: 'Cliente IZZY'];
-        $bcc = [];
-        $empresaId = isset($_SESSION['empresa_id_sd']) ? (int)$_SESSION['empresa_id_sd'] : 1;
-
-        $mensaje =
-            '<div style="font-family:Arial,sans-serif;line-height:1.55;color:#24364b;padding:20px">' .
-                '<div style="font-size:18px;font-weight:700;color:#15324a;margin-bottom:12px">IZZY · ES MULTISERVICIOS</div>' .
-                $bodyHtml .
-                '<div style="margin-top:20px;padding-top:14px;border-top:1px solid #e3e9ef;color:#69798a;font-size:12px">' .
-                    'Este cambio fue realizado desde la administración central de <strong>ES MULTISERVICIOS</strong> y no directamente desde el sistema del cliente.' .
-                '</div>' .
-            '</div>';
-
-        $sender->enviarCorreo($destinatarios, $bcc, $subject, $mensaje, 2, $empresaId, []);
-        return true;
-    } catch (Throwable $e) {
-        error_log('IZZY admin clientes - correo: ' . $e->getMessage());
-        return false;
-    }
+function apiNotificationContext() {
+    global $sc;
+    return [
+        'db' => isset($sc['db']) ? trim((string)$sc['db']) : '',
+        'cliente' => isset($sc['cliente_nombre']) ? trim((string)$sc['cliente_nombre']) : 'Cliente IZZY'
+    ];
 }
 
 function apiSendPasswordMail($email, $name, $plainPassword) {
-    $safeName = htmlspecialchars($name ?: 'Usuario', ENT_QUOTES, 'UTF-8');
-    $safePass = htmlspecialchars($plainPassword, ENT_QUOTES, 'UTF-8');
+    $ctx = apiNotificationContext();
+    $service = apiNotificationService();
+    $direct = $service->notifyUser(
+        $ctx['db'],
+        0,
+        $email,
+        $name,
+        'IZZY · Credenciales de acceso',
+        'Tu usuario fue creado o su contraseña fue restablecida correctamente.',
+        [
+            'Usuario' => $email,
+            'Contraseña temporal' => $plainPassword,
+            'Cliente' => $ctx['cliente']
+        ],
+        [],
+        'security',
+        true,
+        'Por seguridad, cambia esta contraseña después de iniciar sesión.'
+    );
 
-    $body =
-        '<h3 style="margin:0 0 10px;color:#15324a">Nueva contraseña temporal</h3>' .
-        '<p>Hola '.$safeName.',</p>' .
-        '<p>ES MULTISERVICIOS generó una nueva contraseña temporal para tu acceso a IZZY.</p>' .
-        '<p style="padding:12px 14px;background:#f4f8fc;border-radius:8px"><strong>Nueva contraseña:</strong> '.$safePass.'</p>' .
-        '<p>Por seguridad, cambia esta contraseña después de iniciar sesión.</p>';
+    $service->notifyClientAndMain(
+        $ctx['db'],
+        0,
+        $ctx['cliente'],
+        'IZZY · Usuario / credencial actualizada',
+        'Se creó o actualizó una credencial de usuario y fue enviada únicamente al usuario correspondiente.',
+        ['Usuario'=>$email, 'Nombre'=>$name],
+        [],
+        'IZZY · Auditoría de usuario',
+        'Se creó o actualizó una credencial para un usuario del cliente. La contraseña no se incluye en esta notificación.',
+        ['Usuario'=>$email, 'Nombre'=>$name],
+        [],
+        'security'
+    );
 
-    return apiSendMailBase($email, $name, 'IZZY - Nueva contraseña temporal | ES MULTISERVICIOS', $body);
+    return !empty($direct['sent']);
 }
 
-function apiSendChangeMail($email, $name, $title, $detail, $clientName = '') {
-    $safeName = htmlspecialchars($name ?: 'Cliente', ENT_QUOTES, 'UTF-8');
-    $safeTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
-    $safeDetail = htmlspecialchars($detail, ENT_QUOTES, 'UTF-8');
-    $safeClient = htmlspecialchars($clientName, ENT_QUOTES, 'UTF-8');
+function apiSendChangeMail($email, $name, $title, $detail, $clientName = '', $changes = []) {
+    $ctx = apiNotificationContext();
+    $service = apiNotificationService();
+    $clientName = $clientName !== '' ? $clientName : $ctx['cliente'];
 
-    $body =
-        '<h3 style="margin:0 0 10px;color:#15324a">'.$safeTitle.'</h3>' .
-        '<p>Hola '.$safeName.',</p>' .
-        ($safeClient !== '' ? '<p>Se realizó un cambio administrativo para <strong>'.$safeClient.'</strong>.</p>' : '') .
-        '<p style="padding:12px 14px;background:#f4f8fc;border-radius:8px">'.$safeDetail.'</p>' .
-        '<p>Si no solicitaste este cambio o necesitas asistencia, contacta a ES MULTISERVICIOS.</p>';
+    $direct = ['sent'=>true];
+    if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $direct = $service->notifyUser(
+            $ctx['db'],
+            0,
+            $email,
+            $name,
+            'IZZY · '.$title,
+            $detail,
+            ['Cliente'=>$clientName],
+            $changes,
+            'security'
+        );
+    }
 
-    return apiSendMailBase($email, $name, 'IZZY - '.$title.' | ES MULTISERVICIOS', $body);
+    $service->notifyClientAndMain(
+        $ctx['db'],
+        0,
+        $clientName,
+        'IZZY · '.$title,
+        $detail,
+        ['Usuario'=>$email, 'Nombre'=>$name],
+        $changes,
+        'IZZY · Auditoría · '.$title,
+        'Se realizó una acción administrativa para un usuario del cliente.',
+        ['Usuario'=>$email, 'Nombre'=>$name, 'Acción'=>$title],
+        $changes,
+        'audit'
+    );
+
+    return !empty($direct['sent']);
+}
+
+function apiNotifyAdminEvent($title, $summary, array $details = [], array $changes = [], $type = 'audit', $empresaId = 0) {
+    $ctx = apiNotificationContext();
+    return apiNotificationService()->notifyClientAndMain(
+        $ctx['db'],
+        $empresaId,
+        $ctx['cliente'],
+        'IZZY · '.$title,
+        $summary,
+        $details,
+        $changes,
+        'IZZY · Auditoría · '.$title,
+        $summary,
+        $details,
+        $changes,
+        $type
+    );
+}
+
+function apiCatalogName(mysqli $client, $table, $idField, $id, $fallback = '') {
+    $allowed = [
+        'privilegio' => 'privilegio_id',
+        'tipo_user' => 'tipo_user_id',
+        'empresa' => 'empresa_id'
+    ];
+    if (!isset($allowed[$table]) || $allowed[$table] !== $idField) return $fallback;
+    $stmt = $client->prepare("SELECT nombre FROM `{$table}` WHERE `{$idField}`=? LIMIT 1");
+    if (!$stmt) return $fallback;
+    $id = (int)$id;
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row && trim((string)$row['nombre']) !== '' ? trim((string)$row['nombre']) : $fallback;
 }
 
 function apiCompanyEmail(mysqli $client, $empresaId) {
@@ -751,12 +816,35 @@ try {
                 throw new Exception('No se actualizó el usuario porque falló la sincronización con la base principal: '.$mirrorError->getMessage());
             }
 
+            $cambiosUsuario = [];
+            if ((int)$old['privilegio_id'] !== $priv) {
+                $cambiosUsuario['Privilegio'] = [
+                    'anterior'=>apiCatalogName($client, 'privilegio', 'privilegio_id', (int)$old['privilegio_id'], '#'.$old['privilegio_id']),
+                    'nuevo'=>apiCatalogName($client, 'privilegio', 'privilegio_id', $priv, '#'.$priv)
+                ];
+            }
+            if ((int)$old['tipo_user_id'] !== $tipo) {
+                $cambiosUsuario['Tipo / permisos'] = [
+                    'anterior'=>apiCatalogName($client, 'tipo_user', 'tipo_user_id', (int)$old['tipo_user_id'], '#'.$old['tipo_user_id']),
+                    'nuevo'=>apiCatalogName($client, 'tipo_user', 'tipo_user_id', $tipo, '#'.$tipo)
+                ];
+            }
+            if ((int)$old['empresa_id'] !== $empresa) {
+                $cambiosUsuario['Empresa'] = [
+                    'anterior'=>apiCatalogName($client, 'empresa', 'empresa_id', (int)$old['empresa_id'], '#'.$old['empresa_id']),
+                    'nuevo'=>apiCatalogName($client, 'empresa', 'empresa_id', $empresa, '#'.$empresa)
+                ];
+            }
+            if ((int)$old['estado'] !== $estado) $cambiosUsuario['Estado'] = ['anterior'=>((int)$old['estado']===1?'Activo':'Inactivo'), 'nuevo'=>($estado===1?'Activo':'Inactivo')];
+            if (strtolower((string)$old['email']) !== strtolower($email)) $cambiosUsuario['Correo'] = ['anterior'=>$old['email'], 'nuevo'=>$email];
+
             $mailSent = apiSendChangeMail(
                 $email,
                 $collab['nombre'],
                 'Usuario actualizado',
-                'Se actualizaron los datos de acceso, empresa asignada o estado de tu usuario IZZY.',
-                $sc['cliente_nombre']
+                'Se actualizaron datos de tu usuario IZZY.',
+                $sc['cliente_nombre'],
+                $cambiosUsuario
             );
 
             apiResponder(
@@ -854,9 +942,15 @@ try {
             $stmt->bind_param('sssssssii',$razon,$nombre,$rtn,$correo,$telefono,$celular,$ubicacion,$estado,$id);
             if(!$stmt->execute()) throw new Exception('No se pudo actualizar la empresa: '.$stmt->error);
             $stmt->close();
-            $mailSent = filter_var($correo, FILTER_VALIDATE_EMAIL)
-                ? apiSendChangeMail($correo, $nombre, 'Empresa actualizada', 'Se actualizaron los datos de la empresa '.$nombre.'.', $sc['cliente_nombre'])
-                : false;
+            $mailResult = apiNotifyAdminEvent(
+                'Empresa actualizada',
+                'Se actualizaron los datos de una empresa del cliente.',
+                ['Empresa'=>$nombre, 'RTN'=>$rtn, 'Correo'=>$correo, 'Teléfono'=>$telefono, 'Estado'=>$estado===1?'Activa':'Inactiva'],
+                [],
+                'info',
+                $id
+            );
+            $mailSent = !empty($mailResult['client']['sent']) || !empty($mailResult['main']['sent']);
             apiResponder(
                 true,
                 $mailSent
@@ -875,9 +969,15 @@ try {
         $stmt->bind_param('isssssssii',$id,$razon,$nombre,$celular,$telefono,$correo,$rtn,$ubicacion,$estado,$creador);
         if(!$stmt->execute()) throw new Exception('No se pudo crear la empresa: '.$stmt->error);
         $stmt->close();
-        $mailSent = filter_var($correo, FILTER_VALIDATE_EMAIL)
-            ? apiSendChangeMail($correo, $nombre, 'Empresa creada', 'Se registró la empresa '.$nombre.' dentro de IZZY.', $sc['cliente_nombre'])
-            : false;
+        $mailResult = apiNotifyAdminEvent(
+            'Empresa creada',
+            'Se registró una nueva empresa para el cliente.',
+            ['Empresa'=>$nombre, 'RTN'=>$rtn, 'Correo'=>$correo, 'Teléfono'=>$telefono, 'Estado'=>'Activa'],
+            [],
+            'success',
+            $id
+        );
+        $mailSent = !empty($mailResult['client']['sent']) || !empty($mailResult['main']['sent']);
         apiResponder(
             true,
             $mailSent

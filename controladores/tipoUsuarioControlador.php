@@ -9,7 +9,23 @@
 	
 	class tipoUsuarioControlador extends tipoUsuarioModelo{
         private function notificarTipo($titulo,$resumen,array $detalles=[],array $cambios=[],$tipo='audit',$tipoId=0){
-            try{$svc=new NotificationService();$db=$svc->currentDbName();$ctx=$svc->clientContextFromDb($db);$r=$svc->notifyClientAndMain($db,0,$ctx['cliente_nombre']??'Cliente IZZY','IZZY · '.$titulo,$resumen,$detalles,$cambios,'IZZY · Auditoría · '.$titulo,$resumen,$detalles,$cambios,$tipo);if($tipoId>0)$svc->notifyAffectedUsersByField($db,0,'tipo_user_id',$tipoId,'IZZY · '.$titulo,$resumen,$cambios);return $r;}catch(Throwable $e){error_log('Tipo usuario - notificación: '.$e->getMessage());return [];}
+            try {
+                $svc = new NotificationService();
+                $db = $svc->currentDbName();
+                if ($db === '') return ['sent'=>false,'count'=>0,'message'=>'No se pudo determinar la base actual.'];
+
+                $r = $svc->notifyAdmins($db, 0, 'IZZY · '.$titulo, $resumen, $detalles, $cambios, $tipo);
+
+                // La notificación administrativa nunca se replica a DB_MAIN desde este módulo.
+                // Los usuarios afectados conservan su aviso directo cuando corresponde.
+                if ($tipoId > 0) {
+                    $svc->notifyAffectedUsersByField($db, 0, 'tipo_user_id', $tipoId, 'IZZY · '.$titulo, $resumen, $cambios);
+                }
+                return $r;
+            } catch(Throwable $e) {
+                error_log('Tipo usuario - notificación: '.$e->getMessage());
+                return [];
+            }
         }
 		public function agregar_tipo_usuario_controlador(){
 			$nombre = mainModel::cleanStringConverterCase($_POST['tipo_usuario_nombre']);

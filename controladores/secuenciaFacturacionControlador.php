@@ -10,8 +10,12 @@ if($peticionAjax){
 class secuenciaFacturacionControlador extends secuenciaFacturacionModelo{
     private function notificarSecuencia($titulo, $resumen, array $detalles = [], array $cambios = [], $tipo = 'audit', $empresaId = 0){
         try{
-            $svc=new NotificationService();$db=$svc->currentDbName();$ctx=$svc->clientContextFromDb($db);
-            return $svc->notifyClientAndMain($db,$empresaId,$ctx['cliente_nombre']??'Cliente IZZY','IZZY · '.$titulo,$resumen,$detalles,$cambios,'IZZY · Auditoría · '.$titulo,$resumen,$detalles,$cambios,$tipo);
+            $svc = new NotificationService();
+            $db = $svc->currentDbName();
+            if ($db === '') {
+                return ['sent' => false, 'count' => 0, 'message' => 'No se pudo determinar la base actual.'];
+            }
+            return $svc->notifyAdmins($db, $empresaId, 'IZZY · '.$titulo, $resumen, $detalles, $cambios, $tipo);
         }catch(Throwable $e){error_log('Secuencia - notificación: '.$e->getMessage());return [];}
     }
 

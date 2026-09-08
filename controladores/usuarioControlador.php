@@ -84,28 +84,15 @@ class usuarioControlador extends usuarioModelo{
         try {
             $service = new NotificationService();
             $dbActual = $service->currentDbName();
-            $dbMain = $service->mainDbName();
             $empresaId = isset($_SESSION['empresa_id_sd']) ? (int)$_SESSION['empresa_id_sd'] : 0;
 
-            if ($dbActual === '' || strcasecmp($dbActual, $dbMain) === 0) {
-                return $service->notifyAdmins($dbMain, $empresaId, $asunto, $resumen, $detalles, $cambios, $tipo);
+            if ($dbActual === '') {
+                return ['sent' => false, 'count' => 0, 'message' => 'No se pudo determinar la base actual.'];
             }
 
-            $ctx = $service->clientContextFromDb($dbActual);
-            return $service->notifyClientAndMain(
-                $dbActual,
-                $empresaId,
-                $ctx['cliente_nombre'] ?? '',
-                $asunto,
-                $resumen,
-                $detalles,
-                $cambios,
-                $asunto,
-                $resumen,
-                $detalles,
-                $cambios,
-                $tipo
-            );
+            // Fuera de Asignación de Planes, la auditoría del usuario se envía
+            // únicamente a la tabla notificaciones de la base donde ocurrió la acción.
+            return $service->notifyAdmins($dbActual, $empresaId, $asunto, $resumen, $detalles, $cambios, $tipo);
         } catch (Throwable $e) {
             error_log("usuarioControlador notificarAuditoriaUsuario: ".$e->getMessage());
             return false;

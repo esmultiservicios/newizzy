@@ -9,7 +9,23 @@
 	
 	class privilegioControlador extends privilegioModelo{
         private function notificarPrivilegio($titulo,$resumen,array $detalles=[],array $cambios=[],$tipo='audit',$privilegioId=0){
-            try{$svc=new NotificationService();$db=$svc->currentDbName();$ctx=$svc->clientContextFromDb($db);$r=$svc->notifyClientAndMain($db,0,$ctx['cliente_nombre']??'Cliente IZZY','IZZY · '.$titulo,$resumen,$detalles,$cambios,'IZZY · Auditoría · '.$titulo,$resumen,$detalles,$cambios,$tipo);if($privilegioId>0)$svc->notifyAffectedUsersByField($db,0,'privilegio_id',$privilegioId,'IZZY · '.$titulo,$resumen,$cambios);return $r;}catch(Throwable $e){error_log('Privilegio - notificación: '.$e->getMessage());return [];}
+            try {
+                $svc = new NotificationService();
+                $db = $svc->currentDbName();
+                if ($db === '') return ['sent'=>false,'count'=>0,'message'=>'No se pudo determinar la base actual.'];
+
+                $r = $svc->notifyAdmins($db, 0, 'IZZY · '.$titulo, $resumen, $detalles, $cambios, $tipo);
+
+                // La notificación administrativa nunca se replica a DB_MAIN desde este módulo.
+                // Los usuarios afectados conservan su aviso directo cuando corresponde.
+                if ($privilegioId > 0) {
+                    $svc->notifyAffectedUsersByField($db, 0, 'privilegio_id', $privilegioId, 'IZZY · '.$titulo, $resumen, $cambios);
+                }
+                return $r;
+            } catch(Throwable $e) {
+                error_log('Privilegio - notificación: '.$e->getMessage());
+                return [];
+            }
         }
 		public function agregar_privilegio_controlador(){
 			$nombre = mainModel::cleanStringConverterCase($_POST['privilegios_nombre']);

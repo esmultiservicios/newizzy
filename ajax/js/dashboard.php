@@ -872,6 +872,10 @@ function dashboardFiscalesNormalizarTexto(valor) {
         .replace(/[\u0300-\u036f]/g, '');
 }
 
+function dashboardFiscalesEsMovil() {
+    return window.matchMedia && window.matchMedia('(max-width: 767.98px)').matches;
+}
+
 function dashboardFiscalesInicializarVista() {
     var vista = 'detalle';
 
@@ -881,7 +885,12 @@ function dashboardFiscalesInicializarVista() {
         vista = 'detalle';
     }
 
-    dashboardFiscalesVista = vista === 'miniatura' ? 'miniatura' : 'detalle';
+    /* En móvil la vista inicial siempre debe ser Miniatura.
+       No sobrescribimos la preferencia guardada de escritorio. */
+    dashboardFiscalesVista = dashboardFiscalesEsMovil()
+        ? 'miniatura'
+        : (vista === 'miniatura' ? 'miniatura' : 'detalle');
+
     dashboardFiscalesActualizarBotonesVista();
     dashboardFiscalesSincronizarTamanoPagina();
 }
@@ -1775,6 +1784,24 @@ function setupDashboardFiscales() {
     $('.dashboard-fiscales-view-btn').off('click.dashboardFiscalesVista').on('click.dashboardFiscalesVista', function() {
         dashboardFiscalesCambiarVista($(this).data('view'));
     });
+
+    var dashboardFiscalesResponsiveTimer = null;
+
+    $(window)
+        .off('resize.dashboardFiscalesResponsive orientationchange.dashboardFiscalesResponsive')
+        .on('resize.dashboardFiscalesResponsive orientationchange.dashboardFiscalesResponsive', function() {
+            clearTimeout(dashboardFiscalesResponsiveTimer);
+
+            dashboardFiscalesResponsiveTimer = setTimeout(function() {
+                if (dashboardFiscalesEsMovil() && dashboardFiscalesVista !== 'miniatura') {
+                    dashboardFiscalesVista = 'miniatura';
+                    dashboardFiscalesPagina = 1;
+                    dashboardFiscalesActualizarBotonesVista();
+                    dashboardFiscalesSincronizarTamanoPagina();
+                    dashboardFiscalesRender();
+                }
+            }, 120);
+        });
 
     $('#dashboard_fiscales_paginacion').off('click', '.dashboard-page-btn').on('click', '.dashboard-page-btn', function() {
         if ($(this).prop('disabled')) return;

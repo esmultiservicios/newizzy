@@ -913,3 +913,136 @@
         box-shadow: 0 6px 14px rgba(15, 23, 42, .10);
     }
 }
+
+
+/* ============================================================
+   IZZY | DASHBOARD - FIX RESPONSIVE MÓVIL
+   - Cards KPI más compactas.
+   - Sin alturas reservadas innecesarias.
+   - Documentos fiscales aprovechan el alto disponible.
+   ============================================================ */
+@media (max-width: 767.98px) {
+
+    .dashboard-section-card {
+        margin-bottom: 12px !important;
+    }
+
+    .dashboard-section-header {
+        padding: 12px !important;
+        gap: 10px !important;
+    }
+
+    .dashboard-section-body {
+        padding: 12px 12px 0 !important;
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    #dashboard_kpis_body > .row {
+        margin-left: -6px !important;
+        margin-right: -6px !important;
+    }
+
+    #dashboard_kpis_body .col-xl-3,
+    #dashboard_kpis_body .col-md-6 {
+        padding-left: 6px !important;
+        padding-right: 6px !important;
+        margin-bottom: 12px !important;
+    }
+
+    .dashboard-card {
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    .dashboard-card .card-body {
+        min-height: 0 !important;
+        padding: 14px 14px 12px 16px !important;
+    }
+
+    .dashboard-card .mt-3 {
+        margin-top: 10px !important;
+    }
+
+    .dashboard-card h2 {
+        margin-bottom: 0 !important;
+    }
+
+    /* Documentos fiscales: evitar que el buscador reserve espacio vertical. */
+    .dashboard-fiscales-tools {
+        flex: 0 0 auto !important;
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    .dashboard-fiscales-search {
+        flex: 0 0 auto !important;
+        flex-basis: auto !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        min-height: 38px !important;
+        height: 38px !important;
+        max-height: 38px !important;
+    }
+
+    .dashboard-fiscales-search .input-group,
+    .dashboard-fiscales-search .input-group-text,
+    .dashboard-fiscales-search .form-control {
+        min-height: 38px !important;
+        height: 38px !important;
+        max-height: 38px !important;
+    }
+
+    .dashboard-fiscales-listado {
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    .dashboard-fiscales-listado.vista-miniatura {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+
+    .dashboard-fiscal-mini-card {
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    .chart-card {
+        height: auto !important;
+        min-height: 0 !important;
+    }
+
+    .dashboard-chart-body {
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    .chart-container {
+        min-height: 230px !important;
+        height: 230px !important;
+        padding: 8px !important;
+    }
+}
+
+@media (max-width: 479.98px) {
+    .chart-container {
+        min-height: 210px !important;
+        height: 210px !important;
+    }
+
+    .dashboard-section-icon {
+        width: 38px !important;
+        height: 38px !important;
+        flex-basis: 38px !important;
+    }
+
+    .dashboard-section-heading strong {
+        font-size: 14px !important;
+    }
+
+    .dashboard-section-heading small {
+        font-size: 11px !important;
+    }
+}

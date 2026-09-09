@@ -1229,3 +1229,123 @@
         flex: 0 0 auto !important;
     }
 }
+
+
+/* ============================================================
+   IZZY | FIX RESPONSIVE MÓVIL
+   - Elimina el espacio vertical muerto debajo del buscador.
+   - Mantiene toolbar compacta y sin desbordamiento.
+   - No cambia lógica, filtros, KPI, Excel ni PDF.
+   ============================================================ */
+@media (max-width: 767.98px) {
+
+    /* IMPORTANTE:
+       En escritorio el buscador usa flex-basis como ancho.
+       Al cambiar el toolbar a columna en móvil, ese basis se
+       convertía en altura y generaba el espacio blanco enorme. */
+    .rv-toolbar-right .rv-search-wrap,
+    .rv-list-toolbar .rv-search-wrap,
+    .rv-search-wrap {
+        flex: 0 0 auto !important;
+        flex-basis: auto !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: 34px !important;
+        min-height: 34px !important;
+        max-height: 34px !important;
+        margin: 0 !important;
+    }
+
+    .rv-search-wrap > i {
+        flex: 0 0 38px !important;
+        width: 38px !important;
+        min-width: 38px !important;
+        height: 34px !important;
+        min-height: 34px !important;
+        max-height: 34px !important;
+    }
+
+    .rv-search-wrap input,
+    .rv-toolbar-right .rv-search-wrap input {
+        height: 34px !important;
+        min-height: 34px !important;
+        max-height: 34px !important;
+        margin: 0 !important;
+    }
+
+    .rv-search-wrap button {
+        top: 50% !important;
+        right: 6px !important;
+        width: 24px !important;
+        min-width: 24px !important;
+        height: 24px !important;
+        min-height: 24px !important;
+        max-height: 24px !important;
+        transform: translateY(-50%) !important;
+    }
+
+    .rv-list-toolbar {
+        gap: 10px !important;
+        margin-bottom: 10px !important;
+    }
+
+    .rv-toolbar-left,
+    .rv-toolbar-right {
+        gap: 8px !important;
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    .rv-toolbar-right {
+        flex: 0 0 auto !important;
+    }
+
+    .rv-page-size {
+        width: 100% !important;
+        justify-content: flex-start !important;
+    }
+
+    .rv-view-switch {
+        width: 100% !important;
+        min-height: 34px !important;
+        height: 34px !important;
+    }
+
+    .rv-view-btn {
+        flex: 1 1 50% !important;
+        min-width: 0 !important;
+        height: 32px !important;
+        min-height: 32px !important;
+    }
+
+    .rv-list {
+        min-height: 0 !important;
+        height: auto !important;
+        margin-top: 0 !important;
+    }
+
+    .rv-list.rv-mini {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+        align-items: start !important;
+    }
+
+    .rv-mini-card {
+        min-height: 0 !important;
+        height: auto !important;
+        margin: 0 !important;
+    }
+
+    .rv-list-footer {
+        gap: 8px !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    .rv-pagination {
+        justify-content: flex-start !important;
+        flex-wrap: wrap !important;
+    }
+}

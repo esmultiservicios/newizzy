@@ -3,6 +3,7 @@
 // IZZY | Reporte de Compras - DIV / KPI / Excel / PDF
 
 $(() => {
+    rcmpAplicarVistaResponsiveInicial();
     getReporteCompras();
 
     $('#form_main_compras #tipo_compras_reporte').val(1);
@@ -123,6 +124,37 @@ var RCMP = {
     view: 'detalle',
     search: ''
 };
+
+function rcmpEsMovil() {
+    return window.matchMedia && window.matchMedia('(max-width: 767.98px)').matches;
+}
+
+function rcmpSincronizarBotonesVista() {
+    $('[data-rcmp-view]').removeClass('active').attr('aria-pressed', 'false');
+    $('[data-rcmp-view="' + RCMP.view + '"]').addClass('active').attr('aria-pressed', 'true');
+}
+
+function rcmpAplicarVistaResponsiveInicial() {
+    if (rcmpEsMovil()) {
+        RCMP.view = 'miniatura';
+    }
+    rcmpSincronizarBotonesVista();
+}
+
+var rcmpResponsiveTimer = null;
+$(window)
+    .off('resize.rcmpResponsive orientationchange.rcmpResponsive')
+    .on('resize.rcmpResponsive orientationchange.rcmpResponsive', function() {
+        clearTimeout(rcmpResponsiveTimer);
+        rcmpResponsiveTimer = setTimeout(function() {
+            if (rcmpEsMovil() && RCMP.view !== 'miniatura') {
+                RCMP.view = 'miniatura';
+                RCMP.page = 1;
+                rcmpSincronizarBotonesVista();
+                renderReporteCompras();
+            }
+        }, 120);
+    });
 
 function rcmpNum(value) {
     if (value === null || value === undefined || value === '') {

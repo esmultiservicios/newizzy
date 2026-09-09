@@ -3,6 +3,7 @@
 // IZZY | Reporte de Cotizaciones - DIV / KPI / Excel / PDF
 
 $(() => {
+    rcAplicarVistaResponsiveInicial();
     getReporteCotizacion();
 
     $('#form_main_cotizaciones #tipo_cotizacion_reporte').val(1);
@@ -74,6 +75,37 @@ $(() => {
 });
 
 var RC = { rows: [], filtered: [], page: 1, pageSize: 10, view: 'detalle', search: '' };
+
+function rcEsMovil() {
+    return window.matchMedia && window.matchMedia('(max-width: 767.98px)').matches;
+}
+
+function rcSincronizarBotonesVista() {
+    $('[data-rc-view]').removeClass('active').attr('aria-pressed', 'false');
+    $('[data-rc-view="' + RC.view + '"]').addClass('active').attr('aria-pressed', 'true');
+}
+
+function rcAplicarVistaResponsiveInicial() {
+    if (rcEsMovil()) {
+        RC.view = 'miniatura';
+    }
+    rcSincronizarBotonesVista();
+}
+
+var rcResponsiveTimer = null;
+$(window)
+    .off('resize.rcResponsive orientationchange.rcResponsive')
+    .on('resize.rcResponsive orientationchange.rcResponsive', function() {
+        clearTimeout(rcResponsiveTimer);
+        rcResponsiveTimer = setTimeout(function() {
+            if (rcEsMovil() && RC.view !== 'miniatura') {
+                RC.view = 'miniatura';
+                RC.page = 1;
+                rcSincronizarBotonesVista();
+                renderReporteCotizaciones();
+            }
+        }, 120);
+    });
 
 function normalizarNumeroReporteCotizaciones(valor) {
     if (valor === null || valor === undefined || valor === '') return 0;

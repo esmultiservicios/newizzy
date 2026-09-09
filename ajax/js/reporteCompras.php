@@ -856,7 +856,7 @@ function exportarReporteComprasExcel() {
     }).join('');
 
     var sheet =
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
             '<dimension ref="A1:' + lastCol + totalRow + '"/>' +
             '<sheetViews>' +
@@ -878,7 +878,7 @@ function exportarReporteComprasExcel() {
         '</worksheet>';
 
     var styles =
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
             '<numFmts count="1"><numFmt numFmtId="164" formatCode="L. #,##0.00"/></numFmts>' +
             '<fonts count="8">' +
@@ -926,26 +926,26 @@ function exportarReporteComprasExcel() {
         '</styleSheet>';
 
     var workbook =
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
             '<sheets><sheet name="Reporte" sheetId="1" r:id="rId1"/></sheets>' +
         '</workbook>';
 
     var rels =
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
             '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
             '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
         '</Relationships>';
 
     var rootRels =
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
             '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
         '</Relationships>';
 
     var types =
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
             '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
             '<Default Extension="xml" ContentType="application/xml"/>' +

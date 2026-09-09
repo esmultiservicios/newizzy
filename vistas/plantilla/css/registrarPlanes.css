@@ -107,3 +107,64 @@
 .planes-listado.vista-miniatura .planes-mini-card.planes-dropdown-open {
     transform: translateY(-3px);
 }
+
+
+/* ============================================================
+   IZZY | REGISTRAR PLANES - FIX RESPONSIVE MÓVIL
+   Miniatura compacta, buscador fluido y sin espacio muerto.
+   ============================================================ */
+@media (max-width: 767.98px) {
+    .planes-list-toolbar,
+    .planes-list-tools {
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    .planes-list-tools {
+        width: 100% !important;
+        margin-left: 0 !important;
+        gap: 8px !important;
+    }
+
+    .planes-search-box {
+        flex: 0 0 auto !important;
+        flex-basis: auto !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        max-height: 38px !important;
+    }
+
+    .planes-search-box .input-group,
+    .planes-search-box .input-group-text,
+    .planes-search-box .form-control {
+        height: 38px !important;
+        min-height: 38px !important;
+        max-height: 38px !important;
+    }
+
+    .planes-listado {
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    .planes-listado.vista-miniatura {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+        align-items: start !important;
+    }
+
+    .planes-mini-card {
+        min-height: 0 !important;
+        height: auto !important;
+    }
+}
+
+
+/* IZZY | MOVIL SOLO MINIATURA - PLANES */
+@media (max-width: 767.98px) {
+    .planes-view-btn[data-view="detalle"] { display:none !important; }
+    .planes-view-btn[data-view="miniatura"] { flex:1 1 100% !important; width:100% !important; }
+}

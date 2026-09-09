@@ -43,7 +43,15 @@ $(() => {
     $('[data-rc-view]').off('click.rc').on('click.rc', function() {
         $('[data-rc-view]').removeClass('active');
         $(this).addClass('active');
-        RC.view = $(this).attr('data-rc-view') === 'miniatura' ? 'miniatura' : 'detalle';
+        var vistaSolicitada = $(this).attr('data-rc-view') === 'miniatura'
+            ? 'miniatura'
+            : 'detalle';
+
+        RC.view = rcEsMovil()
+            ? 'miniatura'
+            : vistaSolicitada;
+
+        rcSincronizarBotonesVista();
         RC.page = 1;
         renderReporteCotizaciones();
     });
@@ -80,7 +88,18 @@ function rcEsMovil() {
     return window.matchMedia && window.matchMedia('(max-width: 767.98px)').matches;
 }
 
+function rcActualizarDisponibilidadVista() {
+    var movil = rcEsMovil();
+
+    $('[data-rc-view="detalle"]')
+        .prop('disabled', movil)
+        .toggleClass('d-none', movil)
+        .attr('aria-hidden', movil ? 'true' : 'false');
+}
+
 function rcSincronizarBotonesVista() {
+    rcActualizarDisponibilidadVista();
+
     $('[data-rc-view]').removeClass('active').attr('aria-pressed', 'false');
     $('[data-rc-view="' + RC.view + '"]').addClass('active').attr('aria-pressed', 'true');
 }

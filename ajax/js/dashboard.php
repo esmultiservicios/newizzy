@@ -896,12 +896,18 @@ function dashboardFiscalesInicializarVista() {
 }
 
 function dashboardFiscalesCambiarVista(vista) {
-    dashboardFiscalesVista = vista === 'miniatura' ? 'miniatura' : 'detalle';
+    var siguiente = vista === 'miniatura' ? 'miniatura' : 'detalle';
 
-    try {
-        localStorage.setItem(DASHBOARD_FISCALES_STORAGE_VISTA, dashboardFiscalesVista);
-    } catch (e) {
-        // La interfaz continúa funcionando aunque localStorage esté bloqueado.
+    dashboardFiscalesVista = dashboardFiscalesEsMovil()
+        ? 'miniatura'
+        : siguiente;
+
+    if (!dashboardFiscalesEsMovil()) {
+        try {
+            localStorage.setItem(DASHBOARD_FISCALES_STORAGE_VISTA, dashboardFiscalesVista);
+        } catch (e) {
+            // La interfaz continúa funcionando aunque localStorage esté bloqueado.
+        }
     }
 
     dashboardFiscalesActualizarBotonesVista();
@@ -931,7 +937,18 @@ function dashboardFiscalesSincronizarTamanoPagina() {
     $select.val(String(dashboardFiscalesPorPagina));
 }
 
+function dashboardFiscalesActualizarDisponibilidadVista() {
+    var movil = dashboardFiscalesEsMovil();
+
+    $('.dashboard-fiscales-view-btn[data-view="detalle"]')
+        .prop('disabled', movil)
+        .toggleClass('d-none', movil)
+        .attr('aria-hidden', movil ? 'true' : 'false');
+}
+
 function dashboardFiscalesActualizarBotonesVista() {
+    dashboardFiscalesActualizarDisponibilidadVista();
+
     $('.dashboard-fiscales-view-btn')
         .removeClass('active')
         .attr('aria-pressed', 'false');

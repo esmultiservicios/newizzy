@@ -1101,6 +1101,16 @@ $(window).on("load", function() {
 
     let asignacionDebounceTimer = null;
 
+    const ASIGNACION_MOBILE_QUERY = "(max-width: 767.98px)";
+    let asignacionVistaPreferida = "detalle";
+
+    function asignacionEsMovil() {
+        return window.matchMedia
+            ? window.matchMedia(ASIGNACION_MOBILE_QUERY).matches
+            : $(window).width() <= 767;
+    }
+
+
     /* =========================================================
        UTILIDADES
        ========================================================= */
@@ -1832,10 +1842,25 @@ $(window).on("load", function() {
         }
     }
 
+    function actualizarDisponibilidadVistaAsignacion() {
+        var movil = asignacionEsMovil();
+
+        $(".asignacion-view-btn[data-view='detalle']")
+            .prop("disabled", movil)
+            .toggleClass("d-none", movil)
+            .attr("aria-hidden", movil ? "true" : "false");
+    }
+
     function actualizarBotonesVista() {
-        $(".asignacion-view-btn").removeClass("active");
+        actualizarDisponibilidadVistaAsignacion();
+
+        $(".asignacion-view-btn")
+            .removeClass("active")
+            .attr("aria-pressed", "false");
+
         $(".asignacion-view-btn[data-view='" + asignacionState.view + "']")
-            .addClass("active");
+            .addClass("active")
+            .attr("aria-pressed", "true");
     }
 
     function sincronizarTamanoPaginaAsignacion() {
@@ -3458,11 +3483,15 @@ $(window).on("load", function() {
         .on("click.asignacionVista", function() {
             const vista = String($(this).data("view") || "detalle");
 
-            asignacionState.view = vista === "miniatura"
+            asignacionState.view = asignacionEsMovil()
                 ? "miniatura"
-                : "detalle";
+                : (vista === "miniatura" ? "miniatura" : "detalle");
 
-            guardarTipoVista(asignacionState.view);
+            if (!asignacionEsMovil()) {
+                asignacionVistaPreferida = asignacionState.view;
+                guardarTipoVista(asignacionVistaPreferida);
+            }
+
             actualizarBotonesVista();
             sincronizarTamanoPaginaAsignacion();
             asignacionState.page = 1;
@@ -6312,9 +6341,36 @@ $(window).on("load", function() {
     /* =========================================================
        INICIALIZAR
        ========================================================= */
-    asignacionState.view = leerTipoVista();
+    asignacionVistaPreferida = leerTipoVista();
+    asignacionState.view = asignacionEsMovil()
+        ? "miniatura"
+        : asignacionVistaPreferida;
+
     actualizarBotonesVista();
     sincronizarTamanoPaginaAsignacion();
+
+    var asignacionResponsiveTimer = null;
+    $(window)
+        .off("resize.asignacionResponsive orientationchange.asignacionResponsive")
+        .on("resize.asignacionResponsive orientationchange.asignacionResponsive", function() {
+            clearTimeout(asignacionResponsiveTimer);
+
+            asignacionResponsiveTimer = setTimeout(function() {
+                var objetivo = asignacionEsMovil()
+                    ? "miniatura"
+                    : asignacionVistaPreferida;
+
+                if (asignacionState.view === objetivo) {
+                    return;
+                }
+
+                asignacionState.view = objetivo;
+                asignacionState.page = 1;
+                actualizarBotonesVista();
+                sincronizarTamanoPaginaAsignacion();
+                renderAsignaciones();
+            }, 120);
+        });
     inicializarSeccionesPersistentes();
     cargarClientes();
     cargarPlanes();

@@ -530,6 +530,14 @@ function inicializarStackDropdownEmpresa() {
         .on('resize.empresaDropdown scroll.empresaDropdown', function() { empresaCerrarTodosDropdowns(); });
 }
 
+function empresaEsMovil() {
+    return window.matchMedia
+        ? window.matchMedia('(max-width: 767.98px)').matches
+        : $(window).width() <= 767;
+}
+
+var empresaVistaPreferida = 'detalle';
+
 function inicializarEmpresaUI() {
     var vistaGuardada = 'detalle';
 
@@ -539,9 +547,13 @@ function inicializarEmpresaUI() {
         vistaGuardada = 'detalle';
     }
 
-    empresaState.vista = vistaGuardada === 'miniatura'
+    empresaVistaPreferida = vistaGuardada === 'miniatura'
         ? 'miniatura'
         : 'detalle';
+
+    empresaState.vista = empresaEsMovil()
+        ? 'miniatura'
+        : empresaVistaPreferida;
 
     actualizarBotonesVistaEmpresa();
     sincronizarPageSizeEmpresa();
@@ -609,14 +621,26 @@ function configurarToggleEmpresa(buttonSelector, contentSelector, storageKey) {
 }
 
 function cambiarVistaEmpresa(vista) {
-    empresaState.vista = vista === 'miniatura'
+    var siguiente = vista === 'miniatura'
         ? 'miniatura'
         : 'detalle';
 
-    try {
-        localStorage.setItem(EMPRESA_STORAGE_VISTA, empresaState.vista);
-    } catch (error) {
-        console.warn('No se pudo guardar la vista de empresas:', error);
+    if (empresaEsMovil()) {
+        siguiente = 'miniatura';
+    }
+
+    empresaState.vista = siguiente;
+
+    /* En escritorio sí guardamos preferencia.
+       En móvil Miniatura es solo la vista inicial/responsive. */
+    if (!empresaEsMovil()) {
+        empresaVistaPreferida = siguiente;
+
+        try {
+            localStorage.setItem(EMPRESA_STORAGE_VISTA, empresaVistaPreferida);
+        } catch (error) {
+            console.warn('No se pudo guardar la vista de empresas:', error);
+        }
     }
 
     actualizarBotonesVistaEmpresa();
@@ -626,7 +650,41 @@ function cambiarVistaEmpresa(vista) {
     renderEmpresa();
 }
 
+var empresaResponsiveTimer = null;
+$(window)
+    .off('resize.empresaResponsive orientationchange.empresaResponsive')
+    .on('resize.empresaResponsive orientationchange.empresaResponsive', function () {
+        clearTimeout(empresaResponsiveTimer);
+
+        empresaResponsiveTimer = setTimeout(function () {
+            var objetivo = empresaEsMovil()
+                ? 'miniatura'
+                : empresaVistaPreferida;
+
+            if (empresaState.vista === objetivo) {
+                return;
+            }
+
+            empresaState.vista = objetivo;
+            empresaState.pagina = 1;
+            actualizarBotonesVistaEmpresa();
+            sincronizarPageSizeEmpresa();
+            renderEmpresa();
+        }, 120);
+    });
+
+function actualizarDisponibilidadVistaEmpresa() {
+    var movil = empresaEsMovil();
+
+    $('.empresa-view-btn[data-view="detalle"]')
+        .prop('disabled', movil)
+        .toggleClass('d-none', movil)
+        .attr('aria-hidden', movil ? 'true' : 'false');
+}
+
 function actualizarBotonesVistaEmpresa() {
+    actualizarDisponibilidadVistaEmpresa();
+
     $('.empresa-view-btn')
         .removeClass('active')
         .attr('aria-pressed', 'false');

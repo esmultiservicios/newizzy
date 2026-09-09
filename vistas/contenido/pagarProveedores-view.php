@@ -1,24 +1,42 @@
-	<div class="container-fluid">
-		<!-- Cuentas por Pagar Proveedores -->
-		<div class="breadcrumb-container">
-			<ol class="breadcrumb-harmony">
-				<li class="breadcrumb-item">
-					<a class="breadcrumb-link" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>dashboard/">
-						<i class="fas fa-home breadcrumb-icon"></i>
-						<span>Dashboard</span>
-					</a>
-				</li>
-				<li class="breadcrumb-separator">/</li>
-				<li class="breadcrumb-item active">
-					<i class="fas fa-file-invoice breadcrumb-icon"></i>
-					<span>Cuentas por Pagar Proveedores</span>
-				</li>
-			</ol>
-		</div>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IZZY | Cuentas por Pagar Proveedores</title>
+    <link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/cuentas_pagar_proveedores.css">
+</head>
+<body>
 
-		<div class="card mb-4">
-			<div class="card-body">
-				<form id="form_main_pagar_proveedores">
+<div class="container-fluid rv-page cxp-page">
+    <div class="breadcrumb-container">
+        <ol class="breadcrumb-harmony">
+            <li class="breadcrumb-item">
+                <a class="breadcrumb-link" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>dashboard/">
+                    <i class="fas fa-home breadcrumb-icon"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="breadcrumb-separator">/</li>
+            <li class="breadcrumb-item active">
+                <i class="fas fa-file-invoice-dollar breadcrumb-icon"></i>
+                <span>Cuentas por Pagar Proveedores</span>
+            </li>
+        </ol>
+    </div>
+
+    <section class="rv-section-card" id="cxpFiltrosSection">
+        <div class="rv-section-header">
+            <div>
+                <h5><i class="fas fa-filter mr-1"></i> Filtros de cuentas por pagar</h5>
+                <small>Consulte por estado, proveedor y período sin alterar la información original.</small>
+            </div>
+            <button type="button" class="btn rv-toggle-section cxp-toggle-section" data-target="#cxpFiltrosBody">
+                <i class="fas fa-chevron-up mr-1"></i><span>Ocultar</span>
+            </button>
+        </div>
+        <div class="rv-section-body" id="cxpFiltrosBody">
+            <form id="form_main_pagar_proveedores">
 					<div class="row">
 						<div class="col-md-3 col-sm-6 mb-3">
 							<div class="form-group">
@@ -88,40 +106,165 @@
 						</div>
 					</div>
 				</form>
-			</div>
-		</div>
+        </div>
+    </section>
 
-	    <div class="card mb-4">
-	        <div class="card-header">
-	            <i class="fas fa-file-invoice fa-lg mr-1"></i>
-	            Cuentas por Pagar Proveedores
-	        </div>
-	        <div class="card-body">
-	            <div class="table-responsive">
-	                <table id="dataTableCuentasPorPagarProveedores" class="table table-header-gradient table-striped table-condensed table-hover"
-	                    style="width:100%">
-	                </table>
-	            </div>
-	        </div>
-	        <div class="card-footer small text-muted">
-	            <?php
-				require_once "./core/mainModel.php";
-				
-				$insMainModel = new mainModel();
-				$entidad = "pagar_proveedores";
-				
-				if($insMainModel->getlastUpdate($entidad)->num_rows > 0){
-					$consulta_last_update = $insMainModel->getlastUpdate($entidad)->fetch_assoc();
-					$fecha_registro = htmlspecialchars($consulta_last_update['fecha_registro'], ENT_QUOTES, 'UTF-8');
-					$hora = htmlspecialchars(date('g:i:s a', strtotime($fecha_registro)), ENT_QUOTES, 'UTF-8');
-					echo "Última Actualización ".htmlspecialchars($insMainModel->getTheDay($fecha_registro, $hora), ENT_QUOTES, 'UTF-8');
-				} else {
-					echo "No se encontraron registros ";
-				}			
-			?>
-	        </div>
-	    </div>
-	</div>
-	<?php
-	$insMainModel->guardar_historial_accesos("Ingreso al modulo Cuentas por Pagar Proveedores");
+    <section class="rv-section-card" id="cxpKpisSection">
+        <div class="rv-section-header">
+            <div>
+                <h5><i class="fas fa-chart-pie mr-1"></i> Indicadores</h5>
+                <small>Resumen gerencial de las cuentas por pagar filtradas.</small>
+            </div>
+            <button type="button" class="btn rv-toggle-section cxp-toggle-section" data-target="#cxpKpisBody">
+                <i class="fas fa-chevron-up mr-1"></i><span>Ocultar</span>
+            </button>
+        </div>
+
+        <div class="rv-section-body" id="cxpKpisBody">
+            <div class="rv-kpi-grid">
+                <div class="rv-kpi cxp-kpi-registros">
+                    <div class="rv-kpi-copy">
+                        <span class="rv-kpi-label"><i class="fas fa-file-invoice-dollar"></i> Registros</span>
+                        <strong id="cxpKpiRegistros">0</strong>
+                        <small>Cuentas filtradas</small>
+                    </div>
+                    <div class="rv-kpi-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                </div>
+
+                <div class="rv-kpi cxp-kpi-credito">
+                    <div class="rv-kpi-copy">
+                        <span class="rv-kpi-label"><i class="fas fa-coins"></i> Crédito</span>
+                        <strong id="cxpKpiCredito">L. 0.00</strong>
+                        <small>Total comprometido</small>
+                    </div>
+                    <div class="rv-kpi-icon"><i class="fas fa-coins"></i></div>
+                </div>
+
+                <div class="rv-kpi cxp-kpi-abonos">
+                    <div class="rv-kpi-copy">
+                        <span class="rv-kpi-label"><i class="fas fa-hand-holding-usd"></i> Abonos</span>
+                        <strong id="cxpKpiAbonos">L. 0.00</strong>
+                        <small>Total pagado</small>
+                    </div>
+                    <div class="rv-kpi-icon"><i class="fas fa-hand-holding-usd"></i></div>
+                </div>
+
+                <div class="rv-kpi rv-kpi-primary cxp-kpi-saldo">
+                    <div class="rv-kpi-copy">
+                        <span class="rv-kpi-label"><i class="fas fa-wallet"></i> Saldo pendiente</span>
+                        <strong id="cxpKpiSaldo">L. 0.00</strong>
+                        <small>Obligación pendiente</small>
+                    </div>
+                    <div class="rv-kpi-icon"><i class="fas fa-wallet"></i></div>
+                </div>
+
+                <div class="rv-kpi cxp-kpi-recuperacion">
+                    <div class="rv-kpi-copy">
+                        <span class="rv-kpi-label"><i class="fas fa-chart-line"></i> Pagado</span>
+                        <strong id="cxpKpiPagado">0.00%</strong>
+                        <small>Porcentaje cancelado</small>
+                    </div>
+                    <div class="rv-kpi-icon"><i class="fas fa-chart-line"></i></div>
+                </div>
+
+                <div class="rv-kpi cxp-kpi-promedio">
+                    <div class="rv-kpi-copy">
+                        <span class="rv-kpi-label"><i class="fas fa-calculator"></i> Saldo promedio</span>
+                        <strong id="cxpKpiPromedio">L. 0.00</strong>
+                        <small>Promedio por cuenta</small>
+                    </div>
+                    <div class="rv-kpi-icon"><i class="fas fa-calculator"></i></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="rv-section-card" id="cxpListadoSection">
+        <div class="rv-section-header">
+            <div>
+                <h5><i class="fas fa-file-invoice-dollar mr-1"></i> Cuentas por Pagar Proveedores</h5>
+                <small>Crédito, abonos, saldo y acciones disponibles según permisos.</small>
+            </div>
+            <button type="button" class="btn rv-toggle-section cxp-toggle-section" data-target="#cxpListadoBody">
+                <i class="fas fa-chevron-up mr-1"></i><span>Ocultar</span>
+            </button>
+        </div>
+
+        <div class="rv-section-body" id="cxpListadoBody">
+            <div class="rv-list-toolbar">
+                <div class="rv-toolbar-left">
+                    <button type="button" id="cxpBtnActualizar" class="btn btn-info table_actualizar ocultar">
+                        <i class="fas fa-sync-alt"></i> Actualizar
+                    </button>
+                    <button type="button" id="cxpBtnExcel" class="btn btn-success table_reportes ocultar">
+                        <i class="fas fa-file-excel"></i> Excel
+                    </button>
+                    <button type="button" id="cxpBtnPdf" class="btn btn-danger table_reportes ocultar">
+                        <i class="fas fa-file-pdf"></i> PDF
+                    </button>
+                </div>
+
+                <div class="rv-toolbar-right">
+                    <label class="rv-page-size">Mostrar
+                        <select id="cxpPageSize" class="form-control form-control-sm">
+                            <option value="10" selected>10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                        registros
+                    </label>
+
+                    <div class="rv-view-switch">
+                        <button type="button" class="rv-view-btn active" data-cxp-view="detalle">
+                            <i class="fas fa-list"></i> Detalle
+                        </button>
+                        <button type="button" class="rv-view-btn" data-cxp-view="miniatura">
+                            <i class="fas fa-th-large"></i> Miniatura
+                        </button>
+                    </div>
+
+                    <div class="rv-search-wrap">
+                        <i class="fas fa-search"></i>
+                        <input type="search" id="cxpSearch" class="form-control form-control-sm" placeholder="Buscar...">
+                        <button type="button" id="cxpSearchClear" aria-label="Limpiar búsqueda">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="cxpListado" class="rv-list"></div>
+            <div id="cxpTotales" class="rv-total-row"></div>
+
+            <div class="rv-list-footer">
+                <span id="cxpInfo">0 registros</span>
+                <div id="cxpPagination" class="rv-pagination"></div>
+            </div>
+        </div>
+
+        <div class="card-footer small text-muted rv-last-update">
+            <?php
+                require_once "./core/mainModel.php";
+                $insMainModel = new mainModel();
+                $entidad = "pagar_proveedores";
+
+                if($insMainModel->getlastUpdate($entidad)->num_rows > 0){
+                    $consulta_last_update = $insMainModel->getlastUpdate($entidad)->fetch_assoc();
+                    $fecha_registro = htmlspecialchars($consulta_last_update['fecha_registro'], ENT_QUOTES, 'UTF-8');
+                    $hora = htmlspecialchars(date('g:i:s a', strtotime($fecha_registro)), ENT_QUOTES, 'UTF-8');
+                    echo "Última Actualización ".htmlspecialchars($insMainModel->getTheDay($fecha_registro, $hora), ENT_QUOTES, 'UTF-8');
+                } else {
+                    echo "No se encontraron registros ";
+                }
+            ?>
+        </div>
+    </section>
+</div>
+
+<?php
+    $insMainModel->guardar_historial_accesos("Ingreso al modulo Cuentas por Pagar Proveedores");
 ?>
+
+</body>
+</html>

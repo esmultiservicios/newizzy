@@ -3,31 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Sistema de Restaurante</title>
-  <!-- Estilos -->
-  <link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/facturasRestaurante.css">
+  <title>IZZY | Reporte de Ventas</title>
+  <link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/reporte_ventas.css">
 </head>
 <body>
+
 <script>
-  // ====== PLANES QUE PERMITEN MULTI-EMPRESA: 3,4,5,7 ======
   var PLANES_ID = <?php echo isset($_SESSION['planes_id']) ? intval($_SESSION['planes_id']) : 0; ?>;
   var PLAN_ALLOW_MULTI = [3,4,5,7].indexOf(PLANES_ID) !== -1;
-
-  // Id de empresa activa (por si lo necesitás)
   var EMPRESA_ID_ACTIVA = <?php echo isset($_SESSION['empresa_id_sd']) ? intval($_SESSION['empresa_id_sd']) : 0; ?>;
 
   document.addEventListener('DOMContentLoaded', function(){
     if (PLAN_ALLOW_MULTI) {
-      const filaAmbito = document.getElementById('fila-ambito');
+      var filaAmbito = document.getElementById('fila-ambito');
       if (filaAmbito) filaAmbito.style.display = '';
-      const filaEmpresas = document.getElementById('fila-empresas');
-      if (filaEmpresas) filaEmpresas.style.display = 'none'; // se muestra sólo si ambito=consolidado
+      var filaEmpresas = document.getElementById('fila-empresas');
+      if (filaEmpresas) filaEmpresas.style.display = 'none';
     }
   });
 </script>
 
-<div class="container-fluid">
-  <!-- Migas -->
+<div class="container-fluid rv-page">
   <div class="breadcrumb-container">
     <ol class="breadcrumb-harmony">
       <li class="breadcrumb-item">
@@ -42,8 +38,17 @@
     </ol>
   </div>
 
-  <div class="card mb-4">
-    <div class="card-body">
+  <section class="rv-section-card" id="rvFiltrosSection">
+    <div class="rv-section-header">
+      <div>
+        <h5><i class="fas fa-filter mr-1"></i> Filtros de ventas</h5>
+        <small>Refine el reporte por documento, categoría, responsable, empresa y fechas.</small>
+      </div>
+      <button type="button" class="btn rv-toggle-section" data-target="#rvFiltrosBody">
+        <i class="fas fa-chevron-up mr-1"></i><span>Ocultar</span>
+      </button>
+    </div>
+    <div class="rv-section-body" id="rvFiltrosBody">
       <form id="form_main_ventas">
         <div class="row">
           <!-- Tipo Factura -->
@@ -171,27 +176,131 @@
         </div>
       </form>
     </div>
-  </div>
+  </section>
 
-  <!-- Tabla -->
-  <div class="card mb-4">
-    <div class="card-header">
-      <i class="fas fa-file-invoice-dollar fa-lg mr-1"></i> Reporte de Ventas
-      <div class="float-right">
-        <span class="badge bg-light text-dark">
-          <i class="fas fa-sync-alt mr-1 fa-lg"></i>
-          <span id="contador-actualizacion"></span>
-        </span>
+  <section class="rv-section-card" id="rvKpisSection">
+    <div class="rv-section-header">
+      <div>
+        <h5><i class="fas fa-chart-pie mr-1"></i> Indicadores</h5>
+        <small>Resumen de todos los registros que cumplen los filtros actuales.</small>
+      </div>
+      <button type="button" class="btn rv-toggle-section" data-target="#rvKpisBody">
+        <i class="fas fa-chevron-up mr-1"></i><span>Ocultar</span>
+      </button>
+    </div>
+    <div class="rv-section-body" id="rvKpisBody">
+      <div class="rv-kpi-grid">
+        <div class="rv-kpi rv-kpi-registros">
+          <div class="rv-kpi-copy">
+            <span class="rv-kpi-label"><i class="fas fa-file-invoice"></i> Registros</span>
+            <strong id="rvKpiRegistros">0</strong>
+            <small>Ventas filtradas</small>
+          </div>
+          <div class="rv-kpi-icon"><i class="fas fa-file-invoice"></i></div>
+        </div>
+
+        <div class="rv-kpi rv-kpi-subtotal">
+          <div class="rv-kpi-copy">
+            <span class="rv-kpi-label"><i class="fas fa-coins"></i> Subtotal</span>
+            <strong id="rvKpiSubtotal">L. 0.00</strong>
+            <small>Antes de impuestos</small>
+          </div>
+          <div class="rv-kpi-icon"><i class="fas fa-coins"></i></div>
+        </div>
+
+        <div class="rv-kpi rv-kpi-isv">
+          <div class="rv-kpi-copy">
+            <span class="rv-kpi-label"><i class="fas fa-percentage"></i> ISV</span>
+            <strong id="rvKpiIsv">L. 0.00</strong>
+            <small>Impuesto sobre ventas</small>
+          </div>
+          <div class="rv-kpi-icon"><i class="fas fa-percentage"></i></div>
+        </div>
+
+        <div class="rv-kpi rv-kpi-descuento">
+          <div class="rv-kpi-copy">
+            <span class="rv-kpi-label"><i class="fas fa-tags"></i> Descuento</span>
+            <strong id="rvKpiDescuento">L. 0.00</strong>
+            <small>Descuentos aplicados</small>
+          </div>
+          <div class="rv-kpi-icon"><i class="fas fa-tags"></i></div>
+        </div>
+
+        <div class="rv-kpi rv-kpi-primary rv-kpi-total">
+          <div class="rv-kpi-copy">
+            <span class="rv-kpi-label"><i class="fas fa-money-bill-wave"></i> Total ventas</span>
+            <strong id="rvKpiTotal">L. 0.00</strong>
+            <small>Ingresos del período</small>
+          </div>
+          <div class="rv-kpi-icon"><i class="fas fa-money-bill-wave"></i></div>
+        </div>
+
+        <div class="rv-kpi rv-kpi-ganancia">
+          <div class="rv-kpi-copy">
+            <span class="rv-kpi-label"><i class="fas fa-chart-line"></i> Ganancia</span>
+            <strong id="rvKpiGanancia">L. 0.00</strong>
+            <small>Resultado estimado</small>
+          </div>
+          <div class="rv-kpi-icon"><i class="fas fa-chart-line"></i></div>
+        </div>
       </div>
     </div>
-    <div class="card-body">
-      <div class="table-responsive">
-        <table id="dataTablaReporteVentas"
-               class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-        </table>
+  </section>
+
+  <section class="rv-section-card" id="rvListadoSection">
+    <div class="rv-section-header">
+      <div>
+        <h5><i class="fas fa-file-invoice-dollar mr-1"></i> Reporte de Ventas</h5>
+        <small>Facturas y proformas según los filtros aplicados.</small>
+      </div>
+      <div class="rv-section-header-actions">
+<button type="button" class="btn rv-toggle-section" data-target="#rvListadoBody">
+          <i class="fas fa-chevron-up mr-1"></i><span>Ocultar</span>
+        </button>
       </div>
     </div>
-    <div class="card-footer small text-muted">
+
+    <div class="rv-section-body" id="rvListadoBody">
+      <div class="rv-list-toolbar">
+        <div class="rv-toolbar-left">
+          <button type="button" id="rvBtnActualizar" class="btn btn-info table_actualizar ocultar"><i class="fas fa-sync-alt"></i> Actualizar</button>
+          <button type="button" id="rvBtnPagos" class="btn btn-primary table_crear ocultar"><i class="fas fa-receipt"></i> Reporte de Pagos</button>
+          <button type="button" id="rvBtnDetalle" class="btn btn-primary table_crear ocultar"><i class="fas fa-list"></i> Detalle Ventas</button>
+          <button type="button" id="rvBtnExcel" class="btn btn-success table_reportes ocultar"><i class="fas fa-file-excel"></i> Excel</button>
+          <button type="button" id="rvBtnPdf" class="btn btn-danger table_reportes ocultar"><i class="fas fa-file-pdf"></i> PDF</button>
+        </div>
+
+        <div class="rv-toolbar-right">
+          <label class="rv-page-size">Mostrar
+            <select id="rvPageSize" class="form-control form-control-sm">
+              <option value="10" selected>10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select> registros
+          </label>
+          <div class="rv-view-switch">
+            <button type="button" class="rv-view-btn active" data-view="detalle"><i class="fas fa-list"></i> Detalle</button>
+            <button type="button" class="rv-view-btn" data-view="miniatura"><i class="fas fa-th-large"></i> Miniatura</button>
+          </div>
+          <div class="rv-search-wrap">
+            <i class="fas fa-search"></i>
+            <input type="search" id="rvSearch" class="form-control form-control-sm" placeholder="Buscar...">
+            <button type="button" id="rvSearchClear"><i class="fas fa-times"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <div id="rvListado" class="rv-list"></div>
+      <div id="rvTotales" class="rv-total-row"></div>
+
+      <div class="rv-list-footer">
+        <span id="rvInfo">0 registros</span>
+        <div id="rvPagination" class="rv-pagination"></div>
+      </div>
+    </div>
+
+    <div class="card-footer small text-muted rv-last-update">
       <?php
         require_once "./core/mainModel.php";
         $insMainModel = new mainModel();
@@ -206,65 +315,38 @@
         }
       ?>
     </div>
-  </div>
+  </section>
 </div>
 
-<!-- Modal Detalle -->
-<div class="modal fade" id="modalDetalleFactura" data-backdrop="static" data-keyboard="false">
+<!-- Modal detalle de una factura: SIN TABLA -->
+<div class="modal fade rv-modal" id="modalDetalleFactura" data-backdrop="static" data-keyboard="false">
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Detalle de Factura <span id="numero-factura-modal"></span></h5>
-        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
+      <div class="modal-header rv-modal-header">
+        <div>
+          <h5 class="modal-title">Detalle de Factura <span id="numero-factura-modal"></span></h5>
+          <small>Resumen fiscal y productos o servicios asociados.</small>
+        </div>
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
       </div>
       <div class="modal-body">
-        <div class="row mb-4">
-          <div class="col-md-4">
-            <h6><strong>Fecha:</strong> <span id="fecha-factura"></span></h6>
-            <h6><strong>Cliente:</strong> <span id="cliente-factura"></span></h6>
-          </div>
-          <div class="col-md-4">
-            <h6><strong>Tipo:</strong> <span id="tipo-factura"></span></h6>
-            <h6><strong>Estado:</strong> <span id="estado-factura"></span></h6>
-          </div>
-          <div class="col-md-4 text-right">
-            <h6><strong>Subtotal:</strong> <span id="subtotal-factura"></span></h6>
-            <h6><strong>Total:</strong> <span id="total-factura"></span></h6>
-          </div>
+        <div class="rv-detail-summary">
+          <div><span>Fecha</span><strong id="fecha-factura"></strong></div>
+          <div><span>Cliente</span><strong id="cliente-factura"></strong></div>
+          <div><span>Tipo</span><strong id="tipo-factura"></strong></div>
+          <div><span>Estado</span><strong id="estado-factura"></strong></div>
+          <div><span>Subtotal</span><strong id="subtotal-factura"></strong></div>
+          <div><span>Total</span><strong id="total-factura"></strong></div>
         </div>
-
-        <div class="table-responsive">
-          <table class="table table-header-gradient table-striped table-condensed table-hover">
-            <thead class="bg-light">
-              <tr>
-                <th>Producto/Servicio</th>
-                <th width="10%">Cantidad</th>
-                <th width="15%">Precio Unitario</th>
-                <th width="15%">ISV</th>
-                <th width="15%">Descuento</th>
-                <th width="15%">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody id="detalle-factura-body"></tbody>
-          </table>
-        </div>
-
-        <div class="row mt-3">
-          <div class="col-md-12">
-            <h6><strong>Notas:</strong></h6>
-            <p id="notas-factura" class="text-muted"></p>
-          </div>
+        <div id="detalle-factura-body" class="rv-detail-items"></div>
+        <div class="rv-notes-card">
+          <strong>Notas</strong>
+          <p id="notas-factura" class="mb-0 text-muted"></p>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-danger" data-dismiss="modal">
-          <i class="fas fa-times fa-lg mr-1"></i> Cancelar
-        </button>
-        <button type="button" id="btn-imprimir-factura" class="btn btn-primary">
-          <i class="fas fa-print fa-lg mr-1"></i> Imprimir
-        </button>
+        <button class="btn btn-danger" data-dismiss="modal"><i class="fas fa-times mr-1"></i> Cancelar</button>
+        <button type="button" id="btn-imprimir-factura" class="btn btn-primary"><i class="fas fa-print mr-1"></i> Imprimir</button>
       </div>
     </div>
   </div>

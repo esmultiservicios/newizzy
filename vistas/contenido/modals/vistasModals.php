@@ -577,48 +577,53 @@
 <!--FIN MODAL BUSQUEDA DE COLABORADORES-->
 
 <!--INICIO MODAL BUSQUEDA DE CLIENTES EN FACTURACION-->
-<div class="modal fade" id="modal_buscar_clientes_facturacion">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Buscar Clientes</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="container"></div>
-            <div class="modal-body">
-                <form class="FormularioAjax" id="formulario_busqueda_clientes_facturacion">
-                    <div class="form-group">
-                        <div class="col-md-12">
-                            <div class="overflow-auto">
-                                <table id="DatatableClientesBusquedaFactura"
-                                    class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-                                    <thead>
-                                        <tr>
-                                            <th>Seleccione</th>
-                                            <th>Acciones</th>
-                                            <th>Cliente</th>
-                                            <th>RTN</th>
-                                            <th>Correo</th>
-                                            <th>Teléfono</th>
-                                        </tr>
-                                    </thead>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-danger" data-dismiss="modal">
-                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
-                </button>
-            </div>
+<div class="modal fade fm-modal" id="modal_buscar_clientes_facturacion" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header fm-modal-header">
+        <div>
+          <h4 class="modal-title mb-0">Buscar Clientes</h4>
+          <small>Seleccione un cliente existente o registre uno nuevo.</small>
         </div>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body fm-modal-body">
+        <form class="FormularioAjax fm-form" id="formulario_busqueda_clientes_facturacion">
+          <div class="fm-directory-card">
+<div class="fm-list-toolbar">
+  <div class="fm-toolbar-left"><button type="button" id="btnActualizarClientesFm" class="btn table_actualizar btn-secondary ocultar btn-sm mr-2 mb-2"><i class="fas fa-sync-alt mr-1"></i>Actualizar</button><button type="button" id="btnNuevoClienteFm" class="btn table_crear btn-primary ocultar btn-sm mr-2 mb-2"><i class="fas fa-plus mr-1"></i>Ingresar</button></div>
+  <div class="fm-toolbar-right">
+    <label class="fm-page-size">Mostrar
+      <select id="clientesFacturaPageSize" class="form-control form-control-sm fm-page-size-select">
+        <option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option>
+      </select>
+      registros
+    </label>
+    <div class="btn-group btn-group-sm fm-view-switch" role="group" aria-label="Tipo de vista">
+      <button type="button" class="btn btn-outline-secondary fm-view-btn active" data-list="clientesFactura" data-view="detalle" title="Vista detalle"><i class="fas fa-list"></i></button>
+      <button type="button" class="btn btn-outline-secondary fm-view-btn" data-list="clientesFactura" data-view="miniatura" title="Vista miniatura"><i class="fas fa-th-large"></i></button>
     </div>
+    <div class="fm-search-wrap">
+      <i class="fas fa-search"></i>
+      <input type="search" id="clientesFacturaSearch" class="form-control form-control-sm" placeholder="Buscar..." autocomplete="off">
+      <button type="button" class="fm-search-clear" data-list="clientesFactura" title="Limpiar búsqueda"><i class="fas fa-times"></i></button>
+    </div>
+  </div>
 </div>
-<!--FIN MODAL BUSQUEDA DE COLABORADORES EN FACTURACION-->
+<div id="clientesFacturaListado" class="fm-listado" data-list="clientesFactura"></div>
+<div class="fm-list-footer">
+  <span id="clientesFacturaInfo" class="fm-list-info">0 registros</span>
+  <div id="clientesFacturaPaginacion" class="fm-pagination"></div>
+</div></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times mr-1"></i>Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!--FIN MODAL BUSQUEDA DE CLIENTES EN FACTURACION-->
 
 <!--INICIO MODAL CAMBIAR CONTRASEÑA -->
 <div class="modal fade" id="ModalContraseña">
@@ -2620,64 +2625,74 @@
 <!--FIN MODAL PROVEEDORES-->
 
 <!--INICIO MODAL BUSQUEDA DE PRODUCTOS EN FACTURACION-->
-<div class="modal fade" id="modal_buscar_productos_facturacion">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Buscar Productos - Facturación</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="container"></div>
-            <div class="modal-body">
-                <form class="FormularioAjax" id="formulario_busqueda_productos_facturacion">
-                    <input type="hidden" id="row" name="row" class="form-control" />
-                    <input type="hidden" id="col" name="col" class="form-control" />
-
-                    <div class="form-group">
-                        <div class="form-group mx-sm-3 mb-1">
-                            <div class="input-group">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <div class="sb-nav-link-icon"></div>Bodega
-                                    </span>
-                                    <select id="almacen_facturas" name="almacen_facturas" class="selectpicker" title="Bodega"
-                                        data-width="100%" data-size="5" data-live-search="true">
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-12">
-                        <div class="overflow-auto">
-                            <table id="DatatableProductosBusquedaFactura"
-                                class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-                                <thead>
-                                    <tr>
-                                        <th>Seleccione</th>
-                                        <th>Imagen</th>
-                                        <th>Bar Code</th>
-                                        <th>Producto</th>
-                                        <th>Cantidad</th>
-                                        <th>Medida</th>
-                                        <th>Categoria</th>
-                                        <th>Venta</th>
-                                        <th>Almacén</th>
-                                    </tr>
-                                </thead>
-                            </table>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-danger" data-dismiss="modal">
-                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
-                </button>
-            </div>
+<div class="modal fade fm-modal" id="modal_buscar_productos_facturacion" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header fm-modal-header">
+        <div>
+          <h4 class="modal-title mb-0">Buscar Productos - Facturación</h4>
+          <small>Seleccione un producto o servicio para agregarlo a la factura.</small>
         </div>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body fm-modal-body">
+        <form class="FormularioAjax fm-form" id="formulario_busqueda_productos_facturacion">
+          <input type="hidden" id="row" name="row" class="form-control">
+          <input type="hidden" id="col" name="col" class="form-control">
+          
+<div class="fm-section-card fm-filter-card mb-3">
+  <div class="fm-section-header">
+    <div>
+      <h6 class="mb-0"><i class="fas fa-filter mr-1"></i>Filtro de productos</h6>
+      <small>Use los criterios necesarios y aplique la búsqueda.</small>
     </div>
+    <button type="button" class="btn btn-outline-secondary btn-sm fm-toggle-filter" data-target="#productosFacturaFiltrosContenido" aria-expanded="true">
+      <i class="fas fa-chevron-up mr-1"></i><span>Ocultar</span>
+    </button>
+  </div>
+  <div id="productosFacturaFiltrosContenido" class="fm-section-body">
+    
+<div class="fm-filter-row">
+  <div class="fm-filter-field fm-filter-field-wide">
+    <label>Bodega</label>
+    <select id="almacen_facturas" name="almacen_facturas" class="form-control selectpicker" title="Bodega" data-width="100%" data-size="5" data-live-search="true"></select>
+  </div>
+</div>
+  </div>
+</div>
+          <div class="fm-directory-card">
+<div class="fm-list-toolbar">
+  <div class="fm-toolbar-left"><button type="button" id="btnActualizarProductosFm" class="btn table_actualizar btn-secondary ocultar btn-sm mr-2 mb-2"><i class="fas fa-sync-alt mr-1"></i>Actualizar</button><button type="button" id="btnNuevoProductoFm" class="btn table_crear btn-primary ocultar btn-sm mr-2 mb-2"><i class="fas fa-plus mr-1"></i>Ingresar</button></div>
+  <div class="fm-toolbar-right">
+    <label class="fm-page-size">Mostrar
+      <select id="productosFacturaPageSize" class="form-control form-control-sm fm-page-size-select">
+        <option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option>
+      </select>
+      registros
+    </label>
+    <div class="btn-group btn-group-sm fm-view-switch" role="group" aria-label="Tipo de vista">
+      <button type="button" class="btn btn-outline-secondary fm-view-btn active" data-list="productosFactura" data-view="detalle" title="Vista detalle"><i class="fas fa-list"></i></button>
+      <button type="button" class="btn btn-outline-secondary fm-view-btn" data-list="productosFactura" data-view="miniatura" title="Vista miniatura"><i class="fas fa-th-large"></i></button>
+    </div>
+    <div class="fm-search-wrap">
+      <i class="fas fa-search"></i>
+      <input type="search" id="productosFacturaSearch" class="form-control form-control-sm" placeholder="Buscar..." autocomplete="off">
+      <button type="button" class="fm-search-clear" data-list="productosFactura" title="Limpiar búsqueda"><i class="fas fa-times"></i></button>
+    </div>
+  </div>
+</div>
+<div id="productosFacturaListado" class="fm-listado" data-list="productosFactura"></div>
+<div class="fm-list-footer">
+  <span id="productosFacturaInfo" class="fm-list-info">0 registros</span>
+  <div id="productosFacturaPaginacion" class="fm-pagination"></div>
+</div></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times mr-1"></i>Cerrar</button>
+      </div>
+    </div>
+  </div>
 </div>
 <!--FIN MODAL BUSQUEDA DE PRODUCTOS EN FACTURACION-->
 
@@ -2836,44 +2851,51 @@
 <!--FIN MODAL BUSQUEDA DE PRODUCTOS MOVIMIENTOS-->
 
 <!--INICIO MODAL BUSQUEDA DE COLABORADORES EN FACTURACION-->
-<div class="modal fade" id="modal_buscar_colaboradores_facturacion">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Buscar Colaboradores</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="container"></div>
-            <div class="modal-body">
-                <form class="FormularioAjax" id="formulario_busqueda_colaboradores_facturacion">
-                    <div class="form-group">
-                        <div class="col-md-12">
-                            <div class="overflow-auto">
-                                <table id="DatatableColaboradoresBusquedaFactura"
-                                    class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-                                    <thead>
-                                        <tr>
-                                            <th>Seleccione</th>
-                                            <th>Colaborador</th>
-                                            <th>Identidad</th>
-                                            <th>Teléfono</th>
-                                        </tr>
-                                    </thead>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-danger" data-dismiss="modal">
-                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
-                </button>
-            </div>
+<div class="modal fade fm-modal" id="modal_buscar_colaboradores_facturacion" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header fm-modal-header">
+        <div>
+          <h4 class="modal-title mb-0">Buscar Colaboradores</h4>
+          <small>Seleccione el vendedor responsable de la factura.</small>
         </div>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body fm-modal-body">
+        <form class="FormularioAjax fm-form" id="formulario_busqueda_colaboradores_facturacion">
+          <div class="fm-directory-card">
+<div class="fm-list-toolbar">
+  <div class="fm-toolbar-left"><button type="button" id="btnActualizarColaboradoresFm" class="btn table_actualizar btn-secondary ocultar btn-sm mr-2 mb-2"><i class="fas fa-sync-alt mr-1"></i>Actualizar</button><button type="button" id="btnNuevoColaboradorFm" class="btn table_crear btn-primary ocultar btn-sm mr-2 mb-2"><i class="fas fa-plus mr-1"></i>Ingresar</button></div>
+  <div class="fm-toolbar-right">
+    <label class="fm-page-size">Mostrar
+      <select id="colaboradoresFacturaPageSize" class="form-control form-control-sm fm-page-size-select">
+        <option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option>
+      </select>
+      registros
+    </label>
+    <div class="btn-group btn-group-sm fm-view-switch" role="group" aria-label="Tipo de vista">
+      <button type="button" class="btn btn-outline-secondary fm-view-btn active" data-list="colaboradoresFactura" data-view="detalle" title="Vista detalle"><i class="fas fa-list"></i></button>
+      <button type="button" class="btn btn-outline-secondary fm-view-btn" data-list="colaboradoresFactura" data-view="miniatura" title="Vista miniatura"><i class="fas fa-th-large"></i></button>
     </div>
+    <div class="fm-search-wrap">
+      <i class="fas fa-search"></i>
+      <input type="search" id="colaboradoresFacturaSearch" class="form-control form-control-sm" placeholder="Buscar..." autocomplete="off">
+      <button type="button" class="fm-search-clear" data-list="colaboradoresFactura" title="Limpiar búsqueda"><i class="fas fa-times"></i></button>
+    </div>
+  </div>
+</div>
+<div id="colaboradoresFacturaListado" class="fm-listado" data-list="colaboradoresFactura"></div>
+<div class="fm-list-footer">
+  <span id="colaboradoresFacturaInfo" class="fm-list-info">0 registros</span>
+  <div id="colaboradoresFacturaPaginacion" class="fm-pagination"></div>
+</div></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times mr-1"></i>Cerrar</button>
+      </div>
+    </div>
+  </div>
 </div>
 <!--FIN MODAL BUSQUEDA DE COLABORADORES EN FACTURACION-->
 
@@ -3018,6 +3040,8 @@
         </div>
     </div>
 </div>
+
+
 
 <!--INICIO MODAL BUSQUEDA DE EMPRESAS-->
 <div class="modal fade" id="modal_buscar_empresa">
@@ -4724,79 +4748,81 @@
      INICIO MODALES COMPARTIDOS DE CAJA - FACTURAS
      ========================================================= -->
 
-<!-- INICIO MODAL CAJA DESDE FACTURACIÓN -->
-<div class="modal fade" id="modalCajaFactura" tabindex="-1" role="dialog" aria-labelledby="modalCajaFacturaLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
-        <div class="modal-content">
-
-            <div class="modal-header bg-dark text-white">
-                <h5 class="modal-title" id="modalCajaFacturaLabel">
-                    <i class="fas fa-cash-register mr-1"></i>
-                    Caja desde Facturación
-                    <small class="d-block mt-1 text-light" style="opacity:.85;">
-                        Consulta de caja, ventas, retiros y neto.
-                    </small>
-                </h5>
-
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-
-            <div class="modal-body">
-
-                <form id="formCajaFactura" autocomplete="off">
-                    <div class="row mb-3">
-
-                        <div class="col-md-3 col-sm-6 mb-2">
-                            <label class="small mb-1">Estado</label>
-                            <select id="estado_caja_factura" name="estado_caja_factura" class="form-control">
-                                <option value="0">Todas</option>
-                                <option value="1">Activas</option>
-                                <option value="2">Cerradas</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-3 col-sm-6 mb-2">
-                            <label class="small mb-1">Fecha Inicial</label>
-                            <input type="date" class="form-control" id="fecha_caja_factura_i" name="fecha_caja_factura_i" value="<?php echo date('Y-m-d'); ?>">
-                        </div>
-
-                        <div class="col-md-3 col-sm-6 mb-2">
-                            <label class="small mb-1">Fecha Final</label>
-                            <input type="date" class="form-control" id="fecha_caja_factura_f" name="fecha_caja_factura_f" value="<?php echo date('Y-m-d'); ?>">
-                        </div>
-
-                        <div class="col-md-3 col-sm-6 mb-2 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary mr-2">
-                                <i class="fas fa-filter"></i> Filtrar
-                            </button>
-
-                            <button type="button" class="btn btn-secondary" id="btnActualizarCajaFactura">
-                                <i class="fas fa-sync-alt"></i> Actualizar
-                            </button>
-                        </div>
-
-                    </div>
-                </form>
-
-                <div class="table-responsive">
-                    <table id="dataTableCajaFactura" class="table table-striped table-hover table-condensed" style="width:100%">
-                    </table>
-                </div>
-
-            </div>
-
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-dismiss="modal">
-                    <i class="fas fa-times"></i> Cerrar
-                </button>
-            </div>
-
+<!-- =========================================================
+     INICIO MODAL - CAJA DESDE FACTURACIÓN
+     ========================================================= -->
+<div class="modal fade izzy-modal-consulta-facturacion fm-modal" id="modalCajaFactura" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header fm-modal-header">
+        <div>
+          <h4 class="modal-title mb-0"><i class="fas fa-cash-register mr-1"></i>Caja desde Facturación</h4>
+          <small>Consulta de caja, ventas, retiros, neto y operaciones disponibles.</small>
         </div>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body fm-modal-body">
+        <form class="FormularioAjax fm-form" id="formCajaFactura">
+          
+<div class="fm-section-card fm-filter-card mb-3">
+  <div class="fm-section-header">
+    <div>
+      <h6 class="mb-0"><i class="fas fa-filter mr-1"></i>Filtros de caja</h6>
+      <small>Use los criterios necesarios y aplique la búsqueda.</small>
     </div>
+    <button type="button" class="btn btn-outline-secondary btn-sm fm-toggle-filter" data-target="#cajaFacturaFiltrosContenido" aria-expanded="true">
+      <i class="fas fa-chevron-up mr-1"></i><span>Ocultar</span>
+    </button>
+  </div>
+  <div id="cajaFacturaFiltrosContenido" class="fm-section-body">
+    
+<div class="fm-filter-row">
+  <div class="fm-filter-field"><label>Estado</label><select id="estado_caja_factura" name="estado_caja_factura" class="form-control"><option value="0">Todas</option><option value="1">Activas</option><option value="2">Cerradas</option></select></div>
+  <div class="fm-filter-field"><label>Fecha Inicial</label><input type="date" class="form-control" id="fecha_caja_factura_i" name="fecha_caja_factura_i" value="<?php echo date('Y-m-d'); ?>"></div>
+  <div class="fm-filter-field"><label>Fecha Final</label><input type="date" class="form-control" id="fecha_caja_factura_f" name="fecha_caja_factura_f" value="<?php echo date('Y-m-d'); ?>"></div>
+  <div class="fm-filter-actions"><button type="submit" class="btn btn-primary"><i class="fas fa-filter mr-1"></i>Filtrar</button></div>
 </div>
-<!-- FIN MODAL CAJA DESDE FACTURACIÓN -->
+  </div>
+</div>
+          <div class="fm-directory-card">
+            
+<div class="fm-list-toolbar">
+  <div class="fm-toolbar-left"><button type="button" id="btnActualizarCajaFactura" class="btn table_actualizar btn-secondary ocultar btn-sm mr-2 mb-2"><i class="fas fa-sync-alt mr-1"></i>Actualizar</button><button type="button" id="btnExcelCajaFacturaFm" class="btn table_reportes btn-success ocultar btn-sm mr-2 mb-2"><i class="fas fa-file-excel mr-1"></i>Excel</button><button type="button" id="btnPdfCajaFacturaFm" class="btn table_reportes btn-danger ocultar btn-sm mr-2 mb-2"><i class="fas fa-file-pdf mr-1"></i>PDF</button></div>
+  <div class="fm-toolbar-right">
+    <label class="fm-page-size">Mostrar
+      <select id="cajaFacturaPageSize" class="form-control form-control-sm fm-page-size-select">
+        <option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option>
+      </select>
+      registros
+    </label>
+    <div class="btn-group btn-group-sm fm-view-switch" role="group" aria-label="Tipo de vista">
+      <button type="button" class="btn btn-outline-secondary fm-view-btn active" data-list="cajaFactura" data-view="detalle" title="Vista detalle"><i class="fas fa-list"></i></button>
+      <button type="button" class="btn btn-outline-secondary fm-view-btn" data-list="cajaFactura" data-view="miniatura" title="Vista miniatura"><i class="fas fa-th-large"></i></button>
+    </div>
+    <div class="fm-search-wrap">
+      <i class="fas fa-search"></i>
+      <input type="search" id="cajaFacturaSearch" class="form-control form-control-sm" placeholder="Buscar..." autocomplete="off">
+      <button type="button" class="fm-search-clear" data-list="cajaFactura" title="Limpiar búsqueda"><i class="fas fa-times"></i></button>
+    </div>
+  </div>
+</div>
+<div id="dataTableCajaFactura" class="fm-listado" data-list="cajaFactura"></div>
+<div class="fm-list-footer">
+  <span id="cajaFacturaInfo" class="fm-list-info">0 registros</span>
+  <div id="cajaFacturaPaginacion" class="fm-pagination"></div>
+</div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times mr-1"></i>Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- =========================================================
+     FIN MODAL - CAJA DESDE FACTURACIÓN
+     ========================================================= -->
 
 
 <!-- INICIO MODAL DETALLE RETIROS DE CAJA -->
@@ -4851,19 +4877,34 @@
                     el reintegro solo se puede realizar mientras la caja esté abierta. Puede reintegrar todo el retiro para anularlo, o reintegrar una parte para ajustar el monto retirado.
                 </div>
 
-                <div class="table-responsive">
-                    <table id="dataTableDetalleRetirosCaja" class="table table-striped table-hover table-condensed" style="width:100%">
-                    </table>
-                </div>
+                
+<div class="fm-directory-card fm-embedded-directory">
+  <div class="fm-list-toolbar">
+    <div class="fm-toolbar-left">
+      <button type="button" id="btnActualizarRetirosDetalleFm" class="btn btn-secondary btn-sm mr-2 mb-2"><i class="fas fa-sync-alt mr-1"></i>Actualizar</button>
+      <button type="button" id="btnExcelRetirosDetalleFm" class="btn btn-success btn-sm mr-2 mb-2 table_reportes"><i class="fas fa-file-excel mr-1"></i>Excel</button>
+      <button type="button" id="btnPdfRetirosDetalleFm" class="btn btn-danger btn-sm mr-2 mb-2 table_reportes"><i class="fas fa-file-pdf mr-1"></i>PDF</button>
+    </div>
+    <div class="fm-toolbar-right">
+      <label class="fm-page-size">Mostrar
+        <select id="retirosDetallePageSize" class="form-control form-control-sm fm-page-size-select"><option>10</option><option>25</option><option>50</option><option>100</option></select>
+        registros
+      </label>
+      <div class="btn-group btn-group-sm fm-view-switch">
+        <button type="button" class="btn btn-outline-secondary fm-view-btn active" data-list="retirosDetalle" data-view="detalle"><i class="fas fa-list"></i></button>
+        <button type="button" class="btn btn-outline-secondary fm-view-btn" data-list="retirosDetalle" data-view="miniatura"><i class="fas fa-th-large"></i></button>
+      </div>
+      <div class="fm-search-wrap"><i class="fas fa-search"></i><input type="search" id="retirosDetalleSearch" class="form-control form-control-sm" placeholder="Buscar..."><button type="button" class="fm-search-clear" data-list="retirosDetalle"><i class="fas fa-times"></i></button></div>
+    </div>
+  </div>
+  <div id="dataTableDetalleRetirosCaja" class="fm-listado" data-list="retirosDetalle"></div>
+  <div class="fm-list-footer"><span id="retirosDetalleInfo" class="fm-list-info">0 registros</span><div id="retirosDetallePaginacion" class="fm-pagination"></div></div>
+</div>
 
             </div>
 
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="refrescarDetalleRetirosCaja();">
-                    <i class="fas fa-sync-alt"></i> Actualizar
-                </button>
-
-                <button type="button" class="btn btn-primary" data-dismiss="modal">
+<button type="button" class="btn btn-primary" data-dismiss="modal">
                     <i class="fas fa-times"></i> Cerrar
                 </button>
             </div>
@@ -5261,20 +5302,35 @@
                         6. Detalle por producto vendido
                     </div>
 
-                    <div class="table-responsive izzy-table-responsive-ganancia">
-                        <table id="dataTableDetalleGananciaCaja" class="table table-striped table-hover table-condensed" style="width:100%">
-                        </table>
-                    </div>
+                    
+<div class="fm-directory-card fm-embedded-directory">
+  <div class="fm-list-toolbar">
+    <div class="fm-toolbar-left">
+      <button type="button" id="btnActualizarGananciaDetalleFm" class="btn btn-secondary btn-sm mr-2 mb-2"><i class="fas fa-sync-alt mr-1"></i>Actualizar</button>
+      <button type="button" id="btnExcelGananciaDetalleFm" class="btn btn-success btn-sm mr-2 mb-2 table_reportes"><i class="fas fa-file-excel mr-1"></i>Excel</button>
+      <button type="button" id="btnPdfGananciaDetalleFm" class="btn btn-danger btn-sm mr-2 mb-2 table_reportes"><i class="fas fa-file-pdf mr-1"></i>PDF</button>
+    </div>
+    <div class="fm-toolbar-right">
+      <label class="fm-page-size">Mostrar
+        <select id="gananciaDetallePageSize" class="form-control form-control-sm fm-page-size-select"><option>10</option><option>25</option><option>50</option><option>100</option></select>
+        registros
+      </label>
+      <div class="btn-group btn-group-sm fm-view-switch">
+        <button type="button" class="btn btn-outline-secondary fm-view-btn active" data-list="gananciaDetalle" data-view="detalle"><i class="fas fa-list"></i></button>
+        <button type="button" class="btn btn-outline-secondary fm-view-btn" data-list="gananciaDetalle" data-view="miniatura"><i class="fas fa-th-large"></i></button>
+      </div>
+      <div class="fm-search-wrap"><i class="fas fa-search"></i><input type="search" id="gananciaDetalleSearch" class="form-control form-control-sm" placeholder="Buscar..."><button type="button" class="fm-search-clear" data-list="gananciaDetalle"><i class="fas fa-times"></i></button></div>
+    </div>
+  </div>
+  <div id="dataTableDetalleGananciaCaja" class="fm-listado" data-list="gananciaDetalle"></div>
+  <div class="fm-list-footer"><span id="gananciaDetalleInfo" class="fm-list-info">0 registros</span><div id="gananciaDetallePaginacion" class="fm-pagination"></div></div>
+</div>
                 </div>
 
             </div>
 
             <div class="modal-footer izzy-modal-footer-compact">
-                <button type="button" class="btn btn-secondary" onclick="refrescarDesgloseGananciaCaja();">
-                    <i class="fas fa-sync-alt"></i> Actualizar
-                </button>
-
-                <button type="button" class="btn btn-primary" data-dismiss="modal">
+<button type="button" class="btn btn-primary" data-dismiss="modal">
                     <i class="fas fa-times"></i> Cerrar
                 </button>
             </div>
@@ -5390,34 +5446,15 @@
                                     <i class="fas fa-wallet mr-1"></i> Dinero cobrado por forma de pago
                                 </div>
 
-                                <div class="card-body p-0">
-                                    <div class="table-responsive">
-                                        <table class="table table-sm table-striped mb-0">
-                                            <tbody>
-                                                <tr>
-                                                    <th>Efectivo cobrado</th>
-                                                    <td class="text-right font-weight-bold" id="cd_efectivo">L. 0.00</td>
-                                                </tr>
-                                                <tr>
-                                                    <th>Transferencia cobrada</th>
-                                                    <td class="text-right font-weight-bold" id="cd_transferencia">L. 0.00</td>
-                                                </tr>
-                                                <tr>
-                                                    <th>Tarjeta cobrada</th>
-                                                    <td class="text-right font-weight-bold" id="cd_tarjeta">L. 0.00</td>
-                                                </tr>
-                                                <tr>
-                                                    <th>Cheque cobrado</th>
-                                                    <td class="text-right font-weight-bold" id="cd_cheque">L. 0.00</td>
-                                                </tr>
-                                                <tr>
-                                                    <th>Monto apertura</th>
-                                                    <td class="text-right font-weight-bold" id="cd_monto_apertura">L. 0.00</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
+                                <div class="card-body">
+  <div class="fm-value-list">
+    <div class="fm-value-row"><span>Efectivo cobrado</span><strong id="cd_efectivo">L. 0.00</strong></div>
+    <div class="fm-value-row"><span>Transferencia cobrada</span><strong id="cd_transferencia">L. 0.00</strong></div>
+    <div class="fm-value-row"><span>Tarjeta cobrada</span><strong id="cd_tarjeta">L. 0.00</strong></div>
+    <div class="fm-value-row"><span>Cheque cobrado</span><strong id="cd_cheque">L. 0.00</strong></div>
+    <div class="fm-value-row"><span>Monto apertura</span><strong id="cd_monto_apertura">L. 0.00</strong></div>
+  </div>
+</div>
                             </div>
                         </div>
 
@@ -5427,34 +5464,15 @@
                                     <i class="fas fa-calculator mr-1"></i> Resultado que debe existir
                                 </div>
 
-                                <div class="card-body p-0">
-                                    <div class="table-responsive">
-                                        <table class="table table-sm table-striped mb-0">
-                                            <tbody>
-                                                <tr>
-                                                    <th>Debe quedar en efectivo</th>
-                                                    <td class="text-right font-weight-bold text-success" id="cd_efectivo_esperado">L. 0.00</td>
-                                                </tr>
-                                                <tr>
-                                                    <th>Debe quedar en transferencia</th>
-                                                    <td class="text-right font-weight-bold text-success" id="cd_transferencia_esperada">L. 0.00</td>
-                                                </tr>
-                                                <tr>
-                                                    <th>Debe quedar en tarjeta</th>
-                                                    <td class="text-right font-weight-bold text-success" id="cd_tarjeta_esperada">L. 0.00</td>
-                                                </tr>
-                                                <tr>
-                                                    <th>Debe quedar en cheque</th>
-                                                    <td class="text-right font-weight-bold text-success" id="cd_cheque_esperado">L. 0.00</td>
-                                                </tr>
-                                                <tr>
-                                                    <th>Total final esperado</th>
-                                                    <td class="text-right font-weight-bold text-primary" id="cd_total_final_esperado_tabla">L. 0.00</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
+                                <div class="card-body">
+  <div class="fm-value-list">
+    <div class="fm-value-row"><span>Debe quedar en efectivo</span><strong class="text-success" id="cd_efectivo_esperado">L. 0.00</strong></div>
+    <div class="fm-value-row"><span>Debe quedar en transferencia</span><strong class="text-success" id="cd_transferencia_esperada">L. 0.00</strong></div>
+    <div class="fm-value-row"><span>Debe quedar en tarjeta</span><strong class="text-success" id="cd_tarjeta_esperada">L. 0.00</strong></div>
+    <div class="fm-value-row"><span>Debe quedar en cheque</span><strong class="text-success" id="cd_cheque_esperado">L. 0.00</strong></div>
+    <div class="fm-value-row fm-value-row-total"><span>Total final esperado</span><strong class="text-primary" id="cd_total_final_esperado_tabla">L. 0.00</strong></div>
+  </div>
+</div>
                             </div>
                         </div>
                     </div>
@@ -5466,24 +5484,7 @@
                                     <i class="fas fa-minus-circle mr-1"></i> Desglose de gastos
                                 </div>
 
-                                <div class="card-body p-0">
-                                    <div class="table-responsive">
-                                        <table class="table table-sm table-striped mb-0" id="cd_tabla_gastos">
-                                            <thead>
-                                                <tr>
-                                                    <th>Tipo</th>
-                                                    <th>Cuenta</th>
-                                                    <th class="text-right">Monto</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td colspan="3" class="text-center text-muted">Sin datos</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
+                                <div class="card-body"><div id="cd_tabla_gastos" class="fm-simple-list"><div class="fm-empty">Sin datos</div></div></div>
                             </div>
                         </div>
 
@@ -5493,24 +5494,7 @@
                                     <i class="fas fa-seedling mr-1"></i> Desglose de inversión / reposición
                                 </div>
 
-                                <div class="card-body p-0">
-                                    <div class="table-responsive">
-                                        <table class="table table-sm table-striped mb-0" id="cd_tabla_inversiones">
-                                            <thead>
-                                                <tr>
-                                                    <th>Tipo</th>
-                                                    <th>Cuenta</th>
-                                                    <th class="text-right">Monto</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td colspan="3" class="text-center text-muted">Sin datos</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
+                                <div class="card-body"><div id="cd_tabla_inversiones" class="fm-simple-list"><div class="fm-empty">Sin datos</div></div></div>
                             </div>
                         </div>
                     </div>

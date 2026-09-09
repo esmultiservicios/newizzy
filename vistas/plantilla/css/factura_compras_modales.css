@@ -1,0 +1,1957 @@
+/* =========================================================
+   IZZY | Facturación - Modales con listados DIV
+   Estilo aislado. No modifica la vista principal de factura.
+   ========================================================= */
+
+.fm-modal .modal-dialog,
+.izzy-modal-consulta-facturacion.fm-modal .modal-dialog {
+    width: calc(100vw - 48px) !important;
+    max-width: 1600px !important;
+    height: calc(100vh - 48px) !important;
+    max-height: calc(100vh - 48px) !important;
+    margin: 24px auto !important;
+    display: flex !important;
+    align-items: stretch !important;
+}
+
+.fm-modal.fade .modal-dialog {
+    transition: none !important;
+    transform: none !important;
+}
+
+.fm-modal.show .modal-dialog {
+    transform: none !important;
+}
+
+.fm-modal .modal-content {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    border: 0;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 18px 45px rgba(9, 30, 66, .22);
+}
+
+.fm-modal-header {
+    flex: 0 0 auto;
+    background: #17324d;
+    color: #fff;
+    border-bottom: 3px solid #0ea5a8;
+    padding: 15px 18px;
+}
+
+.fm-modal-header h4 {
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.fm-modal-header small {
+    display: block;
+    margin-top: 3px;
+    color: #d8e5f0;
+    font-size: .78rem;
+}
+
+.fm-modal-header .close {
+    opacity: .9;
+    text-shadow: none;
+}
+
+.fm-modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 16px;
+    background: #f7f9fc;
+}
+
+.fm-form {
+    width: 100%;
+    min-width: 0;
+}
+
+.fm-section-card,
+.fm-directory-card {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid #dfe6ee;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 7px rgba(23, 50, 77, .05);
+    overflow: visible;
+}
+
+.fm-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 13px 15px;
+    border-bottom: 1px solid #e4eaf0;
+}
+
+.fm-section-header h6 {
+    color: #172b4d;
+    font-weight: 700;
+}
+
+.fm-section-header small {
+    color: #6b778c;
+}
+
+.fm-toggle-filter {
+    flex: 0 0 auto;
+    min-width: 104px;
+    font-weight: 600;
+    border-radius: 7px;
+}
+
+.fm-section-body {
+    padding: 14px 15px;
+}
+
+.fm-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+}
+
+.fm-filter-field {
+    flex: 1 1 210px;
+    min-width: 180px;
+}
+
+.fm-filter-field-wide {
+    flex-basis: 320px;
+}
+
+.fm-filter-field label {
+    display: block;
+    margin-bottom: 6px;
+    color: #253858;
+    font-size: .82rem;
+    font-weight: 700;
+}
+
+.fm-filter-field .form-control,
+.fm-filter-field .bootstrap-select {
+    width: 100% !important;
+}
+
+.fm-filter-actions {
+    flex: 0 1 auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.fm-filter-actions .btn {
+    min-width: 105px;
+}
+
+.fm-directory-card {
+    padding: 14px;
+}
+
+.fm-embedded-directory {
+    margin-top: 12px;
+}
+
+.fm-list-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 13px;
+}
+
+.fm-toolbar-left,
+.fm-toolbar-right {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.fm-toolbar-left {
+    flex: 1 1 360px;
+}
+
+.fm-toolbar-right {
+    flex: 1 1 460px;
+    justify-content: flex-end;
+}
+
+.fm-toolbar-left .btn {
+    white-space: nowrap;
+    font-weight: 600;
+    border-radius: 7px;
+}
+
+.fm-page-size {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    color: #5e6c84;
+    font-size: .8rem;
+    white-space: nowrap;
+}
+
+.fm-page-size-select {
+    width: 72px !important;
+    min-width: 72px;
+}
+
+.fm-view-switch .btn {
+    width: 36px;
+}
+
+.fm-view-switch .btn.active {
+    background: #17324d;
+    border-color: #17324d;
+    color: #fff;
+}
+
+.fm-search-wrap {
+    position: relative;
+    flex: 0 1 260px;
+    min-width: 190px;
+}
+
+.fm-search-wrap > i {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #7a869a;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.fm-search-wrap input {
+    width: 100%;
+    padding-left: 32px;
+    padding-right: 32px;
+}
+
+.fm-search-clear {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #7a869a;
+    cursor: pointer;
+}
+
+.fm-search-clear:hover {
+    background: #eef2f6;
+    color: #172b4d;
+}
+
+.fm-listado {
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    overflow: visible;
+}
+
+.fm-listado.fm-view-miniatura {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
+    margin-left: -5px;
+    margin-right: -5px;
+    width: auto;
+}
+
+.fm-row {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0;
+    border: 1px solid #dfe6ee;
+    border-top: 3px solid #1fc79a;
+    border-radius: 9px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(9, 30, 66, .05);
+    overflow: visible;
+    transition: box-shadow .16s ease, transform .16s ease;
+}
+
+.fm-row:hover {
+    box-shadow: 0 5px 14px rgba(9, 30, 66, .10);
+    transform: translateY(-1px);
+}
+
+.fm-row-header {
+    border-top-color: #17324d;
+    background: #17324d;
+    color: #fff;
+    box-shadow: none;
+    font-weight: 700;
+    min-height: 42px;
+}
+
+.fm-row-header:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.fm-cell {
+    min-width: 0;
+    flex: 1 1 120px;
+    padding: 10px 12px;
+    color: #172b4d;
+    overflow-wrap: anywhere;
+}
+
+.fm-row-header .fm-cell {
+    color: #fff;
+    font-size: .76rem;
+    text-transform: uppercase;
+    letter-spacing: .01em;
+}
+
+.fm-cell-label {
+    display: none;
+    margin-bottom: 3px;
+    color: #6b778c;
+    font-size: .66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.fm-cell-value {
+    color: #172b4d;
+    font-size: .86rem;
+    line-height: 1.25;
+}
+
+.fm-cell-value strong {
+    color: #172b4d;
+}
+
+.fm-cell-actions {
+    flex: 0 0 120px;
+    overflow: visible;
+}
+
+.fm-cell-actions-wide {
+    flex-basis: 170px;
+}
+
+.fm-cell-small {
+    flex: 0.75 1 95px;
+}
+
+.fm-cell-medium {
+    flex: 1 1 145px;
+}
+
+.fm-cell-large {
+    flex: 1.6 1 200px;
+}
+
+.fm-cell-money {
+    flex: 0.85 1 110px;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.fm-cell-center {
+    text-align: center;
+}
+
+.fm-money-positive {
+    color: #14804a;
+    font-weight: 700;
+}
+
+.fm-money-negative {
+    color: #c9372c;
+    font-weight: 700;
+}
+
+.fm-mini-card {
+    position: relative;
+    flex: 1 1 calc(33.333% - 10px);
+    max-width: calc(33.333% - 10px);
+    min-width: 280px;
+    margin: 0 5px 10px;
+    border: 1px solid #dfe6ee;
+    border-top: 3px solid #1fc79a;
+    border-radius: 10px;
+    background: #fff;
+    padding: 14px;
+    box-shadow: 0 1px 3px rgba(9, 30, 66, .05);
+    overflow: visible;
+    transition: box-shadow .16s ease, transform .16s ease;
+}
+
+.fm-mini-card:hover {
+    box-shadow: 0 6px 16px rgba(9, 30, 66, .10);
+    transform: translateY(-2px);
+}
+
+.fm-mini-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.fm-mini-title {
+    min-width: 0;
+}
+
+.fm-mini-title strong {
+    display: block;
+    color: #172b4d;
+    font-size: .95rem;
+    overflow-wrap: anywhere;
+}
+
+.fm-mini-title small {
+    display: block;
+    margin-top: 3px;
+    color: #6b778c;
+}
+
+.fm-mini-actions {
+    flex: 0 0 auto;
+    position: relative;
+    overflow: visible;
+}
+
+.fm-mini-body {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px 14px;
+    padding-top: 8px;
+    border-top: 1px solid #e4eaf0;
+}
+
+.fm-mini-field {
+    flex: 1 1 44%;
+    min-width: 110px;
+}
+
+.fm-mini-field span {
+    display: block;
+    color: #6b778c;
+    font-size: .66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.fm-mini-field strong {
+    display: block;
+    margin-top: 2px;
+    color: #172b4d;
+    font-size: .82rem;
+    overflow-wrap: anywhere;
+}
+
+.fm-product-card-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.fm-product-image-wrap {
+    position: relative;
+    flex: 0 0 58px;
+    width: 58px;
+    height: 58px;
+}
+
+.fm-product-image {
+    width: 58px;
+    height: 58px;
+    border: 1px solid #dfe6ee;
+    border-radius: 8px;
+    object-fit: cover;
+    background: #f7f9fc;
+}
+
+.fm-product-zoom {
+    position: absolute;
+    right: -3px;
+    bottom: -3px;
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    min-height: 18px;
+    padding: 0 !important;
+    border: 1px solid #dfe6ee;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    color: #172b4d;
+    box-shadow: 0 1px 3px rgba(9, 30, 66, .10);
+    line-height: 1;
+}
+
+.fm-product-zoom i {
+    margin: 0 !important;
+    font-size: 8px !important;
+    line-height: 1 !important;
+}
+
+.fm-product-zoom:hover,
+.fm-product-zoom:focus,
+.fm-product-zoom:active {
+    background: #eaf4fc !important;
+    border-color: #b9d8ee !important;
+    color: #176fae !important;
+    opacity: 1 !important;
+    box-shadow: 0 1px 4px rgba(23, 111, 174, .16) !important;
+}
+
+.fm-product-copy {
+    min-width: 0;
+}
+
+.fm-product-copy strong {
+    display: block;
+    color: #172b4d;
+}
+
+.fm-product-copy small {
+    display: block;
+    margin-top: 3px;
+    color: #6b778c;
+    overflow-wrap: anywhere;
+}
+
+.fm-empty,
+.fm-loading {
+    min-height: 150px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border: 1px dashed #cfd6df;
+    border-radius: 9px;
+    color: #7a869a;
+    text-align: center;
+    background: #fff;
+}
+
+.fm-empty i,
+.fm-loading i {
+    font-size: 1.7rem;
+    color: #97a0af;
+}
+
+.fm-list-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 13px;
+}
+
+.fm-list-info {
+    color: #6b778c;
+    font-size: .8rem;
+}
+
+.fm-pagination {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.fm-pagination button {
+    min-width: 34px;
+    height: 34px;
+    padding: 0 9px;
+    border: 1px solid #dfe6ee;
+    border-radius: 6px;
+    background: #fff;
+    color: #42526e;
+    cursor: pointer;
+}
+
+.fm-pagination button:hover:not(:disabled),
+.fm-pagination button.active {
+    background: #2684ff;
+    border-color: #2684ff;
+    color: #fff;
+}
+
+.fm-pagination button:disabled {
+    opacity: .48;
+    cursor: not-allowed;
+}
+
+.fm-total-strip {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid #dfe6ee;
+    border-radius: 8px;
+    background: #f7f9fc;
+}
+
+.fm-total-strip > div {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.fm-total-strip span {
+    color: #6b778c;
+    font-size: .74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.fm-total-strip strong {
+    color: #172b4d;
+    white-space: nowrap;
+}
+
+.fm-value-list,
+.fm-simple-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.fm-value-row,
+.fm-simple-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px solid #e4eaf0;
+}
+
+.fm-value-row:last-child,
+.fm-simple-row:last-child {
+    border-bottom: 0;
+}
+
+.fm-value-row span,
+.fm-simple-row span {
+    min-width: 0;
+    color: #42526e;
+    overflow-wrap: anywhere;
+}
+
+.fm-value-row strong,
+.fm-simple-row strong {
+    flex: 0 0 auto;
+    color: #172b4d;
+    white-space: nowrap;
+}
+
+.fm-value-row-total {
+    padding-top: 12px;
+    border-top: 2px solid #17324d;
+    font-weight: 700;
+}
+
+.fm-simple-row-copy {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.fm-simple-row-copy small {
+    margin-top: 2px;
+    color: #7a869a;
+}
+
+/* Acciones: el administrador global de main.php porta el menú a body.
+   Aquí solo aseguramos que el disparador y su contenedor sean visibles. */
+.fm-row .acciones-dropdown,
+.fm-mini-card .acciones-dropdown,
+.fm-row .acciones-caja-wrap,
+.fm-mini-card .acciones-caja-wrap {
+    position: relative;
+    overflow: visible;
+}
+
+.fm-row .dropdown-menu,
+.fm-mini-card .dropdown-menu {
+    z-index: 1080;
+}
+
+.fm-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 999px;
+    padding: 5px 8px;
+    font-size: .72rem;
+    font-weight: 700;
+}
+
+.fm-status-success {
+    color: #14804a;
+    background: #e3fcef;
+}
+
+.fm-status-warning {
+    color: #974f0c;
+    background: #fff3d6;
+}
+
+.fm-status-danger {
+    color: #c9372c;
+    background: #ffebe6;
+}
+
+.fm-status-neutral {
+    color: #5e6c84;
+    background: #eef2f6;
+}
+
+@media (max-width: 1199.98px) {
+    .fm-mini-card {
+        flex-basis: calc(50% - 10px);
+        max-width: calc(50% - 10px);
+    }
+
+    .fm-row-header {
+        display: none;
+    }
+
+    .fm-cell {
+        flex: 1 1 25%;
+    }
+
+    .fm-cell-label {
+        display: block;
+    }
+
+    .fm-cell-money {
+        text-align: left;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .fm-modal .modal-dialog,
+    .izzy-modal-consulta-facturacion.fm-modal .modal-dialog {
+        width: calc(100vw - 12px) !important;
+        height: calc(100vh - 12px) !important;
+        max-height: calc(100vh - 12px) !important;
+        margin: 6px auto !important;
+    }
+
+    .fm-modal-body {
+        padding: 10px;
+    }
+
+    .fm-section-header,
+    .fm-list-toolbar,
+    .fm-list-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .fm-toggle-filter {
+        width: 100%;
+    }
+
+    .fm-filter-field,
+    .fm-filter-actions,
+    .fm-filter-actions .btn,
+    .fm-toolbar-left,
+    .fm-toolbar-right,
+    .fm-search-wrap {
+        width: 100%;
+        min-width: 0;
+        flex-basis: 100%;
+    }
+
+    .fm-toolbar-right {
+        justify-content: stretch;
+    }
+
+    .fm-page-size {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .fm-view-switch {
+        flex: 1 1 auto;
+    }
+
+    .fm-view-switch .btn {
+        flex: 1 1 50%;
+        width: auto;
+    }
+
+    .fm-search-wrap {
+        flex: 1 1 100%;
+    }
+
+    .fm-row {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 4px 0;
+    }
+
+    .fm-cell,
+    .fm-cell-actions,
+    .fm-cell-actions-wide,
+    .fm-cell-small,
+    .fm-cell-medium,
+    .fm-cell-large,
+    .fm-cell-money {
+        width: 100%;
+        flex: 1 1 auto;
+        text-align: left;
+    }
+
+    .fm-mini-card {
+        flex-basis: 100%;
+        max-width: 100%;
+        min-width: 0;
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .fm-listado.fm-view-miniatura {
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .fm-mini-field {
+        flex-basis: 100%;
+    }
+
+    .fm-pagination {
+        justify-content: center;
+    }
+}
+/* =========================================================
+   IZZY | AJUSTE VISUAL FINAL
+   Referencia directa: toolbar y miniaturas del módulo Users.
+   SOLO CSS. No modifica HTML, JS ni lógica de Facturación.
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   1) TOOLBAR: izquierda acciones / derecha controles
+   Igual distribución visual que Users.
+   --------------------------------------------------------- */
+.fm-list-toolbar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 14px !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+    margin-bottom: 14px !important;
+}
+
+.fm-toolbar-left {
+    flex: 0 0 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    min-width: 0 !important;
+}
+
+.fm-toolbar-right {
+    flex: 0 1 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    flex-wrap: nowrap !important;
+    gap: 10px !important;
+    min-width: 0 !important;
+    margin-left: auto !important;
+}
+
+/* Los botones de acción conservan sus colores Bootstrap/IZZY.
+   Quitamos únicamente márgenes heredados que desalineaban la barra. */
+.fm-toolbar-left .btn {
+    min-height: 38px !important;
+    margin: 0 !important;
+    padding: 7px 14px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    border-radius: 8px !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+}
+
+/* ---------------------------------------------------------
+   2) MOSTRAR X REGISTROS
+   --------------------------------------------------------- */
+.fm-page-size {
+    flex: 0 0 auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin: 0 !important;
+    color: #46556b !important;
+    font-size: 13px !important;
+    white-space: nowrap !important;
+}
+
+.fm-page-size-select {
+    width: 72px !important;
+    min-width: 72px !important;
+    min-height: 38px !important;
+    border: 1px solid #ced4da !important;
+    border-radius: 8px !important;
+    background: #fff !important;
+    color: #172b4d !important;
+}
+
+/* ---------------------------------------------------------
+   3) DETALLE / MINIATURA
+   SIN botones blancos.
+   Mismo patrón visual que Users.
+   --------------------------------------------------------- */
+.fm-view-switch {
+    flex: 0 0 auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0 !important;
+    padding: 3px !important;
+    border: 1px solid #d7e1eb !important;
+    border-radius: 9px !important;
+    background: #f5f8fb !important;
+    box-shadow: 0 2px 7px rgba(31, 47, 67, .04) !important;
+}
+
+.fm-view-switch .fm-view-btn {
+    width: auto !important;
+    min-width: 92px !important;
+    min-height: 34px !important;
+    padding: 6px 12px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    border: 0 !important;
+    border-radius: 7px !important;
+    background: transparent !important;
+    color: #52627a !important;
+    box-shadow: none !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    transition: background-color .15s ease, color .15s ease, box-shadow .15s ease !important;
+}
+
+.fm-view-switch .fm-view-btn[data-view="detalle"]::after {
+    content: "Detalle";
+}
+
+.fm-view-switch .fm-view-btn[data-view="miniatura"]::after {
+    content: "Miniatura";
+}
+
+.fm-view-switch .fm-view-btn:hover:not(.active) {
+    background: #eaf4fc !important;
+    color: #176fae !important;
+    opacity: 1 !important;
+}
+
+.fm-view-switch .fm-view-btn.active,
+.fm-view-switch .fm-view-btn.active:hover,
+.fm-view-switch .fm-view-btn.active:focus {
+    background: #2f9ddd !important;
+    color: #fff !important;
+    box-shadow: 0 2px 7px rgba(47, 157, 221, .24) !important;
+    opacity: 1 !important;
+}
+
+/* ---------------------------------------------------------
+   4) BUSCADOR
+   Igual distribución icono + input de Users.
+   --------------------------------------------------------- */
+.fm-search-wrap {
+    position: relative !important;
+    flex: 0 1 300px !important;
+    width: 300px !important;
+    min-width: 220px !important;
+    max-width: 300px !important;
+    display: flex !important;
+    align-items: stretch !important;
+}
+
+.fm-search-wrap > i {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    transform: none !important;
+    flex: 0 0 42px !important;
+    width: 42px !important;
+    min-height: 38px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid #ced4da !important;
+    border-right: 0 !important;
+    border-radius: 8px 0 0 8px !important;
+    background: #f7f9fc !important;
+    color: #233b55 !important;
+    z-index: 2 !important;
+}
+
+.fm-search-wrap input {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 38px !important;
+    padding-left: 12px !important;
+    padding-right: 34px !important;
+    border-radius: 0 8px 8px 0 !important;
+}
+
+.fm-search-clear {
+    right: 6px !important;
+    width: 26px !important;
+    height: 26px !important;
+    border: 0 !important;
+    background: transparent !important;
+    color: #7a869a !important;
+}
+
+.fm-search-clear:hover,
+.fm-search-clear:focus {
+    background: #eaf4fc !important;
+    color: #176fae !important;
+    opacity: 1 !important;
+}
+
+/* ---------------------------------------------------------
+   5) MOSTRAR / OCULTAR FILTROS
+   Tampoco blanco.
+   --------------------------------------------------------- */
+.fm-toggle-filter,
+.fm-toggle-filter.btn-outline-secondary {
+    min-width: 104px !important;
+    min-height: 36px !important;
+    border: 1px solid #2f9ddd !important;
+    border-radius: 8px !important;
+    background: #2f9ddd !important;
+    color: #fff !important;
+    box-shadow: 0 2px 7px rgba(47, 157, 221, .18) !important;
+    font-weight: 700 !important;
+    opacity: 1 !important;
+}
+
+.fm-toggle-filter:hover,
+.fm-toggle-filter:focus,
+.fm-toggle-filter:active {
+    border-color: #248cc8 !important;
+    background: #248cc8 !important;
+    color: #fff !important;
+    opacity: 1 !important;
+}
+
+/* ---------------------------------------------------------
+   6) MINIATURAS
+   3 escritorio / 2 tablet / 1 móvil.
+   Las cards ocupan TODO el ancho disponible, sin espacio muerto.
+   --------------------------------------------------------- */
+.fm-listado.fm-view-miniatura {
+    width: 100% !important;
+    margin: 0 !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 14px !important;
+    align-items: stretch !important;
+    overflow: visible !important;
+}
+
+.fm-listado.fm-view-miniatura .fm-mini-card {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    height: 100% !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: visible !important;
+}
+
+/* En miniatura, el cuerpo aprovecha toda la card sin ensancharla. */
+.fm-listado.fm-view-miniatura .fm-mini-body {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0 !important;
+    width: 100% !important;
+    padding-top: 8px !important;
+}
+
+.fm-listado.fm-view-miniatura .fm-mini-field {
+    min-width: 0 !important;
+    padding: 9px 10px !important;
+    border-bottom: 1px solid #edf1f6 !important;
+}
+
+.fm-listado.fm-view-miniatura .fm-mini-header {
+    width: 100% !important;
+}
+
+.fm-listado.fm-view-miniatura .fm-product-card-main {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+}
+
+.fm-listado.fm-view-miniatura .fm-product-copy {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+}
+
+/* ---------------------------------------------------------
+   7) PAGINACIÓN
+   Sin botón blanco.
+   --------------------------------------------------------- */
+.fm-pagination button {
+    border: 1px solid #d7e1eb !important;
+    background: #f5f8fb !important;
+    color: #42526e !important;
+    box-shadow: none !important;
+}
+
+.fm-pagination button:hover:not(:disabled) {
+    border-color: #b9d8ee !important;
+    background: #eaf4fc !important;
+    color: #176fae !important;
+    opacity: 1 !important;
+}
+
+.fm-pagination button.active,
+.fm-pagination button.active:hover {
+    border-color: #2f9ddd !important;
+    background: #2f9ddd !important;
+    color: #fff !important;
+}
+
+/* ---------------------------------------------------------
+   8) RESPONSIVE TOOLBAR + MINIATURAS
+   --------------------------------------------------------- */
+@media (max-width: 1399.98px) {
+    .fm-list-toolbar {
+        flex-wrap: wrap !important;
+    }
+
+    .fm-toolbar-right {
+        flex-wrap: wrap !important;
+    }
+}
+
+@media (max-width: 1199.98px) {
+    .fm-listado.fm-view-miniatura {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .fm-list-toolbar {
+        align-items: flex-start !important;
+        flex-direction: column !important;
+    }
+
+    .fm-toolbar-left,
+    .fm-toolbar-right {
+        width: 100% !important;
+    }
+
+    .fm-toolbar-right {
+        justify-content: flex-end !important;
+        margin-left: 0 !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .fm-toolbar-left,
+    .fm-toolbar-right {
+        align-items: stretch !important;
+        flex-direction: column !important;
+    }
+
+    .fm-toolbar-left .btn {
+        width: 100% !important;
+    }
+
+    .fm-page-size {
+        width: 100% !important;
+        justify-content: flex-end !important;
+    }
+
+    .fm-view-switch {
+        width: 100% !important;
+    }
+
+    .fm-view-switch .fm-view-btn {
+        flex: 1 1 50% !important;
+        min-width: 0 !important;
+    }
+
+    .fm-search-wrap {
+        flex: 1 1 auto !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+    }
+
+    .fm-listado.fm-view-miniatura {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .fm-page-size {
+        justify-content: flex-start !important;
+    }
+
+    .fm-listado.fm-view-miniatura .fm-mini-body {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+
+/* =========================================================
+   IZZY | MINIATURA COMPACTA - SIN ESPACIO MUERTO
+   ========================================================= */
+.fm-listado.fm-view-miniatura {
+    align-items: start !important;
+}
+
+.fm-listado.fm-view-miniatura .fm-mini-card {
+    height: auto !important;
+    min-height: 0 !important;
+    align-self: start !important;
+}
+
+.fm-listado.fm-view-miniatura .fm-mini-body {
+    flex: 0 0 auto !important;
+    align-content: start !important;
+}
+
+.fm-listado.fm-view-miniatura .fm-mini-field:last-child,
+.fm-listado.fm-view-miniatura .fm-mini-field:nth-last-child(2) {
+    border-bottom-color: transparent !important;
+}
+
+
+/* ============================================================
+   IZZY | AJUSTE FINAL MODALES - ORDEN / ALTO / NO DESBORDE
+   ============================================================ */
+.fm-modal .modal-dialog,
+.izzy-modal-consulta-facturacion.fm-modal .modal-dialog {
+    width: calc(100vw - 32px) !important;
+    max-width: 1600px !important;
+    height: calc(100vh - 32px) !important;
+    max-height: calc(100vh - 32px) !important;
+    margin: 16px auto !important;
+}
+
+.fm-modal .modal-content {
+    height: 100% !important;
+    max-height: 100% !important;
+}
+
+.fm-modal-body {
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+.fm-directory-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+}
+
+.fm-list-toolbar {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.fm-toolbar-left,
+.fm-toolbar-right {
+    min-width: 0 !important;
+}
+
+.fm-search-wrap {
+    position: relative !important;
+    flex: 0 1 300px !important;
+    width: 300px !important;
+    min-width: 220px !important;
+    max-width: 300px !important;
+    display: flex !important;
+    align-items: stretch !important;
+}
+
+.fm-search-wrap > i {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    transform: none !important;
+    flex: 0 0 42px !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    min-height: 38px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid #ced4da !important;
+    border-right: 0 !important;
+    border-radius: 8px 0 0 8px !important;
+    background: #f7f9fc !important;
+    color: #233b55 !important;
+    pointer-events: none !important;
+    z-index: 2 !important;
+}
+
+.fm-search-wrap input {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 38px !important;
+    padding: 7px 34px 7px 12px !important;
+    border-radius: 0 8px 8px 0 !important;
+}
+
+.fm-search-clear {
+    position: absolute !important;
+    right: 6px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    z-index: 4 !important;
+}
+
+/* Miniatura: 10 registros por defecto, cards compactas y sin altura ficticia. */
+.fm-listado.fm-view-miniatura {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 14px !important;
+    align-items: start !important;
+    align-content: start !important;
+    width: 100% !important;
+    margin: 0 !important;
+}
+
+.fm-listado.fm-view-miniatura .fm-mini-card {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    align-self: start !important;
+}
+
+.fm-listado.fm-view-miniatura .fm-mini-header {
+    min-width: 0 !important;
+}
+
+.fm-listado.fm-view-miniatura .fm-mini-title {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+}
+
+.fm-listado.fm-view-miniatura .fm-mini-actions {
+    flex: 0 0 auto !important;
+    max-width: 46% !important;
+}
+
+.fm-listado.fm-view-miniatura .fm-mini-actions .btn,
+.fm-listado.fm-view-miniatura .fm-mini-actions .d-flex {
+    max-width: 100% !important;
+}
+
+.fm-listado.fm-view-miniatura .fm-mini-body {
+    align-content: start !important;
+    flex: 0 0 auto !important;
+}
+
+/* En detalle, la celda de acciones jamás invade la columna siguiente. */
+.fm-cell-actions,
+.fm-cell-actions-wide {
+    overflow: visible !important;
+}
+.fm-cell-actions {
+    flex-basis: 145px !important;
+}
+.fm-cell-actions-wide {
+    flex-basis: 190px !important;
+}
+
+.fm-cell-actions .btn,
+.fm-cell-actions-wide .btn {
+    max-width: 100% !important;
+    white-space: nowrap !important;
+}
+
+/* Responsive real: nunca desbordar horizontalmente. */
+@media (max-width: 1199.98px) {
+    .fm-list-toolbar {
+        flex-wrap: wrap !important;
+    }
+
+    .fm-toolbar-left,
+    .fm-toolbar-right {
+        width: 100% !important;
+    }
+
+    .fm-toolbar-right {
+        justify-content: flex-end !important;
+        margin-left: 0 !important;
+        flex-wrap: wrap !important;
+    }
+
+    .fm-listado.fm-view-miniatura {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .fm-modal .modal-dialog,
+    .izzy-modal-consulta-facturacion.fm-modal .modal-dialog {
+        width: calc(100vw - 12px) !important;
+        height: calc(100vh - 12px) !important;
+        max-height: calc(100vh - 12px) !important;
+        margin: 6px auto !important;
+    }
+
+    .fm-toolbar-left,
+    .fm-toolbar-right {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    .fm-toolbar-left .btn {
+        width: 100% !important;
+    }
+
+    .fm-search-wrap {
+        width: 100% !important;
+        max-width: none !important;
+        min-width: 0 !important;
+    }
+
+    .fm-listado.fm-view-miniatura {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+
+/* ============================================================
+   COTIZACIÓN | Ajustes específicos
+   ============================================================ */
+#modal_buscar_productos_cotizacion.fm-modal .fm-filter-field {
+    flex: 1 1 100% !important;
+}
+
+#modal_buscar_productos_cotizacion.fm-modal .fm-filter-field .bootstrap-select,
+#modal_buscar_productos_cotizacion.fm-modal .fm-filter-field select {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+#modal_buscar_productos_cotizacion .fm-product-card-main,
+#modal_buscar_productos_cotizacion .fm-product-main {
+    min-width: 0 !important;
+}
+
+#modal_buscar_productos_cotizacion .fm-product-copy {
+    min-width: 0 !important;
+    overflow-wrap: anywhere !important;
+}
+
+
+/* ============================================================
+   IZZY | COTIZACIÓN - CORRECCIÓN FINAL DE LISTADOS DIV
+   Misma lógica visual de Facturación.
+   ============================================================ */
+
+/* El fallo anterior: el JS genera estas clases y no tenían layout. */
+.fm-detail-header,
+.fm-detail-row {
+    width: 100% !important;
+    min-width: 0 !important;
+    display: grid !important;
+    align-items: center !important;
+    column-gap: 0 !important;
+}
+
+.fm-detail-header {
+    min-height: 42px !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 8px !important;
+    background: #17324d !important;
+    color: #fff !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+}
+
+.fm-detail-header .fm-cell {
+    min-width: 0 !important;
+    padding: 10px 12px !important;
+    color: #fff !important;
+    font-size: .76rem !important;
+    font-weight: 800 !important;
+    line-height: 1.15 !important;
+    text-transform: uppercase !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+}
+
+.fm-detail-row {
+    min-height: 62px !important;
+    margin-top: 10px !important;
+    border: 1px solid #dfe6ee !important;
+    border-top: 3px solid #1fc79a !important;
+    border-radius: 9px !important;
+    background: #fff !important;
+    box-shadow: 0 1px 3px rgba(9,30,66,.05) !important;
+    overflow: visible !important;
+    transition: box-shadow .16s ease, transform .16s ease !important;
+}
+
+.fm-detail-row:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 5px 14px rgba(9,30,66,.10) !important;
+}
+
+.fm-detail-row .fm-cell {
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: 100% !important;
+    padding: 10px 12px !important;
+    color: #172b4d !important;
+    line-height: 1.25 !important;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
+}
+
+.fm-detail-row .fm-cell > .btn,
+.fm-detail-row .fm-cell .btn {
+    max-width: 100% !important;
+    white-space: nowrap !important;
+}
+
+/* Cabecera del modal: título/subtítulo juntos a la izquierda, X a la derecha. */
+.fm-modal-header {
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+}
+
+.fm-modal-title-wrap {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+}
+
+.fm-modal-title-wrap .modal-title {
+    margin: 0 !important;
+    color: #fff !important;
+    font-size: 1.05rem !important;
+    font-weight: 700 !important;
+    line-height: 1.25 !important;
+}
+
+.fm-modal-title-wrap small {
+    display: block !important;
+    max-width: 760px !important;
+    margin-top: 4px !important;
+    color: #d8e5f0 !important;
+    font-size: .78rem !important;
+    line-height: 1.25 !important;
+    white-space: normal !important;
+}
+
+.fm-modal-header .close {
+    position: static !important;
+    flex: 0 0 auto !important;
+    margin: -2px 0 0 0 !important;
+    padding: 0 !important;
+    color: #fff !important;
+    opacity: .95 !important;
+    font-size: 1.6rem !important;
+    line-height: 1 !important;
+}
+
+/* Aprovechar el alto como Facturación. */
+.fm-modal .modal-dialog {
+    width: calc(100vw - 32px) !important;
+    max-width: 1600px !important;
+    height: calc(100vh - 32px) !important;
+    max-height: calc(100vh - 32px) !important;
+    margin: 16px auto !important;
+    display: flex !important;
+    align-items: stretch !important;
+}
+
+.fm-modal .modal-content {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.fm-modal .modal-body,
+.fm-modal-body {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+.fm-modal .modal-footer {
+    flex: 0 0 auto !important;
+}
+
+/* Toolbar idéntica en orden a Facturación. */
+.fm-list-toolbar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 14px !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.fm-toolbar-left {
+    flex: 0 0 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+}
+
+.fm-toolbar-right {
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+    margin-left: auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    flex-wrap: nowrap !important;
+    gap: 10px !important;
+}
+
+/* Buscador: icono separado, input y X correctamente alineados. */
+.fm-search-wrap {
+    position: relative !important;
+    flex: 0 1 300px !important;
+    width: 300px !important;
+    min-width: 220px !important;
+    max-width: 300px !important;
+    display: flex !important;
+    align-items: stretch !important;
+}
+
+.fm-search-wrap > i {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    transform: none !important;
+    flex: 0 0 42px !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    min-height: 38px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid #ced4da !important;
+    border-right: 0 !important;
+    border-radius: 8px 0 0 8px !important;
+    background: #f7f9fc !important;
+    color: #233b55 !important;
+    pointer-events: none !important;
+    z-index: 2 !important;
+}
+
+.fm-search-wrap input {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 38px !important;
+    padding: 7px 34px 7px 12px !important;
+    border: 1px solid #ced4da !important;
+    border-radius: 0 8px 8px 0 !important;
+}
+
+.fm-search-clear {
+    position: absolute !important;
+    right: 6px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 26px !important;
+    height: 26px !important;
+    z-index: 4 !important;
+}
+
+/* Miniatura: usa todo el ancho, sin huecos artificiales. */
+.fm-listado.fm-view-miniatura {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 14px !important;
+    align-items: start !important;
+    align-content: start !important;
+    width: 100% !important;
+    margin: 0 !important;
+}
+
+.fm-listado.fm-view-miniatura .fm-mini-card {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    align-self: start !important;
+}
+
+.fm-listado.fm-view-miniatura .fm-mini-header,
+.fm-listado.fm-view-miniatura .fm-product-main,
+.fm-listado.fm-view-miniatura .fm-product-copy,
+.fm-listado.fm-view-miniatura .fm-mini-title {
+    min-width: 0 !important;
+}
+
+.fm-listado.fm-view-miniatura .fm-mini-body {
+    align-content: start !important;
+    flex: 0 0 auto !important;
+}
+
+/* Filtro de productos: Bodega a todo el ancho y sin input-group deformado. */
+#modal_buscar_productos_cotizacion #cotizacionFiltroProductosBody .fm-filter-row,
+#modal_buscar_productos_cotizacion #cotizacionFiltroProductosBody .fm-filter-field {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+#modal_buscar_productos_cotizacion #cotizacionFiltroBodegaHost,
+#modal_buscar_productos_cotizacion #cotizacionFiltroBodegaHost .bootstrap-select,
+#modal_buscar_productos_cotizacion #cotizacionFiltroBodegaHost select {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* No permitir desbordes por nombres/correos largos. */
+.fm-cell,
+.fm-mini-title,
+.fm-mini-subtitle,
+.fm-mini-field-value,
+.fm-product-name,
+.fm-product-copy {
+    min-width: 0 !important;
+    overflow-wrap: anywhere !important;
+}
+
+@media (max-width: 1199.98px) {
+    .fm-list-toolbar {
+        flex-wrap: wrap !important;
+    }
+    .fm-toolbar-left,
+    .fm-toolbar-right {
+        width: 100% !important;
+    }
+    .fm-toolbar-right {
+        margin-left: 0 !important;
+        flex-wrap: wrap !important;
+        justify-content: flex-end !important;
+    }
+    .fm-listado.fm-view-miniatura {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .fm-modal .modal-dialog {
+        width: calc(100vw - 12px) !important;
+        height: calc(100vh - 12px) !important;
+        max-height: calc(100vh - 12px) !important;
+        margin: 6px auto !important;
+    }
+
+    .fm-toolbar-left,
+    .fm-toolbar-right {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    .fm-toolbar-left .btn {
+        width: 100% !important;
+    }
+
+    .fm-search-wrap {
+        width: 100% !important;
+        max-width: none !important;
+        min-width: 0 !important;
+    }
+
+    .fm-listado.fm-view-miniatura {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Detalle móvil baja en bloques, sin scroll horizontal. */
+    .fm-detail-header {
+        display: none !important;
+    }
+
+    .fm-detail-row {
+        display: block !important;
+        padding: 6px 0 !important;
+    }
+
+    .fm-detail-row .fm-cell {
+        display: flex !important;
+        align-items: flex-start !important;
+        justify-content: space-between !important;
+        gap: 12px !important;
+        text-align: right !important;
+        border-bottom: 1px solid #edf1f6 !important;
+    }
+
+    .fm-detail-row .fm-cell::before {
+        content: attr(data-label);
+        flex: 0 0 42%;
+        text-align: left;
+        color: #667085;
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+}
+
+
+/* ============================================================
+   IZZY | FACTURA COMPRAS - AJUSTE ESPECÍFICO
+   Misma lógica visual que Facturas/Cotización
+   ============================================================ */
+
+#modal_buscar_productos_compras .fm-directory-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+}
+
+#modal_buscar_productos_compras .fm-list-toolbar {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+#modal_buscar_productos_compras .fm-detail-header,
+#modal_buscar_productos_compras .fm-detail-row {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+}
+
+#modal_buscar_productos_compras .fm-product-card-main {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    min-width: 0 !important;
+    width: 100% !important;
+}
+
+#modal_buscar_productos_compras .fm-product-copy {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+}
+
+#modal_buscar_productos_compras .fm-product-name,
+#modal_buscar_productos_compras .fm-product-kind {
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
+}
+
+#modal_buscar_productos_compras .fm-product-image-wrap {
+    flex: 0 0 58px !important;
+    width: 58px !important;
+    height: 58px !important;
+}
+
+#modal_buscar_productos_compras .fm-product-image {
+    width: 58px !important;
+    height: 58px !important;
+}
+
+#modal_buscar_productos_compras .fm-product-zoom {
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    min-height: 18px !important;
+}
+
+#modal_buscar_productos_compras .fm-listado.fm-view-miniatura {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    align-items: start !important;
+    align-content: start !important;
+}
+
+#modal_buscar_productos_compras .fm-mini-card {
+    height: auto !important;
+    min-height: 0 !important;
+    align-self: start !important;
+}
+
+#modal_buscar_productos_compras .fm-mini-body {
+    align-content: start !important;
+}
+
+#modal_buscar_productos_compras .fm-search-wrap {
+    min-width: 0 !important;
+}
+
+@media (max-width: 1199.98px) {
+    #modal_buscar_productos_compras .fm-listado.fm-view-miniatura {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    #modal_buscar_productos_compras .fm-listado.fm-view-miniatura {
+        grid-template-columns: 1fr !important;
+    }
+}

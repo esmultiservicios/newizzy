@@ -2109,4 +2109,524 @@ $('#editarPrecioModal').on('hidden.bs.modal.editarPrecioCotizacion', function ()
 /* =========================================================
    FIN - EDITAR PRECIO EN COTIZACIÓN
    ========================================================= */
+
+    /* =========================================================
+       IZZY | LISTADOS DIV PREMIUM
+       Sin DataTable visible. Mantiene endpoints y acciones.
+       ========================================================= */
+    function izzyListEscape(value) {
+        return $('<div>').text(value === null || value === undefined ? '' : String(value)).html();
+    }
+
+    function izzyListNumber(value) {
+        if (typeof value === 'string') {
+            value = value.replace(/L\./g,'').replace(/L/g,'').replace(/,/g,'').replace(/<[^>]*>/g,'').trim();
+        }
+        value = parseFloat(value || 0);
+        return isNaN(value) ? 0 : value;
+    }
+
+    function izzyListMoney(value) {
+        return 'L. ' + izzyListNumber(value).toLocaleString('es-HN', {
+            minimumFractionDigits:2,
+            maximumFractionDigits:2
+        });
+    }
+
+    function izzyListRows(response) {
+        if (typeof response === 'string') {
+            try { response = JSON.parse(response); } catch(e) { return []; }
+        }
+        if (Array.isArray(response)) return response;
+        if (response && Array.isArray(response.data)) return response.data;
+        if (response && Array.isArray(response.aaData)) return response.aaData;
+        return [];
+    }
+
+    function izzyListSearchText(row) {
+        try { return JSON.stringify(row || {}).toLowerCase(); }
+        catch(e) { return ''; }
+    }
+
+    function izzyMiniField(label, value) {
+        return '<div class="fm-mini-field">' +
+            '<span class="fm-mini-field-label">'+izzyListEscape(label)+'</span>' +
+            '<span class="fm-mini-field-value">'+value+'</span>' +
+        '</div>';
+    }
+
+    function izzyEmptyList() {
+        return '<div class="fm-empty"><i class="fas fa-inbox"></i><strong>Sin registros</strong><span>No hay información que coincida con los criterios actuales.</span></div>';
+    }
+
+    function izzyProductImageHtml(row) {
+        var fallback = '<?php echo SERVERURL; ?>vistas/plantilla/img/products/image_preview.png';
+        var src = row && row.image
+            ? '<?php echo SERVERURL; ?>vistas/plantilla/img/products/' + row.image
+            : fallback;
+        var title = izzyListEscape((row && row.nombre) || 'Producto');
+
+        return '<div class="fm-product-image-wrap">' +
+            '<img class="fm-product-image izzy-select-product-image" src="'+src+'" alt="'+title+'">' +
+            '<button type="button" class="fm-product-zoom iv-trigger" data-iv-src="'+src+'" data-iv-fallback="'+fallback+'" data-iv-title="'+title+'" title="Ver imagen grande">' +
+                '<i class="fas fa-search-plus"></i>' +
+            '</button>' +
+        '</div>';
+    }
+
+    function izzyApplyPermissions() {
+        try {
+            if (typeof getPermisosTipoUsuarioAccesosTable === 'function' &&
+                typeof getPrivilegioTipoUsuario === 'function') {
+                getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+            }
+        } catch(e) {}
+    }
+
+    function izzyCreateState(cfg) {
+        return $.extend({
+            rows:[],
+            filtered:[],
+            page:1,
+            pageSize:10,
+            view:'detalle',
+            search:'',
+            grid:'1fr',
+            columns:[],
+            renderMini:null,
+            renderDetail:null,
+            onSelect:null
+        }, cfg || {});
+    }
+
+    function izzyFilterState(state) {
+        var q = String(state.search || '').trim().toLowerCase();
+        state.filtered = !q ? state.rows.slice() : state.rows.filter(function(row) {
+            return izzyListSearchText(row).indexOf(q) !== -1;
+        });
+        var pages = Math.max(1, Math.ceil(state.filtered.length / state.pageSize));
+        if (state.page > pages) state.page = pages;
+        if (state.page < 1) state.page = 1;
+    }
+
+    function izzyRenderPagination(state) {
+        var pages = Math.max(1, Math.ceil(state.filtered.length / state.pageSize));
+        var html = '';
+        function btn(label,page,disabled,active) {
+            html += '<button type="button" data-page="'+page+'" '+(disabled?'disabled':'')+' class="'+(active?'active':'')+'">'+label+'</button>';
+        }
+        btn('<i class="fas fa-angle-double-left"></i> Inicio',1,state.page===1,false);
+        btn('<i class="fas fa-angle-left"></i> Anterior',state.page-1,state.page===1,false);
+        var from = Math.max(1,state.page-2);
+        var to = Math.min(pages,from+4);
+        from = Math.max(1,to-4);
+        for(var p=from;p<=to;p++) btn(String(p),p,false,p===state.page);
+        btn('Siguiente <i class="fas fa-angle-right"></i>',state.page+1,state.page===pages,false);
+        btn('Final <i class="fas fa-angle-double-right"></i>',pages,state.page===pages,false);
+
+        $(state.pagination).html(html)
+            .off('click.izzyList','button[data-page]')
+            .on('click.izzyList','button[data-page]',function(){
+                if(this.disabled || $(this).hasClass('active')) return;
+                state.page = parseInt($(this).attr('data-page'),10) || 1;
+                izzyRenderState(state);
+            });
+    }
+
+    function izzyRenderState(state) {
+        izzyFilterState(state);
+
+        var start = (state.page-1) * state.pageSize;
+        var pageRows = state.filtered.slice(start,start+state.pageSize);
+        var html = '';
+
+        if (!pageRows.length) {
+            html = izzyEmptyList();
+        } else if (state.view === 'miniatura') {
+            html = pageRows.map(function(row,idx){
+                return state.renderMini(row,start+idx);
+            }).join('');
+        } else {
+            html = '<div class="fm-detail-header" style="grid-template-columns:'+state.grid+'">' +
+                state.columns.map(function(c){return '<div class="fm-cell '+(c.cls||'')+'">'+izzyListEscape(c.label)+'</div>';}).join('') +
+            '</div>' +
+            pageRows.map(function(row,idx){
+                return state.renderDetail(row,start+idx);
+            }).join('');
+        }
+
+        $(state.list).toggleClass('fm-view-miniatura',state.view==='miniatura').html(html);
+        $(state.info).text(state.filtered.length
+            ? 'Mostrando '+(start+1)+' a '+Math.min(start+pageRows.length,state.filtered.length)+' de '+state.filtered.length+' registros'
+            : '0 registros');
+
+        izzyRenderPagination(state);
+        izzyApplyPermissions();
+
+        $(state.modal).find('.fm-view-btn')
+            .removeClass('active')
+            .filter('[data-view="'+state.view+'"]').addClass('active');
+    }
+
+    function izzyBindState(state) {
+        $(document)
+            .off('input.izzyList',state.searchInput)
+            .on('input.izzyList',state.searchInput,function(){
+                state.search = $(this).val() || '';
+                state.page = 1;
+                izzyRenderState(state);
+            })
+            .off('click.izzyList',state.clearBtn)
+            .on('click.izzyList',state.clearBtn,function(){
+                $(state.searchInput).val('');
+                state.search = '';
+                state.page = 1;
+                izzyRenderState(state);
+                $(state.searchInput).focus();
+            })
+            .off('change.izzyList',state.pageSizeSelect)
+            .on('change.izzyList',state.pageSizeSelect,function(){
+                state.pageSize = parseInt($(this).val(),10) || 10;
+                state.page = 1;
+                izzyRenderState(state);
+            })
+            .off('click.izzyList',state.modal+' .fm-view-btn')
+            .on('click.izzyList',state.modal+' .fm-view-btn',function(){
+                state.view = $(this).attr('data-view') === 'miniatura' ? 'miniatura' : 'detalle';
+                state.page = 1;
+                izzyRenderState(state);
+            })
+            .off('click.izzyList',state.list+' [data-row-index]')
+            .on('click.izzyList',state.list+' [data-row-index]',function(e){
+                if ($(e.target).closest('.iv-trigger').length) return;
+                var index = parseInt($(this).attr('data-row-index'),10);
+                var row = state.filtered[index];
+                if (row && typeof state.onSelect === 'function') state.onSelect(row);
+            });
+    }
+
+    function izzyLoadState(state,url,data,done) {
+        $(state.list).removeClass('fm-view-miniatura').html('<div class="fm-loading"><i class="fas fa-spinner fa-spin mr-1"></i> Cargando...</div>');
+        $.ajax({
+            type:'POST',
+            url:url,
+            data:data || {},
+            cache:false
+        }).done(function(response){
+            state.rows = izzyListRows(response);
+            state.page = 1;
+            izzyRenderState(state);
+            if (typeof done === 'function') done(state.rows);
+        }).fail(function(){
+            state.rows = [];
+            state.filtered = [];
+            izzyRenderState(state);
+            if (typeof showNotify === 'function') {
+                showNotify('error','Error','No fue posible cargar la información.');
+            }
+        });
+    }
+
+
+    var izzyCotProductosState;
+    var izzyCotClientesState;
+    var izzyCotColaboradoresState;
+
+
+    function izzyCotOrdenarHeaderModal($modal, titulo, subtitulo) {
+        var $header = $modal.find('.modal-header').first();
+
+        $modal.addClass('fm-modal');
+        $header.addClass('fm-modal-header');
+
+        var $close = $header.find('.close').first().detach();
+        var $title = $header.find('.modal-title').first();
+
+        if (!$header.find('.fm-modal-title-wrap').length) {
+            var $wrap = $('<div class="fm-modal-title-wrap"></div>');
+            $title.detach().appendTo($wrap);
+            $wrap.append('<small class="d-block mt-1"></small>');
+            $header.empty().append($wrap).append($close);
+        }
+
+        $header.find('.modal-title').text(titulo);
+        $header.find('.fm-modal-title-wrap small').text(subtitulo);
+    }
+
+    function izzyCotPrepareProductoModal() {
+        var $modal = $('#modal_buscar_productos_cotizacion');
+        var $form = $('#formulario_busqueda_productos_cotizacion');
+
+        izzyCotOrdenarHeaderModal(
+            $modal,
+            'Buscar Productos - Cotización',
+            'Seleccione un producto o servicio para agregarlo a la cotización.'
+        );
+        $modal.find('.modal-body').addClass('fm-modal-body');
+
+        if (!$('#cotizacionFiltroProductosCard').length) {
+            var $select = $form.find('#almacen');
+            var $selectVisual = $select.closest('.bootstrap-select');
+
+            if (!$selectVisual.length) {
+                $selectVisual = $select;
+            } else {
+                $selectVisual = $selectVisual.add($select);
+            }
+
+            var $card = $(
+                '<div class="fm-section-card mb-3" id="cotizacionFiltroProductosCard">' +
+                    '<div class="fm-section-header">' +
+                        '<div><h6 class="mb-0"><i class="fas fa-filter mr-1"></i>Filtros de productos</h6><small>Use los criterios necesarios y aplique la búsqueda.</small></div>' +
+                        '<button type="button" class="btn fm-toggle-filter" id="cotizacionToggleFiltroProductos"><i class="fas fa-chevron-up mr-1"></i><span>Ocultar</span></button>' +
+                    '</div>' +
+                    '<div class="fm-section-body" id="cotizacionFiltroProductosBody">' +
+                        '<div class="fm-filter-row">' +
+                            '<div class="fm-filter-field"><label>Bodega</label><div id="cotizacionFiltroBodegaHost"></div></div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>'
+            );
+
+            $form.prepend($card);
+            $('#cotizacionFiltroBodegaHost').append($selectVisual);
+
+            $form.children('.form-group').not('#cotizacionFiltroProductosCard').each(function () {
+                if (!$(this).find('input,select,textarea').length) {
+                    $(this).remove();
+                }
+            });
+
+            try {
+                $select.selectpicker('refresh');
+            } catch (e) {}
+        }
+
+        if (!$('#productosCotizacionListado').length) {
+            $('#DatatableProductosBusquedaCotizacion').closest('.col-md-12').replaceWith(
+                '<div class="fm-directory-card">' +
+                    '<div class="fm-list-toolbar">' +
+                        '<div class="fm-toolbar-left">' +
+                            '<button type="button" id="btnActualizarProductosCot" class="btn btn-info table_actualizar ocultar"><i class="fas fa-sync-alt"></i>Actualizar</button>' +
+                            '<button type="button" id="btnNuevoProductoCot" class="btn btn-primary table_crear ocultar"><i class="fas fa-plus"></i>Ingresar</button>' +
+                        '</div>' +
+                        '<div class="fm-toolbar-right">' +
+                            '<label class="fm-page-size">Mostrar <select id="productosCotizacionPageSize" class="form-control form-control-sm fm-page-size-select"><option>10</option><option>25</option><option>50</option><option>100</option></select> registros</label>' +
+                            '<div class="fm-view-switch">' +
+                                '<button type="button" class="fm-view-btn active" data-view="detalle"><i class="fas fa-list"></i></button>' +
+                                '<button type="button" class="fm-view-btn" data-view="miniatura"><i class="fas fa-th-large"></i></button>' +
+                            '</div>' +
+                            '<div class="fm-search-wrap"><i class="fas fa-search"></i><input type="search" id="productosCotizacionSearch" class="form-control form-control-sm" placeholder="Buscar..."><button type="button" id="productosCotizacionClear" class="fm-search-clear"><i class="fas fa-times"></i></button></div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div id="productosCotizacionListado" class="fm-listado"></div>' +
+                    '<div class="fm-list-footer"><span id="productosCotizacionInfo" class="fm-list-info">0 registros</span><div id="productosCotizacionPaginacion" class="fm-pagination"></div></div>' +
+                '</div>'
+            );
+        }
+
+        $('#cotizacionToggleFiltroProductos').off('click.izzy').on('click.izzy',function(){
+            var $body = $('#cotizacionFiltroProductosBody');
+            var hidden = $body.is(':visible');
+            $body.stop(true,true).slideToggle(160);
+            $(this).find('span').text(hidden ? 'Mostrar' : 'Ocultar');
+            $(this).find('i').toggleClass('fa-chevron-up',!hidden).toggleClass('fa-chevron-down',hidden);
+        });
+    }
+
+    function izzyCotSeleccionarProducto(data) {
+        if ($("#quoteForm #cliente_id").val() === "" || $("#quoteForm #cliente").val() === "" ||
+            $("#quoteForm #colaborador_id").val() === "" || $("#quoteForm #colaborador").val() === "") {
+            showNotify('error','Error','Lo sentimos no se puede seleccionar un producto, por favor antes de continuar, verifique que cliente y vendedor no se encuentren vacíos.');
+            return;
+        }
+
+        $('#quoteForm #QuoteItem #productosQuote_id_' + row).val(data.productos_id);
+        $('#quoteForm #QuoteItem #bar-code-id_' + row).val(data.barCode);
+        $('#quoteForm #QuoteItem #productNameQuote_' + row).val(data.nombre);
+        $('#quoteForm #QuoteItem #quantityQuote_' + row).val(1);
+        $('#quoteForm #QuoteItem #quantityQuote_' + row).focus();
+        $('#quoteForm #QuoteItem #priceQuote_' + row).val(data.precio_venta);
+        $('#quoteForm #QuoteItem #discountQuote_' + row).val(0);
+        $('#quoteForm #QuoteItem #isvQuote_' + row).val(data.impuesto_venta);
+        setISVQuoteDesdeProducto(row, data);
+        $('#quoteForm #QuoteItem #precio_mayoreoQuote_' + row).val(data.precio_mayoreo);
+        $('#quoteForm #QuoteItem #cantidad_mayoreoQuote_' + row).val(data.cantidad_mayoreo);
+        $('#quoteForm #QuoteItem #precio_realQuote_' + row).val(data.precio_venta);
+
+        actualizarTextoProductoQuote(row, data.nombre, data.medida);
+
+        if (data.impuesto_venta == 1) {
+            var porcentaje_isv = parseFloat(getPorcentajeISV("Facturas") / 100);
+            var porcentaje_calculo = (parseFloat(data.precio_venta || 0) * porcentaje_isv).toFixed(2);
+            var isv_total = parseFloat($('#quoteForm #taxAmountQuote').val() || 0);
+            $('#quoteForm #taxAmountQuote').val((isv_total + parseFloat(porcentaje_calculo)).toFixed(2));
+            $('#quoteForm #QuoteItem #valorQuote_isv_' + row).val(porcentaje_calculo);
+        }
+
+        recalcularISVCotizacionActual(row);
+        calculateTotalQuote();
+        addRowQuote();
+        $('#modal_buscar_productos_cotizacion').modal('hide');
+        row++;
+    }
+
+    function izzyCotInitStates() {
+        izzyCotPrepareProductoModal();
+
+        izzyCotOrdenarHeaderModal(
+            $('#modal_buscar_clientes_facturacion'),
+            'Buscar Clientes',
+            'Seleccione un cliente existente o registre uno nuevo.'
+        );
+        $('#modal_buscar_clientes_facturacion .modal-body').addClass('fm-modal-body');
+
+        izzyCotOrdenarHeaderModal(
+            $('#modal_buscar_colaboradores_facturacion'),
+            'Buscar Colaboradores',
+            'Seleccione el vendedor responsable de la cotización.'
+        );
+        $('#modal_buscar_colaboradores_facturacion .modal-body').addClass('fm-modal-body');
+
+        izzyCotProductosState = izzyCreateState({
+            modal:'#modal_buscar_productos_cotizacion',
+            list:'#productosCotizacionListado',
+            info:'#productosCotizacionInfo',
+            pagination:'#productosCotizacionPaginacion',
+            searchInput:'#productosCotizacionSearch',
+            clearBtn:'#productosCotizacionClear',
+            pageSizeSelect:'#productosCotizacionPageSize',
+            grid:'130px minmax(260px,2fr) minmax(150px,1fr) 110px 100px minmax(140px,1fr) 140px minmax(150px,1fr)',
+            columns:[
+                {label:'Agregar',cls:'fm-text-center'},
+                {label:'Producto'},
+                {label:'Código'},
+                {label:'Existencia',cls:'fm-text-center'},
+                {label:'Medida'},
+                {label:'Categoría'},
+                {label:'Venta',cls:'fm-text-right'},
+                {label:'Bodega'}
+            ],
+            renderDetail:function(r,i){
+                return '<div class="fm-detail-row" style="grid-template-columns:'+this.grid+'" data-row-index="'+i+'">' +
+                    '<div class="fm-cell fm-text-center" data-label="Agregar"><button type="button" class="btn btn-primary btn-sm table_view ocultar"><i class="fas fa-cart-plus mr-1"></i>Agregar</button></div>' +
+                    '<div class="fm-cell" data-label="Producto"><div class="fm-product-card-main">'+izzyProductImageHtml(r)+'<div class="fm-product-copy"><div class="fm-product-name">'+izzyListEscape(r.nombre||'')+'</div><div class="fm-product-kind">'+izzyListEscape(r.tipo_producto_nombre||'Producto')+'</div></div></div></div>' +
+                    '<div class="fm-cell" data-label="Código">'+izzyListEscape(r.barCode||'')+'</div>' +
+                    '<div class="fm-cell fm-text-center" data-label="Existencia">'+izzyListEscape(r.cantidad||0)+'</div>' +
+                    '<div class="fm-cell" data-label="Medida">'+izzyListEscape(r.medida||'')+'</div>' +
+                    '<div class="fm-cell" data-label="Categoría">'+izzyListEscape(r.tipo_producto_nombre||'')+'</div>' +
+                    '<div class="fm-cell fm-text-right" data-label="Venta"><strong>'+izzyListMoney(r.precio_venta)+'</strong></div>' +
+                    '<div class="fm-cell" data-label="Bodega">'+izzyListEscape(r.almacen||'Sin bodega')+'</div>' +
+                '</div>';
+            },
+            renderMini:function(r,i){
+                return '<div class="fm-mini-card" data-row-index="'+i+'">' +
+                    '<div class="fm-mini-header"><div class="fm-product-card-main">'+izzyProductImageHtml(r)+'<div class="fm-product-copy"><div class="fm-mini-title">'+izzyListEscape(r.nombre||'')+'</div><span class="fm-mini-subtitle">Código: '+izzyListEscape(r.barCode||'')+'</span></div></div>' +
+                    '<div class="fm-mini-actions"><button type="button" class="btn btn-primary btn-sm table_view ocultar"><i class="fas fa-cart-plus mr-1"></i>Agregar</button></div></div>' +
+                    '<div class="fm-mini-body">' +
+                        izzyMiniField('Existencia',izzyListEscape(r.cantidad||0)) +
+                        izzyMiniField('Medida',izzyListEscape(r.medida||'')) +
+                        izzyMiniField('Categoría',izzyListEscape(r.tipo_producto_nombre||'')) +
+                        izzyMiniField('Venta','<strong>'+izzyListMoney(r.precio_venta)+'</strong>') +
+                        izzyMiniField('Bodega',izzyListEscape(r.almacen||'Sin bodega')) +
+                    '</div>' +
+                '</div>';
+            },
+            onSelect:izzyCotSeleccionarProducto
+        });
+        izzyBindState(izzyCotProductosState);
+
+        izzyCotClientesState = izzyCreateState({
+            modal:'#modal_buscar_clientes_facturacion',
+            list:'#clientesFacturaListado',
+            info:'#clientesFacturaInfo',
+            pagination:'#clientesFacturaPaginacion',
+            searchInput:'#clientesFacturaSearch',
+            clearBtn:'#modal_buscar_clientes_facturacion .fm-search-clear',
+            pageSizeSelect:'#clientesFacturaPageSize',
+            grid:'150px minmax(240px,2fr) minmax(130px,1fr) minmax(130px,1fr) minmax(220px,1.4fr)',
+            columns:[{label:'Seleccionar'},{label:'Cliente'},{label:'RTN'},{label:'Teléfono'},{label:'Correo'}],
+            renderDetail:function(r,i){
+                return '<div class="fm-detail-row" style="grid-template-columns:'+this.grid+'" data-row-index="'+i+'">' +
+                    '<div class="fm-cell" data-label="Seleccionar"><button type="button" class="btn btn-primary btn-sm table_view ocultar"><i class="fas fa-copy mr-1"></i>Seleccionar</button></div>' +
+                    '<div class="fm-cell" data-label="Cliente"><strong>'+izzyListEscape(r.cliente||'')+'</strong></div>' +
+                    '<div class="fm-cell" data-label="RTN">'+izzyListEscape(r.rtn||'')+'</div>' +
+                    '<div class="fm-cell" data-label="Teléfono">'+izzyListEscape(r.telefono||'')+'</div>' +
+                    '<div class="fm-cell" data-label="Correo">'+izzyListEscape(r.correo||'')+'</div>' +
+                '</div>';
+            },
+            renderMini:function(r,i){
+                return '<div class="fm-mini-card" data-row-index="'+i+'"><div class="fm-mini-header"><div><div class="fm-mini-title">'+izzyListEscape(r.cliente||'')+'</div><span class="fm-mini-subtitle">'+izzyListEscape(r.rtn||'')+'</span></div><button class="btn btn-primary btn-sm table_view ocultar"><i class="fas fa-copy mr-1"></i>Seleccionar</button></div><div class="fm-mini-body">'+izzyMiniField('Teléfono',izzyListEscape(r.telefono||''))+izzyMiniField('Correo',izzyListEscape(r.correo||''))+'</div></div>';
+            },
+            onSelect:function(r){
+                $('#quoteForm #cliente_id').val(r.clientes_id);
+                $('#quoteForm #cliente').val(r.cliente);
+                $('#quoteForm #client-customers-quote').html('<b>Cliente:</b> '+izzyListEscape(r.cliente));
+                $('#quoteForm #rtn-customers-quote').html('<b>RTN:</b> '+izzyListEscape(r.rtn));
+                $('#modal_buscar_clientes_facturacion').modal('hide');
+            }
+        });
+        izzyBindState(izzyCotClientesState);
+
+        izzyCotColaboradoresState = izzyCreateState({
+            modal:'#modal_buscar_colaboradores_facturacion',
+            list:'#colaboradoresFacturaListado',
+            info:'#colaboradoresFacturaInfo',
+            pagination:'#colaboradoresFacturaPaginacion',
+            searchInput:'#colaboradoresFacturaSearch',
+            clearBtn:'#modal_buscar_colaboradores_facturacion .fm-search-clear',
+            pageSizeSelect:'#colaboradoresFacturaPageSize',
+            grid:'150px minmax(260px,2fr) minmax(160px,1fr) minmax(140px,1fr)',
+            columns:[{label:'Seleccionar'},{label:'Colaborador'},{label:'Identidad'},{label:'Teléfono'}],
+            renderDetail:function(r,i){
+                return '<div class="fm-detail-row" style="grid-template-columns:'+this.grid+'" data-row-index="'+i+'"><div class="fm-cell"><button class="btn btn-primary btn-sm table_view ocultar"><i class="fas fa-copy mr-1"></i>Seleccionar</button></div><div class="fm-cell"><strong>'+izzyListEscape(r.colaborador||'')+'</strong></div><div class="fm-cell">'+izzyListEscape(r.identidad||'')+'</div><div class="fm-cell">'+izzyListEscape(r.telefono||'')+'</div></div>';
+            },
+            renderMini:function(r,i){
+                return '<div class="fm-mini-card" data-row-index="'+i+'"><div class="fm-mini-header"><div><div class="fm-mini-title">'+izzyListEscape(r.colaborador||'')+'</div><span class="fm-mini-subtitle">'+izzyListEscape(r.identidad||'')+'</span></div><button class="btn btn-primary btn-sm table_view ocultar"><i class="fas fa-copy mr-1"></i>Seleccionar</button></div><div class="fm-mini-body">'+izzyMiniField('Teléfono',izzyListEscape(r.telefono||''))+'</div></div>';
+            },
+            onSelect:function(r){
+                $('#quoteForm #colaborador_id').val(r.colaborador_id);
+                $('#quoteForm #colaborador').val(r.colaborador);
+                $('#quoteForm #vendedor-customers-quote').html('<b>Vendedor:</b> '+izzyListEscape(r.colaborador));
+                $('#modal_buscar_colaboradores_facturacion').modal('hide');
+            }
+        });
+        izzyBindState(izzyCotColaboradoresState);
+
+        $('#btnActualizarProductosCot').off('click.izzy').on('click.izzy',listar_productos_cotizacion_buscar);
+        $('#btnNuevoProductoCot').off('click.izzy').on('click.izzy',function(){ if(typeof modal_productos==='function') modal_productos(); });
+        $('#btnActualizarClientesFm').off('click.izzy').on('click.izzy',listar_clientes_cotizacion_buscar);
+        $('#btnNuevoClienteFm').off('click.izzy').on('click.izzy',function(){ if(typeof modal_clientes==='function') modal_clientes(); });
+        $('#btnActualizarColaboradoresFm').off('click.izzy').on('click.izzy',listar_colaboradores_buscar_cotizacion);
+        $('#btnNuevoColaboradorFm').off('click.izzy').on('click.izzy',function(){ if(typeof modal_colaboradores==='function') modal_colaboradores(); });
+
+        $('#formulario_busqueda_productos_cotizacion #almacen').off('change.izzy').on('change.izzy',listar_productos_cotizacion_buscar);
+    }
+
+    listar_productos_cotizacion_buscar = function() {
+        if (!izzyCotProductosState) izzyCotInitStates();
+        var bodega = $('#formulario_busqueda_productos_cotizacion #almacen').val() || 1;
+        izzyLoadState(izzyCotProductosState,'<?php echo SERVERURL; ?>core/llenarDataTableProductosCotizacion.php',{bodega:bodega});
+    };
+
+    listar_clientes_cotizacion_buscar = function() {
+        if (!izzyCotClientesState) izzyCotInitStates();
+        izzyLoadState(izzyCotClientesState,'<?php echo SERVERURL; ?>core/llenarDataTableClientes.php',{});
+    };
+
+    listar_colaboradores_buscar_cotizacion = function() {
+        if (!izzyCotColaboradoresState) izzyCotInitStates();
+        izzyLoadState(izzyCotColaboradoresState,'<?php echo SERVERURL; ?>core/llenarDataTableColaboradores.php',{});
+    };
+
+    $(function(){
+        izzyCotInitStates();
+
+        $('#modal_buscar_productos_cotizacion,#modal_buscar_clientes_facturacion,#modal_buscar_colaboradores_facturacion')
+            .off('shown.bs.modal.izzyFocus')
+            .on('shown.bs.modal.izzyFocus',function(){
+                $(this).find('input[type="search"]:visible').first().focus();
+            });
+    });
+
 </script>

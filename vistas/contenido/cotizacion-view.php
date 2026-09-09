@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/cotizacion_modales.css">
 <body id="view_quote">
     <div class="container-fluid">
         <div class="card mb-4">
